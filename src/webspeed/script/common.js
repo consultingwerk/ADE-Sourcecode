@@ -1,63 +1,63 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-  var isIE4up, isNav4up;
-  
-  function getBrowser() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Sets a flag indicating the web browser type.
-      Parameters:  
-      Notes:       
-    -------------------------------------------------------------------------*/
-    if (parseInt(navigator.appVersion) >= 4) {
-      if (document.all)
-        isIE4up  = true;
-      else if (document.layers)
-        isNav4up = true;
-    }
-  }
-  
-  function getUnknown() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Return web browser's unknown value.
-      Parameters:  
-      Notes:       
-    -------------------------------------------------------------------------*/
-    if (isIE4up)
-      return null;
-    else if (isNav4up)
-      return undefined;
-  }
-  
-  function setColor(cFile, cColor) {
-    /*-----------------------------------------------------------------------
-      Purpose:     Rebuilds the File Open/Save filelist for Netscape Navigator.
-      Parameters:  
-      Notes:       
-    -------------------------------------------------------------------------*/
-    if (cColor == "") cColor = "black";
-    
-    return '<BODY TEXT="' + cColor + '">' +
-           '<FONT FACE="sans-serif" POINT-SIZE="9"> ' + cFile + 
-           ' <\/FONT><\/BODY>';
-  }
-  
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+  var isIE4up, isNav4up;
+  
+  function getBrowser() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Sets a flag indicating the web browser type.
+      Parameters:  
+      Notes:       
+    -------------------------------------------------------------------------*/
+    if (parseInt(navigator.appVersion) >= 4) {
+      if (document.all)
+        isIE4up  = true;
+      else if (document.layers)
+        isNav4up = true;
+    }
+  }
+  
+  function getUnknown() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Return web browser's unknown value.
+      Parameters:  
+      Notes:       
+    -------------------------------------------------------------------------*/
+    if (isIE4up)
+      return null;
+    else if (isNav4up)
+      return undefined;
+  }
+  
+  function setColor(cFile, cColor) {
+    /*-----------------------------------------------------------------------
+      Purpose:     Rebuilds the File Open/Save filelist for Netscape Navigator.
+      Parameters:  
+      Notes:       
+    -------------------------------------------------------------------------*/
+    if (cColor == "") cColor = "black";
+    
+    return '<BODY TEXT="' + cColor + '">' +
+           '<FONT FACE="sans-serif" POINT-SIZE="9"> ' + cFile + 
+           ' <\/FONT><\/BODY>';
+  }
+  

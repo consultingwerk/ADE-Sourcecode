@@ -1,154 +1,154 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
---------------------------------------------------------------------->
-<html>
-<head>
-<meta http-equiv="Content-Type"
-content="text/html; charset=iso-8859-1">
-<meta name="GENERATOR" content="Microsoft FrontPage 2.0">
-<title>Object State</title>
-<meta name="FORMATTER" content="Microsoft FrontPage 2.0">
-</head>
-
-<body bgcolor="#FFFFFF">
-
-<h1><font color="#000080" face="MS Sans Serif"><img
-src="images/helpbook.gif" width="53" height="40"> Object State
-Tool</font></h1>
-
-<hr size="4" color="#0000FF">
-
-<p><font size="2" face="Arial">The Object State tool lists the </font><a
-href="glossary.htm#Web object"><font size="2" face="Arial">Web
-Objects</font></a><font size="2" face="Arial"> and other </font><a
-href="glossary.htm#procedure"><font size="2" face="Arial">procedures</font></a><font
-size="2" face="Arial"> running in the current WebSpeed session.
-It provides the following information:</font></p>
-
-<dl>
-    <dt><font size="2" face="Arial"><strong>Web Object File Name</strong></font></dt>
-    <dd><font size="2" face="Arial">The pathname of the Web
-        Object or procedure.</font></dd>
-    <dt>&nbsp;</dt>
-    <dt><font size="2" face="Arial"><strong>Type</strong></font></dt>
-    <dd><font size="2" face="Arial">The type of the procedure.
-        You can specify any type in the Procedure Settings for an
-        object or file. The following is a list of possible
-        values:</font></dd>
-</dl>
-
-<blockquote>
-    <dl>
- 	<dt><font size="2" face="Arial"><strong>SmartDataObject</strong></font></dt>
-        <dd><font size="2" face="Arial">A SmartDataObject that you created using
-	the AppBuilder.</font></dd>
-        <dt>&nbsp;</dt>
-       
-	<dt><font size="2" face="Arial"><strong>Super Procedure</strong></font></dt>
-        <dd><font size="2" face="Arial">An ADM2/WEB 2 super procedure.</font></dd>
-        <dt>&nbsp;</dt>
-
-        <dt><font size="2" face="Arial"><strong>Web Object</strong></font></dt>
-        <dd><font size="2" face="Arial">A </font><a
-            href="glossary.htm#Web object"><font size="2"
-            face="Arial">Web object</font></a><font size="2"
-            face="Arial"> file that you created using the AppBuilder.</font></dd>
-  <dt>&nbsp;</dt>
-   
- <dt><font size="2" face="Arial"><strong>WebTool</strong></font></dt>
-        <dd><font size="2" face="Arial">A procedure used in </font><a
-            href="glossary.htm#WebTools"><font size="2"
-            face="Arial">Web Tools</font></a><font size="2"
-            face="Arial">.</font></dd>
-        <dt>&nbsp;</dt>  
-
-<dt><font size="2" face="Arial"><strong>Web-Utilities-Object</strong></font></dt>
-        <dd><font size="2" face="Arial">The object </font><font
-            size="2" face="Lucida Sans Unicode">web/objects/web-disp.p
-            </font><font size="2" face="Arial">defined as </font><a
-            href="glossary.htm#web-utilities-hdl"><font size="2"
-            face="Arial">web-utilities-hdl</font></a><font
-            size="2" face="Arial">.</font></dd>
-   <dt>&nbsp;</dt>
-<dt><font size="2" face="Arial"><strong>Workshop Object</strong></font></dt>
-        <dd><font size="2" face="Arial">A persistent procedure used internally
-           by WebSpeed.</font></dd>
-       
-</dl>
-</blockquote>
-
-<dl>
-    <dt><font size="2" face="Arial"><strong>Web-State</strong></font></dt>
-    <dd><font size="2" face="Arial">The Web object can execute in
-        one of the following modes:</font></dd>
-</dl>
-
-<blockquote>
-    <dl>
-        <dt><a href="glossary.htm#state-aware Web object"><font
-            size="2" face="Arial"><strong>state-aware</strong></font></a></dt>
-        <dd><font size="2" face="Arial">Locks the agent so that
-            it is available only to the user that requested the
-            procedure. <strong>Time left</strong> shows the
-            number of minutes before the state-aware object times
-            out.</font></dd>
-        <dt>&nbsp;</dt>
-        <dt><a href="glossary.htm#stateless application"><font
-            size="2" face="Arial"><strong>stateless</strong></font></a></dt>
-        <dd><font size="2" face="Arial">Does not lock the agent
-            and returns it to the state that it ran in. If the
-            agent is not locked, a stateless Web object destroys
-            itself when finished.</font></dd>
-        <dt>&nbsp;</dt>
-        <dt><a href="glossary.htm#persistent object"><font
-            size="2" face="Arial"><strong>persistent</strong></font></a></dt>
-        <dd><font size="2" face="Arial">The procedure is running
-            persistently.This is set by the AppBuilder and WebSpeed on some internal
-            objects.</font></dd>
-    </dl>
-</blockquote>
-<!--webbot bot="Include" u-include="standard.htm" tag="BODY"
-startspan -->
-
-<hr noshade color="#0000FF">
-
-<dl>
-    <dd><a href="howtouse.htm"><img src="images/help-sm.gif"
-        border="0" width="18" height="18"></a> <a
-        href="howtouse.htm"><font size="2" face="Arial">How to
-        Use Web Tools</font></a></dd>
-    <dd><a href="glossary.htm"><img src="images/help-sm.gif"
-        border="0" width="18" height="18"></a> <a
-        href="glossary.htm"><font size="2" face="Arial">WebSpeed
-        Glossary</font></a><font size="2" face="Arial"> </font></dd>
-    <dd><a href="main.htm"><img
-        src="images/book.gif" border="0" width="19" height="17"></a><font
-        size="2" face="Arial"> </font><a
-        href="main.htm"><font size="2"
-        face="Arial">WebTools Help</font></a></dd>
-</dl>
-
-<p>&nbsp;</p>
-<!--webbot bot="Include" endspan i-checksum="30635" -->
-</body>
-</html>
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage 2.0">
+<title>Object State</title>
+<meta name="FORMATTER" content="Microsoft FrontPage 2.0">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1><font color="#000080" face="MS Sans Serif"><img
+src="images/helpbook.gif" width="53" height="40"> Object State
+Tool</font></h1>
+
+<hr size="4" color="#0000FF">
+
+<p><font size="2" face="Arial">The Object State tool lists the </font><a
+href="glossary.htm#Web object"><font size="2" face="Arial">Web
+Objects</font></a><font size="2" face="Arial"> and other </font><a
+href="glossary.htm#procedure"><font size="2" face="Arial">procedures</font></a><font
+size="2" face="Arial"> running in the current WebSpeed session.
+It provides the following information:</font></p>
+
+<dl>
+    <dt><font size="2" face="Arial"><strong>Web Object File Name</strong></font></dt>
+    <dd><font size="2" face="Arial">The pathname of the Web
+        Object or procedure.</font></dd>
+    <dt>&nbsp;</dt>
+    <dt><font size="2" face="Arial"><strong>Type</strong></font></dt>
+    <dd><font size="2" face="Arial">The type of the procedure.
+        You can specify any type in the Procedure Settings for an
+        object or file. The following is a list of possible
+        values:</font></dd>
+</dl>
+
+<blockquote>
+    <dl>
+ 	<dt><font size="2" face="Arial"><strong>SmartDataObject</strong></font></dt>
+        <dd><font size="2" face="Arial">A SmartDataObject that you created using
+	the AppBuilder.</font></dd>
+        <dt>&nbsp;</dt>
+       
+	<dt><font size="2" face="Arial"><strong>Super Procedure</strong></font></dt>
+        <dd><font size="2" face="Arial">An ADM2/WEB 2 super procedure.</font></dd>
+        <dt>&nbsp;</dt>
+
+        <dt><font size="2" face="Arial"><strong>Web Object</strong></font></dt>
+        <dd><font size="2" face="Arial">A </font><a
+            href="glossary.htm#Web object"><font size="2"
+            face="Arial">Web object</font></a><font size="2"
+            face="Arial"> file that you created using the AppBuilder.</font></dd>
+  <dt>&nbsp;</dt>
+   
+ <dt><font size="2" face="Arial"><strong>WebTool</strong></font></dt>
+        <dd><font size="2" face="Arial">A procedure used in </font><a
+            href="glossary.htm#WebTools"><font size="2"
+            face="Arial">Web Tools</font></a><font size="2"
+            face="Arial">.</font></dd>
+        <dt>&nbsp;</dt>  
+
+<dt><font size="2" face="Arial"><strong>Web-Utilities-Object</strong></font></dt>
+        <dd><font size="2" face="Arial">The object </font><font
+            size="2" face="Lucida Sans Unicode">web/objects/web-disp.p
+            </font><font size="2" face="Arial">defined as </font><a
+            href="glossary.htm#web-utilities-hdl"><font size="2"
+            face="Arial">web-utilities-hdl</font></a><font
+            size="2" face="Arial">.</font></dd>
+   <dt>&nbsp;</dt>
+<dt><font size="2" face="Arial"><strong>Workshop Object</strong></font></dt>
+        <dd><font size="2" face="Arial">A persistent procedure used internally
+           by WebSpeed.</font></dd>
+       
+</dl>
+</blockquote>
+
+<dl>
+    <dt><font size="2" face="Arial"><strong>Web-State</strong></font></dt>
+    <dd><font size="2" face="Arial">The Web object can execute in
+        one of the following modes:</font></dd>
+</dl>
+
+<blockquote>
+    <dl>
+        <dt><a href="glossary.htm#state-aware Web object"><font
+            size="2" face="Arial"><strong>state-aware</strong></font></a></dt>
+        <dd><font size="2" face="Arial">Locks the agent so that
+            it is available only to the user that requested the
+            procedure. <strong>Time left</strong> shows the
+            number of minutes before the state-aware object times
+            out.</font></dd>
+        <dt>&nbsp;</dt>
+        <dt><a href="glossary.htm#stateless application"><font
+            size="2" face="Arial"><strong>stateless</strong></font></a></dt>
+        <dd><font size="2" face="Arial">Does not lock the agent
+            and returns it to the state that it ran in. If the
+            agent is not locked, a stateless Web object destroys
+            itself when finished.</font></dd>
+        <dt>&nbsp;</dt>
+        <dt><a href="glossary.htm#persistent object"><font
+            size="2" face="Arial"><strong>persistent</strong></font></a></dt>
+        <dd><font size="2" face="Arial">The procedure is running
+            persistently.This is set by the AppBuilder and WebSpeed on some internal
+            objects.</font></dd>
+    </dl>
+</blockquote>
+<!--webbot bot="Include" u-include="standard.htm" tag="BODY"
+startspan -->
+
+<hr noshade color="#0000FF">
+
+<dl>
+    <dd><a href="howtouse.htm"><img src="images/help-sm.gif"
+        border="0" width="18" height="18"></a> <a
+        href="howtouse.htm"><font size="2" face="Arial">How to
+        Use Web Tools</font></a></dd>
+    <dd><a href="glossary.htm"><img src="images/help-sm.gif"
+        border="0" width="18" height="18"></a> <a
+        href="glossary.htm"><font size="2" face="Arial">WebSpeed
+        Glossary</font></a><font size="2" face="Arial"> </font></dd>
+    <dd><a href="main.htm"><img
+        src="images/book.gif" border="0" width="19" height="17"></a><font
+        size="2" face="Arial"> </font><a
+        href="main.htm"><font size="2"
+        face="Arial">WebTools Help</font></a></dd>
+</dl>
+
+<p>&nbsp;</p>
+<!--webbot bot="Include" endspan i-checksum="30635" -->
+</body>
+</html>

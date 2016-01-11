@@ -1,142 +1,142 @@
-/* smartv8.cst - custom SmartObject file - Version 8 - 01/08/98 
- ************************************************************************
- Changes from 8.2B
-     Brand new file smartv8.cst which contains v8 SMO
-     Removed SmartBrowser        from FILE/NEW
-     Removed SmartViewer         from FILE/NEW
-     Removed SmartQuery          from FILE/NEW
-     Renamed SmartBrowser with Wizard to SmartBrowser
-     Renamed Smartviewer with AutoField to Smartviewer
-     Renamed SmartQuery with Wizard to SmartQuery
-     Have SmartObject in this file too in order to expand the filter to include
-        the v8 smart objects
- ************************************************************************/
-*NEW-CONTAINER  SmartV8Window
-NEW-TEMPLATE    src/adm/template/cntnrwin.w
-
-*NEW-CONTAINER  SmartV8Frame
-NEW-TEMPLATE    src/adm/template/cntnrfrm.w
-
-*NEW-CONTAINER  SmartV8Dialog
-NEW-TEMPLATE    src/adm/template/cntnrdlg.w
-
-#SmartV8Object  &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,312
-DOWN-IMAGE-FILE adeicon/wp_down 24,312
-LABEL           SmartV8&Object
-NEW-TEMPLATE    src/adm/template/smart.w
-DIRECTORY-LIST  .,adm/objects,adm/samples
-FILTER          *.*,*.w,*.r,b-*.*,q-*.*,v-*.*,s-*.*
-TITLE           Choose a SmartV8Object
-
-*NEW-SMARTOBJECT Simple SmartV8Object
-TYPE            SmartV8Object
-NEW-TEMPLATE    src/adm/template/smart.w
-
-#SmartV8Folder  &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,336
-DOWN-IMAGE-FILE adeicon/wp_down 0,336
-LABEL           SmartV8Fol&der
-USE             adm/objects/folder.w
-
-#SmartV8Panel   &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,312
-DOWN-IMAGE-FILE adeicon/wp_down 0,312
-LABEL           SmartV8&Panel
-DIRECTORY-LIST  adm/objects,adm/samples,.
-FILTER          p-*.*,p-*.w,p-*.r,*.*
-TITLE           Choose SmartV8Panel
-
-*SmartV8Panel   V8 Navigation Panel (&Icons)
-USE             adm/objects/p-navico.w
-*SmartV8Panel   V8 Navigation Panel (&Labels)
-USE             adm/objects/p-navlbl.w
-*SmartV8Panel   V8 Update Panel (&Standard)
-USE             adm/objects/p-updsav.w
-*SmartV8Panel   V8 Update Panel (&Transaction)
-USE             adm/objects/p-updtxn.w
-*SmartV8Panel   V8 Update Panel (&Filter-Source)
-USE             adm/objects/p-abc.w
-*SmartV8Panel   V8 Update Panel (S&ortBy-Source, etc.)
-USE             adm/objects/p-option.w
-
-#SmartV8Browser   &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,168
-DOWN-IMAGE-FILE adeicon/wp_down 24,168
-LABEL           SmartV8Browser
-DB-CONNECT
-NEW-TEMPLATE    src/adm/template/wbrowser.w
-DIRECTORY-LIST  .,adm/samples
-FILTER          b-*.*,b-*.w,b-*.r,*.*
-TITLE           Choose SmartV8Browser
-
-*NEW-SMARTOBJECT SmartV8Browser
-TYPE            SmartV8Browser
-NEW-TEMPLATE    src/adm/template/wbrowser.w
-
-#SmartV8Viewer    &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,192
-DOWN-IMAGE-FILE adeicon/wp_down 0,192
-LABEL           SmartV8Viewer
-DB-CONNECT
-NEW-TEMPLATE    src/adm/template/vieweraf.w
-DIRECTORY-LIST  .,adm/samples
-FILTER          v-*.*,v-*.w,v-*.r,*.*
-TITLE           Choose SmartV8Viewer
-
-*NEW-SMARTOBJECT SmartV8Viewer
-TYPE            SmartV8Viewer
-NEW-TEMPLATE    src/adm/template/vieweraf.w
-
-#SmartQuery     &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,192
-DOWN-IMAGE-FILE adeicon/wp_down 24,192
-LABEL           SmartV8Query
-DB-CONNECT
-NEW-TEMPLATE    src/adm/template/wquery.w
-DIRECTORY-LIST  .,adm/samples
-FILTER          q-*.*,q-*.w,q-*.r,*.*
-TITLE           Choose SmartV8Query
-
-*NEW-SMARTOBJECT SmartV8Query
-TYPE            SmartV8Query
-NEW-TEMPLATE    src/adm/template/wquery.w
-
-#SmartContainer &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,264
-DOWN-IMAGE-FILE adeicon/wp_down 0,264
-LABEL           Smartv8Co&ntainer
-NEW-TEMPLATE    src/adm/template/cntnrwin.w
-DIRECTORY-LIST  .,adm/samples
-FILTER          f-*.*,w-*.*,*.w,*.r,*.*
-TITLE           Choose SmartContainer
-
-*RADIO-SET      &Select Page
-DESCRIPTION     Radio-Set to select page on paging object
-DATA-TYPE       INTEGER
-NAME            rsSelectPage
-TRIGGER VALUE-CHANGED
-DO:
-  /* Ask the SmartContainer to show a different page.  NOTE: this will only
-     work if this procedure contains the method procedures to handle multi-
-     paged applications.  Otherwise there will be an error. */
-  ASSIGN {&SELF-NAME}.
-  RUN Select-Page ({&SELF-NAME}).
-END.
-END TRIGGER
-
-*BUTTON         &View Page
-DESCRIPTION     Button to view page 1 on paging object
-LABEL           &View Page
-NAME            BtnViewPage
-WIDTH           15
-HEIGHT          1.125
-TRIGGER CHOOSE
-DO:
-  /* Ask the SmartContainer to view a different page.  
-     NOTE: this will only work if this procedure contains the method 
-     procedures to handle multi- paged applications.  Otherwise there will 
-     be an error. */
-  RUN View-Page (1).
-END.
-END TRIGGER
+/* smartv8.cst - custom SmartObject file - Version 8 - 01/08/98 
+ ************************************************************************
+ Changes from 8.2B
+     Brand new file smartv8.cst which contains v8 SMO
+     Removed SmartBrowser        from FILE/NEW
+     Removed SmartViewer         from FILE/NEW
+     Removed SmartQuery          from FILE/NEW
+     Renamed SmartBrowser with Wizard to SmartBrowser
+     Renamed Smartviewer with AutoField to Smartviewer
+     Renamed SmartQuery with Wizard to SmartQuery
+     Have SmartObject in this file too in order to expand the filter to include
+        the v8 smart objects
+ ************************************************************************/
+*NEW-CONTAINER  SmartV8Window
+NEW-TEMPLATE    src/adm/template/cntnrwin.w
+
+*NEW-CONTAINER  SmartV8Frame
+NEW-TEMPLATE    src/adm/template/cntnrfrm.w
+
+*NEW-CONTAINER  SmartV8Dialog
+NEW-TEMPLATE    src/adm/template/cntnrdlg.w
+
+#SmartV8Object  &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,312
+DOWN-IMAGE-FILE adeicon/wp_down 24,312
+LABEL           SmartV8&Object
+NEW-TEMPLATE    src/adm/template/smart.w
+DIRECTORY-LIST  .,adm/objects,adm/samples
+FILTER          *.*,*.w,*.r,b-*.*,q-*.*,v-*.*,s-*.*
+TITLE           Choose a SmartV8Object
+
+*NEW-SMARTOBJECT Simple SmartV8Object
+TYPE            SmartV8Object
+NEW-TEMPLATE    src/adm/template/smart.w
+
+#SmartV8Folder  &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,336
+DOWN-IMAGE-FILE adeicon/wp_down 0,336
+LABEL           SmartV8Fol&der
+USE             adm/objects/folder.w
+
+#SmartV8Panel   &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,312
+DOWN-IMAGE-FILE adeicon/wp_down 0,312
+LABEL           SmartV8&Panel
+DIRECTORY-LIST  adm/objects,adm/samples,.
+FILTER          p-*.*,p-*.w,p-*.r,*.*
+TITLE           Choose SmartV8Panel
+
+*SmartV8Panel   V8 Navigation Panel (&Icons)
+USE             adm/objects/p-navico.w
+*SmartV8Panel   V8 Navigation Panel (&Labels)
+USE             adm/objects/p-navlbl.w
+*SmartV8Panel   V8 Update Panel (&Standard)
+USE             adm/objects/p-updsav.w
+*SmartV8Panel   V8 Update Panel (&Transaction)
+USE             adm/objects/p-updtxn.w
+*SmartV8Panel   V8 Update Panel (&Filter-Source)
+USE             adm/objects/p-abc.w
+*SmartV8Panel   V8 Update Panel (S&ortBy-Source, etc.)
+USE             adm/objects/p-option.w
+
+#SmartV8Browser   &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,168
+DOWN-IMAGE-FILE adeicon/wp_down 24,168
+LABEL           SmartV8Browser
+DB-CONNECT
+NEW-TEMPLATE    src/adm/template/wbrowser.w
+DIRECTORY-LIST  .,adm/samples
+FILTER          b-*.*,b-*.w,b-*.r,*.*
+TITLE           Choose SmartV8Browser
+
+*NEW-SMARTOBJECT SmartV8Browser
+TYPE            SmartV8Browser
+NEW-TEMPLATE    src/adm/template/wbrowser.w
+
+#SmartV8Viewer    &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,192
+DOWN-IMAGE-FILE adeicon/wp_down 0,192
+LABEL           SmartV8Viewer
+DB-CONNECT
+NEW-TEMPLATE    src/adm/template/vieweraf.w
+DIRECTORY-LIST  .,adm/samples
+FILTER          v-*.*,v-*.w,v-*.r,*.*
+TITLE           Choose SmartV8Viewer
+
+*NEW-SMARTOBJECT SmartV8Viewer
+TYPE            SmartV8Viewer
+NEW-TEMPLATE    src/adm/template/vieweraf.w
+
+#SmartQuery     &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,192
+DOWN-IMAGE-FILE adeicon/wp_down 24,192
+LABEL           SmartV8Query
+DB-CONNECT
+NEW-TEMPLATE    src/adm/template/wquery.w
+DIRECTORY-LIST  .,adm/samples
+FILTER          q-*.*,q-*.w,q-*.r,*.*
+TITLE           Choose SmartV8Query
+
+*NEW-SMARTOBJECT SmartV8Query
+TYPE            SmartV8Query
+NEW-TEMPLATE    src/adm/template/wquery.w
+
+#SmartContainer &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,264
+DOWN-IMAGE-FILE adeicon/wp_down 0,264
+LABEL           Smartv8Co&ntainer
+NEW-TEMPLATE    src/adm/template/cntnrwin.w
+DIRECTORY-LIST  .,adm/samples
+FILTER          f-*.*,w-*.*,*.w,*.r,*.*
+TITLE           Choose SmartContainer
+
+*RADIO-SET      &Select Page
+DESCRIPTION     Radio-Set to select page on paging object
+DATA-TYPE       INTEGER
+NAME            rsSelectPage
+TRIGGER VALUE-CHANGED
+DO:
+  /* Ask the SmartContainer to show a different page.  NOTE: this will only
+     work if this procedure contains the method procedures to handle multi-
+     paged applications.  Otherwise there will be an error. */
+  ASSIGN {&SELF-NAME}.
+  RUN Select-Page ({&SELF-NAME}).
+END.
+END TRIGGER
+
+*BUTTON         &View Page
+DESCRIPTION     Button to view page 1 on paging object
+LABEL           &View Page
+NAME            BtnViewPage
+WIDTH           15
+HEIGHT          1.125
+TRIGGER CHOOSE
+DO:
+  /* Ask the SmartContainer to view a different page.  
+     NOTE: this will only work if this procedure contains the method 
+     procedures to handle multi- paged applications.  Otherwise there will 
+     be an error. */
+  RUN View-Page (1).
+END.
+END TRIGGER

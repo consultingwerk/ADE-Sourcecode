@@ -1,159 +1,159 @@
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
-<meta name="ProgId" content="FrontPage.Editor.Document">
-<title>Application Framework</title>
-</head>
-<body>
-<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm"><img
-SRC="/webspeed31D/doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
-</a> Application Framework</font></h1>
-<hr SIZE="4" COLOR="#0000FF">
-<p><a href="framework.htm">Configuration</a> Overview <a href="programming.htm">Programming</a></p>
-<h2><a name="_Ref530377711"></a><a name="_Toc534774979"><span style="mso-bookmark:
-_Ref530377711">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>WebSpeed 4GL Changes</span></a></h2>
-<h3><a name="_Toc534774980">1.1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>State-Aware Support Moved</a></h3>
-<p class="MsoBodyText">The code to manage persistently running, state-aware web
-objects has been moved out of the main dispatch <i>web-disp.p</i> procedure and
-into <i>stateaware.p</i>, running as a persistent SUPER-PROCEDURE.<span style="mso-spacerun: yes">&nbsp;
-</span>This has the affect of removing it from the web request execution path,
-resulting in faster request execution time.<span style="mso-spacerun: yes">&nbsp;
-</span>State-aware mode support is still optionally available for applications
-that require it.</p>
-<h3><a name="_Toc534774981">1.1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Miscellaneous Utilities Moved</a></h3>
-<p class="MsoBodyText">Several design time utilities built into WebSpeed are
-available for Agent monitoring, but represent a security hole.<span style="mso-spacerun: yes">&nbsp;
-</span>These needs to be reimplemented external to <i>web/objects/web-disp.p,</i>
-rather than hard-coded as they are currently.<span style="mso-spacerun: yes">&nbsp;
-</span>Support for debug, ping, and reset in the URL QUERY_STRING have been
-moved to external files debug.p, ping.p, and reset.p, respectively.<span style="mso-spacerun: yes">&nbsp;</span></p>
-<h2><a name="_Toc534774983">1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>FreeFrameWork Utilities</a></h2>
-<p class="MsoBodyText">FreeFrameWork utilities are implemented such that they
-can be activated or deactivated on a WebSpeed broker-by-broker basis.<span style="mso-spacerun: yes">&nbsp;
-</span>Availability is controlled through broker environment variables.</p>
-<h3><a name="_Ref514680427"></a><a name="_Toc534774984"><span style="mso-bookmark:
-_Ref514680427">1.2.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Modularity and extensibility</span></a></h3>
-<p class="MsoBodyText"><span style="mso-bookmark: _Ref514680427"><i>web/objects/web-util.p</i>
-has had a large rewrite to modularity with the use of super procedures.
-State-aware support has been moved into a super procedure “stateaware.p”
-which is only added to web-utilities-hdl if the agent starts in state-aware
-mode. Extra functionality like run-logging, developer-propath and database
-reconnection has been added to their respective super procedures that will only
-be initialized if the functionality is configured.</span></p>
-<h3><span style="mso-bookmark: _Ref514680427">1.2.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Reset</span>, Ping and other utilities</h3>
-<p class="MsoBodyText">This security setting determines whether to allow a web
-request to run <i>reset.p</i>.<span style="mso-spacerun: yes">&nbsp; </span>Setting
-NO requires stopping and restarting the broker when changes are made to <i>web/objects/web-util.p</i>,
-<i>tagmap.dat</i>, <i>web/support</i> utilities or any other persistently
-running procedure.<span style="mso-spacerun: yes">&nbsp; </span>This kind of
-features is moved out of <i>web/objects/web-disp.p</i> to <i>respective programs</i>.</p>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<h3><a name="_Toc534774985">1.2.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>RunLogging</a></h3>
-<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">The
-RunLogging feature generates a log entry at the start and end of each web
-request.<span style="mso-spacerun: yes">&nbsp; </span>As an example of this
-feature’s usefulness, consider an Agent that has hung and is in a BUSY state.<span style="mso-spacerun: yes">&nbsp;
-</span>The run logs can be checked for the PID of the Agent which started, but
-did not finish executing, a web request. The log messages is categorized and
-each category of messages can be enables/disabled as requested. For efficiency,
-the logs will only be written at the end of each web-request, but can optionally
-be configured to write immediately so that it will be written to a log even when
-the agent crashes.<o:p>
-</o:p>
-</span></p>
-<h3><a name="_Toc534774986">1.2.4<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Compile-On-The-Fly</a></h3>
-<p class="MsoBodyText">Prior to executing an HTML file, if Progress rcode is not
-found for it, the HTML source will be compiled into a temporary directory at run
-time and run from there. The compile can be configured to delete the r-code
-after run so that it will compile each time it’s being requested, or it can be
-configured to compile only when the r-code is older than the source code.
-Optionally you can specify key for XCODE compile. This is for development only.</p>
-<h3><a name="_Toc534774987">1.2.5<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Batch Interval</a></h3>
-<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">This
-feature determines how often the Agent will break out of the WAIT-FOR statement
-during periods of inactivity and run the proactive database connection check
-(see <b style="mso-bidi-font-weight:normal"><span style="mso-field-code:&quot;REF _Ref510357789 \\r \\h &#01; \\* MERGEFORMAT&quot;">2.2.9<!--[if gte mso 9]><xml>
- <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F005200650066003500310030003300350037003700380039000000</w:data>
-</xml><![endif]-->
-</span> Check Database Connections</b>) and any other services that need to be
-run.<o:p>
-</o:p>
-</span></p>
-<h3><a name="_Toc534774988">1.2.6<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Development PROPATH</a></h3>
-<p class="MsoBodyText">Each developer’s personal working directory is prefixed
-to the standard Agent PROPATH, allowing each to run code from their sandbox
-first, followed by common code.<span style="mso-spacerun: yes">&nbsp; </span>Developers
-do not need their own broker, but can share a common development broker.<span style="mso-spacerun: yes">&nbsp;
-</span>The alternative to this feature is to start a broker with a different
-PROPATH for each developer.<span style="mso-spacerun:
-yes">&nbsp; </span>Development only.<span style="mso-spacerun: yes">&nbsp;</span></p>
-<h3><a name="_Toc534774989">1.2.7<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>WebRunPat</a>h</h3>
-<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">Because
-WebSpeed by default will try to run web objects requested by the user regardless
-of where they reside on the server, this feature allows the admin to specify
-certain directories in which WebSpeed is allowed to run objects.<span style="mso-spacerun: yes">&nbsp;
-</span>These are directories where objects can be run by putting the object name
-in the URL or internally from a program running the run-web-object procedure.<span style="mso-spacerun: yes">&nbsp;
-</span>Any program can be run in the Agent’s PROPATH internally via the RUN
-statement executed within a web object.<o:p>
-</o:p>
-</span></p>
-<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">Each
-entry in the list is treated like a standard Progress CAN-DO, which means that
-one can specify an exact path and object name or can place a wildcard at the
-end.<span style="mso-spacerun: yes">&nbsp; </span>An “!” (exclamation mark;
-the NOT symbol) can be included in front of the path, to indicate that something
-is NOT part of the path.<span style="mso-spacerun: yes">&nbsp; </span>However,
-all NOT entries must occur prior to any entry that would otherwise allow an
-object to run.<o:p>
-</o:p>
-</span></p>
-<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">WebRunPath
-is not a replacement for the Agent’s PROPATH.<span style="mso-spacerun: yes">&nbsp;
-</span>In order to run a web object, it must be found in the PROPATH as well as
-the WebRunPath.<o:p>
-</o:p>
-</span></p>
-<h3><a name="_Ref510357789"></a><a name="_Toc534774990"><span style="mso-bookmark:
-_Ref510357789">1.2.8<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Session variables and across-agents global variables.</span></a></h3>
-<p class="MsoBodyText"><span style="mso-bookmark: _Ref510357789">You can set and
-get variables for the current session based on the sessionID. This is
-file-based, but for Progress Dynamics it’s database based. You can also set and get
-global variables which for system purposes.</span></p>
-<h3><span style="mso-bookmark: _Ref510357789">1.2.9<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Check Database Connections</span></h3>
-<p class="MsoBodyText">The WebSpeed Agent will automatically attempt to stay
-connected to a set of databases.<span style="mso-spacerun: yes">&nbsp; </span>The
-connection check is performed each web-request. It is possible to associate
-specific program-code with specific databases and the connection may happen
-either by connection parameters or through a program. By specifying a program
-and adding logic to a custom “end-request” procedure you can even perform
-logic driven database connections, important if databases are separated into
-customer segments.<span style="mso-spacerun: yes">&nbsp;</span></p>
-<p class="MsoBodyText">For Agents running with Progress Dynamics, the connection
-parameters will be read out of the Progress Dynamics repository.</p>
-<h3>1.2.10<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp; </span>Database
-failover to backup databases.</h3>
-<p class="MsoBodyText">When the 99.99% uptime matters then redundancy is the
-law. If the reconnect logic fails the agent.may set a “failover” condition
-and make sure all agent switch to a backup database set. The “failover” mode
-can also be set manually for maintenance situations. A “dbFailover” program
-may be specified to pick up the “failover” event and run programs to perform
-a system reset or maybe contact administrators.</p>
-</body>
-</html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Application Framework</title>
+</head>
+<body>
+<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm"><img
+SRC="images/helpbook.gif" WIDTH="53" HEIGHT="40">
+</a> Application Framework</font></h1>
+<hr SIZE="4" COLOR="#0000FF">
+<p><a href="framework.htm">Configuration</a> Overview <a href="programming.htm">Programming</a></p>
+<h2><a name="_Ref530377711"></a><a name="_Toc534774979"><span style="mso-bookmark:
+_Ref530377711">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>WebSpeed 4GL Changes</span></a></h2>
+<h3><a name="_Toc534774980">1.1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>State-Aware Support Moved</a></h3>
+<p class="MsoBodyText">The code to manage persistently running, state-aware web
+objects has been moved out of the main dispatch <i>web-disp.p</i> procedure and
+into <i>stateaware.p</i>, running as a persistent SUPER-PROCEDURE.<span style="mso-spacerun: yes">&nbsp;
+</span>This has the affect of removing it from the web request execution path,
+resulting in faster request execution time.<span style="mso-spacerun: yes">&nbsp;
+</span>State-aware mode support is still optionally available for applications
+that require it.</p>
+<h3><a name="_Toc534774981">1.1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Miscellaneous Utilities Moved</a></h3>
+<p class="MsoBodyText">Several design time utilities built into WebSpeed are
+available for Agent monitoring, but represent a security hole.<span style="mso-spacerun: yes">&nbsp;
+</span>These needs to be reimplemented external to <i>web/objects/web-disp.p,</i>
+rather than hard-coded as they are currently.<span style="mso-spacerun: yes">&nbsp;
+</span>Support for debug, ping, and reset in the URL QUERY_STRING have been
+moved to external files debug.p, ping.p, and reset.p, respectively.<span style="mso-spacerun: yes">&nbsp;</span></p>
+<h2><a name="_Toc534774983">1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>FreeFrameWork Utilities</a></h2>
+<p class="MsoBodyText">FreeFrameWork utilities are implemented such that they
+can be activated or deactivated on a WebSpeed broker-by-broker basis.<span style="mso-spacerun: yes">&nbsp;
+</span>Availability is controlled through broker environment variables.</p>
+<h3><a name="_Ref514680427"></a><a name="_Toc534774984"><span style="mso-bookmark:
+_Ref514680427">1.2.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Modularity and extensibility</span></a></h3>
+<p class="MsoBodyText"><span style="mso-bookmark: _Ref514680427"><i>web/objects/web-util.p</i>
+has had a large rewrite to modularity with the use of super procedures.
+State-aware support has been moved into a super procedure “stateaware.p”
+which is only added to web-utilities-hdl if the agent starts in state-aware
+mode. Extra functionality like run-logging, developer-propath and database
+reconnection has been added to their respective super procedures that will only
+be initialized if the functionality is configured.</span></p>
+<h3><span style="mso-bookmark: _Ref514680427">1.2.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Reset</span>, Ping and other utilities</h3>
+<p class="MsoBodyText">This security setting determines whether to allow a web
+request to run <i>reset.p</i>.<span style="mso-spacerun: yes">&nbsp; </span>Setting
+NO requires stopping and restarting the broker when changes are made to <i>web/objects/web-util.p</i>,
+<i>tagmap.dat</i>, <i>web/support</i> utilities or any other persistently
+running procedure.<span style="mso-spacerun: yes">&nbsp; </span>This kind of
+features is moved out of <i>web/objects/web-disp.p</i> to <i>respective programs</i>.</p>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<h3><a name="_Toc534774985">1.2.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>RunLogging</a></h3>
+<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">The
+RunLogging feature generates a log entry at the start and end of each web
+request.<span style="mso-spacerun: yes">&nbsp; </span>As an example of this
+feature’s usefulness, consider an Agent that has hung and is in a BUSY state.<span style="mso-spacerun: yes">&nbsp;
+</span>The run logs can be checked for the PID of the Agent which started, but
+did not finish executing, a web request. The log messages is categorized and
+each category of messages can be enables/disabled as requested. For efficiency,
+the logs will only be written at the end of each web-request, but can optionally
+be configured to write immediately so that it will be written to a log even when
+the agent crashes.<o:p>
+</o:p>
+</span></p>
+<h3><a name="_Toc534774986">1.2.4<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Compile-On-The-Fly</a></h3>
+<p class="MsoBodyText">Prior to executing an HTML file, if Progress rcode is not
+found for it, the HTML source will be compiled into a temporary directory at run
+time and run from there. The compile can be configured to delete the r-code
+after run so that it will compile each time it’s being requested, or it can be
+configured to compile only when the r-code is older than the source code.
+Optionally you can specify key for XCODE compile. This is for development only.</p>
+<h3><a name="_Toc534774987">1.2.5<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Batch Interval</a></h3>
+<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">This
+feature determines how often the Agent will break out of the WAIT-FOR statement
+during periods of inactivity and run the proactive database connection check
+(see <b style="mso-bidi-font-weight:normal"><span style="mso-field-code:&quot;REF _Ref510357789 \\r \\h &#01; \\* MERGEFORMAT&quot;">2.2.9<!--[if gte mso 9]><xml>
+ <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F005200650066003500310030003300350037003700380039000000</w:data>
+</xml><![endif]-->
+</span> Check Database Connections</b>) and any other services that need to be
+run.<o:p>
+</o:p>
+</span></p>
+<h3><a name="_Toc534774988">1.2.6<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Development PROPATH</a></h3>
+<p class="MsoBodyText">Each developer’s personal working directory is prefixed
+to the standard Agent PROPATH, allowing each to run code from their sandbox
+first, followed by common code.<span style="mso-spacerun: yes">&nbsp; </span>Developers
+do not need their own broker, but can share a common development broker.<span style="mso-spacerun: yes">&nbsp;
+</span>The alternative to this feature is to start a broker with a different
+PROPATH for each developer.<span style="mso-spacerun:
+yes">&nbsp; </span>Development only.<span style="mso-spacerun: yes">&nbsp;</span></p>
+<h3><a name="_Toc534774989">1.2.7<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>WebRunPat</a>h</h3>
+<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">Because
+WebSpeed by default will try to run web objects requested by the user regardless
+of where they reside on the server, this feature allows the admin to specify
+certain directories in which WebSpeed is allowed to run objects.<span style="mso-spacerun: yes">&nbsp;
+</span>These are directories where objects can be run by putting the object name
+in the URL or internally from a program running the run-web-object procedure.<span style="mso-spacerun: yes">&nbsp;
+</span>Any program can be run in the Agent’s PROPATH internally via the RUN
+statement executed within a web object.<o:p>
+</o:p>
+</span></p>
+<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">Each
+entry in the list is treated like a standard Progress CAN-DO, which means that
+one can specify an exact path and object name or can place a wildcard at the
+end.<span style="mso-spacerun: yes">&nbsp; </span>An “!” (exclamation mark;
+the NOT symbol) can be included in front of the path, to indicate that something
+is NOT part of the path.<span style="mso-spacerun: yes">&nbsp; </span>However,
+all NOT entries must occur prior to any entry that would otherwise allow an
+object to run.<o:p>
+</o:p>
+</span></p>
+<p class="MsoBodyText"><span style="mso-fareast-font-family:&quot;MS Mincho&quot;">WebRunPath
+is not a replacement for the Agent’s PROPATH.<span style="mso-spacerun: yes">&nbsp;
+</span>In order to run a web object, it must be found in the PROPATH as well as
+the WebRunPath.<o:p>
+</o:p>
+</span></p>
+<h3><a name="_Ref510357789"></a><a name="_Toc534774990"><span style="mso-bookmark:
+_Ref510357789">1.2.8<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Session variables and across-agents global variables.</span></a></h3>
+<p class="MsoBodyText"><span style="mso-bookmark: _Ref510357789">You can set and
+get variables for the current session based on the sessionID. This is
+file-based, but for Progress Dynamics it’s database based. You can also set and get
+global variables which for system purposes.</span></p>
+<h3><span style="mso-bookmark: _Ref510357789">1.2.9<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Check Database Connections</span></h3>
+<p class="MsoBodyText">The WebSpeed Agent will automatically attempt to stay
+connected to a set of databases.<span style="mso-spacerun: yes">&nbsp; </span>The
+connection check is performed each web-request. It is possible to associate
+specific program-code with specific databases and the connection may happen
+either by connection parameters or through a program. By specifying a program
+and adding logic to a custom “end-request” procedure you can even perform
+logic driven database connections, important if databases are separated into
+customer segments.<span style="mso-spacerun: yes">&nbsp;</span></p>
+<p class="MsoBodyText">For Agents running with Progress Dynamics, the connection
+parameters will be read out of the Progress Dynamics repository.</p>
+<h3>1.2.10<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp; </span>Database
+failover to backup databases.</h3>
+<p class="MsoBodyText">When the 99.99% uptime matters then redundancy is the
+law. If the reconnect logic fails the agent.may set a “failover” condition
+and make sure all agent switch to a backup database set. The “failover” mode
+can also be set manually for maintenance situations. A “dbFailover” program
+may be specified to pick up the “failover” event and run programs to perform
+a system reset or maybe contact administrators.</p>
+</body>
+</html>

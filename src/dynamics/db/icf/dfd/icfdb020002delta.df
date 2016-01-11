@@ -1,0 +1,1416 @@
+ADD TABLE "gsc_item_category"
+  AREA "Schema Area"
+  DESCRIPTION "This table is used to categorize items into common groups. Typical groups may be ADM Navigation, ADM TableIO or  ADM Menu . Categories may also be used to group items into module specific areas."
+  DUMP-NAME "gscic"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscictrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscictrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gscicreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gscicrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gscicreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscictrigw.p" CRC "?" 
+
+ADD FIELD "item_category_obj" OF "gsc_item_category" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Item Category Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Item category obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "item_category_label" OF "gsc_item_category" AS character 
+  DESCRIPTION "A unique label to identify the item category.
+This label will appear in the treeview. Examples are TableIO, Navigation,  SubMenus,"
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Item Category Label"
+  POSITION 3
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Item category label"
+  ORDER 20
+
+ADD FIELD "item_category_description" OF "gsc_item_category" AS character 
+  DESCRIPTION "A description indicating the intention of this category."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Item Category Description"
+  POSITION 4
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Item category description"
+  ORDER 30
+
+ADD FIELD "item_link" OF "gsc_item_category" AS character 
+  DESCRIPTION "This link acts as the default value for the item_link field in the gsm_menu_item table.
+
+This is the link across which to perform the specified 'item_select' action.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Item Link"
+  POSITION 5
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Item link"
+  ORDER 40
+
+ADD FIELD "system_owned" OF "gsc_item_category" AS logical 
+  DESCRIPTION "If a menu structure is system owned, it may not be amended or deleted by users not permitted to maintain system owned data."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "System Owned"
+  POSITION 6
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "System owned"
+  ORDER 50
+
+ADD FIELD "parent_item_category_obj" OF "gsc_item_category" AS decimal 
+  DESCRIPTION "Used to point to the parent item_category record. This relationship allows a hierarchical relationship of item categories to be structured."
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Parent Item Category Obj"
+  POSITION 7
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Parent item category obj"
+  DECIMALS 6
+  ORDER 60
+
+ADD INDEX "XPKgsc_item_category" ON "gsc_item_category" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "item_category_obj" ASCENDING 
+
+ADD INDEX "XAK1gsc_item_category" ON "gsc_item_category" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "item_category_label" ASCENDING 
+
+ADD INDEX "XAK2gsc_item_category" ON "gsc_item_category" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "parent_item_category_obj" ASCENDING 
+  INDEX-FIELD "item_category_label" ASCENDING 
+
+ADD INDEX "XIE1gsc_item_category" ON "gsc_item_category" 
+  AREA "Schema Area"
+  INDEX-FIELD "item_category_description" ASCENDING 
+
+ADD TABLE "gsm_menu_structure_item"
+  AREA "Schema Area"
+  DESCRIPTION "This table associates menu items with menu structures. A menu structure may contain many menu items and a menu item can be used by many menu structures.
+
+This tables also defines the sequence that menu items appear within a menu structure.
+"
+  DUMP-NAME "gsmit"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmittrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmittrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmitreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmitrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmitreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmittrigw.p" CRC "?" 
+
+ADD FIELD "menu_structure_obj" OF "gsm_menu_structure_item" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Menu Structure Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Menu structure obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "menu_item_sequence" OF "gsm_menu_structure_item" AS integer 
+  DESCRIPTION "The sequence of the menu items within a menu structure."
+  FORMAT "->>9"
+  INITIAL "0"
+  LABEL "Menu Item Sequence"
+  POSITION 3
+  SQL-WIDTH 4
+  COLUMN-LABEL "Menu Item Seq."
+  VALMSG "n_integer_3"
+  HELP "Menu item sequence"
+  ORDER 20
+
+ADD FIELD "menu_item_obj" OF "gsm_menu_structure_item" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Menu Item Obj"
+  POSITION 4
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Menu item obj"
+  DECIMALS 6
+  ORDER 30
+
+ADD FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Child Menu Structure Obj"
+  POSITION 5
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Child menu structure obj"
+  DECIMALS 6
+  ORDER 40
+
+ADD FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Menu Structure Item Obj"
+  POSITION 6
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Menu structure item obj"
+  DECIMALS 6
+  ORDER 50
+
+ADD INDEX "XPKgsm_menu_structure_item" ON "gsm_menu_structure_item" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "menu_structure_obj" ASCENDING 
+  INDEX-FIELD "menu_item_sequence" ASCENDING 
+
+ADD INDEX "XAK1gsm_menu_structure_item" ON "gsm_menu_structure_item" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "menu_structure_item_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_menu_structure_item" ON "gsm_menu_structure_item" 
+  AREA "Schema Area"
+  INDEX-FIELD "child_menu_structure_obj" ASCENDING 
+
+ADD INDEX "XIE2gsm_menu_structure_item" ON "gsm_menu_structure_item" 
+  AREA "Schema Area"
+  INDEX-FIELD "menu_item_obj" ASCENDING 
+
+ADD TABLE "gsm_toolbar_menu_structure"
+  AREA "Schema Area"
+  DESCRIPTION "This table is used to group bands or menu structures into a complete toolbar and menubar structure."
+  DUMP-NAME "gsmtm"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmtmtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmtmtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmtmreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmtmrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmtmreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmtmtrigw.p" CRC "?" 
+
+ADD FIELD "object_obj" OF "gsm_toolbar_menu_structure" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Object Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Object obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "menu_structure_sequence" OF "gsm_toolbar_menu_structure" AS integer 
+  DESCRIPTION "Identifies the order of the bands for either toolbar bands or menu bands
+"
+  FORMAT "->>>9"
+  INITIAL "0"
+  LABEL "Menu Structure Sequence"
+  POSITION 3
+  SQL-WIDTH 4
+  COLUMN-LABEL "Menu Structure Seq."
+  VALMSG "n_integer_4"
+  HELP "Menu structure sequence"
+  ORDER 20
+
+ADD FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Menu Structure Obj"
+  POSITION 4
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Menu structure obj"
+  DECIMALS 6
+  ORDER 30
+
+ADD FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Toolbar Menu Structure Obj"
+  POSITION 5
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Toolbar menu structure obj"
+  DECIMALS 6
+  ORDER 40
+
+ADD FIELD "menu_structure_spacing" OF "gsm_toolbar_menu_structure" AS integer 
+  DESCRIPTION "Specifies the number of pixels between the previous band and this band. Only applies to toolbar bands. Default is zero."
+  FORMAT "->>9"
+  INITIAL "0"
+  LABEL "Menu Structure Spacing"
+  POSITION 6
+  SQL-WIDTH 4
+  VALMSG "n_integer_3"
+  HELP "Menu structure spacing"
+  ORDER 50
+
+ADD FIELD "menu_structure_alignment" OF "gsm_toolbar_menu_structure" AS character 
+  DESCRIPTION "Only applies to toolbar bands. Possible options are:
+LEFT    positions the band on the left side
+RIGHT positions th band on the right side (If band_spacing is specified, it is spaced the specified amount from the previous band aligned from right.
+CENTER  positions the band in the center (spacing is ignored).
+
+Default is LEFT."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Menu Structure Alignment"
+  POSITION 7
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Menu structure alignment"
+  ORDER 60
+
+ADD FIELD "menu_structure_row" OF "gsm_toolbar_menu_structure" AS character 
+  DESCRIPTION "Used for building multi-band toolbars. Specifies the row to position the toolbar. Default is 'TOP'.
+
+Possible values are: TOP,BOTTOM,1,2,3,4,5,6,7,8,9
+
+There cannot be a row containing no bands. If a row is specified and there are no bands specified for a previous row, the row will default to the lowest previous row."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Menu Structure Row"
+  POSITION 8
+  SQL-WIDTH 20
+  VALMSG "s_string_10"
+  HELP "Menu structure row"
+  ORDER 70
+
+ADD FIELD "insert_rule" OF "gsm_toolbar_menu_structure" AS logical 
+  DESCRIPTION "Inserts a rule before the band. Default is YES."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Insert Rule"
+  POSITION 9
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Insert rule"
+  ORDER 80
+
+ADD INDEX "XPKgsm_toolbar_menu_structure" ON "gsm_toolbar_menu_structure" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "object_obj" ASCENDING 
+  INDEX-FIELD "menu_structure_sequence" ASCENDING 
+  INDEX-FIELD "menu_structure_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_toolbar_menu_structure" ON "gsm_toolbar_menu_structure" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "toolbar_menu_structure_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_toolbar_menu_structure" ON "gsm_toolbar_menu_structure" 
+  AREA "Schema Area"
+  INDEX-FIELD "menu_structure_obj" ASCENDING 
+
+UPDATE TABLE "gsm_menu_item"
+  DESCRIPTION "This table defines the dynamic menu items that may belong to either a menu structure or a toolbar.  An 'item' can be visualized as a menu item in a menubar (or submenu, ruler) , or a control (button, combo box) in a toolbar. A menu item may launch an actual program, publish an event to an object, or set a property.
+"
+
+ADD FIELD "product_module_obj" OF "gsm_menu_item" AS decimal
+  DESCRIPTION ""
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  FORMAT-SA ?
+  POSITION 3
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Product module obj"
+  HELP-SA ""
+  LABEL "Product Module Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 6
+  ORDER 20
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 21
+
+UPDATE FIELD "menu_item_label" OF "gsm_menu_item"
+  ORDER 60
+
+UPDATE FIELD "menu_item_description" OF "gsm_menu_item"
+  ORDER 70
+
+ADD FIELD "item_category_obj" OF "gsm_menu_item" AS decimal
+  DESCRIPTION ""
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  FORMAT-SA ?
+  POSITION 6
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Item category obj"
+  HELP-SA ""
+  LABEL "Item Category Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 6
+  ORDER 50
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 21
+
+UPDATE FIELD "toggle_menu_item" OF "gsm_menu_item"
+  POSITION 7
+  ORDER 80
+
+UPDATE FIELD "object_obj" OF "gsm_menu_item"
+  POSITION 8
+  ORDER 30
+
+UPDATE FIELD "tooltip_text" OF "gsm_menu_item"
+  POSITION 9
+  ORDER 90
+
+UPDATE FIELD "shortcut_key" OF "gsm_menu_item"
+  POSITION 10
+  ORDER 100
+
+UPDATE FIELD "hide_if_disabled" OF "gsm_menu_item"
+  POSITION 11
+  ORDER 110
+
+UPDATE FIELD "disabled" OF "gsm_menu_item"
+  POSITION 12
+  ORDER 120
+
+ADD FIELD "security_token" OF "gsm_menu_item" AS character
+  DESCRIPTION "This will default to the item  label, without the ampersand (&) but may be different if required. The security token is used to automatically enable and disable toolbar action according to user security permissions (via tokens)."
+  FORMAT "X(28)"
+  FORMAT-SA ?
+  POSITION 13
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Security token"
+  HELP-SA ""
+  LABEL "Security Token"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_label"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 170
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 56
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
+  POSITION 14
+  ORDER 40
+
+ADD FIELD "item_toolbar_label" OF "gsm_menu_item" AS character
+  DESCRIPTION "This is a short label for the button that would appear on the button as the button label in the event that the button has no image or if the item_control_style field specifies 'text only' 
+
+If the item_control_type field  specifies 'Label', this label would appear as text in the toolbar band.
+
+It should contain ampersand (&) to act as the shortcut character.
+When translating the label, the ampersand will be removed."
+  FORMAT "X(28)"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item toolbar label"
+  HELP-SA ""
+  LABEL "Item Toolbar Label"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_label"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 180
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 56
+
+UPDATE FIELD "system_owned" OF "gsm_menu_item"
+  POSITION 16
+  ORDER 130
+
+ADD FIELD "image1_up_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the normal image to display when the button is sensitive and not depressed. For flat buttons this is usally the only state that is required.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 17
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image1 up filename"
+  HELP-SA ""
+  LABEL "Image1 Up Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 190
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+UPDATE FIELD "under_development" OF "gsm_menu_item"
+  POSITION 18
+  ORDER 140
+
+ADD FIELD "image1_down_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the normal image to display when the button is sensitive and pressed.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 19
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image1 down filename"
+  HELP-SA ""
+  LABEL "Image1 Down Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 200
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+UPDATE FIELD "menu_item_reference" OF "gsm_menu_item"
+  DESCRIPTION "This is the unique identifier used in all code that references this table. Used in super-procedure and repository APIs as well as in Instance Properties. 
+
+May also be automatically generated for some menu items - used when releasing menu items to site to be able to update existing menu items, rather than deleting and recreating."
+  POSITION 20
+  ORDER 150
+
+ADD FIELD "image1_insensitive_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the  image to display when the button is insensitive.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 21
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image1 insensitive filename"
+  HELP-SA ""
+  LABEL "Image1 Insensitive Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 210
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "image2_up_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the secondary image to display when the button is sensitive and not depressed.
+For flat buttons this is usally the only state that is required.
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 22
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image2 up filename"
+  HELP-SA ""
+  LABEL "Image2 Up Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "image2_down_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the secondary image to display when the button is sensitive and pressed.
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image2 down filename"
+  HELP-SA ""
+  LABEL "Image2 Down Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 230
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "image2_insensitive_filename" OF "gsm_menu_item" AS character
+  DESCRIPTION "The filename of the secondary image to display when the button is insensitive (greyed out).
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 24
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image2 insensitive filename"
+  HELP-SA ""
+  LABEL "Image2 Insensitive Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 240
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+UPDATE FIELD "propagate_links" OF "gsm_menu_item"
+  ORDER 160
+
+ADD FIELD "item_select_type" OF "gsm_menu_item" AS character
+  DESCRIPTION "This is the type of action and determines the behaviour when the action is selected.
+
+The type can have a value of PUBLISH, RUN, PROPERTY, LAUNCH or nothing.
+PUBLISH means that a named event should be published when the item is selected. The event name is specified in the item_select_action field.
+RUN means that an internal procedure should be run when the item is selected. The procedure name is specified in the item_select_action field.
+PROPERTY means that the action should be realized as a state button and a menu item toggle, representing an ADM property of datatype logical. The name of the is stored in the item_select_action field. Get and Set functions for the property will be used  to display and modify its value.
+LAUNCH means launch the object (container) specified in the object_obj foreign key field and pass in the optional instance attribute if specified."
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 26
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item select type"
+  HELP-SA ""
+  LABEL "Item Select Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 250
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "item_select_action" OF "gsm_menu_item" AS character
+  DESCRIPTION "If the item_select_type is PUBLISH, then this is the event name to publish on choose of the action.
+If the  item_select_type is RUN, then this is the internal procedure name to run on choose of the action.
+If the  item_select_type  is PROPERTY, then this is the property name to set (toggle) on choose of the action.
+If the  item_select_type  is LAUNCH then this is not relevant as the program to launch is specified by the object_obj foreign key.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 27
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item select action"
+  HELP-SA ""
+  LABEL "Item Select Action"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 260
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "item_link" OF "gsm_menu_item" AS character
+  DESCRIPTION "This is the link across which to perform the specified item_select_action for the action type.
+If the item_select_type is RUN or PROPERTY then the procedure or property function is executed IN the handle of the object at the other end of the link.
+If the item_select_type is PUBLISH then the event is published IN the handle of the object at the other end of the link.
+If no link is specified, the container is assumed. An example link may be tableio-target - note the full link name must be specified.
+
+If multiple links are required, then they will be comma delimited.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 28
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item link"
+  HELP-SA ""
+  LABEL "Item Link"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 270
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "item_select_parameter" OF "gsm_menu_item" AS character
+  DESCRIPTION "This is an optional parameter to pass to the procedure that subscribes to the event being published, or the internal procedure being run, depending on the action type. For PROPERTY select types this is not relevant.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 29
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item select parameter"
+  HELP-SA ""
+  LABEL "Item Select Parameter"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 280
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "item_menu_drop" OF "gsm_menu_item" AS character
+  DESCRIPTION "This field defines a function that is called on menu drop of the action."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 30
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item menu drop"
+  HELP-SA ""
+  LABEL "Item Menu Drop"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 290
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "on_create_publish_event" OF "gsm_menu_item" AS character
+  DESCRIPTION "This attribute allows the developer to postpone the definition of certain actions until runtime. If specified, when this action is first defined the event name specified will be published in either the container or link specified.
+
+The event procedure used must take a single input parameter which will be passed in as the band name and action name, seperated by a comma.
+
+An example would be an action that would run an event during initialisation of the container that should build dynamic menus for any menu items linked to the container - meaning that each instance of a toolbar has its own specific dynamic menu items built when the toolbar is initialised. It can get information at runtime about the target-procedure and behave differently according to the instance of its use.
+
+The on choose action could be defined at this level, or defined individually when cretaing the dynamic menu options if required (by the procedure run).
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 31
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "On create publish event"
+  HELP-SA ""
+  LABEL "On Create Publish Event"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 300
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "enable_rule" OF "gsm_menu_item" AS character
+  DESCRIPTION ""
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 32
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Enable rule"
+  HELP-SA ""
+  LABEL "Enable Rule"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 310
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "disable_rule" OF "gsm_menu_item" AS character
+  DESCRIPTION ""
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 33
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Disable rule"
+  HELP-SA ""
+  LABEL "Disable Rule"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 320
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "image_alternate_rule" OF "gsm_menu_item" AS character
+  DESCRIPTION ""
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 34
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Image alternate rule"
+  HELP-SA ""
+  LABEL "Image Alternate Rule"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 330
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "hide_rule" OF "gsm_menu_item" AS character
+  DESCRIPTION ""
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 35
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Hide rule"
+  HELP-SA ""
+  LABEL "Hide Rule"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 340
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "item_control_type" OF "gsm_menu_item" AS character
+  DESCRIPTION "Indicates the visual representation of the item on the toolbar or menubar. Possible values are:
+Action, Separator, Label, EditField, ComboBox or Dynamic
+
+Action:  Specifies that this is a user action that  appears on a menu or toolbar. The field  item_select_action specifies what kind of action this is.  When on a toolbar, the item is visualized as a button. When on a menu, item is visualized as a menu item. 
+
+If this item has a child item and it is used in a menu structure, the menu item will become a submenu. It the item has a child item and it is used in a toolbar, the button will appear as a DropDown button. (A button containing an arrow next to it.) Upon selecting the arrow button, the sub menu band is displayed.
+
+Separator:    Can be specified when action is on a toolbar or menu. Both cause a line separator to appear.
+
+Label:   Used for toolbars or menus. When used in a menu, it displays text in the toolbar band. When used in a menu, can be used as a submenu item.
+
+EditField:  Used for toolbars only. Displays an edit field in the toolbar band. 
+
+ComboBox:  Used for toolbars only. Displays a combobox in the toolbar. (on_create_publish_event field will be used to store event name for building combo list, passing the combo-box handle to the event)
+
+Dynamic:   Used for both toolbars or menus. This action is used as a placeholder for dynamic menus or toolbar bands. Menu bands or toolbar bands associated with objects will be inserted at the specified dynamic action."
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 36
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item control type"
+  HELP-SA ""
+  LABEL "Item Control Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 350
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "item_control_style" OF "gsm_menu_item" AS character
+  DESCRIPTION "Used for toolbar items only.  Specifies whether  buttons will be displayed with text only, icon only or text and icon. Options are: 'IconOnly' (Default) ,'TextOnly', 'Text&Icon', (Text & icon to be supported for future use when button supports both image and text)
+"
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 37
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item control style"
+  HELP-SA ""
+  LABEL "Item Control Style"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 360
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "substitute_text_property" OF "gsm_menu_item" AS character
+  DESCRIPTION "Specify a property of the linked object. The value of this property will be retrieved from the linked object, and substituted with {&1} in both the menu_item_label and the tooltip_text fields.
+
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 38
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Substitute text property"
+  HELP-SA ""
+  LABEL "Substitute Text Property"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 370
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "item_narration" OF "gsm_menu_item" AS character
+  DESCRIPTION "Detailed description of item"
+  FORMAT "X(500)"
+  FORMAT-SA ?
+  POSITION 39
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Item narration"
+  HELP-SA ""
+  LABEL "Item Narration"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_string_500"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 380
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1000
+
+RENAME INDEX "XAK1gsm_menu_item" TO "temp-30828" ON "gsm_menu_item"
+
+RENAME INDEX "XIE2gsm_menu_item" TO "temp-80833" ON "gsm_menu_item"
+
+RENAME INDEX "XIE3gsm_menu_item" TO "temp-13109" ON "gsm_menu_item"
+
+RENAME INDEX "XIE4gsm_menu_item" TO "temp-36034" ON "gsm_menu_item"
+
+RENAME INDEX "XIE5gsm_menu_item" TO "temp-16033" ON "gsm_menu_item"
+
+RENAME INDEX "XIE6gsm_menu_item" TO "temp-88469" ON "gsm_menu_item"
+
+RENAME INDEX "XAK2gsm_menu_item" TO "XAK1gsm_menu_item" ON "gsm_menu_item"
+
+
+ADD INDEX "XIE1gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD INDEX "XIE2gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "object_obj" ASCENDING
+
+ADD INDEX "XIE3gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "instance_attribute_obj" ASCENDING
+
+ADD INDEX "XIE4gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "item_category_obj" ASCENDING
+
+ADD INDEX "XIE5gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "menu_item_label" ASCENDING
+
+ADD INDEX "XIE6gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "menu_item_description" ASCENDING
+
+ADD INDEX "XIE7gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "security_token" ASCENDING
+
+ADD INDEX "XIE8gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "item_toolbar_label" ASCENDING
+
+DROP INDEX "temp-30828" ON "gsm_menu_item"
+DROP INDEX "temp-80833" ON "gsm_menu_item"
+DROP INDEX "temp-13109" ON "gsm_menu_item"
+DROP INDEX "temp-36034" ON "gsm_menu_item"
+
+DROP INDEX "temp-16033" ON "gsm_menu_item"
+DROP INDEX "temp-88469" ON "gsm_menu_item"
+
+DROP FIELD "menu_structure_obj" OF "gsm_menu_item"
+DROP FIELD "menu_item_sequence" OF "gsm_menu_item"
+DROP FIELD "sub_menu_item" OF "gsm_menu_item"
+DROP FIELD "ruler_menu_item" OF "gsm_menu_item"
+DROP FIELD "toolbar_image_sequence" OF "gsm_menu_item"
+DROP FIELD "toolbar_image_filename" OF "gsm_menu_item"
+DROP FIELD "parent_menu_item_obj" OF "gsm_menu_item"
+DROP FIELD "publish_link_list" OF "gsm_menu_item"
+DROP FIELD "publish_event" OF "gsm_menu_item"
+DROP FIELD "publish_parameter" OF "gsm_menu_item"
+
+UPDATE FIELD "product_obj" OF "gsm_menu_structure"
+  ORDER 30
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
+  ORDER 20
+
+ADD FIELD "menu_item_obj" OF "gsm_menu_structure" AS decimal
+  DESCRIPTION ""
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Menu item obj"
+  HELP-SA ""
+  LABEL "Menu Item Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 6
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 21
+
+ADD FIELD "menu_structure_type" OF "gsm_menu_structure" AS character
+  DESCRIPTION "Specifies the type of the menu or toolbar structure. Possible options are:
+'MenuBar', 'Toolbar'  'SubMenu' or 'Menu&Toolbar' .
+
+"
+  FORMAT "X(15)"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Menu structure type"
+  HELP-SA ""
+  LABEL "Menu Structure Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_string_15"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 30
+
+ADD FIELD "menu_structure_hidden" OF "gsm_menu_structure" AS logical
+  DESCRIPTION "If YES, band will be hidden."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Menu structure hidden"
+  HELP-SA ""
+  LABEL "Menu Structure Hidden"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "control_spacing" OF "gsm_menu_structure" AS integer
+  DESCRIPTION "If menu_structure is a toolbar band, this specifies the spacing between tools in pixels."
+  FORMAT "->>9"
+  FORMAT-SA ?
+  POSITION 13
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Control spacing"
+  HELP-SA ""
+  LABEL "Control Spacing"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_3"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 120
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "control_padding" OF "gsm_menu_structure" AS integer
+  DESCRIPTION "If the menu_structure is a toolbar band, this specifies the number of pixels between the image (16x16) and the edge of the buton.
+
+This can be used to make large buttons."
+  FORMAT "->>9"
+  FORMAT-SA ?
+  POSITION 14
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Control padding"
+  HELP-SA ""
+  LABEL "Control Padding"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_3"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 130
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "menu_structure_narrative" OF "gsm_menu_structure" AS character
+  DESCRIPTION "A detailed description of the item"
+  FORMAT "X(500)"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Menu structure narrative"
+  HELP-SA ""
+  LABEL "Menu Structure Narrative"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_string_500"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1000
+
+RENAME INDEX "XAK1gsm_menu_structure" TO "temp-87603" ON "gsm_menu_structure"
+
+ADD INDEX "XAK1gsm_menu_structure" ON "gsm_menu_structure"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "menu_structure_code" ASCENDING
+
+ADD INDEX "XAK2gsm_menu_structure" ON "gsm_menu_structure"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "menu_structure_code" ASCENDING
+
+ADD INDEX "XIE3gsm_menu_structure" ON "gsm_menu_structure"
+  AREA "Schema Area"
+  INDEX-FIELD "menu_structure_type" ASCENDING
+
+ADD INDEX "XIE4gsm_menu_structure" ON "gsm_menu_structure"
+  AREA "Schema Area"
+  INDEX-FIELD "menu_item_obj" ASCENDING
+
+DROP INDEX "temp-87603" ON "gsm_menu_structure"
+DROP INDEX "XIE1gsm_menu_structure" ON "gsm_menu_structure"
+
+ADD FIELD "menu_item_obj" OF "gsm_object_menu_structure" AS decimal
+  DESCRIPTION ""
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  FORMAT-SA ?
+  POSITION 6
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Menu item obj"
+  HELP-SA ""
+  LABEL "Menu Item Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 6
+  ORDER 50
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 21
+
+ADD FIELD "insert_submenu" OF "gsm_object_menu_structure" AS logical
+  DESCRIPTION "If YES, the dynamic menu item is replaced with a submenu using the label of the menu item.
+
+if NO, all the menu items of the band are inserted  in place of the dynamic field."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Insert submenu"
+  HELP-SA ""
+  LABEL "Insert Submenu"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "menu_structure_sequence" OF "gsm_object_menu_structure" AS integer
+  DESCRIPTION "If more than one menu structure is specified for the same dynamic item, this indicates the order to place the menu structure."
+  FORMAT "->>9"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Menu structure sequence"
+  HELP-SA ""
+  LABEL "Menu Structure Sequence"
+  LABEL-SA ?
+  COLUMN-LABEL "Menu Structure Seq."
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_3"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD INDEX "XIE2gsm_object_menu_structure" ON "gsm_object_menu_structure"
+  AREA "Schema Area"
+  INDEX-FIELD "menu_item_obj" ASCENDING
+  INDEX-FIELD "object_obj" ASCENDING
+  INDEX-FIELD "instance_attribute_obj" ASCENDING
+
+.
+PSC
+cpstream=UTF-8
+.
+0000040132

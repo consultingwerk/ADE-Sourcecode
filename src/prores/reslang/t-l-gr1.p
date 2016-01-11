@@ -1,114 +1,114 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-/* t-l-eng.p - English language definitions for Labels module */
-
-{ prores/t-define.i }
-
-DEFINE INPUT PARAMETER qbf-s AS INTEGER NO-UNDO.
-
-IF qbf-s < 0 THEN RETURN.
-qbf-lang = "".
-
-/*--------------------------------------------------------------------------*/
-/* l-guess.p:1..5,l-verify.p:6.. */
-IF qbf-s = 1 THEN
-  ASSIGN
-    qbf-lang[ 1] = 'Αναζήτηση στο "~{1~}" με την ονομασία πεδίου "~{2~}" ...'
-    qbf-lang[ 2] = 'Δεν βρέθηκαν πέδια κατά την Αυτόματη Αναζήτηση.'
-    qbf-lang[ 4] = 'Δημιουργία των Πεδίων για τις ετικέττες'
-    qbf-lang[ 5] = 'Ονομα,Υπόψη,Διεύθυνση #1,Διεύθυνση #2,Διεύθυνση #3,Τ.Κ.,'
-                 + 'Πόλη,Τ.Κ. και Πόλη μαζί,Νομός,Χώρα'
-
-    qbf-lang[ 6] = 'Γραμμή ~{1~}: Λείπει/επιπλέον άγκιστρο.'
-    qbf-lang[ 7] = 'Γραμμή ~{2~}: Δεν βρέθηκε το πεδίο "~{1~}".'
-    qbf-lang[ 8] = 'Γραμμή ~{2~}: Το πεδίο "~{1~}", δεν είναι τύπου πίνακα.'
-    qbf-lang[ 9] = 'Γραμμή ~{2~}: Στο πεδίο "~{1~}", πλήθος - ~{3~} υπερβαίνει το μέγιστο όριο.'
-    qbf-lang[10] = 'Γραμμή ~{2~}: Το πεδίο "~{1~}", προέρχεται από μη-επιλεγμένο αρχείο.'.
-
-ELSE
-
-/*--------------------------------------------------------------------------*/
-/* l-main.p */
-IF qbf-s = 2 THEN
-  ASSIGN
-    /* each entry of 1 and also 2 must fit in format x(6) */
-    qbf-lang[ 1] = 'Αρχ. :,     :,     :,     :,     :'
-    qbf-lang[ 2] = 'Ταξιν:'
-    qbf-lang[ 3] = 'Στοιχεία Ετικεττών'
-    qbf-lang[ 4] = 'Σχεδίαση Ετικεττών'
-    qbf-lang[ 5] = 'Επιλογή Πεδίου'
-    /*cannot change length of 6 thru 17, right-justify 6-11,13-14 */
-    qbf-lang[ 6] = 'Αφαίρ.Κενών Γραμ:'
-    qbf-lang[ 7] = ' Από πόσες φορές:'
-    qbf-lang[ 8] = ' Συνολικό Υψος:'
-    qbf-lang[ 9] = 'Πάνω Περιθώριο:'
-    qbf-lang[10] = 'Απόσταση μεταξύ Ετικ.:'
-    qbf-lang[11] = 'Εσοχή Αρισ.Περιθωρίου:'
-    qbf-lang[12] = '(πλάτ.)'
-    qbf-lang[13] = 'Κείμενο Ετικ.'
-    qbf-lang[14] = '    και Πεδία'
-    qbf-lang[15] = 'Αριθμός           ' /* 15..17 used as group.   */
-    qbf-lang[16] = 'Ετικεττών         ' /*   do not change length, */
-    qbf-lang[17] = 'κατά Πλάτος: ' /*        but do right-justify  */
-    qbf-lang[19] = 'Δεν έχετε ακυρώσει την τρέχουσα ετικέττα. '
-                 + 'Θέλετε να συνεχίσετε; '
-    qbf-lang[20] = 'Το ύψος των ετικεττών είναι ~{1~}, αλλά έχετε ορίσει ~{2~} '
-                 + 'γραμμές με πεδία και κείμενο. Δηλαδή, μερικά στοιχεία δεν '
-                 + 'θα χωρέσουν και συνεπώς, δεν θα εκτυπωθούν. '
-                 + 'Θέλετε να συνεχίσετε με την εκτύπωση; '
-    qbf-lang[21] = 'Δεν υπάρχουν πέδια ή κείμενο για την εκτύπωση !'
-    qbf-lang[22] = 'Δημιουργία του πρόγραμματος Εκτύπωσης Ετικεττών...'
-    qbf-lang[23] = '"Compile" του πρόγραμματος Εκτύπωσης Ετικεττών...'
-    qbf-lang[24] = 'Εκτέλεση του προγράμματος που δημιουργήθηκε...'
-    qbf-lang[25] = 'Αδύνατη η επικοινωνία με το αρχείο/μονάδα'
-    qbf-lang[26] = 'Αριθμός εκτυπωμένων ετικεττών - ~{1~} .'
-    qbf-lang[27] = 'F. Πεδία'
-    qbf-lang[28] = 'A. Ενεργά Αρχεία'
-    qbf-lang[29] = 'Θέλετε την εκτέλεση της Αυτόματης Αναζήτησης Πεδίων '
-                 + 'από αυτό το πρόγραμμα; '
-    qbf-lang[31] = 'Επιβεβαίωση ακύρωσης των ρυθμίσεων'
-    qbf-lang[32] = 'Επιβεβαίωση εξόδου από αυτήν την εργασία'.
-
-ELSE
-
-/*--------------------------------------------------------------------------*/
-/* l-main.p */
-IF qbf-s = 3 THEN
-  ASSIGN
-    qbf-lang[ 1] = 'Εφ''όσον θέλετε > 1 ετικέττα κατά πλάτος, τα κενά πρέπει > 0'
-    qbf-lang[ 2] = 'Το πάνω περιθώριο δεν μπορεί να έχει αρνητική τιμή'
-    qbf-lang[ 3] = 'Το συνολικό ύψος πρέπει να είναι > 1'
-    qbf-lang[ 4] = 'Πρέπει να υπάρχει τουλάχιστον μια ετικέττα κατά πλάτος'
-    qbf-lang[ 5] = 'Πρέπει να εκτυπωθεί τουλάχιστον από μία φορά'
-    qbf-lang[ 6] = 'Το αριστερό περιθώριο δεν μπορεί να έχει αρνητική τιμή'
-    qbf-lang[ 7] = 'Η οριζόντια απόσταση μεταξή ετικεττών πρέπει να είναι > 1'
-    qbf-lang[ 8] = 'Μετατόπιση των γράμμων προς τα πάνω όταν υπάρχει κενή γραμμή'
-    qbf-lang[ 9] = 'Αριθμός κενών γραμμών από την αρχή μέχρη το κείμενο'
-    qbf-lang[10] = 'Το συνολικό ύψος της ετικέττας σε γραμμές'
-    qbf-lang[11] = 'Πόσες ετικέττες θα εκτυπωθούν κατά πλάτος'
-    qbf-lang[12] = 'Πόσες φορές θα εκτυπωθεί η κάθε ετικέττα'
-    qbf-lang[13] = 'Πόσα κενά από την άκρη της ετικέττας μέχρι τον πρώτο χαρακτήρα'
-    qbf-lang[14] = 'Η απόσταση από την αριστερή άκρη μίας ετικέττας και της άλλης'.
-/*--------------------------------------------------------------------------*/
-
-RETURN.
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/* t-l-eng.p - English language definitions for Labels module */
+
+{ prores/t-define.i }
+
+DEFINE INPUT PARAMETER qbf-s AS INTEGER NO-UNDO.
+
+IF qbf-s < 0 THEN RETURN.
+qbf-lang = "".
+
+/*--------------------------------------------------------------------------*/
+/* l-guess.p:1..5,l-verify.p:6.. */
+IF qbf-s = 1 THEN
+  ASSIGN
+    qbf-lang[ 1] = 'Αναζήτηση στο "~{1~}" με την ονομασία πεδίου "~{2~}" ...'
+    qbf-lang[ 2] = 'Δεν βρέθηκαν πέδια κατά την Αυτόματη Αναζήτηση.'
+    qbf-lang[ 4] = 'Δημιουργία των Πεδίων για τις ετικέττες'
+    qbf-lang[ 5] = 'Ονομα,Υπόψη,Διεύθυνση #1,Διεύθυνση #2,Διεύθυνση #3,Τ.Κ.,'
+                 + 'Πόλη,Τ.Κ. και Πόλη μαζί,Νομός,Χώρα'
+
+    qbf-lang[ 6] = 'Γραμμή ~{1~}: Λείπει/επιπλέον άγκιστρο.'
+    qbf-lang[ 7] = 'Γραμμή ~{2~}: Δεν βρέθηκε το πεδίο "~{1~}".'
+    qbf-lang[ 8] = 'Γραμμή ~{2~}: Το πεδίο "~{1~}", δεν είναι τύπου πίνακα.'
+    qbf-lang[ 9] = 'Γραμμή ~{2~}: Στο πεδίο "~{1~}", πλήθος - ~{3~} υπερβαίνει το μέγιστο όριο.'
+    qbf-lang[10] = 'Γραμμή ~{2~}: Το πεδίο "~{1~}", προέρχεται από μη-επιλεγμένο αρχείο.'.
+
+ELSE
+
+/*--------------------------------------------------------------------------*/
+/* l-main.p */
+IF qbf-s = 2 THEN
+  ASSIGN
+    /* each entry of 1 and also 2 must fit in format x(6) */
+    qbf-lang[ 1] = 'Αρχ. :,     :,     :,     :,     :'
+    qbf-lang[ 2] = 'Ταξιν:'
+    qbf-lang[ 3] = 'Στοιχεία Ετικεττών'
+    qbf-lang[ 4] = 'Σχεδίαση Ετικεττών'
+    qbf-lang[ 5] = 'Επιλογή Πεδίου'
+    /*cannot change length of 6 thru 17, right-justify 6-11,13-14 */
+    qbf-lang[ 6] = 'Αφαίρ.Κενών Γραμ:'
+    qbf-lang[ 7] = ' Από πόσες φορές:'
+    qbf-lang[ 8] = ' Συνολικό Υψος:'
+    qbf-lang[ 9] = 'Πάνω Περιθώριο:'
+    qbf-lang[10] = 'Απόσταση μεταξύ Ετικ.:'
+    qbf-lang[11] = 'Εσοχή Αρισ.Περιθωρίου:'
+    qbf-lang[12] = '(πλάτ.)'
+    qbf-lang[13] = 'Κείμενο Ετικ.'
+    qbf-lang[14] = '    και Πεδία'
+    qbf-lang[15] = 'Αριθμός           ' /* 15..17 used as group.   */
+    qbf-lang[16] = 'Ετικεττών         ' /*   do not change length, */
+    qbf-lang[17] = 'κατά Πλάτος: ' /*        but do right-justify  */
+    qbf-lang[19] = 'Δεν έχετε ακυρώσει την τρέχουσα ετικέττα. '
+                 + 'Θέλετε να συνεχίσετε; '
+    qbf-lang[20] = 'Το ύψος των ετικεττών είναι ~{1~}, αλλά έχετε ορίσει ~{2~} '
+                 + 'γραμμές με πεδία και κείμενο. Δηλαδή, μερικά στοιχεία δεν '
+                 + 'θα χωρέσουν και συνεπώς, δεν θα εκτυπωθούν. '
+                 + 'Θέλετε να συνεχίσετε με την εκτύπωση; '
+    qbf-lang[21] = 'Δεν υπάρχουν πέδια ή κείμενο για την εκτύπωση !'
+    qbf-lang[22] = 'Δημιουργία του πρόγραμματος Εκτύπωσης Ετικεττών...'
+    qbf-lang[23] = '"Compile" του πρόγραμματος Εκτύπωσης Ετικεττών...'
+    qbf-lang[24] = 'Εκτέλεση του προγράμματος που δημιουργήθηκε...'
+    qbf-lang[25] = 'Αδύνατη η επικοινωνία με το αρχείο/μονάδα'
+    qbf-lang[26] = 'Αριθμός εκτυπωμένων ετικεττών - ~{1~} .'
+    qbf-lang[27] = 'F. Πεδία'
+    qbf-lang[28] = 'A. Ενεργά Αρχεία'
+    qbf-lang[29] = 'Θέλετε την εκτέλεση της Αυτόματης Αναζήτησης Πεδίων '
+                 + 'από αυτό το πρόγραμμα; '
+    qbf-lang[31] = 'Επιβεβαίωση ακύρωσης των ρυθμίσεων'
+    qbf-lang[32] = 'Επιβεβαίωση εξόδου από αυτήν την εργασία'.
+
+ELSE
+
+/*--------------------------------------------------------------------------*/
+/* l-main.p */
+IF qbf-s = 3 THEN
+  ASSIGN
+    qbf-lang[ 1] = 'Εφ''όσον θέλετε > 1 ετικέττα κατά πλάτος, τα κενά πρέπει > 0'
+    qbf-lang[ 2] = 'Το πάνω περιθώριο δεν μπορεί να έχει αρνητική τιμή'
+    qbf-lang[ 3] = 'Το συνολικό ύψος πρέπει να είναι > 1'
+    qbf-lang[ 4] = 'Πρέπει να υπάρχει τουλάχιστον μια ετικέττα κατά πλάτος'
+    qbf-lang[ 5] = 'Πρέπει να εκτυπωθεί τουλάχιστον από μία φορά'
+    qbf-lang[ 6] = 'Το αριστερό περιθώριο δεν μπορεί να έχει αρνητική τιμή'
+    qbf-lang[ 7] = 'Η οριζόντια απόσταση μεταξή ετικεττών πρέπει να είναι > 1'
+    qbf-lang[ 8] = 'Μετατόπιση των γράμμων προς τα πάνω όταν υπάρχει κενή γραμμή'
+    qbf-lang[ 9] = 'Αριθμός κενών γραμμών από την αρχή μέχρη το κείμενο'
+    qbf-lang[10] = 'Το συνολικό ύψος της ετικέττας σε γραμμές'
+    qbf-lang[11] = 'Πόσες ετικέττες θα εκτυπωθούν κατά πλάτος'
+    qbf-lang[12] = 'Πόσες φορές θα εκτυπωθεί η κάθε ετικέττα'
+    qbf-lang[13] = 'Πόσα κενά από την άκρη της ετικέττας μέχρι τον πρώτο χαρακτήρα'
+    qbf-lang[14] = 'Η απόσταση από την αριστερή άκρη μίας ετικέττας και της άλλης'.
+/*--------------------------------------------------------------------------*/
+
+RETURN.

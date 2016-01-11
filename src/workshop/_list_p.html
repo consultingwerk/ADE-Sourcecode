@@ -1,53 +1,53 @@
-<HTML>
-<HEAD>
-<TITLE>Dump _P Records</TITLE>
-</HEAD>
-<BODY>
-<CENTER>
-<H1>Dump _P records:</H1>
-<H2>for ` WEB-CONTEXT:EXCLUSIVE-ID `</H2>
-This is a debugging screen. If you see it, please call bill wood (x4528).
-</CENTER>
-<SCRIPT LANGUAGE="PROGRESS">
-  {workshop/sharvars.i }
-  {workshop/code.i }
-  {workshop/objects.i }
-  {workshop/uniwidg.i }
-  {workshop/htmwidg.i }
-  OUTPUT TO "WEB":U.
-  FOR EACH _P:
-    DISPLAY RECID(_P) _P._filename FORMAT "X(25)" _P._open _P._modified.
-  END.  
-  
-  FOR EACH _code BY _code._p-recid:
-    DISPLAY RECID(_code) LABEL "RECID(_code)" 
-            _code._P-recid LABEL "_P-recid" 
-            _code._prev-id LABEL "Prev-id"
-            _code._next-id LABEL "Next-id"
-            _code._section LABEL "Section"
-            _code._name FORMAT "X(20)"
-            _code._special FORMAT "X(15)"
-            WITH WIDTH 120.
-  END.
-  
-  FOR EACH _U BY _U._p-recid:
-    DISPLAY RECID(_U) LABEL "RECID(_U)" _U._P-recid LABEL "RECID(_P)" 
-            _U._x-recid LABEL "x-recid" _U._parent-recid  LABEL "parent"
-            _U._NAME FORMAT "X(24)" _U._TYPE
-            WITH WIDTH 120.
-  END.
-  
-  FOR EACH _HTM BY _HTM._i-order:
-    DISPLAY RECID(_HTM) LABEL "RECID(_HTM)" 
-            _HTM._U-recid _HTM._P-recid 
-            _HTM._HTM-NAME FORMAT "X(24)" _HTM._HTM-Tag _HTM._HTM-TYPE _HTM._MDT-TYPE
-            WITH WIDTH 120.
-            
-  END.
-
-</SCRIPT>
-</BODY>
-</HTML>
-
- 
-
+<HTML>
+<HEAD>
+<TITLE>Dump _P Records</TITLE>
+</HEAD>
+<BODY>
+<CENTER>
+<H1>Dump _P records:</H1>
+<H2>for ` WEB-CONTEXT:EXCLUSIVE-ID `</H2>
+This is a debugging screen. If you see it, please call bill wood (x4528).
+</CENTER>
+<SCRIPT LANGUAGE="PROGRESS">
+  {workshop/sharvars.i }
+  {workshop/code.i }
+  {workshop/objects.i }
+  {workshop/uniwidg.i }
+  {workshop/htmwidg.i }
+  OUTPUT TO "WEB":U.
+  FOR EACH _P:
+    DISPLAY RECID(_P) _P._filename FORMAT "X(25)" _P._open _P._modified.
+  END.  
+  
+  FOR EACH _code BY _code._p-recid:
+    DISPLAY RECID(_code) LABEL "RECID(_code)" 
+            _code._P-recid LABEL "_P-recid" 
+            _code._prev-id LABEL "Prev-id"
+            _code._next-id LABEL "Next-id"
+            _code._section LABEL "Section"
+            _code._name FORMAT "X(20)"
+            _code._special FORMAT "X(15)"
+            WITH WIDTH 120.
+  END.
+  
+  FOR EACH _U BY _U._p-recid:
+    DISPLAY RECID(_U) LABEL "RECID(_U)" _U._P-recid LABEL "RECID(_P)" 
+            _U._x-recid LABEL "x-recid" _U._parent-recid  LABEL "parent"
+            _U._NAME FORMAT "X(24)" _U._TYPE
+            WITH WIDTH 120.
+  END.
+  
+  FOR EACH _HTM BY _HTM._i-order:
+    DISPLAY RECID(_HTM) LABEL "RECID(_HTM)" 
+            _HTM._U-recid _HTM._P-recid 
+            _HTM._HTM-NAME FORMAT "X(24)" _HTM._HTM-Tag _HTM._HTM-TYPE _HTM._MDT-TYPE
+            WITH WIDTH 120.
+            
+  END.
+
+</SCRIPT>
+</BODY>
+</HTML>
+
+ 
+

@@ -1,40 +1,40 @@
-<script language="SpeedScript"> 
-/*----------------------------------------------------------------------------
-  File: _new.html
-
-  Description: Workshop "New File" page. This page takes the contents of the
-               user template definition file (src/web/template/template.dat)
-               and displays it to the user.
-  
-  Field: <none>
-  Author: William T. Wood
-  Created: February 10, 1997
-----------------------------------------------------------------------------*/
-/*Copyright (c) by PROGRESS SOFTWARE CORPORATION. 1997 - AllRights Reserved.*/
-
-{ webutil/wstyle.i }  /* Standard style definitions. */
-{ workshop/help.i }   /* Include context strings.    */
-
-/* Use standard Workshop headers and help */
-{&OUT} 
-  { workshop/html.i &SEGMENTS = "head,open-body,title-line"
-                    &TITLE    = "New File"
-                    &AUTHOR   = "Wm.T.Wood"
-                    &FRAME    = "WS_main" 
-                    &CONTEXT  = "{&File_New_Help}" }
-   .
-</script>
-<script language="Javascript">
-  <!-- // Create a function to create the standard help window
-  function openHelpWin () { 
-    return window.open ('', 'helpWindow', '`get-window-settings ("helpWindow":U, "":U)`');
-  }
-  // End of script -->
-</script>
-<script language="SpeedScript"> 
-  /* Add standard help icon and link. */
-  /* Get the template file. */
-  RUN webtools/util/_putfile.w ('src/web/template/template.dat':U, ?, "No-Head":U).
-</script>
-</body>
-</html>
+<script language="SpeedScript"> 
+/*----------------------------------------------------------------------------
+  File: _new.html
+
+  Description: Workshop "New File" page. This page takes the contents of the
+               user template definition file (src/web/template/template.dat)
+               and displays it to the user.
+  
+  Field: <none>
+  Author: William T. Wood
+  Created: February 10, 1997
+----------------------------------------------------------------------------*/
+/*Copyright (c) by PROGRESS SOFTWARE CORPORATION. 1997 - AllRights Reserved.*/
+
+{ webutil/wstyle.i }  /* Standard style definitions. */
+{ workshop/help.i }   /* Include context strings.    */
+
+/* Use standard Workshop headers and help */
+{&OUT} 
+  { workshop/html.i &SEGMENTS = "head,open-body,title-line"
+                    &TITLE    = "New File"
+                    &AUTHOR   = "Wm.T.Wood"
+                    &FRAME    = "WS_main" 
+                    &CONTEXT  = "{&File_New_Help}" }
+   .
+</script>
+<script language="Javascript">
+  <!-- // Create a function to create the standard help window
+  function openHelpWin () { 
+    return window.open ('', 'helpWindow', '`get-window-settings ("helpWindow":U, "":U)`');
+  }
+  // End of script -->
+</script>
+<script language="SpeedScript"> 
+  /* Add standard help icon and link. */
+  /* Get the template file. */
+  RUN webtools/util/_putfile.w ('src/web/template/template.dat':U, ?, "No-Head":U).
+</script>
+</body>
+</html>

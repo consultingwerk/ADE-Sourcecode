@@ -1,0 +1,34 @@
+/********************************
+  snow_main.css
+  Sample stylesheet for the Dynamics main/menu screen 
+  Per Digre / PSC
+********************************/
+
+@import url(../dhtml/rymain.css);
+
+BODY      {background:url(../img/bg.gif);font-color:#000000;font-family:MS Sans Serif;font-size:8;margin:0;}
+
+/** Toolbar with round images **/
+#toolbar TD            {margin:0;padding:2px 0px 0px 7px;border:0;width:24px;height:25px;
+                        background-image:url(../img/ws_round.gif);}
+#toolbar TD.over       {background-image:url(../img/ws_round2.gif);}
+
+
+/* menu looks */
+#menubar TABLE.root     {background-color:lightblue;}
+#menubar TABLE.menu     {padding:0;margin:0;background-color:lightblue;}
+#menubar TD             {background-color:lightblue;}
+#menubar TD.enable      {border:0;}
+#menubar TD.disable     {border:0;}
+#menubar TD.over        {border:0;}
+#menubar TD.break       {border:0;}
+                        
+#menubar TD.root        {color:darkblue;font: MS Sans Serif;font-weight:bold;}
+#menubar TD.root.normal {border-color:lightblue;}
+#menubar TD.root.raise  {background-color:white;}
+#menubar TD.root.sink   {background-color:white;}
+
+
+
+
+ 

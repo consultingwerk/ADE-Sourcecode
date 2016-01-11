@@ -1,0 +1,57 @@
+/*********************************************/
+/****** Lookup functionality        **********/
+/*********************************************/
+Lookup.prototype.lookuptitle;
+Lookup.prototype.lookupcols;
+Lookup.prototype.lookuplabels;
+Lookup.prototype.lookupdata;
+Lookup.prototype.lookupdlm;
+Lookup.prototype.lookupbatch;
+Lookup.prototype.lookupval;
+
+Lookup.prototype.init=function(title,cols,labels){
+  this.lookuptitle=title;
+  this.lookupcols=cols;
+  this.lookuplabels=labels;
+  app._lookup=this;
+}
+
+Lookup.prototype.load=function(data,dlm,batch){
+  this.lookupdata=data;
+  this.lookupdlm=dlm;
+  this.lookupbatch=batch;
+}
+
+Lookup.prototype.launch=function(){
+  if(this.lookupdata.length!=1)
+    if(this.lookupval>'' || returnfield.value=='') appcontrol.markField(returnfield,'');
+  if(this.lookupdata.length==0) return appcontrol.markField(returnfield,'error');
+  if(this.lookupdata.length>1) return action('util.../dhtml/rylookup.htm|resize');
+  this.setFields(this.lookupdata[0].split('|'));
+}
+
+Lookup.prototype.setFields=function(cur){
+  window.app=appcontrol.activeframe.win;
+  var names=('rowident|_key|'+this.lookupcols).split('|');
+  var dfield=returnfield.getAttribute('dfield').split(',');
+  appcontrol.markField(returnfield,'');
+  var wdo=app['_'+returnfield.id.split('.')[0]];
+  var idx='_'+returnfield.getAttribute('lookup').split('.')[0];
+  var disp=cur[1];     // Displayedfield is stored in the "_key" field unless given other
+  for(var i=0;i<dfield.length;i++){   // linked fields
+    for(var j=2;j<names.length;j++){
+      if(names[j]==dfield[i]){
+        if(!i) disp=cur[j];
+        else wdo.action((wdo.hdata.index[dfield[i]]?'':idx)+dfield[i]+'.setinput',cur[j]); 
+         // Need to add the fieldname(idx) to name only if loose widget
+      }
+    }
+  }
+  returnfield.value=disp;   // Setting Displayedfield and remember last selected 
+  returnfield.setAttribute('select',disp);
+  wdo.action('modify');
+}
+
+function Lookup(){}
+
+var lookup = new Lookup();

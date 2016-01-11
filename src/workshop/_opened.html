@@ -1,71 +1,71 @@
-<script language="PROGRESS"> 
-/*----------------------------------------------------------------------------
-  File: _opened.html
-
-  Description: Workshop Open Files. This page lists the files that have been
-               opened in the Workshop.
-  
-  Field: <none>
-  Author: William T. Wood
-  Created: March 10, 1997
------------------------------------------------------------------------------*/
-/*Copyright (c) by PROGRESS SOFTWARE CORPORATION. 1997 - All Rights Reserved.*/
-
-{ webutil/wstyle.i }      /* Standard style definitions.          */
-{ workshop/objects.i }    /* Shared web-object temp-tables.       */
-{ workshop/help.i }       /* Include context strings.             */
-
-/* Use standard Workshop headers and help */
-{&OUT} 
-  { workshop/html.i &SEGMENTS = "head,open-body,title-line"
-                    &TITLE    = "Opened Files"
-                    &FRAME    = "WS_main" 
-                    &CONTEXT  = "{&Opened_Files_Help}" } .
-
-  /* Are there any open files? */
-  IF NOT CAN-FIND (FIRST _P WHERE _P._open) THEN DO:
-    {&OUT} '<UL>There are no files open in Workshop.</UL>'.
-  END.
-  ELSE DO:
-    /* NOTE: this will compile out some of the HTML in some cases... */
-
-</script>
-<center>
-<table border=2 cellspacing=2 cellpadding=2>
-<tr>
-  <th>File</th>
-  <th>Type</th>
-  <th>Needs to be Saved</th>
-</tr>
-<script language="SpeedScript">  
-  /* Loop through all the files. */
-  FOR EACH _P WHERE _P._open BY _P._filename:
-    {&OUT}
-       '<tr>~n':U
-       '  <td><A HREF="_main.w?html=procedureFrameset&amp~;file-id=':U RECID(_P) '">':U 
-              html-encode(_P._filename) '</A></td>~n':U
-       '  <td align="center">':U 
-             _P._type
-             IF _P._html-file ne "":U
-             THEN '<br><font color="olive">(Maps: ' + html-encode(_P._html-file) + ')</font>'  
-             ELSE ''
-       '  </td>':U
-       '  <td align="center">':U 
-             IF _P._modified THEN 'yes' ELSE 'no':U 
-       '  </td>~n':U
-       '</tr>~n':U
-       .
-  END. /* FOR EACH _P... */
-</script>
-</table>
-</center>
-<script language="SpeedScript">  
-  /* .... Close the ELSE:... above... */
-  END. /* IF...CAN-FIND(FIRST _P... */
-</script>
-
-</body>
-</html>
-
- 
-
+<script language="PROGRESS"> 
+/*----------------------------------------------------------------------------
+  File: _opened.html
+
+  Description: Workshop Open Files. This page lists the files that have been
+               opened in the Workshop.
+  
+  Field: <none>
+  Author: William T. Wood
+  Created: March 10, 1997
+-----------------------------------------------------------------------------*/
+/*Copyright (c) by PROGRESS SOFTWARE CORPORATION. 1997 - All Rights Reserved.*/
+
+{ webutil/wstyle.i }      /* Standard style definitions.          */
+{ workshop/objects.i }    /* Shared web-object temp-tables.       */
+{ workshop/help.i }       /* Include context strings.             */
+
+/* Use standard Workshop headers and help */
+{&OUT} 
+  { workshop/html.i &SEGMENTS = "head,open-body,title-line"
+                    &TITLE    = "Opened Files"
+                    &FRAME    = "WS_main" 
+                    &CONTEXT  = "{&Opened_Files_Help}" } .
+
+  /* Are there any open files? */
+  IF NOT CAN-FIND (FIRST _P WHERE _P._open) THEN DO:
+    {&OUT} '<UL>There are no files open in Workshop.</UL>'.
+  END.
+  ELSE DO:
+    /* NOTE: this will compile out some of the HTML in some cases... */
+
+</script>
+<center>
+<table border=2 cellspacing=2 cellpadding=2>
+<tr>
+  <th>File</th>
+  <th>Type</th>
+  <th>Needs to be Saved</th>
+</tr>
+<script language="SpeedScript">  
+  /* Loop through all the files. */
+  FOR EACH _P WHERE _P._open BY _P._filename:
+    {&OUT}
+       '<tr>~n':U
+       '  <td><A HREF="_main.w?html=procedureFrameset&amp~;file-id=':U RECID(_P) '">':U 
+              html-encode(_P._filename) '</A></td>~n':U
+       '  <td align="center">':U 
+             _P._type
+             IF _P._html-file ne "":U
+             THEN '<br><font color="olive">(Maps: ' + html-encode(_P._html-file) + ')</font>'  
+             ELSE ''
+       '  </td>':U
+       '  <td align="center">':U 
+             IF _P._modified THEN 'yes' ELSE 'no':U 
+       '  </td>~n':U
+       '</tr>~n':U
+       .
+  END. /* FOR EACH _P... */
+</script>
+</table>
+</center>
+<script language="SpeedScript">  
+  /* .... Close the ELSE:... above... */
+  END. /* IF...CAN-FIND(FIRST _P... */
+</script>
+
+</body>
+</html>
+
+ 
+

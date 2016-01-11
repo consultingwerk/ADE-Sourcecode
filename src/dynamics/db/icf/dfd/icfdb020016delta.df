@@ -1,0 +1,153 @@
+UPDATE FIELD "object_type_code" OF "gsc_object_type"
+  FORMAT "X(35)"
+  VALMSG "s_name"
+  SQL-WIDTH 70
+
+UPDATE FIELD "product_module_code" OF "gsc_product_module"
+  FORMAT "X(35)"
+  VALMSG "s_name"
+  SQL-WIDTH 70
+
+UPDATE FIELD "session_property_name" OF "gsc_session_property"
+  FORMAT "X(70)"
+  VALMSG "s_big_name"
+  SQL-WIDTH 140
+
+UPDATE FIELD "item_select_action" OF "gsm_menu_item"
+  FORMAT "X(70)"
+  VALMSG "s_big_description"
+  SQL-WIDTH 140
+
+UPDATE FIELD "enable_rule" OF "gsm_menu_item"
+  DESCRIPTION "Rules are used to either enable/disable, hide/view items, or swap images in toolbar buttons.  A rule contains a delimited list of either function references or properties that specify a logical result (either Yes or No).  
+        
+Syntax:  [ property | function ] = list [ AND | OR ] ...
+
+property:  	The name of a property (without the get) that is executed across the specified Item link
+
+function:  	A function that is executed across the specified Item link
+
+list:     	A comma delimited list of values that is compared to the property or function result. 
+An 'OR' comparison is performed'
+
+Example:  QueryPosition=LastRecord,NotFirstOrlast and canNavigate()
+
+Enable  Rule 	These rules define whether the item is enabled
+
+Hide  Rule	These rules define whether the item will be hidden  or viewed. A logical YES result will hide the image. A No result will view the image.
+"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+UPDATE FIELD "disable_rule" OF "gsm_menu_item"
+  DESCRIPTION "Rules are used to either enable/disable, hide/view items, or swap images in toolbar buttons.  A rule contains a delimited list of either function references or properties that specify a logical result (either Yes or No).  
+        
+Syntax:  [ property | function ] = list [ AND | OR ] ...
+
+property:  	The name of a property (without the get) that is executed across the specified Item link
+
+function:  	A function that is executed across the specified Item link
+
+list:     	A comma delimited list of values that is compared to the property or function result. 
+An 'OR' comparison is performed'
+
+Example:  QueryPosition=LastRecord,NotFirstOrlast and canNavigate()
+
+Enable  Rule 	These rules define whether the item is enabled
+
+Hide  Rule	These rules define whether the item will be hidden  or viewed. A logical YES result will hide the image. A No result will view the image.
+"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+UPDATE FIELD "image_alternate_rule" OF "gsm_menu_item"
+  DESCRIPTION "If there is an alternate image defined (Image 2), this defines criteria to show either Image1 or Image 2.  A YES result will swap the image with Image 2. A NO result will swap the image with Image 1."
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+UPDATE FIELD "hide_rule" OF "gsm_menu_item"
+  DESCRIPTION "Rules are used to either enable/disable, hide/view items, or swap images in toolbar buttons.  A rule contains a delimited list of either function references or properties that specify a logical result (either Yes or No).  
+        
+Syntax:  [ property | function ] = list [ AND | OR ] ...
+
+property:  	The name of a property (without the get) that is executed across the specified Item link
+
+function:  	A function that is executed across the specified Item link
+
+list:     	A comma delimited list of values that is compared to the property or function result. 
+An 'OR' comparison is performed'
+
+Example:  QueryPosition=LastRecord,NotFirstOrlast and canNavigate()
+
+Enable  Rule 	These rules define whether the item is enabled
+
+Hide  Rule	These rules define whether the item will be hidden  or viewed. A logical YES result will hide the image. A No result will view the image.
+"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+ADD INDEX "XIE3ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "object_instance_obj" ASCENDING
+
+ADD INDEX "XIE4ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE5ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "smartobject_obj" ASCENDING
+
+RENAME INDEX "XIE4ryc_object_instance" TO "temp-30828" ON "ryc_object_instance"
+
+RENAME INDEX "XIE5ryc_object_instance" TO "temp-80833" ON "ryc_object_instance"
+
+ADD INDEX "XIE4ryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  INDEX-FIELD "instance_name" ASCENDING
+
+ADD INDEX "XIE5ryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  INDEX-FIELD "instance_description" ASCENDING
+
+DROP INDEX "XIE2ryc_object_instance" ON "ryc_object_instance"
+DROP INDEX "temp-30828" ON "ryc_object_instance"
+DROP INDEX "temp-80833" ON "ryc_object_instance"
+
+ADD INDEX "XIE2ryc_page_object" ON "ryc_page_object"
+  AREA "Schema Area"
+  INDEX-FIELD "object_instance_obj" ASCENDING
+
+ADD INDEX "XIE11ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "template_smartobject" ASCENDING
+
+ADD INDEX "XIE2ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  INDEX-FIELD "object_instance_obj" ASCENDING
+
+ADD INDEX "XIE3ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE4ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  INDEX-FIELD "smartobject_obj" ASCENDING
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20016
+  MAX-VAL 20016
+
+.
+PSC
+cpstream=UTF-8
+.
+0000005870

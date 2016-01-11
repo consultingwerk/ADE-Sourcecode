@@ -1,322 +1,322 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors: Per Digre (pdigre@progress.com)                      *
-*                                                                    *
---------------------------------------------------------------------->
-<html><head>
-<title>Application Manager</title>
-</head>
-
-<body bgcolor="#ffffff">
-<h1><font face="MS Sans Serif"><font color="navy"><img height=40 hspace=0 src="images/helpbook.gif" 
-width=53 border=0 > Application Manager</font></font></h1>
-<p style="TEXT-ALIGN: center" align =center>
-<hr align=center width="100%" size="4"  color="#0000ff">
-
-<p><font size="2" face="Arial">The 
-Application Manager tool contains the following utilities: 
-</font></p>
-<table cellspacing="5" cellpadding="2" >
-<tr valign="top">
-    <td><strong><a href="#servers" >Servers</a></strong></td>
-    <td>A utility for managing the WebSpeed Brokers, 
-	database servers and other servers.</td>
-</tr>
-<tr valign="top">
-    <td><strong><a href="#codepath">CodePath</a></strong></td>
-    <td>A utility for defining which directories to include in your
-	code search path. It also allows you to compile all or selected source code 
-	files.</td>
-</tr>
-<tr valign="top">
-    <td nowrap><strong><a href="#rcodeLibrary">R-Code Library</a></strong></td>
-    <td>
-      <p>A utility that allows you to package your r-code into procedure library (.pl) 
-    files.</p>       
-	  </td>
-</tr>
-</table>
-
-<hr align=center width="100%" size="2"  color="#0000ff">
-
-<a name="servers">
-<h1><font face="Arial" size="4"><strong>Servers</strong></font></h1>
-</a>
-
-<p>
-<font face="Arial"><font size="2">The Servers utility contains the 
-following controls:</font></font></p>
-
-<dl>
-  <dt><font size="2" face="Arial"><strong><a name="edsrvrlist">Edit Server List</a></strong></font>
-  <dd><font size="2" face="Arial">Add to or subtract from the list of
-  servers that you want to manage from the Servers utility.</font>&nbsp;
-  <dd>&nbsp;
-   <dd><font size="2" face="Arial">        When you 
-   select this control, you see a list of all the servers that are available
-   for management. This list is derived from the Win32 Registry (for
-   ProControl settings) the ubroker.properties file (for services settings), and
-   the conmgr.properties file (for database settings). In addition, there is a section
-   showing unlisted database servers that are not under AdminServer control.</font>
-  <dd>&nbsp;
-  <dd><font face=arial size=2>Select or cancel the selection by clicking on a 
-  check box next to the server's name.</font>
-  <dd>&nbsp;
-  
-  <dt><font size="2" face="Arial"><strong>View</strong></font>
-  <dd><font size="2" face="Arial">Displays the status of the agents that are
-  associated with a particular WebSpeed Broker. The output is similar to the output of the
-  <font size="2" face="Courier">wtbman -status</font> command.</font>
-  <dd>&nbsp;
-  <dd><font size="2" face="Arial">The status display for the agents also contains controls 
-  for killing and adding agents.</font>
-  <dd>&nbsp; 
-  <dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>If you are viewing the status of
-  agents under the same broker that is currently running WebTools, one agent will always show a
-  status of Busy. The busy agent is the one that serviced the request for agent status.
-  The name of the broker that is running WebTools is italicized in the list of servers.</font>
-  <dd>&nbsp;
- 
-  <dt><font size="2" face="Arial"><strong>Start/Stop</strong></font>
-  <dd><font size="2" face="Arial">Starts or stops a particular server.</font>
-  <dd>&nbsp;
-  
-  <dt><font size="2" face="Arial"><strong>GoTo</strong></font>
-  <dd><font size="2" face="Arial">Allows you to access WebTools from a different broker.
-  This is useful if you want to stop the broker that is currently running WebTools.</font>
-  <dd>&nbsp;
-  <dd><font size="2" face="Arial">If you want to start WebTools in a new window, right
-  click on the GoTo link and choose Open in New Window.</font> 
-  <dd>&nbsp;
-  
-  <dt><font size="2" face="Arial"><strong><a name="tools">Tools</a></strong></font>
-  <dd><font size="2" face="Arial">Takes you to the Database Utilities, which contains the 
-  following control types:</font>
-  <dd>&nbsp;
-  
-    <dl>
-    <dt><font size="2" face="Arial"><strong>Connection Parameter Field</strong></font>
-	<dd><font size="2" face="Arial">Allows you to specify database startup parameters
-	and to save them in a .pf file.</font>
-	<dd>&nbsp;
-	
-    <dt><font size="2" face="Arial"><strong>Manage</strong></font>
-    <dd><font size="2" face="Arial">Starts or stops a database
-	server. Also connects or disconnects WebSpeed Agents from a
-	database server.</font>
-	<dd>&nbsp;
-	<dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>The Disconnect/Connect
-	function operates on a single agent. If you have more than one agent running, you
-	will need to select Disconnect or Connect repeatedly until all agents are affected.
-	A message at the top of the Options list shows "currently connected" if any of 
-	your agents are connected to a database. If no agents are connected, you will see
-	a "not connected" message.</font>
-    <dd>&nbsp;
-	
-	<dt><font size="2" face="Arial"><strong>Maintain</strong></font>
-    <dd><font size="2" face="Arial">Accesses some of the commonly used 
-	features of the PROUTIL utility.</font> 
-	<dd>&nbsp;
-	<dd><font size="2" face="Arial">If the database server is running, you can perform backups. If the database server
-	is not running, you can rebuild indexes and truncate logs.</font> 
-    <dd>&nbsp;
-	
-	<dt><font size="2" face="Arial"><strong>Online/Offline Info</strong></font>
-	<dd><font size="2" face="Arial">Displays various database statistics.
-	What you can view depends on whether the database server is running (Online), 
-	or not running (Offline).</font> 
-	<dd>&nbsp;
-	
-	<dt><font size="2" face="Arial"><strong>Other</strong></font>
-	<dd><font size="2" face="Arial"><strong>Trim V9 Dumpdata to V8-loadable</strong>
-	allows you to remove Progress Version 9.x specific definitions from dump files (*.df
-	and *.d files that are in the same directory as the Version 9.x database). You can then
-	load the data and the schema into a Progress Version 7.x or Progress Version 8.x 
-	database.</font> 
-	<dd>&nbsp;
-    </dl>
-</dl>
-
-<hr align=center width="100%" size="2"  color="#0000ff">
-
-<a name="codepath">
-<h1><font face="Arial" size="4"><strong>Code Path</strong></font></h1>
-</a>
-
-<p>
-<font face="Arial"><font size="2">The Code Path utility contains the 
-following controls:</font></font></p>
-
-<dl>
-<dt><font size="2" face="Arial"><strong><a name="ecplist">Edit Code Path List</a>
-</strong></font>
-<dd><font size="2" face="Arial">Specifies the directories where your
-source code resides. You can also set the level of recursion in those directories.</font>
-<dd>&nbsp;
-<dd><font size="2" face="Arial">You can include or exclude directories that are
-in your PROPATH. You can also add unlisted directories, which are directories
-that are not already in your PROPATH.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Compile</strong></font>
-<dd><font size="2" face="Arial">Compiles the r-code in all selected directories. 
-Displays a list of compiled files and their status.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Code Summary</strong></font>
-<dd><font size="2" face="Arial">Displays a summary of compiled files in all
-selected directories.</font>
-<dd>&nbsp;
-<dd><font size="2" face="Arial">Header information is displayed. Internal
-functions and procedures are listed along with line numbers for each section.
-In addition, run statements and includes are listed.</font>
-<dd>&nbsp;
-<dd><font size="2" face="Arial">Code Summary is useful for quick documentation
-of program code.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong><a name="codeutil">CodeUtil</a></strong></font>
-<dd><font size="2" face="Arial">Takes you to the Code Utilities page which allows you
-to perform the following actions on a selected file:</font>
-<dd>&nbsp;
-
-<dl>
-<dt><font size="2" face="Arial"><strong>Compile</strong></font>
-<dd><font size="2" face="Arial">Compiles a selected file.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Beautify</strong></font>
-<dd><font size="2" face="Arial">Changes HTML tags or Progress 4GL keywords in a file to 
-all uppercase or all lowercase. Allows you to view changes, replace the existing file, or
-save changes in a file that has a .beau extension.</font>
-<dd>&nbsp;
-<dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>Use caution with JavaScript and
-other scripting languages. Beautify may incorrectly identify a script element as an HTML
-element and change the case. Since interpreters like the JavaScript interpreter are case 
-sensitive, script errors may be generated by Beautify.
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Compile Listing</strong></font>
-<dd><font size="2" face="Arial">Expands a program file so that you can view all
-the include files contained in the program.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>PreProcess</strong></font>
-<dd><font size="2" face="Arial">Expands a program file so that you can view all the
-include files and preprocessor statements.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>XREF-Compile</strong></font>
-<dd><font size="2" face="Arial">Displays cross-reference information between 
-procedures and Progress objects. Also saves the information in a .xrf file.
-(For more information, see the XREF option to 
-the COMPILE statement in the <i>Progress Language Reference</i>.)</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>String X-Ref</strong></font>
-<dd><font size="2" face="Arial">Displays string cross-reference information between
-procedures and Progress objects. Also saves the information in a .sxr file. (For more 
-information, see the STRING-XREF option to the COMPILE statement in the 
-<i>Progress Language Reference</i>.)</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Debug-list</strong></font>
-<dd><font size="2" face="Arial">Displays a line-numbered listing of the procedure
-along with text of all preprocessor include files, names, and parameters. Also saves the
-information in a .dbg file. (For more information, see the DEBUG-LIST option to the COMPILE 
-statement in the <i>Progress Language Reference</i>.</font>
-<dd>&nbsp;
-
-</dl>
-
-<dt><font size="2" face="Arial"><strong>Compile All</strong></font>
-<dd><font size="2" face="Arial">Compiles all the files in the associated directory.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>File Tools</strong></font>
-<dd><font size="2" face="Arial">Displays the File Tools WebTool.</font>
-<dd>&nbsp;
-
-  
-</dl>
-
-<hr align=center width="100%" size="2"  color="#0000ff">
-
-
-<h1><font face="Arial" size="4"><strong><a name="rcodeLibrary">R-Code Library</a></strong></font></h1>
-
-<p>
-<font face="Arial"><font size="2">The R-Code Library utility contains the 
-following controls:</font></font></p>
-<dl>
-  <dt><font size="2" face="Arial"><strong>Configure R-Code Library</strong></font>
-  <dd><font size="2" face="Arial">Prompts you to specify the pathname of an
-  r-code library. You must enter a complete path to a file that has a .pl 
-  extension.</font>
-  <dd>&nbsp;
-  <dd><font size="2" face="Arial">If you are creating a new library, you must enter
-  the complete path, select one or more of the directories listed under CodePaths,
-  and then choose Update.</font>
-  <dd>&nbsp;
-  
-  <dt><font size="2" face="Arial"><strong>View</strong></font>
-  <dd><font size="2" face="Arial">Displays the contents of the selected .pl file.</font>
-  
-  <dt><font size="2" face="Arial"><strong>Close</strong></font>
-  <dd><font size="2" face="Arial">Closes the selected .pl file but does not delete it.</font>
-  <dd>&nbsp;
-  
-  <dt><font size="2" face="Arial"><strong>Update</strong></font>
-  <dd><font size="2" face="Arial">Adds r-code to the selected .pl file. You must choose which
-  directories to include by selecting from those listed under CodePaths.</font>
-  <dd>&nbsp;
-
-</dl>
-
-<div>
-   <p style="TEXT-ALIGN: left" align =left>
-    <!-- $MVD$:spaceretainer() -->&nbsp;<br>
-    <br>
-    <!--webbot bot="Include" u-include="standard.htm" tag="BODY"
-startspan --><br>
-    <hr align=left width="100%" size="2" noshade color="#0000ff">
-
-<p></p>
-   </div>
-  <dl>
-   <div>
-    <p style="TEXT-ALIGN: left" align =left>
-     <dd><a href="howtouse.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="howtouse.htm"><font face="Arial"><font size="2">How
-      to Use Web Tools</font></font></a><br>
-     <dd><a href="glossary.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="glossary.htm"><font face="Arial"><font size="2">WebSpeed
-      Glossary</font></font></a><br>
-     <dd><a href="main.htm"><img border=0 height=17 hspace=0 src="images/book.gif" width=19 ></a><font face="Arial"><font size="2"> </font></font><a href="main.htm"><font face="Arial"><font size="2">WebTools
-      Help</font></font></a>
-  <p></p></dd>
-    </div>
-   </dl>
-  <p style="TEXT-ALIGN: left" align =left>
-   &nbsp;</p>
-  <div>
-   <p style="TEXT-ALIGN: left" align =left>
-    <!--webbot bot="Include" endspan i-checksum="30635" --></p></div>
-<hr align=center width="100%" size="4"  color="#0000ff">
-</body>
-</html>
+<!--------------------------------------------------------------------
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors: Per Digre (pdigre@progress.com)                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<html><head>
+<title>Application Manager</title>
+</head>
+
+<body bgcolor="#ffffff">
+<h1><font face="MS Sans Serif"><font color="navy"><img height=40 hspace=0 src="images/helpbook.gif" 
+width=53 border=0 > Application Manager</font></font></h1>
+<p style="TEXT-ALIGN: center" align =center>
+<hr align=center width="100%" size="4"  color="#0000ff">
+
+<p><font size="2" face="Arial">The 
+Application Manager tool contains the following utilities: 
+</font></p>
+<table cellspacing="5" cellpadding="2" >
+<tr valign="top">
+    <td><strong><a href="#servers" >Servers</a></strong></td>
+    <td>A utility for managing the WebSpeed Brokers, 
+	database servers and other servers.</td>
+</tr>
+<tr valign="top">
+    <td><strong><a href="#codepath">CodePath</a></strong></td>
+    <td>A utility for defining which directories to include in your
+	code search path. It also allows you to compile all or selected source code 
+	files.</td>
+</tr>
+<tr valign="top">
+    <td nowrap><strong><a href="#rcodeLibrary">R-Code Library</a></strong></td>
+    <td>
+      <p>A utility that allows you to package your r-code into procedure library (.pl) 
+    files.</p>       
+	  </td>
+</tr>
+</table>
+
+<hr align=center width="100%" size="2"  color="#0000ff">
+
+<a name="servers">
+<h1><font face="Arial" size="4"><strong>Servers</strong></font></h1>
+</a>
+
+<p>
+<font face="Arial"><font size="2">The Servers utility contains the 
+following controls:</font></font></p>
+
+<dl>
+  <dt><font size="2" face="Arial"><strong><a name="edsrvrlist">Edit Server List</a></strong></font>
+  <dd><font size="2" face="Arial">Add to or subtract from the list of
+  servers that you want to manage from the Servers utility.</font>&nbsp;
+  <dd>&nbsp;
+   <dd><font size="2" face="Arial">        When you 
+   select this control, you see a list of all the servers that are available
+   for management. This list is derived from the Win32 Registry (for
+   ProControl settings) the ubroker.properties file (for services settings), and
+   the conmgr.properties file (for database settings). In addition, there is a section
+   showing unlisted database servers that are not under AdminServer control.</font>
+  <dd>&nbsp;
+  <dd><font face=arial size=2>Select or cancel the selection by clicking on a 
+  check box next to the server's name.</font>
+  <dd>&nbsp;
+  
+  <dt><font size="2" face="Arial"><strong>View</strong></font>
+  <dd><font size="2" face="Arial">Displays the status of the agents that are
+  associated with a particular WebSpeed Broker. The output is similar to the output of the
+  <font size="2" face="Courier">wtbman -status</font> command.</font>
+  <dd>&nbsp;
+  <dd><font size="2" face="Arial">The status display for the agents also contains controls 
+  for killing and adding agents.</font>
+  <dd>&nbsp; 
+  <dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>If you are viewing the status of
+  agents under the same broker that is currently running WebTools, one agent will always show a
+  status of Busy. The busy agent is the one that serviced the request for agent status.
+  The name of the broker that is running WebTools is italicized in the list of servers.</font>
+  <dd>&nbsp;
+ 
+  <dt><font size="2" face="Arial"><strong>Start/Stop</strong></font>
+  <dd><font size="2" face="Arial">Starts or stops a particular server.</font>
+  <dd>&nbsp;
+  
+  <dt><font size="2" face="Arial"><strong>GoTo</strong></font>
+  <dd><font size="2" face="Arial">Allows you to access WebTools from a different broker.
+  This is useful if you want to stop the broker that is currently running WebTools.</font>
+  <dd>&nbsp;
+  <dd><font size="2" face="Arial">If you want to start WebTools in a new window, right
+  click on the GoTo link and choose Open in New Window.</font> 
+  <dd>&nbsp;
+  
+  <dt><font size="2" face="Arial"><strong><a name="tools">Tools</a></strong></font>
+  <dd><font size="2" face="Arial">Takes you to the Database Utilities, which contains the 
+  following control types:</font>
+  <dd>&nbsp;
+  
+    <dl>
+    <dt><font size="2" face="Arial"><strong>Connection Parameter Field</strong></font>
+	<dd><font size="2" face="Arial">Allows you to specify database startup parameters
+	and to save them in a .pf file.</font>
+	<dd>&nbsp;
+	
+    <dt><font size="2" face="Arial"><strong>Manage</strong></font>
+    <dd><font size="2" face="Arial">Starts or stops a database
+	server. Also connects or disconnects WebSpeed Agents from a
+	database server.</font>
+	<dd>&nbsp;
+	<dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>The Disconnect/Connect
+	function operates on a single agent. If you have more than one agent running, you
+	will need to select Disconnect or Connect repeatedly until all agents are affected.
+	A message at the top of the Options list shows "currently connected" if any of 
+	your agents are connected to a database. If no agents are connected, you will see
+	a "not connected" message.</font>
+    <dd>&nbsp;
+	
+	<dt><font size="2" face="Arial"><strong>Maintain</strong></font>
+    <dd><font size="2" face="Arial">Accesses some of the commonly used 
+	features of the PROUTIL utility.</font> 
+	<dd>&nbsp;
+	<dd><font size="2" face="Arial">If the database server is running, you can perform backups. If the database server
+	is not running, you can rebuild indexes and truncate logs.</font> 
+    <dd>&nbsp;
+	
+	<dt><font size="2" face="Arial"><strong>Online/Offline Info</strong></font>
+	<dd><font size="2" face="Arial">Displays various database statistics.
+	What you can view depends on whether the database server is running (Online), 
+	or not running (Offline).</font> 
+	<dd>&nbsp;
+	
+	<dt><font size="2" face="Arial"><strong>Other</strong></font>
+	<dd><font size="2" face="Arial"><strong>Trim V9 Dumpdata to V8-loadable</strong>
+	allows you to remove Progress Version 9.x specific definitions from dump files (*.df
+	and *.d files that are in the same directory as the Version 9.x database). You can then
+	load the data and the schema into a Progress Version 7.x or Progress Version 8.x 
+	database.</font> 
+	<dd>&nbsp;
+    </dl>
+</dl>
+
+<hr align=center width="100%" size="2"  color="#0000ff">
+
+<a name="codepath">
+<h1><font face="Arial" size="4"><strong>Code Path</strong></font></h1>
+</a>
+
+<p>
+<font face="Arial"><font size="2">The Code Path utility contains the 
+following controls:</font></font></p>
+
+<dl>
+<dt><font size="2" face="Arial"><strong><a name="ecplist">Edit Code Path List</a>
+</strong></font>
+<dd><font size="2" face="Arial">Specifies the directories where your
+source code resides. You can also set the level of recursion in those directories.</font>
+<dd>&nbsp;
+<dd><font size="2" face="Arial">You can include or exclude directories that are
+in your PROPATH. You can also add unlisted directories, which are directories
+that are not already in your PROPATH.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Compile</strong></font>
+<dd><font size="2" face="Arial">Compiles the r-code in all selected directories. 
+Displays a list of compiled files and their status.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Code Summary</strong></font>
+<dd><font size="2" face="Arial">Displays a summary of compiled files in all
+selected directories.</font>
+<dd>&nbsp;
+<dd><font size="2" face="Arial">Header information is displayed. Internal
+functions and procedures are listed along with line numbers for each section.
+In addition, run statements and includes are listed.</font>
+<dd>&nbsp;
+<dd><font size="2" face="Arial">Code Summary is useful for quick documentation
+of program code.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong><a name="codeutil">CodeUtil</a></strong></font>
+<dd><font size="2" face="Arial">Takes you to the Code Utilities page which allows you
+to perform the following actions on a selected file:</font>
+<dd>&nbsp;
+
+<dl>
+<dt><font size="2" face="Arial"><strong>Compile</strong></font>
+<dd><font size="2" face="Arial">Compiles a selected file.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Beautify</strong></font>
+<dd><font size="2" face="Arial">Changes HTML tags or Progress 4GL keywords in a file to 
+all uppercase or all lowercase. Allows you to view changes, replace the existing file, or
+save changes in a file that has a .beau extension.</font>
+<dd>&nbsp;
+<dd><font size="2" face="Arial"><strong>Note:&nbsp;</strong>Use caution with JavaScript and
+other scripting languages. Beautify may incorrectly identify a script element as an HTML
+element and change the case. Since interpreters like the JavaScript interpreter are case 
+sensitive, script errors may be generated by Beautify.
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Compile Listing</strong></font>
+<dd><font size="2" face="Arial">Expands a program file so that you can view all
+the include files contained in the program.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>PreProcess</strong></font>
+<dd><font size="2" face="Arial">Expands a program file so that you can view all the
+include files and preprocessor statements.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>XREF-Compile</strong></font>
+<dd><font size="2" face="Arial">Displays cross-reference information between 
+procedures and Progress objects. Also saves the information in a .xrf file.
+(For more information, see the XREF option to 
+the COMPILE statement in the <i>Progress Language Reference</i>.)</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>String X-Ref</strong></font>
+<dd><font size="2" face="Arial">Displays string cross-reference information between
+procedures and Progress objects. Also saves the information in a .sxr file. (For more 
+information, see the STRING-XREF option to the COMPILE statement in the 
+<i>Progress Language Reference</i>.)</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Debug-list</strong></font>
+<dd><font size="2" face="Arial">Displays a line-numbered listing of the procedure
+along with text of all preprocessor include files, names, and parameters. Also saves the
+information in a .dbg file. (For more information, see the DEBUG-LIST option to the COMPILE 
+statement in the <i>Progress Language Reference</i>.</font>
+<dd>&nbsp;
+
+</dl>
+
+<dt><font size="2" face="Arial"><strong>Compile All</strong></font>
+<dd><font size="2" face="Arial">Compiles all the files in the associated directory.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>File Tools</strong></font>
+<dd><font size="2" face="Arial">Displays the File Tools WebTool.</font>
+<dd>&nbsp;
+
+  
+</dl>
+
+<hr align=center width="100%" size="2"  color="#0000ff">
+
+
+<h1><font face="Arial" size="4"><strong><a name="rcodeLibrary">R-Code Library</a></strong></font></h1>
+
+<p>
+<font face="Arial"><font size="2">The R-Code Library utility contains the 
+following controls:</font></font></p>
+<dl>
+  <dt><font size="2" face="Arial"><strong>Configure R-Code Library</strong></font>
+  <dd><font size="2" face="Arial">Prompts you to specify the pathname of an
+  r-code library. You must enter a complete path to a file that has a .pl 
+  extension.</font>
+  <dd>&nbsp;
+  <dd><font size="2" face="Arial">If you are creating a new library, you must enter
+  the complete path, select one or more of the directories listed under CodePaths,
+  and then choose Update.</font>
+  <dd>&nbsp;
+  
+  <dt><font size="2" face="Arial"><strong>View</strong></font>
+  <dd><font size="2" face="Arial">Displays the contents of the selected .pl file.</font>
+  
+  <dt><font size="2" face="Arial"><strong>Close</strong></font>
+  <dd><font size="2" face="Arial">Closes the selected .pl file but does not delete it.</font>
+  <dd>&nbsp;
+  
+  <dt><font size="2" face="Arial"><strong>Update</strong></font>
+  <dd><font size="2" face="Arial">Adds r-code to the selected .pl file. You must choose which
+  directories to include by selecting from those listed under CodePaths.</font>
+  <dd>&nbsp;
+
+</dl>
+
+<div>
+   <p style="TEXT-ALIGN: left" align =left>
+    <!-- $MVD$:spaceretainer() -->&nbsp;<br>
+    <br>
+    <!--webbot bot="Include" u-include="standard.htm" tag="BODY"
+startspan --><br>
+    <hr align=left width="100%" size="2" noshade color="#0000ff">
+
+<p></p>
+   </div>
+  <dl>
+   <div>
+    <p style="TEXT-ALIGN: left" align =left>
+     <dd><a href="howtouse.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="howtouse.htm"><font face="Arial"><font size="2">How
+      to Use Web Tools</font></font></a><br>
+     <dd><a href="glossary.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="glossary.htm"><font face="Arial"><font size="2">WebSpeed
+      Glossary</font></font></a><br>
+     <dd><a href="main.htm"><img border=0 height=17 hspace=0 src="images/book.gif" width=19 ></a><font face="Arial"><font size="2"> </font></font><a href="main.htm"><font face="Arial"><font size="2">WebTools
+      Help</font></font></a>
+  <p></p></dd>
+    </div>
+   </dl>
+  <p style="TEXT-ALIGN: left" align =left>
+   &nbsp;</p>
+  <div>
+   <p style="TEXT-ALIGN: left" align =left>
+    <!--webbot bot="Include" endspan i-checksum="30635" --></p></div>
+<hr align=center width="100%" size="4"  color="#0000ff">
+</body>
+</html>

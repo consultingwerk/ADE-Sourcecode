@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="020019">
+		<PatchStage Stage="Delta">
+			<Program>
+				<FileType>df</FileType>
+				<FileName>db/icf/dfd/icfdb020019delta.df</FileName>
+				<Description>Applying 020019 Delta</Description>
+				<Rerunnable>no</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+		<PatchStage Stage="PostDelta">
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/setDataFieldObjectIsRunnable.p</FileName>
+				<Description>Setting ObjectIsRunnable attribute</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>no</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/fixgscmtobjfields.p</FileName>
+				<Description>Upgrading Manager Types</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>no</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/fixdelctxt.p</FileName>
+				<Description>Clearing Context Tables</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>no</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/createAttributesFromFK.p</FileName>
+				<Description>Creating New Attributes</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>no</UpdateMandatory>
+			</Program>
+		</PatchStage>
+	</Patch>
+</SetupInclude>

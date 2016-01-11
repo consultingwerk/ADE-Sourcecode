@@ -1,77 +1,79 @@
-<HTML>
-<HEAD>
-<META NAME="author" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<TITLE>Saving...</TITLE>
-<STYLE TYPE="text/css">
-  #bar1 { background:navy }
-  #bar2 { background:white }
-</STYLE>
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!-- 
-  document.write("Included common.js file not found."); 
-//--></SCRIPT> 
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  var iBytesSaved = `get-field("bytesSaved")`;
-  var iFileSize   = `get-field("fileSize")`;
-    
-  function init() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Initialization routine.
-      Parameters:  <none>
-      Notes:       
-    -------------------------------------------------------------------------*/
-    getBrowser();
-    setScale(iBytesSaved);
-  }
-  
-  function setScale(iBytesSaved) {
-    var iPercent = Math.floor(iBytesSaved / iFileSize * 100);
-    var cPercent = iPercent + " percent";
-    
-    if (isIE4up) {
-      document.all.cValue.innerText      = cPercent;
-      document.all.bar1.style.pixelWidth = (iPercent * (380 / 100));
-      document.all.bar2.style.pixelWidth = (380 - document.all.bar1.style.pixelWidth);
-    }
-    else if (isNav4up) {
-      document.cValue.document.write(cPercent);
-      document.cValue.document.close();
-      
-      document.bar1.clip.top    = 25;
-      document.bar1.clip.height = 15;
-      document.bar1.clip.width  = (iPercent * (380 / 100));
-      
-      document.bar2.clip.top    = 25;
-      document.bar2.clip.left   = document.bar1.clip.left + 
-                                  document.bar1.clip.width;
-      document.bar2.clip.height = 15;
-      document.bar2.clip.width  = (380 - document.bar1.clip.width);
-    }
-  }
-//--></SCRIPT>
-</HEAD>
-<BODY onLoad="setTimeout('init()', 1)" BGCOLOR="lightgrey">
-`get-field("fileName")`<BR>
-to `get-field("target")`<BR><BR>
-
-<SCRIPT LANGUAGE="SpeedScript">
-  DEFINE VARIABLE isIE AS LOGICAL NO-UNDO.
-  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
-
-  IF isIE THEN
-    {&OUT} 
-      '<SPAN ID="cValue"></SPAN>':U SKIP
-      '<TABLE WIDTH=380 BORDER=1 CELLSPACING=0 CELLPADDING=0>':U SKIP
-      '  <TR WIDTH="100%">':U SKIP
-      '    <TD ID="bar1" NAME="bar1" HEIGHT=20 WIDTH="0%"></TD>':U SKIP
-      '    <TD ID="bar2" NAME="bar2" HEIGHT=20 WIDTH="100%"></TD>':U SKIP
-      '  </TR>':U SKIP
-      '</TABLE>':U SKIP.
-  ELSE
-    {&OUT} 
-      '<LAYER NAME="cValue"></LAYER>':U SKIP
-      '<LAYER NAME="bar1" ROW=50 HEIGHT=20 BGCOLOR="navy"></LAYER>':U SKIP
-      '<LAYER NAME="bar2" ROW=50 HEIGHT=20 BGCOLOR="white"></LAYER>':U SKIP.
-</SCRIPT>
-</BODY>
-</HTML>
+<HTML>
+<HEAD>
+<META NAME="author" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<TITLE>Saving...</TITLE>
+<STYLE TYPE="text/css">
+  #bar1 { background:navy }
+  #bar2 { background:white }
+</STYLE>
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  var iBytesSaved = `get-field("bytesSaved")`;
+  var iFileSize   = `get-field("fileSize")`;
+    
+  function init() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Initialization routine.
+      Parameters:  <none>
+      Notes:       
+    -------------------------------------------------------------------------*/
+    getBrowser();
+    setScale(iBytesSaved);
+  }
+  
+  function setScale(iBytesSaved) {
+    var iPercent = Math.floor(iBytesSaved / iFileSize * 100);
+    var cPercent = iPercent + " percent";
+    
+    if (isIE4up) {
+      document.all.cValue.innerText      = cPercent;
+      document.all.bar1.style.pixelWidth = (iPercent * (380 / 100));
+      document.all.bar2.style.pixelWidth = (380 - document.all.bar1.style.pixelWidth);
+    }
+    else if (isNav4up) {
+      document.cValue.document.write(cPercent);
+      document.cValue.document.close();
+      
+      document.bar1.clip.top    = 25;
+      document.bar1.clip.height = 15;
+      document.bar1.clip.width  = (iPercent * (380 / 100));
+      
+      document.bar2.clip.top    = 25;
+      document.bar2.clip.left   = document.bar1.clip.left + 
+                                  document.bar1.clip.width;
+      document.bar2.clip.height = 15;
+      document.bar2.clip.width  = (380 - document.bar1.clip.width);
+    }
+  }
+//--></SCRIPT>
+</HEAD>
+<BODY onLoad="setTimeout('init()', 1)" BGCOLOR="lightgrey">
+`get-field("fileName")`<BR>
+to `get-field("target")`<BR><BR>
+
+<SCRIPT LANGUAGE="SpeedScript">
+  DEFINE VARIABLE isIE AS LOGICAL NO-UNDO.
+  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
+
+  IF isIE THEN
+    {&OUT} 
+      '<SPAN ID="cValue"></SPAN>':U SKIP
+      '<TABLE WIDTH=380 BORDER=1 CELLSPACING=0 CELLPADDING=0>':U SKIP
+      '  <TR WIDTH="100%">':U SKIP
+      '    <TD ID="bar1" NAME="bar1" HEIGHT=20 WIDTH="0%"></TD>':U SKIP
+      '    <TD ID="bar2" NAME="bar2" HEIGHT=20 WIDTH="100%"></TD>':U SKIP
+      '  </TR>':U SKIP
+      '</TABLE>':U SKIP.
+  ELSE
+    {&OUT} 
+      '<LAYER NAME="cValue"></LAYER>':U SKIP
+      '<LAYER NAME="bar1" ROW=50 HEIGHT=20 BGCOLOR="navy"></LAYER>':U SKIP
+      '<LAYER NAME="bar2" ROW=50 HEIGHT=20 BGCOLOR="white"></LAYER>':U SKIP.
+</SCRIPT>
+</BODY>
+</HTML>

@@ -1,97 +1,97 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors: Per Digre (pdigre@progress.com)                      *
-*                                                                    *
---------------------------------------------------------------------->
-<html>
-<head>
-<title>Database utilities</title>
-</head>
-<body BGCOLOR="#FFFFFF">
-
-<h1><font color="#000080" face="MS Sans Serif"><a href="default.htm"><img
-SRC="../../doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
-</a> Application Manager: DB Utilities</font></h1>
-
-<hr SIZE="4" COLOR="#0000FF">
-
-<p><font SIZE="2" FACE="Arial">Application Manager allows you to manage a project
-consisting of directories with text files (including <a
-HREF="../../doc/wshelp/glossary.htm#procedure file">procedure files</a>)
-that contain <a HREF="../../doc/wshelp/glossary.htm#Web object">Web
-objects</a>.  It contains the following interface elements:</font></p>
-
-<h1><font FACE="Arial" SIZE="4"><strong>PF connection parameters.</strong></font></h1>
-
-<dl>
-  <dd><font SIZE="2" FACE="Arial">Edit the box with the required connction parameters. 
-    For a client-server database this will typically be..</font></dd><br><br>
-  <dd>&quot;-H localhost -S servicename -N tcp&quot;</dd><br><br>
-  <dd>Then hit Save to save the current configuration. Please note that a .pf 
-    file will be created on the given database-path that contains this info.&nbsp;</dd>
-</dl>
-
-<dl>
-  <dt>&nbsp;</dt>
-  <dt><font SIZE="2" FACE="Arial"><strong>Trouble shooting </strong></font></dt>
-  <dd><font SIZE="2" FACE="Arial">If it doesn't let you create a -pf, then go into the
-    directory where the database exist and create a pf file with the database-name and pf as
-    extension. Edit this file to contain the connection parameters.</font></dd>
-  <dd><font SIZE="2" FACE="Arial">This is currently only been tested with client-server
-  databases. Self-service clients should work, but single user database connection does not
-  work because of the multiple agent problem.</font></dd>
-</dl>
-
-<dl>
-  <dt>&nbsp;</dt>
-  <h1><font FACE="Arial" SIZE="4"><strong>Utilities.</strong></font></h1>
-  <dl>
-    <dt><font SIZE="2" FACE="Arial">This is a list of database utilities.</font></dt>
-    <dt>&nbsp;</dt>
-    <dt><font SIZE="2" FACE="Arial"><strong>Server utilities </strong></font></dt>
-    <dd><font SIZE="2" FACE="Arial">let you start &amp; stop database server and connect to it.
-      Remember that you have to connect all agents, so you have to repeat the connect a few
-      times.</font></dd>
-    <dt>&nbsp;</dt>
-    <dt><font SIZE="2" FACE="Arial"><strong>Database Maintenance </strong></font></dt>
-    <dd><font SIZE="2" FACE="Arial">Most commonly used proutil commands.</font></dd>
-    <dt>&nbsp;</dt>
-    <dt><font SIZE="2" FACE="Arial"><strong>View, online</strong></font></dt>
-    <dd><font SIZE="2" FACE="Arial">Various information you can get from the database while it
-      is being served.</font></dd>
-    <dt>&nbsp;</dt>
-    <dt><font SIZE="2" FACE="Arial"><strong>Check, offline</strong></font></dt>
-    <dd><font SIZE="2" FACE="Arial">Various information you can get from the database when it is
-      not being served.</font></dd>
-  </dl>
-  <dd><dl>
-      <dt>&nbsp;</dt>
-    </dl>
-  </dd>
-</dl>
-
-<dl>
-  <dt><font size="2" face="Arial"><strong>Note !</strong></font></dt>
-  <dd><font size="2" face="Arial">When doing long processes it sometimes can hang the
-    refreshing of the status. If so, please go back to App Man and try again.</font></dd>
-</dl>
-
-</body>
-</html>
+<!--------------------------------------------------------------------
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors: Per Digre (pdigre@progress.com)                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<html>
+<head>
+<title>Database utilities</title>
+</head>
+<body BGCOLOR="#FFFFFF">
+
+<h1><font color="#000080" face="MS Sans Serif"><a href="default.htm"><img
+SRC="../../doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
+</a> Application Manager: DB Utilities</font></h1>
+
+<hr SIZE="4" COLOR="#0000FF">
+
+<p><font SIZE="2" FACE="Arial">Application Manager allows you to manage a project
+consisting of directories with text files (including <a
+HREF="../../doc/wshelp/glossary.htm#procedure file">procedure files</a>)
+that contain <a HREF="../../doc/wshelp/glossary.htm#Web object">Web
+objects</a>.  It contains the following interface elements:</font></p>
+
+<h1><font FACE="Arial" SIZE="4"><strong>PF connection parameters.</strong></font></h1>
+
+<dl>
+  <dd><font SIZE="2" FACE="Arial">Edit the box with the required connction parameters. 
+    For a client-server database this will typically be..</font></dd><br><br>
+  <dd>&quot;-H localhost -S servicename -N tcp&quot;</dd><br><br>
+  <dd>Then hit Save to save the current configuration. Please note that a .pf 
+    file will be created on the given database-path that contains this info.&nbsp;</dd>
+</dl>
+
+<dl>
+  <dt>&nbsp;</dt>
+  <dt><font SIZE="2" FACE="Arial"><strong>Trouble shooting </strong></font></dt>
+  <dd><font SIZE="2" FACE="Arial">If it doesn't let you create a -pf, then go into the
+    directory where the database exist and create a pf file with the database-name and pf as
+    extension. Edit this file to contain the connection parameters.</font></dd>
+  <dd><font SIZE="2" FACE="Arial">This is currently only been tested with client-server
+  databases. Self-service clients should work, but single user database connection does not
+  work because of the multiple agent problem.</font></dd>
+</dl>
+
+<dl>
+  <dt>&nbsp;</dt>
+  <h1><font FACE="Arial" SIZE="4"><strong>Utilities.</strong></font></h1>
+  <dl>
+    <dt><font SIZE="2" FACE="Arial">This is a list of database utilities.</font></dt>
+    <dt>&nbsp;</dt>
+    <dt><font SIZE="2" FACE="Arial"><strong>Server utilities </strong></font></dt>
+    <dd><font SIZE="2" FACE="Arial">let you start &amp; stop database server and connect to it.
+      Remember that you have to connect all agents, so you have to repeat the connect a few
+      times.</font></dd>
+    <dt>&nbsp;</dt>
+    <dt><font SIZE="2" FACE="Arial"><strong>Database Maintenance </strong></font></dt>
+    <dd><font SIZE="2" FACE="Arial">Most commonly used proutil commands.</font></dd>
+    <dt>&nbsp;</dt>
+    <dt><font SIZE="2" FACE="Arial"><strong>View, online</strong></font></dt>
+    <dd><font SIZE="2" FACE="Arial">Various information you can get from the database while it
+      is being served.</font></dd>
+    <dt>&nbsp;</dt>
+    <dt><font SIZE="2" FACE="Arial"><strong>Check, offline</strong></font></dt>
+    <dd><font SIZE="2" FACE="Arial">Various information you can get from the database when it is
+      not being served.</font></dd>
+  </dl>
+  <dd><dl>
+      <dt>&nbsp;</dt>
+    </dl>
+  </dd>
+</dl>
+
+<dl>
+  <dt><font size="2" face="Arial"><strong>Note !</strong></font></dt>
+  <dd><font size="2" face="Arial">When doing long processes it sometimes can hang the
+    refreshing of the status. If so, please go back to App Man and try again.</font></dd>
+</dl>
+
+</body>
+</html>

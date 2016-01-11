@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="0">
+		<patchstage UpdateStage="Delta">
+			<Program>
+				<FileType>df</FileType>
+				<FileName>db/icf/dfd/icfdbfull.df</FileName>
+				<Description>Applying Full DB Schema</Description>
+				<Rerunnable>no</Rerunnable>
+				<NewDB>yes</NewDB>
+				<ExistingDB>no</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</patchstage>
+		<patchstage UpdateStage="DataLoad">
+			<Program>
+				<FileType>d</FileType>
+				<FileName></FileName>
+				<Description>Loading database table contents</Description>
+				<Rerunnable>no</Rerunnable>
+				<NewDB>yes</NewDB>
+				<ExistingDB>no</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>s</FileType>
+				<FileName></FileName>
+				<Description>Setting site number</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>yes</NewDB>
+				<ExistingDB>no</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</patchstage>
+	</Patch>
+</SetupInclude>

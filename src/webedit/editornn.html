@@ -1,51 +1,56 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2002-2002 by Progress Software Corporation ("PSC"),  *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors: adams@progress.com                                   *
-*                                                                    *
---------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META NAME="wsoptions" CONTENT="compile">
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!--
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/editor.js"><!--
-  document.write("Included editor.js file not found.");
-//--></SCRIPT>
-</HEAD>
-
-<BODY BACKGROUND="`RootURL`/images/bgr/wsblank.gif"
-  onClick="cleanup()" onLoad="init()" onResize="setSize()" 
-  onUnload="return fileChanges(event)">
-
-<LAYER NAME="layer1" LEFT=1 TOP=1 VISIBILITY="hide">
-  <FORM NAME="form1">
-    <TEXTAREA NAME="txt" ROWS="10" COLS="10" WRAP="off"></TEXTAREA>
-    <INPUT NAME="fileName" TYPE="hidden" VALUE="Untitled">
-    <INPUT NAME="dirPath" TYPE="hidden">
-  </FORM>
-</LAYER>
-
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  document.layer1.document.form1.elements[0].focus();
-//--></SCRIPT>
-
-</BODY>
-</HTML>
+<!--------------------------------------------------------------------
+* Copyright (C) 2002-2002 by Progress Software Corporation ("PSC"),  *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors: adams@progress.com                                   *
+*                                                                    *
+--------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META NAME="wsoptions" CONTENT="compile">
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/editor.js"><!--~n'.
+</SCRIPT>
+  document.write("Included editor.js file not found.");
+//--></SCRIPT>
+</HEAD>
+
+<BODY BACKGROUND="`RootURL`/images/bgr/wsblank.gif"
+  onClick="cleanup()" onLoad="init()" onResize="setSize()" 
+  onUnload="return fileChanges(event)">
+
+<LAYER NAME="layer1" LEFT=1 TOP=1 VISIBILITY="hide">
+  <FORM NAME="form1">
+    <TEXTAREA NAME="txt" ROWS="10" COLS="10" WRAP="off"></TEXTAREA>
+    <INPUT NAME="fileName" TYPE="hidden" VALUE="Untitled">
+    <INPUT NAME="dirPath" TYPE="hidden">
+  </FORM>
+</LAYER>
+
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  document.layer1.document.form1.elements[0].focus();
+//--></SCRIPT>
+
+</BODY>
+</HTML>

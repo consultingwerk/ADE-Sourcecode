@@ -1,127 +1,129 @@
-<HTML>
-<HEAD>
-<META NAME="author" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<TITLE>`get-field("title")`</TITLE>
-<STYLE type="text/css">
-  FONT { font-family:sans-serif; font-size:8pt }
-</STYLE>
-
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!--
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  var cTarget = "`get-field('target')`";
-
-  function init() {
-    getBrowser();
-    if (isIE4up)
-      var imgObj = document.all.img_product;
-    else if (isNav4up)
-      var imgObj = document.images[0];
-    
-    switch ("`get-field("type")`") {
-      case "error":
-        imgObj.src = "`RootURL`/images/error.gif";
-        break;
-      case "information":
-        imgObj.src = "`RootURL`/images/inform.gif";
-        break;
-      case "message":
-        break;
-      case "question":
-        imgObj.src = "`RootURL`/images/question.gif";
-        break;
-      case "warning":
-        imgObj.src = "`RootURL`/images/warning.gif";
-        break;
-    }
-  }
-  
-  function btnClick(e) {
-    var context = "`get-field('context')`";
-    
-    <SCRIPT LANGUAGE="SpeedScript">
-      IF OPSYS = "UNIX" THEN
-        {&OUT} 
-          'var regexp  = /\\s\\s/;             // double spaces' SKIP.
-      ELSE
-        {&OUT} 
-          'var regexp  = /\s\s/;               // double spaces' SKIP.
-    </SCRIPT>
-    
-    e.value     = e.value.replace(regexp, ""); // first occurance
-    e.value     = e.value.replace(regexp, ""); // second occurance
-
-    if (isIE4up)
-      window.returnValue = e.value;
-    else if (isNav4up) {
-      e.value = e.value.toLowerCase();
-      
-      switch (context) {
-        case "body":
-          break;
-        case "fileClose":
-          opener.fileClose(e.value);
-          break;
-        case "fileNew":
-          if (e.value == "ok" || e.value == "yes") {
-            if (opener.lUntitled)
-              opener.fileSaveAs(undefined, "fileSaveAs", "fileNew");
-            else
-              opener.fileSave("fileNew");
-          }
-          else if (e.value != "cancel")
-            opener.fileNew(e.value);
-          break;
-        case "fileOpen":
-          if (e.value == "no")
-            opener.fileOpen("");
-          else if (e.value != "cancel")
-            opener.fileSave("fileOpen");
-          break;
-        case "fileSave":
-          break;
-        case "fileSaveAs":
-          break;
-      }
-    }
-    window.close();
-  }
-  
-//--></SCRIPT>
-</HEAD>
-
-<BODY BGCOLOR="lightgrey" onLoad="init()">
-<TABLE CELLPADDING=2>
-  <TR>
-    <TD VALIGN="top">
-      <IMG ID="img_product" SRC="`RootURL`/images/results.gif"></TD>
-    <TD>`get-field("text")`</TD>
-  </TR>
-</TABLE>
-
-<CENTER>
-<FORM>
-<SCRIPT LANGUAGE="SpeedScript">
-  IF LOOKUP("ok",get-field("buttons"),"-") > 0 THEN
-    {&OUT} 
-      '<INPUT ID="btnOk" TYPE="button" VALUE="  OK  " '
-      'onClick="btnClick(this)">&nbsp;'.
-  IF LOOKUP("yes",get-field("buttons"),"-") > 0 THEN
-    {&OUT} 
-      '<INPUT ID="btnYes" TYPE="button" VALUE="  Yes  " '
-      'onClick="btnClick(this)">&nbsp;'.
-  IF LOOKUP("no",get-field("buttons"),"-") > 0 THEN
-    {&OUT} 
-      '<INPUT ID="btnNo" TYPE="button" VALUE="  No  " '
-      'onClick="btnClick(this)">&nbsp;'.
-  IF LOOKUP("cancel",get-field("buttons"),"-") > 0 THEN
-    {&OUT} 
-      '<INPUT ID="btnCancel" TYPE="button" VALUE="  Cancel  " '
-      'onClick="btnClick(this)">'.
-</SCRIPT>
-</FORM>
-</CENTER>
-</BODY>
-</HTML>
+<HTML>
+<HEAD>
+<META NAME="author" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<TITLE>`get-field("title")`</TITLE>
+<STYLE type="text/css">
+  FONT { font-family:sans-serif; font-size:8pt }
+</STYLE>
+
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  var cTarget = "`get-field('target')`";
+
+  function init() {
+    getBrowser();
+    if (isIE4up)
+      var imgObj = document.all.img_product;
+    else if (isNav4up)
+      var imgObj = document.images[0];
+    
+    switch ("`get-field("type")`") {
+      case "error":
+        imgObj.src = "`RootURL`/images/error.gif";
+        break;
+      case "information":
+        imgObj.src = "`RootURL`/images/inform.gif";
+        break;
+      case "message":
+        break;
+      case "question":
+        imgObj.src = "`RootURL`/images/question.gif";
+        break;
+      case "warning":
+        imgObj.src = "`RootURL`/images/warning.gif";
+        break;
+    }
+  }
+  
+  function btnClick(e) {
+    var context = "`get-field('context')`";
+    
+    <SCRIPT LANGUAGE="SpeedScript">
+      IF OPSYS = "UNIX" THEN
+        {&OUT} 
+          'var regexp  = /\\s\\s/;             // double spaces' SKIP.
+      ELSE
+        {&OUT} 
+          'var regexp  = /\s\s/;               // double spaces' SKIP.
+    </SCRIPT>
+    
+    e.value     = e.value.replace(regexp, ""); // first occurance
+    e.value     = e.value.replace(regexp, ""); // second occurance
+
+    if (isIE4up)
+      window.returnValue = e.value;
+    else if (isNav4up) {
+      e.value = e.value.toLowerCase();
+      
+      switch (context) {
+        case "body":
+          break;
+        case "fileClose":
+          opener.fileClose(e.value);
+          break;
+        case "fileNew":
+          if (e.value == "ok" || e.value == "yes") {
+            if (opener.lUntitled)
+              opener.fileSaveAs(undefined, "fileSaveAs", "fileNew");
+            else
+              opener.fileSave("fileNew");
+          }
+          else if (e.value != "cancel")
+            opener.fileNew(e.value);
+          break;
+        case "fileOpen":
+          if (e.value == "no")
+            opener.fileOpen("");
+          else if (e.value != "cancel")
+            opener.fileSave("fileOpen");
+          break;
+        case "fileSave":
+          break;
+        case "fileSaveAs":
+          break;
+      }
+    }
+    window.close();
+  }
+  
+//--></SCRIPT>
+</HEAD>
+
+<BODY BGCOLOR="lightgrey" onLoad="init()">
+<TABLE CELLPADDING=2>
+  <TR>
+    <TD VALIGN="top">
+      <IMG ID="img_product" SRC="`RootURL`/images/results.gif"></TD>
+    <TD>`get-field("text")`</TD>
+  </TR>
+</TABLE>
+
+<CENTER>
+<FORM>
+<SCRIPT LANGUAGE="SpeedScript">
+  IF LOOKUP("ok",get-field("buttons"),"-") > 0 THEN
+    {&OUT} 
+      '<INPUT ID="btnOk" TYPE="button" VALUE="  OK  " '
+      'onClick="btnClick(this)">&nbsp;'.
+  IF LOOKUP("yes",get-field("buttons"),"-") > 0 THEN
+    {&OUT} 
+      '<INPUT ID="btnYes" TYPE="button" VALUE="  Yes  " '
+      'onClick="btnClick(this)">&nbsp;'.
+  IF LOOKUP("no",get-field("buttons"),"-") > 0 THEN
+    {&OUT} 
+      '<INPUT ID="btnNo" TYPE="button" VALUE="  No  " '
+      'onClick="btnClick(this)">&nbsp;'.
+  IF LOOKUP("cancel",get-field("buttons"),"-") > 0 THEN
+    {&OUT} 
+      '<INPUT ID="btnCancel" TYPE="button" VALUE="  Cancel  " '
+      'onClick="btnClick(this)">'.
+</SCRIPT>
+</FORM>
+</CENTER>
+</BODY>
+</HTML>

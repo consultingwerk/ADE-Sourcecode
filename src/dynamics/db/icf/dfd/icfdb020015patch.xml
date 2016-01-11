@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="020015">
+		<PatchStage Stage="Delta">
+			<Program>
+				<FileType>df</FileType>
+				<FileName>db/icf/dfd/icfdb020015delta.df</FileName>
+				<Description>Applying 020015 Delta</Description>
+				<Rerunnable>no</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+	</Patch>
+</SetupInclude>

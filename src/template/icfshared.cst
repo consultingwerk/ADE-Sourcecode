@@ -1,30 +1,30 @@
-/* icfshared.cst - ICF customized shared objects file - 09/25/01 */
-
-#SmartDataObject &Default
-UP-IMAGE-FILE    adeicon/wp_up 24,288
-DOWN-IMAGE-FILE  adeicon/wp_down 24,288
-LABEL            Smart&DataObject
-DB-CONNECT
-NEW-TEMPLATE     ry/obj/rysttasdoo.w
-DIRECTORY-LIST   .,adm2
-FILTER           d*.w,d*.r,d*.*,*.*
-TITLE            Choose SmartDataObject
-
-*NEW-SMARTOBJECT Static Smart&DataObject
-TYPE		 SmartDataObject
-NEW-TEMPLATE     ry/obj/rysttasdoo.w
-
-*NEW-PROCEDURE  Structured &PLIP 
-NEW-TEMPLATE    ry/app/rytemplipp.p
-
-*NEW-PROCEDURE  Data Logic Procedure
-NEW-TEMPLATE    ry/obj/rytemlogic.p
-
-*NEW-PROCEDURE  Structured &Procedure 
-NEW-TEMPLATE    ry/app/rytemprocp.p
-
-*NEW-PROCEDURE  Structured &Include 
-NEW-TEMPLATE    ry/inc/ryteminclu.i
-
-*NEW-PROCEDURE  Structured &Manager
-NEW-TEMPLATE    ry/app/rytemsrvrp.p
+/* icfshared.cst - ICF customized shared objects file - 09/25/01 */
+
+#SmartDataObject &Default
+UP-IMAGE-FILE    adeicon/wp_up 24,288
+DOWN-IMAGE-FILE  adeicon/wp_down 24,288
+LABEL            Smart&DataObject
+DB-CONNECT
+NEW-TEMPLATE     ry/obj/rysttasdoo.w
+DIRECTORY-LIST   .,adm2
+FILTER           d*.w,d*.r,d*.*,*.*
+TITLE            Choose SmartDataObject
+
+*NEW-SMARTOBJECT Static Smart&DataObject
+TYPE		 SmartDataObject
+NEW-TEMPLATE     ry/obj/rysttasdoo.w
+
+*NEW-PROCEDURE  Structured &PLIP 
+NEW-TEMPLATE    ry/app/rytemplipp.p
+
+*NEW-PROCEDURE  Data Logic Procedure
+NEW-TEMPLATE    ry/obj/rytemlogic.p
+
+*NEW-PROCEDURE  Structured &Procedure 
+NEW-TEMPLATE    ry/app/rytemprocp.p
+
+*NEW-PROCEDURE  Structured &Include 
+NEW-TEMPLATE    ry/inc/ryteminclu.i
+
+*NEW-PROCEDURE  Structured &Manager
+NEW-TEMPLATE    ry/app/rytemsrvrp.p

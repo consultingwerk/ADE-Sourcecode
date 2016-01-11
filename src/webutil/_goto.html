@@ -1,102 +1,104 @@
-<HTML>
-<HEAD>
-<META NAME="AUTHOR" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<TITLE>Goto Line</TITLE>
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!-- 
-  document.write("Included common.js file not found."); 
-//--></SCRIPT> 
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  function autoGo() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Redirect the Enter key to the OK button.
-      Parameters:  <none>
-      Notes:       
-    -------------------------------------------------------------------------*/
-    var btnOKObj = (isIE4up ? document.form1.btnOk : 
-                    document.form1.elements['btnOk']);
-    btnClick(btnOKObj);
-    return false;
-  }
-  
-  function btnClick(e) {
-    /*-----------------------------------------------------------------------
-      Purpose:     Handle a button click.
-      Parameters:  e - button object
-      Notes:       
-    -------------------------------------------------------------------------*/
-    if (isIE4up)
-      var numObj = document.all.lineNum;
-    else if (isNav4up)
-      var numObj = document.form1.elements["lineNum"];
-    
-    if (e.id == "btnOk" || e.name == "btnOk") {
-      if (isNaN(numObj.value) || (numObj.value < 0) || (numObj.value == "-0")) {
-        cURL = "../webutil/_webmsgs.w?type=warning&title=Warning" +
-               "&context=goToLine" +
-               "&buttons=ok&text=" +
-               escape("Line number must be a positive integer.");
-                
-        if (isIE4up) {
-          cReturn = window.showModalDialog (cURL, "msgWin", 
-             "dialogHeight=150px; dialogWidth=325px; center=yes");
-          return false;
-        }
-        else if (isNav4up) {
-          cReturn = window.open (cURL, "msgWin", 
-                                 "dependent,height=120,width=325");
-          return false;
-        }
-      }
-      if (isIE4up) 
-        window.returnValue = numObj.value;
-      else if (isNav4up)
-        parent.opener.goToLine(numObj.value);
-    }
-    window.close();
-  }
-  
-  function init() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Initialization routine.
-      Parameters:  <none>
-      Notes:       
-    -------------------------------------------------------------------------*/
-    getBrowser();
-    
-    if (isIE4up) {
-      document.all.btnOk.style.pixelWidth = 
-        document.all.tdOk.clientWidth;
-      document.all.btnCancel.style.pixelWidth = 
-        document.all.tdCancel.clientWidth;
-      document.all.lineNum.select();
-    }
-    else if (isNav4up) {
-      document.form1.elements["lineNum"].focus();
-      document.form1.elements["lineNum"].select(); 
-    }
-  }
-//--></SCRIPT>
-</HEAD>
-<BODY onLoad="setTimeout('init()', 1)" BGCOLOR="lightgrey">
-<FORM NAME="form1" onSubmit="return autoGo()">
-  <BR>&nbsp;&nbsp;Line Number:
-  <INPUT ID="lineNum" NAME="lineNum" TYPE="text" SIZE=12 
-    VALUE=`get-field('lineNum')`>
-  <BR><BR>
-  <TABLE WIDTH="100%"><TR WIDTH="100%">
-    <TD WIDTH="20%"></TD>
-    <TD ID="tdOk" WIDTH="30%">
-      <INPUT ID="btnOk" NAME="btnOk" TYPE="button" VALUE="  OK  "
-        onClick="btnClick(this)">
-    </TD>
-    <TD ID="tdCancel" WIDTH="30%">
-      <INPUT ID="btnCancel" NAME="btnCancel" TYPE="button" VALUE="Cancel"
-        onClick="btnClick(this)">
-    </TD>
-    <TD WIDTH="20%"></TD>
-  </TR></TABLE>
-</FORM>
-</CENTER>
-</BODY>
-</HTML>
+<HTML>
+<HEAD>
+<META NAME="AUTHOR" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<TITLE>Goto Line</TITLE>
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  function autoGo() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Redirect the Enter key to the OK button.
+      Parameters:  <none>
+      Notes:       
+    -------------------------------------------------------------------------*/
+    var btnOKObj = (isIE4up ? document.form1.btnOk : 
+                    document.form1.elements['btnOk']);
+    btnClick(btnOKObj);
+    return false;
+  }
+  
+  function btnClick(e) {
+    /*-----------------------------------------------------------------------
+      Purpose:     Handle a button click.
+      Parameters:  e - button object
+      Notes:       
+    -------------------------------------------------------------------------*/
+    if (isIE4up)
+      var numObj = document.all.lineNum;
+    else if (isNav4up)
+      var numObj = document.form1.elements["lineNum"];
+    
+    if (e.id == "btnOk" || e.name == "btnOk") {
+      if (isNaN(numObj.value) || (numObj.value < 0) || (numObj.value == "-0")) {
+        cURL = "../webutil/_webmsgs.w?type=warning&title=Warning" +
+               "&context=goToLine" +
+               "&buttons=ok&text=" +
+               escape("Line number must be a positive integer.");
+                
+        if (isIE4up) {
+          cReturn = window.showModalDialog (cURL, "msgWin", 
+             "dialogHeight=150px; dialogWidth=325px; center=yes");
+          return false;
+        }
+        else if (isNav4up) {
+          cReturn = window.open (cURL, "msgWin", 
+                                 "dependent,height=120,width=325");
+          return false;
+        }
+      }
+      if (isIE4up) 
+        window.returnValue = numObj.value;
+      else if (isNav4up)
+        parent.opener.goToLine(numObj.value);
+    }
+    window.close();
+  }
+  
+  function init() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Initialization routine.
+      Parameters:  <none>
+      Notes:       
+    -------------------------------------------------------------------------*/
+    getBrowser();
+    
+    if (isIE4up) {
+      document.all.btnOk.style.pixelWidth = 
+        document.all.tdOk.clientWidth;
+      document.all.btnCancel.style.pixelWidth = 
+        document.all.tdCancel.clientWidth;
+      document.all.lineNum.select();
+    }
+    else if (isNav4up) {
+      document.form1.elements["lineNum"].focus();
+      document.form1.elements["lineNum"].select(); 
+    }
+  }
+//--></SCRIPT>
+</HEAD>
+<BODY onLoad="setTimeout('init()', 1)" BGCOLOR="lightgrey">
+<FORM NAME="form1" onSubmit="return autoGo()">
+  <BR>&nbsp;&nbsp;Line Number:
+  <INPUT ID="lineNum" NAME="lineNum" TYPE="text" SIZE=12 
+    VALUE=`get-field('lineNum')`>
+  <BR><BR>
+  <TABLE WIDTH="100%"><TR WIDTH="100%">
+    <TD WIDTH="20%"></TD>
+    <TD ID="tdOk" WIDTH="30%">
+      <INPUT ID="btnOk" NAME="btnOk" TYPE="button" VALUE="  OK  "
+        onClick="btnClick(this)">
+    </TD>
+    <TD ID="tdCancel" WIDTH="30%">
+      <INPUT ID="btnCancel" NAME="btnCancel" TYPE="button" VALUE="Cancel"
+        onClick="btnClick(this)">
+    </TD>
+    <TD WIDTH="20%"></TD>
+  </TR></TABLE>
+</FORM>
+</CENTER>
+</BODY>
+</HTML>

@@ -1,63 +1,65 @@
-<HTML>
-<HEAD>
-<META NAME="AUTHOR" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<TITLE>`get-field("title")`</TITLE>
-<SCRIPT LANGUAGE="SpeedScript">
-  DEFINE VARIABLE isIE AS LOGICAL NO-UNDO.
-  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
-
-  {&OUT} '<STYLE TYPE="text/css">':U SKIP.
-  IF isIE THEN
-    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:8pt }':U SKIP
-           '  TD   ~{ font-family:sans-serif; font-size:8pt }':U SKIP.
-  ELSE
-    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:9pt }':U SKIP
-           '  TD   ~{ font-family:sans-serif; font-size:9pt }':U SKIP.
-  {&OUT} '</STYLE>':U SKIP.
-</SCRIPT>
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!--
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-</HEAD>
-<BODY BGCOLOR="lightgrey" onLoad="getBrowser()">
-<FORM ID="form1" NAME="form1" 
-  onSubmit="parent.OS_fname.autoGo(); return false">
-  <TABLE ID="table1" NAME="table1" WIDTH="100%">
-    <TR>
-      <TD WIDTH="18%"><B>Server:</TD>
-      <SCRIPT LANGUAGE="SpeedScript">
-        DEFINE VARIABLE cServer AS CHARACTER.
-        cServer = SERVER_NAME.
-        
-        IF isIE THEN
-          {&OUT}
-            '      <TD ID="tdBroker">':U cServer '</TD>':U SKIP.
-        ELSE
-          {&OUT}
-            '      <TD NAME="tdBroker">':U SKIP
-            '        <LAYER NAME="lServer" LEFT="75" TOP="10">':U 
-            cServer SKIP
-            '        </LAYER>':U SKIP
-            '      </TD>':U SKIP.
-      </SCRIPT>
-    </TR>
-    <TR>
-      <TD WIDTH="18%"><B>Directory:</TD>
-      <TD ID="tdDirectory" NAME="tdDirectory">
-        <SCRIPT LANGUAGE="SpeedScript">
-          IF isIE THEN
-            {&OUT}
-              '        <SPAN ID="lDirectory"></SPAN>':U SKIP.
-          ELSE
-            {&OUT}
-              '        <LAYER NAME="lDirectory" LEFT="75" TOP="30">':U SKIP
-              '        </LAYER>':U SKIP.
-        </SCRIPT>
-      </TD>
-    </TR>
-  </TABLE>
-<!-- <INPUT NAME="dirPath" TYPE="hidden"> -->
-</FORM>  
-</BODY>
-</HTML>
+<HTML>
+<HEAD>
+<META NAME="AUTHOR" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<TITLE>`get-field("title")`</TITLE>
+<SCRIPT LANGUAGE="SpeedScript">
+  DEFINE VARIABLE isIE AS LOGICAL NO-UNDO.
+  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
+
+  {&OUT} '<STYLE TYPE="text/css">':U SKIP.
+  IF isIE THEN
+    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:8pt }':U SKIP
+           '  TD   ~{ font-family:sans-serif; font-size:8pt }':U SKIP.
+  ELSE
+    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:9pt }':U SKIP
+           '  TD   ~{ font-family:sans-serif; font-size:9pt }':U SKIP.
+  {&OUT} '</STYLE>':U SKIP.
+</SCRIPT>
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+</HEAD>
+<BODY BGCOLOR="lightgrey" onLoad="getBrowser()">
+<FORM ID="form1" NAME="form1" 
+  onSubmit="parent.OS_fname.autoGo(); return false">
+  <TABLE ID="table1" NAME="table1" WIDTH="100%">
+    <TR>
+      <TD WIDTH="18%"><B>Server:</TD>
+      <SCRIPT LANGUAGE="SpeedScript">
+        DEFINE VARIABLE cServer AS CHARACTER.
+        cServer = SERVER_NAME.
+        
+        IF isIE THEN
+          {&OUT}
+            '      <TD ID="tdBroker">':U cServer '</TD>':U SKIP.
+        ELSE
+          {&OUT}
+            '      <TD NAME="tdBroker">':U SKIP
+            '        <LAYER NAME="lServer" LEFT="75" TOP="10">':U 
+            cServer SKIP
+            '        </LAYER>':U SKIP
+            '      </TD>':U SKIP.
+      </SCRIPT>
+    </TR>
+    <TR>
+      <TD WIDTH="18%"><B>Directory:</TD>
+      <TD ID="tdDirectory" NAME="tdDirectory">
+        <SCRIPT LANGUAGE="SpeedScript">
+          IF isIE THEN
+            {&OUT}
+              '        <SPAN ID="lDirectory"></SPAN>':U SKIP.
+          ELSE
+            {&OUT}
+              '        <LAYER NAME="lDirectory" LEFT="75" TOP="30">':U SKIP
+              '        </LAYER>':U SKIP.
+        </SCRIPT>
+      </TD>
+    </TR>
+  </TABLE>
+<!-- <INPUT NAME="dirPath" TYPE="hidden"> -->
+</FORM>  
+</BODY>
+</HTML>

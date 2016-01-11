@@ -1,0 +1,1 @@
+%Upper(%substr(%substitute(%substitute(%AttName,_,~ ),~,%entityprop("XYZ")),1,1))%substr(%substitute(%substitute(%AttName,_,~ ),~,%entityprop("XYZ")),2)

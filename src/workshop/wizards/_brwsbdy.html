@@ -1,765 +1,765 @@
-<!--WSS {webutil/wstyle.i} -->
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html>
-
-<head>
-<meta http-equiv="Content-Type"
-content="text/html; charset=iso-8859-1">
-<title>Browse Wizard Main Section</title>
-</head>
-
-<body `get-body-phrase("WSWZ_body")`>
-<script language="SpeedScript">
-  /* Local Variables. */
-  DEFINE VARIABLE saveAsName AS CHAR NO-UNDO.
-  
-  /* Compute a new, unique saveAsName. "&1" will take on values of 1, 2, 3,
-     etc. if necessary. */
-  RUN workshop/wizards/_bstfnam.p (INPUT "report&1.html", OUTPUT saveAsName).
-</script>
-<script language="JavaScript">
-
-  var NoSearchForm = false;
-
-  function DirList() {
-    window.open("_dirlist.r?filter=*.r", "DirList", "scrollbars=yes,height=580,width=530,resizable=yes");
-  }
-
-  function PageColor(ColorIndex, ColorSelected) {
-    document.BrowseDetail.PageColor.value = ColorSelected;
-    if (navigator.appName == 'Netscape') {
-      var ColorImg = '/webspeed/workshop/wizards/color' + ColorIndex + '.gif';
-      document.BrowseDetail.PageColorImg.src = ColorImg;
-    }
-  }
-
-  function TableColor(ColorIndex, ColorSelected) {
-    document.BrowseDetail.TableColor.value = ColorSelected;
-    if (navigator.appName == 'Netscape') {
-      var ColorImg = '/webspeed/workshop/wizards/color' + ColorIndex + '.gif';
-      document.BrowseDetail.TableColorImg.src = ColorImg;
-    }
-  }
-
-  function GetQueryFields() {
-    var QBapplet = document.QB;
-    if (QBapplet == null) var QBapplet = document.BrowseDetail.QB;
-    if (QBapplet != null) {
-      if (navigator.appName == 'Netscape')
-        var isDone = new String(QBapplet.isDone());
-      else
-        var isDone = QBapplet.isDone();
-      if (isDone == 'Yes') {
-        if (navigator.appName == 'Netscape')
-          var LinkFields = new String(QBapplet.getDisplayFields());
-        else
-          var LinkFields = QBapplet.getDisplayFields();
-        if (LinkFields != '') {
-          LinkFieldsArray = LinkFields.split(' ');
-          for (var i=0, j=1; i < LinkFieldsArray.length; i++) {
-            if (LinkFieldsArray[i] != '') {
-              if (navigator.appName == 'Netscape') {
-                optionName = new Option(LinkFieldsArray[i]);  
-                document.BrowseDetail.LinkField.options[j] = optionName;
-              }
-              else {
-                if (BrowseDetail.LinkField.value == 'None') {
-                  BrowseDetail.LinkField.value = LinkFieldsArray[0];
-                  break;
-                }
-                else {
-                  if (BrowseDetail.LinkField.value == LinkFieldsArray[i]) {
-                    if (i < LinkFieldsArray.length - 1)
-                      BrowseDetail.LinkField.value = LinkFieldsArray[++i];
-                    else
-                      BrowseDetail.LinkField.value = 'None';
-                    break;
-                  }
-                }
-              }
-              j++;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  function SelectField() {
-    if (document.BrowseDetail.LinkField.options[document.BrowseDetail.LinkField.selectedIndex].text.length == 1 || 
-        document.BrowseDetail.LinkField.options[document.BrowseDetail.LinkField.selectedIndex].text == 'Option is used to reserve space.') {
-      document.BrowseDetail.LinkField.options[0].selected = true;
-    }
-    document.BrowseDetail.LinkField.blur();
-  }
-
-  function ReturnDisplayFields() {
-    var QBapplet = document.QB;
-    if (QBapplet == null) var QBapplet = document.BrowseDetail.QB;
-    if (QBapplet != null) {
-      if (navigator.appName == 'Netscape')
-        var isDone = new String(QBapplet.isDone());
-      else
-        var isDone = QBapplet.isDone();
-      if (isDone == 'Yes') {
-        if (navigator.appName == 'Netscape') {
-          var DefineQuery = new String(QBapplet.getDefineQuery());
-          var OpenQuery = new String(QBapplet.getOpenQuery());
-          var DisplayFields = new String(QBapplet.getDisplayFields());
-          var SortFields = new String(QBapplet.getSortFields());
-          var QueryTables = new String(QBapplet.getTables());
-          var ExternalTable = new String(QBapplet.getExternal());
-          var DefineBuffers = new String(QBapplet.getDefineBuffers());
-          var PrimarySortOrder = new String(QBapplet.getPrimarySortOrder());
-        }
-        else {
-          var DefineQuery = QBapplet.getDefineQuery();
-          var OpenQuery = QBapplet.getOpenQuery();
-          var DisplayFields = QBapplet.getDisplayFields();
-          var SortFields = QBapplet.getSortFields();
-          var QueryTables = QBapplet.getTables();
-          var ExternalTable = QBapplet.getExternal();
-          var DefineBuffers = QBapplet.getDefineBuffers();
-          var PrimarySortOrder = QBapplet.getPrimarySortOrder();
-        }
-        if (DefineQuery != '') {
-          if (OpenQuery != '') {
-            if (DisplayFields != '') {
-              if (SortFields != ' ' || NoSearchForm) {
-                document.BrowseDetail.DefineQuery.value = DefineQuery;
-                document.BrowseDetail.OpenQuery.value = OpenQuery;
-                document.BrowseDetail.DisplayFields.value = DisplayFields;
-                document.BrowseDetail.SortFields.value = SortFields;
-                document.BrowseDetail.QueryTables.value = QueryTables;
-                document.BrowseDetail.ExternalTable.value = ExternalTable;
-                document.BrowseDetail.DefineBuffers.value = DefineBuffers;
-                document.BrowseDetail.PrimarySortOrder.value = PrimarySortOrder;
-                window.open('_savewin.r', 'wz_parse', 'height=600,width=750,scrollbars=yes,status=yes,resizable=yes');
-                document.BrowseDetail.submit(); 
-              }
-              else 
-                window.alert('A Sort Field must be defined in the Query Builder if the Search Form is to be used.');
-            }
-            else
-              window.alert('Display Fields must be defined in the Query Builder.');
-          }
-          else
-            window.alert('The Report Wizard requires a non-external table definition in the Query Builder.');
-        }
-        else
-          window.alert('The Report Wizard requires a non-external table definition in the Query Builder.');
-      }
-      else
-        window.alert('The Query Builder must be completed in order to properly save this file.');
-    }
-  }
-
-</script>
-
-<form action="`AppUrl`/workshop/_main.w" method="POST" name="BrowseDetail" target="wz_parse">
-    <input type="hidden" name="command" value="run">
-    <input type="hidden" name="webObject" value="workshop/wizards/_brwssav.w">
-    <input type="hidden" name="DisplayFields" value>
-    <input type="hidden" name="SortFields" value>
-    <input type="hidden" name="DefineQuery" value>
-    <input type="hidden" name="OpenQuery" value>
-    <input type="hidden" name="QueryTables" value>
-    <input type="hidden" name="ExternalTable" value>
-    <input type="hidden" name="DefineBuffers" value>
-    <input type="hidden" name="PrimarySortOrder" value>
-<script language="JavaScript">
-  if (navigator.appName == 'Netscape') {
-    document.writeln('<input type="hidden" name="PageColor" value>');
-    document.writeln('<input type="hidden" name="TableColor" value>');
-  }
-</script>
-    <p><a href="/webspeed/doc/wshelp/brwswiz.htm" target="helpWindow">
-       <img src="/webspeed/images/help.gif" border=0 align="right"></a>
-       <a name="intro"><strong>Introduction to the Report Wizard</strong></a><br>
-       This Report Wizard guides you through the following steps to create a database field report:</p>
-    <blockquote>
-        <table border="0">
-            <tr>
-                <td valign="top">1. </td>
-                <td>Define the appropriate <strong>query</strong> for the report.  WebSpeed uses
-                    the query<br>to display selected fields associated with one or more database 
-                    tables.</td>
-            </tr>
-            <tr><td>&nbsp;</td></tr>
-            <tr>
-                <td valign="top">2. </td>
-                <td>Customize the <strong>style</strong> of the report.  For example, you can 
-                    specify the number of rows,<br>add a background color or image, and include 
-                    a search form or navigation panel.</td>
-            </tr>
-            <tr><td>&nbsp;</td></tr>
-            <tr>
-                <td valign="top">3. </td>
-                <td>Add <strong>links</strong> from the report to other Web Objects.</td>
-            </tr>
-            <tr><td>&nbsp;</td></tr>
-            <tr>
-                <td valign="top">4. </td>
-                <td><strong>Save</strong> the report to a local file, and preview the result.</td>
-            </tr>
-        </table>
-    </blockquote>
-    <p><br><br><br><br><br><br><br><br></p>
-    <hr>
-    <p><a name="query"><strong>Query</strong></a><br>
-       Use the following Query Builder applet to define the appropriate query for the report.<br>
-       WebSpeed uses this query to display selected fields associated with one or more databases.</p>
-    <blockquote>
-        <p><applet code="qb.Wizard" codebase="/webspeed/workshop"
-        align="baseline" width="490" height="310" name="QB"><param
-        name="Cookie" value="` IF check-agent-mode("EVALUATION":U) THEN "" ELSE WEB-CONTEXT:EXCLUSIVE-ID `"><param
-        name="AppURL" value="`AppURL`"><param
-        name="QueryMode" value="Report"><param
-        name="QueryType" value="OpenQuery"><param
-        name="QueryName" value="Browse-Qry">
-<!--WSS IF WEB-CONTEXT:GET-CGI-VALUE("ENV","HTTP_AUTHORIZATION") ne "" THEN -->
-        <PARAM name="HttpAuth" value="`WEB-CONTEXT:GET-CGI-VALUE('ENV','HTTP_AUTHORIZATION')`">
-        </applet></p>
-    </blockquote>
-    <p><br><br><br><br><br></p>
-    <hr>
-    <p><a name="style"><strong>Style</strong></a><br>
-       To customize the design and layout of the report, specify the following options.</p>
-    <blockquote>
-        <table border="0" cellpadding="0" cellspacing="0">
-            <tr>
-                <td><strong>Title:</strong></td>
-                <td><input type="text" size="30"
-                name="ReportTitle" value="(Specify title or leave blank)">&nbsp;&nbsp;</td>
-                <td colspan="6"><font size="2">Enter the title you want to display at the top of the report.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Search Form:</strong></td>
-                <td><input type="radio" checked name="SearchForm"
-                value="Yes" onClick="NoSearchForm=false">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="SearchForm"
-                value="No" onClick="NoSearchForm=true">No</td>
-                <td colspan="6"><font size="2">Specify whether to use a search form so the user can find
-                specific database fields.  If you select Yes, the search form uses the first database
-                field you defined in the Sort By section of the Query Builder applet.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Navigation Panel:</strong></td>
-                <td><input type="radio" checked name="NavPanel"
-                value="Yes">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="NavPanel"
-                value="No">No</td>
-                <td colspan="6"><font size="2">Specify whether to use a Navigation Panel to scroll through 
-                the report results.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Column Headings:</strong></td>
-                <td><input type="radio" checked name="ColumnHeadings" 
-                value="Yes">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="ColumnHeadings"
-                value="No">No</td>
-                <td colspan="6"><font size="2">Specify whether to use the database field labels as column 
-                headings in the report.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-                <td><strong>Rows:</strong></td>
-                <td><select name="Result-Rows" size="1">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                    <option selected>10</option>
-                    <option>15</option>
-                    <option>20</option>
-                    <option>All</option>
-                </select> </td>
-                <td colspan="6"><font size="2">Specify the number of rows you want to display in the report.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Border Size:</strong></td>
-                <td><select name="Border-Size" size="1">
-                    <option>0</option>
-                    <option>1</option>
-                    <option selected>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                </select></td>
-                <td colspan="6"><font size="2">Specify the size of the border for the report table.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Page Background:</strong></td>
-<script language="JavaScript">
-  if (navigator.appName == 'Netscape')
-    document.writeln('<td><img src="/webspeed/workshop/wizards/colordef.gif" name="PageColorImg"></td>');
-  else
-    document.writeln('<td><input type="text" size="10" name="PageColor" value="Default"></td>');
-</script>
-                <td colspan="6"><font size="2">Specify the color or image for the background of the report 
-                page.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-                <td colspan="5"><img
-                src="/webspeed/workshop/wizards/backgrnd.gif" 
-                usemap="#PageColorMap"><map name="PageColorMap">
-                <area shape="rect" coords="5,5,25,20" href="javascript:PageColor('1', '#FF8080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,5,50,20" href="javascript:PageColor('2', '#FFFF80')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,5,75,20" href="javascript:PageColor('3', '#80FF80')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,5,100,20" href="javascript:PageColor('4', '#00FF80')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,5,125,20" href="javascript:PageColor('5', '#80FFFF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,5,150,20" href="javascript:PageColor('6', '#0080FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,5,175,20" href="javascript:PageColor('7', '#FF80C0')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,5,200,20" href="javascript:PageColor('8', '#FF80FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,28,25,43" href="javascript:PageColor('9', '#FF0000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,28,50,43" href="javascript:PageColor('10', '#FFFF00')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,28,75,43" href="javascript:PageColor('11', '#80FF00')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,28,100,43" href="javascript:PageColor('12', '#00FF40')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,28,125,43" href="javascript:PageColor('13', '#00FFFF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,28,150,43" href="javascript:PageColor('14', '#0080C0')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,28,175,43" href="javascript:PageColor('15', '#8080C0')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,28,200,43" href="javascript:PageColor('16', '#FF00FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,51,25,66" href="javascript:PageColor('17', '#804040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,51,50,66" href="javascript:PageColor('18', '#FF8040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,51,75,66" href="javascript:PageColor('19', '#00FF00')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,51,100,66" href="javascript:PageColor('20', '#008080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,51,125,66" href="javascript:PageColor('21', '#004080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,51,150,66" href="javascript:PageColor('22', '#8080FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,51,175,66" href="javascript:PageColor('23', '#800040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,51,200,66" href="javascript:PageColor('24', '#FF0080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,74,25,89" href="javascript:PageColor('25', '#800000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,74,50,89" href="javascript:PageColor('26', '#FF8000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,74,75,89" href="javascript:PageColor('27', '#008000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,74,100,89" href="javascript:PageColor('28', '#008040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,74,125,89" href="javascript:PageColor('29', '#0000FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,74,150,89" href="javascript:PageColor('30', '#0000A0')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,74,175,89" href="javascript:PageColor('31', '#800080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,74,200,89" href="javascript:PageColor('32', '#8000FF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,97,25,112" href="javascript:PageColor('33', '#400000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,97,50,112" href="javascript:PageColor('34', '#804000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,97,75,112" href="javascript:PageColor('35', '#004000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,97,100,112" href="javascript:PageColor('36', '#004040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,97,125,112" href="javascript:PageColor('37', '#000080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,97,150,112" href="javascript:PageColor('38', '#000040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,97,175,112" href="javascript:PageColor('39', '#400040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,97,200,112" href="javascript:PageColor('40', '#400080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,120,25,133" href="javascript:PageColor('41', '#000000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,120,50,133" href="javascript:PageColor('42', '#808000')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,120,75,133" href="javascript:PageColor('43', '#808040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,120,100,133" href="javascript:PageColor('44', '#808080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,120,125,133" href="javascript:PageColor('45', '#408080')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,120,150,133" href="javascript:PageColor('46', '#C0C0C0')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,120,175,133" href="javascript:PageColor('47', '#400040')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,120,200,133" href="javascript:PageColor('48', '#FFFFFF')" 
-                onmouseover="window.status='Select page background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="60,135,150,160" href="javascript:PageColor('def', 'Default')" 
-                onmouseover="window.status='Select the default page background color';return true"
-                onmouseout="window.status='';return true"></map></td>
-            </tr>
-                <td>&nbsp;</td>
-                <td>&nbsp; Image:<input type="text" size="20" name="PageImage"></td>
-                <td colspan="6"><font size="2">Image file located in the document root directory.</font></tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Table Background:</strong></td>
-<script language="JavaScript">
-  if (navigator.appName == 'Netscape')
-    document.writeln('<td><img src="/webspeed/workshop/wizards/colordef.gif" name="TableColorImg"></td>');
-  else
-    document.writeln('<td><input type="text" size="10" name="TableColor" value="Default"></td>');
-</script>
-                <td colspan="6"><font size="2">Specify the color or image for the background of the display table
-                in the report.</font></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-                <td colspan="5"><img
-                src="/webspeed/workshop/wizards/backgrnd.gif" 
-                usemap="#TableColorMap"><map name="TableColorMap">
-                <area shape="rect" coords="5,5,25,20" href="javascript:TableColor('1', '#FF8080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,5,50,20" href="javascript:TableColor('2', '#FFFF80')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,5,75,20" href="javascript:TableColor('3', '#80FF80')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,5,100,20" href="javascript:TableColor('4', '#00FF80')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,5,125,20" href="javascript:TableColor('5', '#80FFFF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,5,150,20" href="javascript:TableColor('6', '#0080FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,5,175,20" href="javascript:TableColor('7', '#FF80C0')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,5,200,20" href="javascript:TableColor('8', '#FF80FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,28,25,43" href="javascript:TableColor('9', '#FF0000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,28,50,43" href="javascript:TableColor('10', '#FFFF00')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,28,75,43" href="javascript:TableColor('11', '#80FF00')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,28,100,43" href="javascript:TableColor('12', '#00FF40')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,28,125,43" href="javascript:TableColor('13', '#00FFFF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,28,150,43" href="javascript:TableColor('14', '#0080C0')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,28,175,43" href="javascript:TableColor('15', '#8080C0')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,28,200,43" href="javascript:TableColor('16', '#FF00FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,51,25,66" href="javascript:TableColor('17', '#804040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,51,50,66" href="javascript:TableColor('18', '#FF8040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,51,75,66" href="javascript:TableColor('19', '#00FF00')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,51,100,66" href="javascript:TableColor('20', '#008080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,51,125,66" href="javascript:TableColor('21', '#004080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,51,150,66" href="javascript:TableColor('22', '#8080FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,51,175,66" href="javascript:TableColor('23', '#800040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,51,200,66" href="javascript:TableColor('24', '#FF0080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,74,25,89" href="javascript:TableColor('25', '#800000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,74,50,89" href="javascript:TableColor('26', '#FF8000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,74,75,89" href="javascript:TableColor('27', '#008000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,74,100,89" href="javascript:TableColor('28', '#008040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,74,125,89" href="javascript:TableColor('29', '#0000FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,74,150,89" href="javascript:TableColor('30', '#0000A0')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,74,175,89" href="javascript:TableColor('31', '#800080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,74,200,89" href="javascript:TableColor('32', '#8000FF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,97,25,112" href="javascript:TableColor('33', '#400000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,97,50,112" href="javascript:TableColor('34', '#804000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,97,75,112" href="javascript:TableColor('35', '#004000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,97,100,112" href="javascript:TableColor('36', '#004040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,97,125,112" href="javascript:TableColor('37', '#000080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,97,150,112" href="javascript:TableColor('38', '#000040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,97,175,112" href="javascript:TableColor('39', '#400040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,97,200,112" href="javascript:TableColor('40', '#400080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="5,120,25,133" href="javascript:TableColor('41', '#000000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="30,120,50,133" href="javascript:TableColor('42', '#808000')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="55,120,75,133" href="javascript:TableColor('43', '#808040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="80,120,100,133" href="javascript:TableColor('44', '#808080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="105,120,125,133" href="javascript:TableColor('45', '#408080')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="130,120,150,133" href="javascript:TableColor('46', '#C0C0C0')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="155,120,175,133" href="javascript:TableColor('47', '#400040')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="180,120,200,133" href="javascript:TableColor('48', '#FFFFFF')" 
-                onmouseover="window.status='Select table background color';return true"
-                onmouseout="window.status='';return true">
-                <area shape="rect" coords="60,135,150,160" href="javascript:TableColor('def', 'Default')" 
-                onmouseover="window.status='Select the default table background color';return true"
-                onmouseout="window.status='';return true"></map></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-                <td>&nbsp; Image:<input type="text" size="20" name="TableImage"></td>
-                <td colspan="6"><font size="2">Image file located in the document root directory.</font></tr>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-            </tr>
-        </table>
-    </blockquote>
-    <p>&nbsp;</p>
-    <blockquote>
-    <table border="0">
-        <tr>
-            <td colspan="4"><strong>Style Examples:</strong></td>
-        </tr>
-        <tr>
-            <td valign="top"><strong>Example 1</strong><br>
-            Search Form<br>
-            Rows = 10 <br>
-            Navigation </td>
-            <td><img
-            src="/webspeed/workshop/wizards/sm-srch.gif"></td>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td valign="top"><strong>Example 2</strong><br>
-            No Search Form<br>
-            Rows = All<br>
-            No Navigation </td>
-            <td><img
-            src="/webspeed/workshop/wizards/sm-rpt.gif"></td>
-        </tr>
-    </table>
-    </blockquote>
-    <p><br><br><br></p>
-    <hr>
-    <p><a name="links"><strong>Links (optional)</strong></a><br>
-       Specify the following information to add hyperlinks to other Web Objects.</p>
-    <blockquote>
-        <table border="0">
-            <tr>
-                <td><strong>HyperLink Field:</strong></td>
-<script language="JavaScript">
-  if (navigator.appName == 'Netscape') {
-    document.writeln('<td colspan="2"><select name="LinkField" size="1" onfocus="GetQueryFields()"');
-    document.writeln('onchange="SelectField()">');
-    document.writeln('<option>None</option>');
-    document.writeln('<option>Option is used to reserve space.</option>');
-    document.writeln('<option>&nbsp;</option>');
-    document.writeln('<option>&nbsp;</option>');
-    document.writeln('<option>&nbsp;</option>');
-    document.writeln('<option>&nbsp;</option>');
-    document.writeln('</select></td>');
-  }
-  else {
-    document.writeln('<td><input type="text" name="LinkField" value="None" size="30"></td>');
-    document.writeln('<td><input type="button" name="LinkButton" value="Link >>" onclick="GetQueryFields()"></td>');
-  }
-</script>
-                <td colspan="6"><font size="2">Select the database field that you want to display as 
-                the link text.</font></td>
-            </tr>
-            <tr> 
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>HyperLinked Web Object:</strong></td>
-                <td colspan="2"><input type="text" size="30" name="LinkedWebObject"><input 
-                type="button" name="DirButton" value="Files" onclick="DirList()">&nbsp;</td>
-                <td colspan="6"><font size="2">Enter the filename of the Web Object to run when a user 
-                selects the hyperlink.  (Select the Files button to select from a list of existing Web 
-                Objects.)</font></td>
-            </tr>
-            <tr> 
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Target Frame:</strong></td>
-                <td colspan="2"><input type="text" size="30"
-                name="TargetFrame" value="_self"></td>
-                <td colspan="6"><font size="2">Enter the name of the frame in which to run the Linked Web 
-                Object.  The default frame, _self, overlays the report frame.</font></td>
-            </tr>
-            <tr> 
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td><strong>Status Line:</strong></td>
-                <td colspan="2"><input type="text" size="30" name="StatusLine"></td>
-                <td colspan="6"><font size="2">Enter the text to display in the Status Line when a user 
-                places the mouse cursor over the Link Field.</font></td>
-            </tr>
-        </table>
-    </blockquote>
-    <p><br><br><br><br><br><br><br><br></p>
-    <hr>
-    <p><a name="save"><strong>Save</strong></a><br>
-        Specify the name of the file to which you want to save the report.</p>
-    <blockquote>
-        <table border="0">
-            <tr>
-                <td>`format-label("Save File As", "INPUT":U, "":U)`</td>
-                <td><input type="text" size="40"
-                name="SaveAsFile" value="`saveAsName`"></td>
-                <td><input type="button" name="SaveButton"
-                value="Save" onclick="ReturnDisplayFields()"></td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-                <td><input type="checkbox" name="OverwriteFile"><font
-                size="2">Overwrite file if it exists</font></td>
-            </tr>
-        </table>
-    </blockquote>
-    <p><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;&nbsp;</p>      
-    <p><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;&nbsp;</p>
-</form>
-</body>
-</html>
+<!--WSS {webutil/wstyle.i} -->
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Browse Wizard Main Section</title>
+</head>
+
+<body `get-body-phrase("WSWZ_body")`>
+<script language="SpeedScript">
+  /* Local Variables. */
+  DEFINE VARIABLE saveAsName AS CHAR NO-UNDO.
+  
+  /* Compute a new, unique saveAsName. "&1" will take on values of 1, 2, 3,
+     etc. if necessary. */
+  RUN workshop/wizards/_bstfnam.p (INPUT "report&1.html", OUTPUT saveAsName).
+</script>
+<script language="JavaScript">
+
+  var NoSearchForm = false;
+
+  function DirList() {
+    window.open("_dirlist.r?filter=*.r", "DirList", "scrollbars=yes,height=580,width=530,resizable=yes");
+  }
+
+  function PageColor(ColorIndex, ColorSelected) {
+    document.BrowseDetail.PageColor.value = ColorSelected;
+    if (navigator.appName == 'Netscape') {
+      var ColorImg = '/webspeed/workshop/wizards/color' + ColorIndex + '.gif';
+      document.BrowseDetail.PageColorImg.src = ColorImg;
+    }
+  }
+
+  function TableColor(ColorIndex, ColorSelected) {
+    document.BrowseDetail.TableColor.value = ColorSelected;
+    if (navigator.appName == 'Netscape') {
+      var ColorImg = '/webspeed/workshop/wizards/color' + ColorIndex + '.gif';
+      document.BrowseDetail.TableColorImg.src = ColorImg;
+    }
+  }
+
+  function GetQueryFields() {
+    var QBapplet = document.QB;
+    if (QBapplet == null) var QBapplet = document.BrowseDetail.QB;
+    if (QBapplet != null) {
+      if (navigator.appName == 'Netscape')
+        var isDone = new String(QBapplet.isDone());
+      else
+        var isDone = QBapplet.isDone();
+      if (isDone == 'Yes') {
+        if (navigator.appName == 'Netscape')
+          var LinkFields = new String(QBapplet.getDisplayFields());
+        else
+          var LinkFields = QBapplet.getDisplayFields();
+        if (LinkFields != '') {
+          LinkFieldsArray = LinkFields.split(' ');
+          for (var i=0, j=1; i < LinkFieldsArray.length; i++) {
+            if (LinkFieldsArray[i] != '') {
+              if (navigator.appName == 'Netscape') {
+                optionName = new Option(LinkFieldsArray[i]);  
+                document.BrowseDetail.LinkField.options[j] = optionName;
+              }
+              else {
+                if (BrowseDetail.LinkField.value == 'None') {
+                  BrowseDetail.LinkField.value = LinkFieldsArray[0];
+                  break;
+                }
+                else {
+                  if (BrowseDetail.LinkField.value == LinkFieldsArray[i]) {
+                    if (i < LinkFieldsArray.length - 1)
+                      BrowseDetail.LinkField.value = LinkFieldsArray[++i];
+                    else
+                      BrowseDetail.LinkField.value = 'None';
+                    break;
+                  }
+                }
+              }
+              j++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function SelectField() {
+    if (document.BrowseDetail.LinkField.options[document.BrowseDetail.LinkField.selectedIndex].text.length == 1 || 
+        document.BrowseDetail.LinkField.options[document.BrowseDetail.LinkField.selectedIndex].text == 'Option is used to reserve space.') {
+      document.BrowseDetail.LinkField.options[0].selected = true;
+    }
+    document.BrowseDetail.LinkField.blur();
+  }
+
+  function ReturnDisplayFields() {
+    var QBapplet = document.QB;
+    if (QBapplet == null) var QBapplet = document.BrowseDetail.QB;
+    if (QBapplet != null) {
+      if (navigator.appName == 'Netscape')
+        var isDone = new String(QBapplet.isDone());
+      else
+        var isDone = QBapplet.isDone();
+      if (isDone == 'Yes') {
+        if (navigator.appName == 'Netscape') {
+          var DefineQuery = new String(QBapplet.getDefineQuery());
+          var OpenQuery = new String(QBapplet.getOpenQuery());
+          var DisplayFields = new String(QBapplet.getDisplayFields());
+          var SortFields = new String(QBapplet.getSortFields());
+          var QueryTables = new String(QBapplet.getTables());
+          var ExternalTable = new String(QBapplet.getExternal());
+          var DefineBuffers = new String(QBapplet.getDefineBuffers());
+          var PrimarySortOrder = new String(QBapplet.getPrimarySortOrder());
+        }
+        else {
+          var DefineQuery = QBapplet.getDefineQuery();
+          var OpenQuery = QBapplet.getOpenQuery();
+          var DisplayFields = QBapplet.getDisplayFields();
+          var SortFields = QBapplet.getSortFields();
+          var QueryTables = QBapplet.getTables();
+          var ExternalTable = QBapplet.getExternal();
+          var DefineBuffers = QBapplet.getDefineBuffers();
+          var PrimarySortOrder = QBapplet.getPrimarySortOrder();
+        }
+        if (DefineQuery != '') {
+          if (OpenQuery != '') {
+            if (DisplayFields != '') {
+              if (SortFields != ' ' || NoSearchForm) {
+                document.BrowseDetail.DefineQuery.value = DefineQuery;
+                document.BrowseDetail.OpenQuery.value = OpenQuery;
+                document.BrowseDetail.DisplayFields.value = DisplayFields;
+                document.BrowseDetail.SortFields.value = SortFields;
+                document.BrowseDetail.QueryTables.value = QueryTables;
+                document.BrowseDetail.ExternalTable.value = ExternalTable;
+                document.BrowseDetail.DefineBuffers.value = DefineBuffers;
+                document.BrowseDetail.PrimarySortOrder.value = PrimarySortOrder;
+                window.open('_savewin.r', 'wz_parse', 'height=600,width=750,scrollbars=yes,status=yes,resizable=yes');
+                document.BrowseDetail.submit(); 
+              }
+              else 
+                window.alert('A Sort Field must be defined in the Query Builder if the Search Form is to be used.');
+            }
+            else
+              window.alert('Display Fields must be defined in the Query Builder.');
+          }
+          else
+            window.alert('The Report Wizard requires a non-external table definition in the Query Builder.');
+        }
+        else
+          window.alert('The Report Wizard requires a non-external table definition in the Query Builder.');
+      }
+      else
+        window.alert('The Query Builder must be completed in order to properly save this file.');
+    }
+  }
+
+</script>
+
+<form action="`AppUrl`/workshop/_main.w" method="POST" name="BrowseDetail" target="wz_parse">
+    <input type="hidden" name="command" value="run">
+    <input type="hidden" name="webObject" value="workshop/wizards/_brwssav.w">
+    <input type="hidden" name="DisplayFields" value>
+    <input type="hidden" name="SortFields" value>
+    <input type="hidden" name="DefineQuery" value>
+    <input type="hidden" name="OpenQuery" value>
+    <input type="hidden" name="QueryTables" value>
+    <input type="hidden" name="ExternalTable" value>
+    <input type="hidden" name="DefineBuffers" value>
+    <input type="hidden" name="PrimarySortOrder" value>
+<script language="JavaScript">
+  if (navigator.appName == 'Netscape') {
+    document.writeln('<input type="hidden" name="PageColor" value>');
+    document.writeln('<input type="hidden" name="TableColor" value>');
+  }
+</script>
+    <p><a href="/webspeed/doc/wshelp/brwswiz.htm" target="helpWindow">
+       <img src="/webspeed/images/help.gif" border=0 align="right"></a>
+       <a name="intro"><strong>Introduction to the Report Wizard</strong></a><br>
+       This Report Wizard guides you through the following steps to create a database field report:</p>
+    <blockquote>
+        <table border="0">
+            <tr>
+                <td valign="top">1. </td>
+                <td>Define the appropriate <strong>query</strong> for the report.  WebSpeed uses
+                    the query<br>to display selected fields associated with one or more database 
+                    tables.</td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr>
+                <td valign="top">2. </td>
+                <td>Customize the <strong>style</strong> of the report.  For example, you can 
+                    specify the number of rows,<br>add a background color or image, and include 
+                    a search form or navigation panel.</td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr>
+                <td valign="top">3. </td>
+                <td>Add <strong>links</strong> from the report to other Web Objects.</td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr>
+                <td valign="top">4. </td>
+                <td><strong>Save</strong> the report to a local file, and preview the result.</td>
+            </tr>
+        </table>
+    </blockquote>
+    <p><br><br><br><br><br><br><br><br></p>
+    <hr>
+    <p><a name="query"><strong>Query</strong></a><br>
+       Use the following Query Builder applet to define the appropriate query for the report.<br>
+       WebSpeed uses this query to display selected fields associated with one or more databases.</p>
+    <blockquote>
+        <p><applet code="qb.Wizard" codebase="/webspeed/workshop"
+        align="baseline" width="490" height="310" name="QB"><param
+        name="Cookie" value="` IF check-agent-mode("EVALUATION":U) THEN "" ELSE WEB-CONTEXT:EXCLUSIVE-ID `"><param
+        name="AppURL" value="`AppURL`"><param
+        name="QueryMode" value="Report"><param
+        name="QueryType" value="OpenQuery"><param
+        name="QueryName" value="Browse-Qry">
+<!--WSS IF WEB-CONTEXT:GET-CGI-VALUE("ENV","HTTP_AUTHORIZATION") ne "" THEN -->
+        <PARAM name="HttpAuth" value="`WEB-CONTEXT:GET-CGI-VALUE('ENV','HTTP_AUTHORIZATION')`">
+        </applet></p>
+    </blockquote>
+    <p><br><br><br><br><br></p>
+    <hr>
+    <p><a name="style"><strong>Style</strong></a><br>
+       To customize the design and layout of the report, specify the following options.</p>
+    <blockquote>
+        <table border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td><strong>Title:</strong></td>
+                <td><input type="text" size="30"
+                name="ReportTitle" value="(Specify title or leave blank)">&nbsp;&nbsp;</td>
+                <td colspan="6"><font size="2">Enter the title you want to display at the top of the report.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Search Form:</strong></td>
+                <td><input type="radio" checked name="SearchForm"
+                value="Yes" onClick="NoSearchForm=false">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="SearchForm"
+                value="No" onClick="NoSearchForm=true">No</td>
+                <td colspan="6"><font size="2">Specify whether to use a search form so the user can find
+                specific database fields.  If you select Yes, the search form uses the first database
+                field you defined in the Sort By section of the Query Builder applet.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Navigation Panel:</strong></td>
+                <td><input type="radio" checked name="NavPanel"
+                value="Yes">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="NavPanel"
+                value="No">No</td>
+                <td colspan="6"><font size="2">Specify whether to use a Navigation Panel to scroll through 
+                the report results.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Column Headings:</strong></td>
+                <td><input type="radio" checked name="ColumnHeadings" 
+                value="Yes">Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="ColumnHeadings"
+                value="No">No</td>
+                <td colspan="6"><font size="2">Specify whether to use the database field labels as column 
+                headings in the report.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+                <td><strong>Rows:</strong></td>
+                <td><select name="Result-Rows" size="1">
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option selected>10</option>
+                    <option>15</option>
+                    <option>20</option>
+                    <option>All</option>
+                </select> </td>
+                <td colspan="6"><font size="2">Specify the number of rows you want to display in the report.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Border Size:</strong></td>
+                <td><select name="Border-Size" size="1">
+                    <option>0</option>
+                    <option>1</option>
+                    <option selected>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                </select></td>
+                <td colspan="6"><font size="2">Specify the size of the border for the report table.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Page Background:</strong></td>
+<script language="JavaScript">
+  if (navigator.appName == 'Netscape')
+    document.writeln('<td><img src="/webspeed/workshop/wizards/colordef.gif" name="PageColorImg"></td>');
+  else
+    document.writeln('<td><input type="text" size="10" name="PageColor" value="Default"></td>');
+</script>
+                <td colspan="6"><font size="2">Specify the color or image for the background of the report 
+                page.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td colspan="5"><img
+                src="/webspeed/workshop/wizards/backgrnd.gif" 
+                usemap="#PageColorMap"><map name="PageColorMap">
+                <area shape="rect" coords="5,5,25,20" href="javascript:PageColor('1', '#FF8080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,5,50,20" href="javascript:PageColor('2', '#FFFF80')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,5,75,20" href="javascript:PageColor('3', '#80FF80')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,5,100,20" href="javascript:PageColor('4', '#00FF80')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,5,125,20" href="javascript:PageColor('5', '#80FFFF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,5,150,20" href="javascript:PageColor('6', '#0080FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,5,175,20" href="javascript:PageColor('7', '#FF80C0')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,5,200,20" href="javascript:PageColor('8', '#FF80FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,28,25,43" href="javascript:PageColor('9', '#FF0000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,28,50,43" href="javascript:PageColor('10', '#FFFF00')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,28,75,43" href="javascript:PageColor('11', '#80FF00')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,28,100,43" href="javascript:PageColor('12', '#00FF40')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,28,125,43" href="javascript:PageColor('13', '#00FFFF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,28,150,43" href="javascript:PageColor('14', '#0080C0')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,28,175,43" href="javascript:PageColor('15', '#8080C0')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,28,200,43" href="javascript:PageColor('16', '#FF00FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,51,25,66" href="javascript:PageColor('17', '#804040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,51,50,66" href="javascript:PageColor('18', '#FF8040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,51,75,66" href="javascript:PageColor('19', '#00FF00')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,51,100,66" href="javascript:PageColor('20', '#008080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,51,125,66" href="javascript:PageColor('21', '#004080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,51,150,66" href="javascript:PageColor('22', '#8080FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,51,175,66" href="javascript:PageColor('23', '#800040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,51,200,66" href="javascript:PageColor('24', '#FF0080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,74,25,89" href="javascript:PageColor('25', '#800000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,74,50,89" href="javascript:PageColor('26', '#FF8000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,74,75,89" href="javascript:PageColor('27', '#008000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,74,100,89" href="javascript:PageColor('28', '#008040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,74,125,89" href="javascript:PageColor('29', '#0000FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,74,150,89" href="javascript:PageColor('30', '#0000A0')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,74,175,89" href="javascript:PageColor('31', '#800080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,74,200,89" href="javascript:PageColor('32', '#8000FF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,97,25,112" href="javascript:PageColor('33', '#400000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,97,50,112" href="javascript:PageColor('34', '#804000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,97,75,112" href="javascript:PageColor('35', '#004000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,97,100,112" href="javascript:PageColor('36', '#004040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,97,125,112" href="javascript:PageColor('37', '#000080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,97,150,112" href="javascript:PageColor('38', '#000040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,97,175,112" href="javascript:PageColor('39', '#400040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,97,200,112" href="javascript:PageColor('40', '#400080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,120,25,133" href="javascript:PageColor('41', '#000000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,120,50,133" href="javascript:PageColor('42', '#808000')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,120,75,133" href="javascript:PageColor('43', '#808040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,120,100,133" href="javascript:PageColor('44', '#808080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,120,125,133" href="javascript:PageColor('45', '#408080')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,120,150,133" href="javascript:PageColor('46', '#C0C0C0')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,120,175,133" href="javascript:PageColor('47', '#400040')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,120,200,133" href="javascript:PageColor('48', '#FFFFFF')" 
+                onmouseover="window.status='Select page background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="60,135,150,160" href="javascript:PageColor('def', 'Default')" 
+                onmouseover="window.status='Select the default page background color';return true"
+                onmouseout="window.status='';return true"></map></td>
+            </tr>
+                <td>&nbsp;</td>
+                <td>&nbsp; Image:<input type="text" size="20" name="PageImage"></td>
+                <td colspan="6"><font size="2">Image file located in the document root directory.</font></tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Table Background:</strong></td>
+<script language="JavaScript">
+  if (navigator.appName == 'Netscape')
+    document.writeln('<td><img src="/webspeed/workshop/wizards/colordef.gif" name="TableColorImg"></td>');
+  else
+    document.writeln('<td><input type="text" size="10" name="TableColor" value="Default"></td>');
+</script>
+                <td colspan="6"><font size="2">Specify the color or image for the background of the display table
+                in the report.</font></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td colspan="5"><img
+                src="/webspeed/workshop/wizards/backgrnd.gif" 
+                usemap="#TableColorMap"><map name="TableColorMap">
+                <area shape="rect" coords="5,5,25,20" href="javascript:TableColor('1', '#FF8080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,5,50,20" href="javascript:TableColor('2', '#FFFF80')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,5,75,20" href="javascript:TableColor('3', '#80FF80')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,5,100,20" href="javascript:TableColor('4', '#00FF80')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,5,125,20" href="javascript:TableColor('5', '#80FFFF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,5,150,20" href="javascript:TableColor('6', '#0080FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,5,175,20" href="javascript:TableColor('7', '#FF80C0')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,5,200,20" href="javascript:TableColor('8', '#FF80FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,28,25,43" href="javascript:TableColor('9', '#FF0000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,28,50,43" href="javascript:TableColor('10', '#FFFF00')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,28,75,43" href="javascript:TableColor('11', '#80FF00')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,28,100,43" href="javascript:TableColor('12', '#00FF40')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,28,125,43" href="javascript:TableColor('13', '#00FFFF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,28,150,43" href="javascript:TableColor('14', '#0080C0')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,28,175,43" href="javascript:TableColor('15', '#8080C0')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,28,200,43" href="javascript:TableColor('16', '#FF00FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,51,25,66" href="javascript:TableColor('17', '#804040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,51,50,66" href="javascript:TableColor('18', '#FF8040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,51,75,66" href="javascript:TableColor('19', '#00FF00')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,51,100,66" href="javascript:TableColor('20', '#008080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,51,125,66" href="javascript:TableColor('21', '#004080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,51,150,66" href="javascript:TableColor('22', '#8080FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,51,175,66" href="javascript:TableColor('23', '#800040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,51,200,66" href="javascript:TableColor('24', '#FF0080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,74,25,89" href="javascript:TableColor('25', '#800000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,74,50,89" href="javascript:TableColor('26', '#FF8000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,74,75,89" href="javascript:TableColor('27', '#008000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,74,100,89" href="javascript:TableColor('28', '#008040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,74,125,89" href="javascript:TableColor('29', '#0000FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,74,150,89" href="javascript:TableColor('30', '#0000A0')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,74,175,89" href="javascript:TableColor('31', '#800080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,74,200,89" href="javascript:TableColor('32', '#8000FF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,97,25,112" href="javascript:TableColor('33', '#400000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,97,50,112" href="javascript:TableColor('34', '#804000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,97,75,112" href="javascript:TableColor('35', '#004000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,97,100,112" href="javascript:TableColor('36', '#004040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,97,125,112" href="javascript:TableColor('37', '#000080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,97,150,112" href="javascript:TableColor('38', '#000040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,97,175,112" href="javascript:TableColor('39', '#400040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,97,200,112" href="javascript:TableColor('40', '#400080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="5,120,25,133" href="javascript:TableColor('41', '#000000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="30,120,50,133" href="javascript:TableColor('42', '#808000')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="55,120,75,133" href="javascript:TableColor('43', '#808040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="80,120,100,133" href="javascript:TableColor('44', '#808080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="105,120,125,133" href="javascript:TableColor('45', '#408080')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="130,120,150,133" href="javascript:TableColor('46', '#C0C0C0')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="155,120,175,133" href="javascript:TableColor('47', '#400040')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="180,120,200,133" href="javascript:TableColor('48', '#FFFFFF')" 
+                onmouseover="window.status='Select table background color';return true"
+                onmouseout="window.status='';return true">
+                <area shape="rect" coords="60,135,150,160" href="javascript:TableColor('def', 'Default')" 
+                onmouseover="window.status='Select the default table background color';return true"
+                onmouseout="window.status='';return true"></map></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td>&nbsp; Image:<input type="text" size="20" name="TableImage"></td>
+                <td colspan="6"><font size="2">Image file located in the document root directory.</font></tr>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+    </blockquote>
+    <p>&nbsp;</p>
+    <blockquote>
+    <table border="0">
+        <tr>
+            <td colspan="4"><strong>Style Examples:</strong></td>
+        </tr>
+        <tr>
+            <td valign="top"><strong>Example 1</strong><br>
+            Search Form<br>
+            Rows = 10 <br>
+            Navigation </td>
+            <td><img
+            src="/webspeed/workshop/wizards/sm-srch.gif"></td>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td valign="top"><strong>Example 2</strong><br>
+            No Search Form<br>
+            Rows = All<br>
+            No Navigation </td>
+            <td><img
+            src="/webspeed/workshop/wizards/sm-rpt.gif"></td>
+        </tr>
+    </table>
+    </blockquote>
+    <p><br><br><br></p>
+    <hr>
+    <p><a name="links"><strong>Links (optional)</strong></a><br>
+       Specify the following information to add hyperlinks to other Web Objects.</p>
+    <blockquote>
+        <table border="0">
+            <tr>
+                <td><strong>HyperLink Field:</strong></td>
+<script language="JavaScript">
+  if (navigator.appName == 'Netscape') {
+    document.writeln('<td colspan="2"><select name="LinkField" size="1" onfocus="GetQueryFields()"');
+    document.writeln('onchange="SelectField()">');
+    document.writeln('<option>None</option>');
+    document.writeln('<option>Option is used to reserve space.</option>');
+    document.writeln('<option>&nbsp;</option>');
+    document.writeln('<option>&nbsp;</option>');
+    document.writeln('<option>&nbsp;</option>');
+    document.writeln('<option>&nbsp;</option>');
+    document.writeln('</select></td>');
+  }
+  else {
+    document.writeln('<td><input type="text" name="LinkField" value="None" size="30"></td>');
+    document.writeln('<td><input type="button" name="LinkButton" value="Link >>" onclick="GetQueryFields()"></td>');
+  }
+</script>
+                <td colspan="6"><font size="2">Select the database field that you want to display as 
+                the link text.</font></td>
+            </tr>
+            <tr> 
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>HyperLinked Web Object:</strong></td>
+                <td colspan="2"><input type="text" size="30" name="LinkedWebObject"><input 
+                type="button" name="DirButton" value="Files" onclick="DirList()">&nbsp;</td>
+                <td colspan="6"><font size="2">Enter the filename of the Web Object to run when a user 
+                selects the hyperlink.  (Select the Files button to select from a list of existing Web 
+                Objects.)</font></td>
+            </tr>
+            <tr> 
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Target Frame:</strong></td>
+                <td colspan="2"><input type="text" size="30"
+                name="TargetFrame" value="_self"></td>
+                <td colspan="6"><font size="2">Enter the name of the frame in which to run the Linked Web 
+                Object.  The default frame, _self, overlays the report frame.</font></td>
+            </tr>
+            <tr> 
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><strong>Status Line:</strong></td>
+                <td colspan="2"><input type="text" size="30" name="StatusLine"></td>
+                <td colspan="6"><font size="2">Enter the text to display in the Status Line when a user 
+                places the mouse cursor over the Link Field.</font></td>
+            </tr>
+        </table>
+    </blockquote>
+    <p><br><br><br><br><br><br><br><br></p>
+    <hr>
+    <p><a name="save"><strong>Save</strong></a><br>
+        Specify the name of the file to which you want to save the report.</p>
+    <blockquote>
+        <table border="0">
+            <tr>
+                <td>`format-label("Save File As", "INPUT":U, "":U)`</td>
+                <td><input type="text" size="40"
+                name="SaveAsFile" value="`saveAsName`"></td>
+                <td><input type="button" name="SaveButton"
+                value="Save" onclick="ReturnDisplayFields()"></td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td><input type="checkbox" name="OverwriteFile"><font
+                size="2">Overwrite file if it exists</font></td>
+            </tr>
+        </table>
+    </blockquote>
+    <p><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;&nbsp;</p>      
+    <p><br><br><br><br><br><br><br><br><br><br><br><br><br><br>&nbsp;&nbsp;</p>
+</form>
+</body>
+</html>

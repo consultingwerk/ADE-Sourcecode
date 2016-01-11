@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en"
+  xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Progress Dynamics</title>
+
+<HTA:APPLICATION ID="oMyApp" 
+    APPLICATIONNAME="Dynamics" 
+    BORDER="thick"
+    CAPTION="yes"
+    ICON="../img/icfdev.ico"
+    SHOWINTASKBAR="yes"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal">
+
+<link rel="stylesheet" type="text/css" href="../dhtml/rymain.css" />
+</head>
+<body id="body" tabindex="-1"> 
+<div name="menu" id="menu" target="toolbar" 
+  menu=";2|app.exit|Exit (ALT-X)|../img/exit.gif;2|main.treeview.toggle|Toggle Treeview Menu|../img/treeviewu.gif;2|main.info.toggle|Toggle Status Window|../img/statusu.gif;2|app.debug2|Toggle Debug Help|../img/debugu.gif">
+</div>
+<div name="menu" id="menu" target="popup" 
+  menu=";2|app.exit|Exit (ALT-X)|../img/exit.gif;2|main.treeview.toggle|Toggle Treeview Menu|../img/treeviewu.gif;2|main.info.toggle|Toggle Status Window|../img/statusu.gif;2|app.debug2|Toggle Debug Help|../img/debugu.gif">
+</div>
+<div id="popup"   imgdir="../img"></div> 
+<div id="menubar" imgdir="../img"></div>
+<div id="toolbar" imgdir="../img"></div>
+
+
+<table border="0" margin="0" cellspacing="0" cellpadding="0" style="clear:left;"><tr><td>
+<span id="treeview" class="hide"
+  static="Administration|Development|Sports2002" 
+  style="width:150px;position:relative;float:left;">
+<img class="resizex" id="resizex" src="../img/ws_resizex.gif" 
+  style="position:absolute;left:143px;top:50px;width:5px;height:140px;z-index:5;cursor:move;" />
+  <table border=0 cellpadding=0 cellspacing=0></table>
+</span>
+</td><td id="app" dyn="" css="">
+
+<iframe name="win0" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win1" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win2" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win3" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win4" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win5" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win6" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win7" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win8" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+<iframe name="win9" border=0 frameborder="no" class="hide" application="yes" onload="if(window.fLoad) fLoad()"></iframe>
+</td></tr></table>
+
+
+<div id="info" mode="auto" style="height:100px;width:99%;"></div>
+
+
+<form name="form" method="post" target="run" action="" class="hide">
+  <input type="hidden" name="lookup" value="">
+  <input type="hidden" name="wscharset" value="UTF-8">
+  <input type="hidden" name="sessionid" value="">
+  <input type="hidden" name="lognote" value="">
+</form>
+
+<script language="Javascript" src="../dhtml/ryinithtml.js"></script>
+<script language="Javascript">
+
+// When not using extension mapping then set the "dyn" property of the <td id="app" dyn=""> tag.
+// ie <td id="app" dyn="/scripts/cgiip.exe/WService=wsdynamics1/dhtml/">
+
+// Layout specific code
+function run(){
+//  window.mainmenu=window.treeview; // Menu tools from MenuController     (ie, treeview)
+//  window.mainband=window.treeview; // Menu entries from MenuController     (ie, treeview)
+  window.mainmenu=window.menubar; // Menu tools from MenuController     (ie, treeview)
+  window.mainband=window.menubar; // Menu entries from MenuController     (ie, treeview)
+  window.progmenu=window.menubar;  // Local menubar entries from programs 
+  window.progband=window.menubar;  // Local program entries to menubar
+}
+</script>
+<script language="Javascript" src="../dhtml/ryapph.js"    ></script>
+<script language="Javascript" src="../dhtml/ryhotkey.js"  ></script>
+<script language="Javascript" src="../dhtml/rymenubar.js" ></script>
+<script language="Javascript" src="../dhtml/rytoolbar.js" ></script>
+<script language="Javascript" src="../dhtml/rytreeview.js" ></script>
+<script language="Javascript" src="../dhtml/rypopup.js" ></script>
+<script language="Javascript" src="../dhtml/ryinfo.js"    ></script>
+<script language="Javascript" src="../dhtml/ryrender.js"  ></script>
+<script language="Javascript" src="../dhtml/rylookup.js"  ></script>
+<script language="Javascript" src="../dhtml/rylogic.js"   ></script>
+
+<script language="Javascript" src="../dhtml/rywbo.js"     ></script>
+<script language="Javascript" src="../dhtml/rydata.js"    ></script>
+<script language="Javascript" src="../dhtml/rywdo.js"     ></script>
+<script language="Javascript" src="../dhtml/rybrowse.js"  ></script>
+<script language="Javascript" src="../dhtml/ryfolder.js"  ></script>
+<script language="Javascript" src="../dhtml/rywizard.js"  ></script>
+
+<script language="Javascript" src="../dhtml/ryutil.js"    ></script>
+</body>
+</html>

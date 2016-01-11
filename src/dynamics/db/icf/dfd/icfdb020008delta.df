@@ -1,0 +1,4345 @@
+UPDATE FIELD "owner_site_code" OF "gsc_deploy_dataset"
+  POSITION 11
+  ORDER 100
+UPDATE FIELD "attribute_type_tla" OF "ryc_attribute"
+  POSITION 16
+  ORDER 150
+UPDATE FIELD "collect_attribute_value_obj" OF "ryc_attribute_value"
+  POSITION 16
+  ORDER 150
+UPDATE FIELD "collection_sequence" OF "ryc_attribute_value"
+  POSITION 17
+  ORDER 160
+UPDATE FIELD "inheritted_value" OF "ryc_attribute_value"
+  POSITION 18
+  ORDER 170
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_value"
+  POSITION 19
+  ORDER 180
+UPDATE FIELD "attribute_type_tla" OF "ryc_attribute_value"
+  POSITION 20
+  ORDER 190
+UPDATE FIELD "attribute_value" OF "ryc_attribute_value"
+  POSITION 21
+  ORDER 200
+UPDATE FIELD "instance_x" OF "ryc_object_instance"
+  POSITION 9
+  ORDER 80
+UPDATE FIELD "instance_y" OF "ryc_object_instance"
+  POSITION 10
+  ORDER 90
+UPDATE FIELD "instance_width" OF "ryc_object_instance"
+  POSITION 11
+  ORDER 100
+UPDATE FIELD "instance_height" OF "ryc_object_instance"
+  POSITION 12
+  ORDER 110
+UPDATE FIELD "attribute_list" OF "ryc_object_instance"
+  POSITION 13
+  ORDER 120
+UPDATE FIELD "object_obj" OF "ryc_smartobject"
+  POSITION 29
+  ORDER 280
+UPDATE FIELD "custom_super_procedure" OF "ryc_smartobject"
+  POSITION 30
+  ORDER 290
+UPDATE FIELD "inheritted_value" OF "ryc_ui_event"
+  POSITION 15
+  ORDER 140
+UPDATE FIELD "context_id" OF "gsm_server_context"
+  POSITION 8
+  ORDER 70
+UPDATE FIELD "used_defined_link" OF "ryc_smartlink_type"
+  POSITION 6
+  ORDER 50
+
+ADD TABLE "gsm_translated_menu_item"
+  AREA "Schema Area"
+  DESCRIPTION "This table stores menu item translations. Fields requiring translation are duplicated from the gsm_menu_item table and translations for them stored in this table by language.
+
+This table is only required to be referenced if the users login language does not match the source language of the menu item, otherwise the standard fields on the gsm_menu_item can be used, i.e. this table is only required if a translation is required."
+  DUMP-NAME "gsmti"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/GSMTItrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/GSMTItrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/GSMTItrigw.p" CRC "?" 
+
+ADD FIELD "translated_menu_item_obj" OF "gsm_translated_menu_item" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Translated Menu Item Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Translated menu item obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "menu_item_obj" OF "gsm_translated_menu_item" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Menu Item Obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Menu item obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "source_language_obj" OF "gsm_translated_menu_item" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Source Language Obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Source language obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "language_obj" OF "gsm_translated_menu_item" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Language Obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Language obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "menu_item_label" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The translated label to show on the menu. The label may be auto generated or manually entered.
+
+Include an ampersand for the accelerator key where appropriate - the Progress default if not sepcified is to use the 1st character."
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Menu Item Label"
+  POSITION 6
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Menu item label"
+  ORDER 50
+
+ADD FIELD "tooltip_text" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The translated tooltip text to display when this menu item is placed on a dynamic toolbar."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Tooltip Text"
+  POSITION 7
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Tooltip text"
+  ORDER 60
+
+ADD FIELD "alternate_shortcut_key" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The translated shortcut key to associate with this menu item, e.g. CTRL-A
+"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Alternate Shortcut Key"
+  POSITION 8
+  SQL-WIDTH 30
+  VALMSG "s_short_name"
+  HELP "Alternate shortcut key"
+  ORDER 70
+
+ADD FIELD "item_toolbar_label" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "This is a translated short label for the button that would appear on the button as the button label in the event that the button has no image or if the item_control_style field specifies 'text only' 
+
+If the item_control_type field  specifies 'Label', this label would appear as text in the toolbar band.
+
+It should contain ampersand (&) to act as the shortcut character.
+When translating the label, the ampersand will be removed."
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Item Toolbar Label"
+  POSITION 9
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Item toolbar label"
+  ORDER 80
+
+ADD FIELD "image1_up_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the normal translated image to display when the button is sensitive and not depressed. For flat buttons this is usally the only state that is required.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image1 Up Filename"
+  POSITION 10
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image1 up filename"
+  ORDER 90
+
+ADD FIELD "image1_down_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the normal translated image to display when the button is sensitive and pressed.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image1 Down Filename"
+  POSITION 11
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image1 down filename"
+  ORDER 100
+
+ADD FIELD "image1_insensitive_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the translated image to display when the button is insensitive.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image1 Insensitive Filename"
+  POSITION 12
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image1 insensitive filename"
+  ORDER 110
+
+ADD FIELD "image2_up_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the secondary translated image to display when the button is sensitive and not depressed.
+For flat buttons this is usally the only state that is required.
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image2 Up Filename"
+  POSITION 13
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image2 up filename"
+  ORDER 120
+
+ADD FIELD "image2_down_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the secondary translated image to display when the button is sensitive and pressed.
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image2 Down Filename"
+  POSITION 14
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image2 down filename"
+  ORDER 130
+
+ADD FIELD "image2_insensitive_filename" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "The filename of the secondary translated image to display when the button is insensitive (greyed out).
+
+A secondary image is useful when the button has 2 main states, i.e. for a filter button it may be  ticked if a filter is active, or have no tick when there is no active filter.
+
+Only the relative path name and filename should be specified in this field."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image2 Insensitive Filename"
+  POSITION 15
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Image2 insensitive filename"
+  ORDER 140
+
+ADD FIELD "item_narration" OF "gsm_translated_menu_item" AS character 
+  DESCRIPTION "Detailed translated description of item"
+  FORMAT "X(500)"
+  INITIAL ""
+  LABEL "Item Narration"
+  POSITION 16
+  SQL-WIDTH 1000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_string_500"
+  HELP "Item narration"
+  ORDER 150
+
+ADD INDEX "XPKgsm_translated_menu_item" ON "gsm_translated_menu_item" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "translated_menu_item_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_translated_menu_item" ON "gsm_translated_menu_item" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "menu_item_obj" ASCENDING 
+  INDEX-FIELD "language_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_translated_menu_item" ON "gsm_translated_menu_item" 
+  AREA "Schema Area"
+  INDEX-FIELD "source_language_obj" ASCENDING 
+
+ADD INDEX "XIE2gsm_translated_menu_item" ON "gsm_translated_menu_item" 
+  AREA "Schema Area"
+  INDEX-FIELD "language_obj" ASCENDING 
+
+ADD TABLE "gst_session"
+  AREA "Schema Area"
+  DESCRIPTION "This table records a session and is only applicable for the duration of a session. Its purpose is to be able to record session activity and manage the context for the session in the child table gsm_server_context. The session id field from gsm_server_context has transferred to this table, so it only exists in one place for the session, and the object id for the session record is rather carried down onto the individual context records. This facilitates efficiently fixing the context id in the event a session is dropped and reconnected, thereby restoring context for the new session from the old session. For the Appserver, a record will be created in this table at connection time and checked / updated in the activate procedure.
+This table must not have a write trigger so that it can be updated as efficiently as possible.
+The information in this table is all client related, and in the case of a WebSpeed Agent, the agent is also the client.
+"
+  DUMP-NAME "gstss"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstsstrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstsstrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstsstrigw.p" CRC "?" 
+
+ADD FIELD "session_obj" OF "gst_session" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Session Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Session obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "session_id" OF "gst_session" AS character 
+  DESCRIPTION "The actual session id, which is the server connection id for WebClient or a sequence for WebSpeed, but is always a unique id. This field should be in a unique index on its own. In the event of a connection failure, the client will be able to re-establish its connection by providing the existing connection id in the AppServer CONNECT method.
+
+The session id is unique."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Session Id"
+  POSITION 3
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Session id"
+  ORDER 20
+
+ADD FIELD "session_type_obj" OF "gst_session" AS decimal 
+  DESCRIPTION "This is a mandatory join from gsm_session_type and identifies the session type for the client session we are storing context for. For WebSpeed the server is the client."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Session Type Obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Session type obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "user_obj" OF "gst_session" AS decimal 
+  DESCRIPTION "This is an optional join to the user to store the user for the session if known."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "User Obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "User obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "session_creation_date" OF "gst_session" AS date 
+  DESCRIPTION "The date the session was created"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Session Creation Date"
+  POSITION 6
+  SQL-WIDTH 4
+  VALMSG "d_date_today"
+  HELP "Session creation date"
+  ORDER 50
+
+ADD FIELD "session_creation_time" OF "gst_session" AS integer 
+  DESCRIPTION "The time the session was created"
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Session Creation Time"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Session creation time"
+  ORDER 60
+
+ADD FIELD "last_access_date" OF "gst_session" AS date 
+  DESCRIPTION "The date the session was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
+  FORMAT "99/99/9999"
+  INITIAL "?"
+  LABEL "Last Access Date"
+  POSITION 8
+  SQL-WIDTH 4
+  VALMSG "d_date_empty"
+  HELP "Last access date"
+  ORDER 70
+
+ADD FIELD "last_access_time" OF "gst_session" AS integer 
+  DESCRIPTION "The time the session was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Last Access Time"
+  POSITION 9
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Last access time"
+  ORDER 80
+
+ADD FIELD "client_date_format" OF "gst_session" AS character 
+  DESCRIPTION "This field stores the session date format for the client, which is typically dmy or ymd.
+
+This will be set as part of the client connection when the session record is created, and will be used in the appserver activate procedure to reset the server to match the client date format for the duration of the call.
+
+This assumes that no cached information on the server exists with dates stored as strings. All cached information must be stored in native data type format.
+"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Client Date Format"
+  POSITION 10
+  SQL-WIDTH 30
+  VALMSG "s_reference"
+  HELP "Client date format"
+  ORDER 90
+
+ADD FIELD "client_numeric_format" OF "gst_session" AS character 
+  DESCRIPTION "This field stores the session numeric format for the client. It is a character string consisting of the thousands separator followed by the decimal point. We will use set-numeric-format with this value to fix the thousand seperator and decimal point.
+
+This will be set as part of the client connection when the session record is created, and will be used in the appserver activate procedure to reset the server to match the client numeric format for the duration of the call.
+
+This assumes that no cached information on the server exists with numbers stored as strings. All cached information must be stored in native data type format.
+"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Client Numeric Format"
+  POSITION 11
+  SQL-WIDTH 30
+  VALMSG "s_reference"
+  HELP "Client numeric format"
+  ORDER 100
+
+ADD INDEX "XPKgst_session" ON "gst_session" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "session_obj" ASCENDING 
+
+ADD INDEX "XAK1gst_session" ON "gst_session" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "session_id" ASCENDING 
+
+ADD INDEX "XIE1gst_session" ON "gst_session" 
+  AREA "Schema Area"
+  INDEX-FIELD "session_type_obj" ASCENDING 
+
+ADD INDEX "XIE2gst_session" ON "gst_session" 
+  AREA "Schema Area"
+  INDEX-FIELD "user_obj" ASCENDING 
+
+ADD INDEX "XIE3gst_session" ON "gst_session" 
+  AREA "Schema Area"
+  INDEX-FIELD "last_access_date" ASCENDING 
+  INDEX-FIELD "last_access_time" ASCENDING 
+
+ADD TABLE "ryc_customization_result"
+  AREA "Schema Area"
+  DESCRIPTION "The table is required to store possible customization codes as a result of some level of customization. Many types of customization exist, including UI type customizations (e.g. HTML, DHTML, GUI), user category customizations, user customizations, company level customizations, etc as defined in the ryc_customization_type table.  To avoid confusion and to provide some level of control as to the use of the result codes, a result code must be for a specific customization type.
+
+The table will basically contain a code and description field. Meaningful codes and descriptions should be used to avoid conflicting uses of result codes. The table is also joined to the customization type to identify which type of customization the result code is for. 
+
+For user level customizations, example result codes could be individual user login names, e.g. Bruce, Anthony, Don, etc. Alternatively the customization results could be defined rather by job function, e.g. operator, administrator, clerk, etc. For UI type customizations, the result codes could be DHTML, HTML, GUI, PDA, etc. For language customizations, the result codes could be English, French, German, etc. Another possibility is customizations by user category, in which case the result codes would represent valid categories, e.g. data capturer.
+
+This provides maximum flexibility as to how much customization is required. 
+The customization types simply define the various levels of supported customization, and the result codes define the possible values each customization type can be. The customization result table could therefore be viewed as a list of valid values for a customization type.
+Certain result codes, such as supported UI type customizations will be provided as part of the framework. These result codes will be defined with a system owned flag set to YES, and maintenance of these codes will be restricted to users authorized to maintain system data. Care should be taken when defining these framework supplied result codes to avoid potential conflicts with result codes used by Dynamics applications.
+"
+  DUMP-NAME "ryccr"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/ryccrtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/ryccrtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/ryccrreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/ryccrrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/ryccrreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/ryccrtrigw.p" CRC "?" 
+
+ADD FIELD "customization_result_obj" OF "ryc_customization_result" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Result Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization result obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "customization_result_code" OF "ryc_customization_result" AS character 
+  DESCRIPTION "This is a unique code to identify the available result for a customization type. Meaningful codes should be used to avoid duplication and confusion.
+
+If the customization type was users, then result codes could be set up for the valid users, e.g. Anthony, Mark, John, etc. or an alternative may be to define more generic result codes used by many users, e.g. by job function. The result code provides this level of flexibility.
+
+It is envisaged that the number of result codes will be kept to a minimum to make customization more manageable.
+
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Customization Result Code"
+  POSITION 3
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Customization result code"
+  ORDER 20
+
+ADD FIELD "customization_result_desc" OF "ryc_customization_result" AS character 
+  DESCRIPTION "A free text description of the result code explaining its purpose and use."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Customization Result Desc"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Customization result desc"
+  ORDER 30
+
+ADD FIELD "customization_type_obj" OF "ryc_customization_result" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Type Obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization type obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "system_owned" OF "ryc_customization_result" AS logical 
+  DESCRIPTION "If set to YES, this result code may not be maintained by users who are not authorized to maintain system data. These are so result codes can be shipped with the application and where the application relies on them existing, they will be secured from being deleted.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "System Owned"
+  POSITION 6
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "System owned"
+  ORDER 50
+
+ADD INDEX "XPKryc_customization_result" ON "ryc_customization_result" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "customization_result_obj" ASCENDING 
+
+ADD INDEX "XAK1ryc_customization_result" ON "ryc_customization_result" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "customization_result_code" ASCENDING 
+
+ADD INDEX "XIE1ryc_customization_result" ON "ryc_customization_result" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_result_desc" ASCENDING 
+
+ADD INDEX "XIE2ryc_customization_result" ON "ryc_customization_result" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_type_obj" ASCENDING 
+
+ADD TABLE "ryc_customization_type"
+  AREA "Schema Area"
+  DUMP-NAME "ryccy"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/ryccytrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/ryccytrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/ryccyreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/ryccyrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/ryccyreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/ryccytrigw.p" CRC "?" 
+
+ADD FIELD "customization_type_obj" OF "ryc_customization_type" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Type Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization type obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "customization_type_code" OF "ryc_customization_type" AS character 
+  DESCRIPTION "A unique code to idntify the customization type, e.g. UI Type, User Category, User, Login Company, Language, Global
+
+Any types may be defied but an API procedure must exist to be able to evaulate the customization reference at runtime - therefore code must go along with each type created in order to be able to use it.
+"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Customization Type Code"
+  POSITION 3
+  SQL-WIDTH 30
+  VALMSG "s_reference"
+  HELP "Customization type code"
+  ORDER 20
+
+ADD FIELD "customization_type_desc" OF "ryc_customization_type" AS character 
+  DESCRIPTION "A free text description of the customization type"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Customization Type Desc"
+  POSITION 4
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Customization type desc"
+  ORDER 30
+
+ADD FIELD "api_name" OF "ryc_customization_type" AS character 
+  DESCRIPTION "The name of an API function used to determine the value of the customization at runtime.
+
+The API will be a function and have a standard signature - i.e. no parameters and it will simply return the customization reference.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Api Name"
+  POSITION 5
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Api name"
+  ORDER 40
+
+ADD INDEX "XPKryc_customization_type" ON "ryc_customization_type" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "customization_type_obj" ASCENDING 
+
+ADD INDEX "XAK1ryc_customization_type" ON "ryc_customization_type" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "customization_type_code" ASCENDING 
+
+ADD INDEX "XIE1ryc_customization_type" ON "ryc_customization_type" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_type_desc" ASCENDING 
+
+ADD TABLE "rym_customization"
+  AREA "Schema Area"
+  DESCRIPTION "This table captures the actual customization results for the various supported types of customization as defined in the ryc_customization_type table.
+
+This table is joined from the ryc_customization_type table with a mandatory join to define the type of customization. It contains a customization_reference field as part of the unique key to store the value for the customization according to the type. For example, if this was a user level customization, then the reference field would contain a specific users login code. If this was a UI type customization, then the reference field would contain the value of a UI type, e.g. HTML, GUI, etc.
+
+This differs from the values in the customization result table. The customization result table is a list of valid value result codes for the customization type. This table represents actual values that can be checked at runtime with the appropriate api and the values may differ to the result code values. The result code values are reusable.
+
+For example, one customization type is user customization. In this customization table we could have a record for each user with the reference pointing at the user login name, e.g. Anthony, john, bruce, etc. The api specified for the customization type would be run to find the current user and lookup in this table what the specified result code is for the user. The result code for Anthony could be manager, and John could also point at the same result code, but Bruce may point at result code engineer. Note the possible reuse of result codes and the difference between the result code values and the customization references.
+
+The table stores the result for the customization via a join to the customization result table, identifying the result code to use for this specific customization.
+These tables then provide maximum flexibility for customization possibilities.
+As stated previously, the resultant result codes for a session will be evaluated after authentication and made available to the session.
+
+When reading from tables that support customization, e.g. the smartobject and related tables, the appropriate record will be read with a matching result code of the highest priority level, if any matching customizations exist, otherwise the default record will be used.
+
+A generic tool will need to be developed to capture these customizations.
+"
+  DUMP-NAME "rymcz"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rymcztrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rymcztrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/rymczreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/rymczrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/rymczreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rymcztrigw.p" CRC "?" 
+
+ADD FIELD "customization_type_obj" OF "rym_customization" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Type Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization type obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "customization_reference" OF "rym_customization" AS character 
+  DESCRIPTION "This field stores an actual value of a customization as evaluated at runtime, and according to the customization type.
+
+For example, if this was a user level customization, then the reference would be the user login name, e.g. Anthony. If this was a UI Type customization, then the reference field may be GUI, WebClient, HTML, etc.
+
+The value is determined by the customization type, and is checked using the API procedure identified on the customization type table.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Customization Reference"
+  POSITION 3
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Customization reference"
+  ORDER 20
+
+ADD FIELD "customization_result_obj" OF "rym_customization" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Result Obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization result obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "customization_obj" OF "rym_customization" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Customization Obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Customization obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD INDEX "XPKrym_customization" ON "rym_customization" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "customization_type_obj" ASCENDING 
+  INDEX-FIELD "customization_reference" ASCENDING 
+
+ADD INDEX "XIE1rym_customization" ON "rym_customization" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_reference" ASCENDING 
+
+ADD INDEX "XIE2rym_customization" ON "rym_customization" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_obj" ASCENDING 
+
+ADD INDEX "XIE3rym_customization" ON "rym_customization" 
+  AREA "Schema Area"
+  INDEX-FIELD "customization_result_obj" ASCENDING 
+
+ADD TABLE "ryt_dbupdate_status"
+  AREA "Schema Area"
+  DESCRIPTION "This table audits what DCU updates have occurred, and more importantly controls the DCU update beyond completion of the DCU, plus allows it to be re-run / re-started as required.
+
+We need to be able to control and automate what tasks to do as part of the DCU for a specific release, at what stage they should be run, whether each step completed successfully, the order of the steps, etc.
+
+Certain tasks can only occur after the DCU has finished, but before anybody starts using the system and the tasks require a valid login to complete. Currently we have no way of controlling or automating this, which is the primary reason for the table. This table will significantly improve the load-n-go functionality within Dynamics and help prevent migration and deployment issues.
+
+The DCU will update this table from the information in the .pfl file that the DCU uses as the source of the information for the DCU.
+"
+  DUMP-NAME "rytds"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rytdstrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rytdstrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rytdstrigw.p" CRC "?" 
+
+ADD FIELD "dbupdate_status_obj" OF "ryt_dbupdate_status" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Dbupdate Status Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Dbupdate status obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "update_db_name" OF "ryt_dbupdate_status" AS character 
+  DESCRIPTION "This is the logical name of the database this update is for, e.g. ICFDB"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Update Db Name"
+  POSITION 3
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Update db name"
+  ORDER 20
+
+ADD FIELD "delta_version" OF "ryt_dbupdate_status" AS integer 
+  DESCRIPTION "This is the integer value of the database delta version this update file is associated with, e.g. 010101. All files must be associated with a delta. The association has no bearing on when the file must be actioned, just that it is part of this release. For ADO's, the delta version will be assumed to be the last delta version loaded into the database."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Delta Version"
+  POSITION 4
+  SQL-WIDTH 4
+  VALMSG "n_integer_6"
+  HELP "Delta version"
+  ORDER 30
+
+ADD FIELD "file_type" OF "ryt_dbupdate_status" AS character 
+  DESCRIPTION "This is a character field, supporting the following values: ""df"" for a delta file, ""d"" for a data dump file, ""ado"" for an XML ado file, and ""p"" for a noddy fix program. These are the four different types of files that the DCU manages and actions."
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "File Type"
+  POSITION 5
+  SQL-WIDTH 30
+  VALMSG "s_reference"
+  HELP "File type"
+  ORDER 40
+
+ADD FIELD "file_name" OF "ryt_dbupdate_status" AS character 
+  DESCRIPTION "This is the actual name of the object to run, e.g. the name of the delta df to load, the name of the .ado to load, the name of the dump .d file, or the name of a fix program. The file name must be relatively pathed.
+Standard recommended naming conventions exist for the different types of files, e.g.
+Noddy or fix programs should be prefixed with ""fix"" + delta version + FLA of main table + description + "".p"". For example, fix020001rycsotoolbars.p
+Delta files are prefixed with the database logical name, plus the delta version, plus the type, e.g. full or delta or erwin.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "File Name"
+  POSITION 6
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "File name"
+  ORDER 50
+
+ADD FIELD "update_when" OF "ryt_dbupdate_status" AS integer 
+  DESCRIPTION "This field identifies at what stage of the update the action for this file must be done. It is an integer field supporting the following possible values:
+1.	Pre Delta
+2.	Delta
+3.	Post Delta
+4.	Pre Data Load
+5.	Data Load
+6.	Post Data Load
+7.	Per ADO
+8.	ADO
+9.	Post ADO
+"
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Update When"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "n_integer_2"
+  HELP "Update when"
+  ORDER 60
+
+ADD FIELD "run_sequence" OF "ryt_dbupdate_status" AS integer 
+  DESCRIPTION "This is an integer field and it determines the order within the update_when stage that each of the files must be executed, to deal with multiple files being required at each stage."
+  FORMAT "->>9"
+  INITIAL "0"
+  LABEL "Run Sequence"
+  POSITION 8
+  SQL-WIDTH 4
+  COLUMN-LABEL "Run Seq."
+  VALMSG "n_integer_3"
+  HELP "Run sequence"
+  ORDER 70
+
+ADD FIELD "update_completed" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical flag indicating whether this update step has been completed, defaulting to NO. Until all steps have been completed, no access will be permitted to the application by users who are not authorized to maintain system data and that do not have a database connection to ICFDB.
+When an authorized user logs in, the index on this field, plus the update_when and update_sequence fields will be used to complete identify the remaining steps to complete the update.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Update Completed"
+  POSITION 9
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Update completed"
+  ORDER 80
+
+ADD FIELD "update_successful" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical flag, default NO, used in conjunction with the update_completed flag. The flag indetofies whether the step was successful or not after it has been completed. IF the step was not successful and the mandatory option is selected, the update will need to terminate until the problem is resolved. This may involve resorting to a backup and starting again, depending on the situation."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Update Successful"
+  POSITION 10
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Update successful"
+  ORDER 90
+
+ADD FIELD "return_result" OF "ryt_dbupdate_status" AS character 
+  DESCRIPTION "This is a character field to record any output from the update step. In the event an update step is rerunnable, this field will be appended to, and the field will always be updated with the date, time and the message."
+  FORMAT "X(500)"
+  INITIAL ""
+  LABEL "Return Result"
+  POSITION 11
+  SQL-WIDTH 1000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_small_text_block"
+  HELP "Return result"
+  ORDER 100
+
+ADD FIELD "run_date" OF "ryt_dbupdate_status" AS date 
+  DESCRIPTION "The date the step was run."
+  FORMAT "99/99/9999"
+  INITIAL "?"
+  LABEL "Run Date"
+  POSITION 12
+  SQL-WIDTH 4
+  VALMSG "d_date_empty"
+  HELP "Run date"
+  ORDER 110
+
+ADD FIELD "run_time" OF "ryt_dbupdate_status" AS integer 
+  DESCRIPTION "The time the step was run."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Run Time"
+  POSITION 13
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Run time"
+  ORDER 120
+
+ADD FIELD "run_by_user_obj" OF "ryt_dbupdate_status" AS decimal 
+  DESCRIPTION "The user that run the file. This is optional as you will only know the user if this is a step is one that is run after a valid login has occurred."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Run by User Obj"
+  POSITION 14
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Run by user obj"
+  DECIMALS 9
+  ORDER 130
+
+ADD FIELD "update_new_db" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical field, defaulting to NO, indicating whether or not the file should be applied to a new database. Certain steps are only applicable to new databases, existing databases, or both."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Update New Db"
+  POSITION 15
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Update new db"
+  ORDER 140
+
+ADD FIELD "update_existing_db" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical field, defaulting to YES, indicating whether or not the file should be applied to an existing database. Certain steps are only applicable to new databases, existing databases, or both."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Update Existing Db"
+  POSITION 16
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Update existing db"
+  ORDER 150
+
+ADD FIELD "rerunnable" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical field, default to NO to indicate whether the file may be re-run."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Rerunnable"
+  POSITION 17
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Rerunnable"
+  ORDER 160
+
+ADD FIELD "update_mandatory" OF "ryt_dbupdate_status" AS logical 
+  DESCRIPTION "This is a logical field, defaulting to YES to indicate whether the file is a mandatory step and if the update is unsuccessful that the update process must stop."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Update Mandatory"
+  POSITION 18
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Update mandatory"
+  ORDER 170
+
+ADD INDEX "XPKryt_dbupdate_status" ON "ryt_dbupdate_status" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "dbupdate_status_obj" ASCENDING 
+
+ADD INDEX "XAK1ryt_dbupdate_status" ON "ryt_dbupdate_status" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "update_db_name" ASCENDING 
+  INDEX-FIELD "delta_version" ASCENDING 
+  INDEX-FIELD "file_name" ASCENDING 
+  INDEX-FIELD "update_when" ASCENDING 
+
+ADD INDEX "XIE1ryt_dbupdate_status" ON "ryt_dbupdate_status" 
+  AREA "Schema Area"
+  INDEX-FIELD "update_completed" ASCENDING 
+  INDEX-FIELD "update_when" ASCENDING 
+  INDEX-FIELD "run_sequence" ASCENDING 
+
+ADD INDEX "XIE2ryt_dbupdate_status" ON "ryt_dbupdate_status" 
+  AREA "Schema Area"
+  INDEX-FIELD "run_by_user_obj" ASCENDING 
+
+UPDATE TABLE "gsc_custom_procedure"
+  DESCRIPTION "This table is contained in Dynamics for backward compatibility and will likely be dropped at a later stage. It will be replaced with flows and events when these are fully implemented.
+
+The purpose of this table is to provide a mechanism to define alternate procedures for custom specific business logic.
+
+This table contains a list of all the system supported procedures that satisfy these business rules, categorised by entity and procedure type. A number of variations for each process may exist - the procedure to use in each case must be selected from this list.
+
+The programs that these procedures exist in will run persistently when required."
+
+UPDATE FIELD "custom_procedure_obj" OF "gsc_custom_procedure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsc_custom_procedure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "custom_procedure_short_desc" OF "gsc_custom_procedure"
+  DESCRIPTION "A brief description of the customised business process procedure - to display in browsers, etc."
+
+UPDATE FIELD "custom_procedure_notes" OF "gsc_custom_procedure"
+  DESCRIPTION "Notes on how to use the custom procedure, details of the API, etc."
+  POSITION 6
+
+UPDATE FIELD "procedure_name" OF "gsc_custom_procedure"
+  POSITION 7
+
+UPDATE FIELD "dataset_entity_obj" OF "gsc_dataset_entity"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_dataset_entity"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_code_obj" OF "gsc_default_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_set_obj" OF "gsc_default_set"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsc_default_set_usage"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_set_usage_obj" OF "gsc_default_set_usage"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "delivery_method_obj" OF "gsc_delivery_method"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "delivery_custom_procedure_obj" OF "gsc_delivery_method"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_deploy_dataset"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "dataset_code" OF "gsc_deploy_dataset"
+  POSITION 3
+  ORDER 20
+
+UPDATE FIELD "dataset_description" OF "gsc_deploy_dataset"
+  POSITION 4
+  ORDER 30
+
+UPDATE FIELD "disable_ri" OF "gsc_deploy_dataset"
+  POSITION 5
+  ORDER 40
+
+UPDATE FIELD "source_code_data" OF "gsc_deploy_dataset"
+  POSITION 6
+  ORDER 50
+
+UPDATE FIELD "deploy_full_data" OF "gsc_deploy_dataset"
+  POSITION 7
+  ORDER 60
+
+UPDATE FIELD "xml_generation_procedure" OF "gsc_deploy_dataset"
+  POSITION 8
+  ORDER 70
+
+UPDATE FIELD "default_ado_filename" OF "gsc_deploy_dataset"
+  POSITION 9
+  ORDER 80
+
+ADD FIELD "deploy_additions_only" OF "gsc_deploy_dataset" AS logical
+  DESCRIPTION "When certain tables are deployed, the target repository must only be updated with details of new records - it must never modify the value of existing records. This is a logical field to support that functionality, defaulting to NO. An example of a tables that require this field are gsc_sequence and gsc_session_type where we must not overwrite customers data, but must add new records for ones that do not exist.
+Currently the functionality for sequences is hard coded. This change removes the hard coding and also facilitates the functionality for additional tables.
+We need to have this information stored in the repository to support new automated deployment and load options planned without user intervention.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Deploy additions only"
+  HELP-SA ""
+  LABEL "Deploy Additions Only"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+RENAME INDEX "XAK1gsc_deploy_dataset" TO "temp-30828" ON "gsc_deploy_dataset"
+
+RENAME INDEX "XAK2gsc_deploy_dataset" TO "XAK1gsc_deploy_dataset" ON "gsc_deploy_dataset"
+
+
+DROP INDEX "temp-30828" ON "gsc_deploy_dataset"
+
+UPDATE FIELD "deploy_package_obj" OF "gsc_deploy_package"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "document_type_obj" OF "gsc_document_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "document_type_tla" OF "gsc_document_type"
+  POSITION 3
+
+UPDATE FIELD "document_type_short_desc" OF "gsc_document_type"
+  POSITION 4
+
+UPDATE FIELD "default_delivery_method" OF "gsc_document_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "entity_display_field_obj" OF "gsc_entity_display_field"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "display_field_column_label" OF "gsc_entity_display_field"
+  POSITION 7
+
+UPDATE FIELD "display_field_format" OF "gsc_entity_display_field"
+  POSITION 8
+
+UPDATE FIELD "entity_mnemonic" OF "gsc_entity_mnemonic"
+  POSITION 2
+
+UPDATE FIELD "entity_mnemonic_short_desc" OF "gsc_entity_mnemonic"
+  POSITION 3
+
+UPDATE FIELD "entity_mnemonic_description" OF "gsc_entity_mnemonic"
+  POSITION 4
+
+UPDATE FIELD "auto_properform_strings" OF "gsc_entity_mnemonic"
+  POSITION 5
+
+UPDATE FIELD "entity_mnemonic_label_prefix" OF "gsc_entity_mnemonic"
+  POSITION 6
+
+UPDATE FIELD "entity_mnemonic_obj" OF "gsc_entity_mnemonic"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 7
+
+UPDATE FIELD "entity_object_field" OF "gsc_entity_mnemonic"
+  DESCRIPTION "The name of the unique object field for this entity used to join to other tables. Usually this field is the same as the tablename without the 4 character prefix and ends in _obj. The datatype of this field should be a decimal with at least decimals 9. 
+
+If left blank, then the above assumption will be used to find the object field where required.
+"
+
+ADD FIELD "version_master_join" OF "gsc_entity_mnemonic" AS character
+  DESCRIPTION "If a version_master_entity is specified, this field identifies the join information facilitating the join between the child data and the master object. The child data may not be joined directly to the master table so this field must handle indirect joins also via intermediate tables.
+The structure of this field value is therefore a comma delimited lists of field value pairs with each field pair being specified as table.field,table.field representing the from and to field for each join pair. If the join is for multiple fields, then the field will contain table.field, table.field, table.field, table.field, etc. Where the join spans multiple tables, each set of fields for a table are colon delimited, e.g. table.field, table.field : table.field, table.field, etc.
+The code will depend on minimum 9.1D dynamic find functionality to implement these joins generically.
+"
+  FORMAT "X(500)"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Version master join"
+  HELP-SA ""
+  LABEL "Version Master Join"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_small_text_block"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1000
+
+ADD FIELD "version_master_entity" OF "gsc_entity_mnemonic" AS character
+  DESCRIPTION "We need to identify which tables in the repository are master tables that must have version change information recorded in the gst_record_version table to be able to identify when data has changed and needs to be deployed.
+We only need to track changes to master tables. For child data linked to a master table, it is the master record that must be recorded as being changed, not the child table. For example, in the case of repository objects, the ryc_smartobject table is the master table, and all related tables such as pages, links, etc. linked to this will point at the ryc_smartobject entity as the master table. Any modifications to any data in any of these child tables will result in an updated version record for the master ryc_smartobject table in gst_record_version highlighting this master object has changed. This is because it is assumed that any changes to child data of a master object are in fact changes to the master object itself. The changes to the master object and all its child data will be deployed in the dataset(s) defined for the master object.
+This will save a lot of redundant data in the gst_record_version table. 
+If the join is not specified, i.e. the field is blank, then this is a master entity, otherwise it must identify the master entity for this table.
+The specification of this information is specifically for record versioning purposes.
+"
+  FORMAT "X(8)"
+  FORMAT-SA ?
+  POSITION 24
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Version master entity"
+  HELP-SA ""
+  LABEL "Version Master Entity"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_entity_mnemonic"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 230
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 16
+
+ADD INDEX "XIE6gsc_entity_mnemonic" ON "gsc_entity_mnemonic"
+  AREA "Schema Area"
+  INDEX-FIELD "version_master_entity" ASCENDING
+  INDEX-FIELD "entity_mnemonic" ASCENDING
+
+UPDATE FIELD "custom_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "entity_mnemonic_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "error_group" OF "gsc_error"
+  POSITION 2
+
+UPDATE FIELD "error_number" OF "gsc_error"
+  POSITION 3
+
+UPDATE FIELD "language_obj" OF "gsc_error"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "error_summary_description" OF "gsc_error"
+  POSITION 5
+
+UPDATE FIELD "error_full_description" OF "gsc_error"
+  POSITION 6
+
+UPDATE FIELD "error_obj" OF "gsc_error"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 7
+
+ADD FIELD "source_language" OF "gsc_error" AS logical
+  DESCRIPTION "This field is a logical field and there should always only be one per error group and error number. The maintenance viewer should ensure that if a new default is selected that the user is prompt with a question requesting that the other default error not be the default anymore and subsequently changed when the user agrees to it."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Source language"
+  HELP-SA ""
+  LABEL "Source Language"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD INDEX "XIE5gsc_error" ON "gsc_error"
+  AREA "Schema Area"
+  INDEX-FIELD "source_language" ASCENDING
+
+UPDATE FIELD "global_control_obj" OF "gsc_global_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_country_obj" OF "gsc_global_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_nationality_obj" OF "gsc_global_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_language_obj" OF "gsc_global_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_currency_obj" OF "gsc_global_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "global_default_obj" OF "gsc_global_default"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsc_global_default"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsc_instance_attribute"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "item_category_obj" OF "gsc_item_category"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "parent_item_category_obj" OF "gsc_item_category"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "language_obj" OF "gsc_language"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "language_text_obj" OF "gsc_language_text"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsc_language_text"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsc_language_text"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "language_obj" OF "gsc_language_text"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "logical_service_obj" OF "gsc_logical_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "logical_service_code" OF "gsc_logical_service"
+  POSITION 3
+
+UPDATE FIELD "logical_service_description" OF "gsc_logical_service"
+  POSITION 4
+
+UPDATE FIELD "service_type_obj" OF "gsc_logical_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "manager_type_obj" OF "gsc_manager_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "multi_media_type_obj" OF "gsc_multi_media_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "nationality_obj" OF "gsc_nationality"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "sequence_obj" OF "gsc_next_sequence"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "next_sequence_value" OF "gsc_next_sequence"
+  POSITION 3
+
+UPDATE FIELD "next_sequence_obj" OF "gsc_next_sequence"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE TABLE "gsc_object_type"
+  DESCRIPTION "This table defines the types of programs supported. A record will need to exist for the various support templates, e.g. ""Object Controller"", ""Menu Controller"", ""SmartFolder"", smartbrowser, smartviewer, smartdataobject, etc.
+
+When objects are created, they must be assigned an object type.
+
+The object type is used as a grouping mechanism for security, to allow restrictions to be created for certain types of objects, rather than having to setup security for every object.
+
+A recursive join exists for the object type to facilitate definition of object type hierarchies (class hieararchies). This is then useful for attribute inheritance at multiple levels of object type.
+
+For example, an object type could be defined for a fill-in, then a child of this may be an integer fill-in, then a child of this may be an object id, etc.
+
+the extends object type means the inherit from object type.
+"
+
+UPDATE FIELD "object_type_obj" OF "gsc_object_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "deployment_type" OF "gsc_object_type" AS character
+  DESCRIPTION "This is to determine where objects of this type should be deployed. This field is also on the object itself and simply acts as a default at the object type level. Valid values for this field would be ""SRV"" for remote server only, ""CLI"" for client only, ""WEB"" for WEB, or combinations as required comma delimited, e.g. ""CLI,SRV"". This field will assist when deploying applications on appservers to help define which objects should reside where."
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Deployment type"
+  HELP-SA ""
+  LABEL "Deployment Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "static_object" OF "gsc_object_type" AS logical
+  DESCRIPTION "This is a default for the ryc_smartobject table static_object flag, defaulting to NO.
+
+It Indicates whether an object for this class is static or dynamic (logical).
+
+If set to NO, this object is a dynamically created logical  object built using the object repository, and must point at a physical object to use as the starting point when building the dynamic object.
+
+A logical object (non static) cannot be a generic object.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Static object"
+  HELP-SA ""
+  LABEL "Static Object"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "class_smartobject_obj" OF "gsc_object_type" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Class SmartObject obj"
+  HELP-SA ""
+  LABEL "Class SmartObject Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "extends_object_type_obj" OF "gsc_object_type" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Extends object type obj"
+  HELP-SA ""
+  LABEL "Extends Object Type Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE2gsc_object_type" ON "gsc_object_type"
+  AREA "Schema Area"
+  INDEX-FIELD "extends_object_type_obj" ASCENDING
+
+ADD INDEX "XIE3gsc_object_type" ON "gsc_object_type"
+  AREA "Schema Area"
+  INDEX-FIELD "class_smartobject_obj" ASCENDING
+
+UPDATE FIELD "package_dataset_obj" OF "gsc_package_dataset"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_package_dataset"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_package_obj" OF "gsc_package_dataset"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_obj" OF "gsc_product"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "supplier_organisation_obj" OF "gsc_product"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE TABLE "gsc_product_module"
+  DESCRIPTION "This table contains information about the installed product modules with appropriate license details.
+
+A recursive join has been added to support product module hierarchies."
+
+UPDATE FIELD "product_module_obj" OF "gsc_product_module"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_obj" OF "gsc_product_module"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "deployment_type" OF "gsc_product_module" AS character
+  DESCRIPTION "This is to determine where objects in the module should be deployed. Valid values for this field would be ""SRV"" for remote server only, ""CLI"" for client only, ""WEB"" for WEB, or combinations as required comma delimited, e.g. ""CLI,SRV"". This field will assist when deploying applications on appservers to help define which objects should reside where.
+This field is also specified on objects, and the value on the specific object would always override the value on the product module. This field is therefore really a narrative to assist with automated scripts that could also help move code around for objects not registered in the repository.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Deployment type"
+  HELP-SA ""
+  LABEL "Deployment Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "parent_product_module_obj" OF "gsc_product_module" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Parent product module obj"
+  HELP-SA ""
+  LABEL "Parent Product Module Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE3gsc_product_module" ON "gsc_product_module"
+  AREA "Schema Area"
+  INDEX-FIELD "parent_product_module_obj" ASCENDING
+  INDEX-FIELD "product_module_code" ASCENDING
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_code_obj" OF "gsc_profile_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "security_control_obj" OF "gsc_security_control"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "sequence_obj" OF "gsc_sequence"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 2
+
+UPDATE FIELD "company_organisation_obj" OF "gsc_sequence"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_sequence"
+  POSITION 4
+
+UPDATE FIELD "sequence_tla" OF "gsc_sequence"
+  POSITION 5
+
+UPDATE FIELD "sequence_short_desc" OF "gsc_sequence"
+  POSITION 6
+
+UPDATE FIELD "sequence_description" OF "gsc_sequence"
+  POSITION 7
+
+UPDATE FIELD "min_value" OF "gsc_sequence"
+  POSITION 8
+
+UPDATE FIELD "max_value" OF "gsc_sequence"
+  POSITION 9
+
+UPDATE FIELD "sequence_format" OF "gsc_sequence"
+  POSITION 10
+
+UPDATE FIELD "auto_generate" OF "gsc_sequence"
+  POSITION 11
+
+UPDATE FIELD "multi_transaction" OF "gsc_sequence"
+  POSITION 12
+
+UPDATE FIELD "next_value" OF "gsc_sequence"
+  POSITION 13
+
+UPDATE FIELD "number_of_sequences" OF "gsc_sequence"
+  POSITION 14
+
+UPDATE FIELD "sequence_active" OF "gsc_sequence"
+  POSITION 15
+
+UPDATE FIELD "service_type_obj" OF "gsc_service_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "service_type_description" OF "gsc_service_type"
+  POSITION 4
+
+UPDATE FIELD "management_object_obj" OF "gsc_service_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "maintenance_object_obj" OF "gsc_service_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_logical_service_obj" OF "gsc_service_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_property_obj" OF "gsc_session_property"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsm_category"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_group_seq" OF "gsm_category"
+  POSITION 7
+
+UPDATE FIELD "category_label" OF "gsm_category"
+  POSITION 8
+
+UPDATE FIELD "comment_obj" OF "gsm_comment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_comment"
+  POSITION 3
+
+UPDATE FIELD "owning_reference" OF "gsm_comment"
+  POSITION 4
+
+UPDATE FIELD "owning_obj" OF "gsm_comment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "category_obj" OF "gsm_comment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+RENAME INDEX "XIE1gsm_comment" TO "temp-80833" ON "gsm_comment"
+
+ADD INDEX "XIE1gsm_comment" ON "gsm_comment"
+  AREA "Schema Area"
+  INDEX-FIELD "comment_description" ASCENDING
+
+DROP INDEX "temp-80833" ON "gsm_comment"
+
+UPDATE FIELD "category_obj" OF "gsm_control_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsm_control_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "control_code_obj" OF "gsm_control_code"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "country_obj" OF "gsm_country"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "address_format_procedure_obj" OF "gsm_country"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "currency_obj" OF "gsm_currency"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "default_report_format_obj" OF "gsm_default_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_default_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_default_report_format"
+  POSITION 4
+
+UPDATE FIELD "owning_obj" OF "gsm_default_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "document_type_obj" OF "gsm_default_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_format_obj" OF "gsm_default_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "entity_field_value_obj" OF "gsm_entity_field_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "related_owning_obj" OF "gsm_external_xref"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "internal_owning_obj" OF "gsm_external_xref"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "external_xref_obj" OF "gsm_external_xref"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 6
+
+UPDATE FIELD "external_entity_mnemonic" OF "gsm_external_xref"
+  POSITION 7
+
+UPDATE FIELD "external_owning_obj" OF "gsm_external_xref"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 8
+
+UPDATE FIELD "external_code" OF "gsm_external_xref"
+  POSITION 9
+
+UPDATE FIELD "external_description" OF "gsm_external_xref"
+  POSITION 10
+
+UPDATE FIELD "external_details" OF "gsm_external_xref"
+  POSITION 11
+
+UPDATE FIELD "field_obj" OF "gsm_field"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "flow_obj" OF "gsm_flow"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_module_obj" OF "gsm_flow"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "flow_step_obj" OF "gsm_flow_step"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "flow_obj" OF "gsm_flow_step"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "login_company_obj" OF "gsm_flow_step"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_flow_step"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "flow_step_flow_obj" OF "gsm_flow_step"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "help_obj" OF "gsm_help"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "language_obj" OF "gsm_help"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 7
+
+UPDATE FIELD "help_context" OF "gsm_help"
+  POSITION 8
+
+UPDATE FIELD "login_company_obj" OF "gsm_login_company"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_menu_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "item_category_obj" OF "gsm_menu_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_item_label" OF "gsm_menu_item"
+  DESCRIPTION "The label to show on the menu. The label may be auto generated or manually entered.
+
+Include an ampersand for the accelerator key where appropriate - the Progress default if not sepcified is to use the 1st character."
+  POSITION 7
+
+UPDATE FIELD "menu_item_description" OF "gsm_menu_item"
+  POSITION 8
+
+UPDATE FIELD "toggle_menu_item" OF "gsm_menu_item"
+  POSITION 9
+
+UPDATE FIELD "tooltip_text" OF "gsm_menu_item"
+  DESCRIPTION "The tooltip text to display when this menu item is placed on a dynamic toolbar."
+  POSITION 10
+
+UPDATE FIELD "shortcut_key" OF "gsm_menu_item"
+  POSITION 11
+
+UPDATE FIELD "hide_if_disabled" OF "gsm_menu_item"
+  POSITION 12
+
+UPDATE FIELD "disabled" OF "gsm_menu_item"
+  POSITION 13
+
+UPDATE FIELD "system_owned" OF "gsm_menu_item"
+  POSITION 14
+
+UPDATE FIELD "under_development" OF "gsm_menu_item"
+  POSITION 15
+
+UPDATE FIELD "menu_item_reference" OF "gsm_menu_item"
+  POSITION 16
+
+UPDATE FIELD "propagate_links" OF "gsm_menu_item"
+  POSITION 17
+
+UPDATE FIELD "security_token" OF "gsm_menu_item"
+  POSITION 18
+
+UPDATE FIELD "item_toolbar_label" OF "gsm_menu_item"
+  POSITION 19
+
+UPDATE FIELD "image1_up_filename" OF "gsm_menu_item"
+  POSITION 20
+
+UPDATE FIELD "image1_down_filename" OF "gsm_menu_item"
+  POSITION 21
+
+UPDATE FIELD "image1_insensitive_filename" OF "gsm_menu_item"
+  POSITION 22
+
+UPDATE FIELD "image2_up_filename" OF "gsm_menu_item"
+  POSITION 23
+
+UPDATE FIELD "image2_down_filename" OF "gsm_menu_item"
+  POSITION 24
+
+UPDATE FIELD "image2_insensitive_filename" OF "gsm_menu_item"
+  POSITION 25
+
+ADD FIELD "source_language_obj" OF "gsm_menu_item" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 40
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Source language obj"
+  HELP-SA ""
+  LABEL "Source Language Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 390
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE9gsm_menu_item" ON "gsm_menu_item"
+  AREA "Schema Area"
+  INDEX-FIELD "source_language_obj" ASCENDING
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "product_obj" OF "gsm_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "multi_media_obj" OF "gsm_multi_media"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsm_multi_media"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "owning_obj" OF "gsm_multi_media"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "multi_media_type_obj" OF "gsm_multi_media"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "node_obj" OF "gsm_node"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "node_label" OF "gsm_node"
+  POSITION 5
+  ORDER 40
+
+UPDATE FIELD "node_checked" OF "gsm_node"
+  POSITION 6
+  ORDER 50
+
+UPDATE FIELD "data_source_type" OF "gsm_node"
+  POSITION 7
+  ORDER 60
+
+UPDATE FIELD "data_source" OF "gsm_node"
+  POSITION 8
+  ORDER 70
+
+UPDATE FIELD "primary_sdo" OF "gsm_node"
+  POSITION 9
+  ORDER 80
+
+UPDATE FIELD "logical_object" OF "gsm_node"
+  ORDER 90
+
+UPDATE FIELD "run_attribute" OF "gsm_node"
+  POSITION 11
+  ORDER 100
+
+UPDATE FIELD "fields_to_store" OF "gsm_node"
+  POSITION 12
+  ORDER 110
+
+UPDATE FIELD "node_text_label_expression" OF "gsm_node"
+  POSITION 13
+  ORDER 120
+
+UPDATE FIELD "label_text_substitution_fields" OF "gsm_node"
+  POSITION 14
+  ORDER 130
+
+UPDATE FIELD "foreign_fields" OF "gsm_node"
+  POSITION 15
+  ORDER 140
+
+UPDATE FIELD "image_file_name" OF "gsm_node"
+  POSITION 16
+  ORDER 150
+
+UPDATE FIELD "selected_image_file_name" OF "gsm_node"
+  POSITION 17
+  ORDER 160
+
+UPDATE FIELD "parent_node_obj" OF "gsm_node"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 18
+  ORDER 170
+
+UPDATE FIELD "object_obj" OF "gsm_object_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_object_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_object_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "object_menu_structure_obj" OF "gsm_object_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "menu_item_obj" OF "gsm_object_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "physical_service_obj" OF "gsm_physical_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "physical_service_code" OF "gsm_physical_service"
+  POSITION 3
+
+UPDATE FIELD "physical_service_description" OF "gsm_physical_service"
+  POSITION 4
+
+UPDATE FIELD "service_type_obj" OF "gsm_physical_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "profile_obj" OF "gsm_profile"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsm_profile"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_options"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_alpha_options_obj" OF "gsm_profile_alpha_options"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_alpha_value_obj" OF "gsm_profile_alpha_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gsm_profile_data"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_type_obj" OF "gsm_profile_data"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_code_obj" OF "gsm_profile_data"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_data_obj" OF "gsm_profile_data"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_date_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_date_value_obj" OF "gsm_profile_date_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsm_profile_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_history_obj" OF "gsm_profile_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_options"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_numeric_options_obj" OF "gsm_profile_numeric_options"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "profile_numeric_value_obj" OF "gsm_profile_numeric_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "range_obj" OF "gsm_range"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_reporting_tool"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_definition"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_procedure_name" OF "gsm_report_definition"
+  POSITION 3
+
+UPDATE FIELD "report_description" OF "gsm_report_definition"
+  POSITION 5
+
+UPDATE FIELD "next_extract_sequence" OF "gsm_report_definition"
+  POSITION 6
+
+UPDATE FIELD "allow_server_printing" OF "gsm_report_definition"
+  POSITION 7
+
+UPDATE FIELD "allow_client_printing" OF "gsm_report_definition"
+  POSITION 8
+
+UPDATE FIELD "default_destination" OF "gsm_report_definition"
+  POSITION 9
+
+UPDATE FIELD "allow_destination_override" OF "gsm_report_definition"
+  POSITION 10
+
+UPDATE FIELD "default_form_type" OF "gsm_report_definition"
+  POSITION 11
+
+UPDATE FIELD "allow_form_type_override" OF "gsm_report_definition"
+  POSITION 12
+
+UPDATE FIELD "default_priority" OF "gsm_report_definition"
+  POSITION 13
+
+UPDATE FIELD "default_copies_to_print" OF "gsm_report_definition"
+  POSITION 15
+
+UPDATE FIELD "default_days_to_retain" OF "gsm_report_definition"
+  POSITION 16
+
+UPDATE FIELD "document_type_obj" OF "gsm_report_definition"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "report_format_obj" OF "gsm_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_report_format"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "required_manager_obj" OF "gsm_required_manager"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_type_obj" OF "gsm_required_manager"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "manager_type_obj" OF "gsm_required_manager"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_required_manager"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "security_structure_obj" OF "gsm_security_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gsm_security_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_module_obj" OF "gsm_security_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_security_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_security_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 7
+
+UPDATE FIELD "disabled" OF "gsm_security_structure"
+  POSITION 8
+
+UPDATE TABLE "gsm_server_context"
+  DESCRIPTION "This table is a generic table to stored context information between stateless appserver connections.
+
+The type of information that is required includes user information, security information, possibly SCM workspace and task information, etc.
+
+This is a child table of the session table gst_session, and the actual session id is stored on the gst_session table.
+
+
+"
+
+UPDATE FIELD "server_context_obj" OF "gsm_server_context"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "session_obj" OF "gsm_server_context" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 3
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Session obj"
+  HELP-SA ""
+  LABEL "Session Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 20
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1gsm_server_context" TO "temp-13109" ON "gsm_server_context"
+
+RENAME INDEX "XIE1gsm_server_context" TO "temp-36034" ON "gsm_server_context"
+
+ADD INDEX "XAK1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "session_obj" ASCENDING
+  INDEX-FIELD "context_name" ASCENDING
+
+ADD INDEX "XIE1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  INDEX-FIELD "context_id_date" ASCENDING
+  INDEX-FIELD "context_id_time" ASCENDING
+  INDEX-FIELD "session_obj" ASCENDING
+
+UPDATE FIELD "session_service_obj" OF "gsm_session_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "logical_service_obj" OF "gsm_session_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 4
+
+UPDATE FIELD "physical_service_obj" OF "gsm_session_service"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE TABLE "gsm_session_type"
+  DESCRIPTION "A session type is a namespace for grouping specific types of sessions together.
+
+For example, a ""receipting workstation"" would be a specific session type while a ""salesman's web agent"" could be another.
+
+Each session type is combined with a physical session type that maps to a list of known Progress 4GL run-time environments. 
+
+Thus, ""receipting workstation"" may be mapped to a 4GL GUI client while ""salesman's web agent"" could be mapped to a WebSpeed Transaction Agent.
+
+Thus you could create any number of session types mapping them to specific 4GL session types.
+
+Where different managers, etc. need to be pre-started for different applications, then the different applications would be defined as new session types.
+
+In order to run locally without appserver connections, etc. you would need to define a new session type that connects to appropriate databases and has no session service records for the appserver logical services thereby forcing them to not connect and rather simply use the session handle for code portability. Also, this new session type would define a different set of managers to run, i.e. run the server side managers locally.
+
+We will provide a facility to change the session type on the fly (if possible).
+
+We have a recursive join to the gsc_session_type table to support inheritance of settings across multiple session types. This will make the modification, re-use and creation of session types much simpler. The program that generates the icfconfig.xml file will simply read the extra details from the linked session types and write out an accumulated set of configuration details.
+
+This table also holds parameter details for the session, such as whether to support failover and inactivity timeouts for sessions."
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "valid_os_list" OF "gsm_session_type"
+  FORMAT "X(70)"
+  VALMSG "s_big_description"
+  SQL-WIDTH 140
+
+ADD FIELD "inactivity_timeout_period" OF "gsm_session_type" AS decimal
+  DESCRIPTION "The inactivity period after which time the session will expire. This field is a decimal field, with 0 indicating the functionality is disabled. The field is structured as days.time with the integer portion being the number of days and the decimal portion being the time in seconds since midnight.
+If a value is specified, then after the elapsed period of inactivity, the session record will be deleted making the session inactive and forcing a relogon.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Inactivity timeout period"
+  HELP-SA ""
+  LABEL "Inactivity Timeout Period"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "automatic_reconnect" OF "gsm_session_type" AS logical
+  DESCRIPTION "This is a logical field, defaulting to YES and indicates whether to enable the functionality to automatically reconnect a dropped appserver connection and reestablish context. This functionality uses the information in the gst_session table to be able to do this."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Automatic reconnect"
+  HELP-SA ""
+  LABEL "Automatic Reconnect"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "extends_session_type_obj" OF "gsm_session_type" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Extends session type obj"
+  HELP-SA ""
+  LABEL "Extends Session Type Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE2gsm_session_type" ON "gsm_session_type"
+  AREA "Schema Area"
+  INDEX-FIELD "extends_session_type_obj" ASCENDING
+
+UPDATE FIELD "session_type_property_obj" OF "gsm_session_type_property"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type_property"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_property_obj" OF "gsm_session_type_property"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "startup_flow_obj" OF "gsm_startup_flow"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "session_type_obj" OF "gsm_startup_flow"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "flow_obj" OF "gsm_startup_flow"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "status_obj" OF "gsm_status"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "category_obj" OF "gsm_status"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "retain_status_history" OF "gsm_status"
+  POSITION 8
+
+UPDATE FIELD "system_owned" OF "gsm_status"
+  POSITION 9
+
+UPDATE FIELD "owning_obj" OF "gsm_status_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "status_obj" OF "gsm_status_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "to_date" OF "gsm_status_history"
+  POSITION 5
+
+UPDATE FIELD "status_history_obj" OF "gsm_status_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 6
+
+UPDATE FIELD "token_obj" OF "gsm_token"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "translation_obj" OF "gsm_translation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "language_obj" OF "gsm_translation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "source_language_obj" OF "gsm_translation" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Source language obj"
+  HELP-SA ""
+  LABEL "Source Language Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1gsm_translation" TO "temp-16033" ON "gsm_translation"
+
+RENAME INDEX "XAK2gsm_translation" TO "temp-88469" ON "gsm_translation"
+
+RENAME INDEX "XIE1gsm_translation" TO "temp-87603" ON "gsm_translation"
+
+ADD INDEX "XAK1gsm_translation" ON "gsm_translation"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_filename" ASCENDING
+  INDEX-FIELD "widget_type" ASCENDING
+  INDEX-FIELD "widget_name" ASCENDING
+  INDEX-FIELD "widget_entry" ASCENDING
+  INDEX-FIELD "language_obj" ASCENDING
+  INDEX-FIELD "source_language_obj" ASCENDING
+
+ADD INDEX "XAK2gsm_translation" ON "gsm_translation"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "source_language_obj" ASCENDING
+  INDEX-FIELD "language_obj" ASCENDING
+  INDEX-FIELD "object_filename" ASCENDING
+  INDEX-FIELD "widget_type" ASCENDING
+  INDEX-FIELD "widget_name" ASCENDING
+  INDEX-FIELD "widget_entry" ASCENDING
+
+ADD INDEX "XIE1gsm_translation" ON "gsm_translation"
+  AREA "Schema Area"
+  INDEX-FIELD "widget_name" ASCENDING
+  INDEX-FIELD "widget_entry" ASCENDING
+  INDEX-FIELD "object_filename" ASCENDING
+  INDEX-FIELD "source_language_obj" ASCENDING
+  INDEX-FIELD "language_obj" ASCENDING
+  INDEX-FIELD "widget_type" ASCENDING
+
+ADD INDEX "XIE2gsm_translation" ON "gsm_translation"
+  AREA "Schema Area"
+  INDEX-FIELD "language_obj" ASCENDING
+
+DROP INDEX "temp-16033" ON "gsm_translation"
+DROP INDEX "temp-88469" ON "gsm_translation"
+DROP INDEX "temp-87603" ON "gsm_translation"
+
+UPDATE FIELD "user_obj" OF "gsm_user"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_category_obj" OF "gsm_user"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_full_name" OF "gsm_user"
+  POSITION 4
+
+UPDATE FIELD "user_login_name" OF "gsm_user"
+  POSITION 5
+
+UPDATE FIELD "user_creation_date" OF "gsm_user"
+  POSITION 6
+
+UPDATE FIELD "user_creation_time" OF "gsm_user"
+  POSITION 7
+
+UPDATE FIELD "profile_user" OF "gsm_user"
+  POSITION 8
+
+UPDATE FIELD "external_userid" OF "gsm_user"
+  POSITION 9
+  ORDER 80
+
+UPDATE FIELD "user_password" OF "gsm_user"
+  POSITION 10
+  ORDER 90
+
+UPDATE FIELD "password_minimum_length" OF "gsm_user"
+  POSITION 11
+  ORDER 100
+
+UPDATE FIELD "password_preexpired" OF "gsm_user"
+  POSITION 12
+  ORDER 110
+
+UPDATE FIELD "password_fail_count" OF "gsm_user"
+  POSITION 13
+  ORDER 120
+
+UPDATE FIELD "password_fail_date" OF "gsm_user"
+  POSITION 14
+  ORDER 130
+
+UPDATE FIELD "password_fail_time" OF "gsm_user"
+  POSITION 15
+  ORDER 140
+
+UPDATE FIELD "password_creation_date" OF "gsm_user"
+  POSITION 16
+  ORDER 150
+
+UPDATE FIELD "password_creation_time" OF "gsm_user"
+  POSITION 17
+  ORDER 160
+
+UPDATE FIELD "password_expiry_date" OF "gsm_user"
+  POSITION 18
+  ORDER 170
+
+UPDATE FIELD "password_expiry_time" OF "gsm_user"
+  POSITION 19
+  ORDER 180
+
+UPDATE FIELD "update_password_history" OF "gsm_user"
+  POSITION 20
+  ORDER 190
+
+UPDATE FIELD "check_password_history" OF "gsm_user"
+  POSITION 21
+  ORDER 200
+
+UPDATE FIELD "last_login_date" OF "gsm_user"
+  POSITION 22
+  ORDER 210
+
+UPDATE FIELD "last_login_time" OF "gsm_user"
+  POSITION 23
+  ORDER 220
+
+UPDATE FIELD "disabled" OF "gsm_user"
+  POSITION 24
+  ORDER 230
+
+UPDATE FIELD "language_obj" OF "gsm_user"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 25
+  ORDER 240
+
+UPDATE FIELD "password_expiry_days" OF "gsm_user"
+  POSITION 26
+  ORDER 250
+
+UPDATE FIELD "maintain_system_data" OF "gsm_user"
+  POSITION 27
+  ORDER 260
+
+UPDATE FIELD "default_login_company_obj" OF "gsm_user"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 28
+  ORDER 270
+
+UPDATE FIELD "user_email_address" OF "gsm_user"
+  POSITION 29
+  ORDER 280
+
+UPDATE FIELD "development_user" OF "gsm_user"
+  POSITION 30
+  ORDER 290
+
+UPDATE FIELD "created_from_profile_user_obj" OF "gsm_user"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 31
+  ORDER 300
+
+ADD INDEX "XIE7gsm_user" ON "gsm_user"
+  AREA "Schema Area"
+  INDEX-FIELD "user_category_obj" ASCENDING
+
+ADD INDEX "XIE8gsm_user" ON "gsm_user"
+  AREA "Schema Area"
+  INDEX-FIELD "created_from_profile_user_obj" ASCENDING
+
+ADD INDEX "XIE9gsm_user" ON "gsm_user"
+  AREA "Schema Area"
+  INDEX-FIELD "language_obj" ASCENDING
+
+UPDATE FIELD "user_obj" OF "gsm_user_allocation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "login_organisation_obj" OF "gsm_user_allocation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_user_allocation"
+  POSITION 4
+
+UPDATE FIELD "owning_obj" OF "gsm_user_allocation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_allocation_value1" OF "gsm_user_allocation"
+  POSITION 6
+
+UPDATE FIELD "user_allocation_value2" OF "gsm_user_allocation"
+  POSITION 7
+
+UPDATE FIELD "user_allocation_obj" OF "gsm_user_allocation"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 8
+
+UPDATE FIELD "user_category_obj" OF "gsm_user_category"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "valid_object_partition_obj" OF "gsm_valid_object_partition"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "logical_service_obj" OF "gsm_valid_object_partition"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_obj" OF "gsm_valid_object_partition"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "audit_obj" OF "gst_audit"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gst_audit"
+  POSITION 3
+
+UPDATE FIELD "owning_reference" OF "gst_audit"
+  POSITION 4
+
+UPDATE FIELD "owning_obj" OF "gst_audit"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+
+UPDATE FIELD "audit_date" OF "gst_audit"
+  POSITION 6
+
+UPDATE FIELD "audit_time" OF "gst_audit"
+  POSITION 7
+
+UPDATE FIELD "audit_user_obj" OF "gst_audit"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 8
+
+UPDATE FIELD "program_name" OF "gst_audit"
+  POSITION 9
+
+UPDATE FIELD "program_procedure" OF "gst_audit"
+  POSITION 10
+
+UPDATE FIELD "audit_action" OF "gst_audit"
+  POSITION 11
+
+UPDATE FIELD "batch_job_obj" OF "gst_batch_job"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "status_obj" OF "gst_batch_job"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gst_batch_job"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "dataset_file_obj" OF "gst_dataset_file"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deployment_obj" OF "gst_dataset_file"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gst_dataset_file"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deployment_obj" OF "gst_deployment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "deploy_package_obj" OF "gst_deployment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "load_after_deployment_obj" OF "gst_deployment"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "error_log_obj" OF "gst_error_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gst_error_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "owning_obj" OF "gst_error_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "extract_log_obj" OF "gst_extract_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "extract_sequence" OF "gst_extract_log"
+  POSITION 4
+
+UPDATE FIELD "destination" OF "gst_extract_log"
+  POSITION 5
+
+UPDATE FIELD "created_at_time" OF "gst_extract_log"
+  POSITION 11
+
+UPDATE FIELD "printed_date" OF "gst_extract_log"
+  POSITION 12
+
+UPDATE FIELD "printed_time" OF "gst_extract_log"
+  POSITION 13
+
+UPDATE FIELD "last_printed_date" OF "gst_extract_log"
+  POSITION 14
+
+UPDATE FIELD "last_printed_time" OF "gst_extract_log"
+  POSITION 15
+
+UPDATE FIELD "delete_on_date" OF "gst_extract_log"
+  POSITION 16
+
+UPDATE FIELD "report_definition_obj" OF "gst_extract_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 17
+
+UPDATE FIELD "user_obj" OF "gst_extract_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 18
+
+UPDATE FIELD "batch_job_obj" OF "gst_extract_log"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "password_history_obj" OF "gst_password_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gst_password_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "changed_by_user_obj" OF "gst_password_history"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "record_version_obj" OF "gst_record_version"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "version_number_seq" OF "gst_record_version"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "import_version_number_seq" OF "gst_record_version"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "last_version_number_seq" OF "gst_record_version"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "secondary_key_value" OF "gst_record_version" AS character
+  DESCRIPTION "This will be a character field and will supplement the key_field_value. If the key_field_value contains an object id field, then this new field will contain the other unique key information for the table, otherwise it will be blank.
+This will mean that where object ids are used for keys, we will also store some other unique key information about the table if available, that would have been used as an alternative by the deployment procedures to locate the record. For example, in the case of the ryc_smartobject table, the key_field_value will contain the smartobject_obj and the secondary_key_value will contain the actual object name.
+We cannot make this field unique as it may not always be used, but it will be indexed together with the entity mnemonic. If the field is used for an entity, then code will prevent duplicate alternate key values as this should never occur due to the new data resurrection functionality this facilitates.
+Triggers for master tables will check the gst_record_version table where the secondary field is used and see if a new record is being created with a previously used key value, and if so, will change the object id to match the previously used object id. This will ensure when resurrecting old data that the object id is never modified, and help prevent data conflicts when deploying data.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Secondary key value"
+  HELP-SA ""
+  LABEL "Secondary Key Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD INDEX "XIE7gst_record_version" ON "gst_record_version"
+  AREA "Schema Area"
+  INDEX-FIELD "entity_mnemonic" ASCENDING
+  INDEX-FIELD "secondary_key_value" ASCENDING
+
+UPDATE TABLE "ryc_attribute"
+  DESCRIPTION "This table defines the attributes that may be allocated to objects, e.g. size, position, window title, query, where clause, etc. They are used to defined the properties of dynamic objects, plus to dynamically alter the behaviour of static objects.
+
+Certain attributes are required for the application to function correctly and these will be set to system owned to prevent accidental deletion. Only users that are classified as able to maintain system owned information may manipulate this data. In many (most) cases, the actual attribute label will need to match to a valid Progress supported attribute.
+
+Due to the powerful feature of allowing attributes to be defined at various levels, most dynamic data about smartobjects will utilise attributes.
+
+Example areas that we will utilise attributes for include browser query, sort order and where clauses, container window titles, which window to run based on various button actions in a browser, e.g. add, modify, view, etc., status bar configuration, page enabling and disabling, field enabling and disabling by object instance, whether toolbar items are included in the menu, etc.
+"
+
+UPDATE FIELD "attribute_label" OF "ryc_attribute"
+  POSITION 2
+  ORDER 10
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+  ORDER 20
+
+ADD FIELD "data_type" OF "ryc_attribute" AS integer
+  DESCRIPTION "This is an integer field (for performance reasons) to represent the data type of the attribute. The valid values are as follows:
+
+1  Character
+2  Date
+3  Logical
+4  Integer
+5  Decimal
+7  Recid
+8  Raw
+9  Rowid
+10 Handle
+11 Memptr
+14 Com-handle
+"
+  FORMAT "->>9"
+  FORMAT-SA ?
+  POSITION 4
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Data type"
+  HELP-SA ""
+  LABEL "Data Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_3"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 30
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "override_type" OF "ryc_attribute" AS character
+  DESCRIPTION "This is a character field that will default to blank indicating that specific get and set functions are not required and the property value can be stored and retrieved from the admprop's field ADM-DATA.
+
+Other values this field can take are 'get' indicating the get function can be overridden, 'set' indicating the set function can be overridden, or 'get,set' indicating either the get or the set function can be overridden. If this field has a value, then the functions to get and/or set this property need to physically exist and be used and overrideable, to allow them to contain additionally logic beyond simply retrieving the value from ADM-DATA. This is the equivalent of defining the xp preprocessors in the ADM but is more flexible in that it differentiates between get and set.
+
+It is the set calls that are most expensive at startup, so this is an important field.
+
+Note that in code when checking this value, a CAN-FIND should be used to ensure the order of the get,set is irrelevant.
+"
+  FORMAT "X(3000)"
+  FORMAT-SA ?
+  POSITION 6
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Override type"
+  HELP-SA ""
+  LABEL "Override Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_comma_separated_list"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 50
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 6000
+
+ADD FIELD "runtime_only" OF "ryc_attribute" AS logical
+  DESCRIPTION "This is a logical field that will default to NO. If set to YES, then the value of this property should not be stored in the repository and is only required to be added to the property temp-table at runtime. An example would be a property that stored a handle, as the handle has no context outside of the current session, but still needs to form part of the valid attribute list."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Runtime only"
+  HELP-SA ""
+  LABEL "Runtime Only"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "is_private" OF "ryc_attribute" AS logical
+  DESCRIPTION "A new field called is_private needs to be added to the ryc_attribute table. This is a logical field that will default to NO. If set to YES, then the value of this attribute is not intended to be accessed outside of the class where it is defined."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Is private"
+  HELP-SA ""
+  LABEL "is Private"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "constant_level" OF "ryc_attribute" AS character
+  DESCRIPTION "This is a character field and identifies the level at which a property can be modified. The values for this are 'class' indicating it may only be specified at the class level, 'master' indicating the value may be modified at the master level, and blank indicating there are no restrictions over the modification of this property.
+There is also a constant field on the attribute value table that is a logical indicating whether further modifications are allowed to the property. This field will therefore affect how the constant flag is set on the attribute value table.
+"
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Constant level"
+  HELP-SA ""
+  LABEL "Constant Level"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "derived_value" OF "ryc_attribute" AS logical
+  DESCRIPTION "This is a logical field that will default to NO. 
+This is set to YES to indicate that the property value is derived from other properties or other run time information and doesn't need to be defined in the attribute temp-table or stored in the repository.
+One might possibly achieve the same effect by just removing the property altogether, but it seems safer to keep it, in particular if this is a change from a previous version. It is probably also valuable for documentation purposes or for example if other repository constructs need to reference to it.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Derived value"
+  HELP-SA ""
+  LABEL "Derived Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "lookup_type" OF "ryc_attribute" AS character
+  DESCRIPTION "This defines the supported ways (if any) to validate the attribute value for a specific object type. It will be used in the property sheet to determine whether to overlay a combo-box, a lookup button or nothing  on the attribute value field. Possible values are:
+LIST
+The lookup_field will contain a list-item-pairs of possible attribute values.  In the property sheet, a combo-box containing these values will overlay the attribute value field.
+DIALOG
+The lookup_field will contain the relative path and filename of a dialog container. In the property sheet, a lookup button will overlay the attribute value field. Upon pressing the button, the specified dialog is launched.
+DIALOG-R
+This is like the dialog option, but makes the attribute value field read-only forcing the use of the dialog. This is necessary for dialogs that would return delimited lists that you would not want users to manually enter.
+PROC	
+The lookup_field will contain the relative path and filename of a procedure. The return-value of the procedure will contain a string of the list-item-pairs used to populate the combo-box that overlays the attribute value field in the property sheet.
+""""	
+Blank indicates free text entry.
+"
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Lookup type"
+  HELP-SA ""
+  LABEL "Lookup Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "lookup_value" OF "ryc_attribute" AS character
+  DESCRIPTION "This field can be used to specify a list of discrete values allowed for this attribute, or it can specify a procedure call that returns a list of values, or it can specify the name of a dialog. When it contains a list, the delimiter should be CHR(3) rather than a comma.
+1. This field will be blank if the lookup_type is blank.
+2. If field lookup_type = 'LIST'
+This specifies the LIST-ITEM-PAIRS values. That is a delimited list of labels and values in the form: ""label1,value1,labe2,value2,...""
+3. If field lookup_type = 'DIALOG'
+This specifies the relative path and file name of the dialog that is run from the property sheet. All Dialogs must return two OUTPUT parameters, One logical indicating whether the property was changed, and one string output parameter containing the value.  
+i.e. RUN colorChooser.w (OUTPUT lOK, OUTPUT cValue)
+ 
+4. If field lookup_type = PROC'
+This specifies the relative path and file name of an external procedure that is run from the property sheet at initialization and returns a delimited list of list-item-pairs.
+"
+  FORMAT "X(500)"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Lookup value"
+  HELP-SA ""
+  LABEL "Lookup Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_small_text_block"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1000
+
+ADD FIELD "design_only" OF "ryc_attribute" AS logical
+  DESCRIPTION "If this is set to YES, then this attribute is only modifiable at design time, not at run time. The default is NO."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 13
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Design only"
+  HELP-SA ""
+  LABEL "Design Only"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 120
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+UPDATE FIELD "system_owned" OF "ryc_attribute"
+  POSITION 14
+  ORDER 130
+
+UPDATE FIELD "attribute_obj" OF "ryc_attribute"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 15
+  ORDER 140
+
+RENAME INDEX "XPKryc_attribute" TO "temp-29069" ON "ryc_attribute"
+
+RENAME INDEX "XAK2ryc_attribute" TO "XPKryc_attribute" ON "ryc_attribute"
+
+
+ADD INDEX "XAK1ryc_attribute" ON "ryc_attribute"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "attribute_group_obj" ASCENDING
+  INDEX-FIELD "attribute_label" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKryc_attribute" ON "ryc_attribute"
+
+DROP INDEX "XIE1ryc_attribute" ON "ryc_attribute"
+DROP INDEX "temp-29069" ON "ryc_attribute"
+
+UPDATE TABLE "ryc_attribute_group"
+  DESCRIPTION "This table facilitates the logical grouping of attributes to simplify their use, e.g. geometry, statusbar, etc. The primary use of this table is make the presentation of the attributes to the user more effective and usable. It is likely we could use a tree view, with attribute groups as a node and pressing plus on the group, showing all attributes within that group.
+
+The attribute group is therefore for design time only and serves no purpose at runtime.
+"
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_group"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE TABLE "ryc_attribute_value"
+  DESCRIPTION "This entity associated attributes with object types, smartobjects, and smartobject instances, and specifies the value of the attribute in the appropriate native data type or character if a native data type is not available for the data type.
+
+The list of attribute values defined for the object type (class) must be complete, and unless an attribute is defined at the class level, it will not be available to be set within a subclass. Attribute values are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the attribute values for an object, attributes for parent classes must also be read.
+
+Records will then only exist for subclassess in the event the value has been specifically overridden for that subclass.
+
+When creating entries in this table for attributes associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating attributes for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for attributes associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+"
+
+UPDATE FIELD "attribute_value_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_type_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "constant_value" OF "ryc_attribute_value"
+  DESCRIPTION "If set to YES, this value cannot be modified in any subclass. 
+
+For example, if the constant value is set to YES on an attribute value for an object type, then the value may not be modified for an object master or instance based on this class.
+"
+  POSITION 7
+  ORDER 60
+
+UPDATE FIELD "attribute_label" OF "ryc_attribute_value"
+  POSITION 8
+  ORDER 70
+
+ADD FIELD "character_value" OF "ryc_attribute_value" AS character
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is character, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+
+In the event a specific field is not available for the native data type, then the attribute value will be stored in this character_value field.
+
+
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Character value"
+  HELP-SA ""
+  LABEL "Character Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "integer_value" OF "ryc_attribute_value" AS integer
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is integer, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+"
+  FORMAT "->>>>>>>9"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Integer value"
+  HELP-SA ""
+  LABEL "Integer Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_8"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "date_value" OF "ryc_attribute_value" AS date
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is date, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+"
+  FORMAT "99/99/9999"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL "?"
+  INITIAL-SA ?
+  HELP "Date value"
+  HELP-SA ""
+  LABEL "Date Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "d_date_empty"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "decimal_value" OF "ryc_attribute_value" AS decimal
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is decimal, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+"
+  FORMAT "->>>,>>>,>>>,>>9.99"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Decimal value"
+  HELP-SA ""
+  LABEL "Decimal Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_decimal_4dp_large"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 4
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 19
+
+ADD FIELD "logical_value" OF "ryc_attribute_value" AS logical
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is logical, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 13
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Logical value"
+  HELP-SA ""
+  LABEL "Logical Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 120
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "raw_value" OF "ryc_attribute_value" AS raw
+  DESCRIPTION "Attribute values are stored in their native data type, therefore when the data type of the attribute value is raw, this field is used to store the actual value.
+
+The appropriate value field to use is determined by the data_type field on the ryc_attribute table.
+"
+  FORMAT "X(15)"
+  FORMAT-SA ?
+  POSITION 14
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Raw value"
+  HELP-SA ""
+  LABEL "Raw Value"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "r_raw"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 130
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 30
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_attribute_value"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+RENAME INDEX "XAK1ryc_attribute_value" TO "temp-45781" ON "ryc_attribute_value"
+
+RENAME INDEX "XIE1ryc_attribute_value" TO "temp-45432" ON "ryc_attribute_value"
+
+RENAME INDEX "XIE2ryc_attribute_value" TO "temp-22592" ON "ryc_attribute_value"
+
+ADD INDEX "XAK1ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING
+  INDEX-FIELD "smartobject_obj" ASCENDING
+  INDEX-FIELD "object_instance_obj" ASCENDING
+  INDEX-FIELD "attribute_label" ASCENDING
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE1ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "attribute_label" ASCENDING
+  INDEX-FIELD "object_type_obj" ASCENDING
+
+ADD INDEX "XIE2ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "primary_smartobject_obj" ASCENDING
+  INDEX-FIELD "attribute_label" ASCENDING
+
+DROP INDEX "temp-45781" ON "ryc_attribute_value"
+DROP INDEX "XAK2ryc_attribute_value" ON "ryc_attribute_value"
+DROP INDEX "temp-45432" ON "ryc_attribute_value"
+DROP INDEX "temp-22592" ON "ryc_attribute_value"
+
+UPDATE TABLE "ryc_layout"
+  DESCRIPTION "This table defines the available page layouts for pages on smartfolder windows, e.g. 1 browser with 1 toolbar underneath, n viewers above each other, 2 side by side viewers, 2 side by side browsers, etc.
+
+It also defines the available frame layouts for objects on a frame, e.g. 1 column, 2 columns, etc.
+
+The purpose of this table is to specify the program which is responsible for the layout when the window / frame  is construted or resized.
+
+As of V2, we only really support relative layouts which are layout code 6.
+"
+
+UPDATE FIELD "layout_obj" OF "ryc_layout"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "layout_code" OF "ryc_layout"
+  DESCRIPTION "This is a suffix to add to internal procedures in the layout manager plip to identify the specific layout manager, e.g.
+
+01 would run the procedure version resize01 for this layout.
+
+Layout 06 is for relative layouts which are the only ones really supported in V2."
+
+UPDATE TABLE "ryc_object_instance"
+  DESCRIPTION "This is a running instance of an object on a container. This facilitates the allocation of specific attributes, links, and page numbers, etc. for the specific instance of an object.
+"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_object_instance"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 2
+  ORDER 10
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_object_instance"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+  ORDER 20
+
+UPDATE FIELD "smartobject_obj" OF "ryc_object_instance"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "system_owned" OF "ryc_object_instance"
+  ORDER 40
+
+UPDATE FIELD "layout_position" OF "ryc_object_instance"
+  DESCRIPTION "Each object in a window has a layout position represented by a three-character code. The first character is ""M"" or ""B"" depending on whether this object is in the Main or Bottom section. The second character is a digit representing the row,  and the third character is a digit representing the left-to-right position or sequence within that row. The third character can also be a ""C"", meaning that the object should be centered within the row (or within the remaining available space in the row), or ""R"", meaning that the object should be right justified within the row.  SmartDataObjects and other non-visual objects are automatically assigned to row ""0"", since they do not actually appear in any way at runtime.
+So for example, a window or page with a Toolbar at the top, and an SDO, followed by a Browser, under that a Viewer, and another Toolbar at the Bottom, would assign to those objects the layout positions ""M11"" for the toolbar, ""M01"" for the SDO, ""M21"" for the Browser, ""M31"" for the Viewer, and ""B11"" for the Bottom Toolbar. If you wanted the Viewer to be to the right of the Browser rather than underneath it, its position would be ""M22"""
+  POSITION 6
+  ORDER 50
+
+ADD FIELD "instance_name" OF "ryc_object_instance" AS character
+  DESCRIPTION "This is the name of the instance, and if used this should be unique within a single container.
+
+In the case of SDO's as containers for datafield objects, this name field is used as the actual name of the field to use in the SDO field list - it should therefore never contain any prefix. Usually the name will match the object name of the datafield object, but may differ, e.g. where two tables exist in a single SDO with common fieldnames. The use of the name field therefore emulates the alias functionality that exists within SDO's.
+
+The field is not forced unique for migration purposes and also to cope with scenarious where instance names need not be forced. Uniqueness of the name should however be forced in code where applicable, and the instance name should be defaulted to the object name of the instance.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Instance name"
+  HELP-SA ""
+  LABEL "Instance Name"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "instance_description" OF "ryc_object_instance" AS character
+  DESCRIPTION "This is a free text description of the instance, used to describe the purpose and useage of the instance. 
+
+This is particularly useful when a container contains the same instance of a specific object multiple times, e.g. a container containing many different toolbars. The description could be used to help identify the purpose of each instance of the toolbar on the container.
+
+The use of the description field is optional, especially for migration purposes."
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Instance description"
+  HELP-SA ""
+  LABEL "Instance Description"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+RENAME INDEX "XIE4ryc_object_instance" TO "temp-61063" ON "ryc_object_instance"
+
+RENAME INDEX "XPKryc_object_instance" TO "temp-34215" ON "ryc_object_instance"
+
+ADD INDEX "XIE4ryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+  INDEX-FIELD "instance_name" ASCENDING
+
+ADD INDEX "XIE5ryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+  INDEX-FIELD "instance_description" ASCENDING
+
+ADD INDEX "XPKryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_instance_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKryc_object_instance" ON "ryc_object_instance"
+
+DROP INDEX "temp-61063" ON "ryc_object_instance"
+DROP INDEX "temp-34215" ON "ryc_object_instance"
+
+UPDATE FIELD "page_obj" OF "ryc_page"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 2
+  ORDER 10
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 3
+  ORDER 20
+
+UPDATE FIELD "layout_obj" OF "ryc_page"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+RENAME INDEX "XPKryc_page" TO "temp-34984" ON "ryc_page"
+
+ADD INDEX "XPKryc_page" ON "ryc_page"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "page_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKryc_page" ON "ryc_page"
+
+DROP INDEX "XIE2ryc_page" ON "ryc_page"
+DROP INDEX "temp-34984" ON "ryc_page"
+
+UPDATE FIELD "page_object_obj" OF "ryc_page_object"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page_object"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "page_obj" OF "ryc_page_object"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_page_object"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartlink_obj" OF "ryc_smartlink"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_smartlink"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "source_object_instance_obj" OF "ryc_smartlink"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "target_object_instance_obj" OF "ryc_smartlink"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink_type"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+ADD FIELD "user_defined_link" OF "ryc_smartlink_type" AS logical
+  DESCRIPTION "If set to YES, this is a user defined link and the link name specified here is for information purposes only, i.e. custom link.
+
+If this is set to NO, then this is a system link and the link name specified will be cascaded down onto the smartlink table for performance reasons. This must be done in both add and modify situations.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 4
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "User defined link"
+  HELP-SA ""
+  LABEL "User Defined Link"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 30
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+UPDATE TABLE "ryc_smartobject"
+  DESCRIPTION "This table represents every object known to the repository, whether static or dynamic. All objects that can be run should be registered in the repository, including all visual objects, business logic, etc. Images for buttons, etc. should also be registered.
+
+The only files not registered in the repository are include files.
+
+Having the files registered allows them to be added as instances to containers, added to menus, have security applied to them, run them as part of flows and events, automate deployment of them, etc.
+
+Many child tables exist to further define an object, and which tables apply depend on the object type. For example, information regarding links, pages, instances, etc. only pertain to objects that are containers. Even with containers, not all tables may apply, as viewers, browsers, and sdo's are containers for datafields but do not have the concept of pages, only window containers have pages, links, etc.
+
+Certain object properties are only applicable to physical objects. Previously this table was broken into two, and th second table, gsc_object used to define physical properties. This was removed in V2 to improve performance and resolve many issues associated with this, hence some redundant fields in certain object types.
+
+For versioning to work, we have turned off RI that would have prevented an object being deleted if it is used on a container - this is to allow imports and object assignments to work. This RI must therefore be manually coded where required.
+
+We turned off the automatic delete cascade of smartobject attributes as it was also deleting attributes for instances of the smartobject when we did not want it to. Added a specific delete trigger customisation that rather joined on the primary_smartobject_obj in the attribute table when deleting attributes, to ensure only attributes for the smartobject were deleted, not also instance attributes.
+
+This table optionally supports customization using custom result codes.The unique key to this table is made up of the object filename and a result code, allowing the same object name to exist with multiple result codes, each custom object containing what behaviour has been added or overridden. The object with a 0 result code is the master default object, and this must always exist.
+
+In this way, any of the fields on this table, plus information in tables where this is the parent may be customized by result code. Tools support for this however may be limited initially.
+
+Whenever reading a smartobject based on the filename, the result code must also be specified, using 0 if looking for the master.
+
+A recursive join with a rolename of extends_smartobject_obj has been added to this table to support inherritance. This functionality however as of V2 has not been implemented into the framework. The intention is to allow objects to inherit from (extend) other objects, therefore facilitating changes to master or template objects being cascaded down to subclasses or instances, by reading up the class structure.
+
+For V2, the inherittance functionality has just been added at the object type level."
+
+UPDATE FIELD "smartobject_obj" OF "ryc_smartobject"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_filename" OF "ryc_smartobject"
+  DESCRIPTION "This is the name of the object. The name must be unique within the whole repository - apart from support for customization via the result code.
+
+The name must be specified without a path, and ideally without an extension, although the specification of the extension in the filename is supported for backward compatibility.
+
+Whenever reading this table based on the filename, the customization result must also be specified, using 0 for the master object.
+"
+  POSITION 3
+  ORDER 20
+
+ADD FIELD "customization_result_obj" OF "ryc_smartobject" AS decimal
+  DESCRIPTION "This field makes up part of the unique key for the object, together with the filename.
+
+This field will be 0 for the master object, or will contain an id for a specific result code for object customizations to the master.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 4
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Customization result obj"
+  HELP-SA ""
+  LABEL "Customization Result Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 30
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "ryc_smartobject"
+  DESCRIPTION "The type of object, e.g. viewer, browser, datafield, procedure, plip, etc.
+
+The object type should typically not be modified and in fact when linking to an SCM tool modifying the object type could cause integration issues.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 5
+  ORDER 40
+
+UPDATE FIELD "product_module_obj" OF "ryc_smartobject"
+  DESCRIPTION "The product module this object belongs to. All objects must belong to a product module."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 6
+  ORDER 50
+
+UPDATE FIELD "layout_obj" OF "ryc_smartobject"
+  DESCRIPTION "The actual layout to use for this object. This is only really applicable to containers, and we only currently support relative layouts.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 7
+  ORDER 60
+
+ADD FIELD "object_description" OF "ryc_smartobject" AS character
+  DESCRIPTION "A description of the object. This description will be used as the default for the menu label when adding to a menu. Do not add ... to it as this is done automatically.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 8
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Object description"
+  HELP-SA ""
+  LABEL "Object Description"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 70
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "object_path" OF "ryc_smartobject" AS character
+  DESCRIPTION "The relative path to the object. This must contain forward slashes for portability. A relative path should always be used rather than an absolute path. The path must be relative to the workspace root directory.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Object path"
+  HELP-SA ""
+  LABEL "Object Path"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "object_extension" OF "ryc_smartobject" AS character
+  DESCRIPTION "The extension of the filename of the object. This will only be relevant to static objects.
+
+If an extension is specified, then the filename will be stored without an extension and this extension must be added to the filename to concoct the full filename.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Object extension"
+  HELP-SA ""
+  LABEL "Object Extension"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+UPDATE FIELD "static_object" OF "ryc_smartobject"
+  DESCRIPTION "Indicates whether this object is static or dynamic (logical).
+
+If set to NO, this object is a dynamically created logical  object built using the object repository, and must point at a physical object to use as the starting point when building the dynamic object.
+
+A logical object (non static) cannot be a generic object.
+"
+  POSITION 11
+  ORDER 100
+
+ADD FIELD "generic_object" OF "ryc_smartobject" AS logical
+  DESCRIPTION "If set to YES, this is a physical generic object used as the starting point for building a dynamic object and is not a complete object in itself."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Generic object"
+  HELP-SA ""
+  LABEL "Generic Object"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+UPDATE FIELD "system_owned" OF "ryc_smartobject"
+  POSITION 14
+  ORDER 130
+
+ADD FIELD "deployment_type" OF "ryc_smartobject" AS character
+  DESCRIPTION "This is to determine where the object should be deployed. This field is also on the object type which serves as a default. Valid values for this field would be ""SRV"" for remote server only, ""CLI"" for client only, ""WEB"" for WEB, or combinations as required comma delimited, e.g. ""CLI,SRV"". This field will assist when deploying applications on appservers to help define which objects should reside where.
+This field is also specified on product modules, but the value on the specific object would always override the value on the product module.
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Deployment type"
+  HELP-SA ""
+  LABEL "Deployment Type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "design_only" OF "ryc_smartobject" AS logical
+  DESCRIPTION "This is a logical field, defaulting to NO to identify the object as only being required during design / development time.
+
+This flag allows the identification of which objects to deploy when building a runtime only package that does not require any objects used to build the application for example."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 16
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Design only"
+  HELP-SA ""
+  LABEL "Design Only"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 150
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "runnable_from_menu" OF "ryc_smartobject" AS logical
+  DESCRIPTION "If set to YES, this object can be run from a menu.
+
+Objects such as smartbrowers, smartviewers, etc may be set-up in here for security purposes, but cannot be run from a menu.
+
+Object controllers and menu controllers can always be run from the menu. Smart folders can sometimes be run from a menu, depending on whether they are maintaining a specific record or not.
+
+If this flag is set to NO, this object cannot be placed on a menu or dynamic toolbar.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 17
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Runnable from menu"
+  HELP-SA ""
+  LABEL "Runnable From Menu"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 160
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "container_object" OF "ryc_smartobject" AS logical
+  DESCRIPTION "If set to YES, this object is a container window. Only container windows can possibly appear on menu's, and only container windows can have a dynamic menu structure.
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 18
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Container object"
+  HELP-SA ""
+  LABEL "Container Object"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 170
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "disabled" OF "ryc_smartobject" AS logical
+  DESCRIPTION "If set to YES, access to this object will be disabled, regardless of any other security settings."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 19
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Disabled"
+  HELP-SA ""
+  LABEL "Disabled"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 180
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "run_persistent" OF "ryc_smartobject" AS logical
+  DESCRIPTION "If set to YES, this object will be run persistently."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 20
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Run persistent"
+  HELP-SA ""
+  LABEL "Run Persistent"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 190
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "run_when" OF "ryc_smartobject" AS character
+  DESCRIPTION "This option controls under what circumstances this program may be run as follows:
+
+""ONE"" = Only 1 instance of this program may be run at a time.
+""NOT"" = This program may only be run when there is no transaction open.
+""ANY"" = This program can be run anytime
+""NOR"" = This program may only be run when no other programs are running. Whilst it is running, no other programs may be started.
+"
+  FORMAT "X(3)"
+  FORMAT-SA ?
+  POSITION 21
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Run when"
+  HELP-SA ""
+  LABEL "Run When"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_mnemonic"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 200
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 6
+
+UPDATE FIELD "shutdown_message_text" OF "ryc_smartobject"
+  POSITION 22
+  ORDER 210
+
+ADD FIELD "required_db_list" OF "ryc_smartobject" AS character
+  DESCRIPTION "This is a comma delimited list of database logical names that must be connected in order to run this object.
+
+For example ICFDB.
+
+If any databases are specified and the databases are not connected, then the program will be prevented from running, the menu option / buttons it appears on will be disabled, etc.
+
+This is to facilitate a mixture of db-aware and non-db-aware objects to exist in the same session, and for the appropriate objects to be disabled when the databases are not available, which would be the case in a WEBClient implementation that does not support client database connections.
+
+In future, no visual objects should require a database connection. This is really for the transitional phase."
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Required db list"
+  HELP-SA ""
+  LABEL "Required Db List"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+UPDATE FIELD "sdo_smartobject_obj" OF "ryc_smartobject"
+  DESCRIPTION "The object used as the data source for this object. This may point at an SDO or an SBO object. It is relevant for things such as viewers and browsers to identify the SDO to get the list of valid fields from.
+
+The actual SDO used at runtime may differ and will be determined by the links to/from the object. This information is for design time only.
+
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 24
+  ORDER 230
+
+ADD FIELD "custom_smartobject_obj" OF "ryc_smartobject" AS decimal
+  DESCRIPTION "This join provides the abiltity to specify an object to attach as a super procedure to the object and in which to specify custom code.
+
+This allows dynamic objects to contain custom code - in an attached super procedure.
+
+Super procedures provide code-level services (e.g. functions and internal procedures) to smartobjects in addition to those inherent in the smartobject itself."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 25
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Custom SmartObject obj"
+  HELP-SA ""
+  LABEL "Custom SmartObject Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 240
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "extends_smartobject_obj" OF "ryc_smartobject" AS decimal
+  DESCRIPTION "This is not implemented in V2.
+
+If this object is a subclass of some other object, e.g. visual is a subclass of smart, then this field identifies the object that this object is extending. For example, an object visual extends smart so the extends smartobject in this case would be smart.
+
+This allows for inherritance.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 26
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Extends SmartObject obj"
+  HELP-SA ""
+  LABEL "Extends SmartObject Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 250
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "physical_smartobject_obj" OF "ryc_smartobject" AS decimal
+  DESCRIPTION "If this object is a logical object (non static), then this flag point at the physical object used as the starting point when building the dynamic logical object.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 27
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Physical SmartObject obj"
+  HELP-SA ""
+  LABEL "Physical SmartObject Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 260
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "security_smartobject_obj" OF "ryc_smartobject" AS decimal
+  DESCRIPTION "This is usually the same as the smartobject_obj indicating that security is enabled for the obejct and this object is used for security checks.
+
+If this field is set to 0 then security checking is disabled for this object.
+
+A different object may be specified for the security object if required to make setting up security restrictions easier. For example, all objects on a container could point at the container object for their security. Possibly an entire suite of objects could point at the same security object, maybe the menu.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 28
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Security SmartObject obj"
+  HELP-SA ""
+  LABEL "Security SmartObject Obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 270
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1ryc_smartobject" TO "temp-48868" ON "ryc_smartobject"
+
+RENAME INDEX "XAK3ryc_smartobject" TO "temp-93788" ON "ryc_smartobject"
+
+ADD INDEX "XAK1ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_filename" ASCENDING
+  INDEX-FIELD "customization_result_obj" ASCENDING
+
+ADD INDEX "XAK3ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "object_filename" ASCENDING
+  INDEX-FIELD "customization_result_obj" ASCENDING
+
+ADD INDEX "XIE10ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "runnable_from_menu" ASCENDING
+
+ADD INDEX "XIE4ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "custom_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE5ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "extends_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE6ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "customization_result_obj" ASCENDING
+
+ADD INDEX "XIE7ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "object_type_obj" ASCENDING
+
+ADD INDEX "XIE8ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "security_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE9ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "object_description" ASCENDING
+
+DROP INDEX "temp-48868" ON "ryc_smartobject"
+DROP INDEX "XAK2ryc_smartobject" ON "ryc_smartobject"
+DROP INDEX "temp-93788" ON "ryc_smartobject"
+DROP INDEX "XIE3ryc_smartobject" ON "ryc_smartobject"
+
+UPDATE FIELD "supported_link_obj" OF "ryc_supported_link"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_type_obj" OF "ryc_supported_link"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_supported_link"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE TABLE "ryc_ui_event"
+  DESCRIPTION "This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
+
+This allows the attachment of UI events to dynamic objects.
+
+When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Events are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the events for an object, events for parent classes must also be read."
+
+UPDATE FIELD "ui_event_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_type_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "constant_value" OF "ryc_ui_event"
+  POSITION 8
+  ORDER 70
+
+UPDATE FIELD "action_type" OF "ryc_ui_event"
+  POSITION 9
+  ORDER 80
+
+UPDATE FIELD "action_target" OF "ryc_ui_event"
+  POSITION 10
+  ORDER 90
+
+UPDATE FIELD "event_action" OF "ryc_ui_event"
+  ORDER 100
+
+UPDATE FIELD "event_parameter" OF "ryc_ui_event"
+  POSITION 12
+  ORDER 110
+
+UPDATE FIELD "event_disabled" OF "ryc_ui_event"
+  POSITION 13
+  ORDER 120
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_ui_event"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  POSITION 14
+  ORDER 130
+
+UPDATE FIELD "data_version_obj" OF "rym_data_version"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "wizard_tree_obj" OF "rym_wizard_tree"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "product_code" OF "rym_wizard_tree"
+  POSITION 3
+
+UPDATE FIELD "product_module_code" OF "rym_wizard_tree"
+  POSITION 4
+
+UPDATE FIELD "object_name" OF "rym_wizard_tree"
+  POSITION 5
+
+UPDATE FIELD "object_description" OF "rym_wizard_tree"
+  POSITION 6
+
+UPDATE FIELD "window_title_field" OF "rym_wizard_tree"
+  POSITION 8
+
+UPDATE FIELD "root_node_code" OF "rym_wizard_tree"
+  POSITION 9
+
+UPDATE FIELD "root_node_sdo_name" OF "rym_wizard_tree"
+  POSITION 10
+
+UPDATE FIELD "custom_super_procedure" OF "rym_wizard_tree"
+  POSITION 12
+
+UPDATE FIELD "page_layout" OF "rym_wizard_tree"
+  POSITION 13
+
+UPDATE FIELD "auto_sort" OF "rym_wizard_tree"
+  POSITION 15
+
+UPDATE FIELD "hide_selection" OF "rym_wizard_tree"
+  POSITION 16
+
+UPDATE FIELD "image_height" OF "rym_wizard_tree"
+  POSITION 17
+
+UPDATE FIELD "image_width" OF "rym_wizard_tree"
+  POSITION 18
+
+UPDATE FIELD "show_check_boxes" OF "rym_wizard_tree"
+  POSITION 19
+
+UPDATE FIELD "show_root_lines" OF "rym_wizard_tree"
+  POSITION 20
+
+UPDATE FIELD "tree_style" OF "rym_wizard_tree"
+  POSITION 21
+
+UPDATE FIELD "generated_time" OF "rym_wizard_tree"
+  POSITION 22
+
+UPDATE FIELD "generated_date" OF "rym_wizard_tree"
+  POSITION 23
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20008
+  MAX-VAL 20008
+
+.
+PSC
+cpstream=UTF-8
+.
+0000149215

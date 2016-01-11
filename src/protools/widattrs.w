@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
 /* Procedure Description
 "Object Attribute Reference"
 */
@@ -100,7 +100,7 @@ DEFINE BUTTON vbWidHelp
 DEFINE VARIABLE cWidget AS CHARACTER FORMAT "X(40)":U 
      LABEL "Object" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 18
-     LIST-ITEMS "Frame","Fill-in","Toggle-box","Combo-box","Radio-set","Slider","Editor","Text","Literal","Selection-list","Button","Image","Rectangle","Control-frame","Window","Field-group","Browse","Browse Column","Error-status","Compiler","File-info","Rcode-info","Session","Color-table","Procedure","Clipboard","Debugger","Last-event","Menu","Sub-menu","Menu-item (normal)","Menu-item (toggle)","Dialog-box","Server","Font-table"
+     LIST-ITEMS "Frame","Fill-in","Toggle-box","Combo-box","Radio-set","Slider","Editor","Text","Literal","Selection-list","Button","Image","Rectangle","Control-frame","Window","Field-group","Browse","Browse Column","Error-status","Compiler","File-info","Rcode-info","Session","Color-table","Procedure","Clipboard","Debugger","Last-event","Menu","Sub-menu","Menu-item (normal)","Menu-item (toggle)","Dialog-box","Server","Font-table" 
      DROP-DOWN-LIST
      SIZE 24 BY 1 NO-UNDO.
 
@@ -113,7 +113,7 @@ DEFINE VARIABLE vROLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Read-only and M
      SIZE 32 BY .62 NO-UNDO.
 
 DEFINE VARIABLE vRWLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Read/Write" 
-      VIEW-AS TEXT 
+      VIEW-AS TEXT 
      SIZE 32 BY .62 NO-UNDO.
 
 DEFINE VARIABLE slEvents AS CHARACTER 
@@ -312,8 +312,12 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL slEvents C-Win
 ON DEFAULT-ACTION OF slEvents IN FRAME fMain
 DO:
-  system-help search("prohelp/lgrfeng.hlp")
-    partial-key self:screen-value.
+  RUN adecomm/_adehelp.p
+      (INPUT "lgrf":U, 
+       INPUT "PARTIAL-KEY":U, 
+       INPUT ?, 
+       INPUT self:screen-value).
+ 
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -337,8 +341,11 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL slRO C-Win
 ON DEFAULT-ACTION OF slRO IN FRAME fMain
 DO:
-  system-help search("prohelp/lgrfeng.hlp")
-    partial-key self:screen-value.
+  RUN adecomm/_adehelp.p
+      (INPUT "lgrf":U, 
+       INPUT "PARTIAL-KEY":U, 
+       INPUT ?, 
+       INPUT self:screen-value).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -349,8 +356,11 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL slRW C-Win
 ON DEFAULT-ACTION OF slRW IN FRAME fMain
 DO:
-  system-help search("prohelp/lgrfeng.hlp")
-    partial-key self:screen-value + " attribute".
+  RUN adecomm/_adehelp.p
+      (INPUT "lgrf":U, 
+       INPUT "PARTIAL-KEY":U, 
+       INPUT ?, 
+       INPUT self:screen-value + " attribute").
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -361,22 +371,26 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL vbWidHelp C-Win
 ON CHOOSE OF vbWidHelp IN FRAME fMain /* Help */
 DO:
-  def var cWid as char no-undo.
-  
-  assign cWid = trim(entry(1,cWidget:screen-value," ")).
+  DEFINE VARIABLE cSearchKey AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWid       AS CHARACTER  NO-UNDO.
 
-  if cWid = "profiler" then
-    os-command no-wait value("start http://techweb.progress.com/kbase/19495").
-  else
-    system-help search("prohelp\lgrfeng.hlp")
-      partial-key cWid + " " +
-                  (if can-do("clipboard,color-table,compiler,debugger,error-status,file-info,last-event,rcode-info,session,profiler",cWid)
-                   then "system handle" else
-                  (if can-do("buffer,buffer-field,socket,transaction,x-document,x-noderef",cWid)
-                   then "object handle" else
-                  (if can-do("procedure,server,web-context,temp-table,query,async-request",cWid)
-                   then ""
-                   else "widget"))).
+  ASSIGN
+    cWid = trim(entry(1,cWidget:screen-value," "))
+    cSearchKey = cWid + " " +
+                (if can-do("clipboard,color-table,compiler,debugger,error-status,file-info,last-event,rcode-info,session,profiler",cWid)
+                 then "system handle" else
+                (if can-do("buffer,buffer-field,socket,transaction,x-document,x-noderef",cWid)
+                 then "object handle" else
+                (if can-do("procedure,server,web-context,temp-table,query,async-request",cWid)
+                 then ""
+                 else "widget"))).
+
+  RUN adecomm/_adehelp.p
+    (INPUT "lgrf":U, 
+     INPUT "PARTIAL-KEY":U, 
+     INPUT ?, 
+     INPUT cSearchKey).
+  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -470,7 +484,6 @@ ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME}
                      "X-Noderef").
   &endif
 &endif
-
 
 /* The CLOSE event can be used from inside or outside the procedure to  */
 /* terminate it.                                                        */
@@ -606,7 +619,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE JunkProc C-Win
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE JunkProc C-Win 
 PROCEDURE JunkProc :
 /*------------------------------------------------------------------------------
   Purpose:     Empty procedure for getting async-request handle
@@ -729,6 +742,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-
 

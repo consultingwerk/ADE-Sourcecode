@@ -1,347 +1,349 @@
-<HTML>
-<HEAD>
-<META NAME="author" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<SCRIPT LANGUAGE="SpeedScript">
-  DEFINE VARIABLE isIE     AS LOGICAL NO-UNDO.
-  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
-
-  {&OUT} '<STYLE TYPE="text/css">':U SKIP.
-  IF isIE THEN
-    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:8pt }':U SKIP
-           '  TD   ~{ font-family:sans-serif; font-size:8pt }':U SKIP.
-  ELSE
-    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:9pt }':U SKIP
-           '  TD   ~{ font-family:sans-serif; font-size:9pt }':U SKIP.
-  {&OUT} '</STYLE>':U SKIP.
-</SCRIPT>
-<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/script/common.js"><!--
-  document.write("Included common.js file not found.");
-//--></SCRIPT>
-<SCRIPT LANGUAGE="JavaScript1.2"><!--
-  var cMode   = "`get-field('mode')`";
-  var cTarget = "`get-field('target')`";
-  var defaultBtn;
-  var hBtnCancel;
-  var hBtnOpen;
-  var hBtnSave;
-  var hFileName;
-  var hFileType;
-  var oldCell;
-  
-  <SCRIPT LANGUAGE="SpeedScript">
-    DEFINE VARIABLE cNewLine AS CHARACTER NO-UNDO.
-    {&OUT} '  var cNewLine = ' (IF OPSYS = "UNIX" THEN '"\\n";' ELSE '"\n";').
-  </SCRIPT>
-  
-  function autoGo() {
-    /*-----------------------------------------------------------------------
-      Purpose:     Redirect the Enter key to the Open or Save button.
-      Parameters:  <none>
-      Notes:       
-    -------------------------------------------------------------------------*/
-    var btnOKObj = (isIE4up ?
-                    (document.form1.btnOpen != null ?
-                     document.form1.btnOpen : 
-                     document.form1.btnSave) :
-                    (document.form1.elements['btnOpen'] != null ?
-                     document.form1.elements['btnOpen'] : 
-                     document.form1.elements['btnSave']));
-    btnClick(btnOKObj);
-    return false;
-  }
-  
-  function btnClick(e) {
-    var btnId   = getBtnId(e);
-    var cFullPath;
-    var cString = new String(hFileName.value);
-    var iPos    = cString.indexOf("(DIR)");
-    var isDir   = ((iPos != -1) || hFileName.value == "..");
-
-    if (hFileName.value == "" &&
-       (btnId == "btnOpen" || btnId == "btnSave")) {
-      alert("Please select a file to `get-field('mode')`.");
-      return false;
-    }
-    if (btnId == "btnOpen" || btnId == "btnSave") {
-      if (parent.OS_flist.cNewDir == getUnknown()) {
-        alert("The destination directory is unknown." + cNewLine + cNewLine +
-              "Please wait until the file list has" + cNewLine +
-              "finished loading and try again.");
-        return false;
-      }
-      cFullPath = parent.OS_flist.cNewDir + hFileName.value;
-      
-      if (isDir) {
-        parent.OS_flist.location.href = 
-          '../webutil/_weblist.w' +
-          '?directory=' + (getDir(iPos)) +
-          '&filter=' + (getFilter()) +
-          '&options=editor';
-          
-        setFileName(""); // don't do for fileSaveAs or changing dir
-      }
-      else {
-        if (isIE4up)
-           /* 19990724-004
-              parent.returnValue = parent.OS_flist.cNewDir + "|" +
-                                hFileName.value; */
-           parent.returnValue = cFullPath;
-        else if (isNav4up) {
-          if (btnId == "btnOpen")
-            parent.opener.fileOpen(cFullPath);
-          else if (btnId == "btnSave")
-            parent.opener.fileSaveAs(cFullPath, "fileSaveAs", cTarget);
-        }
-        parent.close();
-      }
-    }
-    else
-      parent.close();
-  }
-  
-  function getBtnCancel() {
-    if (isIE4up) 
-      return document.all.btnCancel;
-    else if (isNav4up)
-      return document.form1.elements["btnCancel"];
-  }
-    
-  function getBtnId(e) {
-    if (isIE4up) 
-      return e.id;
-    else if (isNav4up)
-      return e.name;
-  }
-    
-  function getBtnOpen() {
-    if (isIE4up) {
-      if (document.all.btnOpen != null)
-        return document.all.btnOpen;
-    }
-    else if (isNav4up) {
-      if (document.form1.elements["btnOpen"] != undefined)
-        return document.form1.elements["btnOpen"];
-    }
-  }
-    
-  function getBtnSave() {
-    if (isIE4up) {
-      if (document.all.btnSave != null)
-        return document.all.btnSave;
-    }
-    else if (isNav4up) {
-      if (document.form1.elements["btnSave"] != undefined)
-        return document.form1.elements["btnSave"];
-    }
-  }
-
-  function getDir(iPos) {
-    var cSubDir;
-    
-    if (hFileName.value == "..")
-      cSubDir = "..";
-    else {
-      cSubDir = new String(hFileName.value);
-      cSubDir = cSubDir.substr(0, (iPos - 1));
-    }
-
-    return (parent.OS_flist.cNewDir + cSubDir);
-  }
-    
-  function getFileName() {
-    if (isIE4up) 
-      return document.all.fileName;
-    else if (isNav4up)
-      return document.form1.elements["fileName"];
-  }
-    
-  function getFileType() {
-    if (isIE4up) 
-      return document.all.fileType;
-    else if (isNav4up)
-      return document.form1.elements["fileType"];
-  }
-    
-  function getFilter() {
-    return (hFileType.options[hFileType.selectedIndex].value);
-  }
-  
-  function highlight(e) {
-    if (isIE4up) {
-      e.style.color      = "white";
-      e.style.background = "navy";
-    }
-  }
-  
-  function init() {
-    getBrowser();
-    
-    hBtnCancel = getBtnCancel();
-    hFileName  = getFileName();
-    hFileType  = getFileType();
-    hBtnOpen   = getBtnOpen();
-    hBtnSave   = getBtnSave();
-
-    if (isIE4up) {
-      if (hBtnOpen != null) {
-        defaultBtn                = hBtnOpen;
-        hBtnOpen.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
-        setTimeout('hBtnOpen.focus()',1);
-      }
-    
-      if (hBtnSave != null) {
-        defaultBtn                = hBtnSave;
-        hBtnSave.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
-        setTimeout('hBtnSave.focus()',1);
-      }
-      hBtnCancel.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
-      hFileName.style.pixelWidth  = hFileType.clientWidth;
-    }
-    else if (isNav4up) {
-      if (hBtnOpen != undefined) {
-        defaultBtn = hBtnOpen;
-        setTimeout('hBtnOpen.focus()',1);
-      }
-    
-      if (hBtnSave != undefined) {
-        defaultBtn = hBtnSave;
-        setTimeout('hBtnSave.focus()',1);
-      }
-    }
-    
-    if (cMode.toLowerCase() == "save") {
-      if (isIE4up) {
-        if (parent.window.dialogArguments != "")
-          hFileName.value = parent.window.dialogArguments;
-      }
-      else if (isNav4up) {
-        if (!parent.opener.parent.WS_edit.lUntitled)
-          hFileName.value = parent.opener.parent.WS_edit.cFileName;
-      
-        setTimeout('hFileName.focus()', 1);
-      }
-      hFileName.select();   
-    }
-  }
-  
-  function normal(e) {
-    if (isIE4up) {
-      e.style.color      = "black";
-      e.style.background = "white";
-    }
-    else if (isNav4up) {
-      e.bgColor          = "white";
-    }
-  }
-
-  function resetCell(e) {  
-    if (oldCell != null)
-      normal(oldCell);
-    oldCell = e;
-  }
-
-  function setFileName(cFile) {
-    if (isIE4up) 
-      document.all.fileName.value = cFile;
-    else if (isNav4up)
-      document.form1.elements["fileName"].value = cFile;
-  }
-    
-  function setImage(e, fName) {
-    e.src = "`RootURL`/images/" + fName + ".gif";
-  }
-
-  function typeChange() {
-    parent.OS_flist.location.href = 
-      '../webutil/_weblist.w' +
-      '?directory=' + parent.OS_flist.cNewDir +
-      '&filter=' + (getFilter()) +
-      '&options=editor';
-  }
-  
-  function updateName(e) {
-    resetCell(e);
-    highlight(e);
-    hFileName.value = e.innerText;
-  }
-  
-//--></SCRIPT>
-</HEAD>
-
-<BODY BGCOLOR="lightgrey" onLoad="setTimeout('init()', 1)">
-<FORM ID="form1" NAME="form1" onSubmit="return autoGo()">
-  <TABLE ID="table1" NAME="table1" CELLPADDING=2 WIDTH="100%">
-    <TR>
-      <SCRIPT LANGUAGE="SpeedScript">
-        IF isIE THEN
-          {&OUT} '      <TD WIDTH="30%"><B>File Name:</B></TD>':U SKIP
-                 '      <TD WIDTH="40%">':U SKIP.
-        ELSE
-          {&OUT} '      <TD WIDTH="40%"><B>File Name:</B></TD>':U SKIP
-                 '      <TD WIDTH="50%">':U SKIP.
-      </SCRIPT>
-        <INPUT ID="fileName" NAME="fileName" TYPE="text" SIZE=18> 
-      </TD>
-      <TD ID="tdMode" NAME="tdMode" ALIGN="right">
-        <SCRIPT LANGUAGE="SpeedScript">
-          IF LOOKUP("open",get-field("buttons"),"-") > 0 THEN DO:
-            IF isIE THEN
-              {&OUT} 
-                '        <BUTTON ID="btnOpen" '
-                'onClick="return btnClick(this)">Open</BUTTON>':U SKIP.
-            ELSE
-              {&OUT} 
-                '        <INPUT NAME="btnOpen" TYPE="button" VALUE="  Open  " '
-                'onClick="return btnClick(this)">':U SKIP.
-          END.
-          IF LOOKUP("save",get-field("buttons"),"-") > 0 THEN DO:
-            IF isIE THEN
-              {&OUT} 
-                '        <BUTTON ID="btnSave" NAME="btnSave" '
-                'onClick="return btnClick(this)">Save</BUTTON>':U SKIP.
-            ELSE
-              {&OUT} 
-                '        <INPUT NAME="btnSave" TYPE="button" VALUE="  Save  " '
-                'onClick="return btnClick(this)">':U SKIP.
-          END.
-        </SCRIPT>
-      </TD>
-    </TR>
-    <TR>
-      <SCRIPT LANGUAGE="SpeedScript">
-        IF isIE THEN
-          {&OUT} '      <TD WIDTH="30%"><B>Files of Type:</B></TD>':U SKIP
-                 '      <TD WIDTH="40%">':U SKIP.
-        ELSE
-          {&OUT} '      <TD WIDTH="40%"><B>Files of Type:</B></TD>':U SKIP
-                 '      <TD WIDTH="50%">':U SKIP.
-      </SCRIPT>
-        <SELECT ID="fileType" NAME="fileType" SIZE=1 onChange="typeChange()">
-          <OPTION VALUE="*.w;*.p;*.i;*.htm*">All Source(*.w;*.p;*.i;*.htm*)
-          <OPTION VALUE="*.w">Web Objects(*.w)
-          <OPTION VALUE="*.p">Procedures(*.p)
-          <OPTION VALUE="*.i">Includes(*.i)
-          <OPTION VALUE="*.html;*.htm">HTML(*.html;*.htm)
-          <OPTION VALUE="*.*">All Files(*.*)
-        </SELECT>
-      </TD>
-      <TD ID="tdCancel" NAME="tdCancel" ALIGN="right">
-        <SCRIPT LANGUAGE="SpeedScript">
-          IF LOOKUP("cancel",get-field("buttons"),"-") > 0 THEN DO:
-            IF isIE THEN
-              {&OUT} 
-                '        <BUTTON ID="btnCancel" NAME="btnCancel" VALUE="Cancel" '
-                'onClick="return btnClick(this)">Cancel</BUTTON>':U SKIP.
-            ELSE
-              {&OUT} 
-                '        <INPUT NAME="btnCancel" TYPE="button" VALUE="Cancel " '
-                'onClick="return btnClick(this)">':U SKIP.
-          END.
-        </SCRIPT>
-      </TD>
-    </TR>
-  </TABLE>
-</FORM>  
-</BODY>
-</HTML>
+<HTML>
+<HEAD>
+<META NAME="author" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<SCRIPT LANGUAGE="SpeedScript">
+  DEFINE VARIABLE isIE     AS LOGICAL NO-UNDO.
+  IF INDEX(get-cgi('HTTP_USER_AGENT':U), " MSIE ":U) > 0 THEN isIE = TRUE.
+
+  {&OUT} '<STYLE TYPE="text/css">':U SKIP.
+  IF isIE THEN
+    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:8pt }':U SKIP
+           '  TD   ~{ font-family:sans-serif; font-size:8pt }':U SKIP.
+  ELSE
+    {&OUT} '  FONT ~{ font-family:sans-serif; font-size:9pt }':U SKIP
+           '  TD   ~{ font-family:sans-serif; font-size:9pt }':U SKIP.
+  {&OUT} '</STYLE>':U SKIP.
+</SCRIPT>
+<SCRIPT LANGUAGE="Speedscript">
+{&out} '<~SCRIPT LANGUAGE="JavaScript" SRC="' RootURL '/script/common.js"><!--~n'.
+</SCRIPT>
+  document.write("Included common.js file not found.");
+//--></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript1.2"><!--
+  var cMode   = "`get-field('mode')`";
+  var cTarget = "`get-field('target')`";
+  var defaultBtn;
+  var hBtnCancel;
+  var hBtnOpen;
+  var hBtnSave;
+  var hFileName;
+  var hFileType;
+  var oldCell;
+  
+  <SCRIPT LANGUAGE="SpeedScript">
+    DEFINE VARIABLE cNewLine AS CHARACTER NO-UNDO.
+    {&OUT} '  var cNewLine = ' (IF OPSYS = "UNIX" THEN '"\\n";' ELSE '"\n";').
+  </SCRIPT>
+  
+  function autoGo() {
+    /*-----------------------------------------------------------------------
+      Purpose:     Redirect the Enter key to the Open or Save button.
+      Parameters:  <none>
+      Notes:       
+    -------------------------------------------------------------------------*/
+    var btnOKObj = (isIE4up ?
+                    (document.form1.btnOpen != null ?
+                     document.form1.btnOpen : 
+                     document.form1.btnSave) :
+                    (document.form1.elements['btnOpen'] != null ?
+                     document.form1.elements['btnOpen'] : 
+                     document.form1.elements['btnSave']));
+    btnClick(btnOKObj);
+    return false;
+  }
+  
+  function btnClick(e) {
+    var btnId   = getBtnId(e);
+    var cFullPath;
+    var cString = new String(hFileName.value);
+    var iPos    = cString.indexOf("(DIR)");
+    var isDir   = ((iPos != -1) || hFileName.value == "..");
+
+    if (hFileName.value == "" &&
+       (btnId == "btnOpen" || btnId == "btnSave")) {
+      alert("Please select a file to `get-field('mode')`.");
+      return false;
+    }
+    if (btnId == "btnOpen" || btnId == "btnSave") {
+      if (parent.OS_flist.cNewDir == getUnknown()) {
+        alert("The destination directory is unknown." + cNewLine + cNewLine +
+              "Please wait until the file list has" + cNewLine +
+              "finished loading and try again.");
+        return false;
+      }
+      cFullPath = parent.OS_flist.cNewDir + hFileName.value;
+      
+      if (isDir) {
+        parent.OS_flist.location.href = 
+          '../webutil/_weblist.w' +
+          '?directory=' + (getDir(iPos)) +
+          '&filter=' + (getFilter()) +
+          '&options=editor';
+          
+        setFileName(""); // don't do for fileSaveAs or changing dir
+      }
+      else {
+        if (isIE4up)
+           /* 19990724-004
+              parent.returnValue = parent.OS_flist.cNewDir + "|" +
+                                hFileName.value; */
+           parent.returnValue = cFullPath;
+        else if (isNav4up) {
+          if (btnId == "btnOpen")
+            parent.opener.fileOpen(cFullPath);
+          else if (btnId == "btnSave")
+            parent.opener.fileSaveAs(cFullPath, "fileSaveAs", cTarget);
+        }
+        parent.close();
+      }
+    }
+    else
+      parent.close();
+  }
+  
+  function getBtnCancel() {
+    if (isIE4up) 
+      return document.all.btnCancel;
+    else if (isNav4up)
+      return document.form1.elements["btnCancel"];
+  }
+    
+  function getBtnId(e) {
+    if (isIE4up) 
+      return e.id;
+    else if (isNav4up)
+      return e.name;
+  }
+    
+  function getBtnOpen() {
+    if (isIE4up) {
+      if (document.all.btnOpen != null)
+        return document.all.btnOpen;
+    }
+    else if (isNav4up) {
+      if (document.form1.elements["btnOpen"] != undefined)
+        return document.form1.elements["btnOpen"];
+    }
+  }
+    
+  function getBtnSave() {
+    if (isIE4up) {
+      if (document.all.btnSave != null)
+        return document.all.btnSave;
+    }
+    else if (isNav4up) {
+      if (document.form1.elements["btnSave"] != undefined)
+        return document.form1.elements["btnSave"];
+    }
+  }
+
+  function getDir(iPos) {
+    var cSubDir;
+    
+    if (hFileName.value == "..")
+      cSubDir = "..";
+    else {
+      cSubDir = new String(hFileName.value);
+      cSubDir = cSubDir.substr(0, (iPos - 1));
+    }
+
+    return (parent.OS_flist.cNewDir + cSubDir);
+  }
+    
+  function getFileName() {
+    if (isIE4up) 
+      return document.all.fileName;
+    else if (isNav4up)
+      return document.form1.elements["fileName"];
+  }
+    
+  function getFileType() {
+    if (isIE4up) 
+      return document.all.fileType;
+    else if (isNav4up)
+      return document.form1.elements["fileType"];
+  }
+    
+  function getFilter() {
+    return (hFileType.options[hFileType.selectedIndex].value);
+  }
+  
+  function highlight(e) {
+    if (isIE4up) {
+      e.style.color      = "white";
+      e.style.background = "navy";
+    }
+  }
+  
+  function init() {
+    getBrowser();
+    
+    hBtnCancel = getBtnCancel();
+    hFileName  = getFileName();
+    hFileType  = getFileType();
+    hBtnOpen   = getBtnOpen();
+    hBtnSave   = getBtnSave();
+
+    if (isIE4up) {
+      if (hBtnOpen != null) {
+        defaultBtn                = hBtnOpen;
+        hBtnOpen.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
+        setTimeout('hBtnOpen.focus()',1);
+      }
+    
+      if (hBtnSave != null) {
+        defaultBtn                = hBtnSave;
+        hBtnSave.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
+        setTimeout('hBtnSave.focus()',1);
+      }
+      hBtnCancel.style.pixelWidth = document.all.tdCancel.clientWidth - 10;
+      hFileName.style.pixelWidth  = hFileType.clientWidth;
+    }
+    else if (isNav4up) {
+      if (hBtnOpen != undefined) {
+        defaultBtn = hBtnOpen;
+        setTimeout('hBtnOpen.focus()',1);
+      }
+    
+      if (hBtnSave != undefined) {
+        defaultBtn = hBtnSave;
+        setTimeout('hBtnSave.focus()',1);
+      }
+    }
+    
+    if (cMode.toLowerCase() == "save") {
+      if (isIE4up) {
+        if (parent.window.dialogArguments != "")
+          hFileName.value = parent.window.dialogArguments;
+      }
+      else if (isNav4up) {
+        if (!parent.opener.parent.WS_edit.lUntitled)
+          hFileName.value = parent.opener.parent.WS_edit.cFileName;
+      
+        setTimeout('hFileName.focus()', 1);
+      }
+      hFileName.select();   
+    }
+  }
+  
+  function normal(e) {
+    if (isIE4up) {
+      e.style.color      = "black";
+      e.style.background = "white";
+    }
+    else if (isNav4up) {
+      e.bgColor          = "white";
+    }
+  }
+
+  function resetCell(e) {  
+    if (oldCell != null)
+      normal(oldCell);
+    oldCell = e;
+  }
+
+  function setFileName(cFile) {
+    if (isIE4up) 
+      document.all.fileName.value = cFile;
+    else if (isNav4up)
+      document.form1.elements["fileName"].value = cFile;
+  }
+    
+  function setImage(e, fName) {
+    e.src = "`RootURL`/images/" + fName + ".gif";
+  }
+
+  function typeChange() {
+    parent.OS_flist.location.href = 
+      '../webutil/_weblist.w' +
+      '?directory=' + parent.OS_flist.cNewDir +
+      '&filter=' + (getFilter()) +
+      '&options=editor';
+  }
+  
+  function updateName(e) {
+    resetCell(e);
+    highlight(e);
+    hFileName.value = e.innerText;
+  }
+  
+//--></SCRIPT>
+</HEAD>
+
+<BODY BGCOLOR="lightgrey" onLoad="setTimeout('init()', 1)">
+<FORM ID="form1" NAME="form1" onSubmit="return autoGo()">
+  <TABLE ID="table1" NAME="table1" CELLPADDING=2 WIDTH="100%">
+    <TR>
+      <SCRIPT LANGUAGE="SpeedScript">
+        IF isIE THEN
+          {&OUT} '      <TD WIDTH="30%"><B>File Name:</B></TD>':U SKIP
+                 '      <TD WIDTH="40%">':U SKIP.
+        ELSE
+          {&OUT} '      <TD WIDTH="40%"><B>File Name:</B></TD>':U SKIP
+                 '      <TD WIDTH="50%">':U SKIP.
+      </SCRIPT>
+        <INPUT ID="fileName" NAME="fileName" TYPE="text" SIZE=18> 
+      </TD>
+      <TD ID="tdMode" NAME="tdMode" ALIGN="right">
+        <SCRIPT LANGUAGE="SpeedScript">
+          IF LOOKUP("open",get-field("buttons"),"-") > 0 THEN DO:
+            IF isIE THEN
+              {&OUT} 
+                '        <BUTTON ID="btnOpen" '
+                'onClick="return btnClick(this)">Open</BUTTON>':U SKIP.
+            ELSE
+              {&OUT} 
+                '        <INPUT NAME="btnOpen" TYPE="button" VALUE="  Open  " '
+                'onClick="return btnClick(this)">':U SKIP.
+          END.
+          IF LOOKUP("save",get-field("buttons"),"-") > 0 THEN DO:
+            IF isIE THEN
+              {&OUT} 
+                '        <BUTTON ID="btnSave" NAME="btnSave" '
+                'onClick="return btnClick(this)">Save</BUTTON>':U SKIP.
+            ELSE
+              {&OUT} 
+                '        <INPUT NAME="btnSave" TYPE="button" VALUE="  Save  " '
+                'onClick="return btnClick(this)">':U SKIP.
+          END.
+        </SCRIPT>
+      </TD>
+    </TR>
+    <TR>
+      <SCRIPT LANGUAGE="SpeedScript">
+        IF isIE THEN
+          {&OUT} '      <TD WIDTH="30%"><B>Files of Type:</B></TD>':U SKIP
+                 '      <TD WIDTH="40%">':U SKIP.
+        ELSE
+          {&OUT} '      <TD WIDTH="40%"><B>Files of Type:</B></TD>':U SKIP
+                 '      <TD WIDTH="50%">':U SKIP.
+      </SCRIPT>
+        <SELECT ID="fileType" NAME="fileType" SIZE=1 onChange="typeChange()">
+          <OPTION VALUE="*.w;*.p;*.i;*.htm*">All Source(*.w;*.p;*.i;*.htm*)
+          <OPTION VALUE="*.w">Web Objects(*.w)
+          <OPTION VALUE="*.p">Procedures(*.p)
+          <OPTION VALUE="*.i">Includes(*.i)
+          <OPTION VALUE="*.html;*.htm">HTML(*.html;*.htm)
+          <OPTION VALUE="*.*">All Files(*.*)
+        </SELECT>
+      </TD>
+      <TD ID="tdCancel" NAME="tdCancel" ALIGN="right">
+        <SCRIPT LANGUAGE="SpeedScript">
+          IF LOOKUP("cancel",get-field("buttons"),"-") > 0 THEN DO:
+            IF isIE THEN
+              {&OUT} 
+                '        <BUTTON ID="btnCancel" NAME="btnCancel" VALUE="Cancel" '
+                'onClick="return btnClick(this)">Cancel</BUTTON>':U SKIP.
+            ELSE
+              {&OUT} 
+                '        <INPUT NAME="btnCancel" TYPE="button" VALUE="Cancel " '
+                'onClick="return btnClick(this)">':U SKIP.
+          END.
+        </SCRIPT>
+      </TD>
+    </TR>
+  </TABLE>
+</FORM>  
+</BODY>
+</HTML>

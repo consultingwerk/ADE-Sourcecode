@@ -1,0 +1,71 @@
+DROP FIELD "scm_tool_code" OF "gsc_security_control"
+
+UPDATE FIELD "scm_tool_obj" OF "gsc_security_control"
+  POSITION 23
+  ORDER 220
+
+UPDATE FIELD "user_context_expiry_period" OF "gsc_security_control"
+  POSITION 24
+  ORDER 230
+
+DROP INDEX "XIE2gsm_required_manager" ON "gsm_required_manager"
+
+DROP FIELD "object_obj" OF "gsm_required_manager"
+DROP FIELD "is_a_super_of" OF "gsm_required_manager"
+DROP FIELD "search_target" OF "gsm_required_manager"
+
+UPDATE FIELD "system_owned" OF "gsm_required_manager"
+  POSITION 6
+  ORDER 50
+
+RENAME INDEX "XAK1gsm_server_context" TO "temp-16033" ON "gsm_server_context"
+
+RENAME INDEX "XIE1gsm_server_context" TO "temp-88469" ON "gsm_server_context"
+
+ADD INDEX "XAK1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "context_scope_obj" ASCENDING
+  INDEX-FIELD "context_name" ASCENDING
+
+ADD INDEX "XIE1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  INDEX-FIELD "context_id_date" ASCENDING
+  INDEX-FIELD "context_id_time" ASCENDING
+  INDEX-FIELD "context_scope_obj" ASCENDING
+
+DROP INDEX "temp-16033" ON "gsm_server_context"
+DROP INDEX "temp-88469" ON "gsm_server_context"
+
+DROP FIELD "session_obj" OF "gsm_server_context"
+
+UPDATE FIELD "context_scope_obj" OF "gsm_server_context"
+  POSITION 3
+  ORDER 20
+
+DROP INDEX "XIE4ryc_smartobject" ON "ryc_smartobject"
+
+DROP FIELD "custom_smartobject_obj" OF "ryc_smartobject"
+DROP FIELD "physical_smartobject_obj" OF "ryc_smartobject"
+
+UPDATE FIELD "extends_smartobject_obj" OF "ryc_smartobject"
+  POSITION 25
+  ORDER 240
+
+UPDATE FIELD "security_smartobject_obj" OF "ryc_smartobject"
+  POSITION 26
+  ORDER 250
+
+UPDATE FIELD "object_is_runnable" OF "ryc_smartobject"
+  POSITION 27
+  ORDER 260
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20020
+  MAX-VAL 20020
+
+.
+PSC
+cpstream=UTF-8
+.
+0000068274

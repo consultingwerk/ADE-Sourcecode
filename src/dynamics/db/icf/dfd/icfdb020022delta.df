@@ -1,0 +1,17 @@
+DROP TABLE "ryc_page_object"
+
+ADD INDEX "XAK1ryc_object_instance" ON "ryc_object_instance"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+  INDEX-FIELD "instance_name" ASCENDING
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20022
+  MAX-VAL 20022
+
+.
+PSC
+cpstream=utf-8
+.
+0000008340

@@ -1,388 +1,388 @@
-<html>
-<head>
-<title>Application Framework</title>
-</head><body BGCOLOR="#FFFFFF">
-<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm">
-<img SRC="/webspeed31D/doc/wshelp/images/helpbook.gif" WIDTH="53" HEIGHT="40">
-</a> Application Framework</font></h1>
-<hr SIZE="4" COLOR="#0000FF">
-<p>Configuration <a href="overview.htm">Overview</a> <a href="/webspeed31D/doc/wshelp/programming.htm">Programming</a></p>
-<p><font SIZE="2" FACE="Arial">
-Application Framework contains the following interface elements:</font></p>
-<h2><a name="_Toc534774998">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Configuration options via the environment variables</a></h2>
-<p>Note: Comma could not be used as delimiter for the environment variables.</p>
-<table border="1" cellspacing="0" cellpadding="0" width="583" style="width:437.4pt;
- border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
- mso-padding-alt:0in 5.4pt 0in 5.4pt">
-  <tr>
-    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p><b>Delimiter<o:p>
-      </o:p>
-      </b></p>
-    </td>
-    <td width="186" valign="top" style="width:139.45pt;border:solid windowtext .5pt;
-  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p><b>Description<o:p>
-      </o:p>
-      </b></p>
-    </td>
-    <td width="318" valign="top" style="width:238.5pt;border:solid windowtext .5pt;
-  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p><b>Example<o:p>
-      </o:p>
-      </b></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p>=<span style="mso-spacerun: yes">&nbsp; </span>(equal)</p>
-    </td>
-    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>Name value pairs</p>
-    </td>
-    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>dev=*</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p>;</p>
-    </td>
-    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>List of values</p>
-    </td>
-    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>Sports=sports2000;rvdb;icfdb</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p>|</p>
-    </td>
-    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>Major groups</p>
-    </td>
-    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p>Sports=sports2000;rvdb;icfdb|mydb=db1;db2</p>
-    </td>
-  </tr>
-</table>
-<p>&nbsp;<o:p>
-</o:p>
-</p>
-<table border="1" cellpadding="0" width="100%" style="width:100.0%;mso-cellspacing:
- 1.5pt">
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal"><b>Environment variable</b><span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal"><b>Description</b><span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">SuperProc<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">&nbsp;Delimited list of custom super procedures to be
-      initialized.<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">SessionCookie<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">SessionCookie –Set a default session&nbsp;tracking
-      cookie. This allows the application to automatically track&nbsp;anonymous/unidentified
-      user 'movements' through the system. This is&nbsp;the prefix of the
-      cookie. If it is non-blank the session tracking cookie&nbsp;will be used
-      automatically.<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">WebRunPath<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">WebRunPath example. Allow specific resources to be
-      accessed via the URL.&nbsp;<br>
-      This does not override the PROPATH. This is a string that uses a can-do()
-      string to determine access right.<br>
-      <br>
-      WebRunPath=c:\webapps\apps\*;c:\program files\progress\tty\webtools\*;<br>
-      c:\program files\progress\tty\webedit\*;<br>
-      c:\program files\progress\tty\workshop.r<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">BatchInterval<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">Batch Interval Time – Batch routine ! Amount of
-      time (in seconds) agents&nbsp;<br>
-      sit idle before breaking out of wait-for and running the&nbsp;“run-batch-object”
-      custom procedure.&nbsp;<span style="font-size:
-  12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">CompileOnFly<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">Compile On The Fly.<br>
-      OnTheFly: Does compile on the fly when in development mode.</p>
-      <p class="MsoNormal">NoSave: Does not leave the r-code after running the
-      program<span style="mso-spacerun: yes">&nbsp;</span></p>
-      <p class="MsoNormal">CheckTime: Check the time on source and R-code and
-      compile if r-code is older than source.<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">CompileXCode<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">CompileXCODE -- Xcode to be used for compile.<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">SessionPath<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">Path for storing session information. It would
-      otherwise default to TEMP directory. This option has no meaning when using
-      database-driven session storage mechanism. Example<span style="mso-spacerun:
-  yes">&nbsp;&nbsp; </span>SessionPath=logs<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">Databases<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">Databases that the application is to be aware of.
-      Following each database&nbsp;is a program that will run if the database is
-      not connected or simply the connection paramters.<br>
-      <br>
-      Databases=sports2000=sportsconnect.p|db1=-pf c:/databases/db1.pf</p>
-      <p class="MsoNormal">&nbsp;<o:p>
-      </o:p>
-      </p>
-      <p class="MsoNormal">If same databases is to be used for all code then
-      DbGroup or DbObject does not need to be specified. <span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">dbFailover<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">This should be the same list as for Databases, but
-      just have connection programs or connection parameters to the respective
-      backup databases. <span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">DbGroup<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">DBGroup -- not used, should be replaced with
-      something better. Organizes&nbsp;<br>
-      connected DBs into logical association sets. These can be used to maintain&nbsp;<br>
-      connections, or associate DBs with code objects.<br>
-      <br>
-      DbGroup=Default=webstate|sports=sports;webstate</p>
-      <p class="MsoNormal">&nbsp;<o:p>
-      </o:p>
-      </p>
-      <p class="MsoNormal">(Optional)<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">DBOject<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">DBObject. Associate code objects with their required
-      DB(s). When a code object is run, and it is not found in any of the lists
-      it is assumed that&nbsp;it does not require DB access. When a code object
-      is run and it's DB is&nbsp;not connected, attempts will be made to connect
-      the necessary db, then a&nbsp;controlled error message will result.<br>
-      <br>
-      DbObject=sports=c:/usr/apps/cart/ *;/app2/collect|sports2=c:/usr/apps/cart</p>
-      <p class="MsoNormal">&nbsp;<o:p>
-      </o:p>
-      </p>
-      <p class="MsoNormal">The specification of path follows a can-do() syntax
-      in the same way as the webRunPath.<span style="mso-spacerun:
-  yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
-      <p class="MsoNormal">(Optional)<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">MultiDevPropath<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">MultiDevPropath. Allow multiple developers to
-      customize the propath for&nbsp;their use. The devpropath will be prepended
-      to the existing propath for&nbsp;the duration of the run of the object,
-      then returned to the default propath.<br>
-      <br>
-      MultiDevPropath=developer1=usr/dev1/apps/test;/usr/dev1/apps/test2 |<br>
-      developer2=/usr/dev2/apps/test;/usr/dev2/apps/test2<span style="font-size:
-  12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">LogTypes<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">&nbsp;List of user defined log types to be in the
-      current logs. Ie you may have lots of “debug” style messages but would
-      not be interested in those for a production deployment situation.<span style="mso-spacerun: yes">&nbsp;
-      </span>(warning;compile;error;run;note;batch) or * for them all.</p>
-      <p class="MsoNormal">You may specify “NoCache” additionally, however
-      this is not a logType, but a parameter that specifies that each message is
-      to be stored to disk immediately rather than at the end of the
-      web-request.<span style="mso-spacerun: yes">&nbsp; </span><span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">LogPath<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
-      <p class="MsoNormal">&nbsp;Storage path of the log files, example<span style="mso-spacerun: yes">&nbsp;&nbsp;
-      </span>LogPath=logs<span style="font-size:12.0pt"><o:p>
-      </o:p>
-      </span></p>
-    </td>
-  </tr>
-</table>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<p class="MsoBodyText"><!--[if gte vml 1]><v:shapetype id="_x0000_t75"
- coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe"
- filled="f" stroked="f">
- <v:stroke joinstyle="miter"/>
- <v:formulas>
-  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
-  <v:f eqn="sum @0 1 0"/>
-  <v:f eqn="sum 0 0 @1"/>
-  <v:f eqn="prod @2 1 2"/>
-  <v:f eqn="prod @3 21600 pixelWidth"/>
-  <v:f eqn="prod @3 21600 pixelHeight"/>
-  <v:f eqn="sum @0 0 1"/>
-  <v:f eqn="prod @6 1 2"/>
-  <v:f eqn="prod @7 21600 pixelWidth"/>
-  <v:f eqn="sum @8 21600 0"/>
-  <v:f eqn="prod @7 21600 pixelHeight"/>
-  <v:f eqn="sum @10 21600 0"/>
- </v:formulas>
- <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
- <o:lock v:ext="edit" aspectratio="t"/>
-</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:352.5pt;
- height:231.75pt' o:ole="">
- <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/03/clip_image001.png"
-  o:title=""/>
-</v:shape><![endif]-->
-<img src="framew16.jpg" v:shapes="_x0000_i1025" width="470" height="309"><!--[if gte mso 9]><xml>
- <o:OLEObject Type="Embed" ProgID="PSP6.Image" ShapeID="_x0000_i1025"
-  DrawAspect="Content" ObjectID="_1072037633">
- </o:OLEObject>
-</xml><![endif]-->
-</p>
-<p class="MsoBodyText"><span style="mso-spacerun: yes">&nbsp;</span>Configuring
-the tools in Progress Explorer.</p>
-</body>
-</html>
+<html>
+<head>
+<title>Application Framework</title>
+</head><body BGCOLOR="#FFFFFF">
+<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm">
+<img SRC="images/helpbook.gif" WIDTH="53" HEIGHT="40">
+</a> Application Framework</font></h1>
+<hr SIZE="4" COLOR="#0000FF">
+<p>Configuration <a href="overview.htm">Overview</a> <a href="programming.htm">Programming</a></p>
+<p><font SIZE="2" FACE="Arial">
+Application Framework contains the following interface elements:</font></p>
+<h2><a name="_Toc534774998">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Configuration options via the environment variables</a></h2>
+<p>Note: Comma could not be used as delimiter for the environment variables.</p>
+<table border="1" cellspacing="0" cellpadding="0" width="583" style="width:437.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt">
+  <tr>
+    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p><b>Delimiter<o:p>
+      </o:p>
+      </b></p>
+    </td>
+    <td width="186" valign="top" style="width:139.45pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p><b>Description<o:p>
+      </o:p>
+      </b></p>
+    </td>
+    <td width="318" valign="top" style="width:238.5pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p><b>Example<o:p>
+      </o:p>
+      </b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p>=<span style="mso-spacerun: yes">&nbsp; </span>(equal)</p>
+    </td>
+    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>Name value pairs</p>
+    </td>
+    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>dev=*</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p>;</p>
+    </td>
+    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>List of values</p>
+    </td>
+    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>Sports=sports2000;rvdb;icfdb</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="79" valign="top" style="width:59.45pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p>|</p>
+    </td>
+    <td width="186" valign="top" style="width:139.45pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>Major groups</p>
+    </td>
+    <td width="318" valign="top" style="width:238.5pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p>Sports=sports2000;rvdb;icfdb|mydb=db1;db2</p>
+    </td>
+  </tr>
+</table>
+<p>&nbsp;<o:p>
+</o:p>
+</p>
+<table border="1" cellpadding="0" width="100%" style="width:100.0%;mso-cellspacing:
+ 1.5pt">
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal"><b>Environment variable</b><span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal"><b>Description</b><span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">SuperProc<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">&nbsp;Delimited list of custom super procedures to be
+      initialized.<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">SessionCookie<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">SessionCookie –Set a default session&nbsp;tracking
+      cookie. This allows the application to automatically track&nbsp;anonymous/unidentified
+      user 'movements' through the system. This is&nbsp;the prefix of the
+      cookie. If it is non-blank the session tracking cookie&nbsp;will be used
+      automatically.<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">WebRunPath<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">WebRunPath example. Allow specific resources to be
+      accessed via the URL.&nbsp;<br>
+      This does not override the PROPATH. This is a string that uses a can-do()
+      string to determine access right.<br>
+      <br>
+      WebRunPath=c:\webapps\apps\*;c:\program files\progress\tty\webtools\*;<br>
+      c:\program files\progress\tty\webedit\*;<br>
+      c:\program files\progress\tty\workshop.r<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">BatchInterval<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">Batch Interval Time – Batch routine ! Amount of
+      time (in seconds) agents&nbsp;<br>
+      sit idle before breaking out of wait-for and running the&nbsp;“run-batch-object”
+      custom procedure.&nbsp;<span style="font-size:
+  12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">CompileOnFly<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">Compile On The Fly.<br>
+      OnTheFly: Does compile on the fly when in development mode.</p>
+      <p class="MsoNormal">NoSave: Does not leave the r-code after running the
+      program<span style="mso-spacerun: yes">&nbsp;</span></p>
+      <p class="MsoNormal">CheckTime: Check the time on source and R-code and
+      compile if r-code is older than source.<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">CompileXCode<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">CompileXCODE -- Xcode to be used for compile.<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">SessionPath<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">Path for storing session information. It would
+      otherwise default to TEMP directory. This option has no meaning when using
+      database-driven session storage mechanism. Example<span style="mso-spacerun:
+  yes">&nbsp;&nbsp; </span>SessionPath=logs<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">Databases<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">Databases that the application is to be aware of.
+      Following each database&nbsp;is a program that will run if the database is
+      not connected or simply the connection paramters.<br>
+      <br>
+      Databases=sports2000=sportsconnect.p|db1=-pf c:/databases/db1.pf</p>
+      <p class="MsoNormal">&nbsp;<o:p>
+      </o:p>
+      </p>
+      <p class="MsoNormal">If same databases is to be used for all code then
+      DbGroup or DbObject does not need to be specified. <span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">dbFailover<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">This should be the same list as for Databases, but
+      just have connection programs or connection parameters to the respective
+      backup databases. <span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">DbGroup<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">DBGroup -- not used, should be replaced with
+      something better. Organizes&nbsp;<br>
+      connected DBs into logical association sets. These can be used to maintain&nbsp;<br>
+      connections, or associate DBs with code objects.<br>
+      <br>
+      DbGroup=Default=webstate|sports=sports;webstate</p>
+      <p class="MsoNormal">&nbsp;<o:p>
+      </o:p>
+      </p>
+      <p class="MsoNormal">(Optional)<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">DBOject<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">DBObject. Associate code objects with their required
+      DB(s). When a code object is run, and it is not found in any of the lists
+      it is assumed that&nbsp;it does not require DB access. When a code object
+      is run and it's DB is&nbsp;not connected, attempts will be made to connect
+      the necessary db, then a&nbsp;controlled error message will result.<br>
+      <br>
+      DbObject=sports=c:/usr/apps/cart/ *;/app2/collect|sports2=c:/usr/apps/cart</p>
+      <p class="MsoNormal">&nbsp;<o:p>
+      </o:p>
+      </p>
+      <p class="MsoNormal">The specification of path follows a can-do() syntax
+      in the same way as the webRunPath.<span style="mso-spacerun:
+  yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+      <p class="MsoNormal">(Optional)<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">MultiDevPropath<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">MultiDevPropath. Allow multiple developers to
+      customize the propath for&nbsp;their use. The devpropath will be prepended
+      to the existing propath for&nbsp;the duration of the run of the object,
+      then returned to the default propath.<br>
+      <br>
+      MultiDevPropath=developer1=usr/dev1/apps/test;/usr/dev1/apps/test2 |<br>
+      developer2=/usr/dev2/apps/test;/usr/dev2/apps/test2<span style="font-size:
+  12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">LogTypes<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">&nbsp;List of user defined log types to be in the
+      current logs. Ie you may have lots of “debug” style messages but would
+      not be interested in those for a production deployment situation.<span style="mso-spacerun: yes">&nbsp;
+      </span>(warning;compile;error;run;note;batch) or * for them all.</p>
+      <p class="MsoNormal">You may specify “NoCache” additionally, however
+      this is not a logType, but a parameter that specifies that each message is
+      to be stored to disk immediately rather than at the end of the
+      web-request.<span style="mso-spacerun: yes">&nbsp; </span><span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="22%" style="width:22.76%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">LogPath<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+    <td width="76%" style="width:76.22%;padding:.75pt .75pt .75pt .75pt">
+      <p class="MsoNormal">&nbsp;Storage path of the log files, example<span style="mso-spacerun: yes">&nbsp;&nbsp;
+      </span>LogPath=logs<span style="font-size:12.0pt"><o:p>
+      </o:p>
+      </span></p>
+    </td>
+  </tr>
+</table>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<p class="MsoBodyText"><!--[if gte vml 1]><v:shapetype id="_x0000_t75"
+ coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe"
+ filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:352.5pt;
+ height:231.75pt' o:ole="">
+ <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/03/clip_image001.png"
+  o:title=""/>
+</v:shape><![endif]-->
+<img src="framew16.jpg" v:shapes="_x0000_i1025" width="470" height="309"><!--[if gte mso 9]><xml>
+ <o:OLEObject Type="Embed" ProgID="PSP6.Image" ShapeID="_x0000_i1025"
+  DrawAspect="Content" ObjectID="_1072037633">
+ </o:OLEObject>
+</xml><![endif]-->
+</p>
+<p class="MsoBodyText"><span style="mso-spacerun: yes">&nbsp;</span>Configuring
+the tools in Progress Explorer.</p>
+</body>
+</html>

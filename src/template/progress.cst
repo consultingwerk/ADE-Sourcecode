@@ -1,269 +1,269 @@
-/* 
- * PROGRESS.CST - PROGRESS custom objects file - Version 9 - 10/07/1999
- */
-
-*NEW-CONTAINER  &Window
-NEW-TEMPLATE    src/template/window.w
-
-*NEW-CONTAINER  &Dialog
-NEW-TEMPLATE    src/template/dialog.w
-
-*NEW-CONTAINER  TTY &Window
-NEW-TEMPLATE    src/template/tty-wind.w
-
-*NEW-CONTAINER  TTY &Dialog
-NEW-TEMPLATE    src/template/tty-dial.w
-
-*BUTTON         &OK
-DESCRIPTION     Standard Dialog OK Button
-INHERIT         C&ustom Size/Color
-AUTO-GO         YES
-AUTO-END-KEY    NO
-DEFAULT-BTN     YES
-DEFAULT-STYLE   YES
-LABEL           OK
-NAME            BtnOK  
-*BUTTON         Do&ne
-DESCRIPTION     Standard Window Done Button
-INHERIT         C&ustom Size/Color
-AUTO-GO         NO
-AUTO-END-KEY    NO
-DEFAULT-BTN     YES
-DEFAULT-STYLE   YES
-LABEL           &Done
-NAME            BtnDone
-TRIGGER CHOOSE
-DO:
-  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
-    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
-      RUN dispatch IN THIS-PROCEDURE ('exit').
-    &ELSE
-      RUN exitObject.
-    &ENDIF
-  &ELSE
-      APPLY "CLOSE":U TO THIS-PROCEDURE.
-  &ENDIF
-END.
-END TRIGGER
-*BUTTON         &Cancel
-DESCRIPTION     Standard Cancel Button
-INHERIT         C&ustom Size/Color
-AUTO-GO         NO
-AUTO-END-KEY    YES
-CANCEL-BTN      YES
-DEFAULT-STYLE   YES
-LABEL           Cancel
-NAME            BtnCancel
-*BUTTON         &Help 
-DESCRIPTION     Standard Help Button
-INHERIT         C&ustom Size/Color
-DEFAULT-STYLE   YES
-LABEL           &Help
-NAME            BtnHelp
-TRIGGER CHOOSE
-OR HELP OF FRAME {&FRAME-NAME}
-DO: /* Call Help Function (or a simple message). */
-  MESSAGE "Help for File: {&FILE-NAME}" VIEW-AS ALERT-BOX INFORMATION.
-END.
-END TRIGGER
-*BUTTON         &First 
-DESCRIPTION     Simple Navigation Button
-INHERIT         C&ustom Size/Color
-LABEL           &First
-NAME            BtnFirst
-TRIGGER CHOOSE
-DO:
-  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
-    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
-      RUN notify IN THIS-PROCEDURE ("get-first") NO-ERROR.
-    &ELSE
-      PUBLISH "fetchFirst":U.
-    &ENDIF
-  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
-  /* This is a simple FIRST RECORD navigation button, useful for building
-     test screens quickly.  NOTE: if there are no tables in the query, then 
-     this code will not compile; so use the preprocessor to skip it. */
-      DEFINE VARIABLE op-supported AS LOGICAL.
-      GET FIRST {&FRAME-NAME}.
-      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
-          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
-          {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
-      END.
-  &ENDIF
-END.
-END TRIGGER
-*BUTTON         Ne&xt 
-DESCRIPTION     Simple Navigation Button
-INHERIT         C&ustom Size/Color
-LABEL           &Next
-NAME            BtnNext
-TRIGGER CHOOSE
-DO:
-  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
-    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
-      RUN notify IN THIS-PROCEDURE ("get-next") NO-ERROR.
-    &ELSE
-      PUBLISH "fetchNext":U.
-    &ENDIF
-  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
-  /* This is a simple NEXT RECORD navigation button, useful for building
-     test screens quickly.  NOTE: if there are no tables in the query, then 
-     this code will not compile; so use the preprocessor to skip it. */
-      GET NEXT {&FRAME-NAME}.
-      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
-          THEN GET LAST {&FRAME-NAME}.
-      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
-          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
-	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
-      END.
-  &ENDIF
-END.
-END TRIGGER
-*BUTTON         &Prev 
-DESCRIPTION     Simple Navigation Button
-INHERIT         C&ustom Size/Color
-LABEL           &Prev
-NAME            BtnPrev
-TRIGGER CHOOSE
-DO:
-  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
-    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
-      RUN notify IN THIS-PROCEDURE ("get-prev") NO-ERROR.
-    &ELSE
-      PUBLISH "fetchPrev":U.
-    &ENDIF
-  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
-  /* This is a simple PREV RECORD navigation button, useful for building
-     test screens quickly.  NOTE: if there are no tables in the query, then 
-     this code will not compile; so use the preprocessor to skip it. */
-      GET PREV {&FRAME-NAME}.
-      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
-      THEN GET FIRST {&FRAME-NAME}.
-      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
-	DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
-        {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
-      END.
-  &ENDIF
-END.
-END TRIGGER
-*BUTTON         &Last 
-DESCRIPTION     Simple Navigation Button
-INHERIT         C&ustom Size/Color
-LABEL           &Last
-NAME            BtnLast
-TRIGGER CHOOSE
-DO:
-  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
-    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
-      RUN notify IN THIS-PROCEDURE ("get-last") NO-ERROR.
-    &ELSE
-      PUBLISH "fetchLast":U.
-    &ENDIF
-  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
-  /* This is a simple LAST RECORD navigation button, useful for building
-     test screens quickly.  NOTE: if there are no tables in the query, then 
-     this code will not compile; so use the preprocessor to skip it. */
-      GET LAST {&FRAME-NAME}.
-      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
-	  DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
-	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
-      END.
-  &ENDIF
-END.
-END TRIGGER
-*BUTTON        C&ustom Size/Color
-DESCRIPTION    Standard Defaults for other buttons
-WIDTH          15
-HEIGHT         1.125
-BGCOLOR        8       
-
-*EDITOR        &Read-Only
-DESCRIPTION    READ-ONLY Editor
-READ-ONLY      YES
-*FILL-IN       &Character
-DESCRIPTION    Character Fill-in
-DATA-TYPE      Character
-*FILL-IN       D&ate
-DESCRIPTION    Date Fill-in
-DATA-TYPE      Date
-*FILL-IN       D&ecimal
-DESCRIPTION    Decimal Fill-in
-DATA-TYPE      Decimal
-*FILL-IN       &Integer
-DESCRIPTION    Integer Fill-in
-DATA-TYPE      Integer
-*FILL-IN       &Logical
-DESCRIPTION    Logical Fill-in
-DATA-TYPE      Logical
-*FRAME         No-&Box
-DESCRIPTION    No-Box Frame
-NO-BOX         YES
-*FRAME         Box, No &Title
-DESCRIPTION    Frame with BOX, but No Title-bar
-NO-BOX         NO
-TITLE-BAR      NO
-
-*COMBO-BOX     &Simple
-DESCRIPTION    Simple Combo-Box
-SUBTYPE        SIMPLE
-*COMBO-BOX     D&rop-Down
-DESCRIPTION    Drop-Down Combo-Box
-SUBTYPE        DROP-DOWN
-*COMBO-BOX     Dr&op-Down-List
-DESCRIPTION    Drop-Down-List Combo-Box
-SUBTYPE        DROP-DOWN-LIST
-*COMBO-BOX     &Character
-DESCRIPTION    Character Combo-Box
-DATA-TYPE      Character
-*COMBO-BOX     D&ate
-DESCRIPTION    Date Combo-Box
-DATA-TYPE      Date
-*COMBO-BOX     D&ecimal
-DESCRIPTION    Decimal Combo-Box
-DATA-TYPE      Decimal
-*COMBO-BOX     &Integer
-DESCRIPTION    Integer Combo-Box
-DATA-TYPE      Integer
-*COMBO-BOX     &Logical
-DESCRIPTION    Logical Combo-Box
-DATA-TYPE      Logical
-
-*RADIO-SET     &Character
-DESCRIPTION    Character Radio-Set
-DATA-TYPE      Character
-*RADIO-SET     D&ate
-DESCRIPTION    Date Radio-Set
-DATA-TYPE      Date
-*RADIO-SET     D&ecimal
-DESCRIPTION    Decimal Radio-Set
-DATA-TYPE      Decimal
-*RADIO-SET     &Integer
-DESCRIPTION    Integer Radio-Set
-DATA-TYPE      Integer
-*RADIO-SET     &Logical
-DESCRIPTION    Logical Radio-Set
-DATA-TYPE      Logical
-
-*RECTANGLE     &Not Filled
-DESCRIPTION    Rectangle (No-Fill)
-FILLED      NO 
-EDGE-PIXELS 1
-*RECTANGLE     &Filled
-DESCRIPTION    Rectangle (with Fill)
-FILLED      YES 
-EDGE-PIXELS 1
-*RECTANGLE     &3D (2 pixel edge)
-DESCRIPTION    Thinnest 3-D Rectangle
-FILLED      NO
-EDGE-PIXELS 2
-*RECTANGLE     3D (&4 pixel edge)
-DESCRIPTION    Four pixel wide 3-D Rectangle
-FILLED      NO
-EDGE-PIXELS 4
-
-*SELECTION-LIST &Region
-DESCRIPTION     No Scrollbar - Editor
-SCROLLBAR-V     NO
-HEIGHT          3
-LIST-ITEMS      East,North,West,South
-NAME            selectRegion
+/* 
+ * PROGRESS.CST - PROGRESS custom objects file - Version 9 - 10/07/1999
+ */
+
+*NEW-CONTAINER  &Window
+NEW-TEMPLATE    src/template/window.w
+
+*NEW-CONTAINER  &Dialog
+NEW-TEMPLATE    src/template/dialog.w
+
+*NEW-CONTAINER  TTY &Window
+NEW-TEMPLATE    src/template/tty-wind.w
+
+*NEW-CONTAINER  TTY &Dialog
+NEW-TEMPLATE    src/template/tty-dial.w
+
+*BUTTON         &OK
+DESCRIPTION     Standard Dialog OK Button
+INHERIT         C&ustom Size/Color
+AUTO-GO         YES
+AUTO-END-KEY    NO
+DEFAULT-BTN     YES
+DEFAULT-STYLE   YES
+LABEL           OK
+NAME            BtnOK  
+*BUTTON         Do&ne
+DESCRIPTION     Standard Window Done Button
+INHERIT         C&ustom Size/Color
+AUTO-GO         NO
+AUTO-END-KEY    NO
+DEFAULT-BTN     YES
+DEFAULT-STYLE   YES
+LABEL           &Done
+NAME            BtnDone
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN dispatch IN THIS-PROCEDURE ('exit').
+    &ELSE
+      RUN exitObject.
+    &ENDIF
+  &ELSE
+      APPLY "CLOSE":U TO THIS-PROCEDURE.
+  &ENDIF
+END.
+END TRIGGER
+*BUTTON         &Cancel
+DESCRIPTION     Standard Cancel Button
+INHERIT         C&ustom Size/Color
+AUTO-GO         NO
+AUTO-END-KEY    YES
+CANCEL-BTN      YES
+DEFAULT-STYLE   YES
+LABEL           Cancel
+NAME            BtnCancel
+*BUTTON         &Help 
+DESCRIPTION     Standard Help Button
+INHERIT         C&ustom Size/Color
+DEFAULT-STYLE   YES
+LABEL           &Help
+NAME            BtnHelp
+TRIGGER CHOOSE
+OR HELP OF FRAME {&FRAME-NAME}
+DO: /* Call Help Function (or a simple message). */
+  MESSAGE "Help for File: {&FILE-NAME}" VIEW-AS ALERT-BOX INFORMATION.
+END.
+END TRIGGER
+*BUTTON         &First 
+DESCRIPTION     Simple Navigation Button
+INHERIT         C&ustom Size/Color
+LABEL           &First
+NAME            BtnFirst
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-first") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchFirst":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple FIRST RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      DEFINE VARIABLE op-supported AS LOGICAL.
+      GET FIRST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+          {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+*BUTTON         Ne&xt 
+DESCRIPTION     Simple Navigation Button
+INHERIT         C&ustom Size/Color
+LABEL           &Next
+NAME            BtnNext
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-next") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchNext":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple NEXT RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET NEXT {&FRAME-NAME}.
+      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
+          THEN GET LAST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+*BUTTON         &Prev 
+DESCRIPTION     Simple Navigation Button
+INHERIT         C&ustom Size/Color
+LABEL           &Prev
+NAME            BtnPrev
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-prev") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchPrev":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple PREV RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET PREV {&FRAME-NAME}.
+      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
+      THEN GET FIRST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+	DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+        {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+*BUTTON         &Last 
+DESCRIPTION     Simple Navigation Button
+INHERIT         C&ustom Size/Color
+LABEL           &Last
+NAME            BtnLast
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-last") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchLast":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple LAST RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET LAST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+	  DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+*BUTTON        C&ustom Size/Color
+DESCRIPTION    Standard Defaults for other buttons
+WIDTH          15
+HEIGHT         1.125
+BGCOLOR        8       
+
+*EDITOR        &Read-Only
+DESCRIPTION    READ-ONLY Editor
+READ-ONLY      YES
+*FILL-IN       &Character
+DESCRIPTION    Character Fill-in
+DATA-TYPE      Character
+*FILL-IN       D&ate
+DESCRIPTION    Date Fill-in
+DATA-TYPE      Date
+*FILL-IN       D&ecimal
+DESCRIPTION    Decimal Fill-in
+DATA-TYPE      Decimal
+*FILL-IN       &Integer
+DESCRIPTION    Integer Fill-in
+DATA-TYPE      Integer
+*FILL-IN       &Logical
+DESCRIPTION    Logical Fill-in
+DATA-TYPE      Logical
+*FRAME         No-&Box
+DESCRIPTION    No-Box Frame
+NO-BOX         YES
+*FRAME         Box, No &Title
+DESCRIPTION    Frame with BOX, but No Title-bar
+NO-BOX         NO
+TITLE-BAR      NO
+
+*COMBO-BOX     &Simple
+DESCRIPTION    Simple Combo-Box
+SUBTYPE        SIMPLE
+*COMBO-BOX     D&rop-Down
+DESCRIPTION    Drop-Down Combo-Box
+SUBTYPE        DROP-DOWN
+*COMBO-BOX     Dr&op-Down-List
+DESCRIPTION    Drop-Down-List Combo-Box
+SUBTYPE        DROP-DOWN-LIST
+*COMBO-BOX     &Character
+DESCRIPTION    Character Combo-Box
+DATA-TYPE      Character
+*COMBO-BOX     D&ate
+DESCRIPTION    Date Combo-Box
+DATA-TYPE      Date
+*COMBO-BOX     D&ecimal
+DESCRIPTION    Decimal Combo-Box
+DATA-TYPE      Decimal
+*COMBO-BOX     &Integer
+DESCRIPTION    Integer Combo-Box
+DATA-TYPE      Integer
+*COMBO-BOX     &Logical
+DESCRIPTION    Logical Combo-Box
+DATA-TYPE      Logical
+
+*RADIO-SET     &Character
+DESCRIPTION    Character Radio-Set
+DATA-TYPE      Character
+*RADIO-SET     D&ate
+DESCRIPTION    Date Radio-Set
+DATA-TYPE      Date
+*RADIO-SET     D&ecimal
+DESCRIPTION    Decimal Radio-Set
+DATA-TYPE      Decimal
+*RADIO-SET     &Integer
+DESCRIPTION    Integer Radio-Set
+DATA-TYPE      Integer
+*RADIO-SET     &Logical
+DESCRIPTION    Logical Radio-Set
+DATA-TYPE      Logical
+
+*RECTANGLE     &Not Filled
+DESCRIPTION    Rectangle (No-Fill)
+FILLED      NO 
+EDGE-PIXELS 1
+*RECTANGLE     &Filled
+DESCRIPTION    Rectangle (with Fill)
+FILLED      YES 
+EDGE-PIXELS 1
+*RECTANGLE     &3D (2 pixel edge)
+DESCRIPTION    Thinnest 3-D Rectangle
+FILLED      NO
+EDGE-PIXELS 2
+*RECTANGLE     3D (&4 pixel edge)
+DESCRIPTION    Four pixel wide 3-D Rectangle
+FILLED      NO
+EDGE-PIXELS 4
+
+*SELECTION-LIST &Region
+DESCRIPTION     No Scrollbar - Editor
+SCROLLBAR-V     NO
+HEIGHT          3
+LIST-ITEMS      East,North,West,South
+NAME            selectRegion
