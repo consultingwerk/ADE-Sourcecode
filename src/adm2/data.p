@@ -5106,6 +5106,7 @@ PROCEDURE submitCommit :
     /* Add the update cancelled message */
     RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 15},?,?).
     RUN doReturnToAddMode IN TARGET-PROCEDURE.
+    RUN doUndoRow IN TARGET-PROCEDURE.
     RETURN "ADM-ERROR":U.    /* If there were any Data messages */
   END.
   ELSE DO:
@@ -7129,7 +7130,7 @@ FUNCTION dataQueryStringFromQuery RETURNS CHARACTER
   assign cColumnList   = substr(cColumnList,2)
          cValueList    = substr(cValueList,2)
          cOperatorList = substr(cOperatorList,2).
-  
+   
   cDataQueryString = "FOR EACH ":U + cDataTable.
   IF cColumnList > "":U THEN
     cDataQueryString = cDataQueryString 
@@ -7137,7 +7138,7 @@ FUNCTION dataQueryStringFromQuery RETURNS CHARACTER
                      +  DYNAMIC-FUNCTION('newDataQueryExpression':U IN TARGET-PROCEDURE,
                                          cColumnList,
                                          cValueList,
-                                         cOperatorList). 
+                                         cOperatorList).
   RETURN cDataQueryString.
 
 END FUNCTION.
@@ -9074,10 +9075,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
    .
    &UNDEFINE xp-assign
    
-   /* Don't send this big chunck of data to the client if it has all data 
-      (it's only used to resolve findrowwhere on client when batching)*/ 
-   IF iRowsToBatch <> 0 THEN
-     {get IndexInformation cIndexInfo}.
+
    IF cOperatingMode = 'STATELESS':U THEN 
      {get QueryWhere cQueryWhere}.
 
@@ -9091,7 +9089,8 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
    {get AuditEnabled lAuditEnabled}
    /* Is this before or after a data request */
    {get QueryOpen lData}
-    . 
+   {get IndexInformation cIndexInfo}
+   . 
    &UNDEFINE xp-assign
    
    IF NOT lData THEN
@@ -9115,9 +9114,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
      cKeyTableId     = (IF cKeyTableId     = ? THEN '?':U ELSE cKeyTableId)
      cEntityFields   = (IF cEntityFields   = ? THEN '?':U ELSE cEntityFields)
      cAuditEnabled   = (IF lAuditEnabled   = ? THEN '?':U ELSE STRING(lAuditEnabled))
-     cContext        =  (IF iRowsToBatch = 0 
-                         THEN ''
-                         ELSE "IndexInformation":U + CHR(4) + cIndexInfo + CHR(3)) 
+     cContext        = "IndexInformation":U + CHR(4) + cIndexInfo + CHR(3) 
                      + "ServerOperatingMode":U + CHR(4) + cOperatingMode
                      + CHR(3) 
                     /* Return as BaseQuery .. setOpenQuery does to much 

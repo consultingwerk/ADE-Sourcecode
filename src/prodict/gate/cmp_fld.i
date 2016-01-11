@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -30,6 +30,7 @@ History:
     hutegger    95/03   creation
     mcmann    08/21/01  Removed check on ORDER
     mcmann   06/04/02   Added output to file logic
+    fernando 02/14/08   Support for datetime
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -230,30 +231,30 @@ History:
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Desc" 
               } 
-      
+
     if NOT (
-       (   can-do(l_char-types + l_chda-types               ,s_ttb_fld.ds_type) 
+       (   can-do(l_char-types + l_chda-types               ,s_ttb_fld.ds_type)  
        AND can-do("character"              ,DICTDB._Field._Data-type) )
        OR
        (   can-do(l_chda-types                              ,s_ttb_fld.ds_type) 
-       AND can-do("character,date"         ,DICTDB._Field._Data-type) )
+       AND can-do("character,date,datetime",DICTDB._Field._Data-type) )
        OR
-       (   can-do(l_chda-types + l_date-types               ,s_ttb_fld.ds_type) 
+       (   can-do(l_chda-types + "," + l_date-types               ,s_ttb_fld.ds_type) 
        AND can-do("date"                   ,DICTDB._Field._Data-type) )
        OR
-       (   can-do(l_dcml-types + l_deil-types + l_dein-types,s_ttb_fld.ds_type) 
+       (   can-do(l_dcml-types + "," + l_deil-types + "," + l_dein-types,s_ttb_fld.ds_type) 
        AND can-do("decimal"                ,DICTDB._Field._Data-type) )
        OR
        (   can-do(l_deil-types                              ,s_ttb_fld.ds_type) 
        AND can-do("decimal,integer,logical",DICTDB._Field._Data-type) )
        OR
-       (   can-do(l_deil-types + l_dein-types               ,s_ttb_fld.ds_type) 
+       (   can-do(l_deil-types + "," + l_dein-types               ,s_ttb_fld.ds_type) 
        AND can-do("decimal,integer"        ,DICTDB._Field._Data-type) )
        OR
-       (   can-do(l_deil-types + l_dein-types + l_intg-types,s_ttb_fld.ds_type) 
+       (   can-do(l_deil-types + "," + l_dein-types + "," + l_intg-types,s_ttb_fld.ds_type) 
        AND can-do("integer"                ,DICTDB._Field._Data-type) )
        OR
-       (   can-do(l_deil-types + l_logi-types               ,s_ttb_fld.ds_type) 
+       (   can-do(l_deil-types + "," + l_logi-types               ,s_ttb_fld.ds_type) 
        AND can-do("logical"                ,DICTDB._Field._Data-type) )
          )
        then do:  /* new data-type not compatible with old one */

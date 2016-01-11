@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -20,6 +20,7 @@
              08/03/99 Mario B. reset cursor keyes on stop. Bug# 98-12-04-003
              02/04/03 D. McMann Added support for LOB 
              07/28/03 D. McMann More support for Clobs
+             04/09/08 fernando  Datetime support for ORACLE
  */
 /*
 To make this program visually more appealing, multiple frame
@@ -63,6 +64,8 @@ DEFINE VARIABLE xr       AS INTEGER   INITIAL   0 NO-UNDO. /* row-num */
 DEFINE VARIABLE xs       AS INTEGER               NO-UNDO. /* size-switch */
 DEFINE VARIABLE oldname  AS CHAR      CASE-SENS   NO-UNDO. 
 DEFINE VARIABLE newname  AS CHAR      CASE-SENS   NO-UNDO.
+DEFINE VARIABLE oldtype  AS CHAR                  NO-UNDO. 
+DEFINE VARIABLE newtype  AS CHAR                  NO-UNDO.
 DEFINE VARIABLE dtype    AS INTEGER               NO-UNDO. /* data type code# */
 DEFINE VARIABLE syntax   AS LOGICAL INITIAL yes   NO-UNDO. /* for triggers */
 
@@ -575,15 +578,19 @@ DO FOR dfields TRANSACTION ON ERROR UNDO,RETRY:
         ASSIGN
         i       = dfields._Order
         oldname = dfields._Field-name
+        oldtype = dfields._Data-type
         rsave = ?.
         PAUSE 0.
         { prodict/user/userfchg.i fld r/w ? answer }
         ASSIGN
       	  newname = dfields._Field-name
+          newtype = dfields._Data-type
           intrans = intrans OR answer
           redraw  = NOT AVAILABLE dfields
                     OR oldname <> newname
                     OR (NOT alfa-ord AND i <> dfields._Order)
+                    /* date/datetime change */
+                    OR (user_dbtype = "ORACLE" AND oldtype NE newtype)
           recache = redraw.
       END.
     END. /*-------------------------------------------------- end of MODIFY */

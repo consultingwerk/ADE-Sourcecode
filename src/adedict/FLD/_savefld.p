@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,7 +27,8 @@ History:
                     some foreign char fields where we store size information in
                     this field, we display a "?" on the screen instead, and we
                     will not be overwriting the size info with "?". 
-    fernando 06/08/06 Added support for int64                
+    fernando 06/08/06 Added support for int64
+    fernando 04/08/08 Remove time field for ORACLE if changing to datetime
 
 ----------------------------------------------------------------------------*/
 
@@ -51,6 +52,8 @@ Define var no_name  as logical 	       	   NO-UNDO.
 Define var remove   as logical 	       	   NO-UNDO.
 Define var stat     as logical 	       	   NO-UNDO.
 Define var num      as integer	       	   NO-UNDO.
+
+DEFINE BUFFER tmpField FOR DICTDB._Field.
 
 current-window = s_win_Fld.
 
@@ -77,8 +80,27 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       check if changed first. Progress, normally won't let you change
       data types.
    */
-   if b_Field._Data-type <> s_Fld_Protype then
+   if b_Field._Data-type <> s_Fld_Protype THEN DO:
+      /* if moving from date to datetime for an ORACLE schema, check if
+         schema contains the time portion for the date field, and remove it.
+      */
+      IF s_DbCache_Type[s_DbCache_ix] = "ORACLE" AND
+         (b_field._dtype = {&DTYPE_DATE} OR b_field._dtype = {&DTYPE_CHARACTER})
+         AND s_Fld_Protype BEGINS "datetime" THEN DO:
+
+         FIND FIRST tmpField WHERE tmpField._File-recid = 
+             b_field._File-recid AND tmpField._For-name = b_field._For-name AND
+             tmpField._For-type = "TIME" NO-ERROR.
+
+         IF AVAILABLE tmpField THEN DO:
+             /* remove it from the browse view */
+            stat = s_lst_Flds:delete(tmpField._field-name) in frame browse.
+            DELETE tmpField. /* delete it */
+         END.
+      END.
+
       b_Field._Data-type = s_Fld_Protype.
+   END.
    if b_Field._For-type <> s_Fld_Gatetype then
       b_Field._For-type = s_Fld_Gatetype.
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2004,2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2004,2007-2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet. 
 *********************************************************************/
@@ -24,6 +24,7 @@ Included in:
 History:
     hutegger    95/03   abstracted from prodict/ora/ora_mak.i
     fernando 06/11/07   Unicode support - adding Unicode data types, and clob support
+    fernando 04/07/08   Datetime support
 --------------------------------------------------------------------*/
 /*h-*/
     
@@ -48,6 +49,8 @@ assign
         ELSE IF ds_columns.type# = 112 THEN (IF ds_columns.charsetform = 1 THEN "CLOB" ELSE "NCLOB")
         ELSE IF ds_columns.type# = 113 THEN "BLOB"
         ELSE IF ds_columns.type# = 114 THEN "BFILE"
+        ELSE IF ds_columns.type# = 180 THEN "TIMESTAMP"
+        ELSE IF ds_columns.type# = 231 THEN "TIMESTAMP_LOCAL"
         ELSE                                "UNDEFINED").
 
 &IF "{&procedure}" <> "YES"

@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 **********************************************************************/
@@ -42,6 +42,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
   family can be switched with each other.  0 = an orphan: cannot be changed.
 */
 /* history:
+    04/07/08    fernando    Datetime support
     06/11/07    fernando    Unicode and clob support
     06/05/26    fernando    Added support for int64
     98/01/15    D. McMann   Swapped Cursor and Number/logical so that the
@@ -59,12 +60,12 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
    the Number/Number entry as the first one.
 3) the format can contain either 
    * a specific format                                             OR 
-   * {c,d,i,l,#} for (character, date, integer, logical, decimal} to use 
+   * {c,d,dt,i,l,#} for (character, date, datetime, integer, logical, decimal} to use 
      the format created by the hardcoded algorithm in _xxx_mak.i   OR
    * ? to use the PROGRESS default format  
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
   /*description     datatyp  sz code pro type fm format*/
   /*--------------- -------  - ----- -------- -- ------*/ 
   "Character string,Char      ,0, 4096,character,0,|c", 
@@ -84,15 +85,21 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
   "NCLOB           ,NCLOB     ,0,    0,character,0,|c",
   "BLOB            ,BLOB      ,0,    0,BLOB     ,0,|c",
   "BFILE           ,BFILE     ,0,    0,BLOB     ,0,|c",           
-  "Date            ,Date      ,0,12288,date     ,2,|?",
-  "DateTime (Char) ,Date      ,0,12288,character,2,|9999/99/99 99:99:99",
-  "Time            ,Time      ,0,28672,integer  ,0,|>>,>>9",
   "Long Character  ,Long      ,0,16384,character,0,|c",
   "Undefined       ,undefined ,0,20480,character,0,|c",
   "Raw             ,Raw       ,0,20480,raw      ,0,|c",
   "Long Raw        ,LongRaw   ,0,24576,raw      ,0,|c",
   "Rowid           ,Rowid     ,0, 4096,character,0,|c",
   "Logical         ,Logical   ,0, 8192,logical  ,0,|?",
+  "Date            ,Date      ,0,12288,date     ,2,|?",
+  "Date            ,Date      ,0,12288,datetime ,2,|dt",
+  "DateTime (Char) ,Date      ,0,12288,character,2,|9999/99/99 99:99:99",
+  "Time            ,Time      ,0,28672,integer  ,0,|>>,>>9",
+  "DateTime        ,Timestamp ,0, 6144,datetime ,3,|dt",
+  "DateTime        ,Timestamp ,0, 6144,date     ,3,|d",
+  "DateTime        ,Timestamp ,0, 6144,character,3,|x(26)",
+  "DateTime (local),Timestamp_local,0, 14336,datetime ,4,|dt",
+  "DateTime (local),Timestamp_local,0, 14336,date,     4,|d",
   ?
 ].
 
@@ -133,6 +140,25 @@ IF io-gate-type <> ? AND io-pro-type = "get-list" THEN DO:
   RETURN.
 END.
 
+/* this is a special case, where caller wants datetime to be the default mapping 
+   for timestamp
+*/
+IF io-pro-type = "datetime_default" THEN DO:
+   ASSIGN io-pro-type = ?. 
+   DO i = 1 TO i + 1 WHILE gate-config[i] <> ?:
+      IF TRIM(ENTRY(1,gate-config[i])) = "Date" THEN DO:
+         c = TRIM(ENTRY(5,gate-config[i])).
+         /* if date is not the default, nothing to be done here */
+         IF c EQ "date" THEN
+             assign c = gate-config[i]
+                    gate-config[i] = gate-config[i + 1]
+                    gate-config[i + 1] = c.
+
+          /* when we get there we are done */
+          LEAVE.
+      END.
+   END.
+END.
 
 /* Compose comma delimited lists of each "column" of the gate-config 
    array (leaving just the format in gate-config itself).

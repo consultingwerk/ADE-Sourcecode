@@ -11,6 +11,11 @@ FOR EACH _admlinks WHERE _admlinks._P-recid = RECID(_P):
   DELETE _admlinks.
 END.
 
+/* Delete any User Defined Field which references this _P */
+FOR EACH _UF WHERE _UF._p-recid = RECID(_P):
+    DELETE _UF.
+END.
+
 /* Delete any _TT records associated with this _P */
 FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
   DELETE _TT.

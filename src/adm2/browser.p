@@ -1254,7 +1254,6 @@ FUNCTION stripCalcs RETURNS CHARACTER
 
 
 /* **********************  Internal Procedures  *********************** */
-
 &IF DEFINED(EXCLUDE-addRecord) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord Procedure 
@@ -3189,6 +3188,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cColumnTypes      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lDynamic          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cWidgetIDFileName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledWhenNew   AS CHARACTER  NO-UNDO.
 
   ASSIGN ghTargetProcedure = TARGET-PROCEDURE. /* store TARGET-PROCEDURE so the source can identify it if it's an SBO */
 
@@ -3474,7 +3474,19 @@ PROCEDURE initializeObject :
     PUBLISH 'resetTableio':U FROM TARGET-PROCEDURE.
   END.  
   ELSE 
+  do:
+    /* A static enabled browser is enabled through the definition.  
+       EnabledWhenNew columns must be disabled. 
+       (we could actually avoid running enablefields, but it is must set
+        FieldEnabled and most importantly might also be overidden) */   
+    if not lDynamic then 
+    do: 
+      {get EnabledWhenNew cEnabledWhenNew}.
+      if cEnabledWhenNew > "" then 
+        run disableFieldList in target-procedure(cEnabledWhenNew).    
+    end.
     run enableFields IN TARGET-PROCEDURE. 
+  end.
   
   hBrowse:CREATE-ON-ADD = TRUE.
   

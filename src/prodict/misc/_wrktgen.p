@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,7 +35,7 @@ run on another database to define those tables.
          [19] = logical** -> logical, tinyint
               (decimal* is decimal with _Decimals=0)
               (char** is character longer than 240)
-              (logical** is logical fields which are key componets)
+              (logical** is logical fields which are key components)
   user_env[20] = character to use for unique name creation
   user_env[21] = Add shadow column for case-insensitive key fields
   user_env[22] = external dbtype ("ORACLE"...)
@@ -169,6 +169,8 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   fernando 01/04/06   Handle decimals for DB2/400 20051214-009
   fernando 06/26/06   Added support for int64
   fernando 06/11/07   Unicode and clob support for ORACLE
+  fernando 02/14/08   Support for datetime for MSS
+  fernando 04/07/08   Support for datetime for ORACLE
   
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
     
@@ -556,8 +558,11 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
              ASSIGN col_long_count = col_long_count + 1.
     END.
     
-    IF dbtyp <> "PROGRESS" AND DICTDB._Field._Dtype NE 41 /*int64*/ THEN DO: 
-      IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
+    IF dbtyp <> "PROGRESS" AND DICTDB._Field._Dtype NE 41 /*int64*/ THEN DO:
+      IF (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE") 
+          AND DICTDB._Field._Dtype EQ 34 /*datetime*/ THEN
+         ASSIGN unsprtdt = FALSE.
+      ELSE IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
         ASSIGN unsprtdt = TRUE.
       ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype > 19 THEN     
         ASSIGN unsprtdt = TRUE.
@@ -1018,6 +1023,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         ELSE IF DICTDB._Field._Dtype = 19 THEN
           PUT STREAM CODE UNFORMATTED
             comment_chars "  " n2  (IF user_env[11] = "NVARCHAR2" THEN " nclob" ELSE " clob").
+        ELSE IF DICTDB._Field._Dtype = 34 /*datetime*/ THEN
+            PUT STREAM CODE UNFORMATTED
+             comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) " timestamp".
         ELSE  
           PUT STREAM CODE UNFORMATTED comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.          
       END.
@@ -1048,6 +1056,12 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                 /* extent unrolling */
              " "  (IF dbtyp = "ORACLE" THEN "number" ELSE "bigint")
                 /*char,date,log,int,deci,deci0,recid,lchar,tinyint*/
+             c. /* (n,m) */
+        END.
+        ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 34 /* datetime */ THEN DO:
+            PUT STREAM code UNFORMATTED
+             comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e))
+             " datetime"
              c. /* (n,m) */
         END.
         ELSE
@@ -1088,13 +1102,14 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       /* Put default values */
       IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )THEN DO:      
           c = DICTDB._Field._Initial. 
-         IF DICTDB._Field._Data-type = "DATE" THEN DO:
-           IF UPPER(c) = "TODAY" THEN DO:        
+         IF DICTDB._Field._Data-type = "DATE" OR 
+            DICTDB._Field._Data-type BEGINS "DATETIME" THEN DO:
+           IF UPPER(c) = "TODAY" OR UPPER(c) = "NOW" THEN DO:        
              IF dbtyp = "ORACLE" THEN
-               ASSIGN c = "SYSDATE".      
+               ASSIGN c = "SYSDATE".
              ELSE IF dbtyp = "MSSQLSRV7" THEN
                ASSIGN c = "GETDATE()".
-             ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY for Progress */
+             ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY/NOW for OpenEdge */
              ELSE
                ASSIGN c = "".
            END.
@@ -1131,10 +1146,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            IF c <> " "  AND c <> "0" THEN         
               PUT STREAM code UNFORMATTED " DEFAULT " c.  
          END.    
-         ELSE IF DICTDB._Field._Data-type = "logical" AND c <> " " THEN 
+         ELSE IF c <> " " AND CAN-DO("logical,date,datetime,datetime-tz",DICTDB._Field._Data-type) THEN
               PUT STREAM code UNFORMATTED " DEFAULT " c. 
-         ELSE IF DICTDB._Field._Data-type = "date" and c <> " " THEN
-              PUT STREAM code UNFORMATTED " DEFAULT " c.  
          ELSE IF  c <> " " AND c <> ? THEN
              PUT STREAM code UNFORMATTED " DEFAULT " c.               
       END.
@@ -1164,7 +1177,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       ELSE IF (dbtyp = "SYBASE" OR dbtyp = "MS SQL Server" OR 
               dbtyp = "MSSQLSRV7") AND NOT unsprtdt THEN 
         PUT STREAM code UNFORMATTED
-          (if DICTDB._Field._Mandatory OR (i NE 41 /*int64 */ AND user_env[i + 10] = "bit") 
+          (if DICTDB._Field._Mandatory OR (i <= 9 /*not int64 */ AND user_env[i + 10] = "bit") 
            then " not null" else " null").
       ELSE IF (db2type <> ? AND db2type <> "")  AND DICTDB._Field._Mandatory THEN
           PUT STREAM code UNFORMATTED " NOT NULL".

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,7 @@ History:
     hutegger    94/07/29    creation
     mcmann      05/21/2002  Added new input-output parameter
     knavneet    08/12/2007  if as400, s_owner is not assigned to *
+    fernando    02/25/2008  Added new input-output parameter for datetime
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -52,7 +53,7 @@ assign
           or user_env[25] begins "auto-compare").
 
 if NOT user_env[25] begins "AUTO"
- then do:  /* allow user to update preselection-citerias */
+ then do:  /* allow user to update preselection-criterias */
    
   RUN prodict/user/_usr_gsl.p
     ( INPUT-OUTPUT s_name,
@@ -61,6 +62,7 @@ if NOT user_env[25] begins "AUTO"
       INPUT-OUTPUT s_type,
       INPUT-OUTPUT s_vrfy,
       INPUT-OUTPUT s_outf,
+      INPUT-OUTPUT s_datetime,
       INPUT-OUTPUT s_wildcard,
       INPUT        "{&frame}",
       INPUT        {&link},

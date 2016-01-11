@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -57,8 +57,10 @@ DEFINE         VARIABLE retriev     AS LOGICAL     NO-UNDO.
 DEFINE         VARIABLE c           AS CHARACTER   NO-UNDO.
 DEFINE         VARIABLE pro_typ     AS CHARACTER   NO-UNDO.
 DEFINE         VARIABLE gat_typ     AS CHARACTER   NO-UNDO.
-DEFINE         VARIABLE islob      AS LOGICAL     NO-UNDO.
+DEFINE         VARIABLE islob       AS LOGICAL     NO-UNDO.
+DEFINE         VARIABLE oldType     AS CHARACTER   NO-UNDO.
 
+DEFINE BUFFER tmpField FOR DICTDB._Field.
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -112,6 +114,54 @@ FORM
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
+/*---- LEAVE of data-type field---- */
+on leave of dfields._data-type in frame ora_fld do:
+
+  define variable l_type-match as logical no-undo.
+  DEFINE VAR      l_dt-new     AS CHARACTER NO-UNDO.
+  DEFINE VAR      l_for-type   AS CHARACTER NO-UNDO.
+  DEFINE VAR      l_init       AS CHARACTER NO-UNDO.
+
+  assign
+    l_dt-new    = trim(input frame ora_fld dfields._Data-type)
+    l_for-type  = input frame ora_fld dfields._For-type
+    l_init      = input frame ora_fld dfields._Initial.
+
+  /* validate on the SET stmt will take care of this */
+  IF NOT CAN-DO(pro_typ,l_dt-new) THEN
+      RETURN.
+
+  /* handle changing date/datetime/char */
+  IF  ( l_dt-new = "character" AND dfields._Data-type BEGINS "date")
+   OR ( l_dt-new BEGINS "date" AND (l_dt-new NE dfields._Data-type))
+   THEN DO:  /* change format and ev. initial */
+
+      IF l_dt-new = "date" THEN DO:
+          dfields._Format:SCREEN-VALUE IN FRAME ora_fld = "99/99/99".
+          IF dfields._Initial = "now" THEN
+             dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = "today".
+      END.
+      ELSE IF l_dt-new = "datetime" THEN DO:
+          dfields._Format:SCREEN-VALUE IN FRAME ora_fld = "99/99/9999 HH:MM:SS.SSS".
+          IF dfields._Initial = "today" THEN
+             dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = "now".
+      END.
+      ELSE IF l_dt-new = "character" THEN DO:
+          ASSIGN dfields._Format:SCREEN-VALUE IN FRAME ora_fld = 
+                        (IF dfields._For-type = "date"
+                         THEN "9999/99/99 99:99:99"
+                         ELSE "X(26)")
+                 dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = ?.
+      END.
+  END.
+
+  /* save away new value */
+  dfields._Data-type = l_dt-new.
+end.   /* on leave of dfields._data-type */
+
+
+/* Main Block */
+
 IF NOT AVAILABLE dfields THEN
   FIND FIRST dfields WHERE dfields._File-recid = drec_file
     USING FRAME ora_fld _Field-name NO-ERROR.
@@ -144,19 +194,26 @@ IF dfields._For-type = "BLOB" OR dfields._data-type = "CLOB" THEN
 ELSE
   ASSIGN islob = FALSE.
 
-RELEASE _File.
-
 /* Get the list of Progress types that can be used for the 
    gateway type for this field. */
 ASSIGN
    pro_typ = "get-list"
    gat_typ = dfields._For-type
+   oldType = dfields._Data-type
    c = ?
    i = ?.
 RUN "prodict/ora/_ora_typ.p"
   (INPUT-OUTPUT i,INPUT-OUTPUT i,
    INPUT-OUTPUT pro_typ,INPUT-OUTPUT gat_typ,
    OUTPUT c).
+
+IF gat_typ = "DATE" AND available _File AND 
+   CAN-DO("PROCEDURE,FUNCTION",_File._For-type) THEN DO:
+   /* in 10.1C01, datetime is not supported for stored procedures */
+   ASSIGN pro_typ = REPLACE(pro_typ,"datetime","date").
+END.
+
+RELEASE _File.
 
 /*retriev = dfields._For-retrieve = 1.*/
 DISPLAY
@@ -225,6 +282,18 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     dfields._Valexp = (IF TRIM(dfields._Valexp) = "" 
       	       	     	 THEN ? 
       	       	     	 ELSE TRIM(dfields._Valexp)).
+
+  IF oldType NE dfields._Data-type AND 
+     can-do("date,character",oldType) AND dfields._Data-type BEGINS "datetime" THEN DO:
+
+     /* remove the time companion field if changing from date to datetime */
+      FIND FIRST tmpField WHERE tmpField._File-recid = 
+          dfields._File-recid AND tmpField._For-name = dfields._For-name AND
+          tmpField._For-type = "TIME" NO-ERROR.
+
+      IF AVAILABLE tmpField THEN
+         DELETE tmpField. /* delete it */
+  END.
   changed = TRUE.
 END.
 

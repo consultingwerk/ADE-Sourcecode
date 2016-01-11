@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /* ptlshlp.i */
 
 /*
@@ -138,3 +138,6 @@
 /* New for 10.1A */
 &GLOBAL-DEFINE WidgetID_Assignment_Utility 200
 &GLOBAL-DEFINE Object_Attribute_Reference 201
+
+/* New for 10.1C */
+&GLOBAL-DEFINE WidgetID_Runtime_Assignment_Utility 127

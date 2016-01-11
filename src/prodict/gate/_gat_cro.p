@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-08 by Progress Software Corporation. All rights *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -65,7 +65,8 @@ History:
     slutz       08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
     fernando    04/19/06 Fixing output of message
     fernando    05/26/06 Added support for int64
-    fernando    06/11/07 Unicode and clob support    
+    fernando    06/11/07 Unicode and clob support   
+    fernando    02/14/08 Support for datetime 
 --------------------------------------------------------------------*/
 
 
@@ -478,7 +479,7 @@ if can-do(odbtyp,user_dbtype)
 else if user_dbtype = "ORACLE"
    then assign
     l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,BLOB,BFILE,NCHAR,NVARCHAR2,CLOB,NCLOB"
-    l_chda-types = "DATE"
+    l_chda-types = "DATE,TIMESTAMP,TIMESTAMP_LOCAL"
     l_date-types = ""
     l_dcml-types = "FLOAT"
     l_dein-types = ""
@@ -494,7 +495,6 @@ else if user_dbtype = "ORACLE"
     l_deil-types = ""
     l_intg-types = "INT,INTN,SMALLINT,TIME,TIME4,TINYINT"
     l_logi-types = "BIT".
-
 
 /*------------------------------------------------------------------*/  
 /*---------------------------- MAIN-LOOP ---------------------------*/
@@ -827,29 +827,34 @@ for each gate-work
     for each s_ttb_fld where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
       IF s_ttb_fld.ds_name BEGINS "SYS_NC" THEN NEXT.
       /* if the main-part of date-field is of type character we don't
-       * need the time-part, so we skip it...
+       * need the time-part, so we skip it... Same for datetime.
        */
       IF lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
            and s_ttb_fld.pro_type  =  "integer"
            and can-find( w_field where w_field.ds_name  = s_ttb_fld.ds_name
-                                   and w_field.pro_type = "character"  )
+                                   and (w_field.pro_type = "character"  OR
+                                        w_field.pro_type = "datetime"))
        then next.
-      
+
       /* we need to find the w_field by name PLUS type because of
        * date-time fields....
        */
       if lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
        then find first w_field where w_field.ds_name = s_ttb_fld.ds_name
-                                 and lookup(w_field.ds_type,"character,date") <> 0 no-error.
+                                 and lookup(w_field.ds_type,"character,date,datetime") <> 0 no-error.
       else find first w_field where w_field.ds_name = s_ttb_fld.ds_name
                                 and w_field.ds_type = s_ttb_fld.ds_type no-error.
       if not available w_field then 
         find first w_field where w_field.ds_name = s_ttb_fld.ds_name no-error.
 
-      if available w_field and w_field.pro_type = "date"
-                           and w_field.ds_type begins "date"
-                           and s_ttb_fld.pro_type = "integer"
-        then release w_field.
+      if available w_field and w_field.ds_type begins "date"
+                           and s_ttb_fld.pro_type = "integer" THEN DO:
+         IF w_field.pro_type = "date" THEN
+            release w_field.
+         ELSE IF w_field.pro_type = "datetime" THEN
+             /* don't need time portion if mapping to datetime */
+             NEXT.
+      END.
 
       IF AVAILABLE w_field  THEN do:
           IF w_field.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
@@ -976,13 +981,13 @@ for each gate-work
         END CASE.      
       END.
 
-      if available w_field then do:
+      if available w_field then do:            
         if (
-         (   can-do(l_char-types + "," + l_chda-types               ,s_ttb_fld.ds_type) 
+         (   can-do(l_char-types + "," + l_chda-types               ,s_ttb_fld.ds_type)
          AND can-do("character"              ,w_field.pro_type) )
          OR
          (   can-do(l_chda-types                                    ,s_ttb_fld.ds_type) 
-         AND can-do("character,date"         ,w_field.pro_type) )
+         AND can-do("character,date,datetime",w_field.pro_type) )
          OR
          (   can-do(l_chda-types + "," + l_date-types               ,s_ttb_fld.ds_type) 
          AND can-do("date"                   ,w_field.pro_type) )
@@ -1003,7 +1008,6 @@ for each gate-work
          AND can-do("logical"                ,w_field.pro_type) )
             )
          then ASSIGN DICTDB._Field._Decimals  = w_field.pro_decimals.
-           
 
         assign
           DICTDB._Field._Can-Read  = w_field.pro_Can-Read

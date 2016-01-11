@@ -1052,7 +1052,7 @@ DO:
             IF TBReg:CHECKED THEN DO:
 
               /* See if we can find our proctype in the gsc_object_type table */
-              hClassBuffer = {fnarg getCacheClassBuff ProcType gshRepositoryManager}.
+              hClassBuffer = {fnarg getCacheClassBuffer ProcType gshRepositoryManager}.
               if not hClassBuffer:available then
                 ProcType = "Procedure":U.  /* Last resort */
 

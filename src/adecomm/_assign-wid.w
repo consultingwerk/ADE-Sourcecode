@@ -5,7 +5,7 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /***********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights      *
+* Copyright (C) 2007-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -39,7 +39,7 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-
+{protools/ptlshlp.i}  /* help definitions        */
 {src/adm2/globals.i}
 {src/adm2/ttaction.i}
 {src/adm2/tttoolbar.i}
@@ -107,9 +107,9 @@ DEFINE TEMP-TABLE beforeInstanceChildren NO-UNDO LIKE InstanceChildren.
     ~{&OPEN-QUERY-brObjects}
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buAdd RECT-4 RECT-5 RECT-8 rcRight rcBrowser ~
-buNew buOpen rcToolbar buTree fiXMLFileName buSync coContainer buCancel ~
-brObjects buRemove buSave 
+&Scoped-Define ENABLED-OBJECTS RECT-4 buAdd RECT-5 RECT-8 rcRight rcBrowser ~
+rcToolbar fiXMLFileName coContainer brObjects buNew buOpen buTree buSync ~
+buCancel buRemove buSave 
 &Scoped-Define DISPLAYED-OBJECTS fiXMLFileName coContainer 
 
 /* Custom List Definitions                                              */
@@ -164,10 +164,13 @@ DEFINE SUB-MENU m_Options
               TOGGLE-BOX
        MENU-ITEM m_Assign_Default_Values LABEL "Re-assign Default Values".
 
+DEFINE SUB-MENU m_Help 
+       MENU-ITEM m__About_Runtime_Widget-id_As LABEL " About Runtime Widget-id Assignment Tool".
+
 DEFINE MENU MENU-BAR-C-Win MENUBAR
        SUB-MENU  m_File         LABEL "File"          
        SUB-MENU  m_Options      LABEL "Options"       
-       MENU-ITEM m_Help         LABEL "Help"          .
+       SUB-MENU  m_Help         LABEL "Help"          .
 
 
 /* Definitions of the field level widgets                               */
@@ -274,14 +277,14 @@ ENABLE ttBrowser.WidgetID
 
 DEFINE FRAME DEFAULT-FRAME
      buAdd AT ROW 1.24 COL 12.6 WIDGET-ID 208
+     fiXMLFileName AT ROW 2.71 COL 16 COLON-ALIGNED WIDGET-ID 230
+     coContainer AT ROW 3.86 COL 2.4 WIDGET-ID 2
+     brObjects AT ROW 5 COL 2.2 WIDGET-ID 200
      buNew AT ROW 1.24 COL 1.6 WIDGET-ID 60
      buOpen AT ROW 1.24 COL 6.6 WIDGET-ID 6
      buTree AT ROW 1.19 COL 39.6 WIDGET-ID 4
-     fiXMLFileName AT ROW 2.71 COL 16 COLON-ALIGNED WIDGET-ID 230
      buSync AT ROW 1.19 COL 33.6 WIDGET-ID 224
-     coContainer AT ROW 3.86 COL 2.4 WIDGET-ID 2
      buCancel AT ROW 1.24 COL 27.6 WIDGET-ID 12
-     brObjects AT ROW 5 COL 2.2 WIDGET-ID 200
      buRemove AT ROW 1.24 COL 17.6 WIDGET-ID 206
      buSave AT ROW 1.24 COL 22.6 WIDGET-ID 10
      RECT-4 AT ROW 1.1 COL 12 WIDGET-ID 216
@@ -349,7 +352,7 @@ IF NOT C-Win:LOAD-ICON("adeicon/assignwid.ico":U) THEN
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
    FRAME-NAME                                                           */
-/* BROWSE-TAB brObjects buCancel DEFAULT-FRAME */
+/* BROWSE-TAB brObjects coContainer DEFAULT-FRAME */
 ASSIGN 
        brObjects:COLUMN-RESIZABLE IN FRAME DEFAULT-FRAME       = TRUE.
 
@@ -811,6 +814,109 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME m_Assign_Default_Values
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Assign_Default_Values C-Win
+ON CHOOSE OF MENU-ITEM m_Assign_Default_Values /* Re-assign Default Values */
+DO:
+  DEFINE VARIABLE iWidgetID       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hProcGap        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE isFirstInstance AS LOGICAL   NO-UNDO INITIAL TRUE.
+  DEFINE VARIABLE isFirstAction   AS LOGICAL   NO-UNDO INITIAL TRUE.
+  DEFINE VARIABLE isFirstPage     AS LOGICAL   NO-UNDO INITIAL TRUE.
+  DEFINE VARIABLE isFirstTreeNode AS LOGICAL   NO-UNDO INITIAL TRUE.
+  DEFINE VARIABLE cOldObjectType  AS CHARACTER NO-UNDO.
+
+  DEFINE BUFFER bttBrowser FOR ttBrowser.
+
+  RUN adecomm/_widgaps.p PERSISTENT SET hProcGap.
+
+  FOR EACH bttBrowser WHERE bttBrowser.cContainer = coContainer:SCREEN-VALUE IN FRAME {&FRAME-NAME} AND
+            bttBrowser.cttName NE ""
+            BY bttBrowser.iOrder:
+
+            CASE bttBrowser.cttName:
+                WHEN "Action":U THEN
+                DO:
+                    IF isFirstAction THEN
+                        ASSIGN iWidgetID = 0
+                               isFirstAction = FALSE.
+                    ASSIGN iWidgetID = iWidgetID + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGap, INPUT "SmartToolbarActions":U).
+                END.
+                WHEN "Pages":U THEN
+                DO:
+                    IF isFirstPage THEN
+                        ASSIGN iWidgetID = 0
+                               isFirstPage = FALSE.
+                    ASSIGN iWidgetID = iWidgetID + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGap, INPUT "SmartFolderPage":U).
+                END.
+                WHEN "TreeNode":U THEN
+                DO:
+                    IF isFirstTreeNode THEN
+                        ASSIGN iWidgetID = 0
+                               isFirstTreeNode = FALSE.
+                    ASSIGN iWidgetID = iWidgetID + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGap, INPUT "TreeNode":U).
+                END.
+                WHEN "Instance":U THEN
+                DO:
+                    IF isFirstInstance THEN
+                        ASSIGN iWidgetID = 0
+                               isFirstInstance = FALSE.
+
+                    FIND FIRST Instance WHERE Instance.contPath = bttBrowser.cContainerPath AND
+                                              Instance.contName = bttBrowser.cContainerName AND
+                                              Instance.ID       = bttBrowser.cTTFieldID NO-LOCK NO-ERROR.
+                         IF NOT AVAILABLE(instance)
+                         THEN NEXT.
+                    ASSIGN iWidgetID      = iWidgetID + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGap, INPUT IF cOldObjectType = "":U THEN "FRAME":U ELSE cOldObjectType)
+                           cOldObjectType = Instance.ObjectType.
+                END.
+                WHEN "InstanceChildren":U THEN
+                DO:
+                    FIND FIRST InstanceChildren WHERE InstanceChildren.contPath = bttBrowser.cContainerPath AND
+                                                      InstanceChildren.contName = bttBrowser.cContainerName AND
+                                                      InstanceChildren.ID       = bttBrowser.cTTName        AND
+                                                      InstanceChildren.parentInstanceID = bttBrowser.cParent NO-LOCK.
+                    ASSIGN iWidgetID = iWidgetID + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGap, INPUT InstanceChildren.ObjectType).
+                END.
+            END.
+
+            ASSIGN bttBrowser.cStatus  = "U":U
+                   bttBrowser.WidgetID = iWidgetID.
+  END.
+
+  {&OPEN-QUERY-{&BROWSE-NAME}}
+
+  IF gcStatus NE "Started":U THEN
+    setWidgetStatus("Started":U).
+  DELETE OBJECT hProcGap NO-ERROR.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME m_Exit
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Exit C-Win
+ON CHOOSE OF MENU-ITEM m_Exit /* Exit */
+DO:
+  APPLY "WINDOW-CLOSE":U TO c-win.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME m__About_Runtime_Widget-id_As
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m__About_Runtime_Widget-id_As C-Win
+ON CHOOSE OF MENU-ITEM m__About_Runtime_Widget-id_As /*  About Runtime Widget-id Assignment Tool */
+DO:
+      RUN adecomm/_adehelp.p ( "ptls", "CONTEXT":U, {&WidgetID_Runtime_Assignment_Utility},?).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &UNDEFINE SELF-NAME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK C-Win 
@@ -869,13 +975,11 @@ END. /*ON 'LEAVE':U OF ttBrowser.WidgetID*/
 
 ON 'ENTRY':U OF ttBrowser.WidgetID
 DO:
-    /*This code has to be commented until OE00153098 is fixed.
-      The return no-apply hangs the session*/
-    /*IF ttBrowser.cLabel = "Pages":U OR
+    IF ttBrowser.cLabel = "Pages":U OR
          ttBrowser.cLabel = "TreeView Nodes":U OR
        ttBrowser.cLabel = "Toolbar Buttons":U OR
        ttBrowser.cLabel = "Instances":U THEN
-       RETURN NO-APPLY.*/
+       RETURN NO-APPLY.
 END. /*ON 'ENTRY':U OF ttBrowser.WidgetID*/
 
 ON 'VALUE-CHANGED':U OF ttBrowser.WidgetID
@@ -1045,8 +1149,8 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fiXMLFileName coContainer 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
-  ENABLE buAdd RECT-4 RECT-5 RECT-8 rcRight rcBrowser buNew buOpen rcToolbar 
-         buTree fiXMLFileName buSync coContainer buCancel brObjects buRemove 
+  ENABLE RECT-4 buAdd RECT-5 RECT-8 rcRight rcBrowser rcToolbar fiXMLFileName 
+         coContainer brObjects buNew buOpen buTree buSync buCancel buRemove 
          buSave 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
@@ -2207,7 +2311,8 @@ CASE pcStatus:
              buCancel:SENSITIVE    = TRUE 
              buSync:SENSITIVE      = FALSE
              buTree:SENSITIVE      = TRUE
-             coContainer:SENSITIVE = FALSE.
+             coContainer:SENSITIVE = FALSE
+             MENU-ITEM m_Assign_Default_Values:SENSITIVE IN MENU menu-bar-c-win = FALSE.
 
     WHEN 'Finished':U THEN
       ASSIGN buNew:SENSITIVE       = TRUE
@@ -2218,7 +2323,8 @@ CASE pcStatus:
              buCancel:SENSITIVE    = FALSE
              buSync:SENSITIVE      = TRUE
              buTree:SENSITIVE      = TRUE
-             coContainer:SENSITIVE = TRUE.
+             coContainer:SENSITIVE = TRUE
+             MENU-ITEM m_Assign_Default_Values:SENSITIVE IN MENU menu-bar-c-win = TRUE.
 
     WHEN 'ToolEmpty':U THEN
       ASSIGN buNew:SENSITIVE       = TRUE
@@ -2229,7 +2335,8 @@ CASE pcStatus:
              buCancel:SENSITIVE    = FALSE
              buSync:SENSITIVE      = FALSE
              buTree:SENSITIVE      = FALSE
-             coContainer:SENSITIVE = FALSE.
+             coContainer:SENSITIVE = FALSE
+             MENU-ITEM m_Assign_Default_Values:SENSITIVE IN MENU menu-bar-c-win = FALSE.
 
     WHEN 'XMLEmpty':U THEN
       ASSIGN buNew:SENSITIVE       = TRUE
@@ -2240,7 +2347,8 @@ CASE pcStatus:
              buCancel:SENSITIVE    = FALSE
              buSync:SENSITIVE      = FALSE
              buTree:SENSITIVE      = FALSE
-             coContainer:SENSITIVE = FALSE.
+             coContainer:SENSITIVE = FALSE
+             MENU-ITEM m_Assign_Default_Values:SENSITIVE IN MENU menu-bar-c-win = FALSE.
 END CASE.
 
 ASSIGN gcStatus = pcStatus.

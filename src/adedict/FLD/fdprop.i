@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -205,6 +205,10 @@ ELSE
 */
 if NOT ispro then
 do:
+   /* if schema holder is read-only, Dsrv schema is also read-only */
+   IF CAN-DO(DBRESTRICTIONS("DICTDB"), "Read-Only") THEN
+      {&ReadOnly} = TRUE.
+
    /* Find the entry in the table which matches the current gatetype type */
    type_ix = LOOKUP(s_Fld_Gatetype, user_env[12]).
 
@@ -246,7 +250,7 @@ do:
       	       ENTRY(type_ix, user_env[15]) + ")".
 end.
 
-if INDEX(s_Fld_Capab, {&CAPAB_CHANGE_DATA_TYPE}) <> 0 then
+if INDEX(s_Fld_Capab, {&CAPAB_CHANGE_DATA_TYPE}) <> 0 AND NOT {&ReadOnly} then
 do:
    /* type_ix is based on For-Type and I know that Progress doesn't allow changing of 
       data types so I know this is valid here.  Get the data type family.
@@ -265,11 +269,23 @@ do:
       do num = 1 to NUM-ENTRIES(user_env[16]):
       	 if family = ENTRY(num, user_env[16]) then
       	 do:
+             assign
+                gate_type = ENTRY(num, user_env[11])
+                pro_type = ENTRY(num, user_env[15]).
+
+            /* for 10.1C01, we won't support datetime for Procedures and Functions,
+               so don't show it as a valid type 
+            */
+            IF pro_type = "datetime" AND 
+               s_DbCache_Type[s_DbCache_ix] = "ORACLE" THEN DO:
+               find DICTDB._File of b_field no-lock no-error.
+               IF available DICTDB._File AND 
+                  CAN-DO("PROCEDURE,FUNCTION",DICTDB._File._For-type) THEN
+                  NEXT.
+            END.
+
       	    /* The list entry has the format: "gatetype (pro type)". */
-      	    assign
-      	       gate_type = ENTRY(num, user_env[11])
-      	       pro_type = ENTRY(num, user_env[15])
-	       s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x(21)") + 
+      	    ASSIGN s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x(21)") + 
       	       	     	      	              "(" + pro_type + ")")
       	       	       in {&Frame}.
       	 end.

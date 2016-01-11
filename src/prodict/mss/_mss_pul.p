@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 -08 by Progress Software Corporation. All rights*
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -54,6 +54,7 @@ History:
     08/24/06 fernando  Add warning about non utf-8 codepage and unicode columns - 20060802-024
     10/06/06 fernando  Check object name in case it has underscore - 20031205-003
     08/10/07 fernando  Removed UI restriction for Unicode support    
+    02/22/08 fernando  Support for datetime
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -115,6 +116,7 @@ define variable l_date-types     as character no-undo.
 define variable l_dcml           as integer   no-undo.
 define variable l_dcml-types     as character no-undo.
 define variable l_dt             as character no-undo.
+define variable l_tmp            as character no-undo.
 define variable l_floa-types     as character no-undo.
 define variable l_frmt           as character no-undo.
 define variable l_i###-types     as character no-undo.
@@ -350,16 +352,16 @@ RUN adecomm/_setcurs.p ("WAIT").
 assign
   cache_dirty = TRUE
   user_env    = "" /* yes this is destructive, but we need the -l space */
-  l_dt        = ?.
+  l_dt        = ?
+  l_tmp       = (if s_datetime then "datetime_default" else ?).
 
 RUN prodict/mss/_mss_typ.p
   ( INPUT-OUTPUT i,
     INPUT-OUTPUT i,
-    INPUT-OUTPUT l_dt,
+    INPUT-OUTPUT l_tmp,
     INPUT-OUTPUT l_dt,
     OUTPUT       l_dt
     ). /* fills user_env[11..17] with datatype-info */
-
 /* Get the name of the foreign dbms and set the foreign_dbms name */
     define variable foreign_dbms            as character no-undo.
     DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
@@ -702,7 +704,7 @@ for each gate-work
             s_ttb_tbl.ds_msc15 = 2.
       END.
       find first column-id
-           where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
+         where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
 
       IF NOT AVAILABLE column-id THEN NEXT.     
       assign field-position = column-id.col-id.
@@ -836,6 +838,12 @@ for each gate-work
         }
 
       end. /* DO */
+
+      /* OE00162531: adding identity fields to non-updatable list */
+      if DICTDBG.SQLColumns_buffer.column-name BEGINS "PROGRESS_RECID"
+      then .
+      else if (s_ttb_fld.ds_msc24 EQ "identity")
+           then s_ttb_tbl.ds_msc22 = string(s_ttb_fld.ds_stoff) + ",".
 
       if shadow_col > 0 then 
         assign s_ttb_fld.pro_case = FALSE  
@@ -1152,12 +1160,13 @@ for each gate-work
                     s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
           else assign
               s_ttb_idx.ds_msc21 = entry(s_ttb_idx.hlp_level,l_matrix).
+
           /* OE00164266 - set the PROGRESS_RECID size if it is an integer */
           find first s_ttb_fld
            where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl)
-             and  ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
-              no-lock no-error.
-          IF available s_ttb_fld then do:
+             and   ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
+    	      no-lock no-error.
+          IF available s_ttb_fld then do: 
             if s_ttb_fld.ds_type = "INTEGER"
              then
                s_ttb_tbl.ds_msc15 = 1. /* RECID is 4 byte */
@@ -1165,7 +1174,6 @@ for each gate-work
              then
                s_ttb_tbl.ds_msc15 = 2. /* RECID is 8 byte */
           END.
-
        end.     /* for each s_ttb_idx */
     end.     /* no progress_recid -> check indexes for ROWID usability */
 
@@ -1222,7 +1230,6 @@ for each gate-work
 
      IF substring(table_name,(length(table_name) - 1)) = ";1" THEN
         ASSIGN table_name = substring(table_name,1,(length(table_name) - 2)).
-
      create s_ttb_tbl.
      ASSIGN gate-work.ttb-recid = RECID(s_ttb_tbl)
             s_ttb_tbl.ds_name   = table_name

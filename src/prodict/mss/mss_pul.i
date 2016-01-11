@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -31,6 +31,8 @@ History:
    D. McMann  01/08/03 Added logic to find default value for initial value
    fernando   09/11/07 Fixing issue with Initial when not Unicode case - OE00157726
    knavneet   11/14/07 Fixing issue with numeric default for char column - OE00127261
+   fernando   02/14/08 Support for datetime
+   fernando   04/08/08 Handle MAX field with Native driver - OE00165897
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -114,6 +116,8 @@ IF l_init <> ? THEN DO:
   
   IF ntyp = "DATE" THEN 
       ASSIGN l_init = "TODAY".
+  ELSE IF ntyp = "DATETIME" THEN
+      ASSIGN l_init = "NOW".
   ELSE DO: 
 
       IF esc-idx1 = 0 THEN DO:
@@ -164,6 +168,22 @@ assign
                                 FALSE
                            else (DICTDBG.SQLColumns_buffer.Nullable = 0)
                           ).
+
+/* OE00165897
+   When using the SQL Server Native driver, (MAX) columns are reported
+   with precision and length as 0, and the regular data types (not the long type).
+   The DataServer will set precision and length to 32000/16000 in this case,
+   so we will do the same here.
+*/
+CASE {&data-type}:
+    WHEN "VARBINARY" OR WHEN "VARCHAR" OR WHEN "NVARCHAR" THEN DO:
+        IF s_ttb_fld.ds_lngth = 0  AND s_ttb_fld.ds_prec = 0 THEN DO:
+           ASSIGN s_ttb_fld.ds_lngth = 32000
+                  s_ttb_fld.ds_prec = (IF my_typ_unicode THEN 16000 ELSE 32000).
+        END.
+    END.
+END CASE.
+
 /* Check field to see if identity field and mark _field-Misc2[4] as "identity" */
  IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0 THEN
    ASSIGN s_ttb_fld.ds_msc24 = "identity"

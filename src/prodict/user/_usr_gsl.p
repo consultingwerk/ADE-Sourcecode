@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000, 2007 by Progress Software Corporation. All     *
+* Copyright (C) 2008 by Progress Software Corporation. All           *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,6 +37,7 @@ History:
                             label to "Owner/Library"
     knavneet    02/21/07    Changed the label from Owner/Library to Collection/Library in case of DB2/400
                             Changed the label from Owner/Library to Owner in case of other data sources.  
+    fernando    04/07/08    Support for datetime fo MSS/ORACLE                            
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -57,6 +58,7 @@ define input        parameter p_master   as   character.
 define variable               canned     as   logical init yes.
 define variable               l_link     as   character format "x(30)".
 define variable               l_verify   as   logical.
+DEFINE VARIABLE               l_dt_hide  AS   LOGICAL NO-UNDO.
 form
                                                           skip({&VM_WIDG})
   l_link    label "Link-Path  "  format "x(30)" colon 18  skip({&VM_WIDG})
@@ -65,6 +67,8 @@ form
   p_owner   label "&Owner"                colon 18  skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX skip({&VM_WIDG})
+  p_datetime LABEL "Default to OE Datetime" view-as TOGGLE-BOX 
+        at column-of p_vrfy row-of p_vrfy  skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_link
@@ -80,7 +84,9 @@ form
   p_owner   label "&Owner"  colon 18   skip({&VM_WIDG})
   p_qual    label "&Qualifier  "   colon 18   skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
-            view-as TOGGLE-BOX skip({&VM_WIDG})
+            view-as TOGGLE-BOX
+  p_datetime LABEL "Default to OE Datetime" view-as TOGGLE-BOX 
+      at column-of p_vrfy row-of p_vrfy  skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_ntoq
@@ -215,6 +221,11 @@ do on ENDKEY undo,leave:
     if not l_verify then 
       ASSIGN p_outf:hidden in frame frm_link = TRUE
              p_vrfy:hidden in frame frm_link = TRUE.
+    
+    /* for verify, or db-link, don't display date/datetime overrride option */
+    IF l_verify OR p_link <> "" OR OS-GETENV("OE_101C_DATETIME") = ? THEN
+      ASSIGN p_datetime:hidden in frame frm_link = TRUE
+             l_dt_hide = YES.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_link" 
@@ -241,6 +252,7 @@ do on ENDKEY undo,leave:
       p_owner 
       p_vrfy when l_verify
       p_outf WHEN l_verify
+      p_datetime WHEN not l_dt_hide 
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -248,7 +260,6 @@ do on ENDKEY undo,leave:
   
     hide frame frm_link no-pause.
     assign canned = false.
-
     end.     /* frame frm_link */
   
   else if p_frame = "frm_ntoq":U 
@@ -257,6 +268,10 @@ do on ENDKEY undo,leave:
     if not l_verify then 
       ASSIGN p_outf:HIDDEN IN FRAME frm_ntoq = TRUE
              p_vrfy:hidden in frame frm_ntoq = TRUE.
+
+    IF l_verify OR DBTYPE("DICTDBG") NE "MSS" OR OS-GETENV("OE_101C_DATETIME") = ? THEN
+      ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE
+             l_dt_hide = YES.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
@@ -272,6 +287,7 @@ do on ENDKEY undo,leave:
       p_qual
       p_vrfy when l_verify
       p_outf WHEN l_verify
+      p_datetime WHEN not l_dt_hide
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

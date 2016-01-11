@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -50,6 +50,7 @@ form.
 HISTORY:
     96/04   hutegger    restricted update of _fld-stoff to only BUFFERs 
                         that got created on the PROGRES side
+    02/14/08 fernando Support for datetime
 !!!!!!!NOTE: this program is not yet suitable for adding fields!!!!!!!!
 
 */
@@ -95,7 +96,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
   /* 4*/ "Cannot create &1 fields.  Must create on &1 side and",
   /* 5*/ "use ~"Update &1 definition~" to bring definition over.",
   /* 6*/ "You must enter a field name here.", /* reserved */
-  /* 7*/ "This is not an equivalent &PRO_DISPLAY_NAME} datatype for the &1 datatype",
+  /* 7*/ "This is not an equivalent {&PRO_DISPLAY_NAME} datatype for the &1 datatype",
   /* 8*/ "Attempt to add with same name as existing field -switching to MODIFY",
   /* 9*/ "Invalid &1 datatype.",
   /*10*/ "Offset allready used by other field."
@@ -104,7 +105,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
 FORM
   dfields._Field-name   LABEL "  Field-Name" FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
-      "This name conflicts with a &PRO_DISPLAY_NAME} reserved keyword.") SPACE
+      "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
   dfields._Data-type    LABEL    "Data-Type" FORMAT "x(9)"  SKIP
 
   edbtyp1            NO-LABEL AT  2          FORMAT "x(12)" SPACE
@@ -207,7 +208,8 @@ on leave of dfields._For-type in frame odb_fld do:
       when "d" then assign l_format = "99/99/99".
       when "i" then assign l_format = "->>,>>>,>>>9".
       when "#" then assign l_format = "->>,>>>,>>>9.99".
-      when "l" then assign l_format = "yes/no".
+      when "l" then assign  l_format = "yes/no".
+      WHEN "dt"  THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS".
       end case.
 
     DISPLAY 
@@ -249,6 +251,7 @@ ON GET,HELP OF dfields._For-type IN FRAME odb_fld DO:
       when "i" then assign l_format = "->>,>>>,>>>9".
       when "#" then assign l_format = "->>,>>>,>>>9.99".
       when "l" then assign l_format = "yes/no".
+      WHEN "dt"  THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS".
       end case.
 
     DISPLAY 
@@ -278,7 +281,6 @@ on leave of dfields._data-type in frame odb_fld do:
     l_init      = input frame odb_fld dfields._Initial
     odb_type_ix = LOOKUP(l_for-type, user_env[12])
     l_type-match = false.
-
   repeat while ENTRY(odb_type_ix,user_env[12])  = l_for-type
     and l_type-match = false:
     assign 
@@ -295,13 +297,16 @@ on leave of dfields._data-type in frame odb_fld do:
 
   if  ( l_dt-new = "character" and l_dt-old <> "character" )
    or ( l_dt-new = "date"      and l_dt-old <> "date"      )
+   or ( l_dt-new = "datetime"  and l_dt-old <> "datetime"  )
    or ( l_dt-new = "logical"   and l_dt-old <> "logical"   )
    or ( can-do("integer,decimal",l_dt-new) 
                 and not can-do("integer,decimal",l_dt-old) )
    then do:  /* change format and ev. initial */
-    if   l_dt-new   = "character"
-     and l_for-type = "timestamp"
-     then assign l_format = "x(26)".
+     if l_dt-new = "character" and
+        l_for-type = "timestamp" then
+        assign l_format = "x(26)".
+     ELSE IF l_dt-new = "datetime" and l_for-type = "timestamp" THEN
+             assign l_format = "99/99/9999 HH:MM:SS.SSS".
      else do:  /* any other dt-new/for-type combination */
       assign
         l_format    = ENTRY(odb_type_ix, user_env[17], "|")
@@ -372,7 +377,10 @@ ASSIGN
 ASSIGN
   c = ?
   i = ?.
-RUN "prodict/odb/_odb_typ.p"
+
+/* if dbtype is MSS, call the correct procedure */
+RUN VALUE("prodict/" + 
+          (IF edbtyp = "MSS" THEN "mss/_mss_typ.p" ELSE "odb/_odb_typ.p"))
   (INPUT-OUTPUT i,INPUT-OUTPUT i,INPUT-OUTPUT c,INPUT-OUTPUT c,OUTPUT c).
 
 /**/

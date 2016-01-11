@@ -27,7 +27,11 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/**********************************************************************************/
+/* Copyright (C) 2006,2008 by Progress Software Corporation. All rights reserved. */
+/* Prior versions of this work may contain portions contributed by                */
+/* participants of Possenet.                                                      */             
+/**********************************************************************************/
 /*---------------------------------------------------------------------------------
   File: afdeplystp.p
 
@@ -57,7 +61,6 @@ af/cod/aftemwizpw.w
 &scop object-name       afdeplgenp.p
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
-
 
 /* object identifying preprocessor */
 &glob   AstraProcedure    yes
@@ -348,7 +351,7 @@ PROCEDURE buildCriteria :
                          bc_rycso.customization_result_obj = 0
                          no-lock,
                    first bc_gscot where
-                         bc_gscot.object_type_obj = bc_rycso.product_module_obj
+                         bc_gscot.object_type_obj = bc_rycso.object_type_obj
                          no-lock:
                     /* DataFields are marked as static, but aren't really. */
                     if bc_rycso.static_object eq no or

@@ -85,7 +85,7 @@ DEFINE VARIABLE sh_max_ver          AS INTEGER NO-UNDO.
 DEFINE VARIABLE is_db2              AS LOGICAL NO-UNDO.
 DEFINE VARIABLE is_as400            AS LOGICAL NO-UNDO.
 DEFINE VARIABLE default_lib         AS CHARACTER NO-UNDO INITIAL "*".
-DEFINE NEW SHARED VARIABLE s_is_as400 AS LOGICAL NO-UNDO INIT NO.
+
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
   DEFINE VARIABLE dsn_name            AS CHARACTER NO-UNDO.
   FUNCTION getRegEntry RETURN CHARACTER (INPUT dsnName as CHARACTER, keyName AS CHARACTER) FORWARD.
@@ -334,7 +334,6 @@ END.
 
 if is_as400 then
 DO:
-s_is_as400 = yes.
 {prodict/gate/presel.i
   &block  = "presel"
   &frame  = "frm_as400"
@@ -882,6 +881,7 @@ HIDE FRAME gate_wait no-pause.
   &gate-flag = "YES"
   &special1  = " "
   &special2  = " "
+  &as400-flag = "is_as400"
   &where     = "gate-work.gate-type <> ""STABLE"""
   }
 

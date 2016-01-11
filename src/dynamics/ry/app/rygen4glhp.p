@@ -3008,11 +3008,6 @@ ACCESS_LEVEL=PRIVATE
                          rycue.container_smartobject_obj = rycoi.container_smartobject_obj and
                          rycue.event_action       <> "":U
                          no-lock:
-                    /* There may be cases where events are 'left over' from
-                       earlier releases (they may not have been cleaned up properly). */
-                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
-                                            ttInstance.ClassName, rycue.event_name, yes) then
-                        next.                             
 
                     if not can-find(ttEvent where
                                     ttEvent.EventName = rycue.event_name and
@@ -3182,7 +3177,7 @@ ACCESS_LEVEL=PRIVATE
                                        ttProperty.DataType = 'Character'.
                         end case.   /* data type */
                     end.    /* each instance attribute value */
-                    
+
                     /* Instance Events */
                     for each rycue where
                              rycue.object_type_obj = rycso_instance.object_type_obj and
@@ -3192,12 +3187,6 @@ ACCESS_LEVEL=PRIVATE
                              rycue.container_smartobject_obj = rycoi.container_smartobject_obj and
                              rycue.event_action       <> "":U
                              no-lock:
-                        /* There may be cases where events are 'left over' from
-	                       earlier releases (they may not have been cleaned up properly). */
-                        if not dynamic-function('classHasAttribute' in gshRepositoryManager,
-                                                ttInstance.ClassName, rycue.event_name, yes) then
-                            next.
-
                         if not can-find(ttEvent where
                                         ttEvent.EventName = rycue.event_name and
                                         ttEvent.InstanceName = rycoi.instance_name) then
@@ -3496,15 +3485,6 @@ ACCESS_LEVEL=PRIVATE
                          rycue.container_smartobject_obj = 0 and
                          rycue.event_action       <> "":U
                          no-lock:
-
-                    /* There may be cases where properties are 'left over' from
-	                   earlier releases (they may not have been cleaned up properly).
-	                   We don't want to use them at all, since the ADMProps temp-tables 
-	                   will be all messed up. We can use the RepositoryManager API since
-	                   the code we're generating is for RUNTIME use. */
-                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
-                                            ttInstance.ClassName, rycue.event_name, yes) then
-                        next.
 
                     if not can-find(ttEvent where
                                     ttEvent.EventName = rycue.event_name and
@@ -5805,7 +5785,7 @@ ACCESS_LEVEL=PUBLIC
     
     for each ttEvent where
              ttEvent.InstanceName = cInstanceName:
-                 
+        
         if valid-handle(hWidget) and
            not valid-event(hWidget, ttEvent.EventName) then
             next.

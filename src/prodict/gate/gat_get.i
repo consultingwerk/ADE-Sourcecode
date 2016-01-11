@@ -27,6 +27,7 @@ Text-Parameters:
                of _guigget.p  
     &special2  some DS-specific action to be done AFTER calling 
                of _guigget.p  
+    &as400-flag yes if ODBC for AS/400
     &where     where-phrase to exclude system-objects from auto-select  
 
 
@@ -93,7 +94,8 @@ if user_env[25] begins "AUTO"
 
   RUN prodict/gui/_guigget.p
     ( INPUT edbtyp,
-      INPUT "Pull"
+      INPUT "Pull",
+      &IF DEFINED(as400-flag) &THEN {&as400-flag} &ELSE NO &ENDIF
     ).
 
   assign canned = (if RETURN-VALUE = "cancel" then yes else no).

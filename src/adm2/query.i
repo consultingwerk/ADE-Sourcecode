@@ -264,7 +264,8 @@ PROCEDURE initProps :
   IF NOT {fnarg setOpenQuery cQueryString} THEN
     DYNAMIC-FUNCTION('showMessage':U IN TARGET-PROCEDURE, '5':U). 
 &ELSE  /* if defined(open-query) */
-  /* Store the original query in the BaseQuery client property */ 
+  {set Tables cTables}.   /* List of DB table names */
+    /* Store the original query in the BaseQuery client property */ 
   IF cQueryString <> '' THEN
      {set BaseQuery cQueryString}.
 &ENDIF /* client */  

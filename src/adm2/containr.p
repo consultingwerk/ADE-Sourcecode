@@ -9460,7 +9460,13 @@ FUNCTION newHeight RETURNS LOGICAL
              like the Dynamics Layout Manager.     
 ------------------------------------------------------------------------------*/
    if pdHeight > {fn getHeight} then
-     run resizeObject in target-procedure(pdHeight,{fn getWidth}).
+   do:
+     /* no-error - not part of the container interface */ 
+     run resizeObject in target-procedure(pdHeight,{fn getWidth}) no-error.
+     if error-status:error then
+        return false.
+   end.
+   return true. 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -9483,9 +9489,15 @@ FUNCTION newWidth RETURNS LOGICAL
             size increase or if sizing/resizing is handled by other mechanisms, 
             like the Dynamics Layout Manager.     
 ------------------------------------------------------------------------------*/
-   if pdWidth > {fn getWidth} then
-     run resizeObject in target-procedure({fn getHeight},pdWidth).
-  
+   if pdWidth > {fn getWidth} then 
+   do:
+     /* no-error - not part of the container interface  */ 
+     run resizeObject in target-procedure({fn getHeight},pdWidth) no-error.
+     if error-status:error then
+        return false.
+   end.
+   return true. 
+   
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

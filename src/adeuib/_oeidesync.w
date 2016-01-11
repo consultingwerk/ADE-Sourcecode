@@ -343,6 +343,7 @@ DEFINE INPUT PARAMETER pcLinkedFile AS CHARACTER    NO-UNDO.
 
 DEFINE VARIABLE hWindow        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE orig_temp_file AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE orig_save_file AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE dtSyncTime     AS DATETIME   NO-UNDO.
 
 DEFINE VARIABLE hWin           AS WIDGET     NO-UNDO.
@@ -362,11 +363,14 @@ ASSIGN _h_win = hWindow.
 
 /* Gen4GL code */
 ASSIGN orig_temp_file  = _comp_temp_file
-       _comp_temp_file = pcLinkedFile.       
+       _comp_temp_file = pcLinkedFile
+       orig_save_file  = _save_file.
+ASSIGN _save_file = b_P._save-as-file.              
 RUN adecomm/_setcurs.p ("WAIT":U).
 RUN adeshar/_gen4gl.p ("PRINT":U).
 RUN setstatus IN _h_uib ("":U, "":U).
-_comp_temp_file = orig_temp_file.
+ASSIGN _comp_temp_file = orig_temp_file
+       _save_file      = orig_save_file.
 
 /* Restore value of _h_win */
 IF _h_win <> hWin THEN

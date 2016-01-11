@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*
 Procedure:    adecomm/_winsys.p
 Author:       R. Ryan 
@@ -77,10 +77,11 @@ IF OPSYS EQ "WIN32" THEN DO:
     Other        = GET-STRING(lpVersionInfo,21).
 
   IF PlatformId = {&VER_PLATFORM_WIN32_NT} THEN DO:
-    IF MajorVersion > 4 THEN
-      ASSIGN OSstr = (IF MinorVersion = 0 THEN "Win2000 ":U ELSE "WinXP ":U).
-    ELSE 
-      ASSIGN OSstr = "WinNT ":U.
+    CASE MajorVersion:
+        WHEN 4 THEN ASSIGN OSstr = "WinNT ":U.
+        WHEN 5 THEN ASSIGN OSstr = IF MinorVersion = 0 THEN "Win2000 ":U       ELSE "WinXP ":U.
+        WHEN 6 THEN ASSIGN OSstr = IF MinorVersion = 0 THEN "Windows Vista ":U ELSE "":U.
+    END CASE.
 
     ASSIGN  OSstr = OSstr + "(" + 
             STRING(MajorVersion) + "." + 

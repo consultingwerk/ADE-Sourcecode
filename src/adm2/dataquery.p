@@ -4569,7 +4569,8 @@ FUNCTION getQueryPosition RETURNS CHARACTER
  -----------------------------------------------------------------------------*/
   DEFINE VARIABLE cPosition   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hDataSource AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cParentPos  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentPos  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lParentOk   AS LOGICAL   NO-UNDO.
   
   &SCOPED-DEFINE xpQueryPosition
   {get QueryPosition cPosition}.
@@ -4582,9 +4583,15 @@ FUNCTION getQueryPosition RETURNS CHARACTER
     {get DataSource hDataSource}.
     if valid-handle(hDataSource) then
     do: 
-      {get QueryPosition cParentPos hDataSource}.
-      if cParentPos begins "NoRecordAvailable":U then        cPosition = "NoRecordAvailableExt":U.
+      {get QueryObject lParentOk hDataSource}.
+      if lParentOk then 
+      do:
+        {get QueryPosition cParentPos hDataSource}.
+        if cParentPos begins "NoRecordAvailable":U then        
+          cPosition = "NoRecordAvailableExt":U.
+      end.
     end.  
+    
     if cPosition = '' then  
       cPosition = "NoRecordAvailable":U.  
   end.  

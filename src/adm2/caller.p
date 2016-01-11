@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File:         caller.p
 
@@ -489,7 +489,9 @@ PROCEDURE invokeCall :
   lSuccess = YES.
 
   /* Now invoke the call */
-  hCall:INVOKE NO-ERROR.
+  DO ON STOP UNDO, LEAVE:
+      hCall:INVOKE NO-ERROR.
+  END.
 
   /* If there is an error, build up a string containing the error and
      put it in the bttCall.cReturnValue and errReturnValue field on the

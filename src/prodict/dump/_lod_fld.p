@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,10 +24,11 @@
       06/12/06 Allow int->int64 type change and check for _Initial overflow
       08/16/06 Raw comparison when checking if char values are different - 20060301-002
       10/02/07 Error handling - OE00158774
+      04/30/08 Fix handling of Order values - OE00166224
 */    
     
 define input-output parameter minimum-index as integer.
- 
+
 { prodict/dump/loaddefs.i }
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -38,6 +39,8 @@ DEFINE VARIABLE fldrpos  AS INTEGER   NO-UNDO.
 
 DEFINE VARIABLE i        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE gotError AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE freeOrder AS INT      NO-UNDO.
+
 
 FIND _File WHERE RECID(_File) = drec_file NO-ERROR.
 IF NOT AVAILABLE _File THEN RETURN.
@@ -188,7 +191,6 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF COMPARE(_Field._Initial-SA,"NE",wfld._Initial-SA,"RAW") THEN _Field._Initial-SA    = wfld._Initial-SA.
   IF COMPARE(_Field._Label,"NE",wfld._Label,"RAW")          THEN _Field._Label         = wfld._Label.
   IF COMPARE(_Field._Label-SA,"NE",wfld._Label-SA,"RAW")    THEN _Field._Label-SA      = wfld._Label-SA.
-  IF _Field._Order         <> wfld._Order                   THEN _Field._Order         = wfld._Order.
   IF _Field._Field-rpos    <> wfld._Field-rpos              THEN _Field._Field-rpos    = wfld._Field-rpos.
   IF COMPARE(_Field._Valexp,"NE",wfld._Valexp,"RAW")        THEN _Field._Valexp        = wfld._Valexp.
   IF _Field._Valmsg        <> wfld._Valmsg                  THEN _Field._Valmsg        = wfld._Valmsg.
@@ -236,6 +238,14 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF wfld._Width <> ? AND _Field._Width <> wfld._Width      THEN 
       _Field._Width  = wfld._Width.
 
+  IF _Field._Order <> wfld._Order THEN DO: 
+      ASSIGN freeOrder = _Field._Order
+             _Field._Order = wfld._Order.
+
+      /* OE00166224 - see if some other field wanted this order value */
+      RUN retryOrder(INPUT freeOrder).
+  END.
+
   fldrecid = RECID(_Field).
 
 END. /*---------------------------------------------------------------------*/
@@ -249,7 +259,18 @@ IF imod = "r" THEN DO: /*---------------------------------------------------*/
                                       AND RECID(_Field) <> RECID (_Field)) THEN
     ierror = 7. /* "&2 already exists with name &3" */
   IF ierror > 0 THEN RETURN.
-  _Field._Field-name = irename.
+  
+  /* OE00166224 - if this field is in the list of fields to be reordered,
+     change its name in the temp-table too.
+  */
+  FIND FIRST ttFldOrder WHERE ttFldOrder.FILE-NAME = _File._File-name AND
+             ttFldOrder.Field-Name = _Field._Field-Name NO-ERROR.
+  IF AVAILABLE ttFldOrder THEN
+     ttFldOrder.Field-Name = irename.
+
+  /* finally, change the field name now */
+  ASSIGN _Field._Field-name = irename.
+
 END. /*---------------------------------------------------------------------*/
 ELSE
 IF imod = "d" THEN DO: /*---------------------------------------------------*/
@@ -293,7 +314,12 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
   FOR EACH _Field-trig OF _Field:
     DELETE _Field-trig.
   END.
+
+  freeOrder = _Field._Order.
   DELETE _Field.
+
+  /* OE00166224 - see if some other field wanted this order value */
+  RUN retryOrder (INPUT freeOrder).
 
 END. /*---------------------------------------------------------------------*/
 
@@ -357,12 +383,39 @@ PROCEDURE bump_sub.
   DO j = i - 1 TO norder BY -1:
     FIND uField OF _File WHERE uField._Order = j.
     uField._Order = uField._Order + 1.
+
+    /* OE00166224 - if this is the first time we are changing it for this field
+       on this table, record the old value so we try to reassign it back, in 
+       case some fields were deleted or had the order changed, freeing this
+       order value.
+    */
+    FIND FIRST ttFldOrder WHERE ttFldOrder.FILE-NAME = _File._File-name
+         AND ttFldOrder.Field-Name = uField._Field-name
+         AND ttFldOrder.Prev-Order = norder NO-ERROR.
+    IF NOT AVAILABLE ttFldOrder THEN DO:
+        CREATE ttFldOrder.
+        ASSIGN ttFldOrder.FILE-NAME = _File._File-name
+               ttFldOrder.Field-name = uField._Field-Name
+               ttFldOrder.Prev-Order = uField._Order - 1.
+    END.
   END.
 
 END PROCEDURE.
 
+PROCEDURE retryOrder.
+    DEFINE INPUT PARAMETER pOrder AS INT NO-UNDO.
 
+    DEFINE BUFFER uField FOR _Field.
 
-
-
-
+    /* OE00166224 - now that this Order is free, see if there was a field
+       that needed this order value on this table.
+    */
+    FIND FIRST ttFldOrder WHERE ttFldOrder.FILE-NAME = _File._File-name AND
+               ttFldOrder.Prev-Order = pOrder NO-ERROR.
+    IF AVAILABLE ttFldOrder THEN DO:
+        FIND FIRST uField OF _File WHERE uField._Field-Name = ttFldORder.Field-Name NO-ERROR.
+        IF AVAILABLE uField THEN
+            ASSIGN uField._Order = pOrder.
+        DELETE ttFldOrder. /* done */
+    END.
+END.

@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -36,9 +36,9 @@ History:
     mcmann    01/08/03  Added check for initial value of TODAY for Dates
     mcmann    04/09/03  Changed parameters for error message 2 to just table name
     fernando  06/12/06  Support for int64
+    fernando  02/14/08  Support for datetime
 
 --------------------------------------------------------------------*/
-
 if      CAN-DO(l_char-types,s_ttb_fld.ds_type)    /**** CHARACTERS ****/
  then assign
          l_dcml = s_ttb_fld.ds_lngth
@@ -60,13 +60,15 @@ else if CAN-DO(l_chrw-types,s_ttb_fld.ds_type)          /**** RAWS ****/
          l_dcml = ?.
 
 else if CAN-DO(l_date-types,s_ttb_fld.ds_type)         /**** DATES ****/
-     then assign
-      l_dcml = ?
-      l_frmt   = ( if ENTRY(dtyp,user_env[17],"|") = "d"
-                  then "99/99/99"
-                  else ENTRY(dtyp,user_env[17],"|")
-               ).
+     then do :
+      assign l_dcml = ?.
 
+      CASE ENTRY(dtyp,user_env[17],"|"):
+          WHEN "d"  THEN l_frmt = "99/99/99".
+          WHEN "dt" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS".
+          OTHERWISE      l_frmt   =  ENTRY(dtyp,user_env[17],"|").
+      END CASE.
+end.
 else if CAN-DO(l_dcml-types,s_ttb_fld.ds_type)      /**** DECIMALS ****/
      then DO:
        assign
@@ -230,15 +232,17 @@ else if CAN-DO(l_logi-types,s_ttb_fld.ds_type)      /**** LOGICALS ****/
 
 
 else if CAN-DO(l_tmst-types,s_ttb_fld.ds_type)   /**** TIME-STAMPS ****/
-     then assign
-         l_dcml = ?
-         l_frmt    = ( if       ENTRY(dtyp,user_env[17],"|") = "c"
-                         then "x(26)"
-                       else if  ENTRY(dtyp,user_env[17],"|") = "d"
-                         then "99/99/99"
-                         else ENTRY(dtyp,user_env[17],"|")
-                     ).
+     then do:
+     assign
+         l_dcml = ?.
 
+      CASE ENTRY(dtyp,user_env[17],"|"):
+          WHEN "c"  THEN l_frmt = "x(26)".
+          WHEN "d"  THEN l_frmt = "99/99/99".
+          WHEN "dt" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS".
+          OTHERWISE      l_frmt   =  ENTRY(dtyp,user_env[17],"|").
+      END CASE.
+end.
     else do:                                    /**** OTHERWISE ****/
       run error_handling
         ( 2, 
@@ -277,11 +281,12 @@ assign
                           ).
   
   IF s_ttb_fld.pro_type = "INTEGER" OR s_ttb_fld.pro_type = "DECIMAL" 
-    OR s_ttb_fld.pro_type = "DATE" THEN 
+    OR s_ttb_fld.pro_type = "DATE" OR s_ttb_fld.pro_type = "DATETIME" THEN 
   _init:
   DO:
     IF s_ttb_fld.pro_init = ? THEN LEAVE _init.
     ELSE IF s_ttb_fld.pro_init = "TODAY" AND s_ttb_fld.pro_type = "DATE" THEN LEAVE _init.
+    ELSE IF s_ttb_fld.pro_init = "NOW" AND s_ttb_fld.pro_type = "DATETIME" THEN LEAVE _init.
     ELSE DO i = 1 to LENGTH(s_ttb_fld.pro_init):
       IF INDEX("abcdefghijklmnopqrstuvwxyz", substring(s_ttb_fld.pro_init,i,1)) > 0 THEN DO:          
         ASSIGN s_ttb_fld.pro_init = ?.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -82,6 +82,7 @@ History:
     fernando    10/13/06 Use UPPER in the query when comparing owner and foreign name
                          for MSS and ODBC
     fernando    06/11/07 Unicode support for ORACLE
+    fernando    04/08/08 Datetime support for ORACLE
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -163,6 +164,7 @@ define variable l_intg-types     as character no-undo.
 define variable l_logi-types     as character no-undo.
 define variable msg              as character no-undo   EXTENT 6.
 define variable odbtyp           as character no-undo. /* ODBC db-types */
+DEFINE VARIABLE is_as400         AS LOGICAL   NO-UNDO.
 
 define buffer   gate-work1       for gate-work.
 define buffer   s_ttb_idx1       for s_ttb_idx.
@@ -330,7 +332,7 @@ if can-do(odbtyp,user_dbtype)
 else if user_dbtype = "ORACLE"
    then assign
     l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,NCHAR,NVARCHAR2"
-    l_chda-types = ""
+    l_chda-types = "TIMESTAMP,TIMESTAMP_LOCAL"
     l_date-types = "DATE"
     l_dcml-types = "FLOAT"
     l_dein-types = ""
@@ -525,12 +527,33 @@ for each gate-work where gate-work.gate-slct = TRUE:
     if   s_ttb_fld.ds_type        = "TIME"
      and user_dbtype              = "ORACLE"
      and available DICTDB._Field
-     and DICTDB._Field._For-Type  = "DATE"
+     and (DICTDB._Field._For-Type  = "DATE" OR
+          CAN-FIND (first DICTDB._Field of _File WHERE 
+                     DICTDB._Field._For-Name = s_ttb_fld.ds_name AND
+                     DICTDB._Field._For-Type NE "TIME" AND
+                     DICTDB._Field._Data-Type BEGINS "datetime"))
      then do:
-      assign
-        l_min-msg = l_min-msg + "    FIELD "
-                  + s_ttb_fld.ds_name + ": " + chr(10) + chr(9)
-                  + l_msg[l_fld-msg[25]]               + chr(10).
+        IF DICTDB._Field._For-Type  = "DATE" THEN DO:
+            /* if the field type is character or datetime, then it's ok to
+               skip this check. So just issue msg when it's date in the schema 
+               holder.
+            */
+            IF DICTDB._Field._Data-Type  = "DATE" THEN
+              assign
+                l_min-msg = l_min-msg + "    FIELD "
+                          + s_ttb_fld.ds_name + ": " + chr(10) + chr(9)
+                          + l_msg[l_fld-msg[25]]               + chr(10).
+        END.
+        ELSE DO:
+            /* we must have gotten here because we found a time field,
+               but the data type is actually not date on schema holder,
+               that is, it's datetime, so can't have time portion.
+            */
+            assign
+              l_sev-msg = l_sev-msg + "    FIELD "
+                        + s_ttb_fld.pro_name + ": " + chr(10) + chr(9)
+                        + "Time portion found for datetime field in the schema."  + chr(10).
+        END.
       end.
 
      else do:
@@ -1007,7 +1030,14 @@ if user_env[25] begins "AUTO"
 
  else do:   /*=========== let user select the tables he wants ==========*/
   IF s_outf = FALSE THEN DO:
-    RUN "prodict/gui/_guigge1.p" (INPUT edbtyp, INPUT "Compare").
+
+    IF user_dbtype = "ODBC" THEN DO:
+        FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db NO-ERROR.
+        IF AVAILABLE DICTDB._Db THEN
+            is_as400 = INDEX(DICTDB._Db._Db-misc2[5],"AS/400") > 0.
+    END.
+
+    RUN "prodict/gui/_guigge1.p" (INPUT edbtyp, INPUT "Compare", is_as400).
     assign l_canned = (if RETURN-VALUE = "cancel" then yes else no).
   END.
   ELSE DO:

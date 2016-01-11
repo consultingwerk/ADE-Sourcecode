@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000-2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2008 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -42,6 +42,7 @@ Date Created: 09/24/92
               07/01/03 D. McMann Added support for DATETIME and DATETIME-TZ
               05/19/04 K. McIntosh Added case for RAW fields to set initial value to ""
               05/24/06 fernando    Added support for int64 fields
+              02/22/08 fernando    Adjust display data type length for Dsrv schemas
 
 ----------------------------------------------------------------------------*/
 
@@ -136,7 +137,8 @@ run adedict/FLD/_dtcust.p (INPUT b_Field._Fld-case:HANDLE in {&Frame},
 /* Set other defaults. */
 case s_Fld_Typecode:
    when {&DTYPE_CHARACTER} THEN DO: 
-     IF s_Fld_Gatetype = "Timestamp" THEN. /* Timestamp needs ? as initial value */
+     IF s_Fld_Gatetype = "Timestamp" THEN /* Timestamp needs ? as initial value */
+        ASSIGN b_Field._Initial:screen-value in {&Frame} = ?. 
      ELSE
       assign
          b_Field._Initial:screen-value in {&Frame} = "".
@@ -159,6 +161,20 @@ case s_Fld_Typecode:
    WHEN {&DTYPE_RAW} THEN
       ASSIGN
          b_Field._Initial:SCREEN-VALUE IN {&Frame} = "".
+   WHEN {&DTYPE_DATE} OR WHEN {&DTYPE_DATETM} THEN DO:
+       ASSIGN b_Field._Initial:screen-value in {&Frame} = ?.
+
+       /* if Dataservers, and changing from date/datetime, keep initial value
+          as today/now
+       */
+       IF (s_Fld_Gatetype BEGINS "Timestamp" OR s_Fld_Gatetype = "date") AND 
+           CAN-DO("TODAY,NOW", UPPER(b_Field._Initial)) THEN DO:
+           IF s_Fld_Typecode = {&DTYPE_DATE} THEN
+              ASSIGN b_Field._Initial:screen-value in {&Frame} = "TODAY".
+           ELSE
+              ASSIGN b_Field._Initial:screen-value in {&Frame} = "NOW".
+       END.
+   END.
    otherwise
       assign
 	 b_Field._Initial:screen-value in {&Frame} = ?.

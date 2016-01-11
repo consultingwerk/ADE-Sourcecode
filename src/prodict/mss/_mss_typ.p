@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -48,17 +48,18 @@ To get the MSS-to-PROGRESS tables copied to the environment:
    table.
 3) the format can contain either 
    * a specific format                                             OR 
-   * {c,d,i,l,#} for (character, date, integer, logical, decimal} to use 
-     the format created by the hardcoded algorithm in _xxx_mak.i   OR
+   * {c,d,i,l,#,dt} for (character, date, integer, logical, decimal,datetime}
+     to use the format created by the hardcoded algorithm in _xxx_mak.i   OR
  
  History:  D. McMann replaced "?" with "l" for logical data types 04/17/02
            D. McMann added format x(26) for timestamp 06/09/02
            D. McMann Removed unicode data types and guid
            fernando  04/14/06 Unicode support
            fernando  05/26/05 Added support for int64
+           fernando  02/14/08 Added support for datetime
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 45 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 46 NO-UNDO INITIAL [
   /*description      datatype      sz cd  pro type  fm format*/
   /*-----------      --------      -- --  --------  -- ------*/ 
   "Varchar,	         Varchar,      0, 36, character,0, |c",
@@ -68,8 +69,6 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 45 NO-UNDO INITIAL [
   "Longvarbinary,    Longvarbinary,0, 40, character,0, |c",
   "NLongvarchar,     Nlongvarchar, 0, 52, character,0, |c",
   "Time,	         Time,	       0, 143,character,0, |c",  
-  "Timestamp,	     Timestamp,	   0, 44, date,     a, |d",
-  "Timestamp,	     Timestamp,	   0, 44, character,a, |x(26)",
   "Longvarchar,	     Longvarchar,  0, 37, character,0, |c",
   "Binary,	         Binary,       0, 38, character,0, |c",
   "Varbinary,	     Varbinary,    0, 39, character,0, |c",
@@ -103,8 +102,11 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 45 NO-UNDO INITIAL [
   "Tinyint,	         Tinyint,      0, 31, integer,  9, |->>9",
   "Tinyint,	         Tinyint,      0, 31, decimal,  9, |->>>>9",
   "Tinyint,	         Tinyint,      0, 31, logical,  9, |l",
-  "Tinyint,	         Tinyint,      0, 31, int64,   9, |i",
+  "Tinyint,	         Tinyint,      0, 31, int64,    9, |i",
   "Bit,	     	     Bit,          0, 41, logical,  0, |l",
+  "Timestamp,	     Timestamp,	      0, 44,  date,        a, |d",
+  "Timestamp,        Timestamp,       0, 44,  datetime,    a, |dt",
+  "Timestamp,	     Timestamp,	      0, 44,  character,   a, |x(26)",
   ?
 ].
 
@@ -148,6 +150,27 @@ IF io-gate-type <> ? AND io-pro-type = "get-list" THEN DO:
   END.
   RETURN.
 END.
+
+/* this is a special case, where caller wants datetime to be the default mapping 
+   for timestamp
+*/
+IF io-pro-type = "datetime_default" THEN DO:
+   ASSIGN io-pro-type = ?. 
+   DO i = 1 TO i + 1 WHILE gate-config[i] <> ?:
+      IF TRIM(ENTRY(1,gate-config[i])) = "Timestamp" THEN DO:
+         c = TRIM(ENTRY(5,gate-config[i])).
+         /* if date is not the default, nothing to be done here */
+         IF c EQ "date" THEN
+             assign c = gate-config[i]
+                    gate-config[i] = gate-config[i + 1]
+                    gate-config[i + 1] = c.
+
+          /* when we get there we are done */
+          LEAVE.
+      END.
+   END.
+END.
+
 
 /* Compose comma delimited lists of each "column" of the gate-config 
    array (leaving just the format in gate-config itself).

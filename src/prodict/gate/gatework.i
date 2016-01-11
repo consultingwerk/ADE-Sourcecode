@@ -37,6 +37,7 @@ History:
     mcmann     05/21/02 Added new {&selVarType} variable.
     slutz      08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
     fernando   06/26/06 Added support for large sequences
+    fernando   02/25/08 Added parameter for datetime
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -71,6 +72,7 @@ DEFINE {&selVarType}_qual       AS character no-undo {&options}.
 DEFINE {&selVarType}_type       AS character no-undo {&options}.
 DEFINE {&selVarType}_vrfy       AS logical   no-undo.
 DEFINE {&selVarType}_outf       AS logical   no-undo.
+DEFINE {&selVarType}_datetime   AS logical   no-undo.
 DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
 
 /* NOTES:

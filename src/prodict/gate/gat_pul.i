@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -91,6 +91,7 @@ History:
     mcmann      11/05/03  Removed check on index name = table name 20031105-020
     fernando    06/12/06  Support for large sequences
     fernando    06/11/07  Unicode and clob support
+    fernando    04/07/08  Datetime support for ORACLE
 */
 
 /*
@@ -176,6 +177,7 @@ define variable progvar         as character no-undo.
 DEFINE VARIABLE s               AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.
+DEFINE VARIABLE l_tmp           AS CHARACTER NO-UNDO INIT ?.
 
 /*define variable shadow_col    as character no-undo.*/
 define variable spclvar         as character no-undo.
@@ -365,7 +367,7 @@ assign
   l_i##l-types     = ""
   l_i###-types     = "TIME"
   l_logi-types     = "LOGICAL"
-  l_tmst-types     = ""
+  l_tmst-types     = "TIMESTAMP,TIMESTAMP_LOCAL"
   l_link           = user_env[25]
   user_env         = "" /* yes this is destructive, but we need the -l space */
   user_env[25]     = l_link
@@ -381,10 +383,15 @@ if NOT batch-mode
   view frame ds_make.
   end.
 
+&IF "{&db-type}" = "oracle" &THEN
+  /* this is for supporting datetime as default for an ORACLE date field */
+  ASSIGN l_tmp  = (if s_datetime then "datetime_default" else ?).
+&ENDIF
+
 RUN prodict/{&dbtyp}/_{&dbtyp}_typ.p
   ( INPUT-OUTPUT i,
     INPUT-OUTPUT i,
-    INPUT-OUTPUT l_dt,
+    INPUT-OUTPUT l_tmp,
     INPUT-OUTPUT l_dt,
     OUTPUT       l_dt
     ). /* fills user_env[11..17] with datatype-info */
@@ -856,7 +863,8 @@ for each gate-work
   &ELSEIF "{&db-type}" = "oracle"
    &THEN 
 
-    if l_dt = "DATE"
+    /* if not verify and defaulting to datetime, skip this */
+    if l_dt = "DATE" AND (s_vrfy OR NOT s_datetime)
      then do:  /* Add time fields */
       assign l_dt = "TIME".
       { prodict/gate/gat_pulf.i 

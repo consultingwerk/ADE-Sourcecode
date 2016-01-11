@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -10,7 +10,8 @@ history:
    10/18/99  Mario B.   Create warning mechanisim and add warning for
    SQL-WIDTH.  BUG# 19990825-005.
     D. McMann 04/11/01 Added warning for SQL Table Updates ISSUE 310
-   fernando   08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)    
+   fernando   08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)
+   fernando   04/30/08 Adding ttFldOrder temp-table
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} SHARED VARIABLE iarg AS CHARACTER NO-UNDO. /* usually = ilin[2] */
@@ -42,6 +43,11 @@ DEFINE {1} SHARED WORKFILE wflt NO-UNDO LIKE _Field-trig.
 DEFINE {1} SHARED WORKFILE widx NO-UNDO LIKE _Index.
 DEFINE {1} SHARED WORKFILE wixf NO-UNDO LIKE _Index-field.
 DEFINE {1} SHARED WORKFILE wseq NO-UNDO LIKE _Sequence.
+
+DEFINE {1} SHARED TEMP-TABLE ttFldOrder NO-UNDO
+    FIELD FILE-NAME  AS CHAR
+    FIELD Field-Name AS CHAR
+    FIELD Prev-Order AS INT.
 
 &ENDIF
 

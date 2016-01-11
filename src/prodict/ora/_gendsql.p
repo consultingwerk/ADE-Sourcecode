@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -61,6 +61,8 @@
      08/04/05 Reworked handling of sqlwidth so it doesn't interfere with handling of defaults 20050216-014
      06/12/06 Support for int64
      06/11/07 Unicode and clob support for ORACLE
+     04/07/08 Datetime support
+     04/14/08 Removed unnecessary type check in write-tbl-sql - OE00166674
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -295,8 +297,6 @@ PROCEDURE write-tbl-sql:
     FOR EACH DICTDB._Field OF DICTDB._File:
       IF DICTDB._Field._For-type = "LONG" OR DICTDB._Field._For-type = "LONGRAW" THEN
             ASSIGN col-long = col-long + 1.
-      IF DICTDB._Field._Dtype > 19 THEN
-        ASSIGN unsptdt = TRUE.
     END.  
     FOR EACH new-obj WHERE add-type = "F"
                        AND tbl-name = tablename:  
@@ -3298,6 +3298,11 @@ DO ON STOP UNDO, LEAVE:
                        dffortype = "DATE"
                        dfforitype = "12"
                        lngth     = 7. 
+              ELSE if fieldtype = "datetime" AND AVAILABLE new-obj THEN
+                ASSIGN new-obj.for-type = " TIMESTAMP"
+                       dffortype = "TIMESTAMP"
+                       dfforitype = "180"
+                       lngth     = 11.
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
                 ASSIGN new-obj.for-type = " NUMBER"
                        dffortype = "NUMBER"
@@ -3513,7 +3518,11 @@ DO ON STOP UNDO, LEAVE:
                   ELSE IF new-obj.for-type BEGINS " DATE" THEN DO:
                     IF UPPER(ilin[2]) = "TODAY" THEN 
                       ASSIGN for-init = " DEFAULT SYSDATE".                   
-                  END.              
+                  END.  
+                  ELSE IF new-obj.for-type BEGINS " TIMESTAMP" THEN DO:
+                    IF UPPER(ilin[2]) = "NOW" THEN 
+                      ASSIGN for-init = " DEFAULT SYSDATE".                   
+                  END.  
                   IF AVAILABLE sql-info THEN 
                     ASSIGN LINE = LINE + for-init.
                   ELSE IF AVAILABLE alt-info THEN 
@@ -3774,6 +3783,7 @@ DO ON STOP UNDO, LEAVE:
 
                   IF fieldtype = "decimal" OR (NOT new-obj.for-type BEGINS " NUMBER" AND
                      new-obj.for-type <> " DATE" AND
+                     new-obj.for-type <> " TIMESTAMP" AND
                      new-obj.for-type <> " LONG" AND
                      new-obj.for-type <> " CLOB" AND
                      new-obj.for-type <> " NCLOB" ) THEN DO:

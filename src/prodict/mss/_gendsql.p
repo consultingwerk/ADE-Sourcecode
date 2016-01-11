@@ -28,6 +28,7 @@
                                  Add dsrv-precision to new char fields - 20061005-003       
               01/28/08 fernando  Fix foreign attributes for logical field. Made foreign-owner and
                                  foreign-name lowercase - OE00164229
+              02/22/08 fernando  Support for datetime
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -2492,13 +2493,13 @@ DO ON STOP UNDO, LEAVE:
                 IF AVAILABLE new-obj THEN
                   ASSIGN new-obj.for-type = " INTEGER"
                          dffortype = "INTEGER"
-                         lngth = 22.                                                            
+                         lngth = 22.
               END.
               ELSE IF fieldtype = "int64" THEN DO:
                   IF AVAILABLE new-obj THEN
                        ASSIGN new-obj.for-type = " BIGINT"
                          dffortype = "BIGINT"
-                         lngth = 22.    
+                         lngth = 22.
               END.
               ELSE IF fieldtype = "decimal" THEN DO:                    
                 ASSIGN lngth = LENGTH(ilin[2], "character")
@@ -2529,10 +2530,13 @@ DO ON STOP UNDO, LEAVE:
                                       ELSE 0) .
                 END.
               END.
-              ELSE if fieldtype = "date" AND AVAILABLE new-obj THEN
+              ELSE if (fieldtype = "date" OR fieldtype = "datetime") AND
+                   AVAILABLE new-obj THEN
                 ASSIGN new-obj.for-type = " DATETIME"
                        dffortype = "TIMESTAMP"
-                       lngth     = 7. 
+                       lngth     = 16  /*length*/
+                       all_digits = 23 /*precision*/
+                       dec_point = 3.  /*scale*/
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
                 /*OE00164229 - logical should map to tinyint */
                 ASSIGN new-obj.for-type = " TINYINT"
@@ -2582,7 +2586,7 @@ DO ON STOP UNDO, LEAVE:
                      df-line = "  FIELD-MISC13 " + STRING(lngth).
                  
               /* OE00164229 - don't set this for logical */
-              IF fieldtype NE "logical" THEN DO:
+              IF fieldtype NE "logical" AND NOT fieldtype BEGINS  "date" THEN DO:
                   CREATE df-info.
                   ASSIGN df-info.df-seq = dfseq
                          dfseq = dfseq + 1
@@ -2602,7 +2606,8 @@ DO ON STOP UNDO, LEAVE:
               END.
 
               ASSIGN all_digits = 0
-                     dec_point  = 0.            
+                     dec_point  = 0
+                     lngth = 0.            
             END. /* WHEN FORMAT */                           
             WHEN "QUOTED-NAME"     OR WHEN "FIELD-MISC21"  OR WHEN "FIELD-MISC23"    OR 
             WHEN "FIELD-MISC24"    OR WHEN "FIELD-MISC25"  OR WHEN "FIELD-MISC26"    OR 
@@ -2690,7 +2695,8 @@ DO ON STOP UNDO, LEAVE:
                   END.
                   /* date */
                   ELSE IF new-obj.for-type BEGINS " DATE" THEN DO:
-                    IF UPPER(ilin[2]) = "TODAY" THEN 
+                    IF UPPER(ilin[2]) = "TODAY" OR 
+                       UPPER(ilin[2]) = "NOW" THEN 
                       ASSIGN for-init = " DEFAULT GETDATE()".                   
                   END.              
                   IF AVAILABLE sql-info THEN 
