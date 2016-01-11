@@ -48,10 +48,11 @@ class adeuib._windowservice inherits _abstractdialogservice implements idialogse
             return WindowHandle:width-pixels.
         end. 
 
-    constructor public _windowservice (phWindow as handle,piHwnd as int,prochandle as handle):
+    constructor public _windowservice (phWindow as handle,piHwnd as int64,prochandle as handle):
         super ().
         WindowHandle = phWindow.
         WindowHandle:IDE-WINDOW-TYPE = 0 .
+        
         WindowHandle:IDE-PARENT-HWND = piHwnd.
         windowhandle:row = 1.
         windowhandle:col = 1.

@@ -113,7 +113,7 @@ DEFINE VARIABLE ok_to_finish     AS LOGICAL                           NO-UNDO.
 DEFINE VARIABLE cResult          AS CHARACTER                         NO-UNDO.
 DEFINE VARIABLE l                AS LOGICAL                           NO-UNDO.
 DEFINE VARIABLE hWaitFrame       AS HANDLE                            NO-UNDO.
- 
+define variable gSharedProjectNames as character no-undo. 
 FUNCTION shutdown-sdo RETURNS LOGICAL
         (INPUT procHandle     AS HANDLE) IN gFuncLibHdl.
 
@@ -132,24 +132,9 @@ IF TRIM(ENTRY(2, tcode,CHR(10))) = "Destroy on next read */":U THEN DO:
   RETURN.
 END.
 
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOkToFinish Procedure
-FUNCTION getOkToFinish RETURNS LOGICAL 
-	(  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseWindow Procedure
-FUNCTION getUseWindow RETURNS LOGICAL 
-	(  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
@@ -194,9 +179,16 @@ FUNCTION getLastButton RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNumPages d_wizard   
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNumPages d_wizard 
 FUNCTION getNumPages RETURNS INTEGER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOkToFinish d_wizard 
+FUNCTION getOkToFinish RETURNS LOGICAL
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -215,6 +207,13 @@ FUNCTION getPreViewName RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSharedProjectNames d_wizard 
+FUNCTION getSharedProjectNames returns character
+  (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSupportHandle d_wizard 
 FUNCTION getSupportHandle RETURNS HANDLE
   (pName AS CHAR)  FORWARD.
@@ -225,6 +224,13 @@ FUNCTION getSupportHandle RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateTargetNames d_wizard 
 FUNCTION getUpdateTargetNames RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseWindow d_wizard 
+FUNCTION getUseWindow RETURNS LOGICAL
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -264,6 +270,13 @@ FUNCTION setPreviewName RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSharedProjectNames d_wizard 
+FUNCTION setSharedProjectNames returns logical
+  (pcNames as char  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateTargetNames d_wizard 
 FUNCTION setUpdateTargetNames RETURNS LOGICAL
   ( pcNames AS CHAR )  FORWARD.
@@ -297,11 +310,11 @@ DEFINE BUTTON b_next
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME d_wizard
-     b_Cancel AT ROW 13.19 COL 34.2
-     b_back AT ROW 13.19 COL 47.2
-     b_next AT ROW 13.19 COL 60.2
-     b_finish AT ROW 13.19 COL 73.2
-     SPACE(1.39) SKIP(0.18)
+     b_Cancel AT ROW 13.19 COL 34.14
+     b_back AT ROW 13.19 COL 47.14
+     b_next AT ROW 13.19 COL 60.14
+     b_finish AT ROW 13.19 COL 73.14
+     SPACE(1.45) SKIP(0.18)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER NO-HELP 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          FONT 4
@@ -688,7 +701,7 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   ENABLE b_Cancel b_back b_next b_finish 
-    WITH FRAME d_wizard.
+      WITH FRAME d_wizard.
   {&OPEN-BROWSERS-IN-QUERY-d_wizard}
 END PROCEDURE.
 
@@ -697,8 +710,7 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE finishWizard d_wizard 
 PROCEDURE finishWizard :
-
-  DEFINE VARIABLE cUpdateTargets AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cUpdateTargets AS CHARACTER  NO-UNDO.
 
   gLastBtn = "FINISH":U.
   /* If this is a SmartViewer or SmartBrowser then create the Fields or Columns */
@@ -722,11 +734,9 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getSDOhandle d_wizard 
 PROCEDURE getSDOhandle :
-  /*------------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
   Purpose: get the handle of the SDO and start it if it's not started.   
   Parameters: 
      INPUT pcFilename  - SDO name
@@ -756,33 +766,45 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
- 
- 
-&IF DEFINED(EXCLUDE-ideSupport) = 0 &THEN
-		
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ideSupport Include
-procedure oeide_Supported private:
-	/*------------------------------------------------------------------------------
-			Purpose: Java checks if this exists in the rcode to identify if the 
-			         wizard is supported.																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE oeide_Supported d_wizard 
+PROCEDURE oeide_Supported PRIVATE :
+/*------------------------------------------------------------------------------
+                        Purpose: Java checks if this exists in the rcode to identify if the 
+                                 wizard is supported.                                                                                                                                     
+                        Notes:                                                                                                                                            
+        ------------------------------------------------------------------------------*/
 end procedure.
-	
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ENDIF
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Setup d_wizard 
+PROCEDURE Setup :
+/*------------------------------------------------------------------------------
+  Purpose:     Parses XFTR code block.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE tcode     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE firstline AS CHARACTER NO-UNDO.
+  
+  ASSIGN tcode      = TRIM(trg-Code)
+         firstline  = ENTRY(1,tcode,CHR(10))
+         dtitle     = TRIM(SUBSTRING(firstline,3,LENGTH(firstline) - 2,"CHARACTER":U))
+         intro-text = ENTRY(2,tcode,CHR(10))
+         pgm-list   = ENTRY(3,tcode,CHR(10)).
+          
+END PROCEDURE.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ShowCurrentPage Include
-PROCEDURE ShowCurrentPage:
-
-	/*------------------------------------------------------------------------------
-	Purpose: run the new page if curent-proc not valid/current-page .  																	  
-	Notes:  																	  
-	------------------------------------------------------------------------------*/
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ShowCurrentPage d_wizard 
+PROCEDURE ShowCurrentPage :
+/*------------------------------------------------------------------------------
+        Purpose: run the new page if curent-proc not valid/current-page .                                                                                                                                         
+        Notes:                                                                                                                                            
+        ------------------------------------------------------------------------------*/
     DEFINE VARIABLE    hParent   AS HANDLE   NO-UNDO.
  
     hParent   = if gUseWindow then ghFrame else FRAME {&FRAME-NAME}:handle.
@@ -814,35 +836,53 @@ PROCEDURE ShowCurrentPage:
     END.  
 
 END PROCEDURE.
-	
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Setup d_wizard 
-PROCEDURE Setup :
-/*------------------------------------------------------------------------------
-  Purpose:     Parses XFTR code block.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE tcode     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE firstline AS CHARACTER NO-UNDO.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ValidateAction d_wizard 
+PROCEDURE ValidateAction :
+DEFINE INPUT  PARAMETER pcAction         AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcStatus         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lCurrentChanged AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lCanFinish      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lHasNext        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lHasPrev        AS LOGICAL   NO-UNDO.
   
-  ASSIGN tcode      = TRIM(trg-Code)
-         firstline  = ENTRY(1,tcode,CHR(10))
-         dtitle     = TRIM(SUBSTRING(firstline,3,LENGTH(firstline) - 2,"CHARACTER":U))
-         intro-text = ENTRY(2,tcode,CHR(10))
-         pgm-list   = ENTRY(3,tcode,CHR(10)).
-          
+  /*------------------------------------------------------------------------------
+   Purpose: Validates current-proc and adjusts current-page 
+            according to pcAction if valid page                                                                                                                                          
+   Notes:   Split the validation from display for IDE 
+            Java display thread cannot wait for response from request that 
+            displays data to IDE from ABL (from other thread)                                                                                                                                    
+  ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
+  
+  iPage = current-page.
+  gLastBtn = pcAction.
+ 
+ 
+  RUN ValidateCurrentPage.
+ 
+  assign 
+    lCurrentChanged = (iPage <> current-page)
+    lCanFinish = ok_to_finish
+    lHasNext   = current-page < num-entries(pgm-list)
+    lHasPrev   = current-page > 1. 
+   
+  pcStatus = string(int(lCurrentChanged)) 
+           + string(int(lCanFinish))
+           + string(int(lHasNext))
+           + string(int(lHasPrev)).
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
- 
-		
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ValidatePage Include
-PROCEDURE ValidateCurrentPage:
-    DEF    VARIABLE    num-pages AS INTEGER  NO-UNDO.
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ValidateCurrentPage d_wizard 
+PROCEDURE ValidateCurrentPage :
+DEF    VARIABLE    num-pages AS INTEGER  NO-UNDO.
   
     num-pages = NUM-ENTRIES(pgm-list).
 /*      MESSAGE "current-page" current-page*/
@@ -891,50 +931,9 @@ PROCEDURE ValidateCurrentPage:
                                 
     end.
 END PROCEDURE.
-	
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE WizardAction d_wizard 
-PROCEDURE ValidateAction:
-  DEFINE INPUT  PARAMETER pcAction         AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER pcStatus         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lCurrentChanged AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lCanFinish      AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lHasNext        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lHasPrev        AS LOGICAL   NO-UNDO.
-  
-  /*------------------------------------------------------------------------------
-   Purpose: Validates current-proc and adjusts current-page 
-            according to pcAction if valid page                                                                                                                                          
-   Notes:   Split the validation from display for IDE 
-            Java display thread cannot wait for response from request that 
-            displays data to IDE from ABL (from other thread)                                                                                                                                    
-  ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
-  
-  iPage = current-page.
-  gLastBtn = pcAction.
- 
- 
-  RUN ValidateCurrentPage.
- 
-  assign 
-    lCurrentChanged = (iPage <> current-page)
-    lCanFinish = ok_to_finish
-    lHasNext   = current-page < num-entries(pgm-list)
-    lHasPrev   = current-page > 1. 
-   
-  pcStatus = string(int(lCurrentChanged)) 
-           + string(int(lCanFinish))
-           + string(int(lHasNext))
-           + string(int(lHasPrev)).
-  
-END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE WizProc d_wizard 
 PROCEDURE WizProc :
@@ -1016,19 +1015,18 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOkToFinish Include
-FUNCTION getOkToFinish RETURNS LOGICAL 
-	(  ):
-	/*------------------------------------------------------------------------------
-			Purpose:  																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOkToFinish d_wizard 
+FUNCTION getOkToFinish RETURNS LOGICAL
+        (  ):
+        /*------------------------------------------------------------------------------
+                        Purpose:                                                                                                                                          
+                        Notes:                                                                                                                                            
+        ------------------------------------------------------------------------------*/
     RETURN ok_to_finish.
 END FUNCTION.
-	
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPreview d_wizard 
 FUNCTION getPreview RETURNS LOGICAL
@@ -1056,6 +1054,19 @@ FUNCTION getPreViewName RETURNS CHARACTER
   RETURN gPreViewName. 
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSharedProjectNames d_wizard 
+FUNCTION getSharedProjectNames returns character
+  (  ):
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+        return gSharedProjectNames.
+end function.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1111,17 +1122,17 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseWindow Include
-FUNCTION getUseWindow RETURNS LOGICAL 
-	(  ):
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseWindow d_wizard 
+FUNCTION getUseWindow RETURNS LOGICAL
+        (  ):
 
-	/*------------------------------------------------------------------------------
-			Purpose:  																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
+        /*------------------------------------------------------------------------------
+                        Purpose:                                                                                                                                          
+                        Notes:                                                                                                                                            
+        ------------------------------------------------------------------------------*/
    return gUseWindow.
 END FUNCTION.
-	
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1202,6 +1213,21 @@ FUNCTION setPreviewName RETURNS LOGICAL
   RETURN TRUE.   
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSharedProjectNames d_wizard 
+FUNCTION setSharedProjectNames returns logical
+  (pcNames as char  ):
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+    gSharedProjectNames = pcNames.
+        return true.
+
+end function.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

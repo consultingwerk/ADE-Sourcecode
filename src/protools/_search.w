@@ -1,10 +1,7 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
 /***********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2007,2012 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -40,7 +37,16 @@
 /* Local Variable Definitions ---                                       */
 
 define variable foundCount as integer no-undo.
-
+         
+DEFINE variable ipTitle AS CHARACTER NO-UNDO INITIAL "Propath File Search". 
+    
+   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+define variable gFiles as character no-undo.
+/* somewhat random - probably more to add */
+define variable xNoOpen as character init "r,pl,dll,exe,class" no-undo.
+define variable gSelectedFile as character no-undo.
+   &endif    
+   
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
 {adecomm/fileinfo.i}
 
@@ -55,29 +61,13 @@ DEFINE VARIABLE error AS INTEGER.
 
 &ENDIF
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
-&Scoped-define PROCEDURE-TYPE DIALOG-BOX
-&Scoped-define DB-AWARE no
-
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME Dialog-Frame
-
-/* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS whichFile doIt foundFile Btn_Close 
-&Scoped-Define DISPLAYED-OBJECTS whichFile foundFile 
-
-/* Custom List Definitions                                              */
-/* List-1,List-2,List-3,List-4,List-5,List-6                            */
-
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -96,9 +86,14 @@ DEFINE BUTTON doIt
      SIZE 12 BY 1.1
      BGCOLOR 8 .
 
+DEFINE BUTTON Btn_OpenFile AUTO-GO 
+     LABEL "&Open File" 
+     SIZE 12 BY 1.1
+     BGCOLOR 8 .
+
 DEFINE VARIABLE whichFile AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
-     SIZE 50 BY 1.1 NO-UNDO.
+     SIZE 51 BY 1.1 NO-UNDO.
 
 DEFINE VARIABLE foundFile AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE 
@@ -108,95 +103,129 @@ DEFINE VARIABLE foundFile AS CHARACTER
 
 /* ************************  Frame Definitions  *********************** */
 
+
+
 DEFINE FRAME Dialog-Frame
+
+    "Search for File:" VIEW-AS TEXT
+          SIZE 18 BY .67 AT ROW 1.29 COL 2   
+          SPACE(47.19)
      whichFile AT ROW 2 COL 2 NO-LABEL
-     doIt AT ROW 1.95 COL 53
+     doIt AT ROW 1.95 COL 54
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then   
      foundFile AT ROW 5.05 COL 2 NO-LABEL
-     Btn_Close AT ROW 3.43 COL 53
-     "Search for File:" VIEW-AS TEXT
-          SIZE 18 BY .67 AT ROW 1.29 COL 2
+     Btn_Close AT ROW 3.43 COL 54
      "Can be Found In:" VIEW-AS TEXT
           SIZE 18 BY .67 AT ROW 4.24 COL 2
-     SPACE(47.19) SKIP(4.46)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+   
+      SKIP(4.46)
+  &ELSE
+     "Can be Found In:" VIEW-AS TEXT
+          SIZE 18 BY .67 AT ROW 3.43 COL 2 
+       foundFile AT ROW 4.24 COL 2 NO-LABEL
+       Btn_Openfile AT ROW 8.56 COL 41
+       Btn_Close AT ROW 8.56 COL 54
+       SKIP(0.38)
+       
+  &ENDIF     
+ 
+     WITH  
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Propath File Search"
-         DEFAULT-BUTTON Btn_Close.
+ 
+ &if DEFINED(IDE-IS-RUNNING) = 0 &then
+         TITLE ipTitle 
+         VIEW-AS DIALOG-BOX    
+ &else
+         no-box
+ &endif        
+         KEEP-TAB-ORDER DEFAULT-BUTTON Btn_Close.
 
+{adeuib/ide/dialoginit.i "FRAME Dialog-Frame:handle"}
 
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Allow: Basic,Browse,DB-Fields,Query
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dialog-Frame
    Custom                                                               */
-ASSIGN 
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+    ASSIGN 
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
-
+    &endif
 /* SETTINGS FOR FILL-IN whichFile IN FRAME Dialog-Frame
    ALIGN-L                                                              */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
+/* funcs not forward declared for now */
 
- 
+function GetFileExtension returns char(pcfile as char):
+     define variable i as integer no-undo.
+     i = r-index(pcfile,".").
+     if i > 0 then
+         return substring(pcfile,i + 1).
+     else
+         return "".    
+end .
+
+ &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+
+function CanOpenFile returns logical(pcfile as char):
+     define variable cExt as char no-undo.
+     cExt = GetFileExtension(pcFile).
+     return cExt > "" AND lookup(cExt,xNoOpen) = 0.      
+end .
+
+function GetSelectedFile returns char():
+     define variable i as integer no-undo.
+     if gFiles > "" then
+     do with frame {&frame-name}:
+         i = foundFile:lookup(foundFile:screen-value).
+         if i > 0 and num-entries(gFiles) >= i then
+             return entry(i,gFiles).
+     end.
+     return "".
+end .
 
 
+&endif
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define SELF-NAME Dialog-Frame
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dialog-Frame Dialog-Frame
 ON GO OF FRAME Dialog-Frame /* Propath File Search */
 DO:
   run adecomm/_setcurs.p("WAIT"). 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dialog-Frame Dialog-Frame
 ON WINDOW-CLOSE OF FRAME Dialog-Frame /* Propath File Search */
 DO:
   run adecomm/_setcurs.p(""). 
  APPLY "END-ERROR":U TO SELF.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME Btn_Close
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Close Dialog-Frame
 ON CHOOSE OF Btn_Close IN FRAME Dialog-Frame /* Close */
 DO:
  Apply "CLOSE" to FRAME {&FRAME-NAME}. 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME doIt
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL doIt Dialog-Frame
 ON CHOOSE OF doIt IN FRAME Dialog-Frame /* Search */
 DO:
+    
+    
+    
     define variable s   as logical   no-undo.
     define variable str as character no-undo.
     define variable rel as logical   no-undo.
-        
+    
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+    gfiles = "":U.
+    
+    &endif    
+    
     ASSIGN whichfile.
     foundFile:LIST-ITEMS = "".
     foundCount = 1.
@@ -242,15 +271,14 @@ DO:
                 &ELSE
                      str = replace(str, "~\", "~/").               
                 &ENDIF 
-                
-                /*
-                 * Look for r-code if a.p or .w
+                 /*
+                 * Look for r-code if a.p or .w or .cls
                  */
             
-                ext = SUBSTRING(str, LENGTH(str,"CHARACTER":U) - 1, -1, "CHARACTER":U).
-                IF ext = ".p" OR ext = ".w" THEN DO:                
+                ext = GetFileExtension(str).
+                IF ext = "p" OR ext = "w" OR ext = "cls" THEN DO:                
                   run makeRCodeName(str, output rCodeName).
-                  if rCodeName <> ? then run addFile(rCodeName).              
+                  if rCodeName <> ? then run addFile(rCodeName).
                 END.
                                                                            
                 file-info:file-name = str.
@@ -283,12 +311,6 @@ DO:
         foundFile:SCREEN-VALUE = "".    
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME whichFile
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL whichFile Dialog-Frame
 ON LEAVE OF whichFile IN FRAME Dialog-Frame
 DO:
     if whichFile = whichFile:SCREEN-VALUE then return.
@@ -296,11 +318,8 @@ DO:
     whichFIle = whichFile:SCREEN-VALUE.  
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL whichFile Dialog-Frame
 ON RETURN OF whichFile IN FRAME Dialog-Frame
 DO:
     if whichFile = whichFile:SCREEN-VALUE then return.
@@ -309,14 +328,24 @@ DO:
     apply "CHOOSE" to doIt.  
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+ 
+ON CHOOSE OF Btn_OpenFile IN FRAME Dialog-Frame  
+DO:
+    run handleFileSelection.     
+END.
 
 
-&UNDEFINE SELF-NAME
+ON DEFAULT-ACTION OF foundFile IN FRAME Dialog-Frame /* foundFile */
+DO:
+    run handleFileSelection.
+END.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Dialog-Frame 
-
+ON VALUE-CHANGED OF foundFile IN FRAME Dialog-Frame /* foundFile */
+DO:
+    Btn_OpenFile:sensitive in frame Dialog-Frame = CanOpenFile(GetSelectedFile()) .
+END.
+&ENDIF
 
 /* ***************************  Main Block  *************************** */
 
@@ -327,6 +356,7 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
+
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
@@ -337,20 +367,34 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
       run LoadFileInfo.
   &ENDIF.
-
+ 
+ &scoped-define CANCEL-EVENT U2
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+ ipTitle = ipTitle +  " - " + getProjectDisplayName().
+      &endif
+ {adeuib/ide/dialogstart.i  Btn_Close Btn_Close iptitle}
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+  dialogService:SizeToFit().
+      &endif
   run adecomm/_setcurs.p("").
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  
   run adecomm/_setcurs.p("").
 END.
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+  RUN UnloadDLL.
+&ENDIF.
+
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+   return gSelectedFile.
+&endif
+ 
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addFile Dialog-Frame 
 PROCEDURE addFile :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -367,15 +411,21 @@ define variable dateStr as character no-undo initial "".
 define variable modDate as date      no-undo.
 define variable modTime as character no-undo.
 define variable preStr  as character no-undo.
+define variable cExt    as character no-undo.
 
 if fName = ? then return.
 if length(fName) < 0 then return.
 
 preStr = string(foundCount) + ". " + fName.
 
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+   gFiles = gFiles
+          + (if foundCount = 1 then "" else ",")
+          + fname.  
+&endif
+
 do with frame {&FRAME-NAME}:
     &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-        IF OPSYS = "WIN32" THEN
          run file_info (fName, output file-year,
                                output file-mon,
                                output file-day,
@@ -384,15 +434,6 @@ do with frame {&FRAME-NAME}:
                                output file-sec,
                                output file-size,
                                output error).
-        ELSE
-         run file_info16 (fName, output file-year,
-                                 output file-mon,
-                                 output file-day,
-                                 output file-hour,
-                                 output file-min,
-                                 output file-sec,
-                                 output file-size,
-                                 output error). 
         
         /* We need to build the date string based on the users date format */
         do while i <= 3:        
@@ -434,10 +475,7 @@ end.
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Dialog-Frame  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -451,10 +489,7 @@ PROCEDURE disable_UI :
   HIDE FRAME Dialog-Frame.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Dialog-Frame  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -473,10 +508,22 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-Dialog-Frame}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+procedure handleFileSelection:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+    define variable cFile as character no-undo.
+    cFile = GetSelectedFile().
+    if CanOpenFile(cFile) then 
+    do:
+        gSelectedFile = cFile.
+        apply "go" to FRAME {&FRAME-NAME}.
+    end.   
+end procedure.
+&endif
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE makeRCodeName Dialog-Frame 
 PROCEDURE makeRCodeName :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -500,6 +547,4 @@ if     file-info:pathname <> ?
    and file-info:pathname = str then rName = str.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

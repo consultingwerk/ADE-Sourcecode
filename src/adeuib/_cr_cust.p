@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*******************************************************************************
+* Copyright (C) 2005,2012-2013 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions                  *
+* contributed by participants of Possenet.                                     *
+*                                                                              *
+*******************************************************************************/
 /*--------------------------------------------------------------------------
 
 File: _cr_cust.p
@@ -1293,6 +1293,13 @@ REMOVE*/
                 FIND LAST _palette_item USE-INDEX _order NO-ERROR.
                 IF AVAILABLE _palette_item THEN lastone = _palette_item._order.
                 ELSE lastone = 0.
+                /* do not show CSSpin and CSCombo widgets if App Builder is associated with 64 bit AVM  on nt64 */
+                IF PROCESS-ARCHITECTURE = 64 THEN
+                IF cToken BEGINS "CSSpin" OR cToken BEGINS "CSCombo" THEN  DO:
+                       ASSIGN lSkip = true.
+                       NEXT LINE-LOOP.
+                END.
+
                 CREATE _palette_item.             
             END.
             ASSIGN _palette_item._NAME  = cToken

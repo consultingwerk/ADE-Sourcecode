@@ -74,32 +74,42 @@ define variable  RUN_DESIGN                 as integer init 34 no-undo.
 define variable  COMPILE_DESIGN             as integer init 35 no-undo.
 define variable  RENAME_WIDGET_NAME         as integer init 36 no-undo.
 define variable  SHOW_CUE_CARD              as integer init 37 no-undo.
-define variable  OPEN_DB_CONNECTION_DIALOG  as integer init 38 no-undo.
+define variable  OPEN_DB_CONNECTION         as integer init 38 no-undo.
+define variable  KEY_PRESSED                as integer init 39 no-undo.
+define variable  CHECK_SYNTAX               as integer init 40 no-undo.
+
 /* see publish in main block */ 
 define variable fContextHandle as handle no-undo.
-define variable fIDEIntegrated as logical no-undo.
 define variable PARAMETER_DELIMITER as char no-undo init "|".
-/* deprecated */
-define variable OEIDE_ABEmbedded as logical no-undo.
 
 function getAppbuilderMode returns character       () in fContextHandle.
-function getDesignFileName returns character       (piHwnd as integer) in fContextHandle.
-function getDesignHwnd returns integer             (pcFile as char) in fContextHandle.  
+function getDesignFileName returns character       (piHwnd as int64) in fContextHandle.
+function getDesignHwnd returns int64             (pcFile as char) in fContextHandle.  
 function getLinkFileFileName returns char          (pcLinkFile as char) in fContextHandle.   
-function getLinkFileName returns char              (piHwnd as integer) in fContextHandle.
+function getLinkFileName returns char              (piHwnd as int64) in fContextHandle.
 function getLinkFileTimeStamp returns datetime     (pcLinkFile as char) in fContextHandle. 
 function getLinkFileWindow returns handle          (pcLinkFile as char) in fContextHandle .
-function getOpenDialogHwnd returns integer         () in fContextHandle.
+function getOpenDialogHwnd returns int64         () in fContextHandle.
 function getProjectName returns character          () in fContextHandle.
 function getProjectWorkDirectory returns character () in fContextHandle.    
 function getSocketClient returns handle            () in fContextHandle.
 function getWorkDirectory returns character        () in fContextHandle.
-function registerObject returns logical            (piHwnd as int,pObject as Object) in fContextHandle.
-function removeHwnd returns logical                (piHwnd as int) in fContextHandle.
+/* not implemented - exposes context to abl 
+   must be specifically declared - not defined in oeideservice.i */
+function getRequestContext returns character        () in fContextHandle.
+function registerObject returns logical            (piHwnd as int64,pObject as Object) in fContextHandle.
+function removeHwnd returns logical                (piHwnd as int64) in fContextHandle.
 function setCurrentEventObject returns logical     (pobj as Object) in fContextHandle.              
+
 function setLinkFileTimeStamp returns logical     (pcLinkFile as char,dt as datetime) in fContextHandle. 
-function setWindowHandle returns logical (piHwnd as integer,phhandle as handle) in fContextHandle.               
-define variable CurrentDesignEditor as int no-undo.
+/** not yet
+/* not implemented - exposes context to abl 
+   must be specifically declared - not defined in oeideservice.i */
+function setRequestContext returns logical        (pccontext as char) in fContextHandle.
+**/
+
+function setWindowHandle returns logical (piHwnd as int64,phhandle as handle) in fContextHandle.               
+define variable CurrentDesignEditor as int64 no-undo.
 /*
 define temp-table ttLinkedFile no-undo
     field windowHandle         as handle
@@ -132,10 +142,10 @@ function activateWindow returns logical
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-createContextMenu) = 0 &THEN
+&IF DEFINED(EXCLUDE-checkSyntaxInIde) = 0 &THEN
 
-function createContextMenu returns handle private
-    (  ) forward.
+function checkSyntaxInIde returns logical 
+    ( phWindow as handle) forward.
 
 
 &ENDIF
@@ -161,11 +171,18 @@ function getDesignFileNameParent returns character
 &IF DEFINED(EXCLUDE-getDesignId) = 0 &THEN
         
  /** we currently use the handle as the id -  */      
-function getDesignId returns integer 
+function getDesignId returns int64 
        (phWidget as handle) forward.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getProjectDisplayName) = 0 &THEN
+        
+ /** we currently use the handle as the id -  */      
+function getProjectDisplayName returns character 
+       () forward.
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-hideView) = 0 &THEN
 
@@ -344,6 +361,14 @@ function gotoPage returns logical
 
 &IF DEFINED(EXCLUDE-viewSource) = 0 &THEN
 
+function keyPressed returns logical 
+    ( phWindow as handle,
+      pcKey    as character) forward.
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-viewSource) = 0 &THEN
+
 function viewSource returns logical 
     ( phWindow as handle,
       wName AS CHARACTER,
@@ -452,7 +477,7 @@ function OpenDBConnectionDialog return logical
 
 /* ***************************  Main Block  *************************** */
 publish "oeide_context" from this-procedure (output fContextHandle).
-fIDEIntegrated = true.
+ 
  
 
 
@@ -474,7 +499,7 @@ procedure getIsIDEIntegrated:
                                                                                            
             Notes: TODO ABMode = integrated                                                                       
     ------------------------------------------------------------------------------*/
-   plintegrated = fIDEIntegrated.
+   plintegrated = true.
 
 
 end procedure.
@@ -512,13 +537,10 @@ procedure positionDesignWindow:
     ------------------------------------------------------------------------------*/
     /* the numbers are copied from uibmain hardcode  - there were no comments */
     
-    if oeide_abembedded then     
-       assign phWindow:x = 343 
-              phWindow:y = 210 NO-ERROR.
-    else /* left upper corner of design canvas */
-       assign phWindow:x = 10  
-              phWindow:y = 10 NO-ERROR.
-              
+   /* left upper corner of design canvas */
+    assign phWindow:x = 10  
+           phWindow:y = 10 NO-ERROR.
+             
     SetWindowSize(phWindow).
 end procedure.
     
@@ -538,7 +560,7 @@ procedure getLinkedFileName :
 define input parameter phWindow           as handle     no-undo.
 define output parameter pcLinkedFile      as character  no-undo.
     
-    define variable iId as integer no-undo.
+    define variable iId as int64 no-undo.
     iId = getDesignId(phWindow).
     pcLinkedFile = getLinkFileName(iId).
 end procedure.
@@ -590,18 +612,19 @@ define input parameter viewId      as character  no-undo.
 define input parameter secondaryId as character  no-undo.
 define input parameter hWindow     as handle     no-undo.
 
-define variable wHwnd as integer       no-undo.
+define variable wHwnd as int64       no-undo.
 define variable lVisible as logical    no-undo.
 define variable cResult as character   no-undo.
 
 &IF "{&NO_EMBEDDED_WINDOWS}" EQ "YES" &THEN
     return.
 &ENDIF
-if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                             secondaryId begins "PropertiesWindow":U) then return.
+if (secondaryId begins "DesignView":U or secondaryId begins "PropertiesWindow":U) then 
+    return.
+
 if not valid-handle(hWindow) then return.
 
-define variable iParentWindow as integer    no-undo.
+define variable iParentWindow as int64    no-undo.
 
 run getViewHwnd (viewId, secondaryId, output iParentWindow).
 
@@ -621,7 +644,7 @@ end procedure.
 procedure displayDesignWindow :
     define input parameter pcFileName  as character  no-undo.
     define input parameter hWindow     as handle     no-undo.
-    define variable iParentWindow as integer no-undo.
+    define variable iParentWindow as int64 no-undo.
     
     if pcFileName = ? then pcFileName = "NEW".
     
@@ -658,7 +681,7 @@ define input parameter objectname    as character  no-undo.
 define input parameter hWindow        as handle     no-undo.
 
     define variable pdialog as adeuib.idialogservice  no-undo.
-    define variable iHwnd as integer no-undo.
+    define variable iHwnd as int64 no-undo.
     if not valid-handle(hWindow) then 
         return.
     case objectname:
@@ -692,67 +715,45 @@ define input parameter hWindow     as handle     no-undo.
 
 define variable xViewId as char init "com.openedge.pdt.oestudio.views.OEAppBuilderView".
 
-define variable iParentWindow as integer    no-undo.
+define variable iParentWindow as int64    no-undo.
 
    if not valid-handle(hWindow) then return.
- 
-   if fIDEIntegrated then
-   do:
        
-       if viewId = "appbuilderpalette" then
-       do:
-        /*    if CurrentDesignEditor > 0 then         */
-        /*        iParentWindow = CurrentDesignEditor.*/
-        /*    else                                    */
-            viewId = xViewId.
-        end.
+   if viewId = "appbuilderpalette" then
+   do:
+    /*    if CurrentDesignEditor > 0 then         */
+    /*        iParentWindow = CurrentDesignEditor.*/
+    /*    else                                    */
+        viewId = xViewId.
+    end.
 
-        if viewId = xViewId and secondaryId begins "designview" then
-        do:
-          
-            define variable hwnd as integer no-undo.
-            define variable result as integer no-undo.
-        
-            /* This will prevent the window from becoming visible even if the window 
-               is explicitly made visible by setting VISIBLE = YES, HIDDEN = FALSE, 
-               or any other attribute setting or statement that makes a window visible. */
-            hWindow:IDE-WINDOW-MODE = 1. 
-            /*  realize window (see above) */
-            hWindow:hidden = false. 
+    if viewId = xViewId and secondaryId begins "designview" then
+    do:
+      
+        define variable hwnd as int64 no-undo.
+        /*define variable result as integer no-undo.*/
+    
+        /* This will prevent the window from becoming visible even if the window 
+           is explicitly made visible by setting VISIBLE = YES, HIDDEN = FALSE, 
+           or any other attribute setting or statement that makes a window visible. */
+        hWindow:IDE-WINDOW-MODE = 1. 
+        /*  realize window (see above) */
+        hWindow:hidden = false. 
 /*                                                       */
 /*            run GetParent(hWindow:hwnd, output result).*/
 /*                                                       */
 /*            run ShowWindow(result, 0, output result).  */
-            
-            /* Set positions somewhat central as some dialogs seems to be 
-               positioned relative to uib main see below
-               -- not tested with ide-window-mode = 1  */  
-            hWindow:col = session:width / 2. 
-            hWindow:row = 10.
-                     
-            return.
-             
-        end.
-    end. 
-    /* old code - not supported - not working */
-    else do: 
-        &IF "{&NO_EMBEDDED_WINDOWS}" EQ "YES" &THEN
-            RETURN.
-        &ENDIF
-    
-        IF NOT OEIDE_ABEmbedded AND (secondaryId BEGINS "DesignView":U OR
-                                     secondaryId BEGINS "PropertiesWindow":U) THEN RETURN.
-   
-    
-        showView(viewId, secondaryId, {&VIEW_ACTIVATE}).
-        run getViewHwnd (viewId, secondaryId, output iParentWindow).
         
-        if iParentWindow <> 0 then
-            assign hWindow:IDE-WINDOW-TYPE = 1 /* virtual desktop */ 
-                   hWindow:IDE-PARENT-HWND = iParentWindow.
-      
-         /*    hWindow:popup-menu = createContextMenu().*/
+        /* Set positions somewhat central as some dialogs seems to be 
+           positioned relative to uib main see below
+           -- not tested with ide-window-mode = 1  */  
+        hWindow:col = session:width / 2. 
+        hWindow:row = 10.
+                 
+        return.
+         
     end.
+    
 end procedure.
 
 
@@ -771,7 +772,7 @@ procedure setEditorModified :
 ------------------------------------------------------------------------------*/
     define input parameter phWindow     as handle     no-undo.
   
-    define variable iDesignId as int no-undo. 
+    define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow). 
     run sendRequest in getSocketClient()
                      (SET_EDITOR_MODIFIED,
@@ -810,33 +811,33 @@ procedure getViewHwnd :
 ------------------------------------------------------------------------------*/
 define input parameter viewId       as character  no-undo.
 define input parameter secondaryId  as character  no-undo.
-define output parameter iResult     as integer    no-undo.
+define output parameter iResult     as int64    no-undo.
 
+define variable cResult as character  no-undo.
+  
 if  (viewId = "DIALOG") then
 do:
    iResult = getDesignHwnd(secondaryId).
    
 end.
 
-else if (not OEIDE_ABEmbedded)  
-and (secondaryId = "NEWOBJECT" or secondaryId = "WIZARD") then
+else if (secondaryId = "NEWOBJECT" or secondaryId = "WIZARD") then
 do:
     iResult = getDesignHwnd(secondaryId).
     
 end.
 else do:
     
-  if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                             secondaryId begins "PropertiesWindow":U) then return.
+   if (secondaryId begins "DesignView":U) then
+       return.
 
-  define variable cResult as character  no-undo.
    run sendWaitRequest in getSocketClient()(
                     GET_VIEW_HWND,
                     "IDE getViewHwnd ":U 
                     + viewId + PARAMETER_DELIMITER 
                     + QUOTER(secondaryId),
                     output cResult).
-    iResult = integer(cResult) no-error.
+    iResult = int64(cResult) no-error.
     
 end.
 
@@ -925,7 +926,6 @@ procedure runChildDialog :
     /* the object that knows who and what to call  */
     define input parameter Object as Object  no-undo.
     /* store handle for call back to the uib service */
- 
     setCurrentEventObject(Object).
     run sendRequest in getSocketClient()
           (RUN_CHILD_DIALOG ,
@@ -1031,7 +1031,7 @@ procedure createDialogService :
 ------------------------------------------------------------------------------*/
     define input parameter pFrame  as handle  no-undo.
     define output parameter pdialog as adeuib.idialogservice  no-undo.
-    define variable iHwnd as integer no-undo.
+    define variable iHwnd as int64 no-undo.
     ihwnd = getOpenDialogHwnd().
     pdialog = new adeuib._dialogservice(pframe,ihwnd).
     registerObject(ihwnd,pdialog).
@@ -1074,6 +1074,35 @@ end procedure.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-resizeToParent) = 0 &THEN
+
+procedure resizeToParent :
+    define input  parameter hWindow as handle no-undo.
+    define variable wrect as memptr no-undo.
+    define variable iparent as integer no-undo.
+    define variable ihwnd as integer no-undo.
+    define variable iXpos as integer no-undo.
+    define variable iYpos as integer no-undo.
+    define variable iWidth as integer no-undo.
+    define variable iHeight as integer no-undo.
+    
+    run GetParent(hWindow:hwnd,output iparent).
+    if iparent <> 0 then 
+    do on error undo, leave:
+        set-size(wrect) = 16. /* 4 INTEGERS at 4 bytes each*/
+        run GetWindowRect(iparent, output wrect).        
+        assign iXpos = GET-LONG(wrect, 1)
+               iYpos = GET-LONG(wrect, 5).
+               iWidth = GET-LONG(wrect, 9).
+               iHeight = GET-LONG(wrect, 1).
+        hWindow:height = iheight.
+        hwindow:width = iWidth.
+        
+    end.
+end procedure.
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-sendRequest) = 0 &THEN
 
 procedure sendRequest :
@@ -1085,8 +1114,8 @@ procedure sendRequest :
         OUTPUT  pcResult  String returned from the OEIDE.
                 It cannot be unknown.
                 The string TRUE and FALSE may be returned from the OEIDE.
-  Notes: This is old and deprecated -  kept in case someone calls it 
-                                       (customer code(   
+  Notes: DEPRECATED This is old and not in use 
+             -  kept in case someone calls it (customer code)   
 ------------------------------------------------------------------------------*/
 define input parameter pcCommand as character   no-undo.
 define input parameter plWait    as logical     no-undo.
@@ -1170,46 +1199,46 @@ end procedure.
 &IF DEFINED(EXCLUDE-createUntitledFile) = 0 &THEN
 
 procedure createUntitledFile :
-/*------------------------------------------------------------------------------
-  Purpose: Creates an untitled file using the input file name as the source.
-  Parameters:
-        INPUT-OUTPUT pcFileName Source for the content of the untitled file.                
-  Notes: 
-------------------------------------------------------------------------------*/
-define input-output parameter pcFileName as character   no-undo.
-
-define variable cBaseFileName     as character   no-undo.
-define variable cUntitledFileName as character   no-undo.
-define variable i                 as integer     no-undo.
-define variable cFileExt          as character   no-undo.
-
-/* Use the file extension of the specified file name unless it is .tmp. */
-i = r-index(pcFileName, ".").
-if i > 0 then
-do:
-    cFileExt = substring(pcFileName, i).
-    if cFileExt = ".tmp":U then
-        cFileExt = "".
-end.    
-
-i = 0.
-cBaseFileName = os-getenv("ECLIPSE_ROOT") + "Untitled".
-file-info:file-name = cBaseFileName + STRING(i) + cFileExt.
-do while file-info:full-pathname <> ?:
-    i = i + 1.
+    /*------------------------------------------------------------------------------
+      Purpose: Creates an untitled file using the input file name as the source.
+      Parameters:
+            INPUT-OUTPUT pcFileName Source for the content of the untitled file.                
+      Notes: 
+    ------------------------------------------------------------------------------*/
+    define input-output parameter pcFileName as character   no-undo.
+    
+    define variable cBaseFileName     as character   no-undo.
+    define variable cUntitledFileName as character   no-undo.
+    define variable i                 as integer     no-undo.
+    define variable cFileExt          as character   no-undo.
+    
+    /* Use the file extension of the specified file name unless it is .tmp. */
+    i = r-index(pcFileName, ".").
+    if i > 0 then
+    do:
+        cFileExt = substring(pcFileName, i).
+        if cFileExt = ".tmp":U then
+            cFileExt = "".
+    end.    
+    
+    i = 0.
+    cBaseFileName = os-getenv("ECLIPSE_ROOT") + "Untitled".
     file-info:file-name = cBaseFileName + STRING(i) + cFileExt.
-end.
-cUntitledFileName = file-info:file-name.
-file-info:file-name = pcFileName.
-if file-info:full-pathname <> ? then
-    os-copy VALUE(file-info:full-pathname) VALUE(cUntitledFileName).
-else
-do:
-    output TO VALUE(cUntitledFileName).
-    output CLOSE.
-end.    
-
-pcFileName = replace(cUntitledFileName, "~\", "/").  
+    do while file-info:full-pathname <> ?:
+        i = i + 1.
+        file-info:file-name = cBaseFileName + STRING(i) + cFileExt.
+    end.
+    cUntitledFileName = file-info:file-name.
+    file-info:file-name = pcFileName.
+    if file-info:full-pathname <> ? then
+        os-copy VALUE(file-info:full-pathname) VALUE(cUntitledFileName).
+    else
+    do:
+        output TO VALUE(cUntitledFileName).
+        output CLOSE.
+    end.    
+    
+    pcFileName = replace(cUntitledFileName, "~\", "/").  
 
 end procedure.
 
@@ -1266,85 +1295,21 @@ procedure ShowWindow external "user32.dll":
     define return parameter result as LONG.
 end.
 
+/* the code is not used in 11.2 and thus removed @todo remove method */
 procedure SetWindowPosition:
-    define input parameter iParentWindow as integer    no-undo.
+    define input parameter iParentWindow as int64    no-undo.
     define input parameter hNewWindow    as handle     no-undo.
     define input parameter hOldWindow    as handle     no-undo.
-
-&IF "{&NO_EMBEDDED_WINDOWS}" <> "YES" &THEN    
-if OEIDE_ABEmbedded then
-do: /* OEIDE_ABEmbedded */
-define variable iNewWindow    as integer    no-undo.
-define variable rc            as integer    no-undo.
-define variable iXpos         as integer    no-undo.
-define variable iYpos         as integer    no-undo.
-define variable wrect         as memptr     no-undo.
-
-if hNewWindow:type <> "WINDOW":U then hNewWindow = hNewWindow:window.
-if hOldWindow:type <> "WINDOW":U then hOldWindow = hOldWindow:window.
-
-SET-SIZE(wrect) = 16. /* 4 INTEGERS at 4 bytes each */
-run GetParent( input hNewWindow:hwnd, output iNewWindow).
-
-assign iXpos = hOldWindow:x
-       iYpos = hOldWindow:y.
-
-if iParentWindow > 0 then
-do:
-    run GetWindowRect(iParentWindow, output wrect).
-    assign iXpos = iXpos - GET-LONG(wrect, 1)
-           iYpos = iYpos - GET-LONG(wrect, 5).
-end.
-
-run SetWindowPos( input iNewWindow,
-                       input  0,
-                       input  iXpos,
-                       input  iYpos,
-                       input  0,
-                       input  0,
-                       input  1,
-                       output rc ).
-SET-SIZE(wrect) = 0.
-end. /* OEIDE_ABEmbedded */
-&ENDIF
-        
+    
 end procedure.    
 
+/* the code is not used in 11.2 and thus removed @todo remove method */
 procedure SetWindowPositionXY:
-    define input parameter iParentWindow as integer    no-undo.
+    define input parameter iParentWindow as int64    no-undo.
     define input parameter hNewWindow    as handle     no-undo.    
     define input parameter iXpos         as integer    no-undo.
     define input parameter iYpos         as integer    no-undo.
 
-&IF "{&NO_EMBEDDED_WINDOWS}" <> "YES" &THEN    
-if OEIDE_ABEmbedded then
-do: /* OEIDE_ABEmbedded */
-define variable iNewWindow    as integer    no-undo.
-define variable rc            as integer    no-undo.
-define variable wrect         as memptr     no-undo.
-
-SET-SIZE(wrect) = 16. /* 4 INTEGERS at 4 bytes each */
-run GetParent( input hNewWindow:hwnd, output iNewWindow).
-
-if iParentWindow > 0 then
-do:
-    run GetWindowRect(iParentWindow, output wrect).
-    assign iXpos = iXpos - GET-LONG(wrect, 1)
-           iYpos = iYpos - GET-LONG(wrect, 5).
-end.
-
-run SetWindowPos( input iNewWindow,
-                       input  0,
-                       input  iXpos,
-                       input  iYpos,
-                       input  0,
-                       input  0,
-                       input  1,
-                       output rc ).
-SET-SIZE(wrect) = 0.
-end. /* OEIDE_ABEmbedded */
-&ENDIF
-        
 end procedure.    
 
 
@@ -1360,7 +1325,7 @@ function activateWindow returns logical
         Purpose: activate/set focus in editor                                                                 
         Notes:                                                                        
 ------------------------------------------------------------------------------*/
-  define variable iId  as integer no-undo.
+  define variable iId  as int64 no-undo.
    
   iId = getDesignId(phWindow).
   
@@ -1375,11 +1340,34 @@ end function.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-checkSyntaxInIde) = 0 &THEN
+        
+function checkSyntaxInIde returns logical 
+    ( phWindow as handle ):
+/*------------------------------------------------------------------------------
+        Purpose: activate/set focus in editor                                                                 
+        Notes:                                                                        
+------------------------------------------------------------------------------*/
+  define variable iId  as int64 no-undo.
+   
+  iId = getDesignId(phWindow).
+  
+  RUN sendRequest in getSocketClient()
+                  (CHECK_SYNTAX,
+                   "IDE checkSyntax ":U
+                   + QUOTER(iId)).
+  return true.
+end function.
+    
+
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-getDesignId) = 0 &THEN
         
  /** we currently use the handle as the id -  
   @TODO move to _oeidecontext - it now has window handle (but not indexed yet) */      
-function getDesignId returns integer
+function getDesignId returns int64
        (phWidget as handle):
      
      if phWidget:type = "FRAME" then
@@ -1407,200 +1395,17 @@ function getDesignFileNameParent returns character
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-createContextMenu) = 0 &THEN
+&IF DEFINED(EXCLUDE-getProjectDisplayName) = 0 &THEN
         
-function createContextMenu returns handle private
-    (  ):
-/*------------------------------------------------------------------------------
-        Purpose:                                                                      
-        Notes:                                                                        
-------------------------------------------------------------------------------*/
-    /*------------------------------------------------------------------------------
-        Purpose:  create a design time popup menu                                                                     
-        Notes:    Currently only used when IDEIntegrated                                                                      
-------------------------------------------------------------------------------*/    
-    define variable hMenu as handle no-undo.
-    define variable hItem as handle no-undo.
-    
-    create menu hMenu
-        assign popup-only = true.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "undo":U
-            label = "Undo"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U. 
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "cut":U
-            label = "Cut"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "copy":U
-            label  = "Copy"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "paste":U
-            label  = "Paste"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "duplicate":U
-            label  = "Duplicate"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "delete":U
-            label = "Delete"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "run":U
-            label  = "Run"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "compile":U
-            label = "Compile"
-        triggers:
-            on choose persistent run OnChoose in this-procedure(hItem).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-      
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name   = "function":U
-            label = "Add Function..."
-         triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-         end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "procedure":U
-            label = "Add Procedure..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-     
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "trigger":U
-            label = "Add Trigger..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-   
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-      
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "copyfromfile":U
-            label = "Copy from File..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "inserfromfile":U
-            label = "Insert from File..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "taborder":U
-            label = "Tab Order..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            subtype = "RULE":U.
-    
-    create menu-item hItem
-        assign 
-            parent  = hMenu
-            name   = "gotopage":U
-            label = "Goto Page..."
-        triggers:
-             on choose persistent run OnChoose in this-procedure(hMenu).
-        end.
-    
-    
-    return hMenu.   
-    
-    
-end function.
-    
+ /** we currently use the handle as the id -  */      
+function getProjectDisplayName returns character 
+       () :
+     define variable cName as character no-undo.
+     cName = getProjectName().
+     if cName = ".sharedavm":U then 
+         cName = "Shared AVM".
+     return cName.      
+ end function.          
 
 &ENDIF
 
@@ -1615,8 +1420,8 @@ function displayEmbeddedWindow returns logical
             the specified window into the view
     Notes:  
 ------------------------------------------------------------------------------*/
-    if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                                 secondaryId begins "PropertiesWindow":U) then return true.
+    if (secondaryId begins "DesignView":U or secondaryId begins "PropertiesWindow":U) then 
+        return true.
     showView(viewId, secondaryId, {&VIEW_ACTIVATE}).
     setViewTitle(viewId, secondaryId, hWindow:title).
     setEmbeddedWindow(viewId, secondaryId, hWindow).
@@ -1637,8 +1442,7 @@ function hideView returns logical
 ------------------------------------------------------------------------------*/
   define variable cResult as character   no-undo. 
   
-  if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                                 secondaryId begins "PropertiesWindow":U) then 
+  if (secondaryId begins "DesignView":U or secondaryId begins "PropertiesWindow":U) then 
       return true.  
   
   run sendRequest in getSocketClient() 
@@ -1673,7 +1477,7 @@ function runUIBCommand returns logical
     ( phWindow as handle,
       pcCommand as char  ):
  
-  define variable iId as integer no-undo.
+  define variable iId as int64 no-undo.
   
   /* TODO use tLinkedfile? */
   iId = getDesignId(phWindow).
@@ -1702,14 +1506,14 @@ function setEmbeddedWindow returns logical
     Notes:  
 ------------------------------------------------------------------------------*/
     define variable lVisible as logical    no-undo.
-    define variable wHwnd as integer       no-undo.
+    define variable wHwnd as int64       no-undo.
     define variable cResult as character   no-undo.  
   
 &IF "{&NO_EMBEDDED_WINDOWS}" EQ "YES" &THEN  
     return true.
 &ENDIF    
-    if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                                 secondaryId begins "PropertiesWindow":U) then return true.
+    if (secondaryId begins "DesignView":U ) then 
+        return true.
     if hWindow:hwnd = ? then
     do:
         lVisible = hWindow:visible.
@@ -1761,8 +1565,8 @@ function setViewTitle returns logical
 ------------------------------------------------------------------------------*/
   define variable cResult as character   no-undo.
   
-if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                             secondaryId begins "PropertiesWindow":U) then return true.
+  if (secondaryId begins "DesignView":U) then
+      return true.
                                
   run sendRequest in getSocketClient() (
                   SET_VIEW_TITLE,
@@ -1819,9 +1623,9 @@ function showView returns logical
     Notes:  
 ------------------------------------------------------------------------------*/
   define variable cResult as character   no-undo.
-  
-  if not OEIDE_ABEmbedded and (secondaryId begins "DesignView":U or
-                               secondaryId begins "PropertiesWindow":U) then return true.  
+  if (secondaryId begins "DesignView":U) then
+      return true.
+        
   if mode = ? or mode <= 0 or mode > 3 then /* mode values are 1, 2, 3 */
       mode = {&VIEW_ACTIVATE}.              /* Default value */
   run sendRequest in getSocketClient() (
@@ -1932,7 +1736,7 @@ end function.
 function openPropertySheet returns logical 
           (phWindow  as handle):
     
-    define variable iId  as integer no-undo.
+    define variable iId  as int64 no-undo.
    
     iId = getDesignId(phWindow).
     run sendRequest in getSocketClient() (
@@ -2028,7 +1832,7 @@ function gotoPage returns logical
    define variable cFile   as character no-undo.
    define variable cResult as character no-undo.
   
-   define variable iDesignId as int no-undo. 
+   define variable iDesignId as int64 no-undo. 
    iDesignId = getDesignId(phWindow).  
   
    run sendRequest in getSocketClient() (
@@ -2044,6 +1848,29 @@ end function.
 &ENDIF
 
 
+&IF DEFINED(EXCLUDE-keyPressed) = 0 &THEN
+
+function keyPressed returns logical 
+    ( phWindow as handle,
+      pcKey    as character):
+/*------------------------------------------------------------------------------
+  Purpose:  handle keystroke
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable iDesignId as int64 no-undo. 
+    iDesignId = getDesignId(phWindow).  
+  
+    run sendRequest in getSocketClient()
+                    (KEY_PRESSED,
+                      "IDE KeyPressed ":U 
+                      + QUOTER(iDesignId) + PARAMETER_DELIMITER
+                      + QUOTER(pcKey)).
+  
+  return true.
+
+end function.
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-viewSource) = 0 &THEN
 
@@ -2057,7 +1884,7 @@ function viewSource returns logical
   Purpose:  View source for the specified window
     Notes:  
 ------------------------------------------------------------------------------*/
-    define variable iDesignId as int no-undo. 
+    define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow).  
   
     run sendRequest in getSocketClient()
@@ -2276,7 +2103,11 @@ function HasDialog returns logical
     do while valid-handle(hChild):
         if hChild:type = "window" and HasDialog(hChild) then
             return true.  
-        else if hChild:type = "dialog-box" then 
+         /* Check for visible added due to issues with the hidden 
+            clipboard frame, so the check returned true after 
+            cut, copy, paste (hidden dialog should not cause the 
+            problem this check attempts to avoid )   */
+        else if hChild:type = "dialog-box" and hChild:visible then 
             return true.  
         hChild = hChild:next-sibling.
     end.     
@@ -2289,7 +2120,7 @@ end function.
 function SetWindowSize return logical
          (phWindow as handle ):
     
-    define variable iDesignId as int no-undo. 
+    define variable iDesignId as int64 no-undo. 
     define variable wrect as memptr no-undo.
     define variable iXpos as integer no-undo.
     define variable iYpos as integer no-undo.
@@ -2335,8 +2166,7 @@ function WidgetEvent return logical
           WidgetType as character,
           WidgetParent as character,
           WidgetAction as character ):
-      define variable iDesignId as int no-undo. 
-      
+      define variable iDesignId as int64 no-undo. 
      /* valid check - may be called when the window itself is deleted (save all)  
        if necessary we may use an id to manage this, but it was only encountered 
         during a save all that deleted the window due to save outside of project... 
@@ -2363,7 +2193,7 @@ end function.
  function AddCodeSection return logical
          (phwindow   as handle,
           AddSection as character):
-      define variable iDesignId as int no-undo. 
+      define variable iDesignId as int64 no-undo. 
       iDesignId = getDesignId(phWindow).          
       if (iDesignId) > 0 then 
       run sendRequest in getSocketClient() (
@@ -2383,7 +2213,7 @@ function RenameWidget return logical
           WidgetType as character,
           WidgetParent as character,
           WidgetAction as character ):
-      define variable iDesignId as int no-undo. 
+      define variable iDesignId as int64 no-undo. 
       iDesignId = getDesignId(phWindow).    
       if (iDesignId) > 0 then
            run sendRequest in getSocketClient() (
@@ -2404,7 +2234,7 @@ function AddTrigger return logical
          (phwindow   as handle,
           WidgetName as character,
           WidgetType as character):
-    define variable iDesignId as int no-undo. 
+    define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow).          
     if (iDesignId) > 0 then 
     run sendRequest in getSocketClient() (
@@ -2419,7 +2249,7 @@ end function.
 &IF DEFINED(EXCLUDE-RunDesign) = 0 &THEN
 function RunDesign return logical
          (phwindow   as handle):
-    define variable iDesignId as int no-undo. 
+    define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow).          
     if (iDesignId) > 0 then 
     run sendRequest in getSocketClient() (
@@ -2432,7 +2262,7 @@ end function.
 &IF DEFINED(EXCLUDE-CompileDesign) = 0 &THEN         
 function CompileDesign return logical
          (phwindow   as handle):  
-         define variable iDesignId as int no-undo. 
+         define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow).          
     if (iDesignId) > 0 then 
     run sendRequest in getSocketClient() (
@@ -2459,7 +2289,7 @@ end function.
 function OpenDBConnectionDialog return logical
          (ProjectName as character):
        run sendRequest in getSocketClient() (
-                      OPEN_DB_CONNECTION_DIALOG,
+                      OPEN_DB_CONNECTION,
                       "IDE OpenDBConnectionDialog ":U 
                       + QUOTER(ProjectName)). 
 end function.                               

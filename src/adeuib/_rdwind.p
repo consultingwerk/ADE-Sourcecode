@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2206 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2006,2009-2013 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -323,7 +323,12 @@ THEN ASSIGN _L._BGCOLOR        = ?
   ASSIGN _C._SCROLL-BARS = NO.
 &ENDIF
 
-IF _P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type) THEN
+/* The TreeView OCX only exists on 32-bit Windows. On 64-bit we don't create
+** the treeview. A window will be created for the object so the user can give
+** this window focus and bring up the Section Editor to modify the procedure.
+*/
+IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) AND
+   PROCESS-ARCHITECTURE = 32 THEN
 DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   /* Create Treeview design window for code-only files. */
   DEFINE VAR h_TreeProc AS HANDLE NO-UNDO.
@@ -355,9 +360,14 @@ DO:
           KEEP-FRAME-Z-ORDER = TRUE
           TITLE             = _U._LABEL
         TRIGGERS:
-             {adeuib/windtrig.i}
+            {adeuib/windtrig.i}
         END TRIGGERS.
+  IF not OEIDEIsRunning THEN  
+  do:    
+     {adeuib/grptrig.i &of-widget-list="OF _h_win"}  
+  end. 
 END.
+
 IF OEIDEIsRunning THEN
 DO:
    /* TODO deal with temp windows from save super of gendyn - 
@@ -367,6 +377,7 @@ DO:
    RUN displayDesignWindow IN hOEIDEService (_save_file,   hWindow).
   _h_win = hWindow.
   _h_win:popup-menu = createContextMenu(). 
+   on any-key of _h_win anywhere persistent run OnAnyKey in _h_uib.
 END.
 
 /* Carefully load attributes that may conflict with others.  Note: conflicts */

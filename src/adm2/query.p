@@ -3911,13 +3911,22 @@ PROCEDURE transferRows :
        cStartRow = IF cFirstResult = ? THEN ? 
                    ELSE ENTRY(2,cFirstResult,';':U).
    WHEN 'Refresh':U THEN
-     ASSIGN       
-       lFromTop    = TRUE
-       lRefresh    = TRUE
-       cStartRow   = ENTRY(2,pcPosition,';':U)
-       cToValue    = ENTRY(1,pcPosition,';':U)
-       cToColumn   = "RowNum":U.
-
+   do:
+      ASSIGN       
+         lFromTop    = TRUE
+         lRefresh    = TRUE
+         cStartRow   = substring(pcPosition,index(pcPosition,';') + 1) /* ENTRY(2,pcPosition,';':U) */
+         cToValue    = ENTRY(1,pcPosition,';':U)
+         cToColumn   = "RowNum":U.
+      IF INDEX(cStartRow,' ':U) > 0 THEN
+      DO:
+         cStartRow = DYNAMIC-FUNCTION('firstRowIds':U IN TARGET-PROCEDURE,
+                                      cStartRow).  
+         /* no record found */
+         IF cStartRow = ? THEN
+            RETURN.
+      END.
+   end.
    WHEN 'Current':U THEN
      ASSIGN
        lFromTop       = TRUE
@@ -6069,8 +6078,8 @@ FUNCTION firstBufferName RETURNS CHARACTER PRIVATE
  DEFINE VARIABLE iQuoteStart AS INTEGER    NO-UNDO.
  DEFINE VARIABLE iQuoteEnd   AS INTEGER    NO-UNDO.
  DEFINE VARIABLE cExpression AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE iNumeric    AS INTEGER    NO-UNDO.
-
+ define variable de          as decimal no-undo.
+  
  IF NUM-ENTRIES(pcExpression,".":U) = 1 THEN RETURN ?.
 
  /* Remove quoted words from this to avoid problems with periods inside quotes*/
@@ -6098,15 +6107,13 @@ FUNCTION firstBufferName RETURNS CHARACTER PRIVATE
 
  DO i = 1 TO NUM-ENTRIES(cExpression," ":U): 
    cWord = ENTRY(i,cExpression," ":U).
-   
-   IF NUM-ENTRIES(cWord,".":U) >= 2 THEN 
-   DO:
-     /* This '.' might be a decimal delimiter or decimal sign, 
-        if the first entry is integer it cannot be a buffer name ... */
-     iNumeric = INT(ENTRY(1,cWord)) NO-ERROR.
-     IF NOT ERROR-STATUS:ERROR THEN
-       NEXT.
-   END.
+   /* The '.' might be a decimal point. (unquoted decimals have american format)   */
+   if num-entries(cWord,".":U) = 2 then 
+   do:      
+       de = decimal(replace(cWord,".":U,session:numeric-decimal-point)) no-error. 
+       if not error-status:error then
+           next.
+   end.
 
    IF NUM-ENTRIES(cWord,".":U) = 2 THEN 
      RETURN ENTRY(1,cWord,".":U). 

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2011,2013 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -68,6 +68,7 @@ DEFINE VARIABLE Dbs         AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE file_len    AS INTEGER      NO-UNDO.
 DEFINE VARIABLE Seqs        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL      NO-UNDO init true.
+DEFINE VARIABLE hBuffer2 AS HANDLE NO-UNDO.
 
 DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
@@ -167,10 +168,22 @@ DO ON STOP UNDO, LEAVE:
     ASSIGN ilast = 0
            c = user_env[1].
 
-    FIND _Db WHERE RECID(_Db) = drec_db NO-LOCK.
-    /* encryption only for OpenEdge dbs */
-    IF _Db._Db-type = "PROGRESS" THEN DO ON ERROR UNDO, LEAVE:
-        myEPolicy = NEW prodict.sec._sec-pol-util().
+       
+   FIND _Db WHERE RECID(_Db) = drec_db NO-LOCK.
+  
+   IF _Db._Db-type = "PROGRESS" THEN DO ON ERROR UNDO, LEAVE:
+
+        CREATE BUFFER hBuffer2 FOR TABLE "DICTDB._database-feature" NO-ERROR.
+        IF VALID-HANDLE(hBuffer2) THEN DO:
+          hBuffer2:FIND-FIRST("WHERE _database-feature._dbfeature_name = ~'encryption~'",
+                             NO-LOCK) NO-ERROR.
+	  IF hBuffer2:AVAILABLE AND hBuffer2::_dbfeature_enabled EQ "1" THEN 
+                myEPolicy = NEW prodict.sec._sec-pol-util(). 
+          ELSE 
+                hBuffer2:BUFFER-RELEASE().
+          
+          DELETE OBJECT hBuffer2 NO-ERROR.
+        END.
 
         CATCH ae AS PROGRESS.Lang.AppError:
            /* if encryption is not enabled, then we silently ignore this */

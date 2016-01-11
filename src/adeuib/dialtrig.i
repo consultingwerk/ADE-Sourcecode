@@ -17,7 +17,7 @@
       ON HELP ANYWHERE    PERSISTENT RUN adecomm/_adehelp.p 
                           ( "AB", "CONTEXT", {&Pop_design_window}, ? ).
       /* Group Triggers (to apply Main Menu Accelerators in design window) */
-      {adeuib/grptrig.i}
+      /* moved out to avoid defining for oeide 11.3 {adeuib/grptrig.i} */
 &ELSE
       /* Triggers on the "frame" part of the UIB dialog widget */
       /* Note: Dialog boxes are one of the few things that we  */

@@ -94,7 +94,7 @@ DEFINE FRAME DEFAULT-FRAME
      migConstraint view-as toggle-box label "Migrate Constraints" AT 2 SKIP({&VM_WIDG})
      SPACE(2)    
      tryPimaryForRowid view-as toggle-box LABEL "Try Primary for ROWID" AT 2
-     mkClusteredExplict view-as toggle-box LABEL "Make Clustered Explicit" AT 35 SKIP({&VM_WID})
+     recidCompat view-as toggle-box LABEL "Maintain RECID compatibility" AT 35 SKIP({&VM_WID})
      text2 VIEW-AS TEXT NO-LABEL AT 2
      iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS
         "Trigger", 1,
@@ -157,15 +157,16 @@ DEFINE FRAME DEFAULT-FRAME
          AT COL 1 ROW 1
     VIEW-AS DIALOG-BOX TITLE "OpenEdge To MS SQL Server Conversion Advanced Options".
 
+IF not recid_verify THEN
+  ASSIGN recidCompat:hidden in frame DEFAULT-FRAME = TRUE.
 
-  
 ON CHOOSE OF butt-ok IN FRAME DEFAULT-FRAME 
 DO:
 
    Assign migConstraint = (migConstraint:SCREEN-VALUE = "yes").
 
    ASSIGN tryPimaryForRowid  = (tryPimaryForRowid:SCREEN-VALUE  = "yes").
-   ASSIGN mkClusteredExplict = (mkClusteredExplict:SCREEN-VALUE  = "yes").
+   ASSIGN recidCompat = (recidCompat:SCREEN-VALUE  = "yes").
    ASSIGN ForRow  = (ForRow:SCREEN-VALUE  = "yes").
    ASSIGN forRowidUniq  = (forRowidUniq:SCREEN-VALUE  = "yes").
    ASSIGN selBestRowidIdx  = (selBestRowidIdx:SCREEN-VALUE  = "yes").
@@ -265,19 +266,11 @@ END.
 
 ON VALUE-CHANGED OF tryPimaryForRowid IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "no" THEN DO:
-    IF migConstraint:SCREEN-VALUE = "no" THEN
+    IF selBestRowidIdx:SCREEN-VALUE = "no" THEN
        ASSIGN forRowidUniq:SENSITIVE   = FALSE
            forRowidUniq:SCREEN-VALUE   = "no".
-    IF choiceRowid:SENSITIVE  = FALSE THEN  DO:
-       ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
-              mkClusteredExplict:SCREEN-VALUE = "no".
-    END.
-    ELSE IF choiceRowid:SCREEN-VALUE <> "2" THEN 
-            ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
-                   mkClusteredExplict:SCREEN-VALUE = "no".
   END.
   ELSE DO:
-       ASSIGN mkClusteredExplict:SENSITIVE   = TRUE.
        IF ForRow:screen-value   = "no"  THEN 
           ASSIGN forRowidUniq:SENSITIVE   = TRUE.
        IF ForRowidUniq:screen-value   = "no"  THEN 
@@ -293,10 +286,6 @@ END.
 
 ON VALUE-CHANGED OF migConstraint IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "no" THEN DO:
-    IF tryPimaryForRowid:screen-value   = "no" THEN DO:
-       ASSIGN forRowidUniq:SENSITIVE   = FALSE
-              forRowidUniq:SCREEN-VALUE   = "no". 
-    END. 
     IF selBestRowidIdx:screen-value   = "no" THEN DO:
        ASSIGN ForRow:SENSITIVE   = TRUE.
        IF ForRow:screen-value   = "no"  THEN 
@@ -305,11 +294,6 @@ ON VALUE-CHANGED OF migConstraint IN FRAME DEFAULT-FRAME DO:
        ELSE ASSIGN iRecidOption:SENSITIVE   = TRUE.
     END.
     ELSE selBestRowidIdx:SENSITIVE   = TRUE.
-  END.
-  ELSE DO:
-       IF ForRow:screen-value   = "no"  THEN 
-          ASSIGN forRowidUniq:SENSITIVE   = TRUE.
-                 
   END.
 END.
 /* Initialize RECID logic */
@@ -322,24 +306,15 @@ ON VALUE-CHANGED OF ForRow IN FRAME DEFAULT-FRAME DO:
             selBestRowidIdx:SENSITIVE   = FALSE
             selBestRowidIdx:SCREEN-VALUE   = "no"
             choiceSchema:SENSITIVE   = FALSE.
-     IF choiceRowid:SCREEN-VALUE  =  "2" THEN
-        ASSIGN mkClusteredExplict:SENSITIVE   = TRUE.
  END.
  ELSE DO:
    ForRow:SENSITIVE   = FALSE.
-   IF tryPimaryForRowid:SCREEN-VALUE   = "yes" 
-           OR migConstraint:SCREEN-VALUE   = "yes" THEN
-      forRowidUniq:SENSITIVE   = TRUE.
-   IF tryPimaryForRowid:SCREEN-VALUE  =  "no" THEN  DO:
-       ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
-              mkClusteredExplict:SCREEN-VALUE = "no".
-   END.
-
    ASSIGN selBestRowidIdx:SENSITIVE   = TRUE
          selBestRowidIdx:SCREEN-VALUE   = "yes"
          choiceSchema:SENSITIVE   = TRUE
          iRecidOption:SENSITIVE   = FALSE
          choiceRowid:SCREEN-VALUE   = "0"
+         forRowidUniq:SENSITIVE   = TRUE.
          choiceRowid:SENSITIVE   = FALSE.
  END.
 END.
@@ -352,12 +327,15 @@ ON VALUE-CHANGED OF ForRowidUniq IN FRAME DEFAULT-FRAME DO:
             iRecidOption:SENSITIVE   = TRUE
             selBestRowidIdx:SENSITIVE   = FALSE
             selBestRowidIdx:SCREEN-VALUE   = "yes"
-            choiceSchema:SENSITIVE   = TRUE.
+            choiceSchema:SENSITIVE   = FALSE.
+            choiceSchema:SCREEN-VALUE = "1".
  END.
  ELSE DO:
     selBestRowidIdx:SENSITIVE   = TRUE.
     IF selBestRowidIdx:screen-value = "no"  THEN
        ASSIGN forRow:SENSITIVE   = TRUE.
+    ELSE
+       choiceSchema:SENSITIVE   = TRUE.
     iRecidOption:SENSITIVE   = FALSE.
  END.
 END.
@@ -367,8 +345,11 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
     ASSIGN forRow:SENSITIVE   = FALSE
            choiceRowid:SENSITIVE   = FALSE
            choiceSchema:SENSITIVE   = TRUE
-           forRow:SCREEN-VALUE   = "no".
-    IF tryPimaryForRowid:SCREEN-VALUE = "yes"  THEN ASSIGN forRowidUniq:SENSITIVE = TRUE.
+           forRow:SCREEN-VALUE   = "no"
+           forRowidUniq:SENSITIVE = TRUE.
+    IF forRowidUniq:screen-value = "yes"  THEN
+       ASSIGN choiceSchema:SENSITIVE    = FALSE
+              choiceSchema:SCREEN-VALUE = "1".
  END.
  ELSE DO:
     ASSIGN selBestRowidIdx:SENSITIVE   = FALSE
@@ -379,27 +360,16 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
            choiceRowid:SENSITIVE   = TRUE
            iRecidOption:SENSITIVE   = TRUE
            choiceSchema:SENSITIVE   = FALSE.
-    IF choiceRowid:SCREEN-VALUE = "2" THEN  ASSIGN mkClusteredExplict:SENSITIVE = TRUE.
  END.
 END.
 
-ON VALUE-CHANGED OF choiceRowid IN FRAME DEFAULT-FRAME DO:
-    IF SELF:SCREEN-VALUE = "2" THEN
-       ASSIGN mkClusteredExplict:SENSITIVE   = TRUE.
-    ELSE  DO:
-       IF tryPimaryForRowid:SCREEN-VALUE = "no" THEN
-          ASSIGN mkClusteredExplict:SENSITIVE = FALSE.
-    END.
-END.
-
-    
 IF NOT batch_mode THEN
   DO: 
    DISPLAY text1 text2 text3 text4 WITH FRAME DEFAULT-FRAME.
    UPDATE
         migConstraint
         tryPimaryForRowid
-        mkClusteredExplict WHEN tryPimaryForRowid = TRUE
+        recidCompat WHEN recid_verify = TRUE
         iRecidOption
         ForRow  WHEN forRowidUniq = FALSE
         choiceRowid WHEN ForRow = TRUE
@@ -425,7 +395,7 @@ IF NOT batch_mode THEN
         WITH FRAME DEFAULT-FRAME. 
         
         
-        ASSIGN mkClusteredExplict = (mkClusteredExplict:SCREEN-VALUE  = "yes").
+        ASSIGN recidCompat = (recidCompat:SCREEN-VALUE  = "yes").
         ASSIGN iRecidOption = INTEGER(iRecidOption:SCREEN-VALUE).
         ASSIGN ForRow  = (ForRow:SCREEN-VALUE  = "yes").
         ASSIGN forRowidUniq  = (forRowidUniq:SCREEN-VALUE  = "yes").

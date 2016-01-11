@@ -5,7 +5,7 @@
 &Scoped-define WINDOW-NAME properties_window
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS properties_window 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2013 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -99,6 +99,9 @@ DEFINE VARIABLE xdMinHeight     AS DEC  NO-UNDO INIT 3.
 /* MiunWidth, show some data in last col */
 DEFINE VARIABLE xdMinWidth      AS DEC  NO-UNDO INIT 28.
 
+/** deal with multi-threading - Eclipse may call methods in this during startup */ 
+define variable isStarted as logical no-undo. 
+
 {adecomm/oeideservice.i}
 /* Shared UIB Definitions ---                                           */
 {adeuib/uniwidg.i}              /* Universal widget definition              */
@@ -142,6 +145,7 @@ FUNCTION change-data-type RETURNS LOGICAL
 
 FUNCTION compile-userfields RETURNS CHARACTER
   (INPUT p_U_PRecid AS RECID) IN _h_func_lib.
+ 
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -720,7 +724,7 @@ THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
 
 /* The CLOSE event can be used from inside or outside the procedure to  */
 /* terminate it.                                                        */
-ON CLOSE OF THIS-PROCEDURE
+ON CLOSE OF THIS-PROCEDURE 
   RUN disable_UI.
 
 /* Best default for GUI applications is...                              */
@@ -748,21 +752,20 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   DO:
     DEFINE VARIABLE cViewId      AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cSecondaryId AS CHARACTER  NO-UNDO.  
-    DEFINE VARIABLE cViewTitle   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE iViewHwnd    AS INTEGER    NO-UNDO.
   
-    DELETE OBJECT properties_window NO-ERROR.       
-    ASSIGN cViewId   = "com.openedge.pdt.text.views.OERuntimeView"
-        cSecondaryId = "PropertiesWindow_" + getProjectName()
-        cViewTitle   = "Properties Window".
+    DELETE OBJECT properties_window NO-ERROR.   
+    ASSIGN cViewId  = "com.openedge.pdt.oestudio.appbuilderpropertiesview"
+           cSecondaryId = getProjectName() .
 
     /* Show view */
     showView(cViewId, cSecondaryId, {&VIEW_ACTIVATE}).
-    setViewTitle(cViewId, cSecondaryId, cViewTitle).
+/*    setViewTitle(cViewId, cSecondaryId, cViewTitle).*/
+
     RUN getViewHwnd IN hOEIDEService (cViewId, cSecondaryId, OUTPUT iViewHwnd) NO-ERROR.
     
     CREATE WINDOW properties_window ASSIGN
-           IDE-WINDOW-TYPE    = 0 /* embedded mode */
+           IDE-WINDOW-TYPE    = 0 /* embedded  */
            IDE-PARENT-HWND    = iViewHwnd  
            HIDDEN             = YES
            TITLE              = "Properties Window"
@@ -777,6 +780,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
            STATUS-AREA        = no
            BGCOLOR            = ?
            FGCOLOR            = ?
+           RESIZE             = no
            KEEP-FRAME-Z-ORDER = yes
            THREE-D            = yes
            MESSAGE-AREA       = no
@@ -795,20 +799,43 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 
     ON WINDOW-CLOSE OF properties_window /* Properties Window */
     DO:
-      /* Close up this when the user closes */
-      APPLY "CLOSE":U TO THIS-PROCEDURE.
+/*      output to "c:\110\closelog.log" append.                                                                   */
+/*      put unformatted string(now) + " valid-handle window: " + string(valid-handle(properties_window))          */
+/*      " project: " getProjectName() + " "                                                                       */
+/*       (if valid-handle(properties_window) then string(properties_window:IDE-PARENT-HWND) else "<no window> "  )*/
+/*       + " proc: "   if valid-handle(THIS-PROCEDURE) then string(THIS-PROCEDURE:handle) else "<no proc> " skip. */
+/*      output close.                                                                                             */
+        /* Close up this when the user closes */
+       /* attempt to reduce error 4009 - always true though, maybe the check refreshes something
+         (this may very well be just wrong. but the check does not hurt) */
+       if valid-handle(THIS-PROCEDURE) then
+           APPLY "CLOSE":U TO THIS-PROCEDURE.
+/*       output to "c:\110\closelog.log" append.                                       */
+/*       put unformatted string(now) + " after close project: " getProjectName()  skip.*/
+
+/*      finally:        */
+/*         output close.*/
+/*      end.            */
+
     END.
 
     ON WINDOW-RESIZED OF properties_window /* Properties Window */
     DO:
+        
       RUN resizeObject(SELF:HEIGHT, SELF:WIDTH).
     END.
-
+    
     properties_window:VISIBLE = yes.
-    setEmbeddedWindow(cViewId, cSecondaryId, properties_window).
+    if iViewHwnd > 0 then
+    do:
+        setEmbeddedWindow(cViewId, cSecondaryId, properties_window).
+        run resizeToParent in hOEIDEService (properties_window).   
+    end. 
+  /* resizeobject is fired during startup  */      
+  /* running it here causes problems too big.. run resizeObject(properties_window:height, properties_window:width).*/
   END. 
   RUN enable_UI.   
-  
+  isStarted = true.
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
 END.
@@ -1954,11 +1981,17 @@ PROCEDURE move-to-top :
   Parameters:  <none>
   Notes:       
 -------------------------------------------------------------*/
-  IF {&WINDOW-NAME}:WINDOW-STATE = WINDOW-MINIMIZED
-  THEN {&WINDOW-NAME}:WINDOW-STATE = WINDOW-NORMAL.
-  /* Move the window to the top, and view-it. */
-  IF {&WINDOW-NAME}:MOVE-TO-TOP() AND NOT {&WINDOW-NAME}:VISIBLE
-  THEN {&WINDOW-NAME}:VISIBLE = yes.
+  /* AVOID when calling ide during startup 
+   (probably completely unnecessary to call this then, but... this is more obvioous )
+   */ 
+  if isStarted then
+  do: 
+      IF {&WINDOW-NAME}:WINDOW-STATE = WINDOW-MINIMIZED
+      THEN {&WINDOW-NAME}:WINDOW-STATE = WINDOW-NORMAL.
+      /* Move the window to the top, and view-it. */
+      IF {&WINDOW-NAME}:MOVE-TO-TOP() AND NOT {&WINDOW-NAME}:VISIBLE THEN 
+          {&WINDOW-NAME}:VISIBLE = yes.
+  end.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2053,7 +2086,6 @@ DEFINE VARIABLE right-edge      AS DEC  NO-UNDO.
 DEFINE VARIABLE browse-shrinked AS DEC  NO-UNDO.
 DEFINE VARIABLE i               AS INT  NO-UNDO.
 DEFINE VARIABLE iRow            AS INT  NO-UNDO.
-
  DO WITH FRAME f:
   /* Base the height of the widgets on the combo-box (which is
      resized based on its font by PROGRESS) */
@@ -2070,9 +2102,9 @@ DEFINE VARIABLE iRow            AS INT  NO-UNDO.
 	     tries to grow a horizontal scollbar, which does not fit. 
 	     (down = 0 indicates first time)  */    
         tt.attr-value:WIDTH IN BROWSE brws-attr 
-                             = {&WINDOW-NAME}:WIDTH - 2
+                             = {&WINDOW-NAME}:WIDTH - 3
                                - (tt.attr-value:COL IN BROWSE brws-attr)
-                                   WHEN brws-attr:DOWN <> 0  
+                                    
       NO-ERROR.
             
     ELSE         
@@ -2099,18 +2131,18 @@ DEFINE VARIABLE iRow            AS INT  NO-UNDO.
    * TODO EAG review when core support for 4GL windows is added
    * Currently some assigns are omitted when OEIDEIsRunning to avoid issues
    */                   
-  IF OEIDEIsRunning THEN
-      ASSIGN
-         tt.attr-value:WIDTH IN BROWSE brws-attr 
-                             = {&WINDOW-NAME}:WIDTH - 2
-                               - (tt.attr-value:COL IN BROWSE brws-attr)
-                                   WHEN brws-attr:DOWN <> 0 
-        browse-shrinked           = brws-attr:HEIGHT 
-        /* Down is INT so this statement adjusts the browse to have no half lines */ 
-        brws-attr:DOWN            = MAX(2,brws-attr:DOWN) 
-        browse-shrinked           = browse-shrinked - brws-attr:HEIGHT 
-        FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT - browse-shrinked
-      NO-ERROR. 
+  IF OEIDEIsRunning THEN.
+/*      ASSIGN                                                                        */
+/*         tt.attr-value:WIDTH IN BROWSE brws-attr                                    */
+/*                             = {&WINDOW-NAME}:WIDTH - 2                             */
+/*                               - (tt.attr-value:COL IN BROWSE brws-attr)            */
+/*                                   WHEN brws-attr:DOWN <> 0                         */
+/*        browse-shrinked           = brws-attr:HEIGHT                                */
+/*        /* Down is INT so this statement adjusts the browse to have no half lines */*/
+/*/*        brws-attr:DOWN            = MAX(2,brws-attr:DOWN)*/                       */
+/*        browse-shrinked           = browse-shrinked - brws-attr:HEIGHT              */
+/*        FRAME f:HEIGHT            = {&WINDOW-NAME}:HEIGHT - browse-shrinked         */
+/*      NO-ERROR.                                                                     */
   ELSE             
       ASSIGN
          tt.attr-value:WIDTH IN BROWSE brws-attr 
@@ -2621,6 +2653,8 @@ FUNCTION adjustSize RETURNS LOGICAL
            from window-maximized since the MAX-sizes are adjusted down after 
            the actual window event has happened.   
 ------------------------------------------------------------------------------*/
+ if OEIDEIsRunning then 
+    return true.
  /* Do a get last to ensure that num-results is correct */
  IF QUERY brws-attr:IS-OPEN THEN
  DO:

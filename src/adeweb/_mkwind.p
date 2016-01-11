@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -83,6 +83,11 @@ ASSIGN _C._SUPPRESS-WINDOW    = TRUE
        _L._VIRTUAL-WIDTH      = _L._WIDTH
        _L._FONT               = ?.
 
+/* The TreeView OCX only exists on 32-bit Windows. On 64-bit we don't create
+** the treeview. A window will be created for the object so the user can give
+** this window focus and bring up the Section Editor to modify the procedure.
+*/
+IF PROCESS-ARCHITECTURE = 32 THEN
 DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   /* Create Treeview design window for code-only files. */
   DEFINE VAR h_TreeProc AS HANDLE NO-UNDO.

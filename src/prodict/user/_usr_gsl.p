@@ -40,6 +40,7 @@ History:
     fernando    04/07/08    Support for datetime fo MSS/ORACLE 
     rkumar      02/03/09    Changes to support iSeries driver- OE00179889
     knavneet    04/28/09    BLOB support for MSS - OE00178319
+    sdash       04/09/13    command line tool for update/add objects from foreign DB - OE00196459
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -64,6 +65,11 @@ define variable               cBestRowid as   character initial "Select 'Best' R
                                               FORMAT "x(27)" NO-UNDO.
 define variable               isClobEnabled   as   logical init yes .
 define variable               isBlobEnabled   as   logical init yes .
+
+DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL NO       NO-UNDO.
+
+
+batch_mode = SESSION:BATCH-MODE.
 
 form
                                                           skip({&VM_WIDG})
@@ -105,6 +111,8 @@ form
      "OE Schema", 1,
      "Foreign schema", 2
       AT column-of p_vrfy + 4 row-of p_vrfy + 3.7 skip({&VM_WID})
+  p_recidcompat LABEL "Provide RECID Compatibility" view-as TOGGLE-BOX
+    at column-of p_vrfy  row-of p_vrfy + 4.6  skip({&VM_WIDG})
       
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
@@ -229,12 +237,11 @@ IF INDEX(USERID("DICTDBG"), "/") > 0 THEN
 ELSE IF INDEX(USERID("DICTDBG"), "@") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "@") - 1)).
 ELSE IF (p_frame NE "frm_as400" AND USERID("DICTDBG") NE "") 
-        OR (p_frame = "frm_as400" AND (p_owner = "*" OR p_owner = "" OR p_owner = ? )) THEN
-    ASSIGN p_owner = USERID("DICTDBG").
+        OR (p_frame = "frm_as400" AND (p_owner = "*" OR p_owner = "" OR p_owner = ? )) THEN 
+	     ASSIGN  p_owner = USERID("DICTDBG").
 
 IF DBTYPE("DICTDBG") EQ "ORACLE" AND p_owner = "" THEN
    RUN prodict/ora/_get_orauser.p (OUTPUT p_owner).
-
 
 do on ENDKEY undo,leave:
 
@@ -310,6 +317,7 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
       ASSIGN p_primary:hidden in frame frm_ntoq = TRUE.
       ASSIGN cBestRowid:hidden in frame frm_ntoq = TRUE.
       ASSIGN p_best:hidden in frame frm_ntoq = TRUE.
+      ASSIGN p_recidcompat:hidden in frame frm_ntoq = TRUE.
    END.
     ELSE DO:
         /* move it one row below - the frame definitions has it on the same
@@ -377,8 +385,27 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
     
   END. 
 
+  ON VALUE-CHANGED of p_best IN FRAME frm_ntoq DO:
+    IF SELF:screen-value = "2" THEN DO:
+       p_recidcompat = false.
+       assign p_recidcompat:sensitive in frame frm_ntoq = FALSE.
+    END.
+    ELSE assign p_recidcompat:sensitive in frame frm_ntoq = TRUE.
+  END.
 
-    {adecomm/okrun.i  
+ IF NUM-ENTRIES(user_env[25]) = 9
+   THEN ASSIGN
+     p_name  = ENTRY(1,user_env[25])
+     p_owner = ENTRY(2,user_env[25])
+     p_qual  = ENTRY(3,user_env[25])
+     p_datetime = LOGICAL(ENTRY(4,user_env[25]))
+     p_vrfy = LOGICAL(ENTRY(5,user_env[25]))
+     p_lob = LOGICAL(ENTRY(6,user_env[25]))
+     p_blobtype = LOGICAL(ENTRY(7,user_env[25]))
+     p_clobtype = LOGICAL(ENTRY(8,user_env[25]))
+     p_best = INTEGER(ENTRY(9,user_env[25])).
+
+   {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
       &BOX    = "rect_Btns"
       &OK     = "btn_OK" 
@@ -399,6 +426,7 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
       p_primary  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       cBestRowid  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_best  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"      
+      p_recidcompat WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

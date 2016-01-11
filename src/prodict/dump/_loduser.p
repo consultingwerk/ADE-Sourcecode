@@ -90,7 +90,6 @@ IF cerror = ?
       errbyte = SEEK(INPUT)
       errline = errline + 1
       recs    = recs + 1.
-
     IMPORT _User EXCEPT _User._tenantid.
     
     /* Make sure loaded _User record contains a valid domain */
@@ -113,9 +112,7 @@ IF cerror = ?
                    WHERE dictdb._Tenant._Tenant-Name = dictdb._sec-authentication-domain._Tenant-Name
                    NO-ERROR.
 
-                IF AVAILABLE dictdb._tenant THEN
-                    ASSIGN _User._tenantid = dictdb._tenant._tenantid.
-                ELSE DO:
+                IF NOT AVAILABLE dictdb._tenant THEN DO:
                     errs = errs + 1.
                     PUT UNFORMATTED
                             "Tenant """ dictdb._sec-authentication-domain._Tenant-Name """ not found." SKIP

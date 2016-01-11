@@ -118,6 +118,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* ***************************  Main Block  *************************** */
 
+define variable lok as logical no-undo.
+
+&if defined(IDE-IS-RUNNING) <> 0 &then
+If OEIDE_CanShowMessage then 
+     lChoice  = ShowMessageInIDE("Do you want to clear the client side cache in the Repository Manager ~n to ensure the latest version of repository objects are being run. ~n","Question":U,?,"YES-NO":U,lChoice).
+else
+&endif 
 MESSAGE
   "Do you want to clear the client side cache in the Repository Manager" SKIP
   "to ensure the latest version of repository objects are being run." SKIP
@@ -127,7 +134,12 @@ MESSAGE
 IF lChoice THEN
 DO:
   RUN clearClientCache IN gshRepositoryManager.
-  MESSAGE "Cleared Repostory Cache".
+    &if defined(IDE-IS-RUNNING) <> 0 &then
+    If OEIDE_CanShowMessage then 
+       lok  = ShowMessageInIDE("Cleared Repostory Cache","Information":U,?,"ok":U,true).
+    else
+  &endif
+    MESSAGE "Cleared Repostory Cache".
 END.
 
 /* _UIB-CODE-BLOCK-END */

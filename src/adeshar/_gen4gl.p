@@ -1410,11 +1410,17 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
         IF _TRG._tSECTION <> "_CONTROL" THEN NEXT COLUMN-TRIGGER-BLOCK.
 
         ASSIGN null_section = no. /* indicate section is not blank */  
-        /* Make sure that it is a meaningful trigger                              */
-        ASSIGN strt = INDEX(_TRG._tCODE,":") + 1       /* Initialize white space  */
-               stp  = R-INDEX(_TRG._tCODE,"END.") - 1. /* search parameters       */
-        IF strt = 1 OR stp = -1 OR strt > stp OR
-          TRIM(SUBSTRING(_TRG._tCODE,strt,stp + 1 - strt,"RAW":U)) NE " " THEN DO:
+        if not lAllowEmptyTriggers then
+        do:
+            /* Make sure that it is a meaningful trigger                              */
+            ASSIGN strt = INDEX(_TRG._tCODE,":") + 1       /* Initialize white space  */
+                   stp  = R-INDEX(_TRG._tCODE,"END.") - 1. /* search parameters       */
+        end.
+        IF lAllowEmptyTriggers 
+          OR
+          (strt = 1 OR stp = -1 OR strt > stp OR
+           TRIM(SUBSTRING(_TRG._tCODE,strt,stp + 1 - strt,"RAW":U)) NE " ") THEN 
+        DO:
           /* If a non-blank trigger  */
           IF p_status NE "PREVIEW" THEN
             PUT STREAM P_4GL UNFORMATTED
@@ -1918,11 +1924,29 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
   RUN add-cmp-msgs.
   
   IF COMPILER:ERROR THEN DO:
-    RUN report-compile-errors (INPUT _comp_temp_file).
-
-    IF _err_recid NE ? THEN DO:
+    define variable lDelete as logical no-undo.
+    lDelete = true.
+    if not OEIDEIsRunning or p_status <> "CHECK-SYNTAX":U then
+    do:
+        RUN report-compile-errors (INPUT _comp_temp_file).
+        /* don't delete when recid not set (message already shown with save temp file name) */
+        lDelete = _err_recid NE ?. 
+    end.
+    IF lDelete THEN 
+    DO:
       OS-DELETE VALUE(_comp_temp_file).
       OS-DELETE VALUE(_comp_temp_file + ".i").
+      if OEIDEIsRunning and p_status = "CHECK-SYNTAX":U then 
+      do:
+           RUN adecomm/_setcurs.p ("").  /* restore cursor for input */
+           define variable iErrNum as integer no-undo.
+           /* Get message for first non-preprocessor message. */
+           DO iErrNum = 1 TO ERROR-STATUS:NUM-MESSAGES:
+             IF ERROR-STATUS:GET-NUMBER( iErrNum ) <> {&PP-4345} THEN LEAVE.
+           END.
+           /* Return the first non-preprocessor error in _err_msg (in case it was in a trigger).    */
+           RETURN ERROR-STATUS:GET-MESSAGE( iErrNum ).   
+      end.    
       RETURN "Error-Compile".   
     END.
   END. /* Block handling compiler errors */
@@ -1951,7 +1975,7 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
       
       RUN adecomm/_wfrun.p (INPUT "AppBuilder", OUTPUT wfrun).
       IF wfrun THEN LEAVE.
-
+ 
       RUN adecomm/_setcurs.p ("").
       CREATE WIDGET-POOL.              /* Isolate any widgets CREATED */
       /* Provide a default window for messages/dialogs. Otherwise these would
@@ -2025,12 +2049,15 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
     END.
     WHEN "CHECK-SYNTAX":U THEN DO:
       RUN adecomm/_setcurs.p ("").
-      if OEIDE_CanShowMessage() then
-          ShowOkMessageInIDE("Syntax is correct" ,"Information":u,? ).
-      else
-          MESSAGE "Syntax is correct" 
-        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Information":u
-                          IN WINDOW _h_menu_win.
+      IF NOT OEIDEIsRunning THEN
+      DO: 
+          if OEIDE_CanShowMessage() then
+              ShowOkMessageInIDE("Syntax is correct" ,"Information":u,? ).
+          else
+              MESSAGE "Syntax is correct" 
+            VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Information":u
+                              IN WINDOW _h_menu_win.
+      END.
     END.
     OTHERWISE DO:
       OS-COPY VALUE(_comp_temp_file) VALUE(_save_file).
@@ -2775,9 +2802,9 @@ PROCEDURE report-compile-errors :
   _err_msg = ERROR-STATUS:GET-MESSAGE( Err_Num ).   
   DO i = Err_num + 1 to ERROR-STATUS:NUM-MESSAGES:
     rest_of_err = rest_of_err + CHR(10) + ERROR-STATUS:GET-MESSAGE(i).
-  END.   
-
-  /* A compile error has occurred, popup the trigger editor               */
+  END. 
+  
+   /* A compile error has occurred, popup the trigger editor               */
   FIND FIRST _TRG WHERE _TRG._precid = RECID(_P)
                     AND (_TRG._tOFFSET < COMPILER:FILE-OFFSET)
                     AND COMPILER:FILE-OFFSET < (_TRG._tOFFSET + LENGTH(_TRG._tCODE,"RAW":U))

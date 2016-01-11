@@ -35,8 +35,8 @@ af/cod/aftemwizpw.w
   (v:010000)    Task:           0   UserRef:    
                 Date:   05/12/2003  Author:     
 
-  Update Notes: Created from Template viewv
-
+  Update Notes: Created from Template view
+  
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -1234,6 +1234,7 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refreshQueryDetail Procedure 
 PROCEDURE refreshQueryDetail :
+
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
@@ -1251,11 +1252,11 @@ PROCEDURE refreshQueryDetail :
   DEFINE VARIABLE cButton          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageList     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hWidget          AS HANDLE     NO-UNDO.
-
+  
   IF pcEntity = "":U OR 
      pcEntity = ? THEN
     RETURN.
-
+    
   IF VALID-HANDLE(ghNonSecBrowse) THEN
     DELETE OBJECT ghNonSecBrowse.
   IF VALID-HANDLE(ghNonSecQuery) THEN

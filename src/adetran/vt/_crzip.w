@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME Zip-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Zip-Frame 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -20,7 +20,9 @@
 
   Output Parameters:
       ZipFile (char) - zip filename to use
+	  BkupFile (char)- name of bku file
       ItemList(char) - list of items to zip up
+	  ProjPath(char) - directory where kit items are located
 
   Author: Gerry Seidl
 
@@ -38,7 +40,9 @@ DEFINE SHARED VARIABLE _bkupExt AS CHARACTER NO-UNDO.
 
 /* Parameters Definitions ---                                           */
 DEFINE OUTPUT PARAMETER ZipFile  AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER BkupFile AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER ItemList AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER ProjPath AS CHARACTER NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE DispProjDir AS CHARACTER NO-UNDO.
@@ -269,6 +273,8 @@ DO:
       Kit      = REPLACE(KitDB,".db":U,"")                      /* kit name less extention */
       ProjDir  = IF SUBSTR(ProjDir, LENGTH(ProjDir), 1) NE "{&SLASH}"
                    THEN ProjDir + "{&SLASH}" ELSE ProjDir
+	  ProjPath = ProjDir
+	  BkupFile = Kit + _bkupExt
       ItemList = ProjDir + Kit + _bkupExt.
     ASSIGN ZipFile = ZipFileName.
 END.

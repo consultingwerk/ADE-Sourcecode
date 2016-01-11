@@ -167,6 +167,25 @@ assign
                                 then false
                                 else (DICTDBG.SQLProcCols_buffer.Nullable = 0)
                           ).
+
+  /* OE00235922 
+    (Issue with CR# OE00165897 was also with stored procedure, hence put
+    similar fix)
+    
+    When using the SQL Server Native driver, (MAX) columns are reported
+    with precision and length as 0, and the regular data types (not the long type).
+    The DataServer will set precision and length to 32000/16000 in this case,
+    so we will do the same here.
+   */
+  CASE {&data-type}:
+     WHEN "VARBINARY" OR WHEN "VARCHAR" OR WHEN "NVARCHAR" THEN DO:
+        IF s_ttb_fld.ds_lngth = 0  AND s_ttb_fld.ds_prec = 0 THEN DO:
+           ASSIGN s_ttb_fld.ds_lngth = 32000
+                  s_ttb_fld.ds_prec = (IF my_typ_unicode THEN 16000 ELSE 32000).
+        END.
+    END.
+  END CASE.
+
 /*                                                             */
 /* If the field is not updatable (fld-properties contains "N") */ 
 /* then the field cannot be mandatory.                         */

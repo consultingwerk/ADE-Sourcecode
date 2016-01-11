@@ -57,7 +57,7 @@ class adeuib._dialogservice inherits _abstractdialogservice implements idialogse
         end. 
         
      
-	constructor public _dialogservice (phFrame as handle,piHwnd as int):
+	constructor public _dialogservice (phFrame as handle,piHwnd as int64):
 		super ().
 		FrameHandle = phFrame.
 		WindowHandle = CreateWindow().

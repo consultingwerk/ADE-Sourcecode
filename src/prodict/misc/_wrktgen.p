@@ -233,18 +233,21 @@ DEFINE VARIABLE mvdata              AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE FieldList           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE userPKexist         AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE msstryp             AS LOGICAL    NO-UNDO INITIAL FALSE.
-DEFINE VARIABLE mssclus_explct      AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mssrecidCompat      AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE mssselBestRowidIdx  AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE msschoiceSchema     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE mssOptRowid         AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE mandatory           AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE idxrecidcompat      AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE NonUnikCC           AS LOGICAL    NO-UNDO INITIAL FALSE. 
-DEFINE VARIABLE NoCC                AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE NoCC                AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE uniqCompat          AS LOGICAL    NO-UNDO INITIAL TRUE. 
+DEFINE VARIABLE uniqfyIdx           AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE keyCreated          AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE uniqueness          AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE useNewRanking       AS LOGICAL    NO-UNDO INITIAL TRUE.
 
 DEFINE VARIABLE n3                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE n4                  AS CHARACTER  NO-UNDO.
@@ -532,6 +535,10 @@ IF user_env[29] <> ? THEN
   max_id_length = INTEGER(user_env[29]).
 ELSE
   max_id_length = 0. 
+
+IF ((NUM-ENTRIES(user_env[42]) >= 2) AND
+     UPPER(ENTRY(2,user_env[42])) = "L" ) THEN
+   assign useNewRanking = FALSE.
 
 PAUSE 0.
 IF user_env[3] <> "" THEN DO:
@@ -1663,31 +1670,35 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                   WHERE RECID (DICTDB._Index) = DICTDB._CONSTRAINT._Index-recid AND 
                         DICTDB._Index._Unique <> TRUE NO-ERROR.
        IF AVAILABLE DICTDB._Index THEN ASSIGN NonUnikCC = TRUE.
-       ELSE IF keyExist = FALSE THEN  keyExist = TRUE.
+       ASSIGN keyExist = TRUE.
     END.
     ELSE ASSIGN NoCC = TRUE.
     IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index
                     AND DICTDB._Index._Unique = TRUE ) THEN 
        ASSIGN pk_unique = TRUE.
 
+    IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN  
+       ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE". 
+
     IF ( migConstraint AND keyExist) THEN ASSIGN uniqCompat = FALSE.
-    ELSE IF (migConstraint AND NonUnikCC) THEN DO:
-            IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN 
-               ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE" 
-                      keyExist = TRUE.
-    END.
     ELSE IF (msstryp) THEN DO:
-       IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN DO:
-          ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE".
-          IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index 
+       IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index 
                       AND DICTDB._Index._Index-name = "default" ) THEN
-             ASSIGN uniqCompat = FALSE.
-       END.
+          ASSIGN uniqCompat = FALSE.
        IF pk_unique THEN ASSIGN uniqCompat = FALSE. else ASSIGN uniqueness = " UNIQUE ".
+       IF mssrecidCompat THEN ASSIGN uniqCompat = FALSE.
     END.
-    ELSE IF (migConstraint AND NoCC) THEN DO:
-       IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) AND 
-            NOT keyExist THEN ASSIGN uniqCompat = FALSE.
+    ELSE DO:
+        IF mssOptRowid EQ "U" THEN DO:
+           FIND FIRST DICTDB._Index of DICTDB._File 
+              WHERE  INDEX(DICTDB._Index._I-MISC2[1],"v") = 0 NO-ERROR.
+           /* IF (AVAILABLE DICTDB._Index AND NOT mssrecidCompat ) THEN */
+              IF (AVAILABLE DICTDB._Index ) THEN 
+                 assign uniqCompat = FALSE.
+           IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index 
+                      AND DICTDB._Index._Index-name = "default" ) THEN
+              ASSIGN uniqCompat = FALSE.
+        END.
     END.
   END.
   
@@ -1752,8 +1763,13 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            n2 = n2 + "," + idbtyp + "," + string (max_idx_len).
            RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT n2).
         END.
-
-        PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
+        IF mssOptRowid EQ "P" AND NOT keyCreated THEN DO:
+           PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
+               n2 " PRIMARY KEY (" prowid_col ")".
+           Assign keyCreated = TRUE.
+        END.
+        ELSE
+           PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
               n2 " UNIQUE (" prowid_col ")".
       END. /* END of entry(2,user_env[27]) EQ "2"  */
 
@@ -1850,8 +1866,17 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     END.
     IF dbtyp = "MSSQLSRV7" THEN DO:
       IF (entry(2,user_env[27]) EQ "1") THEN DO:
-        PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
-              n2 " ON " n1 " (" prowid_col ")".
+        IF mssOptRowid EQ "P" AND NOT keyCreated THEN DO:
+           /* clustered index statement code */
+           PUT STREAM code UNFORMATTED comment_chars 
+               "CREATE UNIQUE CLUSTERED INDEX " n2 SKIP.
+           PUT STREAM code UNFORMATTED comment_chars 
+               " ON " n1 " (" prowid_col ")".
+           Assign keyCreated = TRUE.
+        END.
+        ELSE 
+            PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
+                n2 " ON " n1 " (" prowid_col ")".
        
         ASSIGN n2 = n2 + "_ident_".
         PUT STREAM code UNFORMATTED SKIP .
@@ -1885,13 +1910,17 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   END.
 
 
-
   _idxloop:
   FOR EACH DICTDB._Index OF DICTDB._File
     WHERE NOT DICTDB._Index._Index-name BEGINS "sql-"
       AND NOT DICTDB._Index._Index-name = "default": /* eliminate empty idxs */
-      
+     
+    /* re-initialize */
+    ASSIGN mandatory = TRUE 
+           uniqueness = "".
     n2 = DICTDB._Index._Index-name.
+    uniqfyIdx = uniqCompat.
+    IF INDEX(DICTDB._Index._I-MISC2[1],"c") <> 0 THEN assign idxrecidcompat = TRUE.
     
     if DICTDB._Index._Wordidx = 1 then do:
       PUT STREAM logfile UNFORMATTED 
@@ -2110,7 +2139,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       
       /* Primary key code */
 
-      IF DICTDB._File._Prime-index = RECID (DICTDB._Index)
+      IF DICTDB._File._Prime-index = RECID (DICTDB._Index) AND msstryp
       THEN DO:  
          Assign userPKexist = TRUE.
          FOR EACH DICTDB._Index-field OF DICTDB._Index,
@@ -2123,10 +2152,42 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                IF NOT DICTDB._Field._Mandatory THEN ASSIGN mandatory = FALSE.
            END.
          END.
-         IF NOT migConstraint OR (migConstraint AND NOT keyExist) THEN RUN createKey.
-         if keyCreated THEN NEXT  _idxloop.
+         IF NOT migConstraint OR (migConstraint AND NOT keyExist) THEN DO:
+            RUN createKey.
+            if keyCreated THEN NEXT  _idxloop.
+         END.
       END.
       
+      assign n3 = DICTDB._Index._I-MISC2[1].
+      IF (INDEX(n3,"v") = 0 OR mssrecidCompat OR INDEX(n3,"r") = 0) AND mssOptRowid EQ "U" THEN assign uniqfyIdx = FALSE. 
+
+IF dbtyp = "MSSQLSRV7" AND useNewRanking AND NOT KeyCreated AND 
+   n3 begins "r" AND INDEX(n3,"n") = 0 AND NOT ( migConstraint AND   
+         CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+                    AND DICTDB._Constraint._Con-Active = TRUE 
+                    AND ( DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "P"
+                          OR DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP"
+                          OR DICTDB._Constraint._Con-Type = "M" ) 
+                  )
+       )
+THEN DO:
+
+      IF INDEX(n3,"m") <> 0 THEN DO:
+       
+         PUT STREAM code UNFORMATTED
+                    comment_chars "CREATE " (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
+                   " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+      END.
+      ELSE DO:
+         /* Generate Alter table add PK constraint */
+         PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " user_library dot n1 " ADD CONSTRAINT "
+                         user_library dot n2 " PRIMARY KEY (".
+       
+      END.
+      Assign keyCreated = TRUE.
+
+END.
+ELSE DO:
       IF (uniqueindx eq "1") 
       THEN DO:
         IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
@@ -2135,14 +2196,11 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           Assign uniqueness = "".
           IF DICTDB._Index._Unique THEN 
              uniqueness = " UNIQUE ". 
-          ELSE IF (NonUnikCC AND ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U"))) THEN 
-                      uniqueness = " UNIQUE ".
           PUT STREAM code UNFORMATTED
               comment_chars "CREATE " uniqueness
               " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
         END. 
-        ELSE       
-          PUT STREAM code UNFORMATTED
+        ELSE PUT STREAM code UNFORMATTED
               comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
               " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
       END.
@@ -2151,7 +2209,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
               AND DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
               DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "U" )NO-LOCK NO-ERROR.
-           IF AVAILABLE (DICTDB._Constraint) 
+           IF AVAILABLE (DICTDB._Constraint)  AND migConstraint
            THEN DO:
             IF DICTDB._Constraint._Con-Type = "M" 
             THEN PUT STREAM code UNFORMATTED
@@ -2196,6 +2254,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
               comment_chars "CREATE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
         END.
       END.      
+END. 
       FOR EACH DICTDB._Index-field OF DICTDB._Index,
              DICTDB._Field OF DICTDB._Index-field 
              BREAK BY DICTDB._Index-field._Index-seq:
@@ -2281,7 +2340,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           ELSE IF compatible THEN DO:
              IF DICTDB._File._Prime-index = RECID (DICTDB._Index) THEN
                 pindex = pindex + ", " + prowid_col.
-           IF uniqCompat THEN
+           IF uniqfyIdx THEN
              PUT STREAM code UNFORMATTED ", " prowid_col ")".
            ELSE PUT STREAM code UNFORMATTED ")". 
           END. /* compatible */ 
@@ -2294,24 +2353,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       IF dbtyp = "ORACLE" AND user_env[35] <> ? AND user_env[35] <> "" THEN
          PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[35].         
       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
-      /* re-initialize */
-      ASSIGN mandatory = TRUE 
-             uniqueness = "".
     END.  /* Index Block */ 
 
   END.  /* _idxloop */
-  IF NOT keyCreated AND ( compatible AND  (mssOptRowid EQ "P") ) AND uniqCompat THEN DO:
-     ASSIGN FieldList = prowid_col
-            pindex2 = user_library + dot + "PKCE_" + n1 + "#PRGS_RECID".
-     IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
-     ELSE DO:
-         ASSIGN pclst_name = user_library + dot + "CKCE_" + n1 + "#PRGS_RECID"
-                uniqueness = " UNIQUE".
-         RUN  createPrimaryKey (INPUT pindex2).
-         RUN  createClusteredKey (INPUT pclst_name).
-     END.
-         PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
-  END.
 
   IF user_env[3] <> "" THEN DO:
     OUTPUT STREAM code CLOSE.
@@ -3078,55 +3122,39 @@ PROCEDURE setMSSOptions:
    ASSIGN lUniExpand = (user_env[35] = "y").
    ASSIGN msstryp = (ENTRY(2,user_env[36]) = "y").
    IF compatible THEN ASSIGN mssOptRowid = ENTRY(3,user_env[27]).
-   ASSIGN mssclus_explct = (ENTRY(3,user_env[36]) = "y").
+   ASSIGN mssrecidCompat = (ENTRY(3,user_env[36]) = "y").
    ASSIGN mssselBestRowidIdx = (ENTRY(4,user_env[36]) = "y").
    IF mssselBestRowidIdx THEN  ASSIGN msschoiceSchema = INTEGER(ENTRY(5,user_env[36])).   
 END.
 
 PROCEDURE createKey:
 
+DEFINE VARIABLE ignorePK   AS LOGICAL    NO-UNDO INITIAL FALSE. 
 /* Primary/clustered statement code */
   
-  ASSIGN pindex2 = ( IF mssclus_explct THEN "PKCE_"
-                      ELSE "PKCI_"
-                      ).
+  ASSIGN pindex2 = "PKCI_".
   ASSIGN pindex2 = user_library + dot + pindex2 + n2 
          pclst_name = user_library + dot + n2. 
 
-  IF msstryp AND userPKexist THEN DO:
+  IF mssrecidCompat AND NOT idxrecidcompat THEN assign ignorePK = TRUE.
+  IF msstryp AND userPKexist AND NOT ignorePK THEN DO:
      IF DICTDB._Index._Unique THEN  ASSIGN uniqueness = " UNIQUE".
      IF pk_unique THEN DO: 
-       IF mandatory THEN DO:
-          IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
-          ELSE DO:
-            RUN  createPrimaryKey (INPUT pindex2).
-            RUN  createClusteredKey (INPUT pclst_name). 
-          END.
-       END.
-       ELSE DO:
-          RUN  createClusteredKey (INPUT pclst_name). 
-       END.
+       IF mandatory THEN RUN  createPrimaryKey (INPUT pindex2).
+       ELSE RUN  createClusteredKey (INPUT pclst_name). 
        keyCreated = TRUE.
      END.
      ELSE DO: /* not unique */
        IF compatible AND (mssOptRowid EQ "U") THEN DO: /* For ROWID uniqueness */
           ASSIGN FieldList = FieldList + ", " + prowid_col.
+          ASSIGN uniqueness = " UNIQUE".
           IF entry(2,user_env[27]) EQ "1" THEN mandatory = FALSE. 
-          IF mandatory THEN DO:
-            IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
-            ELSE DO:
-              RUN  createPrimaryKey (INPUT pindex2).
-              RUN  createClusteredKey (INPUT pclst_name). 
-            END.
-          END.
-          ELSE DO:
-            RUN  createClusteredKey (INPUT pclst_name). 
-          END.
-            ASSIGN keyCreated = TRUE.
+          IF mandatory THEN RUN  createPrimaryKey (INPUT pindex2).
+          ELSE RUN  createClusteredKey (INPUT pclst_name). 
+          ASSIGN keyCreated = TRUE.
        END. /* For ROWID uniqueness */
-
-   END. /* else-part -i.e. not unique */
- END. /* Try Primary */
+     END. /* else-part -i.e. not unique */
+  END. /* Try Primary */
 
 IF keyCreated THEN
     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
@@ -3140,7 +3168,6 @@ PROCEDURE createPrimaryKey:
           comment_chars "ALTER TABLE " user_library dot n1 SKIP. 
       PUT STREAM code UNFORMATTED 
           comment_chars "ADD CONSTRAINT " pindex2 " PRIMARY KEY".
-      IF mssclus_explct THEN PUT STREAM code UNFORMATTED " NONCLUSTERED ".
       PUT STREAM code UNFORMATTED SKIP
           comment_chars "(" + FieldList + ")" SKIP.
 END PROCEDURE.

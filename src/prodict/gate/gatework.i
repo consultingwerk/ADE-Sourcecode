@@ -83,6 +83,7 @@ DEFINE {&selVarType}_clobtype   AS logical   no-undo initial TRUE.
 DEFINE {&selVarType}_blobtype   AS logical   no-undo initial TRUE.
 DEFINE {&selVarType}_primary    AS logical   no-undo.
 DEFINE {&selVarType}_best       AS integer   no-undo initial 1.
+DEFINE {&selVarType}_recidcompat AS logical  no-undo.
 DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
 DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
 
@@ -186,6 +187,10 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
                                               /*    misc1[5]    */
                                               /* ODB & MSS: RECID type */
                                               /* 1=32 bits & 2=64bits  */
+          field ds_msc16         as integer   initial ?
+                                              /*    misc1[6]           */
+                                              /* MSS: RECID Fn Compat  */
+                                              /* 1= exclusion criteria */
           field ds_name          as character case-sensitive
                                               /* foreign name          */
           field ds_recid         as integer   initial ?
@@ -205,6 +210,9 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           field pro_name         as character 
           field pro_prime-idx    as character
           field pro_recid        as recid     initial ?
+          field tmp_recid        as recid     initial ?
+          field pk_idx_recid     as recid     initial ?
+          field rank_desc        as character initial ""
           index upi              as unique primary 
                                      pro_name
           index uids             is unique
@@ -253,6 +261,7 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           field ds_type          as character
           field ds_allocated     AS INTEGER   INITIAL ?
           field fld_recid        as recid     initial ?
+          field tmpfld_recid     as recid     initial ?
           field pro_case         as logical   initial FALSE
           field pro_dcml         as integer   initial ?
           field pro_desc         as character
@@ -265,6 +274,7 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           field pro_type         as character
           field ttb_tbl          as recid
           FIELD defaultname      AS CHARACTER
+          FIELD fld_size         AS INTEGER   initial ?
           index upi              is unique primary
                                     ttb_tbl pro_name
           index uidsname         is unique
@@ -296,8 +306,13 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           field pro_name         as character
           field pro_prim         as logical   initial FALSE
           field pro_uniq         as logical   initial FALSE
+          field ds_uniq          as logical   initial FALSE
           field ttb_tbl          as recid
-          field hlp_slctd            as logical
+          field idx_recid        as recid
+          field hlp_slctd        as logical
+          field pro_uniq_bkp     as logical   initial FALSE
+          field hlp_idxsize#     as integer   initial 0
+          field key_wt#          as integer   initial 0
           index upi              is unique primary
                                     ttb_tbl pro_name
           index idsname       /* is NON-unique */

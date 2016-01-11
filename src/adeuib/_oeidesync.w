@@ -53,6 +53,7 @@ DEFINE VARIABLE hProc AS HANDLE     NO-UNDO.
 {adeuib/links.i}
 {adeuib/uibhlp.i}
 {adeuib/advice.i}
+{adeuib/brwscols.i}  
 
 /* Common - routine to check whether a links are valid */
 {adeuib/_chkrlnk.i}

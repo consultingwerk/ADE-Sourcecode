@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -52,6 +52,14 @@ ASSIGN p_File_Ext =
        THEN "." + ENTRY( NUM-ENTRIES( p_File_Name , "." ) ,
                          p_File_Name , "." )
        ELSE "" .
+
+/* The code above does the wrong thing if the file name is like
+** c:\11.3\myfile. It sets the extension to ".3\myfile". Check
+** for this situation and blank out the extension.
+*/
+IF INDEX(p_File_Ext, "/") NE 0 OR
+   INDEX(p_File_Ext, "~\") NE 0 THEN
+   ASSIGN p_File_Ext = "".
 
 /*
 MESSAGE "File     : " p_File_Name SKIP

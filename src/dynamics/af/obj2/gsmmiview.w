@@ -29,7 +29,7 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2012 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -1575,15 +1575,14 @@ PROCEDURE getButtonImage :
   assign cFileName  = phImageUp:SCREEN-VALUE
          cFileName  = substring(cFileName, 1, r-index(cFileName , ".":u)- 1)
          cDirectory = "adeicon,ry/img":U
-         image-formats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
-                         "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
-                        "|Bitmaps (*.bmp,*.dib)|*.bmp,*.dib|Icons (*.ico)|*.ico|GIF (*.gif)|*.gif|JPEG (*.jpg)|*.jpg" +
-                        "|CALS (*.cal)|*.cal|Halo CUT (*.cut)|*.cut|Intel FAX (*.dcx)|*.dcx|EPS (*.eps)|*.eps|IOCA (*.ica)|*.ica" +
-                        "|Amiga IFF (*.iff)|*.iff|GEM IMG (*.img)|*.img|LaserView (*.lv)|*.lv|MacPaint (*.mac)|*.mac" +
-                        "|Microsoft Paint (*.msp)|*.msp|Photo CD (*.pcd)|*.pcd|PICT (*.pct)|*.pct|PC Paintbrush (*.pcx)|*.pcx" +
-                        "|Adobe Photoshop (*.psd)|*.psd|Sun Raster (*.ras,*.im,*.im1,*.im8)|*.ras,*.im,*.im1,*.im8|TARGA (*.tga)|*.tga" +
-                        "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
-                        "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U
+         image-formats = "All Picture Files|*.bmp,*.gif,*.ico,*.jpg,*.png,*.tif" +
+                        "|Bitmap (*.bmp)|*.bmp" +
+                        "|GIF (*.gif)|*.gif" +
+                        "|Icon (*.ico)|*.ico" + 
+                        "|JPEG (*.jpg)|*.jpg" + 
+                        "|PNG (*.png)|*.png" + 
+                        "|TIFF (*.tif)|*.tif" +
+                        "|All Files|*.*":U
                         NO-ERROR.
 
   run adecomm/_fndfile.p   (input "Image",

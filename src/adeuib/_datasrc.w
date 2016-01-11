@@ -316,11 +316,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnBrws C-Win
 ON CHOOSE OF btnBrws IN FRAME DEFAULT-FRAME /* Browse... */
 DO:
-  RUN adecomm/_chossdo.p ("PREVIEW,BROWSE":U, 
-                           gWeb, /*  remote */
-                           INPUT-OUTPUT fDataObject).
-                      
-  DISPLAY fDataObject WITH FRAME {&FRAME-NAME}. 
+  run chooseSDOHandler.  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -340,11 +336,7 @@ DO:
   DO:
     IF gQueryId = 0 THEN 
     DO:
-        RUN adeuib/_drwqry.p.            
-        RUN adeuib/_uibinfo.p (INT(gProcRecStr), "PROCEDURE ?":U, 
-           "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT cId).
-        gQueryId = INT(cId).
-        RUN DisplayObject.
+        run addQueryHandler.
     END.
     ELSE DO:
         run queryBuilderHandler.  
@@ -381,6 +373,92 @@ END.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addQuery C-Win
+procedure addQuery:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+      define variable cid as character no-undo.
+      RUN adeuib/_drwqry.p.            
+      RUN adeuib/_uibinfo.p (INT(gProcRecStr), "PROCEDURE ?":U, 
+           "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT cId).
+      gQueryId = INT(cId).
+      RUN DisplayObject.
+
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addQueryHandler C-Win 
+PROCEDURE addQueryHandler :
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDEIsRunning then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"addQuery").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run addQuery.
+   end.  
+
+end procedure.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseSDO C-Win
+procedure chooseSDO:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+  RUN adecomm/_chossdo.p ("PREVIEW,BROWSE":U, 
+                           gWeb, /*  remote */
+                           INPUT-OUTPUT fDataObject).
+                      
+  DISPLAY fDataObject WITH FRAME {&FRAME-NAME}. 
+
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseSDOHandler C-Win
+procedure chooseSDOHandler:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDEIsRunning then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"chooseSDO").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run chooseSDO.
+   end.  
+
+
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE DBPrompt C-Win 
 PROCEDURE DBPrompt :
@@ -522,22 +600,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openQueryBuilder C-Win 
-PROCEDURE openQueryBuilder :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-    define variable arg as character no-undo. 
-    ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
-    RUN adeuib/_uib_dlg.p (gQueryId, "QUERY BUILDER":U, INPUT-OUTPUT arg).
-    RUN DisplayObject.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject C-Win 
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
@@ -575,6 +637,22 @@ RUN DisplayObject.
 FRAME {&FRAME-NAME}:HIDDEN   = NO.
 
   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openQueryBuilder C-Win 
+PROCEDURE openQueryBuilder :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define variable arg as character no-undo. 
+    ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
+    RUN adeuib/_uib_dlg.p (gQueryId, "QUERY BUILDER":U, INPUT-OUTPUT arg).
+    RUN DisplayObject.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

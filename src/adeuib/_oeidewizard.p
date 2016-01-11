@@ -28,6 +28,9 @@ define variable phand as handle no-undo.
 subscribe procedure this-procedure to "OEIDE_WIZARD" anywhere run-procedure "thisProcedure".
 
 /*** forward declaration of context functions ***/   
+function getRequestContext returns character  
+    () in fContextHandle.
+
 function setNewFileName returns logical  
     (pcNewFileName as char) in fContextHandle.
 
@@ -151,5 +154,7 @@ end.
 procedure setContextHandle:
     define input parameter hContext as handle no-undo.
     fContextHandle = hContext.
+    if valid-handle(fWizard) then 
+        dynamic-function("setSharedProjectNames" in fWizard,getRequestContext()).
 end.   
          

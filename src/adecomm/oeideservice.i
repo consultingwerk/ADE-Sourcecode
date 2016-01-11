@@ -61,7 +61,10 @@ define {&STAT} variable cProcName                   as character  no-undo initia
 
 function activateWindow returns logical 
          (phWindow as handle) in hOEIDEService.
-         
+
+function checkSyntaxInIde returns logical 
+    ( phWindow as handle) in hOEIDEService.
+
 function runUIBCommand returns logical 
     ( phWindow as handle, 
       pcCommand as char)       
@@ -112,12 +115,21 @@ function setEmbeddedWindow returns logical
 function getProjectName returns character 
          ()
          in hOEIDEService.
-
+         
+function getProjectDisplayName returns character 
+         ()
+         in hOEIDEService.
+         
 function gotoPage returns logical
          (phWindow as handle,
           piPage as int) 
           in hOEIDEService.
- 
+          
+function keyPressed returns logical 
+    ( phWindow as handle,
+      pcKey    as character) 
+      in hOEIDEService.
+      
 function openEditor returns logical
          (cProjectName  as character,
           cFileName     as character,

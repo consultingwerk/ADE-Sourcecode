@@ -545,7 +545,7 @@ for each gate-work
 
 
   if SESSION:BATCH-MODE and logfile_open
-   then put stream logfile unformatted  "SEQUENCE" at 10 s_ttb_seq.ds_name at 25.
+   then put stream logfile unformatted  "SEQUENCE" at 15 (s_ttb_seq.ds_user + "." + s_ttb_seq.ds_name) at 30.
 
   if s_ttb_seq.pro_recid = ?
    then do:  /* s_ttb_seq.pro_recid = ? */
@@ -654,8 +654,8 @@ for each gate-work
 
     if SESSION:BATCH-MODE and logfile_open
      then put stream logfile unformatted
-       s_ttb_tbl.ds_type at 10
-       s_ttb_tbl.ds_name at 25.
+       s_ttb_tbl.ds_type at 15 
+       (s_ttb_tbl.ds_user + "." + s_ttb_tbl.ds_name) at 30.
 
     if s_ttb_tbl.pro_recid <> ?
      then find first DICTDB._File
@@ -803,6 +803,7 @@ for each gate-work
         tab_Valexp   = DICTDB._File._Valexp
         tab_Valmsg   = DICTDB._File._Valmsg
         tab_File-Label = DICTDB._File._File-Label.
+	
       RUN delete-file.
 
       end.     /* retain all file, index and field-information */
@@ -851,6 +852,7 @@ for each gate-work
       DICTDB._File._For-owner    = s_ttb_tbl.ds_user
       DICTDB._File._For-name     = s_ttb_tbl.ds_name.
       DICTDB._File._Fil-misc1[5] = s_ttb_tbl.ds_msc15.
+      DICTDB._File._Fil-misc1[6] = s_ttb_tbl.ds_msc16. /* RECID Indicator */
     if oldf
      then assign
       DICTDB._File._Can-Create   = tab_Can-Crea
@@ -867,6 +869,7 @@ for each gate-work
       DICTDB._File._Hidden       = tab_Hidden
       DICTDB._File._Dump-name    = tab_Dump-nam
       DICTDB._File._File-Label   = tab_File-Label.
+      
 
 
 /*---------------------------- FIELDS ------------------------------*/

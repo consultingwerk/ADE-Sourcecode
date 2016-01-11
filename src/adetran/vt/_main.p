@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2012-2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -543,12 +543,15 @@ ON CHOOSE OF MENU-ITEM mInstKit DO:
     /* Get Zipfile comment string so we can determine the database
      * being installed 
      */
-    RUN adetran/common/_zipmgr.w (INPUT  "GETCOMMENT",
-                                  INPUT  ZipFile,
-                                  INPUT  "",
-                                  INPUT  "", INPUT 0, INPUT 0, INPUT YES,
-                                  INPUT-OUTPUT ZipComment,
-                                  OUTPUT ZipStatus).
+    RUN adetran/common/_zipmgr.w (INPUT "GETCOMMENT",      /* Mode */
+                                  INPUT ZipFile,           /* ZipFileName */
+                                  INPUT "",                /* ZipDir */
+                                  INPUT "",                /* BkupFile */
+                                  INPUT "",                /* ItemList */
+                                  INPUT 0,                 /* ZCompFactor */
+                                  INPUT YES,               /* Recursive */
+                                  INPUT-OUTPUT ZipComment, /* ZipComment */
+                                  OUTPUT ZipStatus).       /* ZipStatus */
     IF ZipStatus THEN
     DO:
       IF ZipComment NE "" THEN
@@ -568,12 +571,15 @@ ON CHOOSE OF MENU-ITEM mInstKit DO:
       RETURN NO-APPLY.
     END.    
     IF CONNECTED(KitDB) THEN RUN RemoveKitRef (KitDB).
-    RUN adetran/common/_zipmgr.w (INPUT  "UNZIP":U,
-                                  INPUT  ZipFile,
-                                  INPUT  UNZipDir,
-                                  INPUT  "", INPUT 0, INPUT 0, INPUT YES,
-                                  INPUT-OUTPUT ZipComment,
-                                  OUTPUT ZipStatus).
+    RUN adetran/common/_zipmgr.w (INPUT "UNZIP":U,         /* Mode */
+                                  INPUT ZipFile,           /* ZipFileName */
+                                  INPUT UNZipDir,          /* ZipDir */
+                                  INPUT "",                /* BkupFile */
+                                  INPUT "",                /* ItemList */
+                                  INPUT 0,                 /* ZCompFactor */
+                                  INPUT YES,               /* Recursive */
+                                  INPUT-OUTPUT ZipComment, /* ZipComment */
+                                  OUTPUT ZipStatus).       /* ZipStatus */
     IF ZipStatus THEN
     DO:
       RUN adetran/common/_dbmgmt.p (INPUT "RESTORE":U,
@@ -613,11 +619,12 @@ END.
 
 ON CHOOSE OF MENU-ITEM mRetKit DO:                               
   DEFINE VARIABLE ZipFileName AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE BkupFile    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ItemList    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE ProjPath    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ZipStatus   AS LOGICAL   NO-UNDO.   
   DEFINE VARIABLE inp         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ZipComp     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE ZipMVO      AS INTEGER   NO-UNDO.
   DEFINE VARIABLE ZipComment  AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE cPrefix     AS CHARACTER NO-UNDO.
@@ -636,18 +643,12 @@ ON CHOOSE OF MENU-ITEM mRetKit DO:
   ELSE
     ASSIGN ZipComp = INT(inp).
     
-  GET-KEY-VALUE SECTION "Translation Manager":U key "ZipMVOpts":U value inp.
-  IF inp = ? OR inp = "" OR INT(inp) < 1 OR INT(inp) > 3 THEN
-    ASSIGN ZipMVO= 3.
-  ELSE
-    ASSIGN ZipMVO = INT(inp).
-  
   ASSIGN ZipComment = "TranMan2 Return Kit Zipfile. " +
                       "Created on " + STRING(TODAY) +
                       " at " + STRING(TIME,"HH:MM AM") +
                       " KitDB: " + REPLACE(KitDB,".db":U,"").
                       
-  RUN adetran/vt/_crzip.w (OUTPUT ZipFileName, OUTPUT ItemList).
+  RUN adetran/vt/_crzip.w (OUTPUT ZipFileName, OUTPUT BkupFile, OUTPUT ItemList, OUTPUT ProjPath).
 
   IF ZipFileName NE "" AND ItemList NE "" THEN
   DO:
@@ -671,15 +672,15 @@ ON CHOOSE OF MENU-ITEM mRetKit DO:
      END. /* error in backup of kit */
      ELSE
      DO:
-        RUN adetran/common/_zipmgr.w (INPUT         "ZIP":U,
-                                  INPUT         ZipFileName, 
-                                  INPUT         "",
-                                  INPUT         ItemList, 
-                                  INPUT         ZipComp,
-                                  INPUT         ZipMVO,
-                                  INPUT         NO,
-                                  INPUT-OUTPUT  ZipComment,
-                                  OUTPUT        ZipStatus).
+        RUN adetran/common/_zipmgr.w (INPUT         "ZIP":U,     /* Mode */
+                                      INPUT         ZipFileName, /* ZipFileName */
+                                      INPUT         ProjPath,    /* ZipDir */
+                                      INPUT         BkupFile,    /* BkupFile */
+                                      INPUT         ItemList,    /* ItemList */
+                                      INPUT         ZipComp,     /* ZCompFactor */
+                                      INPUT         NO,          /* Recursive */
+                                      INPUT-OUTPUT  ZipComment,  /* ZipComment */
+                                      OUTPUT        ZipStatus).  /* ZipStatus */
      END. /* Successful kit backup */
      IF ZipStatus THEN
         MESSAGE "Zip file was created successfully." 
@@ -829,7 +830,13 @@ DO:
                                           INPUT PrFlag,
                                           INPUT Mode).
     END.  /* If CurrentMode = 4 (Statistics) */
-    ELSE RUN adetran/common/_prtscrn.p.
+    ELSE IF PROCESS-ARCHITECTURE = 32 THEN DO:
+      /* Print Screen is only available in the 32-bit Windows client.
+      ** When running in the 64-bit client the Print button/menu will
+      ** be disabled unless CurrentMode = 4.
+      */
+      RUN adetran/common/_prtscrn.p.
+    END.
   END.  /* Else not Help */
 END.  /* On Choose of BtnPrint */
 
@@ -888,8 +895,19 @@ ON CHOOSE OF MENU-ITEM mPaste
    run ProcPaste(focus).
      
 ON MENU-DROP OF MENU mFile DO:
-  ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile =
-     IF CurrentMode = 4 THEN "&Print..." ELSE "&Print Screen".
+  /* Print Screen is only available in the 32-bit Windows client.
+  ** When running in the 64-bit client the Print button/menu will
+  ** be disabled unless CurrentMode = 4.
+  */
+  IF PROCESS-ARCHITECTURE = 32 THEN DO:
+    ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile =
+	   IF CurrentMode = 4 THEN "&Print..." ELSE "&Print Screen".
+  END.
+  ELSE DO:
+    ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile = "&Print..."
+           MENU-ITEM mPrintScreen:SENSITIVE IN MENU mFile =
+             IF CurrentMode = 4 THEN TRUE ELSE FALSE.
+  END.
 END.
 
 on menu-drop of menu medit DO:
@@ -1658,7 +1676,7 @@ PROCEDURE SetSensitivity:
     when 1 THEN DO:
       ASSIGN     
         BtnOpen:SENSITIVE   = true
-        BtnPrint:SENSITIVE  = true
+        BtnPrint:SENSITIVE  = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnInsert:SENSITIVE = FALSE
         BtnDelete:SENSITIVE = FALSE
         BtnSort:SENSITIVE   = FALSE
@@ -1692,7 +1710,7 @@ PROCEDURE SetSensitivity:
 
       ASSIGN BtnInsert:SENSITIVE = FALSE
              BtnOpen:SENSITIVE   = true
-             BtnPrint:SENSITIVE  = true
+             BtnPrint:SENSITIVE  = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
              BtnSort:SENSITIVE   = CONNECTED("KIT":U) and TransFlag
              BtnOrder:SENSITIVE  = CONNECTED("KIT":U) and TransFlag
              BtnFind:SENSITIVE   = CONNECTED("KIT":U) and TransFlag
@@ -1729,7 +1747,7 @@ PROCEDURE SetSensitivity:
           
       ASSIGN     
         BtnOpen:SENSITIVE   = true
-        BtnPrint:SENSITIVE  = true
+        BtnPrint:SENSITIVE  = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnSort:SENSITIVE   = CONNECTED("KIT":U) and GlossaryFlag
         BtnOrder:SENSITIVE  = CONNECTED("KIT":U) and GlossaryFlag
         BtnFind:SENSITIVE   = CONNECTED("KIT":U) and GlossaryFlag

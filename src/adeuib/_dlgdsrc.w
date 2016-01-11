@@ -1,14 +1,11 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME gDialog
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights  *
+* reserved. Prior versions of this work may contain portions            *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+************************************************************************/
 /*------------------------------------------------------------------------
 
   File: Select DataSource
@@ -48,12 +45,9 @@ BECAUSE THIS PROCEDURE MAY CREATE A QUERY WHICH NEEDS A WIDGET
 &GLOBAL-DEFINE WIN95-BTN YES
 
 {adeuib/uibhlp.i}
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+define variable cTitle as character no-undo init "Select DataSource".
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -68,8 +62,6 @@ BECAUSE THIS PROCEDURE MAY CREATE A QUERY WHICH NEEDS A WIDGET
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -81,58 +73,41 @@ BECAUSE THIS PROCEDURE MAY CREATE A QUERY WHICH NEEDS A WIDGET
 
 DEFINE FRAME gDialog
      SPACE(55.06) SKIP(10.21)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Select DataSource".
-
-
-/* *********************** Procedure Settings ************************ */
-
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: SmartDialog
-   Allow: Basic,Browse,DB-Fields,Query,Smart
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
-
-
-
-/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
-
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
-/* SETTINGS FOR DIALOG-BOX gDialog
-                                                                        */
-ASSIGN 
-       FRAME gDialog:SCROLLABLE       = FALSE
-       FRAME gDialog:HIDDEN           = TRUE.
-
-/* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
-
+    WITH 
+ &if DEFINED(IDE-IS-RUNNING) = 0  &then  
+    TITLE cTitle
+    VIEW-AS DIALOG-BOX
+ &else
+    NO-BOX
+ &endif 
+    KEEP-TAB-ORDER 
+    SIDE-LABELS 
+    NO-UNDERLINE 
+    THREE-D  
+    SCROLLABLE .
+         
+  
+ {adeuib/ide/dialoginit.i "FRAME gDialog:handle"}
  
 
+/* ***********  Runtime Attributes   *********** */
 
+ 
+&IF DEFINED(IDE-IS-RUNNING) = 0 &THEN
+    ASSIGN 
+       FRAME gDialog:SCROLLABLE       = FALSE
+       FRAME gDialog:HIDDEN           = TRUE.
+&ENDIF 
+ 
 
 /* ************************  Control Triggers  ************************ */
-
-&Scoped-define SELF-NAME gDialog
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
+ 
 ON WINDOW-CLOSE OF FRAME gDialog /* Select DataSource */
 DO:  
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
 END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&UNDEFINE SELF-NAME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK gDialog 
-
-
+ 
 /* ***************************  Main Block  *************************** */
 
 
@@ -143,7 +118,12 @@ RUN adeuib/_datasrc.w PERSISTENT SET hdl.
 DYNAMIC-FUNCTION('setParent' in HDL, FRAMe {&FRAME-NAME}:HANDLE).
 DYNAMIC-FUNCTION('setHTMLMapping' in HDL, TRUE).
 DYNAMIC-FUNCTION('setIsFirst'    in HDL,TRUE).
-
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   FRAME {&FRAME-NAME}:scrollable = true.
+   FRAME {&FRAME-NAME}:virtual-width = 57.57.
+   FRAME {&FRAME-NAME}:virtual-height = 13.62.
+   dialogService:SizeToFit().
+&endif
 RUN initializeObject in hdl.
 
 ON GO OF FRAME {&FRAME-NAME} DO:
@@ -156,21 +136,27 @@ END.
 {adecomm/okbar.i &TOOL    = "AB"
                  &CONTEXT = {&Help_on_DataSource} }
 
-VIEW FRAME {&FRAME-NAME}.
+
+
+VIEW FRAME {&FRAME-NAME}. 
 DO TRANSACTION ON ENDKEY UNDO,LEAVE ON ERROR  UNDO,LEAVE:
-  
-  WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.
+     &scoped-define CANCEL-EVENT U2
+     {adeuib/ide/dialogstart.i btn_ok btn_cancel cTitle}
+        &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        
+          WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.
+        &ELSE
+          WAIT-FOR "GO" OF FRAME {&FRAME-NAME} or "U2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+      &endif
 END.
 
 RUN destroyObject in hdl.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI gDialog  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -184,10 +170,7 @@ PROCEDURE disable_UI :
   HIDE FRAME gDialog.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI gDialog  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -202,6 +185,4 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

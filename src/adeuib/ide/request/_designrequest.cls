@@ -49,14 +49,17 @@ class adeuib.ide.request._designrequest abstract inherits _request implements id
     
     method protected void UpdateState():
         run getCurrentWindowInfo in UIBHandle(output NewName,output IsSaved, output IsRepositoryObject, output IsDynamic, output IsNative ).
-        NewName = replace(NewName,"~\":U,"/":U).
+        NewName = replace(NewName,"~\":U,"/":U). 
+        
     end.  
     
     method abstract protected void PerformRequest() .
     method abstract protected logical ValidateState() .
     
     method public override character GetResponse():
-        
+        /* NOTE if anything ned to be added the entries used by _oeideuib open* must be included/taken into account
+                the response is handled in ABLWindowInfo (sublcass for save)  
+                @TODO add response object (ABL version of ABLWindowInfo) to encapsulate the response format */    
         return  (if IsDynamic then DYNAMIC_OBJ else STATIC_OBJ)    
                  + _request:DELIMITER
                  + (if IsNative then NATIVE_OBJ else if IsRepositoryObject then REPOS_OBJ else "")

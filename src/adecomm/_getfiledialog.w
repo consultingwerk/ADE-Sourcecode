@@ -1,19 +1,19 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2013 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*--------------------------------------------------------------------------
-    File        : _openfile.w  
-    Purpose     : Run system-dialog.. 
-                  (dynamic number of filters) 
+    Purpose     : Run system-dialog get-file and return relative path 
+                  if possible. 
+                  - Supports dynamic number of filters 
     Syntax      :
-    Description :   copy of _opnfile, but no remote supprot
+    Description :  used by  _opnfile when not remote
  
     Parameters  : 
      INPUT        ptitle  - Title of dialog 
@@ -36,13 +36,15 @@
 DEFINE INPUT        PARAMETER pTitle  AS CHARACTER NO-UNDO.
 DEFINE INPUT        PARAMETER pFilter AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER pFile   AS CHARACTER NO-UNDO.
-  
+ 
+{adecomm/oeideservice.i} 
+ 
 DEFINE VAR PickedOne  AS LOGICAL   NO-UNDO.
 DEFINE VAR Path       AS CHARACTER NO-UNDO.
 DEFINE VAR TempFile   AS CHARACTER NO-UNDO.
 DEFINE VAR i          AS INTEGER   NO-UNDO.
 DEFINE VAR gDelimiter AS CHARACTER INIT ",":U NO-UNDO.
-
+define variable cPickedFile as character no-undo.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -127,40 +129,41 @@ getFilter strips the part in the parenthesis.
 The use of a function makes the System dialog overlook it 
 if it is blank. (Magic ! ) 
 */  
-                
-SYSTEM-DIALOG GET-FILE pFile 
-    FILTERS getFilterText(1) getFilter(1),           
-            getFilterText(2) getFilter(2),
-            getFilterText(3) getFilter(3),
-            getFilterText(4) getFilter(4),
-            getFilterText(5) getFilter(5),
-            getFilterText(6) getFilter(6),
-            getFilterText(7) getFilter(7),
-            getFilterText(8) getFilter(8),
-            getFilterText(9) getFilter(9)
+DialogBlock:
+do while true:                
+    SYSTEM-DIALOG GET-FILE pFile 
+        FILTERS getFilterText(1) getFilter(1),           
+                getFilterText(2) getFilter(2),
+                getFilterText(3) getFilter(3),
+                getFilterText(4) getFilter(4),
+                getFilterText(5) getFilter(5),
+                getFilterText(6) getFilter(6),
+                getFilterText(7) getFilter(7),
+                getFilterText(8) getFilter(8),
+                getFilterText(9) getFilter(9)
     
-    DEFAULT-EXTENSION  getFilter(1)
-    TITLE              pTitle
-    MUST-EXIST
-    USE-FILENAME
-    UPDATE             PickedOne.  
+        DEFAULT-EXTENSION  getFilter(1)
+        TITLE              pTitle
+        MUST-EXIST
+        USE-FILENAME
+        UPDATE             PickedOne.  
 
-IF PickedOne then
-   /* See if it can be located in the PROPATH */
-DO i = 1 to NUM-ENTRIES(PROPATH):
-  FILE-INFO:FILE-NAME = TRIM(ENTRY(i,PROPATH)).
-
-  IF pFile BEGINS FILE-INFO:FULL-PATHNAME 
-  AND FILE-INFO:FULL-PATHNAME NE ? THEN 
-  DO:       
-    /* If it's there, chop off the leading part */
-    pFile = SUBSTRING(pFile, LENGTH(RIGHT-TRIM(FILE-INFO:FULL-PATHNAME,"~\":U)) + 2, -1,"CHARACTER":U).
-    LEAVE.
-  END.
-END.
-
-IF NOT PickedOne THEN 
-  ASSIGN pFile = "":U.
+    /* See if it can be located in the PROPATH */
+    IF PickedOne then
+    do: 
+        cPickedFile = pFile.
+        /*  resolve relative path from full path file 
+            prompts if relative name shadowed by other file in propath */
+        run adecomm/_resolvepath.p (input-output pfile).
+        if pfile > "" then 
+           leave.   
+        pfile = cPickedfile.   
+    end.
+    else do: 
+        pFile = "":U.
+        leave.
+    end.     
+end.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

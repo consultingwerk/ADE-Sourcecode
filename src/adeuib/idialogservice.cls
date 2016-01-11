@@ -16,8 +16,9 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
+using adeuib.iideeventservice.
 
-interface adeuib.idialogservice:  
+interface adeuib.idialogservice inherits iideeventservice:  
     define public property Title as char no-undo get. set.  
     define public property HeightPixels as integer no-undo get.  
     define public property WidthPixels as integer no-undo get.  
@@ -36,9 +37,9 @@ interface adeuib.idialogservice:
        (can also be resolved by calling view early, but this can cause
         frame errors if done too early)  */
     method public void SizeToFit(  ).    
-    method public void RunEvent().
-    
-    method public void SetCurrentEvent(phHandle as handle,pevent as char).
+   /* inherit from iideeventservice */
+   /*    method public void RunEvent().*/
+   /*    method public void SetCurrentEvent(phHandle as handle,pevent as char).*/
     method public void SetCurrentEvent(phHandle as handle,pevent as char, pcparam as char extent ).
     method public void SetCurrentEvent(phHandle as handle,pevent as char, pcparam as char ).
     method public void SetCurrentEvent(phHandle as handle,pevent as char, pcparam as int ).

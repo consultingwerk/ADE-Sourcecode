@@ -41,8 +41,14 @@ if NUM-ENTRIES(user_env[25]) = 5
   s_owner = ENTRY(3,user_env[25])
   s_type  = ENTRY(4,user_env[25])
   s_qual  = ENTRY(5,user_env[25]).
-else if user_dbtype <> "ORACLE" 
-then assign /* oracle-routine inits these values by itself */
+ else if NUM-ENTRIES(user_env[25]) = 12
+ then assign
+  s_name  = ENTRY(2,user_env[25])
+  s_owner = ENTRY(3,user_env[25])
+  s_type  = ENTRY(4,user_env[25])
+  s_qual  = ENTRY(5,user_env[25]). 
+ else if user_dbtype <> "ORACLE" 
+ then assign /* oracle-routine inits these values by itself */
   s_name  = "*"
   s_owner = (IF "{&frame}" = "frm_as400" THEN s_owner ELSE "*")
   s_type  = "*"
@@ -68,6 +74,7 @@ if NOT user_env[25] begins "AUTO"
       INPUT-OUTPUT s_blobtype,
       INPUT-OUTPUT s_primary,
       INPUT-OUTPUT s_best,
+      INPUT-OUTPUT s_recidcompat,
       INPUT-OUTPUT s_wildcard,
       INPUT        "{&frame}",
       INPUT        {&link},

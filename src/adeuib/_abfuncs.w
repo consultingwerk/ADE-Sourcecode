@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /************************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation.  All rights *
+* Copyright (C) 2005-2013 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                              *
 ************************************************************************/
@@ -1796,7 +1796,7 @@ FUNCTION run-datasource RETURNS HANDLE PRIVATE
   DEFINE VARIABLE lInclude    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hDesignMngr AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lInRepos    AS LOGICAL    NO-UNDO.
-
+  define variable cObjectType as character no-undo.
   IF NUM-ENTRIES(pcName) > 1 THEN
   DO:
     ASSIGN
@@ -1818,14 +1818,20 @@ FUNCTION run-datasource RETURNS HANDLE PRIVATE
     END. /* dynamics */
 
     RUN adecomm/_rsearch.p (INPUT pcName , OUTPUT cSearch).
-
     /* if found and not in repository then run it */
     IF cSearch <> ? AND NOT lInRepos THEN
-    DO ON STOP UNDO, LEAVE :
+    DO ON STOP UNDO, LEAVE on error undo,leave :
       RUN VALUE(pcName) PERSISTENT SET hDataSource NO-ERROR. 
       /* this is called from get-proc-hld, check objecttype */
-      IF VALID-HANDLE(hDataSource) AND {fn getObjectType hDataSource} <> 'SUPER' THEN
-        RUN createObjects IN hDataSource NO-ERROR.
+      cObjectType = ?.
+      cObjectType = {fn getObjectType hDataSource} NO-ERROR.
+      /* this may not be a good place to give an error 
+         but it used to fail on getObjectType so keeping old behavior
+         with better message  */
+      if cObjectType = ? then
+          message pcName + " is not a SmartObject." view-as alert-box error.
+      else IF VALID-HANDLE(hDataSource) AND cObjectType <> 'SUPER' THEN
+          RUN createObjects IN hDataSource NO-ERROR.
     END.
   END.
   
@@ -1928,7 +1934,7 @@ FUNCTION shutdown-sdo RETURNS LOGICAL
   DEF VAR lDeleted AS log NO-UNDO.
   FOR EACH _SDO WHERE _SDO._OwnerHdl = pOwnerHdl:
     IF VALID-HANDLE(_SDO._HDL) THEN
-       RUN destroyObject IN _SDO._HDL.
+       RUN destroyObject IN _SDO._HDL no-error .
     
     IF VALID-HANDLE(_SDO._HDL) THEN
        DELETE PROCEDURE _SDO._HDL.

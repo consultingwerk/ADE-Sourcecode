@@ -82,6 +82,7 @@ assign
   s_ttb_fld.pro_Extnt   = {&extent}
   s_ttb_fld.pro_name    = pnam
   s_ttb_fld.ttb_tbl     = RECID(s_ttb_tbl)
+  s_ttb_fld.tmpfld_recid  = RECID(s_ttb_fld)
   s_ttb_fld.ds_prec     = {&Precision}
   s_ttb_fld.ds_scale    = {&Scale}
   s_ttb_fld.ds_lngth    = {&Length}

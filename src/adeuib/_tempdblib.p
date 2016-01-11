@@ -1,8 +1,8 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright (C) 2005-2008 by Progress Software Corporation. All rights    
-   reserved.  Prior versions of this work may contain portions
+/* Copyright (C) 2005-2008,2013 by Progress Software Corporation. All     
+   rights reserved.  Prior versions of this work may contain portions
    contributed by participants of Possenet. */
 /*------------------------------------------------------------------------
     File        : adeuib/_tempdblib.p
@@ -2754,7 +2754,7 @@ FUNCTION getTbl RETURNS CHARACTER
   DEFINE VARIABLE cTableList AS CHARACTER  NO-UNDO.
   
   CREATE ALIAS tinydict FOR DATABASE VALUE(SDBNAME("TEMP-DB":U)).
-  RUN protools/_tbllist.p (INPUT "TEMP-DB":U, INPUT "POOGRESS":U, OUTPUT cTableList).
+  RUN protools/_tbllist.p (INPUT "TEMP-DB":U, INPUT "PROGRESS":U, OUTPUT cTableList).
   DELETE ALIAS tinydict.
   /* Remove entry "temp-db-ctrl" */
   ASSIGN  cTableList = REPLACE(cTableList, "temp-db-ctrl,":U, "")

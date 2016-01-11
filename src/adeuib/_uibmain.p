@@ -116,7 +116,9 @@ DEFINE VARIABLE IDEOpenUntitled   AS LOGICAL NO-UNDO.
 /* Used by getContext and setContext  */
 define variable fContext          as character no-undo extent.
 define variable WidgetAction      as character no-undo.
-define variable SetFocustoUI      as logical   no-undo initial yes.
+
+define variable SendFocustoUI      as logical   no-undo initial yes.
+
 /*      orig_y      is the original Y coordinate of the down frame box       */
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 DEFINE VARIABLE orig_y                    AS INTEGER    NO-UNDO.
@@ -130,21 +132,20 @@ define variable cur-widget-type           as character no-undo.
 /* ==================================================================== */
 /*                         Function Prototypes                          */
 /* ==================================================================== */
-function createContextMenu returns handle 
-    () forward.
+/* external Function Prototypes */
+function db-fld-name returns character
+  (input rec-type as character, input rec-recid as recid) in _h_func_lib.
 
-function GetHelpFile returns character
-  (input p_HelpID as character) forward.
+/* internal function prototypes*/
+function createContextMenu returns handle () forward.
+function isActionEnabled returns logical (pcAction as char,plDyn as log  ) forward.
+function removeAccelerators returns logical (h as handle) forward.
+function GetHelpFile returns character (input p_HelpID as character) forward.
+function setContext returns logical (pcContext as char extent) forward.
+function getContext returns char extent ( ) forward.
+function getOpenDialogHwnd returns integer ( ) in hOEIDEService. 
+function findWidgetName return character (WidgetParentrecId as recid) forward.    
 
-function setContext returns logical 
-    (pcContext as char extent) forward.
-    
-function getContext returns char extent 
-    ( ) forward.
- function getOpenDialogHwnd returns integer 
-    ( ) in hOEIDEService. 
-function findWidgetName return character 
-         (WidgetParentrecId as recid) forward.    
 /* Establish if Dynamics is running */
 ASSIGN _DynamicsIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 IF _DynamicsIsRunning = ? THEN _DynamicsIsRunning = NO.
@@ -176,7 +177,8 @@ CREATE WIDGET-POOL "{&AB_Pool}".
 /* jep-icf: Establish license check right away, but don't show any messages. */
 RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT _AB_license, OUTPUT _AB_Tools). /* jep-icf */
 
-/* UIB Definitions         */
+/* UIB Definitions  */
+
 {adeuib/uibmdefs.i}
  
 /* jep-icf: Moved uibmdefs.i to here from earlier in this code. It's
@@ -424,10 +426,15 @@ end.
   RUN choose-pointer. /* Return to pointer mode. */
   /* Make sure everything is sensitized correctly. */
   RUN sensitize_main_window ("WIDGET,WINDOW").
-  IF OEIDEisRunning THEN
-      /* Start uib proxy  TODO only start when integrated.. */
-      RUN initializeIDEClient.
-    
+  
+  if OEIDEisRunning then
+  do:
+      /* Start uib proxy */
+      run initializeIDEClient.
+      /* Cannot use/keep accelerators since we use Eclipse key bindings  */  
+      removeAccelerators(_h_menu_win:menu-bar).    
+  end.
+      
   /* Intercept the keyboard endkey events and do nothing.  This
      workaround bug# 93-07-14-057 where the "OK to quit message " screws up if
      we have the DO...ON ENDKEY UNDO STOP_BLOCK, RETRY STOP_BLOCK 
@@ -439,13 +446,15 @@ end.
          ON ERROR  UNDO, RETRY:
       IF RETRY AND NOT CAN-DO ("END-ERROR,END-KEY",LAST-EVENT:FUNCTION) THEN 
           LEAVE.
-    
+          
       /** Tell PDS that the appbuilder is started - once only - not on retry  
           Maybe this should have been outside the DO block, but we want to be as close to wait as possible 
-          (also visually, so that future code is added before this  ... )*/ 
-      if RETRY = false and OEIDEIsRunning then 
+         (also visually, so that future code is added before this  ... )*/ 
+      
+      if OEIDEIsRunning and RETRY = false then 
           run appbuilderConnection in hOEIDEService.
       WAIT-FOR "U9":U OF _h_menu_win FOCUS cur_widg_name.
+  
   END.
 END. /* STOP-BLOCK */
 
@@ -1513,6 +1522,68 @@ PROCEDURE change_grid_display :
     run refresh_grid_display.
 END. /* change_grid_display */
 
+procedure OnAnyKey:
+/*------------------------------------------------------------------------------
+ Purpose: handle accelerators and pass to eclipse  
+ Notes: defined in rdwind.w and rdframe.i when oeide is running
+------------------------------------------------------------------------------*/
+    define variable cKey as character no-undo.
+    cKey = keylabel(lastkey).
+    if length(cKey) > 1 then 
+    do:
+        /* 
+         Assume there's no purpose to do tab and shift-tab as it does not select and 
+         is ignored in standalone on purpose (probably))
+         weird fact: 
+            it only works if keyPressed is called and return no-apply is NOT called 
+            (in spite of keyPressed not finding any binding for it)
+        */
+        if lookup(cKey,"TAB,SHIFT-TAB") = 0 then
+        do: 
+            keyPressed(_h_win,keylabel(lastkey)).
+            return no-apply.
+        end.
+    end.     
+end procedure.
+
+procedure RunIDEAction:
+    define input  parameter pcAction as character no-undo. 
+    define input  parameter plChecksensitive  as logical no-undo.
+    define variable lok as logical no-undo.
+    define variable lDyn as logical no-undo.
+    define variable lNat as logical  no-undo.
+  
+    lok = true.
+    if plCheckSensitive then 
+    do: 
+        run isCurrentWindowDynamic(output lDyn, output lNat).
+        lok = isActionEnabled(pcAction,lDyn). 
+    end.        
+    if lok then 
+    do:
+        case pcAction :
+            when "Undo":U           then run choose_undo in this-procedure.
+            when "Cut":U            then run choose_cut in this-procedure.
+            when "Copy":U           then run choose_copy in this-procedure.
+            when "Paste":U          then run choose_paste in this-procedure.
+            when "Duplicate":U      then run choose_duplicate in this-procedure.
+            when "Delete":U         then run choose_erase in this-procedure.
+            when "ViewSource":U     then run RightClick_viewSource in this-procedure.
+            when "Run":U            then run choose_run in this-procedure.
+            when "Compile":U        then run choose_compile in this-procedure.
+            when "CheckSyntax":U    then run choose_check_syntax in this-procedure.
+            when "AddFunction":U    then run choose_insert_function in this-procedure.
+            when "AddProcedure":U   then run choose_insert_procedure in this-procedure.
+            when "AddTrigger":U     then run choose_insert_trigger in this-procedure.
+            when "CopyToFile":U     then run choose_export_file in this-procedure.
+            when "InsertfromFile":U then run choose_import_file in this-procedure.
+            when "TabOrder":U       then run choose_tab_edit in this-procedure.
+            when "GotoPage":U       then run choose_goto_page in this-procedure.
+        end case.     
+    end.         
+end procedure. 
+
+
 PROCEDURE refresh_grid_display :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1543,7 +1614,6 @@ PROCEDURE refresh_grid_snap :
     IF b_L._WIN-TYPE THEN b_U._HANDLE:GRID-SNAP = _cur_grid_snap.
   END.
 END PROCEDURE. /* change_grid_snap */
-
 
 PROCEDURE change_grid_units :
 /*------------------------------------------------------------------------------
@@ -1856,9 +1926,6 @@ PROCEDURE choose_attributes :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
-  if IDEIntegrated then 
-      return.
   /* If it doesn't exist, them create it.  Otherwise, move it to the top.
      NOTE that we need to make sure the handle points to the same item
      (because PROGRESS reuses procedure handles). */
@@ -1871,8 +1938,30 @@ PROCEDURE choose_attributes :
 
 END PROCEDURE. /* choose_attributes */
 
+PROCEDURE close_attributes :
+/*------------------------------------------------------------------------------
+  Purpose: called from ide when closing view   
+  Parameters:  <none>
+  Notes:     not currently in use (see AppbuilderPropertiesView for current status)    
+------------------------------------------------------------------------------*/
+
+  /* If it doesn't exist, them create it.  Otherwise, move it to the top.
+     NOTE that we need to make sure the handle points to the same item
+     (because PROGRESS reuses procedure handles). */
+  IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME EQ "{&AttrEd}" THEN 
+     apply "close" to hAttrEd.
+
+END PROCEDURE. /* choose_attributes */
+
 
 PROCEDURE choose_check_syntax :
+    if OEIDEIsRunning then 
+        checkSyntaxInIde(_h_win).
+    else
+        run do_check_syntax.
+end procedure.    
+
+PROCEDURE do_check_syntax :
 /*------------------------------------------------------------------------------
   Purpose: Check the syntax of the current window    
   Parameters:  <none>
@@ -1887,7 +1976,7 @@ PROCEDURE choose_check_syntax :
   DEFINE VARIABLE hTitleWin   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE iErrOffset  AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lScrap      AS LOGICAL   NO-UNDO.
-
+  define variable oeideSyntaxError as character no-undo.
   IF _h_win = ? THEN
     RUN report-no-win.
   ELSE DO:
@@ -1903,8 +1992,8 @@ PROCEDURE choose_check_syntax :
 
     /* Check syntax on remote WebSpeed agent if Broker URL is known for this
        file or the file is new, untitled and Development Mode is remote. */
-    IF _P._BROKER-URL NE "" OR (_P._SAVE-AS-FILE EQ ? AND _remote_file)
-      THEN DO:
+    IF _P._BROKER-URL NE "" OR (_P._SAVE-AS-FILE EQ ? AND _remote_file) THEN 
+    DO:
       RUN adecomm/_tmpfile.p ("ws":U, ".tmp":U, OUTPUT cTempFile).
 
       /* DO NOT change or reuse web-tmp-file until AFTER adeweb/_webcom.w
@@ -1945,7 +2034,8 @@ PROCEDURE choose_check_syntax :
       /* If there's an error, we want to load the correct section in the
          Section Editor.  We do this by setting _err_recid based on the
          COMPILER:FILE-OFFSET. */
-      IF RETURN-VALUE BEGINS "ERROR:":U THEN DO:
+      IF RETURN-VALUE BEGINS "ERROR:":U THEN 
+      DO:
         iErrOffset = INTEGER(ENTRY(2,ENTRY(1,RETURN-VALUE,CHR(10))," ":U)).
         
         if OEIDE_CanShowMessage() then
@@ -1977,14 +2067,20 @@ PROCEDURE choose_check_syntax :
     DO: /* IZ 993 - Check Syntax support for WebSpeed V2 files. */
       IF _P._file-version BEGINS "WDT_v2":U THEN
         RUN adeweb/_genweb.p (RECID(_P), "CHECK-SYNTAX":U, ?, _P._SAVE-AS-FILE, OUTPUT cScrap).
-      ELSE
+      ELSE DO:
         RUN adeshar/_gen4gl.p ("CHECK-SYNTAX":U).
+        if OEIDEIsRunning then 
+            oeideSyntaxError = return-value.
+      END. 
     END.
-
 
     SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
     RUN setstatus ("":U, "":U).
-
+    
+    /* return potential errors if ide - call_sew is not in use */
+     if OEIDEIsRunning then 
+        return oeideSyntaxError.
+    
     /* If Syntax Error, call SEW to show error. */
     IF _err_recid <> ? THEN DO:
       RUN call_sew ("SE_ERROR":U).
@@ -2000,7 +2096,7 @@ PROCEDURE choose_close :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+ /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   IF _h_win = ? THEN  
@@ -2017,7 +2113,7 @@ PROCEDURE choose_close_all :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-   /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+   /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   
@@ -2043,7 +2139,7 @@ PROCEDURE choose_codedit :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-   /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+   /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   IF NOT mi_code_edit:SENSITIVE THEN RETURN NO-APPLY.
@@ -2064,7 +2160,7 @@ PROCEDURE choose_code_preview :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cScrap AS CHARACTER NO-UNDO.
   
-  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) 
+  /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) 
     This would need to be changed to embedded dialog to support this from ide, not important the code can be seen with view source  */
   if IDEIntegrated then 
       return.
@@ -2267,7 +2363,7 @@ PROCEDURE choose_cut :
         RUN setstatus ("":U, "":U).
       END. /* IF...Master-Layout... */
       if OEIDEIsRunning and avail _U then 
-       run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
+       run CallWidgetEvent (input recid(_U),"DELETE").
     END. /* Valid Cut */
     ELSE DO:  /* Invalid Cut */
       IF CAN-DO(_AB_Tools, "Enable-ICF":U)  THEN
@@ -2305,7 +2401,7 @@ PROCEDURE choose_debug :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) 
+  /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) 
     Causes errors if executed from ide */
   if IDEIntegrated then 
       return.
@@ -2704,7 +2800,7 @@ PROCEDURE choose_file_print :
 END PROCEDURE.  /* choose_file_print */
 
 procedure choose_file_save :
-    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+    /*prevent accelerator when in ide  (somewhat mute since we remove them) */
     if IDEIntegrated then 
       return.
     run do_file_save.
@@ -3006,7 +3102,7 @@ PROCEDURE choose_file_save_all :
   DEFINE BUFFER x_U FOR _U.
   DEFINE BUFFER x_P FOR _P.
   
-  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   FOR EACH x_U WHERE CAN-DO("WINDOW,DIALOG-BOX",x_U._TYPE)
@@ -3033,7 +3129,7 @@ PROCEDURE choose_file_save_all :
 END PROCEDURE.  /* choose_file_save_all */
 
 procedure choose_file_save_as :
-    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+    /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
     if IDEIntegrated then 
       return.
     run do_file_save_as.
@@ -4050,7 +4146,46 @@ PROCEDURE ide_get_override_body  :
    
 END PROCEDURE.
 
-
+PROCEDURE ide_insert_trigger  :
+    define input  parameter pcFile      as character no-undo.
+    define input  parameter pcReturnFile as character no-undo.
+    define input  parameter phHandle    as handle    no-undo.
+    define input  parameter pcType      as character no-undo.
+    define input  parameter pcName      as character no-undo.
+    define input  parameter pcNewEvent  as character no-undo. 
+    define input  parameter pcBrowseName  as character no-undo. 
+    define output parameter plok        as logical   no-undo.
+    
+    define variable lSilentOpen    as logical no-undo.
+    define variable lok            as logical no-undo.
+    
+    if phHandle = ? then
+    do:
+        /* No window open -  run the _qssucker to open the file silently */       
+        run adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        phhandle = _h_win.
+        lSilentOpen = true.
+    end.
+    if valid-handle(OEIDE_ABSecEd) then
+    do:
+        run insertTriggerBlock IN OEIDE_ABSecEd (phhandle,pcType,pcName,pcNewEvent,pcBrowseName,output plok).
+        if plok and lSilentOpen then
+        do:
+            /* save the appbuilder to the temp file if specified */ 
+            if pcReturnFile > "" then
+                run syncFromAppbuilder IN OEIDE_ABSecEd (phHandle,pcReturnFile).
+        end.
+    end.
+    catch e as Progress.Lang.Error :
+    	undo,throw e.	
+    end catch.
+    finally:
+        /* silent opened must be closed again  */
+        if lSilentOpen then         
+           run wind-close (phhandle).      
+    end finally.
+   
+END PROCEDURE.
 
 
 PROCEDURE ide_choose_object_open :
@@ -4111,7 +4246,7 @@ PROCEDURE choose_open :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pOpenMode AS CHARACTER NO-UNDO.
-  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   
@@ -4413,9 +4548,9 @@ PROCEDURE choose_run :
   Notes:       
 ------------------------------------------------------------------------------*/
   if OEIDEIsRunning then
-  RunDesign(_h_win).
+      RunDesign(_h_win).
   else
-  RUN call_run ("RUN").
+      RUN call_run ("RUN").
 END PROCEDURE.
 
    
@@ -4426,7 +4561,7 @@ PROCEDURE choose_show_palette :
   Notes:   called by CTRL-T or Windows/Show Tool Palette.     
 ------------------------------------------------------------------------------*/
  DEFINE VAR h AS WIDGET  NO-UNDO.
-    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+    /*prevent accelerator when in ide  (somewhat mute since we remove them from 11.3 ) */
   if IDEIntegrated then 
       return.
   IF _AB_License EQ 2 THEN RETURN.
@@ -5314,7 +5449,7 @@ PROCEDURE display_current :
       
     if WidgetAction = "" then WidgetAction = "FOCUS".
     if OEIDEIsRunning and cur_widg_name <> "" then
-       run CallWidgetEvent in _h_uib(input recid(b_U),WidgetAction).
+       run CallWidgetEvent (input recid(b_U),WidgetAction).
         
   END. /* If not mouse-select-down. */
 END PROCEDURE. /* display_current */
@@ -5533,20 +5668,22 @@ PROCEDURE do_goto_page :
   END. /* IF valid window... */
 END PROCEDURE. /*do_goto_page */
 
-procedure IDEEnablePageNo:
+procedure getCurrentPageNo:
     define output parameter pageNumber as integer no-undo.
     define variable cResult    as character no-undo.
+    define buffer b_p for _p.
+    define buffer b_u for _u.
     IF _h_win = ? THEN pageNumber = ?.
     else
     do:
-       FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
-       if avail(_P) then
+       FIND b_P WHERE b_P._WINDOW-HANDLE EQ _h_win.
+       if avail(b_P) then
        do:
-           IF CAN-DO (_P._links, "PAGE-TARGET") THEN
+           IF CAN-DO (b_P._links, "PAGE-TARGET") THEN
            DO:
-               FIND _U WHERE RECID(_U) EQ _P._u-recid.
-               IF _U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN 
-                  pageNumber = _P._page-current.
+               FIND b_U WHERE RECID(b_U) EQ b_P._u-recid.
+               IF b_U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN 
+                  pageNumber = b_P._page-current.
                ELSE
                   pageNumber = 0.
                
@@ -6212,57 +6349,61 @@ procedure do_choose_smartobject:
         run setToolStatus(pcCustomTool).                                
 end.
 
-/* call back from _drawobj for most cases.  */
-procedure post_drawobj_picked: 
+/* call back from _drawobj  */
+procedure post_drawobj: 
     define input  parameter plDrawn as logical no-undo.
+    
+    define variable hCurrent as handle no-undo. 
+    
     /* set the window-saved state to false, since we just created an obj. */
     if plDrawn then 
         RUN adeuib/_winsave.p(_h_win, FALSE).
-
+    
+    /* set var for use below, since we may set it to ? here */
+    hCurrent = _h_cur_widg. 
+    FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+    
     /* Go back to the pointer, if desired - or if there is no point to     */
     /* staying in this mode.                                               */
     IF goback2pntr THEN
-      ldummy = _h_menu_win:LOAD-MOUSE-POINTER("":U).
+        ldummy = _h_menu_win:LOAD-MOUSE-POINTER("":U).
     ELSE DO:
-      /* Make the last item drawn (which will be _h_cur_widg)
-        deselected (and not selectabe) and unmovable. Also, because we are
-        in draw mode. Get the correct cursor - and set _h_cur_widg to "?" */
-      FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
-      IF AVAIL _u THEN
-        ASSIGN _U._HANDLE:MOVABLE    = FALSE 
-               _U._HANDLE:SELECTABLE = FALSE
-               _U._HANDLE:SELECTED   = FALSE
-               _U._SELECTEDib        = FALSE  .        
-      ASSIGN ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
-             _h_cur_widg = ?.    
+        /* Make the last item drawn (which will be _h_cur_widg)
+           deselected (and not selectabe) and unmovable. Also, because we are
+           in draw mode. Get the correct cursor - and set _h_cur_widg to "?" */
+        IF AVAIL _u THEN
+            ASSIGN _U._HANDLE:MOVABLE    = FALSE 
+                   _U._HANDLE:SELECTABLE = FALSE
+                   _U._HANDLE:SELECTED   = FALSE
+                   _U._SELECTEDib        = FALSE  .        
+        ASSIGN ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
+               _h_cur_widg = ?.    
 
       /* Reset the pointers correctly. */
       RUN adeuib/_setpntr.p (_next_draw, INPUT-OUTPUT _object_draw).
     END.
-end procedure.
-
-/* call back from _drawobj for all cases. after post_drawobj_picked   */
-procedure post_drawobj: 
-   /* Dynamics - Find the current object-name and assign to _U.Object-name */
-  IF _next_draw NE "DB-FIELDS":U THEN
-  DO:
-    FIND _U WHERE _U._HANDLE = _h_cur_widg no-error.
-    IF AVAIL _U AND _palette_custom_choice <> ? THEN
+    
+    /* Dynamics - Find the current object-name and assign to _U.Object-name */
+    IF _next_draw NE "DB-FIELDS":U and avail _U then    
     DO:
-      FIND _custom WHERE RECID(_custom) = _palette_custom_choice.
-      ASSIGN _U._OBJECT-NAME = _custom._object_name
-             _U._CLASS-NAME  = _custom._object_type_code.  
-    END.
-    ELSE IF AVAIL _U AND _palette_choice <> ? THEN
-    DO:
-      FIND _palette_item WHERE RECID(_palette_item) = _palette_choice.
-      ASSIGN _U._OBJECT-NAME = _palette_item._object_name
-             _u._CLASS-NAME  = _palette_item._object_class.  
-    END.
-     if OEIDEIsRunning and avail _U then
-        run CallWidgetEvent in _h_uib(input recid(_U),"Add").
-         
-  END.  /* if not db-fields */
+        if _palette_custom_choice <> ? THEN
+        DO:
+            FIND _custom WHERE RECID(_custom) = _palette_custom_choice.
+            ASSIGN _U._OBJECT-NAME = _custom._object_name
+                   _U._CLASS-NAME  = _custom._object_type_code.  
+        END.
+        ELSE if _palette_choice <> ? THEN
+        DO:
+            FIND _palette_item WHERE RECID(_palette_item) = _palette_choice.
+            ASSIGN _U._OBJECT-NAME = _palette_item._object_name
+                   _u._CLASS-NAME  = _palette_item._object_class.  
+        END.
+    END.  /* if not db-fields */
+    
+    if OEIDEIsRunning and avail _U then
+        run CallWidgetEvent (input recid(_U),"Add").
+      
+  
 end procedure.
  
 /** select tables step of field selection 
@@ -6428,8 +6569,7 @@ procedure ide_select_and_draw_fields:
     
     end.
     RUN adecomm/_setcurs.p ("":U).
-    run post_drawobj_picked(pcFields > ""). 
-    run post_drawobj. 
+    run post_drawobj(pcFields > ""). 
     /* this is duplication of the code after run _drawobj.p */
     /* Show the current widget and reset the pointer. */
     IF goback2pntr THEN 
@@ -6667,6 +6807,11 @@ procedure enable_widgets.
            Mode_Button:SENSITIVE       = YES WHEN VALID-HANDLE(Mode_Button)
            OpenObject_Button:SENSITIVE = YES WHEN VALID-HANDLE(OpenObject_Button)
            .
+    /*  Disable WebSpeed remote development tool in AppBuilder when running on AVM 64 */
+    IF PROCESS-ARCHITECTURE = 64  THEN DO:
+        IF VALID-HANDLE(Mode_Button) THEN Mode_Button:SENSITIVE = NO.
+    END. 
+   
     RUN sensitize_main_window ("WIDGET,WINDOW").
     /* Reset the sensitivity of the fill-in fields */ 
     ASSIGN cur_widg_text:SENSITIVE = cur_widg_text:PRIVATE-DATA eq "y"
@@ -7547,7 +7692,13 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM h ASSIGN LABEL = "&Bottom Edges"               PARENT = m_align
          TRIGGERS: ON CHOOSE PERSISTENT RUN adeuib/_align.p (?, "BOTTOM"). END TRIGGERS.
     END.  /* When UIB is licensed */
-  
+    
+    /*  Disable WebSpeed remote development tool in AppBuilder when running on AVM 64 */
+    IF PROCESS-ARCHITECTURE = 64  THEN DO:
+        IF VALID-HANDLE(Mode_Button) THEN Mode_Button:SENSITIVE = NO.
+    END.
+    
+    
     h = h_menu-bar.
     /* Always add Windows and Help Menus */
 
@@ -10746,12 +10897,35 @@ END.
    tool  = The name of the palette tool to use. 
            ? if want to force another tool choose
            of the last tool.*/
-             
+
 procedure tool_choose:
   DEFINE INPUT PARAMETER cType  AS INTEGER                          NO-UNDO.
   DEFINE INPUT PARAMETER tool   AS CHAR                             NO-UNDO. 
   DEFINE INPUT PARAMETER custom AS CHAR                             NO-UNDO. 
- 
+  
+  run tool_choose_with_projects(cType,tool,custom,"").
+    
+end procedure.
+             
+/* tool_choose - Select a tool (_next_draw).  Change the status bar to show
+   the current tool and hide the up image associated with it. 
+   
+   cType = 0 if from palette
+           1 if from palette menu or toolbar menu
+           2 <future> tool bar menu
+           3 other source
+   
+   tool  = The name of the palette tool to use. 
+           ? if want to force another tool choose
+           of the last tool.
+   projects = optional list of projects for smartobj chooser */  
+   
+procedure tool_choose_with_projects:
+  DEFINE INPUT PARAMETER cType      AS INTEGER                      NO-UNDO.
+  DEFINE INPUT PARAMETER tool       AS CHAR                         NO-UNDO. 
+  DEFINE INPUT PARAMETER custom     AS CHAR                         NO-UNDO. 
+  define input parameter pcProjects as character                    no-undo.
+
   DEFINE VARIABLE cancelled      AS LOGICAL                         NO-UNDO.
   DEFINE VARIABLE cStatus_line   AS CHARACTER                       NO-UNDO. 
   DEFINE VARIABLE customTool     AS CHARACTER                       NO-UNDO.
@@ -10768,8 +10942,11 @@ procedure tool_choose:
   DEFINE VARIABLE unused         AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE tmpString      AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE cFullPath      AS CHARACTER                       NO-UNDO.
-  
+  define variable cDirectoryList as character                       no-undo.
+  define variable cDirs          as character                       no-undo.
+  define variable iPos           as integer                         no-undo.
   /*
+  
    * The "rules" for tool choosing and locking:
    *
    *  1. Choosing the POINTER will set all flags and
@@ -10972,7 +11149,7 @@ procedure tool_choose:
             tmpString = " object.".
         ELSE
             tmpString = ".".
-        
+      
         RUN adecomm/_dbcnnct.p (INPUT "You must have at least one connected database to " 
                                 + (IF _palette_item._name = "DB-FIELDS" THEN "add database fields."
                                    ELSE "create a " + _palette_item._name + tmpString),
@@ -11094,6 +11271,21 @@ procedure tool_choose:
                     _object_draw = TRIM(SUBSTRING(ENTRY(1,parse,CHR(10)),4,-1,"CHARACTER")).
                 ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
                 DO:
+                    /** if shared projects add them to directory list (replace  current if applicable)  */
+                    if pcProjects > "" then 
+                    do:
+                        cDirs = TRIM(SUBSTRING(TRIM(ENTRY(1,parse,CHR(10))),15,-1,"CHARACTER")).
+                        iPos = lookup(".",cDirs).
+                        if(iPos > 0) then
+                        do:
+                            entry(iPos,cDirs) = pcProjects. 
+                        end.    
+                        else do:
+                            cDirs = pcProjects + "," + cDirs.
+                        end.
+                        ENTRY(1,parse,CHR(10)) = "DIRECTORY-LIST" + " " + cDirs.
+                    end.    
+                     
                     /* wraps run adecomm/_chosobj.w to support modal call from IDE */ 
                     run choose_smartobject(INPUT tool,
                                            INPUT customTool,
@@ -11101,7 +11293,7 @@ procedure tool_choose:
                                            INPUT _palette_item._New_Template,
                                            INPUT "BROWSE,NEW,PREVIEW" ).
                      /* post logic is handled in choose_smartobject  */
-                     RETURN.  
+                    RETURN.  
                     
                 END.  /* IF directory list */
         
@@ -11149,6 +11341,14 @@ procedure setDrawMode:
         END.
     end.
 end procedure. 
+
+ /* If we were in Pointer mode (next_draw = ?) and are now in draw mode,
+    then make everything deselectionable (and deselectioned) if the
+    last value of _next_draw was a pointer. Also set unmovable. */
+procedure setSendFocustoUI:
+    define input  parameter psend as logical no-undo.
+    SendFocustoUI = psend. 
+end procedure.
 
 /* Show the user what the current tool is (in the HELP attribute of the drawing tool.*/
 procedure setToolStatus: 
@@ -11627,20 +11827,26 @@ PROCEDURE wind-event:
             RUN wind-close (SELF).
     END.
     WHEN "WINDOW-ENTRY" OR WHEN "DIALOG-ENTRY":U THEN DO: 
-      
       IF  SELF:TYPE EQ "WINDOW" 
       AND SELF:WINDOW-STATE NE WINDOW-MINIMIZED 
-      AND SELF NE _h_win THEN 
+      AND SELF NE _h_win 
+      /* don't change widget if still same dialog box 
+        - _qssuckr fires entry during import and ends uop here. 
+          This is a problem for paste and duplicate which should not lose track of current widget 
+           (problem for ide who receives widget add  from display-current after paste or dup)
+          */
+      AND (SELF:FIRST-CHILD <> _h_win OR VALID-HANDLE(_h_win) = FALSE) THEN 
       DO:
         IF NOT VALID-HANDLE(_h_win) THEN 
             _h_win = SELF.
+         
         RUN curwidg.
         RUN show_control_properties (INPUT 0).
       END.
       else if IDENotInEditor AND IDEIntegrated and valid-handle(hOEIDEService) then
       do:
            IDENotInEditor = false.
-           if SetFocustoUI then   
+           if SendFocustoUI then   
               activateWindow(_h_win).
       end.
     END.
@@ -11817,7 +12023,7 @@ END PROCEDURE.
 PROCEDURE WinIDEChoose :
   DEFINE INPUT PARAMETER pHWND AS INT NO-UNDO.
   DEFINE VARIABLE hWindow      AS HANDLE         NO-UNDO.
-  
+  define buffer i_p for _p.
   run GetWindowHandleFromIDEParent(pHwnd,output hWindow).
  
   if hWindow = ? then 
@@ -11830,7 +12036,12 @@ PROCEDURE WinIDEChoose :
   IDENotInEditor = false.
   IDEEnterWindow = hWindow.
   apply "ENTRY" to hWindow.
-        
+  
+  FIND i_P WHERE i_p._WINDOW-HANDLE = _h_win NO-ERROR.
+  if avail i_P and  VALID-HANDLE(i_p._tv-proc) THEN
+  DO:
+      run refreshCurrent in i_p._tv-proc.
+  end.      
 END PROCEDURE.        
 
 /*     Get the _P window that belongs to a parent in the IDE */ 
@@ -11985,66 +12196,30 @@ PROCEDURE initializeIDEClient:
                   hHandles[19] = mi_CustomParams:handle.
         run setHandles in IDEClient (cNames,hHandles).
     end.  
- END. 
-
+END. 
 
 procedure context_menu_drop :
-/* TODO static menus */   
     DEFINE INPUT  PARAMETER hParent AS HANDLE NO-UNDO.
     DEFINE VARIABLE hMenu AS HANDLE NO-UNDO.
     define variable lDyn as logical no-undo.
     define variable lNat as logical  no-undo.
-    define variable ActionRecord as logical no-undo.
-    define buffer b_p for _p.
     run isCurrentWindowDynamic(output lDyn, output lNat).
     
     hMenu = hParent:first-child.
     do while valid-handle(hmenu):
-        case hmenu:name:
-           when "GotoPage" then
-           do:
-                FIND b_P WHERE b_P._WINDOW-HANDLE EQ _h_win no-error.
-                hMenu:sensitive =  avail b_p and CAN-DO (b_P._links, "PAGE-TARGET").
-           end.      
-           when "AddFunction":U or 
-           when "AddProcedure":U or 
-           when "AddTrigger":U or
-           when "ViewSource":U or 
-           when "Compile":U or 
-           when "CopytoFile":U or 
-           when "InsertFromFile":U then  
-               hMenu:sensitive = not lDyn.
-           when "undo":U then 
-           do:
-               run canundocurrentwindow (output ActionRecord).
-               if not ActionRecord then 
-                   hMenu:sensitive = false. 
-               else   
-                   hMenu:sensitive = _undo-menu-item:sensitive . 
-           end.
-           when "cut":U then 
-               hMenu:sensitive = MENU-ITEM mi_cut:sensitive in menu m_edit.
-           when "copy":U then 
-               hMenu:sensitive = MENU-ITEM mi_copy:sensitive in menu m_edit.
-           when "paste":U then 
-               hMenu:sensitive = MENU-ITEM mi_paste:sensitive in menu m_edit.
-           when "duplicate":U then 
-               hMenu:sensitive = mi_duplicate:sensitive.
-           when "delete":U then 
-               hMenu:sensitive = mi_duplicate:sensitive.
-        end.    
+        hMenu:sensitive = isActionEnabled(hmenu:name,lDyn).
         hMenu = hMenu:next-sibling.
     end.      
 end.    
 
 PROCEDURE choose_ocx:
     define input parameter pHWND as integer no-undo.
-    DEFINE VARIABLE ParentHWND AS integer NO-UNDO.
-    DEFINE VARIABLE ihwnd AS INTEGER NO-UNDO.
+    define variable ParentHWND as integer no-undo.
+    define variable ihwnd as integer no-undo.
     
    /* Present OCX dialog via call to PROX. Get window parent handle
               to position OCX dialog over Palette window. */
-    ASSIGN _ocx_draw = _h_Controls:GetControl(pHWND) NO-ERROR.
+    assign _ocx_draw = _h_Controls:GetControl(pHWND) NO-ERROR.
     RUN GetParent(INPUT pHWND, OUTPUT ParentHWND).
     /* _ocx_draw will contain a valid com-handle. */
     IF VALID-HANDLE(_ocx_draw) THEN
@@ -12061,6 +12236,67 @@ PROCEDURE choose_ocx:
 END PROCEDURE.    
 
 /* ************************  Function Implementations ***************** */
+/** removes accelerators from menus (called when embedded in PDS to use Eclipse keybindings) */ 
+function removeAccelerators returns logical (hmenu as handle  ):
+    define variable hchild  as handle no-undo.
+    if can-query(hMenu,"first-child":U) then 
+       hChild = hmenu:first-child.
+    do while valid-handle(hChild):
+        if can-set(hChild,"accelerator":U) and hChild:accelerator > "":U then
+            hChild:accelerator = "".
+        removeAccelerators(hChild).
+        hChild = hChild:next-sibling.
+    end.            
+end.
+
+function isActionEnabled returns logical(pcAction as char,plDyn as log  ):
+     define buffer b_p  for _p. 
+     define variable ActionRecord as logical no-undo.
+     case pcAction:
+            
+           when "GotoPage" then
+           do:
+                FIND b_P WHERE b_P._WINDOW-HANDLE EQ _h_win no-error.
+                return avail b_p and CAN-DO (b_P._links, "PAGE-TARGET").
+           end.      
+           when "AddFunction":U or 
+           when "AddProcedure":U or 
+           when "AddTrigger":U or
+           when "ViewSource":U or 
+           when "Compile":U or 
+           when "CheckSyntax":U or 
+           when "CopytoFile":U or 
+           when "InsertFromFile":U then  
+               return not plDyn.
+           when "undo":U then 
+           do:
+               run canundocurrentwindow (output ActionRecord).
+               if not ActionRecord then 
+                   return false. 
+               else   
+                   return  _undo-menu-item:sensitive . 
+           end.
+           when "cut":U then 
+               return  MENU-ITEM mi_cut:sensitive in menu m_edit.
+           when "copy":U then 
+               return  MENU-ITEM mi_copy:sensitive in menu m_edit.
+           when "paste":U then 
+               return MENU-ITEM mi_paste:sensitive in menu m_edit.
+           when "duplicate":U then 
+               return  mi_duplicate:sensitive.
+           when "delete":U then 
+               return mi_duplicate:sensitive.
+/*       difficult to keep in synch with eclipse                      */
+/*           when "save":U then                                       */
+/*           do:                                                      */
+/*               FIND b_P WHERE b_P._WINDOW-HANDLE EQ _h_win no-error.*/
+/*               return avail b_p and (b_P._file-saved = false).      */
+/*           end.                                                     */
+           otherwise return true. 
+        end.    
+    
+end function.     
+
 function createContextMenu returns handle 
         (  ):
 
@@ -12070,6 +12306,9 @@ function createContextMenu returns handle
 ------------------------------------------------------------------------------*/    
     define variable hMenu as handle no-undo.
     define variable hItem as handle no-undo.
+    define variable cBindings as character no-undo.
+    define variable ikey as integer no-undo.
+    
     create menu hMenu
         assign popup-only = true 
         triggers:
@@ -12081,8 +12320,32 @@ function createContextMenu returns handle
             name = "Undo":U
             label = "Undo"
         triggers:
-            on choose persistent run choose_undo in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
+    /** require senstivity synch with PDS
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Save":U
+            label = "Save"
+        triggers:
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
+        end.
+    **/
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "ViewSource":U
+            label = "View Source"
+        triggers:
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
+        end.
+    
     
     create menu-item hItem
         assign 
@@ -12095,16 +12358,15 @@ function createContextMenu returns handle
             name = "Cut":U
             label = "Cut"
         triggers:
-            on choose persistent run choose_cut in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
-    
     create menu-item hItem
         assign 
             parent = hMenu
             name = "Copy":U
             label = "Copy"
         triggers:
-            on choose persistent run choose_copy in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12113,7 +12375,7 @@ function createContextMenu returns handle
             name  = "Paste":U
             label = "Paste"
         triggers:
-            on choose persistent run choose_paste in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12122,7 +12384,7 @@ function createContextMenu returns handle
             name = "Duplicate":U
             label = "Duplicate"
         triggers:
-            on choose persistent run choose_duplicate in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12136,7 +12398,7 @@ function createContextMenu returns handle
             name = "Delete":U
             label = "Delete"
         triggers:
-            on choose persistent run choose_erase in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12144,15 +12406,6 @@ function createContextMenu returns handle
             parent  = hMenu
             subtype = "RULE":U.
     
-    create menu-item hItem
-        assign 
-            parent = hMenu
-            name = "ViewSource":U
-            label = "View Source"
-        triggers:
-            on choose persistent run RightClick_viewSource in this-procedure.
-                               
-        end.
         
     create menu-item hItem
         assign 
@@ -12160,7 +12413,16 @@ function createContextMenu returns handle
             name = "Run":U
             label = "Run"
         triggers:
-            on choose persistent run choose_run in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "CheckSyntax":U
+            label = "Check Syntax"
+        triggers:
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12169,7 +12431,7 @@ function createContextMenu returns handle
             name = "Compile":U
             label = "Compile"
         triggers:
-            on choose persistent run choose_compile in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12183,7 +12445,7 @@ function createContextMenu returns handle
             name = "AddFunction":U
             label = "Add Function..."
          triggers:
-             on choose persistent run choose_insert_function in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
          end.
     
     create menu-item hItem
@@ -12192,7 +12454,7 @@ function createContextMenu returns handle
             name = "AddProcedure":U
             label = "Add Procedure..."
         triggers:
-            on choose persistent run choose_insert_procedure in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
      
     create menu-item hItem
@@ -12201,7 +12463,7 @@ function createContextMenu returns handle
             name = "AddTrigger":U
             label = "Add Trigger..."
         triggers:
-            on choose persistent run choose_insert_trigger in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
    
     create menu-item hItem
@@ -12215,7 +12477,7 @@ function createContextMenu returns handle
             name = "CopytoFile":U
             label = "Copy to File..."
         triggers:
-            on choose persistent run choose_export_file in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
 
     create menu-item hItem
@@ -12224,7 +12486,7 @@ function createContextMenu returns handle
             name = "InsertfromFile":U
             label = "Insert from File..."
         triggers:
-            on choose persistent run choose_import_file in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12238,7 +12500,7 @@ function createContextMenu returns handle
             name = "TabOrder":U
             label = "Tab Order..."
         triggers:
-            on choose persistent run choose_tab_edit in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     
     create menu-item hItem
@@ -12252,7 +12514,7 @@ function createContextMenu returns handle
            name = "GotoPage":U         
            label = "Goto Page..."
         triggers:
-            on choose persistent run choose_goto_page in this-procedure.
+            on choose persistent run RunIDEAction(hItem:name,no /* no- don't check enabled  */).
         end.
     return hMenu.   
 end function.
@@ -12386,12 +12648,51 @@ procedure ExportCurrentWidgetTree  :
 end procedure.                      
 
 procedure SelectWidgetinUI:
+    define buffer b_u for _u.
+     
     define input parameter widgetName as character.
-    find _U where _U._WINDOW-HANDLE = _h_win and _U._NAME = trim(widgetName) no-error.
+    define variable cdbname      as character no-undo.
+    define variable cBufferName  as character no-undo.
+    define variable cName        as character no-undo.
+
+    if num-entries(widgetName,".") = 3 then
+    do:
+        assign
+            cDbname     = entry(1,widgetName,".")  
+            cBuffername = entry(2,widgetName,".")  
+            cName       = entry(3,widgetName,".").
+            
+    end.    
+    else if num-entries(widgetName,".") = 2 then
+    do:
+        assign
+            cBuffername = entry(1,widgetName,".")  
+            cName       = entry(2,widgetName,".").
+    end. 
+     
+    /* if qualified field search with dbname and/or buffer or table */  
+    if cBuffername > "" then 
+    do:
+       for each b_U where b_U._WINDOW-HANDLE = _h_win and b_U._NAME = trim(cName)
+                                              /* search _buffer before _table */   
+                                              by (if b_u._buffer <> ? then 1 else 2):
+           /* skip if field is db qualifed and different db */ 
+           if cDbName > "" and b_u._dbname <> cDbName then 
+               next. 
+           if b_u._buffer = cBufferName or b_u._table = cBufferName then 
+           do:
+              find _U where recid(_U) = recid(b_u).
+              leave. 
+           end.   
+       end.    
+    
+    end.
+    else 
+       find _U where _U._WINDOW-HANDLE = _h_win and _U._NAME = trim(widgetName) no-error.
     IF AVAILABLE _U THEN 
     DO:
         ASSIGN _h_cur_widg  = _U._HANDLE
-               SetFocustoUI = no.
+               SendFocustoUI = no.
                    
         FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
         IF AVAILABLE _F THEN _h_frame = _F._FRAME.
@@ -12403,22 +12704,39 @@ procedure SelectWidgetinUI:
         /* Make this the current widget */
         RUN curframe  IN _h_uib (_h_cur_widg).
         RUN display_current IN _h_uib.
-        SetFocustoUI = yes. /* Activate this flag to set focus for other events from outline view */
+        SendFocustoUI = yes. /* Activate this flag to set focus for other events from outline view */
   END.
 end procedure.    
 
 procedure choose_compile:
     if IDEIntegrated then
        CompileDesign(_h_win).
-end.    
-function findWidgetName return character 
-         (WidgetParentrecId as recid):
-    define buffer loc_u for _u.
-    find first loc_u where recid(loc_u) = WidgetParentrecId no-error.
-    if  available loc_U then   
-    return loc_U._NAME.
-    else
-    return "". 
+end.   
+ 
+function findWidgetName return character(pRecId as recid):
+    define buffer b_u for _u.
+    define buffer b_f for _f.
+    
+    find b_u where recid(b_u) = pRecid no-error.
+    
+    if not avail b_u then  
+       return "".   
+       
+    /** if db ref then we may need to qualify the field to make it unique */
+    if b_U._DBNAME > "" then 
+    do:
+       /* don;t qualify rowobject - TODO find out if it is in buffer ot table */ 
+       if b_u._buffer <> "RowObject" and b_u._table <> "RowObject" then 
+       do:        
+           find b_F where recid(b_F) = b_U._x-recid no-error.
+           if available b_F and b_F._DISPOSITION = "LIKE":U then 
+               return b_U._name.  
+           else 
+               return db-fld-name("_U":U, recid(b_U)).
+       end.
+    end.    
+    return b_U._name. 
+
 end function. 
 
 procedure CallWidgetEvent:
@@ -12427,29 +12745,43 @@ procedure CallWidgetEvent:
     define buffer loc_U for _U.
     find loc_U where recid(loc_U) = U_Recid no-lock no-error.
     if available(loc_U) then
+    do:
        WidgetEvent(_h_win,
-                   loc_U._NAME,
+                   findWidgetName(recid(loc_U)),
                    loc_U._LABEL,
                    loc_U._TYPE,
                    findWidgetName(loc_U._PARENT-RECID),
                    WidgetAction).
-      
+    end.  
 end procedure.    
 
 procedure CallRenameWidget:
     define input parameter U_Recid as recid no-undo.
     define input parameter WidgetOldName as character no-undo.
+    define variable cNewName as character no-undo.
     define buffer loc_U for _U.
     find loc_U where recid(loc_U) = U_Recid no-lock no-error.
     if available(loc_U) then
+    do:
+       cNewName =  findWidgetName(recid(loc_U)).
+       
+       /* add qualifier(s) to new name if any 
+       NOTE: rename of db field is probably not possible... */      
+       if num-entries(cNewName,".") = 3 then
+           widgetOldName = entry(1,cNewName,".") + "." 
+                         + entry(2,cNewName,".") + "."
+                         + widgetOldName.  
+       else if num-entries(cNewName,".") = 2 then
+           widgetOldName = entry(1,cNewName,".") + "." 
+                         + widgetOldName.  
        RenameWidget(_h_win,
                    WidgetOldName,
-                   loc_U._NAME,
+                   cNewName,
                    loc_U._LABEL,
                    loc_U._TYPE,
                    findWidgetName(loc_U._PARENT-RECID),
-                   "Rename").
-       
+                   "Rename").       
+    end.
 end procedure.
     
 procedure isTTY:

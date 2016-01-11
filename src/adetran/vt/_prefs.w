@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME DIALOG-1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DIALOG-1 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,12 +33,12 @@ define shared var hTrans as handle no-undo.
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS BtnOK RECT-3 CurLanguage BtnCancel RECT-1 ~
 AutoTrans BtnHelp PropsOnTop GlossaryOnTop ConfirmAdds FullPathFlag RECT-4 ~
-Priv1 Priv2 RECT-2 ZipCompression RECT-5 ZipMultiOpts LangLabel ~
-OptionsLabel PrivLabel ZipLabel compresslbl2 compresslbl multivollbl 
+Priv1 Priv2 RECT-2 ZipCompression LangLabel ~
+OptionsLabel PrivLabel ZipLabel compresslbl2 compresslbl
 &Scoped-Define DISPLAYED-OBJECTS CurLanguage AutoTrans PropsOnTop ~
 GlossaryOnTop ConfirmAdds FullPathFlag Priv1 Priv2 ZipCompression ~
-ZipMultiOpts LangLabel OptionsLabel PrivLabel ZipLabel compresslbl2 ~
-compresslbl multivollbl 
+LangLabel OptionsLabel PrivLabel ZipLabel compresslbl2 ~
+compresslbl 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -83,10 +83,6 @@ DEFINE VARIABLE LangLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Languages"
       VIEW-AS TEXT 
      SIZE 13.14 BY .65 NO-UNDO.
 
-DEFINE VARIABLE multivollbl AS CHARACTER FORMAT "X(256)":U INITIAL "Disk Spanning Options" 
-      VIEW-AS TEXT 
-     SIZE 24 BY .62 NO-UNDO.
-
 DEFINE VARIABLE OptionsLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Options" 
       VIEW-AS TEXT 
      SIZE 7.86 BY .65 NO-UNDO.
@@ -99,21 +95,13 @@ DEFINE VARIABLE ZipLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Zip Options"
       VIEW-AS TEXT 
      SIZE 13.14 BY .65 NO-UNDO.
 
-DEFINE VARIABLE ZipMultiOpts AS INTEGER 
-     VIEW-AS RADIO-SET VERTICAL
-     RADIO-BUTTONS 
-          "Always F&ormat The Target Disk", 1,
-"&Delete All Files On Target Disk Prior To Zip", 2,
-"&Neither", 3
-     SIZE 55 BY 2.08 NO-UNDO.
-
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 65 BY 4.19.
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 65 BY 5.31.
+     SIZE 65 BY 2.69.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -123,11 +111,7 @@ DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 65 BY 2.04.
 
-DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 58 BY 2.65.
-
-DEFINE VARIABLE ZipCompression AS INTEGER INITIAL 5 
+DEFINE VARIABLE ZipCompression AS INTEGER INITIAL 10 
      VIEW-AS SLIDER MIN-VALUE 1 MAX-VALUE 10 HORIZONTAL 
      SIZE 14 BY 1.96 NO-UNDO.
 
@@ -182,19 +166,16 @@ DEFINE FRAME DIALOG-1
      Priv1 AT ROW 8.31 COL 4
      Priv2 AT ROW 8.96 COL 4
      ZipCompression AT ROW 10.58 COL 25 NO-LABEL
-     ZipMultiOpts AT ROW 13.23 COL 4 NO-LABEL
      LangLabel AT ROW 1.23 COL 3.86 NO-LABEL
      OptionsLabel AT ROW 3.12 COL 3.86 NO-LABEL
      PrivLabel AT ROW 7.58 COL 3.86 NO-LABEL
      ZipLabel AT ROW 10.15 COL 3.86 NO-LABEL
      compresslbl2 AT ROW 11.04 COL 40 COLON-ALIGNED NO-LABEL
      compresslbl AT ROW 11.15 COL 1 COLON-ALIGNED NO-LABEL
-     multivollbl AT ROW 12.31 COL 3 COLON-ALIGNED NO-LABEL
      RECT-3 AT ROW 1.54 COL 2
      RECT-1 AT ROW 3.31 COL 2
      RECT-4 AT ROW 7.85 COL 2
      RECT-2 AT ROW 10.35 COL 2
-     RECT-5 AT ROW 12.77 COL 3
      SPACE(24.28) SKIP(0.45)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
@@ -277,8 +258,7 @@ DO:
     GlossaryOnTop   = GlossaryOnTop:checked
     ConfirmAdds     = ConfirmAdds:checked
     FullPathFlag    = FullPathFlag:checked
-    ZipCompression  = INT(ZipCompression:SCREEN-VALUE)
-    ZipMultiOpts    = INT(ZipMultiOpts:SCREEN-VALUE).
+    ZipCompression  = INT(ZipCompression:SCREEN-VALUE).
   RUN PUT_ZIP_INI.
   
   IF VALID-HANDLE(hProcs) THEN RUN OpenQuery   IN hProcs.
@@ -334,9 +314,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     compresslbl:screen-value  = "Compression Factor:"
     compresslbl:width         = font-table:get-text-width-chars(compresslbl:screen-value,4)
     compresslbl2:screen-value = "(1=lowest,10=highest)"
-    compresslbl2:width        = font-table:get-text-width-chars(compresslbl2:screen-value,4)
-    multivollbl:screen-value  = "Disk Spanning Options"
-    multivollbl:width         = font-table:get-text-width-chars(multivollbl:screen-value,4).
+    compresslbl2:width        = font-table:get-text-width-chars(compresslbl2:screen-value,4).
 
   RUN Get_Zip_INI.    
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
@@ -394,14 +372,7 @@ DO WITH FRAME {&FRAME-NAME}:
   ELSE
     ASSIGN ZipCompression = INT(inp).
     
-  GET-KEY-VALUE SECTION "Translation Manager":U key "ZipMVOpts":U value inp.
-  IF inp = ? OR inp = "" OR INT(inp) < 1 OR INT(inp) > 3 THEN
-    ASSIGN ZipMultiOpts = 3.
-  ELSE
-    ASSIGN ZipMultiOpts = INT(inp).
-  
-  ASSIGN ZipCompression:SCREEN-VALUE = STRING(ZipCompression)
-         ZipMultiOpts:SCREEN-VALUE   = STRING(ZipMultiOpts).
+  ASSIGN ZipCompression:SCREEN-VALUE = STRING(ZipCompression).
 END.
 END PROCEDURE.
 
@@ -422,9 +393,6 @@ PROCEDURE Put_ZIP_INI :
                 KEY     "ZipCompFactor":U 
                 VALUE   STRING(ZipCompression) NO-ERROR.
     
-  PUT-KEY-VALUE SECTION "Translation Manager":U 
-                KEY     "ZipMVOpts":U 
-                VALUE   STRING(ZipMultiOpts) NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
     RUN adecomm/_s-alert.p (
        INPUT-OUTPUT ErrorStatus,

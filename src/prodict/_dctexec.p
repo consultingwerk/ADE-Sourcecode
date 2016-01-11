@@ -40,6 +40,8 @@ history:
                         file-types
     kmayur     08/05/11 Added "Constraints for mss and oracle
                         (/mss/key) and (/ora/key)                        
+    sdash      05/07/13 Added Logical DB validation in a Schema Holder
+                        while using delta SQL utility.
 */
 /*h-*/
 /*---------------------------------------------------------------------*/
@@ -49,13 +51,16 @@ history:
 { prodict/user/userhue.i }
 { prodict/user/userhdr.f }
 
+DEFINE NEW SHARED VARIABLE select_dbname   AS CHARACTER           NO-UNDO.
+
 /* LANGUAGE DEPENDENCIES START */ /*-----------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 8 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 9 NO-UNDO INITIAL [
   /*  1,2*/ "Operations on", "are not supported in this copy of {&PRO_DISPLAY_NAME}.",
   /*    3*/ "The dictionary is in read-only mode - alterations not allowed.",
   /*4,5,6*/ "You tried to perform some", "operation on a", "database.",
   /*    7*/ "You can only perform this operation when the", 
-  /*    8*/ "database is connected."
+  /*    8*/ "database is connected.",
+  /*    9*/ "Schema holder database has no logical database of type."
 ].
 /* LANGUAGE DEPENDENCIES END */ /*-------------------------------------*/
 
@@ -92,6 +97,7 @@ DO WHILE user_path <> "":
   if  op BEGINS "?"
    or op BEGINS "!"
    or op BEGINS "@"
+   or op BEGINS "&"
    then do:
     /* extdbtype1 replaces "SUBSTRING(op,2)" in messages */
     extdbtype1 = {adecomm/ds_type.i
@@ -129,8 +135,29 @@ DO WHILE user_path <> "":
         user_path = "".
         end.
       end.
+      else if op BEGINS "&" 
+       then do:
+       l = NO.
+       /* l = YES if there are any foreign schema logical db's, Also assigned "selected" db */
+       IF LDBNAME("DICTDB") <> ? THEN DO: 
+        FOR EACH DICTDB._DB NO-LOCK:
+          IF DICTDB._DB._Db-type = SUBSTRING(op,2,-1,"character") THEN DO:
+            IF DICTDB._DB._Db-name = user_dbname THEN 
+              select_dbname = user_dbname.
+            l = YES.
+          end.
+      end.
+      end.
+      if NOT l THEN DO:  
+        HIDE MESSAGE NO-PAUSE.
+        /* Schema holder database has no logical database of type <type>. */
+        MESSAGE new_lang[9] SUBSTRING(op,2,-1,"character") 
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        user_path = "".
+      end.
     end.
-   else
+  end.
+  else
   if op BEGINS "*" then   /* Is this a command? */
   DO:
     if op = "*A" then /*------------------------------*/ /* assignment */

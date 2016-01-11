@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -178,8 +178,9 @@ IF _L._WIN-TYPE OR _F._VBX-BINARY NE "" THEN DO: /* GUI Mode */
     IF s = FALSE THEN
     DO ON STOP UNDO, LEAVE:
       ASSIGN _F._SPECIAL-DATA = "":U.
-      define var ocxtype as character.
-      if  _U._SUBTYPE NE ? THEN ocxtype = "." + _U._SUBTYPE. else "". 
+      define var ocxtype as character no-undo.
+      if  _U._SUBTYPE NE ? THEN ocxtype = "." + _U._SUBTYPE. 
+      else "". 
       ASSIGN msg = _U._NAME + ocxtype  + CHR(10) +
                    "Unable to create control." + CHR(10) + CHR(10).
       /* Strip off any additional message information, such as "Error

@@ -6,7 +6,7 @@
 &Scoped-define WINDOW-NAME WINDOW-1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS WINDOW-1 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -403,11 +403,12 @@ END.
 ON CHOOSE OF btnCreateZip IN FRAME KitsFrame /* Create Zip file */
 DO:
   DEFINE VARIABLE ZipFileName AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE BkupFile    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ItemList    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE ProjPath    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ZipStatus   AS LOGICAL   NO-UNDO.   
   DEFINE VARIABLE inp         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ZipComp     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE ZipMVO      AS INTEGER   NO-UNDO.
   DEFINE VARIABLE ZipComment  AS CHARACTER NO-UNDO.
             
   DEFINE BUFFER tXL_Kit FOR XL_Kit. 
@@ -448,28 +449,22 @@ DO:
      ELSE
        ASSIGN ZipComp = INT(inp).
        
-     GET-KEY-VALUE SECTION "Translation Manager":U key "ZipMVOpts":U value inp.
-     IF inp = ? OR inp = "" OR INT(inp) < 1 OR INT(inp) > 3 THEN
-       ASSIGN ZipMVO= 3.
-     ELSE
-       ASSIGN ZipMVO = INT(inp).
-     
      ASSIGN ZipComment = "TranMan2 Kit Zipfile. " +
                          "Created on " + STRING(TODAY) +
                          " at " + STRING(TIME,"HH:MM AM") +
                          " KitDB: " + REPLACE(_Kit,".db":U,"").
-     RUN adetran/pm/_crzip.w (OUTPUT ZipFileName, OUTPUT ItemList).
+     RUN adetran/pm/_crzip.w (OUTPUT ZipFileName, OUTPUT BkupFile, OUTPUT ItemList, OUTPUT ProjPath).
      IF ZipFileName NE "" AND ItemList NE "" THEN 
      DO:
-       RUN adetran/common/_zipmgr.w (INPUT         "ZIP",
-                                     INPUT         ZipFileName, 
-                                     INPUT         "",
-                                     INPUT         ItemList, 
-                                     INPUT         ZipComp,
-                                     INPUT         ZipMVO,
-                                     INPUT         YES,
-                                     INPUT-OUTPUT  ZipComment,
-                                     OUTPUT        ZipStatus).
+       RUN adetran/common/_zipmgr.w (INPUT         "ZIP",       /* Mode */
+                                     INPUT         ZipFileName, /* ZipFileName */
+                                     INPUT         ProjPath,    /* ZipDir */
+									 INPUT         BkupFile,    /* BkupFile */
+                                     INPUT         ItemList,    /* ItemList */
+                                     INPUT         ZipComp,     /* ZCompFactor */
+                                     INPUT         YES,         /* Recursive */
+                                     INPUT-OUTPUT  ZipComment,  /* ZipComment */
+                                     OUTPUT        ZipStatus).  /* ZipStatus */
        IF ZipStatus THEN 
        DO:
          MESSAGE "Zip file was created successfully." 
@@ -505,12 +500,15 @@ DO:
   
   RUN adetran/pm/_instzip.w (OUTPUT ZipFileName, OUTPUT ZipDir).
   IF ZipFileName NE "" AND ZipDir NE "" THEN DO:
-    RUN adetran/common/_zipmgr.w (INPUT  "GETCOMMENT",
-                                  INPUT  ZipFileName,
-                                  INPUT  "",
-                                  INPUT  "", INPUT 0, INPUT 0, INPUT YES,
-                                  INPUT-OUTPUT ZipComment,
-                                  OUTPUT ZipStatus).
+    RUN adetran/common/_zipmgr.w (INPUT "GETCOMMENT",      /* Mode */
+                                  INPUT ZipFileName,       /* ZipFileName */
+                                  INPUT "",                /* ZipDir */
+								  INPUT "",                /* BkupFile */
+                                  INPUT "",                /* ItemList */
+								  INPUT 0,                 /* ZCompFactor */
+								  INPUT YES,               /* Recursive */
+                                  INPUT-OUTPUT ZipComment, /* ZipComment */
+                                  OUTPUT ZipStatus).       /* ZipStatus */
     IF NOT ZipStatus THEN DO:
       MESSAGE "Error extracting zipfile comment. This zipfile may not have been created by TranMan." skip 
               "Please check to make sure that you've selected the correct zipfile." skip
@@ -527,12 +525,15 @@ DO:
       RETURN NO-APPLY.
     END.    
   
-    RUN adetran/common/_zipmgr.w (INPUT  "UNZIP",
-                                  INPUT  ZipFileName, 
-                                  INPUT  ZipDir,
-                                  INPUT  "", INPUT 0, INPUT 0, INPUT YES,
-                                  INPUT-OUTPUT ZipComment,
-                                  OUTPUT ZipStatus).
+    RUN adetran/common/_zipmgr.w (INPUT "UNZIP",           /* Mode */
+                                  INPUT ZipFileName,       /* ZipFileName */
+                                  INPUT ZipDir,            /* ZipDir */
+                                  INPUT "",                /* BkupFile */
+                                  INPUT "",                /* ItemList */
+								  INPUT 0,                 /* ZCompFactor */
+								  INPUT YES,               /* Recursive */
+                                  INPUT-OUTPUT ZipComment, /* ZipComment */
+                                  OUTPUT ZipStatus).       /* ZipStatus */
     IF ZipStatus THEN 
     DO:
       FIND FIRST xlatedb.XL_Project NO-LOCK.

@@ -74,6 +74,7 @@ DEFINE INPUT PARAMETER p_Option AS CHARACTER                         NO-UNDO.
 {adeuib/uibhlp.i}               /* Help pre-processor directives            */
 {adeuib/sharvars.i}             /* The shared variables                     */
 {adeweb/htmwidg.i}              /* WEB/HTML related temp-tables             */
+{adecomm/oeideservice.i}
 
 DEFINE VARIABLE  name         AS    CHAR    NO-UNDO.
 DEFINE VARIABLE  hDataObject  AS    HANDLE  NO-UNDO.
@@ -266,7 +267,21 @@ PROCEDURE FieldSelection :
    
       IF p_Option = "_SELECT":U THEN
       DO:
-         RUN adecomm/_fldsel.p (FALSE,
+         if OEIDE_CanLaunchDialog() then
+         do: 
+             RUN adeuib/ide/_dialog_fldsel.p
+                               (FALSE,
+                                IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var,
+                                tt-info,
+                                INPUT-OUTPUT use_Prefix,
+                                INPUT-OUTPUT db_name, 
+                                INPUT-OUTPUT tbl_name,
+                                INPUT-OUTPUT fld_name,
+                                OUTPUT pressed_ok). 
+         end.
+         else do:
+            RUN adecomm/_fldsel.p 
+                               (FALSE,
                                 IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var,
                                 tt-info,
                                 INPUT-OUTPUT use_Prefix,
@@ -275,7 +290,7 @@ PROCEDURE FieldSelection :
                                 INPUT-OUTPUT fld_name,
                                 OUTPUT pressed_ok).
                        
-                                
+         end.                       
          IF pressed_ok <> TRUE THEN RETURN. /* WEB-JEP 5/30/96 */
        END.
     END.   
@@ -321,15 +336,27 @@ PROCEDURE FieldSelection :
            display only the field name. Otherwise, display table.field.  jep-code */
         ASSIGN show_items = (IF NUM-ENTRIES(tbl_list) <= 1 THEN "1":U
                                                            ELSE "2":U).
-        RUN adecomm/_fldseld.p
-            (INPUT tbl_list, 
-             INPUT hDataObject, 
-             INPUT tt-info, 
-              show_items, 
-              ",",
-             INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
-             INPUT-OUTPUT fld_name).
-             
+        if OEIDE_CanLaunchDialog() then
+        do:
+            RUN adeuib/ide/_dialog_fldseld.p
+                (INPUT tbl_list, 
+                 INPUT hDataObject, 
+                 INPUT tt-info, 
+                  show_items, 
+                  ",",
+                 INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
+                 INPUT-OUTPUT fld_name).
+        end.
+        else do:
+            RUN adecomm/_fldseld.p
+                (INPUT tbl_list, 
+                 INPUT hDataObject, 
+                 INPUT tt-info, 
+                  show_items, 
+                  ",",
+                 INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
+                 INPUT-OUTPUT fld_name).
+        end.     
         num_ent = NUM-ENTRIES(fld_name).
         
         ASSIGN pressed_ok = (RETURN-VALUE <> "CANCEL":U) AND (num_ent > 0).

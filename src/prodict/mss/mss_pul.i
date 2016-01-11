@@ -234,6 +234,7 @@ assign
   s_ttb_fld.pro_Extnt   = {&extent}
   s_ttb_fld.pro_name    = pnam
   s_ttb_fld.ttb_tbl     = RECID(s_ttb_tbl)
+  s_ttb_fld.tmpfld_recid  = RECID(s_ttb_fld)
   s_ttb_fld.ds_prec    = DICTDBG.SQLColumns_buffer.Precision
   s_ttb_fld.ds_scale    = DICTDBG.SQLColumns_buffer.Scale
   s_ttb_fld.ds_lngth    = (IF DICTDBG.SQLColumns_buffer.LENGTH > DICTDBG.SQLColumns_buffer.PRECISION 

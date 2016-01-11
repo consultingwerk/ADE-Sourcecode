@@ -64,6 +64,7 @@ History:
     02/23/10 Nagaraju  to avoid computed_column check if MSS vers 2000 or earlier
     09/16/10 knavneet  CR - OE00198360
     06/21/11 kmayur    added support for constraint pull - OE00195067    
+    02/27/13 sdash     Implementation of independent Batch Pull.
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -207,10 +208,15 @@ DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
 DEFINE VARIABLE isOutput         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE rowid_idx_name   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ClustAsROWID     AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE uniquifyAddon    AS INTEGER    NO-UNDO INITIAL 0.
 DEFINE VARIABLE mssselBestRowidIdx  AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE useLegacyRanking AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE found            AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE err_sp           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE err_sp_flag      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE mssrecidCompat   AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mapmssdatetime   AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE callerid         AS INTEGER    NO-UNDO INITIAL 2.
 
 
 define TEMP-TABLE column-id
@@ -403,7 +409,18 @@ assign
   l_time-types = ""
   l_tmst-types = "TIMESTAMP,TIMESTAMP-TZ"
   .
-  
+
+IF NUM-ENTRIES(user_env[25]) = 12
+   THEN ASSIGN
+     s_datetime = LOGICAL(ENTRY(6,user_env[25]))
+     s_primary = LOGICAL(ENTRY(7,user_env[25]))
+     s_lob = LOGICAL(ENTRY(8,user_env[25]))
+     s_blobtype = LOGICAL(ENTRY(9,user_env[25]))
+     s_clobtype = LOGICAL(ENTRY(10,user_env[25]))
+     ClustAsROWID = LOGICAL(ENTRY(11,user_env[25]))
+     s_best = INTEGER(ENTRY(12,user_env[25])).
+
+
 IF NOT batch-mode then assign SESSION:IMMEDIATE-DISPLAY = yes.
 
 RUN adecomm/_setcurs.p ("WAIT").
@@ -412,12 +429,22 @@ IF user_env[37] = "PP" THEN DO:
     assign ClustAsROWID = TRUE.
     ASSIGN mssselBestRowidIdx = (ENTRY(4,user_env[36]) = "y").
     ASSIGN s_best = (IF mssselBestRowidIdx THEN  INTEGER(ENTRY(5,user_env[36])) ELSE 0 ).
+    ASSIGN mssrecidCompat = (ENTRY(3,user_env[36]) = "y").
+    if user_env[12] = "datetime" then mapmssdatetime = TRUE.
+    else  mapmssdatetime = FALSE.
+
+    IF ((NUM-ENTRIES(user_env[42]) >= 2) AND
+        UPPER(ENTRY(2,user_env[42])) <> "L" ) THEN
+      assign useLegacyRanking = FALSE.
 END.
 ELSE DO:
     assign ClustAsROWID = s_primary.
           /* s_best = 1 (OE Schema )
                     = 2 (Foreign Schema)
            */
+    assign mssrecidCompat = s_recidcompat
+           mapmssdatetime = s_datetime.
+    IF s_primary OR s_recidcompat THEN assign useLegacyRanking = FALSE.
 END.
 
 assign
@@ -530,8 +557,9 @@ for each gate-work
     
   if batch-mode and logfile_open
    then put STREAM logfile unformatted
-     gate-work.gate-type at 10
-     gate-work.gate-name at 25 skip.
+     gate-work.gate-type at 16
+     gate-work.gate-user at 32
+     gate-work.gate-name at 45 skip.
 
   RUN  prodict/mss/mss_fix.p (spclvar, OUTPUT spclvar-1, escp, bug1).
   RUN  prodict/mss/mss_fix.p (uservar, OUTPUT uservar-1, escp, bug8).
@@ -724,8 +752,8 @@ for each gate-work
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO: 
 
          IF s_ttb_tbl.ds_recid = 0 THEN DO:
-         IF (NOT DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID_UNIQUE')
-                  THEN s_ttb_tbl.ds_recid = i.
+         IF (NOT DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID_UNIQUE') OR
+             mssrecidCompat THEN s_ttb_tbl.ds_recid = i.
            ASSIGN s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
            IF isComputed(full_table_name, DICTDBG.GetFieldIds_buffer.field-name) THEN DO:
              IF s_ttb_tbl.ds_msc22 = ? THEN 
@@ -1332,83 +1360,24 @@ for each gate-work
      * x   := NON V7.3-compatible
      * ( float can't be used for "="; date has some restrictions too )
     */
- 
     if  s_ttb_tbl.ds_recid <= 0
       or s_ttb_tbl.ds_recid  = ?
       then do:  /* no progress_recid -> check indexes for ROWID usability */
-    
-       /* check all indexes and calculate their usability-level */
-       for each s_ttb_idx
-          where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl):
-    
-         for each s_ttb_idf 
-            where s_ttb_idf.ttb_idx = RECID(s_ttb_idx):
 
-           find first s_ttb_fld 
-              where RECID(s_ttb_fld) = s_ttb_idf.ttb_fld.
-           assign
-              s_ttb_idx.hlp_fld#   = s_ttb_idx.hlp_fld# + 1
-              s_ttb_idx.hlp_dtype# = maximum(s_ttb_idx.hlp_dtype#,
-                          integer(string((s_ttb_fld.ds_type <> "integer"),"1/0")),
-                          integer(string((s_ttb_fld.pro_type = "date"   ),"2/0")),
-                          integer(string((s_ttb_fld.ds_type  = "float"  ),"3/0")) 
-                                     )
-              s_ttb_idx.hlp_mand   = s_ttb_idx.hlp_mand and s_ttb_fld.pro_mand.
-              s_ttb_idx.hlp_fstoff = s_ttb_fld.ds_stoff * -1.
-              s_ttb_idx.hlp_msc23  = ( if s_ttb_fld.ds_msc23 <> ?
-                                      then s_ttb_fld.ds_msc23 
-                                      else s_ttb_fld.ds_name
+         ASSIGN s_ttb_tbl.tmp_recid = RECID(s_ttb_tbl).
+         IF useLegacyRanking THEN
+            RUN prodict/mss/_clrank.p ( INPUT       s_best,
+                                         INPUT        RECID(s_ttb_tbl),
+                                         INPUT        ClustAsROWID
                                       ).
-                                 
-         end.  /* for each s_ttb_idfs of s_ttb_idx */
-         
-         if s_ttb_idx.ds_idx_typ = 1 AND
-            ClustAsROWID THEN  /* This is a clustered index */
-              assign s_ttb_idx.hlp_dtype# = 1
-                     s_ttb_idx.hlp_level  = 1.
-         ELSE DO:
-         IF s_best <> 2 THEN assign s_ttb_idx.ds_idx_typ = 3.  /* DANGER:manupulated statement  */
-         assign
-            s_ttb_idx.hlp_dtype# = ( if ( s_ttb_idx.hlp_dtype# = 0
-                                    and s_ttb_idx.hlp_fld#   > 1 )
-                                    then 1
-                                    else s_ttb_idx.hlp_dtype#
-                                    )
-            s_ttb_idx.hlp_level  = ( if ( s_ttb_idx.hlp_mand = TRUE 
-                                    and s_ttb_idx.pro_uniq = TRUE )
-                                    then 1
-                                    else 5
-                                    ) 
-                                    + s_ttb_idx.hlp_dtype#.
-          END.
-       end. /* for each s_ttb_idx */
-
-       /* assign correct i-misc2[1]-values and select index */
-       for each s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
-             break by s_ttb_idx.ds_idx_typ
-                   by s_ttb_idx.hlp_slctd descending
-                   by s_ttb_idx.hlp_level:
-
-          if s_ttb_idx.hlp_slctd   /* previousely selected RowID index */
-               and s_ttb_idx.hlp_level <> 0
-               and s_ttb_idx.hlp_level <> 4
-               then do: /* select it but schema NOT compatible with V7.3 anymore*/
-             assign
-                s_ttb_idx.ds_msc21 = "r" 
-                                     + entry(s_ttb_idx.hlp_level,l_matrix)
-                s_ttb_tbl.ds_recid = ?
-                s_ttb_tbl.ds_msc23 = ?
-                s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
-          end.    /* select it but schema NOT compatible with V7.3 anymore*/
-          else if first(s_ttb_idx.hlp_slctd)
-                 and s_ttb_idx.hlp_level <= 4
-                 then assign /* select this index */
-                    s_ttb_idx.ds_msc21 = "ra"
-                    s_ttb_tbl.ds_recid = s_ttb_idx.hlp_fstoff
-                    s_ttb_tbl.ds_msc23 = s_ttb_idx.hlp_msc23
-                    s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
-          else assign
-              s_ttb_idx.ds_msc21 = entry(s_ttb_idx.hlp_level,l_matrix).
+         ELSE
+            RUN prodict/mss/_cnrank.p ( INPUT       s_best,
+                                         INPUT        RECID(s_ttb_tbl),
+                                         INPUT        uniquifyAddon,
+                                         INPUT        mssrecidCompat,
+                                         INPUT        mapmssdatetime,
+                                         INPUT        callerid  /* 1-progress ranking , 2-pulled SH ranking */
+                                      ).
 
           /* OE00164266 - set the PROGRESS_RECID size if it is an integer */
           find first s_ttb_fld
@@ -1423,7 +1392,6 @@ for each gate-work
              then
                s_ttb_tbl.ds_msc15 = 2. /* RECID is 8 byte */
           END.
-       end.     /* for each s_ttb_idx */
     end.     /* no progress_recid -> check indexes for ROWID usability */
 
     /* PROGRESS-RECID-field -> reset recid-info of all indexes */

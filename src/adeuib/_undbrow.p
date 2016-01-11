@@ -107,7 +107,8 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
   IF _P._file-version BEGINS "UIB_v7" OR _P._file-version BEGINS "UIB_v8" THEN
       lpreV9 = TRUE.
-  IF SOURCE-PROCEDURE:FILE-NAME = "adeuib/_rdqury.p" AND lpreV9 THEN DO: /* we only want to do this when
+  IF SOURCE-PROCEDURE:FILE-NAME = "adeuib/_rdqury.p" AND lpreV9 and 
+     col-list NE ? and formt-list NE ? and DT-list NE ? THEN DO: /* we only want to do this when
                                                                             reading in a preV9 file  */
     CREATE BROWSE height-hdl IN WIDGET-POOL "{&AB_Pool}"
       ASSIGN FRAME = _h_frame                                  
@@ -162,6 +163,7 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
     DELETE OBJECT height-hdl.
   END.  /* if called from _rdqury */
 
+ IF col-list NE ? and formt-list NE ? and DT-list NE ? THEN DO:
   CREATE BROWSE _U._HANDLE IN WIDGET-POOL "{&AB_Pool}"
     ASSIGN FRAME = _h_frame
            {adeuib/std_attr.i &NO-FRAME = YES &NO-FONT = YES &SIZE-CHAR = YES}
@@ -208,6 +210,7 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
     IF _BC._LABEL-FONT NE ? THEN 
       _BC._COL-HANDLE:LABEL-FONT = _BC._LABEL-FONT.
   END.
+ END.
 END.  /* GUI Case */
 
 ELSE DO:  /* TTY Case -- make an edit widget */

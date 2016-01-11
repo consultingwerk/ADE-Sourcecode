@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS V-table-Win 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -254,14 +254,23 @@ DO:
   END.
   
   DO WITH FRAME {&FRAME-NAME}:
-    /* If user did not specify full URL, make one. */
-    ASSIGN
-      chCtrlFrame:CIHTTP:ParseURL = TRUE
-      chCtrlFrame:CIHTTP:URL      = broker:SCREEN-VALUE.
+    IF PROCESS-ARCHITECTURE = 32 THEN DO:
+        /* If user did not specify full URL, make one. */
+        ASSIGN
+          chCtrlFrame:CIHTTP:ParseURL = TRUE
+          chCtrlFrame:CIHTTP:URL      = broker:SCREEN-VALUE.
       
-    RUN adeweb/_runbrws.p (web-browser:SCREEN-VALUE,
-                           chCtrlFrame:CIHTTP:URL + "/webutil/ping.p":U,
-                           open-browse:CHECKED).
+        RUN adeweb/_runbrws.p (web-browser:SCREEN-VALUE,
+                               chCtrlFrame:CIHTTP:URL + "/webutil/ping.p":U,
+                               open-browse:CHECKED).
+    END.
+    ELSE DO:
+        /* CIHTTP isn't supported on 64-bit so use the URL as-is. */
+        RUN adeweb/_runbrws.p (web-browser:SCREEN-VALUE,
+                               broker:SCREEN-VALUE + "/webutil/ping.p":U,
+                               open-browse:CHECKED).
+    END.
+
   END.
 END.
 
@@ -332,26 +341,27 @@ PROCEDURE control_load :
 ------------------------------------------------------------------------------*/
 
 &IF "{&OPSYS}" = "WIN32":U AND "{&WINDOW-SYSTEM}" NE "TTY":U &THEN
-DEFINE VARIABLE UIB_S    AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE OCXFile  AS CHARACTER  NO-UNDO.
+IF PROCESS-ARCHITECTURE = 32 THEN DO:
+  DEFINE VARIABLE UIB_S    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE OCXFile  AS CHARACTER  NO-UNDO.
 
-OCXFile = SEARCH( "adeuib\_vwebcon.wrx":U ).
-IF OCXFile = ? THEN
-  OCXFile = SEARCH(SUBSTRING(THIS-PROCEDURE:FILE-NAME, 1,
+  OCXFile = SEARCH( "adeuib\_vwebcon.wrx":U ).
+  IF OCXFile = ? THEN
+    OCXFile = SEARCH(SUBSTRING(THIS-PROCEDURE:FILE-NAME, 1,
                      R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U), "CHARACTER":U) + "wrx":U).
 
-IF OCXFile <> ? THEN
-DO:
-  ASSIGN
-    chCtrlFrame = CtrlFrame:COM-HANDLE
-    UIB_S = chCtrlFrame:LoadControls( OCXFile, "CtrlFrame":U)
-  .
-  RUN DISPATCH IN THIS-PROCEDURE("initialize-controls":U) NO-ERROR.
+  IF OCXFile <> ? THEN
+  DO:
+    ASSIGN
+      chCtrlFrame = CtrlFrame:COM-HANDLE
+      UIB_S = chCtrlFrame:LoadControls( OCXFile, "CtrlFrame":U)
+    .
+    RUN DISPATCH IN THIS-PROCEDURE("initialize-controls":U) NO-ERROR.
+  END.
+  ELSE MESSAGE "adeuib\_vwebcon.wrx":U SKIP(1)
+               "The binary control file could not be found. The controls cannot be loaded."
+               VIEW-AS ALERT-BOX TITLE "Controls Not Loaded".
 END.
-ELSE MESSAGE "adeuib\_vwebcon.wrx":U SKIP(1)
-             "The binary control file could not be found. The controls cannot be loaded."
-             VIEW-AS ALERT-BOX TITLE "Controls Not Loaded".
-
 &ENDIF
 
 END PROCEDURE.

@@ -3890,7 +3890,7 @@ PROCEDURE refreshRow :
   DEFINE VARIABLE hTarget         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lQueryObject    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cDisabled       AS CHARACTER  NO-UNDO.
-
+  define variable lUsekeyonRefresh as logical no-undo.
    /* Nothing to refresh ..  */
   &SCOPED-DEFINE xp-assign
   {get NewRow lNewRow}    
@@ -3915,8 +3915,21 @@ PROCEDURE refreshRow :
 
   /* Save off the current RowIdent to pass to sendRows. It will re-retrieve
      that row from the database. */
-  ASSIGN cRowIdent = hRowObject:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE
-         iRowNum   = hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
+   {get UseKeyOnRefresh lUsekeyonRefresh}.                                           
+   if lUsekeyonRefresh then 
+   do: 
+       {get keyWhere cRowIdent}.    
+       if cRowIdent = ? then
+       do:
+            message "Refresh failed due to an unexpected error when building the refresh query."
+            view-as alert-box error.
+            return.
+       end.  
+   end.
+   else   
+       ASSIGN cRowIdent = hRowObject:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE.
+  
+   iRowNum   = hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
   
   hRowObject:BUFFER-DELETE().      /* remove the old copy of the row. */
   
@@ -10494,3 +10507,46 @@ END FUNCTION.
 
 &ENDIF
 
+
+&IF DEFINED(EXCLUDE-getKeyWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyWhere Procedure 
+function  getKeyWhere return character ():
+    define variable cKeyFields    as character no-undo.
+    define variable cQueryFields  as character no-undo.
+    define variable pcValues      as character no-undo.
+    define variable cQueryString  as character no-undo.
+    define variable cntr          as integer   no-undo.
+    define variable cForName      as character no-undo.
+    
+    {get KeyFields cKeyFields}.
+        
+    if cKeyFields = "" or cKeyFields = ? then 
+       return ?.
+     
+    do cntr = 1 to num-entries(cKeyFields):
+       cForName = entry(cntr,cKeyFields).
+       if cntr > 1 then 
+          assign pcValues = pcValues +  CHR(1)
+                 cQueryFields = cQueryFields +  ",".
+       pcValues = pcValues + {fnarg columnValue cForName }.
+       if cForName = ? then
+          return ?.
+       if num-entries(cForName,".") = 1 then 
+          cForName = "RowObject." + cForName.
+       
+       cQueryFields = cQueryFields + cForName.
+    end.     
+    cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                     cQueryFields,
+                                     pcValues,
+                                     "=",
+                                     ?,
+                                     ?).
+    return cQueryString.                                   
+end function.   
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF

@@ -223,6 +223,7 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
       RUN displayDesignWindow IN hOEIDEService (_save_file, h_dlg_win).
       run positionDesignWindow in hOEIDEService (h_dlg_win).
       h_dlg_win:popup-menu = createContextMenu(). 
+      on any-key of h_dlg_win anywhere persistent run OnAnyKey in _h_uib.
   END.
 
   ASSIGN

@@ -39,305 +39,305 @@ History:
     rkamboj 03/21/2012  Override button disabled in OEA AppBuilder for ADM1 objects (OE00217457)
 
 *****************************************************************************/
-DEFINE NEW SHARED STREAM WebStream.
-
-PROCEDURE ADEPersistent:
-END PROCEDURE.
-
-
-PROCEDURE EdPopupDrop:
-    DEFINE INPUT PARAMETER p_Editor AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EdPopupDrop'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EdPopupDrop IN hProc ( INPUT p_Editor ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditUndo:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EditUndo'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditUndo IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditCut:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EditCut'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditCut IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditCopy:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EditCopy'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditCopy IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditPaste:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EditPaste'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditPaste IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE IndentSelection:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pi_indent AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG IndentSelection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN IndentSelection IN hProc ( INPUT p_Buffer , INPUT pi_indent ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE CommentSelection:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pl_comment AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG CommentSelection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN CommentSelection IN hProc ( INPUT p_Buffer , INPUT pl_comment ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE CommentBox:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pl_comment AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG CommentBox'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN CommentBox IN hProc ( INPUT p_Buffer , INPUT pl_comment ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE InsertFile:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG InsertFile'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertFile IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FieldSelector:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG FieldSelector'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FieldSelector IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditHelp:
-    DEFINE INPUT PARAMETER p_Editor AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Tool_Name AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Context AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG EditHelp'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditHelp IN hProc ( INPUT p_Editor , INPUT p_Tool_Name , INPUT p_Context ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ApplyTab:
-    DEFINE INPUT PARAMETER p_Editor AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Return_Error AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG ApplyTab'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ApplyTab IN hProc ( INPUT p_Editor , INPUT p_Return_Error ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ApplyBackTab:
-    DEFINE INPUT PARAMETER p_Editor AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Return_Error AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG ApplyBackTab'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ApplyBackTab IN hProc ( INPUT p_Editor , INPUT p_Return_Error ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE Indent_Selection:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pi_indent AS INTEGER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Applied AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Indent_Selection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Indent_Selection IN hProc ( INPUT p_Buffer , INPUT pi_indent , OUTPUT p_Applied ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE Comment_Selection:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pl_comment AS LOGICAL NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Applied AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Comment_Selection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Comment_Selection IN hProc ( INPUT p_Buffer , INPUT pl_comment , OUTPUT p_Applied ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE Comment_Box:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pl_comment AS LOGICAL NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Applied AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Comment_Box'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Comment_Box IN hProc ( INPUT p_Buffer , INPUT pl_comment , OUTPUT p_Applied ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE Apply_Tab:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Applied AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Apply_Tab'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Apply_Tab IN hProc ( INPUT p_Buffer , OUTPUT p_Applied ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE Apply_BackTab:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Applied AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Apply_BackTab'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Apply_BackTab IN hProc ( INPUT p_Buffer , OUTPUT p_Applied ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE SetEdBufType:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_File_Name AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG SetEdBufType'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN SetEdBufType IN hProc ( INPUT p_Buffer , INPUT p_File_Name ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE EditingOptions:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG EditingOptions'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN EditingOptions IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE SetEdHelpFile:
-    MESSAGE 'DEBUG SetEdHelpFile'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN SetEdHelpFile IN hProc NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE SetEditor:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG SetEditor'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN SetEditor IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FindText:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG FindText'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FindText IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ReplaceText:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG ReplaceText'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ReplaceText IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ReplaceConfirm:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG ReplaceConfirm'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ReplaceConfirm IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ReplaceAll:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG ReplaceAll'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ReplaceAll IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FindAssign:
-    DEFINE OUTPUT PARAMETER p_Find_Criteria AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG FindAssign'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FindAssign IN hProc ( OUTPUT p_Find_Criteria ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE ReplaceAssign:
-    MESSAGE 'DEBUG ReplaceAssign'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ReplaceAssign IN hProc NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FindNext:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Find_Criteria AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG FindNext'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FindNext IN hProc ( INPUT p_Buffer , INPUT p_Find_Criteria ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FindPrev:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Find_Criteria AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG FindPrev'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FindPrev IN hProc ( INPUT p_Buffer , INPUT p_Find_Criteria ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE FindAgain:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Again_Find_Command AS INTEGER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Again_Find_Criteria AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG FindAgain'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN FindAgain IN hProc ( INPUT p_Buffer , INPUT p_Again_Find_Command , INPUT p_Again_Find_Criteria ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE MakeQMark:
-    DEFINE INPUT-OUTPUT PARAMETER p_String AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Large AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG MakeQMark'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN MakeQMark IN hProc ( INPUT-OUTPUT p_String , INPUT p_Large ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE GotoLine:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG GotoLine'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN GotoLine IN hProc ( INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE MoveCursor:
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Cursor_Line AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG MoveCursor'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN MoveCursor IN hProc ( INPUT p_Buffer , INPUT p_Cursor_Line ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE SecEdWindow:
+define new shared stream WebStream.
+
+procedure ADEPersistent:
+end procedure.
+
+
+procedure EdPopupDrop:
+    define input parameter p_Editor as handle no-undo.
+    message 'DEBUG EdPopupDrop'
+      view-as alert-box info buttons ok.
+    run EdPopupDrop in hProc ( input p_Editor ) no-error.
+end procedure.
+
+
+procedure EditUndo:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG EditUndo'
+      view-as alert-box info buttons ok.
+    run EditUndo in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure EditCut:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG EditCut'
+      view-as alert-box info buttons ok.
+    run EditCut in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure EditCopy:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG EditCopy'
+      view-as alert-box info buttons ok.
+    run EditCopy in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure EditPaste:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG EditPaste'
+      view-as alert-box info buttons ok.
+    run EditPaste in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure IndentSelection:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pi_indent as integer no-undo.
+    message 'DEBUG IndentSelection'
+      view-as alert-box info buttons ok.
+    run IndentSelection in hProc ( input p_Buffer , input pi_indent ) no-error.
+end procedure.
+
+
+procedure CommentSelection:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pl_comment as logical no-undo.
+    message 'DEBUG CommentSelection'
+      view-as alert-box info buttons ok.
+    run CommentSelection in hProc ( input p_Buffer , input pl_comment ) no-error.
+end procedure.
+
+
+procedure CommentBox:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pl_comment as logical no-undo.
+    message 'DEBUG CommentBox'
+      view-as alert-box info buttons ok.
+    run CommentBox in hProc ( input p_Buffer , input pl_comment ) no-error.
+end procedure.
+
+
+procedure InsertFile:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG InsertFile'
+      view-as alert-box info buttons ok.
+    run InsertFile in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure FieldSelector:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG FieldSelector'
+      view-as alert-box info buttons ok.
+    run FieldSelector in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure EditHelp:
+    define input parameter p_Editor as handle no-undo.
+    define input parameter p_Tool_Name as character no-undo.
+    define input parameter p_Context as integer no-undo.
+    message 'DEBUG EditHelp'
+      view-as alert-box info buttons ok.
+    run EditHelp in hProc ( input p_Editor , input p_Tool_Name , input p_Context ) no-error.
+end procedure.
+
+
+procedure ApplyTab:
+    define input parameter p_Editor as handle no-undo.
+    define input parameter p_Return_Error as logical no-undo.
+    message 'DEBUG ApplyTab'
+      view-as alert-box info buttons ok.
+    run ApplyTab in hProc ( input p_Editor , input p_Return_Error ) no-error.
+end procedure.
+
+
+procedure ApplyBackTab:
+    define input parameter p_Editor as handle no-undo.
+    define input parameter p_Return_Error as logical no-undo.
+    message 'DEBUG ApplyBackTab'
+      view-as alert-box info buttons ok.
+    run ApplyBackTab in hProc ( input p_Editor , input p_Return_Error ) no-error.
+end procedure.
+
+
+procedure Indent_Selection:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pi_indent as integer no-undo.
+    define output parameter p_Applied as logical no-undo.
+    message 'DEBUG Indent_Selection'
+      view-as alert-box info buttons ok.
+    run Indent_Selection in hProc ( input p_Buffer , input pi_indent , output p_Applied ) no-error.
+end procedure.
+
+
+procedure Comment_Selection:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pl_comment as logical no-undo.
+    define output parameter p_Applied as logical no-undo.
+    message 'DEBUG Comment_Selection'
+      view-as alert-box info buttons ok.
+    run Comment_Selection in hProc ( input p_Buffer , input pl_comment , output p_Applied ) no-error.
+end procedure.
+
+
+procedure Comment_Box:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter pl_comment as logical no-undo.
+    define output parameter p_Applied as logical no-undo.
+    message 'DEBUG Comment_Box'
+      view-as alert-box info buttons ok.
+    run Comment_Box in hProc ( input p_Buffer , input pl_comment , output p_Applied ) no-error.
+end procedure.
+
+
+procedure Apply_Tab:
+    define input parameter p_Buffer as handle no-undo.
+    define output parameter p_Applied as logical no-undo.
+    message 'DEBUG Apply_Tab'
+      view-as alert-box info buttons ok.
+    run Apply_Tab in hProc ( input p_Buffer , output p_Applied ) no-error.
+end procedure.
+
+
+procedure Apply_BackTab:
+    define input parameter p_Buffer as handle no-undo.
+    define output parameter p_Applied as logical no-undo.
+    message 'DEBUG Apply_BackTab'
+      view-as alert-box info buttons ok.
+    run Apply_BackTab in hProc ( input p_Buffer , output p_Applied ) no-error.
+end procedure.
+
+
+procedure SetEdBufType:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter p_File_Name as character no-undo.
+    message 'DEBUG SetEdBufType'
+      view-as alert-box info buttons ok.
+    run SetEdBufType in hProc ( input p_Buffer , input p_File_Name ) no-error.
+end procedure.
+
+
+procedure EditingOptions:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG EditingOptions'
+      view-as alert-box info buttons ok.
+    run EditingOptions in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure SetEdHelpFile:
+    message 'DEBUG SetEdHelpFile'
+      view-as alert-box info buttons ok.
+    run SetEdHelpFile in hProc no-error.
+end procedure.
+
+
+procedure SetEditor:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG SetEditor'
+      view-as alert-box info buttons ok.
+    run SetEditor in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure FindText:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG FindText'
+      view-as alert-box info buttons ok.
+    run FindText in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure ReplaceText:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG ReplaceText'
+      view-as alert-box info buttons ok.
+    run ReplaceText in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure ReplaceConfirm:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG ReplaceConfirm'
+      view-as alert-box info buttons ok.
+    run ReplaceConfirm in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure ReplaceAll:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG ReplaceAll'
+      view-as alert-box info buttons ok.
+    run ReplaceAll in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure FindAssign:
+    define output parameter p_Find_Criteria as integer no-undo.
+    message 'DEBUG FindAssign'
+      view-as alert-box info buttons ok.
+    run FindAssign in hProc ( output p_Find_Criteria ) no-error.
+end procedure.
+
+
+procedure ReplaceAssign:
+    message 'DEBUG ReplaceAssign'
+      view-as alert-box info buttons ok.
+    run ReplaceAssign in hProc no-error.
+end procedure.
+
+
+procedure FindNext:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter p_Find_Criteria as integer no-undo.
+    message 'DEBUG FindNext'
+      view-as alert-box info buttons ok.
+    run FindNext in hProc ( input p_Buffer , input p_Find_Criteria ) no-error.
+end procedure.
+
+
+procedure FindPrev:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter p_Find_Criteria as integer no-undo.
+    message 'DEBUG FindPrev'
+      view-as alert-box info buttons ok.
+    run FindPrev in hProc ( input p_Buffer , input p_Find_Criteria ) no-error.
+end procedure.
+
+
+procedure FindAgain:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter p_Again_Find_Command as integer no-undo.
+    define input parameter p_Again_Find_Criteria as integer no-undo.
+    message 'DEBUG FindAgain'
+      view-as alert-box info buttons ok.
+    run FindAgain in hProc ( input p_Buffer , input p_Again_Find_Command , input p_Again_Find_Criteria ) no-error.
+end procedure.
+
+
+procedure MakeQMark:
+    define input-output parameter p_String as character no-undo.
+    define input parameter p_Large as logical no-undo.
+    message 'DEBUG MakeQMark'
+      view-as alert-box info buttons ok.
+    run MakeQMark in hProc ( input-output p_String , input p_Large ) no-error.
+end procedure.
+
+
+procedure GotoLine:
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG GotoLine'
+      view-as alert-box info buttons ok.
+    run GotoLine in hProc ( input p_Buffer ) no-error.
+end procedure.
+
+
+procedure MoveCursor:
+    define input parameter p_Buffer as handle no-undo.
+    define input parameter p_Cursor_Line as integer no-undo.
+    message 'DEBUG MoveCursor'
+      view-as alert-box info buttons ok.
+    run MoveCursor in hProc ( input p_Buffer , input p_Cursor_Line ) no-error.
+end procedure.
+
+
+procedure SecEdWindow:
 /*------------------------------------------------------------------------------
   Purpose: Represents the SecEdWindow procedure used by the section 
            in the AppBuilder.
@@ -347,92 +347,92 @@ PROCEDURE SecEdWindow:
       that the section editor is being accessed in an open operation 
       from _open-w.p.
 ------------------------------------------------------------------------------*/    
-    DEFINE INPUT PARAMETER pi_section AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER pi_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER pi_event AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_command AS CHARACTER NO-UNDO.
+    define input parameter pi_section as character no-undo.
+    define input parameter pi_recid as recid no-undo.
+    define input parameter pi_event as character no-undo.
+    define input parameter p_command as character no-undo.
     
     /** During dev for 11.2 the various case statements here became dead ends
         We currently need the api since it is called from many places when the handle is valid
         So really...do nothing */
      
-END PROCEDURE.
+end procedure.
 
-PROCEDURE AssignSEW:
-    DEFINE INPUT PARAMETER se_section AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER se_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER se_event AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_U_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER p_TRG_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER p_hwin AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG AssignSEW'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN AssignSEW IN hProc ( INPUT se_section , INPUT se_recid , INPUT se_event , INPUT p_U_recid , INPUT p_TRG_recid , INPUT p_hwin ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE se_store:
-    DEFINE INPUT PARAMETER p_command AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG se_store'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_store IN hProc ( INPUT p_command ) NO-ERROR.
-END PROCEDURE.
+procedure AssignSEW:
+    define input parameter se_section as character no-undo.
+    define input parameter se_recid as recid no-undo.
+    define input parameter se_event as character no-undo.
+    define input parameter p_U_recid as recid no-undo.
+    define input parameter p_TRG_recid as recid no-undo.
+    define input parameter p_hwin as handle no-undo.
+    message 'DEBUG AssignSEW'
+      view-as alert-box info buttons ok.
+    run AssignSEW in hProc ( input se_section , input se_recid , input se_event , input p_U_recid , input p_TRG_recid , input p_hwin ) no-error.
+end procedure.
 
 
-PROCEDURE se_upd_disp:
-    DEFINE OUTPUT PARAMETER p_upd_disp AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG se_upd_disp'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_upd_disp IN hProc ( OUTPUT p_upd_disp ) NO-ERROR.
-END PROCEDURE.
+procedure se_store:
+    define input parameter p_command as character no-undo.
+    message 'DEBUG se_store'
+      view-as alert-box info buttons ok.
+    run se_store in hProc ( input p_command ) no-error.
+end procedure.
 
 
-PROCEDURE SEClose:
-    DEFINE INPUT PARAMETER p_command AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG SEClose'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN SEClose IN hProc ( INPUT p_command ) NO-ERROR.
-END PROCEDURE.
+procedure se_upd_disp:
+    define output parameter p_upd_disp as logical no-undo.
+    message 'DEBUG se_upd_disp'
+      view-as alert-box info buttons ok.
+    run se_upd_disp in hProc ( output p_upd_disp ) no-error.
+end procedure.
 
 
-PROCEDURE se_upd_widget_list:
-    MESSAGE 'DEBUG se_upd_widget_list'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_upd_widget_list IN hProc NO-ERROR.
-END PROCEDURE.
+procedure SEClose:
+    define input parameter p_command as character no-undo.
+    message 'DEBUG SEClose'
+      view-as alert-box info buttons ok.
+    run SEClose in hProc ( input p_command ) no-error.
+end procedure.
 
 
-PROCEDURE se_emdrp:
-    MESSAGE 'DEBUG se_emdrp'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_emdrp IN hProc NO-ERROR.
-END PROCEDURE.
+procedure se_upd_widget_list:
+    message 'DEBUG se_upd_widget_list'
+      view-as alert-box info buttons ok.
+    run se_upd_widget_list in hProc no-error.
+end procedure.
 
 
-PROCEDURE se_set_title:
-    DEFINE INPUT PARAMETER p_U_handle AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG se_set_title'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_set_title IN hProc ( INPUT p_U_handle ) NO-ERROR.
-END PROCEDURE.
+procedure se_emdrp:
+    message 'DEBUG se_emdrp'
+      view-as alert-box info buttons ok.
+    run se_emdrp in hProc no-error.
+end procedure.
 
 
-PROCEDURE se_help:
-    DEFINE INPUT PARAMETER p_Help_Context AS INTEGER NO-UNDO.
-    MESSAGE 'DEBUG se_help'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN se_help IN hProc ( INPUT p_Help_Context ) .
-END PROCEDURE.
+procedure se_set_title:
+    define input parameter p_U_handle as handle no-undo.
+    message 'DEBUG se_set_title'
+      view-as alert-box info buttons ok.
+    run se_set_title in hProc ( input p_U_handle ) no-error.
+end procedure.
 
 
-PROCEDURE build_event_list:
-    MESSAGE 'DEBUG build_event_list'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN build_event_list IN hProc .
-END PROCEDURE.
+procedure se_help:
+    define input parameter p_Help_Context as integer no-undo.
+    message 'DEBUG se_help'
+      view-as alert-box info buttons ok.
+    run se_help in hProc ( input p_Help_Context ) .
+end procedure.
 
 
-PROCEDURE build_proc_list:
+procedure build_event_list:
+    message 'DEBUG build_event_list'
+      view-as alert-box info buttons ok.
+    run build_event_list in hProc .
+end procedure.
+
+
+procedure build_proc_list:
     /* romiller remove begin
     DEFINE INPUT PARAMETER phList AS HANDLE NO-UNDO.
     MESSAGE 'DEBUG build_proc_list'
@@ -452,184 +452,346 @@ PROCEDURE build_proc_list:
     def var procname as char    no-undo.
 
     /* Empty the current list. */
-    ASSIGN phList:SCREEN-VALUE = ?
-           phList:LIST-ITEMS = "".        
+    assign phList:screen-value = ?
+           phList:list-items = "".        
     /* Get all the procedures for the current UIB Design Object. */
-    FOR EACH _SEW_TRG WHERE _SEW_TRG._wRECID = b_P._u-recid /* win_recid */
-                      AND   _SEW_TRG._tSECTION = Type_Procedure :
-      ASSIGN procname = _SEW_TRG._tEVENT
-             l_ok     =  phList:ADD-LAST(procname).
-    END.
+    for each _SEW_TRG where _SEW_TRG._wRECID = b_P._u-recid /* win_recid */
+                      and   _SEW_TRG._tSECTION = Type_Procedure :
+      assign procname = _SEW_TRG._tEVENT
+             l_ok     =  phList:add-last(procname).
+    end.
     /* romiller add end */
-END PROCEDURE.
+end procedure.
 
 
-PROCEDURE build_func_list:
-    DEFINE INPUT PARAMETER phList AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG build_func_list'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN build_func_list IN hProc ( INPUT phList ) NO-ERROR.
-END PROCEDURE.
+procedure build_func_list:
+    define input parameter phList as handle no-undo.
+    message 'DEBUG build_func_list'
+      view-as alert-box info buttons ok.
+    run build_func_list in hProc ( input phList ) no-error.
+end procedure.
 
 
-PROCEDURE build_widget_list:
-    DEFINE INPUT PARAMETER init_value AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG build_widget_list'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN build_widget_list IN hProc ( INPUT init_value ) NO-ERROR.
-END PROCEDURE.
+procedure build_widget_list:
+    define input parameter init_value as character no-undo.
+    message 'DEBUG build_widget_list'
+      view-as alert-box info buttons ok.
+    run build_widget_list in hProc ( input init_value ) no-error.
+end procedure.
 
 
-PROCEDURE Has_Freeform:
-    DEFINE INPUT PARAMETER p_u-recid AS RECID NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Has_Freeform AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Has_Freeform'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Has_Freeform IN hProc ( INPUT p_u-recid , OUTPUT p_Has_Freeform ) NO-ERROR.
-END PROCEDURE.
+procedure Has_Freeform:
+    define input parameter p_u-recid as recid no-undo.
+    define output parameter p_Has_Freeform as logical no-undo.
+    message 'DEBUG Has_Freeform'
+      view-as alert-box info buttons ok.
+    run Has_Freeform in hProc ( input p_u-recid , output p_Has_Freeform ) no-error.
+end procedure.
 
 
-PROCEDURE Has_Trigger:
-    DEFINE INPUT PARAMETER p_sew_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER p_event AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_has_trigger AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG Has_Trigger'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN Has_Trigger IN hProc ( INPUT p_sew_recid , INPUT p_event , OUTPUT p_has_trigger ) NO-ERROR.
-END PROCEDURE.
+procedure Has_Trigger:
+    define input parameter p_sew_recid as recid no-undo.
+    define input parameter p_event as character no-undo.
+    define output parameter p_has_trigger as logical no-undo.
+    message 'DEBUG Has_Trigger'
+      view-as alert-box info buttons ok.
+    run Has_Trigger in hProc ( input p_sew_recid , input p_event , output p_has_trigger ) no-error.
+end procedure.
 
 
-PROCEDURE freeform_update:
-    DEFINE INPUT PARAMETER p_u-recid AS RECID NO-UNDO.
-    MESSAGE 'DEBUG freeform_update'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN freeform_update IN hProc ( INPUT p_u-recid ) NO-ERROR.
-END PROCEDURE.
+procedure freeform_update:
+    define input parameter p_u-recid as recid no-undo.
+    message 'DEBUG freeform_update'
+      view-as alert-box info buttons ok.
+    run freeform_update in hProc ( input p_u-recid ) no-error.
+end procedure.
 
 
-PROCEDURE GetAttribute:
-    DEFINE INPUT PARAMETER p_Attribute AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Value AS CHARACTER NO-UNDO.
-    CASE p_Attribute:
-        WHEN "SE-WINDOW" THEN p_Value = STRING(h_sewin).
-        OTHERWISE DO:
-        END.
-    END CASE.
+procedure GetAttribute:
+    define input parameter p_Attribute as character no-undo.
+    define output parameter p_Value as character no-undo.
+    case p_Attribute:
+        when "SE-WINDOW" then p_Value = string(h_sewin).
+        otherwise do:
+        end.
+    end case.
     
-END PROCEDURE.
+end procedure.
 
 
-PROCEDURE GetWidgetListName:
-    DEFINE INPUT PARAMETER p_Name AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Label AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_List_Item AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG GetWidgetListName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN GetWidgetListName IN hProc ( INPUT p_Name , INPUT p_Label , OUTPUT p_List_Item ) NO-ERROR.
-END PROCEDURE.
+procedure GetWidgetListName:
+    define input parameter p_Name as character no-undo.
+    define input parameter p_Label as character no-undo.
+    define output parameter p_List_Item as character no-undo.
+    message 'DEBUG GetWidgetListName'
+      view-as alert-box info buttons ok.
+    run GetWidgetListName in hProc ( input p_Name , input p_Label , output p_List_Item ) no-error.
+end procedure.
 
 
-PROCEDURE ChangeSection:
-    DEFINE INPUT PARAMETER p_new_section AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG ChangeSection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ChangeSection IN hProc ( INPUT p_new_section ) NO-ERROR.
-END PROCEDURE.
+procedure ChangeSection:
+    define input parameter p_new_section as character no-undo.
+    message 'DEBUG ChangeSection'
+      view-as alert-box info buttons ok.
+    run ChangeSection in hProc ( input p_new_section ) no-error.
+end procedure.
 
 
-PROCEDURE NoProcs:
-    DEFINE INPUT PARAMETER p_Type AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_oknew AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG NoProcs'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN NoProcs IN hProc ( INPUT p_Type , OUTPUT p_oknew ) NO-ERROR.
-END PROCEDURE.
+procedure NoProcs:
+    define input parameter p_Type as character no-undo.
+    define output parameter p_oknew as logical no-undo.
+    message 'DEBUG NoProcs'
+      view-as alert-box info buttons ok.
+    run NoProcs in hProc ( input p_Type , output p_oknew ) no-error.
+end procedure.
 
 
-PROCEDURE ListBlocks:
-    MESSAGE 'DEBUG ListBlocks'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ListBlocks IN hProc NO-ERROR.
-END PROCEDURE.
+procedure ListBlocks:
+    message 'DEBUG ListBlocks'
+      view-as alert-box info buttons ok.
+    run ListBlocks in hProc no-error.
+end procedure.
 
 
-PROCEDURE NextSearchBlock:
-    DEFINE INPUT PARAMETER p_Sect-List AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Sect-First AS CHARACTER NO-UNDO.
-    DEFINE INPUT-OUTPUT PARAMETER p_Sect-Curr AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG NextSearchBlock'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN NextSearchBlock IN hProc ( INPUT p_Sect-List , INPUT p_Sect-First , INPUT-OUTPUT p_Sect-Curr ) NO-ERROR.
-END PROCEDURE.
+procedure NextSearchBlock:
+    define input parameter p_Sect-List as character no-undo.
+    define input parameter p_Sect-First as character no-undo.
+    define input-output parameter p_Sect-Curr as character no-undo.
+    message 'DEBUG NextSearchBlock'
+      view-as alert-box info buttons ok.
+    run NextSearchBlock in hProc ( input p_Sect-List , input p_Sect-First , input-output p_Sect-Curr ) no-error.
+end procedure.
 
 
-PROCEDURE GetNextSearchSection:
-    DEFINE INPUT PARAMETER h_trg_win AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_Sect-List AS CHARACTER NO-UNDO.
-    DEFINE INPUT-OUTPUT PARAMETER p_Sect-Curr AS CHARACTER NO-UNDO.
-    DEFINE INPUT-OUTPUT PARAMETER p_section AS CHARACTER NO-UNDO.
-    DEFINE INPUT-OUTPUT PARAMETER p_recid AS RECID NO-UNDO.
-    DEFINE INPUT-OUTPUT PARAMETER p_event AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_ok AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG GetNextSearchSection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN GetNextSearchSection IN hProc ( INPUT h_trg_win , INPUT p_Sect-List , INPUT-OUTPUT p_Sect-Curr , INPUT-OUTPUT p_section , INPUT-OUTPUT p_recid , INPUT-OUTPUT p_event , OUTPUT p_ok ) NO-ERROR.
-END PROCEDURE.
+procedure GetNextSearchSection:
+    define input parameter h_trg_win as handle no-undo.
+    define input parameter p_Sect-List as character no-undo.
+    define input-output parameter p_Sect-Curr as character no-undo.
+    define input-output parameter p_section as character no-undo.
+    define input-output parameter p_recid as recid no-undo.
+    define input-output parameter p_event as character no-undo.
+    define output parameter p_ok as logical no-undo.
+    message 'DEBUG GetNextSearchSection'
+      view-as alert-box info buttons ok.
+    run GetNextSearchSection in hProc ( input h_trg_win , input p_Sect-List , input-output p_Sect-Curr , input-output p_section , input-output p_recid , input-output p_event , output p_ok ) no-error.
+end procedure.
 
 
-PROCEDURE GetSearchAllList:
-    DEFINE INPUT PARAMETER h_trg_win AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER p_section AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER p_event AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Sect-List AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER p_Sect-Curr AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG GetSearchAllList'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN GetSearchAllList IN hProc ( INPUT h_trg_win , INPUT p_section , INPUT p_recid , INPUT p_event , OUTPUT p_Sect-List , OUTPUT p_Sect-Curr ) NO-ERROR.
-END PROCEDURE.
+procedure GetSearchAllList:
+    define input parameter h_trg_win as handle no-undo.
+    define input parameter p_section as character no-undo.
+    define input parameter p_recid as recid no-undo.
+    define input parameter p_event as character no-undo.
+    define output parameter p_Sect-List as character no-undo.
+    define output parameter p_Sect-Curr as character no-undo.
+    message 'DEBUG GetSearchAllList'
+      view-as alert-box info buttons ok.
+    run GetSearchAllList in hProc ( input h_trg_win , input p_section , input p_recid , input p_event , output p_Sect-List , output p_Sect-Curr ) no-error.
+end procedure.
 
 
-PROCEDURE change_trg:
-    DEFINE INPUT PARAMETER new_section AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER new_recid AS RECID NO-UNDO.
-    DEFINE INPUT PARAMETER new_event AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER use_new_event AS LOGICAL NO-UNDO.
-    DEFINE INPUT PARAMETER store_code AS LOGICAL NO-UNDO.
-    DEFINE OUTPUT PARAMETER change_ok AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG change_trg'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN change_trg IN hProc ( INPUT new_section , INPUT new_recid , INPUT new_event , INPUT use_new_event , INPUT store_code , OUTPUT change_ok ) NO-ERROR.
-END PROCEDURE.
+procedure change_trg:
+    define input parameter new_section as character no-undo.
+    define input parameter new_recid as recid no-undo.
+    define input parameter new_event as character no-undo.
+    define input parameter use_new_event as logical no-undo.
+    define input parameter store_code as logical no-undo.
+    define output parameter change_ok as logical no-undo.
+    message 'DEBUG change_trg'
+      view-as alert-box info buttons ok.
+    run change_trg in hProc ( input new_section , input new_recid , input new_event , input use_new_event , input store_code , output change_ok ) no-error.
+end procedure.
 
 
-PROCEDURE CheckSyntax:
-    MESSAGE 'DEBUG CheckSyntax'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN CheckSyntax IN hProc NO-ERROR.
-END PROCEDURE.
+procedure CheckSyntax:
+    message 'DEBUG CheckSyntax'
+      view-as alert-box info buttons ok.
+    run CheckSyntax in hProc no-error.
+end procedure.
 
 
-PROCEDURE UndoChange:
-    MESSAGE 'DEBUG UndoChange'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN UndoChange IN hProc NO-ERROR.
-END PROCEDURE.
+procedure UndoChange:
+    message 'DEBUG UndoChange'
+      view-as alert-box info buttons ok.
+    run UndoChange in hProc no-error.
+end procedure.
 
 
-PROCEDURE DeleteBlock:
-    MESSAGE 'DEBUG DeleteBlock'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN DeleteBlock IN hProc NO-ERROR.
-END PROCEDURE.
+procedure DeleteBlock:
+    message 'DEBUG DeleteBlock'
+      view-as alert-box info buttons ok.
+    run DeleteBlock in hProc no-error.
+end procedure.
 
 
-PROCEDURE NewBlock:
-    RUN NewBlock IN hProc NO-ERROR.
-END PROCEDURE.
+procedure NewBlock:
+    run NewBlock in hProc no-error.
+end procedure.
+
+procedure insertTriggerBlock.
+  /*-------------------------------------------------------------------------
+    Purpose:        Insert Trigger
+    Run Syntax:     RUN NewTriggerBlock ( event_name ).
+    Parameters:     phWin design window handle
+                    pcType  u._type ()
+                    pcName
+                    pcNewEvent name of the event for the trigger
+  ---------------------------------------------------------------------------*/
+    define input  parameter phWin       as handle    no-undo.
+    define input  parameter pcType      as character no-undo.
+    define input  parameter pcName      as character no-undo.
+    define input  parameter pcNewEvent  as character no-undo.
+    define input  parameter pcBrowseName  as character no-undo.
+    define output parameter plok        as logical no-undo.
+    define variable hParent           as handle no-undo. 
+    define variable new_recid         as recid  no-undo.
+    define variable code_type         as character no-undo.
+    define variable strt              as integer no-undo.
+    define variable lok               as logical no-undo.
+/*    define variable new_spcl          as character no-undo.*/
+    define variable cSection          as character no-undo.
+    define buffer _sew_bc for  _bc.
+    
+    if pcNewEvent = "" or pcNewEvent = ? then 
+        undo, throw new Progress.Lang.AppError("No event passed to InsertTriggerBlock()",?).
+  
+    find b_P where b_P._window-handle = phWin no-lock no-error.
+    if not avail b_p then 
+    do:
+        hParent = phWin:first-child.
+        find b_P where b_P._window-handle = hParent no-lock no-error.
+        if not avail b_p then 
+            return. 
+    end.
+    else 
+        hParent = phWin.
+    if pcType= "CONTROL-FRAME":U then
+        pcType = "{&WT-CONTROL}":U.
+    
+    /* Rohit- browse column fix */    
+    if pcType = "BROWSE-COLUMN" then 
+    do: 
+        /* incomplete - find out how to get this from java
+           adding a new parameter for the parent/browse 
+           instead of using pcname */   
+        
+        find _sew_u where _sew_u._window-handle = hParent 
+                      and _sew_u._type          = "BROWSE" 
+                      and _sew_u._name          = pcBrowseName no-error.        
+        if not avail _sew_u then
+            return. 
+            
+        if num-entries(pcname,".") = 3 then
+        do:
+              find _sew_bc where _sew_bc._x-recid = recid(_sew_u)
+                           and _sew_bc._dbname = entry(1,pcname,".")
+                           and _sew_bc._table = entry(2,pcname,".")
+                           and _sew_bc._name = entry(3,pcname,".") 
+                           no-error.
+        
+        end.
+        else if num-entries(pcname,".") = 2 then
+        do:
+              find _sew_bc where _sew_bc._x-recid = recid(_sew_u)
+                           and _sew_bc._table = entry(1,pcname,".")
+                           and _sew_bc._name = entry(2,pcname,".")
+                           no-error.
+               
+        end.    
+        else do:
+           find _sew_bc where _sew_bc._x-recid = recid(_sew_u)
+                       and _sew_bc._name = pcname no-error.
+        
+        end.    
+ 
+/*        IF NOT CAN-DO("_<CALC>,_<SDO>", _BC._DBNAME) THEN         */
+/*        tmp_string = db-fld-name("_BC":U, RECID(_BC)).            */
+/*      ELSE IF _BC._table > '' AND _BC._table <> 'RowObject':U THEN*/
+/*        tmp_string = _BC._table + '.':U + _bc._name.              */
+/*      ELSE tmp_string = _BC._DISP-NAME.                           */
+/*/*                                                                  */*/
+
+        if not avail _sew_bc then
+            return.
+        
+        new_recid = recid(_sew_bc).       
+    end.
+    else 
+    do:    
+        find _sew_u where _sew_u._window-handle = hParent 
+                      and _sew_u._type          = pcType
+                      and _sew_u._name          = pcName no-error.
+        
+        if not avail _sew_u then
+            return. 
+     
+        /* we could have checked thw ptype input param ... but the code here should work 
+           no matter how we find the data */ 
+        if _sew_u._TYPE = "TEXT":U then 
+            return.      
+          
+        if _sew_u._TYPE = "SmartObject":U then 
+            return.
+            
+        assign 
+            new_recid = recid(_sew_u).
+        
+    end. 
+        
+    cSection  = "_CONTROL":U.  /* Type_Trigger */
+        /* Not in use - this code was derived from NewTriggerBlock where tihs  variable 
+           was set to ? and never changed... in that code the  _tCode was also assinged 
+           if new_spcl <>  ? (which always was true)
+          @TODO      
+         new_spcl   = ?. */
+          
+    if can-find(_sew_trg where _tSECTION = cSection
+                         and   _wRECID   = new_recid
+                         and   _tEVENT   = pcNewEvent) then 
+        return ERROR "Event " + pcNewEvent + " already exists for " + pcType + " " + pcname.
+    
+    create _sew_trg.
+    assign _sew_trg._tSECTION = cSection
+           _sew_trg._tSPECIAL = ?   /*new_spcl*/
+           _sew_trg._pRECID   = recid(b_P)
+           _sew_trg._wRECID   = new_recid
+           _sew_trg._tEVENT   = pcNewEvent
+           _sew_trg._tCODE    = ?.
+    /* For all special events (e.g., OCX.event), store it in _tSPECIAL. */
+    if num-entries(pcNewEvent, ".":u) > 1 then
+    do:
+        assign _sew_trg._tSPECIAL = pcNewEvent
+               _sew_trg._tTYPE    = "_CONTROL-PROCEDURE" NO-ERROR. /* what if error? */
+    end.
+    if available _SEW_U and _SEW_U._TYPE eq "{&WT-CONTROL}" then
+    do:
+        run adeshar/_ocxdflt.p(pcNewEvent, cSection, new_recid, output _sew_trg._tCODE). 
+    end.
+    else do:
+        assign code_type = cSection. /* Default code type. */
+        if (pcNewEvent = "DEFINE_QUERY") then
+            assign code_type = "_DEFINE-QUERY":U.
+        else if (_sew_trg._tTYPE <> "") then
+            assign code_type = pcNewEvent.
+        run adeshar/_coddflt.p (code_type, new_recid, output _sew_trg._tCODE).
+        /* not necessary,  _gen4gl does not delete empty triggers when ide is running
+        /* Add comment to trigger block to force adeshar/_gen4gl.p to save it. */
+        strt = index(_sew_trg._tCODE,":") + 1.
+        if strt > 1 then 
+        do:
+            _sew_trg._tCODE = substring(_sew_trg._tCODE, 1, strt) 
+                            + "  /* new trigger */":U 
+                            + substring(_sew_trg._tCODE, strt + 1).
+        end. 
+        */
+    end.                     
+    run adecomm/_adeevnt.p ("UIB":U, "New":U, integer(recid(_sew_trg)),se_section, output lok).
+    run adeuib/_winsave.p (b_P._WINDOW-HANDLE, false).
+    plok = true.
+end procedure. 
 
 
-PROCEDURE NewTriggerBlock.
+procedure NewTriggerBlock.
   /*-------------------------------------------------------------------------
     Purpose:        Edit->Insert->Trigger
     Run Syntax:     RUN NewTriggerBlock ( event_name ).
@@ -640,65 +802,64 @@ PROCEDURE NewTriggerBlock.
       event - name of event
   ---------------------------------------------------------------------------*/
   
-  DEFINE INPUT PARAMETER p_new_event AS CHARACTER NO-UNDO.
+  define input parameter p_new_event as character no-undo.
     
-  DEFINE VARIABLE a_ok              AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE event_list        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE h_cwin            AS WIDGET    NO-UNDO.
-  DEFINE VARIABLE Invalid_List      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_command       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_recid         AS RECID     NO-UNDO.
-  DEFINE VARIABLE new_spcl          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE proc_entry        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE proc_list         AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Smart_List        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Type              AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Returns_Type      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Code_Block        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Define_As         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE window-handle     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Create_Block      AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE code_type         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hSuper_Proc       AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Super_Procs       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Super_Handles     AS CHARACTER NO-UNDO .
-  DEFINE VARIABLE Super_Entries     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iItem             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iEntry            AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lOK               AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE strt              AS INTEGER   NO-UNDO.
+  define variable a_ok              as logical   no-undo.
+  define variable event_list        as character no-undo.
+  define variable h_cwin            as WIDGET    no-undo.
+  define variable Invalid_List      as character no-undo.
+  define variable new_command       as character no-undo.
+  define variable new_recid         as recid     no-undo.
+  define variable new_spcl          as character no-undo.
+  define variable proc_entry        as integer   no-undo.
+  define variable proc_list         as handle    no-undo.
+  define variable Smart_List        as character no-undo.
+  define variable Type              as character no-undo.
+  define variable Returns_Type      as character no-undo.
+  define variable Code_Block        as character no-undo.
+  define variable Define_As         as character no-undo.
+  define variable window-handle     as handle    no-undo.
+  define variable Create_Block      as logical   no-undo.
+  define variable code_type         as character no-undo.
+  define variable hSuper_Proc       as handle    no-undo.
+  define variable Super_Procs       as character no-undo.
+  define variable Super_Handles     as character no-undo .
+  define variable Super_Entries     as character no-undo.
+  define variable iItem             as integer   no-undo.
+  define variable iEntry            as integer   no-undo.
+  define variable lOK               as logical   no-undo.
+  define variable strt              as integer   no-undo.
   
-  DEFINE BUFFER b_U FOR _U.
 
-      IF NOT VALID-HANDLE(_h_cur_widg) THEN RETURN.
+      if not valid-handle(_h_cur_widg) then return.
       
-      FIND _SEW_U WHERE _HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
-      IF NOT AVAILABLE _SEW_U THEN RETURN.
-      IF _SEW_U._TYPE = "TEXT":U THEN RETURN.      
-      IF _SEW_U._TYPE = "SmartObject":U THEN RETURN.
-      new_recid = RECID(_SEW_U).      
+      find _SEW_U where _HANDLE = _h_cur_widg no-lock no-error.
+      if not available _SEW_U then return.
+      if _SEW_U._TYPE = "TEXT":U then return.      
+      if _SEW_U._TYPE = "SmartObject":U then return.
+      new_recid = recid(_SEW_U).      
       
-      IF NOT CAN-QUERY(_h_cur_widg, "WINDOW":U) THEN RETURN.
-      FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:WINDOW NO-LOCK NO-ERROR.
+      if not can-query(_h_cur_widg, "WINDOW":U) then return.
+      find b_P where b_P._WINDOW-HANDLE = _h_cur_widg:WINDOW no-lock no-error.
       /* For controls in a dialog-box, the _WINDOW-HANDLE field corresponds to the FRAME */
-      IF NOT AVAILABLE b_P THEN
-          FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:FRAME NO-LOCK NO-ERROR.
+      if not available b_P then
+          find b_P where b_P._WINDOW-HANDLE = _h_cur_widg:FRAME no-lock no-error.
       /* When the dialog-box is selected, the handle is the actual widget */
-      IF NOT AVAILABLE b_P THEN
-          FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg NO-LOCK NO-ERROR.    
-      IF NOT AVAILABLE b_P THEN RETURN.
+      if not available b_P then
+          find b_P where b_P._WINDOW-HANDLE = _h_cur_widg no-lock no-error.    
+      if not available b_P then return.
 
-  ASSIGN se_section = "_CONTROL":U /* Type_Trigger */
+  assign se_section = "_CONTROL":U /* Type_Trigger */
          new_spcl   = ?.      
       
-  IF p_new_event = ? THEN DO: /* Ask for a new event */
-    ASSIGN p_new_event = editted_event.
+  if p_new_event = ? then do: /* Ask for a new event */
+    assign p_new_event = editted_event.
     
-    ASSIGN       
-           Type           = IF AVAILABLE _SEW_U THEN _SEW_U._TYPE ELSE "BROWSE-COLUMN":U.
-    DO ON STOP UNDO, LEAVE:
-      IF TYPE eq "{&WT-CONTROL}" 
-      THEN DO:
+    assign       
+           Type           = if available _SEW_U then _SEW_U._TYPE else "BROWSE-COLUMN":U.
+    do on stop undo, leave:
+      if TYPE eq "{&WT-CONTROL}" 
+      then do:
          /*
           * If the VBX is "halfway there" then warn the
           * user that NEW VBX event procedures aren't
@@ -707,173 +868,174 @@ PROCEDURE NewTriggerBlock.
           * current user doesn't have a license for.
           */
          
-         FIND _SEW_F WHERE RECID(_SEW_F) = _SEW_U._x-recid.
-         IF _SEW_F._SPECIAL-DATA <> ? THEN
-             MESSAGE "The {&WT-CONTROL}," _SEW_F._IMAGE-FILE ", is missing or unavailable" skip
+         find _SEW_F where recid(_SEW_F) = _SEW_U._x-recid.
+         if _SEW_F._SPECIAL-DATA <> ? then
+             message "The {&WT-CONTROL}," _SEW_F._IMAGE-FILE ", is missing or unavailable" skip
                      "for" _SEW_U._NAME ". New {&WT-CONTROL} events cannot edited. Existing" skip
                      "{&WT-CONTROL} events and PROGRESS events can be edited."
-             VIEW-AS ALERT-BOX INFORMATION.
+             view-as alert-box information.
              
              
-         RUN adeuib/_ocxevnt.p (INPUT _SEW_U._HANDLE, INPUT "", OUTPUT event_list).
-      END.
-      IF LOOKUP(TYPE,"QUERY,FRAME,BROWSE,DIALOG-BOX":U) > 0 THEN DO:
+         run adeuib/_ocxevnt.p (input _SEW_U._HANDLE, input "", output event_list).
+      end.
+      if lookup(TYPE,"QUERY,FRAME,BROWSE,DIALOG-BOX":U) > 0 then do:
         /* See if its a free form query */
-        IF AVAILABLE _SEW_U THEN DO:
-          IF CAN-FIND(FIRST _TRG WHERE _TRG._tEVENT = "OPEN_QUERY" AND
-                                       _TRG._wRECID = RECID(_SEW_U)) THEN
+        if available _SEW_U then do:
+          if can-find(first _TRG where _TRG._tEVENT = "OPEN_QUERY" and
+                                       _TRG._wRECID = RECID(_SEW_U)) then
             event_list = "FFQ":U.  /* Free Form Query */
-        END.
-      END.  /* If a query, frame, browse or dialog */
+        end.
+      end.  /* If a query, frame, browse or dialog */
 
       /* Add any special events such as Data.<event>. Not used for BROWSE-COLUMN. */
-      IF (TYPE NE "BROWSE-COLUMN":U) THEN
-        ASSIGN event_list = TRIM(event_list + ",":u + b_P._events, ",").
-      RUN adeuib/_selevnt.p
-        (INPUT TYPE,
-         INPUT (IF TYPE NE "BROWSE-COLUMN":U THEN _SEW_U._SUBTYPE ELSE ""),
-         INPUT event_list,
-         INPUT _cur_win_type,
-         INPUT RECID(b_P),
-         INPUT-OUTPUT p_new_event).
-    END.
-  END.
-  ELSE DO:
-    IF p_new_event = "" THEN
-      RUN get_default_event(_SEW_U._TYPE, OUTPUT p_new_event).
-  END.
+      if (TYPE ne "BROWSE-COLUMN":U) then
+        assign event_list = trim(event_list + ",":u + b_P._events, ",").
+      run adeuib/_selevnt.p
+        (input TYPE,
+         input (if TYPE ne "BROWSE-COLUMN":U then _SEW_U._SUBTYPE else ""),
+         input event_list,
+         input _cur_win_type,
+         input recid(b_P),
+         input-output p_new_event).
+    end.
+  end.
+  else do:
+    if p_new_event = "" then
+      run get_default_event(_SEW_U._TYPE, output p_new_event).
+  end.
   
-    IF p_new_event <> "" THEN
-    DO:
-        Create_Block = NOT CAN-FIND(_SEW_TRG WHERE _tSECTION = se_section
-                                               AND _wRECID   = new_recid
-                                               AND _tEVENT   = p_new_event).
-    END.
-    ELSE
-        Create_Block = FALSE.
+    if p_new_event <> "" then
+    do:
+        Create_Block = not can-find(_SEW_TRG where _tSECTION = se_section
+                                               and _wRECID   = new_recid
+                                               and _tEVENT   = p_new_event).
+    end.
+    else
+        Create_Block = false.
     
-    IF Create_Block THEN
-    DO:
-      CREATE _SEW_TRG.
-      ASSIGN _SEW_TRG._tSECTION = se_section
+    if Create_Block then
+    do:
+      create _SEW_TRG.
+      assign _SEW_TRG._tSECTION = se_section
              _SEW_TRG._tSPECIAL = new_spcl
-             _SEW_TRG._pRECID   = RECID(b_P)
+             _SEW_TRG._pRECID   = recid(b_P)
              _SEW_TRG._wRECID   = new_recid
              _SEW_TRG._tEVENT   = p_new_event
              _SEW_TRG._tCODE    = ?
              a_ok               = yes.
-    END.
+    end.
 
     /* If we created a new one, or if it is ok to go to the old one, then go */
-    IF a_ok THEN DO:
+    if a_ok then do:
       /* Fill the new trigger unless 1) it is special or 2) we are
          viewing an existing code block. */
-      IF new_spcl = ? THEN
-      DO:
-              DO:
+      if new_spcl = ? then
+      do:
+              do:
                 /* For all special events (e.g., OCX.event), store it in _tSPECIAL. */
-                IF NUM-ENTRIES(p_new_event, ".":u) > 1 THEN
-                DO:
-                    ASSIGN _SEW_TRG._tSPECIAL = p_new_event
+                if num-entries(p_new_event, ".":u) > 1 then
+                do:
+                    assign _SEW_TRG._tSPECIAL = p_new_event
                            _SEW_TRG._tTYPE    = "_CONTROL-PROCEDURE" NO-ERROR.
-                END.
+                end.
                     
-                IF AVAILABLE _SEW_U AND _SEW_U._TYPE eq "{&WT-CONTROL}" THEN
-                  RUN adeshar/_ocxdflt.p
-                            (p_new_event, se_section, new_recid, OUTPUT _SEW_TRG._tCODE). 
-                ELSE DO:
-                  ASSIGN code_type = se_section. /* Default code type. */
-                  IF (p_new_event = "DEFINE_QUERY") THEN
-                    ASSIGN code_type = "_DEFINE-QUERY":U.
-                  ELSE IF (_SEW_TRG._tTYPE <> "") THEN
-                    ASSIGN code_type = p_new_event.
-                  RUN adeshar/_coddflt.p (code_type, new_recid, OUTPUT _SEW_TRG._tCODE).
+                if available _SEW_U and _SEW_U._TYPE eq "{&WT-CONTROL}" then
+                  run adeshar/_ocxdflt.p
+                            (p_new_event, se_section, new_recid, output _SEW_TRG._tCODE). 
+                else do:
+                  assign code_type = se_section. /* Default code type. */
+                  if (p_new_event = "DEFINE_QUERY") then
+                    assign code_type = "_DEFINE-QUERY":U.
+                  else if (_SEW_TRG._tTYPE <> "") then
+                    assign code_type = p_new_event.
+                  run adeshar/_coddflt.p (code_type, new_recid, output _SEW_TRG._tCODE).
                   /* Add comment to trigger block to force adeshar/_gen4gl.p to save it. */
-                  strt = INDEX(_SEW_TRG._tCODE,":") + 1.
-                  IF strt > 1 THEN DO:
-                    _SEW_TRG._tCODE = SUBSTRING(_SEW_TRG._tCODE, 1, strt) +
+                  strt = index(_SEW_TRG._tCODE,":") + 1.
+                  if strt > 1 then do:
+                    _SEW_TRG._tCODE = substring(_SEW_TRG._tCODE, 1, strt) +
                                  "  /* new trigger */":U +
                                  SUBSTRING(_SEW_TRG._tCODE, strt + 1).
-                  END.                  
-                END.
-              END.
+                  end.                  
+                end.
+              end.
 
-          RUN adecomm/_adeevnt.p ("UIB":U, "New":U, INTEGER(RECID(_SEW_TRG)),
-                                        se_section, OUTPUT lOK).
-      END.
+          run adecomm/_adeevnt.p ("UIB":U, "New":U, integer(recid(_SEW_TRG)),
+                                        se_section, output lOK).
+      end.
 
-      IF Create_Block THEN
-      DO:
-        DEFINE VARIABLE cLinkedFile   AS CHARACTER  NO-UNDO.
+      if Create_Block then
+      do:
+        define variable cLinkedFile   as character  no-undo.
         
-        RUN adeuib/_winsave.p (b_P._WINDOW-HANDLE, FALSE).
+        run adeuib/_winsave.p (b_P._WINDOW-HANDLE, false).
 
        /* If treeview, update it. */
-       IF VALID-HANDLE(b_P._tv-proc) THEN
-       DO:
-         RUN addCodeNode IN b_P._tv-proc
-               (INPUT se_section, INPUT new_recid, INPUT se_event).
-       END.
+       if valid-handle(b_P._tv-proc) then
+       do:
+         run addCodeNode in b_P._tv-proc
+               (input se_section, input new_recid, input se_event).
+       end.
 
-        RUN getLinkedFileName IN hOEIDEService (b_P._WINDOW-HANDLE, OUTPUT cLinkedFile).
+        run getLinkedFileName in hOEIDEService (b_P._WINDOW-HANDLE, output cLinkedFile).
         /* IF cLinkedFile > "" THEN
           RUN syncFromAB (cLinkedFile). */ 
-      END.      
-  END.
+      end.      
+  end.
 
-IF NOT AVAILABLE b_P THEN RETURN.
-IF b_P._save-as-file = ? THEN RETURN.
+if not available b_P then return.
+if b_P._save-as-file = ? then return.
 
-DEFINE VARIABLE cWidgetName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cWindowName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hWindowHandle AS HANDLE     NO-UNDO.
+define variable cWidgetName   as character  no-undo.
+define variable cWindowName   as character  no-undo.
+define variable hWindowHandle as handle     no-undo.
 
 /* If the specified event exist, then use findAndSelect to select it in the editor */      
-FIND _SEW_TRG WHERE _SEW_TRG._tSECTION = se_section
-                AND _SEW_TRG._wRECID   = new_recid
-                AND _SEW_TRG._tEVENT   = p_new_event NO-LOCK NO-ERROR.
-IF NOT AVAILABLE _SEW_TRG THEN RETURN.
+find _SEW_TRG where _SEW_TRG._tSECTION = se_section
+                and _SEW_TRG._wRECID   = new_recid
+                and _SEW_TRG._tEVENT   = p_new_event no-lock no-error.
+if not available _SEW_TRG then return.
               
 cWidgetName = _SEW_U._NAME.
                       
-FIND _SEW_U WHERE RECID(_SEW_U) = _SEW_TRG._wrecid NO-LOCK NO-ERROR.
+find _SEW_U where recid(_SEW_U) = _SEW_TRG._wrecid no-lock no-error.
 
-cWidgetName = IF AVAILABLE _SEW_U THEN _SEW_U._name ELSE ?.
-hWindowHandle = IF AVAILABLE _SEW_U THEN _SEW_U._window-handle ELSE ?.
-IF hWindowHandle <> ? THEN
-DO:
-  FIND FIRST _SEW_U WHERE _SEW_U._handle = hWindowHandle NO-LOCK NO-ERROR.
-  cWindowName = IF AVAILABLE _SEW_U THEN _SEW_U._name ELSE ?.
-END.
+cWidgetName = if available _SEW_U then _SEW_U._name else ?.
+hWindowHandle = if available _SEW_U then _SEW_U._window-handle else ?.
+if hWindowHandle <> ? then
+do:
+  find first _SEW_U where _SEW_U._handle = hWindowHandle no-lock no-error.
+  cWindowName = if available _SEW_U then _SEW_U._name else ?.
+end.
 
-IF INDEX(p_new_event, ".":U) > 0 THEN /* OCX event */
+if index(p_new_event, ".":U) > 0 then /* OCX event */
   findAndSelect(getProjectName(),
   b_P._save-as-file,
               '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ":U 
-                  + cWidgetName + " " + cWindowName + '"', TRUE).
-ELSE
-DO:
-  IF _h_cur_widg:TYPE = "FRAME":U THEN
+                  + cWidgetName + " " + cWindowName + '"', true).
+else
+do:
+  if _h_cur_widg:TYPE = "FRAME":U then
       cWidgetName = "FRAME ":U + cWidgetName.
   findAndSelect(getProjectName(), b_P._save-as-file,
-              '"' + "ON ":U + p_new_event + " OF ":U + cWidgetName + '"', TRUE). 
-END.              
+              '"' + "ON ":U + p_new_event + " OF ":U + cWidgetName + '"', true). 
+end.              
                
-END PROCEDURE.
+end procedure.
 
-PROCEDURE GetOCXEvents.
+procedure GetOCXEvents.
   /*-------------------------------------------------------------------------
-    Purpose:        Called from IDE to get list of ocx events
-    Parameters:     
+    Purpose:     Called from IDE to get list of ocx events
+    Parameters:  
+       output  poEvents   ocxtype and events as comma separated list
   ---------------------------------------------------------------------------*/
     define input  parameter pwin as handle  no-undo.
     define input  parameter pocxname as character no-undo.
     
     define output parameter poEvents as longchar no-undo.
+    
     define variable EventList      as character no-undo.
     define variable hParent as handle no-undo.
-    
-    
+    define variable cOcxType as character no-undo.   
     find b_P where b_P._WINDOW-HANDLE = pwin no-lock no-error.
     if not avail b_p then 
     do:
@@ -885,10 +1047,11 @@ PROCEDURE GetOCXEvents.
     end.
     else hParent = pwin.
     
-    FIND _SEW_U WHERE _SEW_U._WINDOW-HANDLE = hParent 
-                  AND _SEW_U._NAME          = pocxname NO-ERROR.
-    IF AVAILABLE _SEW_U THEN
-    DO:
+    find _SEW_U where _SEW_U._WINDOW-HANDLE = hParent 
+                  and _SEW_U._TYPE          = "{&WT-CONTROL}"
+                  and _SEW_U._NAME          = pocxname no-error.
+    if available _SEW_U then
+    do:
         /*
         * If the VBX is "halfway there" then warn the
         * user that NEW VBX event procedures aren't
@@ -897,22 +1060,25 @@ PROCEDURE GetOCXEvents.
         * current user doesn't have a license for.
         */
      
-        FIND _SEW_F WHERE RECID(_SEW_F) = _SEW_U._x-recid.
-        IF _SEW_F._SPECIAL-DATA <> ? THEN
-        DO:
-           poEvents =  "ERROR:The {&WT-CONTROL},"  + _SEW_F._IMAGE-FILE  + ", is missing or unavailable" + "~n"  
-                    +  "for " + _SEW_U._NAME + ". New {&WT-CONTROL} events cannot edited. Existing" + "~n"
-                    + "{&WT-CONTROL} events and PROGRESS events can be edited.".
-           RETURN.  
-        END. 
+        find _SEW_F where recid(_SEW_F) = _SEW_U._x-recid.
+        if _SEW_F._SPECIAL-DATA <> ? then
+        do:
+           poEvents =  "ERROR:The {&WT-CONTROL}, "  + _SEW_F._IMAGE-FILE  + ", is missing or unavailable"   
+                    +  " for " + _SEW_U._NAME + ". New {&WT-CONTROL} events cannot be edited. Existing" 
+                    + " {&WT-CONTROL} events and PROGRESS events can be edited.".
+           return.  
+        end. 
             
-        RUN adeuib/_ocxevnt.p (INPUT _SEW_U._HANDLE, INPUT "", OUTPUT EventList).
-        poEvents = EventList.
-    END.           
-END PROCEDURE.
+        run adeuib/_ocxevnt.p (input _SEW_U._HANDLE, input "", output EventList).
+        cOcxType = if (_SEW_U._OCX-NAME = "":U) or (_SEW_U._OCX-NAME = ?)
+                   then pocxname 
+                   else _SEW_U._OCX-NAME.
+        poEvents = cOcxType + "," + EventList.
+    end.           
+end procedure.
 
 
-PROCEDURE GetOverrides.
+procedure GetOverrides.
   /*-------------------------------------------------------------------------
     Purpose:        Called from IDE to get list of overrides for Add Procedure and
                     Add Function wizards 
@@ -962,7 +1128,7 @@ PROCEDURE GetOverrides.
     end.    
 end procedure.
 
-PROCEDURE GetOverrideBody.
+procedure GetOverrideBody.
   /*-------------------------------------------------------------------------
     Purpose:        Called from IDE to override body
                     Add Function wizards 
@@ -1010,19 +1176,19 @@ PROCEDURE GetOverrideBody.
                                               input-output Smart_List).
              
 
-             RUN adeuib/_newproc.w persistent set hProc( INPUT Super_Handles   ,
-                                     INPUT "OVERRIDE"     ,
-                                     INPUT Smart_List      ,
-                                     INPUT Invalid_List    ,
-                                     INPUT-OUTPUT cDummy ,
-                                     OUTPUT cDummy           ,
-                                     OUTPUT cDummy     ,
-                                     OUTPUT lDummy           ) .
+             run adeuib/_newproc.w persistent set hProc( input Super_Handles   ,
+                                     input "OVERRIDE"     ,
+                                     input Smart_List      ,
+                                     input Invalid_List    ,
+                                     input-output cDummy ,
+                                     output cDummy           ,
+                                     output cDummy     ,
+                                     output lDummy           ) .
              
              run getCode in hProc (pcName,"_LOCAL",output ccode).
              if cCode = "" then 
              do:
-                  RUN get-local-template IN _h_mlmgr (pcName, OUTPUT ccode).
+                  run get-local-template in _h_mlmgr (pcName, output ccode).
                   /* return body - ide adds comments and end procedure */
                   i1 = index(ccode,"*/") + 2. 
                   i2 = index (ccode,"END PROCEDURE.").
@@ -1063,55 +1229,55 @@ PROCEDURE GetOverrideBody.
 end procedure.
 
 
-PROCEDURE NewCodeBlock.
+procedure NewCodeBlock.
   /*-------------------------------------------------------------------------
     Purpose:        Edit->Insert->Procedure
     Run Syntax:     RUN NewProcedureBlock.
     Parameters:     
   ---------------------------------------------------------------------------*/
   
-  DEFINE INPUT PARAMETER p_se_section AS CHARACTER NO-UNDO.
+  define input parameter p_se_section as character no-undo.
      
-  DEFINE VARIABLE proc_type         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_event         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_name          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE a_ok              AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE event_list        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE h_cwin            AS WIDGET    NO-UNDO.
-  DEFINE VARIABLE Invalid_List      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_command       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE new_recid         AS RECID     NO-UNDO.
-  DEFINE VARIABLE new_spcl          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE proc_entry        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE proc_list         AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Smart_List        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Type              AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Returns_Type      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Code_Block        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Define_As         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE window-handle     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Create_Block      AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE code_type         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hSuper_Proc       AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE Super_Procs       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE Super_Handles     AS CHARACTER NO-UNDO .
-  DEFINE VARIABLE Super_Entries     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iItem             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iEntry            AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lOK               AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE strt              AS INTEGER   NO-UNDO. 
+  define variable proc_type         as character no-undo.
+  define variable new_event         as character no-undo.
+  define variable new_name          as character no-undo.
+  define variable a_ok              as logical   no-undo.
+  define variable event_list        as character no-undo.
+  define variable h_cwin            as WIDGET    no-undo.
+  define variable Invalid_List      as character no-undo.
+  define variable new_command       as character no-undo.
+  define variable new_recid         as recid     no-undo.
+  define variable new_spcl          as character no-undo.
+  define variable proc_entry        as integer   no-undo.
+  define variable proc_list         as handle    no-undo.
+  define variable Smart_List        as character no-undo.
+  define variable Type              as character no-undo.
+  define variable Returns_Type      as character no-undo.
+  define variable Code_Block        as character no-undo.
+  define variable Define_As         as character no-undo.
+  define variable window-handle     as handle    no-undo.
+  define variable Create_Block      as logical   no-undo.
+  define variable code_type         as character no-undo.
+  define variable hSuper_Proc       as handle    no-undo.
+  define variable Super_Procs       as character no-undo.
+  define variable Super_Handles     as character no-undo .
+  define variable Super_Entries     as character no-undo.
+  define variable iItem             as integer   no-undo.
+  define variable iEntry            as integer   no-undo.
+  define variable lOK               as logical   no-undo.
+  define variable strt              as integer   no-undo. 
   
   
-      IF NOT VALID-HANDLE(_h_win) THEN RETURN.
-      FIND b_P WHERE b_P._WINDOW-HANDLE = _h_win NO-LOCK NO-ERROR.
-      IF NOT AVAILABLE b_P THEN RETURN.
+      if not valid-handle(_h_win) then return.
+      find b_P where b_P._WINDOW-HANDLE = _h_win no-lock no-error.
+      if not available b_P then return.
 
       new_recid = b_P._u-recid.
       se_section = p_se_section.
       
         
     /* Ask for a new procedure name. */
-    ASSIGN new_event = ""
+    assign new_event = ""
            new_name  = ""
            proc_type = ?    /* Standard new procedure */
            . /* END ASSIGN */
@@ -1119,232 +1285,232 @@ PROCEDURE NewCodeBlock.
     /* Get names of a) all procs & funcs and b) ADM SmartMethod and SmartFunction
        (subset). Both take care of items defined in the current object as well as
        in Included Libraries. */
-    IF se_section = Type_Procedure OR se_section = Type_Function THEN
-    DO:
-      RUN Get_Proc_Lists
-          (INPUT NO , OUTPUT Invalid_List , OUTPUT Smart_List).
+    if se_section = Type_Procedure or se_section = Type_Function then
+    do:
+      run Get_Proc_Lists
+          (input no , output Invalid_List , output Smart_List).
     
-      ASSIGN new_command = "NEW":U.
-      CASE se_section:
-        WHEN Type_Procedure THEN
-        DO:
+      assign new_command = "NEW":U.
+      case se_section:
+        when Type_Procedure then
+        do:
           /* Build list of the object's Super Procedure internal procedures. */
-          RUN get-super-procedures IN _h_mlmgr ( INPUT STRING(_h_win) ,
-                                                 INPUT-OUTPUT Super_Procs ,
-                                                 INPUT-OUTPUT Super_Handles).
-          RUN get-super-procs IN _h_mlmgr (INPUT Super_Handles ,
-                                           INPUT-OUTPUT Smart_List).
-          RUN adeuib/_newproc.w ( INPUT Super_Handles   ,
-                                  INPUT new_command     ,
-                                  INPUT Smart_List      ,
-                                  INPUT Invalid_List    ,
-                                  INPUT-OUTPUT new_name ,
-                                  OUTPUT Type           ,
-                                  OUTPUT Code_Block     ,
-                                  OUTPUT a_OK           ).
-        END.
-        WHEN Type_Function THEN
-        DO:
+          run get-super-procedures in _h_mlmgr ( input string(_h_win) ,
+                                                 input-output Super_Procs ,
+                                                 input-output Super_Handles).
+          run get-super-procs in _h_mlmgr (input Super_Handles ,
+                                           input-output Smart_List).
+          run adeuib/_newproc.w ( input Super_Handles   ,
+                                  input new_command     ,
+                                  input Smart_List      ,
+                                  input Invalid_List    ,
+                                  input-output new_name ,
+                                  output Type           ,
+                                  output Code_Block     ,
+                                  output a_OK           ).
+        end.
+        when Type_Function then
+        do:
           /* Build list of the object's Super Procedure user functions. */
-          RUN get-super-procedures IN _h_mlmgr ( INPUT STRING(_h_win) ,
-                                                 INPUT-OUTPUT Super_Procs ,
-                                                 INPUT-OUTPUT Super_Handles).
-          RUN get-super-funcs IN _h_mlmgr (INPUT Super_Handles ,
-                                           INPUT-OUTPUT Smart_List).
-          RUN adeuib/_newfunc.w ( INPUT Super_Handles   ,
-                                  INPUT new_command     ,
-                                  INPUT Smart_List      ,
-                                  INPUT Invalid_List    ,
-                                  INPUT-OUTPUT new_name ,
-                                  OUTPUT Type           ,
-                                  OUTPUT Returns_Type   ,
-                                  OUTPUT Define_As      ,
-                                  OUTPUT Code_Block     ,
-                                  OUTPUT a_OK           ).
+          run get-super-procedures in _h_mlmgr ( input string(_h_win) ,
+                                                 input-output Super_Procs ,
+                                                 input-output Super_Handles).
+          run get-super-funcs in _h_mlmgr (input Super_Handles ,
+                                           input-output Smart_List).
+          run adeuib/_newfunc.w ( input Super_Handles   ,
+                                  input new_command     ,
+                                  input Smart_List      ,
+                                  input Invalid_List    ,
+                                  input-output new_name ,
+                                  output Type           ,
+                                  output Returns_Type   ,
+                                  output Define_As      ,
+                                  output Code_Block     ,
+                                  output a_OK           ).
           
-        END.
-      END CASE.
-      IF a_OK = FALSE THEN RETURN "_CANCEL":u.
-    END.
+        end.
+      end case.
+      if a_OK = false then return "_CANCEL":u.
+    end.
     
     
-    IF Type = "_DEFAULT":U THEN
-    CASE new_name :
-        WHEN Adm_Create_Obj THEN
-            ASSIGN proc_type = Type_Adm_Create_Obj
+    if Type = "_DEFAULT":U then
+    case new_name :
+        when Adm_Create_Obj then
+            assign proc_type = Type_Adm_Create_Obj
                    Type      = proc_type.
-        WHEN Adm_Row_Avail THEN
-            ASSIGN proc_type = Type_Adm_Row_Avail
+        when Adm_Row_Avail then
+            assign proc_type = Type_Adm_Row_Avail
                    Type      = proc_type.
-        WHEN Enable_UI THEN
-            ASSIGN proc_type = Type_Def_Enable
+        when Enable_UI then
+            assign proc_type = Type_Def_Enable
                    Type      = proc_type.
-        WHEN Disable_UI THEN
-            ASSIGN proc_type = Type_Def_Disable
+        when Disable_UI then
+            assign proc_type = Type_Def_Disable
                    Type      = proc_type.
-        WHEN Send_Records THEN
-            ASSIGN proc_type = Type_Send_Records
+        when Send_Records then
+            assign proc_type = Type_Send_Records
                    Type      = proc_type.
-    END CASE.
+    end case.
                
-    ASSIGN new_event   = new_name
+    assign new_event   = new_name
            new_spcl    = proc_type. /* Use same "language" as _CONTROL above */  
            
-    IF new_event <> "" THEN
-    DO:
-        Create_Block = NOT CAN-FIND(_SEW_TRG WHERE _tSECTION = se_section
-                                               AND _wRECID   = new_recid
-                                               AND _tEVENT   = new_event).
-    END.
-    ELSE
-        Create_Block = FALSE.
+    if new_event <> "" then
+    do:
+        Create_Block = not can-find(_SEW_TRG where _tSECTION = se_section
+                                               and _wRECID   = new_recid
+                                               and _tEVENT   = new_event).
+    end.
+    else
+        Create_Block = false.
 
-    IF Create_Block THEN
-    DO:
-      CREATE _SEW_TRG.
-      ASSIGN _SEW_TRG._tSECTION = se_section
+    if Create_Block then
+    do:
+      create _SEW_TRG.
+      assign _SEW_TRG._tSECTION = se_section
              _SEW_TRG._tSPECIAL = new_spcl
-             _SEW_TRG._pRECID   = RECID(b_P)
+             _SEW_TRG._pRECID   = recid(b_P)
              _SEW_TRG._wRECID   = new_recid
              _SEW_TRG._tEVENT   = new_event
              _SEW_TRG._tCODE    = ?
-             _SEW_TRG._DB-REQUIRED = NO WHEN (proc_type = Type_Adm_Create_Obj)
+             _SEW_TRG._DB-REQUIRED = no when (proc_type = Type_Adm_Create_Obj)
              a_ok               = yes.
-    END.
+    end.
 
     /* If we created a new one, or if it is ok to go to the old one, then go */
-    IF a_ok THEN DO:
+    if a_ok then do:
       /* Fill the new trigger unless 1) it is special or 2) we are
          viewing an existing code block. */
-    IF new_spcl = ? THEN
-    DO:
+    if new_spcl = ? then
+    do:
       /* romiller add begin */
-      IF Type = Type_Local AND VALID-HANDLE( _h_mlmgr ) AND Code_Block = "" THEN 
+      if Type = Type_Local and VALID-HANDLE( _h_mlmgr ) and Code_Block = "" then 
       /* romiller add begin */
-      DO:
+      do:
         /* romiller add end */
-        RUN get-local-template IN _h_mlmgr ( INPUT  new_name ,
-                                             OUTPUT _SEW_TRG._tCODE ).
-      END.
-      ELSE
+        run get-local-template in _h_mlmgr ( input  new_name ,
+                                             output _SEW_TRG._tCODE ).
+      end.
+      else
         /* romiller add end */
-      DO:
+      do:
       
-          CASE se_section:
-            WHEN Type_Procedure THEN DO:
+          case se_section:
+            when Type_Procedure then do:
               /* If Code_Block is Nul, then get standard code default for a 
                  procedure. Otherwise, its an override whose code was generated by
                  _newproc.p. */
-              IF (Code_Block = "") THEN
-                RUN adeshar/_coddflt.p (se_section, new_recid, OUTPUT _SEW_TRG._tCODE).
-              ELSE
-                ASSIGN _SEW_TRG._tCode = Code_Block.
-            END.
-            WHEN Type_Function THEN DO:
+              if (Code_Block = "") then
+                run adeshar/_coddflt.p (se_section, new_recid, output _SEW_TRG._tCODE).
+              else
+                assign _SEW_TRG._tCode = Code_Block.
+            end.
+            when Type_Function then do:
               /* Function blocks are built by _newfunc.w, not _coddflt.p. */
-              ASSIGN _SEW_TRG._tCODE = Code_Block.
-            END.                      
-          END CASE.
-          RUN adecomm/_adeevnt.p ("UIB":U, "New":U, INTEGER(RECID(_SEW_TRG)),
-                                        se_section, OUTPUT lOK).
-      END.
-      END.
+              assign _SEW_TRG._tCODE = Code_Block.
+            end.                      
+          end case.
+          run adecomm/_adeevnt.p ("UIB":U, "New":U, integer(recid(_SEW_TRG)),
+                                        se_section, output lOK).
+      end.
+      end.
 
-      RELEASE _SEW_TRG. /* Releases _TRG record */
+      release _SEW_TRG. /* Releases _TRG record */
 
-      IF Create_Block THEN
-      DO:
-        DEFINE VARIABLE cLinkedFile   AS CHARACTER  NO-UNDO.
+      if Create_Block then
+      do:
+        define variable cLinkedFile   as character  no-undo.
         
-        RUN adeuib/_winsave.p (b_P._WINDOW-HANDLE, FALSE).
+        run adeuib/_winsave.p (b_P._WINDOW-HANDLE, false).
 
        /* If treeview, update it. */
-       IF VALID-HANDLE(b_P._tv-proc) THEN
-       DO:
-         RUN addCodeNode IN b_P._tv-proc
-               (INPUT se_section, INPUT new_recid, INPUT se_event).
-       END.
+       if valid-handle(b_P._tv-proc) then
+       do:
+         run addCodeNode in b_P._tv-proc
+               (input se_section, input new_recid, input se_event).
+       end.
 
-        RUN getLinkedFileName IN hOEIDEService (b_P._WINDOW-HANDLE, OUTPUT cLinkedFile).
-        IF cLinkedFile > "" THEN
-          RUN syncFromAB (cLinkedFile).
-      END.      
-  END.
+        run getLinkedFileName in hOEIDEService (b_P._WINDOW-HANDLE, output cLinkedFile).
+        if cLinkedFile > "" then
+          run syncFromAB (cLinkedFile).
+      end.      
+  end.
 
-IF NOT AVAILABLE b_P THEN RETURN.
-IF b_P._save-as-file = ? THEN RETURN.
+if not available b_P then return.
+if b_P._save-as-file = ? then return.
 
-DEFINE VARIABLE cWidgetName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cWindowName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hWindowHandle AS HANDLE     NO-UNDO.
+define variable cWidgetName   as character  no-undo.
+define variable cWindowName   as character  no-undo.
+define variable hWindowHandle as handle     no-undo.
 
 /* If the specified event exist, then use findAndSelect to select it in the editor */      
-FIND _SEW_TRG WHERE _SEW_TRG._tSECTION = se_section
-                AND _SEW_TRG._wRECID   = new_recid
-                AND _SEW_TRG._tEVENT   = new_event NO-LOCK NO-ERROR.
+find _SEW_TRG where _SEW_TRG._tSECTION = se_section
+                and _SEW_TRG._wRECID   = new_recid
+                and _SEW_TRG._tEVENT   = new_event no-lock no-error.
 
-IF NOT AVAILABLE _SEW_TRG THEN RETURN.
+if not available _SEW_TRG then return.
 
-IF _h_win <> ? THEN
-DO:
-  FIND FIRST _SEW_U WHERE _SEW_U._handle = _h_win NO-LOCK NO-ERROR.
-  cWindowName = IF AVAILABLE _SEW_U THEN _SEW_U._name ELSE ?.
-END.
+if _h_win <> ? then
+do:
+  find first _SEW_U where _SEW_U._handle = _h_win no-lock no-error.
+  cWindowName = if available _SEW_U then _SEW_U._name else ?.
+end.
 
 findAndSelect(getProjectName(),
   b_P._save-as-file,
             '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK ":U + se_section + " "
-                  + new_event + " " + cWindowName + '"', TRUE ).
+                  + new_event + " " + cWindowName + '"', true ).
     
-END.
+end.
 
-PROCEDURE RenameProc:
-    MESSAGE 'DEBUG RenameProc'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN RenameProc IN hProc NO-ERROR.
-END PROCEDURE.
+procedure RenameProc:
+    message 'DEBUG RenameProc'
+      view-as alert-box info buttons ok.
+    run RenameProc in hProc no-error.
+end procedure.
 
 
-PROCEDURE check_UIB_current_window:
+procedure check_UIB_current_window:
     /* RUN check_UIB_current_window IN hProc NO-ERROR. */
-END PROCEDURE.
+end procedure.
 
 
-PROCEDURE check_store_trg:
-    DEFINE INPUT PARAMETER check_only AS LOGICAL NO-UNDO.
-    DEFINE INPUT PARAMETER print_section AS LOGICAL NO-UNDO.
-    DEFINE OUTPUT PARAMETER code_ok AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG check_store_trg'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN check_store_trg IN hProc ( INPUT check_only , INPUT print_section , OUTPUT code_ok ) NO-ERROR.
-END PROCEDURE.
+procedure check_store_trg:
+    define input parameter check_only as logical no-undo.
+    define input parameter print_section as logical no-undo.
+    define output parameter code_ok as logical no-undo.
+    message 'DEBUG check_store_trg'
+      view-as alert-box info buttons ok.
+    run check_store_trg in hProc ( input check_only , input print_section , output code_ok ) no-error.
+end procedure.
 
 
-PROCEDURE display_trg:
-    MESSAGE 'DEBUG display_trg'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN display_trg IN hProc NO-ERROR.
-END PROCEDURE.
+procedure display_trg:
+    message 'DEBUG display_trg'
+      view-as alert-box info buttons ok.
+    run display_trg in hProc no-error.
+end procedure.
 
 
-PROCEDURE CodeModified:
-    DEFINE INPUT PARAMETER p_Modified AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG CodeModified'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN CodeModified IN hProc ( INPUT p_Modified ) NO-ERROR.
-END PROCEDURE.
+procedure CodeModified:
+    define input parameter p_Modified as logical no-undo.
+    message 'DEBUG CodeModified'
+      view-as alert-box info buttons ok.
+    run CodeModified in hProc ( input p_Modified ) no-error.
+end procedure.
 
 
-PROCEDURE insert_file:
-    DEFINE INPUT PARAMETER p_Mode AS CHARACTER NO-UNDO.
-    DEFINE INPUT PARAMETER p_Buffer AS HANDLE NO-UNDO.
-    MESSAGE 'DEBUG insert_file'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN insert_file IN hProc ( INPUT p_Mode , INPUT p_Buffer ) NO-ERROR.
-END PROCEDURE.
+procedure insert_file:
+    define input parameter p_Mode as character no-undo.
+    define input parameter p_Buffer as handle no-undo.
+    message 'DEBUG insert_file'
+      view-as alert-box info buttons ok.
+    run insert_file in hProc ( input p_Mode , input p_Buffer ) no-error.
+end procedure.
 
 
-PROCEDURE get_default_event.
+procedure get_default_event.
   /*--------------------------------------------------------------------------
     Purpose:       Gets the "normal" event for a given widget-type.
     Run Syntax:    RUN get_default_event (INPUT _SEW_U._TYPE, OUTPUT se_event).
@@ -1353,39 +1519,39 @@ PROCEDURE get_default_event.
     Notes:         Require a current _SEW_U record.
                    Returns "" if w_type is unknown.
   ---------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER  w_type      AS CHAR NO-UNDO.
-  DEFINE OUTPUT PARAMETER dflt        AS CHAR NO-UNDO.
+  define input parameter  w_type      as char no-undo.
+  define output parameter dflt        as char no-undo.
 
-  CASE w_type:
-    WHEN "BROWSE":U                        THEN dflt = "VALUE-CHANGED":U.
-    WHEN "DIALOG-BOX":U OR WHEN "FRAME":U  THEN dflt = "GO":U.
-    WHEN "EDITOR":U OR WHEN "FILL-IN":U OR
-    WHEN "BROWSE-COLUMN":U
-    OR WHEN "{&WT-CONTROL}":U              THEN dflt = "LEAVE":U.
-    WHEN "IMAGE":U OR WHEN "RECTANGLE":U   THEN dflt = "MOUSE-SELECT-CLICK":U.
-    WHEN "SUB-MENU":U OR WHEN "MENU":U     THEN dflt = "MENU-DROP":U.
-    WHEN "COMBO-BOX":U
-    OR WHEN "RADIO-SET":U
-    OR WHEN "SLIDER":U 
-    OR WHEN "SELECTION-LIST":U 
-    OR WHEN "TOGGLE-BOX":U                 THEN dflt = "VALUE-CHANGED":U.
-    WHEN "BUTTON":U                        THEN dflt = "CHOOSE":U.
-    WHEN "QUERY":U                         THEN dflt = "OPEN_QUERY":U.
-    WHEN "MENU-ITEM":U      
-      THEN IF _SEW_U._SUBTYPE = "TOGGLE-BOX":U THEN dflt = "VALUE-CHANGED":U. 
-                                           ELSE dflt = "CHOOSE":U.
-    WHEN "WINDOW":U                        THEN dflt = "WINDOW-CLOSE":U.
-    OTHERWISE DO:
+  case w_type:
+    when "BROWSE":U                        then dflt = "VALUE-CHANGED":U.
+    when "DIALOG-BOX":U or when "FRAME":U  then dflt = "GO":U.
+    when "EDITOR":U or when "FILL-IN":U or
+    when "BROWSE-COLUMN":U
+    or when "{&WT-CONTROL}":U              then dflt = "LEAVE":U.
+    when "IMAGE":U or when "RECTANGLE":U   then dflt = "MOUSE-SELECT-CLICK":U.
+    when "SUB-MENU":U or when "MENU":U     then dflt = "MENU-DROP":U.
+    when "COMBO-BOX":U
+    or when "RADIO-SET":U
+    or when "SLIDER":U 
+    or when "SELECTION-LIST":U 
+    or when "TOGGLE-BOX":U                 then dflt = "VALUE-CHANGED":U.
+    when "BUTTON":U                        then dflt = "CHOOSE":U.
+    when "QUERY":U                         then dflt = "OPEN_QUERY":U.
+    when "MENU-ITEM":U      
+      then if _SEW_U._SUBTYPE = "TOGGLE-BOX":U then dflt = "VALUE-CHANGED":U. 
+                                           else dflt = "CHOOSE":U.
+    when "WINDOW":U                        then dflt = "WINDOW-CLOSE":U.
+    otherwise do:
         dflt = "":U.
-    END.
-  END CASE.
+    end.
+  end case.
 
-  RETURN.
+  return.
   
-END PROCEDURE. /* get_default_event. */
+end procedure. /* get_default_event. */
 
 
-PROCEDURE Get_Proc_Lists.
+procedure Get_Proc_Lists.
   /*-------------------------------------------------------------------------
     Purpose:        Returns important procedure name lists, such as
                     Smart List and List of All Procedure Names.
@@ -1395,51 +1561,51 @@ PROCEDURE Get_Proc_Lists.
     Parameters: 
   ---------------------------------------------------------------------------*/
   
-  DEFINE INPUT  PARAMETER p_Incl_UserDef AS LOGICAL   NO-UNDO.
-  DEFINE OUTPUT PARAMETER p_All_List     AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER p_Smart_List   AS CHARACTER NO-UNDO.
+  define input  parameter p_Incl_UserDef as logical   no-undo.
+  define output parameter p_All_List     as character no-undo.
+  define output parameter p_Smart_List   as character no-undo.
 
   /* romiller add begin */
 
-  DEFINE /*{&NEW} SHARED*/ VARIABLE se_event AS CHARACTER FORMAT "X(256)":U INITIAL ? 
-       LABEL "ON"
-       VIEW-AS COMBO-BOX INNER-LINES 8
-       DROP-DOWN-LIST
-       SIZE 31 BY 1
-       FONT 2 NO-UNDO.
+  define /*{&NEW} SHARED*/ variable se_event as character format "X(256)":U initial ? 
+       label "ON"
+       view-as combo-box inner-lines 8
+       drop-down-list
+       size 31 by 1
+       font 2 no-undo.
 
-  DEFINE FRAME f_edit
+  define frame f_edit
        se_event
       .
 
-  DEFINE VARIABLE proc_entry    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE proc_list     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE window-handle AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE adm-version   AS CHARACTER NO-UNDO.
+  define variable proc_entry    as integer   no-undo.
+  define variable proc_list     as handle    no-undo.
+  define variable window-handle as handle    no-undo.
+  define variable adm-version   as character no-undo.
   
-  DEFINE VAR Smart_Prefix         AS CHARACTER INIT "adm-"                NO-UNDO.
+  define var Smart_Prefix         as character init "adm-"                no-undo.
 
-  IF se_section = Type_Procedure THEN
-      RUN build_proc_list (INPUT se_event:HANDLE in FRAME f_edit).
+  if se_section = Type_Procedure then
+      run build_proc_list (input se_event:HANDLE in frame f_edit).
     
-  DO WITH FRAME f_edit:
+  do with frame f_edit:
     /* Get names of all Procedures defined in all the Included Libraries
        and get the subset of SmartMethod procedures in the Included Libraries.
     */
-    IF VALID-HANDLE( _h_mlmgr ) THEN
-    DO ON STOP UNDO, LEAVE:
-        RUN get-saved-methods IN _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
-                                            INPUT STRING(b_P._WINDOW-HANDLE) ,
-                                            INPUT-OUTPUT p_All_List   ,
-                                            INPUT-OUTPUT p_Smart_List ).
+    if valid-handle( _h_mlmgr ) then
+    do on stop undo, leave:
+        run get-saved-methods in _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
+                                            input string(b_P._WINDOW-HANDLE) ,
+                                            input-output p_All_List   ,
+                                            input-output p_Smart_List ).
         /* Get names of all Functions defined in all the Included Libraries
            and get the subset of SmartFunctions in the Included Libraries.
         */
-        RUN get-saved-funcs   IN _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
-                                            INPUT STRING(b_P._WINDOW-HANDLE) ,
-                                            INPUT-OUTPUT p_All_List   ,
-                                            INPUT-OUTPUT p_Smart_List ).
-    END.
+        run get-saved-funcs   in _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
+                                            input string(b_P._WINDOW-HANDLE) ,
+                                            input-output p_All_List   ,
+                                            input-output p_Smart_List ).
+    end.
   
     /* Add to the All List any user defined procedures and add to the
        Smart List any user defined ADM Methods for the current design
@@ -1452,200 +1618,200 @@ PROCEDURE Get_Proc_Lists.
     */
     adm-version = b_P._ADM-Version.
         
-    ASSIGN proc_list = se_event:HANDLE IN FRAME f_edit.
-    DO proc_entry = 1 TO proc_list:NUM-ITEMS :
-        IF proc_list:ENTRY( proc_entry ) BEGINS Smart_Prefix 
-           AND adm-version BEGINS "ADM1":U THEN
-            ASSIGN p_Smart_List = p_Smart_List + "," +
-                                proc_list:ENTRY( proc_entry ) .
-        IF p_Incl_UserDef THEN
-            ASSIGN p_All_List = p_All_List + "," + proc_list:ENTRY( proc_entry ) .
-    END.
+    assign proc_list = se_event:HANDLE in frame f_edit.
+    do proc_entry = 1 to proc_list:num-items :
+        if proc_list:entry( proc_entry ) begins Smart_Prefix 
+           and adm-version begins "ADM1":U then
+            assign p_Smart_List = p_Smart_List + "," +
+                                proc_list:entry( proc_entry ) .
+        if p_Incl_UserDef then
+            assign p_All_List = p_All_List + "," + proc_list:entry( proc_entry ) .
+    end.
     /* Ensure there are no leading or trailing commas. */
-    ASSIGN p_Smart_List = TRIM(p_Smart_List, ",":U).
+    assign p_Smart_List = trim(p_Smart_List, ",":U).
     
     /* Add to the p_All_List the names of the Procedure Object's Reserved
        Procedure Names (see Procedure Settings dialog).
     */                                                               
-    IF AVAILABLE b_P AND b_P._RESERVED-PROCS <> "" THEN
-        ASSIGN p_All_List = p_All_List + "," + b_P._RESERVED-PROCS.
+    if available b_P and b_P._RESERVED-PROCS <> "" then
+        assign p_All_List = p_All_List + "," + b_P._RESERVED-PROCS.
 
     /* Ensure there are no leading or trailing commas. */
-    ASSIGN p_All_List = TRIM(p_All_List, ",":U).
+    assign p_All_List = trim(p_All_List, ",":U).
             
-  END. /* DO WITH FRAME */
+  end. /* DO WITH FRAME */
   /* romiller add end */             
-END PROCEDURE.
+end procedure.
 
-PROCEDURE paste_txt:
-    DEFINE INPUT PARAMETER str AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG paste_txt'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN paste_txt IN hProc ( INPUT str ) NO-ERROR.
-END PROCEDURE.
-
-
-PROCEDURE set_isection:
-    MESSAGE 'DEBUG set_isection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN set_isection IN hProc NO-ERROR.
-END PROCEDURE.
+procedure paste_txt:
+    define input parameter str as character no-undo.
+    message 'DEBUG paste_txt'
+      view-as alert-box info buttons ok.
+    run paste_txt in hProc ( input str ) no-error.
+end procedure.
 
 
-PROCEDURE set_cursor:
-    MESSAGE 'DEBUG set_cursor'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN set_cursor IN hProc NO-ERROR.
-END PROCEDURE.
+procedure set_isection:
+    message 'DEBUG set_isection'
+      view-as alert-box info buttons ok.
+    run set_isection in hProc no-error.
+end procedure.
 
 
-PROCEDURE show_read_only:
-    MESSAGE 'DEBUG show_read_only'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN show_read_only IN hProc NO-ERROR.
-END PROCEDURE.
+procedure set_cursor:
+    message 'DEBUG set_cursor'
+      view-as alert-box info buttons ok.
+    run set_cursor in hProc no-error.
+end procedure.
 
 
-PROCEDURE show_private_block:
-    DEFINE INPUT PARAMETER p_cur_section AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG show_private_block'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN show_private_block IN hProc ( INPUT p_cur_section ) NO-ERROR.
-END PROCEDURE.
+procedure show_read_only:
+    message 'DEBUG show_read_only'
+      view-as alert-box info buttons ok.
+    run show_read_only in hProc no-error.
+end procedure.
 
 
-PROCEDURE show_db_required:
-    DEFINE INPUT PARAMETER p_cur_section AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG show_db_required'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN show_db_required IN hProc ( INPUT p_cur_section ) NO-ERROR.
-END PROCEDURE.
+procedure show_private_block:
+    define input parameter p_cur_section as character no-undo.
+    message 'DEBUG show_private_block'
+      view-as alert-box info buttons ok.
+    run show_private_block in hProc ( input p_cur_section ) no-error.
+end procedure.
 
 
-PROCEDURE store_trg:
-    DEFINE INPUT PARAMETER explicit AS LOGICAL NO-UNDO.
-    DEFINE OUTPUT PARAMETER code_ok AS LOGICAL NO-UNDO.
-    MESSAGE 'DEBUG store_trg'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN store_trg IN hProc ( INPUT explicit , OUTPUT code_ok ) NO-ERROR.
-END PROCEDURE.
+procedure show_db_required:
+    define input parameter p_cur_section as character no-undo.
+    message 'DEBUG show_db_required'
+      view-as alert-box info buttons ok.
+    run show_db_required in hProc ( input p_cur_section ) no-error.
+end procedure.
 
 
-PROCEDURE InsertEventName:
-    MESSAGE 'DEBUG InsertEventName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertEventName IN hProc NO-ERROR.
-END PROCEDURE.
+procedure store_trg:
+    define input parameter explicit as logical no-undo.
+    define output parameter code_ok as logical no-undo.
+    message 'DEBUG store_trg'
+      view-as alert-box info buttons ok.
+    run store_trg in hProc ( input explicit , output code_ok ) no-error.
+end procedure.
 
 
-PROCEDURE InsertWidgetName:
-    MESSAGE 'DEBUG InsertWidgetName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertWidgetName IN hProc NO-ERROR.
-END PROCEDURE.
+procedure InsertEventName:
+    message 'DEBUG InsertEventName'
+      view-as alert-box info buttons ok.
+    run InsertEventName in hProc no-error.
+end procedure.
 
 
-PROCEDURE doInsertWidgetName:
-    DEFINE INPUT PARAMETER pString AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG doInsertWidgetName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN doInsertWidgetName IN hProc ( INPUT pString ) NO-ERROR.
-END PROCEDURE.
+procedure InsertWidgetName:
+    message 'DEBUG InsertWidgetName'
+      view-as alert-box info buttons ok.
+    run InsertWidgetName in hProc no-error.
+end procedure.
 
 
-PROCEDURE getInsertWidgetNameList:
-    DEFINE OUTPUT PARAMETER pList AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER pItem AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG getInsertWidgetNameList'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN getInsertWidgetNameList IN hProc ( OUTPUT pList , OUTPUT pItem ) NO-ERROR.
-END PROCEDURE.
+procedure doInsertWidgetName:
+    define input parameter pString as character no-undo.
+    message 'DEBUG doInsertWidgetName'
+      view-as alert-box info buttons ok.
+    run doInsertWidgetName in hProc ( input pString ) no-error.
+end procedure.
 
 
-PROCEDURE InsertPreProcName:
-    MESSAGE 'DEBUG InsertPreProcName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertPreProcName IN hProc NO-ERROR.
-END PROCEDURE.
+procedure getInsertWidgetNameList:
+    define output parameter pList as character no-undo.
+    define output parameter pItem as character no-undo.
+    message 'DEBUG getInsertWidgetNameList'
+      view-as alert-box info buttons ok.
+    run getInsertWidgetNameList in hProc ( output pList , output pItem ) no-error.
+end procedure.
 
 
-PROCEDURE doInsertPreProcName:
-    DEFINE INPUT PARAMETER pString AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG doInsertPreProcName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN doInsertPreProcName IN hProc ( INPUT pString ) NO-ERROR.
-END PROCEDURE.
+procedure InsertPreProcName:
+    message 'DEBUG InsertPreProcName'
+      view-as alert-box info buttons ok.
+    run InsertPreProcName in hProc no-error.
+end procedure.
 
 
-PROCEDURE getPreProcNameList:
-    DEFINE OUTPUT PARAMETER pList AS CHARACTER NO-UNDO.
-    DEFINE OUTPUT PARAMETER pItem AS CHARACTER NO-UNDO.
-    MESSAGE 'DEBUG getPreProcNameList'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN getPreProcNameList IN hProc ( OUTPUT pList , OUTPUT pItem ) NO-ERROR.
-END PROCEDURE.
+procedure doInsertPreProcName:
+    define input parameter pString as character no-undo.
+    message 'DEBUG doInsertPreProcName'
+      view-as alert-box info buttons ok.
+    run doInsertPreProcName in hProc ( input pString ) no-error.
+end procedure.
 
 
-PROCEDURE InsertProcName:
-    MESSAGE 'DEBUG InsertProcName'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertProcName IN hProc NO-ERROR.
-END PROCEDURE.
+procedure getPreProcNameList:
+    define output parameter pList as character no-undo.
+    define output parameter pItem as character no-undo.
+    message 'DEBUG getPreProcNameList'
+      view-as alert-box info buttons ok.
+    run getPreProcNameList in hProc ( output pList , output pItem ) no-error.
+end procedure.
 
 
-PROCEDURE InsertDBFields:
-    MESSAGE 'DEBUG InsertDBFields'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertDBFields IN hProc NO-ERROR.
-END PROCEDURE.
+procedure InsertProcName:
+    message 'DEBUG InsertProcName'
+      view-as alert-box info buttons ok.
+    run InsertProcName in hProc no-error.
+end procedure.
 
 
-PROCEDURE InsertQuery:
-    MESSAGE 'DEBUG InsertQuery'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN InsertQuery IN hProc NO-ERROR.
-END PROCEDURE.
+procedure InsertDBFields:
+    message 'DEBUG InsertDBFields'
+      view-as alert-box info buttons ok.
+    run InsertDBFields in hProc no-error.
+end procedure.
 
 
-PROCEDURE PrintSection:
-    MESSAGE 'DEBUG PrintSection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN PrintSection IN hProc NO-ERROR.
-END PROCEDURE.
+procedure InsertQuery:
+    message 'DEBUG InsertQuery'
+      view-as alert-box info buttons ok.
+    run InsertQuery in hProc no-error.
+end procedure.
 
 
-PROCEDURE init-win:
-    MESSAGE 'DEBUG init-win'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN init-win IN hProc NO-ERROR.
-END PROCEDURE.
+procedure PrintSection:
+    message 'DEBUG PrintSection'
+      view-as alert-box info buttons ok.
+    run PrintSection in hProc no-error.
+end procedure.
 
 
-PROCEDURE initial_adjustments:
-    MESSAGE 'DEBUG initial_adjustments'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN initial_adjustments IN hProc NO-ERROR.
-END PROCEDURE.
+procedure init-win:
+    message 'DEBUG init-win'
+      view-as alert-box info buttons ok.
+    run init-win in hProc no-error.
+end procedure.
 
 
-PROCEDURE setToolTip:
-    MESSAGE 'DEBUG setToolTip'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN setToolTip IN hProc NO-ERROR.
-END PROCEDURE.
+procedure initial_adjustments:
+    message 'DEBUG initial_adjustments'
+      view-as alert-box info buttons ok.
+    run initial_adjustments in hProc no-error.
+end procedure.
 
 
-PROCEDURE set_vars:
-    MESSAGE 'DEBUG set_vars'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN set_vars IN hProc NO-ERROR.
-END PROCEDURE.
+procedure setToolTip:
+    message 'DEBUG setToolTip'
+      view-as alert-box info buttons ok.
+    run setToolTip in hProc no-error.
+end procedure.
 
 
-FUNCTION GetProcFuncSection RETURNS character ( 
-    INPUT p_name AS CHARACTER
+procedure set_vars:
+    message 'DEBUG set_vars'
+      view-as alert-box info buttons ok.
+    run set_vars in hProc no-error.
+end procedure.
+
+
+function GetProcFuncSection returns character ( 
+    input p_name as character
     ) :
-    MESSAGE 'DEBUG GetProcFuncSection'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    DYNAMIC-FUNCTION ( 'GetProcFuncSection' IN hProc , INPUT p_name ) NO-ERROR.
-END FUNCTION.
+    message 'DEBUG GetProcFuncSection'
+      view-as alert-box info buttons ok.
+    dynamic-function ( 'GetProcFuncSection' in hProc , input p_name ) no-error.
+end function.

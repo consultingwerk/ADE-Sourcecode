@@ -4,10 +4,27 @@
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
+/*
+   _usrincr.p  phase 1 of GUI-mode incremental .df maker.  
+   See prodict/dump_inc.p for phase 1 of batch incremental .df maker
+   See ./dump/_dmpincr.p for phase 2 
 
-/* _usrincr.p */
+   DICTDB  is the current database
+           These are the baseline from which DICTDB2 will be compared 
+           Definitions in DICTDB2 that are absent or extraneous to DICTDB
+           constitute the incremental delta.df
+   DICTDB2 is the database chosen to compare against
+           This is the database for whom applying the incremental delta.df 
+           would produce a database equivalent to DICTDB.
+
+   The aim is to produce a database like DICTDB.  So this .df file will be
+   run against a database like DICTDB2 to create a database like DICTDB.
+*/
 
 /*
+DICTDB  = new definitions
+DICTDB2 = old definitions
+
 for each file:
   match up filename
   match up indexnames
@@ -37,7 +54,7 @@ History:  07/14/98 DLM Added _Owner to _File Finds
 { prodict/user/userpik.i NEW }
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 23 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 45 NO-UNDO INITIAL [
   /* 1*/ "The current database must have a DBTYPE of ~"PROGRESS~".",
   /* 2*/ "You do not have permission to use this option",
   /* 3*/ "with database",
@@ -60,8 +77,31 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 23 NO-UNDO INITIAL [
   /*20*/ "the database you want to upgrade",
   /*21*/ "with input from the new definition",
   /*22*/ "file produced by this procedure).",
-  /*23*/ "Create Incremental Definitions File"
+  /*23*/ "Create Incremental Definitions File",
+  /*24*/ "Set SHDBNAME and MSSDBNAME or ORADBNAME together to allow continuation",
+  /*25*/ "Environment variable ",
+  /*26*/ " not set properly.  Will be ignored.",
+  /*27*/ "Environment variable SHDBNAME is set to """,
+  /*28*/ """ as the database schema to compare against current working database """,
+  /*29*/ """ does not match your screen selection of """,
+  /*30*/ "Do you want to override SHDBNAME value of """,
+  /*31*/ """ with your screen selection: """,
+  /*32*/ "Incremental Definitions Database Comparison Selection",
+  /*33*/ "SHDBNAME value """,
+  /*34*/ """ is retained for execution. ",
+  /*35*/ """ selection will be ignored.",
+  /*36*/ """ is being overridden for execution by replacement value """,
+  /*37*/ "Logical database """,
+  /*38*/ """ must originate from the db type that corresponds to the set environment variable.",
+  /*39*/ """ is not in the schema holder database ",
+  /*40*/ "There is already a logical database """, 
+  /*41*/ """ opened in another schema holder """, 
+  /*42*/ "Aborting: logical database only associated with one schema holder in a session.",
+  /*43*/ "Specified schema holder database """, 
+  /*44*/ """ had more than one non-PROGRESS logical database.",
+  /*45*/ "Your environement variables must select a logical database value when there are more than one in the specified schema holder."
 ].
+
 
 FORM
   new_lang[9]  FORMAT "x(39)" SKIP
@@ -83,14 +123,23 @@ FORM
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
+DEFINE VARIABLE answer 	     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE c      	     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE i      	     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE canned       AS LOGICAL   NO-UNDO INIT TRUE.
+DEFINE VARIABLE hBuffer      AS HANDLE    NO-UNDO.
+DEFINE VARIABLE bufList      AS CHARACTER NO-UNDO EXTENT 4
+   INIT ["_db","_File","_Field","_Index"].
 
-DEFINE VARIABLE answer 	AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE c      	AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i      	AS INTEGER   NO-UNDO.
-DEFINE VARIABLE canned  AS LOGICAL   NO-UNDO INIT TRUE.
-DEFINE VARIABLE hBuffer AS HANDLE    NO-UNDO.
-DEFINE VARIABLE bufList AS CHARACTER NO-UNDO EXTENT 4
-       INIT ["_db","_File","_Field","_Index"].
+/* For DataServer use */
+DEFINE VARIABLE ds_shname    AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VARIABLE ds_dbname    AS CHARACTER INITIAL "" NO-UNDO.
+DEFINE VARIABLE user-dbtype2 AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VARIABLE ds_alias     AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VARIABLE shdb2-id     AS RECID     INITIAL ?  NO-UNDO.
+DEFINE VARIABLE dictdb2-id   AS RECID     INITIAL ?  NO-UNDO.
+DEFINE VARIABLE errcode      AS INTEGER   INITIAL ?  NO-UNDO.
+/* For DataServer use */
 
 {prodict/misc/filesbtn.i}
 
@@ -159,12 +208,56 @@ END.
 
 /*============================Mainline code===============================*/
 
-IF user_dbtype <> "PROGRESS" THEN DO:
-  MESSAGE new_lang[1] /* both dbs must be 'progress' */
-    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-  user_path = "".
-  RETURN.
+
+/* PROGRESS provides normal legacy execution by default */
+ASSIGN s_DbType1    = "PROGRESS"
+       s_DbType2    = "PROGRESS"
+       user-dbtype2 = "PROGRESS". 
+
+IF OS-GETENV("SHDBNAME") <> ? THEN DO:
+  ds_shname = OS-GETENV("SHDBNAME").
+  IF ds_shname = "" THEN DO:
+    MESSAGE new_lang[25] "SHDBNAME" new_lang[26] /* Env. vars. not set properly */
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ds_shname = ?.
+  END.
 END.
+
+IF OS-GETENV("MSSDBNAME") <> ? THEN DO:
+  ds_dbname = OS-GETENV("MSSDBNAME").
+  IF ds_dbname = "" THEN DO:
+    MESSAGE new_lang[25] "MSSDBNAME" new_lang[26] /* Env. vars. not set properly */
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ds_dbname = ?.
+  END.
+  IF ds_dbname <> ? AND DBTYPE(ds_dbname) <> "MSS" THEN DO:
+    MESSAGE new_lang[37] + ds_dbname + new_lang[38] /* logical db must be correct db type */
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ds_dbname = ?.
+  END.
+  if ds_dbname <> ? THEN
+    user-dbtype2 = "MSS".
+END.
+ELSE DO:
+  IF OS-GETENV("ORADBNAME") <> ? THEN DO:
+    ds_dbname = OS-GETENV("ORADBNAME").
+    IF ds_dbname = "" THEN DO:
+      MESSAGE new_lang[25] "ORADBNAME" new_lang[26] /* Env. vars. not set properly */
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      ds_dbname = ?.
+    END. 
+    IF ds_dbname <> ? AND DBTYPE(ds_dbname) <> "ORACLE" THEN DO:
+        MESSAGE new_lang[37] + ds_dbname + new_lang[38] /* logical db must be correct db type */
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        ds_dbname = ?.
+    END.
+    if ds_dbname <> ? THEN
+      user-dbtype2 = "ORACLE".
+  END.
+END.
+
+IF ds_dbname = "" THEN
+  ds_dbname = ?. /* If dflt untouched, normalize ds_dbname for legacy execution */
 
 DELETE ALIAS "DICTDB2".
 ASSIGN
@@ -176,7 +269,7 @@ ASSIGN
   pik_count   = 0
   pik_title   = new_lang[23].
 DO i = 1 TO cache_db#:
-  IF   cache_db_t[i] <> "PROGRESS"
+  IF cache_db_t[i] <> "PROGRESS"
     OR cache_db_l[i] = LDBNAME("DICTDB") THEN NEXT.
   ASSIGN
     pik_count = pik_count + 1
@@ -213,36 +306,118 @@ IF pik_first = ? THEN DO:
   user_path = "".
   RETURN.
 END.
+
+IF ds_shname <> ? AND pik_first <> ds_shname THEN DO:
+  MESSAGE new_lang[27] + ds_shname + new_lang[28] + LDBNAME("DICTDB") + """.  """ +
+          ds_shname + new_lang[29] + pik_first + """." SKIP(1)
+          new_lang[30] + ds_shname + new_lang[31] + pik_first + """ ?"
+    VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO-CANCEL
+    TITLE new_lang[32] UPDATE lChoice AS LOGICAL.
+  CASE lChoice:
+    WHEN TRUE THEN /* Yes */ DO:
+      MESSAGE new_lang[33] + ds_shname + new_lang[36] + pik_first + """."
+        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE OK AS LOGICAL.
+      IF NOT ok THEN DO:
+        user_path = "".
+        RETURN.
+      END.
+      ELSE
+        ds_shname = pik_first.
+    END.
+    WHEN FALSE THEN /* No */ DO:
+      MESSAGE new_lang[33] ds_shname new_lang[34] + """" + pik_first + new_lang[35]
+        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE OK2 AS LOGICAL.
+      IF NOT ok2 THEN DO:
+        user_path = "".
+        RETURN.
+      END.
+      ELSE
+        pik_first = ds_shname.
+    END.
+    OTHERWISE DO: /* Cancel */ 
+      user_path = "".
+      RETURN.
+    END.
+  END CASE.
+END.
+
+IF ds_shname <> ? AND ds_dbname = ? THEN DO:
+  MESSAGE new_lang[24] /* Env. vars. not set properly */
+    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  user_path = "". 
+  RETURN.
+END.
+
 CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(pik_first) NO-ERROR.
 
-/* check permissions on both databases. For DICTDB2, we need to run a dynamic
-   find because the reference to DICTDB2 causes the .r not to run since
-   DICTDB2 isn't known until the execution of the above line.
-*/
+IF ds_dbname <> ? THEN DO:
+  ASSIGN ds_alias = "DICTDB2".
 
-CREATE BUFFER hBuffer FOR TABLE "DICTDB2._File" NO-ERROR.
-IF VALID-HANDLE(hBuffer) THEN DO:
+  RUN "prodict/misc/_valsch.p" (INPUT        ds_alias     /* Dictionary Alias Name */,
+                                INPUT        pik_first    /* Schema holder name */,
+                                INPUT-OUTPUT ds_dbname    /* Logical database name */,
+                                INPUT-OUTPUT user-dbtype2 /* Logical database type */,
+                                OUTPUT       shdb2-id     /* RECID of DICTDB */,
+                                OUTPUT       dictdb2-id   /* RECID of DICTDB2 */,
+                                OUTPUT       errcode      /* Error code */).  
+
+  IF errcode > 0 THEN DO:
+    CASE errcode:
+      WHEN 1 THEN  
+        MESSAGE new_lang[37] + ds_dbname + new_lang[39] + ds_shname + """."
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      WHEN 2 THEN
+        MESSAGE new_lang[40] + ds_dbname + new_lang[41] + SDBNAME(ds_shname) + """."  SKIP(1) new_lang[42]
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      WHEN 3 THEN
+        MESSAGE new_lang[43] + ds_shname + new_lang[44] SKIP(1) new_lang[45] 
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      WHEN 4 THEN
+        MESSAGE new_lang[37] + ds_dbname + new_lang[39] + ds_shname + """."
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    END CASE.
+    user_path = "".
+    RETURN.
+  END.
+  
+  s_DbRecId = ?. /* Borrow ADE dictionary variable not used by incremental dump */
+  IF ds_dbname = ? OR ds_dbname = "" OR dictdb2-id = ? THEN DO:
+      user_path = "". 
+      RETURN.
+  END.
+  ELSE DO:
+    /* DELETE ALIAS "DICTDBG". */
+    /* CREATE ALIAS "DICTDBG" FOR DATABASE VALUE(ds_dbname) NO-ERROR. */
+    s_DbRecId = dictdb2-id.
+    s_DbType2 = user-dbtype2.
+  END.
+END.
+ELSE DO:
+  CREATE BUFFER hBuffer FOR TABLE "DICTDB2._File" NO-ERROR.
+  IF VALID-HANDLE(hBuffer) THEN DO:
     /* check all the tables we're interested in */
     REPEAT pik_count = 1 TO 4:
-        hBuffer:FIND-FIRST('WHERE DICTDB2._File._File-name = '
-                           + QUOTER(bufList[pik_count]) 
-                           + ' AND DICTDB2._File._Owner = "PUB"', NO-LOCK) NO-ERROR.
-        /* if an error occurred, assume we don't have permissions to read */
-        IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN
-            ASSIGN C = LDBNAME("DICTDB2").
-        ELSE IF hBuffer:AVAILABLE THEN DO:
-            IF NOT CAN-DO(hBuffer::_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
-            hBuffer:BUFFER-RELEASE().
-        END.
-
-        IF c NE ? THEN 
-            LEAVE.
+      hBuffer:FIND-FIRST('WHERE DICTDB2._File._File-name = '
+                          + QUOTER(bufList[pik_count]) 
+                          + ' AND DICTDB2._File._Owner = "PUB"', NO-LOCK) NO-ERROR.
+    /* if an error occurred, assume we don't have permissions to read */
+    IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+      ASSIGN C = LDBNAME("DICTDB2").
     END.
+    ELSE IF hBuffer:AVAILABLE THEN DO:
+      IF NOT CAN-DO(hBuffer::_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
+        hBuffer:BUFFER-RELEASE().
+      END.
 
-    DELETE OBJECT hBuffer NO-ERROR.
-END.
-ELSE /* if we could not create a buffer, assume we can't read the table */
+      IF c NE ? THEN 
+        LEAVE.
+      END.
+
+      DELETE OBJECT hBuffer NO-ERROR.
+  END.
+  ELSE /* if we could not create a buffer, assume we can't read the table */
     ASSIGN C = LDBNAME("DICTDB2").
+END.
 
 IF c <> ? THEN DO:
   MESSAGE new_lang[2] SKIP new_lang[3] c /* not enough privs on db */

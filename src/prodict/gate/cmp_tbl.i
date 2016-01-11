@@ -192,6 +192,7 @@ History:
             &o-name = "s_ttb_tbl.ds_name"
             &sh     = "DICTDB._File._Fil-Misc1[2]"
             }
+    IF NOT user_dbtype = "MSS" THEN
     { prodict/gate/cmp_msg.i
             &attrbt = "Description:"
             &msgidx = "l_tbl-msg[11]"

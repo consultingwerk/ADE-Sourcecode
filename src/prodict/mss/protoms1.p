@@ -66,8 +66,58 @@ DEFINE VARIABLE run_time      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE schname       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE dlc_utf_edb   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE schdbcp       AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE ClustAsROWID  AS LOGICAL             NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE mdrec_db      AS RECID               NO-UNDO.    
+DEFINE VARIABLE lcompatible   AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE useLegacyRanking    AS LOGICAL    NO-UNDO INITIAL TRUE.
 
 DEFINE STREAM strm.
+
+/* PROCEDURE: prgs-ranking
+ */
+PROCEDURE prgs-ranking:
+
+FIND FIRST DICTDB._Db WHERE _Db-local NO-LOCK.
+ASSIGN mdrec_db      = RECID(DICTDB._Db).
+
+/* Logic to decide whether to use legacy or new ranking logic */
+if  user_env[27] = ?  OR user_env[27] = ""
+  THEN ASSIGN lcompatible = true.
+else if num-entries(user_env[27]) > 1
+     then assign  /* more than one value in user_env[27] */
+           lcompatible = ( entry(1,user_env[27]) BEGINS "y"
+              or entry(1,user_env[27]) = ""
+              ).
+     else assign
+            lcompatible = (user_env[27] BEGINS "y"). /* create recid fields/indexes */
+IF (ENTRY(1,user_env[36]) = "y") OR (ENTRY(2,user_env[36]) = "y")  OR        
+   (lcompatible AND ((NUM-ENTRIES(user_env[27]) >= 3) AND  /* U = For ROWID uniqueness, P = Prime ROWID */
+                    ((ENTRY(3,user_env[27]) EQ "U") OR (ENTRY(3,user_env[27]) EQ "P")))
+   )  
+THEN  ASSIGN useLegacyRanking = FALSE.
+
+ASSIGN user_env[42] = (IF genrep THEN "Y" ELSE "N") +   /* Generate ranking report */
+                      (IF useLegacyRanking THEN ',L' ELSE ',N').
+
+FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = mdrec_db
+                       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
+                       AND (IF user_env[1] = "ALL"  THEN
+                            NOT DICTDB._File._Hidden AND
+                           (CAN-DO(_File._Can-read, user_env[9]) OR user_env[9] = "ALL")
+                             ELSE
+                               DICTDB._File._File-name = user_filename
+                            ):
+    IF useLegacyRanking AND lcompatible THEN
+       ASSIGN DICTDB._FILE._Fil-misc1[1] = 1. /* assign positive to indicate PROGRESS_RECID as ROWID */
+    ELSE
+       RUN prodict/mss/_rankpdb.p ( INPUT RECID(DICTDB._File),
+                               INPUT ClustAsROWID).
+END.
+IF ((NUM-ENTRIES(user_env[42]) >= 2) AND 
+    UPPER(ENTRY(1,user_env[42])) = "Y" ) THEN
+ RUN prodict/mss/_ctestr.p(INPUT "rnkreppdb.out").
+
+END PROCEDURE.
 
 /*------------------------------------------------------------------*/
 
@@ -242,6 +292,7 @@ ASSIGN user_dbname  = mss_dbname
                              * IP - Independent PULL operation */
        user_env[38] = choiceUniquness . /* 195067 */
        user_env[39] = choiceDefault . /* 195067 */       
+       /* user_env[42] = (IF genrep THEN "y" ELSE "n") . * Generate ranking report */       
 
 
 IF pcompatible THEN 
@@ -270,18 +321,19 @@ ELSE
 
  /* first y is for Migrate Constraints.
    second entry is Try Primary for ROWID.
-   third entry is Make Clustered Explicit.
+   third entry is RECID compatibility.
    fourth entry is Select 'BEST' ROWID index.
  */
 ASSIGN user_env[36] = (IF migConstraint THEN "y" ELSE "n") +
                (IF tryPimaryForRowid THEN ",y" ELSE ",n") +
-               (IF mkClusteredExplict THEN ",y" ELSE ",n"). 
+               (IF recidCompat THEN ",y" ELSE ",n"). 
 IF selBestRowidIdx THEN 
     ASSIGN user_env[36] = user_env[36] + ",y" + "," + STRING(choiceSchema).
 ELSE ASSIGN user_env[36] = user_env[36] + ",n".
 IF movedata THEN ASSIGN user_env[36] = user_env[36] + ",y".
             ELSE ASSIGN user_env[36] = user_env[36] + ",n".
 
+RUN prgs-ranking. 
 IF movedata THEN
   ASSIGN stages[mss_dump_data] = TRUE
          stages[mss_load_data] = TRUE.

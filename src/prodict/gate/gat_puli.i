@@ -65,6 +65,7 @@ History:
     assign
       s_ttb_idx.pro_name = user_env[1]
       s_ttb_idx.ttb_tbl  = RECID(s_ttb_tbl)
+      s_ttb_idx.idx_recid  = RECID(s_ttb_idx)
       s_ttb_idx.pro_uniq = ( {&idx-uniq-cond} )
       s_ttb_idx.ds_name  = TRIM({&for-idx-name})
       s_ttb_idx.pro_idx# = indn

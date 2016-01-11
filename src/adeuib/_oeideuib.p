@@ -1,6 +1,6 @@
 /* ***********************************************************/
-/* Copyright (c) 2008-2012 by Progress Software Corporation  */
-/*                                                           */
+/* Copyright (c) 2008-2012,2013 by Progress Software         */
+/* Corporation                                               */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from Progress Software Corporation. */
@@ -86,19 +86,21 @@ define temp-table ttHandle no-undo
     index name as unique name.
     
 /*** forward declaration of context functions ***/   
-function createLinkedFile returns char (piHwnd as int,pcfileName as char) in fContextHandle. 
+function createLinkedFile returns char (piHwnd as int64,pcfileName as char) in fContextHandle. 
 function clearNewFileName returns logical () in fContextHandle.
 function getCurrentEventObject returns Object () in fContextHandle. 
-function getDesignHwnd returns integer (pcFile as char) in fContextHandle. 
-function getDesignWindow returns handle (piHwnd as integer) in fContextHandle. 
+function getDesignHwnd returns int64 (pcFile as char) in fContextHandle. 
+function getDesignWindow returns handle (piHwnd as int64) in fContextHandle. 
 function getLinkFileWindow returns handle  (pcLinkedFile as char) in fContextHandle.
 function getNewFileName returns character (  ) in fContextHandle.  
-function getObject returns Object (piHwnd as int) in fContextHandle.  
+function getObject returns Object (piHwnd as int64) in fContextHandle.  
 function getProjectFullPath returns character  (  ) in fContextHandle.
-function removeHwnd returns logical (piHwnd as int) in fContextHandle.
-function setDesignFileName returns logical (piHwnd as integer,pcFilename as char)  in fContextHandle.
-function setDesignHwnd returns logical (pcFile as char,piHwnd as integer) in fContextHandle.
-function setOpenDialogHwnd returns logical (piHwnd as int) in fContextHandle.
+/*function getRequestContext returns character  () in fContextHandle.*/
+function removeHwnd returns logical (piHwnd as int64) in fContextHandle.
+function setDesignFileName returns logical (piHwnd as int64,pcFilename as char)  in fContextHandle.
+function setDesignHwnd returns logical (pcFile as char,piHwnd as int64) in fContextHandle.
+function setOpenDialogHwnd returns logical (piHwnd as int64) in fContextHandle.
+function setRequestContext returns logical (pcContext as char) in fContextHandle.
                
 /********************** Main *********************************************/  
 /* Keep this in one place. Used for both incoming and return */
@@ -156,7 +158,7 @@ procedure getCurrentDialogInfo:
     define input parameter pcHwnd as char no-undo.
     define variable cReturn as character no-undo.
     define variable dialogService as adeuib.idialogservice no-undo.
-    dialogService = cast(getObject(int(pcHwnd)),adeuib.idialogservice). 
+    dialogService = cast(getObject(int64(pcHwnd)),adeuib.idialogservice). 
     if not valid-object(dialogService) then
         return "ERROR:NoDialogAvail":U.  
     
@@ -254,8 +256,8 @@ end procedure.
 
 procedure alternateLayout:
     define input  parameter pcFile as char no-undo.
-    define variable pid as integer no-undo.
-    assign pid = integer(entry(2,pcFile,PARAMETER_DELIMITER))
+    define variable pid as int64 no-undo.
+    assign pid = int64(entry(2,pcFile,PARAMETER_DELIMITER))
            pcFile = entry(1,pcFile,PARAMETER_DELIMITER).
     setOpenDialogHwnd(pid).
 /*    apply "choose":U to fAlternateLayout.*/
@@ -274,8 +276,8 @@ end.
     and uibmain goes in wait-for  */
 procedure customLayout:
     define input  parameter pcFile as char no-undo.
-    define variable pid as integer no-undo.
-    assign pid = integer(entry(2,pcFile,PARAMETER_DELIMITER))
+    define variable pid as int64 no-undo.
+    assign pid = int64(entry(2,pcFile,PARAMETER_DELIMITER))
            pcFile = entry(1,pcFile,PARAMETER_DELIMITER).
     
     setOpenDialogHwnd(pid).
@@ -290,8 +292,8 @@ end.
 
 procedure customizationPriority:
     define input  parameter pcFile as char no-undo.
-    define variable pid as integer no-undo.
-    assign pid = integer(entry(2,pcFile,PARAMETER_DELIMITER))
+    define variable pid as int64 no-undo.
+    assign pid = int64(entry(2,pcFile,PARAMETER_DELIMITER))
            pcFile = entry(1,pcFile,PARAMETER_DELIMITER).
     
     setOpenDialogHwnd(pid).
@@ -399,8 +401,8 @@ end.
 
 procedure exportFile:
     define input  parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     run do_export_file in fUIB.
     return "OK":U. 
@@ -440,8 +442,8 @@ end.
 
 procedure importFile:
     define input  parameter pcFile as char no-undo.
-    define variable iHand as int no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     run do_import_file in fUIB.
     return "OK":U. 
@@ -453,8 +455,8 @@ end.
 
 procedure gotoPage:
     define input  parameter pcFile as char no-undo.
-    define variable iHand as int no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     run do_goto_page in fUIB.
     return "OK":U. 
@@ -466,7 +468,8 @@ end.
 procedure getPageNum: 
     define input  parameter pcFile as char no-undo.
     define variable epageNumber as integer no-undo.
-    run IDEEnablePageNo in fUIB(output epageNumber).
+    run getCurrentPageNo in fUIB(output epageNumber).
+    if epageNumber = ? then epageNumber = -1.
     return string(epageNumber).
 end procedure.
 
@@ -481,8 +484,8 @@ end procedure.
 
 procedure tabOrder:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     
     setOpenDialogHwnd(iHand).
  
@@ -562,6 +565,15 @@ procedure RegisterInRepository:
     return RequestManager:Execute(saveobj).
 end. 
 
+procedure CheckSyntax:
+    define input  parameter pcFile as char no-undo.
+    define variable iOffset as integer no-undo. 
+    run do_check_syntax  in fUIB.
+    if return-value > "" then 
+        return return-value.
+    return "OK".
+end.    
+
 procedure copy:
     define input  parameter pcFile as char no-undo.
     apply "choose":U to fCopy.
@@ -584,9 +596,9 @@ procedure closeWindow:
     define input  parameter pcFile as char no-undo.
     define variable cfile as character no-undo.
     define variable hwin  as handle no-undo. 
-    define variable ihwnd as integer no-undo.
+    define variable ihwnd as int64 no-undo.
     cfile = entry(1,pcfile,PARAMETER_DELIMITER).
-    ihwnd = int(entry(2,pcfile,PARAMETER_DELIMITER)).
+    ihwnd = int64(entry(2,pcfile,PARAMETER_DELIMITER)).
     
     /* This should not happen anymore.   
        The designerid was 0 previously since the widget was already disposed when it was called from
@@ -613,15 +625,16 @@ procedure openDesignWindow:
 ------------------------------------------------------------------------------*/
     define input parameter cCmd as character no-undo.
  
-    define variable iHwnd as integer no-undo.
+    define variable iHwnd as int64 no-undo.
     define variable cFile as char    no-undo.
     define variable lInRepos as logical no-undo.
     define variable cLinkedFile as character no-undo.
     define variable isTTY       as logical no-undo.
+    define variable ipageNumber as integer no-undo.
 /*    define variable lNative as logical no-undo. */
 /*    define variable lDynamic as logical no-undo.*/
          
-    iHwnd = int(trim(entry(num-entries(cCmd,PARAMETER_DELIMITER),cCmd,PARAMETER_DELIMITER))) no-error.
+    iHwnd = int64(trim(entry(num-entries(cCmd,PARAMETER_DELIMITER),cCmd,PARAMETER_DELIMITER))) no-error.
     cFile = entry(1,cCmd,PARAMETER_DELIMITER).
     if cfile > "":U then
     do:
@@ -629,12 +642,14 @@ procedure openDesignWindow:
         /* opens from dynamics if dynamics is enabled */
         run OpenRyObject in fUib (cFile, output linRepos). 
         setDesignHwnd(cFile,iHwnd).  
+        run setSendFocustoUI in fUIB (no).
         run adeuib/_open-w.p (cfile, "", "IDE-WINDOW":U).
+        run setSendFocustoUI in fUIB (yes).
         if return-value <> "_abort":U then
         do on error undo, throw :
             cLinkedFile = createLinkedFile(iHwnd,cFile).
             run isTTY in fUib(output isTTY).
-
+            run getCurrentPageNo in fUIB(output ipageNumber).
             return (STATIC_OBJ) 
                  /* should always be static here.. 
                    save as dynamic after stored to history will likely not be found with full path? */ 
@@ -646,7 +661,10 @@ procedure openDesignWindow:
                     + PARAMETER_DELIMITER 
                     + cLinkedFile
                     + PARAMETER_DELIMITER
-                    +  (if isTTY then TTY_OBJ else "") .
+                    + (if isTTY then TTY_OBJ else "")
+                    + PARAMETER_DELIMITER
+                    + (if ipageNumber = ? then "-1" else string(ipageNumber)).
+             
             /* editor errors will be shown as overlay in canvas */
             catch e as Progress.Lang.Error :
                 return ERROR_OBJ + PARAMETER_DELIMITER + e:GetMessage(1).   
@@ -671,7 +689,7 @@ procedure openDynamicsDesignWindow:
 ------------------------------------------------------------------------------*/
     define input parameter cCmd as character no-undo.
  
-    define variable iHwnd as integer no-undo.
+    define variable iHwnd as int64 no-undo.
     define variable cFile as char    no-undo.
     define variable lAvail as logical no-undo.    
     define variable cLinkedFile as character no-undo. 
@@ -679,7 +697,7 @@ procedure openDynamicsDesignWindow:
     define variable lNative as logical no-undo.
     define variable lDynamic as logical no-undo. 
     define variable isTTY    as logical no-undo.        
-    iHwnd = int(trim(entry(num-entries(cCmd,PARAMETER_DELIMITER),cCmd,PARAMETER_DELIMITER))) no-error.
+    iHwnd = int64(trim(entry(num-entries(cCmd,PARAMETER_DELIMITER),cCmd,PARAMETER_DELIMITER))) no-error.
     cFile = entry(1,cCmd,PARAMETER_DELIMITER).
     if cfile > "":U then
     do:
@@ -692,7 +710,10 @@ procedure openDynamicsDesignWindow:
         end. 
         
         setDesignHwnd(cFile,iHwnd).  
+        run setSendFocustoUI in fUIB (no).
         run adeuib/_open-w.p (cfile, "", "IDE-WINDOW":U).
+        run setSendFocustoUI in fUIB (yes).
+        
         if return-value <> "_ABORT":U then
         do on error undo, throw :
             cLinkedFile = createLinkedFile(iHwnd,cFile).
@@ -709,8 +730,9 @@ procedure openDynamicsDesignWindow:
                     + PARAMETER_DELIMITER 
                     + cLinkedFile
                     + PARAMETER_DELIMITER
-                    +  (if isTTY then TTY_OBJ else "") .
-    
+                    +  (if isTTY then TTY_OBJ else "") 
+                    + PARAMETER_DELIMITER
+                    + "-1". /* dynamic objects are not page target */ 
           /* editor errors will be shown as overlay in canvas */
             catch e as Progress.Lang.Error :
                 return ERROR_OBJ + PARAMETER_DELIMITER + e:GetMessage(1). 
@@ -727,9 +749,9 @@ end procedure.
 /** open object for dynamics */
 procedure openObject: 
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
+    define variable iHand as int64 no-undo.
 /*    iHand = int(entry(1,pcFile,PARAMETER_DELIMITER)).*/
-    iHand = int(pcfile).
+    iHand = int64(pcfile).
     
     setOpenDialogHwnd(iHand).
     
@@ -779,6 +801,18 @@ procedure DynamicClassMaintenance:
     return.
 end.
 
+procedure DynamicClearRepositoryCache:
+    define input  parameter pcFile as char no-undo.
+    run ry/prc/ryclrcachp.p.
+    return "OK".
+end.
+
+procedure DynamicRunLauncher:
+    define input  parameter pcFile as char no-undo.
+    run ry/uib/rycsolnchw.w PERSISTENT.
+    return "OK".
+end.
+
 procedure DynamicRepositoryMaintenance:
     define input  parameter pcFile as char no-undo.
     run ry/prc/rycsolnchp.p (input "rycsotreew":U , input yes , input yes ).
@@ -820,7 +854,7 @@ procedure cancelCurrentDialog:
     define input parameter pcHwnd as char no-undo.
     define variable dialogService as adeuib.idialogservice no-undo.
     
-    dialogService = cast(getObject(int(pcHwnd)),adeuib.idialogservice). 
+    dialogService = cast(getObject(int64(pcHwnd)),adeuib.idialogservice). 
     if not valid-object(dialogService) then
         return "ERROR:NoDialogAvail":U.  
     dialogService:Cancel().    
@@ -840,8 +874,8 @@ end.
 
 procedure editCustomFiles:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     /* due to this being fired from right click in the ide the pointer may not have been reset */
     run choose-pointer in fUIB.
@@ -859,14 +893,15 @@ procedure editCode:
     run call_sew in fUIB("SE_OEOPEN").
 end. 
 
-procedure GetOCXEvents:
+procedure getOCXEvents:
     define input parameter pcParam  as char no-undo.
     define output parameter response as longchar  no-undo.
     define variable cfile as character no-undo.
     define variable cName as character no-undo.
-    define variable ihwnd  as integer no-undo.
+    define variable ihwnd  as int64 no-undo.
     define variable hWin   as handle no-undo.
-    
+    define variable cType  as character no-undo.
+    define variable ipos as integer no-undo.
     cFile = entry(1,pcParam,PARAMETER_DELIMITER).
     cName = entry(2,pcParam,PARAMETER_DELIMITER).
   
@@ -874,7 +909,10 @@ procedure GetOCXEvents:
     ihwnd = getDesignHwnd(cfile).
     hwin = getDesignWindow(ihwnd).
     run ide_get_ocx_events in fUIB (cfile,cName,hwin,output response).
- 
+    /* add different delimiter between type and events */
+   ipos = index(response,",").
+   if ipos > 0 then
+       overlay(response,ipos,1) = PARAMETER_DELIMITER.
 end procedure.    
 
 procedure getOverrides:
@@ -882,7 +920,7 @@ procedure getOverrides:
     define output parameter response as longchar  no-undo.
     define variable ctype as character no-undo.
     define variable cFile as character no-undo. 
-    define variable ihwnd as integer no-undo. 
+    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cType = entry(1,pcParam,PARAMETER_DELIMITER).
     cFile = entry(2,pcParam,PARAMETER_DELIMITER).
@@ -899,7 +937,7 @@ procedure getOverrideBody:
     define variable ctype as character no-undo.
     define variable cFile as character no-undo. 
     define variable cName as character no-undo.
-    define variable ihwnd as integer no-undo. 
+    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cType = entry(1,pcParam,PARAMETER_DELIMITER).
     cFile = entry(2,pcParam,PARAMETER_DELIMITER).
@@ -911,21 +949,76 @@ procedure getOverrideBody:
     
 end procedure.
 
+procedure InsertTrigger:
+    define input parameter pcParam  as char no-undo.
+    define variable cFile   as character no-undo. 
+    define variable ctype   as character no-undo.
+    define variable cName   as character no-undo.
+    define variable cEvent  as character no-undo.
+    define variable cParent as character no-undo.
+    define variable ihwnd as int64 no-undo. 
+    define variable hwin  as handle no-undo. 
+    define variable lok   as logical no-undo.
+    define variable cLinkedFile as character no-undo.
+    
+    assign 
+        cFile  = entry(1,pcParam,PARAMETER_DELIMITER)
+        cfile = replace(cfile, "~\":U, "/":U)    
+        cType  = entry(2,pcParam,PARAMETER_DELIMITER)
+        cName  = entry(3,pcParam,PARAMETER_DELIMITER)
+        cEvent = entry(4,pcParam,PARAMETER_DELIMITER).
+        cParent =  if(num-entries(pcParam,PARAMETER_DELIMITER) > 4 ) 
+                   then entry(5,pcParam,PARAMETER_DELIMITER)
+                   else "".
+    
+    ihwnd = getDesignHwnd(cfile).
+    hwin = getDesignWindow(ihwnd).
+    /* hwin = ? means the file is not opened in AppBuilder. 
+       create a linked file and pass to uib for the new trigger to be saved  */
+    if hwin = ? then
+    do: 
+        run adecomm/_tmpfile.p("newtrigger",".tmp",output cLinkedFile).
+    end.
+   
+    run ide_insert_trigger in fUIB (cfile,cLinkedFile,hwin,ctype,cName,cEvent,cParent,output lok).
+    
+    if lok then 
+    do: 
+        /* if no AppBuilder return the file name to load text editor from */
+        if cLinkedFile > "" then 
+            return "FILE:" + cLinkedFile.
+        
+        return "OK".
+    end.
+    else /* use period as cancel (blank may pick up wrong error from error-status) */
+        return ".".
+    /* return unexpected errors with ERROR:  This will be shown as reason for add trigger failed  */    
+    catch e1 as Progress.Lang.AppError :
+        if e1:ReturnValue <> ? and e1:ReturnValue <> "" then 
+    	    return "ERROR:" +  e1:ReturnValue.
+    	else  
+            return "ERROR:" + e1:GetMessage(1). 
+    end catch.        
+    catch e2 as Progress.Lang.Error :
+    	return "ERROR:" + e2:GetMessage(1).	
+    end catch.
+    
+end procedure.
 
 /* not in use - calls correct dialog, but needs embedding logic to work properly */ 
-procedure insertFunction:
+procedure AddFunction:
     define input parameter pcFile as char no-undo.
     run do_insert_function in fUIB.
 end procedure.
 
 /* not in use - calls correct dialog, but needs embedding logic to work properly */ 
-procedure insertProcedure:
+procedure AddProcedure:
     define input parameter pcFile as char no-undo.
     run do_insert_procedure in fUIB.
 end procedure.
 
 /* not in use - calls correct dialog, but needs embedding logic to work properly */ 
-procedure insertTrigger:
+procedure AddTrigger:
     define input parameter pcFile as char no-undo.
     run do_insert_trigger in fUIB.
 end procedure.
@@ -937,8 +1030,8 @@ end procedure.
 
 procedure openProcedureSettings:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
 
     setOpenDialogHwnd(iHand).
     run choose_proc_settings in fUIB.
@@ -948,15 +1041,26 @@ procedure openProcedureSettings:
     end finally.
 end.
 
+procedure openAppbuilderProperties: 
+    define input parameter pcParam as char no-undo.
+    run choose_attributes in fUIB.
+end.    
+
+procedure closeAppbuilderProperties: 
+    /* not currently in use (see AppbuilderPropertiesView for current status) */
+    define input parameter pcParam as char no-undo.
+    run close_attributes in fUIB.
+end. 
+    
 procedure openPropertySheet:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
+    define variable iHand as int64 no-undo.
     /* We pass the dialog handle if it is used, 
        but we do not pass it for dynamcis non-native object types, which have
        persistent property sheets like container builder  */
     if num-entries(pcFile,PARAMETER_DELIMITER) > 1 then
     do:
-        iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+        iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
         setOpenDialogHwnd(iHand).
     end.   
     run do_choose_prop_sheet in fUIB.
@@ -990,21 +1094,26 @@ procedure openNewFile:
     define variable cCustom       as character no-undo.
     define variable cId           as character no-undo. 
     define variable lCancel       as logical no-undo. 
-    define variable iWizHwnd      as integer no-undo. 
-    define variable iEditorHwnd   as integer no-undo. 
+    define variable iWizHwnd      as int64 no-undo. 
+    define variable iEditorHwnd   as int64 no-undo. 
     define variable lNative       as logical no-undo.
     define variable lDynamic      as logical no-undo.   
     define variable lInRepos      as logical no-undo.
     define variable cWindowtitle  as character no-undo.
     define variable cLinkedFile   as character no-undo.
     define variable isTTY         as logical no-undo.
+    define variable cWizardContext as character no-undo.
+    define variable ipageNumber  as integer no-undo.
     assign 
         cProjectPath = entry(1,pcInfo,PARAMETER_DELIMITER)
         cId          = entry(2,pcInfo,PARAMETER_DELIMITER)
         cTemplate    = entry(3,pcInfo,PARAMETER_DELIMITER)
         cNewFile     = entry(4,pcInfo,PARAMETER_DELIMITER)
-        iWizHwnd     = int(entry(5,pcInfo,PARAMETER_DELIMITER)) 
-        iEditorHwnd  = int(entry(6,pcInfo,PARAMETER_DELIMITER)) 
+        iWizHwnd     = int64(entry(5,pcInfo,PARAMETER_DELIMITER)) 
+        iEditorHwnd  = int64(entry(6,pcInfo,PARAMETER_DELIMITER)) 
+        cWizardContext = (if num-entries(pcInfo,PARAMETER_DELIMITER) >= 7 
+                          then entry(7,pcInfo,PARAMETER_DELIMITER)
+                          else "") 
         no-error.
     
     cProjectPath = replace(cProjectPath, "~\":U, "/":U) + "/".
@@ -1017,8 +1126,11 @@ procedure openNewFile:
         run NewRyObject in fuib(cPalettetype,cCustom,cTemplate,output lInRepos).
     end. 
      
-    if iWizHwnd > 0 then   
+    if iWizHwnd > 0 then 
+    do:  
+        setRequestContext(cWizardContext).     
         setDesignHwnd("WIZARD":U,iWizHwnd).
+    end.
     
     if iEditorHwnd > 0 then 
         setDesignHwnd("NEW":U,iEditorHwnd).   
@@ -1084,6 +1196,7 @@ procedure openNewFile:
             else /* store the untitled:n  passed to ide */ 
                 setDesignFileName(iEditorHwnd,cNewFile).
             run isTTY in fUib(output isTTY).
+            run getCurrentPageNo in fUIB(output ipageNumber).
             if not lCancel then
                return STATIC_OBJ + PARAMETER_DELIMITER 
                                + (if lInRepos then REPOS_OBJ else "")
@@ -1092,7 +1205,9 @@ procedure openNewFile:
                                + PARAMETER_DELIMITER 
                                + cLinkedFile
                                + PARAMETER_DELIMITER
-                               + (if isTTY then TTY_OBJ else "").
+                               +  (if isTTY then TTY_OBJ else "")
+                               + PARAMETER_DELIMITER
+                               + (if ipageNumber = ? then "-1" else string(ipageNumber)).
         end.
         else do:
              /* store the untitled:n and return it to ide as the name */ 
@@ -1105,8 +1220,9 @@ procedure openNewFile:
                               + PARAMETER_DELIMITER 
                               + cLinkedFile
                               + PARAMETER_DELIMITER
-                              + (if isTTY then TTY_OBJ else "").
-                              
+                              + (if isTTY then TTY_OBJ else "")
+                              + PARAMETER_DELIMITER
+                              + "-1". /* dynamics objects are not page target */             
         end.
     end.
     /* Signal close  - returns something that is not a valid file name. 
@@ -1120,10 +1236,10 @@ end procedure.
 procedure chooseTemplate:
     define input parameter pcparam as char no-undo.
     define variable cReturn as character no-undo.
-    define variable iHand as integer no-undo.
+    define variable iHand as int64 no-undo.
    
 /*    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).*/
-    ihand = int(pcparam).
+    ihand = int64(pcparam).
     setOpenDialogHwnd(iHand).
     run ide_choose_template in fUIB(output cReturn).
     /* Signal close */
@@ -1141,8 +1257,8 @@ end procedure.
 
 procedure runChooseColor:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     
     setOpenDialogHwnd(iHand).
  
@@ -1158,15 +1274,25 @@ procedure runChooseColor:
 end.
 
 procedure runChildDialog:
-    define input parameter pcHwnd  as char no-undo.
-    define variable iHand as integer no-undo.
+    define input parameter pcRequest  as char no-undo.
+    define variable iHand     as int64 no-undo.
+    define variable cProjInfo as character no-undo. 
     define variable ideService as adeuib.iideeventservice no-undo.
     
+    iHand = int64(entry(1,pcRequest,PARAMETER_DELIMITER)).
+    
+    if num-entries(pcRequest,PARAMETER_DELIMITER) > 1 then
+    do:
+        cProjInfo = entry(2,pcRequest,PARAMETER_DELIMITER).    
+    end.
+    
+    /** blank is also context */
+    setRequestContext(cProjInfo).
+     
     ideService = cast(getCurrentEventObject(),adeuib.iideeventservice). 
     if not valid-object(ideService) then
         return "ERROR:NoDialogAvail":U.  
-    
-    ihand = int(pcHwnd) .
+        
     setOpenDialogHwnd(iHand). 
     ideService:RunEvent().
 /*    if return-value = "cancel":U then*/
@@ -1205,8 +1331,8 @@ end.
 /*                                                       */
 procedure runDrawBrowse:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     run adeuib/_drwbrow.p.
  
@@ -1222,8 +1348,8 @@ end.
 
 procedure runDrawFields:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     
     setOpenDialogHwnd(iHand).
     run ide_draw_fields in fUIB.
@@ -1240,8 +1366,8 @@ end.
     
 procedure runDrawQuery:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(2,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
     
     setOpenDialogHwnd(iHand).
     run adeuib/_drwqry.p.    
@@ -1267,22 +1393,28 @@ procedure ToolSelected:
     define input parameter pcFile as char no-undo.
     define variable cTool as character no-undo. 
     define variable cCustom as character no-undo. 
-    cTool = substr(pcFile,(index(pcFile,PARAMETER_DELIMITER) + 1)).
+    define variable cSharedProjects as character no-undo.
     
+    cTool = entry(2,pcFile,PARAMETER_DELIMITER).
+    
+    if(num-entries(pcFile,PARAMETER_DELIMITER)>=3) then
+    do:    
+        cSharedProjects = entry(3,pcFile,PARAMETER_DELIMITER). 
+    end.
     if num-entries(cTool,":") > 1 then 
        assign 
          cCustom = entry(2,cTool,":")
          ctool = entry(1,cTool,":"). 
     else 
        cCustom = ?. 
-    run tool_choose in fUIB(1,ctool,ccustom).
+    run tool_choose_with_projects in fUIB(1,ctool,ccustom,cSharedProjects).
 
 end.
 
 procedure textEditorSaveEvent:
     define input parameter pcParam  as char no-undo.
     define variable cFile as character no-undo. 
-    define variable ihwnd as integer no-undo. 
+    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cFile = entry(1,pcParam,PARAMETER_DELIMITER).
     cfile = replace(cfile, "~\":U, "/":U).    
@@ -1331,10 +1463,10 @@ procedure runTTYTerminalColorChooser:
     define variable iFg as integer no-undo.
     define variable iBg as integer no-undo.
     define variable hHand as handle no-undo.
-    define variable Pid   as integer no-undo. 
+    define variable Pid   as int64 no-undo. 
     /* TODO remove project */
     assign
-        pid      = integer(entry(1,pColors,PARAMETER_DELIMITER))
+        pid      = int64(entry(1,pColors,PARAMETER_DELIMITER))
         cProject = entry(2,pColors,PARAMETER_DELIMITER)
         iBg      = int(entry(3,pColors,PARAMETER_DELIMITER))
         iFg      = int(entry(4,pColors,PARAMETER_DELIMITER)).
@@ -1376,8 +1508,8 @@ end procedure.
 
 procedure RunNewAdmClass:
     define input parameter pcFile as char no-undo.
-    define variable iHand as integer no-undo.
-    iHand = int(entry(1,pcFile,PARAMETER_DELIMITER)).
+    define variable iHand as int64 no-undo.
+    iHand = int64(entry(1,pcFile,PARAMETER_DELIMITER)).
     setOpenDialogHwnd(iHand).
     RUN choose_new_adm2_class in FUIB.
     if return-value = "cancel":U then
@@ -1394,7 +1526,7 @@ procedure syncFromAppbuilder:
     define input parameter pcParam  as char no-undo.
     define variable cLinkedFile as character no-undo.
     define variable cFile as character no-undo.  
-    define variable ihwnd as integer no-undo. 
+    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cLinkedFile = entry(1,pcParam,PARAMETER_DELIMITER).
     if num-entries(pcParam) > 1 then 
@@ -1415,7 +1547,7 @@ procedure syncFromFile:
     define input parameter pcParam  as char no-undo.
     define variable cLinkedFile as character no-undo.
     define variable cFile as character no-undo.  
-    define variable ihwnd as integer no-undo. 
+    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cLinkedFile = entry(1,pcParam,PARAMETER_DELIMITER).
 /*    if num-entries(pcParam) > 1 then                 */

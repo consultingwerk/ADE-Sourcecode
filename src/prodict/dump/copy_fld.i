@@ -11,10 +11,11 @@ file: prodict/dump/copy_fld.i
 
 -------------------------------------------------------------*/
 /* allows not to copy when multi tenancy lob field with keep default no in one of the tables */
+
 &if defined(copyarea) = 0 &then
    &scoped-define copyarea true 
 &endif
- 
+
 IF {&all} THEN
   ASSIGN
     {&to}._Field-Name    = {&from}._Field-Name
@@ -50,7 +51,7 @@ ASSIGN
 
   {&to}._Fld-stdtype   = {&from}._Fld-stdtype
  
-  {&to}._Fld-stlen     = {&from}._Fld-stlen when {&copyarea}      
+  {&to}._Fld-stlen     = {&from}._Fld-stlen when {&copyarea} 
  
   {&to}._Fld-stoff     = {&from}._Fld-stoff
 

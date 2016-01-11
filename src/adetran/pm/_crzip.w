@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME Zip-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Zip-Frame 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -20,7 +20,9 @@
 
   Output Parameters:
       ZipFile (char) - zip filename to use
+	  BkupFile (char)- name of bku file
       ItemList(char) - list of items to zip up
+	  ProjPath(char) - directory where kit items are located
 
   Author: Gerry Seidl
 
@@ -39,7 +41,9 @@ DEFINE SHARED VARIABLE _bkupExt AS CHARACTER NO-UNDO.
 
 /* Parameters Definitions ---                                           */
 DEFINE OUTPUT PARAMETER ZipFile  AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER BkupFile AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER ItemList AS CHARACTER NO-UNDO.
+DEFINE OUTPUT PARAMETER ProjPath AS CHARACTER NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE dispProjDir AS CHARACTER NO-UNDO.
@@ -268,15 +272,17 @@ DO:
     
     ASSIGN
       Kit      = REPLACE(_Kit,".db":U,"")                /* kit name less extention */
-      ItemList = ProjDir + "{&SLASH}" + Kit + _bkupExt + " " +  /* bkup device name */
-                 ProjDir + "{&SLASH}" + "*.ini":U     + " " +   /* ini */
-                 ProjDir + "{&SLASH}" + "*.rc":U            .   /* rc */
+      ProjPath = IF SUBSTR(ProjDir, LENGTH(ProjDir), 1) NE "{&SLASH}"
+                   THEN ProjDir + "{&SLASH}" ELSE ProjDir
+	  BkupFile = Kit + _bkupExt          /* bkup device name */
+      ItemList = "*.ini":U      + " " +  /* ini */
+                 "*.rc":U            .   /* rc */
     FIND FIRST xlatedb.xl_project NO-LOCK NO-ERROR.
     IF xlatedb.XL_Project.UseImages THEN
       /* Include images too! */
-      ItemList = ItemList                       + " " +
-        ProjDir + "{&SLASH}" + "*.bmp":U        + " " +   
-        ProjDir + "{&SLASH}" + "*.ico":U.                   
+      ItemList = ItemList   + " " +
+                 "*.bmp":U  + " " +
+                 "*.ico":U.                   
     IF xlatedb.XL_Project.SettingsFile NE "" THEN DO:
       RUN adecomm/_osprefx.p (INPUT  xlatedb.XL_Project.SettingsFile, 
                               OUTPUT DirName, 

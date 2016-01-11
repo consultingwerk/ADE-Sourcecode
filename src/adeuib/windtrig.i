@@ -15,4 +15,4 @@
     ON HELP ANYWHERE     PERSISTENT RUN disp_help      IN _h_uib.
                              
     /* Group Triggers (to apply Main Menu Accelerators in design window) */
-    {adeuib/grptrig.i}
+    /* moved out to avoid defining for oeide 11.3 {adeuib/grptrig.i} */

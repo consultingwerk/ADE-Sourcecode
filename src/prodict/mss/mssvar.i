@@ -30,6 +30,7 @@ DEFINE {1} SHARED VARIABLE movedata       AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE pcompatible    AS LOGICAL   NO-UNDO  INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE sqlwidth       AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE loadsql        AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE genrep         AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE rmvobj         AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE shadowcol      AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE descidx        AS LOGICAL   NO-UNDO.
@@ -54,16 +55,18 @@ DEFINE {1} SHARED VARIABLE stages_complete 	AS LOGICAL EXTENT 7 NO-UNDO.
 DEFINE button s_btn_Advanced SIZE 24 by 1.125.
 DEFINE {1} SHARED VARIABLE choiceUniquness     AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE choiceDefault       AS CHARACTER NO-UNDO.
-DEFINE {1} SHARED VARIABLE migConstraint       AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE migConstraint       AS LOGICAL NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE choiceRowid         AS INTEGER NO-UNDO INITIAL 1.
 DEFINE {1} SHARED VARIABLE choiceSchema        AS INTEGER NO-UNDO.
-DEFINE {1} SHARED VARIABLE mkClusteredExplict  AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE {1} SHARED VARIABLE recidCompat         AS LOGICAL NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE forRowidUniq        AS LOGICAL NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE ForRow	           AS LOGICAL NO-UNDO INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE selBestRowidIdx     AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE tryPimaryForRowid   AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE shdcol              AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE lExpand             AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE recid_verify        AS LOGICAL NO-UNDO.
+
 /* OE00195067 END */
 
 /*
@@ -77,6 +80,6 @@ define {1} shared variable mss_build_schema	  as integer   initial 5.
 define {1} shared variable mss_fixup_schema	  as integer   initial 6.
 define {1} shared variable mss_load_data	  as integer   initial 7. 
 define {1} shared variable s_file-sel         as character initial "*". 
+     
 
-
-
+DEFINE {1} SHARED VARIABLE osh_conparms     AS CHARACTER NO-UNDO.

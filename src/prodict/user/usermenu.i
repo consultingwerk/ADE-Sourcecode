@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2013 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -573,7 +573,9 @@ Procedure Do_Menu_Item_Initial:
    DEFINE VARIABLE hBuffer  AS HANDLE NO-UNDO.
    DEFINE VARIABLE hBuffer2 AS HANDLE NO-UNDO.
 
-   code = ENTRY(p_item_ix, Gray_Table[p_sub_ix]).
+   IF (NUM-ENTRIES(Gray_Table[p_sub_ix])>=p_item_ix) THEN
+     code = ENTRY(p_item_ix, Gray_Table[p_sub_ix]).
+   ELSE ASSIGN code = ?.
 
    case PROGRESS:
       when "Full" then
@@ -821,7 +823,6 @@ Procedure Initial_Menu_Gray:
        &from-type = supp_gates
        }
      supp_gates = DATASERVERS.
-
    do g_all_ix = 1 to NUM-ENTRIES(all_gates):
       gate = ENTRY(g_all_ix, all_gates).
       if NOT CAN-DO(supp_gates, gate) then
@@ -1348,15 +1349,6 @@ ON CHOOSE OF MENU-ITEM mi_Dump_as_XML IN MENU mnu_Dump_Aud_Pol DO:
     RETURN NO-APPLY.
   END. /* Permission Check */
                                            
-&IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
-  RUN checkWin64Install.
-  IF RETURN-VALUE EQ "error":U THEN DO:
-      user_env = "".
-      RETURN NO-APPLY.
-  END.
-
-&ENDIF
-
   RUN Perform_Func 
       ("_aud-pol,9=x,2=_audit-policies.xml,35=persistent,_usrdump").
 
@@ -1639,15 +1631,6 @@ ON CHOOSE OF MENU-ITEM mi_Load_XML   IN MENU mnu_Load_Aud_Pol DO:
     RETURN NO-APPLY.
   END. /* Permission Check */
   
-&IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
-  RUN checkWin64Install.
-  IF RETURN-VALUE EQ "error":U THEN DO:
-      user_env = "".
-      RETURN NO-APPLY.
-  END.
-
-&ENDIF
-
   RUN Perform_Func ( "9=x,2=_audit-policies.xml,35=persistent,_usrload" ).
 
   IF user_env[2] NE ? THEN
@@ -2437,37 +2420,5 @@ on choose of menu-item mi_Hlp_Recent   in menu mnu_Help
 /*----- HELP ABOUT ADMIN -----*/
 on choose of menu-item mi_Hlp_About in MENU mnu_Help
    run adecomm/_about.p ("Database Administration", "adeicon/admin%").
-
-
-/* This gets called when we want to check if this is a 32-bit client
-   on a 64-bit install, in which case we can't support things that
-   depend on dll's that are not shippd for the 32-bit mode, such as
-   XML and crypto stuff.
-*/
-PROCEDURE checkWin64Install.
-
-    DEFINE VARIABLE dlcValue AS CHARACTER           NO-UNDO. /* DLC */
-    
-    IF OPSYS = "Win32":U THEN /* Get DLC from Registry */
-       GET-KEY-VALUE SECTION "Startup":U KEY "DLC":U VALUE dlcValue.
-    
-    IF (dlcValue = "" OR dlcValue = ?) THEN DO:
-       ASSIGN dlcValue = OS-GETENV("DLC":U). /* Get DLC from environment */
-       IF (dlcValue = "" OR dlcValue = ?) THEN DO: /* Still nothing? */
-         RETURN "".
-       END.
-    END.
-
-    FILE-INFO:FILE-NAME = dlcValue + "/bin32":U.
-    IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
-        FILE-INFO:FILE-NAME = ?.
-        MESSAGE "This utility is not supported by the GUI client on a 64-bit install."
-            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-        RETURN "error".
-    END.
-    
-    RETURN "".
-
-END PROCEDURE.
 
 &ENDIF

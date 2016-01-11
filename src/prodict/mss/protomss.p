@@ -81,7 +81,8 @@ FORM
   mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
   LABEL "Collation"  COLON 36 SKIP({&VM_WID})  
   mss_incasesen  LABEL "Insensitive" COLON 36 SKIP({&VM_WID})
-  loadsql   view-as toggle-box label "Load SQL" AT 5 SKIP({&VM_WID})
+  loadsql   view-as toggle-box label "Load SQL" AT 5 
+  genrep    view-as toggle-box label "Generate Rank Report" AT 38 SKIP({&VM_WID})
   movedata  view-as toggle-box label "Move Data" AT 5 
   s_btn_Advanced label "Advanced..." AT 50 SKIP({&VM_WID})
 
@@ -289,9 +290,6 @@ IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
 END.  
 ASSIGN  descidx = TRUE.
 
-
-
-
 IF OS-GETENV("MIGRATECONSTR")   <> ? 
   THEN DO:
    tmp_str = OS-GETENV("MIGRATECONSTR").
@@ -299,7 +297,7 @@ IF OS-GETENV("MIGRATECONSTR")   <> ?
      THEN migConstraint = yes.
      ELSE migConstraint = no.
   END.
-  ELSE migConstraint = yes.
+  ELSE migConstraint = no.
 
 IF OS-GETENV("UNIQUECONSTR")   <> ?
  THEN DO:
@@ -368,13 +366,22 @@ IF OS-GETENV("MAPOEPRIMARY") <> ? THEN DO:
      ASSIGN  tryPimaryForRowid = FALSE. 
 END.
 
-IF OS-GETENV("EXPLICITCLUSTERED") <> ? THEN DO:       
-  ASSIGN tmp_str  = OS-GETENV("EXPLICITCLUSTERED").
+IF OS-GETENV("RECIDONLY") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("RECIDONLY").
   IF tmp_str BEGINS "Y" THEN 
-     ASSIGN  mkClusteredExplict = TRUE.
+     ASSIGN  recid_verify = TRUE.
   ELSE 
-     ASSIGN  mkClusteredExplict = FALSE. 
+     ASSIGN  recid_verify = FALSE.
 END.
+
+IF OS-GETENV("RECIDCOMPAT") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("RECIDCOMPAT").
+  IF tmp_str BEGINS "Y" THEN 
+     ASSIGN  recidCompat = TRUE.
+  ELSE 
+     ASSIGN  recidCompat = FALSE.
+END.
+
 IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
    tmp_str      = OS-GETENV("COMPATIBLE").
    IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:
@@ -513,6 +520,7 @@ IF NOT batch_mode THEN
         mss_collname
         mss_incasesen
         loadsql
+        genrep
         movedata WHEN mvdta = TRUE
         s_btn_Advanced
         btn_OK btn_Cancel 

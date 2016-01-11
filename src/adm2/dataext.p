@@ -4792,3 +4792,30 @@ END FUNCTION.
 
 &ENDIF
 
+
+&IF DEFINED(EXCLUDE-getUseKeyOnRefresh) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseKeyOnRefresh Procedure 
+function getUseKeyOnRefresh return logical 
+    ():
+    define variable cOperatingMode as character no-undo.
+    define variable cASDivision    as character no-undo.
+    define variable cDBNames       as character no-undo.
+
+    &SCOP xp-assign
+    {get serverOperatingMode cOperatingMode}
+    {get ASDivision cASDivision}
+    {get DBNames cDBNames}
+    .
+    &undefine xp-assign
+
+    if cASdivision = "client" and cOperatingMode = "stateless" and cDBNames = "PROGRESST" then
+        return true.
+    else
+        return false.
+end function.    
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF

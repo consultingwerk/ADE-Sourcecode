@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2012 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -52,16 +52,6 @@ PROCEDURE FreeLibrary EXTERNAL "KERNEL32.DLL":
     DEFINE INPUT PARAMETER hdll     AS LONG.
 END.
 
-/* 16bit API */
-PROCEDURE LoadLibrary EXTERNAL "KRNL386.EXE":
-    DEFINE INPUT PARAMETER dllname  AS MEMPTR.
-    DEFINE RETURN PARAMETER hdll    AS SHORT.
-END.
-
-PROCEDURE FreeLibrary16 EXTERNAL "KRNL386.EXE" ORDINAL 96:
-    DEFINE INPUT PARAMETER hdll     AS SHORT.
-END.
-
 
 PROCEDURE LoadFileInfo :
   DEFINE VARIABLE ThisDLL AS CHARACTER INITIAL "fileinfo.dll" NO-UNDO.
@@ -69,19 +59,12 @@ PROCEDURE LoadFileInfo :
   
   SET-SIZE(pDLL) = length(ThisDLL) + 1.
   PUT-STRING(pDLL,1) = ThisDLL.
-  IF OPSYS EQ "WIN32" THEN
-    RUN LoadLibraryA(pDLL, OUTPUT hThisDLL). 
-  ELSE
-    RUN LoadLibrary(pDLL, OUTPUT hThisDLL). 
- 
+  RUN LoadLibraryA(pDLL, OUTPUT hThisDLL). 
   SET-SIZE(pDLL) = 0.
 END.
 
 PROCEDURE UnloadDLL : 
-  IF OPSYS EQ "WIN32" THEN
-    RUN FreeLibrary (hThisDLL).
-  ELSE
-    RUN FreeLibrary16 (hThisDLL).
+  RUN FreeLibrary (hThisDLL).
 END.
 
 /* Win32 API */
@@ -96,20 +79,6 @@ PROCEDURE file_info EXTERNAL "fileinfo.dll":
  DEFINE OUTPUT   PARAMETER file-size    AS HANDLE TO LONG.
  DEFINE OUTPUT   PARAMETER error        AS HANDLE TO LONG.
 END PROCEDURE.
-
-/* Win16 API */
-PROCEDURE file_info16 EXTERNAL "fileinfo.dll":
- DEFINE INPUT    PARAMETER File-path    AS CHARACTER.
- DEFINE OUTPUT   PARAMETER file-year    AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-mon     AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-day     AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-hour    AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-min     AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-sec     AS HANDLE TO SHORT.
- DEFINE OUTPUT   PARAMETER file-size    AS HANDLE TO LONG.
- DEFINE OUTPUT   PARAMETER error        AS HANDLE TO SHORT.
-END PROCEDURE.
-
 
 /*
 DEFINE VARIABLE file-year AS INTEGER.

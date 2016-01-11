@@ -63,6 +63,9 @@ DEFINE VARIABLE cLinkedFile         AS CHARACTER     NO-UNDO.
 
 DEFINE BUFFER f_U FOR _U.
 
+function createContextMenu returns handle 
+    () in _h_uib.
+
 /* First unselect ALL BUT the object of interest. */
 FOR EACH _U WHERE _U._SELECTEDib AND RECID(_U) NE p_recid:
    ASSIGN _U._SELECTEDib = FALSE.
@@ -221,12 +224,16 @@ IF _U._TYPE = "WINDOW" THEN DO:
         TRIGGERS:
           {adeuib/windtrig.i}
         END TRIGGERS.
-
-   IF OEIDEIsRunning THEN
-   DO:
+   if not OEIDEIsRunning then 
+   do:     
+     {adeuib/grptrig.i &of-widget-list="OF _h_win"}   
+   end.
+   else  
+   do:
      RUN displayDesignWindow IN hOEIDEService (_P._SAVE-AS-FILE,_h_win).  
-     
-   END.
+     _h_win:popup-menu = createContextMenu(). 
+     on any-key of _h_win anywhere persistent run OnAnyKey in _h_uib.
+   end.
         
    IF _C._menu-recid NE ? THEN DO:
      RUN adeuib/_updmenu.p (NO, _C._menu-recid, OUTPUT h_menu-bar).

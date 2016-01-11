@@ -52,8 +52,10 @@
               08/11/11 rkamboj  Fix issue assigment error with data direct driver for MSS.
               09/25/11 kmayur   Delta sql support for constraint feature              
               07/18/12 musingh  Fix issue with FOREIGN-POS generatation (OE00222952)
-              02/04/13 sdash    Fix for Delta .DF sets FOREIGN-POS 0 causing Load Aborted error(OE00230825)
-              
+              08/03/13 ushrivas Fix for Delta .DF sets FOREIGN-POS 0 causing Load Aborted error(OE00230825)
+              07/05/13 sdash    Added Logical DB validation in a Schema Holder while using delta SQL utility.
+	                        Supported batch mode delta SQL Utility.
+
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
 put the DEFAULT ' ' syntax on the definition for a new field. 
@@ -67,6 +69,7 @@ DEFINE VARIABLE ikwd          AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE imod          AS CHARACTER             NO-UNDO. 
 DEFINE VARIABLE ipos          AS INTEGER               NO-UNDO. 
 DEFINE VARIABLE ilin          AS CHARACTER EXTENT 256  NO-UNDO.
+DEFINE VARIABLE ilin1          AS CHARACTER EXTENT 256  NO-UNDO.
 DEFINE VARIABLE a             AS INTEGER               NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER               NO-UNDO.
 DEFINE VARIABLE j             AS INTEGER               NO-UNDO.
@@ -176,7 +179,17 @@ DEFINE VARIABLE con-ty        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE par-tab       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE par-index     AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE con-actn      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL FALSE  NO-UNDO.
+DEFINE VARIABLE newline       AS LOGICAL   NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE create_shadow_col     AS LOGICAL   NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE is-idx-comp   AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE tmp_ilin2       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE tmp_df_line      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE tmp_df_line_int      AS INTEGER           NO-UNDO.
 
+DEFINE VARIABLE misc11     AS LOGICAL               NO-UNDO INITIAL TRUE.
+
+batch_mode = SESSION:BATCH-MODE.
 
 DEFINE TEMP-TABLE con-index NO-UNDO
   FIELD con-table    LIKE _file._File-name
@@ -252,6 +265,27 @@ DEFINE TEMP-TABLE shad-col NO-UNDO
   FIELD s-tbl-name AS CHARACTER
   FIELD p-fld-name AS CHARACTER
   FIELD col-num    AS INTEGER.
+
+DEFINE TEMP-TABLE fld-cache NO-UNDO
+  FIELD fld-name           AS CHARACTER
+  FIELD is-case-sensitive  AS LOGICAL INITIAL FALSE
+  FIELD is-mandatory  AS LOGICAL INITIAL FALSE
+  FIELD fld-typ-char        AS LOGICAL INITIAL FALSE
+  FIELD tab-name           AS CHARACTER
+  FIELD opr-type           AS CHARACTER.
+  
+DEFINE TEMP-TABLE idx-cache NO-UNDO
+  FIELD idx-name         AS CHARACTER
+  FIELD is-primary       AS LOGICAL INITIAL FALSE
+  FIELD is-unique1       AS LOGICAL INITIAL FALSE
+  FIELD itab-name        AS CHARACTER
+  FIELD idx-fld1         AS CHARACTER
+  FIELD opr-type         AS CHARACTER. 
+
+DEFINE TEMP-TABLE idxfld-cache NO-UNDO
+  FIELD idx-fld2         AS CHARACTER
+  FIELD idxname1         AS CHARACTER
+  FIELD tab-name1        AS CHARACTER.
     
 DEFINE TEMP-TABLE verify-table NO-UNDO
   FIELD tnew-name LIKE _File._File-name
@@ -295,6 +329,111 @@ FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER) FORWARD.
  * Write additional .df lines for updating FIELD-MISC22 and FOREGIN-POS, if specified
  * by caller.
  */
+
+IF shadowcol THEN DO:
+
+    INPUT FROM VALUE(user_env[1]).
+    load_loop:
+    REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
+    
+    ASSIGN ilin1 = ?.
+    IMPORT ilin1.
+
+
+    IF  ilin1[1] = "ADD"  AND  ilin1[2] = "FIELD" THEN DO:
+
+       create fld-cache.
+       DO i =1 to 7:
+   
+       IF i =1 THEN DO:
+            ASSIGN fld-name= ilin1[3].
+                   tab-name = ilin1[5].
+       end.
+    
+       else do:
+            ASSIGN ilin1 = ?.
+            import ilin1.
+            if ilin1[1] = "CASE-SENSITIVE" THEN
+                 ASSIGN is-case-sensitive = yes.
+            if ilin1[1] = "MANDATORY" THEN
+                 ASSIGN is-mandatory = yes.
+           
+       END.
+        if ilin1[7] = "CHARACTER" THEN
+                 ASSIGN fld-typ-char = yes.
+       END.
+  
+    END.
+    IF  ilin1[1] = "ADD"  and  ilin1[2] = "INDEX" THEN DO:
+
+         create idx-cache.
+         do i =1 to 7: 
+  
+         IF newline THEN
+         leave.
+         if i =1 then do:
+              ASSIGN  idx-name= ilin1[3].
+                      itab-name = ilin1[5].
+         end.
+         else do:
+              ASSIGN ilin1 = ?.
+              import ilin1.
+              if ilin1[1] = "UNIQUE" THEN
+              ASSIGN is-unique1 = yes.
+       
+              if ilin1[1] = "PRIMARY" THEN
+                   ASSIGN is-primary = yes.
+        
+              if ilin1[1] = "INDEX-FIELD" THEN do:
+                  create idxfld-cache.
+                         ASSIGN idx-fld2 = ilin1[2].
+                         idxname1= idx-name.
+                         tab-name1 = itab-name.
+              end.
+              IF ilin1[1] = ? THEN
+                  newline = yes.
+        
+         END.
+         END. 
+         newline = no.
+     END.
+
+END.
+END.
+
+
+PROCEDURE create_shadow:    
+  ASSIGN fortype = new-obj.for-type
+         forname = new-obj.for-name.
+                              
+  FIND new-obj where new-obj.add-type = "F"
+                 AND new-obj.tbl-name = tablename
+                 AND new-obj.fld-name = "_S#_" + fieldname
+                 NO-ERROR.                                                                              
+  
+  IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */ 
+                                                                              
+    CREATE shad-col.
+    ASSIGN s-fld-name = "_S#_" + forname
+           p-fld-name = fieldname
+           s-tbl-name = tablename
+           col-num = shw-col.                
+ 
+    CREATE new-obj.
+    ASSIGN new-obj.add-type = "F"
+           new-obj.tbl-name = tablename
+           new-obj.n-order = new-ord
+           new-ord = new-ord + 1
+           new-obj.for-name = "_S#_" + forname
+           new-obj.fld-name = "_S#_" + fieldname
+           new-obj.prg-name = fieldname
+           new-obj.for-type = fortype. 
+    
+                                                        
+  END.                                 
+END PROCEDURE.
+
+
 PROCEDURE updateNewFields:
     DEFINE INPUT PARAMETER ptblname AS CHAR NO-UNDO.
     DEFINE INPUT PARAMETER pforpos AS INT NO-UNDO.
@@ -343,12 +482,24 @@ PROCEDURE updateNewFields:
         END. 
       END.
       ELSE DO:
-        CREATE df-info.
-        ASSIGN df-info.df-seq = dfseq
-               dfseq = dfseq + 1
-               df-info.df-tbl = tbl-name
-               df-info.df-fld = fieldname
-               df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+         IF shadowcol THEN DO:
+            IF new-obj.for-name <> "_S#_" + new-obj.prg-name THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+            END.
+         END.
+         ELSE DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+        END.
 
         /* see if caller passed this */
         IF pforpos <> ? THEN DO:
@@ -361,13 +512,28 @@ PROCEDURE updateNewFields:
         END.
 
         /* be consistent with the schema pull */
+     
+        IF NOT shadowcol THEN DO:
         CREATE df-info.
         ASSIGN df-info.df-seq = dfseq
                dfseq = dfseq + 1
                df-info.df-tbl = new-obj.tbl-name
                df-info.df-fld = fieldname
                df-line = '  FIELD-MISC22 ' + (IF new-obj.mand = YES THEN '"N"' ELSE '"Y"').
+        END.
+        ELSE DO:
+           IF new-obj.for-name <> "_S#_" + new-obj.prg-name THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = new-obj.tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = '  FIELD-MISC22 ' + (IF new-obj.mand = YES THEN '"N"' ELSE '"Y"').
+        END.
 
+
+        END.
+    
         ASSIGN extnt = FALSE.   
       END.                  
 
@@ -578,7 +744,8 @@ PROCEDURE write-tbl-sql:
     ELSE DO:          
         FIND FIRST new-obj WHERE new-obj.add-type = "F"
                            AND new-obj.tbl-name = a-tblname 
-                           AND new-obj.fld-name = a-fldname NO-ERROR.
+                           AND new-obj.prg-name = a-fldname NO-ERROR.
+   
 
         IF AVAILABLE new-obj THEN  DO:
             /* OE00175772
@@ -669,9 +836,10 @@ END.
     
 PROCEDURE write-idx-sql:
   IF idxline = ? OR idxline = "" THEN LEAVE.
-  IF pcompatible AND is-unique = FALSE THEN 
-      ASSIGN idxline = idxline + ", PROGRESS_RECID".
-       
+        
+   IF pcompatible AND is-unique = FALSE AND misc11 THEN 
+         ASSIGN idxline = idxline + ", PROGRESS_RECID".
+
   PUT STREAM tosql UNFORMATTED comment_chars idxline ")"  SKIP.
   PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
     
@@ -682,6 +850,16 @@ PROCEDURE write-idx-sql:
          wordfile = ?.  
   
   FOR EACH shad-col:
+ 
+    FIND FIRST df-info WHERE df-info.df-tbl = s-tbl-name
+                         AND df-info.df-fld = p-fld-name
+                         AND df-line BEGINS '  FOREIGN-POS '
+                         NO-ERROR.
+    IF AVAILABLE df-info THEN DO: 
+       tmp_df_line =  substring (df-line ,14).
+       tmp_df_line_int = INTEGER(tmp_df_line) - 1.
+    END.
+
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
@@ -691,12 +869,12 @@ PROCEDURE write-idx-sql:
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
            df-info.df-tbl = s-tbl-name
-           df-line = '  SHADOW-COL "' + STRING(col-num) + '"'.
+           df-line = '  SHADOW-COL "' + string(tmp_df_line_int) + '"'.
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
            df-info.df-tbl = s-tbl-name
-           df-line = "  FIELD-MISC15 " + STRING(col-num).
+           df-line = "  FIELD-MISC15 " + string(tmp_df_line_int).
     DELETE shad-col.
   END.                                 
 END PROCEDURE.
@@ -1353,8 +1531,8 @@ PROCEDURE new-for-position:
       ASSIGN recidname = "progress_recid"
              recidident = "progress_recid_ident".
     END.
-
-    IF recidname <> ? AND recidname <> "" THEN DO:
+    
+    IF recidname = "progress_recid" THEN DO:
       CREATE new-position.
       ASSIGN new-position.table-np = rntbl
              new-position.field-np = recidname
@@ -1402,10 +1580,13 @@ PROCEDURE new-for-position:
       FIND FIRST drop-field WHERE drop-field.of-table = new-position.table-np
                               AND drop-field.f-name = new-position.field-np NO-ERROR.
 
-      IF AVAILABLE drop-field THEN                
+      IF AVAILABLE drop-field THEN DO:
         ASSIGN new-position.dropped = TRUE
                forpos = forpos + (IF new-position.extent# = 0 THEN 1
-                                  ELSE new-position.extent#).       
+                                  ELSE new-position.extent#). 
+         IF new-position.shadow <> 0 THEN
+                  forpos = forpos + 1.  
+      END.     
       ELSE DO:
         IF new-position.shadow <> 0 THEN
           ASSIGN new-position.shadow = new-position.shadow - forpos
@@ -1418,11 +1599,13 @@ PROCEDURE new-for-position:
     /* Now assigns the forpos equal to the last new-pos  */
     FIND LAST new-position WHERE table-np = rntbl
                              AND new-position.dropped = FALSE.
+   
     /* IF last field is an extent field */
     IF new-position.extent# <> 0 THEN 
         ASSIGN forpos = new-position.new-pos + new-position.extent#.
     ELSE
-    ASSIGN forpos = new-position.new-pos + 1.
+        ASSIGN forpos = new-position.new-pos + 1.
+
     _newloop:
     FOR EACH new-obj WHERE add-type = "F"
                        AND tbl-name = rntbl:
@@ -1449,11 +1632,15 @@ PROCEDURE new-for-position:
         ASSIGN new-position.table-np = rntbl
                new-position.field-np = new-obj.prg-name.
 
-        FIND FIRST n-obj WHERE n-obj.prg-name BEGINS SUBSTRING(new-obj.prg-name, 3) NO-ERROR.
+     /*   FIND FIRST n-obj WHERE n-obj.prg-name BEGINS SUBSTRING(new-obj.prg-name, 3) NO-ERROR. */
+
+        FIND FIRST n-obj WHERE n-obj.prg-name = new-obj.prg-name AND new-obj.for-name BEGINS "_S#_" NO-ERROR.
+
         IF AVAILABLE n-obj  THEN
-           ASSIGN new-position.shadow   = forpos
-                  new-position.new-pos  = forpos
-                  forpos                = forpos + 1.
+             ASSIGN new-position.shadow = forpos
+                    forpos = forpos + 1
+                    new-position.new-pos = forpos
+                    forpos = forpos + 1.
         ELSE
           ASSIGN new-position.new-pos  = forpos    
                  forpos                = forpos + 1.
@@ -1464,19 +1651,19 @@ PROCEDURE new-for-position:
                             AND new-position.dropped = FALSE:
 
       IF new-position.field-np = recidname THEN DO:
-       IF recidname = "progress_recid" THEN DO:
-        CREATE df-info.
-        ASSIGN df-info.df-seq = dfseq
-               dfseq = dfseq + 1
-               df-info.df-tbl = new-position.table-np
-               df-line = 'UPDATE TABLE "' + rntbl + '"'.
-        CREATE df-info.
-        ASSIGN df-info.df-seq = dfseq
-               dfseq = dfseq + 1
-               df-info.df-tbl = new-position.table-np
-               df-line = '  PROGRESS-RECID ' + STRING( new-position.new-pos).
-       END.
-       ELSE IF new-position.old-pos > 0 THEN DO:
+         IF recidname = "progress_recid" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = new-position.table-np
+                     df-line = 'UPDATE TABLE "' + rntbl + '"'.
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = new-position.table-np
+                     df-line = '  PROGRESS-RECID ' + STRING( new-position.new-pos).
+         END.
+         ELSE DO:
               CREATE df-info.
               ASSIGN df-info.df-seq = dfseq
                      dfseq = dfseq + 1
@@ -1487,9 +1674,10 @@ PROCEDURE new-for-position:
                      dfseq = dfseq + 1
                      df-info.df-tbl = new-position.table-np
                      df-line = '  PROGRESS-RECID ' + STRING( new-position.new-pos * -1).
-       END.
+        END.
+
         /* if user has chosen a field instead of creating the recid field put out df info */
-        IF new-position.field-np <> "progress_recid"  and new-position.old-pos > 0 THEN DO:
+         IF new-position.field-np <> "progress_recid" THEN DO:
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
@@ -1528,7 +1716,23 @@ PROCEDURE new-for-position:
                dfseq = dfseq + 1
                df-info.df-tbl = new-position.table-np
                df-info.df-fld = new-position.field-np
-               df-line = '  FOREIGN-POS ' + string(new-position.new-pos).       
+               df-line = '  FOREIGN-POS ' + string(new-position.new-pos).  
+
+        IF new-position.shadow <> 0 THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = new-position.table-np
+                   df-info.df-fld = new-position.field-np
+                   df-line = 'UPDATE FIELD "' + new-position.field-np  + '" OF "' + new-position.table-np + '"'.
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  df-info.df-tbl = new-position.table-np
+                  df-info.df-fld = new-position.field-np
+                  df-line = '  FIELD-MISC15 ' + string (new-position.shadow) .
+        END.
+     
       END.  
     END.
   END.
@@ -1785,93 +1989,56 @@ PROCEDURE create-idx-field:
         END.
       END. /* End of rename object */
       ELSE DO:
-        FIND FIRST new-obj WHERE new-obj.add-type = "F"
-                             AND new-obj.tbl-name = tablename
-                             AND new-obj.prg-name = ilin[2]
-                                        NO-ERROR.                                      
-        IF AVAILABLE new-obj THEN DO:                                                                        
-          IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" OR SUBSTRING(new-obj.for-type,2,8) = "NVARCHAR" THEN DO:                      
-            ASSIGN fortype = new-obj.for-type
-                   forname = new-obj.for-name.
-            IF NOT shadowcol THEN DO:
-              ASSIGN con-fld-name =  new-obj.for-name.             
-              IF INDEX(idxline, "(") = 0 THEN
-                ASSIGN idxline = idxline + "(" + new-obj.for-name.
-              ELSE
-                ASSIGN idxline = idxline + ", " + new-obj.for-name. 
-            END.
-            ELSE DO:
-              FIND n-obj where n-obj.add-type = "F"
-                           AND n-obj.tbl-name = tablename
-                           AND n-obj.fld-name = "_S#_" + ilin[2]
-                                       NO-ERROR.     
+   
+          FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                   AND new-obj.tbl-name = tablename
+                   AND new-obj.prg-name = ilin[2]
+                               NO-ERROR. 
+          tmp_ilin2 =  ilin[2].                    
+          IF AVAILABLE new-obj THEN DO:
+              IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" OR SUBSTRING(new-obj.for-type,2,8) = "NVARCHAR" THEN DO:
+                 IF NOT shadowcol THEN DO:
+                     ASSIGN con-fld-name = new-obj.for-name.           
+                     IF INDEX(idxline, "(") = 0 THEN
+                        ASSIGN idxline = idxline + "(" + new-obj.for-name.
+                     ELSE
+                        ASSIGN idxline = idxline + ", " + new-obj.for-name.          
+                 END.
+                 ELSE DO:
+                    FIND fld-cache where fld-cache.fld-name = tmp_ilin2
+                       AND fld-cache.tab-name  = tablename
+                       NO-ERROR.
+                    IF is-case-sensitive THEN        
+                       FIND new-obj where new-obj.add-type = "F"
+                           AND new-obj.tbl-name = tablename
+                           AND new-obj.prg-name =  tmp_ilin2
+                           NO-ERROR.
+                    ELSE
+                       FIND new-obj where new-obj.add-type = "F"
+                            AND new-obj.tbl-name = tablename
+                            AND new-obj.for-name = "_S#_" + tmp_ilin2
+                            NO-ERROR.
 
-              IF NOT AVAILABLE n-obj THEN DO:  /* need to alter the table to create field */                                                           
-                                                           
-                ASSIGN shw-col = 0.                               
-                                                
-                FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
-                  IF DICTDB._Field._Extent = 0 THEN                   
-                    ASSIGN shw-col = shw-col + 1.
-                  ELSE
-                    ASSIGN shw-col = shw-col + DICTDB._Field._Extent. 
-                  IF DICTDB._Field._Fld-Misc1[5] <> ? AND DICTDB._Field._Fld-Misc1[5] <> 0 THEN
-                    ASSIGN shw-col = shw-col + 1.
-                END.
+                    ASSIGN con-fld-name = new-obj.for-name.             
+                    IF INDEX(idxline, "(") = 0 THEN
+                        ASSIGN idxline = idxline + "(" + new-obj.for-name.
+                    ELSE
+                        ASSIGN idxline = idxline + ", " + new-obj.for-name.  
+                 END.
+              END.
+              ELSE DO:
+                 ASSIGN con-fld-name = new-obj.for-name.         
+                 IF INDEX(idxline, "(") = 0 THEN
+                    ASSIGN idxline = idxline + "(" + new-obj.for-name.
+                 ELSE
+                    ASSIGN idxline = idxline + ", " + new-obj.for-name.
+              END.
+              IF ilin[3] BEGINS "DESC"  THEN
+                 ASSIGN idxline = idxline + " DESC".
+           END. 
 
-                IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
-                  ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
-
-                maxValue = getMaxValue(DICTDB._File._Fil-Misc2[2]).
-                IF shw-col < maxValue THEN
-                  ASSIGN shw-col = maxValue.
-
-                FOR EACH new-Obj WHERE new-obj.add-type = "F"
-                                   AND new-obj.tbl-name = tablename:
-                  ASSIGN shw-col = shw-col + 1.
-                END.               
-
-                ASSIGN shw-col = shw-col + 1.  
-                                                                                              
-                CREATE shad-col.
-                ASSIGN p-fld-name = ilin[2]
-                       s-fld-name = "_S#_" + forname
-                       s-tbl-name = tablename
-                       col-num = shw-col.                
- 
-                CREATE new-obj.
-                ASSIGN new-obj.add-type = "F"
-                       new-obj.tbl-name = tablename
-                       new-obj.n-order = new-ord
-                       new-ord = new-ord + 1
-                       new-obj.for-name = "_S#_" + forname
-                       new-obj.fld-name = "_S#_" + ilin[2]
-                       new-obj.prg-name = ilin[2]
-                       new-obj.for-type = (IF fortype BEGINS "CHAR" THEN user_env[11] /*"VARCHAR"*/
-                                                       ELSE fortype). 
-             
-                PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " DICTDB._File._For-owner + "." + DICTDB._File._For-name SKIP.
-                PUT STREAM tosql UNFORMATTED comment_chars " ADD " new-obj.for-name " " new-obj.for-type SKIP.
-                PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).                                                          
-              END.   
-              ASSIGN con-fld-name = new-obj.for-name.                            
-              IF INDEX(idxline, "(") = 0 THEN
-                ASSIGN idxline = idxline + "(" + new-obj.for-name.
-              ELSE
-                ASSIGN idxline = idxline + ", " + new-obj.for-name. 
-            END.
-          END.
-          ELSE DO:
-            ASSIGN con-fld-name = new-obj.for-name.   
-            IF INDEX(idxline, "(") = 0 THEN
-              ASSIGN idxline = idxline + "(" + new-obj.for-name.
-            ELSE
-              ASSIGN idxline = idxline + ", " + new-obj.for-name. 
-          END.
-          IF ilin[3] BEGINS "DESC"  THEN
-              ASSIGN idxline = idxline + " DESC".
-        END.  
-      END.  /* end of new-obj */                           
+      END.  /* end of new-obj */ 
+                       
     END. /* Not available field */
   END. /* End of available file */
   ELSE DO:  /* Dealing with new table */
@@ -1973,7 +2140,17 @@ PROCEDURE create-con-field:
                    conline = conline + ", " + idx-fld-name.              
            END.                                 
        END. 
-       ELSE MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+       ELSE DO:
+         IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "Parent index for the Foreign constraint is not available.".
+          &ELSE
+              MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+         END.
+	 ELSE
+              PUT STREAM logfile UNFORMATTED "Parent index for the Foreign constraint is not available." skip(1).
+       END.
     END.
   END.
   ELSE DO:
@@ -1989,7 +2166,17 @@ PROCEDURE create-con-field:
                    conline = conline + ", " + idx-fld-name.              
            END.                                 
        END. 
-       ELSE MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+       ELSE DO:
+        IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "Parent index for the Foreign constraint is not available.".
+          &ELSE
+              MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+         END.
+	 ELSE
+	 PUT STREAM logfile UNFORMATTED "Parent index for the Foreign constraint is not available " SKIP.
+       END.
    END. 
 END PROCEDURE.
 
@@ -2032,9 +2219,18 @@ PROCEDURE create-for-con:
                END.               
            END.            
            ELSE DO:
-              MESSAGE "parent table does not have a primary constraint " view-as alert-box.
+            IF NOT batch_mode THEN DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                  MESSAGE "parent table does not have a primary constraint. ".
+              &ELSE
+                  MESSAGE "parent table does not have a primary constraint " view-as alert-box.
+             &ENDIF.
+            END.
+	    ELSE DO:
+              PUT STREAM logfile UNFORMATTED "parent table does not have a primary constraint. ".
               RETURN.
-           END.   
+            END.
+           END.
     END.   
   
   END.
@@ -2056,8 +2252,17 @@ PROCEDURE create-for-con:
                   RUN create-con-field.      
                END.               
            END.            
-           ELSE
-              MESSAGE "parent table does not have a primary constraint " view-as alert-box.                                     
+           ELSE DO:
+	     IF NOT batch_mode THEN DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                  MESSAGE "parent table does not have a primary constraint. ".
+              &ELSE
+                  MESSAGE "parent table does not have a primary constraint " view-as alert-box.
+             &ENDIF.
+             END.
+             ELSE 
+                  PUT STREAM logfile UNFORMATTED "parent table does not have a primary constraint. ".
+	   END.
   END.
   assign conline1 = substring(conline, 1, index(conline,"REFERENCES") + 10).
   assign conline2 = substring(conline, index(conline,"REFERENCES") + 11, -1).
@@ -2256,7 +2461,8 @@ OUTPUT STREAM tosql TO VALUE(sqlout) NO-ECHO NO-MAP.
 
 INPUT FROM VALUE(user_env[1]).              
 
-SESSION:IMMEDIATE-DISPLAY = yes.
+IF NOT batch_mode THEN
+ ASSIGN SESSION:IMMEDIATE-DISPLAY = yes.
 
 RUN adecomm/_setcurs.p ("WAIT").
 
@@ -2265,26 +2471,27 @@ FIND FIRST _Db WHERE _db._db-name = ?.
 IF _DB._Db-res1[1] = 1 THEN
    large_seq = YES.
 
-FIND FIRST DICTDB._File NO-ERROR.
-IF AVAILABLE DICTDB._File THEN DO:
-  ASSIGN dbrecid = DICTDB._File._Db-recid.
-
-  FIND _Db WHERE RECID(_db) = dbrecid NO-LOCK.
-  ASSIGN qualname = _Db._Db-addr.
-
-  IF _db-name NE mss_dbname THEN DO:
-  
-     FIND FIRST _Db WHERE _Db._Db-name = mss_dbname NO-ERROR.
-     IF NOT AVAILABLE _Db THEN
-        FIND _Db WHERE RECID(_db) = dbrecid NO-LOCK.
-  END.
+FIND FIRST _Db WHERE _db._db-name = mss_dbname NO-ERROR.
+IF AVAILABLE(_Db) THEN DO:
+    ASSIGN dbrecid = RECID(_Db)
+           qualname = _Db._Db-addr.
 
   /* Unicode types is only supported for MS SQL Server 2005 and up */
   IF unicodeTypes THEN DO:
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(_Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) < 9 THEN DO:
-         MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
+	 IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
+                 "with Versions 2005 and above. Do not use the 'Unicode Types' option." SKIP
+          &ELSE
+             MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
                  "with Versions 2005 and above. Do not use the 'Unicode Types' option." SKIP
                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          &ENDIF.
+        END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
+                 "with Versions 2005 and above. Do not use the 'Unicode Types' option." SKIP.
 
          OUTPUT STREAM todf CLOSE.
          OUTPUT STREAM tosql CLOSE.
@@ -2305,9 +2512,19 @@ IF AVAILABLE DICTDB._File THEN DO:
 
   IF NOT mapMSSDatetime THEN DO:
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(_Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) < 10 THEN DO:
-         MESSAGE "You selected 'Use Newer Datetime Types' but the version stored in the schema holder is" SKIP
+         IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "You selected 'Use Newer Datetime Types' but the version stored in the schema holder is" SKIP
+                 "for a version earlier than MSS 2008. Do not use that option." SKIP.
+          &ELSE
+             MESSAGE "You selected 'Use Newer Datetime Types' but the version stored in the schema holder is" SKIP
                  "for a version earlier than MSS 2008. Do not use that option." SKIP
                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          &ENDIF.
+       END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "You selected 'Use Newer Datetime Types' but the version stored in the schema holder is" SKIP
+                 "for a version earlier than MSS 2008. Do not use that option." SKIP.
 
          OUTPUT STREAM todf CLOSE.
          OUTPUT STREAM tosql CLOSE.
@@ -2318,9 +2535,19 @@ IF AVAILABLE DICTDB._File THEN DO:
       END.
 
       IF (NOT isSQLNCLI) OR INTEGER(ENTRY(1,_Db._db-misc2[2],".")) < 10 THEN DO:
-          MESSAGE "You selected 'Use Newer Datetime Types' but the ODBC driver does not support" SKIP
+          IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "You selected 'Use Newer Datetime Types' but the ODBC driver does not support" SKIP
+                  "those types. Do not use that option." SKIP.
+          &ELSE
+             MESSAGE "You selected 'Use Newer Datetime Types' but the ODBC driver does not support" SKIP
                   "those types. Do not use that option." SKIP
                   VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          &ENDIF.
+       END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "You selected 'Use Newer Datetime Types' but the ODBC driver does not support" SKIP
+                  "those types. Do not use that option." SKIP.
 
           OUTPUT STREAM todf CLOSE.
           OUTPUT STREAM tosql CLOSE.
@@ -2444,10 +2671,10 @@ DO ON STOP UNDO, LEAVE:
          ASSIGN tablename = ilin[3]
                  comment_chars = ""
                  comment-out = FALSE.
-
+      IF NOT batch_mode THEN DO:
         IF tablename <> ? THEN                             
           DISPLAY tablename WITH FRAME working.
-    
+      END.
         FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[3]
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
         IF AVAILABLE DICTDB._File THEN DO:
@@ -2460,10 +2687,22 @@ DO ON STOP UNDO, LEAVE:
                  df-line = "DROP TABLE " + '"' + DICTDB._File._File-name + '"'.
         END.
         ELSE DO:
-          MESSAGE "The Delta DF File contains DROP TABLE " ilin[3]  SKIP
+	IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains DROP TABLE " ilin[3]  SKIP
+                  "and table does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
+          &ELSE
+            MESSAGE "The Delta DF File contains DROP TABLE " ilin[3]  SKIP
                   "and table does not exist in the schema holder." SKIP
                   "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+       END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP TABLE " ilin[3]  SKIP
+                  "and table does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
           RETURN.
         END.
         ASSIGN ilin = ?.
@@ -2487,10 +2726,10 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
                  comment-out = FALSE.
-
+       IF NOT batch_mode THEN DO:
         IF tablename <> ? THEN                              
           DISPLAY tablename WITH FRAME working.       
-                      
+       END.
         FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[3]
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
  
@@ -2519,17 +2758,29 @@ DO ON STOP UNDO, LEAVE:
               ASSIGN dsv-name = SUBSTRING(DICTDB._File._For-name, 1,(LENGTH(DICTDB._File._For-name) -  4)).                   
         END.
         ELSE DO:
-          MESSAGE "The Delta DF File contains RENAME TABLE" ilin[3] SKIP
+	IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains RENAME TABLE" ilin[3] SKIP
+                  "and table does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
+          &ELSE
+              MESSAGE "The Delta DF File contains RENAME TABLE" ilin[3] SKIP
                   "and table does not exist in the schema holder." SKIP
                   "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+       END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME TABLE" ilin[3] SKIP
+                  "and table does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
           RETURN.
         END.
         ASSIGN ilin = ?. 
       END. /* End Rename Table */
       
       /* Add new table */
-      ELSE IF imod = "a" THEN DO:                               
+      ELSE IF imod = "a" THEN DO:  
         IF ilin[1] = "ADD" AND ilin[2] = "TABLE" THEN DO: 
           RUN write-tbl-sql.
           
@@ -2547,16 +2798,29 @@ DO ON STOP UNDO, LEAVE:
                  fldnum = 0
                  idx-number = 1
                  comment_chars = ""
-                 comment-out = FALSE.
+                 comment-out = FALSE
+                 misc11 = TRUE.
                                                                                         
           FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = tablename
                                     AND DICTDB._File._Owner = "_FOREIGN"
                                     NO-LOCK NO-ERROR.
           IF AVAILABLE DICTDB._File THEN DO:
-            MESSAGE "The Delta DF File contains ADD TABLE" ilin[3] SKIP
+	  IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains ADD TABLE" ilin[3] SKIP
+                  "and table already exists in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
+          &ELSE
+             MESSAGE "The Delta DF File contains ADD TABLE" ilin[3] SKIP
                   "and table already exists in the schema holder." SKIP
                   "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+          END. 
+          ELSE
+	  PUT STREAM logfile UNFORMATTED  "The Delta DF File contains ADD TABLE" ilin[3] SKIP
+                  "and table already exists in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
             RETURN.
           END.
 
@@ -2600,10 +2864,10 @@ DO ON STOP UNDO, LEAVE:
           END.
 
           RUN create-new-obj (INPUT "T", INPUT ?).
-          
-          IF tablename <> ? THEN    
+	  IF NOT batch_mode THEN DO:
+           IF tablename <> ? THEN    
             DISPLAY tablename WITH FRAME working.   
-
+	  END.
           IF pcompatible THEN DO: 
             IF NOT useComputedColumn THEN DO:
               CREATE sql-info.
@@ -2789,10 +3053,22 @@ DO ON STOP UNDO, LEAVE:
                                      AND new-obj.add-type = "T" NO-ERROR.
 
             IF NOT AVAILABLE new-obj THEN DO:
-                MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
+	       IF NOT batch_mode THEN DO:
+                  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                     MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
+                        "and table does not exist in the schema holder." SKIP
+                        "This process is being aborted."  SKIP (1).
+                  &ELSE
+                     MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
                         "and table does not exist in the schema holder." SKIP
                         "This process is being aborted."  SKIP (1)
                         VIEW-AS ALERT-BOX ERROR.
+                 &ENDIF.
+                END. 
+                ELSE
+	           PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
+                        "and table does not exist in the schema holder." SKIP
+                        "This process is being aborted."  SKIP (1).
                 RETURN.
             END.
           END.
@@ -2825,10 +3101,10 @@ DO ON STOP UNDO, LEAVE:
                  df-info.df-tbl = tablename
                  df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
         END.  
-                
-        IF tablename <> ? THEN                             
+        IF NOT batch_mode THEN DO:
+         IF tablename <> ? THEN                             
           DISPLAY tablename WITH FRAME working.
-           
+        END.   
         CASE ilin[1]:
           WHEN "LABEL"  OR WHEN "LABEL-SA" OR WHEN "DESCRIPTION" OR
           WHEN "VALEXP" OR WHEN "VALMSG"   OR WHEN "VALMSG-SA"   OR
@@ -2896,10 +3172,10 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
                  comment-out = FALSE.
-
+       IF NOT batch_mode THEN DO:
         IF tablename <> ? THEN  
           DISPLAY tablename WITH FRAME working.
-          
+       END.   
                 
         FIND FIRST rename-obj WHERE rename-type = "T"
                                 AND new-name = ilin[5]
@@ -2910,10 +3186,22 @@ DO ON STOP UNDO, LEAVE:
         ELSE FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = rename-obj.old-name
                                        AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
         IF NOT AVAILABLE DICTDB._File THEN DO:
-           MESSAGE "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
+	IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
+                   "and table does not exist in the schema holder." SKIP
+                   "This process is being aborted."  SKIP (1).
+          &ELSE
+              MESSAGE "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
                    "and table does not exist in the schema holder." SKIP
                    "This process is being aborted."  SKIP (1)
                 VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+       END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
+                   "and table does not exist in the schema holder." SKIP
+                   "This process is being aborted."  SKIP (1).
            RETURN.
         END.
         IF AVAILABLE DICTDB._File THEN DO:
@@ -2927,10 +3215,22 @@ DO ON STOP UNDO, LEAVE:
             FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[3] NO-ERROR.
             
           IF NOT AVAILABLE DICTDB._Field THEN DO:
-            MESSAGE "The Delta DF File contains DROP FIELD" ilin[3] "for table" SKIP
+	   IF NOT batch_mode THEN DO:
+             &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains DROP FIELD" ilin[3] "for table" SKIP
+                    ilin[5] "and field does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
+             &ELSE
+              MESSAGE "The Delta DF File contains DROP FIELD" ilin[3] "for table" SKIP
                     ilin[5] "and field does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                 VIEW-AS ALERT-BOX ERROR.
+             &ENDIF.
+           END. 
+          ELSE
+	    PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP FIELD" ilin[3] "for table" SKIP
+                    ilin[5] "and field does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
 
@@ -2970,6 +3270,11 @@ DO ON STOP UNDO, LEAVE:
 
               PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
                                " DROP COLUMN " + DICTDB._Field._For-name SKIP.
+
+              IF _fld-misc2[5] <> ? THEN
+              PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
+                               " DROP COLUMN " + DICTDB._Field._fld-misc2[5] SKIP.
+
               PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
               CREATE drop-field.
               ASSIGN f-name = ilin[3]
@@ -3052,10 +3357,10 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
                  comment-out = FALSE.
-
+      IF NOT batch_mode THEN DO:
         IF tablename <> ? THEN
           DISPLAY tablename WITH FRAME working.
-       
+      END.
         FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[5] NO-ERROR.       
         IF AVAILABLE DICTDB._File THEN DO:
           FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = ilin[3]
@@ -3087,10 +3392,22 @@ DO ON STOP UNDO, LEAVE:
               LEAVE _rename-loop.
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
-             MESSAGE "The Delta DF File contains RENAME FIELD for table" ilin[5] SKIP
+	    IF NOT batch_mode THEN DO:
+             &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                MESSAGE "The Delta DF File contains RENAME FIELD for table" ilin[5] SKIP
+                     "and table does not exist in the schema holder." SKIP
+                     "This process is being aborted."  SKIP (1).
+             &ELSE
+                MESSAGE "The Delta DF File contains RENAME FIELD for table" ilin[5] SKIP
                      "and table does not exist in the schema holder." SKIP
                      "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+             &ENDIF.
+             END. 
+             ELSE
+	          PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME FIELD for table" ilin[5] SKIP
+                     "and table does not exist in the schema holder." SKIP
+                     "This process is being aborted."  SKIP (1).
              RETURN.
           END.
           IF AVAILABLE DICTDB._File THEN DO:               
@@ -3113,10 +3430,22 @@ DO ON STOP UNDO, LEAVE:
                 FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = old-name
                                                NO-ERROR.
                 IF NOT AVAILABLE DICTDB._Field THEN DO:
-                  MESSAGE "The Delta DF File contains RENAME FIELD" ilin[3] "for table" ilin[5] SKIP
+		IF NOT batch_mode THEN DO:
+                  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                   MESSAGE "The Delta DF File contains RENAME FIELD" ilin[3] "for table" ilin[5] SKIP
+                          "and field does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
+                  &ELSE
+                    MESSAGE "The Delta DF File contains RENAME FIELD" ilin[3] "for table" ilin[5] SKIP
                           "and field does not exist in the schema holder." SKIP
                           "This process is being aborted."  SKIP (1)
-                  VIEW-AS ALERT-BOX ERROR.
+                     VIEW-AS ALERT-BOX ERROR.
+                  &ENDIF.
+                 END. 
+                 ELSE
+	           PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME FIELD" ilin[3] "for table" ilin[5] SKIP
+                          "and field does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
                   RETURN.
                 END.
                 IF AVAILABLE DICTDB._Field THEN DO:
@@ -3163,12 +3492,12 @@ DO ON STOP UNDO, LEAVE:
             ASSIGN tablename = ilin[5]
                    comment_chars = ""
                    comment-out = FALSE.
-
+         IF NOT batch_mode THEN DO:
           IF tablename <> ? THEN       
             DISPLAY tablename WITH FRAME WORKING.                       
- 
+         END.
           FIND rename-obj WHERE rename-type = "F"
-                            AND new-name = ilin[3]
+                            AND old-name = ilin[3]
                             AND t-name = ilin[5]
                             NO-ERROR.
           IF AVAILABLE rename-obj THEN 
@@ -3183,10 +3512,22 @@ DO ON STOP UNDO, LEAVE:
             IF AVAILABLE DICTDB._File THEN DO:
                FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname NO-ERROR.
                IF AVAILABLE DICTDB._Field THEN DO:
-                   MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                   IF NOT batch_mode THEN DO:
+                &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                     MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                           "and field already exists in the schema holder." SKIP
+                           "This process is being aborted."  SKIP (1).
+               &ELSE
+                     MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
                            "and field already exists in the schema holder." SKIP
                            "This process is being aborted."  SKIP (1)
                    VIEW-AS ALERT-BOX ERROR.
+               &ENDIF.
+               END. 
+               ELSE
+	             PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                           "and field already exists in the schema holder." SKIP
+                           "This process is being aborted."  SKIP (1).
                    RETURN.
                END.
             END.
@@ -3281,10 +3622,22 @@ DO ON STOP UNDO, LEAVE:
                 IF AVAILABLE rename-obj THEN DO:
                   FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR.
                   IF NOT AVAILABLE DICTDB._File THEN DO:
-                    MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+                    IF NOT batch_mode THEN DO:
+                          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                               MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+                                "and table does not exist in the schema holder." SKIP
+                                "This process is being aborted."  SKIP (1).
+                          &ELSE
+                            MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
                             "and table does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
-                         VIEW-AS ALERT-BOX ERROR.
+                             VIEW-AS ALERT-BOX ERROR.
+                          &ENDIF.
+                 END. 
+                 ELSE
+	                PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+                            "and table does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
                     RETURN.
                   END.         
                   ASSIGN forname = (If DICTDB._File._For-owner <> ? then DICTDB._File._For-owner + "." else "") 
@@ -3299,10 +3652,22 @@ DO ON STOP UNDO, LEAVE:
                             
                 END.
                 ELSE DO:
-                  MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+		IF NOT batch_mode THEN DO:
+                  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                      MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+                            "and table does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                  &ELSE
+                      MESSAGE "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
                             "and table does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
                          VIEW-AS ALERT-BOX ERROR.
+                 &ENDIF.
+               END. 
+               ELSE
+	             PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD for table" ilin[5] SKIP
+                            "and table does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
                   RETURN.    
                 END.
               END.
@@ -3555,8 +3920,33 @@ DO ON STOP UNDO, LEAVE:
              
               IF AVAILABLE sql-info THEN 
                 ASSIGN line = fieldname + new-obj.for-type.                        
-              ELSE IF AVAILABLE alt-info THEN DO:              
-                ASSIGN a-line = fieldname + new-obj.for-type. 
+              ELSE IF AVAILABLE alt-info THEN DO:   
+         
+                IF shadowcol THEN DO:
+                    FIND FIRST idxfld-cache WHERE idxfld-cache.tab-name1 = tablename AND idxfld-cache.idx-fld2 = fieldname  NO-ERROR.
+                        IF AVAILABLE idxfld-cache THEN 
+                           FIND FIRST fld-cache WHERE fld-cache.fld-name = idxfld-cache.idx-fld2 and fld-cache.tab-name = idxfld-cache.tab-name1 NO-ERROR.
+                           IF AVAILABLE fld-cache  THEN DO:
+                               IF is-case-sensitive THEN
+                               create_shadow_col = FALSE.
+                               ELSE
+                               create_shadow_col = TRUE.
+                           END.
+                    IF create_shadow_col AND fieldtype EQ "CHARACTER" THEN DO:
+                       RUN create_shadow.                       
+                       ASSIGN   a-line = new-obj.for-name + new-obj.for-type 
+                                a-tblname = tablename
+                                a-fldname = new-obj.fld-name.
+                        
+                        CREATE alt-info.
+                        ASSIGN lnum = lnum + 1
+                               a-line-num = lnum
+                               a-tblname = tablename
+                               a-fldname = fieldname.
+                    END.
+               END.
+
+                ASSIGN a-line = fieldname + new-obj.for-type .
                 RUN get-position.
               END.    
               CREATE df-info.
@@ -4007,10 +4397,22 @@ DO ON STOP UNDO, LEAVE:
                                      AND new-obj.fld-name = ilin[3] NO-ERROR.
 
                   IF NOT AVAILABLE new-obj THEN DO:
-                    MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+		    IF NOT batch_mode THEN DO:
+                     &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                             MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                    &ELSE
+                            MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
                             "and field does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+                    &ENDIF.
+                    END. 
+                        ELSE
+	                   PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
                     RETURN.
                   END.
               END.
@@ -4033,10 +4435,22 @@ DO ON STOP UNDO, LEAVE:
                                        AND new-obj.add-type = "T" NO-ERROR.
 
               IF NOT AVAILABLE new-obj THEN DO:
-                 MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
+                 IF NOT batch_mode THEN DO:
+                    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                              MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
+                         "and table does not exist in the schema holder." SKIP
+                         "This process is being aborted."  SKIP (1).
+                     &ELSE
+                          MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
                          "and table does not exist in the schema holder." SKIP
                          "This process is being aborted."  SKIP (1)
-                      VIEW-AS ALERT-BOX ERROR.
+                         VIEW-AS ALERT-BOX ERROR.
+                     &ENDIF.
+                      END. 
+                      ELSE
+	               PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
+                         "and table does not exist in the schema holder." SKIP
+                         "This process is being aborted."  SKIP (1).
                  RETURN.
               END.
               ELSE DO:
@@ -4045,10 +4459,22 @@ DO ON STOP UNDO, LEAVE:
                                     AND new-obj.add-type = "F" 
                                     AND new-obj.fld-name = ilin[3] NO-ERROR.
                  IF NOT AVAILABLE new-obj THEN DO:
-                     MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                      IF NOT batch_mode THEN DO:
+                       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                          MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder or in the .df." SKIP
+                             "This process is being aborted."  SKIP (1).
+                       &ELSE
+                           MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
                              "and field does not exist in the schema holder or in the .df." SKIP
                              "This process is being aborted."  SKIP (1)
-                     VIEW-AS ALERT-BOX ERROR.
+                             VIEW-AS ALERT-BOX ERROR.
+                        &ENDIF.
+                    END. 
+                     ELSE
+	                   PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder or in the .df." SKIP
+                             "This process is being aborted."  SKIP (1).
                      RETURN.
                  END.
              END.
@@ -4072,11 +4498,24 @@ DO ON STOP UNDO, LEAVE:
                                      AND new-obj.fld-name = ilin[3] NO-ERROR.
 
                   IF NOT AVAILABLE new-obj THEN DO:
-                    MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+		  IF NOT batch_mode THEN DO:
+                    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                        MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                    &ELSE
+                        MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
                             "and field does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
-                    VIEW-AS ALERT-BOX ERROR.
-                    RETURN.
+                            VIEW-AS ALERT-BOX ERROR.
+                    &ENDIF.
+                  END. 
+                  ELSE
+                      PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE FIELD" ilin[3] 
+		            "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                   RETURN.
                   END.
               END.
             END.
@@ -4340,7 +4779,30 @@ DO ON STOP UNDO, LEAVE:
                    dfseq = dfseq + 1
                    df-info.df-tbl = tablename
                    df-line =  "DROP INDEX " + '"' + DICTDB._Index._Index-name +
-                              '"' + " ON " + '"' + ilin[5] + '"'.           
+                              '"' + " ON " + '"' + ilin[5] + '"'. 
+
+             IF DICTDB._Index._idx-num EQ DICTDB._File._fil-misc1[2] then do:
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-tbl = tablename
+                           df-line = 'UPDATE TABLE "' + tablename + '"'.
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-tbl = tablename
+                           df-line = "  FILE-MISC12 " + "?".
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-tbl = tablename
+                           df-line = 'UPDATE TABLE "' + tablename + '"'.
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-tbl = tablename
+                           df-line = "  PROGRESS-RECID " + string(0).
+             END.
           END.
           ELSE DO:
             FIND FIRST rename-obj WHERE rename-type = "I"
@@ -4368,19 +4830,43 @@ DO ON STOP UNDO, LEAVE:
                                    ' "' + ilin[5] + '" '.
                 END.
                 IF NOT AVAILABLE DICTDB._Index THEN DO:
-                  MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+		IF NOT batch_mode THEN DO:
+		  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                      MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                          "and index does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
+		   &ELSE
+                     MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
                           "and index does not exist in the schema holder." SKIP
                           "This process is being aborted."  SKIP (1)
-                       VIEW-AS ALERT-BOX ERROR.
+                          VIEW-AS ALERT-BOX ERROR.
+		  &ENDIF.
+               END. 
+               ELSE
+	            PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                          "and index does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
                   RETURN.
                 END.
               END.               
             END.
             ELSE DO:
-              MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+	    IF NOT batch_mode THEN DO:
+            &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                          "and index does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
+             &ELSE
+                 MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
                           "and index does not exist in the schema holder." SKIP
                           "This process is being aborted."  SKIP (1)
-                  VIEW-AS ALERT-BOX ERROR.
+                          VIEW-AS ALERT-BOX ERROR.
+            &ENDIF.
+           END. 
+           ELSE
+	       PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                    "and index does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
               RETURN.
             END.
           END.
@@ -4394,10 +4880,22 @@ DO ON STOP UNDO, LEAVE:
             FIND DICTDB._File WHERE DICTDB._File._File-name = old-name
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
             IF NOT AVAILABLE DICTDB._File THEN DO:
-              MESSAGE "The Delta DF File contains DROP INDEX for table" ilin[5] SKIP
+	    IF NOT batch_mode THEN DO:
+               &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                 MESSAGE "The Delta DF File contains DROP INDEX for table" ilin[5] SKIP
+                      "and table does not exist in the schema holder." SKIP
+                      "This process is being aborted."  SKIP (1).
+              &ELSE
+                  MESSAGE "The Delta DF File contains DROP INDEX for table" ilin[5] SKIP
                       "and table does not exist in the schema holder." SKIP
                       "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+              &ENDIF.
+          END. 
+           ELSE
+	         PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP INDEX for table" ilin[5] SKIP
+                      "and table does not exist in the schema holder." SKIP
+                      "This process is being aborted."  SKIP (1).
               RETURN.
             END.
             IF AVAILABLE DICTDB._File THEN DO:
@@ -4420,10 +4918,22 @@ DO ON STOP UNDO, LEAVE:
                 IF AVAILABLE rename-obj THEN DO:
                   FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.
                   IF NOT AVAILABLE DICTDB._Index THEN DO:
-                    MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                  IF NOT batch_mode THEN DO:
+		     &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                        MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                            "and index does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                     &ELSE
+                          MESSAGE "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
                             "and index does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
                          VIEW-AS ALERT-BOX ERROR.
+                     &ENDIF.
+                  END. 
+                   ELSE
+	              PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP INDEX" ilin[3] "for table" ilin[5] SKIP
+                            "and index does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
                     RETURN.
                   END.
                   IF AVAILABLE DICTDB._Index THEN DO:
@@ -4453,8 +4963,10 @@ DO ON STOP UNDO, LEAVE:
         ASSIGN ilin = ?.
       END. /* End delete index */                
       IF imod = "a" THEN DO:
-        IF ilin[1] = "ADD" and ilin[2] = "INDEX" THEN DO:     
-
+      
+        IF ilin[1] = "ADD" and ilin[2] = "INDEX" THEN DO: 
+            ASSIGN misc11 = TRUE.    
+          
           RUN write-tbl-sql.
                                  
           IF idxline <> ? THEN 
@@ -4634,8 +5146,10 @@ DO ON STOP UNDO, LEAVE:
           ELSE
             ASSIGN forname = transname.
           
-          IF AVAILABLE DICTDB._File THEN 
+          IF AVAILABLE DICTDB._File THEN DO:
               ASSIGN idxline = "CREATE INDEX " + forname + " ON " + DICTDB._File._For-owner + "." + DICTDB._File._For-name.
+              IF NOT DICTDB._File._fil-misc1[1] > 0 THEN ASSIGN  misc11 = FALSE.
+          END.
           ELSE DO:
             FIND FIRST new-obj WHERE new-obj.add-type = "T"
                                  AND new-obj.tbl-name = ilin[5]
@@ -4664,10 +5178,22 @@ DO ON STOP UNDO, LEAVE:
               PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._File._For-owner "." DICTDB._File._For-name "." DICTDB._Index._For-name SKIP "go" SKIP(1).           
           END.
           IF NOT AVAILABLE DICTDB._File AND NOT AVAILABLE rename-obj AND NOT AVAILABLE new-obj THEN DO:
-            MESSAGE "The Delta DF File contains ADD INDEX for table" ilin[5] SKIP
+	  IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains ADD INDEX for table" ilin[5] SKIP
+                    "and table information does not exist." SKIP
+                    "This process is being aborted."  SKIP (1).
+          &ELSE
+             MESSAGE "The Delta DF File contains ADD INDEX for table" ilin[5] SKIP
                     "and table information does not exist." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+          END. 
+           ELSE
+	      PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD INDEX for table" ilin[5] SKIP
+                    "and table information does not exist." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
 
@@ -4757,10 +5283,22 @@ DO ON STOP UNDO, LEAVE:
               FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR. 
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
-            MESSAGE "The Delta DF File contains RENAME INDEX for table" ilin[7] SKIP
+	     IF NOT batch_mode THEN DO:
+                &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                   MESSAGE "The Delta DF File contains RENAME INDEX for table" ilin[7] SKIP
+                    "and table does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
+               &ELSE
+                    MESSAGE "The Delta DF File contains RENAME INDEX for table" ilin[7] SKIP
                     "and table does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+                &ENDIF.
+            END. 
+            ELSE
+	         PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME INDEX for table" ilin[7] SKIP
+                    "and table does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
           IF AVAILABLE DICTDB._File THEN 
@@ -4782,10 +5320,22 @@ DO ON STOP UNDO, LEAVE:
                              ilin[7] + '"'.
           END.
           ELSE DO:
-            MESSAGE "The Delta DF File contains RENAME INDEX" ilin[3] "for table" ilin[7] SKIP
+            IF NOT batch_mode THEN DO:
+               &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains RENAME INDEX" ilin[3] "for table" ilin[7] SKIP
+                    "and index does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
+               &ELSE
+              MESSAGE "The Delta DF File contains RENAME INDEX" ilin[3] "for table" ilin[7] SKIP
                     "and index does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+              &ENDIF.
+           END. 
+           ELSE
+	     PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME INDEX" ilin[3] "for table" ilin[7] SKIP
+                    "and index does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
         END.                              
@@ -4815,10 +5365,22 @@ DO ON STOP UNDO, LEAVE:
               FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR. 
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
-            MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX for table" ilin[6] SKIP
+             IF NOT batch_mode THEN DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                  MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX for table" ilin[6] SKIP
+                    "and table does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
+              &ELSE
+                   MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX for table" ilin[6] SKIP
                     "and table does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+              &ENDIF.
+             END. 
+              ELSE
+	     PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE PRIMARY INDEX for table" ilin[6] SKIP
+                    "and table does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
           IF AVAILABLE DICTDB._File THEN 
@@ -4836,10 +5398,23 @@ DO ON STOP UNDO, LEAVE:
                                        new-obj.add-type = "I" AND
                                        new-obj.prg-name = ilin[4] NO-ERROR.
               IF NOT AVAILABLE new-obj THEN DO:
-                  MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
-                          "and index does not exist in the schema holder." SKIP
-                          "This process is being aborted."  SKIP (1)
-                      VIEW-AS ALERT-BOX ERROR.
+	      IF NOT batch_mode THEN DO:
+                     &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                          MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
+                              "and index does not exist in the schema holder." SKIP
+                              "This process is being aborted."  SKIP (1).
+                      &ELSE
+                             MESSAGE "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
+                              "and index does not exist in the schema holder." SKIP
+                              "This process is being aborted."  SKIP (1)
+                            VIEW-AS ALERT-BOX ERROR.
+                      &ENDIF.
+                    END. 
+                     ELSE
+	               PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE PRIMARY INDEX" ilin[4] "for table" ilin[6] SKIP
+                              "and index does not exist in the schema holder." SKIP
+                              "This process is being aborted."  SKIP (1).
+
                   RETURN.
               END.
             END.
@@ -4875,8 +5450,8 @@ DO ON STOP UNDO, LEAVE:
           RUN write-seq-sql.  
             
         ASSIGN seqname = ilin[3].
-        
-        DISPLAY seqname @ tablename WITH FRAME WORKING.          
+        IF NOT batch_mode THEN
+         DISPLAY seqname @ tablename WITH FRAME WORKING.          
         
         IF xlate THEN DO:       
           ASSIGN forname = ilin[3] + "," + idbtyp + "," + user_env[29].
@@ -4926,10 +5501,22 @@ DO ON STOP UNDO, LEAVE:
                  df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
         END.
         ELSE DO:
-          MESSAGE "The Delta DF File contains DROP SEQUENCE" ilin[3] SKIP
+	IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains DROP SEQUENCE" ilin[3] SKIP
+                    "and sequence does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
+          &ELSE
+             MESSAGE "The Delta DF File contains DROP SEQUENCE" ilin[3] SKIP
                     "and sequence does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+        END. 
+        ELSE
+	PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP SEQUENCE" ilin[3] SKIP
+                    "and sequence does not exist in the schema holder." SKIP
+                    "This process is being aborted."  SKIP (1).
           RETURN.
         END.
       END.
@@ -4937,6 +5524,7 @@ DO ON STOP UNDO, LEAVE:
 
         CASE ilin[1]:
           WHEN "ADD" THEN DO:
+	   IF NOT batch_mode THEN
             DISPLAY ilin[3] @ tablename WITH FRAME WORKING.
             IF seq-line <> ? THEN
               RUN write-seq-sql.
@@ -4975,15 +5563,28 @@ DO ON STOP UNDO, LEAVE:
           WHEN "UPDATE" THEN DO:         
             IF seqname <> ? THEN 
               RUN write-seq-sql.
+            IF NOT batch_mode THEN
             DISPLAY ilin[3] @ tablename WITH FRAME WORKING.  
             FIND FIRST DICTDB._Sequence WHERE DICTDB._Sequence._Db-recid = dbrecid
                                           AND DICTDB._Sequence._Seq-name = ilin[3]
                                           NO-ERROR.
             IF NOT AVAILABLE _Sequence THEN DO:
-              MESSAGE "The Delta DF File contains UPDATE SEQUENCE" ilin[3] SKIP
+	    IF NOT batch_mode THEN DO:
+               &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                  MESSAGE "The Delta DF File contains UPDATE SEQUENCE" ilin[3] SKIP
+                      "and sequence does not exist in the schema holder." SKIP
+                       "This process is being aborted."  SKIP (1).
+              &ELSE
+                   MESSAGE "The Delta DF File contains UPDATE SEQUENCE" ilin[3] SKIP
                       "and sequence does not exist in the schema holder." SKIP
                        "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+              &ENDIF.
+            END. 
+            ELSE
+	         PUT STREAM logfile UNFORMATTED "The Delta DF File contains UPDATE SEQUENCE" ilin[3] SKIP
+                      "and sequence does not exist in the schema holder." SKIP
+                       "This process is being aborted."  SKIP (1).
               RETURN.
             END.
             ELSE DO: 
@@ -5033,13 +5634,26 @@ DO ON STOP UNDO, LEAVE:
                                       AND DICTDB._Sequence._Seq-name = ilin[3]
                                       NO-ERROR.
         IF NOT AVAILABLE _Sequence THEN DO:
-          MESSAGE "The Delta DF File contains RENAME SEQUENCE" ilin[3] SKIP
+         IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The Delta DF File contains RENAME SEQUENCE" ilin[3] SKIP
+                  "and sequence does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
+          &ELSE
+             MESSAGE "The Delta DF File contains RENAME SEQUENCE" ilin[3] SKIP
                   "and sequence does not exist in the schema holder." SKIP
                   "This process is being aborted."  SKIP (1)
                VIEW-AS ALERT-BOX ERROR.
+          &ENDIF.
+         END. 
+        ELSE
+	    PUT STREAM logfile UNFORMATTED "The Delta DF File contains RENAME SEQUENCE" ilin[3] SKIP
+                  "and sequence does not exist in the schema holder." SKIP
+                  "This process is being aborted."  SKIP (1).
+
           RETURN.
         END.
-
+      IF NOT batch_mode THEN
         DISPLAY ilin[3] @ tablename WITH FRAME WORKING.
         
         IF ilin[1] <> ? THEN do:
@@ -5087,10 +5701,22 @@ DO ON STOP UNDO, LEAVE:
                               '"' + " ON " + '"' + ilin[5] + '"'.           
           END.
           ELSE DO:
-              MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+	    IF NOT batch_mode THEN DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                     MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                          "and constraint does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
+             &ELSE
+                     MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
                           "and constraint does not exist in the schema holder." SKIP
                           "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+             &ENDIF.
+          END. 
+         ELSE
+	          PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                          "and constraint does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1).
               RETURN.
           END.
         END.
@@ -5103,10 +5729,22 @@ DO ON STOP UNDO, LEAVE:
             FIND DICTDB._File WHERE DICTDB._File._File-name = old-name
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
             IF NOT AVAILABLE DICTDB._File THEN DO:
-              MESSAGE "The Delta DF File contains DROP CONSTRAINT for table" ilin[5] SKIP
+	    IF NOT batch_mode THEN DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                  MESSAGE "The Delta DF File contains DROP CONSTRAINT for table" ilin[5] SKIP
+                      "and table does not exist in the schema holder." SKIP
+                      "This process is being aborted."  SKIP (1).
+             &ELSE
+                 MESSAGE "The Delta DF File contains DROP CONSTRAINT for table" ilin[5] SKIP
                       "and table does not exist in the schema holder." SKIP
                       "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
+              &ENDIF.
+          END. 
+           ELSE
+	     PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP CONSTRAINT for table" ilin[5] SKIP
+                      "and table does not exist in the schema holder." SKIP
+                      "This process is being aborted."  SKIP (1).
               RETURN.
             END.
             IF AVAILABLE DICTDB._File THEN DO:
@@ -5122,10 +5760,22 @@ DO ON STOP UNDO, LEAVE:
                                    '"' + " ON " + '"' + ilin[5] + '"'.           
                END.
                ELSE DO:
-                    MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+	       IF NOT batch_mode THEN DO:
+                 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                       MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                            "and constraint does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
+                  &ELSE
+                       MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
                             "and constraint does not exist in the schema holder." SKIP
                             "This process is being aborted."  SKIP (1)
                          VIEW-AS ALERT-BOX ERROR.
+                     &ENDIF.
+                    END. 
+                   ELSE
+	                PUT STREAM logfile UNFORMATTED "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                            "and constraint does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1).
                     RETURN.
                END.
 
@@ -5269,10 +5919,22 @@ DO ON STOP UNDO, LEAVE:
                  con-number = con-number + 1.
 
           IF NOT AVAILABLE DICTDB._File AND NOT AVAILABLE rename-obj AND NOT AVAILABLE new-obj THEN DO:
-            MESSAGE "The Delta DF File contains ADD CONSTRAINT for table" ilin[5] SKIP
+           IF NOT batch_mode THEN DO:
+             &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                MESSAGE "The Delta DF File contains ADD CONSTRAINT for table" ilin[5] SKIP
+                    "and table information does not exist." SKIP
+                    "This process is being aborted."  SKIP (1).
+            &ELSE
+                 MESSAGE "The Delta DF File contains ADD CONSTRAINT for table" ilin[5] SKIP
                     "and table information does not exist." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
+             &ENDIF.
+              END. 
+           ELSE
+	           PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD CONSTRAINT for table" ilin[5] SKIP
+                    "and table information does not exist." SKIP
+                    "This process is being aborted."  SKIP (1).
             RETURN.
           END.
 
@@ -5430,28 +6092,64 @@ IF user_env[2] = "yes" THEN DO:
         
   OUTPUT STREAM todf CLOSE.  
   OUTPUT STREAM tosql CLOSE. 
-  HIDE FRAME working NO-PAUSE.
-  
-  MESSAGE "The following files have been created:" SKIP(1)
+  IF NOT batch_mode THEN DO:
+     HIDE FRAME working NO-PAUSE.
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE  "The following files have been created:" SKIP(1)
+                 "  MS SQL Server Script:  " sqlout  SKIP
+                 "     PROGRESS DF File:  " dfout SKIP(1)
+                 "If the delta.df contained any drop statements," SKIP
+                 "data will be lost from the SQL Server Database." SKIP 
+                 "Check for warnings in <table name>.e files " SKIP.
+          &ELSE
+               MESSAGE "The following files have been created:" SKIP(1)
+                "  MS SQL Server Script:  " sqlout  SKIP
+                "     PROGRESS DF File:  " dfout SKIP(1)
+                "If the delta.df contained any drop statements," SKIP
+                "data will be lost from the SQL Server Database." SKIP 
+                "Check for warnings in <table name>.e files " SKIP          
+                VIEW-AS ALERT-BOX INFORMATION. 
+          &ENDIF.
+      END. 
+      ELSE
+	  PUT STREAM logfile UNFORMATTED "The following files have been created:" SKIP(1)
           "  MS SQL Server Script:  " sqlout  SKIP
           "     PROGRESS DF File:  " dfout SKIP(1)
           "If the delta.df contained any drop statements," SKIP
           "data will be lost from the SQL Server Database." SKIP 
-          "Check for warnings in <table name>.e files " SKIP          
-    VIEW-AS ALERT-BOX INFORMATION. 
+          "Check for warnings in <table name>.e files " SKIP.
+
 END.
 ELSE do:
   OUTPUT STREAM todf CLOSE.
   OUTPUT STREAM tosql CLOSE.
   OS-DELETE VALUE(dfout).
-  HIDE FRAME working NO-PAUSE.
+  IF NOT batch_mode THEN
+   HIDE FRAME working NO-PAUSE.
   
-  MESSAGE "The following file has been created: " SKIP(1)
-          "  MS SQL Server Script: " sqlout SKIP(1)
-          "If the delta.df contained any drop statements," SKIP
-          "data will be lost from the SQL Server Database." SKIP 
-          "Check for warnings in <table name>.e files " SKIP
-     VIEW-AS ALERT-BOX INFORMATION.
+    IF NOT batch_mode THEN DO:
+          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+              MESSAGE "The following file has been created: " SKIP(1)
+               "MS SQL Server Script: " sqlout SKIP(1)
+              "If the delta.df contained any drop statements," SKIP
+              "data will be lost from the SQL Server Database." SKIP 
+              "Check for warnings in <table name>.e files " SKIP.
+          &ELSE
+              MESSAGE "The following file has been created: " SKIP(1)
+               "MS SQL Server Script: " sqlout SKIP(1)
+              "If the delta.df contained any drop statements," SKIP
+              "data will be lost from the SQL Server Database." SKIP 
+              "Check for warnings in <table name>.e files " SKIP
+               VIEW-AS ALERT-BOX INFORMATION.
+          &ENDIF.
+       END. 
+       ELSE
+	    PUT STREAM logfile UNFORMATTED "The following file has been created: " SKIP(1)
+               "MS SQL Server Script: " sqlout SKIP(1)
+              "If the delta.df contained any drop statements," SKIP
+              "data will be lost from the SQL Server Database." SKIP 
+              "Check for warnings in <table name>.e files " SKIP.
+
 END.
 RUN adecomm/_setcurs.p ("").
  

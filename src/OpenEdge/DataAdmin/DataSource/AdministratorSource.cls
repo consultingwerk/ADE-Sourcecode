@@ -74,7 +74,7 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
         CheckAccess().
         hBuffer:buffer-create ( ).
         find DICTDB._File  "_User" no-lock.
-        hBuffer::Administrators = _File._Can-create.
+        hBuffer::Administrators = DICTDB._File._Can-create.
     end method.    
     
     method public void Save(phbuffer as handle):

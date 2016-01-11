@@ -56,8 +56,13 @@
   DEFINE VARIABLE cTemplate   AS CHARACTER            NO-UNDO.  
   DEFINE VARIABLE cObjLabel   AS CHARACTER            NO-UNDO.  
   DEFINE VARIABLE cDataObject AS CHARACTER            NO-UNDO.  
- 
+  define variable cProjects as character no-undo.
+  define variable cDirs as character no-undo.
+  define variable iPos as integer no-undo.
   DEFINE VARIABLE xcSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
+
+{adecomm/oeideservice.i}
+function getRequestContext returns char () in hOEIDEService.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -123,19 +128,54 @@
        INPUT "TEMPLATE":U,
        OUTPUT cTemplate).
   
+  
+  
   cDataObject = piocDataObject.
   IF cAttributes <> "":U THEN
   DO:
-    RUN adecomm/_chosobj.w (
-        INPUT (IF plweb THEN "WEB":U  
-               ELSE "SmartObject":U),           
-        INPUT cAttributes,
-        INPUT cTemplate,
-        INPUT  pcShowOptions,
-        OUTPUT piocDataObject,
-        OUTPUT cOtherThing,
-        OUTPUT lCancelled).
-   
+    if OEIDE_CanLaunchDialog() then
+    do:    
+        IF ENTRY(1,cAttributes,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+        DO:
+            cProjects = getRequestContext().          
+            /** if shared projects add them to directory list (replace  current if applicable)  */
+            if cProjects > "" then 
+            do:
+                cDirs = TRIM(SUBSTRING(TRIM(ENTRY(1,cAttributes,CHR(10))),15,-1,"CHARACTER")).
+                iPos = lookup(".",cDirs).
+                if(iPos > 0) then
+                do:
+                    entry(iPos,cDirs) = cProjects. 
+                end.    
+                else do:
+                    cDirs = cProjects + "," + cDirs.
+                end.
+                ENTRY(1,cAttributes,CHR(10)) = "DIRECTORY-LIST" + " " + cDirs.
+            end.    
+        END. 
+        
+        RUN adeuib/ide/_dialog_chosobj.p(
+            INPUT (IF plweb THEN "WEB":U  
+                   ELSE "SmartObject":U),           
+            INPUT cAttributes,
+            INPUT cTemplate,
+            INPUT  pcShowOptions,
+            OUTPUT piocDataObject,
+            OUTPUT cOtherThing,
+            OUTPUT lCancelled).
+    end.
+    else do:
+         RUN adecomm/_chosobj.w (
+            INPUT (IF plweb THEN "WEB":U  
+                   ELSE "SmartObject":U),           
+            INPUT cAttributes,
+            INPUT cTemplate,
+            INPUT  pcShowOptions,
+            OUTPUT piocDataObject,
+            OUTPUT cOtherThing,
+            OUTPUT lCancelled).  
+    end.
+         
     /* Reset if cancelled */
     IF lCancelled THEN 
       piocDataObject = cDataObject.

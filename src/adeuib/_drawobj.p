@@ -101,44 +101,46 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
     MESSAGE "Character mode windows cannot contain" _next_draw "objects."
      VIEW-AS ALERT-BOX WARNING BUTTONS OK.
     RUN choose-pointer.
+    RETURN. 
   END.
-  ELSE DO:
     /* Special Exit Case: The user started to box draw, but decided not to
        make anything */
-    IF _second_corner_x <> ? AND
+  IF _second_corner_x <> ? AND
        ABS(_second_corner_x - _frmx) < {&min_box_size} AND
-       ABS(_second_corner_y - _frmy) < {&min_box_size}
-    THEN RETURN "NO DRAW":U.
+       ABS(_second_corner_y - _frmy) < {&min_box_size} THEN 
+          RETURN "NO DRAW":U.
 
     /* Truncate the coordinates to lower grid value. */
-    IF (_h_frame <> ?) AND (_h_frame:GRID-SNAP) THEN
+  IF (_h_frame <> ?) AND (_h_frame:GRID-SNAP) THEN
       ASSIGN h-unit = _h_frame:GRID-UNIT-WIDTH-PIXELS 
             _frmx  = h-unit * TRUNCATE (_frmx / h-unit,0)
             v-unit = _h_frame:GRID-UNIT-HEIGHT-PIXELS 
             _frmy  = v-unit * TRUNCATE (_frmy / v-unit,0).
 
     /* Fix unknown _second_corners */
-    IF _second_corner_x = ? THEN
+  IF _second_corner_x = ? THEN
       ASSIGN _second_corner_x = _frmx
              _second_corner_y = _frmy.
-    ELSE DO:  
+  ELSE DO:  
       /* On a box-select it is possible to get a x,y position < 0 
          (if you drag from the lower-right to the top-left) */             
       if _frmx < 0 THEN _frmx = 0.
       if _frmy < 0 THEN _frmy = 0.
       /* Snap positions to grid */
-      IF (_h_frame <> ?) THEN DO:
-        IF _h_frame:GRID-SNAP THEN ASSIGN
-        _second_corner_x = 
-           MAX (_frmx,
-                (h-unit * 
-                 TRUNCATE ((_second_corner_x + h-unit - 1) / h-unit, 0)) 
-                - 1)
-         _second_corner_y =
-            MAX (_frmy ,
-                 (v-unit * 
-                  TRUNCATE ((_second_corner_y + v-unit - 1) / v-unit, 0))
-                 - 1).
+      IF (_h_frame <> ?) THEN 
+      DO:
+        IF _h_frame:GRID-SNAP THEN 
+            ASSIGN
+              _second_corner_x = 
+                MAX (_frmx,
+                    (h-unit * 
+                     TRUNCATE ((_second_corner_x + h-unit - 1) / h-unit, 0)) 
+                    - 1)
+              _second_corner_y =
+                MAX (_frmy ,
+                     (v-unit * 
+                      TRUNCATE ((_second_corner_y + v-unit - 1) / v-unit, 0))
+                     - 1).
         /* Check for the second corner occuring outside the normal frame */
         /* borders. Trucate the coordinates to lower grid value. */
         itemp = _h_frame:WIDTH-PIXELS - _h_frame:BORDER-LEFT-PIXELS -
@@ -148,11 +150,12 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
                                          _h_frame:BORDER-BOTTOM-PIXELS - 1.
         IF _second_corner_Y > itemp THEN _second_corner_Y = itemp.
       END.
-    END.
+  END. /* else */
 
-    /* if drawing a field-level widget in a frame with column labels then 
-       handle special restrictions. */
-    IF VALID-HANDLE(_h_frame) THEN DO:
+  /* if drawing a field-level widget in a frame with column labels then 
+     handle special restrictions. */
+  IF VALID-HANDLE(_h_frame) THEN 
+  DO:
       FIND f_U WHERE f_U._HANDLE = _h_frame.
       FIND _C WHERE RECID(_C) = f_U._x-recid.
       FIND f_L WHERE RECID(f_L) = f_U._lo-recid.
@@ -161,19 +164,19 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
       IF NOT f_L._NO-LABELS AND NOT _C._SIDE-LABELS THEN
         RUN column-adjustments.
       
-    END.  /* Not drawing a frame. */
+  END.  /* Not drawing a frame. */
        
-    /* Remove the cursor from the current window.  This is because some
-       drawing routine bring up a dialog-box parented to the ACTIVE-WINDOW.
-     */
-    IF _h_win:TYPE eq "WINDOW":U AND _h_win:LOAD-MOUSE-POINTER ("":U) THEN. 
+  /* Remove the cursor from the current window.  This is because some
+     drawing routine bring up a dialog-box parented to the ACTIVE-WINDOW.
+  */
+  IF _h_win:TYPE eq "WINDOW":U AND _h_win:LOAD-MOUSE-POINTER ("":U) THEN. 
             
-    /* Now draw - First look for a  VBX Controls, then SmartObject. */
-    IF _next_draw eq "{&WT-CONTROL}":U THEN 
+  /* Now draw - First look for a  VBX Controls, then SmartObject. */
+  IF _next_draw eq "{&WT-CONTROL}":U THEN 
       RUN adeuib/_drwcont.p.
-    ELSE IF _object_draw ne ? THEN 
+  ELSE IF _object_draw ne ? THEN 
       RUN adeuib/_drwsmar.p.
-    ELSE DO: 
+  ELSE DO: 
       /* Draw a standard object (check for "Default" customizations) */
       IF _custom_draw eq ? AND
           CAN-FIND (_custom WHERE _custom._type eq _next_draw AND
@@ -219,16 +222,12 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
           MESSAGE "Cannot draw object of type:" _next_draw
             VIEW-AS ALERT-BOX ERROR.
       END CASE.  
-    END. 
+  END. 
     
-    /* TRUE is passed unconditionally for all other than "DB-FIELDS" since 
-       the call to winsave was done unconditionally before this was refactored
-       for ide (correct for the choices that cannot be cancelled) */
-    run post_drawobj_picked in _h_uib (if _next_draw = "DB-FIELDS":U then drawn else true). 
- 
-  END.
-   
-  run post_drawobj in _h_uib. 
+  /* TRUE is passed unconditionally for all other than "DB-FIELDS" since 
+     the call to winsave was done unconditionally before this was refactored
+     for ide (correct for the choices that cannot be cancelled) */
+  run post_drawobj in _h_uib (if _next_draw = "DB-FIELDS":U then drawn else true). 
  
   /* Return and reset return-value */
   RETURN. 

@@ -29,6 +29,8 @@
 
 /* ***************************  Main Block  *************************** */
 {adeuib/uniwidg.i}
+{adeuib/sharvars.i}
+
 define input parameter pcPath as character no-undo.
 define input parameter pcfilename as character no-undo.
 define input parameter phWin  as handle    no-undo.
@@ -44,6 +46,8 @@ define temp-table ttwidget serialize-name "Widgets"
      
 define dataset dsWidget for ttWidget
     data-relation for ttwidget,ttwidget  relation-fields(parentname,name) recursive   . 
+
+function findWidgetName return character (WidgetParentrecId as recid) in _h_uib. 
            
 pcPath = replace(pcPath,"~\":U,"/":U).
 
@@ -58,6 +62,9 @@ procedure exportU:
    define buffer b_u for _u.
    define buffer p_u for _u.
    define buffer b_p for _p.
+   define buffer b_f for _F.
+   
+   define variable cName   as character no-undo.
    
    find b_p where b_P._WINDOW-HANDLE =  phwin.
    
@@ -76,9 +83,10 @@ procedure exportU:
 /*           BY p_U._NAME                              */
 /*           BY b_U._NAME:                             */
      
+     cName = findWidgetName(recid(b_u)).
      create ttwidget.
      assign
-        ttWidget.name = b_U._NAME
+        ttWidget.name = cName
         ttWidget.parentname = p_u._name    
         ttWidget.type = b_u._type
         ttWidget.widgetLabel = b_u._LABEL. 

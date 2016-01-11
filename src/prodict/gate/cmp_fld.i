@@ -222,6 +222,7 @@ History:
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Field-Name"
               } 
+     IF NOT user_dbtype = "MSS" THEN
      { prodict/gate/cmp_msg.i
               &attrbt = "Description:"
               &msgidx = "l_fld-msg[23]"

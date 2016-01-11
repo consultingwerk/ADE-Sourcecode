@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2012 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -728,7 +728,13 @@ ON CHOOSE OF BtnPrint IN FRAME MainFrame OR
                                          INPUT PrFlag,
                                          INPUT Mode).
     END.
-    ELSE RUN adetran/common/_prtscrn.p.
+    ELSE IF PROCESS-ARCHITECTURE = 32 THEN DO:
+      /* Print Screen is only available in the 32-bit Windows client.
+      ** When running in the 64-bit client the Print button/menu will
+      ** be disabled unless CurrentMode = 5.
+      */
+      RUN adetran/common/_prtscrn.p.
+    END.
   END.
 END.
 
@@ -808,8 +814,19 @@ ON MOUSE-SELECT-DOWN OF BtnPaste IN FRAME MainFrame OR
 END.
 
 ON MENU-DROP OF MENU mFile DO:
-  ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile =
-     IF CurrentMode = 5 THEN "&Print..." ELSE "&Print Screen".
+  /* Print Screen is only available in the 32-bit Windows client.
+  ** When running in the 64-bit client the Print button/menu will
+  ** be disabled unless CurrentMode = 5.
+  */
+  IF PROCESS-ARCHITECTURE = 32 THEN DO:
+    ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile =
+       IF CurrentMode = 5 THEN "&Print..." ELSE "&Print Screen".
+  END.
+  ELSE DO:
+    ASSIGN MENU-ITEM mPrintScreen:LABEL IN MENU mFile = "&Print..."
+           MENU-ITEM mPrintScreen:SENSITIVE IN MENU mFile =
+             IF CurrentMode = 5 THEN TRUE ELSE FALSE.
+  END.
 END.
 
 ON MENU-DROP OF MENU medit DO:
@@ -1685,7 +1702,7 @@ PROCEDURE SetSensitivity:
       ASSIGN
         BtnNew:SENSITIVE     = TRUE
         BtnOpen:SENSITIVE    = TRUE
-        BtnPrint:SENSITIVE   = TRUE
+        BtnPrint:SENSITIVE   = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnImport:SENSITIVE  = FALSE
         BtnExport:SENSITIVE  = FALSE
         BtnInsert:SENSITIVE  = FALSE
@@ -1722,7 +1739,7 @@ PROCEDURE SetSensitivity:
       ASSIGN
         BtnNew:SENSITIVE     = TRUE
         BtnOpen:SENSITIVE    = TRUE
-        BtnPrint:SENSITIVE   = TRUE
+        BtnPrint:SENSITIVE   = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnImport:SENSITIVE  = CONNECTED("xlatedb":U) and PhraseFlag
         BtnExport:SENSITIVE  = CONNECTED("xlatedb":U) and PhraseFlag
         BtnInsert:SENSITIVE  = FALSE
@@ -1755,7 +1772,7 @@ PROCEDURE SetSensitivity:
       ASSIGN
         BtnNew:SENSITIVE     = TRUE
         BtnOpen:SENSITIVE    = TRUE
-        BtnPrint:SENSITIVE   = TRUE
+        BtnPrint:SENSITIVE   = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnImport:SENSITIVE  = s_Glossary <> "" and s_Glossary <> "None":U
         BtnExport:SENSITIVE  = s_Glossary <> "" and s_Glossary <> "None":U and GlossaryFlag
         BtnInsert:SENSITIVE  = CONNECTED("xlatedb":U)
@@ -1792,7 +1809,7 @@ PROCEDURE SetSensitivity:
 
         BtnNew:SENSITIVE     = TRUE
         BtnOpen:SENSITIVE    = TRUE
-        BtnPrint:SENSITIVE   = TRUE
+        BtnPrint:SENSITIVE   = IF PROCESS-ARCHITECTURE = 32 THEN TRUE ELSE FALSE
         BtnImport:SENSITIVE  = FALSE
         BtnExport:SENSITIVE  = FALSE
         BtnInsert:SENSITIVE  = FALSE
@@ -1825,7 +1842,7 @@ PROCEDURE SetSensitivity:
       ASSIGN
         BtnNew:SENSITIVE     = TRUE
         BtnOpen:SENSITIVE    = TRUE
-        BtnPrint:SENSITIVE   = TRUE
+        BtnPrint:SENSITIVE   = IF PROCESS-ARCHITECTURE = 32 OR CurrentMode = 5 THEN TRUE ELSE FALSE
         BtnImport:SENSITIVE  = FALSE
         BtnExport:SENSITIVE  = FALSE
         BtnInsert:SENSITIVE  = FALSE

@@ -372,17 +372,17 @@ PROCEDURE Display_Fld_Detail_Rec:
        
      IF AVAILABLE _StorageObject THEN 
      do:
-         FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+         FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.
          RUN Display_Value (bField._Field-name, lbls[{&LBL_FLDNAME}], no).
-         RUN Display_Value (dictdb._Area._Area-name, cAreaLabel, no). 
-         RUN Display_Value (bField._Fld-Misc2[1], lbls[{&LBL_LSIZE}], no).
+         RUN Display_Value (if avail dictdb._Area then dictdb._Area._Area-name else "", cAreaLabel, YES). 
+         RUN Display_Value (IF bField._Fld-Misc2[1] <> ? THEN bField._Fld-Misc2[1] ELSE "?", lbls[{&LBL_LSIZE}], no).
          IF bField._Data-type = "CLOB" then
          DO: 
            RUN Display_Value (bField._Charset, lbls[{&LBL_CODEPG}], no).
            RUN Display_Value (bField._Collation, lbls[{&LBL_COLL}], no).
          END.
          DOWN STREAM rpt 1 WITH FRAME rptline.   
-     end.
+     end. 
    END.
    /*----- Field triggers -----*/
    FOR EACH dictdb._Field-trig OF bField NO-LOCK:
@@ -518,8 +518,10 @@ FOR EACH bFile NO-LOCK
      
      END.                        
      IF AVAILABLE _StorageObject THEN DO:
-       FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.                              
-       RUN Display_Value (dictdb._Area._Area-name,mAreaLabel, no). 
+       
+       FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.                              
+       
+       RUN Display_Value (if avail dictdb._area then dictdb._Area._Area-name else "",mAreaLabel, YES). 
      END.
      ELSE DO:
        RUN Display_Value (bFile._ianum, lbls[{&LBL_AREA}], no).
@@ -707,11 +709,12 @@ FOR EACH bFile NO-LOCK
          END.
         
          IF AVAILABLE dictdb._StorageObject THEN DO:
-            FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-lock.
-            RUN Display_Value (dictdb._Area._Area-name, mAreaLabel, no). 
+            FIND dictdb._Area where dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-lock no-error.
+            RUN Display_Value (if avail dictdb._Area then dictdb._Area._Area-name else "", mAreaLabel, YES). 
          END.
-         ELSE            
+         ELSE  
             RUN Display_Value (dictdb._Index._ianum, lbls[{&LBL_AREA}], no).
+          
       END.
       ELSE
         RUN Display_Value ("N/A", lbls[{&LBL_AREA}], no).

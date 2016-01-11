@@ -55,6 +55,7 @@ CREATE WIDGET-POOL.
 {src/adm2/support/admhlp.i} /* ADM Help File Defs */
 {destdefi.i} /*  Contains definitions for dynamics design-time temp-tables. */
 {src/adm2/globals.i}
+{adecomm/oeideservice.i}
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER hWizard   AS WIDGET-HANDLE NO-UNDO.
 
@@ -82,10 +83,11 @@ DEFINE TEMP-TABLE ttDataObject
     FIELD hUpdateTarget AS HANDLE 
     INDEX DOName DOName .
 
-FUNCTION getDataSourceNames   RETURNS CHARACTER IN gWizardHdl.
-FUNCTION setDataSourceNames   RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
-FUNCTION getUpdateTargetNames RETURNS CHARACTER IN gWizardHdl.
-FUNCTION setUpdateTargetNames RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
+FUNCTION getSharedProjectNames RETURNS CHARACTER IN gWizardHdl.
+FUNCTION getDataSourceNames    RETURNS CHARACTER IN gWizardHdl.
+FUNCTION setDataSourceNames    RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
+FUNCTION getUpdateTargetNames  RETURNS CHARACTER IN gWizardHdl.
+FUNCTION setUpdateTargetNames  RETURNS LOGICAL (pcNames AS CHAR) IN gWizardHdl.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -200,17 +202,17 @@ DEFINE VAR C-Win AS WIDGET-HANDLE NO-UNDO.
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON btnbrws 
      LABEL "Brow&se..." 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.15.
 
 DEFINE BUTTON btnRepos 
      IMAGE-UP FILE "adeicon/browse-u.bmp":U NO-FOCUS
      LABEL "" 
-     SIZE 4.6 BY 1.05
+     SIZE 4.57 BY 1.04
      BGCOLOR 8 .
 
 DEFINE BUTTON b_Helpq 
      LABEL "&Help on definition source" 
-     SIZE 26 BY 1.14.
+     SIZE 26 BY 1.15.
 
 DEFINE VARIABLE e_msg AS CHARACTER 
      VIEW-AS EDITOR
@@ -237,7 +239,7 @@ DEFINE VARIABLE cObjectType AS CHARACTER
           "SmartDataObject", "SmartDataObject",
 "SmartBusinessObject", "SmartBusinessObject",
 "Include file", "DataView"
-     SIZE 26.4 BY 2.71 NO-UNDO.
+     SIZE 26.43 BY 2.69 NO-UNDO.
 
 DEFINE VARIABLE lFromRepos AS LOGICAL 
      CONTEXT-HELP-ID 0
@@ -245,7 +247,7 @@ DEFINE VARIABLE lFromRepos AS LOGICAL
      RADIO-BUTTONS 
           "From Repository", yes,
 "Static", no
-     SIZE 21.6 BY 1.81 NO-UNDO.
+     SIZE 21.57 BY 1.81 NO-UNDO.
 
 DEFINE RECTANGLE rRect
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
@@ -254,25 +256,25 @@ DEFINE RECTANGLE rRect
 DEFINE VARIABLE cDataTable AS CHARACTER 
      CONTEXT-HELP-ID 0
      VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
-     SIZE 54 BY 5.29 NO-UNDO.
+     SIZE 54 BY 5.31 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
-     btnRepos AT ROW 4.91 COL 50.2 WIDGET-ID 8 NO-TAB-STOP 
-     e_msg AT ROW 1.52 COL 57 NO-LABEL
-     cObjectType AT ROW 1.95 COL 3 NO-LABEL
-     lFromRepos AT ROW 1.95 COL 33.4 NO-LABEL WIDGET-ID 10
-     Data_Object AT ROW 4.91 COL 3 NO-LABEL
-     btnbrws AT ROW 4.91 COL 40
-     cDataTable AT ROW 7.14 COL 2 NO-LABEL WIDGET-ID 2
-     b_Helpq AT ROW 11.33 COL 57
-     cIncludeLabel AT ROW 6.48 COL 2 NO-LABEL WIDGET-ID 4
-     cSBOLabel AT ROW 6.48 COL 2 NO-LABEL WIDGET-ID 6
+     btnRepos AT ROW 4.92 COL 50.14 WIDGET-ID 8 NO-TAB-STOP 
+     e_msg AT ROW 1.54 COL 57 NO-LABEL
+     cObjectType AT ROW 1.96 COL 3 NO-LABEL
+     lFromRepos AT ROW 1.96 COL 33.43 NO-LABEL WIDGET-ID 10
+     Data_Object AT ROW 4.92 COL 3 NO-LABEL
+     btnbrws AT ROW 4.92 COL 40
+     cDataTable AT ROW 7.15 COL 2 NO-LABEL WIDGET-ID 2
+     b_Helpq AT ROW 11.35 COL 57
+     cIncludeLabel AT ROW 6.46 COL 2 NO-LABEL WIDGET-ID 4
+     cSBOLabel AT ROW 6.46 COL 2 NO-LABEL WIDGET-ID 6
      "Data definition source" VIEW-AS TEXT
-          SIZE 21.6 BY .62 AT ROW 1.19 COL 3.4
-     rRect AT ROW 1.52 COL 2
+          SIZE 21.57 BY .62 AT ROW 1.19 COL 3.43
+     rRect AT ROW 1.54 COL 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS THREE-D 
          AT COL 1 ROW 1
@@ -299,10 +301,10 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          TITLE              = "<insert title>"
          HEIGHT             = 11.86
          WIDTH              = 83.8
-         MAX-HEIGHT         = 16.48
-         MAX-WIDTH          = 107.2
-         VIRTUAL-HEIGHT     = 16.48
-         VIRTUAL-WIDTH      = 107.2
+         MAX-HEIGHT         = 16.46
+         MAX-WIDTH          = 107.14
+         VIRTUAL-HEIGHT     = 16.46
+         VIRTUAL-WIDTH      = 107.14
          RESIZE             = no
          SCROLL-BARS        = no
          STATUS-AREA        = no
@@ -404,14 +406,16 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnbrws C-Win
 ON CHOOSE OF btnbrws IN FRAME DEFAULT-FRAME /* Browse... */
 DO:
-  DEFINE VARIABLE lcancelled  AS LOGICAL              NO-UNDO.
-  DEFINE VARIABLE otherthing AS CHARACTER            NO-UNDO.
-  DEFINE VARIABLE Attributes AS CHARACTER            NO-UNDO.  
-  DEFINE VARIABLE Template   AS CHARACTER            NO-UNDO.  
-  DEFINE VARIABLE ObjLabel      AS CHARACTER            NO-UNDO.  
-  DEFINE VARIABLE oldData_Object AS CHARACTER        NO-UNDO.  
+  DEFINE VARIABLE lcancelled     AS LOGICAL              NO-UNDO.
+  DEFINE VARIABLE otherthing     AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE parse          AS CHARACTER            NO-UNDO.  
+  DEFINE VARIABLE Template       AS CHARACTER            NO-UNDO.  
+  DEFINE VARIABLE ObjLabel       AS CHARACTER            NO-UNDO.  
   DEFINE VARIABLE cFilterlist    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObject        AS CHARACTER  NO-UNDO.
+  define variable cProjects      as character no-undo.
+  define variable cDirs          as character no-undo.
+  define variable iPos           as integer no-undo.
   IF cObjectType = 'DataView':U THEN
   DO:
     IF index(data_object,'.') > 0 OR index(data_object,'*') > 0 THEN
@@ -426,15 +430,23 @@ DO:
                                     + "Include files (*.i),All files(*.*)",
                                     INPUT-OUTPUT cobject).
     lcancelled = cobject = ''. 
-    IF NOT lcancelled THEN
-      data_object = cObject.
+    IF NOT lcancelled THEN 
+    do:
+         Data_Object = cObject.
+         IF Data_Object BEGINS('.~\':U) THEN
+              Data_Object = SUBSTR(Data_Object,3).
+         if resetDataSource(Data_Object) then 
+             DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
+         else  
+             Data_Object = Data_Object:screen-value in  FRAME {&FRAME-NAME} .   
+    end. 
   END.
   ELSE DO:
     RUN adeuib/_uibinfo.p (
         INPUT ?,
         INPUT "PALETTE-ITEM ":U + cObjectType:SCREEN-VALUE IN FRAME {&FRAME-NAME},
         INPUT "ATTRIBUTES":U,
-        OUTPUT Attributes).
+        OUTPUT parse).
     /*
     Cannot use template if the template starts a wizard  
     
@@ -445,31 +457,34 @@ DO:
         OUTPUT Template).
     */
     
-    IF Attributes <> "" THEN
+    IF parse <> "" THEN
     DO WITH FRAME {&FRAME-NAME}:
-      ASSIGN oldData_Object = Data_Object:SCREEN-VALUE.
-      RUN adecomm/_chosobj.w (
-          INPUT "smartObject",
-          INPUT Attributes,
-          INPUT Template,
-          INPUT "BROWSE,PREVIEW":U,
-          OUTPUT Data_Object,
-          OUTPUT OtherThing,
-          OUTPUT lcancelled).
+        IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+        DO:
+            cProjects = getSharedProjectNames().          
+            /** if shared projects add them to directory list (replace  current if applicable)  */
+            if cProjects > "" then 
+            do:
+                cDirs = TRIM(SUBSTRING(TRIM(ENTRY(1,parse,CHR(10))),15,-1,"CHARACTER")).
+                iPos = lookup(".",cDirs).
+                if(iPos > 0) then
+                do:
+                    entry(iPos,cDirs) = cProjects. 
+                end.    
+                else do:
+                    cDirs = cProjects + "," + cDirs.
+                end.
+                ENTRY(1,parse,CHR(10)) = "DIRECTORY-LIST" + " " + cDirs.
+            end.    
+         END.               
+         RUN choose_smartobject (
+             INPUT "smartObject",
+             INPUT parse,
+             INPUT Template,
+             INPUT "BROWSE,PREVIEW":U ).
     END.
   END.
-  IF NOT lcancelled THEN 
-  DO:
 
-    IF Data_Object BEGINS('.~\':U) THEN
-      Data_Object = SUBSTR(Data_Object,3).
-    IF oldData_Object <> Data_Object THEN
-    DO:
-      IF NOT resetDataSource(Data_Object) THEN 
-        Data_Object = oldData_Object.
-      DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.
-    END.
-  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -673,6 +688,41 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_smartobject C-Win 
+PROCEDURE choose_smartobject :
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+    define input parameter pcTool as char no-undo.
+    define input parameter pcAttr as char no-undo.
+    define input parameter pcTemplate as char no-undo.
+    define input parameter pcAction as char no-undo.
+    
+    define variable chooseSmartObject as adeuib.ide._choosesmartobject no-undo.
+    
+    if OEIDE_CanLaunchDialog() then
+    do:  
+        assign
+            chooseSmartObject = new adeuib.ide._choosesmartobject()
+            chooseSmartObject:Tool = pcTool
+            chooseSmartObject:CustomTool = ""  /* not in use  (_used by _uibmain)*/
+            chooseSmartObject:Attributes = pcAttr
+            chooseSmartObject:Template = pcTemplate
+            chooseSmartObject:Action = pcAction.
+        
+        chooseSmartObject:SetCurrentEvent(this-procedure,"do_choose_smartobject":U).
+        run runChildDialog in hOEIDEService(chooseSmartObject). 
+    end.
+    else 
+        run do_choose_smartobject(pcTool,"",pcAttr,pcTemplate,pcAction). 
+  
+
+end procedure.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-Win  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -687,6 +737,65 @@ PROCEDURE disable_UI :
   HIDE FRAME DEFAULT-FRAME.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE do_choose_smartobject C-Win 
+PROCEDURE do_choose_smartobject :
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+    define input parameter pcTool as char no-undo.
+    /* not in use here ( adeuib.ide._choosesmartobject is also used by _uibmain,  )*/
+    define input parameter pcCustomTool as char no-undo.
+    define input parameter pcAttr as char no-undo.
+    define input parameter pcTemplate as char no-undo.
+    define input parameter pcAction as char no-undo.
+    define variable coldfile as character no-undo.
+    define variable cTool             as character initial "smartObject" no-undo.
+    define variable cFile             as character no-undo.
+    define variable cUnused           as character no-undo.
+    define variable lCancelled        as logical no-undo.
+ 
+    run adecomm/_setcurs.p("WAIT").
+    
+    coldfile = Data_Object:SCREEN-VALUE in FRAME {&FRAME-NAME} .
+    IF pcTool = "SmartDataObject":U THEN 
+        ctool = pcTool. /* Otherwise smartObject */
+    if OEIDE_CanLaunchDialog() then 
+        RUN adeuib/ide/_dialog_chosobj.p 
+                               (ctool, 
+                                pcAttr, 
+                                pcTemplate,
+                                pcAction,
+                                output cFile,
+                                output cUnused ,
+                                output lCancelled).
+    else
+        RUN adecomm/_chosobj.w (ctool,
+                                pcAttr, 
+                                pcTemplate,
+                                pcAction,
+                                output cFile,
+                                output cUnused ,
+                                output lCancelled).
+    if not lCancelled then
+    do:                            
+        IF cFile BEGINS('.~\':U) THEN
+            cFile = SUBSTR(cFile,3). 
+        IF coldfile <> cFile THEN 
+        do:
+           if NOT resetDataSource(cfile) then
+               Data_Object = coldfile.
+           else 
+              Data_Object = cfile. 
+           DISPLAY Data_Object WITH FRAME {&FRAME-NAME}.  
+        end.   
+       
+    END.
+end procedure.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -761,8 +870,8 @@ PROCEDURE ProcessPage :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lok          AS LOG       NO-UNDO.
   DEFINE VARIABLE cSDOType    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE LastButton AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE LastButton    AS CHARACTER NO-UNDO.
+  define variable cMsg         as character no-undo.
   LastButton = DYNAMIC-FUNCTION ("GetLastButton" IN gWizardHdl).
    
   IF LastButton = "CANCEL" THEN RETURN.
@@ -776,8 +885,12 @@ PROCEDURE ProcessPage :
 
     IF Data_Object = "":U THEN
     DO:  
-      MESSAGE 'You need to supply the name of a data definition source.':U 
-         view-as alert-box information. 
+      cmsg = 'You need to supply the name of a data definition source.'.
+/*      if OEIDE_CanShowMessage() then               */
+/*          ShowOkMessageInIDE(cMsg,"INFORMATION",?).*/
+/*      else                                         */
+          MESSAGE cMsg
+          view-as alert-box information. 
       
       RETURN ERROR.    
     END.
@@ -791,12 +904,16 @@ PROCEDURE ProcessPage :
           COMPILE VALUE(Data_Object) NO-ERROR. 
           IF COMPILER:ERROR THEN
           DO:
-            MESSAGE 
-/*               Data_object "include cannot be used as data definition source" */
-/*               "as it has a syntax error:"                                    */
-/*                 SKIP(1)                                                      */
-              ERROR-STATUS:GET-MESSAGE(1) SKIP
-              ERROR-STATUS:GET-MESSAGE(2)
+            cMsg = Data_object + " include cannot be used as data definition source"
+                 + "as it has a syntax error:" + "~n~n"   
+                 + ERROR-STATUS:GET-MESSAGE(1) + "~n"
+                 + (if ERROR-STATUS:GET-MESSAGE(2) <> ? 
+                    then ERROR-STATUS:GET-MESSAGE(2) 
+                    else "").
+/*           if OEIDE_CanShowMessage() then         */
+/*               ShowOkMessageInIDE(cMsg,"ERROR",?).*/
+/*           else                                   */
+             MESSAGE cMsg
               VIEW-AS ALERT-BOX 
                 ERROR. 
 
@@ -804,30 +921,43 @@ PROCEDURE ProcessPage :
           END.
         END.
       END.
-
-      MESSAGE 
-        Data_object "is not a valid data definition source." SKIP
-        "Select a DataObject or an include file with TEMP-TABLE and PRODATASET definitions."  
-         view-as alert-box information. 
+      cmsg =   Data_object + " is not a valid data definition source."  + "~n" 
+           +  "Select a DataObject or an include file with TEMP-TABLE and PRODATASET definitions.".  
+/*      if OEIDE_CanShowMessage() then               */
+/*          ShowOkMessageInIDE(cMsg,"information",?).*/
+/*      else                                         */
+          MESSAGE cMsg
+          view-as alert-box information. 
        RETURN ERROR.
     END.
     ELSE DO:
       IF cObjectType = 'DataView':U 
       AND cDataTable = "":U OR cDataTable = ? THEN
       DO:  
-
-        MESSAGE 'You need to select a DataTable.':U 
+        cMsg = 'You need to select a DataTable.'. 
+/*        if OEIDE_CanShowMessage() then               */
+/*            ShowOkMessageInIDE(cMsg,"information",?).*/
+/*        else                                         */
+          MESSAGE cMsg
             view-as alert-box information. 
-      
+     
         RETURN ERROR.    
       END.
-
-      {get ObjectType cSDOType gDOHdl}.
-      IF LOOKUP(cSDOType,'SmartDataObject,SmartBusinessObject') = 0 THEN
+      cSDOType = ? .
+      {get ObjectType cSDOType gDOHdl} no-error.
+       
+      IF LOOKUP(cSDOType,'SmartDataObject,SmartBusinessObject') = 0 or cSDOType = ? THEN
       DO:
-        MESSAGE 
-          Data_object "is a " cObjectType "and cannot be used as definition source." skip
-         "Select a DataObject or an include file with TEMP-TABLE and/or PRODATASET definitions."  
+          
+        cMsg = Data_object + (if cSDOType = ? 
+                              then " is not a SmartObject" 
+                              else " is a "  + cSDOType )                
+             +  " and cannot be used as definition source."  + "~n" 
+              + "Select a DataObject or an include file with TEMP-TABLE and/or PRODATASET definitions.".  
+/*        if OEIDE_CanShowMessage() then               */
+/*            ShowOkMessageInIDE(cMsg,"information",?).*/
+/*        else                                         */
+          MESSAGE cMsg
           view-as alert-box information. 
         RETURN ERROR.
       END.
@@ -843,13 +973,16 @@ PROCEDURE ProcessPage :
         /* the prev logic in the message is not used since we are inside
           'if next' .. because PREV cannot be interupted */
         lok = TRUE.
-        MESSAGE 
-            Data_object "exists in Repository and will be started from there"
-            + (IF LastButton = "NEXT":U
+        cmsg = Data_object + " exists in Repository and will be started from there"
+             + (IF LastButton = "NEXT":U
                THEN " on subsequent pages as well as in the AppBuilder."
                ELSE " when returning to this page.")
-            SKIP 
-            "Confirm ok to continue."
+             +  "~n" 
+             + "Confirm ok to continue.".
+/*        if OEIDE_CanShowMessage() then                             */
+/*            ShowMessageInIDE(cMsg,"information",?,"OK-CANCEL",lok).*/
+/*        else                                                       */
+            MESSAGE cMsg
             VIEW-AS ALERT-BOX BUTTONS OK-CANCEL UPDATE lok.
         IF NOT lok THEN 
            RETURN ERROR.
@@ -1208,13 +1341,18 @@ FUNCTION resetDataSource RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lAnswer AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cExt    AS CHARACTER  NO-UNDO.
-
+  define variable cMsg as character no-undo.
   IF FLd-list <> '' THEN
   DO:  
      lAnswer = YES.
-     MESSAGE 
-      'Confirm removal of all fields selected from current data source from the list.'
+     cMsg =  'Confirm removal of all fields selected from current data source from the list.'.
+/*     if OEIDE_CanShowMessage() then                                            */
+/*          lanswer = ShowMessageInIDE(cMsg,"Information",?,"OK-CANCEL",lanswer).*/
+/*     else                                                                      */
+        MESSAGE cMsg
        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAnswer.
+     
+     
      IF NOT lAnswer THEN
        RETURN FALSE.
   END.
@@ -1228,12 +1366,15 @@ FUNCTION resetDataSource RETURNS LOGICAL
       IF LOOKUP(cExt ,'p,w':U) > 0 THEN
       DO:
         lanswer = yes.
-        MESSAGE 
-         "Do you want to run"  pcDataObject 
-         " or do you want to parse it as an include file?"  SKIP(1)
-         "Yes, this object is to be run." skip
-         "No, this file is to be parsed"
-         VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
+        cmsg = "Do you want to run " +  pcDataObject 
+            + " or do you want to parse it as an include file?"  + "~n~n"
+            + "Yes, this object is to be run." + "~n" 
+            + "No, this file is to be parsed".
+/*        if OEIDE_CanShowMessage() then                                     */
+/*            lanswer = ShowMessageInIDE(cMsg,"Question",?,"YES-NO",lanswer).*/
+/*        else                                                               */
+           MESSAGE cmsg 
+           VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
         IF lanswer THEN
           resetObjectType('SmartDataObject').
       END.
@@ -1245,12 +1386,15 @@ FUNCTION resetDataSource RETURNS LOGICAL
       IF LOOKUP(cExt ,'i':U) > 0 THEN
       DO:
         lanswer = yes.
-        MESSAGE 
-         "Do you want to parse" pcDataObject "as an include file"
-         "or do you want run it?" SKIP(1)
-         "Yes, this file is to be parsed." SKIP
-         "No, this object is to be run." skip  
-        VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
+        cmsg =  "Do you want to parse " + pcDataObject + " as an include file"
+             + " or do you want run it?"  + "~n~n"
+             + "Yes, this file is to be parsed."  + "~n"
+             + "No, this object is to be run.".
+/*        if OEIDE_CanShowMessage() then                                     */
+/*            lanswer = ShowMessageInIDE(cMsg,"Question",?,"YES-NO",lanswer).*/
+/*        else                                                               */
+            MESSAGE cmsg
+            VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
         IF lanswer THEN
           resetObjectType('DataView':U).
       END.

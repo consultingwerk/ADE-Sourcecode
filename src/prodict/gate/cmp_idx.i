@@ -76,6 +76,7 @@ History:
               &o-name = "s_ttb_idx.ds_name"
               &sh     = "DICTDB._Index._Unique"
               }
+     IF NOT user_dbtype = "MSS" THEN
       { prodict/gate/cmp_msg.i
               &attrbt = "Description:"
               &msgidx = "l_idx-msg[6]"

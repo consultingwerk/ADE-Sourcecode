@@ -974,14 +974,23 @@ PAUSE 0 BEFORE-HIDE.
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  RUN enable_UI.
-  ASSIGN giWinWidth                     = ghWindow:WIDTH-PIXELS
-         giWinHeight                    = ghWindow:HEIGHT-PIXELS
-         ghWindow:VIRTUAL-WIDTH-PIXELS  = SESSION:WIDTH-PIXELS
-         ghWindow:VIRTUAL-HEIGHT-PIXELS = SESSION:HEIGHT-PIXELS NO-ERROR.
-  RUN initObjects.
-  IF NOT THIS-PROCEDURE:PERSISTENT THEN
-    WAIT-FOR CLOSE OF THIS-PROCEDURE.
+  IF PROCESS-ARCHITECTURE = 32 THEN
+  DO:
+    RUN enable_UI.
+    ASSIGN giWinWidth                     = ghWindow:WIDTH-PIXELS
+           giWinHeight                    = ghWindow:HEIGHT-PIXELS
+           ghWindow:VIRTUAL-WIDTH-PIXELS  = SESSION:WIDTH-PIXELS
+           ghWindow:VIRTUAL-HEIGHT-PIXELS = SESSION:HEIGHT-PIXELS NO-ERROR.
+    RUN initObjects.
+    IF NOT THIS-PROCEDURE:PERSISTENT THEN
+      WAIT-FOR CLOSE OF THIS-PROCEDURE.
+  END.
+  ELSE
+  DO:
+      MESSAGE "Pro*Spy Plus only runs in the 32-bit Windows GUI client."
+          VIEW-AS ALERT-BOX.
+      STOP.
+  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */

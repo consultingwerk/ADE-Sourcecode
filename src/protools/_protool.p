@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2012 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -105,6 +105,13 @@ DO:
     FIND pt-function WHERE pt-function.pcFile
                            = "protools/_prowcappdp.p":u NO-ERROR.
     IF AVAIL pt-function THEN pt-function.pdisplay = no.
+END.
+
+/* The Screen Capture ProTool is only available in the 32-bit Windows client */
+IF PROCESS-ARCHITECTURE NE 32 THEN
+DO:
+    FIND pt-function WHERE pt-function.pcFile = "protools/_scrcap.w":u NO-ERROR.
+    IF AVAIL pt-function THEN pt-function.pdisplay = NO.
 END.
 
 IF NOT CAN-DO(ABTools, "Enable-ICF":u) THEN

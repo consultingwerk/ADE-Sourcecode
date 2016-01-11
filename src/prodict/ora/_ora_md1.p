@@ -177,12 +177,17 @@ IF (SESSION:BATCH-MODE and not logfile_open)
     END.
 
 
-IF SESSION:BATCH-MODE AND logfile_open THEN 
-   PUT STREAM logfile UNFORMATTED 
+IF SESSION:BATCH-MODE AND logfile_open THEN DO:
+   PUT STREAM logfile UNFORMATTED
        " " skip 
        "-- ++ " skip
        "-- Getting List of Objects from foreign DB Schema" skip
        "-- -- " skip(2).
+    PUT STREAM logfile UNFORMATTED
+      "Object Type" at 14
+      "Object Owner" at 28
+      "Object Name" at 44 skip(1).
+   END.
 
 /*
 ** We have to create the record in table s_ttb_link and the variables
@@ -229,19 +234,19 @@ find first gate-work
 if available gate-work
   then do:   /* found at least one object to pull */
 
-    IF SESSION:BATCH-MODE AND logfile_open
-      THEN 
-        PUT STREAM logfile UNFORMATTED 
-           " " skip 
-           "-- ++ " skip
-           "-- Importing Objects into the {&PRO_DISPLAY_NAME} Schema Holder" skip
-           "-- -- " skip(2).
-
 /*
 ** Create objects in the schema holder to match objects in Oracle.
 */
 
-    RUN prodict/ora/_ora_pul.p. 
+    RUN prodict/ora/_ora_pul.p.
+
+  IF SESSION:BATCH-MODE AND logfile_open THEN 
+   PUT STREAM logfile UNFORMATTED
+       " " skip 
+       "-- ++ " skip
+       "-- Importing Objects into the {&PRO_DISPLAY_NAME} Schema Holder." skip
+       "-- -- " skip(2).
+
     RUN prodict/gate/_gat_cro.p. 
 
     IF SESSION:BATCH-MODE and logfile_open

@@ -12,14 +12,16 @@
             musingh 03/30/11 Added additional _Fields to the SQLColumns_buffer.
   
 */
-
+DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL NO       NO-UNDO.
 DEFINE INPUT PARAMETER dbkey AS RECID NO-UNDO.
+batch_mode = SESSION:BATCH-MODE.
 
 FIND _File
   WHERE _File._Db-recid = dbkey
     AND _File._File-name = "SQLTables" NO-ERROR.
 IF AVAILABLE _File THEN DO:
   find _db where RECID(_Db) = dbkey NO-LOCK.
+  IF NOT batch_mode THEN
   MESSAGE "Meta schema definitions for" _db-name "already exists.".
   RETURN.
 END. 

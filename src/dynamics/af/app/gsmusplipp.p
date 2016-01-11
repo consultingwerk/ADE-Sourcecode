@@ -1829,7 +1829,6 @@ FUNCTION calculateoldPasswordExpiryDate RETURNS CHARACTER
   hDate      = hRowObject:BUFFER-FIELD("password_expiry_date":U).
 
   RETURN STRING(hDate:BUFFER-VALUE).
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

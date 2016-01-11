@@ -1,14 +1,11 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_openso
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_openso 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2013 by Progress Software Corporation. All rights  *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*------------------------------------------------------------------------
 
   File: _chosobj.w
@@ -38,7 +35,7 @@
 
   Modified on 7/31/95 - Moved to adecomm
   Modified on 5/3/98 HD - Added remote file management  
-
+     
   Note:    Remote file management has some differences in behaviour.
            Because asynchron OCX events is used some variables and settings 
            must be treated differently. 
@@ -47,7 +44,13 @@
            paths and filters.     
            
            WAIT-FOR U1 to be able to hide frame while waiting for 
-           response from server.              
+           response from server.
+           --
+      11.3 removed appbuilder analyze  blocks
+           The file can no longer (from 11.2) be opened in AppBuilder due 
+           to frame conditional compile needed to host this in ide dialogs 
+           used by AppBuilder integration in PDS.
+                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -124,11 +127,8 @@
   DEFINE VARIABLE list-size   AS INTEGER INIT 8000 NO-UNDO. 
   DEFINE VARIABLE missed-file AS INTEGER           NO-UNDO.
   DEFINE VARIABLE DirError    AS INTEGER           NO-UNDO.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -145,25 +145,17 @@
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* ************************  Function Prototypes ********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentPMDir d_openso 
 FUNCTION getCurrentPMDir RETURNS CHARACTER
   (   )  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDesignManager d_openso 
 FUNCTION getDesignManager RETURNS HANDLE
   (  )  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -242,21 +234,12 @@ DEFINE FRAME d_openso
 
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Allow: Basic
-   Frames: 1
-   Add Fields to: Neither
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_openso
    NOT-VISIBLE FRAME-NAME L-To-R,COLUMNS                                */
 ASSIGN 
@@ -289,7 +272,6 @@ ASSIGN
 /* SETTINGS FOR SELECTION-LIST s_files IN FRAME d_openso
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
  
 
@@ -298,7 +280,6 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME d_openso
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_openso d_openso
 ON ENDKEY OF FRAME d_openso /* Open SmartObject */
 OR END-ERROR OF FRAME d_openso
 DO:
@@ -309,12 +290,9 @@ DO:
   .
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Browse
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Browse d_openso
 ON CHOOSE OF b_Browse IN FRAME d_openso /* Browse... */
 DO:
   RUN adecomm/_opnfile.w
@@ -332,12 +310,9 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_New
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_New d_openso
 ON CHOOSE OF b_New IN FRAME d_openso /* New... */
 DO:
   IF p_newTemplate <> "" OR p_newTemplate = ? THEN DO:
@@ -351,12 +326,9 @@ DO:
   END.   
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Preview
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Preview d_openso
 ON CHOOSE OF b_Preview IN FRAME d_openso /* Preview... */
 DO:
   DEFINE VARIABLE ok_choice AS LOGICAL NO-UNDO.
@@ -375,12 +347,9 @@ DO:
   Run adecomm/_setcurs.p("":U).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_dirs
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_dirs d_openso
 ON VALUE-CHANGED OF cb_dirs IN FRAME d_openso
 DO:
   If cb_dirs = cb_dirs:SCREEN-VALUE then 
@@ -390,12 +359,9 @@ DO:
   
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_filters
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_filters d_openso
 ON VALUE-CHANGED OF cb_filters IN FRAME d_openso
 DO:
   If cb_filters = cb_filters:SCREEN-VALUE then 
@@ -404,22 +370,16 @@ DO:
   ASSIGN cb_filters.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME s_files
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_files d_openso
 ON DEFAULT-ACTION OF s_files IN FRAME d_openso
 DO:
   APPLY "U1" TO THIS-PROCEDURE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_files d_openso
 ON ENTRY OF s_files IN FRAME d_openso
 DO:
   
@@ -433,11 +393,8 @@ DO:
   Filename = filename:SCREEN-VALUE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_files d_openso
 ON VALUE-CHANGED OF s_files IN FRAME d_openso
 DO:
   IF SELF:SCREEN-VALUE <> "":U AND
@@ -460,13 +417,10 @@ DO:
   RUN Set_Sensitivity.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK d_openso 
 
 
 /* ***************************  Main Block  *************************** */
@@ -521,8 +475,13 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   
   RUN Setup(OUTPUT rc).
   IF NOT rc THEN DO:
-    MESSAGE "Invalid parameters defined for " gObjectType + "."
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+     &if defined(IDE-IS-RUNNING) <> 0 &then  
+         if OEIDE_CanShowMessage() then 
+              ShowMessageInIDE("Invalid parameters defined for " + gObjectType + ".","Error":U,?,"ok":U,true).
+         else    
+     &endif  
+         MESSAGE "Invalid parameters defined for " gObjectType + "."
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN.
   END.
   
@@ -535,15 +494,14 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     WAIT-FOR U1 OF THIS-PROCEDURE.
   END.  
 END.
+
+
 RUN destroyObject.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ApplyGo d_openso 
 PROCEDURE ApplyGo :
 DEFINE VARIABLE ok_choice AS LOGICAL NO-UNDO.
      
@@ -593,10 +551,7 @@ DEFINE VARIABLE ok_choice AS LOGICAL NO-UNDO.
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE BuildFileList d_openso 
 PROCEDURE BuildFileList :
 /* -----------------------------------------------------------
   Purpose:     Build the file listing in the selection list
@@ -679,14 +634,27 @@ PROCEDURE BuildFileList :
         IF DirError <> 0 THEN DO:
           RUN adecomm/_setcurs.p ("":U).
           SET-SIZE(list-mem) = 0.
-          MESSAGE "Error in directory search." VIEW-AS ALERT-BOX ERROR.
+          &if defined(IDE-IS-RUNNING) <> 0 &then  
+              if OEIDE_CanShowMessage() then 
+                 ShowMessageInIDE("Error in directory search.","Error":U,?,"ok":U,true).
+               else    
+          &endif  
+             MESSAGE "Error in directory search." VIEW-AS ALERT-BOX ERROR.
+
           RETURN.
         END.
         IF missed-file > 0 THEN 
+        do:
+          &if defined(IDE-IS-RUNNING) <> 0 &then  
+              if OEIDE_CanShowMessage() then 
+                 ShowMessageInIDE("Too many files in your directory. The file list may not be inclusive.","Information":U,?,"ok":U,true).
+               else    
+          &endif  
           MESSAGE "Too many files in your directory." skip
                   "The file list may not be inclusive."
            VIEW-AS ALERT-BOX INFORMATION. 
       
+        end.
         ASSIGN 
           file_list          = LC(GET-STRING(list-mem,1))
           SET-SIZE(list-mem) = 0.
@@ -739,10 +707,7 @@ PROCEDURE BuildFileList :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ChangeFilter d_openso 
 PROCEDURE ChangeFilter :
 /*------------------------------------------------------------------------------
   Purpose: Called on GO of the frame to see if we
@@ -844,11 +809,12 @@ PROCEDURE ChangeFilter :
             END.
             ASSIGN chdir = YES.
         END.        
-        ELSE /* not a directory */
+        ELSE do: /* not a directory */
           ASSIGN
             p_fileChosen = FILE-INFO:PATHNAME
             chfile       = YES
-           .           
+           .     
+        end.         
     END.
     ELSE DO:
        
@@ -860,7 +826,12 @@ PROCEDURE ChangeFilter :
           
           /* If there is no wildcard here, it's really a bad filename */
           IF INDEX(tfname, "*") = 0 THEN DO:
-            MESSAGE "Invalid directory path or filename." VIEW-AS ALERT-BOX ERROR.
+            &if defined(IDE-IS-RUNNING) <> 0 &then  
+                if OEIDE_CanShowMessage() then 
+                    ShowMessageInIDE("Invalid directory path or filename.","Error":U,?,"ok":U,true).
+                else    
+            &endif    
+                MESSAGE "Invalid directory path or filename." VIEW-AS ALERT-BOX ERROR.
             RETURN.
           END.
          
@@ -897,9 +868,14 @@ PROCEDURE ChangeFilter :
               ASSIGN cb_filters:SCREEN-VALUE = newfilter.
             END.
             ELSE DO: /* The '*' should not come before the last slash! */
-              MESSAGE "Invalid wildcard entry." VIEW-AS ALERT-BOX ERROR.
-              chfilter = NO.
-              p_OK = NO.
+                &if defined(IDE-IS-RUNNING) <> 0 &then  
+                if OEIDE_CanShowMessage() then 
+                    ShowMessageInIDE("Invalid wildcard entry.","Error":U,?,"ok":U,true).
+                else    
+                &endif
+                MESSAGE "Invalid wildcard entry." VIEW-AS ALERT-BOX ERROR.
+                chfilter = NO.
+                p_OK = NO.
             END.
           ELSE DO: /* No slash */
             ASSIGN newfilter = filename:SCREEN-VALUE.
@@ -911,8 +887,13 @@ PROCEDURE ChangeFilter :
       
       END. /* slash or '*' */
       ELSE DO: /* really a bad filename! */
-        MESSAGE "File: " + filename:SCREEN-VALUE + " was not found." 
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        &if defined(IDE-IS-RUNNING) <> 0 &then  
+            if OEIDE_CanShowMessage() then 
+                ShowMessageInIDE("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?,"ok":U,true).
+            else    
+        &endif
+            MESSAGE "File: " + filename:SCREEN-VALUE + " was not found." 
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         p_OK = NO.
       END.         
     END.    
@@ -935,10 +916,7 @@ PROCEDURE ChangeFilter :
    
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Check_Dirs d_openso 
 PROCEDURE Check_Dirs :
 /* -----------------------------------------------------------
   Purpose:     Check to see if we can locate the dirs in the list
@@ -947,29 +925,39 @@ PROCEDURE Check_Dirs :
 -------------------------------------------------------------*/
   DEFINE VARIABLE i     AS INTEGER   NO-UNDO.
   DEFINE VARIABLE dirs2 AS CHARACTER NO-UNDO.
-
+  define variable cMsg  as character no-undo.
   DO i = 1 TO NUM-ENTRIES(gDirs):
       ASSIGN FILE-INFO:FILE-NAME = ENTRY(i,gDirs).
       IF INDEX(FILE-INFO:FILE-TYPE,"D") > 0 THEN /* must be a directory */
           ASSIGN gTdirs  = gTdirs  + "," + FILE-INFO:FULL-PATHNAME
                  dirs2  = dirs2  + "," + ENTRY(i,gDirs).
+         
+      /* Skip .pl's and null entries */           
       ELSE IF ENTRY(i,gDirs) NE "" AND 
               SUBSTRING(ENTRY(i,gDirs),LENGTH(ENTRY(i,gDirs)) - 1,2,"CHARACTER":U) 
               NE "PL" AND p_mode NE "{&WT-CONTROL}":U THEN
-                /* Skip .pl's and null entries */
-                MESSAGE "Directory: " + ENTRY(i,gDirs) + " is defined for this object" skip
-                  "but does not currently exist on this system." skip(1)
-                  "This directory name will be ignored."
+      do:
+          cMsg =  "Directory: " + ENTRY(i,gDirs) + " is defined for this object" 
+               +  " but does not currently exist on this system." + "~n~n" 
+               +   "This directory name will be ignored.".
+         
+          &if defined(IDE-IS-RUNNING) <> 0 &then  
+        
+          if OEIDE_CanShowMessage() then 
+              ShowMessageInIDE(cMsg,"Warning":U,?,"ok":U,true).
+          else    
+          &endif 
+           
+          MESSAGE  cmsg
                   VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+  
+      end.          
   END.
   ASSIGN gDirs  = SUBSTRING(dirs2,2,-1,"CHARACTER")
          gTdirs = SUBSTRING(gTdirs,2,-1,"CHARACTER").
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Check_FileChosen d_openso 
 PROCEDURE Check_FileChosen :
 /*------------------------------------------------------------------------------
   Purpose: Check the value of the variable fileChosen and make sure it is valid.
@@ -989,33 +977,32 @@ PROCEDURE Check_FileChosen :
       do:
         Run processOCX(output ocxStatus).
         IF ocxStatus = 0 then
+        do:
           Assign
             p_OK = no
             p_otherThing = ""
-            dispMessage = yes
             .
+          &if defined(IDE-IS-RUNNING) <> 0 &then  
+          if OEIDE_CanShowMessage() then 
+              ShowMessageInIDE("Please select a file.","Warning":U,?,"ok":U,true).
+          else    
+          &endif  
+          MESSAGE "Please select a file." VIEW-AS ALERT-BOX WARNING. 
+        end.    
         Else if ocxStatus = -1 then
           Assign
             p_OK = no
             p_otherThing = ""
-            dispMessage = no
             . 
       end.
       else do: 
         Run processObj(output p_OK).
-        If not p_OK then dispMessage = true.
       end.
- 
-      IF dispMessage then
-        MESSAGE "Please select a file." VIEW-AS ALERT-BOX WARNING. 
     END.    
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject d_openso 
 PROCEDURE destroyObject :
 /*------------------------------------------------------------------------------
   Purpose:    Kill _cihttp and this-procedure
@@ -1026,10 +1013,7 @@ PROCEDURE destroyObject :
   RUN disable_UI.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI d_openso  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -1043,10 +1027,7 @@ PROCEDURE disable_UI :
   HIDE FRAME d_openso.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI d_openso  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -1064,10 +1045,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-d_openso}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initAdmGUI d_openso 
 PROCEDURE initAdmGUI :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1091,10 +1069,7 @@ PROCEDURE initAdmGUI :
  END.  
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initGUI d_openso 
 PROCEDURE initGUI :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1135,10 +1110,7 @@ PROCEDURE initGUI :
  END.                          
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initHTTP d_openso 
 PROCEDURE initHTTP :
 /*------------------------------------------------------------------------------
   Purpose:    Start the HTTP super procedure 
@@ -1160,10 +1132,7 @@ PROCEDURE initHTTP :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initOCXGUI d_openso 
 PROCEDURE initOCXGUI :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1173,10 +1142,7 @@ PROCEDURE initOCXGUI :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OCX.FileClosed d_openso 
 PROCEDURE OCX.FileClosed :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1351,9 +1317,16 @@ PROCEDURE OCX.FileClosed :
         ASSIGN filename:SCREEN-VALUE = gFilter.  
         APPLY "U1" TO THIS-PROCEDURE.
       END.
-      ELSE
-        MESSAGE "File: " + filename:SCREEN-VALUE + " was not found." 
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.     
+      ELSE do:
+          &if defined(IDE-IS-RUNNING) <> 0 &then  
+          if OEIDE_CanShowMessage() then 
+              ShowMessageInIDE("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?,"ok":U,true).
+          else    
+          &endif    
+          
+          MESSAGE "File: " + filename:SCREEN-VALUE + " was not found." 
+             VIEW-AS ALERT-BOX ERROR BUTTONS OK.    
+      end.     
     END. 
     ELSE IF s_files:NUM-ITEMS = 0 THEN 
        s_files:LIST-ITEMS = "<none>". 
@@ -1379,10 +1352,7 @@ PROCEDURE OCX.FileClosed :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OCX.HTTPServerConnection d_openso 
 PROCEDURE OCX.HTTPServerConnection :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1416,10 +1386,7 @@ PROCEDURE OCX.HTTPServerConnection :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OCX.WSAError d_openso 
 PROCEDURE OCX.WSAError :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1434,10 +1401,7 @@ PROCEDURE OCX.WSAError :
  
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processObj d_openso 
 PROCEDURE processObj :
 /*------------------------------------------------------------------------------
   Purpose: 
@@ -1445,8 +1409,10 @@ PROCEDURE processObj :
 ------------------------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER p_OK AS LOGICAL NO-UNDO INITIAL yes.
   
-  DEFINE VARIABLE tempFile  AS CHARACTER NO-UNDO. 
-
+  define variable cResolvePath as character no-undo.
+  define variable iDir         as integer no-undo.
+  define variable cDir         as character no-undo.
+  define variable lFullDir     as logical no-undo.
   DO WITH FRAME {&FRAME-NAME}:
     /* 
     Don't use ./ on web because the value is displayed in fill-ins
@@ -1459,19 +1425,35 @@ PROCEDURE processObj :
                       + UNIX-SLASH )
                       
                  + filename:SCREEN-VALUE. 
-   ELSE 
-      ASSIGN p_fileChosen = 
-                 cb_dirs:SCREEN-VALUE 
-                 + OS-SLASH 
-                 + filename:SCREEN-VALUE.
-
+   ELSE do:
+      
+      assign 
+          cDir         = cb_dirs:SCREEN-VALUE             
+          lFullDir     = (cDir begins "/" or cDir begins "~\" or index(cDir,":") <> 0)
+          iDir         = lookup(cDir,gDirs)
+          p_fileChosen = cb_dirs:SCREEN-VALUE + OS-SLASH + filename:SCREEN-VALUE.
+      
+      if idir > 0 then 
+      do:    
+          cResolvePath = entry(iDir,gTDirs) + OS-SLASH + filename:SCREEN-VALUE. 
+          /* resolve relative path from full path file 
+             prompts if relative name shadowed by other file in propath */
+          run adecomm/_resolvepath.p (input-output cResolvePath).
+          if cResolvePath = "" then 
+             p_Ok = false.
+          
+          /* the if test is likely not required, but to be 100% sure that 
+             old behavior is kept intact with relative directories 
+             (ie ./<file> when pciking files from current )  */   
+          if lFullDir then   
+              p_fileChosen = cResolvePath.   
+      end.
+       
+   end.
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processOCX d_openso 
 PROCEDURE processOCX :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1529,9 +1511,13 @@ do with frame {&FRAME-NAME}:
        /*
         * There is a problem. 
         */
-        
-       message "A problem was detected trying to access the" skip
-               fullname " control." skip
+       &if defined(IDE-IS-RUNNING) <> 0 &then  
+          if OEIDE_CanShowMessage() then 
+              ShowMessageInIDE("A problem was detected trying to access the " + fullname + " control.","Error":U,?,"ok":U,true).
+          else    
+       &endif  
+         message "A problem was detected trying to access the" skip
+                  fullname " control." skip
 
                view-as alert-box.
        assign
@@ -1565,10 +1551,7 @@ do with frame {&FRAME-NAME}:
 end.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Setup d_openso 
 PROCEDURE Setup :
 /* -----------------------------------------------------------
   Purpose:     Setup dialog
@@ -1603,10 +1586,15 @@ DO WITH FRAME {&FRAME-NAME}:
     cPMDir = getCurrentPmDir().
     IF cPmDir > '' AND LOOKUP(cPmDir,gDirs) = 0 THEN
     DO:
-      /* since this in theory is user defined data ensure that the first 
-         specified directory still is the first (as for now also for current) */ 
-      cStart = ENTRY(1,gDirs).
-      gDirs = cPmDir + ',' + gDirs.
+       file-info:file-name = cPmDir.
+       if index(file-info:file-type,"D") > 0 then 
+       do: 
+        
+          /* since this in theory is user defined data ensure that the first 
+             specified directory still is the first (as for now also for current) */ 
+          cStart = ENTRY(1,gDirs).
+          gDirs = cPmDir + ',' + gDirs.
+       end.
     END.
 
     /* 
@@ -1637,10 +1625,7 @@ DO WITH FRAME {&FRAME-NAME}:
 END.         
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Set_First d_openso 
 PROCEDURE Set_First :
 /* -----------------------------------------------------------
   Purpose:     Selects the first file in the list.
@@ -1656,10 +1641,7 @@ DO WITH FRAME {&FRAME-NAME}:
 END.  
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Set_Sensitivity d_openso 
 PROCEDURE Set_Sensitivity :
 /*------------------------------------------------------------------------------
   Purpose:     Sets the Sensitivity of various items in the dialog-box based
@@ -1673,12 +1655,9 @@ PROCEDURE Set_Sensitivity :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentPMDir d_openso 
 FUNCTION getCurrentPMDir RETURNS CHARACTER
   (   ) :
 /*------------------------------------------------------------------------------
@@ -1712,10 +1691,7 @@ FUNCTION getCurrentPMDir RETURNS CHARACTER
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDesignManager d_openso 
 FUNCTION getDesignManager RETURNS HANDLE
   (  ) :
 /*------------------------------------------------------------------------------
@@ -1734,6 +1710,4 @@ FUNCTION getDesignManager RETURNS HANDLE
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

@@ -1,5 +1,5 @@
 /**************************************************************************
-*Copyright (C) 2005,2010,2011,2012,2013 by Progress Software Corporation. *
+*Copyright (C) 2005,2010-2013 by Progress Software Corporation. *
 *All rights reserved.  Prior versions of this work may contain portions   *
 *contributed by participants of Possenet.                                 *
 **************************************************************************/
@@ -222,13 +222,14 @@ DO WITH FRAME {&FRAME-NAME}:
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2011 Vol 1. " +  
-        cCopyright + " 1992-2011 Infragistics, Inc., 2 Commerce Drive, Cranbury, NJ 08512. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2013 Vol 1. " +  
+        cCopyright + " 2001-2012 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 
-  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
-      AboutText2 = AboutText2 +
+  /* The Snowbound library is only used in 32-bit GUI products. */
+  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u AND PROCESS-ARCHITECTURE = 32 THEN
+        AboutText2 = AboutText2 +
          "OpenEdge includes Imaging Technology copyrighted by Snowbound Software Corporation 1993 - 2011." + CHR(10) +
          "www.snowbound.com" +
          CHR(10) + CHR(10).

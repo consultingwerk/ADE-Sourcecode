@@ -467,8 +467,9 @@ for each gate-work
 
   if SESSION:BATCH-MODE and logfile_open
    then put STREAM logfile unformatted
-     gate-work.gate-type at 10
-     gate-work.gate-name at 25 skip.
+    gate-work.gate-type at 16
+    gate-work.gate-user at 32
+    gate-work.gate-name at 45 skip.
 
   FOR first ds_users
     where ds_users.name = uservar
