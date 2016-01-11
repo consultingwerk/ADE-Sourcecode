@@ -524,6 +524,9 @@
                             do iAttrloop = 1 to NUM-ENTRIES(cAttrList):
                                 /* Skip every 3rd entry, since this corresponds to the _Field 
                                    field.
+                                   
+                                   cAttrList looks something like:
+                                   SCHEMA-<attribute-name>,<attribute-name>,_Field.<attribute-field>
                                  */
                                 if iAttrLoop mod 3 eq 0 then
                                     next DELETE-ATTRIBUTES.
@@ -532,7 +535,27 @@
                                 
                                 if cPrimaryField eq "":U then
                                     next DELETE-ATTRIBUTES.
-                                
+								
+                                /* Only delete attributes if we've actually attempted to update them.
+                                   The pcOverrideAttributes parameter contains a CSV list of attributes
+                                   to override when updating (not newly creating) a DataField record. 
+                                   
+                                   The deletion works on the basis of there not being a ttStoreAttribute
+                                   record; however, in cases where the attribute is not supposed to be
+                                   overriden, there will not be a record and so the attribute in the 
+                                   repository will be deleted erroneously. A check to see whether the
+                                   attribute is supposed to be overwritten is required to make sure
+                                   that the attribute in the repository is not deleted.
+                                   
+                                   Only the attributes used by Dynamics - the non SCHEMA-* attributes -
+                                   are allowed to be out of synch with the DB metaschema. The SCHEMA-*
+                                   attributes (by definition) contain metachema information.                                   
+                                   
+                                 */
+                                IF iAttrLoop MOD 3 EQ 2 AND 
+                                   NOT CAN-DO(pcOverrideAttributes, cPrimaryField) THEN
+                                	NEXT DELETE-ATTRIBUTES.
+								
 	                            if /* Is there an attribute in the DB (prior to insertObjectMaster)? */
                                    can-find(ttObjectAttribute where
                                             ttObjectAttribute.tAttributeLabel    = cPrimaryField            and

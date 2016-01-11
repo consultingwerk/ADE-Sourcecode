@@ -2278,19 +2278,16 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableObject Procedure 
 PROCEDURE enableObject :
 /*------------------------------------------------------------------------------
-  Purpose:   Override as visual assumes EnabledObjFlds is fields.  
-  Parameters:  <none>
-  Notes:       
+  Purpose   : Override to enable browse.   
+  Parameters: 
+  Notes     :       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hBrowse AS HANDLE     NO-UNDO.
 
   {get BrowseHandle hBrowse}.
   hBrowse:SENSITIVE = TRUE.
-  
-  {set ObjectEnabled yes}.  
 
-  /* We also run enable_UI from here. */ 
-  RUN enable_UI IN TARGET-PROCEDURE NO-ERROR.
+  RUN SUPER. 
 
 END PROCEDURE.
 

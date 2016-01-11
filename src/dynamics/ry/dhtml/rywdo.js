@@ -466,9 +466,15 @@ Wdo.prototype.getloburl=function(prm){
     cContentType = cContentType.replace("\/", "+");
     column = column.replace(".", "+");
     var ob=(app.location.pathname).split('/');
-    var sbo = (this.sbo !=null)?this.sbo.replace(".", "+"):"";
-    var link=(ob[ob.length-1].split('.')[0]) +'.'+ sbo +this.wdo+'.'+ column +'.'+ 
-              appcontrol.sessionid+'.'+hdata.cur[hdata.index['rowident']]+'.'+cContentType;
+    var lon = (ob[ob.length-1].split('.')[0]);
+    var sbo = (hdata.sbo !=null)?hdata.sbo.replace(".", "+"):"";
+    var sdo = this.wdo;
+    if (sdo == 'master') {
+     sdo = app._master.id;
+     lon = hdata.objectname; 
+    }
+    var link= lon +'.'+ sbo +sdo+'.'+ column +'.'+ appcontrol.sessionid+'.'+
+      hdata.cur[hdata.index['rowident']]+'.'+cContentType;
     document.cookie='sessionid='+appcontrol.sessionid;
     return 'rygetlob.'+ link + '.icf';
   }

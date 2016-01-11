@@ -922,7 +922,7 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND
         IF _F._INITIAL-DATA NE "" THEN 
         INITIAL-VALUE-BLK:
         DO:
-          IF x_U._TYPE = "EDITOR" THEN
+          IF x_U._TYPE = "EDITOR" AND _F._DATA-TYPE = "LONGCHAR" THEN
             LEAVE INITIAL-VALUE-BLK.
           IF x_U._TYPE = "RADIO-SET" AND _F._INITIAL-DATA = ? THEN
             LEAVE INITIAL-VALUE-BLK.

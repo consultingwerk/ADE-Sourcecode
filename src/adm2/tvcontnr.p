@@ -124,12 +124,6 @@ DEFINE TEMP-TABLE ttFrame NO-UNDO
   INDEX idx2              hTargetProcedure cFrameName cRunAttribute iStructLevel cSDOName dNodeObj
   INDEX idxTimeAccessed   hTargetProcedure iTimeAccessed.
 
-DEFINE TEMP-TABLE ttDataLinks NO-UNDO
-  FIELD hTargetProcedure  AS HANDLE
-  FIELD hSourceHandle     AS HANDLE
-  FIELD hTargetHandle     AS HANDLE
-  INDEX idx1              AS PRIMARY hTargetProcedure.
-
 /* Define temp-tables required for TreeView */
 {src/adm2/treettdef.i}
 
@@ -3388,7 +3382,7 @@ DEFINE VARIABLE hTreeViewOCX    AS HANDLE     NO-UNDO.
     hTreeNodeBuf:FIND-FIRST("WHERE node_key = '" + pcNodeKey + "'":U) NO-ERROR.
 
     IF hTreeNodeBuf:AVAILABLE AND 
-       hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE <> "TXT":U THEN
+       NOT CAN-DO("TXT,MNU":U,hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE) THEN
     DO:
       hNodeSDO = hTreeNodeBuf:BUFFER-FIELD("sdo_handle":U):BUFFER-VALUE.
       IF VALID-HANDLE(hNodeSDO) THEN 
@@ -3476,11 +3470,11 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
     {get TreeDataTable hTreeDataTable hTreeViewOCX}.
     CREATE BUFFER hTreeNodeBuf FOR TABLE hTreeDataTable.
 
-    /* skip TXT nodes */
+    /* skip TXT/MNU nodes */
     hTreeNodeBuf:FIND-FIRST("WHERE node_key = '" + pcNodeKey + "'":U) NO-ERROR.
     IF hTreeNodeBuf:AVAILABLE THEN
     DO:
-      IF hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE <> "TXT":U THEN
+      IF NOT CAN-DO("TXT,MNU":U,hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE) THEN
       DO:
         hThisNodeSDO = hTreeNodeBuf:BUFFER-FIELD("sdo_handle":U):BUFFER-VALUE.
         IF VALID-HANDLE(hThisNodeSDO) THEN 
@@ -3790,13 +3784,10 @@ END PROCEDURE.
 PROCEDURE setDataLinks :
 /*------------------------------------------------------------------------------
   Purpose:     This procedure will active or deactivate all data links from 
-               all SDOs running in the TreeView
+               the current node SDO.
   Parameters:  pcState - The state to set the Data Links to. Valid values for
-                         this parameter is 'INACTIVE' - This will remove all data
-                         links from all visualization object such as viewers.
-                         'ACTIVE' - This will recreate data links to all visual
-                         objects where these links were removed when they were
-                         made inactive.
+                         'INACTIVE' - Links are deactivated
+                         'ACTIVE' - Links are activated
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcState AS CHARACTER  NO-UNDO.
@@ -3804,57 +3795,23 @@ PROCEDURE setDataLinks :
   DEFINE VARIABLE iLoop         AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hTargetHandle AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDataLinks    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectType   AS CHARACTER  NO-UNDO.
-
-  DEFINE BUFFER sdlSDO FOR ttRunningSDOs.
 
   /* First check if the state has already been set */
   FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE NO-LOCK.
   IF ttProp.cDataLinks = pcState THEN
     RETURN.
 
-  IF pcState = "INACTIVE":U THEN
+  FIND ttFrame WHERE ttFrame.hTargetProcedure = TARGET-PROCEDURE
+                 AND ttFrame.hFrameHandle = ttProp.hCurrentFrame NO-LOCK NO-ERROR.
+  IF AVAILABLE ttFrame AND VALID-HANDLE(ttFrame.hDataSource) THEN
   DO:
-    FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK.
-    ASSIGN ttProp.cDataLinks = pcState.
-    FOR EACH  sdlSDO
-        WHERE sdlSDO.hTargetProcedure = TARGET-PROCEDURE
-        AND   VALID-HANDLE(sdlSDO.hSDOHandle)
-        NO-LOCK:
-      cDataLinks = DYNAMIC-FUNCTION("linkHandles":U IN sdlSDO.hSDOHandle, "Data-Target":U).
-      DO iLoop = 1 TO NUM-ENTRIES(cDataLinks):
-        hTargetHandle = WIDGET-HANDLE(ENTRY(iLoop,cDataLinks)).
-       cObjectType = DYNAMIC-FUNCTION("getObjectType":U IN hTargetHandle).
-       /* Do not disable Data links to SDOs */
-       IF cObjectType <> "SmartDataObject":U THEN
-       DO:
-         CREATE ttDataLinks.
-         ASSIGN ttDataLinks.hTargetProcedure = TARGET-PROCEDURE
-                ttDataLinks.hSourceHandle    = sdlSDO.hSDOHandle
-                ttDataLinks.hTargetHandle    = hTargetHandle.
-         RUN removeLink IN TARGET-PROCEDURE (INPUT sdlSDO.hSDOHandle, 
-                                             INPUT "Data":U,
-                                             INPUT hTargetHandle).
-       END. /* Not an SDO */
-      END. /* DO iLoop */
-    END. /* EACH sdlSDO */
-  END.
-  ELSE /* Activate Links */
-  DO:
-    FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK.
-    ASSIGN ttProp.cDataLinks = pcState.
-    FOR EACH  ttDataLinks
-        WHERE ttDataLinks.hTargetProcedure = TARGET-PROCEDURE
-        EXCLUSIVE-LOCK:
-
-      IF VALID-HANDLE(ttDataLinks.hSourceHandle) AND
-         VALID-HANDLE(ttDataLinks.hTargetHandle) THEN
-        RUN addLink IN TARGET-PROCEDURE (INPUT ttDataLinks.hSourceHandle,
-                                         INPUT "Data":U,
-                                         INPUT ttDataLinks.hTargetHandle).
-      DELETE ttDataLinks.
+    cDataLinks = {fnarg linkHandles 'Data-Target':U ttFrame.hDataSource }.
+    DO iLoop = 1 TO NUM-ENTRIES(cDataLinks):
+      hTargetHandle = WIDGET-HANDLE(ENTRY(iLoop, cDataLinks)).
+      RUN linkStateHandler IN hTargetHandle
+                         (pcState, ttFrame.hDataSource, "Data-Source":U).
     END.
-  END. /* End Activate Links */
+  END.
 
 END PROCEDURE.
 
@@ -4318,11 +4275,17 @@ PROCEDURE tvNodeSelected :
   DEFINE VARIABLE cRunAttribute  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPrivateData   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOldNodeKey    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMoreNode      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBeforeMoreNode AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cAfterMoreNode AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNextNode      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPageDownNode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iGetVisible    AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iPosition      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cQueryPosition AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hNodeSDO       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hParentDataBuf AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE cPrimarySDO    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNodeLevel     AS INTEGER    NO-UNDO.
 
   DEFINE BUFFER bRunningSDO      FOR ttRunningSDOs.
 
@@ -4346,30 +4309,52 @@ PROCEDURE tvNodeSelected :
   IF DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "TAG":U, pcNodeKey) = "@MORE":U THEN
   DO:
     ASSIGN cOldNodeKey             = ttProp.cCurrentNodeCode
-           ttProp.cCurrentNodeCode = pcNodeKey.
+           ttProp.cCurrentNodeCode = pcNodeKey
+           cBeforeMoreNode         = DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "PREVIOUS":U, pcNodeKey).
     RUN setDataLinks IN TARGET-PROCEDURE (INPUT "INACTIVE":U).
     DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT TRUE).
     /* Reposition SDO */
     RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
     RUN loadSDOSBOData IN TARGET-PROCEDURE (INPUT "MORE":U, INPUT 0).
     ASSIGN
-      cMoreNode = RETURN-VALUE
       pcNodeKey = cOldNodeKey
       ttProp.cCurrentNodeCode = cOldNodeKey.
     RUN setDataLinks IN TARGET-PROCEDURE (INPUT "ACTIVE":U).
-    DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT FALSE).
-    DYNAMIC-FUNCTION("selectNode":U IN hTreeViewOCX, pcNodeKey).
 
-    /* Make sure the new nodes are visible */
-    PROCESS EVENTS.
+    /* Get the next node retrieved. Since the 'More' node is deleted at this point, use the 'Next' 
+       property to get node after the node which was before the 'More' */
+    IF cBeforeMoreNode > "" THEN
+       cAfterMoreNode = DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "NEXT":U, cBeforeMoreNode) .        
+    IF cAfterMoreNode > "" THEN 
+    DO:
+      /* Get the number of nodes visible in the panel and loop through all newly added nodes to find 
+         the last node that would be at the bottom on the visible panel if all the nodes scrolled up */
+      iGetVisible = INT(DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "GETVISIBLECOUNT":U,"":U)) NO-ERROR .
+      cNextNode = cAfterMoreNode.
+      DO iPosition = 1 to iGetVisible - 1:
+        ASSIGN cNextNode = DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, "NEXT":U, cNextNode) NO-ERROR.
+        IF cNextNode = "" OR cNextNode = ? THEN 
+           LEAVE.
+        ELSE
+           cPageDownNode = cNextNode.
+      END.
+      DYNAMIC-FUNCTION("selectNode":U IN hTreeViewOCX, cOldNodeKey).
+    END.
 
-    IF cMoreNode <> "":U AND
-       cMoreNode <> ? THEN
-      DYNAMIC-FUNCTION("setProperty":U IN hTreeViewOCX, "ENSUREVISIBLE":U, cMoreNode,"":U) NO-ERROR.
+    DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT FALSE).   
   END.
 
   hDataTableBuf:FIND-FIRST("WHERE node_key = '" + pcNodeKey + "'":U) NO-ERROR.
   IF NOT hDataTableBuf:AVAILABLE THEN
+    RETURN.
+
+  /* Find the node detail we just selected. This will tell us what object
+     we need to launch */
+  FIND FIRST ttNode
+       WHERE ttNode.hTargetProcedure = TARGET-PROCEDURE
+       AND   ttNode.node_obj         = DECIMAL(hDataTableBuf:BUFFER-FIELD("node_obj":U):BUFFER-VALUE)
+       NO-LOCK NO-ERROR.
+  IF NOT AVAILABLE ttNode THEN
     RETURN.
 
   /* If this is a TXT node, try to get a valid SDO handle from its parent(s).
@@ -4385,46 +4370,12 @@ PROCEDURE tvNodeSelected :
   ELSE
       hNodeSDO = hDataTableBuf:BUFFER-FIELD("sdo_handle":U):BUFFER-VALUE.
 
-  /* Find the node detail we just selected. This will tell us what object
-     we need to launch */
-  FIND FIRST ttNode
-       WHERE ttNode.hTargetProcedure = TARGET-PROCEDURE
-       AND   ttNode.node_obj         = DECIMAL(hDataTableBuf:BUFFER-FIELD("node_obj":U):BUFFER-VALUE)
-       NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttNode THEN
-    RETURN.
-
   SESSION:SET-WAIT-STATE("GENERAL":U).
   DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT TRUE).
-
-  /* Reposition SDO */
-  RUN setDataLinks IN TARGET-PROCEDURE (INPUT "INACTIVE":U).
-  RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
-  RUN setDataLinks IN TARGET-PROCEDURE (INPUT "ACTIVE":U).
-
-  /* Refresh visual objects */
-  IF VALID-HANDLE(hNodeSDO) THEN 
-  DO:
-    {get QueryPosition cQueryPosition hNodeSDO}.
-    PUBLISH "queryPosition":U FROM hNodeSDO (INPUT cQueryPosition).
-    PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "DIFFERENT":U).
-  END.
-
-  /* Establish data-link chain for current node. */
-  FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
-                           AND bRunningSDO.hSDOHandle = hNodeSDO
-                         NO-ERROR.
-  REPEAT WHILE AVAILABLE bRunningSDO AND VALID-HANDLE(bRunningSDO.hParentSDO):
-    RUN addLink IN TARGET-PROCEDURE(bRunningSDO.hParentSDO, 'Data':U, hNodeSDO).
-    hNodeSDO = bRunningSDO.hParentSDO.
-    FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
-                             AND bRunningSDO.hSDOHandle = hNodeSDO.
-  END.
 
   /* For Menu Tree Objects the object to be launched sits in the node's 
      private_data field */
   IF ttNode.data_source_type = "MNU":U THEN
-  DO:
     ASSIGN 
       cPrivateData    = hDataTableBuf:BUFFER-FIELD("private_data":U):BUFFER-VALUE
       iPosition       = LOOKUP("LogicalObject":U, cPrivateData, CHR(6))
@@ -4436,18 +4387,65 @@ PROCEDURE tvNodeSelected :
                           THEN ENTRY(iPosition + 1, cPrivateData, CHR(6))
                           ELSE ""
       NO-ERROR.
-    RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT cLogicalObject,
-                                                     INPUT "":U,
-                                                     INPUT cRunAttribute, 
-                                                     INPUT 0,
-                                                     INPUT ttNode.node_obj) NO-ERROR.
-  END.
   ELSE
-    RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT ttNode.logical_object,
-                                                     INPUT ttNode.primary_sdo,
-                                                     INPUT ttNode.run_attribute,
-                                                     INPUT ttNode.iStrucLevel,
-                                                     INPUT ttNode.node_obj) NO-ERROR.  
+    ASSIGN
+      cLogicalObject = ttNode.logical_object
+      cRunAttribute  = ttNode.run_attribute
+      cPrimarySDO    = ttNode.primary_sdo
+      iNodeLevel     = ttNode.iStrucLevel.
+
+  /* If the Objects are already running, do not instantiate them again */
+  IF ttProp.cLaunchedFolderName  <> cLogicalObject OR
+     ttProp.cLaunchedRunInstance <> cRunAttribute  OR
+     ttProp.cLaunchedSDOName     <> cPrimarySDO    OR
+     ttProp.iStructLevel         <> iNodeLevel     THEN
+  DO:
+      IF VALID-HANDLE(ttProp.hCurrentFrame) THEN
+      DO:
+        IF ttProp.lHideOnClose = TRUE THEN
+          RUN hideObject IN ttProp.hCurrentFrame.
+        ELSE 
+          RUN destroyFrame IN TARGET-PROCEDURE (INPUT ttProp.hCurrentFrame).
+        ASSIGN ttProp.hCurrentFrame = ?.
+      END.
+
+      /* Reposition SDO */
+      RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
+      RUN createRepositoryObjects IN TARGET-PROCEDURE (INPUT cLogicalObject,
+                                                       INPUT cPrimarySDO,
+                                                       INPUT cRunAttribute, 
+                                                       INPUT iNodeLevel,
+                                                       INPUT ttNode.node_obj) NO-ERROR.
+  END.
+  ELSE DO:
+      /* Reposition SDO */                                               
+      RUN setDataLinks IN TARGET-PROCEDURE (INPUT "INACTIVE":U).
+      RUN repositionSDO IN TARGET-PROCEDURE (INPUT pcNodeKey).
+      RUN setDataLinks IN TARGET-PROCEDURE (INPUT "ACTIVE":U).
+
+      /* Refresh visual objects */
+      IF VALID-HANDLE(hNodeSDO) THEN
+      DO:
+        {get QueryPosition cQueryPosition hNodeSDO}.
+        PUBLISH "queryPosition":U FROM hNodeSDO (INPUT cQueryPosition).
+        PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "DIFFERENT":U).
+      END.
+  END.
+
+
+  /* Establish data-link chain for current node. */
+  FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
+                           AND bRunningSDO.hSDOHandle = hNodeSDO
+                         NO-ERROR.
+  REPEAT WHILE AVAILABLE bRunningSDO
+           AND VALID-HANDLE(bRunningSDO.hParentSDO)
+           AND bRunningSDO.hParentSDO NE hNodeSDO:
+    RUN addLink IN TARGET-PROCEDURE(bRunningSDO.hParentSDO, 'Data':U, hNodeSDO).
+    hNodeSDO = bRunningSDO.hParentSDO.
+    FIND FIRST bRunningSDO WHERE bRunningSDO.hTargetProcedure = TARGET-PROCEDURE
+                             AND bRunningSDO.hSDOHandle = hNodeSDO.
+  END.
+
   DELETE OBJECT hDataTableBuf NO-ERROR.
   hDataTableBuf = ?.
 
@@ -4464,6 +4462,9 @@ PROCEDURE tvNodeSelected :
   DYNAMIC-FUNCTION("lockWindow":U IN TARGET-PROCEDURE, INPUT FALSE).
   SESSION:SET-WAIT-STATE("":U).
 
+  /* If More node is selected, scroll treeview to display new batch of retrieved nodes */
+  IF cPageDownNode > "" THEN
+         DYNAMIC-FUNCTION("setProperty":U IN hTreeViewOCX, "ENSUREVISIBLE":U, cPageDownNode,"":U).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4951,9 +4952,9 @@ DEFINE VARIABLE hTreeViewOCX      AS HANDLE     NO-UNDO.
 
   cParentKey = DYNAMIC-FUNCTION("getProperty":U IN hTreeViewOCX, 
                                   INPUT "PARENT":U, INPUT pcNodeKey).
-  /* skip TXT nodes */
+  /* skip TXT/MNU nodes */
   hTreeNodeBuf:FIND-FIRST("WHERE node_key = '" + cParentKey + "'":U) NO-ERROR.
-  DO WHILE hTreeNodeBuf:AVAILABLE AND hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE = "TXT":
+  DO WHILE hTreeNodeBuf:AVAILABLE AND CAN-DO("TXT,MNU":U,hTreeNodeBuf:BUFFER-FIELD("node_type":U):BUFFER-VALUE):
     cParentKey = hTreeNodeBuf:BUFFER-FIELD('parent_node_key':U):BUFFER-VALUE.
     IF cParentKey = ? OR cParentKey = "":U THEN
       hTreeNodeBuf:BUFFER-RELEASE.   /* tree root. no data node available */

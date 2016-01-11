@@ -184,24 +184,28 @@ CREATE WINDOW _h_menu_win
                 MAX-BUTTON     = no
                 DROP-TARGET    = yes
                 THREE-D        = yes    
-                X              = &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN
-                                 10 + {&init_palette_width} + 25 
-                                 &ELSE 
-                                 {&init_palette_width} + IF
-                                 SESSION:WIDTH-PIXELS / SESSION:WIDTH-CHARS < 7.25
-                                 THEN 15 ELSE (IF SESSION:WIDTH-PIXELS = 640 AND
-                                      SESSION:PIXELS-PER-COLUMN = 8 THEN 14 ELSE 30)
-                                 &ENDIF
-                Y              = &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN 30
-                                 &ELSE 0 &ENDIF
                 RESIZE         = FALSE
                 SCROLL-BARS    = FALSE
                 HEIGHT-P       = (h_menu_frame:HEIGHT-PIXELS)
-                WIDTH-P        = (h_menu_frame:WIDTH-PIXELS)
                 MESSAGE-AREA   = FALSE
                 STATUS-AREA    = FALSE
                 TITLE          = "{&UIB_NAME}"
-                HIDDEN         = yes.   
+                HIDDEN         = YES.   
+
+ASSIGN 
+  _h_menu_win:WIDTH-P   = (h_menu_frame:WIDTH-PIXELS) 
+  _h_menu_win:HEIGHT-P  = (h_menu_frame:HEIGHT-PIXELS) 
+  _h_menu_win:X         = &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN
+                          10 + {&init_palette_width} + 25
+                          &ELSE
+                          {&init_palette_width} + IF
+                          SESSION:WIDTH-PIXELS / SESSION:WIDTH-CHARS < 7.25
+                          THEN 15 ELSE (IF SESSION:WIDTH-PIXELS = 640 AND
+                               SESSION:PIXELS-PER-COLUMN = 8 THEN 14 ELSE 30)
+                          &ENDIF
+  _h_menu_win:Y         = &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN 30
+                          &ELSE 0 &ENDIF
+  NO-ERROR.
 
 /* jep-icf: Adjust width to account for extra ICF status bar boxes user and company. */
 IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
@@ -297,7 +301,7 @@ ASSIGN _cur_win_rows = IF SESSION:HEIGHT-CHARS < 22 THEN 11
                        ELSE IF SESSION:HEIGHT-CHARS < 24 THEN 14
                        ELSE IF SESSION:HEIGHT-CHARS < 27 THEN 16
                        ELSE 22
-       _cur_win_cols = IF SESSION:WIDTH-CHARS < 100 THEN 74 ELSE 82.
+       _cur_win_cols = IF SESSION:WIDTH-CHARS < 100 THEN 74 ELSE 82 NO-ERROR.
 &ENDIF
 
 

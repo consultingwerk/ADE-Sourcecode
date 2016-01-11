@@ -377,10 +377,10 @@ IF _C._SMALL-ICON NE ? AND _C._SMALL-ICON NE "" THEN
   ASSIGN ok = _h_win:LOAD-SMALL-ICON(_C._SMALL-ICON).
 
 /* Size the window */
-IF _HEIGHT-P > 0  THEN ASSIGN _h_win:HEIGHT-P      = _HEIGHT-P.
-IF _L._HEIGHT > 0 THEN ASSIGN _h_win:HEIGHT        = _L._HEIGHT * _cur_row_mult.
-IF _L._WIDTH > 0  THEN ASSIGN _h_win:WIDTH         = _L._WIDTH * _cur_col_mult.
-IF _WIDTH-P > 0   THEN ASSIGN _h_win:WIDTH-P       = _WIDTH-P.
+IF _HEIGHT-P > 0  THEN ASSIGN _h_win:HEIGHT-P      = _HEIGHT-P NO-ERROR.
+IF _L._HEIGHT > 0 THEN ASSIGN _h_win:HEIGHT        = _L._HEIGHT * _cur_row_mult NO-ERROR.
+IF _L._WIDTH > 0  THEN ASSIGN _h_win:WIDTH         = _L._WIDTH * _cur_col_mult NO-ERROR.
+IF _WIDTH-P > 0   THEN ASSIGN _h_win:WIDTH-P       = _WIDTH-P NO-ERROR.
 
 IF _C._MIN-WIDTH > 0        THEN
   ASSIGN _h_win:MIN-WIDTH           = _C._MIN-WIDTH * _cur_col_mult.
@@ -389,16 +389,16 @@ IF _C._MIN-HEIGHT > 0       THEN
 
 IF _L._VIRTUAL-WIDTH > 0    THEN
   ASSIGN _h_win:VIRTUAL-WIDTH    = _L._VIRTUAL-WIDTH * _cur_col_mult
-         _h_win:MAX-WIDTH        = SESSION:WIDTH-CHARS.
+         _h_win:MAX-WIDTH        = SESSION:WIDTH-CHARS NO-ERROR.
 IF _L._VIRTUAL-HEIGHT > 0   THEN    
   ASSIGN _h_win:VIRTUAL-HEIGHT   = _L._VIRTUAL-HEIGHT * _cur_row_mult
-         _h_win:MAX-HEIGHT       = SESSION:HEIGHT-CHARS.
+         _h_win:MAX-HEIGHT       = SESSION:HEIGHT-CHARS NO-ERROR.
 IF _VIRTUAL-HEIGHT-P > 0 THEN
   ASSIGN _h_win:VIRTUAL-HEIGHT-P = _VIRTUAL-HEIGHT-P
-         _h_win:MAX-HEIGHT-P     = SESSION:HEIGHT-PIXELS.
+         _h_win:MAX-HEIGHT-P     = SESSION:HEIGHT-PIXELS NO-ERROR.
 IF _VIRTUAL-WIDTH-P > 0  THEN
   ASSIGN _h_win:VIRTUAL-WIDTH-P  = _VIRTUAL-WIDTH-P
-         _h_win:MAX-WIDTH-P      = SESSION:WIDTH-PIXELS.
+         _h_win:MAX-WIDTH-P      = SESSION:WIDTH-PIXELS NO-ERROR.
 
 /* Position the window */  
 IF _C._EXPLICIT_POSITION THEN DO:

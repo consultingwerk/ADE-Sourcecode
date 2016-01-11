@@ -5324,17 +5324,36 @@ FUNCTION setContainerHidden RETURNS LOGICAL
             SmartContainer (SmartWindow, SmartFrame...) has been hidden.
     Params: plHidden AS LOGICAL.
    Returns: LOGICAL (true)
-    Notes:  This function also sets the ObjectHidden property, because when
-            a container is hidden or viewed, hideObject and viewObject are
-            not run in the contained objects, since they are hidden implicitly
-            when the container is hidden. However, code in various places checks
-            the ObjectHidden property, and this needs to be set to match
-            ContainerHidden. ContainerHidden is in fact not referenced in the
-            ADM code, and is preserved for compatibility.
+    Notes:  This is called from the containers hide- and viewObject. 
+            A publish of linkState will be done if the object has a datasource 
+            outside the container in order to deactivate datalinks from outside 
+            objects on hide of the container and activate datalinks again on 
+            view of the container.            
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataContSource  AS HANDLE     NO-UNDO.
 
-  {set ContainerHidden plHidden}.
-  /* {set ObjectHidden plHidden}. */
+  &SCOPED-DEFINE xp-assign
+  {get ContainerSource hContainerSource}
+  {get DataSource hDataSource}
+  {set ContainerHidden plHidden}
+  .
+  &UNDEFINE xp-assign
+  
+  IF VALID-HANDLE(hDataSource) AND VALID-HANDLE(hContainerSource) THEN
+  DO:
+    /* If our datasource is in another container we publish the fact that 
+       the object is active/inactive so that links can be disabled/enabled
+       accordingly. (This is also done as part of hide/view, but when the 
+       container is hidden hideObject and viewObject is not done */
+    {get ContainerSource hDataContSource hDataSource}.
+    IF VALID-HANDLE(hDataContSource) 
+    AND hDataContSource <> hContainerSource THEN
+      PUBLISH 'LinkState':U FROM TARGET-PROCEDURE (IF plHidden THEN 'inactive':U
+                                                   ELSE 'active').
+
+  END.
   
   RETURN TRUE.
 

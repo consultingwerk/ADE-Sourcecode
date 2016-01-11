@@ -77,7 +77,7 @@ ASSIGN
   ourCover:VIRTUAL-HEIGHT-PIXELS       = hImage:HEIGHT-PIXELS
   ourCover:VIRTUAL-WIDTH-PIXELS        = hImage:WIDTH-PIXELS
   CURRENT-WINDOW:VISIBLE               = TRUE
-  .
+  NO-ERROR.
 
 VIEW ourCover.
 

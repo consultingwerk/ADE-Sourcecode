@@ -96,14 +96,10 @@ PROCEDURE CreateWindow .
 
   CREATE WINDOW p_Window
     ASSIGN
-      WIDTH          = FONT-TABLE:GET-TEXT-WIDTH(FILL("0", 85), editor_font)
-      HEIGHT         = (SESSION:HEIGHT * 0.66)
       MAX-WIDTH      = ?
       MAX-HEIGHT     = ?
       MIN-WIDTH      = 1 /* Zero is not acceptable to UIM */
       MIN-HEIGHT     = 1
-      VIRTUAL-WIDTH  = SESSION:WIDTH
-      VIRTUAL-HEIGHT = SESSION:HEIGHT
       SCROLL-BARS    = NO
       RESIZE         = YES
       DROP-TARGET    = TRUE
@@ -124,6 +120,13 @@ PROCEDURE CreateWindow .
       
     . /* END ASSIGN */
   
+  ASSIGN
+    p_Window:WIDTH          = FONT-TABLE:GET-TEXT-WIDTH(FILL("0", 85), editor_font)
+    p_Window:HEIGHT         = (SESSION:HEIGHT * 0.66)
+    p_Window:VIRTUAL-WIDTH  = SESSION:WIDTH
+    p_Window:VIRTUAL-HEIGHT = SESSION:HEIGHT
+    NO-ERROR.
+
 END PROCEDURE.  /* CreateWindow */
 
 

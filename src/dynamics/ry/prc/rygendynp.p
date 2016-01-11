@@ -126,7 +126,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
  DEFINE VARIABLE grFrameRecid         AS RECID      NO-UNDO.
  DEFINE VARIABLE grQueryRecid         AS RECID      NO-UNDO.
  DEFINE VARIABLE grRowid              AS ROWID      NO-UNDO.
-
+ DEFINE VARIABLE gcCompareAttributes  AS CHARACTER  NO-UNDO.
 
  DEFINE TEMP-TABLE tResultCodes NO-UNDO
     FIELD cRC           AS CHARACTER
@@ -289,7 +289,6 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
 
 /* ***************************  Main Block  *************************** */
- 
  ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
                                          INPUT "RepositoryDesignManager":U).
   
@@ -318,6 +317,10 @@ FUNCTION verifyObjectType RETURNS CHARACTER
   /* Note, we don't trim the left comma, because the Master Layout uses a blank RC */
 
  EMPTY TEMP-TABLE tResultCodes.
+
+ /* Set list of attributes that should be compared with a RAW compare to 
+    determine whether they are written to the repository */
+ gcCompareAttributes = "LABEL,FORMAT,HELP,InitialValue,RADIO-BUTTONS,LIST-ITEMS,LIST-ITEM-PAIRS,PRIVATE-DATA,TOOLTIP,BrowseColumnLabels,BrowseColumnFormats":U.
 
  TRANS-BLOCK:
  DO TRANSACTION:
@@ -348,7 +351,6 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
  IF glNewCalcField THEN
    RUN destroyClassCache IN gshRepositoryManager.
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -640,6 +642,7 @@ PROCEDURE buildSDOFieldListsByTable :
   END. /* FOR EACH _BC */
   pcCalcFieldList = TRIM(pcCalcFieldList, ",":U).
 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -842,8 +845,17 @@ PROCEDURE checkDataFieldMaster :
                IF ryc_attribute_value.logical_value = ttStoreAttribute.tLogicalValue 
                THEN lDelete = TRUE.
            WHEN {&CHARACTER-DATA-TYPE} THEN 
-               IF COMPARE(ryc_attribute_value.character_value,"EQ":U,ttStoreAttribute.tCharacterValue,"RAW":U) 
-               THEN lDelete = TRUE.
+           DO:
+               IF LOOKUP(ryc_attribute_value.attribute_label, gcCompareAttributes) = 0 THEN
+               DO:
+                 IF ryc_attribute_value.character_value = ttStoreAttribute.tCharacterValue 
+                 THEN lDelete = TRUE.
+               END.
+               ELSE DO:
+                 IF COMPARE(ryc_attribute_value.character_value,"EQ":U,ttStoreAttribute.tCharacterValue,"RAW":U) 
+                 THEN lDelete = TRUE.
+               END.  
+           END.
         END CASE.
         IF lDelete THEN DELETE ttStoreAttribute.
       END.  /* If we have the attribute record */
@@ -5798,22 +5810,44 @@ FUNCTION setAttributeChar RETURNS LOGICAL
            gcAttributeList contains a list of attributes stored on the Master Level (if
            pclevel = MASTER) or stored on the Instance level (if pclevel = INSTANCE).
 ------------------------------------------------------------------------------*/
-  /* If the attribute is defined on the master or instance*/
-  IF LOOKUP(pclabel,gcAttributeList) > 0 THEN 
+  /* If the attribute is a compare attribute then use a RAW compare to determine
+     whether to write the attribute or remove the attribute to/from the repository */
+  IF LOOKUP(pcLabel,gcCompareAttributes) = 0 THEN
   DO:
-     IF pcLevel = "MASTER":U AND COMPARE(pcABValue, "EQ":U,ttClassAttribute.tAttributeValue,"RAW":U) THEN
-        RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).  
-     ELSE IF (pcLevel = "INSTANCE":U AND AVAIL ttObjectAttribute 
-                                     AND COMPARE(pcABValue,"EQ":U, ttObjectAttribute.tAttributeValue,"RAW":U))
-          OR (pcLevel = "INSTANCE":U AND NOT AVAIL ttObjectAttribute 
-                                     AND COMPARE(pcABValue,"EQ":U, ttClassAttribute.tAttributeValue,"RAW":U)) THEN
-        RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).       
-     ELSE IF COMPARE(pcABValue,"NE":U,pcValue,"RAW":U) THEN
+    /* If the attribute is defined on the master or instance*/
+    IF LOOKUP(pclabel,gcAttributeList) > 0 THEN 
+    DO:
+       IF pcLevel = "MASTER":U AND pcABValue EQ ttClassAttribute.tAttributeValue THEN
+          RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).  
+       ELSE IF (pcLevel = "INSTANCE":U AND AVAIL ttObjectAttribute 
+                                       AND pcABValue EQ ttObjectAttribute.tAttributeValue)
+            OR (pcLevel = "INSTANCE":U AND NOT AVAIL ttObjectAttribute 
+                                       AND pcABValue EQ ttClassAttribute.tAttributeValue) THEN
+          RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).       
+       ELSE IF pcABValue <> pcValue THEN
+          RUN CreateAttributeRow(pclevel,pdObj,pcLabel,{&CHARACTER-DATA-TYPE},pcABValue,?,?,?,?,?).
+    END.   
+    ELSE IF pcABValue NE pcValue THEN
         RUN CreateAttributeRow(pclevel,pdObj,pcLabel,{&CHARACTER-DATA-TYPE},pcABValue,?,?,?,?,?).
-  END.   
-  ELSE IF COMPARE(pcABValue,"NE":U,pcValue,"RAW":U) THEN
-      RUN CreateAttributeRow(pclevel,pdObj,pcLabel,{&CHARACTER-DATA-TYPE},pcABValue,?,?,?,?,?).
-  
+  END.  /* if not compare attribute */
+  ELSE DO:
+    /* If the attribute is defined on the master or instance*/
+    IF LOOKUP(pclabel,gcAttributeList) > 0 THEN 
+    DO:
+       IF pcLevel = "MASTER":U AND COMPARE(pcABValue, "EQ":U,ttClassAttribute.tAttributeValue,"RAW":U) THEN
+          RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).  
+       ELSE IF (pcLevel = "INSTANCE":U AND AVAIL ttObjectAttribute 
+                                       AND COMPARE(pcABValue,"EQ":U, ttObjectAttribute.tAttributeValue,"RAW":U))
+            OR (pcLevel = "INSTANCE":U AND NOT AVAIL ttObjectAttribute 
+                                       AND COMPARE(pcABValue,"EQ":U, ttClassAttribute.tAttributeValue,"RAW":U)) THEN
+          RUN DeleteAttributeRow (INPUT pcLevel, INPUT pdObj, INPUT pcLabel).       
+       ELSE IF COMPARE(pcABValue,"NE":U,pcValue,"RAW":U) THEN
+          RUN CreateAttributeRow(pclevel,pdObj,pcLabel,{&CHARACTER-DATA-TYPE},pcABValue,?,?,?,?,?).
+    END.   
+    ELSE IF COMPARE(pcABValue,"NE":U,pcValue,"RAW":U) THEN
+        RUN CreateAttributeRow(pclevel,pdObj,pcLabel,{&CHARACTER-DATA-TYPE},pcABValue,?,?,?,?,?).
+  END.  /* else do */
+
   RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.

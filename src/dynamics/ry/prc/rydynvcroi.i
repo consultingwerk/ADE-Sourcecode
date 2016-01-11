@@ -500,8 +500,9 @@ DO WHILE ghCacheObject:AVAILABLE:
            disabling the fields.  SENSITIVE is set to TRUE for editors because they need to be initially sensitive 
            to be scrollable.  The toolbar takes care of "enabling and disabling" editors by setting READ-ONLY as appropriate.
            (We must thus also set READ-ONLY true as objects need to be 'disabled' at startup)  */
+        IF hField:TYPE = "EDITOR":U THEN 
+          hField:READ-ONLY = TRUE.
         ASSIGN hField:SENSITIVE = IF hField:TYPE = "EDITOR":U THEN TRUE ELSE FALSE
-               hField:READ-ONLY = IF hField:TYPE = "EDITOR":U THEN TRUE ELSE FALSE
                dRowPosition     = hField:ROW
                dColumnPosition  = hField:COLUMN
                dWidgetWidth     = hField:WIDTH-CHARS

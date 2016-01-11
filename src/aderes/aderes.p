@@ -81,7 +81,7 @@ ASSIGN
   shrink-hor-2          = IF shrink-hor = 0 THEN 0 ELSE (shrink-hor / 2)
   shrink-ver            = IF SESSION:HEIGHT-CHARS >= 18 THEN 0 ELSE
   (18 - ROUND(SESSION:HEIGHT-CHARS,0))
-  .
+  NO-ERROR.
 
 CREATE WINDOW qbf-win
   ASSIGN
@@ -89,10 +89,6 @@ CREATE WINDOW qbf-win
     HEIGHT         = {&DEF_WIN_HEIGHT}
     MIN-WIDTH      = {&MIN_WIN_WIDTH}
     MIN-HEIGHT     = {&MIN_WIN_HEIGHT}
-    VIRTUAL-WIDTH  = SESSION:WIDTH
-    VIRTUAL-HEIGHT = SESSION:HEIGHT
-    ROW            = MAXIMUM(1,(SESSION:HEIGHT - {&DEF_WIN_HEIGHT}) / 2)
-    COLUMNS            = MAXIMUM(1,(SESSION:WIDTH - def-win-wid) / 2)
     SCROLL-BARS    = NO
     RESIZE         = YES
     STATUS-AREA    = FALSE
@@ -100,6 +96,13 @@ CREATE WINDOW qbf-win
     HIDDEN         = TRUE
     THREE-D        = TRUE
     .
+
+ASSIGN
+  qbf-win:VIRTUAL-WIDTH  = SESSION:WIDTH
+  qbf-win:VIRTUAL-HEIGHT = SESSION:HEIGHT 
+  qbf-win:ROW            = MAXIMUM(1,(SESSION:HEIGHT - {&DEF_WIN_HEIGHT}) / 2)
+  qbf-win:COLUMNS        = MAXIMUM(1,(SESSION:WIDTH - def-win-wid) / 2)
+  NO-ERROR.
 
 /* Load the default icon, in case there isn't one provided. */
 ASSIGN qbf-l = qbf-win:LOAD-ICON(_minLogo).
@@ -117,6 +120,7 @@ CREATE WINDOW qbf-wlogo
     CONTROL-BOX     = FALSE
     TITLE           = ""
     .
+
 ASSIGN CURRENT-WINDOW = qbf-wlogo.
 
 /* hack up propath to put blank entry first */

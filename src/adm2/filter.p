@@ -4135,7 +4135,7 @@ Parameters: INPUT phField - the handle of a field
       DO:
         BELL.
       END.
-      ELSE IF phField:DATA-TYPE <> "DECIMAL" THEN
+      ELSE IF phField:DATA-TYPE = "CHARACTER":U THEN
       DO:
         IF phField:SCREEN-VALUE <> "":U THEN
         DO:
@@ -4153,12 +4153,12 @@ Parameters: INPUT phField - the handle of a field
                                                ELSE LENGTH(phField:SCREEN-VALUE))
                      + 1.
   
-        END.
+        END. 
         ELSE /* apply 'END' will not work if screen-value = '' 
                 So we apply lastkey which is in this case is spacebar */   
           APPLY LASTKEY.       
-      END.
-      ELSE
+      END. /* IF DATA-TYPE EQ CHARACTER */
+      ELSE IF phField:DATA-TYPE = "DECIMAL":U THEN 
       DO:     
         /* In decimal fields the cursor should be before the decimal point */ 
         ASSIGN
@@ -4171,7 +4171,9 @@ Parameters: INPUT phField - the handle of a field
           phField:CURSOR-OFFSET = iPeriod.
         ELSE
           APPLY "END":U TO phField.          
-      END.
+      END. /* IF DATA-TYPE EQ DECIMAL */
+      ELSE 
+          APPLY "END":U TO phField.
     END.      
   END.
 

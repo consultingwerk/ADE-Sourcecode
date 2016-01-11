@@ -212,7 +212,7 @@ ASSIGN
   wFrameOut = wFrame2
   wRect1:WIDTH-PIXELS   = wFrame2:WIDTH-PIXELS - (wRect1:X + {&rightLeft})
   wRectTop:WIDTH-PIXELS = wRect1:WIDTH-PIXELS
-  .
+  NO-ERROR.
 
 ASSIGN
   wFrame2:PRIVATE-DATA = cTextHandleList

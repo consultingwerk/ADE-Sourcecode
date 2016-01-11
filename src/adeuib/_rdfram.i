@@ -218,12 +218,6 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
          ASSIGN PARENT         = _h_menu_win
                 X              = _X
                 Y              = _Y
-                HEIGHT         = _L._HEIGHT * _cur_row_mult
-                WIDTH          = _L._WIDTH * _cur_col_mult
-                MAX-WIDTH      = SESSION:WIDTH   /* Allow resizing to screen */
- 	        MAX-HEIGHT     = SESSION:HEIGHT
-                VIRTUAL-WIDTH  = SESSION:WIDTH  
- 	        VIRTUAL-HEIGHT = SESSION:HEIGHT
                 SHOW-IN-TASKBAR = FALSE
                 MESSAGE-AREA   = FALSE
                 STATUS-AREA    = FALSE
@@ -237,12 +231,19 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
                 {adeuib/dialtrig.i &SECTION = WINDOW}
              END TRIGGERS.
 
+  ASSIGN
+    h_dlg_win:HEIGHT         = _L._HEIGHT * _cur_row_mult
+    h_dlg_win:WIDTH          = _L._WIDTH * _cur_col_mult
+    h_dlg_win:VIRTUAL-WIDTH  = SESSION:WIDTH
+    h_dlg_win:VIRTUAL-HEIGHT = SESSION:HEIGHT
+    h_dlg_win:MAX-WIDTH      = SESSION:WIDTH
+    h_dlg_win:MAX-HEIGHT     = SESSION:HEIGHT
+    NO-ERROR.
+
   CREATE FRAME h_self
          ASSIGN PARENT             = h_dlg_win
                 X                  = 0
                 Y                  = 0
-                HEIGHT             = h_dlg_win:HEIGHT
-                WIDTH              = h_dlg_win:WIDTH
                 SIDE-LABELS        = TRUE
                 BOX                = FALSE
                 THREE-D            = _L._3-D
@@ -261,6 +262,11 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
               TRIGGERS:
                    {adeuib/dialtrig.i &SECTION = FRAME}
               END TRIGGERS.
+     
+  ASSIGN 
+    h_self:HEIGHT = h_dlg_win:HEIGHT
+    h_self:WIDTH  = h_dlg_win:WIDTH
+    NO-ERROR.
      
   /* Test the case where the dialog is off the screen.  Perhaps this is
      because the user built it on a different monitor. Ask if she would

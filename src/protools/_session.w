@@ -96,31 +96,31 @@ DEFINE NEW SHARED STREAM rpt.
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON Btn_Close AUTO-GO 
      LABEL "&Close":L 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.12.
 
 DEFINE BUTTON b_Help 
      LABEL "&Help" 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.12.
 
 DEFINE BUTTON b_Print 
      LABEL "&Print" 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.12.
 
 DEFINE VARIABLE attr-list AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE SORT 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 54 BY 13.81
+     SIZE 54 BY 13.82
      FONT 2 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME f
-     attr-list AT ROW 1.57 COL 3 NO-LABEL
-     Btn_Close AT ROW 15.76 COL 4
-     b_Print AT ROW 15.76 COL 21.4
-     b_Help AT ROW 15.76 COL 39.4
-     SPACE(4.30) SKIP(0.29)
+     attr-list AT ROW 1.59 COL 3 NO-LABEL
+     Btn_Close AT ROW 15.77 COL 4
+     b_Print AT ROW 15.77 COL 21.5
+     b_Help AT ROW 15.77 COL 39.5
+     SPACE(4.20) SKIP(0.30)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS THREE-D  SCROLLABLE 
          TITLE "Session Attributes":L
@@ -320,7 +320,8 @@ PROCEDURE get_attributes :
    ";OLE-NAMES-LOCALE       = " + (IF SESSION:OLE-NAMES-LOCALE NE ? THEN STRING(SESSION:OLE-NAMES-LOCALE) ELSE "?") +
    ";PARAMETER              = " + SESSION:PARAMETER +
    ";PIXELS-PER-COLUMN      = " + STRING(SESSION:PIXELS-PER-COLUMN) + 
-   ";PIXELS-PER-ROW         = " + STRING(SESSION:PIXELS-PER-ROW).
+   ";PIXELS-PER-ROW         = " + STRING(SESSION:PIXELS-PER-ROW)
+   NO-ERROR.
 
 attr-list:LIST-ITEMS IN FRAME {&FRAME-NAME} = attr-list:LIST-ITEMS IN FRAME {&FRAME-NAME} +
    ";PRINTER-CONTROL-HANDLE = " + STRING(SESSION:PRINTER-CONTROL-HANDLE) +
@@ -346,7 +347,8 @@ attr-list:LIST-ITEMS IN FRAME {&FRAME-NAME} = attr-list:LIST-ITEMS IN FRAME {&FR
    ";WORK-AREA-WIDTH-PIXELS = " + STRING(SESSION:WORK-AREA-WIDTH-PIXELS) +
    ";WORK-AREA-X            = " + STRING(SESSION:WORK-AREA-X) +
    ";WORK-AREA-Y            = " + STRING(SESSION:WORK-AREA-Y) +
-   ";YEAR-OFFSET            = " + STRING(SESSION:YEAR-OFFSET).
+   ";YEAR-OFFSET            = " + STRING(SESSION:YEAR-OFFSET)
+   NO-ERROR.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

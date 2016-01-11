@@ -2641,20 +2641,17 @@ PROCEDURE initializeObject :
     PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).  
   END.
 
-  IF VALID-HANDLE(hContainerSrc) THEN
-    {get QueryObject lQueryContainer hContainerSrc}.
-
   /* retrieve entitydetails on the first call on server (Called directly from SBO) */ 
   IF VALID-HANDLE(gshGenManager) 
   AND cAsDivision <> 'CLIENT':U 
-  AND cEntityFields = ? 
-  AND (NOT lQueryContainer) THEN
+  AND cEntityFields = ? THEN
     RUN initializeEntityDetails IN TARGET-PROCEDURE.
   
   IF VALID-HANDLE(hContainerSrc) THEN
   DO:
     IF cAsDivision = 'CLIENT':U THEN
       lIsFetchPending = {fn IsFetchPending hContainerSrc}.
+    {get QueryObject lQueryContainer hContainerSrc}.
   END.
 
   IF (NOT cUIBMode BEGINS "Design":U) THEN 
@@ -6113,14 +6110,14 @@ Parameters: pcQuery - What information?
           lFound = ENTRY(4,cIndexInfo) = "1":U.
           
         WHEN "Unique":U THEN
-          lFound = ENTRY(3,cIndexInfo) = "1":U.
+          lFound = ENTRY(2,cIndexInfo) = "1":U.
           
         WHEN "NonUnique":U THEN
-          lFound = ENTRY(3,cIndexInfo) = "0":U AND 
+          lFound = ENTRY(2,cIndexInfo) = "0":U AND 
                    ENTRY(4,cIndexInfo) = "0":U.
           
         WHEN "Primary" THEN
-          lFound = ENTRY(2,cIndexInfo) = "1":U.
+          lFound = ENTRY(3,cIndexInfo) = "1":U.
           
         OTHERWISE
         DO:
@@ -6359,10 +6356,12 @@ FUNCTION newQuerySort RETURNS CHARACTER
                    THEN REPLACE(SUBSTR(cOldSort,3),' BY ':U,',':U)
                    ELSE '':U 
                   /* set to FALSE immediately if new sort is blank and
-                     old sort is not.  
+                     old sort is not or the num-entries are different.  
                      otherwise the check below will decide whether old sort 
                      is different from the new */
-    lSameColumns = NOT (pcSort = '':U AND cOldSort <> '':U)
+    lSameColumns = (NOT (pcSort = '':U AND cOldSort <> '':U)) 
+                    AND 
+                   (NUM-ENTRIES(cOldSort) = NUM-ENTRIES(cSortEntries))
     .
      /* We check each entry in the new sort criteria for several reasons: 
         - Avoid appserver hit if the specified sort already is set 
@@ -6419,7 +6418,7 @@ FUNCTION newQuerySort RETURNS CHARACTER
       ELSE 
         lSameColumns = FALSE.
     END. /* same (still) and not toggled (yet) */
-      
+
     /* If sort option is toggle then swap descending/blank */
     IF cSortOption = 'Toggle':U THEN
     DO:
@@ -6441,13 +6440,14 @@ FUNCTION newQuerySort RETURNS CHARACTER
        of same (if same and not toggled we don't apply any sort at all) */
     IF NOT lToggled AND lOldDescending <> (cSortOption = 'DESCENDING':U) THEN
       lSameColumns = FALSE.
+
     cNewSort = TRIM(cNewSort 
                     + " BY ":U 
                     + cSortColumn
                     + ' ':U
                     + cSortOption).
   END. /* loop through BY clauses */
-      
+  
   /* Skip sort if Same as old unless a sort option was toggled */ 
   IF NOT lSameColumns OR lToggled THEN
   DO:

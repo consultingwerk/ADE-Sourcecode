@@ -4370,26 +4370,40 @@ FUNCTION getGroupAssignHidden RETURNS LOGICAL
   DEFINE VARIABLE lHidden          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iObjectPage      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hContainer       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hGTContainer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTSContainer     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iPendingPage     AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hTableio         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lToolbarDisabled AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lToolbarDisabled AS LOGICAL    NO-UNDO.  
   DEFINE VARIABLE cInactiveLinks   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lContainerHidden AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lTableioHidden   AS LOGICAL    NO-UNDO.
   
-  {get ObjectHidden lHidden}.
-  IF NOT lHidden THEN
-     RETURN FALSE.
+  &SCOPED-DEFINE xp-assign
+  {get ObjectHidden lHidden}
+  {get ContainerHidden lContainerHidden}
+  .
+  &UNDEFINE xp-assign
+  
+  IF NOT lHidden AND NOT lContainerHidden THEN
+    RETURN FALSE.
   
   /* Also return false if this object is about to become visible 
      PendingPage is set in SelectPage before notify(hideObject) -> linkState
      -> here, and before CurrentPage is set */ 
   &SCOPED-DEFINE xp-assign
   {get ObjectPage iObjectPage}
-  {get ContainerSource hContainer}.
+  {get ContainerSource hContainer}
+   .
   &UNDEFINE xp-assign
-  {get PendingPage iPendingPage hContainer}.
-  IF iPendingPage = iObjectPage THEN
-    RETURN FALSE.
   
+  IF NOT lContainerHidden THEN
+  DO:
+    {get PendingPage iPendingPage hContainer}.  
+    IF iPendingPage = iObjectPage THEN
+      RETURN FALSE.
+  END.
+
   /* A visual object with an active tableio toolbar with this as the only 
      tableiotarget on page 0 need to remain active/linked in order to make 
      updateState from the data-source reach the tableio source  */
@@ -4399,25 +4413,49 @@ FUNCTION getGroupAssignHidden RETURNS LOGICAL
     {get TableioSource hTableio}.
     IF VALID-HANDLE(hTableio) THEN
     DO:
-      {get TableioTarget cTargets hTableio}.
-      IF cTargets = STRING(TARGET-PROCEDURE) THEN
+      /* if containerhidden and tablio is on this container then we do 
+         not care about keeping link active */
+      IF lContainerHidden THEN 
       DO:
-        &SCOPED-DEFINE xp-assign
-        {get DeactivateTargetOnHide lToolbarDisabled hTableio}
-        {get ObjectPage iObjectPage hTableio}
-        .
-        &UNDEFINE xp-assign
-        /* page 0 and we're the only target. */
-        IF iObjectPage = 0 AND NOT lToolbarDisabled THEN
-          RETURN FALSE.
+        {get ContainerSource hTSContainer}.
+        lTableioHidden = NOT VALID-HANDLE(hTScontainer) 
+                         OR  (hTScontainer = hContainer) 
+                         OR {fn getObjectHidden hTScontainer} = TRUE.
       END.
-
+      
+      IF NOT lTableioHidden THEN
+      DO:
+        {get TableioTarget cTargets hTableio}.
+        IF cTargets = STRING(TARGET-PROCEDURE) THEN
+        DO:
+          &SCOPED-DEFINE xp-assign
+          {get DeactivateTargetOnHide lToolbarDisabled hTableio}
+          {get ObjectPage iObjectPage hTableio}
+          .
+          &UNDEFINE xp-assign
+          /* page 0 and we're the only target. */
+          IF iObjectPage = 0 AND NOT lToolbarDisabled THEN
+            RETURN FALSE.
+        END.
+      END. /* if not tableiohidden*/
     END.
   END.
 
   {get GroupAssignTarget cTargets}. 
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
     hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+    
+    IF lContainerHidden THEN
+    DO:
+      {get ContainerSource hGTContainer}.
+      IF hGTContainer <> hContainer THEN
+      DO:
+        {get ObjectHidden lHidden hGTContainer}.
+        IF NOT lHidden THEN
+          RETURN FALSE.
+      END.
+    END.
+    
     {get GroupAssignHidden lHidden hTarget}.
     IF NOT lHidden THEN
       RETURN FALSE.
@@ -4902,8 +4940,9 @@ FUNCTION getRowIdent RETURNS CHARACTER
       DO:
        {get DataSourceNames cVisualNames}.
         ASSIGN
-          cRowid = cRowident
-          cRowident = FILL(';':U,NUM-ENTRIES(cDataObjectNames) - 1)
+          cRowid = cRowident.
+          cRowident = FILL(';':U,NUM-ENTRIES(cDataObjectNames) - 1).
+        IF LOOKUP(cVisualNames,cDataObjectNames) > 0 THEN
           ENTRY(LOOKUP(cVisualNames,cDataObjectNames),cRowident,';':U)  = cRowid.        
       END.
     END.

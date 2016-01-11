@@ -773,14 +773,14 @@ PROCEDURE addDataTarget :
             of the ContainedDataObjects in order to become mapped. 
           - Only this procedure is allowed to add datatargets to the 
             ObjectMapping property.  
-          - ObjectMapping versus DataSourceNames. Thee is some overlap here and
-            we could certainly have managed add-, copy- and deleteRow with 
-            ObjectMapping instead of DataSourceNames. But since both cases 
-            requires that we know the requester anyways, there's not much 
-            advantage of just using the ObjectMapping. We also do need a way to 
-            distinguish between UpdateTargets and DataSources and having them 
-            implemented the same ways makes it a bit easier to use. 
-            Ideally (??) the SBO should be more transparent and have an API that
+          - ObjectMapping versus DataSourceNames: We could y have managed 
+            add-, copy- and deleteRow with ObjectMapping instead of 
+            DataSourceNames. But since both cases requires that we know the 
+            requester, there's not much advantage of using the ObjectMapping. 
+            We need a way to distinguish between UpdateTargets and DataSources. 
+         -  Ideally (??) the SBO should be more transparent and have an API that
+
+
             makes it unnecessary for the SBO to have this mapping and instead 
             make the visual objects responsible of telling the SBO what to 
             update and for this reason the properties in the visual object seems
@@ -823,6 +823,8 @@ PROCEDURE addDataTarget :
   DEFINE VARIABLE hUpd                AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lOneToOne           AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cObjectType         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hToolbarSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lHasToolbarsource   AS LOGICAL    NO-UNDO.
 
     cTarget = STRING(phTarget).
     {get ObjectMapping cMapping}.
@@ -876,14 +878,16 @@ PROCEDURE addDataTarget :
           /* The mapping is set at the end of this proc */
         END. /* SDO  */
         ELSE DO: /* Deal with visual objects */
-          {get DataSourceNames cObjectList hTarget} NO-ERROR.
 
+          {get DataSourceNames cObjectList hTarget} NO-ERROR.
+          {get ToolbarSource hToolbarSource hTarget} NO-ERROR.
              /* Set the flag that tells us that we don't need to update 
                 the DataTarget Properties (probably not a big deal, but let's
                 keep them as specified at design time) */       
           ASSIGN
-            lSourceSpecified = (cObjectList <> ? AND cObjectList <> "":U)
-            lSourceFound     = FALSE.
+            lSourceSpecified  = (cObjectList <> ? AND cObjectList <> "":U)
+            lHasToolbarSource = VALID-HANDLE(hToolbarSource)
+            lSourceFound      = FALSE.
 
             /* if the Instance property dataSourceNames isn't defined see if 
              the 'Master' property DisplayedTables can be used or if it is 
@@ -907,6 +911,7 @@ PROCEDURE addDataTarget :
             The ObjectList = '' also for dynBrowsers built before 
             and for objects build against an SBO with all fields disabled 
             due to an AppBuilder bug */ 
+
           IF cObjectList = 'RowObject':U OR cObjectList = '':U THEN
           DO:
             {get DisplayedFields cDataColumns hTarget} NO-ERROR.
@@ -924,7 +929,7 @@ PROCEDURE addDataTarget :
 
             IF lSBOTarget THEN
             DO:
-              {get DataObjectNames cDataObjectNames}.
+              {get DataObjectNames cDataObjectNames}.              
               SBOColumnSearch:
               DO iColumn = 1 TO NUM-ENTRIES(cDataColumns):
                 ASSIGN
@@ -965,6 +970,20 @@ PROCEDURE addDataTarget :
                    cDataSourceNames = cDataSourceNames
                                 + (IF cDataSourceNames = "":U THEN "":U ELSE ",":U)
                                 + (IF cObjectName = ? THEN "?":U ELSE cObjectName).
+
+                  IF lHasToolbarsource THEN 
+                  DO:
+                    hSource = WIDGET-HANDLE(cSource).
+                    IF VALID-HANDLE(hSource) THEN
+                    DO:
+                      &SCOPED-DEFINE xp-assign
+                      {set FetchHasAudit    TRUE hSource}
+                      {set FetchHasComment  TRUE hSource}
+                      {set FetchAutoComment TRUE hSource}
+                      .
+                      &UNDEFINE xp-assign
+                    END.
+                  END.
 
                   /* Add this as an update target if the field is enabled */ 
                   IF lUpdate THEN
@@ -1007,7 +1026,17 @@ PROCEDURE addDataTarget :
                 lSourceFound = TRUE
                 cSource      = ENTRY(iSource, cContainedObjects)
                 hSource      = WIDGET-HANDLE(cSource).
-              
+
+              IF lHasToolbarSource AND VALID-HANDLE(hSource) THEN
+              DO:
+                &SCOPED-DEFINE xp-assign
+                {set FetchHasAudit    TRUE hSource}
+                {set FetchHasComment  TRUE hSource}
+                {set FetchAutoComment TRUE hSource}
+                 .
+                &UNDEFINE xp-assign
+              END.  /* if valid toolbar source */
+
               {get ObjectName cObjectName hSource} NO-ERROR.
 
               ASSIGN
@@ -1040,6 +1069,16 @@ PROCEDURE addDataTarget :
             /* Add the two objects to the list with the outside object first */ 
             IF VALID-HANDLE(hSource) THEN 
             DO:
+              IF lHasToolbarSource THEN
+              DO:
+                &SCOPED-DEFINE xp-assign
+                {set FetchHasAudit    TRUE hSource}
+                {set FetchHasComment  TRUE hSource}
+                {set FetchAutoComment TRUE hSource}
+                 .
+                &UNDEFINE xp-assign
+              END.  /* if valid toolbar source */
+
               cMapping = cMapping 
                        + (IF cMapping NE "":U THEN ",":U ELSE "":U)
                        + STRING(hTarget) + ",":U + STRING(hSource).
@@ -1097,7 +1136,7 @@ PROCEDURE addDataTarget :
              a final check to see if we are the object's updateTarget 
              and use the DataSourceNames as UpdateTargetNames. 
              We reread both properties in case Source was specified. */   
-          {get UpdateTargetNames cUpdateTargetNames hTarget} NO-ERROR.
+          {get UpdateTargetNames cUpdateTargetNames hTarget}.
           IF cUpdateTargetNames = '':U THEN
           DO:       
             &SCOPED-DEFINE xp-assign
@@ -3754,14 +3793,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hSDO             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRowObjectTable  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFetchDefs       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cDataTargets   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMapping       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDataObject    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hDataTarget    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hToolbarSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iMappedEntry   AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iNumTarget     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cEntityFields  AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
 
    /* Skip all this if we're in design mode. */
   {get UIBMode cUIBMode}.
@@ -3829,6 +3861,15 @@ PROCEDURE initializeObject :
   IF lOpenOnInit AND NOT lFetchPending THEN
     {set BindScope 'Data':U}.
 
+  {get ObjectsCreated lObjectsCreated}.
+  IF NOT lObjectsCreated THEN
+  DO:
+    RUN createObjects IN TARGET-PROCEDURE NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE BEGINS 'ADM-ERROR':U THEN
+      RETURN 'ADM-ERROR':U.
+  END.   /* This will run adm-create-objects*/
+  RUN registerLinkedObjects IN TARGET-PROCEDURE.
+ 
   /* Continue with std container initialization. This will start-up the 
      contained SDOs */
   RUN SUPER.
@@ -3839,44 +3880,8 @@ PROCEDURE initializeObject :
   OR {fn fetchMessages} > "":U THEN 
     RETURN "ADM-ERROR":U.
 
-  RUN registerLinkedObjects IN TARGET-PROCEDURE.
-  
-  /* If any of the SBOs data targets have a toolbar source, fetchHasAudit,
-     fetchHasComment, and fetchAutoComment need to be set in the SDO
-     that data target is mapped to.  This needs to be done here before
-     the query is opened so that RowUserProp is populated in entityFields.i */
-  &SCOPED-DEFINE xp-assign
-  {get DataTarget cDataTargets}
   {get AsDivision cAsDivision}.
-  &UNDEFINE xp-assign
   
-  DO iNumTarget = 1 TO NUM-ENTRIES(cDataTargets):
-    hDataTarget = WIDGET-HANDLE(ENTRY(iNumTarget, cDataTargets)).
-    IF LOOKUP('Toolbar-target':U, {fn getSupportedLinks hDataTarget}) > 0 THEN
-    DO:
-      {get ToolbarSource hToolbarSource hDataTarget}.
-      IF VALID-HANDLE(hToolbarSource) THEN
-      DO:
-        {get ObjectMapping cMapping}.
-        iMappedEntry = LOOKUP(STRING(hDataTarget), cMapping).
-        IF iMappedEntry NE 0 THEN
-        DO:
-          hDataObject = WIDGET-HANDLE(ENTRY(iMappedEntry + 1, cMapping)).
-          &SCOPED-DEFINE xp-assign
-          {set FetchHasAudit    TRUE hDataObject}
-          {set FetchHasComment  TRUE hDataObject}
-          {set FetchAutoComment TRUE hDataObject}
-          {get EntityFields cEntityFields hDataObject}
-          .
-          &UNDEFINE xp-assign
-          /* retrieve entitydetails on the first call on server (Called directly from SBO) */ 
-          IF VALID-HANDLE(gshGenManager) AND cAsDivision <> 'CLIENT':U AND cEntityFields = ? THEN
-            RUN initializeEntityDetails IN hDataObject.
-        END.  /* if iMappedEntry not 0 */                                       
-      END.  /* if valid toolbar source */
-    END.  /* If the DataTarget supports Toolbar link */
-  END.  /* do iNumTarget to number of data targets */
-
   IF cUIBmode = '':U THEN
   DO:
     &SCOPED-DEFINE xp-assign
@@ -9108,7 +9113,10 @@ FUNCTION submitRow RETURNS LOGICAL
   DEFINE VARIABLE lAutoCommit        AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cRowIdent          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cObjectNames       AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE lNewMode           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNewObjects        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lError             AS LOGICAL    NO-UNDO.
+
   {get DataObjectNames cObjectNames}.
   /* If trim(';') removes all then we have only ONE rowid */ 
   IF NUM-ENTRIES(TRIM(pcRowIdent,';':U),';':U) = 1 THEN
@@ -9159,6 +9167,7 @@ FUNCTION submitRow RETURNS LOGICAL
     {set BlockDataAvailable TRUE}.
   /* Now loop through all the Objects and update when we find the target(s)
      We do this in objectnames order so we can submit foreignfields  */ 
+  submitloop:
   DO iSDO = 1 TO NUM-ENTRIES(pcRowident,';':U):
     cRowIdent = ENTRY(iSDO,pcRowIdent,";":U).
     IF cRowIdent <> '':U THEN
@@ -9186,14 +9195,34 @@ FUNCTION submitRow RETURNS LOGICAL
       ELSE DO:
         /* Multiple targets */
         IF cRowIdent <> '?':U THEN
+        DO:
+          /* Keep track of AutoCommit new records. 
+             A roll back back to add mode is needed if another SDO fails */ 
+          IF lAutoCommit THEN
+            {get NewMode lNewMode hSDO}.
+
           lSuccess  = DYNAMIC-FUNCTION('submitRow':U IN hSDO,
                                         cRowIdent,
                                         cValueList[iSDO]).              
+          /* Keep track of which to return to add mode if a later submit fails */ 
+          IF lSuccess AND lNewMode THEN
+            cNewObjects = cNewObjects 
+                          + (IF cNewObjects = '' THEN '' ELSE ',':U)
+                          + STRING(hSDO).
+        END.
+
         IF lAutoCommit = YES THEN
           {set BlockDataAvailable FALSE}.
-
+        
         IF NOT lSuccess THEN
-          RETURN FALSE.
+        DO:
+          IF NOT lAutoCommit THEN 
+             RETURN FALSE.
+
+          lError = TRUE.
+          LEAVE submitLoop.
+
+        END.
       END. /* else do (multiple targets) */
     END.  /* can-do(cTargetNames,cObjectName) */
   END. /* do iSDO  */
@@ -9202,6 +9231,18 @@ FUNCTION submitRow RETURNS LOGICAL
      it back */ 
   IF lAutoCommit = YES THEN
     {set BlockDataAvailable FALSE}.
+
+  /* error is set to true above if submit of multi targets failed in 
+     Autocommit SBO.  */
+  IF lError THEN
+  DO:
+    /* Set any new successfully saved record back to addmode */
+    DO iSDO = 1 TO NUM-ENTRIES(cNewObjects):
+      hSDO  = WIDGET-HANDLE(ENTRY(iSDO,cNewObjects)).
+      IF VALID-HANDLE(hSDO) THEN
+        RUN doReturnToAddMode IN hSDO. 
+    END.
+  END. /* lError  */
 
   IF NOT lSuccess THEN
     RETURN FALSE.
@@ -9217,7 +9258,6 @@ FUNCTION submitRow RETURNS LOGICAL
      {set RowObjectState 'RowUpdated':U}.  
   
  
-
   RETURN lSuccess.
 
 END FUNCTION.

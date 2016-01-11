@@ -467,7 +467,7 @@ ASSIGN
  /* You can only do this after the window is visible */
  qbf-win:MAX-WIDTH             = qbf-win:FULL-WIDTH
  qbf-win:MAX-HEIGHT            = qbf-win:FULL-HEIGHT
- .
+ NO-ERROR.
 
 main_loop:  
 DO WHILE TRUE ON ERROR UNDO,RETRY ON ENDKEY UNDO,RETRY:

@@ -1690,7 +1690,10 @@ PROCEDURE clearField :
       ASSIGN
         cName   = ENTRY(iLoop,cViewerLinkedWidgets)
         iField  = LOOKUP(cName,cAllFieldNames).
-      IF iField > 0 THEN
+      /* Double check that the name is a name as Allfieldnames currently 
+         have '?' for labels in static viewers while ViewerLinkedwidgets 
+         may have '?' for fields to retrieve with no linking...  */
+      IF iField > 0 AND cName <> '?':U THEN
       DO:
         hField = WIDGET-HANDLE(ENTRY(iField,cAllFieldHandles)).
         IF VALID-HANDLE(hField) THEN

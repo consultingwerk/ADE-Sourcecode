@@ -107,12 +107,8 @@ ASSIGN
   NAME           = p_Name
   TITLE          = p_Title
   MENU-BAR       = p_Menubar
-  WIDTH          = FONT-TABLE:GET-TEXT-WIDTH(FILL("0", 85), editor_font)
-  HEIGHT         = (SESSION:HEIGHT * 0.66)
   MAX-WIDTH      = ?
   MAX-HEIGHT     = ?
-  VIRTUAL-WIDTH  = SESSION:WIDTH
-  VIRTUAL-HEIGHT = SESSION:HEIGHT
   MIN-WIDTH      = 1 /* Zero is not acceptable to UIM. */
   MIN-HEIGHT     = 1 /* Zero is not acceptable to UIM. */
   RESIZE         = YES
@@ -129,6 +125,13 @@ ASSIGN
     ON HELP           PERSISTENT RUN adecomm/_pwhelp.p ( INPUT "KEYWORD" ).
     ON DROP-FILE-NOTIFY PERSISTENT RUN adecomm/_pwopen.p.
   END.
+
+ASSIGN
+  p_Window:WIDTH          = FONT-TABLE:GET-TEXT-WIDTH(FILL("0", 85), editor_font)
+  p_Window:HEIGHT         = (SESSION:HEIGHT * 0.66)
+  p_Window:VIRTUAL-WIDTH  = SESSION:WIDTH
+  p_Window:VIRTUAL-HEIGHT = SESSION:HEIGHT
+  NO-ERROR.
 
 /** ******
  ** Step 2: Create an "Editor" Frame for the Procedure Window.

@@ -3356,6 +3356,7 @@ DO iService = 1 TO IF pcObject = ?
   DO iObject = 1 TO NUM-ENTRIES(pcHandles):
     
     hObject = WIDGET-HANDLE(ENTRY(iObject,pcHandles)).
+    {set AsHasStarted YES hobject}.
     {set ServerOperatingMode cServerOperatingMode hObject}.
 
     /* The caller opens the batched dataset */

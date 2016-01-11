@@ -294,6 +294,7 @@ PROCEDURE addRecord :
       IF VALID-HANDLE(FOCUS) 
       AND FOCUS = hFocus  /* Only if same as applied above */ 
       AND FOCUS:SENSITIVE /* avoid non-sensitive read-only=false widgets..*/ 
+      AND CAN-QUERY(hFocus,'SET-SELECTION':U) 
       AND CAN-QUERY(hFocus,'SCREEN-VALUE':U) 
       AND LENGTH(hFocus:SCREEN-VALUE) > 1 THEN 
         hFocus:SET-SELECTION(1,LENGTH(hFocus:SCREEN-VALUE) + 1).
@@ -353,10 +354,17 @@ PROCEDURE copyRecord :
    DEFINE VARIABLE iPos               AS INTEGER    NO-UNDO.
    DEFINE VARIABLE lNoQual            AS LOGICAL     NO-UNDO.
    DEFINE VARIABLE cSourceNames       AS CHARACTER   NO-UNDO.
+   DEFINE VARIABLE hFocus             AS HANDLE      NO-UNDO.
 
       RUN SUPER.
       IF RETURN-VALUE = "ADM-ERROR":U THEN RETURN "ADM-ERROR":U.
-
+     
+      /* See long comment in addRow about this */
+      RUN applyEntry IN TARGET-PROCEDURE (?).
+      /* applying here causes highlighting to be lost during the process,
+         so we deal with this at the end  */
+      hFocus = FOCUS.
+      
       /* Note: SUPER (datavis.p) verifies that UpdateTarget is present. */
       {get UpdateTarget cTarget}.
       hUpdateTarget = WIDGET-HANDLE(cTarget).
@@ -414,11 +422,21 @@ PROCEDURE copyRecord :
 
       PUBLISH 'copyRecord':U FROM TARGET-PROCEDURE.  /* In case of GroupAssign */
       
-      IF VALID-HANDLE(hUpdateTarget) THEN
-        RUN applyEntry IN TARGET-PROCEDURE (?).
-
       PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('update').
       
+      /* We've moved the apply entry before the call to copyRow. (see above) 
+         This causes the highlight to disappear, so use set-selection 
+         to achieve old behavior. (another applyEntry call would cause 
+         entry triggers firing twice, which is not always appreciated) */  
+      IF VALID-HANDLE(FOCUS) 
+      AND FOCUS = hFocus  /* Only if same as applied above */ 
+      AND FOCUS:SENSITIVE /* avoid non-sensitive read-only=false widgets..*/ 
+      AND CAN-QUERY(hFocus,'SET-SELECTION':U) 
+      AND CAN-QUERY(hFocus,'SCREEN-VALUE':U) 
+      AND LENGTH(hFocus:SCREEN-VALUE) > 1 THEN 
+        hFocus:SET-SELECTION(1,LENGTH(hFocus:SCREEN-VALUE) + 1).
+      
+  
     RETURN.
       
 END PROCEDURE.

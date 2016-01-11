@@ -95,6 +95,8 @@ ELSE IF _F._INITIAL-DATA NE ? THEN
              IF _F._INITIAL-DATA = "NOW"   
              THEN txt = STRING(NOW).   
              ELSE txt = _F._INITIAL-DATA.
+         OTHERWISE
+             txt = _F._INITIAL-DATA.
        END CASE.
      ELSE txt = "".
 ASSIGN txt = TRIM(txt).

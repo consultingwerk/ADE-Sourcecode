@@ -96,21 +96,25 @@ CREATE WINDOW qbf-wsys.qbf-wwin
                       ELSE " - [":u + qbf-name + "]":u)
     MESSAGE-AREA   = FALSE
     STATUS-AREA    = FALSE
-    HEIGHT         = {&DEF_WIN_HEIGHT}
-    WIDTH          = def-win-wid
     MIN-WIDTH      = {&MIN_WIN_WIDTH}
     MIN-HEIGHT     = {&MIN_WIN_HEIGHT}
-    VIRTUAL-WIDTH  = SESSION:WIDTH
-    VIRTUAL-HEIGHT = SESSION:HEIGHT
     SCROLL-BARS    = FALSE
     RESIZE         = TRUE
     THREE-D        = ("{&WINDOW-SYSTEM}":u BEGINS "MS-WIN":u AND qbf-threed)
     .
 
+ASSIGN
+  qbf-wsys.qbf-wwin:HEIGHT         = {&DEF_WIN_HEIGHT}
+  qbf-wsys.qbf-wwin:WIDTH          = def-win-wid
+  qbf-wsys.qbf-wwin:VIRTUAL-WIDTH  = SESSION:WIDTH
+  qbf-wsys.qbf-wwin:VIRTUAL-HEIGHT = SESSION:HEIGHT
+  NO-ERROR.
+
 /* You can only do this after the window is visible */
 ASSIGN
  qbf-wsys.qbf-wwin:MAX-WIDTH  = qbf-win:FULL-WIDTH
- qbf-wsys.qbf-wwin:MAX-HEIGHT = qbf-win:FULL-HEIGHT.
+ qbf-wsys.qbf-wwin:MAX-HEIGHT = qbf-win:FULL-HEIGHT
+ NO-ERROR.
 
 RUN adecomm/_status.p (qbf-wsys.qbf-wwin,"50,20":u,TRUE,4, 
                        OUTPUT qbf-wsys.wStatus,OUTPUT iFields). 

@@ -86,7 +86,7 @@ History:
     McMann      02/24/03    Added LOB support    
     P. Kullman  09/22/03    Changed call to _dmpisub.p from _dmpincr.p 12796                        
     McMann      10/17/03    Add NO-LOCK statement to _Db find in support of on-line schema add
-    
+    K. McIntosh 07/26/04    Added CLOB support for incremental dump
 */
 /*h-*/
 
@@ -812,7 +812,7 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR DICTDB._Field._Fld-case <> DICTDB2._Field._Fld-case THEN
         ddl[24] = (IF DICTDB._Field._Fld-case
                     THEN "  CASE-SENSITIVE" ELSE "  NOT-CASE-SENSITIVE").
-      IF NOT l AND DICTDB._Field._Data-type = "BLOB" THEN DO:
+      IF NOT l AND CAN-DO("BLOB,CLOB",DICTDB._Field._Data-type) THEN DO:
         FIND DICTDB._storageobject WHERE DICTDB._Storageobject._Db-recid = RECID(DICTDB._Db)
                                 AND DICTDB._Storageobject._Object-type = 3
                                 AND DICTDB._Storageobject._Object-number = DICTDB._Field._Fld-stlen
@@ -822,13 +822,22 @@ DO ON STOP UNDO, LEAVE:
         ASSIGN ddl[25] = "  LOB-AREA " + DICTDB._Area._Area-name
                ddl[26] = "  LOB-BYTES "+ STRING(DICTDB._Field._Width)
                ddl[27] = "  LOB-SIZE " + DICTDB._Field._Fld-Misc2[1].
+
+        IF DICTDB._Field._Data-Type = "CLOB" THEN
+          ASSIGN ddl[28] = "  CLOB-CODEPAGE "  + DICTDB._Field._Charset
+                 ddl[29] = "  CLOB-COLLATION " + DICTDB._Field._Collation
+                 ddl[30] = "  CLOB-TYPE "      + STRING(DICTDB._Field._Attributes1).
       END.
-      /* Changing a blob field */
-      ELSE IF l AND DICTDB._Field._Data-type = "BLOB" THEN DO:
+      /* Changing blob/clob field */
+      ELSE IF l AND CAN-DO("BLOB,CLOB",DICTDB._Field._Data-type) THEN DO:
         IF DICTDB._Field._Width <> DICTDB2._Field._Width THEN
             ddl[25] = "  LOB-BYTES " + STRING(DICTDB._Field._Width).
         IF DICTDB._Field._Fld-Misc2[1] <> DICTDB2._Field._Fld-Misc2[1] THEN
             ddl[26] = "  LOB-SIZE " + DICTDB._Field._Fld-Misc2[1].
+
+        IF DICTDB._Field._Data-type = "CLOB" AND
+           DICTDB._Field._Attributes1  <> DICTDB2._Field._Attributes1 THEN
+          ddl[27] = "  CLOB-TYPE "      + STRING(DICTDB._Field._Attributes1).
 
         FIND DICTDB._storageobject WHERE DICTDB._Storageobject._Db-recid = RECID(DICTDB._Db)
                                 AND DICTDB._Storageobject._Object-type = 3
@@ -856,7 +865,7 @@ DO ON STOP UNDO, LEAVE:
 
       /* deal with field triggers */
       /* 1st, find ones to be deleted if field is being updated */
-      j = 27.
+      j = 31.
       IF l THEN
         FOR EACH DICTDB2._Field-trig OF DICTDB2._Field:
           FIND DICTDB._Field-trig OF DICTDB._Field
