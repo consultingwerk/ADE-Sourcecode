@@ -109,7 +109,6 @@ DEFINE INPUT PARAMETER p_status   AS CHAR.
 {adeshar/genshar.i NEW} /* Shared variables for _gendefs.p */
 
 DEFINE VARIABLE admVersion    AS CHAR                                  NO-UNDO.
-DEFINE VARIABLE c_errMsg      AS CHAR                                  NO-UNDO.
 DEFINE VARIABLE choice        AS CHAR                                  NO-UNDO.
 DEFINE VARIABLE comp_file     AS CHAR                                  NO-UNDO.
 DEFINE VARIABLE context       AS CHAR                                  NO-UNDO.
@@ -186,7 +185,7 @@ DEFINE VARIABLE cSuperEvent   AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE lEmpty        AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE ctempFile     AS CHARACTER                             NO-UNDO.
 define variable lAllowEmptyTriggers as logical no-undo.
-
+define variable cErrMsg          as character no-undo.
 DEFINE BUFFER x_U  FOR _U.
 DEFINE BUFFER xx_U FOR _U.
 DEFINE BUFFER x_L  FOR _L.
@@ -258,13 +257,25 @@ DO ON STOP  UNDO, RETRY
   END.
   
   ASSIGN write-access = "W":U. 
+  
   RUN adeuib/_isa.p (INPUT INTEGER(RECID(_P)), INPUT "SmartDataObject":U,
                    OUTPUT isaSDO).
+  
   IF NOT web_file THEN DO:
     ASSIGN l_SDOExisted = IF isaSDO AND SEARCH(_save_file) <> ? THEN YES ELSE NO.
-    RUN adecomm/_osfrw.p
-        (INPUT _save_file , INPUT "_WRITE-TEST":U , OUTPUT write-access).
+    
+    /* Ignore if called from ide 
+       This call locks (not sure what type of lock) the file so that it fails the next time it is called
+       under certain cases where Eclipse opens the file in the mean time.
+       This lock condition seems to only affect this progrsam... the file can be saved.   
+       The check also seems unnecessary in general. There are other read-only checks before we get here */
+    if not OEIDEIsRunning then 
+    do: 
+        RUN adecomm/_osfrw.p
+            (INPUT _save_file , INPUT "_WRITE-TEST":U , OUTPUT write-access).
+    end.
   END.
+  
   IF write-access <> "W":U THEN DO:
       if OEIDE_CanShowMessage() then 
        /* the formatting is deliberatley different.  */
@@ -324,10 +335,31 @@ DO ON STOP  UNDO, RETRY
   OUTPUT STREAM P_4GL TO VALUE(IF web_file THEN web-tmp-file ELSE cTempFile).
 END.
 ELSE DO:
-  IF _comp_temp_file = ? THEN
-    RUN adecomm/_tmpfile.p ({&STD_TYP_UIB_COMPILE}, {&STD_EXT_UIB},
-                          OUTPUT _comp_temp_file).
-  OUTPUT STREAM P_4GL TO VALUE(_comp_temp_file) {&NO-MAP}.
+    if OEIDEIsRunning then
+    do:
+        file-info:file-name = _comp_temp_file.
+        if file-info:file-type = "FR":U then 
+        do:
+            cErrMsg = "The source cannot be synchronized with the design. "  + "~n"
+                    + "File " + _save_file + " is read-only." + "~n" 
+                    + "Save the design with a different filename. "   + "~n" + "~n" 
+/*                    + "Alternatively, make sure the UI Designer is active (has focus) when the file is made writable. "*/
+                    + "If the file is made writable when the text editor is active all changes in the UI Designer will be lost."
+                    .
+            if OEIDE_CanShowMessage() then 
+                ShowOkMessageInIDE(cErrMsg,"Warning",?). 
+            else 
+                message cErrMsg
+                view-as alert-box warning buttons ok in window active-window.
+           
+            RETURN.
+        end.
+    end.
+    IF _comp_temp_file = ? THEN
+        RUN adecomm/_tmpfile.p ({&STD_TYP_UIB_COMPILE}, {&STD_EXT_UIB},
+                                OUTPUT _comp_temp_file).
+    OUTPUT STREAM P_4GL TO VALUE(_comp_temp_file) {&NO-MAP}.
+
 END.
 /* ************************************************************************* */
 /*                                                                           */

@@ -178,7 +178,9 @@ IF _L._WIN-TYPE OR _F._VBX-BINARY NE "" THEN DO: /* GUI Mode */
     IF s = FALSE THEN
     DO ON STOP UNDO, LEAVE:
       ASSIGN _F._SPECIAL-DATA = "":U.
-      ASSIGN msg = _U._NAME + "." + _U._SUBTYPE + CHR(10) +
+      define var ocxtype as character.
+      if  _U._SUBTYPE NE ? THEN ocxtype = "." + _U._SUBTYPE. else "". 
+      ASSIGN msg = _U._NAME + ocxtype  + CHR(10) +
                    "Unable to create control." + CHR(10) + CHR(10).
       /* Strip off any additional message information, such as "Error
          occurred in procedure adeuib/_undcont.p". */

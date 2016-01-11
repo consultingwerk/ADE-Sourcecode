@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2013 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -145,7 +145,7 @@ IF NUM-DBS > 0 THEN DO:
   DO qbf-i = 1 TO NUM-DBS:
     ASSIGN qbf-c = DBTYPE(qbf-i).
 
-    IF LOOKUP(qbf-c,"AS400,CISAM,DB2,ODBC,ORACLE,PROGRESS,RMS,SYB10":u) = 0
+    IF LOOKUP(qbf-c,"AS400,CISAM,DB2,ODBC,ORACLE,PROGRESS,RMS,SYB10,MSS":u) = 0
       THEN DO:
       RUN adecomm/_s-alert.p (INPUT-OUTPUT qbf-l,"error":u,"ok":u,
         SUBSTITUTE("Attempt to connect to database &1, that is not supported by &2.  &2 does not support databases of type &3.",

@@ -52,6 +52,7 @@
               08/11/11 rkamboj  Fix issue assigment error with data direct driver for MSS.
               09/25/11 kmayur   Delta sql support for constraint feature              
               07/18/12 musingh  Fix issue with FOREIGN-POS generatation (OE00222952)
+              02/04/13 sdash    Fix for Delta .DF sets FOREIGN-POS 0 causing Load Aborted error(OE00230825)
               
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -1417,6 +1418,10 @@ PROCEDURE new-for-position:
     /* Now assigns the forpos equal to the last new-pos  */
     FIND LAST new-position WHERE table-np = rntbl
                              AND new-position.dropped = FALSE.
+    /* IF last field is an extent field */
+    IF new-position.extent# <> 0 THEN 
+        ASSIGN forpos = new-position.new-pos + new-position.extent#.
+    ELSE
     ASSIGN forpos = new-position.new-pos + 1.
     _newloop:
     FOR EACH new-obj WHERE add-type = "F"
@@ -1447,7 +1452,7 @@ PROCEDURE new-for-position:
         FIND FIRST n-obj WHERE n-obj.prg-name BEGINS SUBSTRING(new-obj.prg-name, 3) NO-ERROR.
         IF AVAILABLE n-obj  THEN
            ASSIGN new-position.shadow   = forpos
-                  forpos                = forpos + 1
+                  new-position.new-pos  = forpos
                   forpos                = forpos + 1.
         ELSE
           ASSIGN new-position.new-pos  = forpos    
@@ -1459,6 +1464,7 @@ PROCEDURE new-for-position:
                             AND new-position.dropped = FALSE:
 
       IF new-position.field-np = recidname THEN DO:
+       IF recidname = "progress_recid" THEN DO:
         CREATE df-info.
         ASSIGN df-info.df-seq = dfseq
                dfseq = dfseq + 1
@@ -1469,8 +1475,21 @@ PROCEDURE new-for-position:
                dfseq = dfseq + 1
                df-info.df-tbl = new-position.table-np
                df-line = '  PROGRESS-RECID ' + STRING( new-position.new-pos).
+       END.
+       ELSE IF new-position.old-pos > 0 THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = new-position.table-np
+                     df-line = 'UPDATE TABLE "' + rntbl + '"'.
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = new-position.table-np
+                     df-line = '  PROGRESS-RECID ' + STRING( new-position.new-pos * -1).
+       END.
         /* if user has chosen a field instead of creating the recid field put out df info */
-        IF new-position.field-np <> "progress_recid" THEN DO:
+        IF new-position.field-np <> "progress_recid"  and new-position.old-pos > 0 THEN DO:
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1

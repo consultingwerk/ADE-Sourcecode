@@ -861,6 +861,57 @@ END.
                
 END PROCEDURE.
 
+PROCEDURE GetOCXEvents.
+  /*-------------------------------------------------------------------------
+    Purpose:        Called from IDE to get list of ocx events
+    Parameters:     
+  ---------------------------------------------------------------------------*/
+    define input  parameter pwin as handle  no-undo.
+    define input  parameter pocxname as character no-undo.
+    
+    define output parameter poEvents as longchar no-undo.
+    define variable EventList      as character no-undo.
+    define variable hParent as handle no-undo.
+    
+    
+    find b_P where b_P._WINDOW-HANDLE = pwin no-lock no-error.
+    if not avail b_p then 
+    do:
+        hParent = pwin:first-child.
+        find b_P where b_P._WINDOW-HANDLE = hParent no-lock no-error.
+        if not avail b_p then 
+           return.
+   
+    end.
+    else hParent = pwin.
+    
+    FIND _SEW_U WHERE _SEW_U._WINDOW-HANDLE = hParent 
+                  AND _SEW_U._NAME          = pocxname NO-ERROR.
+    IF AVAILABLE _SEW_U THEN
+    DO:
+        /*
+        * If the VBX is "halfway there" then warn the
+        * user that NEW VBX event procedures aren't
+        * available. This can happen when an existing
+        * .w file was created with a VBX that the 
+        * current user doesn't have a license for.
+        */
+     
+        FIND _SEW_F WHERE RECID(_SEW_F) = _SEW_U._x-recid.
+        IF _SEW_F._SPECIAL-DATA <> ? THEN
+        DO:
+           poEvents =  "ERROR:The {&WT-CONTROL},"  + _SEW_F._IMAGE-FILE  + ", is missing or unavailable" + "~n"  
+                    +  "for " + _SEW_U._NAME + ". New {&WT-CONTROL} events cannot edited. Existing" + "~n"
+                    + "{&WT-CONTROL} events and PROGRESS events can be edited.".
+           RETURN.  
+        END. 
+            
+        RUN adeuib/_ocxevnt.p (INPUT _SEW_U._HANDLE, INPUT "", OUTPUT EventList).
+        poEvents = EventList.
+    END.           
+END PROCEDURE.
+
+
 PROCEDURE GetOverrides.
   /*-------------------------------------------------------------------------
     Purpose:        Called from IDE to get list of overrides for Add Procedure and

@@ -80,7 +80,7 @@ define variable fContextHandle as handle no-undo.
 define variable fIDEIntegrated as logical no-undo.
 define variable PARAMETER_DELIMITER as char no-undo init "|".
 /* deprecated */
-define variable OEIDE_ABEmbedded as logical no-undo initial true.
+define variable OEIDE_ABEmbedded as logical no-undo.
 
 function getAppbuilderMode returns character       () in fContextHandle.
 function getDesignFileName returns character       (piHwnd as integer) in fContextHandle.
@@ -452,10 +452,8 @@ function OpenDBConnectionDialog return logical
 
 /* ***************************  Main Block  *************************** */
 publish "oeide_context" from this-procedure (output fContextHandle).
-fIDEIntegrated = getAppbuilderMode() = "INTEGRATED".
-/* old unsupported - deprecated */
-OEIDE_ABEmbedded = getAppbuilderMode() = "EMBEDDED".
-
+fIDEIntegrated = true.
+ 
 
 
 
@@ -476,7 +474,7 @@ procedure getIsIDEIntegrated:
                                                                                            
             Notes: TODO ABMode = integrated                                                                       
     ------------------------------------------------------------------------------*/
-   plintegrated = getAppBuilderMode() = "integrated".
+   plintegrated = fIDEIntegrated.
 
 
 end procedure.
@@ -1070,7 +1068,7 @@ procedure appbuilderConnection :
     run sendRequest in getSocketClient()(
                         APPBUILDER_CONNECTION, 
                         "IDE appbuilderConnection ":U 
-                        + getProjectName()).
+                        + quoter(getProjectName())).
     
 end procedure.    
 

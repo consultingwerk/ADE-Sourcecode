@@ -196,8 +196,10 @@ procedure getActionStates:
                 else
                   pcEnabled = pcEnabled       
                              + (if not valid-handle(fUndo) then "0":U else string(int(fUndo:sensitive))).
-            end.                       
-            when "Align":U then pcEnabled = pcEnabled       
+            end.           
+            /*  align covers all align actions and SendToBack and BringToFront for editor, 
+                outline view asks specificcally for SendToBack and BringToFront        */
+            when "Align":U or when "SendToBack" or when "BringToFront" then pcEnabled = pcEnabled       
                              + (if not valid-handle(fALign) then "0":U else string(int(fAlign:sensitive))).      
             when "AlternateLayout":U then pcEnabled = pcEnabled       
                              + (if not valid-handle(fAlternateLayout) then "0":U else string(int(fAlternateLayout:sensitive))). 
@@ -230,8 +232,8 @@ procedure getActionStates:
          
                                                  
             otherwise do:
-                /* all align_ are sensitive if align is 
-                  (should really have lookup of list to be safe and not rely on this naming convention) */
+                /* all align_ are sensitive if align is (SendToBack and BringToFront are already handled
+                 above  (should really have lookup of list to be safe and not rely on this naming convention) */
                 if widgetName begins "Align_":U then pcEnabled = pcEnabled       
                              + (if not valid-handle(fALign) then "0":U else string(int(fAlign:sensitive))).      
                 else 
@@ -598,9 +600,8 @@ procedure closeWindow:
     do:
         run wind-close in fUIB (hwin).   
     end.
-        
     removeHwnd(ihwnd).    
-             
+    return "OK".
 end.
 
 procedure openDesignWindow:
@@ -857,6 +858,24 @@ procedure editCode:
     define input parameter pcFile as char no-undo.
     run call_sew in fUIB("SE_OEOPEN").
 end. 
+
+procedure GetOCXEvents:
+    define input parameter pcParam  as char no-undo.
+    define output parameter response as longchar  no-undo.
+    define variable cfile as character no-undo.
+    define variable cName as character no-undo.
+    define variable ihwnd  as integer no-undo.
+    define variable hWin   as handle no-undo.
+    
+    cFile = entry(1,pcParam,PARAMETER_DELIMITER).
+    cName = entry(2,pcParam,PARAMETER_DELIMITER).
+  
+    cfile = replace(cfile, "~\":U, "/":U).    
+    ihwnd = getDesignHwnd(cfile).
+    hwin = getDesignWindow(ihwnd).
+    run ide_get_ocx_events in fUIB (cfile,cName,hwin,output response).
+ 
+end procedure.    
 
 procedure getOverrides:
     define input parameter pcParam  as char no-undo.

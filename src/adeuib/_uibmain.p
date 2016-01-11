@@ -3858,6 +3858,36 @@ PROCEDURE ide_texteditor_save_event  :
    
 END PROCEDURE.
 
+PROCEDURE ide_get_ocx_events:
+    define input  parameter pcFile   as character no-undo.
+    define input  parameter pcName as character no-undo. 
+    define input  parameter phhandle as handle no-undo.
+    define output parameter response as longchar  no-undo.
+    define variable lSilentOpen as logical no-undo.
+    
+    if phHandle = ? then
+    do:
+        /* No window open -  run the _qssuckr to open the file silently */       
+        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        phhandle = _h_win.
+        lSilentOpen = true.
+    end.
+   IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN GetOCXEvents IN OEIDE_ABSecEd (phhandle,pcname, output response).
+
+    finally:
+        /** close if silent open 
+           To keep this around we would need to be able to make it visible and embedd in eclipse if 
+           design window is opened while it is alive 
+           @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */ 
+        if lSilentOpen then 
+           run wind-close (phhandle).      
+                
+    end finally.
+   
+
+END PROCEDURE.
+
 /** pctype - 'Procedures' or 'Functions'
 *   pcfile - file name (used to open silently if no handle passed)
 *   phhandle - the handle of the design window (if open)
@@ -11051,30 +11081,14 @@ procedure tool_choose:
                 DO:
                     run adecomm/_setcurs.p("WAIT").
                     ASSIGN SESSION:DATE-FORMAT = _orig_dte_fmt.
-
-                    /* Present OCX dialog via call to PROX. Get window parent handle
-                       to position OCX dialog over Palette window. */
                     
-/*                    if ideintegrated then*/
-/*                    do:                  */
-/*                        run runChildDialog in hOEIDEService("ide-choose-ocx").*/
-                         RUN choose_ocx( INPUT _h_object_win:HWND).
-                         
-/*                    end.*/
-/*                    RUN GetParent(INPUT _h_object_win:HWND, OUTPUT ParentHWND).    */
-/*                    ASSIGN _ocx_draw = _h_Controls:GetControl(ParentHWND) NO-ERROR.*/
-/*                                                                                   */
-/*                    /* _ocx_draw will contain a valid com-handle. */               */
-/*                    IF VALID-HANDLE(_ocx_draw) THEN                                */
-/*                    DO:                                                            */
-/*                        ASSIGN                                                     */
-/*                             _object_draw = _ocx_draw:ClassID                      */
-/*                             _custom_draw = _ocx_draw:ShortName                    */
-/*                             customTool   = _custom_draw.                          */
-/*                    END.                                                           */
-/*                    ELSE _object_draw = ?.                                         */
-/*                                                                                   */
-/*                    run adecomm/_setcurs.p("").                                    */
+                    /* The OCX dialog is not called from eclipse
+                       it seem to be fully modal and we cannot embedd it */ 
+                   /* if ideintegrated then*/
+                   /*      run runChildDialog in hOEIDEService("ide-choose-ocx").
+                         return.
+                    */
+                    RUN choose_ocx( INPUT _h_object_win:HWND).
                 END.
                 ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "USE" THEN
                     _object_draw = TRIM(SUBSTRING(ENTRY(1,parse,CHR(10)),4,-1,"CHARACTER")).
@@ -12024,38 +12038,14 @@ procedure context_menu_drop :
 end.    
 
 PROCEDURE choose_ocx:
-    define input parameter pHWND as INTEGER no-undo.
-     
-    define variable chooseOcx as adeuib.ide._chooseocx no-undo.
-    
-    if IDEIntegrated then
-    do:  
-        assign
-            chooseOcx                    = new adeuib.ide._chooseocx()
-            chooseOcx:pHWND              = pHWND.
-                    
-        chooseOcx:SetCurrentEvent(this-procedure,"do_choose_ocx":U).
-        run runChildDialog in hOEIDEService(chooseOcx). 
-    end.
-    else 
-        run do_choose_ocx(pHWND). 
-END PROCEDURE.    
-
-PROCEDURE do_choose_ocx:
-    
     define input parameter pHWND as integer no-undo.
     DEFINE VARIABLE ParentHWND AS integer NO-UNDO.
     DEFINE VARIABLE ihwnd AS INTEGER NO-UNDO.
-    if IDEIntegrated then
-    do:  
-        ihwnd = getOpenDialogHwnd().
-        ASSIGN _ocx_draw = _h_Controls:GetControl(ihwnd) NO-ERROR.
-    END.
-    else
-    DO:
-        ASSIGN _ocx_draw = _h_Controls:GetControl(pHWND) NO-ERROR.
-        RUN GetParent(INPUT pHWND, OUTPUT ParentHWND).
-    END.
+    
+   /* Present OCX dialog via call to PROX. Get window parent handle
+              to position OCX dialog over Palette window. */
+    ASSIGN _ocx_draw = _h_Controls:GetControl(pHWND) NO-ERROR.
+    RUN GetParent(INPUT pHWND, OUTPUT ParentHWND).
     /* _ocx_draw will contain a valid com-handle. */
     IF VALID-HANDLE(_ocx_draw) THEN
     DO:

@@ -97,17 +97,16 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
     end constructor.
    
     constructor protected TableContext (pname as char,pScope as ISchemaScope):
+      
         super (pname,pScope).
-/*      idx:lazy = false.*/
-/*      fld:lazy = false.*/
         mPartitions = pScope:PartitionContext.
         AddChild(pScope:IndexContext).
         AddChild(pScope:FieldContext).
    end constructor.
         
-	constructor public TableContext ( pScope as ISchemaScope):
-        this-object("Table",pScope).
-    end constructor.
+ 	constructor public TableContext ( pScope as ISchemaScope): 
+        this-object("Table",pScope).                        
+    end constructor.                                       
 	
 	method public override void CopyTable(cntxt as IDataAdminContext).
         undo, throw new UnsupportedOperationError("Copy Schema").
@@ -173,6 +172,12 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         end.
     end method.
     
+    method public logical HasTableChanges():
+        define variable hBuffer as handle no-undo.
+        hbuffer =  Tablehandle:default-buffer-handle. 
+        return hBuffer:before-buffer:table-handle:has-records. 
+    end method.    
+    
     method public logical HasPartitionChanges():
         define variable hBuffer as handle no-undo.
         hbuffer = mpartitions:Tablehandle:default-buffer-handle. 
@@ -221,8 +226,16 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         define variable tree as IContextTree no-undo.    
         tree = new ContextTree().                        
         tree:Parse = true.                               
-        AddTreeTo(tree).                                
-        mpartitions:AddTableTo(tree).
+        AddTreeTo(tree).   
+        /* tables (if ismultitenant is set to true) must be committed separately from partitions 
+           the service UpdateTables will use GetPartitionSaveRequest and issue a second request if HasPartitionChanges()
+           (issue OE00215975 fix include a change to add partitions unconditionally here. 
+            This broke the split transaction req for isMultiTenant save with partitions.
+            This condition check keeps both behaviors. Note that it is not known why/whether OE00215975 rwas not picked up 
+             by the secind save, but it is conceivable that the second save did not happen with only partitions.  it also seems 
+             more correct to not do two saves with no cahnges in the first save) */    
+        if HasTableChanges() = false and HasPartitionChanges() then
+            mpartitions:AddTableTo(tree). 
         return tree:GetReadHandle().                     
     end method.                                         
     
@@ -342,7 +355,7 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
        return new TableImpl(this-object,pReq).
     end method.
     
-     method public override character ColumnSource(pcColumn as char):
+    method public override character ColumnSource(pcColumn as char):
         define variable cField  as character no-undo.
         define variable cBuffer as character no-undo.
         
