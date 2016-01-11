@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All      *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -125,7 +125,7 @@ DEFINE VARIABLE cRootDirectory AS CHARACTER  NO-UNDO.
 /* ***************************  Main Block  *************************** */
 DO ON STOP UNDO, LEAVE:
     /* Call the Add to Repository dialog. Passes data back in an _RyObject record. */
-    RUN ry/prc/rytoReposw.w
+    RUN adeuib/_saveasdynobject.w
         (INPUT phWindow,                /* Parent Window    */
          INPUT pcProductModule,         /* Product Module   */
          INPUT pcFileName,              /* Object to add    */

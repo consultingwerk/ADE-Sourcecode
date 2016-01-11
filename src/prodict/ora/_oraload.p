@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,7 +32,7 @@ History:
                          because Oracle can not handle an acceptable percent for errors.  
     D. McMann   04/13/00 Added support for long path names
     D. McMann   03/19/03 Added block for loading lobs.
-    
+    fernando    06/20/07 Support for large files
 */
 
 { prodict/dictvar.i }
@@ -40,10 +40,9 @@ History:
 
 DEFINE VARIABLE answer   AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE canned   AS LOGICAL    NO-UNDO INITIAL TRUE.
-DEFINE VARIABLE base     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE class    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE comma    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE i        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE i        AS INT64      NO-UNDO.
 DEFINE VARIABLE j        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE err      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE io-file  AS LOGICAL    NO-UNDO.
@@ -62,11 +61,14 @@ DEFINE VARIABLE dis_trig AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE codepage AS CHARACTER  NO-UNDO FORMAT "X(20)".
 DEFINE VARIABLE lvar     AS CHAR EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#    AS INT            NO-UNDO.  
-DEFINE VARIABLE cr       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE loblist  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE do-screen AS LOGICAL NO-UNDO INIT FALSE.
-DEFINE VARIABLE err-to-file AS LOGICAL NO-UNDO INIT FALSE.
-DEFINE VARIABLE err-to-screen AS LOGICAL NO-UNDO INIT TRUE.
+DEFINE VARIABLE cr       AS CHARACTER      NO-UNDO.
+DEFINE VARIABLE loblist  AS CHARACTER      NO-UNDO.
+DEFINE VARIABLE do-screen AS LOGICAL       NO-UNDO INIT FALSE.
+DEFINE VARIABLE err-to-file AS LOGICAL     NO-UNDO INIT FALSE.
+DEFINE VARIABLE err-to-screen AS LOGICAL   NO-UNDO INIT TRUE.
+DEFINE VARIABLE base_lchar    AS LONGCHAR  NO-UNDO.
+DEFINE VARIABLE cEntry        AS CHARACTER NO-UNDO.
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
  INNER-CHARS 64 INNER-LINES 2.
@@ -270,12 +272,34 @@ PROCEDURE read-cp.
   /* Read trailer of file and find codepage */
   /* (partially stolen from lodtrail.i)     */
   
-  DEFINE VARIABLE i     AS INT            NO-UNDO.
+  DEFINE VARIABLE tempi AS DECIMAL          NO-UNDO.
+  DEFINE VARIABLE j     AS INTEGER          NO-UNDO.
 
   INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
-  SEEK INPUT TO END.
-  SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
+  i = SEEK(INPUT) - 11.
+  SEEK INPUT TO i. /* position to possible beginning of last line */
 
+  /*   Now we need to deal with a large offset, which is a variable size
+       value in the trailer, for large values.
+       Now go back one character at a time until we find a new line or we have
+       gone back too far.
+       For the non-large offset format, the previous char will be a
+       newline character, so we will  detect that right away and read the
+       value as usual. Unless the file has CRLF (Windows), in which case
+       we will go back 1 character to read the value properly - to
+       account for the extra byte.
+       For larger values, we will read as many digits as needed.
+       The loop below could stop after 10 digits, but I am letting it go
+       up to 50 to try to catch a bad value.
+  */
+  DO WHILE LASTKEY <> 13 AND j <= 50:
+     ASSIGN j = j + 1
+            i = i - 1.
+     SEEK INPUT TO i.
+     READKEY PAUSE 0.
+  END.
+
+  /* now we can start reading it */
   READKEY PAUSE 0.
   ASSIGN
     lvar# = 0
@@ -283,10 +307,31 @@ PROCEDURE read-cp.
     i     = 0.
 
   DO WHILE LASTKEY <> 13 AND i <> ?: /* get byte count (last line) */
-    i = (IF LASTKEY > 47 AND LASTKEY < 58 
-          THEN i * 10 + LASTKEY - 48
-          ELSE ?).
-    READKEY PAUSE 0.
+     IF LASTKEY > 47 AND LASTKEY < 58 THEN DO:
+          /* check if can fit the value into an int64 type. We need
+             to manipulate it with a decimal so that we don't get fooled
+             by a value that overflows. This is so that we catch a
+             bad offset in the file.
+           */
+          ASSIGN tempi = i /* first move it to a decimal */
+                 tempi = tempi * 10 + LASTKEY - 48. /* get new value */
+          i = INT64(tempi) NO-ERROR. /* see if it fits into an int64 */
+          
+          /* check if the value overflows becoming negative or an error happened. 
+             If so, something is wrong (too many digits or invalid values),
+             so forget this.
+          */
+          IF  i < 0 OR
+              ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+              ASSIGN i = 0.
+              LEAVE. /* we are done with this */
+          END.
+
+     END.
+     ELSE 
+          ASSIGN i = ?. /* bad character */
+
+     READKEY PAUSE 0.
   END.
 
   IF i > 0 then run get_psc. /* get it */
@@ -335,8 +380,8 @@ PROCEDURE find_psc:
    * anything to this trailer, you must change this number to reflect
    * the number of bytes you added. I'll use 256 to add a little padding. (gfs)
    */
-  DEFINE VARIABLE p AS INTEGER INITIAL 256. /* really 204, added extra just in case */
-  DEFINE VARIABLE l AS INTEGER.             /* last char position */
+  DEFINE VARIABLE p AS INT64 INITIAL 256. /* really 204, added extra just in case */
+  DEFINE VARIABLE l AS INT64.             /* LAST char position */
   
   SEEK INPUT TO END.
   ASSIGN l = SEEK(INPUT). /* EOF */
@@ -365,9 +410,9 @@ END.
 PROCEDURE read_bits:
   /* reads trailer given a starting position 
    */ 
-  DEFINE INPUT PARAMETER i as INTEGER. /* "SEEK TO" location */
+  DEFINE INPUT PARAMETER pi as INT64. /* "SEEK TO" location */
     
-  SEEK INPUT TO i.
+  SEEK INPUT TO pi.
   REPEAT:
     IMPORT lvar[lvar# + 1].
     lvar# = lvar# + 1.
@@ -387,11 +432,18 @@ ASSIGN
   class    = SUBSTRING(user_env[9],1,-1,"character")
   io-file  = TRUE
   io-frame = ""
-  is-all   = (user_env[1] = "ALL")
-  is-some  = (user_env[1] MATCHES "*,*")
-  is-one   = NOT is-all AND NOT is-some
   prefix   = ""
   loblist  = ?.  
+
+IF user_env[1] NE "" THEN
+  ASSIGN is-some  = (user_env[1] MATCHES "*,*").
+ELSE DO:
+  ASSIGN is-some  = (user_longchar MATCHES "*,*").
+END.
+
+ASSIGN   
+  is-all   = (user_env[1] = "ALL")
+  is-one   = NOT is-all AND NOT is-some.
 
 IF dict_rog THEN msg-num = 3. /* look but don't touch */
 
@@ -418,6 +470,18 @@ DO FOR DICTDB._File:
   IF NOT is-all AND NOT is-some THEN
     FIND DICTDB._File WHERE _Db-recid = drec_db AND _File-name = user_env[1]
                         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").
+
+  IF is-one OR is-some THEN DO:
+      /* if user_env[1] is "", then value is in user_longchar */
+      IF user_env[1] NE "" THEN
+          base_lchar = user_env[1].
+      ELSE
+          base_lchar = user_longchar.
+  END.
+  ELSE
+      base_lchar = "".
+
+
   ASSIGN
     user_env[2] = prefix + (IF is-all OR is-some THEN "" ELSE
                   (IF DICTDB._File._Dump-name = ?
@@ -430,8 +494,8 @@ DO FOR DICTDB._File:
                 + " " + (IF is-all THEN "All Tables" /*allfiles*/
                   ELSE  IF is-some THEN "Some Tables" /*somefiles*/
                   ELSE "Table ~"" + user_env[1] + "~"")
-    base        = (IF is-one OR is-some THEN user_env[1] ELSE "")
     user_env[1] = ""
+    user_longchar = ""
     comma       = ""
     i           = 1.
 
@@ -447,18 +511,21 @@ DO FOR DICTDB._File:
       AND CAN-DO(DICTDB._File._Can-create,USERID(user_dbname))
       AND (noload = "" OR NOT CAN-DO(noload,DICTDB._File._For-type))
     BY DICTDB._File._File-name:
-    base = base + (IF base = "" THEN "" ELSE ",") + DICTDB._File._File-name.
+    base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + DICTDB._File._File-name.
   END.
 
   /* Run through the file list and cull out the ones that the user
      is not allowed to dump for some reason.
   */
-  user_env[5] = "".
-  DO i = 1 TO NUM-ENTRIES(base):
+  ASSIGN user_env[5] = ""
+         j = NUM-ENTRIES(base_lchar).
+
+  DO i = 1 TO j:
     err = ?.
     dis_trig = "y".
+    cEntry = ENTRY(i,base_lchar).
     FIND DICTDB._File
-      WHERE _Db-recid = drec_db AND _File-name = ENTRY(i,base)
+      WHERE _Db-recid = drec_db AND _File-name = cEntry
         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").
 
     IF NOT CAN-DO(DICTDB._File._Can-create,USERID(user_dbname)) THEN
@@ -496,7 +563,7 @@ DO FOR DICTDB._File:
         ASSIGN loblist = (IF loblist = ? THEN DICTDB._File._File-name ELSE loblist + "," + DICTDB._File._File-name). 
       ELSE
         ASSIGN
-          user_env[1] = user_env[1] + comma + DICTDB._File._File-name
+          user_longchar = user_longchar + comma + DICTDB._File._File-name
           user_env[5] = user_env[5] + comma + dis_trig
           comma       = ",".
     END.
@@ -509,7 +576,7 @@ DO FOR DICTDB._File:
       END.
     END.    
   END.
-  IF NUM-ENTRIES(loblist) > 0 AND NUM-ENTRIES(loblist) < NUM-ENTRIES(base) THEN DO:
+  IF NUM-ENTRIES(loblist) > 0 AND NUM-ENTRIES(loblist) < NUM-ENTRIES(base_lchar) THEN DO:
     ASSIGN answer = FALSE.
     MESSAGE "The Bulk Insert Utility can not be used when LOB fields" SKIP
              "are part of a table definition." SKIP(1)
@@ -521,7 +588,7 @@ DO FOR DICTDB._File:
       RETURN.
     END.   
   END.
-  ELSE IF NUM-ENTRIES(loblist) > 0 AND NUM-ENTRIES(loblist) = NUM-ENTRIES(base) THEN DO: 
+  ELSE IF NUM-ENTRIES(loblist) > 0 AND NUM-ENTRIES(loblist) = NUM-ENTRIES(base_lchar) THEN DO: 
     MESSAGE "The Bulk Insert Utility can not be used to load " SKIP
              loblist "because LOB fields are present." SKIP
              "Use the Data Admin/Data Dictionary data load. " SKIP(1)
@@ -531,7 +598,10 @@ DO FOR DICTDB._File:
   END.
 
   /* subsequent removal of files changed from many to one, so reset ui stuff */
-  IF (is-some OR is-all) AND NUM-ENTRIES(user_env[1]) = 1 THEN DO:
+  IF (is-some OR is-all) AND NUM-ENTRIES(base_lchar) = 1 THEN DO:
+
+    ASSIGN user_env[1] = user_longchar
+           user_longchar = "".
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid = drec_db
         AND DICTDB._File._File-name = user_env[1]
@@ -545,7 +615,7 @@ DO FOR DICTDB._File:
                   + ".d"
       io-file     = TRUE
       io-title    = "Load Data Contents for Table ~"" + user_env[1] + "~""
-      base        = user_env[1].
+      base_lchar  = user_env[1].
   END.
 
 END.

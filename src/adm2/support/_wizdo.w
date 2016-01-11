@@ -485,7 +485,7 @@ DO:
 
  ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
  
- RUN ry/obj/gopendialog.w (INPUT {&WINDOW-NAME},
+ RUN adeuib/_opendialog.w (INPUT {&WINDOW-NAME},
                            INPUT "",
                            INPUT No,
                            INPUT "Get Object",

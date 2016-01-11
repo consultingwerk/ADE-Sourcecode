@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -10,6 +10,7 @@
    History: Mario B  01/27/99  Created
             D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
             fernando  09/21/06 Eliminated use of user_env from generated pcode - 20060921-032
+            fernando  07/23/07 Support for 64-bit sequences
    
 */
 
@@ -93,18 +94,32 @@ PUT UNFORMATTED
   'DEFINE SHARED STREAM s_err.' SKIP
   'DEFINE VARIABLE seqname   AS CHARACTER NO-UNDO.' SKIP
   'DEFINE VARIABLE seqnumber AS CHARACTER NO-UNDO.' SKIP
-  'DEFINE VARIABLE seqvalue  AS INTEGER   NO-UNDO.' SKIP
+  'DEFINE VARIABLE seqvalue  AS INT64     NO-UNDO.' SKIP
   'REPEAT:' SKIP
-  '  IMPORT seqnumber seqname seqvalue.' SKIP
+  '  IMPORT seqnumber seqname seqvalue NO-ERROR.' SKIP
+  '  IF ERROR-STATUS:ERROR THEN DO:' SKIP
+  '     OUTPUT STREAM s_err TO VALUE(dot-d-dir + "/" + errorFile) APPEND.' SKIP 
+  '     PUT STREAM s_err UNFORMATTED "Error loading value for " seqname ": "' SKIP
+  '         ERROR-STATUS:GET-MESSAGE(1) SKIP.' SKIP
+  '     OUTPUT STREAM s_err CLOSE.' SKIP
+  '  END.' SKIP
   '  IF INDEX(seqname,".") = 0 THEN seqname = "' LDBNAME(user_dbname)
     '." + seqname.' SKIP
   '  CASE seqname:' SKIP.
 FOR EACH _Sequence WHERE _Sequence._Db-recid = drec_db 
                      AND NOT _Sequence._Seq-name BEGINS "$" NO-LOCK:
   PUT UNFORMATTED 
-    '    WHEN "' LDBNAME(user_dbname) '.' _Sequence._Seq-Name '" THEN' SKIP
+    '    WHEN "' LDBNAME(user_dbname) '.' _Sequence._Seq-Name '" THEN DO:' SKIP
     '      CURRENT-VALUE(' _Sequence._Seq-Name ',' LDBNAME(user_dbname)
-      ') = seqvalue.' SKIP.
+      ') = seqvalue NO-ERROR.' SKIP
+      '     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 1 THEN DO:' SKIP
+      '       OUTPUT STREAM s_err TO VALUE(dot-d-dir + "/" + errorFile) APPEND.' SKIP 
+      '       PUT STREAM s_err UNFORMATTED "Error loading value for ' _Sequence._Seq-Name ': "' SKIP
+      '         ERROR-STATUS:GET-MESSAGE(1) SKIP.' SKIP
+      '       OUTPUT STREAM s_err CLOSE.' SKIP
+      '     END.' SKIP
+      SKIP
+      'END.' SKIP.
 END.
 PUT UNFORMATTED
   '    OTHERWISE DO:' SKIP

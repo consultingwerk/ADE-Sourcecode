@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,6 +27,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/****************************************************************************
+* Copyright (C) 1984-2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions               *
+* contributed by participants of Possenet.                                  *
+*                                                                           *
+****************************************************************************/
 /*---------------------------------------------------------------------------------
   File: rysdfsuprp.p
 
@@ -354,7 +353,7 @@ PROCEDURE getObjectDetail :
                                                  OUTPUT cInheritsFromClasses,
                                                  OUTPUT TABLE ttClassAttribute,
                                                  OUTPUT TABLE ttUiEvent,
-                                                 output table ttSupportedLink ) NO-ERROR.
+                                                 OUTPUT TABLE ttSupportedLink ) NO-ERROR.
 
   
   /* Get Object's Description */
@@ -718,7 +717,7 @@ PROCEDURE saveSDFInfo :
                                                  OUTPUT cInheritsFromClasses,
                                                  OUTPUT TABLE ttClassAttribute,
                                                  OUTPUT TABLE ttUiEvent,
-                                                 output table ttSupportedLink ) NO-ERROR.
+                                                 OUTPUT TABLE ttSupportedLink ) NO-ERROR.
 
   FOR EACH ttStoreAttribute
       EXCLUSIVE-LOCK:
@@ -814,6 +813,10 @@ PROCEDURE toolbar :
     WHEN "Cancel":U THEN
       RUN setFields IN ghSDFObject ("Cancel":U).
     WHEN "Save":U THEN DO:
+      /*This trigger is executed for a flat button, which does not accept FOCUS.
+        Because this, if the focus is in the browser, the row-leave trigger is never fired, the
+        apply entry forces the row-leave to be fired. Part of the fix for OE00022099.*/
+      APPLY "ENTRY":U TO SELF.
       RUN validateData IN ghSDFObject.
       IF RETURN-VALUE = "":U THEN DO:
         RUN saveDetails IN ghSDFObject.

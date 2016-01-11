@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2004-2007 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -8,6 +8,7 @@
 /*
 
 history:
+    fernando    12/06/07    Dump collation name for DataServer schemas
     S. Watt &
     K. McIntosh 05/13/04    Installed support for dumping collation tables for UTF-8
     D. McMann   10/17/03    Add NO-LOCK statement to _Db find in support of on-line schema add
@@ -147,6 +148,14 @@ IF pi_method BEGINS "d" OR pi_method BEGINS "a" THEN DO: /* auto-conn records */
           THEN EXPORT STREAM ddl "IBM850".
      OTHERWISE EXPORT STREAM ddl _Db._Db-xl-name.
      END CASE. 
+
+    /* for DataServer schemas, need to dump collation name too */
+    IF NOT lIsPro THEN DO:
+       IF _Db._Db-coll-name NE ? THEN DO:
+           PUT STREAM ddl CONTROL "  COLLATION-NAME ".
+           EXPORT STREAM ddl _Db._Db-coll-name.
+       END.
+    END.
     PUT STREAM ddl UNFORMATTED SKIP(1).
   END.
 END.

@@ -202,7 +202,7 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    "Copyright (c) 1984-2006 Progress Software Corp." + CHR(10) +
+    "Copyright (c) 1984-2008 Progress Software Corp." + CHR(10) +
     "All rights reserved" + CHR(10).
 
   IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
@@ -215,33 +215,7 @@ DO WITH FRAME {&FRAME-NAME}:
         "SlickEdit Inc.  The VISUAL SLICKEDIT software product and related " +
         "copyrights and trademarks are under license from SlickEdit Inc." +
          CHR(10) + CHR(10).
-
-  AboutText2 = AboutText2 +
-        "International Classes for Unicode:" + CHR(10) + 
-        "Copyright © 1999, International Business Machines Corporation and " +
-        "others. All rights reserved. " +
-         CHR(10) + CHR(10) +
-        "DataDirect Drivers:" + CHR(10) +
-        "Portions of this software are copyrighted by DataDirect Technologies, " +
-        "1991-2002. " +
-         CHR(10) + CHR(10) +
-        "JAVA Runtime & JDK:" + CHR(10) +
-        "This product includes code licensed from RSA Security, Inc. " +
-        "Some portions licensed from IBM are available at " +
-        "http://oss.software.ibm.com/icu4j/ " +
-         CHR(10) + CHR(10) +
-        "HTTP package from W3C Consortium:" + CHR(10) +
-        "This product includes software developed by the World Wide Web " +
-        "Consortium. Copyright © 1994-2002 World Wide Web Consortium, " + CHR(10) +
-        "(Massachusetts Institute of Technology, European Research Consortium for " +
-        "Informatics and Mathematics, Keio University).  All rights reserved. " +
-        "This work is distributed under the " + CHR(10) + "W3C® Software License " +
-        "[http://www.w3.org/Consortium/Legal/2002/copyright-software-20021231] in " +
-        "the hope that it will be useful, but WITHOUT ANY WARRANTY; without even " +
-        "the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR " +
-        "PURPOSE. " +
-          CHR(10) + CHR(10).
-
+    
   ASSIGN AboutText1:READ-ONLY = TRUE
          AboutText1:TAB-STOP  = NO   
          AboutText1:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U

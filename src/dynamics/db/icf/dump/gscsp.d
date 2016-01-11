@@ -1,6 +1,7 @@
 1131.7692 "IDETemplate" "Comma delimited list of template objects to load for the appBuilder" no "templateContainer,templateSmartObject,templateProcedure,templateWeb" no
 1133.7692 "IDEPalette" "Comma delimited list of palette objects" no "" no
 4622.5498 "UseThinRendering" "Determines whether ThinRenderingProcedure is used to render objects" yes "NO" no
+6054.49 "MessageBoxType" "Defines the visualization of messages shown in the standard dialog box" yes "Complex" no
 6750.0575 "cached_translations_only" "Whether to cache translations on startup, whether to only use those" no "Yes" no
 7002.6893 "StartupCacheToolbars" "Toolbars to cache on client at session startup" no "" no
 7004.6893 "StartupCacheMenusForObjects" "Objects to cache menus for at session startup" no "" no
@@ -20,12 +21,12 @@
 902295.24 "StartupCacheEntities" "Comma-separated list of Entities to cache at startup" yes "" no
 909694.24 "configuration_source" "Config Source specifies where and order to get config info from" yes "DB" no
 910727.24 "setup_type" "Setup Type to be run. Used with DCU." no "" no
-910730.24 "setup_type_file" "File to use for setup. Used with DCU." no "" no
+910730.24 "setup_type_file" "File to use for setup. Used with DCU." no "db/icf/dfd/setup101C.xml" no
 910733.24 "window_title" "Window Title for DCU main window. Used for DCU." no "" no
 910776.24 "auto_dump_entity_cache" "Indicates whether the entity cache should automatically be created" no "" no
 910858.24 "expand_list" "List of properties that should be run through the property expander" yes "" no
 910860.24 "registry_keys" "List of properties that should be read as registry keys" no "reg_install_path,reg_work_path" no
-910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.1B" yes
+910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.1C" yes
 910864.24 "reg_install_path" "Registry Install Path" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:DLC" no
 910866.24 "reg_work_path" "Working path in registry" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:workingPath" no
 910871.24 "enable_save_into" "Used to automatically save compiled code to more than one target area" no "" no
@@ -83,12 +84,12 @@
 .
 PSC
 filename=gsc_session_property
-records=0000000000081
+records=0000000000082
 ldbname=ICFDB
-timestamp=2006/09/18-14:59:06
+timestamp=2007/07/31-11:14:38
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=utf-8
+cpstream=UTF-8
 .
-0000007835
+0000007975

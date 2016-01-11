@@ -117,8 +117,7 @@ ELSE
 &undefine xp-Assign
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
-if cContainerType eq 'Window' then
-    hContainerHandle:hidden = yes.
+hContainerHandle:hidden = yes.
 
 /* ************************  Control Triggers  ************************ */
 if cContainerType eq 'Window' then
@@ -268,6 +267,32 @@ procedure adm-create-objects :
                                                      INPUT  ##[InstanceInstanceProperties]##,
                                                      OUTPUT ##getInstanceHandleName([InstanceName])##).
             {set CurrentLogicalName ''}.
+            
+            &scoped-define xp-Assign
+            {set LogicalObjectName '##[InstanceObjectName]##' ##getInstanceHandleName([InstanceName])##}
+            ##Loop:InstanceProperties-Assign##
+            {set ##[PropertyName]## ##[PropertyValue]## ##getInstanceHandleName([InstanceName])##}
+            ##Exclude:##
+            /* Break up the assign statement every 50 properties or so,
+		       since they all make up one assign statement. */
+            ##Exclude:End##    
+            ##Every:50##
+            .
+            &undefine xp-Assign
+            &scoped-define xp-Assign
+            ##Every:End##    
+            ##Loop:End##
+            .
+            &undefine xp-Assign
+                
+            /* Keep forced 'Set' properties separate. */
+            &scoped-define xp-Assign
+            ##Loop:InstanceProperties-Set##
+            {set ##[PropertyName]## ##[PropertyValue]## ##getInstanceHandleName([InstanceName])##}
+            ##Loop:End##
+            .
+            &undefine xp-Assign
+
             ##If:instanceIsVisual([InstanceClass])##
             /* If this is not a generated object, then make sure it will be secured and translated.
                the retrieval will have set the ObjectTranslated and ObjectSecured flags correctly,
@@ -343,7 +368,10 @@ procedure translate-##[LanguageCode]##:
     dynamic-function('setWindowName' in target-procedure, '##[WindowTitle]##').
     ##If:End##
     ##If:[TranslatedFolderLabels]##
-    {set FolderLabels ##[FolderLabels]## ##getInstanceHandleName([FolderInstanceName])##}.
+    ##Exclude:##
+    /* Use a dyn-function here instead of {set} since it makes dealing with quotes way way easier. */
+    ##Exclude:End##
+    dynamic-function('setFolderLabels' in ##getInstanceHandleName([FolderInstanceName])##, '##[FolderLabels]##').
     ##If:End##
     {set ObjectTranslated yes}.
     

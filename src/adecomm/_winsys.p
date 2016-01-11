@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*
   Procedure:    adecomm/_winsys.p
   Author:       R. Ryan 
@@ -40,10 +40,10 @@ IF OPSYS EQ "WIN32" THEN DO:
   DEFINE VARIABLE PlatformId     AS INTEGER   NO-UNDO.
   DEFINE VARIABLE Other          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE OSstr          AS CHARACTER NO-UNDO.
-  
+
 &SCOPED-DEFINE VER_PLATFORM_WIN32_WINDOWS 1
 &SCOPED-DEFINE VER_PLATFORM_WIN32_NT      2
-  
+
   /* set up pointers */
   SET-SIZE(lpmemorystatus)   = 32.
   PUT-LONG(lpmemorystatus,1) = 32.
@@ -78,12 +78,13 @@ IF OPSYS EQ "WIN32" THEN DO:
     BuildNumber  = GET-LONG(lpVersionInfo,13)
     PlatformId   = GET-LONG(lpVersionInfo,17)
     Other        = GET-STRING(lpVersionInfo,21).
-  
+
   IF PlatformId = {&VER_PLATFORM_WIN32_NT} THEN DO:
-    IF MajorVersion > 4 THEN
-      ASSIGN OSstr = (IF MinorVersion = 0 THEN "Win2000 ":U ELSE "WinXP ":U).
-    ELSE 
-      ASSIGN OSstr = "WinNT ":U.
+    CASE MajorVersion:
+        WHEN 4 THEN ASSIGN OSstr = "WinNT ":U.
+        WHEN 5 THEN ASSIGN OSstr = IF MinorVersion = 0 THEN "Win2000 ":U       ELSE "WinXP ":U.
+        WHEN 6 THEN ASSIGN OSstr = IF MinorVersion = 0 THEN "Windows Vista ":U ELSE "":U.
+    END CASE.
 
     ASSIGN  OSstr = OSstr + "(" + 
             STRING(MajorVersion) + "." + 
@@ -97,16 +98,16 @@ IF OPSYS EQ "WIN32" THEN DO:
     END CASE.
   IF Other NE ? AND Other NE "" THEN 
    ASSIGN OSstr = OSstr + ":" + REPLACE(Other,"Service Pack":U,"SP":U).
-  
+
   ASSIGN pLabel1 = OSstr + ")":U + " on ":U + ProcType NO-ERROR.
   ASSIGN pLabel2 = "Phys. memory: " + TRIM(STRING(TotPhysMem, ">>>,>>>,>>9K")) + " with "
                    + TRIM(STRING(FreePhysMem, ">>>,>>>,>>9K free")) NO-ERROR.
-  
+
   /* free pointers */
   SET-SIZE(lpmemorystatus) = 0.
   SET-SIZE(lpsysteminfo)   = 0.
   SET-SIZE(lpVersionInfo)  = 0.  
-  
+
 END.
 ELSE DO:
   /* Win16 version */
@@ -121,24 +122,24 @@ ELSE DO:
   def var WinMem   as dec format ">>>,>>> KB".  
   def var WinCPU   as char no-undo.
   def var Win87    as char no-undo.
-  
+
   run GetWinFlags(output wFlags).
   run GetFreeSpace(output FreeMem).
   run GetFreeSystemResources(input 0, output FreeRes).
-  
+
   ExecMode = wFlags.
-  
+
   repeat c = 1 to 5:
     ExecMode = ExecMode / 2.
   end.
-  
+
   if ExecMode MOD 2 = 0 then
     WinMode = " Windows Enhanced Mode".
   else
     WinMode = " Windows Standard Mode".
-  
+
   WinMem = FreeMem / 1024.
-   
+
   Math = wFlags / 1024.
   if Math MOD 2 = 0 then 
     Win87 = "".
@@ -147,7 +148,7 @@ ELSE DO:
     Win87 = " (Math Co-Proc)". 
   */
      Win87 = "".
-    
+
   assign CPU = wFlags.
   repeat c = 1 to 4:
     CPU = CPU / 2.
@@ -161,10 +162,10 @@ ELSE DO:
       leave.
     end.    
   end.
-  
+
   pLabel1 = WinCpu + WinMode + Win87.
   pLabel2 = string(WinMem,">>>,>>> KB Memory") + " (" + string(FreeRes,">>9% Free") + ")".
-  
+
 END.
 /*
 ** Procedures ..............
@@ -195,7 +196,3 @@ end.
 procedure GetSystemInfo external "kernel32.dll":
   define input-output parameter lpSystemInfo as memptr.
 end.
-
-
-
-

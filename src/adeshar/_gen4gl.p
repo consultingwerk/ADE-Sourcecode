@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -923,23 +923,26 @@ IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
                                    NOT _BC._ENABLED            AND
                                    _BC._DBNAME NE "_<CALC>":U) 
                                 ELSE
-                                  (output-label            = ? AND
-                                   output-format           = ? AND
-                                   output-help             = ? AND
-                                   output-width            = ? AND
-                                   _BC._BGCOLOR            = ? AND 
-                                   _BC._FGCOLOR            = ? AND 
-                                   _BC._FONT               = ? AND 
-                                   _BC._LABEL-BGCOLOR      = ? AND 
-                                   _BC._LABEL-FGCOLOR      = ? AND 
-                                   _BC._LABEL-FONT         = ? AND
-                                   NOT _BC._ENABLED            AND
-                                   NOT _BC._DISABLE-AUTO-ZAP   AND
-                                   NOT _BC._AUTO-RETURN        AND
-                                   _BC._DBNAME NE "_<CALC>":U) AND
-                                   _BC._VISIBLE                AND
-                                   NOT _BC._AUTO-RESIZE        AND
-                                   NOT _BC._COLUMN-READ-ONLY   AND
+                                  (output-label            = ?     AND
+                                   output-format           = ?     AND
+                                   output-help             = ?     AND
+                                   output-width            = ?     AND
+                                   _BC._BGCOLOR            = ?     AND 
+                                   _BC._FGCOLOR            = ?     AND 
+                                   _BC._FONT               = ?     AND 
+                                   _BC._LABEL-BGCOLOR      = ?     AND 
+                                   _BC._LABEL-FGCOLOR      = ?     AND 
+                                   _BC._LABEL-FONT         = ?     AND
+                                   _BC._LABEL-ATTR         = "":U  AND
+                                   _BC._FORMAT-ATTR        = "U":U AND
+                                   _BC._HELP-ATTR          = "":U  AND
+                                   NOT _BC._ENABLED                AND
+                                   NOT _BC._DISABLE-AUTO-ZAP       AND
+                                   NOT _BC._AUTO-RETURN            AND
+                                   _BC._DBNAME NE "_<CALC>":U)     AND
+                                   _BC._VISIBLE                    AND
+                                   NOT _BC._AUTO-RESIZE            AND
+                                   NOT _BC._COLUMN-READ-ONLY       AND
                                    (_BC._VIEW-AS-TYPE EQ ?     OR
                                    _BC._VIEW-AS-TYPE EQ ""     OR
                                    _BC._VIEW-AS-TYPE EQ "FILL-IN":U).

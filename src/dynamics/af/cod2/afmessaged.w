@@ -50,8 +50,6 @@ DEFINE INPUT PARAMETER  phContainer          AS HANDLE.    /* Optional  containe
 DEFINE OUTPUT PARAMETER piPressedButton      AS INTEGER.   /* Integer value of entry number in button list of button pressed.      */
 DEFINE OUTPUT PARAMETER pcActualAnswer       AS CHARACTER. /* String value of answer to question if applicable.                    */
 
-IF pcMessageType = "ABO":U THEN
-  pcMessageDetailList = "":U.
 
 /* MESSAGE "pcMessageType=" pcMessageType SKIP                  */
 /*         "pcButtonLabelList=" pcButtonLabelList SKIP          */
@@ -63,35 +61,23 @@ IF pcMessageType = "ABO":U THEN
 /*         "pcMessageSummaryList=" pcMessageSummaryList SKIP(1) */
 /*         "pcMessageDetailList=" pcMessageDetailList SKIP.     */
 
-
-
 /* Local Variable Definitions ---                                       */
 
-
 /* variables used to cache the dimensions of a window before it is maximized */
-
 DEFINE VARIABLE gdPreviousWidth     AS DECIMAL  NO-UNDO.
 DEFINE VARIABLE gdPreviousHeight    AS DECIMAL  NO-UNDO.
 DEFINE VARIABLE gdPreviousRow       AS DECIMAL  NO-UNDO.
 DEFINE VARIABLE gdPreviousColumn    AS DECIMAL  NO-UNDO.
-
-DEFINE VARIABLE glQuestion          AS LOGICAL  NO-UNDO. /* set TRUE if this is a Question */
-DEFINE VARIABLE glInformation       AS LOGICAL  NO-UNDO. /* set TRUE if this is a Information */
-DEFINE VARIABLE glAbout             AS LOGICAL  NO-UNDO. /* set TRUE if this is a About window */
 DEFINE VARIABLE ghFillIn            AS HANDLE   NO-UNDO. /* handle to the fillin for entering a Response */
 DEFINE VARIABLE ghLabel             AS HANDLE   NO-UNDO. /* handle to the Label of a Response */
 DEFINE VARIABLE ghFocusButton       AS HANDLE   NO-UNDO. /* handle to the widget which will be granted focus */
-
+define variable gcMessageBoxType    as character no-undo.    /* Simple/Detail/Complex */
 DEFINE VARIABLE giLevel             AS INTEGER INITIAL 4 NO-UNDO.
-
-DEFINE VARIABLE lFullScreen         AS LOGICAL  NO-UNDO.
-
-
-DEFINE VARIABLE ghSourceProcedure AS HANDLE NO-UNDO. /* used to get details from the calling procedure */
+DEFINE VARIABLE glFullScreen        AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE ghSourceProcedure   AS HANDLE NO-UNDO. /* used to get details from the calling procedure */
 
 /* I know this is the definitions section, but I need to execute this statement without 
    any chance of a RUN statement being executed first! */
-
 ghSourceProcedure = SOURCE-PROCEDURE.
 
 DEFINE TEMP-TABLE ttHandle          NO-UNDO
@@ -109,7 +95,9 @@ DEFINE TEMP-TABLE ttField       NO-UNDO
     FIELD tFieldLabel       AS CHARACTER
     .
 
-DEFINE VARIABLE ghCacheBufferHandle AS HANDLE NO-UNDO.
+&scoped-define MB-TYPE-COMPLEX Complex
+&scoped-define MB-TYPE-DETAIL Detail
+&scoped-define MB-TYPE-SIMPLE Simple
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -130,8 +118,7 @@ DEFINE VARIABLE ghCacheBufferHandle AS HANDLE NO-UNDO.
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS imAlert edSystemInformation edAppserver ~
-edMessageSummary edMessageDetail 
+&Scoped-Define ENABLED-OBJECTS imAlert 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -151,6 +138,31 @@ FUNCTION addHandle RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildButtons gDialog 
+FUNCTION buildButtons RETURNS LOGICAL PRIVATE
+        ( INPUT pcButtonLabelList AS CHARACTER,
+          INPUT piDefaultButton AS integer,
+          INPUT piCancelButton AS integer) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildInputFields gDialog 
+FUNCTION buildInputFields RETURNS LOGICAL PRIVATE
+  ( INPUT pcAnswerDataType AS CHARACTER,
+    INPUT pcAnswerFormat AS CHARACTER,
+    input pcDefaultAnswer as character    )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD centreMB gDialog 
+FUNCTION centreMB RETURNS LOGICAL PRIVATE
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD DisplayConfigInfo gDialog 
 FUNCTION DisplayConfigInfo RETURNS LOGICAL
     ( INPUT plLocalSession      AS LOGICAL,
@@ -159,9 +171,37 @@ FUNCTION DisplayConfigInfo RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mailMessage gDialog 
+FUNCTION mailMessage RETURNS LOGICAL PRIVATE
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD maxMinMB gDialog 
+FUNCTION maxMinMB RETURNS LOGICAL PRIVATE
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD notNull gDialog 
 FUNCTION notNull RETURNS CHARACTER
   ( cValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEditorBGColor gDialog 
+FUNCTION setEditorBGColor RETURNS LOGICAL
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showDetail gDialog 
+FUNCTION showDetail RETURNS LOGICAL PRIVATE
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -203,22 +243,22 @@ DEFINE BUTTON btStack
 DEFINE VARIABLE edAppserver AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-VERTICAL LARGE NO-BOX
      SIZE 61 BY 5.52
-     BGCOLOR 16 FONT 0 NO-UNDO.
+     FONT 0 NO-UNDO.
 
 DEFINE VARIABLE edMessageDetail AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE NO-BOX
      SIZE 61 BY 5.52
-     BGCOLOR 16 FONT 0 NO-UNDO.
+     FONT 0 NO-UNDO.
 
 DEFINE VARIABLE edMessageSummary AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE NO-BOX
      SIZE 61 BY 5.52
-     BGCOLOR 16 FONT 0 NO-UNDO.
+     FONT 0 NO-UNDO.
 
 DEFINE VARIABLE edSystemInformation AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-VERTICAL LARGE NO-BOX
      SIZE 61 BY 5.52
-     BGCOLOR 16 FONT 0 NO-UNDO.
+     FONT 0 NO-UNDO.
 
 DEFINE IMAGE imAlert CONVERT-3D-COLORS
      SIZE 8 BY 2.14.
@@ -233,19 +273,24 @@ DEFINE BUTTON btDefault DEFAULT
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
+DEFINE BUTTON btnDetail 
+     LABEL "Detail >>" 
+     SIZE 15 BY 1.14
+     BGCOLOR 8 .
+
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME gDialog
      btFullScreen AT ROW 6.57 COL 3.2
-     edSystemInformation AT ROW 2.43 COL 12.6 NO-LABEL
-     edAppserver AT ROW 2.43 COL 12.6 NO-LABEL
-     edMessageSummary AT ROW 2.43 COL 12.6 NO-LABEL
      btMail AT ROW 4.1 COL 3.2
-     edMessageDetail AT ROW 2.43 COL 12.6 NO-LABEL
+     edAppserver AT ROW 2.14 COL 13 NO-LABEL
+     edMessageSummary AT ROW 2.52 COL 15.8 NO-LABEL
+     edMessageDetail AT ROW 2.62 COL 35.4 NO-LABEL
      btStack AT ROW 5.33 COL 3.2
+     edSystemInformation AT ROW 3 COL 21.4 NO-LABEL
      imAlert AT ROW 1.48 COL 1.8
-     SPACE(91.59) SKIP(6.70)
+     SPACE(88.79) SKIP(6.70)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "<insert SmartDialog title>".
@@ -253,6 +298,7 @@ DEFINE FRAME gDialog
 DEFINE FRAME frButtons
      btDefault AT ROW 1 COL 1
      btCancel AT ROW 1 COL 19
+     btnDetail AT ROW 1.1 COL 37 WIDGET-ID 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 15 ROW 8.62
@@ -268,7 +314,6 @@ DEFINE FRAME frButtons
    Compile into: af/cod2
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -296,8 +341,17 @@ ASSIGN FRAME frButtons:FRAME = FRAME gDialog:HANDLE.
 ASSIGN 
        btCancel:HIDDEN IN FRAME frButtons           = TRUE.
 
+/* SETTINGS FOR BUTTON btDefault IN FRAME frButtons
+   NO-ENABLE                                                            */
 ASSIGN 
        btDefault:HIDDEN IN FRAME frButtons           = TRUE.
+
+/* SETTINGS FOR BUTTON btnDetail IN FRAME frButtons
+   NO-ENABLE                                                            */
+ASSIGN 
+       btnDetail:HIDDEN IN FRAME frButtons           = TRUE
+       btnDetail:PRIVATE-DATA IN FRAME frButtons     = 
+                "more".
 
 /* SETTINGS FOR DIALOG-BOX gDialog
    FRAME-NAME                                                           */
@@ -321,24 +375,25 @@ ASSIGN
        btStack:HIDDEN IN FRAME gDialog           = TRUE.
 
 /* SETTINGS FOR EDITOR edAppserver IN FRAME gDialog
-   NO-DISPLAY                                                           */
+   NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        edAppserver:HIDDEN IN FRAME gDialog           = TRUE
        edAppserver:READ-ONLY IN FRAME gDialog        = TRUE.
 
 /* SETTINGS FOR EDITOR edMessageDetail IN FRAME gDialog
-   NO-DISPLAY                                                           */
+   NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        edMessageDetail:HIDDEN IN FRAME gDialog           = TRUE
        edMessageDetail:READ-ONLY IN FRAME gDialog        = TRUE.
 
 /* SETTINGS FOR EDITOR edMessageSummary IN FRAME gDialog
-   NO-DISPLAY                                                           */
+   NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
+       edMessageSummary:HIDDEN IN FRAME gDialog           = TRUE
        edMessageSummary:READ-ONLY IN FRAME gDialog        = TRUE.
 
 /* SETTINGS FOR EDITOR edSystemInformation IN FRAME gDialog
-   NO-DISPLAY                                                           */
+   NO-DISPLAY NO-ENABLE                                                 */
 ASSIGN 
        edSystemInformation:HIDDEN IN FRAME gDialog           = TRUE
        edSystemInformation:READ-ONLY IN FRAME gDialog        = TRUE.
@@ -372,7 +427,7 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL gDialog gDialog
 ON MOUSE-SELECT-DBLCLICK OF FRAME gDialog /* <insert SmartDialog title> */
 DO:
-  APPLY "choose":U TO btfullscreen.
+    {fn maxMinMB}.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -418,63 +473,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btFullScreen gDialog
 ON CHOOSE OF btFullScreen IN FRAME gDialog /* FS */
 DO:
-
-    DEFINE VARIABLE hParentWindow AS HANDLE NO-UNDO.
-    DEFINE VARIABLE dParentWIndowColumn AS DECIMAL NO-UNDO.
-    DEFINE VARIABLE dParentWIndowRow AS DECIMAL NO-UNDO.
-    DEFINE VARIABLE dRow AS DECIMAL NO-UNDO.
-    DEFINE VARIABLE dCol AS DECIMAL NO-UNDO.
-
-    lFullScreen = NOT lFullScreen.
-
-    IF lFullScreen THEN 
-    DO:    
-        ASSIGN
-            hParentWindow       = FRAME {&FRAME-NAME}:PARENT
-            dParentWIndowColumn = hParentWindow:COLUMN
-            dParentWIndowRow    = hParentWindow:ROW
-            gdPreviousWidth     = FRAME {&FRAME-NAME}:WIDTH
-            gdPreviousHeight    = FRAME {&FRAME-NAME}:HEIGHT
-            gdPreviousColumn    = FRAME {&FRAME-NAME}:COLUMN
-            gdPreviousRow       = FRAME {&FRAME-NAME}:ROW
-            .            
-        ASSIGN
-            FRAME {&FRAME-NAME}:WIDTH  = SESSION:WIDTH 
-            FRAME {&FRAME-NAME}:HEIGHT = SESSION:HEIGHT
-            dRow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2)
-                                         - hParentWindow:ROW - 1
-            dCol = MAXIMUM(1,(SESSION:WIDTH - FRAME {&FRAME-NAME}:WIDTH) / 2)
-                                         - hParentWindow:COLUMN - 1
-            .                                         
-
-        /* If the row or column wound up being between 0 and 1 after the 
-           calculation, change it, because otherwise Progress will complain. */
-        IF dRow GE 0 AND dRow < 1 THEN dRow = 1.
-        IF dCol GE 0 AND dCol < 1 THEN dCol = 1.
-
-        ASSIGN            
-            FRAME {&FRAME-NAME}:ROW    = dRow
-            FRAME {&FRAME-NAME}:COLUMN = dCol
-            .                                                                                  
-
-/*             FRAME {&FRAME-NAME}:COLUMN   = -1 * dParentWIndowColumn */
-/*             FRAME {&FRAME-NAME}:ROW   = -1 * dParentWIndowRow       */
-
-        RUN reorganize (SESSION:WIDTH, SESSION:HEIGHT, NO).
-    END.
-    ELSE DO:
-        RUN reorganize (gdPreviousWidth, gdPreviousHeight, YES).            
-        ASSIGN
-            FRAME {&FRAME-NAME}:WIDTH    = gdPreviousWidth
-            FRAME {&FRAME-NAME}:HEIGHT   = gdPreviousHeight
-            FRAME {&FRAME-NAME}:COLUMN   = gdPreviousColumn
-            FRAME {&FRAME-NAME}:ROW      = gdPreviousRow
-            .
-    END.
-
-    IF lFullScreen 
-        THEN SELF:TOOLTIP = "Normal Screen Size". 
-        ELSE SELF:TOOLTIP = "Full Screen Size".
+    {fn maxMinMB}.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -485,96 +484,32 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btMail gDialog
 ON CHOOSE OF btMail IN FRAME gDialog
 DO:
-    DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cFailureReason    AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cAttachmentName   AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cAttachmentFPath  AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cTempFileName     AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cUserLogin        AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cEmailAddress     AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-
-    IF NOT glQuestion AND NOT glInformation THEN
-    DO:
-        giLevel = 4.
-        IF edSystemInformation:LENGTH = 0 THEN
-            RUN getSystemInfo.
-        IF edAppServer:LENGTH = 0 THEN
-            RUN getAppServerInfo.
-    END.
-
-    cMessage = "~n~n**********  MESSAGE SUMMARY   **********~n~n" + edMessageSummary:SCREEN-VALUE + 
-               (IF pcMessageDetailList <> "":U THEN ("~n~n**********   MESSAGE DETAIL   **********~n~n" + edMessageDetail:SCREEN-VALUE) ELSE "":U) +
-                  "~n~n********** SYSTEM INFORMATION **********~n~n" + (IF edSystemInformation:LENGTH > 0 THEN "See attachment" ELSE "") +
-                  "~n~n********** APPSERVER INFORMATION **********~n~n" + (IF edAppServer:LENGTH > 0 THEN "See attachment" ELSE "").
-
-    /* get user email from property for current user */
-    cEmailAddress = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                     INPUT "currentUserEmail":U,
-                                     INPUT NO).
-    /* get user login from property for current user */
-    cUserLogin = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                    INPUT "currentUserLogin":U,
-                                    INPUT NO).
-
-    IF edSystemInformation:LENGTH > 0 THEN
-    DO:
-        ASSIGN cTempFileName    = "system_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
-               cAttachmentName  = cTempFileName
-               cAttachmentFPath = SESSION:TEMP-DIRECTORY + cTempFileName.
-        edSystemInformation:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
-    END.
-
-    IF edAppServer:LENGTH > 0 THEN
-    DO:
-        ASSIGN cTempFileName    = "appserver_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
-               cAttachmentName  = IF cAttachmentName > "" THEN
-                                      cAttachmentName + ",":U + cTempFileName
-                                  ELSE
-                                      cTempFileName
-               cAttachmentFPath = IF cAttachmentFPath > "" THEN
-                                      cAttachmentFPath + ",":U + SESSION:TEMP-DIRECTORY + cTempFileName
-                                  ELSE
-                                      SESSION:TEMP-DIRECTORY + cTempFileName.
-        edAppserver:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
-    END.
-
-    IF cEmailAddress <> "":U THEN /* Send email message to user */
-        RUN sendEmail IN gshSessionManager
-                          ( INPUT "":U,                 /* Email profile to use  */
-                            INPUT cEmailAddress,        /* Comma list of Email addresses for to: box */
-                            INPUT "":U,                 /* Comma list of Email addresses to cc */
-                            INPUT "Technical Support",  /* Subject of message */
-                            INPUT cMessage,             /* Message text */
-                            INPUT cAttachmentName,      /* Comma list of attachment filenames */
-                            INPUT cAttachmentFPath,     /* Comma list of attachment filenames with full path */
-                            INPUT NOT SESSION:REMOTE,   /* YES = display dialog for modification before send */
-                            INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */
-                            INPUT NO,                   /* YES = return a read receipt */
-                            INPUT NO,                   /* YES = return a delivery receipt */
-                            INPUT "":U,                 /* Not used yet but could be used for additional settings */
-                            OUTPUT cFailureReason       /* If failed - the reason why, blank = it worked */
-                          ).
-    ELSE
-        ASSIGN cFailureReason = "Your e-mail address has not been set up against your user account.  Please contact your System Administrator.".
-
-    IF cFailureReason <> "" THEN MESSAGE 
-        cFailureReason VIEW-AS ALERT-BOX ERROR TITLE "Could not compose Email".
-
-    DO iLoop = 1 TO NUM-ENTRIES(cAttachmentFPath):
-        OS-DELETE VALUE(ENTRY(iLoop, cAttachmentFPath)).
-    END.
+    if btMail:sensitive then
+        {fn mailMessage}.
 END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
+&Scoped-define FRAME-NAME frButtons
+&Scoped-define SELF-NAME btnDetail
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnDetail gDialog
+ON CHOOSE OF btnDetail IN FRAME frButtons /* Detail >> */
+DO:
+    if gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u then
+        {fn showDetail}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME gDialog
 &Scoped-define SELF-NAME btStack
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btStack gDialog
 ON CHOOSE OF btStack IN FRAME gDialog /* STK */
 DO:
-
     MESSAGE "Press HELP for stack trace":U
         VIEW-AS ALERT-BOX INFORMATION.
 END.
@@ -591,11 +526,13 @@ END.
 /* ***************************  Main Block  *************************** */
 
 ON CTRL-PAGE-UP OF FRAME {&FRAME-NAME} ANYWHERE DO:
-  PUBLISH "selectPrevTab":U.
+    if valid-handle(h_afspfoldrw) then
+        PUBLISH "selectPrevTab":U.
 END.
 
 ON CTRL-PAGE-DOWN OF FRAME {&FRAME-NAME} ANYWHERE DO:
-  PUBLISH "selectNextTab":U.
+    if valid-handle(h_afspfoldrw) then
+        PUBLISH "selectNextTab":U.
 END.
 
 
@@ -624,7 +561,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/sup2/afspfoldrw.w':U ,
              INPUT  FRAME gDialog:HANDLE ,
-             INPUT  'FolderLabels':U + 'Message &Summary|Message &Detail|System &Information|&Appserver Information' + 'TabFGcolor':U + 'Default|Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + 'Alt-S|Alt-D|Alt-I|Alt-A' + 'Tooltip':U + '' + 'TabHidden':U + 'no|no|no|no' + 'EnableStates':U + 'All|All|All|All' + 'DisableStates':U + 'All|All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '8' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'TABS' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInityesDisableOnInitnoObjectLayout':U ,
+             INPUT  'FolderLabels':U + 'Message &Summary|Message &Detail|System &Information|&Appserver Information' + 'TabFGcolor':U + 'Default|Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + 'Alt-S|Alt-D|Alt-I|Alt-A' + 'Tooltip':U + '' + 'TabHidden':U + 'no|no|no|no' + 'EnableStates':U + 'All|All|All|All' + 'DisableStates':U + 'All|All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '8' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'TABS' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_afspfoldrw ).
        RUN repositionObject IN h_afspfoldrw ( 1.24 , 10.80 ) NO-ERROR.
        RUN resizeObject IN h_afspfoldrw ( 4.00 , 82.60 ) NO-ERROR.
@@ -671,7 +608,7 @@ PROCEDURE destroyObject :
   Notes:       
 ------------------------------------------------------------------------------*/
     /* Clean up after ourselves. */
-    whackTempTables().
+    {fn whackTempTables}.
 
     RUN SUPER.
 
@@ -710,13 +647,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  ENABLE imAlert edSystemInformation edAppserver edMessageSummary 
-         edMessageDetail 
+  ENABLE imAlert 
       WITH FRAME gDialog.
   VIEW FRAME gDialog.
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
-  ENABLE btDefault 
-      WITH FRAME frButtons.
+  VIEW FRAME frButtons.
   {&OPEN-BROWSERS-IN-QUERY-frButtons}
 END PROCEDURE.
 
@@ -801,7 +736,14 @@ PROCEDURE getAppserverInfo :
             hQuery:GET-NEXT.
         END.
         hQuery:QUERY-CLOSE.
+        
+        /* Clean up */
         DELETE OBJECT hQuery.
+        hQUery = ?.
+        delete object hBuffer no-error.
+        hBuffer = ?.
+        delete object hTTPersistentProcedure no-error.
+        hTTPersistentProcedure = ?.
 
         /* Display the Config and Connection Manager information. */
         DYNAMIC-FUNCTION("addHandle", INPUT hTTParam,       INPUT "*":U,                                  INPUT NO).
@@ -812,7 +754,7 @@ PROCEDURE getAppserverInfo :
         DYNAMIC-FUNCTION("DisplayConfigInfo", INPUT NO, INPUT edAppserver:HANDLE).
 
         /** Display relevant customisation information.
-	     *  ----------------------------------------------------------------------- **/  
+             *  ----------------------------------------------------------------------- **/  
         edAppServer:INSERT-STRING("~n~n":U).
         edAppServer:INSERT-STRING("Customisation Information" + "~n":U + FILL("=":U, 50) + "~n":U).
     
@@ -832,47 +774,6 @@ PROCEDURE getAppserverInfo :
     error-status:error = no.
     RETURN.
 END PROCEDURE.    /* getAppserverInfo */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getHandles gDialog 
-PROCEDURE getHandles :
-/*------------------------------------------------------------------------------
-  Purpose:     Gets the handles to the temp-tables.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-/*
-  DEFINE VARIABLE hHandle1 AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hHandle2 AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hHandle3 AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hHandle4 AS HANDLE     NO-UNDO.
-
-  whackTempTables().
-
-  IF lRemote THEN
-  DO:
-    RUN af/app/afcfminfop.p ON SERVER gshAstraAppServer 
-      (OUTPUT TABLE-HANDLE hHandle1, 
-       OUTPUT TABLE-HANDLE hHandle2, 
-       OUTPUT TABLE-HANDLE hHandle3, 
-       OUTPUT TABLE-HANDLE hHandle4).
-  END.
-  ELSE
-  DO:
-    RUN obtainCFMTables IN THIS-PROCEDURE (OUTPUT hHandle1, OUTPUT hHandle2).
-    RUN obtainConnectionTables IN THIS-PROCEDURE (OUTPUT hHandle3, OUTPUT hHandle4).
-  END.
-
-  addHandle(hHandle1, "*").
-  addHandle(hHandle2, "cManagerName,cFileName,cHandleName").
-  addHandle(hHandle3, "cServiceType,cSTProcName").
-  addHandle(hHandle4, "*").
-
-  RUN loadCombo.
-*/  
-END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -923,7 +824,9 @@ PROCEDURE getPatchLevel :
       END.
     END.
   END.         
-END PROCEDURE.
+  error-status:error = no.
+  return.
+END PROCEDURE.    /*getPatchLevel*/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -936,7 +839,6 @@ PROCEDURE getSystemInfo :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
     DEFINE VARIABLE hParentWindow      AS HANDLE NO-UNDO.
     DEFINE VARIABLE hParentProcedure   AS HANDLE NO-UNDO.
     DEFINE VARIABLE cParentWindowTitle AS CHARACTER NO-UNDO.
@@ -964,45 +866,41 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE hTTManager          AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE hTTServiceType      AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE hTTService          AS HANDLE                   NO-UNDO.
-
-DO WITH FRAME {&FRAME-NAME}:
-    RUN GetPatchLevel(OUTPUT cPatchLevel). /* Read patch level from version file */
-
-    edSystemInformation:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "".
-
-    hParentWindow = FRAME {&FRAME-NAME}:PARENT.
-    hParentProcedure = ghSourceProcedure.
-
     DEFINE VARIABLE cResources1 AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cResources2 AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cProperties AS CHARACTER NO-UNDO.
 
-    cProperties = DYNAMIC-FUNCTION("getPropertyList" IN gshSessionManager, "currentUserLogin,currentUserName,CurrentOrganisationName,CurrentProcessDate,dateFormat,currentLanguageName", NO).
+    RUN GetPatchLevel(OUTPUT cPatchLevel). /* Read patch level from version file */
+
+    edSystemInformation:SCREEN-VALUE in frame {&frame-name} = "".
+
+    hParentWindow = FRAME {&FRAME-NAME}:PARENT.
+    hParentProcedure = ghSourceProcedure.
+
+    cProperties = DYNAMIC-FUNCTION("getPropertyList" IN gshSessionManager,
+                                        "currentUserLogin,currentUserName,CurrentOrganisationName,CurrentProcessDate,dateFormat,currentLanguageName", 
+                                        NO).
 
     /* Get container and container-target versions if possible */
-    ASSIGN cObjectInformation = "":U.
+    cObjectInformation = "":U.
     IF VALID-HANDLE(phContainer) THEN
     DO:
-      ASSIGN cPhysicalObject = phContainer:FILE-NAME.
-      ASSIGN cPhysicalVersion = DYNAMIC-FUNCTION('getPhysicalVersion' IN phContainer) NO-ERROR.
-      ASSIGN cLogicalObject = DYNAMIC-FUNCTION('getLogicalObjectName' IN phContainer) NO-ERROR.
-      ASSIGN cLogicalVersion = DYNAMIC-FUNCTION('getLogicalVersion' IN phContainer) NO-ERROR.
-      ASSIGN cRunAttribute = DYNAMIC-FUNCTION('getRunAttribute' IN phContainer) NO-ERROR.
+      cPhysicalObject = phContainer:FILE-NAME.
+      {get PhysicalVersion cPhysicalVersion phContainer} NO-ERROR.
+      {get LogicalObjectName cLogicalObject phContainer} NO-ERROR.
+      {get LogicalVersion cLogicalVersion phContainer} NO-ERROR.
+      {get RunAttribute cRunAttribute phContainer} NO-ERROR.
 
-      ASSIGN
-        cObjectInformation = "Container Physical File    = ":U + notNull(cPhysicalObject) + "~n" +
-                             "Container Physical Version = ":U + notNull(cPhysicalVersion) + "~n"
-        . 
+      cObjectInformation = "Container Physical File    = ":U + notNull(cPhysicalObject) + "~n" +
+                           "Container Physical Version = ":U + notNull(cPhysicalVersion) + "~n". 
+                            
       IF cLogicalObject <> "":U THEN
-        ASSIGN
           cObjectInformation = cObjectInformation +
                              "Container Logical File     = ":U + notNull(cLogicalObject) + "~n" +
-                             "Container Logical Version  = ":U + notNull(cLogicalVersion) + "~n"
-          . 
-      ASSIGN
-          cObjectInformation = cObjectInformation +
-                             "Container Run Attribute    = ":U + notNull(cRunAttribute) + "~n"
-          . 
+                             "Container Logical Version  = ":U + notNull(cLogicalVersion) + "~n".
+      cObjectInformation = cObjectInformation +
+                             "Container Run Attribute    = ":U + notNull(cRunAttribute) + "~n". 
+                             
       cLinkHandles = DYNAMIC-FUNCTION('linkHandles' IN phContainer, INPUT "container-target") NO-ERROR.
       target-loop:
       DO iLoop = 1 TO NUM-ENTRIES(cLinkHandles):
@@ -1014,37 +912,27 @@ DO WITH FRAME {&FRAME-NAME}:
           cPhysicalVersion = "":U
           cLogicalObject = "":U
           cLogicalVersion = "":U
-          .          
-        ASSIGN cPhysicalObject = hContainerTarget:FILE-NAME.
-        ASSIGN cPhysicalVersion = DYNAMIC-FUNCTION('getPhysicalVersion' IN hContainerTarget) NO-ERROR.
-        ASSIGN cLogicalObject = DYNAMIC-FUNCTION('getLogicalObjectName' IN hContainerTarget) NO-ERROR.
-        ASSIGN cLogicalVersion = DYNAMIC-FUNCTION('getLogicalVersion' IN hContainerTarget) NO-ERROR.
+          cPhysicalObject = hContainerTarget:FILE-NAME.
+        
+        {get PhysicalVersion cPhysicalVersion hContainerTarget} NO-ERROR.
+        {get LogicalObjectName cLogicalObject hContainerTarget} NO-ERROR.
+        {get LogicalVersion cLogicalVersion hContainerTarget} NO-ERROR.
 
-        ASSIGN
-          cObjectInformation = cObjectInformation +
+        cObjectInformation = cObjectInformation +
                                "Object Physical File       = ":U + notNull(cPhysicalObject) + "~n" +
-                               "Object Physical Version    = ":U + notNull(cPhysicalVersion) + "~n"
-          . 
+                               "Object Physical Version    = ":U + notNull(cPhysicalVersion) + "~n".
         IF cLogicalObject <> "":U THEN
-          ASSIGN
             cObjectInformation = cObjectInformation +
                                "Object Logical File        = ":U + notNull(cLogicalObject) + "~n" +
-                               "Object Logical Version     = ":U + notNull(cLogicalVersion) + "~n"
-            . 
+                               "Object Logical Version     = ":U + notNull(cLogicalVersion) + "~n".
       END.
     END.
 
-    IF VALID-HANDLE(ghCacheBufferHandle) THEN /* would have been set in getAppserverInfo if we're running Appserver */
-        ASSIGN cSite = ghCacheBufferHandle:BUFFER-FIELD("cSite":U):BUFFER-VALUE.
-    ELSE
-        RUN getSiteNumber IN gshGenManager (OUTPUT cSite).                                                    
+    RUN getSiteNumber IN gshGenManager (OUTPUT cSite).                                                    
 
-    RUN af/sup/afwindsysp.p ( 
-        OUTPUT cResources1,
-        OUTPUT cResources2).
-
+    RUN af/sup/afwindsysp.p ( OUTPUT cResources1, OUTPUT cResources2).
+    
     edSystemInformation:INSERT-STRING("~n" + 
-
         "Window Title:               " + notNull(hParentWindow:TITLE)            + "~n" +
         "Site Number:                " + notNull(cSite)                          + "~n" +
         "User Login:                 " + notNull(ENTRY(1,cProperties,CHR(3)))    + "~n" +
@@ -1073,25 +961,20 @@ DO WITH FRAME {&FRAME-NAME}:
     IF cObjectInformation <> "":U THEN
         edSystemInformation:INSERT-STRING("~n" + cObjectInformation).
 
-    ASSIGN cDBList = "":U.
+    cDBList = "":U.
     DO iLoop = 1 TO NUM-DBS:
-        ASSIGN cDBList = cDBList + (IF cDBList <> "":U THEN ",":U ELSE "":U) + LDBNAME(iLoop).
+        cDBList = cDBList + (IF cDBList <> "":U THEN ",":U ELSE "":U) + LDBNAME(iLoop).
     END.
 
-    IF cDBList <> "":U 
-    THEN DO:
-        IF VALID-HANDLE(ghCacheBufferHandle) THEN /* would have been set in getAppserverInfo if we're running Appserver */
-            ASSIGN cDBVersions = ghCacheBufferHandle:BUFFER-FIELD("cDBVersions":U):BUFFER-VALUE.
-        ELSE
-            RUN getDBVersion IN gshGenManager (INPUT cDBList, OUTPUT cDBVersions).
-    END.
+    IF cDBList <> "":U then
+        RUN getDBVersion IN gshGenManager (INPUT cDBList, OUTPUT cDBVersions).
 
     DO iLoop = 1 TO NUM-DBS:
         edSystemInformation:INSERT-STRING("~n" + "Database:       " + LDBNAME(iLoop)
-                                                             + "~n" + "Delta Version:  " + ENTRY(iLoop, cDBVersions)
-                                                             + "~n" + "Version:        " + DBVERSION(iLoop)
-                                                             + "~n" + "Connect:        " + DBPARAM(iLoop) + "~n").
-    END.         
+                                         + "~n" + "Delta Version:  " + ENTRY(iLoop, cDBVersions)
+                                         + "~n" + "Version:        " + DBVERSION(iLoop)
+                                         + "~n" + "Connect:        " + DBPARAM(iLoop) + "~n").
+    END.
 
     edSystemInformation:INSERT-STRING("~nPropath: ").
     DO iLoop = 1 TO NUM-ENTRIES(PROPATH):
@@ -1146,11 +1029,11 @@ DO WITH FRAME {&FRAME-NAME}:
     END.    /* valid customisation manager */
 
     /* Go back to the top of the editor. */
-    ASSIGN edSystemInformation:CURSOR-OFFSET = 1.
-END.
-
+    edSystemInformation:CURSOR-OFFSET = 1.
+    
+    error-status:error = no.
     RETURN.
-END PROCEDURE.
+END PROCEDURE.    /* getSystemInfo */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1162,228 +1045,197 @@ PROCEDURE initializeObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  DO WITH FRAME {&FRAME-NAME}: END.
-
-  DEFINE VARIABLE cDefaultTitle   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dMinHeight      AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dMinWidth       AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE idx             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hPreviousButton AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iBGcolor        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hWidget         AS HANDLE     NO-UNDO.
-
-  /* message dialog does not require security - so set object secured to true
-     to avoid appserver hits to check for security on it
-  */
-  {set ObjectSecured TRUE} NO-ERROR.
-
-  /* load the alert image */
-  ASSIGN
-      piDefaultButton = IF piDefaultButton <> 0 THEN piDefaultButton ELSE 1 /* set the default return used if the user presses X in the dialog */
-      piPressedButton = IF piCancelButton  <> 0 THEN piCancelButton  ELSE piDefaultButton
-      glQuestion      = (pcMessageType = "QUE")
-      glInformation   = (pcMessageType = "INF")
-      glAbout         = (pcMessageType = "ABO").
-
-  CASE pcMessageType:
-      WHEN "ABO" THEN DO: imAlert:LOAD-IMAGE("adeicon/icfdev.ico").    cDefaultTitle = "About Application". END.
-      WHEN "MES" THEN DO: imAlert:LOAD-IMAGE("ry/img/afinfo.gif").     cDefaultTitle = "Message".           END.
-      WHEN "INF" THEN DO: imAlert:LOAD-IMAGE("ry/img/afinfo.gif").     cDefaultTitle = "Information".       END.
-      WHEN "WAR" THEN DO: imAlert:LOAD-IMAGE("ry/img/afwarning.gif").  cDefaultTitle = "Warning".           END.
-      WHEN "ERR" THEN DO: imAlert:LOAD-IMAGE("ry/img/afinfo.gif").     cDefaultTitle = "Error".             END.
-      WHEN "HAL" THEN DO: imAlert:LOAD-IMAGE("ry/img/aferror.gif").    cDefaultTitle = "Error".             END.
-      WHEN "QUE" THEN DO: imAlert:LOAD-IMAGE("ry/img/afquestion.gif"). cDefaultTitle = "Question".          END.
-  END CASE.
-
-  /* set the title */
-  IF pcDialogTitle <> "" AND pcDialogTitle <> ? THEN
-    FRAME {&FRAME-NAME}:TITLE = pcDialogTitle.
-  ELSE
-    FRAME {&FRAME-NAME}:TITLE = cDefaultTitle.
-
-  /* do we need a fillin field? */
-
-  IF pcMessageType = "QUE" AND pcAnswerDataType <> "" THEN
-  DO:
-    IF LOOKUP(pcAnswerDataType,"LOGICAL,CHARACTER,INTEGER,DECIMAL,DATE") = 0 THEN
-      pcAnswerDataType = "CHARACTER".
-
-    CREATE TEXT ghLabel
-    ASSIGN FRAME        = FRAME {&FRAME-NAME}:HANDLE
-           HIDDEN       = FALSE
-           WIDTH        = FONT-TABLE:GET-TEXT-WIDTH("Response:")
-           FORMAT       = "x(25)"
-           SCREEN-VALUE = "Response:"
-           COL          = 13
-           ROW          = 1 + 0.07.
-
-    CREATE FILL-IN ghFillIn
-    ASSIGN FRAME             = FRAME {&FRAME-NAME}:HANDLE
-           HEIGHT            = 1
-           ROW               = 1 + 0.07
-           SIDE-LABEL-HANDLE = ghLabel
-           COL               = 13 + FONT-TABLE:GET-TEXT-WIDTH("Response: ")
-           WIDTH             = edMessageSummary:WIDTH - ghLabel:COL + 1
-           HIDDEN            = FALSE
-           SENSITIVE         = TRUE
-           DATA-TYPE         = pcAnswerDataType.
-
-    IF pcAnswerFormat <> "" THEN
-      ghFillIn:FORMAT = pcAnswerFormat.
-
-    ghFillIn:SCREEN-VALUE = pcDefaultAnswer.
-  END.
-
-  /* build up the buttons in the button frame */
-  DO idx = 1 TO NUM-ENTRIES(pcButtonLabelList):    
-    IF idx = piDefaultButton THEN
-      hWidget = btDefault:HANDLE IN FRAME frButtons.
-    ELSE
-      IF idx = piCancelButton THEN
-        hWidget = btCancel:HANDLE IN FRAME frButtons.
-      ELSE
-      DO: 
-        CREATE BUTTON hWidget
-        ASSIGN FRAME = FRAME frButtons:HANDLE                    
-        TRIGGERS:
-          ON CHOOSE PERSISTENT RUN buttonAction(idx).
-        END TRIGGERS.
-      END.
-
-    ASSIGN
-        hWidget:LABEL     = ENTRY(idx, pcButtonLabelList)
-        hWidget:WIDTH     = 15
-        hWidget:HEIGHT    = 1.14
-        hWidget:ROW       = 1
-        hWidget:COL       = (idx - 1) * 16 + 1
-        hWidget:HIDDEN    = FALSE
-        hWidget:SENSITIVE = TRUE.
-
-/*             IF idx = piDefaultButton THEN ASSIGN FRAME {&FRAME-NAME}:DEFAULT-BUTTON = hWidget. */
-
-        dMinWidth = MAX(dMinWidth, hWidget:COLUMN + hWidget:WIDTH - 1).
-        dMinHeight = MAX(dMinHeight, hWidget:HEIGHT). 
+    DO WITH FRAME {&FRAME-NAME}: END.
     
-    IF (idx = 1 AND piDefaultButton = 0) OR (idx = piDefaultButton) THEN
-      ghFocusButton = hWidget.
+    DEFINE VARIABLE cDefaultTitle   AS CHARACTER  NO-UNDO.
+    def var dNewHeight as decimal no-undo.
+    def var dNewWidth as decimal no-undo.
+    
+    /* message dialog does not require security - so set object secured to true
+       to avoid appserver hits to check for security on it */
+    {set ObjectSecured TRUE} NO-ERROR.
+    
+    /* set the default return used if the user presses X in the dialog */  
+    ASSIGN piDefaultButton = IF piDefaultButton <> 0 THEN piDefaultButton ELSE 1 
+           piPressedButton = IF piCancelButton  <> 0 THEN piCancelButton  ELSE piDefaultButton.
+    
+    /* get the visualisation type */
+    gcMessageBoxType = dynamic-function('getMessageBoxType' in target-procedure).
+     
+    /* load the alert image */
+    CASE pcMessageType:
+        WHEN "ABO" THEN
+        DO:
+            imAlert:LOAD-IMAGE("adeicon/icfdev.ico").
+            cDefaultTitle = "About Application". 
+            pcMessageDetailList = "":U.    /* not sure why this is necessary ... */
+            edMessageSummary:FONT = ?.
+            
+            /* Detail has no more useful info than Simple for About. */
+            if gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u then
+                gcMessageBoxType = '{&MB-TYPE-SIMPLE}':u.
+            
+            RUN disableFolderPage IN h_afspfoldrw (2).
+        END.    /* ABO */
+        WHEN "MES" THEN DO: imAlert:LOAD-IMAGE("ry/img/afinfo.gif").     cDefaultTitle = "Message". END.
+        WHEN "INF" THEN
+        do: 
+            gcMessageBoxType = '{&MB-TYPE-SIMPLE}':u.
+            imAlert:LOAD-IMAGE("ry/img/afinfo.gif").
+            cDefaultTitle = "Information".
+        end.    /* INF */
+        WHEN "WAR" THEN DO: imAlert:LOAD-IMAGE("ry/img/afwarning.gif").  cDefaultTitle = "Warning". END.
+        WHEN "ERR" THEN DO: imAlert:LOAD-IMAGE("ry/img/aferror.gif").    cDefaultTitle = "Error".   END.
+        WHEN "HAL" THEN DO: imAlert:LOAD-IMAGE("ry/img/aferror.gif").    cDefaultTitle = "Error".   END.
+        WHEN "QUE" THEN
+        DO:
+            gcMessageBoxType = '{&MB-TYPE-SIMPLE}':u.
+            imAlert:LOAD-IMAGE("ry/img/afquestion.gif"). 
+            cDefaultTitle = "Question".
 
-    IF VALID-HANDLE(hPreviousButton) THEN
-      hWidget:MOVE-AFTER-TAB-ITEM(hPreviousButton).
+            edMessageSummary:FONT = ?.
+            
+            if pcAnswerDataType <> "" then
+                dynamic-function('buildInputFields':u in target-procedure,
+                                   pcAnswerDataType, pcAnswerFormat, pcDefaultAnswer ).
+        END.    /* QUE */
+    END CASE.    /* message type */
+    
+    /* set the dialog title */
+    IF pcDialogTitle eq "":u or pcDialogTitle eq ? THEN
+        pcDialogTitle = cDefaultTitle.
+    FRAME {&FRAME-NAME}:TITLE = pcDialogTitle.
+    
+    /* build any buttons required */
+    dynamic-function('buildButtons':u in target-procedure,
+                        pcButtonLabelList, piDefaultButton, piCancelButton).
+    /* Make sure the MB is wide enough for the buttons; add some trial-and-error padding */
+    dNewWidth = max(frame {&frame-name}:width, frame frButtons:width) + 5.
 
-    hPreviousButton = hWidget.           
-  END.
-
-  ASSIGN
-      FRAME frButtons:VIRTUAL-HEIGHT = dMinHeight
-      FRAME frButtons:VIRTUAL-WIDTH  = dMinWidth
-      FRAME frButtons:HEIGHT         = dMinHeight
-      FRAME frButtons:WIDTH          = dMinWidth
-      edMessageSummary:SCREEN-VALUE  = "~n" + REPLACE(pcMessageSummaryList, CHR(3), "~n~n")
-      edMessageDetail:SCREEN-VALUE   = "~n" + REPLACE(pcMessageDetailList,  CHR(3), "~n~n").    
-
-  RUN postCreateObjects.
-
-  IF glQuestion OR glInformation THEN
-    DYNAMIC-FUNCTION("setUserProperty":U IN h_afspfoldrw, "DoNotShow":U, "yes":U).
-
-  RUN initializeObject IN h_afspfoldrw.
-
-  /* We want the background color to be message-style (color3dface) 
-    (large editor inherits from windows text (or something) - typically white, 
-     These are thus defined with bgcolor 16 as default, but this only matches 
-     windows standard)   */ 
-  iBgcolor = {fn getColor3DFace}.  
-  IF iBgcolor <> ? THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-      edMessageDetail:BGCOLOR = iBgcolor
-      edSystemInformation:BGCOLOR = iBgColor
-      edAppserver:BGCOLOR = iBgColor
-      edMessageSummary:BGCOLOR = iBgColor.
-  END.
-
-  /* Question */
-
-  IF glQuestion OR glInformation THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        btMail:HIDDEN               = TRUE
-        btStack:HIDDEN              = TRUE
-        edMessageDetail:HIDDEN      = TRUE
-        edSystemInformation:HIDDEN  = TRUE        
-        edAppserver:HIDDEN          = TRUE        
-        btFullScreen:HIDDEN         = TRUE
-        edMessageSummary:FONT       = ?
-        btStack:ROW                 = btMail:ROW
-        btFullScreen:ROW            = btMail:ROW.
-
+    /* There is always a summary */
+    edMessageSummary:SCREEN-VALUE  = "~n" + REPLACE(pcMessageSummaryList, CHR(3), "~n~n").
     edMessageSummary:MOVE-TO-EOF().
+    
+    /* Only detail with Complex and Detail messages; not with questions. */
+    if gcMessageBoxType ne '{&MB-TYPE-SIMPLE}':u then
+    do:
+        edMessageDetail:SCREEN-VALUE = "~n" + REPLACE(pcMessageDetailList,  CHR(3), "~n~n").
+        /* Set BOX before MOVE-TO-EOF since M-T-E realises the editor widget. */        
+        edMessageDetail:box = gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u.
+        edMEssageDetail:move-to-eof().
+    end.
+         
+    /* If we don't need a folder, get rid of it. */
+    if gcMessageBoxType ne '{&MB-TYPE-COMPLEX}':U then
+        run destroyObject in h_afspfoldrw.
 
-    ASSIGN
-        edMessageSummary:HEIGHT     = MIN(edMessageSummary:HEIGHT, edMessageSummary:CURSOR-LINE * FONT-TABLE:GET-TEXT-HEIGHT(edMessageSummary:FONT))
-        edMessageDetail:HEIGHT      = edMessageSummary:HEIGHT
-        edSystemInformation:HEIGHT  = edMessageSummary:HEIGHT
-        edAppserver:HEIGHT          = edMessageSummary:HEIGHT.
+    assign frame {&frame-name}:scrollable = yes
+           frame {&frame-name}:virtual-height = session:height
+           frame {&frame-name}:virtual-width = session:width
+           frame {&frame-name}:height = session:height
+           frame {&frame-name}:width = session:width
+           frame {&frame-name}:scrollable = no.
+    
+    /* Set widget visiblity/sensitivity.
+       Some dimensional info is set here - but only the definitional or anchoring
+       stuff. All the relative positioning and sizing is done by reorganize(). */
+    case gcMessageBoxType:
+        when '{&MB-TYPE-COMPLEX}':u then
+        do:
+            ASSIGN
+                btMail:HIDDEN           = FALSE
+                btStack:HIDDEN          = NOT SESSION:DEBUG-ALERT
+                btFullScreen:HIDDEN     = FALSE
+                btnDetail:hidden        = true.
+        
+            dNewHeight =  MAX(edMessageSummary:HEIGHT + 4, btFullScreen:ROW + btStack:HEIGHT + 0.24 + 0.16) + 0.
+            
+            if gshAstraAppServer eq session:handle then
+                run disableFolderPage in h_afspfoldrw (4).
+        end.    /* complex */
+        when '{&MB-TYPE-DETAIL}':u or when '{&MB-TYPE-SIMPLE}':u then
+        do:
+            ASSIGN
+                btMail:HIDDEN           = true
+                btStack:HIDDEN          = not session:debug-alert
+                btFullScreen:HIDDEN     = true
+                btnDetail:hidden        = gcMessageBoxType eq '{&MB-TYPE-SIMPLE}':u
+                edAppServer:hidden      = yes
+                edSystemInformation:hidden = yes
+                edMessageDetail:hidden = yes
+                
+                btStack:col = imAlert:col
+                btStack:row = imAlert:row + imAlert:Height
+                btStack:height = imAlert:height
+                btStack:width = imAlert:width
+                btStack:flat-button = yes                
 
-    RUN reorganize (INPUT FRAME {&FRAME-NAME}:WIDTH,
-                    INPUT MAX(edMessageSummary:HEIGHT + 4,
-                    INPUT btFullScreen:ROW + (IF VALID-HANDLE(ghFillIn) THEN ghFillIn:HEIGHT + 0.24 ELSE 0) + 1.14 + 0.24 + 0.16), YES).
-  END.
-  ELSE
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        btMail:HIDDEN           = FALSE
-        btStack:HIDDEN          = FALSE
-        btFullScreen:HIDDEN     = FALSE
-        btMail:SENSITIVE        = TRUE
-        btStack:SENSITIVE       = TRUE
-        btFullScreen:SENSITIVE  = TRUE.
+                edMEssageSummary:row = 1
+                edMessageSummary:col = imAlert:col + imAlert:width + 0.12
+                /* Size editors to text. Use pixels for more accuracy */
+                edMessageSummary:height-pixels = (edMessageSummary:CURSOR-LINE * FONT-TABLE:GET-TEXT-HEIGHT-pixels(edMessageSummary:FONT)) 
+                                               /* pad with 2 pixels to ensure no scrollbars */ 
+                                               + 2
+                /* We can use the whole work-area for summary messages in the absence of detail messages */                                               
+                edMessageSummary:height-pixels = min(edMessageSummary:height-pixels, session:work-area-height-pixels) - 2
+                no-error.
+                
+                /* do nothing with detail editor for SIMPLE MBs */
+                if gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u then
+                    assign edMessageDetail:height-pixels = (edMessageDetail:CURSOR-LINE * FONT-TABLE:GET-TEXT-HEIGHT-pixels(edMessageDetail:FONT)) 
+                                                         /* pad with 8 pixels to ensure no scrollbars (need to take box into consideration) */
+                                                         + 8
+                           edMessageDetail:Height-Pixels = min(edMessageDetail:Height-Pixels, session:work-area-height-pixels * 2 / 3) - 2
+                           /* Don't let the summary message take up more room than it should */
+                           edMessageSummary:height-pixels = min(edMessageSummary:height-pixels, session:work-area-height-pixels / 3)
+                           no-error.
+                /* Trial and error padding */
+                dNewHeight = max(edMessageSummary:height + frame frButtons:Height 
+                           + (IF VALID-HANDLE(ghFillIn) THEN ghFillIn:HEIGHT + 0.36 ELSE 0),
+                               (if not btStack:hidden then (btStack:row + btStack:Height) else
+                               (imAlert:Row + imAlert:Height))
+                                )
+                              + 2.0 no-error.
+        end.    /* simple/detail */
+    end case.    /* mb type */
+    
+    /* Set button sensitivity to take buttons out of the taborder */
+    assign btMail:sensitive = not btMail:hidden
+           btStack:sensitive = not btStack:hidden
+           btFullScreen:sensitive = not btFullscreen:hidden
+           btnDetail:sensitive = not btnDetail:hidden.
+    
+    assign frame {&frame-name}:scrollable = yes
+           frame {&frame-name}:virtual-height = session:height
+           frame {&frame-name}:virtual-width = session:width
+           frame {&frame-name}:height = dNewHeight
+           frame {&frame-name}:width = dNewWidth
+           frame {&frame-name}:scrollable = no.
+    
+    /* Centre MB to avoid 'flashing' */
+    {fn centreMB}.
 
-    edMessageSummary:MOVE-TO-EOF().
+    RUN SUPER.
+    
+    /* MB centred alread, before the RUN SUPER */
+    run reorganize ( frame {&frame-name}:width, frame {&frame-name}:height, no).
+        
+    dynamic-function('setEditorBGColor':u in target-procedure).
+    
+    /* Move the cursor to the first line, so the message displays from top to bottom... 
+       Need to do this after resizing/reorg, since the cursor position is used to determine
+       the size of the editor. */
+    assign edMessageSummary:CURSOR-OFFSET = 1
+           edMessageDetail:CURSOR-OFFSET  = 1
+           NO-ERROR.
 
-    RUN reorganize (INPUT FRAME {&FRAME-NAME}:WIDTH,
-                    INPUT MAX(edMessageSummary:HEIGHT + 4,
-                    INPUT btFullScreen:ROW + btStack:HEIGHT + 0.24 + 0.16), YES).
-  END.
-
-  IF NOT glQuestion THEN
-    RUN selectPage(1).
-
-  RUN SUPER.
-
-  IF NOT (glQuestion OR glInformation) THEN
-    RUN viewObject IN h_afspfoldrw.
-  ELSE
-    RUN hideObject IN h_afspfoldrw.
-
-  IF NOT glQuestion AND NOT glInformation THEN
-    btStack:HIDDEN = NOT SESSION:DEBUG-ALERT.
-
-  IF glabout THEN
-    RUN disableFolderPage IN h_afspfoldrw (2).
-
-  VIEW FRAME {&FRAME-NAME}.
-
-  ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
-         FRAME {&FRAME-NAME}:HEIGHT         = FRAME {&FRAME-NAME}:HEIGHT
-         FRAME {&FRAME-NAME}:WIDTH          = FRAME {&FRAME-NAME}:WIDTH
-         FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = FRAME {&FRAME-NAME}:HEIGHT 
-         FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = FRAME {&FRAME-NAME}:WIDTH    
-         FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE.
-
-  IF VALID-HANDLE(ghFillIn) THEN
-    APPLY "ENTRY":U TO ghFillIn.
-  ELSE
-    IF btDefault:SENSITIVE THEN
-      APPLY "ENTRY":U TO btDefault.
-  
-  /* Move the cursor to the first line, so the message displays from top to bottom... */
-  ASSIGN edMessageSummary:CURSOR-OFFSET = 1
-         edMessageDetail:CURSOR-OFFSET  = 1
-         NO-ERROR.
-
-END PROCEDURE.
+    IF VALID-HANDLE(ghFillIn) THEN
+        APPLY "ENTRY":U TO ghFillIn.
+    ELSE IF btDefault:SENSITIVE THEN
+        APPLY "ENTRY":U TO btDefault.
+    
+    return.  
+END PROCEDURE.    /* initObj */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1398,44 +1250,25 @@ PROCEDURE postCreateObjects :
   DEFINE VARIABLE hAttributeBuffer  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hClassBuffer      AS HANDLE     NO-UNDO.
 
-  /* First, check if this message information has been cached in the session manager */
-  ASSIGN ghCacheBufferHandle = ?.
+  /* Fetch the repository class*/
+  hClassBuffer = {fnarg getCacheClassBuffer 'SmartFolder' gshRepositoryManager}.
 
-  IF VALID-HANDLE(gshSessionManager)
-  AND LOOKUP("getMessageCacheHandle":U, gshSessionManager:INTERNAL-ENTRIES) <> 0 
-  THEN DO:
-      RUN getMessageCacheHandle IN gshSessionManager (OUTPUT ghCacheBufferHandle).
-      IF VALID-HANDLE(ghCacheBufferHandle) THEN
-          ghCacheBufferHandle:FIND-FIRST() NO-ERROR.
+  IF VALID-HANDLE(hClassBuffer) THEN
+    hAttributeBuffer = hClassBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE.   
+
+  IF VALID-HANDLE(hAttributeBuffer) THEN
+  DO:
+    hAttributeBuffer:BUFFER-CREATE().
+
+    {fnarg setPopupSelectionEnabled "hAttributeBuffer:BUFFER-FIELD('PopupSelectionEnabled'):BUFFER-VALUE" h_afspfoldrw}.
+    {fnarg setTabVisualization      "hAttributeBuffer:BUFFER-FIELD('TabVisualization'):BUFFER-VALUE"      h_afspfoldrw}.
+    {fnarg setTabPosition           "hAttributeBuffer:BUFFER-FIELD('TabPosition'):BUFFER-VALUE"           h_afspfoldrw}.
+
+    hAttributeBuffer:BUFFER-DELETE().
   END.
 
-  IF VALID-HANDLE(ghCacheBufferHandle)
-  AND ghCacheBufferHandle:AVAILABLE
-  THEN DO:
-      {fnarg setPopupSelectionEnabled "ghCacheBufferHandle:BUFFER-FIELD('lPopupSelectionEnabled'):BUFFER-VALUE" h_afspfoldrw}.
-      {fnarg setTabVisualization      "ghCacheBufferHandle:BUFFER-FIELD('cTabVisualization'):BUFFER-VALUE"      h_afspfoldrw}.
-      {fnarg setTabPosition           "ghCacheBufferHandle:BUFFER-FIELD('cTabPosition'):BUFFER-VALUE"           h_afspfoldrw}.
-  END.
-  ELSE DO:
-      /* Fetch the repository class*/
-      hClassBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, "SmartFolder":U).
-
-      IF VALID-HANDLE(hClassBuffer) THEN
-        hAttributeBuffer = hClassBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE.   
-
-      IF VALID-HANDLE(hAttributeBuffer) THEN
-      DO:
-        hAttributeBuffer:BUFFER-CREATE().
-
-        {fnarg setPopupSelectionEnabled "hAttributeBuffer:BUFFER-FIELD('PopupSelectionEnabled'):BUFFER-VALUE" h_afspfoldrw}.
-        {fnarg setTabVisualization      "hAttributeBuffer:BUFFER-FIELD('TabVisualization'):BUFFER-VALUE"      h_afspfoldrw}.
-        {fnarg setTabPosition           "hAttributeBuffer:BUFFER-FIELD('TabPosition'):BUFFER-VALUE"           h_afspfoldrw}.
-
-        hAttributeBuffer:BUFFER-DELETE().
-      END.
-  END.
-
-END PROCEDURE.
+  return.
+END PROCEDURE.    /* postCreateObjects */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1445,141 +1278,105 @@ PROCEDURE reorganize :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:       * Reorganize does NOT resize the frame; this should already be done
+                 by the time it is called.
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER dNewWidth  AS DECIMAL NO-UNDO.
-  DEFINE INPUT PARAMETER dNewHeight AS DECIMAL NO-UNDO.
-  DEFINE INPUT PARAMETER plCentre   AS LOGICAL NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewWidth  AS DECIMAL NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewHeight AS DECIMAL NO-UNDO.
+    DEFINE INPUT PARAMETER plCentre    AS LOGICAL NO-UNDO.
 
-  DEFINE VARIABLE dButtonFrameColumn  AS DECIMAL  NO-UNDO.                            
-  DEFINE VARIABLE dButtonFrameRow     AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dEditorHeight       AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dEditorWidth        AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dFolderHeight       AS DECIMAL  NO-UNDO.    
-  DEFINE VARIABLE dFolderWidth        AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dFolderRow          AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dFolderCol          AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dRow                AS DECIMAL  NO-UNDO.
-  DEFINE VARIABLE dCol                AS DECIMAL  NO-UNDO.
+    DEFINE VARIABLE dButtonFrameColumn  AS DECIMAL  NO-UNDO.                            
+    DEFINE VARIABLE dButtonFrameRow     AS DECIMAL  NO-UNDO.
+    /* Use arrays here so that we can set the individual editors' dimensions 
+      independently. */
+    DEFINE VARIABLE dEditorHeight       AS DECIMAL  NO-UNDO extent 4.
+    DEFINE VARIABLE dEditorWidth        AS DECIMAL  NO-UNDO extent 4.
+    DEFINE VARIABLE dFolderHeight       AS DECIMAL  NO-UNDO.    
+    DEFINE VARIABLE dFolderWidth        AS DECIMAL  NO-UNDO.
+    DEFINE VARIABLE dFolderRow          AS DECIMAL  NO-UNDO.
+    DEFINE VARIABLE dFolderCol          AS DECIMAL  NO-UNDO.
+    
+    ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE     = TRUE
+           FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT = session:HEIGHT
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH  = session:WIDTH
+           .
+                                         
+    ASSIGN /* right-align buttons frame */
+           dButtonFrameColumn = pdNewWidth - FRAME frButtons:WIDTH - 1
+           /* bottom-align button frame */
+           /* added extra 0.2 to fix XP errors */
+           dButtonFrameRow    = pdNewHeight - FRAME frButtons:HEIGHT - 0.24 - 0.26 - 0.2
+           FRAME frButtons:COLUMN = max(max(dButtonFrameColumn , 1) - 1.00, 1)
+           FRAME frButtons:ROW    = max(dButtonFrameRow, 1) .
 
-  ASSIGN
-      FRAME {&FRAME-NAME}:SCROLLABLE = FALSE
-      FRAME {&FRAME-NAME}:HEIGHT     = MAX(dNewHeight, FRAME {&FRAME-NAME}:HEIGHT)
-      FRAME {&FRAME-NAME}:WIDTH      = MAX(dNewWidth,  FRAME {&FRAME-NAME}:WIDTH).
-  
-  DO WITH FRAME {&FRAME-NAME}: END.
-
-  ASSIGN
-      dButtonFrameColumn     = dNewWidth - FRAME frButtons:WIDTH - 1
-      dButtonFrameRow        = dNewHeight - FRAME frButtons:HEIGHT - 0.24 - 0.26 - 0.2 /* added extra 0.2 to fix XP errors */
-
-      FRAME frButtons:COLUMN = (IF dButtonFrameColumn >= 1 THEN dButtonFrameColumn ELSE 1) - 1.00
-      FRAME frButtons:ROW    = (IF dButtonFrameRow    >= 1 THEN dButtonFrameRow    ELSE 1).
-
-  IF glQuestion OR glInformation THEN
-  DO:
-    ASSIGN    
-        edSystemInformation:ROW    = 1.24
-        edMessageSummary:ROW       = edSystemInformation:ROW
-        edMessageDetail:ROW        = edSystemInformation:ROW
-        edAppserver:ROW            = edSystemInformation:ROW
-
-        edMessageSummary:WIDTH = dNewWidth - edMessageSummary:COL - 1.
-
-    IF VALID-HANDLE(ghFillIn) THEN
-      ASSIGN
-          dRow           = dButtonFrameRow - ghFillIn:HEIGHT - 0.24
-          ghFillIn:ROW   = (IF dRow >= 1 THEN dRow ELSE 1)
-          ghFillIn:WIDTH = edMessageSummary:WIDTH - ghLabel:COL + 1
-          dRow           = ghFillIn:ROW + 0.12
-          ghLabel:ROW    = (IF dRow >= 1 THEN dRow ELSE 1).
-
-    dNewHeight = IF dNewHeight <= 5.5 THEN 5.5 ELSE dNewHeight. /* This should be the minumum height of the window */
-  END.
-  ELSE
-  DO:
-    ASSIGN  
-        dFolderWidth  = dNewWidth - 11 - 1
-        dFolderHeight = FRAME frButtons:ROW - 1.24 - 0.24.
-
-    RUN resizeObject IN h_afspfoldrw (INPUT dFolderHeight,
-                                      INPUT dFolderWidth).
-
-    RUN getClientRectangle IN h_afspfoldrw (OUTPUT dFolderCol,
-                                            OUTPUT dFolderRow,
-                                            OUTPUT dEditorWidth,
-                                            OUTPUT dEditorHeight).
-
-    ASSIGN  
-        dEditorHeight              = dEditorHeight - 0.40
-        dEditorWidth               = dEditorWidth  - 1.00
-
+    if gcMessageBoxType eq '{&MB-TYPE-COMPLEX}':u then
+    do:
+        ASSIGN dFolderWidth  = pdNewWidth - 11 - 1
+               dFolderHeight = FRAME frButtons:ROW - 1.24 - 0.24.
+/*               pdNewHeight   = pdNewHeight + 1.*/
+               
+        RUN resizeObject IN h_afspfoldrw (dFolderHeight, dFolderWidth).
+        
+        RUN getClientRectangle IN h_afspfoldrw (OUTPUT dFolderCol,
+                                                OUTPUT dFolderRow,
+                                                OUTPUT dEditorWidth[1],
+                                                OUTPUT dEditorHeight[1]).
+        dEditorHeight = dEditorHeight[1] - 0.40.
+        dEditorWidth = dEditorWidth[1] - 1.00.
+    end.    /* complex */
+    else
+    do:
+        dEditorHeight = edMessageSummary:height.
+        dFolderRow = 1.
+        dFolderCol = imAlert:col + imAlert:width + 0.12.            
+        dEditorWidth = pdNewWidth - dFolderCol - 1.
+        
+        dEditorHeight[1] = edMessageSummary:height.
+        dEditorHeight[2] = edMessageDetail:height.
+        dEditorHeight[3] = min(dEditorHeight[1],dEditorHeight[2]).
+        dEditorHeight[4] = min(dEditorHeight[1],dEditorHeight[2]).        
+    end.    /* simple/detail */
+    
+    ASSIGN
         edSystemInformation:ROW    = dFolderRow + 0.12
         edMessageSummary:ROW       = edSystemInformation:ROW
-        edMessageDetail:ROW        = edSystemInformation:ROW
+        edMessageDetail:ROW        = edSystemInformation:ROW    
         edAppserver:ROW            = edSystemInformation:ROW
 
-        edSystemInformation:HEIGHT = dEditorHeight
-        edMessageSummary:HEIGHT    = dEditorHeight
-        edMessageDetail:HEIGHT     = dEditorHeight
-        edAppserver:HEIGHT         = dEditorHeight
+        edSystemInformation:col    = dFolderCol + 0.12
+        edMessageSummary:col       = edSystemInformation:col
+        edMessageDetail:col        = edSystemInformation:col
+        edAppserver:col            = edSystemInformation:col
 
-        edSystemInformation:WIDTH  = dEditorWidth
-        edMessageSummary:WIDTH     = dEditorWidth
-        edMessageDetail:WIDTH      = dEditorWidth
-        edAppserver:WIDTH          = dEditorWidth
+        edMessageSummary:HEIGHT    = dEditorHeight[1]
+        edMessageDetail:HEIGHT     = dEditorHeight[2]
+        edSystemInformation:HEIGHT = dEditorHeight[3]
+        edAppserver:HEIGHT         = dEditorHeight[4]
 
-        dNewHeight                 = IF dNewHeight <= 8.25 THEN 8.25 ELSE dNewHeight. /* This should be the minumum height of the window */
-  END.
+        edMessageSummary:WIDTH     = dEditorWidth[1]
+        edMessageDetail:WIDTH      = dEditorWidth[2]
+        edSystemInformation:WIDTH  = dEditorWidth[3]
+        edAppserver:WIDTH          = dEditorWidth[4]
+        no-error.
+                            
+    if gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u and btnDetail:private-data eq 'less' then
+        edMessageDetail:row = edMessageSummary:row + edMessageSummary:HEIGHT + 0.12.
 
-  ASSIGN
-      FRAME {&FRAME-NAME}:HEIGHT = dNewHeight
-      FRAME {&FRAME-NAME}:WIDTH  = dNewWidth.
+    IF VALID-HANDLE(ghFillIn) THEN
+        ASSIGN ghFillIn:Row = edMessageSummary:row + edMessageSummary:height + 0.1
+               ghFillIn:WIDTH = edMessageSummary:WIDTH - ghLabel:COL - 1
+               ghLabel:Row = ghFillIn:Row.
 
-  IF glabout THEN
-    RUN disableFolderPage IN h_afspfoldrw (2).
+    ASSIGN FRAME {&FRAME-NAME}:virtual-HEIGHT = FRAME {&FRAME-NAME}:HEIGHT
+           FRAME {&FRAME-NAME}:virtual-WIDTH = FRAME {&FRAME-NAME}:WIDTH
+           FRAME {&FRAME-NAME}:SCROLLABLE     = FALSE.
 
-  IF NOT plCentre THEN RETURN.
-
-  /* Centre the frame */
-  DEFINE VARIABLE hParent AS HANDLE NO-UNDO.
-
-  hParent = FRAME {&FRAME-NAME}:PARENT.
-
-  ASSIGN
-      dRow = MAXIMUM(1,(SESSION:HEIGHT - FRAME {&FRAME-NAME}:HEIGHT) / 2) - hParent:ROW
-      dCol = MAXIMUM(1,(SESSION:WIDTH  - FRAME {&FRAME-NAME}:WIDTH)  / 2) - hParent:COLUMN.
-
-  /* If the row or column wound up being between 0 and 1 after the 
-     calculation, change it, because otherwise Progress will complain. */
-  IF dRow >=  0 AND dRow < 1 THEN dRow =  1.
-  IF dCol >=  0 AND dCol < 1 THEN dCol =  1.
-  IF dRow >= -1 AND dRow < 0 THEN dRow = -1.
-  IF dCol >= -1 AND dCol < 0 THEN dCol = -1.
-
-  ASSIGN        
-      FRAME {&FRAME-NAME}:ROW    = dRow
-      FRAME {&FRAME-NAME}:COLUMN = dCol.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RTB_xref_generator gDialog 
-PROCEDURE RTB_xref_generator :
-/* -----------------------------------------------------------
-Purpose:    Generate RTB xrefs for SMARTOBJECTS.
-Parameters: <none>
-Notes:      This code is generated by the UIB.  DO NOT modify it.
-            It is included for Roundtable Xref generation. Without
-            it, Xrefs for SMARTOBJECTS could not be maintained by
-            RTB.  It will in no way affect the operation of this
-            program as it never gets executed.
--------------------------------------------------------------*/
-  RUN "af\sup2\afspfoldrw.w *RTB-SmObj* ".
-
-END PROCEDURE.
+    IF plCentre THEN
+        {fn centreMB}.
+    
+    error-status:error = no.
+    return.
+END PROCEDURE.    /* reorganize */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1591,32 +1388,29 @@ PROCEDURE selectPage :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER piPageNumber AS INTEGER.
+    DEFINE INPUT PARAMETER piPageNumber AS INTEGER.
 
-  RUN SUPER(piPageNumber).
+    RUN SUPER(piPageNumber).
 
-  /* giPageNumber = piPageNumber. */
-  DO WITH FRAME {&FRAME-NAME}: END.
+    /* giPageNumber = piPageNumber. */
+    DO WITH FRAME {&FRAME-NAME}: END.
 
-  IF NOT glQuestion AND NOT glInformation THEN
-  DO:
-     giLevel = 5.
-     IF piPageNumber = 3 AND edSystemInformation:LENGTH = 0 THEN
-         RUN getSystemInfo.
-     IF piPageNumber = 4 AND edAppServer:LENGTH = 0 THEN
-         RUN getAppserverInfo.
-  END.
+    giLevel = 5.
+    IF piPageNumber = 3 AND edSystemInformation:LENGTH = 0 THEN
+        RUN getSystemInfo.
+    IF piPageNumber = 4 AND edAppServer:LENGTH = 0 THEN
+        RUN getAppserverInfo.
+    
+    edMessageSummary:HIDDEN     = (piPageNumber <> 1).
+    edMessageDetail:HIDDEN      = (piPageNumber <> 2).
+    edSystemInformation:HIDDEN  = (piPageNumber <> 3).
+    edAppserver:HIDDEN          = (piPageNumber <> 4).
 
-  edMessageDetail:HIDDEN      = (piPageNumber <> 2).
-  edMessageSummary:HIDDEN     = (piPageNumber <> 1).
-  edSystemInformation:HIDDEN  = (piPageNumber <> 3).
-  edAppserver:HIDDEN          = (piPageNumber <> 4).
-
-  IF NOT edMessageDetail:HIDDEN THEN edMessageDetail:MOVE-TO-TOP().
-  IF NOT edMessageSummary:HIDDEN THEN edMessageSummary:MOVE-TO-TOP().
-  IF NOT edSystemInformation:HIDDEN THEN edSystemInformation:MOVE-TO-TOP().
-  IF NOT edAppserver:HIDDEN THEN edSystemInformation:MOVE-TO-TOP().
-  
+    IF NOT edMessageDetail:HIDDEN THEN edMessageDetail:MOVE-TO-TOP().
+    IF NOT edMessageSummary:HIDDEN THEN edMessageSummary:MOVE-TO-TOP().
+    IF NOT edSystemInformation:HIDDEN THEN edSystemInformation:MOVE-TO-TOP().
+    IF NOT edAppserver:HIDDEN THEN edSystemInformation:MOVE-TO-TOP().
+        
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1643,9 +1437,187 @@ FUNCTION addHandle RETURNS LOGICAL
                ttHandle.lLocalSession = plLocalSession
                .
     END.    /* transaction */
-
+    
+    error-status:error = no.
     RETURN TRUE.
-END FUNCTION.
+END FUNCTION.    /*addHandle*/
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildButtons gDialog 
+FUNCTION buildButtons RETURNS LOGICAL PRIVATE
+        ( INPUT pcButtonLabelList AS CHARACTER,
+          INPUT piDefaultButton AS integer,
+          INPUT piCancelButton AS integer):
+/*------------------------------------------------------------------------------
+    Purpose: Build button set as passed in.
+    Notes:
+------------------------------------------------------------------------------*/
+    def var idx    as integer no-undo.
+    def var hButton as handle no-undo.
+    def var hPreviousButton as handle no-undo.
+    def var dMinHeight as decimal no-undo.
+    def var dMinWidth as decimal no-undo.
+    
+    ASSIGN frame frButtons:Scrollable = yes
+           FRAME frButtons:VIRTUAL-HEIGHT = session:height
+           FRAME frButtons:VIRTUAL-WIDTH  = session:width.
+    
+    /* build up the buttons in the button frame */
+    DO idx = 1 TO NUM-ENTRIES(pcButtonLabelList):
+        IF idx = piDefaultButton THEN
+            hButton = btDefault:HANDLE IN FRAME frButtons.
+        ELSE IF idx = piCancelButton THEN
+            hButton = btCancel:HANDLE IN FRAME frButtons.
+        ELSE
+        DO:
+            CREATE BUTTON hButton
+            ASSIGN FRAME = FRAME frButtons:HANDLE
+            TRIGGERS:
+                ON CHOOSE PERSISTENT RUN buttonAction(idx).
+            END TRIGGERS.
+        END.
+
+        ASSIGN hButton:LABEL     = ENTRY(idx, pcButtonLabelList)
+               hButton:WIDTH     = max(15, font-table:get-text-width-chars(ENTRY(idx, pcButtonLabelList))) + 1
+               hButton:HEIGHT    = 1.14
+               hButton:ROW       = 1
+               hButton:HIDDEN    = FALSE
+               hButton:SENSITIVE = TRUE.
+       if valid-handle(hPreviousButton) then
+           hButton:Col = hPreviousButton:Col + hPreviousButton:Width + 1.
+       else
+           hButton:Col = 1.
+        
+        dMinWidth = MAX(dMinWidth, hButton:COLUMN + hButton:WIDTH - 1).
+        dMinHeight = MAX(dMinHeight, hButton:HEIGHT). 
+        
+        IF (idx = 1 AND piDefaultButton = 0) OR (idx = piDefaultButton) THEN
+            ghFocusButton = hButton.
+        
+        IF VALID-HANDLE(hPreviousButton) THEN
+            hButton:MOVE-AFTER-TAB-ITEM(hPreviousButton).
+            
+        hPreviousButton = hButton.
+    END.    /* loop through labels */
+    
+    if gcMessageBoxType eq '{&MB-TYPE-DETAIL}':u then
+    do:
+        /* Add 'Details>>' button button */
+        hButton = btnDetail:HANDLE IN FRAME frButtons.
+        ASSIGN hButton:WIDTH = 15
+               hButton:HEIGHT = 1.14
+               hButton:ROW = 1
+               hButton:HIDDEN = FALSE
+               hButton:SENSITIVE = TRUE.
+               
+        /* There /should/ always be at least one other button, but just in case ... */
+        if valid-handle(hPreviousButton) then
+            hButton:Col = hPreviousButton:Col + hPreviousButton:Width + 1.
+        else
+            hButton:Col = 1.
+            
+        assign dMinWidth = MAX(dMinWidth, hButton:COLUMN + hButton:WIDTH - 1)
+               dMinHeight = MAX(dMinHeight, hButton:HEIGHT).
+                                       
+        IF VALID-HANDLE(hPreviousButton) THEN
+            hButton:MOVE-AFTER-TAB-ITEM(hPreviousButton).
+        hPreviousButton = hButton.
+    end.    /* MessageBoxType = Detail */
+    
+    ASSIGN /*frame frButtons:Scrollable = yes*/
+           FRAME frButtons:VIRTUAL-HEIGHT = dMinHeight
+           FRAME frButtons:VIRTUAL-WIDTH  = dMinWidth
+           FRAME frButtons:HEIGHT         = dMinHeight
+           FRAME frButtons:WIDTH          = dMinWidth
+           /* Reorg will sort this out; put at (1,1) to avoid errors in enable_UI. */
+           frame frButtons:Row = 1
+           frame frButtons:Col = 1
+           frame frButtons:Scrollable = No.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* buildButtons */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildInputFields gDialog 
+FUNCTION buildInputFields RETURNS LOGICAL PRIVATE
+  ( INPUT pcAnswerDataType AS CHARACTER,
+    INPUT pcAnswerFormat AS CHARACTER,
+    input pcDefaultAnswer as character    ) :
+/*------------------------------------------------------------------------------
+  Purpose: Adds an input field for QUEstions 
+    Notes:  
+------------------------------------------------------------------------------*/
+    IF LOOKUP(pcAnswerDataType,"LOGICAL,CHARACTER,INTEGER,DECIMAL,DATE") = 0 THEN
+        pcAnswerDataType = "CHARACTER".
+                    
+    CREATE TEXT ghLabel
+    ASSIGN FRAME        = FRAME {&FRAME-NAME}:HANDLE
+           HIDDEN       = FALSE
+           WIDTH        = FONT-TABLE:GET-TEXT-WIDTH("Response:")
+           FORMAT       = "x(25)"
+           SCREEN-VALUE = "Response:"
+           COL          = 13
+/*           ROW          = 1 + 0.07. */
+           row = 1. /* reorg will position correctly */
+
+    CREATE FILL-IN ghFillIn
+    ASSIGN FRAME             = FRAME {&FRAME-NAME}:HANDLE
+           HEIGHT            = 1
+           ROW               = 1 + 0.07
+           SIDE-LABEL-HANDLE = ghLabel
+           COL               = 13 + FONT-TABLE:GET-TEXT-WIDTH("Response: ")
+           WIDTH             = edMessageSummary:WIDTH - ghLabel:COL + 1
+           HIDDEN            = FALSE
+           SENSITIVE         = TRUE
+           DATA-TYPE         = pcAnswerDataType.
+
+    IF pcAnswerFormat <> "" THEN
+        ghFillIn:FORMAT = pcAnswerFormat.
+
+    ghFillIn:SCREEN-VALUE = pcDefaultAnswer.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* buildInputFields */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION centreMB gDialog 
+FUNCTION centreMB RETURNS LOGICAL PRIVATE
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Centres the dialogue in the work area
+    Notes:
+------------------------------------------------------------------------------*/
+    /* Centre the frame */
+    DEFINE VARIABLE hParent AS HANDLE NO-UNDO.    
+    def var dRow as decimal no-undo.
+    def var dCol as decimal no-undo.
+
+    hParent = FRAME {&FRAME-NAME}:PARENT.
+
+    ASSIGN dRow = MAXIMUM(1,(session:height - FRAME {&FRAME-NAME}:HEIGHT) / 2) - hParent:ROW
+           dCol = MAXIMUM(1,(session:width - FRAME {&FRAME-NAME}:WIDTH)  / 2) - hParent:COLUMN.
+
+    /* If the row or column wound up being between 0 and 1 after the 
+       calculation, change it, because otherwise Progress will complain. */
+    IF dRow >=  0 AND dRow < 1 THEN dRow =  1.
+    IF dCol >=  0 AND dCol < 1 THEN dCol =  1.
+    IF dRow >= -1 AND dRow < 0 THEN dRow = -1.
+    IF dCol >= -1 AND dCol < 0 THEN dCol = -1.
+
+    ASSIGN FRAME {&FRAME-NAME}:ROW    = dRow
+           FRAME {&FRAME-NAME}:COLUMN = dCol.
+
+    error-status:error = no.
+    return true.           
+END FUNCTION.    /* centreMB*/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1663,14 +1635,16 @@ FUNCTION DisplayConfigInfo RETURNS LOGICAL
     DEFINE VARIABLE hField              AS HANDLE                       NO-UNDO.
     DEFINE VARIABLE iCount              AS INTEGER                      NO-UNDO.
     DEFINE VARIABLE cDisplayValue       AS CHARACTER                    NO-UNDO.
+    def var iLoop as integer no-undo.
 
     DEFINE BUFFER ttHandle          FOR ttHandle.
 
     /* Display this information after the existing information. */
-    
     phDisplayWidget:INSERT-STRING("~n~n":U).
     phDisplayWidget:INSERT-STRING("Session Configuration Information" + "~n":U + FILL("=":U, 50) + "~n":U).
-
+    
+    CREATE QUERY hQuery.
+    
     FOR EACH ttHandle WHERE
              ttHandle.lLocalSession = plLocalSession
              NO-LOCK:
@@ -1691,21 +1665,25 @@ FUNCTION DisplayConfigInfo RETURNS LOGICAL
             DO:
                 CREATE ttField.
                 ASSIGN ttField.tFieldHandle = hField
-                       ttField.tFieldLabel  = hField:LABEL
-                       .
+                       ttField.tFieldLabel  = hField:LABEL.
             END.    /* CAN-DO field */
         END.    /* iCount */
 
-        CREATE QUERY hQuery.
-        hQuery:ADD-BUFFER(hBuffer).
+        hQuery:set-BUFFERs(hBuffer).
         hQuery:QUERY-PREPARE("FOR EACH " + hBuffer:NAME).
 
         hQuery:QUERY-OPEN().
         hQuery:GET-FIRST(NO-LOCK).
-        
         DO WHILE hBuffer:AVAILABLE:
             FOR EACH ttField:
-                ASSIGN cDisplayValue = TRIM(notNull(ttField.tFieldHandle:BUFFER-VALUE)).
+                cDisplayValue = TRIM(notNull(ttField.tFieldHandle:BUFFER-VALUE)).
+                
+                /* Don't show passwords on connection parameters */
+                If ttField.tFieldLabel eq 'Connection Parameters' and hBuffer:Name eq 'ttService':u then
+                do iLoop = 1 to num-entries(cDisplayValue, ' ':u):
+                    if entry(iLoop, cDisplayValue, ' ':u) eq '-P' then
+                        entry(iLoop + 1, cDisplayValue, ' ':u) = '':u.                    
+                end.    /* service */
 
                 phDisplayWidget:INSERT-STRING(STRING(ttField.tFieldLabel + ":":U, "x(28)":U)).
                 phDisplayWidget:INSERT-STRING(STRING(cDisplayValue, "x(70)":U) + "~n":U).
@@ -1715,18 +1693,161 @@ FUNCTION DisplayConfigInfo RETURNS LOGICAL
             
             hQuery:GET-NEXT(NO-LOCK).
         END.    /* avail buffer */
-
         hQuery:QUERY-CLOSE().
 
-        DELETE OBJECT hQuery NO-ERROR.
-        ASSIGN hQuery = ?.
-
         DELETE OBJECT hBuffer NO-ERROR.
-        ASSIGN hBuffer = ?.
+        hBuffer = ?.
     END.    /* each ttHandle. */
 
+    DELETE OBJECT hQuery NO-ERROR.
+    hQuery = ?.
+
+    error-status:error = no.
     RETURN TRUE.
-END FUNCTION.
+END FUNCTION.    /* DisplayConfigInfo */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION mailMessage gDialog 
+FUNCTION mailMessage RETURNS LOGICAL PRIVATE
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Sends email message with MB content for debugging
+    Notes:
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cFailureReason    AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cAttachmentName   AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cAttachmentFPath  AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cTempFileName     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cUserLogin        AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cEmailAddress     AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
+
+    DO with frame {&frame-name}:
+        giLevel = 4.
+        IF edSystemInformation:LENGTH = 0 THEN
+            RUN getSystemInfo.
+        IF edAppServer:LENGTH = 0 THEN
+            RUN getAppServerInfo.
+    END.
+
+    cMessage = "~n~n**********  MESSAGE SUMMARY   **********~n~n" + edMessageSummary:SCREEN-VALUE + 
+               (IF pcMessageDetailList <> "":U THEN ("~n~n**********   MESSAGE DETAIL   **********~n~n" + edMessageDetail:SCREEN-VALUE) ELSE "":U) +
+                  "~n~n********** SYSTEM INFORMATION **********~n~n" + (IF edSystemInformation:LENGTH > 0 THEN "See attachment" ELSE "") +
+                  "~n~n********** APPSERVER INFORMATION **********~n~n" + (IF edAppServer:LENGTH > 0 THEN "See attachment" ELSE "").
+
+    /* get user email from property for current user */
+    cEmailAddress = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                     INPUT "currentUserEmail":U,
+                                     INPUT NO).
+    /* get user login from property for current user */
+    cUserLogin = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                    INPUT "currentUserLogin":U,
+                                    INPUT NO).
+
+    IF edSystemInformation:LENGTH > 0 THEN
+    DO:
+        ASSIGN cTempFileName    = "system_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
+               cAttachmentName  = cTempFileName
+               cAttachmentFPath = SESSION:TEMP-DIRECTORY + cTempFileName.
+        edSystemInformation:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
+    END.
+
+    IF edAppServer:LENGTH > 0 THEN
+    DO:
+        ASSIGN cTempFileName    = "appserver_information_" + REPLACE(cUserLogin, " ":U, "_":U) + STRING(ETIME) + ".txt"
+               cAttachmentName  = IF cAttachmentName > "" THEN
+                                      cAttachmentName + ",":U + cTempFileName
+                                  ELSE
+                                      cTempFileName
+               cAttachmentFPath = IF cAttachmentFPath > "" THEN
+                                      cAttachmentFPath + ",":U + SESSION:TEMP-DIRECTORY + cTempFileName
+                                  ELSE
+                                      SESSION:TEMP-DIRECTORY + cTempFileName.
+        edAppserver:SAVE-FILE(SESSION:TEMP-DIRECTORY + cTempFileName).
+    END.
+
+    IF cEmailAddress <> "":U THEN /* Send email message to user */
+        RUN sendEmail IN gshSessionManager
+                          ( INPUT "":U,                 /* Email profile to use  */
+                            INPUT cEmailAddress,        /* Comma list of Email addresses for to: box */
+                            INPUT "":U,                 /* Comma list of Email addresses to cc */
+                            INPUT "Technical Support",  /* Subject of message */
+                            INPUT cMessage,             /* Message text */
+                            INPUT cAttachmentName,      /* Comma list of attachment filenames */
+                            INPUT cAttachmentFPath,     /* Comma list of attachment filenames with full path */
+                            INPUT NOT SESSION:REMOTE,   /* YES = display dialog for modification before send */
+                            INPUT 0,                    /* Importance 0 = low, 1 = medium, 2 = high */
+                            INPUT NO,                   /* YES = return a read receipt */
+                            INPUT NO,                   /* YES = return a delivery receipt */
+                            INPUT "":U,                 /* Not used yet but could be used for additional settings */
+                            OUTPUT cFailureReason       /* If failed - the reason why, blank = it worked */
+                          ).
+    ELSE
+        ASSIGN cFailureReason = "Your e-mail address has not been set up against your user account.  Please contact your System Administrator.".
+
+    IF cFailureReason <> "" THEN MESSAGE 
+        cFailureReason VIEW-AS ALERT-BOX ERROR TITLE "Could not compose Email".
+
+    DO iLoop = 1 TO NUM-ENTRIES(cAttachmentFPath):
+        OS-DELETE VALUE(ENTRY(iLoop, cAttachmentFPath)).
+    END.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /*mailMessage*/
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION maxMinMB gDialog 
+FUNCTION maxMinMB RETURNS LOGICAL PRIVATE
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Maximises and minimises the MB
+    Notes:
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE hParentWindow AS HANDLE NO-UNDO.
+
+    glFullScreen = NOT glFullScreen.
+    IF glFullScreen THEN 
+    DO:    
+        ASSIGN
+            hParentWindow       = FRAME {&FRAME-NAME}:PARENT
+            gdPreviousWidth     = FRAME {&FRAME-NAME}:WIDTH
+            gdPreviousHeight    = FRAME {&FRAME-NAME}:HEIGHT
+            gdPreviousColumn    = FRAME {&FRAME-NAME}:COLUMN
+            gdPreviousRow       = FRAME {&FRAME-NAME}:ROW
+            .            
+        ASSIGN
+              frame {&frame-name}:height-pixels = session:work-area-height-pixels
+              frame {&frame-name}:width-pixels = session:work-area-width-pixels
+              FRAME {&FRAME-NAME}:ROW    = 1
+              FRAME {&FRAME-NAME}:COLUMN = 1
+              no-error. 
+        /* no need to centre, since we're maximised. */              
+        run reorganize (frame {&frame-name}:width, frame {&frame-name}:height, no).
+    END.
+    ELSE DO:
+        RUN reorganize (gdPreviousWidth, gdPreviousHeight, no).
+        ASSIGN
+            FRAME {&FRAME-NAME}:WIDTH    = gdPreviousWidth
+            FRAME {&FRAME-NAME}:HEIGHT   = gdPreviousHeight
+            FRAME {&FRAME-NAME}:COLUMN   = gdPreviousColumn
+            FRAME {&FRAME-NAME}:ROW      = gdPreviousRow
+            no-error.
+    END.
+    
+    IF glFullScreen THEN
+        btFullScreen:TOOLTIP = "Normal Screen Size". 
+    ELSE
+        btFullScreen:TOOLTIP = "Full Screen Size".
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* maxMinMB*/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1738,9 +1859,87 @@ FUNCTION notNull RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-
     RETURN (IF cValue = ? THEN "?" ELSE cValue).
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setEditorBGColor gDialog 
+FUNCTION setEditorBGColor RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Sets the BGCOLOR of the editor widgets
+    Notes:
+------------------------------------------------------------------------------*/
+    def var iBGColor as integer no-undo.    
+    
+    /* We want the background color to be message-style (color3dface)
+       (large editor inherits from windows text (or something) - typically white, 
+       These are thus defined with bgcolor 16 as default, but this only matches 
+       windows standard)   */
+    iBgcolor = {fn getColor3DFace}.
+    IF iBgcolor <> ? THEN
+    DO WITH FRAME {&FRAME-NAME}:
+        ASSIGN edMessageDetail:BGCOLOR = iBgcolor
+               edSystemInformation:BGCOLOR = iBgColor
+               edAppserver:BGCOLOR = iBgColor
+               edMessageSummary:BGCOLOR = iBgColor.
+    END.
+    
+    error-status:Error = no.
+    return true.
+END FUNCTION.    /* setEditorBGColor */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showDetail gDialog 
+FUNCTION showDetail RETURNS LOGICAL PRIVATE
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Shows and hides message detail for Detail MBs
+    Notes:
+------------------------------------------------------------------------------*/
+    define variable lscroll as log.
+
+    lscroll = frame {&frame-name}:scrollable.
+    frame {&frame-name}:scrollable = yes.             
+    frame {&frame-name}:virtual-height = session:height.
+    
+    if btnDetail:private-data in frame frButtons eq 'more' then
+    do with frame {&frame-name}:
+        btnDetail:label = '<< Summary'.
+        btnDetail:private-data = 'less':u.
+        edMessageDetail:hidden = no.
+        
+        if not glFullScreen then
+            frame {&frame-name}:height = frame {&frame-name}:height + edMessageDetail:height.
+        else
+            /* Set size correctly for when we un-maximise the MB */
+            gdPreviousHeight = gdPreviousHeight + edMessageDetail:height.
+    end.    /* show detail */
+    else
+    do:
+        btnDetail:label = 'Details >>'.
+        btnDetail:private-data = 'more':u.
+        edMessageDetail:hidden = yes.
+        
+        if not glFullScreen then
+            frame {&frame-name}:height = frame {&frame-name}:height - edMessageDetail:height.
+        else
+            /* Set size correctly for when we un-maximise the MB */
+            gdPreviousHeight = gdPreviousHeight - edMessageDetail:height.
+    end.    /* hide detail */
+    
+    frame {&frame-name}:virtual-height = frame {&frame-name}:height no-error.
+    frame {&frame-name}:scrollable = lScroll.
+    
+    run reorganize(frame {&frame-name}:width, frame {&frame-name}:height, no).
+        
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* showDetail*/
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1749,7 +1948,8 @@ END FUNCTION.
 FUNCTION whackTempTables RETURNS LOGICAL
     ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose: Removes any dynamically-created temp-tables that were brought across
+           from the AppServer
     Notes:  
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE hTT             AS HANDLE                           NO-UNDO.
@@ -1758,7 +1958,7 @@ FUNCTION whackTempTables RETURNS LOGICAL
     DEFINE VARIABLE hBuffer         AS HANDLE                           NO-UNDO.
     
     DEFINE BUFFER bttHandle FOR ttHandle.
-    
+
     /* Build up a list of the temp-tables in the session widget pool as these
      will have come across from the AppServer */
     ASSIGN hBuffer = SESSION:FIRST-BUFFER.
@@ -1782,7 +1982,7 @@ FUNCTION whackTempTables RETURNS LOGICAL
     /* Go through the table that contains the handles to the tables and if 
      the temp-table handle is in the list of temp-tables we created above,
      whack the whole temp-table, otherwise we have a memory leak */
-    FOR EACH bttHandle:
+    FOR EACH bttHandle where bttHandle.lLocalSession = NO:
         ASSIGN hTT = bttHandle.hHandle.
         IF VALID-HANDLE(hTT)         AND
            CAN-DO(cList,STRING(hTT)) THEN
@@ -1790,9 +1990,10 @@ FUNCTION whackTempTables RETURNS LOGICAL
 
         DELETE bttHandle. /* Delete the record from the bttHandle table */
     END.
-
+    
+    error-status:error = no.
     RETURN TRUE.   /* Function return value. */
-END FUNCTION.
+END FUNCTION.    /* whackTempTables */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

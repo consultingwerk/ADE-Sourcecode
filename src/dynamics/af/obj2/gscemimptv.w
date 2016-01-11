@@ -22,7 +22,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -592,7 +592,7 @@ PROCEDURE importData :
         IF LENGTH(fiSeparator:INPUT-VALUE, "CHARACTER":U) GT 1          AND
            fiSeparator:INPUT-VALUE                        NE "Upper":U  THEN
         DO:
-            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '5' '?' '?' '"field separator"' '"The field separator should be either blank, a single character or ´Upper´"'},
+            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '5' '?' '?' '"field separator"' '"The field separator should be either blank, a single character or ~~'Upper~~'"'},
                                                    INPUT  "ERR":U,
                                                    INPUT  "OK":U,
                                                    INPUT  "OK":U,

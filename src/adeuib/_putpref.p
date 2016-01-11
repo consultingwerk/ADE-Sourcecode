@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _putpref.p
@@ -230,7 +230,16 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
       IF l_v <> _widgetid_assign
       THEN PUT-KEY-VALUE SECTION sctn KEY "AssignWidgetID"
                       VALUE (if _widgetid_assign THEN "yes" ELSE "no").
-
+    GET-KEY-VALUE SECTION sctn KEY "WidgetIDSaveFileName" VALUE v.
+      l_v = ((v NE ?) AND CAN-DO ("true,yes,on",v)) OR v = ?.
+      IF l_v <> _widgetid_save_filename
+      THEN PUT-KEY-VALUE SECTION sctn KEY "WidgetIDSaveFileName"
+                      VALUE (if _widgetid_save_filename THEN "yes" ELSE "no").
+    GET-KEY-VALUE SECTION sctn KEY "WidgetIDDefaultFileName" VALUE v.
+      l_v = ((v NE ?) AND CAN-DO ("true,yes,on",v)) OR v = ?.
+      IF l_v <> _widgetid_default_filename
+      THEN PUT-KEY-VALUE SECTION sctn KEY "WidgetIDDefaultFileName"
+                      VALUE (if _widgetid_default_filename THEN "yes" ELSE "no").
     /* Always export Numeric Values (or ? for defaults) */
   
     /* Compute the default grid height */
@@ -303,7 +312,10 @@ DO ON STOP  UNDO PUTPREFS-BLOCK, LEAVE PUTPREFS-BLOCK
       THEN c_v = ?. /* templates AND current dir */
       IF v ne c_v THEN 
 	PUT-KEY-VALUE SECTION sctn KEY "CodeListDirectories" VALUE c_v.
-
+    GET-KEY-VALUE SECTION sctn KEY "WidgetIDFileName" VALUE v.
+    c_v = _widgetid_custom_filename.
+      IF v NE c_v THEN 
+	PUT-KEY-VALUE SECTION sctn KEY "WidgetIDFileName"  VALUE c_v.
     /* Export the TTY simulator Values */
     CASE _tty_bgcolor:
       WHEN ? THEN v = "DEFAULT".

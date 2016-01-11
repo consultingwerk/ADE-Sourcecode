@@ -47,7 +47,7 @@ CREATE WIDGET-POOL.
 SelectionLabel,OptionalString
 
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
-  &SCOP ADM-PROPERTY-DLG ry/uib/rycombod.w
+  &SCOP ADM-PROPERTY-DLG adeuib/_dynamiccombod.w
 &ENDIF
 /* tell smart.i that we can use the default destroyObject */ 
 &SCOPED-DEFINE include-destroyobject

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007-08 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -55,6 +55,7 @@ History:
     fernando   09/28/06 For DB2, use P_BUFFER_ for pseudo-buffers instead of 
                         _BUFFER_ - 20060425-009
     fernando   10/06/06 Check object name in case it has underscore - 20031205-003                        
+    knavneet   07/25/07 For DB2/400, append Library name to _Db-misc2[1]
 */
 
 /*
@@ -196,6 +197,7 @@ DEFINE VARIABLE sh_max_ver       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE clnt_vers        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE odb_perform_mode AS CHARACTER NO-UNDO.
 DEFINE VARIABLE is_db2           AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE is_as400         AS LOGICAL   NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -381,7 +383,8 @@ RUN prodict/odb/_odb_typ.p
 
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
-       assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name ).
+       assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name )
+              is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"AS/400") > 0.  
     end.
 
     CLOSE STORED-PROC DICTDBG.GetInfo.
@@ -395,7 +398,17 @@ find DICTDB._Db where RECID(_Db) = drec_db.
 IF (foreign_dbms = "Informix") THEN
    ASSIGN
       DICTDB._Db._Db-misc2[4] = DICTDB._Db._Db-misc2[4] + "34" + ",".
-
+/* For db2/400, if _db-misc2[1] has no 2nd entry append the library name to it else
+   update the 2nd entry with the new value */
+IF is_as400 AND s_owner <> "*" AND s_owner <> "" THEN 
+DO:
+   IF NUM-ENTRIES(DICTDB._Db._Db-misc2[1]) = 1 THEN
+     ASSIGN
+      DICTDB._Db._Db-misc2[1] = DICTDB._Db._Db-misc2[1] + "," + UPPER(s_owner).
+   ELSE 
+     ASSIGN
+      ENTRY(2,DICTDB._Db._Db-misc2[1]) = UPPER(s_owner).
+END.
 assign
   bug1  = can-do(_Db._Db-misc2[4], "1")
   bug4  = can-do(_Db._Db-misc2[4], "4")
@@ -728,6 +741,18 @@ for each gate-work
      */
      IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
         NEXT.
+     IF DICTDBG.SQLColumns_buffer.column-name begins "PROGRESS_RECID" OR
+         DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_RECID" OR
+         DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_ROWID"
+       THEN DO:
+
+         IF DICTDBG.SQLColumns_buffer.data-type = 4 /* int */ 
+          THEN
+            s_ttb_tbl.ds_msc15 = 1.
+         IF DICTDBG.SQLColumns_buffer.data-type = -5 /* bigint */
+          THEN
+            s_ttb_tbl.ds_msc15 = 2.
+      END.
 
       find first column-id
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
@@ -1129,6 +1154,20 @@ for each gate-work
                     s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
           else assign
               s_ttb_idx.ds_msc21 = entry(s_ttb_idx.hlp_level,l_matrix).
+
+          /* OE00164266 - set the PROGRESS_RECID size if it is an integer */
+          find first s_ttb_fld
+           where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl)
+             and   ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
+              no-lock no-error.
+          IF available s_ttb_fld then do:
+            if s_ttb_fld.ds_type = "INTEGER"
+             then
+               s_ttb_tbl.ds_msc15 = 1. /* RECID is 4 byte */
+            if s_ttb_fld.ds_type = "BIGINT"
+             then
+               s_ttb_tbl.ds_msc15 = 2. /* RECID is 8 byte */
+          END.
 
        end.     /* for each s_ttb_idx */
     end.     /* no progress_recid -> check indexes for ROWID usability */

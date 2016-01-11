@@ -36,7 +36,7 @@ DEFINE OUTPUT PARAMETER pcPathedFileName   AS CHARACTER NO-UNDO .
  DEFINE VARIABLE cCalcError         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iClass             AS INTEGER    NO-UNDO.
 
- RUN ry/obj/gopendialog.w (INPUT phWindow,
+ RUN adeuib/_opendialog.w (INPUT phWindow,
                            INPUT pcProductModule,
                            INPUT plOpenInAppBuilder,
                            INPUT pcTitle,

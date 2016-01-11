@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wiWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" wiWin _INLINE
@@ -358,7 +358,7 @@ DEFINE VARIABLE fiFilterLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Filter"
      SIZE 5.2 BY .71 NO-UNDO.
 
 DEFINE RECTANGLE Rect-Filter
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 98 BY 1.67.
 
 DEFINE BUTTON buDialog  NO-FOCUS
@@ -433,12 +433,12 @@ DEFINE VARIABLE selLookup AS CHARACTER
      SIZE 24 BY 2.05
      FONT 3 NO-UNDO.
 
-DEFINE VARIABLE ToBox AS LOGICAL INITIAL no 
+DEFINE VARIABLE ToBox AS LOGICAL INITIAL NO 
      LABEL "" 
      VIEW-AS TOGGLE-BOX
      SIZE 3 BY .81 TOOLTIP "If checked, the entered value is overridding the default value" NO-UNDO.
 
-DEFINE VARIABLE ToBoxEvent AS LOGICAL INITIAL no 
+DEFINE VARIABLE ToBoxEvent AS LOGICAL INITIAL NO 
      LABEL "" 
      VIEW-AS TOGGLE-BOX
      SIZE 5 BY .81 TOOLTIP "If checked, the entered event values override the default values" NO-UNDO.
@@ -503,14 +503,14 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          MAX-WIDTH          = 146.2
          VIRTUAL-HEIGHT     = 28.81
          VIRTUAL-WIDTH      = 146.2
-         RESIZE             = yes
-         SCROLL-BARS        = no
-         STATUS-AREA        = no
+         RESIZE             = YES
+         SCROLL-BARS        = NO
+         STATUS-AREA        = NO
          BGCOLOR            = ?
          FGCOLOR            = ?
-         THREE-D            = yes
-         MESSAGE-AREA       = no
-         SENSITIVE          = yes.
+         THREE-D            = YES
+         MESSAGE-AREA       = NO
+         SENSITIVE          = YES.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
@@ -581,7 +581,7 @@ ASSIGN
        ToBox:HIDDEN IN FRAME frMain           = TRUE.
 
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wiWin)
-THEN wiWin:HIDDEN = yes.
+THEN wiWin:HIDDEN = YES.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -835,7 +835,7 @@ END.
 ON VALUE-CHANGED OF coClass IN FRAME frMain /* Class */
 DO:
    PUBLISH 'PropertyChangedClass':U FROM ghProcLib
-      (widget-handle({&WINDOW-NAME}:PRIVATE-DATA),
+      (WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA),
        fiContainer:PRIVATE-DATA,
        coObject:SCREEN-VALUE,
        SELF:SCREEN-VALUE).
@@ -859,7 +859,7 @@ DO:
             
   ELSE IF KEYFUNCTION(LASTKEY) = "CURSOR-UP":U 
            OR KEYFUNCTION(LASTKEY) = "CURSOR-LEFT":U   THEN
-    ASSIGN cNewValue = trim(getPrevItem(SELF:LIST-ITEMS,SELF:SCREEN-VALUE,SELF:DELIMITER)).
+    ASSIGN cNewValue = TRIM(getPrevItem(SELF:LIST-ITEMS,SELF:SCREEN-VALUE,SELF:DELIMITER)).
      
   IF cNewValue <> SELF:SCREEN-VALUE THEN
   DO:
@@ -901,7 +901,7 @@ DO:
             cNewValue = IF cNewValue = "" THEN  " ":U ELSE cNewValue.
   ELSE IF KEYFUNCTION(LASTKEY) = "CURSOR-UP":U 
            OR KEYFUNCTION(LASTKEY) = "CURSOR-LEFT":U   THEN
-    ASSIGN cNewValue = trim(getPrevItemPair(SELF:LIST-ITEM-PAIRS,SELF:SCREEN-VALUE,SELF:DELIMITER))
+    ASSIGN cNewValue = TRIM(getPrevItemPair(SELF:LIST-ITEM-PAIRS,SELF:SCREEN-VALUE,SELF:DELIMITER))
            cNewValue = IF cNewValue = "":U THEN  " ":U ELSE cNewValue.
      
   IF cNewValue <> SELF:SCREEN-VALUE THEN
@@ -927,7 +927,7 @@ DO:
    glSkipObjectList = NO. 
 
    PUBLISH 'PropertyChangedResult':U FROM ghProcLib
-      (widget-handle({&WINDOW-NAME}:PRIVATE-DATA),
+      (WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA),
        fiContainer:PRIVATE-DATA,
        coObject:SCREEN-VALUE,
        SELF:SCREEN-VALUE).
@@ -977,7 +977,7 @@ DO:
 
    /* Send out event notification to calling procedure */
   PUBLISH 'PropertyChangedObject':U FROM ghProcLib
-     (widget-handle({&WINDOW-NAME}:PRIVATE-DATA),
+     (WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA),
       fiContainer:PRIVATE-DATA,
       cObjectName).
   
@@ -1000,7 +1000,7 @@ ON ANY-KEY OF fiFilterAttribute IN FRAME frameFilter /* Attribute */
 DO:
  /* Rebuild the filter query string and refresh the browse query */
    IF LASTKEY = 3 THEN DO:
-      CLIPBOARD:VALUE = self:SELECTION-TEXT.
+      CLIPBOARD:VALUE = SELF:SELECTION-TEXT.
       RETURN NO-APPLY.
    END.
    glSkipObjectList = YES. 
@@ -1214,7 +1214,7 @@ PROCEDURE adm-create-objects :
 
   END CASE.
   /* Select a Startup page. */
-  IF currentPage eq 0
+  IF currentPage EQ 0
   THEN RUN selectPage IN THIS-PROCEDURE ( 1 ).
 
 END PROCEDURE.
@@ -1247,9 +1247,9 @@ DO:
 END.
 ELSE IF (iCurrentPage = 2 AND h_folder:PRIVATE-DATA = "") OR h_folder:PRIVATE-DATA = "Events":U THEN 
 DO: /* Page 2 Event Browse0*/
- IF LASTKEY = 32  AND buList:VISIBLE IN FRAME {&FRAME-NAME} AND self:NAME = "EventType":U THEN
+ IF LASTKEY = 32  AND buList:VISIBLE IN FRAME {&FRAME-NAME} AND SELF:NAME = "EventType":U THEN
    APPLY "CHOOSE":U TO buList.
- ELSE IF LASTKEY = 32  AND buList:VISIBLE IN FRAME {&FRAME-NAME} AND self:NAME = "EventTarget":U THEN
+ ELSE IF LASTKEY = 32  AND buList:VISIBLE IN FRAME {&FRAME-NAME} AND SELF:NAME = "EventTarget":U THEN
    APPLY "CHOOSE":U TO buList-2.
  ELSE IF KEYFUNCTION(LASTKEY) = "TAB":U OR   KEYFUNCTION(LASTKEY) = "BACK-TAB":U 
       OR KEYFUNCTION(LASTKEY) = "CURSOR-UP":U OR KEYFUNCTION(LASTKEY) = "CURSOR-DOWN":U THEN
@@ -1696,8 +1696,8 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-frMain}
   DISPLAY fiFilterAttribute fiFilterEvent coFilterGroup fiFilterLabel 
       WITH FRAME frameFilter IN WINDOW wiWin.
-  ENABLE fiFilterAttribute fiFilterEvent coFilterGroup fiFilterLabel 
-         Rect-Filter 
+  ENABLE Rect-Filter fiFilterAttribute fiFilterEvent coFilterGroup 
+         fiFilterLabel 
       WITH FRAME frameFilter IN WINDOW wiWin.
   {&OPEN-BROWSERS-IN-QUERY-frameFilter}
 END PROCEDURE.
@@ -1770,10 +1770,10 @@ CASE piPage:
 END CASE.
 
 
-IF piPage = 3 or piPage = 4 THEN
-   coObject:SENSITIVE IN FRAME {&FRAME-NAME}  = false.
+IF piPage = 3 OR piPage = 4 THEN
+   coObject:SENSITIVE IN FRAME {&FRAME-NAME}  = FALSE.
 ELSE
-   coObject:SENSITIVE = true.
+   coObject:SENSITIVE = TRUE.
 /*RUN selectPage(1).*/
 
 {get ContainerHandle hFrame h_Folder}.
@@ -1955,7 +1955,7 @@ DO:
  
 
   /* Overlay the toggle-box to the current row */
-  IF hBuffer:AVAILABLE AND valid-handle(ghBrowse) THEN
+  IF hBuffer:AVAILABLE AND VALID-HANDLE(ghBrowse) THEN
   DO:
     ASSIGN
       hOverrideCol = ghBrowse:GET-BROWSE-COLUMN(1)
@@ -2521,10 +2521,13 @@ ASSIGN iInitialWidth        = ghBrowse:WIDTH
        ghBrowse:WIDTH       = pdWidth - 2.5
        ghBrowse:HEIGHT      = pdHeight - ghBrowse:ROW - EdDescription:HEIGHT + .48
                             - (IF {fn getTabPosition h_folder} = "Lower":U THEN {fn getTabRowHeight h_folder} ELSE 0)
-       ghEventBrowse:COL    = ghBrowse:COL
-       ghEventBrowse:ROW    = ghBrowse:ROW
-       ghEventBrowse:WIDTH  = ghBrowse:WIDTH
+       ghEventBrowse:COL    = ghBrowse:COL NO-ERROR.
+
+ASSIGN ghEventBrowse:WIDTH  = ghBrowse:WIDTH
        ghEventBrowse:HEIGHT = ghBrowse:HEIGHT + EDDescription:HEIGHT + 0.24
+       NO-ERROR.
+
+ASSIGN ghEventBrowse:ROW    = ghBrowse:ROW
        hGroupColumn         = ghBrowse:GET-BROWSE-COLUMN(5) /* GroupColumn */
        hColumn              = ghBrowse:GET-BROWSE-COLUMN(2) /* Label Column */
        hColumn:WIDTH        = IF plResizeColumn AND (hGroupColumn:COL + ghBrowse:COL + 13 < pdWidth OR pdWidth - 2.5 < iInitialWidth) 
@@ -2563,6 +2566,7 @@ ASSIGN iInitialWidth        = ghBrowse:WIDTH
                              THEN MAX(15,hColumn:WIDTH * (1 + (deWidthInc / 100) )) 
                              ELSE hColumn:WIDTH
        NO-ERROR.
+
 /* Resize and reposition filter fields */
 ASSIGN FRAME frameFilter:COL   = {&FOLDER_COL} + 1
        FRAME frameFilter:ROW   = {fn getInnerRow h_folder} + 0.12
@@ -2639,7 +2643,7 @@ DO:
         hField          = hBuffer:BUFFER-FIELD("override":U)
         cOverride       = hField:BUFFER-VALUE
         giBrowseRow     = ghBrowse:FOCUSED-ROW
-        ToBox:CHECKED   = IF trim(cOverride) ="*":U THEN TRUE ELSE FALSE
+        ToBox:CHECKED   = IF TRIM(cOverride) ="*":U THEN TRUE ELSE FALSE
        NO-ERROR.
   END.
 END.
@@ -2657,7 +2661,7 @@ DO:
          hField                = hBuffer:BUFFER-FIELD("override":U)
          cOverride             = hField:BUFFER-VALUE
          giEventBrowseRow      = ghEventBrowse:FOCUSED-ROW
-         ToBoxEvent:CHECKED    = IF trim(cOverride) ="*":U THEN TRUE ELSE FALSE
+         ToBoxEvent:CHECKED    = IF TRIM(cOverride) ="*":U THEN TRUE ELSE FALSE
          NO-ERROR.
    END.
 
@@ -2878,7 +2882,7 @@ DO:
     
     IF cLabel BEGINS "(" AND SUBSTRING(cLabel,LENGTH(clabel),1) = ")" THEN
     DO:
-      cAttributeFirst = DYNAMIC-FUNCTION("getAttributeFirst":U IN ghProcLib,widget-handle({&WINDOW-NAME}:PRIVATE-DATA)).
+      cAttributeFirst = DYNAMIC-FUNCTION("getAttributeFirst":U IN ghProcLib,WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA)).
       IF LOOKUP(SUBSTRING(cLabel,2,LENGTH(cLabel) - 2),cAttributeFirst,CHR(2)) > 0 THEN
         cLabel = SUBSTRING(cLabel,2,LENGTH(cLabel) - 2).
     END.
@@ -2910,11 +2914,11 @@ DO:
                hField              = hBufferAttribute:BUFFER-FIELD("RowModified":U)
                hField:BUFFER-VALUE = TRUE
                hField              = hBufferAttribute:BUFFER-FIELD("RowOverride":U)
-               hField:BUFFER-VALUE =  IF trim(hOverrideColumn:SCREEN-VALUE) = "*":U THEN TRUE ELSE FALSE
+               hField:BUFFER-VALUE =  IF TRIM(hOverrideColumn:SCREEN-VALUE) = "*":U THEN TRUE ELSE FALSE
                NO-ERROR.
 
         PUBLISH 'PropertyChangedAttribute':U FROM ghProcLib 
-            (widget-handle({&WINDOW-NAME}:PRIVATE-DATA), /* calling proc */
+            (WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA), /* calling proc */
              fiContainer:PRIVATE-DATA,                /* Container Name */
              cObjectName,                            /* Object Name */
              cResultCode,                             /* Result Code */
@@ -2983,7 +2987,7 @@ DO:
          DO:
            REPEAT:
              ASSIGN hField              = hSelectedBuffer:BUFFER-FIELD("override")
-                    lOverride           = IF trim(hField:BUFFER-VALUE) = "*" THEN TRUE ELSE FALSE
+                    lOverride           = IF TRIM(hField:BUFFER-VALUE) = "*" THEN TRUE ELSE FALSE
                     hField              = hSelectedBuffer:BUFFER-FIELD("defaultValue")
                     hField:BUFFER-VALUE = ghValueColumn:SCREEN-VALUE
                     hField              = hSelectedBuffer:BUFFER-FIELD("setValue")
@@ -3152,10 +3156,10 @@ DO:
                hField              = hBufferEvent:BUFFER-FIELD("objectName":U)
                cObjectName         = hField:BUFFER-VALUE
                hField              = hBufferEvent:BUFFER-FIELD("RowOverride":U)
-               hField:BUFFER-VALUE =  IF trim(hOverrideCol:SCREEN-VALUE) = "*":U THEN TRUE ELSE FALSE
+               hField:BUFFER-VALUE =  IF TRIM(hOverrideCol:SCREEN-VALUE) = "*":U THEN TRUE ELSE FALSE
                NO-ERROR.
         PUBLISH 'PropertyChangedEvent':U FROM ghProcLib 
-           (widget-handle({&WINDOW-NAME}:PRIVATE-DATA), /* calling proc */
+           (WIDGET-HANDLE({&WINDOW-NAME}:PRIVATE-DATA), /* calling proc */
             fiContainer:PRIVATE-DATA,                   /* Container Name */
             cObjectName,                                /* Object Name */
             cResultCode,                                /* Result Code */
@@ -3235,7 +3239,7 @@ DO:
       DO:
         REPEAT:
           ASSIGN hField              = hSelectedBuffer:BUFFER-FIELD("override")
-                 lOverride           = IF trim(hField:BUFFER-VALUE) = "*" THEN TRUE ELSE FALSE
+                 lOverride           = IF TRIM(hField:BUFFER-VALUE) = "*" THEN TRUE ELSE FALSE
                  hField              = hSelectedBuffer:BUFFER-FIELD("defaultAction":U)
                  hField:BUFFER-VALUE = hAction:SCREEN-VALUE
                  hField              = hSelectedBuffer:BUFFER-FIELD("defaultType":U)
@@ -3345,7 +3349,7 @@ DO:
  
 
   /* Overlay the toggle-box to the current row */
-  IF hBuffer:AVAILABLE AND valid-handle(ghBrowse) THEN
+  IF hBuffer:AVAILABLE AND VALID-HANDLE(ghBrowse) THEN
   DO:
     ASSIGN
       hOverrideCol = ghBrowse:GET-BROWSE-COLUMN(1)
@@ -3539,7 +3543,7 @@ PROCEDURE selectPage :
              NO-ERROR.
       IF hBuffer:AVAILABLE THEN
          ASSIGN hField                = hBuffer:BUFFER-FIELD("override":U)
-                ToBoxEvent:CHECKED    = IF trim(hfield:BUFFER-VALUE) ="*":U THEN TRUE ELSE FALSE
+                ToBoxEvent:CHECKED    = IF TRIM(hfield:BUFFER-VALUE) ="*":U THEN TRUE ELSE FALSE
                 NO-ERROR.
       IF VALID-HANDLE(ghEventBrowse) THEN
         APPLY "ENTRY":U TO ghEventBrowse.
@@ -3557,7 +3561,7 @@ PROCEDURE selectPage :
        IF hBuffer:AVAILABLE THEN
          ASSIGN
             hField          = hBuffer:BUFFER-FIELD("override":U)
-            ToBox:CHECKED   = IF trim(hField:BUFFER-VALUE) ="*":U THEN TRUE ELSE FALSE
+            ToBox:CHECKED   = IF TRIM(hField:BUFFER-VALUE) ="*":U THEN TRUE ELSE FALSE
              NO-ERROR.
       IF VALID-HANDLE(ghBrowse) THEN
         APPLY "ENTRY":U TO ghBrowse.

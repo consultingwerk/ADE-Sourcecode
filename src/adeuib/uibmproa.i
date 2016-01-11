@@ -142,7 +142,7 @@ PROCEDURE AddXFTR :
   
     DEFINE BUFFER x_P FOR _P.
   
-    FIND _U WHERE _U._HANDLE eq _h_win NO-ERROR.
+    FIND _U WHERE _U._HANDLE EQ _h_win NO-ERROR.
     IF NOT AVAILABLE (_U) THEN DO:
         MESSAGE "No design window is available." VIEW-AS ALERT-BOX
             ERROR BUTTONS OK.
@@ -164,11 +164,11 @@ PROCEDURE AddXFTR :
         /*_XFTR._wRECID   = RECID(_U)*/.
     IF _xftr._read    NE ? THEN
     DO ON STOP UNDO, LEAVE:
-      RUN value(_xftr._read) (INTEGER(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).
+      RUN VALUE(_xftr._read) (INTEGER(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).
     END.
     IF _xftr._realize NE ? THEN
     DO ON STOP UNDO, LEAVE:
-      RUN value(_xftr._realize) (INTEGER(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).
+      RUN VALUE(_xftr._realize) (INTEGER(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).
     END.
 
 END PROCEDURE.
@@ -292,7 +292,7 @@ PROCEDURE call_run :
     RUN report-no-win.
   ELSE DO:
     /* Does the user want to be asked about running TTY windows in MS-WIN ?*/
-    IF NOT (_cur_win_type or (OPSYS = "WIN32":U)) AND NOT {&NA-Run-TTY-in-GUI} THEN DO:
+    IF NOT (_cur_win_type OR (OPSYS = "WIN32":U)) AND NOT {&NA-Run-TTY-in-GUI} THEN DO:
       choice = "_RUN":U.
       RUN adeuib/_advisor.w (
           INPUT "PROGRESS cannot directly test character layouts " +
@@ -307,7 +307,7 @@ PROCEDURE call_run :
           INPUT-OUTPUT choice,
           OUTPUT {&NA-Run-TTY-in-GUI}).
       /* Does the user still want to run? */
-      ok2run = (choice eq "_RUN":U).
+      ok2run = (choice EQ "_RUN":U).
     END.
 
     /* Is the file missing any links, or is it OK to RUN? */
@@ -320,14 +320,14 @@ PROCEDURE call_run :
 
       APPLY "ENTRY":U TO _h_button_bar[5].  /* Kludge to get consistent behavior.  */
       /* Set the cursor in windows. */
-      RUN setstatus ("WAIT":U, IF pc_mode eq "RUN":U THEN "Running file..."
+      RUN setstatus ("WAIT":U, IF pc_mode EQ "RUN":U THEN "Running file..."
                                ELSE "Debugging file...").
       RUN-BLK:
       DO ON STOP  UNDO RUN-BLK, LEAVE RUN-BLK
          ON ERROR UNDO RUN-BLK, LEAVE RUN-BLK:
 
-        FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
-        FIND _U WHERE _U._HANDLE        eq _h_win.
+        FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
+        FIND _U WHERE _U._HANDLE        EQ _h_win.
         ASSIGN web-tmp-file = "".
 
         IF _P._TYPE BEGINS "WEB":U OR
@@ -346,7 +346,7 @@ PROCEDURE call_run :
             ASSIGN
               hTitleWin = (IF (_U._TYPE = "DIALOG-BOX") THEN
                              _U._HANDLE:PARENT ELSE _U._HANDLE)
-              cFileName = TRIM((IF _P._SAVE-AS-FILE eq ? THEN
+              cFileName = TRIM((IF _P._SAVE-AS-FILE EQ ? THEN
                                   SUBSTRING(hTitleWin:TITLE,
                                   INDEX(hTitleWin:TITLE,"-":U) + 1,
                                   -1, "CHARACTER":U)
@@ -358,7 +358,7 @@ PROCEDURE call_run :
             LEAVE RUN-BLK.
           END.
 
-          cBroker = IF _P._BROKER-URL eq "" THEN _BrokerURL ELSE _P._BROKER-URL.
+          cBroker = IF _P._BROKER-URL EQ "" THEN _BrokerURL ELSE _P._BROKER-URL.
 
           RUN adeweb/_webcom.w (RECID(_P), cBroker, cRelName, "RUN":U,
                                 OUTPUT cRelName, INPUT-OUTPUT cTempFile).
@@ -441,6 +441,11 @@ PROCEDURE call_sew :
 ------------------------------------------------------------------------------*/
  DEFINE INPUT PARAMETER p_secommand AS CHARACTER NO-UNDO.
 
+ DEFINE VARIABLE lOEIDEOpen AS LOGICAL    NO-UNDO.
+    
+ IF p_secommand = "SE_OEOPEN" THEN
+     ASSIGN p_secommand = "SE_OPEN" lOEIDEOpen = TRUE.
+
   /* Get the Section Editor for the current window. */
   RUN call_sew_getHandle (INPUT _h_win, INPUT p_secommand, INPUT-OUTPUT hSecEd).
   IF NOT VALID-HANDLE( hSecEd ) THEN RETURN.
@@ -454,7 +459,7 @@ PROCEDURE call_sew :
         IF _h_cur_widg NE ? THEN
         DO:
             FIND _U WHERE _U._HANDLE = _h_cur_widg.
-            RUN SecEdWindow IN hSecEd ("_CONTROL", RECID(_U), ?, "").
+            RUN SecEdWindow IN hSecEd ("_CONTROL", RECID(_U), ?, IF lOEIDEOpen THEN "SE_OEOPEN" ELSE "").
              /* Codedit can rename widgets, so redisplay the current widget
                 in case its name has changed.  Also it could change numeric
                 format.
@@ -466,7 +471,7 @@ PROCEDURE call_sew :
             /* If no current widget, go to main block for window */
             FIND _U WHERE _U._HANDLE = _h_win.
             RUN SecEdWindow IN hSecEd
-                            ("_CUSTOM":U, RECID(_U), "_MAIN-BLOCK":U, "").
+                            ("_CUSTOM":U, RECID(_U), "_MAIN-BLOCK":U, IF lOEIDEOpen THEN "SE_OEOPEN" ELSE "").
         END.
       END. /* IF _h_win ne ? ... */
 
@@ -625,7 +630,7 @@ PROCEDURE changewidg :
   DEFINE INPUT PARAMETER deselect_others AS LOGICAL NO-UNDO.
 
   /* Has anything changed? */
-  IF h_self ne _h_cur_widg THEN DO:
+  IF h_self NE _h_cur_widg THEN DO:
     /* If requested (esp. if the curent widget is a SmartObject or a Menu item)
        then deselect all the other wigets. */
     IF deselect_others THEN DO:
@@ -634,13 +639,13 @@ PROCEDURE changewidg :
                _U._HANDLE:SELECTED = FALSE.
       END.
     END.
-    IF h_self ne ? THEN RUN curframe (h_self).
+    IF h_self NE ? THEN RUN curframe (h_self).
     _h_cur_widg = h_self.
   END.
   /* Occasionally, this routine is called by a routine that has changed
      _h_cur_widg itself.  Really, the caller wants to change the
      displayed widget.  So handle this to. */
-  IF _h_cur_widg ne h_display_widg THEN RUN display_current.
+  IF _h_cur_widg NE h_display_widg THEN RUN display_current.
 END PROCEDURE. /* changewidg */
 
 /* _UIB-CODE-BLOCK-END */
@@ -862,7 +867,7 @@ PROCEDURE change_label :
   DEFINE BUFFER f_U FOR _U.
   DEFINE BUFFER f_L FOR _L.
 
-  error_on_leave = no.
+  error_on_leave = NO.
   DO WITH FRAME action_icons:
     /* Has it changed? */
     IF cur_widg_text <> SELF:SCREEN-VALUE THEN DO:
@@ -888,27 +893,27 @@ PROCEDURE change_label :
                     /* Fill "label" for use in widg.browser */
                     _U._LABEL                = "~"" + _F._INITIAL-DATA + "~"" .
         END.
-        ELSE IF _U._TYPE eq "BROWSE":U THEN DO:
-          _U._LABEL = IF cur_widg_text eq ? THEN "" ELSE cur_widg_text.
+        ELSE IF _U._TYPE EQ "BROWSE":U THEN DO:
+          _U._LABEL = IF cur_widg_text EQ ? THEN "" ELSE cur_widg_text.
           /* Change the title - note we need to simulate browse contents */
-          FIND _C WHERE RECID(_C) eq _U._x-recid.
+          FIND _C WHERE RECID(_C) EQ _U._x-recid.
           IF _C._TITLE THEN DO:
             IF VALID-HANDLE(_U._PROC-HANDLE) THEN RUN destroyObject IN _U._PROC-HANDLE.
             ELSE IF VALID-HANDLE(_U._HANDLE) THEN DELETE WIDGET _U._HANDLE.
             RUN adeuib/_undbrow.p (RECID(_U)).
           END.
         END.
-        ELSE IF _U._TYPE eq "FRAME":U THEN DO:
-          _U._LABEL = IF cur_widg_text eq ? THEN "" ELSE cur_widg_text.
-           FIND _C WHERE RECID(_C) eq _U._x-recid.
+        ELSE IF _U._TYPE EQ "FRAME":U THEN DO:
+          _U._LABEL = IF cur_widg_text EQ ? THEN "" ELSE cur_widg_text.
+           FIND _C WHERE RECID(_C) EQ _U._x-recid.
            IF _C._TITLE AND NOT _L._NO-BOX THEN DO:
-             RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, no, OUTPUT text-sa).
-             IF text-sa ne _U._HANDLE:TITLE THEN _U._HANDLE:TITLE = text-sa.
+             RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, NO, OUTPUT text-sa).
+             IF text-sa NE _U._HANDLE:TITLE THEN _U._HANDLE:TITLE = text-sa.
            END.
         END.
         ELSE IF CAN-DO ("MENU-ITEM,SUB-MENU", _U._TYPE) THEN DO:
-          _U._LABEL = IF cur_widg_text eq ? THEN "" ELSE cur_widg_text.
-          RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, no, OUTPUT text-sa).
+          _U._LABEL = IF cur_widg_text EQ ? THEN "" ELSE cur_widg_text.
+          RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, NO, OUTPUT text-sa).
           _U._HANDLE:LABEL = text-sa.
         END.
         ELSE IF CAN-SET(_U._HANDLE, "LABEL") THEN DO:
@@ -917,8 +922,8 @@ PROCEDURE change_label :
             /* Label is "unknown", so use "D"efault -- note: for DB fields, we
                need to refetch the Default label. We only bother with this change
                if the old value was not "D"efault. */
-            IF _U._LABEL-SOURCE ne "D" THEN DO:
-              IF _U._DBNAME ne ? THEN RUN adeuib/_fldlbl.p
+            IF _U._LABEL-SOURCE NE "D" THEN DO:
+              IF _U._DBNAME NE ? THEN RUN adeuib/_fldlbl.p
                             (_U._DBNAME, _U._TABLE, _U._NAME, _C._SIDE-LABELS,
                              OUTPUT _U._LABEL, OUTPUT _U._LABEL-ATTR).
               _U._LABEL-SOURCE = "D".
@@ -931,10 +936,10 @@ PROCEDURE change_label :
          ELSE DO:
             FIND f_U WHERE RECID(f_U) = _U._PARENT-RECID.
             ASSIGN _h_frame = f_U._HANDLE.
-            FIND _C WHERE RECID(_C) eq f_U._x-recid.
-            FIND f_L WHERE RECID(f_L) eq f_U._lo-recid.
-            FIND _F WHERE RECID(_F) eq _U._x-recid.
-            FIND _L WHERE RECID(_L) eq _U._lo-recid.
+            FIND _C WHERE RECID(_C) EQ f_U._x-recid.
+            FIND f_L WHERE RECID(f_L) EQ f_U._lo-recid.
+            FIND _F WHERE RECID(_F) EQ _U._x-recid.
+            FIND _L WHERE RECID(_L) EQ _U._lo-recid.
             _L._NO-LABELS = (TRIM(_U._LABEL) EQ ""). /* Set no-label */
             IF NOT _C._SIDE-LABELS AND NOT f_L._NO-LABELS AND _L._NO-LABELS
             THEN RUN adeuib/_chkpos.p (_U._HANDLE).
@@ -948,9 +953,9 @@ PROCEDURE change_label :
              have no title-bar, i.e. TITLE = ?.  If that is the case then
              don't set title. */
            ASSIGN _U._LABEL  = cur_widg_text
-                  h_ttl_widg = IF _U._TYPE eq "DIALOG-BOX"
+                  h_ttl_widg = IF _U._TYPE EQ "DIALOG-BOX"
                                THEN _U._HANDLE:PARENT ELSE _U._HANDLE.
-           FIND _P WHERE _P._u-recid eq RECID(_U).
+           FIND _P WHERE _P._u-recid EQ RECID(_U).
            ASSIGN oldTitle = h_ttl_widg:TITLE.
            RUN adeuib/_wintitl.p (h_ttl_widg, _U._LABEL, _U._LABEL-ATTR,
                                   _P._SAVE-AS-FILE).
@@ -984,17 +989,17 @@ PROCEDURE change_name :
   DEFINE BUFFER f_U FOR _U.
   DEFINE BUFFER f_L FOR _L.
 
-  error_on_leave = no.
+  error_on_leave = NO.
   /* Has it been modified ? */
   IF cur_widg_name <> SELF:SCREEN-VALUE THEN DO:
     FIND _U WHERE _U._HANDLE = h_display_widg NO-ERROR.
-    IF AVAILABLE _U AND (_U._TYPE ne "TEXT") THEN DO:
+    IF AVAILABLE _U AND (_U._TYPE NE "TEXT") THEN DO:
       IF NOT CAN-DO("MENU,MENU-ITEM,SUB-MENU",_U._TYPE) THEN
-        FIND _L WHERE RECID(_L) eq _U._lo-recid.
+        FIND _L WHERE RECID(_L) EQ _U._lo-recid.
 
       RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
       IF NOT valid_name THEN DO:
-        ASSIGN error_on_leave    = yes
+        ASSIGN error_on_leave    = YES
                SELF:SCREEN-VALUE = cur_widg_name.
         RETURN ERROR.
       END.
@@ -1002,7 +1007,7 @@ PROCEDURE change_name :
         ASSIGN cur_widg_name
                display_name     = cur_widg_name
                _U._NAME         = cur_widg_name
-               error_on_leave   = no.
+               error_on_leave   = NO.
 
         /* If this is a OCX control then CORE needs to know the change */
 
@@ -1015,9 +1020,9 @@ PROCEDURE change_name :
         IF (_U._LABEL-SOURCE = "D") AND (_U._TABLE = ?) AND
            CAN-DO ("BUTTON,FILL-IN,TOGGLE-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER", _U._TYPE) THEN DO:
           IF CAN-DO("COMBO-BOX,FILL-IN,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U, _U._TYPE) THEN DO:
-            FIND f_U WHERE f_U._HANDLE eq _h_frame.
-            FIND f_L WHERE RECID(f_L) eq f_U._lo-recid.
-            FIND _C WHERE RECID(_C) eq f_U._x-recid.
+            FIND f_U WHERE f_U._HANDLE EQ _h_frame.
+            FIND f_L WHERE RECID(f_L) EQ f_U._lo-recid.
+            FIND _C WHERE RECID(_C) EQ f_U._x-recid.
             IF NOT _C._SIDE-LABELS AND NOT f_L._NO-LABELS AND _L._NO-LABELS
             THEN RUN adeuib/_chkpos.p (_U._HANDLE).
             RUN adeuib/_showlbl.p (_U._HANDLE).
@@ -1050,16 +1055,16 @@ PROCEDURE choose-pointer :
   /* Unhilite the current tool  - if it isn't the pointer  */
   IF hDrawTool NE ? AND hDrawTool:PRIVATE-DATA NE "POINTER":U
   THEN DO:
-    ASSIGN hDrawTool:HIDDEN  = no
+    ASSIGN hDrawTool:HIDDEN  = NO
            toolframe         = hDrawTool:FRAME
            toolframe:bgcolor = ?.
   END.
   /* Hide the old lock -- pointer mode is NEVER locked */
-  IF h_lock NE ? AND h_lock:HIDDEN ne YES
+  IF h_lock NE ? AND h_lock:HIDDEN NE YES
   THEN h_lock:HIDDEN = YES.
   /* Set the current selection to the pointer.                */
   ASSIGN hDrawTool         = h_wp_Pointer
-         hDrawTool:HIDDEN  = yes
+         hDrawTool:HIDDEN  = YES
          goBack2pntr       = TRUE
          ldummy            = _h_object_win:LOAD-MOUSE-POINTER("":U)
          toolframe         = hDrawTool:FRAME
@@ -1082,7 +1087,7 @@ PROCEDURE choose-pointer :
          _palette_custom_choice = ?
          widget_click_cnt = 0
          .
-  RUN adeuib/_setpntr.p (_next_draw, input-output _object_draw).
+  RUN adeuib/_setpntr.p (_next_draw, INPUT-OUTPUT _object_draw).
   /* Show the user we are using the Pointer Tool */
   RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Tool},  h_wp_Pointer:HELP).
   RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Lock}, "":U).
@@ -1110,7 +1115,7 @@ PROCEDURE choose_assign_widgetID :
     do:
       RUN adeuib/_assignwidgid.p (INPUT _h_win).
       RUN adeuib/_winsave.p(_h_win, FALSE).
-    end.
+    END.
   END.
 END PROCEDURE.  /* choose_assign_widgetID */
 
@@ -1128,7 +1133,7 @@ PROCEDURE choose_attributes :
   /* If it doesn't exist, them create it.  Otherwise, move it to the top.
      NOTE that we need to make sure the handle points to the same item
      (because PROGRESS reuses procedure handles). */
-  IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME eq "{&AttrEd}"
+  IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME EQ "{&AttrEd}"
   THEN RUN move-to-top IN hAttrEd NO-ERROR.
   ELSE RUN {&AttrEd} PERSISTENT SET hAttrEd .
 
@@ -1164,15 +1169,15 @@ PROCEDURE choose_check_syntax :
     RUN call_sew ("SE_STORE_WIN":U).
     RUN setstatus ("WAIT":U, "Checking syntax...").
 
-    FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
-    FIND _U WHERE _U._HANDLE        eq _h_win.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
+    FIND _U WHERE _U._HANDLE        EQ _h_win.
     ASSIGN
       web-tmp-file = ""
       _save_mode   = "".
 
     /* Check syntax on remote WebSpeed agent if Broker URL is known for this
        file or the file is new, untitled and Development Mode is remote. */
-    IF _P._BROKER-URL ne "" OR (_P._SAVE-AS-FILE eq ? AND _remote_file)
+    IF _P._BROKER-URL NE "" OR (_P._SAVE-AS-FILE EQ ? AND _remote_file)
       THEN DO:
       RUN adecomm/_tmpfile.p ("ws":U, ".tmp":U, OUTPUT cTempFile).
 
@@ -1182,9 +1187,9 @@ PROCEDURE choose_check_syntax :
          hold the field definition include filename. */
       ASSIGN
         web-tmp-file = cTempFile
-        _save_mode   = (IF _P._SAVE-AS-FILE eq ? THEN "T":U ELSE "F":U) +
+        _save_mode   = (IF _P._SAVE-AS-FILE EQ ? THEN "T":U ELSE "F":U) +
                         ",":U +
-                       (IF _P._SAVE-AS-FILE eq ? AND _remote_file
+                       (IF _P._SAVE-AS-FILE EQ ? AND _remote_file
                         THEN "T":U ELSE "F":U).
 
       IF _P._file-version BEGINS "WDT_v2":U THEN
@@ -1194,11 +1199,11 @@ PROCEDURE choose_check_syntax :
         RUN adeshar/_gen4gl.p ("SAVE:CHECK":U).
 
       ASSIGN
-        cBroker   = (IF _P._BROKER-URL ne ""
+        cBroker   = (IF _P._BROKER-URL NE ""
                      THEN _P._BROKER-URL ELSE _BrokerURL)
         hTitleWin = (IF (_U._TYPE = "DIALOG-BOX") THEN
                       _U._HANDLE:PARENT ELSE _U._HANDLE)
-        cFileName = TRIM((IF _P._SAVE-AS-FILE eq ? THEN
+        cFileName = TRIM((IF _P._SAVE-AS-FILE EQ ? THEN
                             SUBSTRING(hTitleWin:TITLE,
                               INDEX(hTitleWin:TITLE,"-":U) + 1,
                               -1, "CHARACTER":U)
@@ -1220,8 +1225,8 @@ PROCEDURE choose_check_syntax :
         RUN adecomm/_s-alert.p (INPUT-OUTPUT lScrap, "error":U, "ok":U,
           SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1,"CHARACTER":U)).
 
-        FIND LAST _TRG WHERE _TRG._pRECID  eq RECID(_P)
-                         AND _TRG._tOFFSET lt iErrOffset
+        FIND LAST _TRG WHERE _TRG._pRECID  EQ RECID(_P)
+                         AND _TRG._tOFFSET LT iErrOffset
                          USE-INDEX _tOFFSET NO-ERROR.
         _err_recid = IF AVAILABLE _TRG THEN RECID(_TRG) ELSE ?.
       END. /* RETURN-VALUE BEGINS "ERROR:" */
@@ -1384,7 +1389,7 @@ PROCEDURE choose_copy :
   DEFINE VAR dummy AS LOGICAL.
   DEFINE VAR Clip_Multiple  AS LOGICAL       NO-UNDO INIT FALSE.
 
-  IF _h_win eq ? THEN RUN report-no-win.
+  IF _h_win EQ ? THEN RUN report-no-win.
   ELSE DO:
     RUN adeuib/_chksel.p(OUTPUT ivCount). /* check selection for same parents */
     IF ivCount > 0 THEN DO: /* Valid Copy */
@@ -1456,7 +1461,7 @@ PROCEDURE choose_cut :
   DEFINE VARIABLE dummy AS LOGICAL.
   DEFINE VAR Clip_Multiple  AS LOGICAL       NO-UNDO INIT FALSE.
 
-  IF _h_win eq ? THEN RUN report-no-win.
+  IF _h_win EQ ? THEN RUN report-no-win.
   ELSE DO:
     /* check selection: if different parents, then ivCount will be < 0 */
     RUN adeuib/_chksel.p (OUTPUT ivCount).
@@ -1475,7 +1480,7 @@ PROCEDURE choose_cut :
         RUN setstatus ("WAIT":U, "Cutting to clipboard...").
         /* If any of the selected objects are in the current frame, then remove
            the selected objects from the current query. */
-        IF _h_frame ne ? THEN RUN adeuib/_vrfyqry.p (_h_frame, "REMOVE-SELECTED-FIELDS":U, "").
+        IF _h_frame NE ? THEN RUN adeuib/_vrfyqry.p (_h_frame, "REMOVE-SELECTED-FIELDS":U, "").
         IF _comp_temp_file = ? THEN
           RUN adecomm/_tmpfile.p({&STD_TYP_UIB_COMPILE}, {&STD_EXT_UIB},
                              OUTPUT _comp_temp_file).
@@ -1581,11 +1586,11 @@ PROCEDURE choose_duplicate :
     ELSE RUN adeuib/_chsxprt.p (FALSE).
     /* Make sure we don't duplicate a frame into its self */
     IF VALID-HANDLE(_h_frame) THEN DO:
-      FIND _U WHERE _U._HANDLE eq _h_frame.
-      IF _U._TYPE eq "FRAME":U AND _U._SELECTEDib THEN DO:
+      FIND _U WHERE _U._HANDLE EQ _h_frame.
+      IF _U._TYPE EQ "FRAME":U AND _U._SELECTEDib THEN DO:
         par-rec = _U._PARENT-RECID.
         FIND _U WHERE RECID(_U) = par-rec.
-        IF _U._TYPE eq "WINDOW":U THEN _h_frame = ?.
+        IF _U._TYPE EQ "WINDOW":U THEN _h_frame = ?.
         ELSE _h_frame = _U._HANDLE.  /* Parent duplicate to frame or dialog. */
       END.
     END.
@@ -1691,7 +1696,7 @@ PROCEDURE choose_erase :
     /* For each frame that is not selected itself, run through the selected
        widgets that it contains and remove them from the query */
     FOR EACH _U WHERE NOT _U._SELECTEDib
-                  AND _U._WINDOW-HANDLE eq _h_win
+                  AND _U._WINDOW-HANDLE EQ _h_win
                   AND CAN-DO("DIALOG-BOX,FRAME":U,_U._TYPE):
       RUN adeuib/_vrfyqry.p (_U._HANDLE, "REMOVE-SELECTED-FIELDS":U, "":U).
     END.
@@ -1827,9 +1832,9 @@ PROCEDURE choose_file_new :
 
   RUN adeuib/_newobj.w ( OUTPUT choice ).
   /* DESELECT everything that is selected if a choice was made. */
-  IF choice ne "" and choice ne ? THEN DO:
+  IF choice NE "" AND choice NE ? THEN DO:
     RUN adecomm/_osfext.p ( choice, OUTPUT cFileExt ).
-    IF (cFileExt eq ".htm":U OR cFileExt eq ".html":U) AND
+    IF (cFileExt EQ ".htm":U OR cFileExt EQ ".html":U) AND
       _AB_license > 1 THEN DO:
 
       lHtmlFile = TRUE.
@@ -1975,12 +1980,12 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
                    _P._SAVE-AS-FILE = _save_File
                    rRecid           = RECID(_P).
 
-            /* The call to adfswizdw.w requires a valid _h_cur_widg, but this
+            /* The call to _saveaswizd.w requires a valid _h_cur_widg, but this
                won't be the case if multiple objects are choosen. In this case
                set it to _h_win.  */
             IF NOT VALID-HANDLE(_h_cur_widg) THEN 
               _h_cur_widg = _h_win.
-            RUN af/cod/afsvwizdw.w (INPUT NO, OUTPUT lRegisterObj, OUTPUT lOK).
+            run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).            
             IF rRecid <> RECID(_P) THEN
                FIND _P WHERE  RECID(_P) = rRecid .
             IF NOT lOK THEN DO:
@@ -2088,7 +2093,7 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
       /* SEW call to store current trigger code for specific window. */
       RUN call_sew ("SE_STORE_WIN":U).
 
-      RUN save_window (no, OUTPUT cancel).
+      RUN save_window (NO, OUTPUT cancel).
     END. /* If saving a static object */
   END. /* Else we have a valid window handle */
 END PROCEDURE. /* choose_file_save */
@@ -2174,12 +2179,12 @@ PROCEDURE choose_file_save_all :
   FOR EACH x_U WHERE CAN-DO("WINDOW,DIALOG-BOX",x_U._TYPE)
                                          AND x_U._STATUS NE "DELETED":
 
-    IF x_U._TYPE = "DIALOG-BOX":U THEN RUN changewidg (x_U._HANDLE, yes).
+    IF x_U._TYPE = "DIALOG-BOX":U THEN RUN changewidg (x_U._HANDLE, YES).
     ELSE APPLY "ENTRY":U TO x_U._HANDLE.
 
-    FIND x_P WHERE x_P._u-recid eq RECID(x_U).
+    FIND x_P WHERE x_P._u-recid EQ RECID(x_U).
     IF x_P._SAVE-AS-FILE = ? THEN
-      MESSAGE IF x_U._SUBTYPE eq "Design-Window" THEN x_U._LABEL ELSE x_U._NAME SKIP
+      MESSAGE IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME SKIP
         "This window has not been previously saved."
         VIEW-AS ALERT-BOX INFORMATION.
 
@@ -2206,7 +2211,7 @@ PROCEDURE choose_file_save_as :
 
     /* SEW call to store current trigger code for specific window. */
     RUN call_sew ("SE_STORE_WIN":U).
-    RUN save_window (yes, OUTPUT cancel).
+    RUN save_window (YES, OUTPUT cancel).
   END.
 
 END PROCEDURE. /*choose_file_save_as */
@@ -2297,7 +2302,7 @@ PROCEDURE choose_file_save_as_static :
     cObjectType = "StaticSDV":U.
  ELSE IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _P.object_type_code,"DynSDO":U) THEN
     cObjectType = "SDO":U.
- else if dynamic-function('classIsA':u in gshRepositoryManager, _P.Object_Type_Code, 'DynDataView':u) then
+ ELSE IF DYNAMIC-FUNCTION('classIsA':u in gshRepositoryManager, _P.Object_Type_Code, 'DynDataView':u) THEN
      cObjectType = 'StaticDataView':u.
  ELSE DO:
    MESSAGE "Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static." view-as alert-box.
@@ -2330,7 +2335,7 @@ DO:
       OUTPUT TABLE ttLink,
       OUTPUT TABLE ttUiEvent,
       OUTPUT TABLE ttObjectAttribute ) NO-ERROR. 
-  FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = _P._data-Object no-error.
+  FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = _P._data-Object NO-ERROR.
   IF AVAIL ttObject THEN
     lIsSBO = DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, ttObject.tClassName,"SBO":U). 
 END.
@@ -2655,11 +2660,11 @@ PROCEDURE choose_goto_page :
      it? */
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
-    FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
     IF CAN-DO (_P._links, "PAGE-TARGET") THEN DO:
       /* Only page 0 is allowed on alternate layouts. */
-      FIND _U WHERE RECID(_U) eq _P._u-recid.
-      IF _U._LAYOUT-NAME eq '{&Master-Layout}':U THEN DO:
+      FIND _U WHERE RECID(_U) EQ _P._u-recid.
+      IF _U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN DO:
         RUN adeuib/_gotopag.w (RECID(_P)).
         RUN display_page_number.
       END.
@@ -2688,13 +2693,13 @@ PROCEDURE choose_import_fields :
     RUN adecomm/_dbcnnct.p (
       "You must have at least one connected database to insert database fields.",
       OUTPUT ldummy).
-    IF ldummy eq no THEN RETURN.
+    IF ldummy EQ NO THEN RETURN.
   END.
   IF _h_frame = ? THEN DO:
     /* Assume the first frame in the window (if there is one). */
-    FIND _U WHERE _U._TYPE eq "FRAME":U
-              AND _U._STATUS ne "DELETED":U
-              AND _U._WINDOW-HANDLE eq _h_win NO-ERROR.
+    FIND _U WHERE _U._TYPE EQ "FRAME":U
+              AND _U._STATUS NE "DELETED":U
+              AND _U._WINDOW-HANDLE EQ _h_win NO-ERROR.
     IF AVAILABLE _U THEN _h_frame = _U._HANDLE.
     ELSE DO:
       MESSAGE "Please select a frame in which to insert database fields."
@@ -2797,7 +2802,7 @@ PROCEDURE choose_import_file :
 
     FIND _U WHERE _U._HANDLE = _h_win.
     ASSIGN _h_cur_widg    = _U._HANDLE
-           _h_frame       = (IF _U._TYPE eq "WINDOW":U THEN ? ELSE _U._HANDLE)
+           _h_frame       = (IF _U._TYPE EQ "WINDOW":U THEN ? ELSE _U._HANDLE)
            .
     RUN display_current.
 
@@ -2911,12 +2916,12 @@ PROCEDURE choose_mru_file :
         /* _mru_files._file may have info to construct the full path name.
            For the error message, we just want the relative path name, if available.
         */        
-        IF INDEX(RETURN-VALUE,"Not readable":U) ne 0 THEN
+        IF INDEX(RETURN-VALUE,"Not readable":U) NE 0 THEN
           RUN adecomm/_s-alert.p (INPUT-OUTPUT glScrap, "error":U, "ok":U,
             SUBSTITUTE("Cannot open &1.  WebSpeed agent does not have read permission.",
             ws-get-relative-path (INPUT _mru_files._file) )).
 
-        IF INDEX(RETURN-VALUE,"File not found":U) ne 0 THEN
+        IF INDEX(RETURN-VALUE,"File not found":U) NE 0 THEN
           MESSAGE ws-get-relative-path (INPUT _mru_files._file) "not found in WebSpeed agent PROPATH."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
 
@@ -3220,11 +3225,11 @@ PROCEDURE choose_paste :
      * we understand
      */
 
-    IF  (entry(1, _clipboard_editor:SCREEN-VALUE, " ") = "&ANALYZE-SUSPEND")
-    AND (entry(2, _clipboard_editor:SCREEN-VALUE, " ") = "_EXPORT-NUMBER") THEN DO:
+    IF  (ENTRY(1, _clipboard_editor:SCREEN-VALUE, " ") = "&ANALYZE-SUSPEND")
+    AND (ENTRY(2, _clipboard_editor:SCREEN-VALUE, " ") = "_EXPORT-NUMBER") THEN DO:
 
       /* Make sure the OCX control file is retrieved. Windows 3.1 only. */
-      IF (OPSYS = "WIN32":u) THEN ASSIGN _control_cb_op = true.
+      IF (OPSYS = "WIN32":u) THEN ASSIGN _control_cb_op = TRUE.
 
       RUN adeuib/_qssuckr.p(temp_file, "", "IMPORT":U, FALSE).
       SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
@@ -3236,7 +3241,7 @@ PROCEDURE choose_paste :
       OS-DELETE VALUE((SUBSTR(temp_file, 1, R-INDEX(temp_file, ".") - 1) + {&STD_EXT_UIB_QS})).
       _save_file = cvCurrentSaveFile.
 
-      IF OPSYS = "WIN32":u THEN ASSIGN _control_cb_op = false.
+      IF OPSYS = "WIN32":u THEN ASSIGN _control_cb_op = FALSE.
 
       /* set the file-saved state to false, since we just pasted object(s) */
       RUN adeuib/_winsave.p(_h_win, FALSE).
@@ -3274,7 +3279,7 @@ PROCEDURE choose_proc_settings :
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
     /* Save the current page incase the user changes it. */
-    FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
     cur_page = _P._page-current.
     /* Procedure Settings editor */
     RUN adeuib/_edtproc.p (_h_win).
@@ -3293,7 +3298,7 @@ PROCEDURE choose_prop_sheet :
   Notes:       
 ------------------------------------------------------------------------------*/
   IF _h_cur_widg <> ?
-  THEN run property_sheet (_h_cur_widg).
+  THEN RUN property_sheet (_h_cur_widg).
   ELSE MESSAGE "No object is currently selected." {&SKP}
                "Please select an object with the pointer and try again."
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -3327,7 +3332,7 @@ PROCEDURE choose_show_palette :
   IF _AB_License EQ 2 THEN RETURN.
   h = mi_show_toolbox.
   IF _h_object_win:VISIBLE THEN
-    ASSIGN _h_object_win:HIDDEN = yes
+    ASSIGN _h_object_win:HIDDEN = YES
            h:LABEL              = "Show Object &Palette".
   ELSE DO:
     /* Restore iconinized (Minimized) palette. (Note we have to apply
@@ -3338,7 +3343,7 @@ PROCEDURE choose_show_palette :
       APPLY "WINDOW-RESTORED":U TO _h_object_win.
     END.
     /* Show the palette window */
-    ASSIGN _h_object_win:HIDDEN  = no
+    ASSIGN _h_object_win:HIDDEN  = NO
            ldummy                = _h_object_win:MOVE-TO-TOP()
            h:LABEL               = "&Hide Object Palette".
   END.
@@ -3417,12 +3422,12 @@ PROCEDURE choose_tempdb_maint :
       IF lOK THEN
       DO:
          RUN adeuib/_tempdb.w PERSISTENT SET hTempDB .
-         RUN initializeObject in hTempDB.
+         RUN initializeObject IN hTempDB.
       END.  
       SESSION:SET-WAIT-STATE('':U). 
   END.
   ELSE 
-    RUN MoveToTop in hTempDB.
+    RUN MoveToTop IN hTempDB.
 
 END PROCEDURE.
 
@@ -3479,7 +3484,12 @@ PROCEDURE choose_uib_browser :
    RUN adeuib/_uibrows.p.
 
    IF VALID-HANDLE(_h_cur_widg) THEN DO:
-     FIND _U WHERE _U._HANDLE = _h_cur_widg.
+     /*The no-error and the return no-apply were added for the fix of OE00120832.
+       The FIND fails if _h_cur_widg is the window itself. This won't happen once an object is selected either in
+       the window or in the object lists, h_cur_widg will always return an object
+       type that could be found in _U.*/
+     FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+     IF ERROR-STATUS:ERROR THEN RETURN NO-APPLY.
      IF _U._LAYOUT-NAME NE "Master Layout"  AND _U._TYPE = "TEXT" THEN DO:
        /* Can't select a text widget in an alternate layout */
        FIND _U WHERE _U._HANDLE = _h_frame.
@@ -3647,7 +3657,7 @@ PROCEDURE curframe :
                _h_cur_widg     = ?
                 h_display_widg = ?
                NO-ERROR.
-        RUN changewidg (hFrame, no).
+        RUN changewidg (hFrame, NO).
         RETURN "ERROR":U.
       END.
     END.
@@ -3668,7 +3678,7 @@ PROCEDURE curframe :
       /* SmartObjects and Queries can parent to frames or windows */
       WHEN "SmartObject" OR WHEN "QUERY" THEN
         ASSIGN _h_frame = h_thing:PARENT    /* Window OR field-group */
-               _h_frame = (IF _h_frame:TYPE eq "WINDOW" THEN ?
+               _h_frame = (IF _h_frame:TYPE EQ "WINDOW" THEN ?
                            ELSE _h_frame:PARENT).
       OTHERWISE
         ASSIGN _h_frame = h_thing:PARENT    /* field-group    */
@@ -3710,13 +3720,13 @@ PROCEDURE curwidg :
          the user selects a widget.      
 ------------------------------------------------------------------------------*/
   /* Has anything changed? */
-  IF SELF ne _h_cur_widg THEN DO:
+  IF SELF NE _h_cur_widg THEN DO:
     RUN curframe (SELF).
     IF RETURN-VALUE <> "ERROR":U THEN
        _h_cur_widg = SELF.
   END.
   /* Show the new current widget, if necessary. */
-  IF _h_cur_widg ne h_display_widg THEN RUN display_current.
+  IF _h_cur_widg NE h_display_widg THEN RUN display_current.
   IF VALID-HANDLE(_h_cur_widg) THEN DO:
     IF _h_cur_widg:TYPE NE "WINDOW":U AND _h_cur_widg:TYPE NE "FRAME":U THEN
       APPLY "SELECTION":U TO _h_cur_widg.
@@ -3789,7 +3799,7 @@ PROCEDURE del_cur_widg_check :
   Notes:       
 ------------------------------------------------------------------------------*/
   /* Show the current widget, which should be empty. */
-  FIND _U where _U._HANDLE = _h_cur_widg NO-ERROR.
+  FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
   IF (NOT AVAILABLE _U) OR _U._STATUS = "DELETED" THEN DO:
     /* The current widget was deleted, find another current object */
     /* Was the current widget a field level object? */
@@ -3844,12 +3854,12 @@ PROCEDURE deselect_all :
 
   Notes:       
 ------------------------------------------------------------------------------*/
-  def input parameter except_h     as widget no-undo.
-  def input parameter except_h_win as widget no-undo.
+  DEF INPUT PARAMETER except_h     AS widget NO-UNDO.
+  DEF INPUT PARAMETER except_h_win AS widget NO-UNDO.
 
   FOR EACH _U WHERE _U._SELECTEDib
-                AND _U._HANDLE ne except_h
-                AND _U._WINDOW-HANDLE ne except_h_win:
+                AND _U._HANDLE NE except_h
+                AND _U._WINDOW-HANDLE NE except_h_win:
      _U._SELECTEDib      = FALSE.
      IF VALID-HANDLE(_U._HANDLE) THEN _U._HANDLE:SELECTED = FALSE.
   END.
@@ -3937,10 +3947,10 @@ PROCEDURE disable_widgets :
   RUN call_sew ("SE_HIDE":U).
 
   ASSIGN
-    _h_menu_win:SENSITIVE      = no
-    _h_status_line:SENSITIVE   = no /* Status bar has some dbl-click actions */
+    _h_menu_win:SENSITIVE      = NO
+    _h_status_line:SENSITIVE   = NO /* Status bar has some dbl-click actions */
     h-menubar                  = _h_menu_win:MENU-BAR   /* jep-icf avoids static m_menbar ref */
-    h-menubar:SENSITIVE        = no.                    /* jep-icf avoids static m_menbar ref */
+    h-menubar:SENSITIVE        = NO.                    /* jep-icf avoids static m_menbar ref */
 
   /* Hide all children of the UIB Main window.  This should include:
          Object Palette, Design Windows, Attribute Window, Section Editor
@@ -3949,10 +3959,10 @@ PROCEDURE disable_widgets :
   ASSIGN h = _h_menu_win:FIRST-CHILD
          windows2view = "".
   DO WHILE VALID-HANDLE(h):
-    IF h:TYPE eq "WINDOW" AND h:VISIBLE THEN DO:
-      IF windows2view eq "" THEN  windows2view = STRING(h).
+    IF h:TYPE EQ "WINDOW" AND h:VISIBLE THEN DO:
+      IF windows2view EQ "" THEN  windows2view = STRING(h).
       ELSE windows2view = windows2view + "," + STRING(h).
-      h:HIDDEN = yes.
+      h:HIDDEN = YES.
     END.
     ASSIGN h = h:NEXT-SIBLING.
   END.
@@ -4021,7 +4031,7 @@ PROCEDURE display_current :
 
   /* To reduce flashing, check the last event.  If we did a MOUSE-SELECT
      DOWN in a UIB widget, then ignore the event. */
-  IF NOT (LAST-EVENT:LABEL eq "MOUSE-SELECT-DOWN":U AND
+  IF NOT (LAST-EVENT:LABEL EQ "MOUSE-SELECT-DOWN":U AND
           CAN-FIND (ipU WHERE ipU._HANDLE eq SELF))
   THEN DO WITH FRAME action_icons:
 
@@ -4044,7 +4054,7 @@ PROCEDURE display_current :
       */
 
     IF VALID-HANDLE(h_display_widg) THEN DO:
-      error_on_leave = no.
+      error_on_leave = NO.
       IF cur_widg_name:SENSITIVE AND INPUT cur_widg_name NE display_name THEN
         APPLY "LEAVE":U TO cur_widg_name.
       IF cur_widg_text:SENSITIVE AND INPUT cur_widg_text NE display_text THEN
@@ -4054,7 +4064,7 @@ PROCEDURE display_current :
 
     FIND b_U WHERE b_U._HANDLE = _h_cur_widg AND b_U._STATUS <> "DELETED"
             NO-ERROR.
-    IF AVAILABLE b_U AND _next_draw eq ? THEN DO:
+    IF AVAILABLE b_U AND _next_draw EQ ? THEN DO:
       /* Menus don't have _L's */
       FIND _L WHERE RECID(_L) = b_U._lo-recid NO-ERROR.
       /* Move FOCUS to the current widget, if possible. This is because Motif
@@ -4064,13 +4074,13 @@ PROCEDURE display_current :
          current widget because this will highlight it in certain cases
          (eg. if it is a COMBO-BOX or FILL-IN).  */
       &IF "{&WINDOW-SYSTEM}" eq "OSF/Motif"
-      &THEN IF FOCUS ne _h_cur_widg THEN APPLY "ENTRY":U TO _h_win.
-      &ELSE IF FOCUS eq ? THEN APPLY "ENTRY":U TO _h_win.
+      &THEN IF FOCUS NE _h_cur_widg THEN APPLY "ENTRY":U TO _h_win.
+      &ELSE IF FOCUS EQ ? THEN APPLY "ENTRY":U TO _h_win.
       &ENDIF
       /* Show it selected */
       IF CAN-SET(_h_cur_widg,"SELECTED":U) AND b_U._TYPE NE "DIALOG-BOX":U
-      THEN ASSIGN b_U._SELECTEDib       = yes
-                  _h_cur_widg:SELECTED = yes.
+      THEN ASSIGN b_U._SELECTEDib       = YES
+                  _h_cur_widg:SELECTED = YES.
 
       /* Edit the name (except for text widgets which will be literals)   */
       /* and db fields where we shouldn't allow name changes.             */
@@ -4081,12 +4091,12 @@ PROCEDURE display_current :
                                            (b_U._TABLE = ?).
       IF b_U._TABLE NE ? THEN DO:
         FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
-        IF AVAILABLE _F AND _F._DISPOSITION eq "LIKE" THEN
+        IF AVAILABLE _F AND _F._DISPOSITION EQ "LIKE" THEN
           ASSIGN cur_widg_name = b_U._NAME.
       END.  /* If there is a table name */
 
       /* Label, etc. is only edittable in Master Layout. */
-      l_master = b_U._LAYOUT-NAME eq "{&Master-Layout}".
+      l_master = b_U._LAYOUT-NAME EQ "{&Master-Layout}".
       IF NOT l_master THEN DO:
         /* We will allow label of fields of dynamic viewers to be sensitive */
         IF NOT AVAILABLE _P THEN
@@ -4138,11 +4148,11 @@ PROCEDURE display_current :
           IF cur_widg_text:LABEL <> "Master":R7 THEN
             ASSIGN cur_widg_text:LABEL = "Master":R7.
         END.  /* If SmartObject */
-        ELSE IF b_U._TYPE eq "WINDOW" THEN DO:
+        ELSE IF b_U._TYPE EQ "WINDOW" THEN DO:
           /* Don't show the Window if it is not allowed */
-          IF b_U._SUBTYPE ne "Design-Window":U THEN DO:
+          IF b_U._SUBTYPE NE "Design-Window":U THEN DO:
             FIND _C WHERE RECID(_C) = b_U._x-recid.
-            ASSIGN cur_widg_text        = IF b_U._LABEL ne ?
+            ASSIGN cur_widg_text        = IF b_U._LABEL NE ?
                                           THEN b_U._LABEL ELSE "".
             IF cur_widg_text:LABEL <> "Title":R7
             THEN cur_widg_text:LABEL = "Title":R7.
@@ -4150,26 +4160,26 @@ PROCEDURE display_current :
           END.
           ELSE DO:
             /* Don't show the true name */
-            FIND _P WHERE _P._u-recid eq RECID(b_U).
-            ASSIGN cur_widg_text = IF _P._SAVE-AS-FILE eq ? THEN "Untitled"
+            FIND _P WHERE _P._u-recid EQ RECID(b_U).
+            ASSIGN cur_widg_text = IF _P._SAVE-AS-FILE EQ ? THEN "Untitled"
                                    ELSE _P._SAVE-AS-FILE
                    cur_widg_name = _P._TYPE
                    cur_widg_text:SENSITIVE = NO
-                   cur_widg_name:SENSITIVE = no.
+                   cur_widg_name:SENSITIVE = NO.
             IF cur_widg_text:LABEL <> "File":R7 THEN
               ASSIGN cur_widg_text:LABEL = "File":R7.
           END.
         END.  /* If Window */
         ELSE IF CAN-DO("BROWSE,DIALOG-BOX,FRAME":U, b_U._TYPE) THEN DO:
           FIND _C WHERE RECID(_C) = b_U._x-recid.
-          ASSIGN cur_widg_text        = IF b_U._LABEL ne ?
+          ASSIGN cur_widg_text        = IF b_U._LABEL NE ?
                                         THEN b_U._LABEL ELSE "".
           IF cur_widg_text:LABEL <> "Title":R7 THEN
             ASSIGN cur_widg_text:LABEL = "Title":R7.
 
           /* Browses and frames with no-box can't change title */
           IF CAN-DO("BROWSE,FRAME":U, b_U._TYPE)
-             AND (_L._NO-BOX OR _C._TITLE eq NO)
+             AND (_L._NO-BOX OR _C._TITLE EQ NO)
           THEN ASSIGN cur_widg_text:SENSITIVE = NO
                       cur_widg_text           = "<No Title>".
           ELSE cur_widg_text:SENSITIVE = l_master.
@@ -4195,19 +4205,19 @@ PROCEDURE display_current :
     ELSE ASSIGN cur_widg_name           = "":U
                 cur_widg_text           = "":U
                 cur_widg_text:SENSITIVE = NO
-                cur_widg_name:SENSITIVE = no
+                cur_widg_name:SENSITIVE = NO
                 /* This is a safety net incase CURRENT-WINDOW is ever reset */
                 CURRENT-WINDOW          = _h_menu_win.
     
     /* To avoid unnecessary flashing only display things that changed */
     ASSIGN cs-char = cur_widg_name.
     IF cs-char NE INPUT cur_widg_name THEN
-      display cur_widg_name.
+      DISPLAY cur_widg_name.
     /* Now redisplay the text field to get around a 4GL bug that was
        eating all the "&" characters when I set the SCREEN-VALUE. */
     ASSIGN cs-char = cur_widg_text.
     IF cs-char NE INPUT cur_widg_text THEN
-      display cur_widg_text.
+      DISPLAY cur_widg_text.
     /* Change the sensitivity on buttons etc. */
     RUN sensitize_main_window ("WIDGET").
     /* Store the currently displayed values */
@@ -4220,7 +4230,7 @@ PROCEDURE display_current :
        in the current window. */
     RUN display_curwin.
         /* Show the current values in the Attributes window. */
-    IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME eq "{&AttrEd}" THEN 
+    IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME EQ "{&AttrEd}" THEN 
       RUN show-attributes IN hAttrEd NO-ERROR.
     /* Show the current values in the dynamic attribute window */
     IF VALID-HANDLE(_h_menubar_proc) THEN
@@ -4249,8 +4259,8 @@ PROCEDURE display_curwin :
   DEFINE VAR new-mode       AS CHARACTER   NO-UNDO.
 
   /* If the current window has not changed then do nothing */
-  IF _h_win ne h_display_win THEN DO:
-    IF VALID-HANDLE(_h_win) THEN FIND _P WHERE _P._WINDOW-HANDLE eq _h_win NO-ERROR.
+  IF _h_win NE h_display_win THEN DO:
+    IF VALID-HANDLE(_h_win) THEN FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win NO-ERROR.
     IF AVAILABLE _P THEN DO:
       ASSIGN new-visual-obj = CAN-FIND(FIRST _U WHERE _U._WINDOW-HANDLE = _h_win AND
                                                      (_U._TYPE = "FRAME" OR
@@ -4303,7 +4313,7 @@ PROCEDURE display_page_number :
   Notes:       
 ------------------------------------------------------------------------------*/
  DEF VAR cPage AS CHAR NO-UNDO.
-  IF _P._page-current eq ? THEN cPage = "All Pages".
+  IF _P._page-current EQ ? THEN cPage = "All Pages".
   ELSE DO:
     cPage = LEFT-TRIM(STRING(_P._page-current, ">,>>>,>>9":U)).
     IF LENGTH (cPage, "CHARACTER") <= 1 THEN cPage = "Page " + cPage.
@@ -4401,7 +4411,7 @@ PROCEDURE double-click :
     FIND FIRST _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
   END.
 
-  IF NOT AVAILABLE _U THEN return.
+  IF NOT AVAILABLE _U THEN RETURN.
 
   IF _U._TYPE = "{&WT-CONTROL}" THEN DO:
     IF _U._LAYOUT-NAME = "Master Layout" THEN DO:
@@ -4445,9 +4455,9 @@ PROCEDURE drawobj :
   DEFINE VARIABLE lValid     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lRowObj    AS LOGICAL   NO-UNDO INIT TRUE.
 
-  &IF {&dbgmsg_lvl} > 0 &THEN run msg_watch("drawobj"). &ENDIF
+  &IF {&dbgmsg_lvl} > 0 &THEN RUN msg_watch("drawobj"). &ENDIF
 
-  IF _next_draw ne ? THEN DO:
+  IF _next_draw NE ? THEN DO:
     /* check 'drawing' permissions for this procedure */
     FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
     FIND _palette_item WHERE _palette_item._name = _next_draw.
@@ -4501,7 +4511,7 @@ PROCEDURE drawobj :
                  hField = hField:FIRST-CHILD  /* The field group */
                  hField = hField:FIRST-CHILD. /* The first field */
           SEARCH-BLOCK:
-          REPEAT WHILE hField ne ?:
+          REPEAT WHILE hField NE ?:
             IF hField:X < _frmx AND
                hField:Y < _frmy AND
                hField:X + hField:WIDTH-PIXELS > _frmx AND
@@ -4572,7 +4582,7 @@ PROCEDURE drawobj :
         OTHERWISE DO:
           ASSIGN canDraw = FALSE
                  canRun  = TRUE.
-          {adeuib/sookver.i _object_draw canDraw yes}
+          {adeuib/sookver.i _object_draw canDraw YES}
           IF NOT canDraw THEN DO:
             BELL.
             RETURN.
@@ -4639,9 +4649,9 @@ PROCEDURE drawobj-in-box :
   Parameters:  <none>
   Notes:    Can be called from a WINDOW or a FRAME.      
 ------------------------------------------------------------------------------*/
- &IF {&dbgmsg_lvl} > 0 &THEN run msg_watch("draw..in-box"). &ENDIF
+ &IF {&dbgmsg_lvl} > 0 &THEN RUN msg_watch("draw..in-box"). &ENDIF
   DEFINE VAR itemp AS   INTEGER                                  NO-UNDO.
-
+  DEFINE VARIABLE hOldFrame AS HANDLE NO-UNDO.
   ASSIGN _second_corner_x = LAST-EVENT:X
          _second_corner_y = LAST-EVENT:Y.
 
@@ -4656,7 +4666,10 @@ PROCEDURE drawobj-in-box :
            _second_corner_y = itemp.
 
   /* Now draw the widget. */
-  RUN drawobj.
+        ASSIGN hOldFrame = _h_frame
+               _h_frame = SELF.
+        RUN drawobj.
+        ASSIGN _h_frame = hOldFrame.
 END PROCEDURE.  /* drawobj-in-box */
 
 /* _UIB-CODE-BLOCK-END */
@@ -4670,20 +4683,27 @@ PROCEDURE drawobj-or-select :
   Parameters:  <none>
   Notes:    we do not draw widgets if we are on the border          
 ------------------------------------------------------------------------------*/
+DEFINE VARIABLE hOldFrame AS HANDLE NO-UNDO.
   &IF {&dbgmsg_lvl} > 0
-      &THEN run msg_watch("draw..or-select" + _next_draw). &ENDIF
+      &THEN RUN msg_watch("draw..or-select" + _next_draw). &ENDIF
   /* Draw an object -- let progress select the frame but we need to
     "select" the dialog-box because it is not selectable. */
   FIND _U WHERE _U._HANDLE = SELF.
-  IF _next_draw eq ? THEN DO:
+
+  IF _next_draw EQ ? THEN DO:
     /* Select the dialog-box and deselect all other widgets. */
-    IF _U._TYPE eq "DIALOG-BOX" THEN RUN changewidg (SELF, yes).
+    IF _U._TYPE EQ "DIALOG-BOX" THEN RUN changewidg (SELF, YES).
   END.
   ELSE DO:
     /* Note that we cannot draw frames in dialog-boxes, and the only
        thing we can draw on frame borders is another frame.   */
     IF LAST-EVENT:ON-FRAME-BORDER THEN RETURN.
-    ELSE RUN drawobj.
+    ELSE DO:
+        ASSIGN hOldFrame = _h_frame
+               _h_frame = SELF.
+        RUN drawobj.
+        ASSIGN _h_frame = hOldFrame.
+    END.
   END.
 END PROCEDURE. /* drawobj-or-select */
 

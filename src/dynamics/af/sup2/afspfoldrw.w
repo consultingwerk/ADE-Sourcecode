@@ -2,12 +2,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS s-object 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /************************************************************************
   File: afspfoldrw.w
 
@@ -264,6 +264,28 @@ DEFINE VARIABLE glInitializing          AS LOGICAL    NO-UNDO INITIAL YES.
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-setFolderWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFolderWidgetIDs Procedure
+FUNCTION setFolderWidgetIDs RETURNS LOGICAL 
+	(INPUT pcWidgetIDs AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFolderWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFolderWidgetIDs Procedure
+FUNCTION getFolderWidgetIDs RETURNS CHARACTER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD calcTabHeightPixels s-object 
 FUNCTION calcTabHeightPixels RETURNS INTEGER
   ( /* parameter-definitions */ )  FORWARD.
@@ -507,6 +529,7 @@ RUN _getColours.
 &GLOBAL-DEFINE xpTabEnabled
 &GLOBAL-DEFINE xpTabVisualization
 &GLOBAL-DEFINE xpPopupSelectionEnabled
+&GLOBAL-DEFINE xpFolderWidgetIDs
 
 /* Now include the other props files which will start the ADMProps def. */
 {src/adm2/visprop.i}
@@ -547,9 +570,9 @@ RUN _getColours.
     FIELD PageTargetEvents      AS CHARACTER INIT 'changeFolderPage,deleteFolderPage':U
     FIELD TabEnabled            AS CHARACTER INIT "Yes"
     FIELD TabVisualization      AS CHARACTER INIT "TABS":U
+    FIELD FolderWidgetIDs       AS CHARACTER
     FIELD PopupSelectionEnabled AS LOGICAL   INIT TRUE
-
-
+    
     {af/sup2/afspcommdf.i}
 
 /* ... and the final period to end the definition... */
@@ -590,8 +613,8 @@ RUN _getColours.
     ghADMProps:ADD-NEW-FIELD('PageTargetEvents':U,      'CHAR':U,    0, ?, 'changeFolderPage,deleteFolderPage':U).
     ghADMProps:ADD-NEW-FIELD('TabEnabled':U,            'CHAR':U,    0, ?, "Yes":U).
     ghADMProps:ADD-NEW-FIELD('TabVisualization':U,      'CHAR':U,    0, ?, "TABS":U).
+    ghADMProps:ADD-NEW-FIELD('FolderWidgetIDs':U,       'CHAR':U,    0, ?, '':U).
     ghADMProps:ADD-NEW-FIELD('PopupSelectionEnabled':U, 'LOGICAL':U, 0, ?, "yes":U).
-
     {af/sup2/afspcommdf.i}
   END.
 &ENDIF
@@ -613,7 +636,91 @@ RUN _getColours.
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignPanelWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignPanelWidgetIDs Procedure
+PROCEDURE assignPanelWidgetIDs:
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER piFrameWidgetID  AS INTEGER    NO-UNDO.
+DEFINE INPUT  PARAMETER phPanelFrame     AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER phFrameTabs      AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER phPanelText      AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE iWidgetID   AS INTEGER    NO-UNDO.
+
+ASSIGN iWidgetID = iPanelCount * 2 + 30.
+IF iWidgetID LE 65534 AND VALID-HANDLE(phPanelFrame) THEN
+   ASSIGN phPanelFrame:WIDGET-ID = iWidgetID NO-ERROR.
+
+ASSIGN iWidgetID = piFrameWidgetID + iPanelCount * 100.
+IF iWidgetID LE 65534 AND VALID-HANDLE(phFrameTabs) THEN
+   ASSIGN phFrameTabs:WIDGET-ID = iWidgetID NO-ERROR.
+
+IF gcVisualization NE "TABS":U THEN
+   ASSIGN ghDisplayWidget:WIDGET-ID = 70 NO-ERROR.
+
+ASSIGN phPanelText:WIDGET-ID = 8 NO-ERROR.
+
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF 
+&IF DEFINED(EXCLUDE-assignFolderWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignFolderWidgetIDs Procedure
+PROCEDURE assignWidgetIDs:
+/*---------------------------------------------------------------------------------
+    Purpose: Assigns widget-ids for the fill-ins and text widgets created
+             dynamically for each page.
+
+    Parameters: piPage: Page number in which the widgets are being created.
+
+    Notes: In order to avoid performance loses at runtime, we run this procedure
+           only if the -usewidgetid session parameter is being used. For that
+           reason we do not assign the widget-ids for the widgets in
+           create-folder-page, in which they are created; instead create-folder-page
+           calls this procedure only if -usewidgetid is being used.
+---------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER piPage AS INTEGER    NO-UNDO.
+DEFINE INPUT PARAMETER phText AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE cPages        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPageWidgetID AS INTEGER    NO-UNDO.
+
+{get FolderWidgetIDs cPages}.
+
+IF cPages = "":U OR cPages = ? THEN RETURN.
+
+ASSIGN iPageWidgetID = INT(ENTRY(piPage, cPages)) NO-ERROR.
+
+IF ERROR-STATUS:ERROR THEN RETURN.
+
+IF gcVisualization NE "TABS":U THEN
+ASSIGN iPageWidgetID = iPageWidgetID + hTabMain[piPage]:FRAME:WIDGET-ID.
+
+ASSIGN hTabMain[piPage]:WIDGET-ID = iPageWidgetID + 2
+       hTabLWht[piPage]:WIDGET-ID = iPageWidgetID + 4
+       hTabLGry[piPage]:WIDGET-ID = iPageWidgetID + 6
+       hTabLDot[piPage]:WIDGET-ID = iPageWidgetID + 8
+       hTabRDot[piPage]:WIDGET-ID = iPageWidgetID + 10
+       hTabRGry[piPage]:WIDGET-ID = iPageWidgetID + 12
+       hTabRBla[piPage]:WIDGET-ID = iPageWidgetID + 14
+       phText:WIDGET-ID           = iPageWidgetID + 16.
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeFolderLabel s-object 
 PROCEDURE changeFolderLabel :
@@ -1204,6 +1311,13 @@ PROCEDURE initializeObject :
             variable. This value is used in _initializeObject to determine if the frame should be visualized or not */
          glDoNotShow = DYNAMIC-FUNCTION("getUserProperty":U, "DoNotShow":U) = "yes":U.
 
+  /*When the instance property for the Smart Folder is called from the Container Builder using the
+    'Object Properties' pop-up menu option, this procedure is initialized twice, the first time it is initialized
+    from initializeSMO in _realizesmart.p, this initialization is wrong and the container source has an invalid
+    handle, so we return if hContainer is not a valid handle.*/
+  IF NOT VALID-HANDLE(hContainer) THEN
+      RETURN.
+
   RUN _getProperties. 
 
   RUN _initializeObject.
@@ -1484,17 +1598,18 @@ PROCEDURE _createAlternateSelectors PRIVATE :
                      + ENTRY(iCounter, cFolderLabels, "{&DELIMITER}":U) + "{&DELIMITER}":U
                      + STRING(iCounter).
   END.
-  
+
   CASE gcVisualization:
     /* Create the Radio-Set widget */
     WHEN "RADIO-SET":U THEN
       IF NOT VALID-HANDLE(ghDisplayWidget) THEN
         CREATE RADIO-SET ghDisplayWidget {&IN-WIDGET-POOL}
-        ASSIGN HORIZONTAL = TRUE
-               DELIMITER  = "{&DELIMITER}":U
-               ROW        = 1.12
-               COLUMN     = 2
-               NAME       = "RadioSet-Labels":U
+        ASSIGN HORIZONTAL    = TRUE
+               DELIMITER     = "{&DELIMITER}":U
+               ROW           = 1.12
+               COLUMN        = 2
+               NAME          = "RadioSet-Labels":U
+               RADIO-BUTTONS = cListItemPairs
         TRIGGERS:
           ON VALUE-CHANGED   PERSISTENT RUN _widgetTrigger IN THIS-PROCEDURE.
           ON MOUSE-MENU-DOWN PERSISTENT RUN _trgPopupMenu  IN THIS-PROCEDURE (ghDisplayWidget).
@@ -1527,7 +1642,7 @@ PROCEDURE _createAlternateSelectors PRIVATE :
           ON VALUE-CHANGED PERSISTENT   RUN _widgetTrigger IN THIS-PROCEDURE.
           ON MOUSE-MENU-DOWN PERSISTENT RUN _trgPopupMenu  IN THIS-PROCEDURE (ghDisplayWidget).
         END TRIGGERS.
-        
+
         /* ----- Translate the Combo-Box's label ---------------------------------------------------------------------------------------------------------- */
         EMPTY TEMP-TABLE ttTranslate.
 
@@ -1583,8 +1698,6 @@ PROCEDURE _createAlternateSelectors PRIVATE :
   IF cListItemPairs <> "":U THEN
     IF gcVisualization = "COMBO-BOX":U THEN
       ghDisplayWidget:LIST-ITEM-PAIRS = cListItemPairs.
-    ELSE
-      ghDisplayWidget:RADIO-BUTTONS = cListItemPairs.
 
   /* Redisplay the correct item */
   IF iScreenValue <> ? THEN
@@ -1620,7 +1733,7 @@ PROCEDURE _createFolderLabel PRIVATE :
       /* Tab width is either the auto width or the minimum width required to display the defined label. */
       iThisTabSize = IF {&TABS-ARE-AUTOSIZED} THEN iTabAutoWidth ELSE
                      FONT-TABLE:GET-TEXT-WIDTH-PIXELS(caFolderLabel[iTabCount],iTabFont) + 3 + iTabImageTotal + {&TAB-PIXEL-OFFSET}.
-                     
+
   /* If we're auto-sizing and we are placing the last tab on the row, then we resize
      it so that it meets up exactly with the end of the panel. If we're not auto-sizing
      and the last tab on the row fits okay and {&TABS-ARE-JUSTIFIED} is true, we do the
@@ -1706,7 +1819,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            FGCOLOR        = (if session:window-system eq 'MS-WINXP' THEN COLOR-XPButtonShadowDark ELSE COLOR-ButtonHilight)
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-           
+
     /* Second left edge */
     CREATE RECTANGLE hTabLGry[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1718,7 +1831,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-    
+
     /* Single pixel, top left for corner */
     CREATE TEXT hTabLDot[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1729,7 +1842,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 1 ELSE hTabFrame[iPanelCount]:HEIGHT-PIXELS - 2
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-    
+
     /* Single pixel, top right for corner */
     CREATE TEXT hTabRDot[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1739,7 +1852,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 1 ELSE hTabLDot[iTabCount]:Y
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-           
+
     /* First right edge */
     CREATE RECTANGLE hTabRGry[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1751,7 +1864,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-    
+
     /* Second right edge (rightmost) */
     CREATE RECTANGLE hTabRBla[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1763,7 +1876,7 @@ PROCEDURE _createFolderLabel PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hTabFrame[iPanelCount]
            SENSITIVE      = FALSE.
-    
+
     IF iImageHeight > 0 AND iImageWidth > 0 AND caTabImage[iTabCount] <> "":U THEN 
     DO:
       IF NOT glResize THEN
@@ -1782,7 +1895,7 @@ PROCEDURE _createFolderLabel PRIVATE :
           hTabIcon[iTabCount]:WIDTH-PIXELS  = iImageWidth
           hTabIcon[iTabCount]:X             = iCurrentXPos + 2 + iImageXOffset.
     END.
-    
+
     /* Tab text */
     CREATE TEXT hTempHandle {&IN-WIDGET-POOL}
     ASSIGN HIDDEN         = laTabHidden[iTabCount]
@@ -1800,12 +1913,17 @@ PROCEDURE _createFolderLabel PRIVATE :
       ON LEFT-MOUSE-DOWN PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount).
       ON MOUSE-MENU-DOWN PERSISTENT RUN _trgPopupMenu IN THIS-PROCEDURE (hTempHandle).
     END TRIGGERS.
-    
+
     ASSIGN hTabLabel[iTabCount] = hTempHandle
            iMnemonic            = INDEX(hTabLabel[iTabCount]:SCREEN-VALUE,'&':U)
            cMnemonic            = (IF iMnemonic > 0 THEN 
                                          SUBSTRING(hTabLabel[iTabCount]:SCREEN-VALUE,iMnemonic + 1,1)
                                    ELSE '':U).
+
+    /*Assigns widget-ids only if the -usewidgetid session parameter is being used*/
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+    RUN assignWidgetIDs IN TARGET-PROCEDURE (INPUT iTabCount, INPUT hTempHandle).
+
    /* If the user specified a mnemonic, using an ampersand in the label define
        an ALT-x trigger for it. */
    {get ContainerSource hSource}.
@@ -2005,6 +2123,7 @@ PROCEDURE _createFolderPage PRIVATE :
              PRIVATE-DATA   = STRING(iPanelCount)
              FRAME          = FRAME {&FRAME-NAME}:HANDLE
              SENSITIVE      = FALSE.
+
     ASSIGN
         hPanelFrame[iPanelCount]:HEIGHT-PIXELS = iPanelFrameHeight
         hPanelFrame[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth
@@ -2037,7 +2156,7 @@ PROCEDURE _createFolderPage PRIVATE :
     END TRIGGERS.
 
     hTabFrame[iPanelCount] = hTempHandle.
-    
+
     IF gcVisualization <> "TABS":U THEN
       hTabFrame[iPanelCount]:VISIBLE = FALSE.
   END.
@@ -2048,7 +2167,7 @@ PROCEDURE _createFolderPage PRIVATE :
       hTabFrame[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth
       hTabFrame[iPanelCount]:X             = iPanelOffset * (iRowCOunt - 1)
       hTabFrame[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.
-  
+
   IF iPanelCount = 1 THEN
   DO:
     IF NOT glResize THEN
@@ -2060,13 +2179,20 @@ PROCEDURE _createFolderPage PRIVATE :
              FRAME          = FRAME {&FRAME-NAME}:HANDLE
              SENSITIVE      = FALSE.
     END.
-    
+
     ASSIGN
         hPanelOverlay[iPanelCount]:HEIGHT-PIXELS = iPanelFrameHeight - 4
         hPanelOverlay[iPanelCount]:WIDTH-PIXELS  = iPanelFrameWidth - 4
         hPanelOverlay[iPanelCount]:X             = hPanelFrame[iPanelCount]:X + (if session:window-system eq 'MS-WINXP' then 2 else 1)
         hPanelOverlay[iPanelCount]:SCROLLABLE    = FALSE NO-ERROR.                
   END.
+
+  /*Assigns widget-ids only if the -usewidgetid session parameter is being used*/
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+  RUN assignPanelWidgetIDs IN TARGET-PROCEDURE (INPUT FRAME {&FRAME-NAME}:WIDGET-ID,
+                            INPUT hPanelFrame[iPanelCount],
+                            INPUT hTempHandle,
+                            INPUT hPanelOverlay[iPanelCount]).
 
   IF iPanelCount > iVisibleRows THEN
     hTabFrame[iPanelCount]:HIDDEN = TRUE.
@@ -2106,7 +2232,6 @@ THEN DO:
     ASSIGN iMenuCount = 1.
 END.
 
-
 CREATE MENU-ITEM hMenuItem[iTabCount] {&IN-WIDGET-POOL}
     ASSIGN PARENT = hSubMenu
            ACCELERATOR = caHotkey[iTabCount]
@@ -2142,7 +2267,7 @@ PROCEDURE _createSelectorTab PRIVATE :
    created and resized to match the selected tab except it is made slightly 
    higher and wider to give the appearance of selection. Procedure _selectTab 
    performs the resizing.
-   
+
 ------------------------------------------------------------------------------*/
   /* Create the widgets that make up the tab.
      There are 7 rectangles that make up the tab border:
@@ -2154,10 +2279,10 @@ PROCEDURE _createSelectorTab PRIVATE :
       1 bottom rectangle, overlays button border
      The text is a text widget. There's an optional
      image which overlays the text.
-     
+
      The rectangles are 1 pixel wide or 1 pixel high,
      depending on where they're used.
-     
+
       ____________
      +            +
      |  T E X T   ||
@@ -2165,7 +2290,7 @@ PROCEDURE _createSelectorTab PRIVATE :
       _____________
         
    */
-   
+
   IF NOT glResize THEN
   DO:
     /* This is the frame on which the selected tab will be painted */
@@ -2191,7 +2316,9 @@ PROCEDURE _createSelectorTab PRIVATE :
     TRIGGERS:
       ON MOUSE-MENU-DOWN PERSISTENT RUN _trgPopupMenu IN THIS-PROCEDURE (hSelFrame).
     END TRIGGERS.
-    
+
+    ASSIGN hSelFrame:WIDGET-ID = FRAME {&FRAME-NAME}:WIDGET-ID + 10 NO-ERROR.
+
     /* leftmost border */
     CREATE RECTANGLE hSelLWht {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2204,8 +2331,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = hTabLWht[1]:Y
            FRAME          = hSelFrame
            NAME           = "SelLWht"
-           SENSITIVE      = FALSE.
-    
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 2.
+
     /* rectangle at the bottom, below text, overlaying panel button border */
     CREATE RECTANGLE hSelLGry {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2219,8 +2347,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = hTabLWht[1]:Y
            FRAME          = hSelFrame
            NAME           = "SelLGry"
-           SENSITIVE      = FALSE.
-    
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 4.
+
     /* single pixel in top left, to form corner */
     CREATE TEXT hSelLDot {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2229,9 +2358,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2
            FRAME          = hSelFrame
            NAME           = "SelLDot"
-           SENSITIVE      = FALSE.
-           
-           
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 6.
+
     /* Top edge of selected tab */
     CREATE RECTANGLE hSelMain {&IN-WIDGET-POOL}
     ASSIGN HEIGHT-PIXELS  = 1
@@ -2243,8 +2372,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = IF lUpperTabs THEN 0 ELSE hSelFrame:HEIGHT-PIXELS - 1
            FRAME          = hSelFrame
            name           = "SelMain"
-           SENSITIVE      = FALSE.
-    
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 8.
+
     /* Single pixel on top right, to form corner */
     CREATE TEXT hSelRDot {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2253,8 +2383,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2
            FRAME          = hSelFrame
            NAME           = "SelRDot"
-           SENSITIVE      = FALSE.
-               
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 10.
+
     /* First of 2 right edges */
     CREATE RECTANGLE hSelRGry {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = IF lUpperTabs THEN 1 ELSE 2
@@ -2266,8 +2397,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hSelFrame
            name           = "SelRGry"
-           SENSITIVE      = FALSE.
-           
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 12.
+
     /* Second of 2 right edges */
     CREATE RECTANGLE hSelRBla {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2279,8 +2411,9 @@ PROCEDURE _createSelectorTab PRIVATE :
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hSelFrame
            NAME           = "SelRBla"
-           SENSITIVE      = FALSE.
-                      
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 14.
+
     /* Selected tab label text */
     CREATE TEXT hSelLabel {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS   = 1
@@ -2293,15 +2426,18 @@ PROCEDURE _createSelectorTab PRIVATE :
                             ELSE hSelFrame:HEIGHT-PIXELS - 2 - iTabLabelHeight - iLabelOffset - {&SELECTED-EXT-PIXEL-HEIGHT}
            FRAME          = hSelFrame
            name           = "SelLabel"
-           SENSITIVE      = FALSE.
-    
+           SENSITIVE      = FALSE
+           WIDGET-ID      = 16.
+
     CREATE IMAGE hSelIcon {&IN-WIDGET-POOL}
     ASSIGN WIDTH-PIXELS       = MAX(1,iImageWidth)
            HEIGHT-PIXELS      = MAX(1,iImageHeight)
            Y                  = iTabImageYPos + IF lUpperTabs THEN 0 ELSE {&SELECTED-EXT-PIXEL-HEIGHT} 
            FRAME              = hSelFrame
-           CONVERT-3D-COLORS  = TRUE           
+           CONVERT-3D-COLORS  = TRUE
            SENSITIVE          = FALSE.
+
+    ASSIGN hSelIcon:WIDGET-ID = FRAME {&FRAME-NAME}:WIDGET-ID + 28 NO-ERROR.
 
     IF gcVisualization <> "TABS":U THEN
     DO:
@@ -2314,7 +2450,7 @@ PROCEDURE _createSelectorTab PRIVATE :
           hSelFrame:SENSITIVE       = TRUE.
     END.
   END.
-      
+
   ASSIGN
       hSelFrame:WIDTH-PIXELS  = iPanelFrameWidth
       hSelFrame:SCROLLABLE    = FALSE
@@ -2591,7 +2727,7 @@ PROCEDURE _initializeObject PRIVATE :
       FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-PIXELS  = 2 * SESSION:WIDTH-PIXELS      
       FRAME {&FRAME-NAME}:SCROLLABLE            = FALSE 
       NO-ERROR. 
-    
+
   IF NOT glResize THEN
     CREATE WIDGET-POOL WIDGET-POOL-NAME PERSISTENT NO-ERROR.
 
@@ -2636,11 +2772,11 @@ PROCEDURE _initializeObject PRIVATE :
   DO:
     IF gcVisualization <> "TABS":U THEN
       RUN _createAlternateSelectors.
-    
+
     /* Create all the tabs */    
     glTabsEnabled = FALSE.
     DO y = 1 TO iTabTotal ON ERROR UNDO, RETRY: 
-  
+
       RUN _createFolderLabel NO-ERROR.
 
       IF laTabEnabled[Y] = FALSE THEN
@@ -2995,6 +3131,41 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-setFolderWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFolderWidgetIDs Procedure
+FUNCTION setFolderWidgetIDs RETURNS LOGICAL 
+  (INPUT pcWidgetIDs AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set FolderWidgetIDs pcWidgetIDs}.
+  RETURN TRUE.   /* Function return value. */
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-getFolderWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFolderWidgetIDs Procedure
+FUNCTION getFolderWidgetIDs RETURNS CHARACTER 
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cWidgetIDs AS CHARACTER NO-UNDO.
+  {get FolderWidgetIDs cWidgetIDs}.
+  RETURN cWidgetIDs.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION calcTabHeightPixels s-object 
 FUNCTION calcTabHeightPixels RETURNS INTEGER

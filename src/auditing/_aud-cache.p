@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -32,6 +32,9 @@
     Author(s)   : Fernando de Souza
     Created     : Mar 04, 2005
     Notes       :
+    
+    History
+    fernando  06/20/07 Support for large files
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -572,7 +575,7 @@ PROCEDURE export-cached-audit-events :
                RETURN-VALUE  
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER  pcFileName  AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER pnumRecords AS INTEGER   NO-UNDO.
+DEFINE OUTPUT PARAMETER pnumRecords AS INT64     NO-UNDO.
 
     /* call the procedure to export the events, and return any error to the caller */
     RUN auditing/_exp-audevent.p (INPUT pcFileName,
@@ -966,7 +969,7 @@ PROCEDURE import-audit-events :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT        PARAMETER pcFileName         AS CHARACTER NO-UNDO.
 DEFINE INPUT        PARAMETER perror%            AS INTEGER   NO-UNDO.
-DEFINE OUTPUT       PARAMETER pnumRecords        AS INTEGER   NO-UNDO.
+DEFINE OUTPUT       PARAMETER pnumRecords        AS INT64     NO-UNDO.
 
 
     /* let's try to import it. If we hit the error threshold, we will get an error back.
@@ -1314,7 +1317,7 @@ DEFINE VARIABLE cStatus    AS CHAR      NO-UNDO.
 DEFINE VARIABLE hQuery     AS HANDLE    NO-UNDO.
 DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
 
-    ASSIGN event-id = INTEGER(ENTRY(2, plcData,CHR(1))).
+    ASSIGN event-id = INTEGER(STRING(ENTRY(2, plcData,CHR(1)))).
 
     /* make sure event-id is >= 32000 */
     IF event-id < 32000 THEN
@@ -1323,6 +1326,9 @@ DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
     /* check the mode */
     ASSIGN cMode = ENTRY(1, plcData,CHR(1)).
     
+    /* make sure tracking-changes is turned on */
+    ASSIGN TEMP-TABLE ttAuditEvent:TRACKING-CHANGES = YES.
+
     /* check if we are adding a new record, or updating an existing one */
     IF cMode = "Add":U OR cMode = "Copy":U THEN DO:
         /* check if event id is unique */
@@ -1353,6 +1359,8 @@ DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
         RETURN "ERROR: Invalid mode".
 
     /* now let's save it to the database */
+
+    ASSIGN TEMP-TABLE ttAuditEvent:TRACKING-CHANGES = NO.
 
     /* create a dataset with the changes */
     CREATE DATASET hDSChanges.
@@ -1388,9 +1396,8 @@ DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
 
         /* reject all the changes */
         hAuditEventDset:REJECT-CHANGES().
-        DELETE OBJECT hDSChanges.
 
-        RETURN "ERROR: " + cstatus.
+        ASSIGN cstatus =  "ERROR: " + cstatus.
     END.
     ELSE DO:
         /* everything is fine - accept the changes */
@@ -1403,6 +1410,9 @@ DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
     END.
 
     DELETE OBJECT hDSChanges.
+
+    /* turn tracking changes back on */
+    ASSIGN TEMP-TABLE ttAuditEvent:TRACKING-CHANGES = YES.
 
     RETURN cStatus.
 
@@ -1430,12 +1440,14 @@ DEFINE VARIABLE hDSChanges       AS HANDLE  NO-UNDO.
 DEFINE VARIABLE cStatus          AS CHAR    NO-UNDO.
 DEFINE VARIABLE hQuery           AS HANDLE  NO-UNDO.
 DEFINE VARIABLE hBuffer          AS HANDLE  NO-UNDO.
-    
+DEFINE VARIABLE hTT              AS HANDLE  NO-UNDO.
+
     IF NOT VALID-HANDLE (hAuditEventDset) THEN
        RETURN "ERROR: Cannot save changes (dataset invalid).".
     
     /* turn off tracking for now */
-    hAuditEventDset:GET-BUFFER-HANDLE(1):TABLE-HANDLE:TRACKING-CHANGES = NO.
+    ASSIGN hTT = hAuditEventDset:GET-BUFFER-HANDLE(1):TABLE-HANDLE
+           hTT:TRACKING-CHANGES = NO.
 
     /* create a dataset with the changes */
     CREATE DATASET hDSChanges.
@@ -1471,11 +1483,10 @@ DEFINE VARIABLE hBuffer          AS HANDLE  NO-UNDO.
 
             /* reject all the chnages */
             hAuditEventDset:REJECT-CHANGES().
-            DELETE OBJECT hDSChanges.
-    
-            RETURN "ERROR: " + cstatus.
     END.
     ELSE DO:
+       cstatus = "":U.
+
         /* everything is good - accept the changes */
        hAuditEventDset:ACCEPT-CHANGES().
 
@@ -1487,6 +1498,11 @@ DEFINE VARIABLE hBuffer          AS HANDLE  NO-UNDO.
 
     DELETE OBJECT hDSChanges.
 
+    /* set tracking-changes back on */
+    hTT:TRACKING-CHANGES = YES.
+
+    IF cStatus <> "":U THEN
+       RETURN "ERROR: " + cstatus.
 
 END PROCEDURE.
 

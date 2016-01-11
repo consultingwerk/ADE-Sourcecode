@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,7 +30,8 @@ History:
    D. McMann 07/11/02 redo cache if session:schema-change is set to new objects.
                       20020701-029
    fernando  03/13/06 Storing table names in temp-table - 20050930-006.
-  
+   fernando  12/13/07 Handle long list of "some" selected tables    
+
 *************************************************************/
 
 
@@ -96,7 +97,8 @@ DEFINE VARIABLE pattern    AS CHARACTER INITIAL "*"  NO-UNDO.
 DEFINE VARIABLE point_flag AS LOGICAL   EXTENT  2048 NO-UNDO.
 DEFINE VARIABLE redraw     AS LOGICAL   INITIAL TRUE NO-UNDO.
 DEFINE VARIABLE small      AS INTEGER                NO-UNDO.
-
+DEFINE VARIABLE isCpUndefined AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE use_lchar  AS LOGICAL                NO-UNDO.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
@@ -204,6 +206,9 @@ ASSIGN
   p_typed       = (IF user_filename = "SOME" THEN "" ELSE user_filename)
   cache_dirty   = p_some AND p_all OR (p_some AND p_allw) /* this is important! */
   user_filename = "".
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+   isCpUndefined = YES.
 
 IF p_all AND p_allw AND cache_file[1] <> "ALL" AND cache_file# >= 1 THEN DO:
   DO i = cache_file# + 1 TO 2 BY -1:
@@ -406,25 +411,60 @@ IF NOT p_option THEN DO:
     ELSE
     IF CAN-DO("GO" + (IF p_some THEN "" ELSE ",RETURN"),KEYFUNCTION(LASTKEY))
       THEN DO:
-      IF p_some THEN DO:
-        user_filename = "".
+       IF p_some THEN DO:
+         user_filename = "".
+
+         IF NOT isCpUndefined THEN
+             user_longchar = "".
+         
         /* The commented out sections within this block are because we
          * no longer allow ALL to be in the list when we present the flavor
          * that allows wildcards and the select/deselect of one or more files. 
          * Bug# 19991025-003.
          */
-       IF user_filename = "" THEN DO p_recid = 1 TO cache_file#:
-          IF point_flag[p_recid] /* OR (p_all AND point_flag[1]) OR (p_allw
-             AND point_flag[1]) */ THEN DO:             
-            count = count + 1.
-            user_filename = user_filename + "," + cache_file[p_recid].
-            END.
-          ELSE IF point_flag[p_recid] AND NOT p_all AND NOT p_allw
-         THEN count = cache_file# - 1.
+
+         /* let's do a quick check to see if user selected all */
+         DO p_recid = 1 TO cache_file#:
+            IF point_flag[p_recid] THEN
+               count = count + 1.
+         END.
+
+         IF count = cache_file# THEN
+            user_filename = "ALL".
+         ASSIGN count = 0.
+
+         IF user_filename = "" THEN DO p_recid = 1 TO cache_file#:
+           IF point_flag[p_recid] /* OR (p_all AND point_flag[1]) OR (p_allw
+              AND point_flag[1]) */ THEN DO:             
+             count = count + 1.
+             IF COUNT = 1 THEN
+                user_filename = cache_file[p_recid].
+             ELSE DO:
+                IF use_lchar THEN
+                   user_longchar = user_longchar + "," + cache_file[p_recid] NO-ERROR.
+                ELSE
+                   user_filename = user_filename + "," + cache_file[p_recid] NO-ERROR.
+                
+                IF ERROR-STATUS:ERROR THEN DO:
+                    /* if undefined codepage, nothing we can do but error out */
+                    IF isCpUndefined THEN
+                        user_filename = user_filename + "," + cache_file[p_recid].
+                    
+                    ASSIGN user_longchar =  user_filename + "," + cache_file[p_recid]. 
+                           use_lchar = YES.
+                END.
+             END.
+
+           END.
+           ELSE IF point_flag[p_recid] AND NOT p_all AND NOT p_allw
+           THEN count = cache_file# - 1.
         END.
-        IF user_filename BEGINS "," THEN
+
+        /* can't happen anymore
+           IF user_filename BEGINS "," THEN
           user_filename = SUBSTRING(user_filename,2).
-      END.
+         */
+      END. /* if p_some */
       ELSE
       IF p_all AND p_typed = "ALL" THEN user_filename = "ALL".
       ELSE
@@ -520,9 +560,12 @@ FIND FIRST _File WHERE _File._Db-recid = drec_db
 ASSIGN
   user_filename = (IF AVAILABLE _File THEN _File._File-name
                   ELSE user_filename)
-  user_env[1]   = user_filename
+  user_env[1]   = (IF NOT use_lchar THEN user_filename ELSE "")
   drec_file     = RECID(_File).
 
+IF use_lchar THEN
+   user_filename = "SOME".
+ELSE
 IF user_filename MATCHES "*,*" THEN DO:
    IF p_all OR p_allw AND NOT p_some OR (count = cache_file#)
      THEN user_filename = "ALL".

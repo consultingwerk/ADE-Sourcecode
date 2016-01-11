@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,9 +23,16 @@
              10/12/01 DLM Added logic to handle dumping DEFAULTs     
              06/04/02 DLM Added logic to handle error on creating hidden files 
              06/25/02 DLM Added logic for function based indexes
-             10/17/05 KSM Fixed X8OVERRIDE funcionality.   
+             10/17/05 KSM Fixed X8OVERRIDE funcionality. 
+             06/11/07 fernando   Unicode support
 */    
 
+&SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
+&SCOPED-DEFINE UNICODE-MSG-2 "If your ORACLE client NLS setting is set to a Unicode character set, you should set the" + chr(10) + "codepage to utf-8 in this case to avoid data loss"
+&SCOPED-DEFINE UNICODE-MSG-3 "You have chosen to use Unicode data types but the schema holder database codepage is not 'utf-8'"
+&SCOPED-DEFINE UNICODE-MSG-4 "You must build your schema holder database with a 'utf-8' code page"
+
+            
 { prodict/user/uservar.i }
 { prodict/ora/oravar.i }
 
@@ -39,6 +46,8 @@ DEFINE VARIABLE tmp_str       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE l_i           AS INTEGER             NO-UNDO.
 DEFINE VARIABLE run_time      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE schname       AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE dlc_utf_edb   AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE schdbcp       AS CHARACTER           NO-UNDO.
 
 DEFINE STREAM strm.
 
@@ -60,7 +69,7 @@ IF batch_mode THEN DO:
        "Oracle Tablespace for tables:  " ora_tspace skip
        "Oracle Tablespace for indexes: " ora_ispace skip
        "Compatible structure:          " pcompatible skip
-       "Create shadow columns      " shadowcol skip
+       "Create shadow columns:         " shadowcol skip
        "Field width calculation based on:      " (IF iFmtOption = 1 THEN
                                                     "_Field._Width field"
                                                   ELSE IF (lFormat = FALSE) THEN
@@ -68,9 +77,13 @@ IF batch_mode THEN DO:
                                                   ELSE "_Field._Format field")
                                                   SKIP
        "Create objects in Oracle:      " loadsql skip
-       "Moved data to Oracle:          " movedata /*skip
+       "Moved data to Oracle:          " movedata skip
+       "Codepage for Schema Image:     " ora_codepage SKIP
+       "Collation Name:                " ora_collname SKIP
        "Unicode Types:                 " unicodeTypes skip
-       "Allow NVARCHAR2(4000):         " nvchar_utf */ skip(2).
+       "Maximum char length:           " ora_varlen SKIP
+       "Expand to CLOB:                " lExpandClob SKIP
+       "Char semantics:                " lCharSemantics SKIP. 
 END.
 
 IF loadsql THEN DO:
@@ -98,6 +111,14 @@ IF loadsql THEN DO:
   end.
 
   IF CONNECTED (osh_dbname) THEN DO:
+
+    /* Get the physical schema holder database codepage */
+    REPEAT l_i = 1 TO NUM-DBS:
+
+      IF LDBNAME(l_i) = osh_dbname THEN
+          schdbcp = UPPER(TRIM(DBCODEPAGE(l_i))).
+    END.
+
     ASSIGN rmvobj   = FALSE
            create_h = FALSE.
 
@@ -149,15 +170,14 @@ IF loadsql THEN DO:
 END.
 
 IF ora_version > 7 THEN DO:
-   /* IF unicodeTypes THEN
+    IF unicodeTypes THEN
        ASSIGN user_env[18] = "NVARCHAR2".
-    ELSE */
+    ELSE
        ASSIGN user_env[18] = "VARCHAR2".
 END.
 ELSE
   ASSIGN user_env[18] = "long".
   
-
 ASSIGN user_env[1]  = "ALL"
        user_env[2]  = osh_dbname
        user_env[3]  = ""
@@ -167,7 +187,9 @@ ASSIGN user_env[1]  = "ALL"
        user_env[7]  = (IF crtdefault THEN "y" ELSE "n")
        user_env[8]  = "y"
        user_env[9]  = "ALL"
-      /* user_env[10] = (IF nvchar_utf THEN "4000" ELSE "2000")*/
+       user_env[10] = string(ora_varlen) /* maximum char column length */
+                             + "," + STRING(lExpandClob)  /* expand to clob */
+                             + "," + STRING(lCharSemantics) /* use char semantics */
        user_env[11] = "char"
        user_env[12] = "date"
        user_env[13] = "number"
@@ -210,6 +232,15 @@ ELSE
 RUN "prodict/ora/_ora_md0.p".
 
 IF loadsql THEN DO:
+
+  /* check if unicode types and non utf-8 codepage and give warning */
+  IF unicodeTypes AND TRIM(ora_codepage) NE "utf-8" THEN DO:
+     IF batch_mode THEN
+        PUT STREAM logfile UNFORMATTED {&UNICODE-MSG-1} SKIP {&UNICODE-MSG-2} SKIP.
+     ELSE
+        MESSAGE {&UNICODE-MSG-1} SKIP {&UNICODE-MSG-2} VIEW-AS ALERT-BOX INFO BUTTONS OK.
+  END.
+
   IF create_h THEN DO:
     IF batch_mode THEN DO:
       PUT STREAM logfile UNFORMATTED
@@ -219,8 +250,25 @@ IF loadsql THEN DO:
               "-- -- " skip(2).
     END.
 
-    CREATE DATABASE osh_dbname FROM "EMPTY".
+    IF unicodeTypes THEN DO:
+        dlc_utf_edb = OS-GETENV("DLC").
+        dlc_utf_edb = dlc_utf_edb + "/prolang/utf/empty".
+        CREATE DATABASE osh_dbname FROM dlc_utf_edb. 
+    END.
+    ELSE
+       CREATE DATABASE osh_dbname FROM "EMPTY".
   END.
+  ELSE DO:
+    IF unicodeTypes THEN DO:
+      IF ( schdbcp <> "UTF-8" ) THEN DO:
+        IF batch_mode THEN
+          PUT STREAM logfile UNFORMATTED {&UNICODE-MSG-3} SKIP {&UNICODE-MSG-4} SKIP.
+        ELSE
+          MESSAGE {&UNICODE-MSG-3} SKIP {&UNICODE-MSG-4} VIEW-AS ALERT-BOX INFO BUTTONS OK.
+        UNDO, RETURN "undo".
+      END.
+    END.
+  END. 
 
   IF NOT batch_mode THEN
     HIDE FRAME table-wait NO-PAUSE.
@@ -244,6 +292,8 @@ IF loadsql THEN DO:
   END.  
   ELSE IF RETURN-VALUE = "2" THEN
     UNDO, RETURN ERROR.
+  ELSE IF RETURN-VALUE = "3" THEN
+    UNDO, RETURN "wrg-ver".
 
   IF batch_mode and NOT logfile_open THEN DO:
     OUTPUT TO VALUE(output_file) APPEND UNBUFFERED NO-ECHO NO-MAP.

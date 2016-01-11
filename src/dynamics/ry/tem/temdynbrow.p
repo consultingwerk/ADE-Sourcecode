@@ -266,12 +266,11 @@ END FUNCTION.        /* adm-assignObjectProperties */
 ##If:[GenerateTranslations]##
 ##Loop:translateBrowser##
 procedure translate-##[LanguageCode]##:
-    
-    &scoped-define xp-Assign
-    {set ##[LabelAttribute]## ##[TranslatedLabel]##}
-    {set ObjectTranslated yes}
-    .
-    &undefine xp-Assign
+    ##Exclude:##
+    /* Use a dyn-function here instead of {set} since it makes dealing with quotes way way easier. */
+    ##Exclude:End##
+    dynamic-function('set##[LabelAttribute]##' in target-procedure, '##[TranslatedLabel]##').
+    {set ObjectTranslated yes}.
     
     error-status:error = no.
     return.

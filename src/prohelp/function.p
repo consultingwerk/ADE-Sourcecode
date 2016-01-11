@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /* prohelp/function.p */
 
 DEFINE VARIABLE i           AS INTEGER INITIAL 1.
@@ -33,15 +33,22 @@ DEFINE VARIABLE lookfunc    AS CHARACTER.
 DEFINE VARIABLE more-row    AS INTEGER INIT 19. /* three more than percol */
 DEFINE VARIABLE percol      AS INTEGER INIT 16.
 DEFINE VARIABLE numcol      AS INTEGER INIT 4.
-
+DEFINE VARIABLE cInputFrom  AS CHARACTER NO-UNDO.
 
 func-arr1 = "".
 func-arr2 = "".
 funcs     = "".
+ASSIGN cInputFrom = SEARCH("prohelp/indata/funclist.txt").
+IF cInputFrom = ? THEN
+DO:
+    MESSAGE "The procedure 'prohelp/indata/funclist.txt' required for this option was not found" 
+            VIEW-AS ALERT-BOX.
+    RETURN.
+END.
 
 LOAD-ARRAYS:
 DO:
-    INPUT FROM VALUE(SEARCH("prohelp/indata/funclist.txt")) NO-ECHO.
+    INPUT FROM VALUE(cInputFrom) NO-ECHO.
     array1:
     REPEAT i = 1 to page-max:
        SET func-arr1[i].

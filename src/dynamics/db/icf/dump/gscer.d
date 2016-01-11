@@ -169,6 +169,7 @@ To update the current permanent filter, enter your values and press the OK or Ap
 
 If you wish to save your filter for this session only, you have to remove the permanent filter first.
 Do this by pressing the Clear button, and then pressing the OK or Apply button." 3100000003100002.53733 no "WAR" yes
+"AF" 150 426 "Value &1 cannot be displayed using &2." "The value of a field or variable exceeded the format specified.  If the data is not erroneous, increase the size of the format to accommodate it." 2828.84251 no "ERR" yes
 "CR" 20500 426 "There is not enough memory available to complete the call." "Not enough memory for operation, or not enough memory to get selection formula or cannot get selection formula." 175262 no "INF" yes
 "CR" 20501 426 "Internal error." "Invalid job number." 175263 no "INF" yes
 "CR" 20502 426 "You have specified an MDI form as the parent of a print window." "Invalid handle, or parent window cannot be an MDI form, or invalid parent window handle." 175264 no "INF" yes
@@ -361,12 +362,12 @@ Select a new &1 where the SCM Xref data is the same as for &2." 1000009938.81 no
 .
 PSC
 filename=gsc_error
-records=0000000000226
+records=0000000000227
 ldbname=ICFDB
-timestamp=2005/06/30-15:33:25
+timestamp=2007/12/03-15:38:39
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000044228
+0000044455

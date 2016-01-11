@@ -73,7 +73,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 { src/adm2/globals.i }
 { af/app/afgenretin.i }
 { launch.i &Define-only=YES }
-{adeuib/sharvars.i}
 {ry/app/rydefrescd.i}    /* Global definitons needed for customization       */
 
 DEFINE VARIABLE ghContainerSource           AS HANDLE                   NO-UNDO.
@@ -1260,7 +1259,7 @@ PROCEDURE setPreferences :
                                            OUTPUT cPrefData).     /* Found profile data.   */
   IF cPrefData <> ? AND
      cPrefData <> "":U THEN  DO:
-    glPromptOvrWrt = LOGICAL(DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_OvrWrt":U,cPrefData,TRUE,CHR(3))).
+    glPromptOvrWrt = LOGICAL(DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_OvrWrt":U,cPrefData,TRUE,CHR(3))).
     IF glPromptOvrWrt = ? THEN
       glPromptOvrWrt = TRUE.
   END.

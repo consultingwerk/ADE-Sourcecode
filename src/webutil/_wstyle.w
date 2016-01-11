@@ -419,9 +419,10 @@ FUNCTION get-location RETURNS CHARACTER (INPUT p_name AS CHAR):
     WHEN 'Help-Logo':U    THEN RETURN RootURL + '/images/l-help.gif':U.
     WHEN 'Tools-Logo':U   THEN RETURN RootURL + '/images/l-tools.gif':U.
     WHEN 'Files-Logo':U   THEN RETURN RootURL + '/images/l-files.gif':U.
-    /* Static Pages */
+    /* Static Page */
     WHEN 'Blank':U        THEN RETURN RootURL + '/assist/blank.html':U.
-    WHEN 'Welcome':U      THEN RETURN RootURL + '/workshop/welcome.html':U.
+    /* no longer static (used to be before 10.1c) */
+    WHEN 'Welcome':U      THEN RETURN "webtools/welcome.html":U.
   END CASE.
   
 END FUNCTION.

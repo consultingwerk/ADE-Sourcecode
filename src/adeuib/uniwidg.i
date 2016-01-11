@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: uniwidg.i
@@ -377,6 +377,7 @@ DEFINE {1} SHARED TEMP-TABLE _P
    FIELD _WINDOW-HANDLE           AS WIDGET   LABEL "Window Handle"
    FIELD _vbx-file                AS CHAR     LABEL "Serialized OCX file" INITIAL ?
    FIELD _xTblList                AS CHAR     LABEL "External Tables"
+   FIELD _widgetid-file-name      AS CHAR     LABEL "Widget-id File name" INITIAL ?
 
   /* jep-icf: Fields used for ICF repository object data. See adeuib/ryobject.i for details. */
   {adeuib/ttobject.i}

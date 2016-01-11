@@ -101,9 +101,10 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
                                               OUTPUT cOldPropertyList).
 
 
+  /* Call using OPEN-NOEDIT to prevent the file from opening in OpenEdge Architect. */
   RUN adeuib/_open-w.p (INPUT cWindow,
                         INPUT "":U,
-                        INPUT "OPEN":U).
+                        INPUT "OPEN-NOEDIT":U).
   RUN adeuib/_uibinfo.p (INPUT  ?,
                          INPUT  "WINDOW ?":U,
                          INPUT  "HANDLE":U,

@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -354,7 +354,7 @@ DO:
 
  ASSIGN {&WINDOW-NAME}:PRIVATE-DATA = STRING(THIS-PROCEDURE).
  
- RUN ry/obj/gopendialog.w (INPUT {&WINDOW-NAME},
+ RUN adeuib/_opendialog.w (INPUT {&WINDOW-NAME},
                            INPUT "",
                            INPUT No,
                            INPUT "Get Object",
@@ -1082,6 +1082,7 @@ PROCEDURE runContainer :
                               ,OUTPUT hRunContainer        /* procedure handle of object run/running */
                               ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
                               ).
+
         IF VALID-HANDLE(hRunContainer) THEN 
         DO:
           /* Subscribe to ConfirmExit to allow launcher to know whether object was destroyed. */
@@ -1116,9 +1117,10 @@ PROCEDURE runContainer :
             VIEW-AS ALERT-BOX  INFORMATION BUTTONS OK.
           RETURN. 
         END.
-
+                
         /* Get the Logical and Physical Names */
         RUN getObjectNames IN gshRepositoryManager ( INPUT  pcRunFile,
+                                                     input  '',    /* run attribute */
                                                      OUTPUT cContainer,
                                                      OUTPUT cLogicalName).
 

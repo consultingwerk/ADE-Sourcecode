@@ -1686,7 +1686,7 @@ PROCEDURE setSessionAttributes PRIVATE :
 
       hCall:SET-PARAMETER(1,ENTRY(LOOKUP(cAttribute,cAttrs),cDataTypes),"INPUT":U,bttParam.cValue).
 
-      hCall:INVOKE.
+      hCall:INVOKE no-error. 
     END.
   END.
 
@@ -1770,6 +1770,7 @@ PROCEDURE setSystemParams :
            PROGRAM-NAME(iCount) <> "_rtb.r":U AND /* RTB Startup procedure*/
            PROGRAM-NAME(iCount) <> "rtbrun.p":U AND /* Procedure to launch objects from RTB */
            INDEX(REPLACE(PROGRAM-NAME(iCount), "~\":U, "~/":U), "/rtb_":U) = 0 AND /* Procedures like "D:\rtb91c\rtb\w\rtb_desk.w" */
+           INDEX(REPLACE(PROGRAM-NAME(iCount), "~\":U, "~/":U), "/com.openedge.pdt.text_":U) = 0 AND /* Procedures in OpenEdge Architect, in text plug-in. */
            SUBSTRING(PROGRAM-NAME(iCount), 1, 3) NE "ade":U: /* ADE procedures like adeuib/_desk.p */
        iCount = iCount + 1.   
   END.

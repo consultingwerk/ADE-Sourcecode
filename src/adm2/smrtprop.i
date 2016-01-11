@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : smrtprop.i
     Purpose     : Starts smart.p super procedure and defines general
@@ -24,19 +24,28 @@
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
  {src/adm2/custom/smartdefscustom.i}
 &ENDIF
- 
+  
  /* Service Managers */
  {src/adm2/globals.i NEW GLOBAL}
-
+  
  /* define the ADM Version and broker handle for all SmartObjects */
  &GLOB ADM-VERSION ADM2.2
  
-  /* Note that adm-props-from-repository is documented as possible to define
-     as a variable for flexible override, so it cannot be used for conditional 
-     compile.  */      
-      
- /* adm-props-from-repository is supported to be defined as a variable,
-    so it is not used for conditional compile */ 
+ /* implement instanceOf in supers only */
+ &if defined(admsuper) = 0 &then
+   &scoped-define exclude-instanceOfSuper
+ &endif
+    
+ /* define variable and call for new lookup api for selected super-procedures 
+    (avoid duplication in the actual super ) */ 
+ &if lookup("{&admsuper}",'lookup.p,combo.p,lookupfield.p,viewer.p') > 0 &then
+   &scoped-define adm-lookup-api 
+ &else 
+   &scoped-define exclude-getUseNewLookupAPI
+ &endif   
+ 
+  /* adm-props-from-repository is documented as possible to define as a variable
+     for flexible override, so it cannot be used for conditional compile.  */      
     &IF DEFINED(ADM-PROPS-FROM-REPOSITORY) = 0 &THEN
  &GLOBAL-DEFINE ADM-PROPS-FROM-REPOSITORY TRUE
     &ENDIF
@@ -50,15 +59,17 @@
  DEFINE VARIABLE ghADMPropsBuf         AS HANDLE  NO-UNDO.  /*  and its buffer    */
  DEFINE VARIABLE glADMLoadFromRepos    AS LOGICAL NO-UNDO.
  DEFINE VARIABLE glADMOk               AS LOGICAL NO-UNDO.  /* For {get/set} */
- 
-/* Generated objects will explicitly set the ADM-CONTAINER and ADM-CONTAINER-HANDLE 
-    preprocessors.
- */ 
 
+&IF DEFINED(ADM-LOOKUP-API) NE 0 &THEN
+ define variable glUseNewAPI           as logical no-undo.
+&ENDIF 
+ 
 &IF DEFINED(ADM-LOGICALNAME-CALLBACK) EQ 0 &THEN 
    &SCOPED-DEFINE ADM-LOGICALNAME-CALLBACK SOURCE-PROCEDURE 
 &ENDIF
 
+/* Generated objects will explicitly set the ADM-CONTAINER and ADM-CONTAINER-HANDLE 
+   preprocessors. */ 
 &if defined(adm-prepare-static-object) eq 0 &then
 
 &IF "{&ADM-CONTAINER}":U NE "":U &THEN
@@ -73,8 +84,7 @@
      &GLOBAL-DEFINE ADM-CONTAINER-HANDLE FRAME {&FRAME-NAME}:HANDLE 
   &ENDIF
 &ENDIF
-
-&endif
+&endif /* defined(adm-prepare-static-object) */
 
  /* MinVersion is definded temporarily in order to global-def CompileOn91C */
 &SCOPED-DEFINE MinVersion "9.1C"
@@ -112,6 +122,17 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-instanceOfSuper) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOfSuper Procedure
+FUNCTION instanceOfSuper RETURNS LOGICAL
+	(  pcClass as character ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getObjectType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectType Method-Library 
@@ -123,6 +144,16 @@ FUNCTION getObjectType RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseNewLookupAPI) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseNewLookupAPI Method-Library 
+FUNCTION getUseNewLookupAPI RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 /* *********************** Procedure Settings ************************ */
 
@@ -154,6 +185,11 @@ FUNCTION getObjectType RETURNS CHARACTER
 
 
 /* ***************************  Main Block  *************************** */
+/* we allow the various supers (see def of adm-lookup-api) to use a 
+   class variable for this */
+&IF DEFINED(ADM-LOOKUP-API) NE 0 &THEN
+  glUseNewAPI = getUseNewLookupAPI().
+&ENDIF 
 
   /* Include the file which defines prototypes for all of the super
      procedure's entry points. Also, start or attach to the super procedure.
@@ -164,6 +200,8 @@ FUNCTION getObjectType RETURNS CHARACTER
     {src/adm2/smrtprto.i}
   &ENDIF 
 &ENDIF
+
+
 
  /* These preprocessors let the get and set methods know at compile time
     which property values are located in the temp-table and which must
@@ -182,6 +220,7 @@ FUNCTION getObjectType RETURNS CHARACTER
  &GLOB xpSupportedLinks              
  &GLOB xpContainerHidden          
  &GLOB xpObjectInitialized          
+ &GLOB xpObjectsCreated          
  &GLOB xpContainerSource           
  &GLOB xpContainerSourceEvents    
  &GLOB xpDataSourceEvents          
@@ -309,8 +348,9 @@ FUNCTION getObjectType RETURNS CHARACTER
     '{&ADM-SUPPORTED-LINKS}':U).
   ghADMProps:ADD-NEW-FIELD('ContainerHidden':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('ObjectInitialized':U, 'LOGICAL':U, 0, ?, no).
- /*  "hidden" is a logical concept. */
+  /*  "hidden" is a logical concept. */
   ghADMProps:ADD-NEW-FIELD('ObjectHidden':U, 'LOGICAL':U, 0, ?, yes).
+  ghADMProps:ADD-NEW-FIELD('ObjectsCreated':U, 'LOGICAL':U).  
   ghADMProps:ADD-NEW-FIELD('HideOnInit':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('UIBMode':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ContainerSource':U, 'HANDLE':U). 
@@ -381,6 +421,31 @@ END.
 
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-instanceOfSuper) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOfSuper Procedure
+FUNCTION instanceOfSuper RETURNS LOGICAL  
+	( pcClass as character  ):
+/*------------------------------------------------------------------------------
+    Purpose: Check if an instance is an instanceOf a particular super
+    Notes:  
+------------------------------------------------------------------------------*/ 
+  if pcClass = entry(1,"{&admsuper}",".") then
+    return true.
+    
+  &if "{&admsuper}" <> "smart.p" &then  
+  else if super(pcClass) then
+    return true.   
+  &endif
+  
+  return false. 
+  
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getObjectType) = 0 &THEN
 
@@ -408,3 +473,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseNewLookupAPI) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectType Method-Library 
+FUNCTION getUseNewLookupAPI RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Check if the new lookup API is to be used 
+   Params:  <none>
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lUseNewAPI AS LOGICAL    NO-UNDO.
+  if valid-handle(gshSessionManager) then 
+    lUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
+                                       'keep_old_field_api':U) = 'YES':U).
+  else  
+    lUseNewAPI = true.
+  return lUseNewAPI.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF

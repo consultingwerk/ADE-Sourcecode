@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -64,7 +64,6 @@ af/cod/aftemwizpw.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    000000
 
- 
 {src/adm2/globals.i}
 {af/app/afdatatypi.i}
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
@@ -213,6 +212,28 @@ define temp-table ttWidgetHandle no-undo
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-processLoop-instanceProperties-Set) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD processLoop-instanceProperties-Set Procedure
+FUNCTION processLoop-instanceProperties-Set RETURNS LOGICAL 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-processLoop-instanceProperties-Assign) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD processLoop-instanceProperties-Assign Procedure
+FUNCTION processLoop-instanceProperties-Assign RETURNS LOGICAL 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-buildMenuTranslations) = 0 &THEN
 
@@ -893,6 +914,88 @@ FUNCTION widgetIsImage RETURNS LOGICAL
 
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-processLoop-instanceProperties-Set) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processLoop-instanceProperties-Set Procedure
+FUNCTION processLoop-instanceProperties-Set RETURNS LOGICAL 
+	(  ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose: Loops through the settable properties for the instance being 
+           generated to generate the property setter.
+    Notes:
+------------------------------------------------------------------------------*/
+    define variable cInstanceName as character no-undo.
+    def buffer ttProperty for ttProperty.
+        
+    cInstanceName = dynamic-function('getTokenValue':u in target-procedure, 'InstanceName').
+    
+    for each ttProperty where
+             ttProperty.PropertyOwner = cInstanceName and
+             ttProperty.UseInList = yes and
+             ttProperty.ForceSet = Yes
+             by ttProperty.PropertyName:
+
+        dynamic-function('setTokenValue' in target-procedure,
+                         'PropertyValue',
+                         dynamic-function('transmogrifyPropertyValue' in target-procedure,
+                                          ttProperty.DataType,
+                                          ttProperty.PropertyValue)).
+        
+        dynamic-function('setTokenValue' in target-procedure,        
+                         'PropertyName', ttProperty.PropertyName).
+        
+        dynamic-function('processLoopIteration' in target-procedure).
+    end.    /* property list. */
+        
+    return true.
+END FUNCTION.    /* processLoop-instanceProperties-Set */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-processLoop-instanceProperties-Assign) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION processLoop-instanceProperties-Assign Procedure
+FUNCTION processLoop-instanceProperties-Assign RETURNS LOGICAL 
+	(  ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose: Loops through the assignable properties for the instance being 
+           generated to generate the property setter.
+    Notes:
+------------------------------------------------------------------------------*/
+    define variable cInstanceName as character no-undo.
+    def buffer ttProperty for ttProperty.
+        
+    cInstanceName = dynamic-function('getTokenValue':u in target-procedure, 'InstanceName').
+    
+    for each ttProperty where
+             ttProperty.PropertyOwner = cInstanceName and
+             ttProperty.UseInList = yes and
+             ttProperty.ForceSet = no
+             by ttProperty.PropertyName:
+
+        dynamic-function('setTokenValue' in target-procedure,
+                         'PropertyValue',
+                         dynamic-function('transmogrifyPropertyValue' in target-procedure,
+                                          ttProperty.DataType,
+                                          ttProperty.PropertyValue)).
+        
+        dynamic-function('setTokenValue' in target-procedure,        
+                         'PropertyName', ttProperty.PropertyName).
+        
+        dynamic-function('processLoopIteration' in target-procedure).
+    end.    /* property list. */
+        
+    return true.
+END FUNCTION.    /* processLoop-instanceProperties-Assign */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-buildMenuTranslations) = 0 &THEN
 
@@ -1524,7 +1627,7 @@ ACCESS_LEVEL=PUBLIC
   Purpose: Override of shutdown event.
     Notes: 
 ------------------------------------------------------------------------------*/
-    define variable lSuper        as logical                        no-undo.
+    define variable lSuper        as logical    initial ? no-undo.
     
     /* don't want memory leaks */
     for each ttWidgetHandle:
@@ -1538,8 +1641,7 @@ ACCESS_LEVEL=PUBLIC
         lSuper = yes.
     
     /* reset the numeric and date formats back to the original from
-       American.
-         */
+       American. */
     session:date-format = dynamic-function('getTokenValue' in target-procedure, 'Session_DateFormat').
     session:set-numeric-format(dynamic-function('getTokenValue' in target-procedure, 'Session_NumericSeparator'),
                                dynamic-function('getTokenValue' in target-procedure, 'Session_DecimalPoint')).    
@@ -2233,7 +2335,7 @@ FUNCTION initializeGenerator RETURNS LOGICAL
   Purpose:  
         Notes:
 ------------------------------------------------------------------------------*/
-    define variable lOk            as logical                            no-undo.
+    define variable lOk            as logical       initial ? no-undo.
     
     empty temp-table ttPage.
     empty temp-table ttInstance.
@@ -2266,8 +2368,8 @@ FUNCTION initializeGenerator RETURNS LOGICAL
     dynamic-function('setTokenValue' in target-procedure,
                      'Session_DecimalPoint', session:numeric-decimal-point).
                          
-    session:numeric-format = 'American'.
-    
+    session:numeric-format = 'American'.    
+
     error-status:error = no.        
     return lOk.
 END FUNCTION.    /* initializeGenerator */
@@ -2714,23 +2816,21 @@ ACCESS_LEVEL=PRIVATE
     define buffer gsmom            for gsm_object_menu_structure.
     
     cResultCodes = dynamic-function('getTokenValue' in target-procedure, 'GenerateResultCodes').
+    
     /* Make sure the result codes are nicely formed. they should have the default result
-       code in the string, at the very least.
-     */
+       code in the string, at the very least. */    
     run resolveResultCodes in gshRepositoryManager (input Yes, input-output cResultCodes).
+    
     /* Set the property again, in case the result codes have changed as 
-       a result of the above call.
-     */
+       a result of the above call. */
     dynamic-function('setTokenValue' in target-procedure,
                      'GenerateResultCodes', cResultCodes).
     
-    lCustomizationsExist = no.
-    
+    lCustomizationsExist = no.    
     lObjectIsViewer = dynamic-function('subClassOf' in target-procedure, 'Viewer').
     
     /* Loop through result codes and get information about the master object
-       and contained instances. 
-     */
+       and contained instances. */
     do iResultCodeLoop = 1 to num-entries(cResultCodes):
         cResultCode = entry(iResultCodeLoop, cResultCodes).
         
@@ -2770,9 +2870,12 @@ ACCESS_LEVEL=PRIVATE
                first rycso_instance where
                      rycso_instance.smartobject_obj = rycoi.smartobject_obj
                      no-lock:
+                         
+                find ttInstance where
+                     ttInstance.InstanceName = rycoi.instance_name
+                     no-error.
                 
-                if not can-find(ttInstance where
-                                ttInstance.InstanceName = rycoi.instance_name) then
+                if not available ttInstance then
                 do:
                     find gscot where
                          gscot.object_type_obj = rycso_instance.object_type_obj
@@ -2795,8 +2898,7 @@ ACCESS_LEVEL=PRIVATE
                            ttProperty.DataType = 'Character'.
                     
                     /* The Physical object name attribute here is used to determine
-                       the rendering procedure in certain cases. 
-                     */
+                       the rendering procedure in certain cases. */
                     create ttProperty.
                     assign ttProperty.PropertyName = 'PhysicalObjectName'
                            ttProperty.PropertyOwner = ttInstance.InstanceName
@@ -2810,8 +2912,7 @@ ACCESS_LEVEL=PRIVATE
                         ttProperty.PropertyValue = ''.
                         
                     /* Name or ObjectName. This is used to store the
-                       instance name for use by the ADM.
-                     */
+                       instance name for use by the ADM. */
                     if dynamic-function('classHasAttribute' in gshRepositoryManager,
                                         gscot.object_type_code, 'Name', no) then
                     do:
@@ -2858,6 +2959,15 @@ ACCESS_LEVEL=PRIVATE
                                 ttProperty.PropertyName = rycat.attribute_label and
                                 ttProperty.PropertyOwner = rycoi.instance_name) then
                         next.
+                        
+                    /* There may be cases where properties are 'left over' from
+                       earlier releases (they may not have been cleaned up properly).
+                       We don't want to use them at all, since the ADMProps temp-tables 
+                       will be all messed up. We can use the RepositoryManager API since
+                       the code we're generating is for RUNTIME use. */
+                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                            ttInstance.ClassName, rycat.attribute_label, no) then
+                        next.
                     
                     create ttProperty.
                     assign ttProperty.PropertyName = rycat.attribute_label
@@ -2898,7 +3008,12 @@ ACCESS_LEVEL=PRIVATE
                          rycue.container_smartobject_obj = rycoi.container_smartobject_obj and
                          rycue.event_action       <> "":U
                          no-lock:
-                    
+                    /* There may be cases where events are 'left over' from
+                       earlier releases (they may not have been cleaned up properly). */
+                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                            ttInstance.ClassName, rycue.event_name, yes) then
+                        next.                             
+
                     if not can-find(ttEvent where
                                     ttEvent.EventName = rycue.event_name and
                                     ttEvent.InstanceName = ttInstance.InstanceName) then
@@ -2937,9 +3052,13 @@ ACCESS_LEVEL=PRIVATE
                          no-lock,
                    first rycso_instance where
                          rycso_instance.smartobject_obj = rycoi.smartobject_obj
-                         no-lock:                             
-                    if not can-find(ttInstance where
-                                    ttInstance.InstanceName = rycoi.instance_name) then
+                         no-lock:
+                             
+                    find ttInstance where
+                         ttInstance.InstanceName = rycoi.instance_name
+                         no-error.
+                    
+                    if not available ttInstance then
                     do:
                         find gscot where
                              gscot.object_type_obj = rycso_instance.object_type_obj
@@ -2977,8 +3096,7 @@ ACCESS_LEVEL=PRIVATE
                             ttProperty.PropertyValue = ''.
                         
                         /* Name or ObjectName. This is used to store the
-                           instance name for use by the ADM.
-                         */
+                           instance name for use by the ADM. */
                         if dynamic-function('classHasAttribute' in gshRepositoryManager,
                                             gscot.object_type_code, 'Name', no) then
                         do:
@@ -3026,6 +3144,15 @@ ACCESS_LEVEL=PRIVATE
                                     ttProperty.PropertyOwner = rycoi.instance_name) then
                             next.
                         
+                        /* There may be cases where properties are 'left over' from
+	                       earlier releases (they may not have been cleaned up properly).
+	                       We don't want to use them at all, since the ADMProps temp-tables 
+	                       will be all messed up. We can use the RepositoryManager API since
+	                       the code we're generating is for RUNTIME use. */
+                        if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                                ttInstance.ClassName, rycat.attribute_label, no) then
+                            next.
+
                         create ttProperty.
                         assign ttProperty.PropertyName = rycat.attribute_label
                                ttProperty.PropertyOwner = rycoi.instance_name
@@ -3065,7 +3192,12 @@ ACCESS_LEVEL=PRIVATE
                              rycue.container_smartobject_obj = rycoi.container_smartobject_obj and
                              rycue.event_action       <> "":U
                              no-lock:
-                                 
+                        /* There may be cases where events are 'left over' from
+	                       earlier releases (they may not have been cleaned up properly). */
+                        if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                                ttInstance.ClassName, rycue.event_name, yes) then
+                            next.
+
                         if not can-find(ttEvent where
                                         ttEvent.EventName = rycue.event_name and
                                         ttEvent.InstanceName = rycoi.instance_name) then
@@ -3116,8 +3248,9 @@ ACCESS_LEVEL=PRIVATE
                     ttLink.TargetPageRef = (if available ttInstance then ttInstance.PageReference else 'Page0').
                 end.    /* link not created */
             end.    /* each link */
-            
+                        
             /* Properties for the object itself */
+            cClassName = dynamic-function('getTokenValue' in target-procedure, 'ClassName').
             for each rycav where
                      rycav.object_type_obj = rycso.object_type_obj and
                      rycav.smartobject_obj = rycso.smartobject_obj and
@@ -3129,7 +3262,16 @@ ACCESS_LEVEL=PRIVATE
                      rycat.design_only = no and
                      rycat.derived_value = no
                      no-lock:
-                         
+                
+                /* There may be cases where properties are 'left over' from
+                   earlier releases (they may not have been cleaned up properly).
+                   We don't want to use them at all, since the ADMProps temp-tables 
+                   will be all messed up. We can use the RepositoryManager API since
+                   the code we're generating is for RUNTIME use. */
+                if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                        cClassName, rycat.attribute_label, no) then
+                    next.
+
                 /* Skip certain deprecated attributes */
                 if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                     next.
@@ -3289,7 +3431,16 @@ ACCESS_LEVEL=PRIVATE
                          rycat.design_only = no and
                          rycat.derived_value = no
                          no-lock:
-                             
+                    
+                    /* There may be cases where properties are 'left over' from
+	                   earlier releases (they may not have been cleaned up properly).
+	                   We don't want to use them at all, since the ADMProps temp-tables 
+	                   will be all messed up. We can use the RepositoryManager API since
+	                   the code we're generating is for RUNTIME use. */
+                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                            ttInstance.ClassName, rycat.attribute_label, no) then
+                        next.
+
                     /* Skip certain deprecated attributes */
                     if can-do('{&deprecated-attributes}', rycat.attribute_label) then                        
                         next.
@@ -3345,7 +3496,16 @@ ACCESS_LEVEL=PRIVATE
                          rycue.container_smartobject_obj = 0 and
                          rycue.event_action       <> "":U
                          no-lock:
-                
+
+                    /* There may be cases where properties are 'left over' from
+	                   earlier releases (they may not have been cleaned up properly).
+	                   We don't want to use them at all, since the ADMProps temp-tables 
+	                   will be all messed up. We can use the RepositoryManager API since
+	                   the code we're generating is for RUNTIME use. */
+                    if not dynamic-function('classHasAttribute' in gshRepositoryManager,
+                                            ttInstance.ClassName, rycue.event_name, yes) then
+                        next.
+
                     if not can-find(ttEvent where
                                     ttEvent.EventName = rycue.event_name and
                                     ttEvent.InstanceName = ttInstance.InstanceName) then
@@ -3383,8 +3543,7 @@ ACCESS_LEVEL=PRIVATE
                     next.
                 
                 /* If either a LIST-ITEMS or LIST-ITEM-PAIRS property already exists on the 
-                   master or instance, then don't use either of these properties from the class.                
-                 */
+                   master or instance, then don't use either of these properties from the class. */
                 if entry(iPropertyLoop, cPropertyNames) begins 'List-Item':u and
                    lObjectHasListItemProp then
                     next.
@@ -3565,8 +3724,7 @@ ACCESS_LEVEL=PUBLIC
         end.    /* find renderingprocedure */
         
         /* Some (static mainly) objects may use PhysicalObjectName 
-           instead of RenderingProcedure
-         */
+           instead of RenderingProcedure */
         if cValue eq '' or cValue eq ? then
         do:
             find ttProperty where
@@ -3582,21 +3740,15 @@ ACCESS_LEVEL=PUBLIC
         
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceRenderingProcedure', cValue).
-                                      
-        /* Build the list of instance properties */
+
+        /* Previously, we built a list. Now we generated {set}s individually.
+           However, we must pass in LogicalObjectName so that pgen'ed objects
+           are run. */
         cValue = 'LogicalObjectName' + chr(4) + ttInstance.ObjectName.
-        for each ttProperty where
-                 ttProperty.PropertyOwner = ttInstance.InstanceName and
-                 ttProperty.UseInList = yes:                                 
-            cValue = cValue + chr(3)
-                   + ttProperty.PropertyName + chr(4)
-                   + (if ttProperty.PropertyValue eq ? then '?' else ttProperty.PropertyValue).
-        end.    /* property list. */
-        
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceInstanceProperties',
                          quoter(cValue)).
-                         
+                    
         /* Row */        
         find ttProperty where
              ttProperty.PropertyName = 'Row' and
@@ -4288,9 +4440,10 @@ ACCESS_LEVEL=PUBLIC
              no-error.
         if ttProperty.PropertyValue eq '' or ttProperty.PropertyValue eq ? then
             next.            
-        
-        /* Escape single quotes in the initial value. */
+
+        /* Escape quotes in the initial value. */
         cValue = replace(ttProperty.PropertyValue, "'", "~~'").
+        cValue = replace(ttProperty.PropertyValue, '"', '~~"').
 
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceInitialValue', cValue).
@@ -4323,6 +4476,14 @@ ACCESS_LEVEL=PUBLIC
         end.
         else
         do:
+            /* Skip displayObjects for VIEW-AS TEXT or TEXT widgets.
+	           Their InitialValue is displayed as part of their construction.
+	           One reason for doing this is that, for TEXT widgets, the InitialValue
+	           may be translated. displayObjects runs after translate-<Lang> so will
+	           overwrite any translations. And we don't want that. */
+            if ttInstance.InstanceType eq 'TEXT':u then
+                next.
+            
             hWidget = dynamic-function('getWidgetHandle' in target-procedure, ttInstance.InstanceType).
             
             if valid-handle(hWidget) and not can-set(hWidget, 'Screen-Value') then
@@ -4577,11 +4738,11 @@ ACCESS_LEVEL=PUBLIC
     /* Now add the properties to the output file */
     for each ttProperty where
              ttProperty.PropertyOwner = cObjectName and
-             ttProperty.ForceSet = no:
+             ttProperty.ForceSet = no
+             by ttProperty.PropertyName:
         
         /* Skip the SuperProcedure* attributes, since they are handled
-           individually.
-         */
+           individually. */
         if ttProperty.PropertyName begins 'SuperProcedure' then
             next.
         
@@ -4591,8 +4752,7 @@ ACCESS_LEVEL=PUBLIC
         
         /* Don't set the visual information for SDFs. This needs to be set by the 
            SDF's container (i.e. the viewer) on an instance. Things like ROW have
-           no meaning for the SDF outside the context of a container.
-         */
+           no meaning for the SDF outside the context of a container. */
         if lSdf and can-do('{&exclude-from-prop-list}', ttProperty.PropertyName) then
             next.
         
@@ -4642,11 +4802,11 @@ ACCESS_LEVEL=PUBLIC
     /* Now add the properties to the output file */
     for each ttProperty where
              ttProperty.PropertyOwner = cObjectName and
-             ttProperty.ForceSet = yes:
+             ttProperty.ForceSet = yes
+             by ttProperty.PropertyName:
         
         /* Skip the SuperProcedure* attributes, since they are handled
-           individually.
-         */
+           individually. */
         if ttProperty.PropertyName begins 'SuperProcedure' then
             next.
                  
@@ -4656,14 +4816,13 @@ ACCESS_LEVEL=PUBLIC
                     
         /* Don't set the visual information for SDFs. This needs to be set by the 
            SDF's container (i.e. the viewer) on an instance. Things like ROW have
-           no meaning for the SDF outside the context of a container.
-         */
+           no meaning for the SDF outside the context of a container. */
         if lSdf and can-do('{&exclude-from-prop-list}', ttProperty.PropertyName) then
             next.
         
         dynamic-function('setTokenValue' in target-procedure,
                          'PropertyName', ttProperty.PropertyName).
-        
+                         
         dynamic-function('setTokenValue' in target-procedure,
                          'PropertyValue',
                          dynamic-function('transmogrifyPropertyValue' in target-procedure,
@@ -4763,13 +4922,12 @@ ACCESS_LEVEL=PUBLIC
                 do:
                     dynamic-function('setTokenValue' in target-procedure, 
                                      'LabelAttribute', 'BrowseColumnLabels').
+                                     
+                    cOriginalLabels = replace(cOriginalLabels, "'", "~~'").
+                    cOriginalLabels = replace(cOriginalLabels, '"', '~~"').
                     
-                    dynamic-function('setTokenValue' in target-procedure, 
-                                     'TranslatedLabel',
-                                     dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                                      'Character',
-                                                      cOriginalLabels)).
-                    
+                    dynamic-function('setTokenValue' in target-procedure,
+                                     'TranslatedLabel', cOriginalLabels).
                     dynamic-function('processLoopIteration' in target-procedure).
                 end.    /* translated the label */                   
             end.    /* there is a translation for the browser in this language */
@@ -4870,7 +5028,7 @@ ACCESS_LEVEL=PUBLIC
     if available gsclg then
     do:
         do iTableLoop = 1 to num-entries(cTables):
-            cColumns = entry(iTableLoop, cAllColumns, '{&adm-tabledelimiter}').
+            cColumns = entry(iTableLoop, cAllColumns, {&adm-tabledelimiter}).
             do iColumnLoop = 1 to num-entries(cColumns):
                 dynamic-function('setTokenValue' in target-procedure,
                                  'ColumnName', entry(iColumnLoop, cColumns) ).
@@ -5081,8 +5239,7 @@ ACCESS_LEVEL=PUBLIC
     
     /* Look for any translations for this language. We don't look for
        the specific object since this means that we ignore any
-       global translations.
-     */    
+       global translations. */    
     for each gsclg no-lock,
        first gsmtr where
              gsmtr.language_obj = gsclg.language_obj
@@ -5134,7 +5291,7 @@ ACCESS_LEVEL=PUBLIC
     define variable lLabelTranslated     as logical                  no-undo.
     define variable lTooltipTranslated   as logical                  no-undo.
     define variable lDataTranslated      as logical                  no-undo.    
-    
+
     define buffer gsclg    for gsc_language.
     
     cLanguageCode = dynamic-function('getTokenValue' in target-procedure, 'LanguageCode').
@@ -5283,27 +5440,24 @@ ACCESS_LEVEL=PUBLIC
             dynamic-function('setTokenValue' in target-procedure,
                              'InstanceIsSdf', string(ttInstance.InstanceType eq 'Sdf')).
                              
-            /* Escape any single quotes for translated labels and tooltips,
-               except for SDFs (these are dealt with separately).
-             */
-            if ttInstance.InstanceType ne 'Sdf' then
+            /* Escape any quotes for translated labels and tooltips */
                 assign cLabel = replace(cLabel, "'", "~~'")
-                       cTooltip = replace(cTooltip, "'", "~~'").
+                       cLabel = replace(cLabel, '"', '~~"')
+                       cTooltip = replace(cTooltip, "'", "~~'")
+                       cTooltip = replace(cTooltip, '"', '~~"').
             
             case ttInstance.InstanceType:              
                 when 'Radio-Set' then
                 do:                    
                     /* Radio-sets can only have their radio-buttons translated,
-                       and not their labels.
-                     */                    
+                       and not their labels. */                    
                     lDataTranslated = (cLabel ne '' and cLabel ne ?).
                     
                     if lDataTranslated then
                     do:
                         lDataTranslated = no.
                         /* Loop through the translated labels, and overlay them on the 
-                           original Radio-Buttons property value.
-                         */
+                           original Radio-Buttons property value. */
                         do iLoop = 1 to num-entries(cLabel, chr(3)):
                             cEntry = entry(iLoop, cLabel, chr(3)).
                             /* if not translated then skip */
@@ -5329,12 +5483,10 @@ ACCESS_LEVEL=PUBLIC
                        there is not translation.
                                            
                        When translating radio-sets, only take the first available
-                       translation tooltip.
-                     */
+                       translation tooltip.    */
                     /* trim all separator characters, since
                        we trying to find the first available 
-                       tooltip.
-                     */
+                       tooltip. */
                     assign cTooltip = trim(cTooltip, chr(3))
                            cTooltip = entry(1, cTooltip, chr(3)).
                     lTooltipTranslated = (cTooltip ne '' and cTooltip ne ?).
@@ -5352,8 +5504,7 @@ ACCESS_LEVEL=PUBLIC
                 do:
                     /* Text widgets don't have their labels translated,
                        they have their Screen-Value translated (the data).
-                       And also the tooltip.
-                     */
+                       And also the tooltip. */
                     lDataTranslated = cLabel ne '' and cLabel ne ?.                    
                     if lDataTranslated then
                     do:
@@ -5380,16 +5531,14 @@ ACCESS_LEVEL=PUBLIC
                        tooltips and data.                     
                                        
                        For a combo, we receive the translated label as entry 1 in the list.
-                       Apply it here before we proceed with the translated combo items.
-                     */
+                       Apply it here before we proceed with the translated combo items. */
                     cEntry = entry(1, cLabel, chr(3)).
                     lLabelTranslated = (cEntry ne '' and cEntry ne ?).
                     if lLabelTranslated then
                         dynamic-function('setTokenValue' in target-procedure,
                                          'TranslatedLabel', cEntry).
                     
-                    /* Remove the label portion from the translated string.
-                     */
+                    /* Remove the label portion from the translated string. */
                     entry(1, cLabel, chr(3)) = ''.
                     cLabel = substring(cLabel, 2).
                                         
@@ -5406,15 +5555,13 @@ ACCESS_LEVEL=PUBLIC
                     end.    /* label translated */
                                         
                     /* the remainder of the list item string consists of 
-                       list-item-pairs label translations.
-                     */
+                       list-item-pairs label translations. */
                     lDataTranslated = (cLabel ne '' and cLabel ne ?).
                     if lDataTranslated then
                     do:
                         lDataTranslated = no.
                         /* Loop through the translated labels, and overlay them on the 
-                           original List-Item-Pairs property value.
-                         */
+                           original List-Item-Pairs property value. */
                         do iLoop = 1 to num-entries(cLabel, chr(3)):
                             cEntry = entry(iLoop, cLabel, chr(3)).
                             /* if not translated then skip */
@@ -5435,45 +5582,12 @@ ACCESS_LEVEL=PUBLIC
                         end.    /* there are translations */
                     end.    /* label translated */                    
                 end.    /* combo box. */
-                when 'Sdf' then
-                do:
-                    lLabelTranslated = cLabel ne '' and cLabel ne ?.
-                    dynamic-function('setTokenValue' in target-procedure,
-                                     'InstanceLabelTranslated', string(lLabelTranslated)).
-                    
-                    if lLabelTranslated then
-                    do:
-                        dynamic-function('setTokenValue' in target-procedure,
-                                         'LabelAttribute', 'FieldLabel').
-                    
-                        dynamic-function('setTokenValue' in target-procedure,
-                                         'TranslatedLabel',
-                                         dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                                          'Character',
-                                                           cLabel)).
-                    end.    /* label translated */
-                                        
-                    lTooltipTranslated = cTooltip ne '' and cTooltip ne ?.
-                    dynamic-function('setTokenValue' in target-procedure,
-                                     'InstanceTooltipTranslated', string(lTooltipTranslated)).
-                    
-                    if lTooltipTranslated then
-                    do:
-                        dynamic-function('setTokenValue' in target-procedure,
-                                         'TooltipAttribute', 'FieldTooltip').
-                        
-                        dynamic-function('setTokenValue' in target-procedure,
-                                         'TranslatedTooltip',
-                                         dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                         'Character',
-                                         cTooltip)).
-                    end.    /* tooltip translated */
-                end.    /* sdf */
                 when 'Fill-In' or
                 when 'Button' or
                 when 'Editor' or
                 when 'Toggle-Box' or
-                when 'Selection-List' then
+                when 'Selection-List' or
+                when  'Sdf' then
                 do:
                     lLabelTranslated = (cLabel ne '' and cLabel ne ?).
                     
@@ -5505,8 +5619,7 @@ ACCESS_LEVEL=PUBLIC
             end case.    /* widget type */
             
             /* If there are no label translations, and then look for
-               any entity translations.
-             */
+               any entity translations. */
             if not lLabelTranslated and
                can-do('Combo-Box,Fill-In,Button,Editor,Toggle-Box,Selection-List', ttinstance.InstanceType) then
             do:
@@ -5635,11 +5748,11 @@ ACCESS_LEVEL=PUBLIC
         dynamic-function('setTokenValue' in target-procedure,
                          'TranslatedFolderLabels', string(lTranslated)).
         if lTranslated then
-            dynamic-function('setTokenValue' in target-procedure,
-                             'FolderLabels',
-                             dynamic-function('transmogrifyPropertyValue' in target-procedure,
-                                              'Character', cPageLabels)).
-        
+        do:
+            cPageLabels = replace(cPageLabels, "'", "~~'").
+            cPageLabels = replace(cPageLabels, '"', '~~"').
+            dynamic-function('setTokenValue' in target-procedure, 'FolderLabels', cPageLabels).
+        end.
         /* Translate the window title */
         lTranslated = no.
         run translateSingleObject in gshTranslationManager (input  gsclg.language_obj,
@@ -5654,9 +5767,11 @@ ACCESS_LEVEL=PUBLIC
         dynamic-function('setTokenValue' in target-procedure,
                          'TranslatedWindowName', string(lTranslated)).
         if lTranslated then
-            dynamic-function('setTokenValue' in target-procedure,
-                             'WindowTitle', cLabels).
-        
+        do:
+            cLabels = replace(cLabels, "'", "~~'").
+            cLabels = replace(cLabels, '"', '~~"').
+            dynamic-function('setTokenValue' in target-procedure, 'WindowTitle', cLabels).
+        end.
         dynamic-function('processLoopIteration' in target-procedure).                             
     end.    /* each language */
     
@@ -5787,20 +5902,17 @@ ACCESS_LEVEL=PRIVATE
         do:
             /* Semicolons can do some funky stuff in combination with
                certain other characters. Make sure that we escape these
-               with a tilde so that we get the behaviour we expect.
-             */
+               with a tilde so that we get the behaviour we expect. */
             if index(pcPropertyValue, ';') gt 0 then
             do:
                 /* The ;? string in an attribute may cause problems when compiling.
-                   the compiler translates this string into a tilde.
-                 */
+                   the compiler translates this string into a tilde. */
                 pcPropertyValue = replace(pcPropertyValue, ';?', '~~;?').
                 
                 /* Make sure that the last semi-colon in a string is escaped,
                    since ;' (semi-colon + single quote) is a reserved character 
                    set to the compiler and is translated to a backtick. Make sure
-                   that this doesn't happen.
-                 */
+                   that this doesn't happen. */
                 if ( pcPropertyValue eq ';' or
                      substring(pcPropertyValue, length(pcPropertyValue), 1) = ';')  then
                 do:
@@ -5810,17 +5922,16 @@ ACCESS_LEVEL=PRIVATE
                         assign pcPropertyValue = substring(pcPropertyValue, 1, length(pcPropertyValue) - 1)
                                pcPropertyValue = pcPropertyValue + '~~;'.
                 end.    /* last character is ;  */
-            end.    /* there's asemi-colon in here somewhere */
+            end.    /* there's a semi-colon in here somewhere */
             
-            /* Replace all single quotes in the data with double quotes.
-             */
+            /* Escape all single quotes in the data. */
             iPos = index(pcPropertyValue, "'").
             if iPos gt 0 then
-                pcPropertyValue = replace(pcPropertyValue, "'", '"').
+                pcPropertyValue = replace(pcPropertyValue, "'", "~~~~'").
                 
             /* are there any quotes? */        
-            iPos = index(pcPropertyValue, '"').                
-                        
+            iPos = index(pcPropertyValue, '"').
+
             /* If there's a space in the value, add quotes
                around the character. also, if there are quotes 
                somewhere inside the string, run it through quoter.
@@ -5834,7 +5945,7 @@ ACCESS_LEVEL=PRIVATE
                quotes, which is how it is stored in the reposotory.           
              */
             if iPos gt 0 then
-                pcPropertyValue = replace(pcPropertyValue, '"', '""').            
+                pcPropertyValue = replace(pcPropertyValue, '"', '""').
             
             /* Add single quotes on the outside so that the {set} 
                function handles the string properly.

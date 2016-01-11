@@ -444,7 +444,17 @@ END.
 /* Read 4GL code */
 ASSIGN lMRUFileList  = _mru_filelist
        _mru_filelist = NO.
+       
+/* Save in-memory OCX properties to a temporary OCX file at the location of the linked file. */
+RUN saveOCXFile(hOldWindow, pcLinkedFile).       
+
+/* Load .w file. Use OCX properties from temporary location if file is available. */
 RUN adeuib/_qssuckr.p (pcLinkedFile, "", "WINDOW-SILENT":U, FALSE).
+
+/* Delete temporary OCX file */
+DEFINE VARIABLE ocxFileName AS CHARACTER NO-UNDO.
+ocxFileName = substr(pcLinkedFile, 1, r-index(pcLinkedFile, ".":u) - 1) + ".wrx".
+OS-DELETE VALUE(ocxFileName).
 
 ASSIGN _mru_filelist = lMRUFileList
        hNewWindow    = _h_win.

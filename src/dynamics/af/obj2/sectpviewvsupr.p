@@ -187,7 +187,7 @@ PROCEDURE chooseRefresh :
   DEFINE VARIABLE cEntityName   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageList  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
-
+  define variable hContainer    as handle no-undo.
   DEFINE VARIABLE cUserOrGroups AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAllUsers     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cUserObj      AS CHARACTER  NO-UNDO.
@@ -287,6 +287,9 @@ PROCEDURE chooseRefresh :
                                                INPUT NO,
                                                INPUT "PER":U).
   END.
+  
+  {get ContainerSource hContainer}.      
+  run selectPage in hContainer ('1').
 
 END PROCEDURE.
 

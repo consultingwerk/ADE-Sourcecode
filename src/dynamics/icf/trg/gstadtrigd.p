@@ -37,25 +37,7 @@ DEFINE BUFFER o_gst_audit FOR gst_audit.
 /* Standard top of DELETE trigger code */
 {af/sup/aftrigtopd.i}
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Update Audit Log */
-IF CAN-FIND(FIRST gsc_entity_mnemonic
-            WHERE gsc_entity_mnemonic.entity_mnemonic = 'gstad':U
-              AND gsc_entity_mnemonic.auditing_enabled = YES) THEN
-  RUN af/app/afauditlgp.p (INPUT "DELETE":U, INPUT "gstad":U, INPUT BUFFER gst_audit:HANDLE, INPUT BUFFER o_gst_audit:HANDLE).
+/* NO audit log updates for the Auditing table - will get us in a bunch of recursion trouble. */
 
 /* Standard bottom of DELETE trigger code */
 {af/sup/aftrigendd.i}

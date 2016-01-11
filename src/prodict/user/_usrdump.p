@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -9,7 +9,8 @@
 
 /*
 IN:
-  user_env[1] = "ALL" or comma-separated list of files
+  user_env[1] = "ALL" or comma-separated list of files 
+                or it may be in user_longchar, if list was too big.
 
   user_env[9] = type of dump (e.g. .df or .d or bulk-load file)
                 "4"   = dump file definitions with AS/400 stuff
@@ -36,9 +37,8 @@ OUT:
   user_env[1] = same as IN
   user_env[2] = physical file or directory name for some output
   user_env[3] = "MAP <name>" or "NO-MAP" OR ""
-  user_env[4] = comma separated list of "y" (yes) or "n" (no) which
-                corresponds to file list in user_env[1], indicating for each 
-                whether triggers should be disabled when the dump is done.
+  user_env[4] = comma separated list of table numbers for which triggers 
+                should be disabled.
                 (only used for dump data file contents, "f").
   user_env[5] = "<source-code-page>,<target-code-page>" or "UNDEFINED"
                 (only for .df- and .d-files!)  /*hutegger*/
@@ -67,6 +67,8 @@ history:
     kmcintos    06/07/05    Added context help ids for auditing options.
     kmcintos    07/27/05    Removed reference to unused longchar variable.
     fernando    03/14/06    Handle case with too many tables selected - bug 20050930-006.
+    fernando    08/10/07    Enhancing label of dmp-rpos - OE00154917
+    fernando    12/13/07    Handle long list of "some" selected tables
 */
 /*h-*/
 
@@ -146,7 +148,7 @@ FORM SKIP({&TFM_WID})
                  COLON 15 VIEW-AS FILL-IN SIZE 40 BY 1
                  LABEL "Code Page" SKIP ({&VM_WIDG})
      dmp-rpos    VIEW-AS TOGGLE-BOX COLON 15 
-                 LABEL "Include &POSITION for .r Compatibility"
+                 LABEL "Include &POSITION for .r / Binary Load Compatibility"
                  
      {prodict/user/userbtns.i}
 
@@ -1411,12 +1413,21 @@ ASSIGN
 &ENDIF
   class    = SUBSTRING(user_env[9],1,1)
   io-file  = TRUE
-  is-all   = (user_env[1] = "ALL")
-  is-some  = (user_env[1] MATCHES "*,*")
-  is-one   = NOT is-all AND NOT is-some
   prefix   = ""
   dmp-rpos:HIDDEN IN FRAME write-output-file = 
   (IF class = "d" THEN FALSE ELSE TRUE).
+
+/* for "some" operations, if user_env[1] is empty, then we got a bug
+   list in user_longchar 
+*/
+IF user_env[1] = "" AND (class = "f" OR class = "d" OR class = "b") THEN
+   ASSIGN is-some  = (user_longchar MATCHES "*,*").
+ELSE
+   ASSIGN is-some  = (user_env[1] MATCHES "*,*").
+ 
+ASSIGN
+      is-all   = (user_env[1] = "ALL")
+      is-one   = NOT is-all AND NOT is-some.
 
 /* Set default value for codepage gfs:94-04-28-043 */
 IF user_env[5] = "" OR user_env[5] = ? THEN DO:
@@ -1490,10 +1501,16 @@ ELSE IF class = "f" THEN DO FOR _File:
 
   IF is-one OR is-some THEN
   DO:
-      IF isCpUndefined THEN
-         base = user_env[1].
+      /* if user_env[1] is "", then value is in user_longchar */
+      IF user_env[1] NE "" THEN DO:
+          IF isCpUndefined THEN
+             base = user_env[1].
+          ELSE
+             base_lchar = user_env[1].
+      END.
       ELSE
-         base_lchar = user_env[1].
+          base_lchar = user_longchar.
+
   END.
   ELSE
       base = "".
@@ -1583,8 +1600,15 @@ ELSE IF class = "f" THEN DO FOR _File:
 
     IF err = ? THEN DO:
 
-      ASSIGN
-        user_env[4] = user_env[4] + comma + dis_trig.
+      /* now we will only put the table number of tables that we will not
+         disable triggers for, which is the exception (for most cases).
+      */
+      IF dis_trig = "n" THEN DO:
+          IF user_env[4] = "" THEN
+             user_env[4] = STRING(_File._File-number).
+          ELSE
+              user_env[4] = user_env[4] + "," + STRING(_File._File-number).
+      END.
 
       IF isCpUndefined THEN
          user_env[1] = user_env[1] + comma + _File._File-name.

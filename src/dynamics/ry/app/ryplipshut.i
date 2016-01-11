@@ -27,12 +27,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: ryplipshut.i
 
@@ -121,7 +121,7 @@ af/cod/aftemwizpw.w
     /* get rid of entry in Astra 2 session manager */
     IF VALID-HANDLE(gshSessionManager) THEN
     DO:
-      RUN killProcedure IN gshSessionManager (INPUT lv_this_object_name
+      RUN killProcedure IN gshSessionManager (INPUT THIS-PROCEDURE:FILE-NAME
                                              ,INPUT "":U
                                              ,INPUT "":U
                                              ,INPUT "":U

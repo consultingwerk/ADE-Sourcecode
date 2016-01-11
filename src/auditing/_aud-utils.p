@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -27,6 +27,10 @@
     Author(s)   : Fernando de Souza
     Created     : Feb 25, 2005
     Notes       :
+    
+    History
+    fernando  06/20/07 Support for large files
+    
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -372,7 +376,7 @@ PROCEDURE export-audit-events :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER  pcDbInfo   AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER  pcFileName  AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER pnumRecords AS INTEGER NO-UNDO.
+DEFINE OUTPUT PARAMETER pnumRecords AS INT64     NO-UNDO.
 
 DEFINE VARIABLE hDset AS HANDLE    NO-UNDO.
 
@@ -414,7 +418,7 @@ PROCEDURE export-cached-audit-events :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER  pcFileName  AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER  DATASET-HANDLE hDset.
-DEFINE OUTPUT PARAMETER pnumRecords AS INTEGER   NO-UNDO.
+DEFINE OUTPUT PARAMETER pnumRecords AS INT64     NO-UNDO.
 
     /* call the procedure to export the events, and return any error to the caller */
     RUN auditing/_exp-audevent.p (INPUT pcFileName,

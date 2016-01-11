@@ -949,12 +949,12 @@ PROCEDURE deleteTree :
   END.
   
   /* For some instances, the buffer-handle will be passed */
-  IF CAN-QUERY(phTable,"DEFAULT-BUFFER-HANDLE") THEN
+  IF CAN-QUERY(phTable,"DEFAULT-BUFFER-HANDLE":U) THEN
     ASSIGN hBuf = phTable:DEFAULT-BUFFER-HANDLE.
   ELSE
     hBuf = phTable.
 
-  ASSIGN hNodeKey = hBuf:BUFFER-FIELD('NodeKey':U).
+  ASSIGN hNodeKey = hBuf:BUFFER-FIELD('Node_Key':U).
 
   CREATE QUERY hQry.
 

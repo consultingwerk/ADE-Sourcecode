@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ run on another database to define those tables. */
  user_env[33] = to use _Width of field or calculate.
  
 History:
+    fernando    08/10/07    Removed UI restriction for Unicode support 
     fernando    07/19/06    Unicode support - restrict UI
     fernando    04/18/06    Unicode support for DataServers
     D. McMann   03/06/03    Removed shadow columns for Oracle.
@@ -112,7 +113,6 @@ DEFINE VARIABLE usrlab    AS CHARACTER INITIAL "Which Users:"
 DEFINE VARIABLE iFmtOption AS INTEGER  INITIAL 2     NO-UNDO.
 DEFINE VARIABLE lFormat    AS LOGICAL  INITIAL TRUE  NO-UNDO.
 DEFINE VARIABLE unicodeTypes AS LOGICAL   INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE lUnicode     AS LOGICAL   INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE tmp_str      AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE lUniExpand   AS LOGICAL   INITIAL FALSE NO-UNDO.
 
@@ -182,7 +182,7 @@ FORM
     SKIP({&VM_WID})
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                               "4GL Format", 2
+                                               "ABL Format", 2
                                  HORIZONTAL NO-LABEL
                HELP "Make choice to determine field width in output."
     SKIP({&VM_WID})
@@ -249,7 +249,7 @@ FORM
     &ELSE SKIP({&VM_WID}) &ENDIF    
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                               "4GL Format", 2
+                                               "ABL Format", 2
                                  HORIZONTAL NO-LABEL
                HELP "Make choice to determine field width in output."
     SKIP({&VM_WID})
@@ -309,7 +309,7 @@ FORM
     &ELSE SKIP({&VM_WID}) &ENDIF   
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                               "4GL Format", 2
+                                               "ABL Format", 2
                                  HORIZONTAL NO-LABEL 
                HELP "Make choice to determine field width in output."
     SKIP({&VM_WID})
@@ -379,7 +379,7 @@ FORM
   &ELSE SKIP({&VM_WID}) &ENDIF
   cFormat VIEW-AS TEXT NO-LABEL AT 2
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                                HORIZONTAL NO-LABEL 
              HELP "Make choice to determine field width in output."
   SKIP({&VM_WID})
@@ -557,7 +557,7 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
               shadowcol:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = FALSE
               crtdef:SCREEN-VALUE = "no".
-       IF lUnicode THEN
+       
           ASSIGN unicodeTypes:SENSITIVE IN FRAME createtable = NO
                  unicodeTypes:SCREEN-VALUE = "no"
                  lUniExpand:SENSITIVE = NO
@@ -569,9 +569,9 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
-       IF lUnicode THEN
+       
            ASSIGN
-              unicodeTypes:SENSITIVE IN FRAME createtable = NO
+              unicodeTypes:SENSITIVE IN FRAME createtable = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
               lUniExpand:SCREEN-VALUE = "no".
@@ -582,9 +582,10 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
-       IF lUnicode THEN
+       
            ASSIGN
               unicodeTypes:SENSITIVE IN FRAME createtable = YES
+              unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
               lUniExpand:SCREEN-VALUE = "no".           .
        iFmtOption:ENABLE("Width") IN FRAME createtable.
@@ -614,6 +615,9 @@ END.
 ON VALUE-CHANGED OF unicodeTypes IN FRAME createalltables DO:
     DEF VAR dummyl AS LOGICAL NO-UNDO.
 
+    IF ft:SCREEN-VALUE EQ "ora" THEN
+        RETURN.
+
     IF SELF:SCREEN-VALUE = "NO" THEN
        ASSIGN lUniExpand:SENSITIVE IN FRAME createalltables = NO
               lUniExpand:SCREEN-VALUE = "no".
@@ -626,6 +630,9 @@ END.
 ON VALUE-CHANGED OF unicodeTypes IN FRAME createtable DO:
     DEF VAR dummyl AS LOGICAL NO-UNDO.
 
+    IF ft:SCREEN-VALUE EQ "ora" THEN
+        RETURN.
+            
     IF SELF:SCREEN-VALUE = "NO" THEN
        ASSIGN lUniExpand:SENSITIVE IN FRAME createtable = NO
               lUniExpand:SCREEN-VALUE = "no".
@@ -661,8 +668,8 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
               shadowcol:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = FALSE
               crtdef:SCREEN-VALUE = "no".
-       IF lUnicode THEN
-           ASSIGN
+       
+       ASSIGN
               unicodeTypes:SENSITIVE IN FRAME createalltables= NO
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
@@ -675,9 +682,9 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE.
-       IF lUnicode THEN
-           ASSIGN
-              unicodeTypes:SENSITIVE IN FRAME createalltables = NO
+       
+       ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createalltables = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
               lUniExpand:SCREEN-VALUE = "no".
@@ -689,9 +696,10 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
        ASSIGN shadowcol:SENSITIVE = TRUE
               l_cmptbl:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
-       IF lUnicode THEN
-           ASSIGN
+       
+       ASSIGN
               unicodeTypes:SENSITIVE IN FRAME createalltables = YES
+              unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
               lUniExpand:SCREEN-VALUE = "no".
 
@@ -787,13 +795,6 @@ ELSE DO:
 END.
 PAUSE 0.
 
-IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
-  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
-
-  IF tmp_str BEGINS "Y" THEN
-      ASSIGN lUnicode = TRUE.
-END.
-
 /* here is the matrix of parameters per db-type */
 assign
   l_dbtyp = "pro,ora,mss"
@@ -824,9 +825,6 @@ assign
 
 IF alltables THEN 
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
-    IF NOT lUnicode THEN
-       ASSIGN unicodeTypes:VISIBLE IN FRAME createalltables = NO
-              lUniExpand:VISIBLE IN FRAME createalltables = NO.
 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
     uidtag = new_lang[7].
@@ -842,8 +840,8 @@ IF alltables THEN
       l_cmptbl
       shadowcol
       crtdef
-      unicodeTypes WHEN lUnicode
-      lUniExpand WHEN lUnicode AND unicodeTypes
+      unicodeTypes
+      lUniExpand WHEN unicodeTypes
       iFmtOption
       lFormat WHEN iFmtOption = 2 
       btn_OK 
@@ -860,8 +858,8 @@ IF alltables THEN
       l_cmptbl
       shadowcol      
       crtdef
-      unicodeTypes WHEN lUnicode
-      lUniExpand WHEN lUnicode AND unicodeTypes
+      unicodeTypes
+      lUniExpand WHEN unicodeTypes
       iFmtOption
       lFormat WHEN iFmtOption = 2
       btn_OK 
@@ -903,7 +901,7 @@ IF alltables THEN
     user_env[31] = "-- **"           /*comment-character*/
     .
 
-  IF user_env[22] = "MSS" AND lUnicode THEN
+  IF user_env[22] = "ORACLE" OR user_env[22] = "MSS" THEN
      unicodeTypes = LOGICAL(unicodeTypes:SCREEN-VALUE IN FRAME createalltables).
   ELSE
      unicodeTypes = NO.
@@ -924,9 +922,11 @@ IF alltables THEN
   END.
   ELSE IF user_env[22] = "ORACLE" THEN
       ASSIGN user_env[7]  = (IF crtdef THEN "y" ELSE "n")
-             user_env[18] = "VARCHAR2"
+             user_env[18] = (IF unicodeTypes THEN "NVARCHAR2" ELSE "VARCHAR2")
              user_env[21] = (IF shadowcol THEN "y" ELSE "n")
-             user_env[11] = "varchar2".
+             /* no support for character semantics and clob expansion */
+             user_env[10] = (IF unicodeTypes THEN "2000" ELSE "4000") + ",no,no"
+             user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2").
   ELSE
       ASSIGN user_env[7]  = "y" 
              user_env[21] = "n".
@@ -943,10 +943,6 @@ END.
 
 ELSE /*Single table*/
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
-    
-    IF NOT lUnicode THEN
-       ASSIGN unicodeTypes:VISIBLE IN FRAME createtable = NO
-              lUniExpand:VISIBLE IN FRAME createtable = NO.
 
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
    DISPLAY cFormat lFormat WITH FRAME createtable.
@@ -957,8 +953,8 @@ ELSE /*Single table*/
     l_cmptbl
     shadowcol
     crtdef
-    unicodeTypes WHEN lUnicode
-    lUniExpand WHEN lUnicode AND unicodeTypes
+    unicodeTypes
+    lUniExpand WHEN unicodeTypes
     iFmtOption
     lFormat WHEN iFmtOption = 2
     btn_OK 
@@ -974,8 +970,8 @@ ELSE /*Single table*/
     l_cmptbl
     shadowcol
     crtdef
-    unicodeTypes WHEN lUnicode
-    lUniExpand WHEN lUnicode AND unicodeTypes
+    unicodeTypes
+    lUniExpand WHEN unicodeTypes
     iFmtOption
     lFormat WHEN iFmtOption = 2
     btn_OK 
@@ -1016,7 +1012,7 @@ ELSE /*Single table*/
     user_env[31] = "-- **"           /*comment-character*/
     .
 
-  IF user_env[22] = "MSS" AND lUnicode THEN
+  IF user_env[22] = "ORACLE" OR user_env[22] = "MSS" THEN
      unicodeTypes = LOGICAL(unicodeTypes:SCREEN-VALUE IN FRAME createtable).
   ELSE
       unicodeTypes = NO.
@@ -1037,9 +1033,11 @@ ELSE /*Single table*/
   END.
   ELSE IF user_env[22] = "ORACLE" THEN
       ASSIGN user_env[ 7] = (IF crtdef THEN "y" ELSE "n")
-             user_env[18] = "VARCHAR2"
+             user_env[18] = (IF unicodeTypes THEN "NVARCHAR2" ELSE "VARCHAR2")
              user_env[21] = (IF shadowcol THEN "y" ELSE "n")
-             user_env[11] = "varchar2".
+             /* no support for character semantics and clob expansion */
+             user_env[10] = (IF unicodeTypes THEN "2000" ELSE "4000") + ",no,no"
+             user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2").
   ELSE
       ASSIGN user_env[ 7] = "y"
              user_env[21] = "n".

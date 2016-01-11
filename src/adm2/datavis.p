@@ -1,19 +1,17 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : datavis.p
-    Purpose     : Super procedure for PDO Data Visualization objects
+    Purpose     : Super procedure for Data Visualization objects
 
     Syntax      : adm2/datavis.p
-
-    Modified    : July 21, 2000 -- Version 9.1B
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -68,6 +66,17 @@ FUNCTION canLaunchDetailWindow RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canNavigate Procedure 
 FUNCTION canNavigate RETURNS LOGICAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-canUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canUpdate Procedure 
+FUNCTION canUpdate RETURNS LOGICAL
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -184,6 +193,17 @@ FUNCTION getEnabledObjFldsToDisable RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getEnabledWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEnabledWhenNew Procedure 
+FUNCTION getEnabledWhenNew RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getFieldHandles) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldHandles Procedure 
@@ -266,6 +286,17 @@ FUNCTION getGroupAssignTarget RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getGroupAssignTargetEvents Procedure 
 FUNCTION getGroupAssignTargetEvents RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getGroupAssignUpdateTarget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getGroupAssignUpdateTarget Procedure 
+FUNCTION getGroupAssignUpdateTarget RETURNS HANDLE
+  (    )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -608,6 +639,17 @@ FUNCTION setEnabledHandles RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEnabledObjFldsToDisable Procedure 
 FUNCTION setEnabledObjFldsToDisable RETURNS LOGICAL
   ( pcEnabledObjFldsToDisable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEnabledWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEnabledWhenNew Procedure 
+FUNCTION setEnabledWhenNew RETURNS LOGICAL
+  ( pcEnabledWhenNew AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -961,8 +1003,8 @@ PROCEDURE addRecord :
    
   {set NewRecord 'Add':U}.
 
-  /* If for some reason this object's fields have not been enabled from
-     outside, then do it here. */
+  /* This object's fields may not be enabled or it might have fields in 
+     EnabledWhenNew */
   RUN enableFields IN TARGET-PROCEDURE.
     
   RETURN.  
@@ -1009,9 +1051,9 @@ PROCEDURE cancelRecord :
   DEFINE VARIABLE hGroupSource  AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cErrors       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hUpdateTarget AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cState        AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE cNew          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lHidden       AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cState        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lModified     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cRowIdent     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTarget       AS CHARACTER NO-UNDO.
@@ -1041,9 +1083,9 @@ PROCEDURE cancelRecord :
      present, so we will skip this step; it's done only in the Source. */
   IF VALID-HANDLE(hUpdateTarget) THEN
   DO:
-      ghTargetProcedure = TARGET-PROCEDURE.
-      cErrors = dynamic-function("cancelRow":U IN hUpdateTarget).
-      ghTargetProcedure = ?.
+    ghTargetProcedure = TARGET-PROCEDURE.
+    cErrors = dynamic-function("cancelRow":U IN hUpdateTarget).
+    ghTargetProcedure = ?.
   END.      /* END DO IF UpdateTarget */
   ELSE DO:
     {get GroupAssignSource hGroupSource}.
@@ -1074,7 +1116,7 @@ PROCEDURE cancelRecord :
                    'DataModified':U, 
                    'no':U). 
 
-   /* NOTE: set DataModifed/updateState must happen AFTER cancelRow() because 
+   /* NOTE: set DataModifed/updateState must happen AFTER cancelRow() because
             it might reach the toolbar before the sdo and cancelRow() 
             set DataModified false (this is an issue also with updatemode
             not only new records) */                 
@@ -1083,13 +1125,17 @@ PROCEDURE cancelRecord :
     PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('updateComplete':U).
   ELSE 
     {set DataModified no}.   /* Turn off the modified flag. */
-
-    /* Disable any fields enabled just for the Add operation. */ 
-  {get RecordState cState}.
-
-  IF cState = "NoRecordAvailable":U AND cNew NE "No":U THEN  /* Could be Add or Copy or No */
-    RUN disableFields IN TARGET-PROCEDURE ("All":U).
-   
+  
+   /* Disable any fields enabled just for the Add operation. */ 
+  if cNew <> "No":U then 
+  do:
+    {get RecordState cState}.
+    IF cState = "NoRecordAvailable":U THEN
+      RUN disableFields IN TARGET-PROCEDURE("All":U).
+    ELSE /* Exit addmode - disable EnabledWhenNew fields  */
+      RUN disableCreateFields IN TARGET-PROCEDURE.
+  end.
+    
   RETURN.
 END PROCEDURE.
 
@@ -1691,8 +1737,8 @@ PROCEDURE copyRecord :
       
    {set NewRecord 'Copy':U}.
 
-   /* If for some reason this object's fields have not been enabled from
-      outside, then do it here. */
+   /* This object's fields may not be enabled or it might have fields in 
+     EnabledWhenNew */
    RUN enableFields IN TARGET-PROCEDURE.
      
    RETURN.
@@ -2001,8 +2047,6 @@ PROCEDURE fieldModified :
   DEFINE VARIABLE hUpdateTarget    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cUpdatableCols   AS CHARACTER  NO-UNDO.    
   DEFINE VARIABLE lResult          AS LOGICAL    NO-UNDO.    
-  DEFINE VARIABLE hGASource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hUpdateSource    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
 
   IF NOT VALID-HANDLE(phField) THEN 
@@ -2044,14 +2088,9 @@ PROCEDURE fieldModified :
       /* if (updatable) check if the name is updatable in the updateTarget */
       IF cModifyFields = '(Updatable)':U THEN
       DO:
-        /* The UpdateTarget is only linked as the upper GA source, so find the
-           real UpdateSource by looping up the GroupAssignSource link chain. */         
-        hGASource = TARGET-PROCEDURE. 
-        DO WHILE VALID-HANDLE(hGASource):
-          hUpdateSource = hGASource.
-          {get GroupAssignSource hGASource hUpdateSource}.
-        END.
-        {get UpdateTarget hUpdateTarget hUpdateSource}.
+        /* getGroupAssignUpdateTarget finds the UpdateTarget by looping 
+           up the GroupAssignSource link chain if necessary. */         
+        {get GroupAssignUpdateTarget hUpdateTarget}.
         IF VALID-HANDLE(hUpdateTarget) THEN
         DO:
           {get UpdatableColumns cUpdatableCols hUpdateTarget}.          
@@ -2924,34 +2963,36 @@ PROCEDURE resetRecord :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cRowIdent     AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cNewRecord    AS CHARACTER  NO-UNDO.
+  
   {get UpdateTarget hUpdateTarget}.
   IF VALID-HANDLE(hUpdateTarget) THEN
   DO:
     {get Rowident cRowIdent}.
     {fnarg resetRow cRowident hUpdateTarget}.
-  END.
-      
+  END.  
+  
   /* In case GroupAssign. This is done before set DataModified to ensure
      that the GATargets are unmodified before updateActive is published
      up the ContainerSources  */
   PUBLISH 'resetRecord':U FROM TARGET-PROCEDURE.  
-
+  
   /* Normally setting DataModified to 'no' also publishes updateComplete,
      but we want a Reset (to avoid browse rows becoming enabled
      when changing rows after a Reset), so pass special signal of unknown to 
      tell setDataModified to set the property off and pass 'reset' instead of
-     'UpdateComplete'.  This will also trigger the dataObject to roll back 
-     and delete a potential rowObjUpd record , so display afterwards */ 
-  {set DataModified ?}.
+     'UpdateComplete'. */ 
+  {set DataModified ?}.    
   
-  RUN displayRecord IN TARGET-PROCEDURE.
+  {get NewRecord cNewRecord}.
+  IF cNewRecord <> 'NO':U THEN
+    RUN displayRecord IN TARGET-PROCEDURE.
   
   /* apply entry ? will reach first visible Ga target if this is hidden,
      so only call in updateSource (= top gasource) */ 
   IF VALID-HANDLE(hUpdateTarget) THEN
     RUN applyEntry IN TARGET-PROCEDURE (?).
-  
+   
   RETURN.
 
 END PROCEDURE.
@@ -3442,8 +3483,8 @@ PROCEDURE updateMode :
   DEFINE VARIABLE cTableioType       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFieldsEnabled     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lBrowsing          AS LOGICAL    NO-UNDO.
-
+  define variable lFromToolbar       as logical    no-undo.
+  
   &SCOPED-DEFINE xp-assign
   {get TableIOSource hTableIOSource}
   {get SaveSource lSaveSource}. 
@@ -3468,6 +3509,7 @@ PROCEDURE updateMode :
       IF cTableioType = 'Save':U THEN
         {set SaveSource YES}.
     END.
+    lFromToolbar = true. 
   END.
 
   /* For modes Modify, Enable and UpdateEnd, we check if security has been set for 'Modify'. 
@@ -3498,18 +3540,12 @@ PROCEDURE updateMode :
     DO:
       {set ObjectMode 'Modify':U}.
       RUN enableFields IN TARGET-PROCEDURE. 
-      /* we avoid applying entry if the user is browsing 
-        (alternatives : 
-          more selective -  apply entry if last-event is 'choose'
-          even more restrictive - if source-procedure = tableio-source) 
-         NO-ERROR is lazy valid-handle and can-query type? check */
-      lBrowsing = FOCUS:TYPE = 'browse':U 
+      /* We always avoided applying entry if the user is browsing 
+        lBrowsing = FOCUS:TYPE = 'browse':U 
                   AND LAST-EVENT:FUNCTION = 'VALUE-CHANGED' NO-ERROR. 
-      /* browsers that does not have enabledfields or update-target
-         may still end up here as part of queryposition logic, so  
-         make sure to not set focus in that case.. this may possibly be 
-         fixed in Queryposition in the future, but this is still a good check  */      
-      IF NOT (lBrowsing = TRUE) THEN
+       But the more restrictive lFromToolbar (source-procedure = tableio-source)
+       added in 10.1C makes this check unecessary      */      
+      IF lFromToolbar THEN
       DO:
         {get FieldsEnabled lFieldsEnabled}.
         IF lFieldsEnabled THEN
@@ -3541,7 +3577,7 @@ PROCEDURE updateMode :
     END.
     WHEN 'updateEnd':U THEN
     DO:
-      /* only disable if SaveSource=no (TablioType=Update) */
+      /* only disable if SaveSource=no (TableioType=Update) */
       IF lSaveSource = NO THEN
       DO:
         {get GroupAssignSource hGaSource}.
@@ -3632,7 +3668,7 @@ PROCEDURE updateRecord :
        on the PUBLISH allows each target to add its values to the list. */
     PUBLISH 'collectChanges':U FROM TARGET-PROCEDURE (INPUT-OUTPUT cValues,
       INPUT-OUTPUT cChangeInfo).
-    {get NewRecord cNewRecord}.  /* Log Add/Copy flag in case of error */
+    {get NewRecord cNewRecord}.  /* Log Add/Copy flag  */
   
     /* DataAvailable checks this to avoid redisplay on add, so set it to 'no'
        in case it was 'add' or' copy' before we call the datasource that 
@@ -3674,7 +3710,10 @@ PROCEDURE updateRecord :
         PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('updateComplete':U).
       ELSE 
         {set DataModified no}.   /* This will also publish UpdateComplete. */
-     
+       
+      /* Disable EnabledWhenNew fields  */
+      if cNewRecord <> "NO":U then
+        run disableCreateFields in target-procedure.
     END.  /* END DO if there are no errors */
     ELSE DO: /* Display error messages */
       /*
@@ -4214,6 +4253,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-canUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION canUpdate Procedure 
+FUNCTION canUpdate RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Returns true if the object can be updated
+    Notes:   Used in toolbar actionEnableRules of add,copy,delete,modify,update. 
+           - Could be overridden to reflect datasource/data/user based logic   
+-----------------------------------------------------------------------------*/
+  DEFINE VARIABLE hUpdateTarget AS HANDLE NO-UNDO.
+  {get UpdateTarget hUpdateTarget}.
+  return valid-handle(hUpdateTarget).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAuditEnabled) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAuditEnabled Procedure 
@@ -4560,6 +4619,90 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getEnabledWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEnabledWhenNew Procedure 
+FUNCTION getEnabledWhenNew RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns a comma separated list of fields that only should be enabled
+            in new mode.  
+    Notes:  Can be both fields and objects (viewer only). Objects must be defined
+            in both EnabledObjFlds and EnabledObjFldsToDisable. (the latter gives
+            non data bound fields data bound enable/disable behavior) 
+          - Default ? is signal to use the UpdateTarget's UpdatableWhenNew  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hUpdateTarget     AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE cEnabledWhenNew   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cUpdatableWhenNew AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields  AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cColumn           AS CHARACTER   NO-UNDO. 
+  DEFINE VARIABLE iColumn           AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cRemoveQual       AS CHARACTER   NO-UNDO.
+  
+  &SCOPED-DEFINE xpEnabledWhenNew
+  {get EnabledWhenNew cEnabledWhenNew}.
+  &UNDEFINE xpEnabledWhenNew
+  
+  /* ? is default - 'inherit' value from updatetarget */
+  if cEnabledWhenNew = ? then
+  do:
+    cEnabledWhenNew = "":U.
+    /* finds the updatetarget, loops through GroupAssign-sources if necessary */
+    {get GroupAssignUpdateTarget hUpdateTarget}.   
+    if valid-handle(hUpdateTarget) and {fnarg instanceOf 'DataQuery':U hUpdateTarget} then
+    do: 
+      /* get the corresponding list from the update-target */
+      {get UpdatableWhenNew cUpdatableWhenNew hUpdateTarget}.
+      /* use displayedfields since enabledfields can change  */
+      {get DisplayedFields cDisplayedFields}.       
+      
+      /* set flag to remove qualifier if displayedfields is not qualifed and
+         update-target's prop is */
+      if  index(cDisplayedFields,".":U) = 0 
+      and index(cUpdatableWhenNew,".":U) > 0 then 
+      do:
+        if {fnarg instanceOf 'SBO':U hUpdateTarget} then
+        do:
+          /* There can only be one target when the columns are unqualifed */ 
+          {get UpdateTargetNames cRemoveQual}.
+          /* ok, just check if the other prop is defined before we give up..  */
+          if cRemoveQual = "":U or cRemoveQual = ? then
+            {get DataSourceNames cRemoveQual}.
+        end. /* sbo */
+        else /* dataview (supports unqualified visual updatasources) */
+          {get DataTable cRemoveQual hUpdateTarget}.  
+      end. /* removequal*/   
+      
+      /* Only pick columns in displayedFields  */
+      do iColumn = 1 to num-entries(cUpdatableWhenNew):
+        cColumn = entry(iColumn,cUpdatableWhenNew).        
+        if cRemoveQual > "":U and num-entries(cColumn,".":U) > 1 then
+        do:
+          if cRemoveQual = entry(1,cColumn,".":U) then 
+            cColumn = entry(2,cColumn,".":U).
+          else
+            cColumn = "":U.   
+        end. 
+        if cColumn <> "":U and lookup(cColumn,cDisplayedFields) > 0 then
+          cEnabledWhenNew = cEnabledWhenNew + "," + cColumn.        
+      end. /* do iColumn = 1 to - cUpdatableWhenNew */      
+      
+      /* store for next get request (and the one after that and after ...)*/
+      cEnabledWhenNew = LEFT-TRIM(cEnabledWhenNew,",":U).
+      {set EnabledWhenNew cEnabledWhenNew}.
+    end. /* valid update target */
+  end. /* cEnabledWhenNew = ? */
+  
+  return cEnabledWhenNew.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getFieldHandles) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFieldHandles Procedure 
@@ -4834,6 +4977,36 @@ FUNCTION getGroupAssignTargetEvents RETURNS CHARACTER
   DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
   {get GroupAssignTargetEvents cEvents}.
   RETURN cEvents.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getGroupAssignUpdateTarget) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getGroupAssignUpdateTarget Procedure 
+FUNCTION getGroupAssignUpdateTarget RETURNS HANDLE
+  (    ) :
+/*------------------------------------------------------------------------------
+  Purpose: finds the UpdateTarget by looping up the GroupAssignSource link 
+           chain if necessary.          
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hGASource     AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hUpdateSource AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hUpdateTarget AS HANDLE NO-UNDO.
+
+  hGASource = TARGET-PROCEDURE. 
+  DO WHILE VALID-HANDLE(hGASource):
+    hUpdateSource = hGASource.
+    {get GroupAssignSource hGASource hUpdateSource}.
+  END.
+  {get UpdateTarget hUpdateTarget hUpdateSource}.
+  
+  RETURN hUpdateTarget. 
 
 END FUNCTION.
 
@@ -5222,15 +5395,21 @@ FUNCTION getRowUpdated RETURNS LOGICAL
            true if this object did the change and/or can undo/save the change.  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lRowUpdated  AS LOGICAL    NO-UNDO.
-
-  {get UpdateTarget hUpdateTarget}.  
+  DEFINE VARIABLE lRowUpdated   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQueryObject  AS LOGICAL    NO-UNDO.
+   
+  {get GroupAssignUpdateTarget hUpdateTarget}.  
   IF VALID-HANDLE(hUpdateTarget) THEN
   DO:
-    ghTargetProcedure = TARGET-PROCEDURE.
-    {get RowUpdated lRowUpdated hUpdateTarget}.
-    ghTargetProcedure = ?.
-    RETURN lRowUpdated.  
+    {get QueryObject lQueryObject hUpdateTarget}.
+    if lQueryObject then
+    do:
+      ghTargetProcedure = TARGET-PROCEDURE.
+      {get RowUpdated lRowUpdated hUpdateTarget}.
+      ghTargetProcedure = ?.
+    
+      RETURN lRowUpdated.
+    END.  
   END.
   
   RETURN FALSE. 
@@ -5937,13 +6116,47 @@ FUNCTION setEnabledObjFldsToDisable RETURNS LOGICAL
            - (None)  - All EnabledObjects should remain enabled when the 
                        fields are disabled.  
            - Comma separated list of object names that will be disabled in view
-             mode.               
+             mode.
+
+ Parameters:
+     pcEnabledObjFldsToDisable:
+           - ?       - use default
+           - Blank   - interpreted as "(none)" in order to be used by modifyListProperty.
+
     Notes:  
 ------------------------------------------------------------------------------*/  
+ IF pcEnabledObjFldsToDisable = "" THEN
+     ASSIGN pcEnabledObjFldsToDisable = "(None)".
+
  &SCOPED-DEFINE xpEnabledObjFldsToDisable
  {set EnabledObjFldsToDisable pcEnabledObjFldsToDisable}.
  &UNDEFINE xpEnabledObjFldsToDisable  
  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setEnabledWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setEnabledWhenNew Procedure 
+FUNCTION setEnabledWhenNew RETURNS LOGICAL
+  ( pcEnabledWhenNew AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set a comma separated list of fields that only should be enabled
+            in new mode.   
+    Notes:  Can be both fields and objects (viewer only). Objects must be defined
+            in both EnabledObjFlds and EnabledObjFldsToDisable. (the latter gives
+            non data bound fields data bound enable/disable behavior) 
+          - Default ? is signal to use the UpdateTarget's UpdatableWhenNew  
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpEnabledWhenNew
+  {set EnabledWhenNew pcEnabledWhenNew}.
+  &UNDEFINE xpEnabledWhenNew
+  
+  RETURN TRUE. 
 
 END FUNCTION.
 
@@ -5963,7 +6176,7 @@ FUNCTION setFieldHandles RETURNS LOGICAL
    Params:  <none>
    Note:   This list must correspond to the names in DisplayedFields  
 ------------------------------------------------------------------------------*/
-  
+
   {set FieldHandles pcHandles}.
   RETURN TRUE.
 
@@ -6103,12 +6316,12 @@ FUNCTION setLogicalObjectName RETURNS LOGICAL
    Params:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lObjectInitialized AS LOGICAL.
-  
+
   SUPER(pcLogicalObjectName).
 
   /* the following should only be done if the object has already been constucted */
   /*   RUN createObjects. */
-  
+
   {get ObjectInitialized lObjectInitialized}.
   IF lObjectInitialized THEN 
   DO:
@@ -6214,7 +6427,7 @@ FUNCTION setObjectParent RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE hContainer AS HANDLE NO-UNDO.
-  
+
   {get ContainerHandle hContainer}.
   IF VALID-HANDLE (hContainer) THEN
   DO:
@@ -6224,7 +6437,7 @@ FUNCTION setObjectParent RETURNS LOGICAL
     RETURN TRUE.
   END.
   ELSE RETURN FALSE.
-  
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -6278,7 +6491,7 @@ Parameter:  pcRowident
   &SCOPED-DEFINE xpRowident 
   {set RowIdent pcRowIdent}.
   &UNDEFINE xpRowIdent
-  
+
   RETURN TRUE.
 END FUNCTION.
 
@@ -6505,7 +6718,7 @@ FUNCTION showDataMessages RETURNS CHARACTER
   DEFINE VARIABLE cField      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
-  
+
   cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
   iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
   DO iMsg = 1 TO iMsgCnt:

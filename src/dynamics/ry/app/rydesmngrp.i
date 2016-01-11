@@ -11,7 +11,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+/* Copyright © 1984-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
@@ -212,6 +212,78 @@ DEFINE STREAM stAnalyze.
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-updateInstanceSequence) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD updateInstanceSequence Procedure
+FUNCTION updateInstanceSequence RETURNS LOGICAL 
+	(input pdObjectInstanceObj as decimal,
+	 input piSequence as integer) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getObjectInstanceObj) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectInstanceObj Procedure
+FUNCTION getObjectInstanceObj RETURNS DECIMAL 
+	(input pdContainerObj as decimal,
+	 input pcInstanceName as character) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-cleanStoreAttributeValues) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD cleanStoreAttributeValues Procedure
+FUNCTION cleanStoreAttributeValues RETURNS LOGICAL 
+	(INPUT pcObjectName                AS CHARACTER,
+	 INPUT pcClassName                 AS CHARACTER,
+	 INPUT pcCleanToLevel              AS CHARACTER,
+	 INPUT phStoreAttributeBuffer      AS HANDLE) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-customObjectExists) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD customObjectExists Procedure
+FUNCTION customObjectExists RETURNS LOGICAL 
+	(input pcObjectName as character,
+	 input pcResultCode as character) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getObjectNameFromObj) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectNameFromObj Procedure
+FUNCTION getObjectNameFromObj RETURNS CHARACTER 
+	( input pdSmartObjectObj as decimal  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataTypeCode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataTypeCode Procedure
+FUNCTION getDataTypeCode RETURNS integer
+	( input pcDataTypeName as character ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildClassAttributes Include 
 FUNCTION buildClassAttributes RETURNS LOGICAL
@@ -472,7 +544,7 @@ ACCESS_LEVEL=PRIVATE
                &mode1  = INPUT  &parm1  = pdSmartObjectObj  &dataType1  = DECIMAL
                &mode2  = INPUT  &parm2  = phMOTable         &dataType2  = HANDLE
   }
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.   
+  IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.   
   &ELSE   
   DEFINE BUFFER bryc_attribute_value FOR ryc_attribute_value.
   DEFINE BUFFER bryc_attribute       FOR ryc_attribute.
@@ -543,7 +615,7 @@ ACCESS_LEVEL=PRIVATE
                &mode1  = INPUT  &parm1  = poObjectTypeObj            &dataType1  = DECIMAL
                &mode2  = INPUT  &parm2  = phOTTable                  &dataType2  = HANDLE
   }
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.   
+  IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.   
   &ELSE   
   DEFINE BUFFER bryc_attribute_value FOR ryc_attribute_value.
   DEFINE BUFFER bryc_attribute       FOR ryc_attribute.
@@ -615,7 +687,7 @@ ACCESS_LEVEL=PRIVATE
                &mode1  = INPUT  &parm1  = poObjectTypeObj            &dataType1  = DECIMAL
                &mode2  = INPUT  &parm2  = phOTTable                  &dataType2  = HANDLE
   }
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.   
+  IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.   
   &ELSE   
   DEFINE BUFFER bgsc_object_type FOR gsc_object_type.
 
@@ -1737,6 +1809,11 @@ PROCEDURE exportClassCache :
     if pcOutputDir eq '':u then
         pcOutputDir = '.':u.
     
+    pcOutputDir = replace(pcOutputDir, '~\', '/').    
+    pcOutputDir = pcOutputDir + '/':u.
+    if pcOutputDir eq '/':u then
+        pcOutputDir = '':u.
+    
     iErrorNum = dynamic-function('prepareDirectory':u in hDeploymentHelper,
                                   pcOutputdir,
                                   No,     /* clear contents? */
@@ -1779,7 +1856,7 @@ PROCEDURE exportClassCache :
         
         hQuery:get-first().
         do while hClassBuffer:available:
-            cOutputFilename = pcOutputDir + 'c_':u + hClassBuffer::ClassName + '.p':u.
+            cOutputFilename = pcOutputDir + '/':u + 'c_':u + hClassBuffer::ClassName + '.p':u.
             
             lOk = dynamic-function('createClassCacheFile':u in target-procedure,
                                    cOutputFilename, hClassBuffer).
@@ -3033,7 +3110,7 @@ ACCESS_LEVEL=PUBLIC
         &mode11 = OUTPUT &Parm11 = pdObjectInstanceObj      &DataType11 = DECIMAL
     }
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
+    &ELSE 
     DEFINE VARIABLE dCustomisationResultObj             AS DECIMAL          NO-UNDO.
     DEFINE VARIABLE iAdder                              AS INTEGER          NO-UNDO.
     DEFINE VARIABLE cBaseInstanceName                   AS CHARACTER        NO-UNDO.
@@ -3445,7 +3522,7 @@ ACCESS_LEVEL=PUBLIC
         RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' "'Object Type'" pcObjectTypeCode}.
 
     IF NOT gsc_object_type.layout_supported AND pcLayoutCode NE "":U THEN
-        RETURN ERROR {aferrortxt.i 'AF' '40' '?' '?' '"the layout suported flag for the specified object´s class is set to no, and a layout has been speficied."'}.
+        RETURN ERROR {aferrortxt.i 'AF' '40' '?' '?' '"the layout suported flag for the specified object~~'s class is set to no, and a layout has been specified."'}.
     ELSE
     IF gsc_object_type.layout_supported AND pcLayoutCode EQ "":U THEN
         ASSIGN pcLayoutCode = "RELATIVE":U.
@@ -3661,7 +3738,7 @@ ACCESS_LEVEL=PUBLIC
           find first gsc_object_type where
                      gsc_object_type.object_type_obj = rycso.object_type_obj
                      no-lock no-error.
-          return error {aferrortxt.i 'AF' '36' '?' '?' "'object ' + pcObjectName" "'the object`s object type (' 
+          return error {aferrortxt.i 'AF' '36' '?' '?' "'object ' + pcObjectName" "'the object~~'s object type (' 
                                       + gsc_object_type.object_type_code + ') differs from the object type passed in ('
                                       + pcObjectTypeCode + ') '"
                                       "'This could mean that you are attempting to change the object type of the object, or '
@@ -4894,7 +4971,7 @@ ACCESS_LEVEL=PUBLIC
                  &mode2  = INPUT  &parm2  = pcResultCode &dataType2  = CHARACTER
     }
     IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-    &ELSE
+    &ELSE 
     DEFINE VARIABLE dCustomisationResultObj         AS DECIMAL    NO-UNDO.
     DEFINE VARIABLE cCustomizationObjList           AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cContainerObject                AS CHARACTER  NO-UNDO.
@@ -4946,12 +5023,12 @@ ACCESS_LEVEL=PUBLIC
        IF AVAILABLE ryc_object_instance THEN
        DO:
            FIND FIRST rycso2 WHERE rycso2.smartObject_obj = ryc_object_instance.container_smartObject_obj NO-LOCK NO-ERROR.
-           cContainerObject = "this object exists as an object instance in at least ".
-           IF AVAIL rycso THEN
-              cContainerObject = cContainerObject + "container: " + rycso2.OBJECT_filename + " that".
+           IF AVAIL rycso2 THEN
+              cContainerObject = "container " + rycso2.object_filename.
            ELSE
-              cContainerObject = cContainerObject + "one container that ".
-           cMessageList = {aferrortxt.i 'AF' '101' '?' '?' "'repository object: ' + pcObjectName" cContainerObject}.
+              cContainerObject = "at least one container".
+           cContainerObject = cContainerObject + '. Unable to delete object'.
+           cMessageList = {aferrortxt.i 'AF' '28' '?' '?' "'repository object ' + pcObjectName" cContainerObject}.
            UNDO trans-block, LEAVE trans-block.
        END.
        
@@ -6208,7 +6285,7 @@ ACCESS_LEVEL=PRIVATE
                                                    OUTPUT TABLE ttUiEvent,
                                                    OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-    &ELSE
+    &ELSE 
     DEFINE VARIABLE iResultCodeLoop             AS INTEGER                  NO-UNDO.
     DEFINE VARIABLE cResultCode                 AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE dResultCodeObj              AS DECIMAL                  NO-UNDO.
@@ -6662,6 +6739,364 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-updateInstanceSequence) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateInstanceSequence Procedure
+FUNCTION updateInstanceSequence RETURNS LOGICAL 
+	( input pdObjectInstanceObj as decimal,
+	  input piSequence as integer ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
+    Purpose:  Updates the object sequence field on an instance
+    Notes:    * The order attribute will be deprecated, the rendering currently uses
+                 object sequence for tab order but the order attribute is still maintained
+                 and kept in sync with _U._TAB-ORDER by the AppBuilder.
+              * Server-side/connected ICFDB only
+              * This should only be used by adeuib/_gendyn.p
+------------------------------------------------------------------------------*/
+    define variable lOK as logical no-undo.
+    
+    &if defined(server-side) <> 0 &then 
+    define buffer rycoi for ryc_object_instance.
+    find rycoi where
+         rycoi.object_instance_obj = pdObjectInstanceObj
+         exclusive-lock no-wait no-error.
+    if not available rycoi or locked rycoi then
+        lOK = false.
+    else
+    do:
+        rycoi.object_sequence = piSequence no-error.
+        if return-value ne '':u or error-status:error then
+            lOk = false.
+        else
+        do:
+            validate rycoi no-error.
+            if return-value ne '':u or error-status:error then
+                lOk = false.
+        end.    /* assignment passed */
+    end.    /* found, locked rycoi */         
+    &endif 
+    
+    return lOK.
+END FUNCTION.    /* updateInstanceSequence */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-getObjectInstanceObj) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectInstanceObj Procedure
+FUNCTION getObjectInstanceObj RETURNS DECIMAL 
+	( input pdContainerObj as decimal,
+	  input pcInstanceName as character ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PRIVATE
+    Purpose: Returns the object ID of a ryc_object_instance record, if it exists.
+    Notes:   * Used by adeuib/_gendyn.p
+             * Only called from AppBuilder, ie ICFDB connected
+------------------------------------------------------------------------------*/
+    define variable dObjectInstanceObj as decimal no-undo.
+    
+    &IF DEFINED(Server-Side) <> 0 &THEN
+    define buffer rycoi for ryc_object_instance.
+    
+    find rycoi where
+         rycoi.container_smartobject_obj = pdContainerObj and
+         rycoi.instance_name = pcInstanceName
+         no-lock no-error.
+    if available rycoi then
+        dObjectInstanceObj = rycoi.object_instance_obj.
+    &ENDIF 
+    
+    return dObjectInstanceObj.
+END FUNCTION.    /* getObjectInstanceObj */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-cleanStoreAttributeValues) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION cleanStoreAttributeValues Procedure
+FUNCTION cleanStoreAttributeValues RETURNS LOGICAL 
+	( INPUT pcObjectName                AS CHARACTER,
+      INPUT pcClassName                 AS CHARACTER,
+      INPUT pcCleanToLevel              AS CHARACTER,
+      INPUT phStoreAttributeBuffer      AS HANDLE ):
+/*------------------------------------------------------------------------------
+  Purpose:  Cleans up the ttStoreAttribute TT
+    Notes: * We need to compare default values set at the class and master object 
+             level to ensure that we do not add attributes at instance level that
+             will cause unnecessary duplication of values.
+           * pcCleanToLevel - MASTER, CLASS: Master used when validating instances
+                              and CLASS used when validating Masters.
+           * pcClassName - only required when pcCleanToLevel is CLASS.
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cAttributeName      AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE hAttributeField     AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE hObjectBuffer       AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE hAttributeBuffer    AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE dInstanceId         AS DECIMAL      NO-UNDO.
+    DEFINE VARIABLE lDeleteRecord       AS LOGICAL      NO-UNDO.
+    DEFINE VARIABLE cInheritClasses     AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cValue              AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE iValue              AS INTEGER      NO-UNDO.
+    DEFINE VARIABLE dValue              AS DECIMAL      NO-UNDO.
+    DEFINE VARIABLE dtValue             AS DATE         NO-UNDO.
+    DEFINE VARIABLE iDataType           AS INTEGER      NO-UNDO.
+    
+    /* Scope these buffers to this procedure. */    
+    DEFINE BUFFER ttObject            FOR ttObject.
+    DEFINE BUFFER ttObjectAttribute   FOR ttObjectAttribute.
+    DEFINE BUFFER ttClassAttribute    FOR ttClassAttribute.
+    
+    IF NOT VALID-HANDLE(phStoreAttributeBuffer) THEN
+        RETURN FALSE.
+        
+    /* Get the Master Object from the cache. Do this first since
+       the class name is not passed in when cleaning to master level.
+     */
+    IF pcCleanToLevel EQ "MASTER":U THEN
+    DO:
+        RUN retrieveDesignObject IN target-procedure ( INPUT  pcObjectName,
+                                                      INPUT  "",                        /* Get default result Codes */
+                                                      OUTPUT TABLE ttObject,
+                                                      OUTPUT TABLE ttPage,
+                                                      OUTPUT TABLE ttLink,
+                                                      OUTPUT TABLE ttUiEvent,
+                                                      OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
+        FIND FIRST ttObject WHERE ttObject.tLogicalObjectName       = pcObjectName         
+                             AND ttObject.tContainerSmartObjectObj = 0 NO-ERROR.
+        IF AVAILABLE ttObject THEN
+            ASSIGN pcClassName = ttObject.tClassName.
+    END.    /* clean to master */
+    
+    /* At this stage there should always be a class specified. It will either
+       be passed in as the parameter when the clean to level is CLASS, or it 
+       will be derived from the ttObject record when cleaning to the MASTER level.       
+       
+       In either case, we cannot go any further without a class. This also serves
+       as validation for the existence of the ttObject record, since the value of
+       the class name will only be set if there is an existing ttObject record.
+     */
+    IF pcClassName EQ ? OR pcClassName EQ "":U THEN
+        RETURN FALSE.     
+     
+    /* Get the class attributes */
+    IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassname = pcClassName) THEN
+       RUN retrieveDesignClass IN target-procedure
+                               ( INPUT  pcClassName,
+                                 OUTPUT cInheritClasses,
+                                 OUTPUT TABLE ttClassAttribute,
+                                 OUTPUT TABLE ttUiEvent,
+                                 output table ttSupportedLink         ) NO-ERROR.                                   
+               
+    IF NOT VALID-HANDLE(ghQuery4) THEN
+       CREATE QUERY ghQuery4.
+
+    ghQuery4:SET-BUFFERS(phStoreAttributeBuffer).
+
+     /* Use PRESELECT since we may delete some of the records in the TT. */
+    ghQuery4:QUERY-PREPARE(" PRESELECT EACH ":U + phStoreAttributeBuffer:NAME).
+    ghQuery4:QUERY-OPEN().
+   
+    ghQuery4:GET-FIRST().
+    DO WHILE phStoreAttributeBuffer:AVAILABLE:
+       ASSIGN cAttributeName = phStoreAttributeBuffer:BUFFER-FIELD("tAttributeLabel":U):BUFFER-VALUE
+              lDeleteRecord  = NO
+              iDataType      = 0
+              cValue         = "":U.
+       
+       FIND ttClassAttribute WHERE ttClassAttribute.tClassname      = pcClassName
+                               AND ttClassAttribute.tAttributelabel = cAttributeName NO-ERROR.
+       IF AVAIL ttClassAttribute THEN
+          ASSIGN cValue    = ttClassAttribute.tAttributeValue
+                 iDataType = ttClassAttribute.tDataType.
+       
+       IF pcCleanToLevel EQ "MASTER":U THEN
+       DO:
+          FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
+                                   AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
+                                   AND ttObjectAttribute.tAttributeLabel    = cAttributeName NO-ERROR.
+          IF AVAIL ttObjectAttribute THEN
+             ASSIGN cValue    = ttObjectAttribute.tAttributeValue
+                    iDataType = ttObjectAttribute.tDataType.
+       END.    /* clean to: MASTER */
+       
+       CASE iDataType:
+           WHEN {&LOGICAL-DATA-TYPE} THEN
+               ASSIGN lDeleteRecord = (LOGICAL(cValue) EQ phStoreAttributeBuffer:BUFFER-FIELD("tLogicalValue":U):BUFFER-VALUE).
+           WHEN {&DATE-DATA-TYPE} THEN DO:
+               ASSIGN dtValue = DATE(cValue) NO-ERROR.
+               IF NOT ERROR-STATUS:ERROR THEN
+                  ASSIGN lDeleteRecord = (dtValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tDateValue":U):BUFFER-VALUE).
+           END.
+           WHEN {&INTEGER-DATA-TYPE} THEN DO:
+               ASSIGN iValue = INTEGER(cValue) NO-ERROR.
+               IF NOT ERROR-STATUS:ERROR THEN
+                   lDeleteRecord = (iValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tIntegerValue":U):BUFFER-VALUE).
+           END.
+           WHEN {&DECIMAL-DATA-TYPE} THEN DO:
+               ASSIGN dValue = DECIMAL(cValue) NO-ERROR.
+               IF NOT ERROR-STATUS:ERROR THEN
+                 ASSIGN lDeleteRecord = (dValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tDecimalValue":U):BUFFER-VALUE).
+           END.
+           OTHERWISE
+               ASSIGN lDeleteRecord = (cValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tCharacterValue":U):BUFFER-VALUE) NO-ERROR.
+       END CASE.   /* data type */
+       
+       IF lDeleteRecord THEN
+           phStoreAttributeBuffer:BUFFER-DELETE().
+        
+        ghQuery4:GET-NEXT().
+    END.    /* available phStoreAttributeBuffer */
+    ghQuery4:QUERY-CLOSE().
+    
+    RETURN TRUE.
+END FUNCTION.   /* cleanStoreAttributeValues */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-customObjectExists) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION customObjectExists Procedure
+FUNCTION customObjectExists RETURNS LOGICAL 
+	( input pcObjectName as character,
+	  input pcResultCode as character  ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+    Purpose: Determines whether a customised version of an object exists
+      Notes: This code should never check for the existence of an uncustomised
+             object, since we can do that via objectExists. We need to know,
+             in some circumstances in the AppBuilder, whether a custom object
+             exists, and we already know that the object exists.
+------------------------------------------------------------------------------*/
+    define variable lObjectExists as logical no-undo.
+    
+    /* only used in AppBuilder session */
+    &IF DEFINED(server-side) <> 0 &THEN
+    DEFINE VARIABLE cRootFile               AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cRootFileExt            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cObjectExt              AS CHARACTER                NO-UNDO.
+    
+    define buffer ryccr for ryc_customization_result.
+
+    find ryccr where
+         ryccr.customization_result_code = pcResultCode
+         no-lock no-error.
+    lObjectExists = available ryccr.
+    
+    if lObjectExists then
+    do:
+        lObjectExists = CAN-FIND(ryc_SmartObject WHERE
+                                 ryc_SmartObject.object_Filename = pcObjectName and
+                                 ryc_smartobject.customization_result_obj = ryccr.customization_result_obj).
+        
+        IF NOT lObjectExists THEN
+        DO:
+            /* Strip the name apart, and use the pices to find the object. */
+            RUN extractRootFile IN gshRepositoryManager (INPUT pcObjectName, OUTPUT cRootFile, OUTPUT cRootFileExt) NO-ERROR.
+            IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN FALSE.
+    
+            /* Figure out what the extension is. */
+            cObjectExt = TRIM(REPLACE(cRootFileExt, (cRootFile + ".":U), "":U)).
+    
+            /* If there is a root file with an extension, first try to find the object name using this.
+	         * We perform this check only if the root filename differs from the pcObjectName. It
+	         * shouldn't, but it is theoretically possible for the pcObjectName to contain a pathed
+	         * filename.                                                                                  */
+            IF cRootFileExt NE "":U AND pcObjectName NE cRootFileExt THEN
+                lObjectExists = CAN-FIND(ryc_SmartObject WHERE
+                                         ryc_SmartObject.object_Filename = cRootFileExt and
+                                         ryc_smartobject.customization_result_obj = ryccr.customization_result_obj).
+    
+            IF NOT lObjectExists THEN
+                lObjectExists = CAN-FIND(ryc_SmartObject WHERE
+                                         ryc_SmartObject.object_Filename  = cRootFile AND
+                                         ryc_smartObject.object_extension = cObjectExt and
+                                         ryc_smartobject.customization_result_obj = ryccr.customization_result_obj).
+        END.    /* filename doesn't match exactly. */
+    end.    /* result code exists */
+    &ENDIF 
+    
+    error-status:error = no.
+    return lObjectExists.
+END FUNCTION.    /* custom object exists */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-getObjectNameFromObj) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectNameFromObj Procedure
+FUNCTION getObjectNameFromObj RETURNS CHARACTER 
+	( input pdSmartObjectObj as decimal ):
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+    Purpose: Returns the objectfilename (plus any extension) for a given object id
+    Notes:   - Server-side only code
+------------------------------------------------------------------------------*/
+    define variable cObjectFilename as character no-undo.
+    
+    &IF DEFINED(server-side) = 0 &THEN 
+    define buffer rycso for ryc_smartobject.
+    
+    find rycso where
+         rycso.smartobject_obj = pdSmartobjectObj
+         no-lock no-error.
+    if available rycso then
+        cObjectFilename = rycso.object_filename 
+                        + (if rycso.object_extension eq '':u then '':u else '.' + rycso.object_extension).
+    &endif 
+    
+    error-status:error = no.
+    return cObjectFilename.
+END FUNCTION.    /* getObjectNameFromObj */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataTypeCode) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataTypeCode Procedure
+FUNCTION getDataTypeCode RETURNS integer
+	( input pcDataTypeName as character ):
+/*------------------------------------------------------------------------------
+    Purpose: Returns the data type code/internal identifier from a named datatype
+    Notes:
+------------------------------------------------------------------------------*/
+    define variable iDataTypeCode as integer no-undo.
+    
+    case pcDataTypeName:
+        when 'Character' or when 'Char' then iDataTypeCode = {&CHARACTER-DATA-TYPE}.
+        when 'Date' then iDataTypeCode = {&DATE-DATA-TYPE}.
+        when 'Logical' or when 'Log' then iDataTypeCode = {&LOGICAL-DATA-TYPE}.
+        when 'Integer' or when 'Int' then iDataTypeCode = {&INTEGER-DATA-TYPE}.
+        when 'Decimal' or when 'Dec' then iDataTypeCode = {&DECIMAL-DATA-TYPE}.
+        when 'Recid' then iDataTypeCode = {&RECID-DATA-TYPE}.
+        when 'Raw' then iDataTypeCode = {&RAW-DATA-TYPE}.
+        when 'Rowid' then iDataTypeCode = {&ROWID-DATA-TYPE}.
+        when 'Handle' then iDataTypeCode = {&HANDLE-DATA-TYPE}.
+        when 'Blob' then iDataTypeCode = {&BLOB-DATA-TYPE}.
+        when 'Clob' then iDataTypeCode = {&CLOB-DATA-TYPE}.
+        when 'Datetime' then iDataTypeCode = {&DATETIME-DATA-TYPE}.
+        when 'Datetime-TZ' then iDataTypeCode = {&DATETIME-TZ-DATA-TYPE}.
+        when 'Int64' then iDataTypeCode = {&INT64-DATA-TYPE}.
+    end case.
+    
+    return iDataTypeCode.
+END FUNCTION.    /* getDataTypeCode */
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildClassAttributes Include 
 FUNCTION buildClassAttributes RETURNS LOGICAL
@@ -7194,7 +7629,7 @@ DEFINE VARIABLE iNotValid          AS INTEGER     NO-UNDO.
      &IProc                 = 'getDataSourceClasses'
      &mode1 = OUTPUT &parm1 = cValidObjectTypes &datatype1 = CHARACTER
     }
-    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+    IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.
 &ELSE
 
     DO iCounter = 1 TO NUM-ENTRIES(cClassesToRetrieve).
@@ -7370,7 +7805,7 @@ ACCESS_LEVEL=PRIVATE
                &IProc             = 'getObjectTypeCodeFromDB'
                &mode1 = OUTPUT &parm1 = cObjectTypeCode &datatype1 = CHARACTER
   }
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+  IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.
   &ELSE
       FIND FIRST gsc_object_type 
            WHERE gsc_object_type.object_type_obj = pdObjectTypeObj
@@ -7435,7 +7870,7 @@ FUNCTION getProductModuleList RETURNS CHARACTER
                &mode5 = OUTPUT &parm5 = cProductModuleList &datatype5 = CHARACTER
                
   }
-  IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+  IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.
   &ELSE
     DEFINE VARIABLE hBuffer     AS HANDLE     NO-UNDO.
     DEFINE VARIABLE cPMList     AS CHARACTER  NO-UNDO.
@@ -7654,7 +8089,6 @@ ACCESS_LEVEL=PUBLIC
 
     IF cSchemaName EQ cLogicalDbName THEN
     DO:
-    
         ASSIGN cDbBufferName    = cLogicalDbName + "._Db":U
                cFileBufferName  = cLogicalDbName + "._File":U
                cFieldBufferName = cLogicalDbName + "._Field":U
@@ -7861,8 +8295,8 @@ ACCESS_LEVEL=PUBLIC
         &mode1 = INPUT  &parm1 = pcObjectName  &datatype1 = CHARACTER
         &mode2 = OUTPUT &parm2 = lObjectExists &datatype2 = LOGICAL
     }
-    IF RETURN-VALUE <> "":U THEN RETURN ERROR FALSE.
-    &ELSE
+    IF RETURN-VALUE <> "":U THEN RETURN FALSE.
+    &ELSE 
     DEFINE VARIABLE cRootFile               AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cRootFileExt            AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cObjectExt              AS CHARACTER                NO-UNDO.
@@ -7873,7 +8307,7 @@ ACCESS_LEVEL=PUBLIC
     DO:
         /* Strip the name apart, and use the pices to find the object. */
         RUN extractRootFile IN gshRepositoryManager (INPUT pcObjectName, OUTPUT cRootFile, OUTPUT cRootFileExt) NO-ERROR.
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR FALSE.
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN FALSE.
 
         /* Figure out what the extension is. */
         ASSIGN cObjectExt = TRIM(REPLACE(cRootFileExt, (cRootFile + ".":U), "":U)).
@@ -7997,9 +8431,9 @@ FUNCTION prepareObjectName RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
     define variable cError             as character                    no-undo.
     
-  &IF DEFINED(server-side) = 0 &THEN
-  { dynlaunch.i
-         &PLIP              = 'RepositoryDesignManager'
+    &IF DEFINED(server-side) = 0 &THEN
+    { dynlaunch.i
+       &PLIP              = 'RepositoryDesignManager'
        &IProc             = 'prepareObjectName'
        &mode1  = INPUT  &parm1  = pcObjectName              &dataType1  = CHARACTER
        &mode2  = INPUT  &parm2  = pcResultCode              &dataType2  = CHARACTER
@@ -8010,10 +8444,12 @@ FUNCTION prepareObjectName RETURNS CHARACTER
        &mode7  = INPUT  &parm7  = pcProductModule           &dataType7  = CHARACTER
        &mode8  = OUTPUT &parm8  = pcNewObjectName           &datatype8  = CHARACTER
        &mode9  = OUTPUT &parm9  = pcNewObjectExt            &datatype9  = CHARACTER
-  }
-    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
-  &ELSE
-  define variable cObjectFileNameWithExt             as character                    no-undo.
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN RETURN-VALUE.
+    &ELSE 
+    define variable cObjectFileNameWithExt             as character                    no-undo.
+    define variable iLoop as integer no-undo.
+    define variable iPos as integer no-undo.
     
     /** Default the return values to something usable.
      *  ----------------------------------------------------------------------- **/
@@ -8037,7 +8473,7 @@ FUNCTION prepareObjectName RETURNS CHARACTER
             leave.
         end.    /* no type specified. */
                     
-      /** Dynamic standard rules:
+        /** Dynamic standard rules:
           ------------------------
           If the object inherits from the BASE,PROCEDURE or DLPROC class,
           then it is a candidate for having an extension stored in the 
@@ -8048,22 +8484,41 @@ FUNCTION prepareObjectName RETURNS CHARACTER
       
           Objects belonging to other classes will have their names saved 'as-is',
           ie whatever is passed in gets returned.
-       **/
-         if can-do(gcCLASS-USES-EXTENSION, pcObjectType) then
-         do:
+         **/
+        if can-do(gcCLASS-USES-EXTENSION, pcObjectType) then
+        do:
             /* Split the name into its component parts. */
             run extractRootFile in gshRepositoryManager ( input  pcObjectName,
                                                           output pcNewObjectName,
                                                           output cObjectFileNameWithExt ).
             /* and determine the */
             assign pcNewObjectExt = replace(cObjectFileNameWithExt, (pcNewObjectName + ".":U), "":U).             
-         end.    /* is allowed an extension */
-         else
-             assign pcNewObjectName = pcObjectName
-                    pcNewObjectExt  = "":U.
-  end.    /* SAVE */
-  &ENDIF
+        end.    /* is allowed an extension */
+        else
+            assign pcNewObjectName = pcObjectName
+                   pcNewObjectExt  = "":U.
+                    
+        /* Naming syntax rules:
+            - no invalid character in object names */
+        &scoped-define INVALID-CHAR-LIST ),<,>,~",~~',=,?,|,:,/,!,@,^,+,*, ,(,\
     
+        /*  - no commas or tildes in object names */
+        iPos = index(pcNewObjectName, ',').
+        if iPos eq 0 then
+            iPos = index(pcNewObjectName, '~~').
+        
+        iLoop = 1.
+        do while iPos eq 0 and iLoop le num-entries('{&INVALID-CHAR-LIST}':u):
+            iPos = index(pcNewObjectName, entry(iLoop, '{&INVALID-CHAR-LIST}':u)).
+            iLoop = iLoop + 1.            
+        end.
+        if iPos ne 0 then
+            cError = {aferrortxt.i 'AF' '5' '?' '?' '"object name"' '"The object name specified contains at least one invalid character"'}.
+        iLoop = iLoop + 1.            
+    end.    /* SAVE */
+    &ENDIF
+    
+    error-status:error = no.    
     return cError.
 END FUNCTION.   /* prepareObjectName */
 

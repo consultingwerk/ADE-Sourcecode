@@ -27,16 +27,16 @@ Date Created: September 2002
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT  PARAMETER phWindow           AS HANDLE      NO-UNDO.
-DEFINE INPUT  PARAMETER gcProductModule    AS CHARACTER   NO-UNDO. /* LIKE gsc_product_module.product_module_code. */
+DEFINE INPUT  PARAMETER gcProductModule    AS CHARACTER   NO-UNDO.
 DEFINE INPUT  PARAMETER glOpenInAppBuilder AS LOGICAL     NO-UNDO.
 DEFINE INPUT  PARAMETER pcTitle            AS CHARACTER   NO-UNDO.
-DEFINE OUTPUT PARAMETER gcFileName         AS CHARACTER   NO-UNDO. /* LIKE ryc_smartobject.object_filename. */
+DEFINE OUTPUT PARAMETER gcFileName         AS CHARACTER   NO-UNDO.
 DEFINE OUTPUT PARAMETER pressedOK          AS LOGICAL     NO-UNDO.
 
-IF SEARCH("ry/obj/gopendialog.w":U) <> ?
-OR SEARCH("ry/obj/gopendialog.r":U) <> ?
+IF SEARCH("adeuib/_opendialog.w":U) <> ?
+OR SEARCH("adeuib/_opendialog.r":U) <> ?
 THEN
-  RUN ry/obj/gopendialog.w (INPUT  phWindow
+    RUN adeuib/_opendialog.w (INPUT  phWindow
                            ,INPUT  gcProductModule
                            ,INPUT  glOpenInAppBuilder
                            ,INPUT  pcTitle

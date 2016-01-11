@@ -591,11 +591,44 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataContainerName Procedure 
+FUNCTION getDataContainerName RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDatasetName) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetName Procedure 
 FUNCTION getDatasetName RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDatasetOwner) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetOwner Procedure 
+FUNCTION getDatasetOwner RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDatasetRequestId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDatasetRequestId Procedure  _DB-REQUIRED
+FUNCTION getDatasetRequestId RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -932,17 +965,6 @@ FUNCTION hasForeignKeyChanged RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
-FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcClass AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-isDataQueryComplete) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isDataQueryComplete Procedure 
@@ -1180,6 +1202,17 @@ FUNCTION setBusinessEntity RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataContainerName Procedure 
+FUNCTION setDataContainerName RETURNS LOGICAL
+  ( pcName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDatasetName) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDatasetName Procedure 
@@ -1358,12 +1391,12 @@ Purpose:      Build request info to be used as parameters for data
 Parameters: 
    phOwner   - The object that initiated this request.     
    pcDataSource    
-             - Data source entity name in the case this request is from
-               a data source. 
+             - DatasetRequestId of data source in the case this request is 
+               from a data source. 
                This means that foreignfields need to be collected.
    pcViewerSource  
-             - Viewer's data source entity name in the case 
-               this request is passed through a containing viewer. 
+             - DatasetRequestId of Viewer's data source in the case this 
+               request is passed through a containing viewer. 
                This means that this object probably has a link to an 
                SDF and position info need to be collected. The object
                may still be a child of another object on the viewer so 
@@ -1422,6 +1455,7 @@ Parameters:
   DEFINE VARIABLE cBusinessEntity   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDatasetSource    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDatasetName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDatasetRequestId AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataTable        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDatasetTable     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQuery            AS CHARACTER  NO-UNDO.
@@ -1466,7 +1500,9 @@ Parameters:
   DEFINE VARIABLE cSortExpression   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQueryOpen        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cRequestDlm       AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cPosRequestId     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cParentRequestId  AS CHARACTER NO-UNDO.
+ 
   &SCOPED-DEFINE xp-assign
   {get BusinessEntity cBusinessEntity}
   {get DatasetName cDatasetName}
@@ -1482,7 +1518,8 @@ Parameters:
   {get DataTarget cTargets}
   {get ViewTables cViewTables}
   {get QueryOpen lQueryOpen}
-  .
+  {get DatasetRequestId cDatasetRequestId} 
+  {get PositionSource hPositionSource}.
   &UNDEFINE xp-assign
   
   cRequestDlm = CHR(1).
@@ -1491,10 +1528,24 @@ Parameters:
   DO:
     IF cDatasetName = '' OR cDatasetName = ? THEN 
       cDatasetName = cBusinessEntity.
-    /* allow pass-thru SDO (currently has function but no buffer-field) */
-    IF VALID-HANDLE(hDataSource) THEN
-      {get DataTable cParentTable hDataSource} NO-ERROR.
     
+    
+    /* allow pass-thru SDO (currently has function but no buffer-field) */
+    IF VALID-HANDLE(hDataSource)
+    and {fnarg instanceOf 'DataView':U hDataSource} then
+    do: 
+      {get DataTable cParentTable hDataSource}.
+      /* get the unique request datasetname to use for references */
+      {get DatasetRequestId cParentRequestId hDataSource}.  
+    end.
+    
+    if valid-handle(hPositionSource) 
+    and {fnarg instanceOf 'DataView':U hPositionSource} then 
+    do:
+      /* get the unique request datasetname to use for references */
+      {get DatasetRequestId cPosRequestId hPositionSource}.  
+    end.   
+  
     /* Check if parent is DEFS (openoninit false ) and set DEFS on this object
        if it is. */
     IF NOT lInitialized THEN
@@ -1504,12 +1555,10 @@ Parameters:
           RUN-PROCEDURE 'startObject':U.
       IF lOpenOnInit AND VALID-HANDLE(hDataSource) AND pcDataSource > '' THEN
       DO:
-        iSource = LOOKUP(pcDataSource + '.':U + cParentTable,pcDataTables).
+        iSource = LOOKUP(cParentRequestId + '.':U + cParentTable,pcDataTables).
         IF iSource > 0 THEN
           lOpenOnInit = ENTRY(iSource,pcRequests,cRequestDlm) <> 'DEFS':U.
       END.
-      {get PositionSource hPositionSource}.
-      
       IF VALID-HANDLE(hPositionSource) THEN  
       DO:
         &SCOPED-DEFINE xp-assign
@@ -1532,18 +1581,19 @@ Parameters:
       IF NOT lOpenOnInit AND VALID-HANDLE(hDataSource) AND pcDataSource > '' THEN
         RETURN. /* --------------------------------------> */ 
 
-      {get PositionSource hPositionSource}.
       IF VALID-HANDLE(hPositionSource) AND pcViewerSource > '' THEN 
       DO:
         IF {fn isDataQueryComplete} THEN
           lSkip = TRUE.
+        
         /* The phOwner's data flow will not open our query, so subscribe to 
             the request completion  */ 
         ELSE IF phOwner <> TARGET-PROCEDURE AND NOT VALID-HANDLE(hDataSource) THEN
         DO:
           SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'dataRequestComplete':U IN phOwner
            RUN-PROCEDURE 'refreshDataQuery':U.
-          IF LOOKUP(cDatasetName + '.':U + cDataTable,pcDataTables) > 0 THEN
+          /* if already in this request then skip it now */ 
+          IF LOOKUP(cDatasetRequestId + '.':U + cDataTable,pcDataTables) > 0 THEN
             lSkip = TRUE.
         END.
       END.
@@ -1569,15 +1619,17 @@ Parameters:
           DO:
             {fn removeForeignKey}.
             {get QueryString cQuery}.
-  
+             /* keep it in case things go wrong */
+            {fn addForeignKey}.
+           
             /*  foreign fields across business entities need to be qualified 
                 we also set request to 'FIRST' (first batch on child for one parent)*/
             IF cForeignFields > '':U AND pcDataSource <> cDatasetName THEN
             DO: 
               {set DataIsFetched FALSE}.
-              cRequest = 'FIRST':U. /* FetchOnOpen..*/
+              cRequest = 'FIRST':U. /* ... FetchOnOpen..*/
               DO iField = 2 TO NUM-ENTRIES(cForeignfields) BY 2:
-                ENTRY(iField,cForeignFields) = pcDataSource + '.':U 
+                ENTRY(iField,cForeignFields) = cParentRequestId + '.':U 
                                             + ENTRY(iField,cForeignFields).
               END.
             END.
@@ -1597,8 +1649,8 @@ Parameters:
             cForeignFields = '':U.
         
           /* Look for a single SDF target, an SDF source may have other targets, 
-           typically another SDF source.
-           if this is a request for all data then this info is irrelevant */         
+             typically another SDF source.
+             if this is a request for all data then this info is irrelevant */         
         IF iRowsToBatch <> 0 THEN
         FieldLoop:
         DO iTarget = 1 TO NUM-ENTRIES(cTargets):
@@ -1620,7 +1672,7 @@ Parameters:
               IF pcViewerSource > '':U THEN  
                 cPositionFields = cKeyField + ',':U
                                 + (IF pcViewerSource <> cDatasetName
-                                   THEN pcViewerSource + '.':U
+                                   THEN cPosRequestId + '.':U
                                    ELSE '':U)
                                 + cFieldName.
               ELSE DO:
@@ -1674,7 +1726,7 @@ Parameters:
           cQuery   = 'DEFS':U.
     
       ASSIGN
-        cDatasetTable = cDatasetName + '.':U + cDataTable 
+        cDatasetTable = cDatasetRequestId + '.':U + cDataTable 
         cDlm1 = (IF (pcDataTables = '':U) THEN '':U ELSE ',':U)
         cDlm2 = (IF (pcDataTables = '':U) THEN '':U ELSE cRequestDlm)
         pcDataTables     = pcDataTables  + cDlm1 + cDatasetTable
@@ -1724,7 +1776,7 @@ Parameters:
             cDlm1            = ',':U
             cDlm2            = cRequestDlm
             pcDataTables     = pcDataTables  + cDlm1 
-                             + cDatasetName + '.':U + cTable
+                             + cDatasetRequestId + '.':U + cTable
             pcBatchSizes     = pcBatchSizes  + cDlm1
                              + '0':U  
             pcRequests       = pcRequests    + cDlm2
@@ -1741,11 +1793,11 @@ Parameters:
 
       END. /* iTable loop additional tables */   
       
-      IF LOOKUP(cDatasetName,pcEntityNames) = 0 THEN
+      IF LOOKUP(cDatasetRequestId,pcEntityNames) = 0 THEN
         ASSIGN
           cDlm1            = (IF (pcEntities = '':U) THEN '':U ELSE ',':U)
           pcEntities       = pcEntities    + cDlm1 + cBusinessEntity
-          pcEntityNames    = pcEntityNames + cDlm1 + cDatasetName 
+          pcEntityNames    = pcEntityNames + cDlm1 + cDatasetRequestId 
           pcDatasetSources = pcDatasetSources + cDlm1 
                            + (IF VALID-HANDLE(hDatasetSource) 
                               THEN STRING(hDatasetSource)
@@ -2377,17 +2429,17 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchBatch Procedure 
 PROCEDURE fetchBatch :
 /*------------------------------------------------------------------------------
-  Purpose:     To transfer another "batch" of rows from the data provider to 
-               the Temp-Table query, without changing the current 
-               record position.
+  Purpose:     To transfer another "batch" of rows from the database query to 
+               the RowObject Temp-Table query. 
   Parameters:
-    INPUT plForwards - TRUE if we should retrieve a batch of rows after the current rows,
+    INPUT plForwards - TRUE if we should retrieve a batch of rows after the 
+                            current rows.
                        FALSE if before.
   Notes:       Run from a Browser to get another batch of rows from the database
                query appended to the RowObject temp-table query (when the 
                browser scrolls to the end).
-               fetchBatch does some checking and sets up the proper parameters
-               to sendRows, but sendRows is called to do the actual work.  
+             - repositions query to next or prev record in new batch, but does 
+               not publish dataAvailable.     
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER plForwards AS LOGICAL NO-UNDO.
  
@@ -2669,6 +2721,105 @@ PROCEDURE fetchPrev :
     RUN rowChanged IN TARGET-PROCEDURE ("PREV":U). 
    
   RETURN.  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fetchRows) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchRows Procedure 
+PROCEDURE fetchRows :
+/*------------------------------------------------------------------------------
+  Purpose:     To transfer a number of rows/batches from the database 
+               query to the RowObject Temp-Table query without changing the 
+               current record position.
+  Parameters:
+    INPUT plForward  - Yes  - retrieve rows after current batch(es).                             
+                       No   - retrieve rows before current batch(es). 
+    INPUT piMinRequested - Minimum number of records requested 
+                         - ? use batch size. 
+                         - 0 all
+    INPUT plUseBatch     - TRUE if we should round up to use defined batch
+                           size. 
+                           FALSE use minrows as specified.
+                         - ignored if piMinRequested = 0 or ?
+      Notes:  The piMinRequested always specifies the minimum needed number 
+              of rows (not batches). The plUseBatch then specifies whether to 
+              use the RowsToBatch to round up so the request is dividible on the 
+              defined batch size.               
+           -  The 'forward' and 'backward' request is (sort of) a silent append 
+              request in that it keeps current position and does not publish 
+              anything. 
+           -  This is run from a Browser when FetchOnReposToEnd to ensure that 
+              it has enough data to fill the browse.      
+-----------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER plForward       AS logical    NO-UNDO.
+  DEFINE INPUT  PARAMETER piMinRequested  AS integer    NO-UNDO.
+  DEFINE INPUT  PARAMETER plUseBatch      AS logical    NO-UNDO.
+    
+  DEFINE VARIABLE hDataQuery     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iTempBatch     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iRowsReturned  AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE rRowid         AS ROWID      NO-UNDO.
+  DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO. 
+  DEFINE VARIABLE lDummy         AS LOGICAL    NO-UNDO. 
+  DEFINE VARIABLE lDataIsFetched AS LOGICAL    NO-UNDO. 
+  DEFINE VARIABLE hDataSource    AS HANDLE     NO-UNDO.
+  
+  &scoped-define xp-assign
+  {get DataHandle hDataQuery}
+  {get RowObject hRowObject}.
+  &undefine xp-assign
+  
+  /* this request require a current position as we don't publish */
+  if not hDataQuery:is-open or not hRowObject:available then 
+    return. 
+  
+  If plUseBatch then 
+    iTempBatch = {fnarg calcBatchSize piMinRequested}. 
+  else
+    iTempBatch = piMinRequested.
+    
+  /* backward does not handle minrequest for 0 (sendrows needs negative...)
+     (rowstobatch 0 should not need more data) */
+  if iTempBatch = 0 and not plForward then 
+    return.
+  
+  rRowid = hRowObject:rowid.
+ 
+  if plForward and {fn getHasLast} then
+    return. /* we already have all data at the end */ 
+  else if not plForward and {fn getHasFirst} then
+    return. /* we already have all data at the top */ 
+  
+  /* Deactivate data links as child data must remain as-is */   
+  dynamic-function("assignTargetLinkState":U in target-procedure,
+                             "Data", /* linktype */
+                              NO,   /*  inactive */
+                              yes    /* query objects only*/ 
+                              ).
+                              
+  DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,
+                      if plforward then "NEXT":U else "PREV":U,
+                      NO, /* no refresh - append */
+                      iTempBatch). 
+     
+  {fnarg openDataQuery string(rRowid)}.
+     
+  /* activate data links again */   
+  dynamic-function("assignTargetLinkState":U in target-procedure,
+                             "Data", /* linktype */
+                              yes,   /*active */
+                              yes    /* query objects only*/ 
+                              ).
+  
+  IF iRowsReturned NE 0 THEN   
+    PUBLISH 'assignMaxGuess':U FROM TARGET-PROCEDURE (iRowsReturned).
+  
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3062,7 +3213,7 @@ PROCEDURE processSubmitException :
           IF hChgBefore:ERROR OR hChgBefore:REJECTED THEN
           DO:
             /* if rejected the record typically does not have an error-string 
-	             (at least one error is expected to have error-string) */
+                     (at least one error is expected to have error-string) */
             IF hChgBefore:ERROR-STRING > '' THEN 
               RUN addMessage IN TARGET-PROCEDURE(hChgBefore:ERROR-STRING,
                                                  ?,
@@ -3083,14 +3234,22 @@ PROCEDURE processSubmitException :
               END.
             END.
             else if lAutoCommit and hChgBefore:row-state = row-created then
-            do transaction:
+              lMerge = false.
+            /*** it's currently not possible to reset the add record to its 
+                 'created' state; the before buffer is read-only and 
+                 a reject-row-changes will just undo the whole create.  
+                 This means the Reset in new mode never can go further back 
+                 than the previously attempted saved changes.      
               hRowObject:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
               hBefore:BUFFER-RELEASE.
+              
               hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
               hAfter:FIND-BY-ROWID(hBefore:AFTER-ROWID).
               hAfter:buffer-copy(hBefore).
               hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
+        
             end.
+            ***/
             else 
               lMerge = lAutoCommit.
           END. /* error */
@@ -3682,7 +3841,7 @@ PROCEDURE startObject :
 
   IF lOpen THEN 
   DO:
-    IF VALID-HANDLE(hDataSource) THEN
+    IF VALID-HANDLE(hDataSource) and {fnarg instanceOf 'DataView' hDataSource} THEN
     DO:
       &scoped-define xp-assign  
       {get ObjectInitialized lParentInitialized hDataSource}
@@ -3954,32 +4113,29 @@ FUNCTION addDatasetSource RETURNS LOGICAL
            - At design time the datacontainer will call the service to
              retrieve the dataset.     
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE hDataContainer  AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hRequestor      AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cBusinessEntity AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDataTable      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cDataSetName    AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE hDatasetSource  AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cRequestTable   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDataContainer    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRequestor        AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cBusinessEntity   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDataTable        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDatasetRequestId AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hDatasetSource    AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cRequestTable     AS CHARACTER  NO-UNDO.
  
  &SCOPED-DEFINE xp-assign
  {get BusinessEntity cBusinessEntity}
- {get DatasetName cDataSetName}
  {get RequestHandle hRequestor}
  {get DataContainerHandle hDataContainer}
+ {get DatasetRequestId cDatasetRequestId}
  .
  &UNDEFINE xp-assign
  
- IF cDatasetName = '' THEN 
-   cDatasetName = cBusinessEntity. 
-   
- /* We allow no table for definitions (at design time) */
+  /* We allow no table for definitions (at design time) */
  IF cBusinessEntity > '' THEN 
  DO:
    RUN retrieveDataset IN hDataContainer
                          (hRequestor,
                           cBusinessEntity,
-                          cDataSetName,
+                          cDatasetRequestId,
                           OUTPUT hDatasetSource) NO-ERROR.
    
    IF ERROR-STATUS:ERROR OR NOT VALID-HANDLE(hDatasetSource) THEN
@@ -4035,6 +4191,7 @@ FUNCTION addRow RETURNS CHARACTER
   DEFINE VARIABLE cDataTable     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDataHandle    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iBuf           AS INTEGER    NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get RowObject hRowObject}
   {get ForeignFields cForFields}
@@ -4048,9 +4205,7 @@ FUNCTION addRow RETURNS CHARACTER
   IF NOT VALID-HANDLE(hRowObject) OR NOT VALID-HANDLE(hDatasetSource) THEN
     RETURN ?.
 
-  /* Save off the "current" rowid in case the add is cancelled. 
-     If there's no RowObject record available, it's because we're
-     being browsed from outside, so use the Browser's RowIdent. */
+  /* Save off the "current" rowid in case the add is cancelled. */
   IF hRowObject:AVAILABLE THEN
     {set CurrentRowid hRowObject:ROWID}. 
   ELSE /* currently used as getNewRow flag so set to blank if no 
@@ -4078,7 +4233,7 @@ FUNCTION addRow RETURNS CHARACTER
           hColumn:BUFFER-VALUE = ENTRY(INT((iCol + 1) / 2), cForValues, CHR(1)).
       END.  /* END DO iCol */
     END.    /* END DO IF cForFields NE "" */
-
+    
     run rowChanged in target-procedure("different":U).
  
     RETURN {fnarg colValues pcViewColList}.
@@ -4362,6 +4517,8 @@ FUNCTION cancelRow RETURNS CHARACTER
  .
  &UNDEFINE xp-assign
  
+ /* if not new then we're just going out of updatemode (no saved changes) and
+    all we needed was to setDataModified false */
  IF lNew THEN 
  DO:
    hBefore = hRowObject:BEFORE-BUFFER.
@@ -5485,7 +5642,7 @@ FUNCTION copyRow RETURNS CHARACTER
   DEFINE VARIABLE hDatasetSource AS HANDLE     NO-UNDO.
   DEFINE VARIABLE rRowid         AS ROWID      NO-UNDO.
   DEFINE VARIABLE cDataTable     AS CHARACTER  NO-UNDO.
-
+  
   &SCOPED-DEFINE xp-assign
    {get RowObject hRowObject}
    {get DatasetSource hDatasetSource}
@@ -5532,12 +5689,13 @@ FUNCTION copyRow RETURNS CHARACTER
           ENTRY(iPos + 1,cDispValues,CHR(1)) = hFromBuffer:BUFFER-FIELD(cColumn):BUFFER-VALUE.
       END. /* do icol = 1 to */
     END.
+    run rowChanged in target-procedure("different":U).    
   END. /* rowid <> ?  */
-
+  ELSE 
+    cDispValues = ?.
+    
   IF VALID-HANDLE(hFromBuffer) THEN 
     DELETE OBJECT hFromBuffer NO-ERROR. 
-  
-  run rowChanged in target-procedure("different":U).
   
   RETURN cDispValues.
 
@@ -6023,7 +6181,6 @@ Parameters:
   DEFINE VARIABLE cTableWhere      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPosition        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDatasetName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRowid           AS CHARACTER  NO-UNDO.
   
   IF {fn getScrollable} = FALSE THEN
@@ -6110,13 +6267,15 @@ Parameters:
       PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
       
   END. /* lOnClient = ? */
-  
-  /* Signal change also when find failed, as foreignvalues of children 
-     has been set to unknown in buildDatarequest and need to be reset.
-     (mainly because dataAvailable uses unknown as fetchedbyparent signal) */  
-  RUN rowChanged IN TARGET-PROCEDURE ('RESET':U).
-
-  RETURN IF lOnCLient THEN TRUE ELSE FALSE.
+   
+  /* Signal change only when find was sucessful */
+  if lOnClient then 
+  do:
+    RUN rowChanged IN TARGET-PROCEDURE ('RESET':U).
+    return true.
+  end.
+  else
+    RETURN FALSE.
 
 END FUNCTION.
 
@@ -6304,12 +6463,61 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
   ( ) :
 /*------------------------------------------------------------------------------
   Purpose: Returns the datacontainer that handles all data requests.  
-    Notes:  
+    Notes: If the RequestHandle (the object that manages the request for this
+           object) is another object then we just return the DataContainerHandle
+           frm it, but a standalone DataView will do its own request in which 
+           case we resolve the handle here.      
+         - The DataContainerName allows override (for namespacing).  
+         - The ghDatacontainer variable is for the class and only used for 
+           the default DataContainer   
+         - Duplicated in containr.p                  
 ------------------------------------------------------------------------------*/
-  IF NOT VALID-HANDLE(ghDataContainer) THEN
+  define variable cName          as character no-undo.
+  define variable hRequestHandle as handle    no-undo.
+  
+  {get RequestHandle hRequesthandle}.
+  if hRequestHandle <> target-procedure and hRequestHandle <> ? then
+    return {fn getDataContainerHandle hRequestHandle}.
+  else    
+  do: 
+    {get DataContainerName cName}.
+    if cName = '' or cName = 'DataContainer':U then
+    do:
+      if not valid-handle(ghDataContainer) then 
         ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
   
-  RETURN ghDataContainer.
+      return ghDataContainer.
+    end.
+    else 
+      return {fnarg getManagerHandle cName}.
+  end.
+       
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataContainerName Procedure 
+FUNCTION getDataContainerName RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  The DataContainerName is passed to getManagerHandle to start the 
+            DataContainer for an instance. 
+    Notes:  The DataContainer and the Service Adapter has a one-to-one 
+            relationship. This property allows applications to run in the same 
+            session with separate Service Adapters. 
+            This might be necessary if Business Entity references need 
+            different namepaces because the applications have been developed 
+            separately.
+          - Duplicated in containr.p     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cName AS CHARACTER   NO-UNDO.
+  {get DataContainerName cName}.
+  RETURN cName.
 
 END FUNCTION.
 
@@ -6331,6 +6539,117 @@ FUNCTION getDatasetName RETURNS CHARACTER
   DEFINE VARIABLE cName AS CHARACTER NO-UNDO.
   {get DatasetName cName}.
   RETURN cName.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDatasetOwner) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDatasetOwner Procedure 
+FUNCTION getDatasetOwner RETURNS HANDLE
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the container that requested the dataset of this object. 
+    Notes: This is passed to the DataContainer together with the DatasetName
+           name to uniquely identify the Business Entity request. 
+           (as a key, not handle) 
+        -  Returns the upper container that it shares business entity
+           instance with.             
+        -  Returns the Dataview's own handle if no container is present.
+        -  The dataview can have two types of links DataSource 
+           or PositionSource, the assumption is that there is a single
+           top dataset and that we end up there through both paths, so 
+           the DataSource takes presedence. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hOwner           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cEntity          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataset         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentEntity    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentDataset   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hPositionSource  AS HANDLE     NO-UNDO. 
+  
+  &scop xp-assign
+  {get BusinessEntity cEntity}
+  {get DatasetName cDataSet}
+  {get ContainerSource hContainerSource}
+  {get DataSource hDataSource}
+  .
+  &undefine xp-assign
+  
+  if valid-handle(hContainerSource) then
+  do:
+    /* The assumption is that the dataset has one top table, so datasource has
+       presedence over a positionsource, which will either point to the top 
+       or to a child of the top  */
+    IF VALID-HANDLE(hDataSource) and {fnarg instanceOf 'DataView' hDataSource} THEN
+    DO:
+      &scop xp-assign
+      {get BusinessEntity cParentEntity hDataSource}
+      {get DatasetName cParentDataSet hDataSource}.
+      &undefine xp-assign
+      if  cParentEntity = cEntity
+      and cParentDataset = cDataset then
+      do:   
+        {get DatasetOwner hOwner hDataSource}.
+         RETURN hOwner.
+      end.   
+    END.
+    
+    {get PositionSource hPositionSource}.
+    IF VALID-HANDLE(hPositionSource) and {fnarg instanceOf 'DataView' hPositionSource} THEN
+    DO:
+      &scop xp-assign
+      {get BusinessEntity cParentEntity hPositionSource}
+      {get DatasetName cParentDataSet hPositionSource}.
+      &undefine xp-assign
+      if  cParentEntity = cEntity
+      and cParentDataset = cDataset then
+      do:   
+        {get DatasetOwner hOwner hPositionSource}.
+         RETURN hOwner.
+      end.   
+    END.
+    /* return container if no datasource or position source with same dataset*/ 
+    return hContainerSource.
+  end. /* container */   
+  else  
+    RETURN TARGET-PROCEDURE.  
+
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDatasetRequestId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDatasetRequestId Procedure 
+FUNCTION getDatasetRequestId RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+   Purpose: Returns a unique identifier for the Business Entity instance. 
+     Notes: This uniquely idenitifies a Business Entity instance in the session. 
+         -  This is curently NOT unique accross Business Entities, but used 
+            to identify instances of the same Business Entity from each other.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDatasetName    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hOwner          AS CHARACTER NO-UNDO.
+  
+  {get DatasetName cDatasetName}.
+  {get DatasetOwner hOwner}.
+  
+  if cDatasetName = ? or cDatasetName = "":U then 
+    {get BusinessEntity cDatasetName}.
+   
+  RETURN cDatasetName + string(hOwner). 
 
 END FUNCTION.
 
@@ -7151,16 +7470,20 @@ FUNCTION getSubmitParent RETURNS LOGICAL
            No  - don't submit parent 
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lSubmitParent AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE lSubmitParent  AS LOGICAL   NO-UNDO.
+  define variable hDataContainer as handle    no-undo.
+  
   &SCOPED-DEFINE xpSubmitParent
   {get SubmitParent lSubmitParent}.
   &UNDEFINE xpSubmitParent
   
-  /* ? means use default, which is yes here, but intended to be customized 
-     (for example to be decided by service) */
-  IF lSubmitParent = ? THEN
-    lSubmitParent = YES.
+  /* ? means use default, optionally decided by service 
+      (datacontainer returns yes if service has no property) */
+  IF lSubmitParent = ? then
+  do:
+    {get DataContainerHandle hDataContainer}.
+    lSubmitParent = {fn getSubmitParent hDataContainer}.
+  end. 
 
   RETURN lSubmitParent.
 
@@ -7504,28 +7827,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
-FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcClass AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Override instanceOf to support SmartDataObject subtypes in 
-           non repository
-    Notes: This is currently only supported for DataView, Data and Query 
-------------------------------------------------------------------------------*/
- IF pcClass = 'DataView':U THEN
-   RETURN TRUE.
-
- RETURN SUPER(pcClass).
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-isDataQueryComplete) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isDataQueryComplete Procedure 
@@ -7556,7 +7857,7 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isFetchedByParent Procedure 
 FUNCTION isFetchedByParent RETURNS logical
-	(  ):
+        (  ):
 /*------------------------------------------------------------------------------
     Purpose: Check if current parent has fetched this object's data 
     Notes: This is only called from dataAvailable when dataisfetched is false
@@ -7988,7 +8289,11 @@ FUNCTION openQueryAtPosition RETURNS LOGICAL
   IF LOOKUP(pcPosition,'FIRST,LAST') = 0 AND NOT (pcPosition BEGINS 'WHERE') THEN
     pcPosition = 'WHERE ' + pcPosition.
 
-  IF VALID-HANDLE(hDataSource) THEN
+  /* if datasource check if open and add foreignkey */
+  IF VALID-HANDLE(hDataSource) 
+  /* avoid containers and such, but don't be too picky; there is no rule that 
+     says that the datasource must be a dataview  */  
+  and {fnarg instanceOf 'DataQuery':U hDataSource} THEN
   DO:
     {get QueryPosition cParentPos hDataSource}. 
     IF cParentPos begins "NoRecordAvailable":U THEN
@@ -8354,6 +8659,7 @@ Parameter: pcRowident
   IF {fnarg repositionRowobject pcRowident} THEN
   DO:
     {set DataModified FALSE}.
+    RUN rowChanged IN TARGET-PROCEDURE('SAME':U).
   END.
 
   RETURN TRUE. 
@@ -8837,7 +9143,7 @@ FUNCTION retrieveRows RETURNS LOGICAL
    {get RequestHandle hRequestor}
    {get DatasetSource hDatasetSource}
    {get BusinessEntity cEntity}
-   {get DatasetName cEntityName}
+   {get DatasetRequestId cEntityName}
    .
    &undefine xp-assign
    
@@ -8892,6 +9198,32 @@ FUNCTION setBusinessEntity RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   {set BusinessEntity pcBusinessEntity}.
   RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataContainerName Procedure 
+FUNCTION setDataContainerName RETURNS LOGICAL
+  ( pcName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  The DataContainerName is passed to getManagerHandle to start the 
+            DataContainer for an instance. 
+    Notes:  The DataContainer and the Service Adapter has a one-to-one 
+            relationship. This property allows applications to run in the same 
+            session with separate Service Adapters. 
+            This might be necessary if Business Entity references need 
+            different namepaces because the applications have been developed 
+            separately.
+          - Duplicated in containr.p     
+------------------------------------------------------------------------------*/
+  {set DataContainerName pcName}.
+  RETURN true.
 
 END FUNCTION.
 
@@ -9199,19 +9531,20 @@ FUNCTION submitRow RETURNS LOGICAL
   DEFINE VARIABLE cColumnref      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataTable      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cForeignValues  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignFields  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDatasetSource  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lNewRow         AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lResortOnSave   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cValue          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lQueryOk        AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lSubmitParent   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hParent         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hParentDSSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lParentChanged  AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lDataIsFetched  AS LOGICAL    NO-UNDO.
-   
+  DEFINE VARIABLE cForeignValues    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cForeignFields    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDatasetSource    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lNewRow           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lResortOnSave     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cValue            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQueryOk          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSubmitParent     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hParent           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hParentDSSource   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lParentChanged    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDataIsFetched    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cUpdatableWhenNew AS CHARACTER NO-UNDO.  
+  
   rRowObject = TO-ROWID(ENTRY(1, pcRowIdent)) NO-ERROR.
 
   &SCOPED-DEFINE xp-assign
@@ -9253,7 +9586,12 @@ FUNCTION submitRow RETURNS LOGICAL
 
   /* Verify that they're not trying to update a non-updatable field. 
      Also qualify unqualified columns with datatable  */
-  {get UpdatableColumns cUpdColumns}.
+  &SCOPED-DEFINE xp-assign
+  {get UpdatableColumns cUpdColumns}
+  {get UpdatableWhenNew cUpdatableWhenNew}
+  {get NewRow lNewRow}.
+  &UNDEFINE xp-assign
+    
   DO iCol = 1 TO NUM-ENTRIES(pcValueList,CHR(1)) BY 2:
     cColumnRef = ENTRY(iCol, pcValueList,CHR(1)).
     IF INDEX(cColumnRef,'.':U) = 0 THEN 
@@ -9266,6 +9604,11 @@ FUNCTION submitRow RETURNS LOGICAL
       lSuccess = FALSE.
       RUN addMessage IN TARGET-PROCEDURE (SUBSTITUTE({fnarg messageNumber 54}, cColumnRef), cColumnRef, ?).
     END. /* lookup column in upd = 0 */
+    else if not lnewRow and LOOKUP(cColumnRef, cUpdatableWhenNew) > 0 then
+    DO:
+      lSuccess = FALSE.
+      RUN addMessage IN TARGET-PROCEDURE (SUBSTITUTE({fnarg messageNumber 101}, cColumnRef), cColumnRef, ?).
+    END. /* not new row and column in UpdatableWhenNew */
   END. /* iColNum = 1 TO NUM-ENTRIES(p */
    
   /* Assign Foreign Key values if needed for new records. */
@@ -9274,7 +9617,6 @@ FUNCTION submitRow RETURNS LOGICAL
     &SCOPED-DEFINE xp-assign
     {get ForeignFields cForeignFields}
     {get ForeignValues cForeignValues}
-    {get NewRow lNewRow}
     .
     &UNDEFINE xp-assign
     IF lNewRow THEN
@@ -9349,7 +9691,6 @@ FUNCTION submitRow RETURNS LOGICAL
             LEAVE ParentLoop.
         END.
       END.
-      
       IF (lResortOnSave OR lNewMode) THEN
       DO: 
         IF lParentChanged THEN
@@ -9357,7 +9698,9 @@ FUNCTION submitRow RETURNS LOGICAL
         ELSE  
           lQueryOk = {fn refreshSort}.
       END.
-      
+      ELSE
+        lQueryOk = true.
+        
       IF NOT lQueryOk THEN  
       DO:
         /* This message is for cases when query criteria makes the record 
@@ -9391,12 +9734,11 @@ FUNCTION submitRow RETURNS LOGICAL
       END.    
       ELSE DO:
         {fn refreshViewTables}.
-        cState = (IF NOT lNewMode AND NOT lResortOnSave THEN 'SAME':U
-                  ELSE IF lAutoCommit THEN 'DIFFERENT':U
-                    /* we use 'RESET' for uncommitted new records, as this 
-                       will reset panels and only reopen if child has 
-                       no changes */
-                  ELSE                     'RESET':U).  
+        cState = (IF lNewMode AND lAutoCommit 
+                  THEN 'DIFFERENT':U
+                  /* Reset ensures that child query is reopened if key changed
+                     non auto committed only reopen if child has no changes. */
+                  ELSE 'RESET':U).  
 
         RUN rowChanged IN TARGET-PROCEDURE (cState).
       END.

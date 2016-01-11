@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -51,7 +51,7 @@ History:
     tomn    08/31/95    Changed read-only mode so that user is able to view
                         details after alert-box is dismissed
   kmcintos  09/08/05    Added support for Oracle 10 20050318-015                      
-
+  fernando  09/14/07    Allow ORACLE version 11
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -100,7 +100,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 8, 9 or 10."
+  /*14*/ "Oracle version must be either 8, 9, 10 or 11."
 ].
 
 FORM
@@ -123,7 +123,7 @@ FORM
   f_comm                   AT 2 NO-LABEL {&STDPH_EDITOR}
       VIEW-AS EDITOR 
       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-               SIZE 65 BY 4 BUFFER-LINES 4
+               SIZE 65 BY 4
       &ELSE 
                SIZE 65 BY 3 SCROLLBAR-VERTICAL
       &ENDIF
@@ -188,7 +188,8 @@ ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:
 ON LEAVE OF oraver IN FRAME userschg DO:
   IF INPUT oraver <> 8 AND 
      INPUT oraver <> 9 AND
-     INPUT oraver <> 10 THEN DO:
+     INPUT oraver <> 10 AND
+     INPUT oraver <> 11 THEN DO:
     MESSAGE new_lang[14] 
        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     APPLY "ENTRY" TO oraver IN FRAME userschg.
@@ -392,10 +393,13 @@ ELSE _trx: DO TRANSACTION WITH FRAME userschg:
       user_dbname     = DICTDB._Db._Db-name
       .
 
-   DICTDB._Db._Db-xl-name = if codepage = "<internal defaults apply>" 
-                         then ? 
-                         else codepage.
-   DICTDB._Db._Db-coll-name = INPUT collname.
+   /* these are changed only when amode */
+   IF amode THEN  DO:
+       DICTDB._Db._Db-xl-name = if codepage = "<internal defaults apply>" 
+                             then ? 
+                             else codepage.
+       DICTDB._Db._Db-coll-name = INPUT collname.
+   END.
 
     IF x-p THEN DICTDB._Db._Db-addr = INPUT f_addr.
 

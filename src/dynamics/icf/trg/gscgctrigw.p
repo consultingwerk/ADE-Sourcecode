@@ -1,10 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*               PSC                                                  *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 TRIGGER PROCEDURE FOR WRITE OF gsc_global_control OLD BUFFER o_gsc_global_control.
 
@@ -65,7 +64,8 @@ IF NEW gsc_global_control OR  gsc_global_control.default_currency_obj <> o_gsc_g
 IF NEW gsc_global_control OR  gsc_global_control.default_nationality_obj <> o_gsc_global_control.default_nationality_obj  THEN
   DO:
     IF NOT(CAN-FIND(FIRST gsc_nationality WHERE
-        gsc_global_control.default_nationality_obj = gsc_nationality.nationality_obj)) THEN
+        gsc_global_control.default_nationality_obj = gsc_nationality.nationality_obj)) AND
+        gsc_global_control.default_nationality_obj NE 0 THEN
               DO:
                 /* Cannot update child because parent does not exist ! */
                 ASSIGN lv-error = YES lv-errgrp = "AF ":U lv-errnum = 103 lv-include = "gsc_global_control|gsc_nationality":U.
@@ -95,7 +95,8 @@ IF NEW gsc_global_control OR  gsc_global_control.default_country_obj <> o_gsc_gl
 IF NEW gsc_global_control OR  gsc_global_control.default_language_obj <> o_gsc_global_control.default_language_obj  THEN
   DO:
     IF NOT(CAN-FIND(FIRST gsc_language WHERE
-        gsc_global_control.default_language_obj = gsc_language.language_obj)) THEN
+        gsc_global_control.default_language_obj = gsc_language.language_obj)) AND
+        gsc_global_control.default_language_obj NE 0 THEN
               DO:
                 /* Cannot update child because parent does not exist ! */
                 ASSIGN lv-error = YES lv-errgrp = "AF ":U lv-errnum = 103 lv-include = "gsc_global_control|gsc_language":U.

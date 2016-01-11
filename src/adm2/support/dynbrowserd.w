@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -794,49 +794,43 @@ PROCEDURE get-SmO-attributes :
     IF NOT VALID-HANDLE(ghDataSource) THEN
       ghDataSource = WIDGET-HANDLE({fnarg getUserProperty 'DataSource' p_hSMO}).
     
-    cTargets = DYNAMIC-FUNCTION('getContainedDataObjects' IN ghDataSource)
-         NO-ERROR.
-    IF cTargets = "":U THEN
-         /* if it comes back blank, that means the DataSOurce is an SBO but
-            hasn't been initialized yet, so do that here so that the list
-            of DataObjects will be filled in. If it comes back unknown,
-            that means the DataSOurce is an SDO, so don't use the property. */
-    DO:
-      RUN createObjects IN ghDataSource.
-      cTargets = DYNAMIC-FUNCTION('getContainedDataObjects' IN ghDataSource).
-    END.    /* END DO IF NO Targets yet */
-    
     cListPairs = {&novalue} + ',':U.
-     
-    /* This is just an SDO, so set that handle which is used elsewhere. */  
-    IF cTargets = ? THEN
-    DO: 
-      ASSIGN
-        ghSDO = ghDataSource.
+    
+    if valid-handle(ghDataSource) then 
+    do:
+      if {fnarg instanceOf 'SBO':U ghDataSource} then  
+      do: 
+        /* this old problem should be fixed by now (10.1C), but... */
+        if not {fn getObjectsCreated ghDataSource} then
+          RUN createObjects IN ghDataSource.
       
-      IF VALID-HANDLE(ghSDO) THEN
-        ASSIGN
-          cObjectName = DYNAMIC-FUNCTION('getObjectName' IN ghSDO)
-          cListPairs  = cListPairs +  ",":U 
-                        + cObjectName +  ",":U + STRING(ghSDO)
-          c_SDOList   = STRING(ghSDO). 
-    END. /* cTargets = ? (Linked to an SDO) */
-    ELSE 
-    DO:
-      DO iTarget = 1 TO NUM-ENTRIES(cTargets):
-        ASSIGN
-          hTarget     = WIDGET-HANDLE(ENTRY(iTarget, cTargets))
-          cObjectName = DYNAMIC-FUNCTION('getObjectName' IN hTarget)
-          cListPairs  = cListPairs +  ",":U 
-                        + cObjectName +  ",":U + STRING(hTarget).
-          
-        IF cObjectName = cSourceName THEN 
+        cTargets = DYNAMIC-FUNCTION('getContainedDataObjects' IN ghDataSource).
+        DO iTarget = 1 TO NUM-ENTRIES(cTargets):
           ASSIGN
-            c_SDOList = STRING(hTarget) 
-            ghSDO     = hTarget. 
-      END.  /* END DO iTarget */
-    END. /* else (sbo)*/
-
+            hTarget     = WIDGET-HANDLE(ENTRY(iTarget, cTargets))
+            cObjectName = DYNAMIC-FUNCTION('getObjectName' IN hTarget)
+            cListPairs  = cListPairs +  ",":U 
+                          + cObjectName +  ",":U + STRING(hTarget).
+            
+          IF cObjectName = cSourceName THEN 
+            ASSIGN
+              c_SDOList = STRING(hTarget) 
+              ghSDO     = hTarget. 
+        END.  /* END DO iTarget */
+      END.    /* END DO IF NO Targets yet */
+      else  /* This is an SDO or DataView, set that handle which is used elsewhere. */  
+      DO: 
+        ASSIGN
+          ghSDO = ghDataSource.
+        
+        IF VALID-HANDLE(ghSDO) THEN
+          ASSIGN
+            cObjectName = DYNAMIC-FUNCTION('getObjectName' IN ghSDO)
+            cListPairs  = cListPairs +  ",":U 
+                          + cObjectName +  ",":U + STRING(ghSDO)
+            c_SDOList   = STRING(ghSDO). 
+      END. /* else (Linked to an SDO) */
+    end. /* valid ghdatasource */ 
     ASSIGN c_SDOList:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} = cListpairs
            c_SDOList:INNER-LINES = MAX(5,NUM-ENTRIES(cListPairs) / 2)
            c_SDOList:SCREEN-VALUE = c_SDOList

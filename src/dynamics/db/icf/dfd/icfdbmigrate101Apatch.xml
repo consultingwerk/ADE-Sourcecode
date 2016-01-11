@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SetupInclude>
-  <Patch PatchLevel="101101">
-    <PatchStage Stage="PreADOLoad">
-	  <Program>
-        <FileType>p</FileType>
-        <FileName>db/icf/dfd/#migration_source#/remove_rtb_session_data.p</FileName>
-        <Description>Remove RoundTable session type data</Description>
-        <Rerunnable>yes</Rerunnable>
-        <NewDB>no</NewDB>
-        <ExistingDB>yes</ExistingDB>
-        <UpdateMandatory>yes</UpdateMandatory>
-      </Program>
-    </PatchStage>
+  <Patch PatchLevel="101201">
+    <PatchStage Stage="PreADOLoad" />
     <PatchStage Stage="Delta">
       <Program>
         <FileType>df</FileType>
@@ -42,6 +32,15 @@
         <ExistingDB>yes</ExistingDB>
         <UpdateMandatory>yes</UpdateMandatory>
       </Program>
+      <Program>
+        <FileType>p</FileType>
+        <FileName>db/icf/dfd/#migration_source#/update_rtb_connection_params.p</FileName>
+        <Description>Update RoundTable physical connection parameters</Description>
+        <Rerunnable>yes</Rerunnable>
+        <NewDB>no</NewDB>
+        <ExistingDB>yes</ExistingDB>
+        <UpdateMandatory>yes</UpdateMandatory>
+      </Program>
     </PatchStage>
   </Patch>
-</SetupInclude>
+</SetupInclude>

@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -24,7 +24,43 @@
 
   History: kmcintos May 26, 2005 Changed feature codes in featureEnabled
                                  bug # 20050525-025.
+           fernando 11/30/07     Check if read-only mode.
+                                 
 ------------------------------------------------------------------------*/
+
+DEFINE VARIABLE ronly  AS LOGICAL NO-UNDO.
+
+FUNCTION checkReadOnly RETURNS CHARACTER (INPUT pcdbNname AS CHARACTER,
+                                          INPUT pctableName AS CHARACTER):
+                                              
+    DEFINE VARIABLE hFileBuffer AS HANDLE NO-UNDO.
+    DEFINE VARIABLE cWhere      AS CHAR   NO-UNDO.
+    
+    CREATE BUFFER hFileBuffer FOR TABLE pcdbNname + "._File" NO-ERROR.
+
+    /* if we can't even get a handle to the table, assume it's that
+      user doesn't have permissions.
+    */
+    IF NOT VALID-HANDLE(hFileBuffer) THEN
+       RETURN "No Permission".
+
+    ASSIGN cWhere = "WHERE " + pcdbNname + "._File._File-name = '" +
+        pctableName + "'".
+    hFileBuffer:FIND-FIRST(cWhere, NO-LOCK).
+
+    IF NOT CAN-DO(hFileBuffer::_Can-read,USERID(pcdbNname)) THEN DO:
+      MESSAGE "You do not have permission to use this option."
+           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      RETURN "No Permission".
+    END.
+
+    IF CAN-DO("READ-ONLY", DBRESTRICTIONS(pcdbNname)) or
+        NOT CAN-DO(hFileBuffer::_Can-write,USERID(pcdbNname)) THEN
+        ASSIGN ronly = YES.
+
+    RETURN "".
+END FUNCTION.
+
 
 FUNCTION generateGuid RETURNS CHARACTER ():
 /*------------------------------------------------------------------------------

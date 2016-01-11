@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -17,7 +17,10 @@
                   
     Author(s)   : Fernando de Souza
     Created     : Feb 23,2005
-    Notes       :                  
+    Notes       :        
+    
+    History:
+    fernando    06/20/07   Support for large files
 
   ----------------------------------------------------------------------*/
 
@@ -29,13 +32,13 @@
 DEFINE DATASET dsttAuditEvent FOR ttAuditEvent.
 
 DEFINE VARIABLE nErrors   AS INTEGER             NO-UNDO.
-DEFINE VARIABLE iRecs     AS INTEGER             NO-UNDO.
+DEFINE VARIABLE iRecs     AS INT64               NO-UNDO.
 DEFINE VARIABLE code-page AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE maptype   AS CHARACTER           NO-UNDO.
-DEFINE VARIABLE maxErrors AS INTEGER             NO-UNDO INIT -1.
+DEFINE VARIABLE maxErrors AS INT64               NO-UNDO INIT -1.
 DEFINE VARIABLE errorMsg  AS CHARACTER           NO-UNDO.
 
-DEFINE VARIABLE iProcessed AS INTEGER             NO-UNDO.
+DEFINE VARIABLE iProcessed AS INT64              NO-UNDO.
 
 /*********************************************************************/
 /* parameters                                                        */
@@ -43,7 +46,7 @@ DEFINE VARIABLE iProcessed AS INTEGER             NO-UNDO.
 DEFINE INPUT        PARAMETER pcFileName         AS CHARACTER NO-UNDO.
 DEFINE INPUT        PARAMETER perror%            AS INTEGER   NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER DATASET FOR dsttAuditEvent.
-DEFINE OUTPUT       PARAMETER pnumRecords        AS INTEGER   NO-UNDO.
+DEFINE OUTPUT       PARAMETER pnumRecords        AS INT64     NO-UNDO.
 
 
 /*********************************************************************/

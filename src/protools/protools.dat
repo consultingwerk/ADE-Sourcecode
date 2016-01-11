@@ -14,7 +14,7 @@
 "Screen Capture" "protools/_scrcap.w" "adeicon/scrcap" yes yes 140 no
 "SmartObject Upgrade Utility" "protools/_v89conv.w" "adeicon/smoupgrd" yes yes 150 no
 "Screen Scaling Utility" "protools/_ppuscl.p" "adeicon/fntupgrd" no yes 160 no
-"ADM to Dynamics" "ry/uib/_v89dcnv.w" "adeicon/admtodyn.gif" yes yes 170 no
+"ADM to Dynamics" "adeuib/_convertadm2dynamics.w" "adeicon/admtodyn.gif" yes yes 170 no
 "Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 180 no
 "Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 190 no
 "ProtoGen" "protools/_protgen.w" "adeicon/protogen" yes yes 200 no
@@ -24,4 +24,5 @@
 "WebClient Deployment Packager" "protools/_prowcappdp.p" "adeicon/prowcappdp" no yes 240 no
 "XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 250 no
 "Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 260 no
-"Widget ID Assignment" "protools/_widgetidassign.p" "adeicon/widgidassign" no yes 270 no
+"Static Widget ID Assignment" "protools/_widgetidassign.p" "adeicon/widgidassign" no yes 270 no
+"Runtime Widget ID Assignment" "protools/_runtimewidgetid.p" "adeicon/assignwid.gif" no yes 280 no

@@ -138,7 +138,10 @@ RUN getInstanceProperties IN gshRepositoryManager (INPUT  pcDataFieldName,
                                                    INPUT  "",
                                                    INPUT-OUTPUT cPropertyNames,
                                        OUTPUT cPropertyValues ) NO-ERROR.
-  
+
+IF RETURN-VALUE NE "":U OR ERROR-STATUS:ERROR THEN
+   RETURN ERROR RETURN-VALUE.
+
  cVisualizationType = ENTRY(LOOKUP("VisualizationType":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}).
  CREATE VALUE(cVisualizationType) hField NO-ERROR.
  IF ERROR-STATUS:ERROR THEN
@@ -255,7 +258,8 @@ RUN getInstanceProperties IN gshRepositoryManager (INPUT  pcDataFieldName,
 
 DELETE WIDGET hField.
 
-
+ERROR-STATUS:ERROR = NO.
+RETURN.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
     Library     : afpropdlg.i
 
@@ -35,7 +35,7 @@
     &SCOPED-DEFINE FNDFILE-FILTER Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico
 &ENDIF
 
-&GLOBAL-DEFINE TEST-BITMAP "adeicon/u-logo.bmp",150,1,0,0
+&GLOBAL-DEFINE TEST-BITMAP "adeicon/showcursor.bmp"
 
 DEFINE TEMP-TABLE wProperty NO-UNDO
     FIELD wIndex  AS INTEGER
@@ -637,11 +637,13 @@ PROCEDURE getArrayProperties :
 DEFINE VARIABLE cPropertyName  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cPropertyValue AS CHARACTER NO-UNDO.
 
-ASSIGN cPropertyValue = STRING(DYNAMIC-FUNCTION("get{&PRIMARY-PROPERTY}" IN ip-caller))
+ASSIGN cPropertyValue = STRING(DYNAMIC-FUNCTION("get{&PRIMARY-PROPERTY}" IN ip-caller)).
 
-       iCount = NUM-ENTRIES(cPropertyValue,"{&DELIMITER}").
+IF cPropertyValue = "":U OR cPropertyValue = ? THEN
+    DYNAMIC-FUNCTION('disablePagesInFolder':U, INPUT "2":U).
 
-ASSIGN wh = FRAME FRAME-B:HANDLE
+ASSIGN iCount = NUM-ENTRIES(cPropertyValue,"{&DELIMITER}")
+       wh = FRAME FRAME-B:HANDLE
        wh = wh:FIRST-CHILD    /* Field Group */ 
        wh = wh:LAST-CHILD.    /* Last Field  */
 

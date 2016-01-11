@@ -1,12 +1,9 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*------------------------------------------------------------------------
     File        : adeuib/_tempdblib.p
     Purpose     : Procedure Library for Temp-DB Maintenance tool
@@ -1058,11 +1055,11 @@ PROCEDURE EntityProcess :
    IF LENGTH(pcSep, "CHARACTER":U) GT 1          AND
       pcSep                        NE "Upper":U  THEN
    DO:
-       RUN showMessages IN gshSessionManager (INPUT "AF^5^" + LC(PROGRAM-NAME(1)) + ":" + LC(PROGRAM-NAME(2)) + "^" 
-                                                            + '"field separator"' 
-                                                            + '"The field separator should be either blank, a single character or ´Upper´"'
-                                                            +  CHR(4) + "?" + CHR(4) + "?" + CHR(4) + PROGRAM-NAME(1) 
-                                                            + CHR(4) + PROGRAM-NAME(2),
+       RUN showMessages IN gshSessionManager (INPUT  "AF^5^" + LC(PROGRAM-NAME(1)) + ":" + LC(PROGRAM-NAME(2)) + "^" 
+                                                             + 'field separator' + '|':u
+                                                             + 'The field separator should be either blank, a single character or ~'Upper~''
+                                                             +  CHR(4) + "?" + CHR(4) + "?" + CHR(4) + PROGRAM-NAME(1) 
+                                                             + CHR(4) + PROGRAM-NAME(2),
                                               INPUT  "ERR":U,
                                               INPUT  "OK":U,
                                               INPUT  "OK":U,

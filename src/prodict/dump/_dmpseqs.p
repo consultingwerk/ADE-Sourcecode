@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,14 +13,13 @@ in:  user_env[2] = Name of file to dump to.
 History:
     hutegger    94/02/24    code-page - support and trailer-info added
     mcmann      08/08/02    Eliminated any sequences whose name begins "$" - Peer Direct
-    
+    fernando    06/19/07    Support for large files    
 */
 /*h-*/
 
 { prodict/user/uservar.i }
 { prodict/dictvar.i }
 
-DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
 define variable lApplAlertBox as logical no-undo.
 

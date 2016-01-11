@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -14,6 +14,8 @@
  * 04/09/98 by laurief  Added SIZE 80 BY 20 to FRAME "stuff" (BUG 98-04-09-046)
  * 07/13/94 by gfs      94-06-30-002
  *
+ *
+ * 11/16/07 fernando   Support for _aud-audit-data* indexes deactivation 
  */
 
 /*
@@ -174,10 +176,14 @@ _all: DO:
   something = TRUE.
 END.
 ELSE _some: DO:
+
+  HIDE FRAME offing NO-PAUSE.
+
   FOR EACH _Index WHERE _Index._File-recid = drec_file
     AND _Index._Index-name <> "default"
     BY _Index._Index-name:
     IF rebuild = _Active THEN NEXT.
+
     ASSIGN
       pik_count = pik_count + 1
       pik_list[pik_count] = _Index._Index-name.

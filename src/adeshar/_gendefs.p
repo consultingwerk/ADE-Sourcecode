@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -367,6 +367,19 @@ IF _P._TYPE ne "" AND _P._FILE-TYPE ne "i":U THEN
 IF _P._html-file ne ""  THEN
   PUT STREAM P_4GL UNFORMATTED 
     "&Scoped-define WEB-FILE ":U _P._html-file SKIP (1).
+
+/*The widget-id file name is assigned only when the container is saved the first time, in that case
+  _widgetid-file-name = ?, and blank is the default value that is not written in the code. So if the file
+  is not blank and not null is because the container already has a file name assigned, so write it.*/
+IF _P._widgetid-file-name NE "" AND _P._widgetid-file-name NE ?  THEN
+  PUT STREAM P_4GL UNFORMATTED 
+    "&Scoped-define WIDGETID-FILE-NAME ":U _P._widgetid-file-name SKIP (1).
+ELSE
+    /*If the file is saved the first time (_P._widgetid-file-name = ?), and we have the flags to assign
+      custom widget-id file name in the preference page, we write it in the code.*/
+    IF _widgetid_save_filename AND NOT _widgetid_default_filename AND _P._widgetid-file-name = ? THEN
+      PUT STREAM P_4GL UNFORMATTED 
+        "&Scoped-define WIDGETID-FILE-NAME ":U _widgetid_custom_filename SKIP (1).
 
 /* Is it an adm container?  Put out Window, Frame, or Dialog-box. 
    Note that Frames are "no-window" windows.  The final (unusual) case
@@ -1735,8 +1748,8 @@ PROCEDURE put-frame-with-clause.
     IF _L._COL ne ? AND _U._TYPE NE "DIALOG-BOX" THEN
       PUT STREAM P_4GL UNFORMATTED SKIP
           "         AT X "   /* Max is necessary only because of syntax */
-            MAX((INTEGER(_L._COL) - 1) * SESSION:PIXELS-PER-COLUMN,0) " Y "
-            MAX((INTEGER(_L._ROW) - 1) * SESSION:PIXELS-PER-ROW,0).
+            MAX(INTEGER((_L._COL - 1) * SESSION:PIXELS-PER-COLUMN),0) " Y "
+            MAX(INTEGER((_L._ROW - 1) * SESSION:PIXELS-PER-ROW),0).
     IF _U._TYPE eq "FRAME":U THEN DO:
       /* Size-to-fit frames are always scrollable in order to avoid 
          compiler errors. */
@@ -1909,7 +1922,8 @@ PROCEDURE put-func-prototypes-in.
       IF p_Status <> "CHECK-SYNTAX" THEN
         ASSIGN vCode = ENTRY(1, vCode, ":") + " FORWARD." NO-ERROR.
       ELSE
-        ASSIGN vCode = SUBSTRING(vCode, 1, INDEX(vCode, ":") - 1, "CHARACTER") + " IN THIS-PROCEDURE." NO-ERROR.
+        ASSIGN iIn   = INDEX(vCode, ":") - 1
+               vCode = SUBSTRING(vCode, 1, iIn, "CHARACTER") + " IN THIS-PROCEDURE." NO-ERROR.
       IF ERROR-STATUS:ERROR = TRUE THEN
         ASSIGN vCode = TRIM(_TRG._tCODE).
     END.

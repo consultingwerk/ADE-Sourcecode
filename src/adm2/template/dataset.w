@@ -8,7 +8,7 @@ This template is a starting point for creating your own custom SmartObject"
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -110,7 +110,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB sObject 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/dataset.i}
+{src/adm2/dataset.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

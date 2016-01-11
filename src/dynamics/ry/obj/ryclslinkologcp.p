@@ -290,8 +290,8 @@ PROCEDURE populateRelatedData :
     ghQuery:set-buffers(hSupportedLinkBuffer).
     ghQuery:query-prepare('for each ' + hSupportedLinkBuffer:name).
     ghQuery:query-open().
-    
     ghQuery:get-first().
+    
     do while hSupportedLinkBuffer:available:
         hSdoLinkBuffer:buffer-create().
         hSdoLinkBuffer:buffer-copy(hSupportedLinkBuffer).
@@ -305,20 +305,19 @@ PROCEDURE populateRelatedData :
     
     delete object hSupportedLinkBuffer no-error.
     
-    /* For some reason the foreignvalues are not being set
-       correctly. Probably something to do with the fact that
-       this is a temp-table-based SDO.
-         */
     {get DataSource hDataSource}.
     cClassName = {fnarg columnValue 'object_type_code' hDataSource}.    
-    {set ForeignValues cClassName}.
     
     /* Set the RowsToBatch property to the actual number
        records in the resulting data set, so that the browser
        scrolls more smoothly.
      */
     {set RowsToBatch iRecordCount}.
-                
+    
+    /* Add FF to the query (might not have been done yet) */
+    if valid-handle(hDataSource) then
+      {fn addForeignKey}.
+     
     /* open the Sdo query */
     {fn OpenQuery}.    
     

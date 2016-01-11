@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -396,7 +396,7 @@ PROCEDURE create_a_SmartBrowser :
              _BC._DEF-FORMAT   = dynamic-function("columnFormat" IN hSDO,cName)
              _BC._DEF-HELP     = dynamic-function("columnHelp" IN hSDO,cName)
              _BC._DEF-LABEL    = dynamic-function("columnColumnLabel" IN hSDO,cName)
-             _BC._DEF-WIDTH    = MAX(dynamic-function("columnWidth" IN hSDO,cName),
+             _BC._DEF-WIDTH    = MAX(IF cDataType BEGINS "DATE":U THEN FONT-TABLE:GET-TEXT-WIDTH-CHARS(_BC._DEF-FORMAT) ELSE DYNAMIC-FUNCTION("columnWidth" IN hSDO,cName),
                                               FONT-TABLE:GET-TEXT-WIDTH(ENTRY(1,_BC._DEF-LABEL,"!":U)))
              _BC._DISP-NAME    = _BC._NAME
              _BC._FORMAT       = _BC._DEF-FORMAT

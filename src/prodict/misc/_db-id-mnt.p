@@ -2,7 +2,7 @@
 &Scoped-define FRAME-NAME controls-frame
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -30,6 +30,7 @@
                            20050525-017.
     kmcintos June 7, 2005  Added context sensitive help to dialog and removed
                            appbuilder friendly code.
+    fernando 11/30/07      Check if read-only mode.                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -70,8 +71,11 @@ ELSE DO:
     RETURN "No Permission".
   END.
 
+  IF checkReadOnly("DICTDB","_Db-detail") NE "" THEN
+     RETURN "No Permission".
+
   CREATE BUFFER ghDb FOR TABLE "DICTDB._db".
-  CREATE BUFFER ghDbDetail FOR TABLE "DICTDB._db-detail".
+  CREATE BUFFER ghDbDetail FOR TABLE "DICTDB._db-detail" NO-ERROR.
   IF NOT VALID-HANDLE(ghDbDetail) THEN
     cMessage = "The _db-detail table doesn't exist in this database.".
 END.
@@ -376,6 +380,8 @@ PROCEDURE enable_UI :
          fiGuid WHEN NOT (SESSION:DISPLAY-TYPE = 'TTY':U )
          &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN RECT-1 &ENDIF
       WITH FRAME controls-frame.
+  IF ronly THEN
+      DISABLE fiDescription edCustomDetail btnMacId WITH FRAME controls-frame.
   VIEW FRAME controls-frame.
   
 END PROCEDURE.

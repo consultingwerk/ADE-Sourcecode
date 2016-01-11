@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -43,6 +43,7 @@
     kmcintos Aug 18, 2005  Increased format of gcUserId to x(40) 20050622-022.
     fernando Nov 03, 2005  Make sure 'grant' toggle-box is not selected by default
                            if scrolling through roles, after it gets sensitive again.
+    fernando 11/30/07      Check if read-only mode.                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -61,6 +62,10 @@ DEFINE VARIABLE glAdmin     AS LOGICAL     NO-UNDO.
 
 DEFINE VARIABLE iRole       AS INTEGER     NO-UNDO.
 
+IF checkReadOnly("DICTDB","_sec-granted-role") NE "" OR
+   checkReadOnly("DICTDB","_sec-role") NE "" THEN
+   RETURN.
+
 c_sec_mode = user_env[9].
 
 gcRoles = getPermissions(USERID("DICTDB"),c_sec_mode).
@@ -70,6 +75,7 @@ IF gcRoles EQ "" THEN DO:
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN.
 END.
+
 
 DEFINE VARIABLE cRole       AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cPerm       AS CHARACTER   NO-UNDO.
@@ -522,7 +528,7 @@ END.
   END.
 
   ON "ENTRY" OF edcomments IN FRAME {&FRAME-NAME} DO:
-    IF glCreateMode THEN LEAVE.
+    IF glCreateMode OR ronly THEN LEAVE.
   
     /* There is no "VALUE-CHANGED" event for TTY so we need to assume that
        when the user enters this field they intend to update it.  There is
@@ -539,7 +545,7 @@ END.
   END.
 
   ON "LEAVE" OF edcomments IN FRAME {&FRAME-NAME} DO:
-    IF glCreateMode THEN LEAVE.
+    IF glCreateMode OR ronly THEN LEAVE.
   
     /* If no modifications were made then leave */
     IF (AVAILABLE sgRole AND
@@ -632,18 +638,23 @@ PROCEDURE enable_UI :
           lblComments 
           gcUserId
       WITH FRAME Dialog-Frame.
+
+  IF ronly THEN
+     edcomments:READ-ONLY = YES.
+
   ENABLE RECT-3 WHEN NOT (SESSION:DISPLAY-TYPE = 'TTY':U ) 
-         figrantee 
-         cbroledesc 
-         edcomments 
+         figrantee
+         cbroledesc
+         edcomments WHEN NOT ronly
          tbgranter 
          btnDone 
-         btnCreate 
+         btnCreate WHEN NOT ronly
          btnCancel 
-         btnDelete 
-         bRole
+         btnDelete WHEN NOT ronly
+         bRole 
          btnHelp WHEN NOT (SESSION:DISPLAY-TYPE = 'TTY':U ) 
       WITH FRAME Dialog-Frame.
+
   VIEW FRAME Dialog-Frame.
   {&OPEN-BROWSERS-IN-QUERY-Dialog-Frame}
 END PROCEDURE.
@@ -722,7 +733,6 @@ PROCEDURE initializeUI :
                               LDBNAME("DICTDB") + ")".
 
   RUN openQuery.
-
   APPLY "ENTRY" TO BROWSE bRole.
 END PROCEDURE.
 
@@ -743,7 +753,7 @@ PROCEDURE loadPermissionList :
   DEFINE VARIABLE hSecRole AS HANDLE      NO-UNDO.
   DEFINE VARIABLE hQuery   AS HANDLE      NO-UNDO.
 
-  CREATE BUFFER hSecRole FOR TABLE "DICTDB._sec-role".
+  CREATE BUFFER hSecRole FOR TABLE "DICTDB._sec-role" NO-ERROR.
   IF NOT VALID-HANDLE(hSecRole) THEN DO:
     MESSAGE "This Database doesn~'t contain the necessary tables for" SKIP
             "Permissions Maintenance operations!"
@@ -831,6 +841,7 @@ PROCEDURE localButtonState :
   DEFINE VARIABLE lCanChange AS LOGICAL     NO-UNDO.
   DEFINE VARIABLE lCanRevoke AS LOGICAL     NO-UNDO.
 
+  IF NOT ronly THEN
   GRANT-BLK:
   DO iPerm = 1 TO NUM-ENTRIES(gcRoles) BY 2:
     lCanGrant = canGrant(ENTRY(iPerm,gcRoles),gcRoles,c_sec_mode).
@@ -843,7 +854,8 @@ PROCEDURE localButtonState :
                          USERID("DICTDB"),
                          c_sec_mode).
 
-  lCanRevoke = canRevoke(cbroledesc:SCREEN-VALUE IN FRAME {&FRAME-NAME},
+  lCanRevoke = (NOT ronly) AND 
+               canRevoke(cbroledesc:SCREEN-VALUE IN FRAME {&FRAME-NAME},
                          figrantee:SCREEN-VALUE IN FRAME {&FRAME-NAME},
                          figrantor:SCREEN-VALUE IN FRAME {&FRAME-NAME},
                          USERID("DICTDB"),

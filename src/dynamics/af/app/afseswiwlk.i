@@ -71,7 +71,13 @@ define variable cDataSourceNames     as character no-undo.
 
 EMPTY TEMP-TABLE ttTranslate.
 
-IF NOT VALID-HANDLE(phContainer) OR NOT VALID-HANDLE(phObject) OR NOT VALID-HANDLE(phFrame) THEN RETURN.
+IF NOT VALID-HANDLE(phContainer) then 
+  phContainer = phObject. 
+
+IF NOT VALID-HANDLE(phContainer) 
+OR NOT VALID-HANDLE(phObject) 
+OR NOT VALID-HANDLE(phFrame) THEN 
+  RETURN.
  
 ASSIGN cObjectType       = DYNAMIC-FUNCTION("getObjectType":U IN phObject)
        lObjectTranslated = DYNAMIC-FUNCTION("getObjectTranslated":U IN phObject ) NO-ERROR.
@@ -249,7 +255,9 @@ DO:
   IF phFrame:TYPE = "FRAME" THEN 
   DO:
     {get ContainerHandle hObjectFrame phObject}.
-    
+    if valid-handle(hObjectFrame) and hObjectFrame:type = 'WINDOW':U then
+       {get WindowFrameHandle hObjectFrame phObject} no-error. 
+     
     IF phFrame NE hObjectFrame THEN 
     DO:
       ASSIGN
@@ -260,8 +268,12 @@ DO:
         cAllFieldNames = "".          
       DO WHILE VALID-HANDLE(hField):
         ASSIGN
-          cAllFieldHandles = cAllFieldHandles + (IF cAllFieldHandles = "" THEN "" ELSE ",") + IF hField = ? THEN "?" ELSE STRING(hField)
-          cAllFieldNames   = cAllFieldNames + (IF cAllFieldNames = "" THEN "" ELSE ",") + IF hField:NAME = ? THEN "?" ELSE hField:NAME
+          cAllFieldHandles = cAllFieldHandles 
+                           + (IF cAllFieldHandles = "" THEN "" ELSE ",") 
+                           + IF hField = ? THEN "?" ELSE STRING(hField)
+          cAllFieldNames   = cAllFieldNames 
+                           + (IF cAllFieldNames = "" THEN "" ELSE ",")
+                           + IF hField:NAME = ? THEN "?" ELSE hField:NAME
           hField = hField:NEXT-SIBLING.
       END.
     END.
@@ -606,9 +618,9 @@ DO:
       IF  CAN-QUERY(hWidget, "PRIVATE-DATA":U)             
       AND LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) GT 0 THEN
         ASSIGN cShowPopup = ENTRY(LOOKUP("ShowPopup":U, hWidget:PRIVATE-DATA) + 1, hWidget:PRIVATE-DATA).
-
+      
       /* Get the name of the field for which popup is to be created only if 
-        there are hidden fields here */
+         there are hidden fields here */
       IF cHiddenFields <> "":U THEN 
       DO:
         cParentField = (IF CAN-QUERY(hWidget, "TABLE":U) AND LENGTH(hWidget:TABLE) > 0 AND hWidget:TABLE <> "RowObject":U 

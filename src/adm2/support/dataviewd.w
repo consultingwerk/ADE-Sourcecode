@@ -1458,7 +1458,7 @@ FUNCTION initDataView RETURNS LOGICAL
   {fn deleteItems ghTableList}.
   IF VALID-HANDLE(hDatasetSource) AND cDataTable > '' THEN
   DO:
-    glIsChild       = {fnarg isChild cDataTable hDatasetSource}.
+    glIsChild      = {fnarg isChild cDataTable hDatasetSource}.
     cRelatedTables = {fnarg viewTables cDataTable hDatasetSource}.
     cViewTables    = {fn getViewTables p_hSMO}.
     cSortTables    = {fn getQueryTables p_hSMO}.
@@ -1473,7 +1473,7 @@ FUNCTION initDataView RETURNS LOGICAL
   END.
 
   ASSIGN 
-    lOverrideSubmitParent:SENSITIVE = glIsChild.
+    lOverrideSubmitParent:SENSITIVE = (glIsChild = TRUE).
   
   initSubmitParent().
   RETURN VALID-HANDLE(hDatasetSource) . 

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -58,15 +58,23 @@
 {adeuib/custwidg.i}  /* Define Palette-Items (and their images) */
 {adecomm/adefext.i} 
 
+/*Defines the temp-tables and prodataset for the widget-id assignments.*/
+DEFINE TEMP-TABLE ttXMLFileNames NO-UNDO
+FIELD cFileName AS CHARACTER
+INDEX cfilename cfilename.
+{adecomm/dswid.i}
+
 DEFINE BUFFER parent_U FOR _U.
 
  /* Variables used for adm version */
 {adeuib/vsookver.i}
 
-DEFINE VARIABLE glRemote     AS LOGICAL NO-UNDO.
-DEFINE VARIABLE glEditAttr   AS LOGICAL NO-UNDO.
-DEFINE VARIABLE glMovable    AS LOGICAL NO-UNDO INITIAL yes.
-DEFINE VARIABLE glResizable  AS LOGICAL NO-UNDO INITIAL yes. 
+DEFINE VARIABLE glRemote           AS LOGICAL NO-UNDO.
+DEFINE VARIABLE glEditAttr         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE glMovable          AS LOGICAL NO-UNDO INITIAL yes.
+DEFINE VARIABLE glResizable        AS LOGICAL NO-UNDO INITIAL yes.
+DEFINE VARIABLE gcLastObjectType   AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE giLastWidgetID     AS INTEGER    NO-UNDO.
 
 &SCOPED-DEFINE hideobject  (_L._REMOVE-FROM-LAYOUT~
                             OR ((_P._page-current ne ?) AND ~
@@ -141,7 +149,107 @@ FUNCTION setCurrent RETURNS LOGICAL
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignSMOWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignSMOWidgetID Procedure
+PROCEDURE assignSMOWidgetID:
+/*------------------------------------------------------------------------------
+    Purpose: Assign widget-id values if the -usewidgetid parameter is being used
+             in the session.
+    Parameters: <none>
+    Notes: The widget-id values assigned here, in the design window, are neither
+           used at runtime, nor saved in the source file.
+           Because the core always assigns widget-ids if -usewidgetid is used, we
+           need to assign widget-ids at design time in order to avoid duplicates.
+           Because the widget-ids assigned here are not used later, the code of
+           this procedure is written in a way to avoid messages or warnings to
+           be shown to the user. Therefore the code looks first for the widgetid
+           xml file, if it does not exists, widget-ids are assigned according to
+           the default values.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cContainerFile  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cXMLFileName    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cObject         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hFrame          AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lOk             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iWidgetID       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lUsingXMLFile   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE hProcGaps       AS HANDLE     NO-UNDO.
+
+DEFINE BUFFER parent_U FOR _U.
+
+/*Widget-ids can only be set for visual objects*/
+IF NOT DYNAMIC-FUNCTION("instanceOf":U IN _S._HANDLE, INPUT "visual":U) OR   _S._HANDLE:TYPE EQ "FRAME":U THEN
+   RETURN.
+
+RUN adecomm/_widgaps.p PERSISTENT SET hProcGaps.
+
+FIND FIRST parent_U WHERE RECID(parent_U) = _U._parent-recid. 
+
+ASSIGN cContainerFile = REPLACE(_P._save-as-file, "~\", "/")
+       cXMLFileName   = _P._widgetid-file-name.
+
+/*IF the xml file name is blank or null, is because we have to use the default value,
+  which is the file name with the '.xml' extension*/
+IF cXMLFileName = "":U OR cXMLFileName = ? THEN
+    ASSIGN cXMLFileName = IF INDEX(cContainerFile, ".") > 0 THEN REPLACE(cContainerFile, SUBSTRING(cContainerFile, R-INDEX(cContainerFile, "."), -1), ".xml":U) ELSE cContainerFile + ".xml":U.
+
+/*Checks if the file-name is already loaded, if not, load it*/
+IF NOT CAN-FIND(FIRST ttXMLFileNames WHERE ttXMLFileNames.cFileName = cXMLFileName) THEN
+DO:
+    ASSIGN lOk = DATASET dsWidgetID:READ-XML("FILE":U, cXMLFileName, "MERGE":U, ?, FALSE) NO-ERROR.
+    IF lOk THEN
+    DO:
+        CREATE ttXMLFileNames.
+        ASSIGN ttXMLFileNames.cFileName = cXMLFileName
+               lUsingXMLFile = TRUE.
+
+    END. /* IF lOk THEN */
+    ELSE ASSIGN lUsingXMLFile = FALSE.
+END. /* IF NOT CAN-FIND(FIRST ttXMLFileNames WHERE ttXMLFileNames.cFileName = cXMLFileName) THEN */
+
+ASSIGN cObject = DYNAMIC-FUNCTION('getObjectName':U IN _S._HANDLE).
+
+/*If the xml file was found an loaded to the prodataset, we use it to get the widget-ids gap values*/
+IF lUsingXMLFile THEN
+DO:
+    FIND FIRST Container NO-LOCK NO-ERROR.
+    FIND FIRST Instance  NO-LOCK WHERE Instance.contPath = Container.contPath AND
+                                       Instance.contName = Container.contName AND
+                                       Instance.ID       = cObject NO-ERROR.
+
+    /*If the instance is not in the xml file, we don't care, just get the default gap value and use it*/
+    IF NOT AVAILABLE(Instance) THEN
+    DO:
+        ASSIGN iWidgetID = parent_U._widget-id + DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGaps, INPUT gcLastObjectType).
+    END.
+    ELSE
+        ASSIGN iWidgetID = parent_U._widget-id + Instance.widgetID.
+END. /* IF lUsingXMLFile THEN */
+/*If we are not using a XML file, use the default gap values.*/
+ELSE DO:
+    IF gcLastObjectType = "":U THEN
+        ASSIGN iWidgetID = IF parent_U._widget-id EQ ? THEN 0 ELSE parent_U._widget-id.
+    ELSE ASSIGN iWidgetID = DYNAMIC-FUNCTION('getWidgetIDGap':U IN hProcGaps, INPUT gcLastObjectType).
+
+    ASSIGN iWidgetID = iWidgetID + giLastWidgetID + IF parent_U._widget-id EQ ? THEN 0 ELSE parent_U._widget-id.
+END. /* IF lUsingXMLFile */
+
+{get ObjectType gcLastObjectType _S._HANDLE}.
+{get ContainerHandle hFrame _S._HANDLE}.
+{set WidgetID iWidgetID _S._HANDLE}.
+
+ASSIGN giLastWidgetID = iWidgetID.
+
+DELETE OBJECT hProcGaps.
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-createAffordance) = 0 &THEN
 
@@ -546,7 +654,7 @@ PROCEDURE initializeSMO :
    /* Determine the version of the object */
    {adeuib/admver.i _S._HANDLE admVersion}.
  END.
-  
+
  IF VALID-HANDLE(_S._HANDLE)
  AND (_S._visual 
       OR _U._SubType = "SmartBusinessObject":U  
@@ -569,20 +677,21 @@ PROCEDURE initializeSMO :
        END. /* ADM1 */
        ELSE
        DO:
+
          /* Start the super-procedure with design-time overrides 
             (getFilterTarget, getDataSource) */
          RUN start-super-proc IN _S._HANDLE ("adm2/design.p":U). 
-                  
+
          /* Workaround for the problem caused with menus on hidden pages 
            by the fact that everything is both viewed and hidden here 
            (See details in design.p and toolbar.p viewObject)   
            Tried to solve it with hideOninit but then the 'ventilator' 
            disappears! */
-         
+
          IF _U._subtype MATCHES "*Toolbar*":U THEN 
             DYNAMIC-FUNCTION('setDesignTimeHideMenu':U IN _s._handle,
                               {&hideobject}) NO-ERROR.
-         
+
          /* Grandchildren objects require UIBMode set to 'Design-Child' 
             before initialization, so we call createObjects to create the 
             objects and links. setUIBMode('Design') will set the value to 
@@ -590,6 +699,12 @@ PROCEDURE initializeSMO :
           */
          RUN createObjects IN _S._HANDLE NO-ERROR.
          DYNAMIC-FUNCTION("setUIBMode":U IN _S._HANDLE,"Design":U).
+
+         /*If the -usewidgetid session parameter is being used in the session,
+           we have to set the widget-id for the main frame in the SmartObject in
+           order to avoid duplicates widget-ids, when the window is opened.*/
+         IF CAN-DO(SESSION:STARTUP-PARAMETERS, "-usewidgetid":U) THEN
+         RUN assignSMOWidgetID.
 
          /* Ensure that the affordance button is enabled */
          IF AVAILABLE _S AND 
@@ -611,7 +726,7 @@ PROCEDURE initializeSMO :
             _S._affordance-handle <> ? AND 
             VALID-HANDLE(_S._affordance-handle) THEN
              _S._affordance-handle:MOVE-TO-TOP().  
-         
+
          /* Turn it off so it works when swithing pages.  */
          IF _U._subtype MATCHES "*Toolbar*":U THEN 
             DYNAMIC-FUNCTION('setDesignTimeHideMenu':U IN _s._handle,
@@ -622,7 +737,7 @@ PROCEDURE initializeSMO :
 
            /* Get container handle - (frame handle) */
            {get ContainerHandle hContainer _S._HANDLE}.
-           
+
            /* Get container field group */
            IF VALID-HANDLE(hContainer) THEN
              hContainer = hContainer:FIRST-CHILD.
@@ -675,7 +790,7 @@ PROCEDURE realizeSMO :
  DEFINE VARIABLE iOrigWidthP   AS INTEGER NO-UNDO.
  DEFINE VARIABLE hFldGrp       AS HANDLE  NO-UNDO.
  DEFINE VARIABLE hFldWdgt      AS HANDLE  NO-UNDO.
-      
+
  IF pU_Recid <> ? THEN 
    setCurrent(pu_Recid).
  

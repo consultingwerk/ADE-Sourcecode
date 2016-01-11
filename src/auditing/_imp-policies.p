@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -833,58 +833,59 @@ DEFINE VARIABLE cerrorMsg AS CHAR   NO-UNDO.
     CREATE SAX-READER hParser NO-ERROR.
     IF ERROR-STATUS:ERROR THEN  DO:
         cErrorMsg =  "Error creating SAX-READER object:" + ERROR-STATUS:GET-MESSAGE(1).
-        RETURN.
     END.
+    ELSE DO:
     
-    /* get the handle of each temp-table. Used in StartElement */
-    ASSIGN hBuf-AuditPolicy      = BUFFER workAuditPolicy:HANDLE
-           hBuf-AuditFilePolicy  = BUFFER workAuditFilePolicy:HANDLE
-           hBuf-AuditFieldPolicy = BUFFER workAuditFieldPolicy:HANDLE
-           hBuf-AuditEventPolicy = BUFFER workAuditEventPolicy:HANDLE. 
+        /* get the handle of each temp-table. Used in StartElement */
+        ASSIGN hBuf-AuditPolicy      = BUFFER workAuditPolicy:HANDLE
+               hBuf-AuditFilePolicy  = BUFFER workAuditFilePolicy:HANDLE
+               hBuf-AuditFieldPolicy = BUFFER workAuditFieldPolicy:HANDLE
+               hBuf-AuditEventPolicy = BUFFER workAuditEventPolicy:HANDLE. 
     
-    /* if we are calling more than once, empty the temp-table */
-    RUN cleanup.
+        /* if we are calling more than once, empty the temp-table */
+        RUN cleanup.
     
-    /* give the SAX-READER the handle to this procedure */ 
-    hParser:HANDLER = THIS-PROCEDURE.
+        /* give the SAX-READER the handle to this procedure */ 
+        hParser:HANDLER = THIS-PROCEDURE.
 
-    hParser:SET-INPUT-SOURCE("file",  pxmlFileName).
+        hParser:SET-INPUT-SOURCE("file",  pxmlFileName).
 
-    hParser:VALIDATION-ENABLED = NO.
+        hParser:VALIDATION-ENABLED = NO.
 
-    hParser:SAX-PARSE() NO-ERROR.
+        hParser:SAX-PARSE() NO-ERROR.
 
-    IF ERROR-STATUS:ERROR THEN 
-    DO: 
-      IF ERROR-STATUS:NUM-MESSAGES > 0 THEN 
-        /* unable to begin the parse */ 
-        cErrorMsg = ERROR-STATUS:GET-MESSAGE(1). 
-      ELSE 
-        /* error detected in a callback */ 
-        cErrorMsg = RETURN-VALUE. 
-    END. 
+        IF ERROR-STATUS:ERROR THEN 
+        DO: 
+          IF ERROR-STATUS:NUM-MESSAGES > 0 THEN 
+            /* unable to begin the parse */ 
+            cErrorMsg = ERROR-STATUS:GET-MESSAGE(1). 
+          ELSE 
+            /* error detected in a callback */ 
+            cErrorMsg = RETURN-VALUE. 
+        END. 
 
-    IF hParser:PARSE-STATUS = SAX-UNINITIALIZED THEN
-       ASSIGN  cerrorMsg = cErrorMsg + CHR(10) + "UNINITIALIZED".    
-    IF hParser:PARSE-STATUS = SAX-PARSER-ERROR THEN
-       ASSIGN  cerrorMsg = cErrorMsg + CHR(10) + "PARSER-ERROR".
+        IF hParser:PARSE-STATUS = SAX-UNINITIALIZED THEN
+           ASSIGN  cerrorMsg = cErrorMsg + CHR(10) + "UNINITIALIZED".    
+        IF hParser:PARSE-STATUS = SAX-PARSER-ERROR THEN
+           ASSIGN  cerrorMsg = cErrorMsg + CHR(10) + "PARSER-ERROR".
     
-    DELETE OBJECT hParser. 
+        DELETE OBJECT hParser. 
     
-    /* if there were no error messages, check if we had anything to import
-       at all
-    */
-    IF cerrorMsg = "" THEN DO:
-        FIND FIRST workAuditPolicy NO-ERROR.
-        IF NOT AVAILABLE workAuditPolicy THEN
-           cErrorMsg = "XML file does not contains any policies.".
+        /* if there were no error messages, check if we had anything to import
+           at all
+        */
+        IF cerrorMsg = "" THEN DO:
+            FIND FIRST workAuditPolicy NO-ERROR.
+            IF NOT AVAILABLE workAuditPolicy THEN
+               cErrorMsg = "XML file does not contains any policies.".
+        END.
+
+        /* don't need the buffers anymore */
+        ASSIGN hBuf-AuditPolicy = ?
+               hBuf-AuditFilePolicy = ?
+               hBuf-AuditFieldPolicy = ?
+               hBuf-AuditEventPolicy = ?. 
     END.
-
-    /* don't need the buffers anymore */
-    ASSIGN hBuf-AuditPolicy = ?
-           hBuf-AuditFilePolicy = ?
-           hBuf-AuditFieldPolicy = ?
-           hBuf-AuditEventPolicy = ?. 
 
     RETURN cerrorMsg.
 

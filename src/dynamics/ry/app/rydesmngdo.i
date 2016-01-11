@@ -54,6 +54,10 @@
     DEFINE VARIABLE iDatabaseloop                   AS INTEGER              NO-UNDO.
     DEFINE VARIABLE hClassBuffer                    AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hEntityBuffer                   AS HANDLE               NO-UNDO.
+    define variable cError as character no-undo.
+    define variable cNewObjectName as character no-undo.
+    define variable cNewObjectExt as character no-undo.
+    define variable cDataSourceClasses as character no-undo.
     
     DEFINE BUFFER bttDataObjectField FOR ttDataObjectField.
 
@@ -74,7 +78,40 @@
 
     EMPTY TEMP-TABLE ttStoreAttribute.
     EMPTY TEMP-TABLE ttDataObjectField.
-
+    
+    /* Validate input data */
+    if pcTableName eq ? or pcTableName eq '':u then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"table name"'}.
+        
+    if pcDataObjectName eq ? or pcDataObjectName eq '':u then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"data object name"'}.
+    
+    /* validate the object name */
+    cError = DYNAMIC-FUNCTION("prepareObjectName":U in ghDesignManager,
+                              pcDataObjectName,
+                              '':u, /* pcResultCode */
+                              "":U,        /* object string */
+                              "SAVE":U,
+                              pcObjectTypeCode,
+                              "":U,        /* entity name (not req'd) */
+                              pcProductModule,
+                              output cNewObjectName,
+                              output cNewObjectExt   ).
+    if cError ne '':u then
+        return error cError.
+        
+    if pcObjectTypeCode eq ? or pcObjectTypeCode eq '':u then
+        return error  {aferrortxt.i 'AF' '5' '?' '?' '"object type"'}.
+    cDataSourceClasses = dynamic-function('getDataSourceClasses':u in ghDesignManager).
+    if not can-do(cDataSourceClasses, pcObjectTypeCode) then
+        return error {aferrortxt.i 'RY' '13' '?' '?' "'~~'' + pcObjectTypeCode + '~~''" "'A data source class is one of: ' + cDataSourceClasses"}.
+            
+    if pcProductModule eq ? or pcProductModule eq '':u then
+        return error  {aferrortxt.i 'AF' '5' '?' '?' '"product module"'}.
+        
+    if pcRootFolder eq ? or pcRootFolder eq '':u then
+        return error  {aferrortxt.i 'AF' '5' '?' '?' '"Root Folder"'}.
+        
     /** First retrieve all the information we need 
      *  ----------------------------------------------------------------------- **/
     IF pcDatabaseName EQ ? OR pcDatabaseName EQ "":U THEN
@@ -518,20 +555,23 @@
            ttStoreAttribute.tConstantValue      = NO
            ttStoreAttribute.tCharacterValue     = pcAppServerPartition.
     
-    /* To ensure data logic procedures created in a product module
-       without a relative path is still abe to run */
-    IF TRIM(pcDataLogicRelativePath) = "/":U  OR
-       TRIM(pcDataLogicRelativePath) = "~\":U THEN
-        ASSIGN pcDataLogicRelativePath = "":U.
-
     /* pcLogicProcedureName */
-    CREATE ttStoreAttribute.
-    ASSIGN ttStoreAttribute.tAttributeParent    = "MASTER":U
-           ttStoreAttribute.tAttributeParentObj = 0
-           ttStoreAttribute.tAttributeLabel     = "DataLogicProcedure ":U
-           ttStoreAttribute.tConstantValue      = NO
-           ttStoreAttribute.tCharacterValue     = pcDataLogicRelativePath + pcLogicProcedureName.
-           
+    if pcLogicProcedureName ne ? and pcLogicProcedureName ne '':u then
+    do:
+        /* To ensure data logic procedures created in a product module
+	       without a relative path is still abe to run */
+        IF TRIM(pcDataLogicRelativePath) = "/":U  OR
+           TRIM(pcDataLogicRelativePath) = "~\":U THEN
+            ASSIGN pcDataLogicRelativePath = "":U.
+
+        CREATE ttStoreAttribute.
+        ASSIGN ttStoreAttribute.tAttributeParent    = "MASTER":U
+               ttStoreAttribute.tAttributeParentObj = 0
+               ttStoreAttribute.tAttributeLabel     = "DataLogicProcedure ":U
+               ttStoreAttribute.tConstantValue      = NO
+               ttStoreAttribute.tCharacterValue     = pcDataLogicRelativePath + pcLogicProcedureName.
+    end.
+               
     /* Set the Label of the SDO. This is used for resolving menu conflicts.
        Get the value of the Label from the Entity Mnemonic cache. If it cannot
        be found there for some reason, use that table name. If that is not available,

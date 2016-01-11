@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -30,8 +30,8 @@
 
   {src/adm2/custom/comboexclcustom.i}
 
-DEFINE VARIABLE glUseNewAPI       AS LOGICAL     NO-UNDO.
-DEFINE VARIABLE ghSDFCacheManager AS HANDLE     NO-UNDO.
+/* glUsenewAPI is conditionally defined in smrtprop.i based on &admSUPER names
+   and can be used in and below the main-block in this super */
 
 DEFINE TEMP-TABLE ttDComboCopy  NO-UNDO LIKE ttDcombo.             
 DEFINE TEMP-TABLE ttLookupEmpty NO-UNDO LIKE ttLookup.
@@ -658,18 +658,12 @@ END.
 
 
  
-
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
 
 /* ***************************  Main Block  *************************** */
 
-glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
-                                'keep_old_field_api':U) = 'YES':U).
-
-ghSDFCacheManager = {fnarg getManagerHandle 'SDFCacheManager':U}.
-
+  
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1326,6 +1320,9 @@ PROCEDURE initializeCombo :
            SENSITIVE        = (cUIBMode BEGINS "DESIGN":U) = FALSE
            TAB-STOP         = TRUE.
 
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+      RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hCombo, INPUT 2,
+                                              INPUT ?,      INPUT ?).
   ASSIGN 
     hCombo:DATA-TYPE       = cKeyDataType 
     hCombo:FORMAT          = cKeyFormat
@@ -1369,7 +1366,7 @@ PROCEDURE initializeCombo :
         hComboBuffer:BUFFER-CREATE().
         hComboBuffer:BUFFER-FIELD('hWidget':U):BUFFER-VALUE  = TARGET-PROCEDURE.
       END.   
-  
+
       ASSIGN 
         hComboBuffer:BUFFER-FIELD('hViewer':U):BUFFER-VALUE             = hContainer
         hComboBuffer:BUFFER-FIELD('cWidgetName':U):BUFFER-VALUE         = cFieldName
@@ -1751,7 +1748,7 @@ PROCEDURE refreshChildDependancies :
   EMPTY TEMP-TABLE ttLookupEmpty.
 
   /* Resolve query */
-  IF VALID-HANDLE(gshAstraAppserver) AND VALID-HANDLE(ghSDFCacheManager) THEN
+  IF VALID-HANDLE(gshAstraAppserver) THEN
     RUN adm2/lookupqp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttLookupEmpty,
                                               INPUT-OUTPUT TABLE ttDComboCopy,
                                               INPUT "ComboAutoRefresh":U,
@@ -2388,17 +2385,22 @@ FUNCTION createLabel RETURNS HANDLE
      ASSIGN FRAME                 = hParentFrame
             X                     = hFrame:X - iLabelLength
             Y                     = hFrame:Y
-            HIDDEN                = FALSE
+            HIDDEN                = TRUE
             WIDTH-PIXELS          = iLabelLength
             FORMAT                = "x(256)":U
             SCREEN-VALUE          = pcLabel + ":":U
             HEIGHT-PIXELS         = SESSION:PIXELS-PER-ROW 
-            HIDDEN                = lVisible
             .  
    IF hLabel:COL <= 0 THEN
      hLabel:COL = 1.
 
   {set LabelHandle hLabel}.
+
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+     RUN assignLabelWidgetID IN TARGET-PROCEDURE.  
+
+  ASSIGN hLabel:HIDDEN = lVisible.
+
   hCombo:SIDE-LABEL-HANDLE = hLabel.
 
   RETURN hLabel. 
@@ -2702,7 +2704,7 @@ FUNCTION getDataValue RETURNS CHARACTER
   {get ComboHandle hCombo}.
 
   IF NOT VALID-HANDLE(hCombo) THEN
-    RETURN ERROR. 
+    RETURN ?. 
 
   &SCOPED-DEFINE xp-assign
   {get KeyField cKeyField}

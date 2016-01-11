@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,6 +14,7 @@ Describtion:
 
 Input:
   user_env[1] = "ALL" or comma-separated list of files
+                or it may be in user_longchar, if list was too big.
   user_env[4] = if user_env[9] = "h"
                     then "error" or ""  to signal the needed message
                     else insignificant
@@ -41,9 +42,8 @@ Output:
   user_env[2] = physical file or directry name for some input
   user_env[4] = "y" or "n" - stop on first error (if class = "d","4" or "s")
               = error% (if class = "f")
-  user_env[5] = comma separated list of "y" (yes) or "n" (no) which
-                corresponds to file list in user_env[1], indicating for each,
-                whether triggers should be disabled when the load is done.
+  user_env[5] = comma separated list of table numbers for which triggers
+                should be disabled when the load is done.
                 (only used for load data file contents, "f").
   user_env[8] = dbname (if class = "d" or "4" or "s")
   user_env[10]= user specified code page
@@ -84,6 +84,8 @@ History:
                         fatal error having to do with permission checking
                         20051031-030.
     fernando 03/14/06   Handle case with too many tables selected - bug 20050930-006.
+    fernando 06/20/07   Support for large files
+    fernando 12/13/07   Handle long list of "some" selected tables    
 */
 /*h-*/
 
@@ -96,7 +98,7 @@ DEFINE VARIABLE base          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE class         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE comma         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE err           AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE i             AS INT64      NO-UNDO.
 DEFINE VARIABLE io-file       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE io-frame      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE io-title      AS CHARACTER  NO-UNDO.
@@ -885,12 +887,34 @@ PROCEDURE read-cp.
   /* Read trailer of file and find codepage */
   /* (partially stolen from lodtrail.i)     */
   
-  DEFINE VARIABLE i     AS INT            NO-UNDO.
+  DEFINE VARIABLE tempi AS DECIMAL          NO-UNDO.
+  DEFINE VARIABLE j     AS INTEGER          NO-UNDO.
 
   INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
-  SEEK INPUT TO END.
-  SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
+  i = SEEK(INPUT) - 11.
+  SEEK INPUT TO i. /* position to possible beginning of last line */
 
+  /* Now we need to deal with a large offset, which is a variable size
+     value in the trailer, for large values.
+     Now go back one character at a time until we find a new line or we have
+     gone back too far.
+     For the non-large offset format, the previous char will be a
+     newline character, so we will  detect that right away and read the
+     value as usual. Unless the file has CRLF (Windows), in which case
+     we will go back 1 character to read the value properly - to
+     account for the extra byte.
+     For larger values, we will read as many digits as needed.
+     The loop below could stop after 10 digits, but I am letting it go
+     up to 50 to try to catch a bad value.
+  */
+  DO WHILE LASTKEY <> 13 AND j <= 50:
+     ASSIGN j = j + 1
+            i = i - 1.
+     SEEK INPUT TO i.
+     READKEY PAUSE 0.
+  END.
+
+  /* now we can start reading it */
   READKEY PAUSE 0.
   ASSIGN
     lvar# = 0
@@ -898,9 +922,31 @@ PROCEDURE read-cp.
     i     = 0.
 
   DO WHILE LASTKEY <> 13 AND i <> ?: /* get byte count (last line) */
-    i = (IF LASTKEY > 47 AND LASTKEY < 58 
-          THEN i * 10 + LASTKEY - 48
-          ELSE ?).
+
+      IF LASTKEY > 47 AND LASTKEY < 58 THEN DO:
+          /* check if can fit the value into an int64 type. We need
+             to manipulate it with a decimal so that we don't get fooled
+             by a value that overflows. This is so that we catch a
+             bad offset in the file.
+           */
+          ASSIGN tempi = i /* first move it to a decimal */
+                 tempi = tempi * 10 + LASTKEY - 48. /* get new value */
+          i = INT64(tempi) NO-ERROR. /* see if it fits into an int64 */
+          
+          /* check if the value overflows becoming negative or an error happened. 
+             If so, something is wrong (too many digits or invalid values),
+             so forget this.
+          */
+          IF  i < 0 OR
+              ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+              ASSIGN i = 0.
+              LEAVE. /* we are done with this */
+          END.
+
+      END.
+      ELSE 
+          ASSIGN i = ?. /* bad character */
+
     READKEY PAUSE 0.
   END.
 
@@ -950,8 +996,8 @@ PROCEDURE find_psc:
    * anything to this trailer, you must change this number to reflect
    * the number of bytes you added. I'll use 256 to add a little padding. (gfs)
    */
-  DEFINE VARIABLE p AS INTEGER INITIAL 256. /* really 204, added extra just in case */
-  DEFINE VARIABLE l AS INTEGER.             /* last char position */
+  DEFINE VARIABLE p AS INT64    INITIAL 256. /* really 204, added extra just in case */
+  DEFINE VARIABLE l AS INT64.                /* LAST char position */
   
   SEEK INPUT TO END.
   ASSIGN l = SEEK(INPUT). /* EOF */
@@ -980,9 +1026,9 @@ END.
 PROCEDURE read_bits:
   /* reads trailer given a starting position 
    */ 
-  DEFINE INPUT PARAMETER i as INTEGER. /* "SEEK TO" location */
+  DEFINE INPUT PARAMETER pi as INT64  . /* "SEEK TO" location */
     
-  SEEK INPUT TO i.
+  SEEK INPUT TO pi.
   REPEAT:
     IMPORT lvar[lvar# + 1].
     lvar# = lvar# + 1.
@@ -1005,13 +1051,22 @@ ASSIGN
   class    = SUBSTRING(user_env[9],1,-1,"character")
   io-file  = TRUE
   io-frame = ""
+    prefix   = "".
+             /*(IF OPSYS = "UNIX" THEN "./"
+               ELSE IF CAN-DO("MSDOS,OS2",OPSYS) THEN ".~\"
+               ELSE "")*/
+
+/* if user_env[1] is "" for class "f", then list is in user_longchar 
+   because it was too big to fi into user_env[1].
+*/
+IF user_env[1] = "" AND class = "f" THEN
+   ASSIGN is-some  = (user_longchar MATCHES "*,*").
+ELSE
+   ASSIGN is-some  = (user_env[1] MATCHES "*,*").
+
+ASSIGN
   is-all   = (user_env[1] = "ALL")
-  is-some  = (user_env[1] MATCHES "*,*")
-  is-one   = NOT is-all AND NOT is-some
-  prefix   = "".
-           /*(IF OPSYS = "UNIX" THEN "./"
-             ELSE IF CAN-DO("MSDOS,OS2",OPSYS) THEN ".~\"
-             ELSE "")*/
+  is-one   = NOT is-all AND NOT is-some.
 
 IF dict_rog THEN msg-num = 3. /* look but don't touch */
 
@@ -1131,8 +1186,13 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
                         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").
   
   /* using base_lchar to make code below simplier */
-  IF NOT isCpUndefined AND (is-one OR is-some) THEN
-     base_lchar = user_env[1].
+  IF NOT isCpUndefined AND (is-one OR is-some) THEN DO:
+     /* if user_env[1] is "", then value is in user_longchar */
+     IF user_env[1] NE "" THEN
+         base_lchar = user_env[1].
+     ELSE
+         base_lchar = user_longchar.
+  END.
   ELSE
      base = (IF is-one OR is-some THEN user_env[1] ELSE "").
 
@@ -1232,9 +1292,17 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
       ELSE
          user_longchar = user_longchar + comma + DICTDB._File._File-name.
 
-      ASSIGN
-        user_env[5] = user_env[5] + comma + dis_trig
-        comma       = ",".
+      /* now we will only put the table number of tables that we will not
+         disable triggers for, which is the exception (to most cases).
+      */
+      IF dis_trig = "n" THEN DO:
+         IF user_env[5] = "" THEN
+            user_env[5] = STRING(_File._File-number).
+         ELSE
+             user_env[5] = user_env[5] + "," + STRING(_File._File-number).
+      END.
+
+      ASSIGN  comma       = ",".
     END.
     ELSE IF err <> "" THEN DO:
       MESSAGE err SKIP "Do you want to continue?"

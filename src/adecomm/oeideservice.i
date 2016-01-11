@@ -102,7 +102,8 @@ FUNCTION closeEditor RETURNS LOGICAL
 FUNCTION findAndSelect RETURNS LOGICAL 
          (projectName  AS CHARACTER,
           fileName     AS CHARACTER,
-          cText        AS CHARACTER)
+          cText        AS CHARACTER,
+          activateEditor AS LOGICAL)
          IN hOEIDEService.         
 
 FUNCTION createLinkedFile RETURNS CHARACTER 
@@ -114,7 +115,7 @@ FUNCTION createLinkedFile RETURNS CHARACTER
                            
 /* ***************************  Main Block  *************************** */
 
-OEIDEIsRunning = IF OS-GETENV("ECLIPSE_PORT":U) > "" THEN TRUE ELSE FALSE.
+OEIDEIsRunning = IF OS-GETENV("OEA_PORT":U) > "" THEN TRUE ELSE FALSE.
 IF OEIDEIsRunning AND NOT VALID-HANDLE(hOEIDEService) THEN
 DO:
     /* Check to see if OEIDEService is already running */

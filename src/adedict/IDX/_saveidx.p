@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights*
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,6 +23,8 @@ History:
     12/09/94    gfs         Added check and warning if user wants non-unique index
                             for RECID support.
     08/26/94    gfs         Added Recid index support.
+    
+    11/16/07    fernando    Support for _aud-audit-data* indexes deactivation
 
 ----------------------------------------------------------------------------*/
 
@@ -82,10 +84,13 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    if oldname <> newname then
       b_Index._Index-Name = newname.
  
-  assign
-      input frame idxprops b_Index._Desc
-      input frame idxprops s_Idx_Primary
-      input frame idxprops ActRec.
+   if b_Index._Desc:sensitive in frame idxprops then
+      ASSIGN input frame idxprops b_Index._Desc.
+
+   if s_Idx_Primary:sensitive in frame idxprops then
+      ASSIGN input frame idxprops s_Idx_Primary.
+
+   ASSIGN input frame idxprops ActRec.
       
   IF NOT fordb THEN ASSIGN 
       active = input frame idxprops ActRec. /* formerly b_Index._Active */

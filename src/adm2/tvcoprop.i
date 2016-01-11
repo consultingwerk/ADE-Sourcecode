@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : tvcoprop.i
     Purpose     : Defines basic properties.
@@ -86,7 +86,7 @@
      These preprocessors tell at compile time which properties can
      be retrieved directly from the temp-table */
 
-
+&GLOBAL-DEFINE xpContainerWidgetIDs
   {src/adm2/cntnprop.i}
   
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
@@ -96,7 +96,8 @@ DO:
   /* Put your property field definitions here.
      Use the following syntax, e.g.,
      ghADMProps:ADD-NEW-FIELD('MyProperty':U, 'CHAR':U, 0,'X(20)':U, 'Hi':U). */
-   
+
+ghADMProps:ADD-NEW-FIELD('ContainerWidgetIDs':U, 'CHAR':U).
 &ENDIF
 
   {src/adm2/custom/tvcopropcustom.i}

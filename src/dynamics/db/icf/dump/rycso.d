@@ -66,7 +66,6 @@
 1299.7692 "PaletteCSCombo" 0 503.7692 13899.81 1003516362 "OCX CSCombo palette item" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 1299.7692 yes
 1310.7692 "PaletteCSSpin" 0 503.7692 13899.81 1003516362 "Palette CSSpin OCX" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 1310.7692 yes
 1321.7692 "PalettePSTimer" 0 503.7692 13899.81 1003516362 "PSTimer OCX palette" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 1321.7692 yes
-1326.48 "rydyndfcop.p" 0 493 1004874702.09 1003516362 "Dynamics DataField Class Object Procedur" "ry/app" "" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 1326.48 yes
 1332.7692 "PaletteEditors" 0 503.7692 13899.81 1003516362 "Editor Palette item" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 1332.7692 yes
 1350.7692 "PaletteFillIns" 0 503.7692 13899.81 1003516362 "Fill-in Palette Item" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 1350.7692 yes
 1531.7692 "rytemdynobjc" 0 1003498202 13899.81 1003516362 "Template/Palette Independent Window" "ry/tem" "" no no yes no "" yes no no no no "" "" "" 0 0 1531.7692 yes
@@ -133,16 +132,12 @@
 2431.38 "gsc_data_tag.data_tag_description" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_description" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2431.38 yes
 2451.38 "gsm_tagged_data.owning_reference" 0 1005091923.09 3000005456.09 0 "DataField for owning_reference" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2451.38 yes
 2476.38 "gsm_tagged_data.data_tag_obj" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2476.38 yes
-2483.0575 "afdeplgdfp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 2483.0575 yes
 2485.0575 "afdeplymtp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2485.0575 yes
 2487.0575 "inicfdbsqp" 0 493 1000000123.39 0 "" "install/prc" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 2487.0575 yes
 2498.38 "gsc_data_tag" 0 36339.48 3000005456.09 0 "Entity object for table gsc_data_tag" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2498.38 yes
 2505.38 "gsm_tagged_data" 0 36339.48 3000005456.09 0 "Entity object for table gsm_tagged_data" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2505.38 yes
-2602.7692 "_ryobjectab" 0 493 3000040739.09 1003516362 "Supports calling code to create _RyObject ""open"" record for AB." "adeuib" "p" yes no no no "" yes no no no yes "ANY" "" "" 0 0 2602.7692 yes
-2605.7692 "_gendatalog" 0 493 3000040739.09 1003516362 "Generate DataLogic Procedure" "adeuib" "p" yes no no no "CLN,SRV" yes no no no yes "ANY" "" "" 0 0 2605.7692 yes
 2607.7692 "datalogic" 0 493 3000040732.09 1003516362 "datalogic.p" "adm2/template" "p" yes no no no "" yes no no no yes "ANY" "" "" 0 0 2607.7692 yes
 2609.66 "dynsdo.w" 0 1003600316 1004874707.09 1003516362 "Data Object renderer" "adm2" "" yes yes no yes "CLN,SRV" no no no no yes "ANY" "" "" ? ? ? yes
-2964.7692 "_propsbo" 0 489 3000040739.09 1003516362 "_propsbo.w" "adeuib" "w" yes no no no "" yes no yes no yes "ANY" "" "" 0 0 2964.7692 yes
 3011.7692 "rytemcustomsuper" 0 493 13899.81 1003516362 "template custom super procedure" "ry/tem" "p" yes no yes no "" yes no no no yes "ANY" "" "" 0 0 3011.7692 yes
 3059.7692 "PaletteComboBox" 0 503.7692 13899.81 1007500101.09 "Palette ComboBox" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" ? ? 3059.7692 yes
 3100.7692 "PaletteRadioSet" 0 503.7692 13899.81 1007500101.09 "Palette RadioSet" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" ? ? 3100.7692 yes
@@ -229,6 +224,9 @@
 7859.5498 "thinlookup" 0 1003600316 3000031144.09 1003516362 "Thin Dynamic Lookup" "adm2" "w" yes yes no yes "SRV,CLN" no no no no yes "" "" "" ? ? 7859.5498 yes
 7861.5498 "thincombo" 0 1003600316 3000031144.09 1003516362 "Thin Dynamic Combo" "adm2" "w" yes yes no yes "SRV,CLN" no no no no yes "" "" "" ? ? 7861.5498 yes
 8567.009 "rycsochgtypw" 0 1003498202 1004874710.09 1007500101.09 "Object Type Change Utility" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 8567.009 yes
+8567.1575 "gscltreplc" 0 493 1000000129.39 0 "Language Text Create Repl Trigger" "icf/trg" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 8567.1575 yes
+8571.1575 "gscltrepld" 0 493 1000000129.39 0 "Language Text Delete Repl Trigger" "icf/trg" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 8571.1575 yes
+8575.1575 "gscltreplw" 0 493 1000000129.39 0 "Language Text Write Repl Trigger" "icf/trg" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 8575.1575 yes
 8580.009 "rycsochgtypv" 0 1003498165 1004874707.09 1003516362 "Object Type Change Utility viewer" "ry/obj" "w" yes no no no "CLN" yes no yes no yes "ANY" "" "" 0 0 8580.009 yes
 10005.81 "appservercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 10093.81 yes
 10013.81 "b2bcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 10095.81 yes
@@ -2442,7 +2440,6 @@
 3000031396.09 "cacheafter" 0 493 1004874676.09 1003516362 "cacheafter.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031396.09 yes
 3000031398.09 "cachecontr" 0 493 1004874676.09 1003516362 "cachecontr.p" "af/app" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031398.09 yes
 3000031400.09 "cachelogin" 0 493 1004874676.09 1003516362 "cachelogin.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031400.09 yes
-3000031404.09 "fullocreat" 0 493 1004874676.09 1003516362 "fullocreat.p" "af/app" "p" yes no no no "SRV" yes no no no yes "ANY" "" "" 0 0 3000031404.09 yes
 3000031406.09 "gscddxmlp" 0 493 1004874676.09 1003516362 "gscddxmlp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031406.09 yes
 3000031408.09 "gscedttabp" 0 493 1004874676.09 1003516362 "gscedttabp.p" "af/app" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031408.09 yes
 3000031410.09 "gscpfexprt" 0 493 1004874676.09 1003516362 "gscpfexprt.p" "af/app" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031410.09 yes
@@ -2468,8 +2465,6 @@
 3000031456.09 "afsessinfo" 0 492 1004874679.09 1003516362 "afsessinfo.w" "af/cod2" "w" yes no no no "CLN" yes no yes no yes "ANY" "" "" 0 0 3000031456.09 yes
 3000031458.09 "aftemsuspd" 0 1003600283 1004874679.09 1003516362 "aftemsuspd.w" "af/cod2" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000031458.09 yes
 3000031460.09 "aftemwizow" 0 1003600316 1004874679.09 1003516362 "aftemwizow.w" "af/cod2" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000031460.09 yes
-3000031462.09 "fulloadvanced" 0 1003600283 1004874679.09 1003516362 "fulloadvanced.w" "af/cod2" "w" yes no no no "" yes no no no yes "ANY" "" "" 0 0 3000031462.09 yes
-3000031464.09 "fullocompile" 0 493 1004874679.09 1003516362 "fullocompile.p" "af/cod2" "p" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000031464.09 yes
 3000031466.09 "gbrowsettings" 0 489 1004874679.09 1003516362 "gbrowsettings.w" "af/cod2" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000031466.09 yes
 3000031468.09 "gscddcfcomptable" 0 243157 1004874679.09 1003516362 "gscddcfcomptable.w" "af/cod2" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000031468.09 yes
 3000031470.09 "gscddconflictds" 0 243157 1004874679.09 1003516362 "gscddconflictds.w" "af/cod2" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000031470.09 yes
@@ -3222,7 +3217,6 @@
 3000033022.09 "ryrelxmlp" 0 493 1004874708.09 1003516362 "ryrelxmlp.p" "ry/prc" "p" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033022.09 yes
 3000033024.09 "rytoReposw" 0 489 1004874708.09 1003516362 "rytoReposw.w" "ry/prc" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033024.09 yes
 3000033026.09 "ryvobplipp" 0 493 1004874708.09 1003516362 "ryvobplipp.p" "ry/prc" "p" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033026.09 yes
-3000033028.09 "samplealign" 0 493 1004874708.09 1003516362 "samplealign.p" "ry/prc" "p" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033028.09 yes
 3000033030.09 "_readpossever" 0 493 1004874708.09 1003516362 "_readpossever.p" "ry/prc" "p" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000033030.09 yes
 3000033032.09 "containrbd" 0 489 1004874710.09 1003516362 "containrbd.w" "ry/uib" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033032.09 yes
 3000033034.09 "containrtd" 0 489 1004874710.09 1003516362 "containrtd.w" "ry/uib" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000033034.09 yes
@@ -3451,12 +3445,12 @@
 .
 PSC
 filename=ryc_smartobject
-records=0000000003450
+records=0000000003444
 ldbname=ICFDB
-timestamp=2006/10/12-14:55:16
+timestamp=2007/12/03-15:38:44
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=utf-8
+cpstream=UTF-8
 .
-0000594693
+0000593714

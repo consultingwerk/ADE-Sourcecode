@@ -21,9 +21,12 @@ included in:
     
 history:
     semeniuk    94/08/18    creation
-    moloney     07/03/21    
+    moloney     07/03/21    Unicode support for MSS
+    fernando    06/18/07    Unicode support for ORACLE
     
 */
+
+DEFINE BUFFER m_Db for _Db.
 
 /*------------------ begin Trailer-INFO ------------------*/
 
@@ -37,10 +40,12 @@ ON LEAVE OF {&variable} in frame {&frame} do:
       {&variable} = TRIM({&variable}:screen-value in frame {&frame})
       {&variable}:screen-value in frame {&frame} = {&variable}.
 
-    if ( UPPER(TRIM( {&variable} ) ) = "UTF-8" AND {&adbtype} = "MSS") 
+    if ( UPPER(TRIM( {&variable} ) ) = "UTF-8" AND 
+         ({&adbtype} = "MSS" OR {&adbtype} = "ORACLE")) 
       then do:
-        FIND FIRST _Db WHERE _Db._Db-local AND _Db._Db-type = "PROGRESS".
-        IF ( AVAILABLE(_Db) AND UPPER( _Db._Db-xl-name ) <> UPPER(TRIM( {&variable} ) ) ) 
+        /* use a differet buffer so that we don't mess up with the currently available _db rec */
+        FIND FIRST m_Db WHERE m_Db._Db-local AND m_Db._Db-type = "PROGRESS".
+        IF ( AVAILABLE(m_Db) AND UPPER( m_Db._Db-xl-name ) <> UPPER(TRIM( {&variable} ) ) ) 
           THEN DO:
 
             MESSAGE "Logical DataServer schema and physical schema holder " skip

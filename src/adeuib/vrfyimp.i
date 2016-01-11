@@ -90,9 +90,36 @@ IF AbortImport NE yes THEN DO:
       CASE adv_choice:
         WHEN "_PWIN":U THEN DO:
             ASSIGN AbortImport = Yes.
-            IF OEIDEisRunning THEN
+    	    DEFINE VARIABLE lOpenInOEIDE AS LOGICAL NO-UNDO.
+    	    
+    	    IF OEIDEIsRunning THEN 
+    	    DO:
+    	        DEFINE VARIABLE cFileName    AS CHARACTER NO-UNDO.
+    	        DEFINE VARIABLE cProjectName AS CHARACTER NO-UNDO.
+    	        
+                /* If the file import_mode is UNTITLED then open the file in OEIDE. */
+                IF import_mode = "UNTITLED":U OR
+                   import_mode = "WINDOW UNTITLED":U THEN
+                    lOpenInOEIDE = TRUE.
+                ELSE
+                DO:
+                    /* Open the file in OEIDE only if it is a project file. */
+                    FILE-INFO:FILE-NAME = dot-w-file.
+    		      
+                    /* Ensure pFileName is a full path */
+                    IF FILE-INFO:FULL-PATHNAME <> ? THEN
+                        cFileName = FILE-INFO:FULL-PATHNAME.
+                    RUN getProjectOfFile IN hOEIDEService (cFileName, OUTPUT cProjectName).
+                    
+                    /* file is in the current IDE project */
+                    IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+                        lOpenInOEIDE = TRUE.
+                END.
+            END.
+        	  
+            IF lOpenInOEIDE THEN
             DO:
-              /* Open Files in OEIDE Editor */
+              /* Open File in OEIDE Editor */
               openEditor(getProjectName(), dot-w-file, 
                   IF import_mode = "UNTITLED":U OR
                      import_mode = "WINDOW UNTITLED":U

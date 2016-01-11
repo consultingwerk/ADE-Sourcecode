@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 1984-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 1984-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -390,19 +390,19 @@ FUNCTION linkHandles RETURNS CHAR
 Parameters: pcLink - Link name ie,. DATA-SOURCE ..   
      Notes: 
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cUIBMode  AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cObjectId AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cHandle   AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cLinkList AS CHAR NO-UNDO.  
-  DEFINE VARIABLE cType     AS CHAR NO-UNDO.  
-  DEFINE VARIABLE iSO       AS INT  NO-UNDO.  
-  DEFINE VARIABLE iId      AS INT  NO-UNDO.  
+  DEFINE VARIABLE cUIBMode  AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE cObjectId AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE cHandle   AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE cLinkList AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE cType     AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE iSO       AS INTEGER   NO-UNDO.  
+  DEFINE VARIABLE iId       AS INTEGER   NO-UNDO.  
 
   {get UIBMode cUIBMode}.
 
   IF cUIBMode = "DESIGN":U THEN
   DO:
-    RUN adeuib/_uibinfo (?, 
+    RUN adeuib/_uibinfo.p (?, 
                         "HANDLE ":U + STRING(TARGET-PROCEDURE), 
                         "LINK ":U + pcLink, 
                         OUTPUT cObjectid). /* Context ID */
@@ -411,11 +411,11 @@ Parameters: pcLink - Link name ie,. DATA-SOURCE ..
       iId = INT(ENTRY(iSO,cObjectId)).
       
       /* We don't want to retun links to THIS-PROCEDURE so we check TYPE */ 
-      RUN adeuib/_uibinfo (iId, ?, "TYPE":U,OUTPUT cType).
+      RUN adeuib/_uibinfo.p (iId, ?, "TYPE":U,OUTPUT cType).
       
       IF cType = "SmartObject":U THEN
       DO:   
-        RUN adeuib/_uibinfo (iId, ?, "PROCEDURE-HANDLE":U,OUTPUT cHandle).
+        RUN adeuib/_uibinfo.p (iId, ?, "PROCEDURE-HANDLE":U,OUTPUT cHandle).
         cLinkList = cLinkList
                     + (IF cLinkList = "":U THEN "":U ELSE ",":U) 
                     + cHandle.    

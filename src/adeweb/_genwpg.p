@@ -90,6 +90,8 @@ DEFINE FRAME Page-frm
 DEFINE STREAM InSTREAM.
 DEFINE STREAM OutSTREAM.
 
+DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
+
 FUNCTION getFuncLibHandle RETURNS HANDLE
   (  )  IN SOURCE-PROCEDURE.
 
@@ -424,7 +426,7 @@ PROCEDURE ab_WizardFinished :
   IF gLastPreviewName <> "" AND NOT gRemote THEN 
     cFileName = gLastPreviewName.
   ELSE DO:    
-    RUN adecomm/_tmpfile.p ("ws":U, ".tmp":U, OUTPUT cTmpFileName).
+    RUN adecomm/_tmpfile.p ("ws":U, IF OEIDEIsRunning THEN ".html":U ELSE ".tmp":U, OUTPUT cTmpFileName).
     cFileName = cTmpFileName.
   END.  
   
@@ -1209,7 +1211,7 @@ FUNCTION Hex2Dec RETURNS DECIMAL
     IF cAsc  > "F":U THEN DO:
       Message "Invalid Value in HEX value." 
       VIEW-AS ALERT-BOX ERROR.
-      RETURN ERROR.     
+      RETURN ?.     
     END.
     
     ASSIGN   

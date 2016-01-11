@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,6 +39,8 @@ History:
     03/26/05   K. McIntosh  Added warning when attempting to add an active
                             index on-line
     06/08/06  fernando      Support for large key entries
+    10/03/07  fernando      Fixed delimiter issue on area name list - OE00135682
+    11/16/07  fernando      Support for _aud-audit-data* indexes deactivation
 
 ----------------------------------------------------------------------------*/
 
@@ -80,7 +82,7 @@ DEFINE VARIABLE indexarea      AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE lOk            AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE large_idx      AS LOGICAL                 NO-UNDO INIT ?.
 DEFINE VARIABLE ctemp          AS CHARACTER               NO-UNDO.
-
+DEFINE VARIABLE canAudDeact    AS LOGICAL                 NO-UNDO.
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
@@ -406,6 +408,9 @@ IF qbf_idx_word THEN
 qbf_idx_word = (qbf_idx_word AND AVAILABLE _Field).
 RELEASE _Field.
 
+/* OE00135682  - use other delimiter in case area name has comma */
+areaname:DELIMITER IN FRAME idx_top = CHR(1).
+
 qbf_block:
 DO TRANSACTION ON ERROR UNDO,RETRY:
 
@@ -711,14 +716,14 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           ASSIGN arealist  = DICTDB._Area._Area-name
                 indexarea = DICTDB._Area._Area-name.
         ELSE
-          ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name + ",".
+          ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
       END.
       FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
       IF arealist = ? THEN 
       ASSIGN arealist  = DICTDB._Area._Area-name
             indexarea = DICTDB._Area._Area-name.
       ELSE
-        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
+        ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
       ASSIGN areaname:LIST-ITEMS IN FRAME idx_top = arealist.
 
       DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
@@ -965,8 +970,23 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     END. /*------------------------------------------ end of UNIQUENESS */
     ELSE
     IF qbf# = 10 AND rpos <> ? THEN DO: /*------ start of MAKE-INACTIVE */
-      IF _File._Frozen THEN 
+        
+      /* we will allow some of the indexes on the _aud-audit-data tables to be
+         deactivated. The primary index and the _audit-time index cannot be
+         deactivated.
+      */
+      IF (_File._file-name BEGINS "_aud-audit-data") 
+         AND (_Index._Index-Name NE "_audit-time") 
+         AND (NOT (_File._Prime-Index = RECID(_Index))) THEN
+         ASSIGN canAudDeact = YES.
+      ELSE
+          ASSIGN canAudDeact = NO.
+
+      IF _File._Frozen AND NOT canAudDeact THEN DO:
         MESSAGE new_lang[27]. /* table is frozen */
+        IF _File._file-name BEGINS "_aud-audit-data" THEN
+           PAUSE. /* let the user see the message, this is a special case */
+      END.
       ELSE IF _File._Db-lang > 1 THEN  
           MESSAGE new_lang[37].
           

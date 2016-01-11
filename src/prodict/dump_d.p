@@ -32,14 +32,15 @@ Other-settings:
     map-option              : "MAP <name>" or "NO-MAP" OR ""
         
 History
-    fernando   02/27/07 Support for long dump name - OE00146586    
+    fernando    12/12/07 Don't need to set user_env[4] anymore    
+    fernando    02/27/07 Support for long dump name - OE00146586    
     fernando    10/12/06 Allow this to be called persistently
     fernando    03/16/06 Handle case with too many tables selected - bug 20050930-006.
     mcmann      10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
     mcmann      00/08/14 Changed _db-name to DICTDB for dbversion 20000810035
     mcmann      98/07/13 Added _Owner for _File finds
     laurief     97/12    Removed RMS,CISAM code
-    kkelley         95/08    Multi-db with multiple tables
+    kkelley     95/08    Multi-db with multiple tables
     hutegger    95/01    multi-db support
     hutegger    94/02    code-page support
 
@@ -345,7 +346,7 @@ PROCEDURE doDump:
                            else dot-d-dir + "/"
                          ) +  ( if _Dump-name = ?
                                       THEN _File-name 
-                                      ELSE _Dump-name ) + ".d".
+                                      ELSE _Dump-name) + ".d".
         END.     /* ev. get dump-name */
        else assign
         user_env[2] = ( if  dot-d-dir matches "*" + "/"
@@ -370,13 +371,17 @@ PROCEDURE doDump:
     /*    user_dbtype = DBTYPE("DICTDB")  */.
     
       /* Indicate "y"es to disable triggers for dump of all files */
-      assign
+      /* Now we don't have to do this. A blank string will indicate disable
+         triggers for all files 
+      */
+      /*assign
         user_env[4] = substring(fill(",y",
                                      num-entries((IF isCpUndefined THEN user_env[1] ELSE user_longchar)))
                                ,2
                                ,-1
                                ,"character"
                                ).
+      */
     
       IF NOT isCpUndefined THEN DO:
           /* see if we can put user_longchar into user_env[1] */

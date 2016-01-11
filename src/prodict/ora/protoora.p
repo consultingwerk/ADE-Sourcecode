@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,6 +21,9 @@
             D. McMann 10/23/02 Changed BLANK to PASSWORD-FIELD
             D. McMann 11/26/02 Removed Oracle V7 as an option
           K. McIntosh 09/08/05 Added support for Oracle 10 20050318-015
+             fernando 06/11/07 Unicode and clob support   
+             fernando 08/30/07 More Unicode support stuff       
+             fernando 09/14/07 Allow ORACLE version 11
 */            
 
 
@@ -44,6 +47,9 @@ DEFINE VARIABLE cFormat       AS CHARACTER
                            INITIAL "For field widths use:"
                            FORMAT "x(20)" NO-UNDO.
 DEFINE VARIABLE lExpand       AS LOGICAL NO-UNDO.
+DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
+DEFINE VARIABLE disp_msg1      AS LOGICAL INITIAL TRUE     NO-UNDO.
+DEFINE VARIABLE disp_msg2      AS LOGICAL INITIAL TRUE     NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -63,8 +69,9 @@ FORM
   ora_version  FORMAT ">9" 
       validate(INPUT ora_version = 8 OR 
                INPUT ora_version = 9 OR
-               INPUT ora_version = 10,
-               "Oracle Version must be 8, 9 or 10") 
+               INPUT ora_version = 10 OR
+               INPUT ora_version = 11,
+               "Oracle Version must be 8, 9, 10 or 11") 
       view-as fill-in size 23 by 1
     LABEL "What version of ORACLE" colon 38 SKIP ({&VM_WID})  
   ora_username FORMAT "x(32)"  view-as fill-in size 32 by 1 
@@ -77,30 +84,31 @@ FORM
   ora_codepage FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Codepage for Schema Image" colon 38 SKIP({&VM_WID}) 
   ora_collname FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
-     LABEL "Collation Name" COLON 38 SKIP({&VM_WID})  
+     LABEL "Collation Name" COLON 38 SKIP({&VM_WID})
+  ora_varlen FORMAT ">>>9" 
+    VALIDATE (INPUT ora_varlen > 0 AND
+              INPUT ora_varlen <= 4000,
+              "Maximum length must not be greater than 4000") 
+         LABEL "Maximum char length"  COLON 38
+  space(1) lExpandClob view-as toggle-box label "Expand to CLOB" SKIP({&VM_WID})
   " ORACLE tablespace name for:" view-as text SKIP({&VM_WID})   
   ora_tspace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Tables" colon 8
   ora_ispace FORMAT "x(30)" view-as fill-in size 30 by 1
-     LABEL "Indexes" colon 47 SKIP({&VM_WIDG})      
-  SPACE(9) pcompatible view-as toggle-box LABEL "Create RECID Field "  
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(16) &ELSE SPACE(15) &ENDIF
-    crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})  
-  SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  
-  &IF "{&WINDOW-SYSTEM}" = "TTY"
-  &THEN SPACE(25) &ELSE SPACE(23) &ENDIF
-  movedata view-as toggle-box label "Move Data" 
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(26) &ELSE SPACE(23) &ENDIF 
+     LABEL "Indexes" colon 47 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID}) &ELSE SKIP({&VM_WIDG}) &ENDIF
+  SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field "  
+  loadsql view-as toggle-box     label "Load SQL  "  AT 32
+  movedata view-as toggle-box label "Move Data" AT 53 SKIP({&VM_WID})
+  SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns " 
+  crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" AT 32
+  lCharSemantics VIEW-AS TOGGLE-BOX LABEL "Char semantics" AT 53
   SKIP({&VM_WID})
-  SPACE(9) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns " 
-  SKIP({&VM_WID})
-  /*SPACE(9) unicodeTypes view-as toggle-box label "Unicode Types "
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(21) &ELSE SPACE(19) &ENDIF 
-  nvchar_utf view-as toggle-box LABEL "Allow NVARCHAR2(4000)"
-  SKIP({&VM_WID}) */
+  SPACE(2)  unicodeTypes view-as toggle-box label "Use Unicode Types "
+  SKIP({&VM_WID}) 
   cFormat VIEW-AS TEXT NO-LABEL AT 10
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                                HORIZONTAL NO-LABEL SKIP({&VM_WID})
   lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46
      {prodict/user/userbtns.i}
@@ -169,35 +177,106 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
   END.   
 END.  
 
-/*
 ON VALUE-CHANGED OF ora_version IN FRAME x DO:
+    
+    /* when ora_version is 9 and up, we support Unicode data types */
+    IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
+        ASSIGN unicodeTypes:SENSITIVE = YES
+                     lCharSemantics:SENSITIVE = YES
+                     lExpandClob:SENSITIVE = YES.
 
-    /* when ora_version is 10 and up, we support Unicode data types */
-    IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 10 THEN DO:
-        ASSIGN unicodeTypes:SENSITIVE = YES.
         /* keep tab order right */
-        unicodeTypes:move-after-tab-item(shadowcol:HANDLE) in frame X.
+        lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.
+        lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
+        unicodeTypes:move-after-tab-item(lCharSemantics:HANDLE) in frame X.
     END.
-    ELSE
+    ELSE DO:
         ASSIGN unicodeTypes:SENSITIVE = NO
-               unicodeTypes:SCREEN-VALUE = "no".
+               unicodeTypes:SCREEN-VALUE = "no"
+               lCharSemantics:SENSITIVE = NO
+               lCharSemantics:SCREEN-VALUE = "no"
+               ora_codepage = session:cpinternal
+               ora_codepage:SCREEN-VALUE = session:CPINTERNAL
+               ora_varlen = 4000
+               ora_varlen:SCREEN-VALUE = "4000".
+    END.
 
    ora_version = INTEGER(ora_version:SCREEN-VALUE).
 END.
     
 ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
-    /* when unicode types is used, user can choose whether to use nvarchar(4000) */
-    IF SELF:CHECKED THEN DO:
-        nvchar_utf:SENSITIVE = YES.
-        /* keep tab order right */
-        nvchar_utf:move-after-tab-item(unicodeTypes:HANDLE) in frame X.
+
+    IF SELF:screen-value = "yes" THEN DO:
+        ASSIGN lCharSemantics:SENSITIVE = NO
+               lCharSemantics:SCREEN-VALUE = "NO"
+               lExpandClob:SENSITIVE = NO
+               lExpandClob:SCREEN-VALUE = "no"
+               ora_codepage = 'UTF-8'
+               ora_codepage:SCREEN-VALUE = 'UTF-8'.
+
+        ASSIGN ora_varlen = 2000
+               ora_varlen:SCREEN-VALUE = "2000".
+        IF disp_msg1 = TRUE THEN DO:
+
+            ASSIGN disp_msg1 = FALSE.
+
+            MESSAGE "The maximum char length default value is assuming AL16UTF16 encoding for the national" SKIP
+                    "character set on the ORACLE database. For UTF8 encoding, you may have to set it to a" SKIP
+                    "lower value depending on the data."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        END.
     END.
     ELSE DO:
-        ASSIGN nvchar_utf:SENSITIVE = NO
-               nvchar_utf:SCREEN-VALUE = "NO".
+        ASSIGN lCharSemantics:SENSITIVE = YES
+               lExpandClob:SENSITIVE = YES
+               ora_codepage = session:cpinternal
+               ora_codepage:SCREEN-VALUE = session:cpinternal.
+
+        ASSIGN ora_varlen = 4000
+               ora_varlen:SCREEN-VALUE = "4000".
+
+        lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.
+        lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
     END.
 END.
-*/
+
+ON VALUE-CHANGED OF ora_codepage IN FRAME x DO:
+
+ /* if not 9 or above, nothing to be done */
+ IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
+
+    /* if utf-8, we make character semantics the default */
+    IF TRIM(SELF:SCREEN-VALUE) = "UTF-8" 
+       AND unicodeTypes:SCREEN-VALUE = "NO" THEN DO:
+
+        ASSIGN lCharSemantics:SCREEN-VALUE = "YES"
+               ora_varlen = 1000
+               ora_varlen:SCREEN-VALUE = "1000".
+
+        IF disp_msg2 = TRUE THEN DO:
+           disp_msg2 = FALSE.
+           MESSAGE "To accommodate for data expansion depending on the database character set, the " SKIP
+                   "maximum char length default was automatically modified. Character semantics" SKIP
+                   "was also selected. You may have to change them if they do not apply for your" SKIP
+                   "configuration or data."
+               VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        END.
+
+    END.
+ END.
+
+END.
+
+ON LEAVE OF ora_codepage IN FRAME X DO:
+
+    IF unicodeTypes:SCREEN-VALUE = "yes" THEN DO:
+        IF ora_codepage:SCREEN-VALUE NE "UTF-8" THEN
+            MESSAGE "It is recommended that you set the schema codepage to UTF-8 when selecting" SKIP
+                    "Unicode Types."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+
+    END.
+END.
 
 IF LDBNAME ("DICTDB") <> ? THEN
   ASSIGN pro_dbname = LDBNAME ("DICTDB").
@@ -308,21 +387,50 @@ ELSE
     ASSIGN lExpand = TRUE
            lFormat = FALSE.
 
-/* Unicode Types only support for ORACLE 10 and up */
-/*
-IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 10 THEN DO:
+IF OS-GETENV("CHARSEMANTICS")  <> ? AND ora_version >= 9 THEN DO:
+  tmp_str      = OS-GETENV("CHARSEMANTICS").
 
+  IF tmp_str BEGINS "Y" THEN
+      ASSIGN lCharSemantics = TRUE.
+END.
+ELSE IF ora_version >= 9 AND ora_codepage = "utf-8" THEN
+     ASSIGN lCharSemantics = TRUE.
+
+IF OS-GETENV("EXPANDCLOB") <> ? THEN DO:
+    ASSIGN tmp_str  = OS-GETENV("EXPANDCLOB").
+    IF tmp_str BEGINS "Y" THEN 
+        ASSIGN lExpandClob = TRUE.
+END.
+
+/* Unicode Types only support for ORACLE 9 and up */
+
+IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 9 THEN DO:
   tmp_str      = OS-GETENV("UNICODETYPES").
 
   IF tmp_str BEGINS "Y" THEN DO:
-      ASSIGN unicodeTypes = TRUE.
+      ASSIGN unicodeTypes = TRUE
+             lCharSemantics = NO  /* irrelevant */
+             lExpandClob = NO. /* irrelevant */
 
-      tmp_str = OS-GETENV("NVARCHAR2_4K").
-      IF tmp_str BEGINS "Y" THEN
-          nvchar_utf = YES.
+      IF OS-GETENV("ORACODEPAGE") = ? THEN
+         ASSIGN ora_codepage = 'UTF-8'.
   END.
 END.
-*/
+
+IF OS-GETENV("VARLENGTH") <> ? THEN DO:
+   ASSIGN ora_varlen = integer(OS-GETENV("VARLENGTH")).
+   IF ora_varlen < 1000 OR ora_varlen > 4000 THEN
+      ora_varlen = 4000.
+END.
+ELSE DO:
+
+   IF unicodeTypes THEN
+      ASSIGN ora_varlen = 2000.
+   ELSE IF ora_codepage = "utf-8" THEN
+      ASSIGN ora_varlen = 1000.
+   ELSE
+      ASSIGN ora_varlen = 4000.
+END.
 
 IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
   ASSIGN mvdta = FALSE.
@@ -338,14 +446,33 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF redo THEN
       RUN cleanup.
 
+  IF logfile_open THEN DO:
+     OUTPUT STREAM logfile CLOSE.
+     logfile_open = FALSE.
+  END.
+
+  IF wrg-ver THEN DO:
+     MESSAGE "Unicode support for the DataServer for ORACLE was designed to work" SKIP
+             "with ORACLE 9 and above. You have tried to connect to a prior" SKIP
+             "version of ORACLE. " SKIP
+        &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK
+       &ENDIF
+        . /* end of message statement */
+     RETURN.
+  END.
+
   run_time = TIME.
 
-  /*IF ora_version >= 10 THEN
-     unicodeTypes:SENSITIVE = YES.
+  IF ora_version >= 9 THEN
+     ASSIGN unicodeTypes:SENSITIVE = YES
+            lCharSemantics:SENSITIVE = YES.
   ELSE
      ASSIGN unicodeTypes:SENSITIVE = NO
-            unicodeTypes:SCREEN-VALUE = "no".
-            */
+            unicodeTypes:SCREEN-VALUE = "no"
+            lCharSemantics:SENSITIVE = NO
+            lCharSemantics:SCREEN-VALUE = "no".
+            
   /*
    * if this is not batch mode, allow override of environment variables.
    */
@@ -364,15 +491,17 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_conparms
       ora_codepage
       ora_collname
+      ora_varlen
+      lExpandClob
       ora_tspace
       ora_ispace
       pcompatible
-      crtdefault
       loadsql
       movedata WHEN mvdta 
       shadowcol
-     /* unicodeTypes WHEN ora_version >= 10
-      nvchar_utf WHEN unicodeTypes */
+      crtdefault
+      lCharSemantics WHEN ora_version >= 9
+      unicodeTypes WHEN ora_version >= 9
       iFmtOption
       lExpand WHEN iFmtOption = 2
       btn_OK btn_Cancel 
@@ -386,15 +515,16 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     ELSE
       lFormat = (NOT lExpand).
 
-   /* IF ora_version >= 10 AND unicodeTypes:SCREEN-VALUE = "yes" THEN DO:
-        ASSIGN unicodeTypes = YES.
-        IF nvchar_utf:SCREEN-VALUE = "yes" THEN
-            ASSIGN nvchar_utf = YES.
-        ELSE
-            ASSIGN nvchar_utf = NO. 
+    IF ora_version >= 9 THEN DO: 
+        /* these start disabled in the above update stmt, so we have to manually update them now*/
+        IF unicodeTypes:SCREEN-VALUE = "yes" THEN
+           ASSIGN unicodeTypes = YES.
+        IF lCharSemantics:SCREEN-VALUE = "yes" THEN
+           ASSIGN lCharSemantics = YES.
     END.
     ELSE
-        ASSIGN unicodeTypes = NO. */
+        ASSIGN unicodeTypes = NO
+               lCharSemantics = NO.
 
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
@@ -521,7 +651,21 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     ASSIGN redo = FALSE.
     UNDO, RETRY.
   END.
+  ELSE IF RETURN-VALUE = "wrg-ver" THEN DO:
+     ASSIGN wrg-ver = TRUE.
 
+     IF batch_mode THEN DO:
+        PUT STREAM logfile UNFORMATTED 
+               "Unicode support for the DataServer for ORACLE was designed to work" SKIP
+               "with ORACLE 9 and above. You have tried to connect to a prior" SKIP
+               "version of ORACLE. " SKIP.
+        OUTPUT STREAM logfile CLOSE.
+        logfile_open = FALSE.
+        RUN cleanup.
+     END.
+
+     UNDO main-blk, RETRY main-blk.
+  END.
  
   /*
    * If this is batch mode, make sure we close the output file we

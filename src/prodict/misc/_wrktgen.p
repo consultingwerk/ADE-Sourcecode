@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,6 +22,7 @@ run on another database to define those tables.
   user_env[8] = xlat "-" -> "_", "%" -> "_", Append "_" to reserved words
   user_env[9] = userid
   user_env[10] = Maximun size of Varchar for MS SQL Server 7 
+                        or list of other options for ORACLE
   user_env[11..18] = a string of how to convert PROGRESS datatypes to SQL:
          [11] = character -> char, character, vchar, varchar, long char
          [12] = date      -> date, datetime
@@ -167,7 +168,8 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   kmcintos 02/28/05   Added cases for user_env[33] (Field width/x8override)
   fernando 01/04/06   Handle decimals for DB2/400 20051214-009
   fernando 06/26/06   Added support for int64
-
+  fernando 06/11/07   Unicode and clob support for ORACLE
+  
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
     
 */
@@ -362,14 +364,15 @@ CASE dbtyp:
   WHEN "ORACLE" THEN DO:
     prowid_col = "progress_recid".
 
-    IF user_env[18] = "VARCHAR2" /*OR user_env[18] = "NVARCHAR2"*/ THEN DO:
-        /* the max size for nvarchar2 columns is stored in user_env[10] */
-        /*IF user_env[18] = "NVARCHAR2" THEN
-           ASSIGN longwid = integer(user_env[10]).
-        ELSE  */
-           ASSIGN longwid = 4000.
+    IF user_env[18] = "VARCHAR2" OR user_env[18] = "NVARCHAR2" THEN DO:
+        /* the max size for char columns is the first entry stored in user_env[10],  */
+       ASSIGN longwid = integer(entry(1,user_env[10])).
 
-       ASSIGN user_env[18] = "long".
+       /* if the second entry is yes, user wants char fields to expand to CLOB and not LONG */
+       IF LOGICAL(ENTRY(2,user_env[10])) THEN
+          ASSIGN user_env[18] = "clob".
+       ELSE /* if using Unicode data types, expand column to NCLOB */
+          ASSIGN user_env[18] = (IF user_env[18] = "NVARCHAR2" THEN "nclob" ELSE "long").
     END.
     ELSE
        ASSIGN longwid = 2000
@@ -441,6 +444,12 @@ IF dbtyp = "SYBASE" OR dbtyp = "MS SQL Server"  OR dbtyp = "MSSQLSRV7" THEN
 ELSE
   skptrm = FALSE.
 
+IF dbtyp = "ORACLE" THEN DO:
+    /* this defines if the user wants character semantics */
+    IF LOGICAL(entry(3,user_env[10])) THEN
+        PUT STREAM code UNFORMATTED "ALTER SESSION SET NLS_LENGTH_SEMANTICS='CHAR';" SKIP.
+END.
+
 _fileloop:
 FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                          AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
@@ -502,7 +511,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         AND shadow then
          ASSIGN column_count = column_count + 1. 
          
-    /* check for long data types which will be a format greater than 4000 */    
+    /* check for long data types which will be a format greater than maximum char lenght (longwid) */    
     IF DICTDB._Field._Dtype = 1 THEN DO:
       IF sqlwidth THEN DO:
         IF DICTDB._Field._Extent = 0 THEN 
@@ -537,16 +546,20 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       IF lUniExpand THEN
           z = z * 2.
 
-      IF z > longwid THEN 
-        ASSIGN col_long_count = col_long_count + 1.
+      /* if not ORACLE, or if expanding to long column, then increment long count */
+      /* user_env[18] may be a clob type, in which case it's ok to have more than one column on a given table */
+      IF dbtyp <>  "ORACLE" OR user_env[18] EQ "long" THEN DO:
+        IF z > longwid THEN 
+            ASSIGN col_long_count = col_long_count + 1.
+        END.
+        ELSE IF DICTDB._Field._Dtype = 8 THEN
+             ASSIGN col_long_count = col_long_count + 1.
     END.
-    ELSE IF DICTDB._Field._Dtype = 8 THEN
-         ASSIGN col_long_count = col_long_count + 1.
     
     IF dbtyp <> "PROGRESS" AND DICTDB._Field._Dtype NE 41 /*int64*/ THEN DO: 
       IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
         ASSIGN unsprtdt = TRUE.
-      ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype > 18 THEN     
+      ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype > 19 THEN     
         ASSIGN unsprtdt = TRUE.
     END.
   end.   
@@ -1002,6 +1015,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         ELSE IF DICTDB._Field._Dtype = 18 THEN
           PUT STREAM CODE UNFORMATTED
           comment_chars "  " n2 " blob not null".
+        ELSE IF DICTDB._Field._Dtype = 19 THEN
+          PUT STREAM CODE UNFORMATTED
+            comment_chars "  " n2  (IF user_env[11] = "NVARCHAR2" THEN " nclob" ELSE " clob").
         ELSE  
           PUT STREAM CODE UNFORMATTED comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.          
       END.
@@ -1038,14 +1054,14 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            PUT STREAM CODE UNFORMATTED
                comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.       
       END.
-      ELSE     
+      ELSE
         PUT STREAM code UNFORMATTED
          comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) 
             /* extent unrolling */
          " " user_env[i + 10] 
             /*char,date,log,int,deci,deci0,recid,lchar,tinyint*/
          c. /* (n,m) */
-   
+
       IF pfmt THEN DO:
         IF DICTDB._Field._dtype = 1 THEN PUT STREAM code UNFORMATTED
             " " TRIM(STRING(_Fld-case,"/NOT")) " CASE-SENSITIVE".
@@ -1433,7 +1449,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
      END. 
 
 
-      /* Don't allow indexes with text or long datatypes */ 
+      /* Don't allow indexes with text or long / clob datatypes */ 
       if index_checking then do: 
         ASSIGN maxidxcollen = 0.
         for each DICTDB._Index-field of DICTDB._Index, 
@@ -1487,7 +1503,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                       index_checking = false.
               
             END.       
-            ELSE IF dbtyp = "ORACLE" AND j > 4000 then DO:  
+            ELSE IF dbtyp = "ORACLE" AND j > longwid /*4000*/ then DO:  
               PUT STREAM logfile UNFORMATTED
                    "++ " skip 
                    "WARNING: INDEX " n2 " not created." skip
@@ -1496,7 +1512,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                    "         column " DICTDB._Field._Field-name " which cannot be ".
               PUT STREAM logfile UNFORMATTED
                        " indexed by Oracle" skip
-                       "         because it has data type long." skip. 
+                       "         because it has data type " user_env[18] /*" long"*/ "." skip. 
 
               PUT STREAM logfile UNFORMATTED
                    "-- " skip.
@@ -1504,7 +1520,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                       warnings_issued = true
                       index_checking = false.
                
-            END.  /* end of 4000 */ 
+            END.  /* end of longwid (formely 4000) */ 
             IF dbtyp = "MSSQLSRV7" THEN 
                 ASSIGN maxidxcollen = maxidxcollen + j.
         end. /* end of for each */ 
@@ -1569,7 +1585,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
              ASSIGN n2 = "U" + unik + n2.
         
         IF dbtyp = "ORACLE" THEN DO:
-            IF NOT shadow AND DICTDB._Field._Dtype = 1 AND longwid = 4000 AND NOT DICTDB._Field._fld-case THEN
+            IF NOT shadow AND DICTDB._Field._Dtype = 1 /*AND longwid = 4000*/ AND NOT DICTDB._Field._fld-case THEN
                 ASSIGN n2 = "upper(" + n2 + ") ".
             IF NOT DICTDB._Index-field._Ascending THEN
                 ASSIGN n2 = n2 + " DESC".

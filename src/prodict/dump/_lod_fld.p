@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,6 +23,7 @@
       04/25/06 Added int64 to list of data types
       06/12/06 Allow int->int64 type change and check for _Initial overflow
       08/16/06 Raw comparison when checking if char values are different - 20060301-002
+      10/02/07 Error handling - OE00158774
 */    
     
 define input-output parameter minimum-index as integer.
@@ -36,6 +37,7 @@ DEFINE VARIABLE fldrecid AS RECID     NO-UNDO.
 DEFINE VARIABLE fldrpos  AS INTEGER   NO-UNDO.
 
 DEFINE VARIABLE i        AS INTEGER   NO-UNDO.
+DEFINE VARIABLE gotError AS LOGICAL   NO-UNDO.
 
 FIND _File WHERE RECID(_File) = drec_file NO-ERROR.
 IF NOT AVAILABLE _File THEN RETURN.
@@ -44,6 +46,10 @@ IF _File._Frozen THEN
 IF _File._Db-lang = 1 AND imod <> "m" THEN
   ierror = 15. /* "Use SQL ALTER TABLE to change field" */
 IF ierror > 0 THEN RETURN.
+
+DO ON ERROR UNDO, LEAVE: /* OE00158774 */
+
+ASSIGN gotError = YES.
 
 FIND FIRST wfld.
 IF imod <> "a" THEN
@@ -62,6 +68,10 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
   IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
                             + (IF NOT is-pre-101b-db THEN ",INT64" ELSE "")) = 0 THEN 
     ASSIGN ierror = 47.
+
+  IF (wfld._Data-type = "CLOB" OR wfld._Data-type = "BLOB") AND 
+      wfld._Extent > 0 THEN
+      ierror = 55.
 
   IF ierror > 0 THEN RETURN.
 
@@ -83,6 +93,13 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
       INPUT-OUTPUT wfld._Data-type,
       INPUT-OUTPUT wfld._For-type,
       OUTPUT scrap).
+
+    /* check if found valid type */
+    IF wfld._For-type = ? or wfld._For-type = "" THEN DO:
+       ierror = 59.
+       RETURN.
+    END.
+
     IF wfld._Format = ? THEN wfld._Format = scrap.
   END.
 
@@ -311,6 +328,13 @@ IF imod = "a" OR imod = "m" THEN DO:
     DELETE _Field-trig.
   END.
 END.
+
+ASSIGN gotError = NO.
+END.
+
+IF gotError THEN
+   ierror = 56. /* generic error - some client error raised */
+   
 
 RETURN.
 

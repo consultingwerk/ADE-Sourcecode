@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -11,7 +11,7 @@
 /*
 in:  user_env[1]   = containing comma-separated list of filenames in
                      current database, *only* if user_filename = "SOME".
-                     or it may be in user_longchar, if list was too big.
+                     But it may be in user_longchar, if list was too big.
      user_env[2]   = Name of file to dump to.
      user_env[5]   = "<internal defaults apply>" or "<target-code-page>"
                      (only for "d"!)   /* hutegger 94/02 */
@@ -49,6 +49,7 @@ History:
     D. McMann   10/03/02    Added USE-INDEX for On-line schema add
     fernando    03/14/06    Handle case with too many tables selected - bug 20050930-006.        
     fernando    09/27/06    Added check for sql-92 tables with unsupported ABL prop - 20060324-001
+    fernando    06/19/07    Support for large files
 */
 /*h-*/
 
@@ -58,7 +59,6 @@ History:
 
 DEFINE VARIABLE Dbs         AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE file_len    AS INTEGER      NO-UNDO.
-DEFINE VARIABLE i           AS INTEGER      NO-UNDO.
 DEFINE VARIABLE Seqs        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL      NO-UNDO init true.
 
@@ -66,6 +66,7 @@ DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
 DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE c         AS CHARACTER.
 
 DEFINE NEW SHARED STREAM ddl.
 
@@ -129,7 +130,6 @@ DO ON STOP UNDO, LEAVE:
     RUN "prodict/dump/_dmpdefs.p" ("s",drec_db,user_env[26]).
     end.
   else do:
-
     /* check if caller stored list in user_longchar, which happens when list is too big
        to fit into user_env[1].
     */
@@ -144,7 +144,8 @@ DO ON STOP UNDO, LEAVE:
     ELSE 
        ASSIGN numCount = 1. /* just need 1 iteration in this case */
 
-    ASSIGN ilast = 0.
+    ASSIGN ilast = 0
+           c = user_env[1].
 
     DO WHILE (ilast < numCount):
 
@@ -153,16 +154,18 @@ DO ON STOP UNDO, LEAVE:
             all the selected entries. Can't put longchar in WHERE clause,
             so need to break it down in chunks  .
          */
-         user_env[1] = "".
+         c = "".
 
-         DO ix = ilast + 1 TO numCount:
-
-            ASSIGN user_env[1] = (if user_env[1] = "" then "" else ",") 
-                       + entry(ix,user_longchar) no-error.
+         DO ix = iLast + 1 TO numCount:
+            IF c = "" THEN
+                c = entry(ix,user_longchar) NO-ERROR.
+            ELSE
+            ASSIGN c = c + "," + 
+                                 entry(ix,user_longchar) no-error.
             IF ERROR-STATUS:ERROR THEN DO:
                 ASSIGN ix = ix - 1.
                 LEAVE. /* process what we'got so far */
-            end.
+            END.
            
          end.
 
@@ -179,9 +182,9 @@ DO ON STOP UNDO, LEAVE:
         AND ( if user_filename = "ALL"
               then (IF NOT fHidden THEN NOT DICTDB._File._Hidden
 	      	    	    	   ELSE DICTDB._File._File-Number > 0 )
-             else if user_filename begins "SOME"
-              then CAN-DO(user_env[1],DICTDB._File._File-name)
-              else RECID(DICTDB._File) = drec_file
+             else if user_filename begins "SOME" 
+                  THEN CAN-DO(c, DICTDB._File._File-name)
+                  ELSE RECID(DICTDB._File) = drec_file
            )
         USE-INDEX _File-name
       BREAK BY DICTDB._File._File-name:

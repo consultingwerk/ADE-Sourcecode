@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All      *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -72,6 +72,7 @@
 {adeuib/bld_tbls.i}     /* Build table list procedure                        */
 {adeuib/brwscols.i}   /* Definitions for _BC records                    */
 
+DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
 
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
 {defrescd.i}
@@ -177,7 +178,7 @@ FUNCTION canSetDPS RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD copyReposProps C-Win 
 FUNCTION copyReposProps RETURNS handle
   ( INPUT pcSourceObject    AS CHARACTER,
-    INPUT prTarget          AS recid     )  FORWARD.
+    INPUT prTarget          AS recid    )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -277,9 +278,6 @@ DEFINE SUB-MENU m_File
        MENU-ITEM m_Save_As_Object LABEL "Save As &Object..."
        MENU-ITEM m_Reg_in_Repos LABEL "&Register in Repository..."
        RULE
-       MENU-ITEM m_ReLogon      LABEL "Re-&Logon..."  
-       MENU-ITEM m_Session_Reset LABEL "Session Rese&t..."
-       RULE
        MENU-ITEM m_Print        LABEL "&Print"        
        RULE.
 
@@ -337,7 +335,6 @@ DEFINE FRAME DEFAULT-FRAME
 /* Settings for THIS-PROCEDURE
    Type: Window
    Allow: Basic,Browse,DB-Fields,Window,Query
-   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -414,17 +411,6 @@ DO:
   /* This event will close the window and terminate the procedure.  */
   APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN NO-APPLY.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi_tempdb_maint
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi_tempdb_maint C-Win
-ON CHOOSE OF MENU-ITEM mi_tempdb_maint /* TEMP-DB Maintenance Tool... */
-DO:
-  RUN choose_tempdb_maint IN _h_UIB.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -647,17 +633,6 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME m_ReLogon
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_ReLogon C-Win
-ON CHOOSE OF MENU-ITEM m_ReLogon /* Re-Logon... */
-DO:
-    RUN relogon IN gshSessionManager.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME m_Run
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Run C-Win
 ON CHOOSE OF MENU-ITEM m_Run /* Run */
@@ -717,17 +692,6 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME m_Session_Reset
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Session_Reset C-Win
-ON CHOOSE OF MENU-ITEM m_Session_Reset /* Session Reset... */
-DO:
-    RUN af/cod2/afprogrunw.w PERSISTENT.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME m_Undo
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Undo C-Win
 ON CHOOSE OF MENU-ITEM m_Undo /* Undo */
@@ -744,6 +708,17 @@ END.
 ON CHOOSE OF MENU-ITEM m_user_prefs /* Preferences... */
 DO:
     RUN edit_preferences IN _h_UIB.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME mi_tempdb_maint
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi_tempdb_maint C-Win
+ON CHOOSE OF MENU-ITEM mi_tempdb_maint /* TEMP-DB Maintenance Tool... */
+DO:
+  RUN choose_tempdb_maint IN _h_UIB.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1696,34 +1671,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayStatusbarInfo C-Win 
-PROCEDURE displayStatusbarInfo :
-/*------------------------------------------------------------------------------
-  Purpose:     Display ICF information in AB status bar.
-  Parameters:  <none>
-  Notes:       SUBSCRIBE TO 'ClientCachedDataChanged':u IN gshSessionManager
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cPropertyValues             AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cCurrentUserLogin           AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cCurrentOrganisationName    AS CHARACTER  NO-UNDO.
-    
-    /* jep-icf-temp: Should be calling appropriate icf API and not
-       gshSessionManager directly. */
-    IF NOT VALID-HANDLE(gshSessionManager) THEN RETURN.
-    
-    cPropertyValues = DYNAMIC-FUNCTION('getPropertyList' IN gshSessionManager, "currentUserName,currentOrganisationName", TRUE).
-    cCurrentUserLogin         = ENTRY(1,cPropertyValues,CHR(3)) NO-ERROR.
-    cCurrentOrganisationName  = ENTRY(2,cPropertyValues,CHR(3)) NO-ERROR.
-
-    RUN adecomm/_statdsp.p (_h_status_line, 5, cCurrentUserLogin).
-    RUN adecomm/_statdsp.p (_h_status_line, 6, cCurrentOrganisationName).
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE display_PropSheet C-Win 
 PROCEDURE display_PropSheet :
 /*------------------------------------------------------------------------------
@@ -1891,6 +1838,34 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayStatusbarInfo C-Win 
+PROCEDURE displayStatusbarInfo :
+/*------------------------------------------------------------------------------
+  Purpose:     Display ICF information in AB status bar.
+  Parameters:  <none>
+  Notes:       SUBSCRIBE TO 'ClientCachedDataChanged':u IN gshSessionManager
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cPropertyValues             AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cCurrentUserLogin           AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cCurrentOrganisationName    AS CHARACTER  NO-UNDO.
+    
+    /* jep-icf-temp: Should be calling appropriate icf API and not
+       gshSessionManager directly. */
+    IF NOT VALID-HANDLE(gshSessionManager) THEN RETURN.
+    
+    cPropertyValues = DYNAMIC-FUNCTION('getPropertyList' IN gshSessionManager, "currentUserName,currentOrganisationName", TRUE).
+    cCurrentUserLogin         = ENTRY(1,cPropertyValues,CHR(3)) NO-ERROR.
+    cCurrentOrganisationName  = ENTRY(2,cPropertyValues,CHR(3)) NO-ERROR.
+
+    RUN adecomm/_statdsp.p (_h_status_line, 5, cCurrentUserLogin).
+    RUN adecomm/_statdsp.p (_h_status_line, 6, cCurrentOrganisationName).
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doNothing C-Win 
 PROCEDURE doNothing :
 /*------------------------------------------------------------------------------
@@ -1987,637 +1962,6 @@ PROCEDURE load_PropertySheet :
      SUBSCRIBE TO 'PropertyChangedClass':U     IN ghPropertySheet.
   END.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropDeleteWidget C-Win 
-PROCEDURE PropDeleteWidget :
-/*------------------------------------------------------------------------------
-  Purpose:   Unregisters widgets in the property sheet.
-  Parameters: phWidget   Handle of widget being deleted.
-  Notes:      Called from deletion of widget adeuib/delete_u.i
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER phWidget AS HANDLE     NO-UNDO.
-
-IF NOT VALID-HANDLE(ghPropertySheet) THEN RETURN.
-
-RUN deleteObject IN ghPropertySheet
-             (INPUT THIS-PROCEDURE,
-              INPUT STRING(_h_win),
-              STRING(phWidget)
-             )  NO-ERROR.
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedAttribute C-Win 
-PROCEDURE PropertyChangedAttribute :
-/*------------------------------------------------------------------------------
-  Purpose:     Published from proeprty sheet when attribute value is changed
-  Parameters:  phHandle     Handle of procedure that object belongs to
-               pcContainer  
-               pcObject     
-               pcResultCode 
-               pcAttribute  
-               pcValue      
-               pcDataType   
-               plOverride   
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER phHandle      AS HANDLE     NO-UNDO.
-DEFINE INPUT  PARAMETER pcContainer   AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcObject      AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcResultCode  AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcAttribute   AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcValue       AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcDataType    AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER plOverride    AS LOGICAL    NO-UNDO.
-
-DEFINE VARIABLE hWindow    		 AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hWidget    		 AS HANDLE     NO-UNDO.
-DEFINE VARIABLE dValue     		 AS DECIMAL    NO-UNDO.
-DEFINE VARIABLE iFont      		 AS INTEGER    NO-UNDO.
-DEFINE VARIABLE lValue     		 AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE iPos       		 AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cListItems 		 AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hPropLib   		 AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hAttribute 		 AS HANDLE     NO-UNDO.
-DEFINE VARIABLE cClassName 		 AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cTmp             AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRecid           AS RECID      NO-UNDO.
-
-/* get the Current window and widget */
-ASSIGN hWindow = WIDGET-HANDLE(pcContainer)
-       hWidget = WIDGET-HANDLE(pcObject)
-       NO-ERROR.
-
-/* Return if object is not created from this procedure */
-IF phHandle <> THIS-PROCEDURE THEN RETURN.
-
-DEFINE BUFFER f_U FOR _U.
-DEFINE BUFFER f_L FOR _L.
-DEFINE BUFFER f_F FOR _F.
-DEFINE BUFFER f_C FOR _C.
-DEFINE BUFFER f_P FOR _P.
-DEFINE BUFFER p_U FOR _U.
-DEFINE BUFFER p_C FOR _C.
-
-FIND f_U WHERE f_U._WINDOW-HANDLE = hWindow AND f_U._HANDLE = hWidget NO-ERROR.
-FIND f_L WHERE RECID(f_L) = f_U._lo-recid NO-ERROR.
-FIND f_F WHERE RECID(f_F) = f_U._x-recid NO-ERROR.
-FIND f_C WHERE RECID(f_C) = f_U._x-recid NO-ERROR.
-FIND f_P WHERE  f_P._WINDOW-HANDLE = f_U._WINDOW-HANDLE NO-ERROR.
-
-ASSIGN cClassName       = DYNAMIC-FUNCTION("RepositoryDynamicClass" IN _h_func_lib, INPUT f_P._TYPE).
-
-IF cClassName = "" THEN
-   cClassName = f_P._TYPE.
-IF cClassname = "DynBrow":U THEN
-DO:
-   FIND f_U WHERE f_U._WINDOW-HANDLE =  hWindow
-              AND f_U._TYPE          = "BROWSE" NO-ERROR. 
-   FIND f_C WHERE RECID(f_C)  = f_U._x-recid NO-ERROR.
-   FIND f_L WHERE RECID(f_L)  = f_U._lo-recid NO-ERROR.
-END.
-IF cClassName = "DynView":U THEN
-DO:
-  FIND p_U WHERE RECID(p_U) = f_U._PARENT-RECID NO-ERROR.
-  IF AVAILABLE p_U THEN
-    FIND p_C WHERE RECID(p_C) = p_U._x-recid NO-ERROR.
-END.                                                  
-
-/* Manage layout attributes which require refreshing */
-/* When assigning the column attribute, always add 2 to the position because 
-   that's how much the AB pads the column position to account for the colon 
-   after the label */
-IF CAN-DO("ROW,COLUMN,HEIGHT-CHARS,WIDTH-CHARS":U,pcAttribute) THEN
-DO:
-   ASSIGN dValue = DECIMAL(pcValue) NO-ERROR.
-   IF dValue > 0 THEN
-   DO:
-     CASE pcAttribute:
-        WHEN "ROW":U THEN
-          ASSIGN f_U._HANDLE:ROW = dValue
-                 f_L._ROW        = dValue NO-ERROR.
-        WHEN "COLUMN":U THEN
-          ASSIGN f_U._HANDLE:COL = dValue + 2
-                 f_L._COL        = dValue + 2 NO-ERROR.
-        WHEN "HEIGHT-CHARS":U THEN
-          ASSIGN f_U._HANDLE:HEIGHT = dValue
-                 f_L._HEIGHT        = dValue NO-ERROR.
-        WHEN "WIDTH-CHARS":U THEN
-          ASSIGN f_U._HANDLE:WIDTH = dValue
-                 f_L._WIDTH        = dValue NO-ERROR.
-     END CASE.
-     
-     IF CAN-DO("COMBO-BOX,FILL-IN,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",f_u._TYPE) 
-           AND pcAttribute NE "WIDTH-CHARS":U AND f_U._l-recid NE ? THEN
-        RUN adeuib/_showlbl.p (f_U._HANDLE).
-   END.
-END.
-ELSE DO:
-
-   ASSIGN lValue = (pcValue = "yes":U) OR (pcValue = "true":U).
-   /* If result code is custom, only synchronize _L fields */
-   IF pcResultCode > "" THEN
-   DO:
-     CASE pcAttribute:
-       WHEN "BGColor":U           THEN ASSIGN f_L._BGCOLOR  = INT(pcValue)
-                                              f_U._HANDLE:BGCOLOR = f_L._BGCOLOR NO-ERROR.  
-       WHEN "BOX":U               THEN f_L._NO-BOX          = NOT lValue.
-       WHEN "CONVERT-3D-COLORS":U THEN f_L._CONVERT-3D-COLORS = lValue.
-       WHEN "EDGE-PIXELS":U       THEN ASSIGN f_L._EDGE-PIXELS = INT(pcValue)
-                                              f_U._HANDLE:EDGE-PIXELS = f_L._EDGE-PIXELS NO-ERROR.
-       WHEN "FGCOLOR":U           THEN ASSIGN f_L._FGCOLOR  = INT(pcValue)
-                                             f_U._HANDLE:FGCOLOR = f_L._FGCOLOR NO-ERROR.
-       WHEN "FONT":U              THEN 
-       DO:
-         ASSIGN iFont = INTEGER(pcValue) NO-ERROR.
-         IF error-status:ERROR OR iFont < 0 OR iFont > FONT-TABLE:NUM-ENTRIES THEN
-           MESSAGE "Invalid Font:" pcValue SKIP
-                   "Font number must be between 0 and " 
-                   STRING(FONT-TABLE:NUM-ENTRIES) + "." VIEW-AS ALERT-BOX ERROR.
-         ELSE DO:
-           IF f_U._TYPE = "BROWSE":U 
-           THEN ASSIGN f_L._FONT = iFont.
-           ELSE ASSIGN f_U._HANDLE:FONT  = iFont
-                      f_L._FONT        =  f_U._HANDLE:FONT.
-        END.
-       END.
-       WHEN "GRAPHIC-EDGE":U     THEN ASSIGN f_L._GRAPHIC-EDGE = lValue
-                                            f_U._HANDLE:GRAPHIC-EDGE = lValue.
-      WHEN "LABEL":U OR
-      WHEN "FieldLabel":U THEN  
-      DO:
-         IF cClassName NE "DynSDO":U THEN
-         DO:
-           RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
-           /* If the user entered a label, set the LABELS attribute to Yes (or No-LABEL to NO */
-           hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN _h_menubar_proc).
-           ASSIGN hAttribute = DYNAMIC-FUNC("getBuffer":U IN hPropLib,"ttAttribute":U).
-           hAttribute:FIND-FIRST(" WHERE " + hAttribute:NAME + ".callingProc = '":U + STRING(phHandle) + "' AND ":U 
-                            + hAttribute:NAME + ".containerName = '":U + STRING(pcContainer) + "' AND ":U
-                            + hAttribute:NAME + ".resultCode = '":U + pcResultCode + "' AND ":U
-                            + hAttribute:NAME + ".objectName = '":U + STRING(pcObject) + "' AND ":U
-                            + hAttribute:NAME + ".attrLabel = 'LABELS'":U  ) NO-ERROR.
-           IF hAttribute:AVAILABLE THEN 
-           DO:
-              hAttribute:BUFFER-FIELD("setValue"):BUFFER-VALUE = (IF pcValue > "" THEN "Yes":U ELSE "No":U).
-              RUN displayProperties IN hPropLib (THIS-PROCEDURE, STRING(pcContainer),STRING(pcObject),?,?,?).
-           END.
-         END.  /* if not DynSDO */
-      END.
-      WHEN "LABELS":U  THEN 
-      DO:
-         ASSIGN f_L._NO-LABEL        = NOT lValue.
-         RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
-      END.
-      WHEN "NO-FOCUS":U         THEN f_L._NO-FOCUS         = lValue.
-      WHEN "SEPARATOR-FGCOLOR":U THEN    ASSIGN f_L._SEPARATOR-FGCOLOR = INT(pcValue)
-                                                f_U._HANDLE:SEPARATOR-FGCOLOR = INT(pcValue).
-      WHEN "SEPARATORS":U        THEN    ASSIGN f_L._SEPARATORS        = lValue
-                                                f_U._HANDLE:SEPARATORS = lVAlue.
-
-     END CASE.
-   END. /* End ResultCode is custom */
-   ELSE
-     CASE pcAttribute:
-      WHEN "ALLOW-COLUMN-SEARCHING":U THEN  f_C._COLUMN-SEARCHING = lValue.
-      WHEN "AppService":U        THEN f_P._PARTITION       = pcValue.
-      WHEN "AUTO-COMPLETION":U   THEN f_F._AUTO-COMPLETION = lValue.
-      WHEN "AUTO-END-KEY":U      THEN f_F._AUTO-ENDKEY     = lValue.
-      WHEN "AUTO-GO":U           THEN f_F._AUTO-GO         = lValue.
-      WHEN "AUTO-INDENT":U       THEN f_F._AUTO-INDENT     = lValue.
-      WHEN "AUTO-RESIZE":U       THEN f_F._AUTO-RESIZE     = lValue.
-      WHEN "AUTO-RETURN":U       THEN f_F._AUTO-RETURN     = lValue.
-      WHEN "AUTO-VALIDATE":U     THEN f_C._NO-AUTO-VALIDATE = lValue.
-      WHEN "BLANK":U             THEN f_F._BLANK           = lValue.
-      WHEN "BGColor":U           THEN ASSIGN f_L._BGCOLOR  = INT(pcValue)
-                                             f_U._HANDLE:BGCOLOR = f_L._BGCOLOR NO-ERROR.
-      WHEN "BOX":U               THEN f_L._NO-BOX          = NOT lValue.
-      WHEN "BOX-SELECTABLE":U    THEN f_C._BOX-SELECTABLE  = lValue.
-      WHEN "CHECKED":U           THEN 
-         IF f_U._TYPE = "TOGGLE-BOX":U THEN f_F._INITIAL-DATA = IF lValue
-                                                                THEN "YES":U ELSE "NO":U.
-      WHEN "COLUMN-MOVABLE":U    THEN f_C._COLUMN-MOVABLE  = lValue.
-      WHEN "COLUMN-RESIZABLE":U THEN  f_C._COLUMN-RESIZABLE = lValue.
-      WHEN "COLUMN-SCROLLING":U THEN  f_C._COLUMN-SCROLLING = lValue.
-      WHEN "CONTEXT-HELP-ID":U   THEN f_U._CONTEXT-HELP-ID = INT(pcValue) NO-ERROR.
-      WHEN "CONVERT-3D-COLORS":U THEN f_L._CONVERT-3D-COLORS = lValue.
-      WHEN "DataBaseName":U      THEN f_U._DBNAME          = pcValue.
-      WHEN "Data-Type":U         THEN f_F._DATA-TYPE       = pcValue.
-      WHEN "DataLogicProcedure":U THEN
-         IF AVAILABLE f_C THEN        f_C._DATA-LOGIC-PROC = pcValue.
-      WHEN "DEBLANK":U           THEN f_F._DEBLANK         = lValue.
-      WHEN "DEFAULT":U           THEN f_F._DEFAULT         = lValue.
-      WHEN "DELIMITER":U         THEN f_F._DELIMITER       = pcValue.
-      WHEN "DISABLE-AUTO-ZAP":U  THEN f_F._DISABLE-AUTO-ZAP = lValue.
-      WHEN "DisplayField":U      THEN f_U._DISPLAY         = lValue.
-      WHEN "Down":U              THEN f_C._DOWN            = lValue.
-      WHEN "DRAG-ENABLED":U      THEN f_F._DRAG-ENABLED    = lValue.
-      WHEN "DROP-TARGET":U       THEN f_U._DROP-TARGET     = lValue.
-      WHEN "EDGE-PIXELS":U       THEN ASSIGN f_L._EDGE-PIXELS = INT(pcValue)
-                                             f_U._HANDLE:EDGE-PIXELS = f_L._EDGE-PIXELS NO-ERROR.
-      WHEN "ENABLED":U           THEN f_U._ENABLE          = lValue.
-      WHEN "EXPAND":U            THEN f_F._EXPAND          = lValue.
-      WHEN "FGCOLOR":U           THEN ASSIGN f_L._FGCOLOR  = INT(pcValue)
-                                             f_U._HANDLE:FGCOLOR = f_L._FGCOLOR NO-ERROR.
-      WHEN "FILLED":U            THEN ASSIGN f_L._FILLED   = lValue
-                                             f_U._HANDLE:FILLED = lValue .
-      WHEN "FIT-LAST-COLUMN":U   THEN f_C._FIT-LAST-COLUMN = lValue.
-      WHEN "FLAT-BUTTON":U       THEN ASSIGN f_F._FLAT     = lValue.
-      WHEN "FolderWindowToLaunch":U THEN f_C._FOLDER-WINDOW-TO-LAUNCH = pcValue.
-      WHEN "FONT":U              THEN 
-      DO:
-        ASSIGN iFont = INTEGER(pcValue) NO-ERROR.
-        IF error-status:ERROR OR iFont < 0 OR iFont > FONT-TABLE:NUM-ENTRIES THEN
-           MESSAGE "Invalid Font:" pcValue SKIP
-                   "Font number must be between 0 and " 
-                   STRING(FONT-TABLE:NUM-ENTRIES) + "." VIEW-AS ALERT-BOX ERROR.
-        ELSE DO:
-          IF f_U._TYPE = "BROWSE":U 
-          THEN ASSIGN f_L._FONT = iFont.
-          ELSE ASSIGN f_U._HANDLE:FONT  = iFont
-                      f_L._FONT        =  f_U._HANDLE:FONT.
-
-        END.
-      END.
-      WHEN "FORMAT":U THEN
-      DO:
-        /* Since text fields will not have a valid data type defined, assume character */
-        IF f_F._DATA-TYPE = "?" OR f_F._DATA-TYPE = ? THEN
-        DO:
-           IF validate-format(pcValue,"Character":U) THEN
-                ASSIGN f_F._FORMAT = pcvalue.   
-        END.
-        ELSE IF validate-format(pcValue,f_F._DATA-TYPE) THEN
-           ASSIGN f_F._FORMAT = pcvalue.
-      END.
-      WHEN "GRAPHIC-EDGE":U     THEN ASSIGN f_L._GRAPHIC-EDGE = lValue
-                                            f_U._HANDLE:GRAPHIC-EDGE = lVAlue.
-
-      WHEN "GROUP-BOX":U        THEN ASSIGN f_L._GROUP-BOX    = lValue
-                                            f_U._HANDLE:GROUP-BOX = lValue.
-      WHEN "HELP":U             THEN f_U._HELP            = pcValue.
-      WHEN "HIDDEN":U           THEN ASSIGN f_U._HIDDEN          = lValue
-                                            f_U._VISIBLE         = NOT f_U._HIDDEN.
-      WHEN "Horizontal":U       THEN f_F._HORIZONTAL      = lValue.
-      WHEN "InitialValue":U     THEN IF f_U._subtype = "SmartDataField":U
-          								THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
-          								ELSE ASSIGN f_F._INITIAL-DATA = pcValue
-                                                    f_U._HANDLE:SCREEN-VALUE = pcValue.
-      WHEN "Inner-Lines":U      THEN f_F._INNER-LINES     = INT(pcValue) NO-ERROR.
-      WHEN "LARGE":U            THEN f_F._LARGE           = lValue.
-      WHEN "IMAGE-FILE":U       THEN DO:
-                                     f_F._IMAGE-FILE      = pcValue.
-                                     f_U._HANDLE:LOAD-IMAGE(pcValue).
-      END.
-      WHEN "LABEL":U OR
-      WHEN "FieldLabel":U THEN  
-      DO:
-         IF cClassName NE "DynSDO":U THEN
-         DO:
-            IF f_U._subtype = "SmartDataField":U AND pcAttribute = "FieldLabel":U
-		    THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
-
-		    ELSE DO:
-	            RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
-    	       /* If the user entered a label, set the LABELS attribute to Yes (or No-LABEL to NO */
-        	   hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN _h_menubar_proc).
-           	   ASSIGN hAttribute = DYNAMIC-FUNC("getBuffer":U IN hPropLib,"ttAttribute":U).
-	           hAttribute:FIND-FIRST(" WHERE " + hAttribute:NAME + ".callingProc = '":U + STRING(phHandle) + "' AND ":U 
-    	                        + hAttribute:NAME + ".containerName = '":U + STRING(pcContainer) + "' AND ":U
-        	                    + hAttribute:NAME + ".resultCode = '":U + pcResultCode + "' AND ":U
-            	                + hAttribute:NAME + ".objectName = '":U + STRING(pcObject) + "' AND ":U
-                	            + hAttribute:NAME + ".attrLabel = 'LABELS'":U  ) NO-ERROR.
-	           IF hAttribute:AVAILABLE THEN 
-    	       DO:
-	              hAttribute:BUFFER-FIELD("setValue"):BUFFER-VALUE = (IF pcValue > "" THEN "Yes":U ELSE "No":U).
-    	          RUN displayProperties IN hPropLib (THIS-PROCEDURE, STRING(pcContainer),STRING(pcObject),?,?,?).
-        	   END.
-            END. /*ELSE DO f_U._subtype = "SmartDataField"*/
-         END.  /* if class not DynSDO */
-      END.
-      WHEN "LABELS":U           THEN DO:
-         ASSIGN f_L._NO-LABEL        = NOT lValue.
-         RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
-      END.
-      WHEN "LIST-ITEM-PAIRS":U  THEN f_F._LIST-ITEM-PAIRS  = pcValue.
-      WHEN "LIST-ITEMS":U       THEN f_F._LIST-ITEMS       = pcValue.   
-      WHEN "MANUAL-HIGHLIGHT":U THEN f_U._MANUAL-HIGHLIGHT = lValue.
-      WHEN "MAX-CHARS":U        THEN f_F._MAX-CHARS       = INT(pcValue).
-      WHEN "MAX-DATA-GUESS":U   THEN f_C._MAX-DATA-GUESS  = INT(pcValue).
-      WHEN "MOVABLE":U          THEN f_U._MOVABLE         = lValue.
-      WHEN "MULTIPLE":U         THEN f_F._MULTIPLE        = lValue.
-      WHEN "NAME":U  OR
-      WHEN "WidgetName":U       THEN 
-         IF pcValue > ""        THEN f_U._NAME             = pcValue.
-      WHEN "NO-FOCUS":U         THEN f_L._NO-FOCUS         = lValue.
-      WHEN "NO-EMPTY-SPACE":U   THEN f_C._NO-EMPTY-SPACE   = lValue.
-      WHEN "NUM-LOCKED-COLUMNS":U THEN f_C._NUM-LOCKED-COLUMNS = INT(pcValue).
-      WHEN "ORDER":U            THEN ASSIGN p_C._TABBING   = "Custom":U
-                                            f_U._TAB-ORDER = INT(pcValue) NO-ERROR.
-      WHEN "OVERLAY":U          THEN f_C._OVERLAY          = lValue.
-      WHEN "PAGE-BOTTOM":U      THEN f_C._PAGE-BOTTOM      = lValue.
-      WHEN "PAGE-TOP":U         THEN f_C._PAGE-TOP         = lValue.
-      WHEN "PRIVATE-DATA":U     THEN f_U._PRIVATE-DATA     = pcValue.
-      WHEN "PASSWORD-FIELD":U   THEN f_F._PASSWORD-FIELD   = lValue.
-      WHEN "RADIO-BUTTONS":U    THEN 
-        IF f_U._TYPE = "RADIO-SET":U THEN 
-        DO:  /* Need to reformat the radio buttons */
-          ASSIGN f_F._LIST-ITEMS = pcValue.
-          IF NUM-ENTRIES(f_F._LIST-ITEMS, f_F._DELIMITER) > 3 AND
-             NUM-ENTRIES(f_F._LIST-ITEMS, CHR(10)) < 2 THEN 
-          DO:
-              DO iPos = 3 TO NUM-ENTRIES(f_F._LIST-ITEMS, f_F._DELIMITER) BY 2:
-                ENTRY(iPos, f_F._LIST-ITEMS, f_F._DELIMITER) = CHR(10) + 
-                    trim(ENTRY(iPos, f_F._LIST-ITEMS, f_F._DELIMITER)).
-              END.
-              RUN adeuib/_rbtns.p( f_F._LIST-ITEMS, "INTEGER", f_F._DELIMITER, OUTPUT cTmp).
-              f_U._HANDLE:RADIO-BUTTONS = cTmp NO-ERROR.
-          END.  /* There are more than 1 item and no <CR>s */
-        END. /* Reformating radio-buttons attribute */
-      WHEN "READ-ONLY":U        THEN     ASSIGN f_F._READ-ONLY        = lValue
-                                                f_U._HANDLE:READ-ONLY = lValue.
-      WHEN "RESIZABLE":U        THEN     f_U._RESIZABLE       = lValue.
-      WHEN "RETAIN-SHAPE":U     THEN     ASSIGN f_F._RETAIN-SHAPE        = lValue
-                                                f_U._HANDLE:RETAIN-SHAPE = lValue.
-      WHEN "RETURN-INSERTED":U  THEN     f_F._RETURN-INSERTED = lValue.
-      WHEN "ROUNDED":U          THEN     ASSIGN f_L._ROUNDED        = lValue
-                                                f_U._HANDLE:ROUNDED = lValue.
-      WHEN "ROW-HEIGHT-CHARS":U THEN     ASSIGN f_C._ROW-HEIGHT      = DEC(pcValue)
-                                                f_U._HANDLE:ROW-HEIGHT = DEC(pcValue).
-      WHEN "SCROLLBAR-HORIZONTAL":U THEN f_F._SCROLLBAR-H     = lValue.
-      WHEN "SCROLLBAR-VERTICAL":U   THEN f_U._SCROLLBAR-V     = lValue.
-      WHEN "SELECTABLE":U       THEN     f_U._SELECTABLE      = lValue.
-      WHEN "SENSITIVE":U        THEN     f_U._SENSITIVE       = lValue.
-      WHEN "SEPARATOR-FGCOLOR":U THEN    ASSIGN f_L._SEPARATOR-FGCOLOR = INT(pcValue)
-                                                f_U._HANDLE:SEPARATOR-FGCOLOR = INT(pcValue).
-      WHEN "SEPARATORS":U       THEN     ASSIGN f_L._SEPARATORS        = lValue
-                                                f_U._HANDLE:SEPARATORS = lVAlue.
-      WHEN "ShowPopup":U        THEN     
-      DO:
-         f_U._SHOW-POPUP      = lValue.
-         /* Need to also change the _U for the frame */
-         FIND _U WHERE _U._TYPE = "FRAME":U 
-              AND _U._PARENT-RECID = RECID(f_U) NO-ERROR.
-         IF AVAIL _U THEN ASSIGN _U._SHOW-POPUP = lValue.
-         
-      END.
-         
-      WHEN "SIDE-LABELS":U      THEN     f_C._SIDE-LABELS     = lValue.
-      WHEN "SizeToFit":U        THEN     f_C._SIZE-TO-FIT     = lValue.
-      WHEN "SORT":U             THEN     IF f_U._subtype = "SmartDataField":U
-	          								THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
-    	      								ELSE ASSIGN f_F._SORT            = lValue.
-      WHEN "STRETCH-TO-FIT":U   THEN     ASSIGN f_F._STRETCH-TO-FIT        = lValue
-                                                f_U._HANDLE:STRETCH-TO-FIT = lValue.
-      WHEN "SubType":U          THEN     f_U._SUBTYPE         = pcValue.
-      WHEN "TAB-STOP":U         THEN     f_U._NO-TAB-STOP     = NOT lValue.
-      WHEN "TableName":U        THEN  ASSIGN f_U._BUFFER      = pcValue
-                                             f_U._TABLE       = pcValue.
-      WHEN "THREE-D":U          THEN     f_L._3-D             = lValue.
-      WHEN "Tooltip":U          THEN     ASSIGN f_U._TOOLTIP  = pcValue
-                                                f_U._HANDLE:TOOLTIP = pcValue.
-      WHEN "TRANSPARENT":U      THEN     f_F._TRANSPARENT     = lValue.
-      WHEN "VISIBLE":U          THEN    ASSIGN
-                                        f_U._VISIBLE         = lValue  
-                                        f_U._HIDDEN          = NOT lValue.
-      WHEN "VisualizationType":U THEN ASSIGN f_U._TYPE        = pcValue
-                                             f_U._ALIGN       = IF LOOKUP(f_U._TYPE,"RADIO-SET,IMAGE,SELECTION-LIST,EDITOR":U) > 0
-                                                                THEN "L":U 
-                                                                ELSE "C":U.
-      WHEN "WindowTitleField":U  THEN   
-      DO: 
-         f_C._WINDOW-TITLE-FIELD = pcValue.
-         /* Assign the value to the _C record for the frame _U record  as well. */
-         cRecid = RECID(f_U).
-         FIND f_U WHERE F_U._TYPE = "FRAME":U 
-                    AND F_U._PARENT-RECID = cRecid NO-ERROR.
-         IF AVAILABLE f_U THEN
-            FIND f_C WHERE RECID(f_C)  = f_U._x-recid NO-ERROR.         
-         IF AVAIL f_C THEN
-            ASSIGN f_C._WINDOW-TITLE-FIELD = pcValue.
-      END.
-      WHEN "WORD-WRAP":U        THEN ASSIGN f_F._WORD-WRAP       = lValue.
-      OTHERWISE DO:
-         /* Check for changes in SmartObject properties */
-           setSmartSetting(f_U._x-recid,pcAttribute,pcValue).
-      END.
-   END CASE.
-
-END.
-/* Flag window as modified */
-RUN adeuib/_winsave.p (_h_win,FALSE).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedEvent C-Win 
-PROCEDURE PropertyChangedEvent :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER phHandle         AS HANDLE     NO-UNDO.
-  DEFINE INPUT PARAMETER pcContainer      AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcObject         AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcResultCode     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcEventName      AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcEventAction    AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcActionType     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcActionTarget   AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcEventParameter AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER plEventDisabled  AS LOGICAL    NO-UNDO.
-  DEFINE INPUT PARAMETER plOverride       AS LOGICAL    NO-UNDO.
-  DEFINE INPUT PARAMETER pcFieldsModified AS CHARACTER  NO-UNDO.
-
-  /* Flag window as modified */
-RUN adeuib/_winsave.p (_h_win,FALSE).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedObject C-Win 
-PROCEDURE PropertyChangedObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Called when the property sheet perfroms a value-changed
-               event on the Object combo-box.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER phProc      AS HANDLE  NO-UNDO.
-DEFINE INPUT  PARAMETER pcContainer AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pcObject    AS CHARACTER  NO-UNDO.
-
-DEFINE VARIABLE hWidget  AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hWindow  AS HANDLE     NO-UNDO.
-
-IF phProc <> THIS-PROCEDURE THEN
-   RETURN.
-
-ASSIGN hWidget = WIDGET-HANDLE(pcObject) 
-       hWIndow = WIDGET-HANDLE(pcContainer) NO-ERROR.
-
-FOR EACH _U WHERE _U._SELECTEDib AND _U._WINDOW-HANDLE = hWindow:
-   ASSIGN _U._SELECTEDib       = FALSE
-          _U._HANDLE:SELECTED = FALSE.
-END.
-
-FIND _U WHERE  _U._WINDOW-HANDLE = hWindow AND _U._HANDLE = hWIdget NO-ERROR.
-IF AVAIL _U AND CAN-SET( _U._HANDLE,"SELECTED":U) THEN
-   ASSIGN _U._SELECTEDib      = TRUE
-          _U._HANDLE:SELECTED = TRUE.
-
-
-
-
-
-
-
-
-
-
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propUndoWidget C-Win 
-PROCEDURE propUndoWidget :
-/*------------------------------------------------------------------------------
-  Purpose:   UnDeletes widgets that have previously been deleted
-  Parameters: phWidget   Handle of widget being undone.
-  Notes:      Called from Undo of widget adeuib/_undo.p
-------------------------------------------------------------------------------*/
-DEFINE INPUT  PARAMETER pcOldWidgetName AS CHARACTER     NO-UNDO.
-DEFINE INPUT  PARAMETER phNewWidget     AS HANDLE     NO-UNDO.
-
-IF NOT VALID-HANDLE(ghPropertySheet) THEN RETURN.
-
-RUN undeleteObject IN ghPropertySheet
-             (INPUT THIS-PROCEDURE,
-              INPUT STRING(_h_win),
-              INPUT pcOldWidgetName,
-              INPUT STRING(phNewWidget)
-             )  NO-ERROR.
-
-gcRegisteredObjects = gcRegisteredObjects + (IF gcRegisteredObjects = "" THEN "" ELSE ",") 
-                                                + STRING(phNewWidget).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propUpdateMaster C-Win 
-PROCEDURE propUpdateMaster :
-/*------------------------------------------------------------------------------
-  Purpose:     Updates registered non-dynamic object attributes 
-  Parameters:  phWindow            Window handle of container
-               pd_smartObject_obj  Object_obj of master object
-  Notes:       
-------------------------------------------------------------------------------*/
- DEFINE INPUT  PARAMETER  phWindow          AS HANDLE     NO-UNDO.
- DEFINE INPUT  PARAMETER  pdSmartObject_obj AS DECIMAL    NO-UNDO.
- 
- DEFINE VARIABLE hPropBuffer           AS HANDLE      NO-UNDO.
- DEFINE VARIABLE hPropLib              AS HANDLE      NO-UNDO.
- DEFINE VARIABLE httClassBuffer        AS HANDLE      NO-UNDO.
- DEFINE VARIABLE cResultCode           AS CHARACTER   NO-UNDO.
- DEFINE VARIABLE cDataType             AS CHARACTER   NO-UNDO.
- DEFINE VARIABLE cValue                AS CHARACTER   NO-UNDO.
- DEFINE VARIABLE hQuery                AS HANDLE      NO-UNDO.
- DEFINE VARIABLE hUnknown              AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hRepDesignManager     AS HANDLE     NO-UNDO.
-
-
-hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN THIS-PROCEDURE).
-IF VALID-HANDLE(hPropLib) THEN 
-DO:
-  ASSIGN hPropBuffer = DYNAMIC-FUNCTION("getBuffer":U IN hPropLib, "ttAttribute":U).
-  CREATE QUERY hQuery.
-  hQuery:SET-BUFFERS(hPropBuffer).
-  hQuery:QUERY-PREPARE(" FOR EACH ttAttribute WHERE " 
-                        + hPropBuffer:NAME + ".callingProc = '":U + STRING(THIS-PROCEDURE) + "' AND ":U 
-                        + hPropBuffer:NAME + ".containerName = '":U + STRING(phWindow) + "' AND ":U
-                        + hPropBuffer:NAME + ".resultCode = '":U + cResultCode + "' AND ":U
-                        + hPropBuffer:NAME + ".objectName = '":U + STRING(phWindow) + "' AND "
-                        + hPropBuffer:NAME + ".RowModified = 'true'") .
-  hQuery:QUERY-OPEN().
-
-  hQuery:GET-FIRST(NO-LOCK).
-  DO WHILE hPropBuffer:AVAILABLE:
-    /* check whether the attribute was modified and if it's override flag is set */
-    IF hPropBuffer:BUFFER-FIELD("RowOverride":U):BUFFER-VALUE = TRUE THEN
-    DO:
-      ASSIGN cDataType = hPropBuffer:BUFFER-FIELD("dataType":U):BUFFER-VALUE
-             cValue    = hPropBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE.
-
-      CREATE ttStoreAttribute.
-      ASSIGN ttStoreAttribute.tAttributeParent    = "MASTER":U
-             ttStoreAttribute.tAttributeParentObj = pdSmartObject_obj
-             ttStoreAttribute.tAttributeLabel     = hPropBuffer:BUFFER-FIELD("attrLabel":U):BUFFER-VALUE
-             ttStoreAttribute.tConstantValue      = NO.  /* Always no, otherwise we wouldn't be setting it */
-
-      CASE cDataType:
-          WHEN "CHARACTER":U OR WHEN "CHAR":U THEN ttStoreAttribute.tCharacterValue = cValue.
-          WHEN "DECIMAL":U   OR WHEN "DEC":U  THEN ttStoreAttribute.tDecimalValue   = DECIMAL(cValue).
-          WHEN "INTEGER":U   OR WHEN "INT":U  THEN ttStoreAttribute.tIntegerValue   = INT(cValue).
-          WHEN "LOGICAL":U   OR WHEN "LOG":U  THEN ttStoreAttribute.tLogicalValue   = (cValue = "YES" OR cValue = "true").
-          WHEN "DATE":U                       THEN ttStoreAttribute.tDateValue      = DATE(cValue).
-          OTHERWISE                        ttStoreAttribute.tCharacterValue = cValue.
-      END CASE.
-
-    END.  /* if an attribute was modified and overridden */
-    ELSE 
-    DO:
-       /* Override was de-selected to remove attribute */
-      CREATE ttStoreAttribute2.
-      ASSIGN ttStoreAttribute2.tAttributeParent    = "MASTER":U
-             ttStoreAttribute2.tAttributeParentObj = pdSmartObject_obj
-             ttStoreAttribute2.tAttributeLabel     = hPropBuffer:BUFFER-FIELD("attrLabel":U):BUFFER-VALUE
-             ttStoreAttribute2.tConstantValue      = NO.  /* Always no, otherwise we wouldn't be setting it */
-    END.
-
-    hQuery:GET-NEXT().
-  END. /* DO WHILE  PropBuffer Exists */
-END.  /* If hPropLib is valid */
-
-IF CAN-FIND(FIRST ttStoreAttribute) THEN
-DO:
-   RUN StoreAttributeValues IN gshRepositoryManager
-         (INPUT TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE ,
-          INPUT TABLE-HANDLE hUnKnown) NO-ERROR.  /* Compiler requires a variable with unknown */
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
-      MESSAGE RETURN-VALUE
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-   EMPTY TEMP-TABLE ttStoreAttribute.
-END.
-IF CAN-FIND(FIRST ttStoreAttribute2) THEN
-DO:
-   hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
-   RUN RemoveAttributeValues IN hRepDesignManager
-          (INPUT TEMP-TABLE ttStoreAttribute2:DEFAULT-BUFFER-HANDLE ,
-           INPUT TABLE-HANDLE hUnknown).
-   EMPTY TEMP-TABLE ttStoreAttribute2.
-END.
-
-DELETE OBJECT hQuery NO-ERROR.
- 
-
-  /* if _h_menubar_proc is valid */ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3836,6 +3180,637 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropDeleteWidget C-Win 
+PROCEDURE PropDeleteWidget :
+/*------------------------------------------------------------------------------
+  Purpose:   Unregisters widgets in the property sheet.
+  Parameters: phWidget   Handle of widget being deleted.
+  Notes:      Called from deletion of widget adeuib/delete_u.i
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phWidget AS HANDLE     NO-UNDO.
+
+IF NOT VALID-HANDLE(ghPropertySheet) THEN RETURN.
+
+RUN deleteObject IN ghPropertySheet
+             (INPUT THIS-PROCEDURE,
+              INPUT STRING(_h_win),
+              STRING(phWidget)
+             )  NO-ERROR.
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedAttribute C-Win 
+PROCEDURE PropertyChangedAttribute :
+/*------------------------------------------------------------------------------
+  Purpose:     Published from proeprty sheet when attribute value is changed
+  Parameters:  phHandle     Handle of procedure that object belongs to
+               pcContainer  
+               pcObject     
+               pcResultCode 
+               pcAttribute  
+               pcValue      
+               pcDataType   
+               plOverride   
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phHandle      AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER pcContainer   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcObject      AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcResultCode  AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcAttribute   AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcValue       AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcDataType    AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER plOverride    AS LOGICAL    NO-UNDO.
+
+DEFINE VARIABLE hWindow                  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWidget                  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE dValue                   AS DECIMAL    NO-UNDO.
+DEFINE VARIABLE iFont                    AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lValue                   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iPos                     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cListItems               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hPropLib                 AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hAttribute               AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cClassName               AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cTmp             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cRecid           AS RECID      NO-UNDO.
+
+/* get the Current window and widget */
+ASSIGN hWindow = WIDGET-HANDLE(pcContainer)
+       hWidget = WIDGET-HANDLE(pcObject)
+       NO-ERROR.
+
+/* Return if object is not created from this procedure */
+IF phHandle <> THIS-PROCEDURE THEN RETURN.
+
+DEFINE BUFFER f_U FOR _U.
+DEFINE BUFFER f_L FOR _L.
+DEFINE BUFFER f_F FOR _F.
+DEFINE BUFFER f_C FOR _C.
+DEFINE BUFFER f_P FOR _P.
+DEFINE BUFFER p_U FOR _U.
+DEFINE BUFFER p_C FOR _C.
+
+FIND f_U WHERE f_U._WINDOW-HANDLE = hWindow AND f_U._HANDLE = hWidget NO-ERROR.
+FIND f_L WHERE RECID(f_L) = f_U._lo-recid NO-ERROR.
+FIND f_F WHERE RECID(f_F) = f_U._x-recid NO-ERROR.
+FIND f_C WHERE RECID(f_C) = f_U._x-recid NO-ERROR.
+FIND f_P WHERE  f_P._WINDOW-HANDLE = f_U._WINDOW-HANDLE NO-ERROR.
+
+ASSIGN cClassName       = DYNAMIC-FUNCTION("RepositoryDynamicClass" IN _h_func_lib, INPUT f_P._TYPE).
+
+IF cClassName = "" THEN
+   cClassName = f_P._TYPE.
+IF cClassname = "DynBrow":U THEN
+DO:
+   FIND f_U WHERE f_U._WINDOW-HANDLE =  hWindow
+              AND f_U._TYPE          = "BROWSE" NO-ERROR. 
+   FIND f_C WHERE RECID(f_C)  = f_U._x-recid NO-ERROR.
+   FIND f_L WHERE RECID(f_L)  = f_U._lo-recid NO-ERROR.
+END.
+IF cClassName = "DynView":U THEN
+DO:
+  FIND p_U WHERE RECID(p_U) = f_U._PARENT-RECID NO-ERROR.
+  IF AVAILABLE p_U THEN
+    FIND p_C WHERE RECID(p_C) = p_U._x-recid NO-ERROR.
+END.                                                  
+
+/* Manage layout attributes which require refreshing */
+/* When assigning the column attribute, always add 2 to the position because 
+   that's how much the AB pads the column position to account for the colon 
+   after the label */
+IF CAN-DO("ROW,COLUMN,HEIGHT-CHARS,WIDTH-CHARS":U,pcAttribute) THEN
+DO:
+   ASSIGN dValue = DECIMAL(pcValue) NO-ERROR.
+   IF dValue > 0 THEN
+   DO:
+     CASE pcAttribute:
+        WHEN "ROW":U THEN
+          ASSIGN f_U._HANDLE:ROW = dValue
+                 f_L._ROW        = dValue NO-ERROR.
+        WHEN "COLUMN":U THEN
+          ASSIGN f_U._HANDLE:COL = dValue + 2
+                 f_L._COL        = dValue + 2 NO-ERROR.
+        WHEN "HEIGHT-CHARS":U THEN
+          ASSIGN f_U._HANDLE:HEIGHT = dValue
+                 f_L._HEIGHT        = dValue NO-ERROR.
+        WHEN "WIDTH-CHARS":U THEN
+          ASSIGN f_U._HANDLE:WIDTH = dValue
+                 f_L._WIDTH        = dValue NO-ERROR.
+     END CASE.
+     
+     IF CAN-DO("COMBO-BOX,FILL-IN,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",f_u._TYPE) 
+           AND pcAttribute NE "WIDTH-CHARS":U AND f_U._l-recid NE ? THEN
+        RUN adeuib/_showlbl.p (f_U._HANDLE).
+   END.
+END.
+ELSE DO:
+
+   ASSIGN lValue = (pcValue = "yes":U) OR (pcValue = "true":U).
+   /* If result code is custom, only synchronize _L fields */
+   IF pcResultCode > "" THEN
+   DO:
+     CASE pcAttribute:
+       WHEN "BGColor":U           THEN ASSIGN f_L._BGCOLOR  = INT(pcValue)
+                                              f_U._HANDLE:BGCOLOR = f_L._BGCOLOR NO-ERROR.  
+       WHEN "BOX":U               THEN f_L._NO-BOX          = NOT lValue.
+       WHEN "CONVERT-3D-COLORS":U THEN f_L._CONVERT-3D-COLORS = lValue.
+       WHEN "EDGE-PIXELS":U       THEN ASSIGN f_L._EDGE-PIXELS = INT(pcValue)
+                                              f_U._HANDLE:EDGE-PIXELS = f_L._EDGE-PIXELS NO-ERROR.
+       WHEN "FGCOLOR":U           THEN ASSIGN f_L._FGCOLOR  = INT(pcValue)
+                                             f_U._HANDLE:FGCOLOR = f_L._FGCOLOR NO-ERROR.
+       WHEN "FONT":U              THEN 
+       DO:
+         ASSIGN iFont = INTEGER(pcValue) NO-ERROR.
+         IF error-status:ERROR OR iFont < 0 OR iFont > FONT-TABLE:NUM-ENTRIES THEN
+           MESSAGE "Invalid Font:" pcValue SKIP
+                   "Font number must be between 0 and " 
+                   STRING(FONT-TABLE:NUM-ENTRIES) + "." VIEW-AS ALERT-BOX ERROR.
+         ELSE DO:
+           IF f_U._TYPE = "BROWSE":U 
+           THEN ASSIGN f_L._FONT = iFont.
+           ELSE ASSIGN f_U._HANDLE:FONT  = iFont
+                      f_L._FONT        =  f_U._HANDLE:FONT.
+        END.
+       END.
+       WHEN "GRAPHIC-EDGE":U     THEN ASSIGN f_L._GRAPHIC-EDGE = lValue
+                                            f_U._HANDLE:GRAPHIC-EDGE = lValue.
+      WHEN "LABEL":U OR
+      WHEN "FieldLabel":U THEN  
+      DO:
+         IF cClassName NE "DynSDO":U THEN
+         DO:
+           RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
+           /* If the user entered a label, set the LABELS attribute to Yes (or No-LABEL to NO */
+           hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN _h_menubar_proc).
+           ASSIGN hAttribute = DYNAMIC-FUNC("getBuffer":U IN hPropLib,"ttAttribute":U).
+           hAttribute:FIND-FIRST(" WHERE " + hAttribute:NAME + ".callingProc = '":U + STRING(phHandle) + "' AND ":U 
+                            + hAttribute:NAME + ".containerName = '":U + STRING(pcContainer) + "' AND ":U
+                            + hAttribute:NAME + ".resultCode = '":U + pcResultCode + "' AND ":U
+                            + hAttribute:NAME + ".objectName = '":U + STRING(pcObject) + "' AND ":U
+                            + hAttribute:NAME + ".attrLabel = 'LABELS'":U  ) NO-ERROR.
+           IF hAttribute:AVAILABLE THEN 
+           DO:
+              hAttribute:BUFFER-FIELD("setValue"):BUFFER-VALUE = (IF pcValue > "" THEN "Yes":U ELSE "No":U).
+              RUN displayProperties IN hPropLib (THIS-PROCEDURE, STRING(pcContainer),STRING(pcObject),?,?,?).
+           END.
+         END.  /* if not DynSDO */
+      END.
+      WHEN "LABELS":U  THEN 
+      DO:
+         ASSIGN f_L._NO-LABEL        = NOT lValue.
+         RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
+      END.
+      WHEN "NO-FOCUS":U         THEN f_L._NO-FOCUS         = lValue.
+      WHEN "SEPARATOR-FGCOLOR":U THEN    ASSIGN f_L._SEPARATOR-FGCOLOR = INT(pcValue)
+                                                f_U._HANDLE:SEPARATOR-FGCOLOR = INT(pcValue).
+      WHEN "SEPARATORS":U        THEN    ASSIGN f_L._SEPARATORS        = lValue
+                                                f_U._HANDLE:SEPARATORS = lVAlue.
+
+     END CASE.
+   END. /* End ResultCode is custom */
+   ELSE
+     CASE pcAttribute:
+      WHEN "ALLOW-COLUMN-SEARCHING":U THEN  f_C._COLUMN-SEARCHING = lValue.
+      WHEN "AppService":U        THEN f_P._PARTITION       = pcValue.
+      WHEN "AUTO-COMPLETION":U   THEN f_F._AUTO-COMPLETION = lValue.
+      WHEN "AUTO-END-KEY":U      THEN f_F._AUTO-ENDKEY     = lValue.
+      WHEN "AUTO-GO":U           THEN f_F._AUTO-GO         = lValue.
+      WHEN "AUTO-INDENT":U       THEN f_F._AUTO-INDENT     = lValue.
+      WHEN "AUTO-RESIZE":U       THEN f_F._AUTO-RESIZE     = lValue.
+      WHEN "AUTO-RETURN":U       THEN f_F._AUTO-RETURN     = lValue.
+      WHEN "AUTO-VALIDATE":U     THEN f_C._NO-AUTO-VALIDATE = lValue.
+      WHEN "BLANK":U             THEN f_F._BLANK           = lValue.
+      WHEN "BGColor":U           THEN ASSIGN f_L._BGCOLOR  = INT(pcValue)
+                                             f_U._HANDLE:BGCOLOR = f_L._BGCOLOR NO-ERROR.
+      WHEN "BOX":U               THEN f_L._NO-BOX          = NOT lValue.
+      WHEN "BOX-SELECTABLE":U    THEN f_C._BOX-SELECTABLE  = lValue.
+      WHEN "CHECKED":U           THEN 
+         IF f_U._TYPE = "TOGGLE-BOX":U THEN f_F._INITIAL-DATA = IF lValue
+                                                                THEN "YES":U ELSE "NO":U.
+      WHEN "COLUMN-MOVABLE":U    THEN f_C._COLUMN-MOVABLE  = lValue.
+      WHEN "COLUMN-RESIZABLE":U THEN  f_C._COLUMN-RESIZABLE = lValue.
+      WHEN "COLUMN-SCROLLING":U THEN  f_C._COLUMN-SCROLLING = lValue.
+      WHEN "CONTEXT-HELP-ID":U   THEN f_U._CONTEXT-HELP-ID = INT(pcValue) NO-ERROR.
+      WHEN "CONVERT-3D-COLORS":U THEN f_L._CONVERT-3D-COLORS = lValue.
+      WHEN "DataBaseName":U      THEN f_U._DBNAME          = pcValue.
+      WHEN "Data-Type":U         THEN f_F._DATA-TYPE       = pcValue.
+      WHEN "DataLogicProcedure":U THEN
+         IF AVAILABLE f_C THEN        f_C._DATA-LOGIC-PROC = pcValue.
+      WHEN "DEBLANK":U           THEN f_F._DEBLANK         = lValue.
+      WHEN "DEFAULT":U           THEN f_F._DEFAULT         = lValue.
+      WHEN "DELIMITER":U         THEN f_F._DELIMITER       = pcValue.
+      WHEN "DISABLE-AUTO-ZAP":U  THEN f_F._DISABLE-AUTO-ZAP = lValue.
+      WHEN "DisplayField":U      THEN f_U._DISPLAY         = lValue.
+      WHEN "Down":U              THEN f_C._DOWN            = lValue.
+      WHEN "DRAG-ENABLED":U      THEN f_F._DRAG-ENABLED    = lValue.
+      WHEN "DROP-TARGET":U       THEN f_U._DROP-TARGET     = lValue.
+      WHEN "EDGE-PIXELS":U       THEN ASSIGN f_L._EDGE-PIXELS = INT(pcValue)
+                                             f_U._HANDLE:EDGE-PIXELS = f_L._EDGE-PIXELS NO-ERROR.
+      WHEN "ENABLED":U           THEN f_U._ENABLE          = lValue.
+      WHEN "EXPAND":U            THEN f_F._EXPAND          = lValue.
+      WHEN "FGCOLOR":U           THEN ASSIGN f_L._FGCOLOR  = INT(pcValue)
+                                             f_U._HANDLE:FGCOLOR = f_L._FGCOLOR NO-ERROR.
+      WHEN "FILLED":U            THEN ASSIGN f_L._FILLED   = lValue
+                                             f_U._HANDLE:FILLED = lValue .
+      WHEN "FIT-LAST-COLUMN":U   THEN f_C._FIT-LAST-COLUMN = lValue.
+      WHEN "FLAT-BUTTON":U       THEN ASSIGN f_F._FLAT     = lValue.
+      WHEN "FolderWindowToLaunch":U THEN f_C._FOLDER-WINDOW-TO-LAUNCH = pcValue.
+      WHEN "FONT":U              THEN 
+      DO:
+        ASSIGN iFont = INTEGER(pcValue) NO-ERROR.
+        IF error-status:ERROR OR iFont < 0 OR iFont > FONT-TABLE:NUM-ENTRIES THEN
+           MESSAGE "Invalid Font:" pcValue SKIP
+                   "Font number must be between 0 and " 
+                   STRING(FONT-TABLE:NUM-ENTRIES) + "." VIEW-AS ALERT-BOX ERROR.
+        ELSE DO:
+          IF f_U._TYPE = "BROWSE":U 
+          THEN ASSIGN f_L._FONT = iFont.
+          ELSE ASSIGN f_U._HANDLE:FONT  = iFont
+                      f_L._FONT        =  f_U._HANDLE:FONT.
+
+        END.
+      END.
+      WHEN "FORMAT":U THEN
+      DO:
+        /* Since text fields will not have a valid data type defined, assume character */
+        IF f_F._DATA-TYPE = "?" OR f_F._DATA-TYPE = ? THEN
+        DO:
+           IF validate-format(pcValue,"Character":U) THEN
+                ASSIGN f_F._FORMAT = pcvalue.   
+        END.
+        ELSE IF validate-format(pcValue,f_F._DATA-TYPE) THEN
+           ASSIGN f_F._FORMAT = pcvalue.
+      END.
+      WHEN "GRAPHIC-EDGE":U     THEN ASSIGN f_L._GRAPHIC-EDGE = lValue
+                                            f_U._HANDLE:GRAPHIC-EDGE = lVAlue.
+
+      WHEN "GROUP-BOX":U        THEN ASSIGN f_L._GROUP-BOX    = lValue
+                                            f_U._HANDLE:GROUP-BOX = lValue.
+      WHEN "HELP":U             THEN f_U._HELP            = pcValue.
+      WHEN "HIDDEN":U           THEN ASSIGN f_U._HIDDEN          = lValue
+                                            f_U._VISIBLE         = NOT f_U._HIDDEN.
+      WHEN "Horizontal":U       THEN f_F._HORIZONTAL      = lValue.
+      WHEN "InitialValue":U     THEN IF f_U._subtype = "SmartDataField":U
+                                                                        THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
+                                                                        ELSE ASSIGN f_F._INITIAL-DATA = pcValue
+                                                    f_U._HANDLE:SCREEN-VALUE = pcValue.
+      WHEN "Inner-Lines":U      THEN f_F._INNER-LINES     = INT(pcValue) NO-ERROR.
+      WHEN "LARGE":U            THEN f_F._LARGE           = lValue.
+      WHEN "IMAGE-FILE":U       THEN DO:
+                                     f_F._IMAGE-FILE      = pcValue.
+                                     f_U._HANDLE:LOAD-IMAGE(pcValue).
+      END.
+      WHEN "LABEL":U OR
+      WHEN "FieldLabel":U THEN  
+      DO:
+         IF cClassName NE "DynSDO":U THEN
+         DO:
+            IF f_U._subtype = "SmartDataField":U AND pcAttribute = "FieldLabel":U
+                    THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
+
+                    ELSE DO:
+                    RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
+               /* If the user entered a label, set the LABELS attribute to Yes (or No-LABEL to NO */
+                   hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN _h_menubar_proc).
+                   ASSIGN hAttribute = DYNAMIC-FUNC("getBuffer":U IN hPropLib,"ttAttribute":U).
+                   hAttribute:FIND-FIRST(" WHERE " + hAttribute:NAME + ".callingProc = '":U + STRING(phHandle) + "' AND ":U 
+                                + hAttribute:NAME + ".containerName = '":U + STRING(pcContainer) + "' AND ":U
+                                    + hAttribute:NAME + ".resultCode = '":U + pcResultCode + "' AND ":U
+                                + hAttribute:NAME + ".objectName = '":U + STRING(pcObject) + "' AND ":U
+                                    + hAttribute:NAME + ".attrLabel = 'LABELS'":U  ) NO-ERROR.
+                   IF hAttribute:AVAILABLE THEN 
+               DO:
+                      hAttribute:BUFFER-FIELD("setValue"):BUFFER-VALUE = (IF pcValue > "" THEN "Yes":U ELSE "No":U).
+                  RUN displayProperties IN hPropLib (THIS-PROCEDURE, STRING(pcContainer),STRING(pcObject),?,?,?).
+                   END.
+            END. /*ELSE DO f_U._subtype = "SmartDataField"*/
+         END.  /* if class not DynSDO */
+      END.
+      WHEN "LABELS":U           THEN DO:
+         ASSIGN f_L._NO-LABEL        = NOT lValue.
+         RUN Prop_changeLabel (pcAttribute, hWidget, pcValue).
+      END.
+      WHEN "LIST-ITEM-PAIRS":U  THEN f_F._LIST-ITEM-PAIRS  = pcValue.
+      WHEN "LIST-ITEMS":U       THEN f_F._LIST-ITEMS       = pcValue.   
+      WHEN "MANUAL-HIGHLIGHT":U THEN f_U._MANUAL-HIGHLIGHT = lValue.
+      WHEN "MAX-CHARS":U        THEN f_F._MAX-CHARS       = INT(pcValue).
+      WHEN "MAX-DATA-GUESS":U   THEN f_C._MAX-DATA-GUESS  = INT(pcValue).
+      WHEN "MOVABLE":U          THEN f_U._MOVABLE         = lValue.
+      WHEN "MULTIPLE":U         THEN f_F._MULTIPLE        = lValue.
+      WHEN "NAME":U  OR
+      WHEN "WidgetName":U       THEN 
+         IF pcValue > ""        THEN f_U._NAME             = pcValue.
+      WHEN "NO-FOCUS":U         THEN f_L._NO-FOCUS         = lValue.
+      WHEN "NO-EMPTY-SPACE":U   THEN f_C._NO-EMPTY-SPACE   = lValue.
+      WHEN "NUM-LOCKED-COLUMNS":U THEN f_C._NUM-LOCKED-COLUMNS = INT(pcValue).
+      WHEN "ORDER":U            THEN ASSIGN p_C._TABBING   = "Custom":U
+                                            f_U._TAB-ORDER = INT(pcValue) NO-ERROR.
+      WHEN "OVERLAY":U          THEN f_C._OVERLAY          = lValue.
+      WHEN "PAGE-BOTTOM":U      THEN f_C._PAGE-BOTTOM      = lValue.
+      WHEN "PAGE-TOP":U         THEN f_C._PAGE-TOP         = lValue.
+      WHEN "PRIVATE-DATA":U     THEN f_U._PRIVATE-DATA     = pcValue.
+      WHEN "PASSWORD-FIELD":U   THEN f_F._PASSWORD-FIELD   = lValue.
+      WHEN "RADIO-BUTTONS":U    THEN 
+        IF f_U._TYPE = "RADIO-SET":U THEN 
+        DO:  /* Need to reformat the radio buttons */
+          ASSIGN f_F._LIST-ITEMS = pcValue.
+          IF NUM-ENTRIES(f_F._LIST-ITEMS, f_F._DELIMITER) > 3 AND
+             NUM-ENTRIES(f_F._LIST-ITEMS, CHR(10)) < 2 THEN 
+          DO:
+              DO iPos = 3 TO NUM-ENTRIES(f_F._LIST-ITEMS, f_F._DELIMITER) BY 2:
+                ENTRY(iPos, f_F._LIST-ITEMS, f_F._DELIMITER) = CHR(10) + 
+                    trim(ENTRY(iPos, f_F._LIST-ITEMS, f_F._DELIMITER)).
+              END.
+              RUN adeuib/_rbtns.p( f_F._LIST-ITEMS, "INTEGER", f_F._DELIMITER, OUTPUT cTmp).
+              f_U._HANDLE:RADIO-BUTTONS = cTmp NO-ERROR.
+          END.  /* There are more than 1 item and no <CR>s */
+        END. /* Reformating radio-buttons attribute */
+      WHEN "READ-ONLY":U        THEN     ASSIGN f_F._READ-ONLY        = lValue
+                                                f_U._HANDLE:READ-ONLY = lValue.
+      WHEN "RESIZABLE":U        THEN     f_U._RESIZABLE       = lValue.
+      WHEN "RETAIN-SHAPE":U     THEN     ASSIGN f_F._RETAIN-SHAPE        = lValue
+                                                f_U._HANDLE:RETAIN-SHAPE = lValue.
+      WHEN "RETURN-INSERTED":U  THEN     f_F._RETURN-INSERTED = lValue.
+      WHEN "ROUNDED":U          THEN     ASSIGN f_L._ROUNDED        = lValue
+                                                f_U._HANDLE:ROUNDED = lValue.
+      WHEN "ROW-HEIGHT-CHARS":U THEN     ASSIGN f_C._ROW-HEIGHT      = DEC(pcValue)
+                                                f_U._HANDLE:ROW-HEIGHT = DEC(pcValue).
+      WHEN "SCROLLBAR-HORIZONTAL":U THEN f_F._SCROLLBAR-H     = lValue.
+      WHEN "SCROLLBAR-VERTICAL":U   THEN f_U._SCROLLBAR-V     = lValue.
+      WHEN "SELECTABLE":U       THEN     f_U._SELECTABLE      = lValue.
+      WHEN "SENSITIVE":U        THEN     f_U._SENSITIVE       = lValue.
+      WHEN "SEPARATOR-FGCOLOR":U THEN    ASSIGN f_L._SEPARATOR-FGCOLOR = INT(pcValue)
+                                                f_U._HANDLE:SEPARATOR-FGCOLOR = INT(pcValue).
+      WHEN "SEPARATORS":U       THEN     ASSIGN f_L._SEPARATORS        = lValue
+                                                f_U._HANDLE:SEPARATORS = lVAlue.
+      WHEN "ShowPopup":U        THEN     
+      DO:
+         f_U._SHOW-POPUP      = lValue.
+         /* Need to also change the _U for the frame */
+         FIND _U WHERE _U._TYPE = "FRAME":U 
+              AND _U._PARENT-RECID = RECID(f_U) NO-ERROR.
+         IF AVAIL _U THEN ASSIGN _U._SHOW-POPUP = lValue.
+         
+      END.
+         
+      WHEN "SIDE-LABELS":U      THEN     f_C._SIDE-LABELS     = lValue.
+      WHEN "SizeToFit":U        THEN     f_C._SIZE-TO-FIT     = lValue.
+      WHEN "SORT":U             THEN     IF f_U._subtype = "SmartDataField":U
+                                                                                THEN setSmartSetting(f_U._x-recid, pcAttribute, pcValue).
+                                                                        ELSE ASSIGN f_F._SORT            = lValue.
+      WHEN "STRETCH-TO-FIT":U   THEN     ASSIGN f_F._STRETCH-TO-FIT        = lValue
+                                                f_U._HANDLE:STRETCH-TO-FIT = lValue.
+      WHEN "SubType":U          THEN     f_U._SUBTYPE         = pcValue.
+      WHEN "TAB-STOP":U         THEN     f_U._NO-TAB-STOP     = NOT lValue.
+      WHEN "TableName":U        THEN  ASSIGN f_U._BUFFER      = pcValue
+                                             f_U._TABLE       = pcValue.
+      WHEN "THREE-D":U          THEN     f_L._3-D             = lValue.
+      WHEN "Tooltip":U          THEN     ASSIGN f_U._TOOLTIP  = pcValue
+                                                f_U._HANDLE:TOOLTIP = pcValue.
+      WHEN "TRANSPARENT":U      THEN     f_F._TRANSPARENT     = lValue.
+      WHEN "VISIBLE":U          THEN    ASSIGN
+                                        f_U._VISIBLE         = lValue  
+                                        f_U._HIDDEN          = NOT lValue.
+      WHEN "VisualizationType":U THEN ASSIGN f_U._TYPE        = pcValue
+                                             f_U._ALIGN       = IF LOOKUP(f_U._TYPE,"RADIO-SET,IMAGE,SELECTION-LIST,EDITOR":U) > 0
+                                                                THEN "L":U 
+                                                                ELSE "C":U.
+      WHEN "WindowTitleField":U  THEN   
+      DO: 
+         f_C._WINDOW-TITLE-FIELD = pcValue.
+         /* Assign the value to the _C record for the frame _U record  as well. */
+         cRecid = RECID(f_U).
+         FIND f_U WHERE F_U._TYPE = "FRAME":U 
+                    AND F_U._PARENT-RECID = cRecid NO-ERROR.
+         IF AVAILABLE f_U THEN
+            FIND f_C WHERE RECID(f_C)  = f_U._x-recid NO-ERROR.         
+         IF AVAIL f_C THEN
+            ASSIGN f_C._WINDOW-TITLE-FIELD = pcValue.
+      END.
+      WHEN "WORD-WRAP":U        THEN ASSIGN f_F._WORD-WRAP       = lValue.
+      OTHERWISE DO:
+         /* Check for changes in SmartObject properties */
+           setSmartSetting(f_U._x-recid,pcAttribute,pcValue).
+      END.
+   END CASE.
+
+END.
+/* Flag window as modified */
+RUN adeuib/_winsave.p (_h_win,FALSE).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedEvent C-Win 
+PROCEDURE PropertyChangedEvent :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER phHandle         AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER pcContainer      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcObject         AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcResultCode     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcEventName      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcEventAction    AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcActionType     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcActionTarget   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcEventParameter AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER plEventDisabled  AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER plOverride       AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pcFieldsModified AS CHARACTER  NO-UNDO.
+
+  /* Flag window as modified */
+RUN adeuib/_winsave.p (_h_win,FALSE).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PropertyChangedObject C-Win 
+PROCEDURE PropertyChangedObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Called when the property sheet perfroms a value-changed
+               event on the Object combo-box.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phProc      AS HANDLE  NO-UNDO.
+DEFINE INPUT  PARAMETER pcContainer AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcObject    AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE hWidget  AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hWindow  AS HANDLE     NO-UNDO.
+
+IF phProc <> THIS-PROCEDURE THEN
+   RETURN.
+
+ASSIGN hWidget = WIDGET-HANDLE(pcObject) 
+       hWIndow = WIDGET-HANDLE(pcContainer) NO-ERROR.
+
+FOR EACH _U WHERE _U._SELECTEDib AND _U._WINDOW-HANDLE = hWindow:
+   ASSIGN _U._SELECTEDib       = FALSE
+          _U._HANDLE:SELECTED = FALSE.
+END.
+
+FIND _U WHERE  _U._WINDOW-HANDLE = hWindow AND _U._HANDLE = hWIdget NO-ERROR.
+IF AVAIL _U AND CAN-SET( _U._HANDLE,"SELECTED":U) THEN
+   ASSIGN _U._SELECTEDib      = TRUE
+          _U._HANDLE:SELECTED = TRUE.
+
+
+
+
+
+
+
+
+
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propUndoWidget C-Win 
+PROCEDURE propUndoWidget :
+/*------------------------------------------------------------------------------
+  Purpose:   UnDeletes widgets that have previously been deleted
+  Parameters: phWidget   Handle of widget being undone.
+  Notes:      Called from Undo of widget adeuib/_undo.p
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcOldWidgetName AS CHARACTER     NO-UNDO.
+DEFINE INPUT  PARAMETER phNewWidget     AS HANDLE     NO-UNDO.
+
+IF NOT VALID-HANDLE(ghPropertySheet) THEN RETURN.
+
+RUN undeleteObject IN ghPropertySheet
+             (INPUT THIS-PROCEDURE,
+              INPUT STRING(_h_win),
+              INPUT pcOldWidgetName,
+              INPUT STRING(phNewWidget)
+             )  NO-ERROR.
+
+gcRegisteredObjects = gcRegisteredObjects + (IF gcRegisteredObjects = "" THEN "" ELSE ",") 
+                                                + STRING(phNewWidget).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE propUpdateMaster C-Win 
+PROCEDURE propUpdateMaster :
+/*------------------------------------------------------------------------------
+  Purpose:     Updates registered non-dynamic object attributes 
+  Parameters:  phWindow            Window handle of container
+               pd_smartObject_obj  Object_obj of master object
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER  phWindow          AS HANDLE     NO-UNDO.
+ DEFINE INPUT  PARAMETER  pdSmartObject_obj AS DECIMAL    NO-UNDO.
+ 
+ DEFINE VARIABLE hPropBuffer           AS HANDLE      NO-UNDO.
+ DEFINE VARIABLE hPropLib              AS HANDLE      NO-UNDO.
+ DEFINE VARIABLE httClassBuffer        AS HANDLE      NO-UNDO.
+ DEFINE VARIABLE cResultCode           AS CHARACTER   NO-UNDO.
+ DEFINE VARIABLE cDataType             AS CHARACTER   NO-UNDO.
+ DEFINE VARIABLE cValue                AS CHARACTER   NO-UNDO.
+ DEFINE VARIABLE hQuery                AS HANDLE      NO-UNDO.
+ DEFINE VARIABLE hUnknown              AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hRepDesignManager     AS HANDLE     NO-UNDO.
+
+
+hPropLib = DYNAMIC-FUNCTION("getpropertySheetBuffer":U IN THIS-PROCEDURE).
+IF VALID-HANDLE(hPropLib) THEN 
+DO:
+  ASSIGN hPropBuffer = DYNAMIC-FUNCTION("getBuffer":U IN hPropLib, "ttAttribute":U).
+  CREATE QUERY hQuery.
+  hQuery:SET-BUFFERS(hPropBuffer).
+  hQuery:QUERY-PREPARE(" FOR EACH ttAttribute WHERE " 
+                        + hPropBuffer:NAME + ".callingProc = '":U + STRING(THIS-PROCEDURE) + "' AND ":U 
+                        + hPropBuffer:NAME + ".containerName = '":U + STRING(phWindow) + "' AND ":U
+                        + hPropBuffer:NAME + ".resultCode = '":U + cResultCode + "' AND ":U
+                        + hPropBuffer:NAME + ".objectName = '":U + STRING(phWindow) + "' AND "
+                        + hPropBuffer:NAME + ".RowModified = 'true'") .
+  hQuery:QUERY-OPEN().
+
+  hQuery:GET-FIRST(NO-LOCK).
+  DO WHILE hPropBuffer:AVAILABLE:
+    /* check whether the attribute was modified and if it's override flag is set */
+    IF hPropBuffer:BUFFER-FIELD("RowOverride":U):BUFFER-VALUE = TRUE THEN
+    DO:
+      ASSIGN cDataType = hPropBuffer:BUFFER-FIELD("dataType":U):BUFFER-VALUE
+             cValue    = hPropBuffer:BUFFER-FIELD("setValue":U):BUFFER-VALUE.
+
+      CREATE ttStoreAttribute.
+      ASSIGN ttStoreAttribute.tAttributeParent    = "MASTER":U
+             ttStoreAttribute.tAttributeParentObj = pdSmartObject_obj
+             ttStoreAttribute.tAttributeLabel     = hPropBuffer:BUFFER-FIELD("attrLabel":U):BUFFER-VALUE
+             ttStoreAttribute.tConstantValue      = NO.  /* Always no, otherwise we wouldn't be setting it */
+
+      CASE cDataType:
+          WHEN "CHARACTER":U OR WHEN "CHAR":U THEN ttStoreAttribute.tCharacterValue = cValue.
+          WHEN "DECIMAL":U   OR WHEN "DEC":U  THEN ttStoreAttribute.tDecimalValue   = DECIMAL(cValue).
+          WHEN "INTEGER":U   OR WHEN "INT":U  THEN ttStoreAttribute.tIntegerValue   = INT(cValue).
+          WHEN "LOGICAL":U   OR WHEN "LOG":U  THEN ttStoreAttribute.tLogicalValue   = (cValue = "YES" OR cValue = "true").
+          WHEN "DATE":U                       THEN ttStoreAttribute.tDateValue      = DATE(cValue).
+          OTHERWISE                        ttStoreAttribute.tCharacterValue = cValue.
+      END CASE.
+
+    END.  /* if an attribute was modified and overridden */
+    ELSE 
+    DO:
+       /* Override was de-selected to remove attribute */
+      CREATE ttStoreAttribute2.
+      ASSIGN ttStoreAttribute2.tAttributeParent    = "MASTER":U
+             ttStoreAttribute2.tAttributeParentObj = pdSmartObject_obj
+             ttStoreAttribute2.tAttributeLabel     = hPropBuffer:BUFFER-FIELD("attrLabel":U):BUFFER-VALUE
+             ttStoreAttribute2.tConstantValue      = NO.  /* Always no, otherwise we wouldn't be setting it */
+    END.
+
+    hQuery:GET-NEXT().
+  END. /* DO WHILE  PropBuffer Exists */
+END.  /* If hPropLib is valid */
+
+IF CAN-FIND(FIRST ttStoreAttribute) THEN
+DO:
+   RUN StoreAttributeValues IN gshRepositoryManager
+         (INPUT TEMP-TABLE ttStoreAttribute:DEFAULT-BUFFER-HANDLE ,
+          INPUT TABLE-HANDLE hUnKnown) NO-ERROR.  /* Compiler requires a variable with unknown */
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
+      MESSAGE RETURN-VALUE
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   EMPTY TEMP-TABLE ttStoreAttribute.
+END.
+IF CAN-FIND(FIRST ttStoreAttribute2) THEN
+DO:
+   hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+   RUN RemoveAttributeValues IN hRepDesignManager
+          (INPUT TEMP-TABLE ttStoreAttribute2:DEFAULT-BUFFER-HANDLE ,
+           INPUT TABLE-HANDLE hUnknown).
+   EMPTY TEMP-TABLE ttStoreAttribute2.
+END.
+
+DELETE OBJECT hQuery NO-ERROR.
+ 
+
+  /* if _h_menubar_proc is valid */ 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE runDynamicRunLauncher C-Win 
 PROCEDURE runDynamicRunLauncher :
 /*------------------------------------------------------------------------------
@@ -4077,6 +4052,11 @@ PROCEDURE setCompileMenuState :
           DO:
               /* You cannot perform this option on a dynamic repository object. */
               ASSIGN h_mitem:SENSITIVE = lStatic.
+              
+              /* Disable Debug menu when running inside OpenEdge Architect */
+              IF OEIDEIsRunning THEN
+                  ASSIGN h_mitem:SENSITIVE = FALSE.
+                  
               ASSIGN MENU-ITEM m_debugger:SENSITIVE IN MENU m_compile = h_mitem:SENSITIVE.
           END.
           WHEN MENU-ITEM m_preview:LABEL IN MENU m_compile THEN
@@ -4510,21 +4490,21 @@ FUNCTION copyReposProps RETURNS handle
 ACCESS_LEVEL=PRIVATE
   Purpose:  Copies properties from one master object to another.   
     Notes:  * Only works for the default result code.
-    		* Can be used when a dynamic object is saved a static, or vice versa.
+                * Can be used when a dynamic object is saved a static, or vice versa.
             * Some properties are transferred natively, because they exist as fields in
               the _P (or other _* temp-tables), but there are a (large) number of properties 
               that are not managed this way (they are handled by the DPS) and these need
               to be created against the new (dynamic) object.
-			* This API overwrites any existing properties.
-			* We use this API and not copyObjectMaster() in the Repository Design Manager
-			  because that API does a deep copy of all the data, including contained instances.
-			  If we're going from Dynamic to static, then we don't want that information in 
-			  the repository for the new object. And going the other way we would need to
-			  create the contained instances when they don't exist for the source object and
-			  are required in the target object.
-			* The ttStoreAttribute temp-table is cleared first.
-			* It is the repsonsibility of the caller to make sure that existing data is not overwritten
-			  (if it chooses to, of course).
+                        * This API overwrites any existing properties.
+                        * We use this API and not copyObjectMaster() in the Repository Design Manager
+                          because that API does a deep copy of all the data, including contained instances.
+                          If we're going from Dynamic to static, then we don't want that information in 
+                          the repository for the new object. And going the other way we would need to
+                          create the contained instances when they don't exist for the source object and
+                          are required in the target object.
+                        * The ttStoreAttribute temp-table is cleared first.
+                        * It is the repsonsibility of the caller to make sure that existing data is not overwritten
+                          (if it chooses to, of course).
 ------------------------------------------------------------------------------*/
     define variable hAttributeBuffer as handle                    no-undo.
     define variable hRDM             as handle                    no-undo.
@@ -4536,15 +4516,15 @@ ACCESS_LEVEL=PRIVATE
     /* Preprocessors taken from {af/app/afdatatyp.i}. I know this is
        bad (not reusing the include),
      */
-	&scoped-DEFINE CHARACTER-DATA-TYPE 1
-	&scoped-DEFINE DATE-DATA-TYPE      2
-	&scoped-DEFINE LOGICAL-DATA-TYPE   3
-	&scoped-DEFINE INTEGER-DATA-TYPE   4
-	&scoped-DEFINE DECIMAL-DATA-TYPE   5
-	&scoped-DEFINE RECID-DATA-TYPE     7
-	&scoped-DEFINE RAW-DATA-TYPE       8
-	&scoped-DEFINE ROWID-DATA-TYPE     9
-	&scoped-DEFINE HANDLE-DATA-TYPE   10
+        &scoped-DEFINE CHARACTER-DATA-TYPE 1
+        &scoped-DEFINE DATE-DATA-TYPE      2
+        &scoped-DEFINE LOGICAL-DATA-TYPE   3
+        &scoped-DEFINE INTEGER-DATA-TYPE   4
+        &scoped-DEFINE DECIMAL-DATA-TYPE   5
+        &scoped-DEFINE RECID-DATA-TYPE     7
+        &scoped-DEFINE RAW-DATA-TYPE       8
+        &scoped-DEFINE ROWID-DATA-TYPE     9
+        &scoped-DEFINE HANDLE-DATA-TYPE   10
     
     define buffer b_P     for _P.
     
@@ -4851,5 +4831,4 @@ END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

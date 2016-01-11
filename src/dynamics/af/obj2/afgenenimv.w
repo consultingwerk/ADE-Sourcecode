@@ -18,7 +18,10 @@ af/cod/aftemwizpw.w
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject
+/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */ 
 /*---------------------------------------------------------------------------------
   File: afgenemimv.w
 
@@ -376,7 +379,7 @@ PROCEDURE importEntities :
         IF LENGTH(fiSeparator:INPUT-VALUE, "CHARACTER":U) GT 1          AND
            fiSeparator:INPUT-VALUE                        NE "Upper":U  THEN
         DO:            
-            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '5' '?' '?' '"field separator"' '"The field separator should be either blank, a single character or ´Upper´"'},
+            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '5' '?' '?' '"field separator"' '"The field separator should be either blank, a single character or ~~'Upper~~'"'},
                                                    INPUT  "ERR":U,
                                                    INPUT  "OK":U,
                                                    INPUT  "OK":U,

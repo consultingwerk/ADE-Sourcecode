@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,7 +14,8 @@
              06/20/01 D. McMann Added Foreign Owner
              06/25/02 D. McMann Added logic for function based indexes
              11/26/02 D. McMann Removed Oracle V7 support
-   
+             06/11/07 fernando  Unicode support   
+             08/30/07 fernando  More Unicode support stuff
 */   
 
 { prodict/user/uservar.i NEW }
@@ -30,6 +31,10 @@ DEFINE VARIABLE schdbcon      AS LOGICAL INITIAL FALSE  NO-UNDO.
 DEFINE VARIABLE conparms      AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE l_curr-db     AS INTEGER INITIAL 1      NO-UNDO.
 DEFINE VARIABLE l_dbnr        AS INTEGER                NO-UNDO.
+DEFINE VARIABLE disp_msg1     AS LOGICAL INITIAL TRUE   NO-UNDO.
+DEFINE VARIABLE disp_msg2     AS LOGICAL INITIAL TRUE   NO-UNDO.
+DEFINE VARIABLE hasUniSupport AS LOGICAL                NO-UNDO.
+
 DEFINE VARIABLE cFormat       AS CHARACTER 
                               INITIAL "For field widths use:"
                               FORMAT "x(20)" NO-UNDO.
@@ -46,21 +51,28 @@ FORM
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Logical name for ORACLE Database" colon 35 SKIP({&VM_WID})   
   ora_owner    FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
-    LABEL "Oracle Object Owner Name" COLON 35 SKIP({&VM_WID}) 
+    LABEL "ORACLE Object Owner Name" COLON 35 SKIP({&VM_WID}) 
   ora_tspace FORMAT "x(30)" view-as fill-in size 32 by 1
      LABEL "ORACLE tablespace for Tables" colon 35 SKIP({&VM_WID})
   ora_ispace FORMAT "x(30)" view-as fill-in size 32  by 1
-     LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WIDG})      
+     LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WID})
+  ora_varlen FORMAT ">>>9" 
+      VALIDATE (INPUT ora_varlen > 0 AND
+                INPUT ora_varlen <= 4000,
+                "Maximum length must not be greater than 4000") 
+           LABEL "Maximum char length"  COLON 35
+  space(2) lExpandClob view-as toggle-box label "Expand to CLOB" SKIP({&VM_WIDG})
   SPACE(3) pcompatible view-as toggle-box LABEL "Create RECID Field"  
-  SPACE(12) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" 
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
-  SPACE(3) create_df view-as toggle-box LABEL "Create schema holder delta df" COLON 2
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(1) &ELSE SPACE (2) &ENDIF
-  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
-  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
+  crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" AT 40  SKIP({&VM_WID})
+  SPACE(3) create_df view-as toggle-box LABEL "Create schema holder delta df"
+  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" AT 40
+  SKIP({&VM_WID})
+  SPACE(3) lCharSemantics view-as toggle-box LABEL "Char Semantics"
+  unicodeTypes view-as toggle-box LABEL "Use Unicode Types"   AT 40
+  SKIP({&VM_WID})
   space(3) cFormat VIEW-AS TEXT NO-LABEL COLON 2
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                                HORIZONTAL NO-LABEL SKIP({&VM_WID})
   lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 39
              {prodict/user/userbtns.i}
@@ -149,6 +161,29 @@ ON CHOOSE OF btn_File in frame read-df DO:
         INPUT yes                /*Must exist*/).
 END.
 
+ON VALUE-CHANGED OF ora_dbname IN FRAME read-df  DO:
+   /* if user changes the name of the logical db name, check the oracle version */
+   IF LDBNAME("DICTDB") <> ? THEN DO:
+      FOR EACH DICTDB._DB NO-LOCK:
+           IF DICTDB._Db._Db-type = "ORACLE" AND 
+               DICTDB._Db._Db-name = self:SCREEN-VALUE THEN DO:
+              ASSIGN ora_version = DICTDB._Db._Db-misc1[3].
+               IF ora_version >= 9 AND DICTDB._Db._Db-xl-name = "utf-8" THEN DO:
+                   ASSIGN unicodeTypes:SENSITIVE IN FRAME read-df = YES
+                       lCharSemantics:SENSITIVE = YES.
+                   unicodeTypes:move-after-tab-item(lCharSemantics:HANDLE) in frame read-df.
+                   lCharSemantics:move-after-tab-item(shadowcol:HANDLE) in frame read-df.
+                   RETURN.
+               END.
+           END.
+      END.
+   END.
+   ASSIGN unicodeTypes:SENSITIVE IN FRAME read-df = NO
+          unicodeTypes:SCREEN-VALUE IN FRAME read-df = "NO"
+          lCharSemantics:SENSITIVE = NO
+          lCharSemantics:SCREEN-VALUE = "NO"        .
+END.
+
 ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
   IF SELF:SCREEN-VALUE = "1" THEN
     ASSIGN lFormat:CHECKED   = FALSE
@@ -157,22 +192,54 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
     ASSIGN lFormat:CHECKED   = TRUE
            lFormat:SENSITIVE = TRUE.
 END. 
-/*
+
 ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
-    /* when unicode types is set, user can choose whether to allow nvarchar(4000),
-       otherwise the max size is 2000 for nvarchar2
-    */
-    IF SELF:CHECKED THEN DO:
-        nvchar_utf:SENSITIVE = YES.
-        /* keep tab order right */
-        nvchar_utf:move-after-tab-item(unicodeTypes:HANDLE) in frame read-df.
+    IF SELF:screen-value = "yes" THEN DO:
+       ASSIGN lCharSemantics:SENSITIVE = NO
+              lCharSemantics:SCREEN-VALUE = "NO"
+               lExpandClob:SENSITIVE = NO
+               lExpandClob:SCREEN-VALUE = "no"
+               ora_varlen = 2000
+               ora_varlen:SCREEN-VALUE = "2000".
+
+       IF disp_msg1 = TRUE THEN DO:
+
+           ASSIGN disp_msg1 = FALSE.
+
+           MESSAGE "The maximum char length default value is assuming AL16UTF16 encoding for the national" SKIP
+                   "character set on the ORACLE database. For UTF8 encoding, you may have to set it to a" SKIP
+                   "lower value depending on the data."
+               VIEW-AS ALERT-BOX INFO BUTTONS OK.
+       END.
+
     END.
     ELSE DO:
-        ASSIGN nvchar_utf:SENSITIVE = NO
-               nvchar_utf:SCREEN-VALUE = "NO".
+       ASSIGN lCharSemantics:SENSITIVE = YES
+              lExpandClob:SENSITIVE = YES
+              ora_varlen = 4000
+              ora_varlen:SCREEN-VALUE = "4000".
+
+       lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame read-df.
+       lCharSemantics:move-after-tab-item(shadowcol:HANDLE) in frame read-df.
+    END.
+
+END.
+
+ON VALUE-CHANGED OF lCharSemantics IN FRAME read-df DO:
+
+    IF SELF:SCREEN-VALUE = "YES" THEN DO:
+        IF disp_msg2 = TRUE THEN DO:
+            disp_msg2 = FALSE.
+    
+            MESSAGE "If you select character semantics, you will have to run the update schema" SKIP
+                    "utility after you load the .df file into the schema holder for the schema" SKIP
+                    "to be valid. Otherwise, you will get a schema mismatch error at runtime for" SKIP
+                    "new fields or new tables."
+                    VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        END.
     END.
 END.
-*/
+
 /*==========================Mainline code=============================*/        
 
 {adecomm/okrun.i  
@@ -193,12 +260,13 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
              ora_conparms = "<current working database>".
     ELSE IF DICTDB._Db._Db-type = "ORACLE" THEN
       ASSIGN ora_dbname = DICTDB._Db._Db-name
-             ora_version = DICTDB._Db._Db-misc1[3].
+             ora_version = DICTDB._Db._Db-misc1[3]
+             hasUniSupport = (DICTDB._Db._Db-xl-name = "utf-8").
   END.
 END.
 
 ASSIGN pcompatible = TRUE
-             shadowcol = FALSE.
+       shadowcol = FALSE.
        
 ASSIGN shadowcol:TOOLTIP = "Use shadow columns for case insensitive index support".
 
@@ -212,12 +280,14 @@ UPDATE df-file
        ora_owner
        ora_tspace
        ora_ispace
+       ora_varlen
+       lExpandClob
        pcompatible
        crtdefault        
        create_df
        shadowcol
-    /*   unicodeTypes WHEN ora_version >= 10
-       nvchar_utf WHEN unicodeTypes */
+       lCharSemantics WHEN ora_version >= 9
+       unicodeTypes WHEN ora_version >= 9 AND hasUniSupport
        iFmtOption
        lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
@@ -226,15 +296,11 @@ UPDATE df-file
        &ENDIF
   WITH FRAME read-df.
        
-/*
+/* make sure these are assigned */
 IF unicodeTypes:SCREEN-VALUE ="yes" THEN
    ASSIGN unicodeTypes = YES.
-
-IF nvchar_utf:SCREEN-VALUE ="yes" THEN
-   ASSIGN nvchar_utf = YES.
-ELSE
-   ASSIGN nvchar_utf = NO.
-*/
+IF lCharSemantics:SCREEN-VALUE = "yes" THEN
+   ASSIGN lCharSemantics = YES.
 
 ASSIGN user_env[1]  = df-file
        user_env[3]  = ""
@@ -244,8 +310,10 @@ ASSIGN user_env[1]  = df-file
        user_env[7]  = "y"
        user_env[8]  = "y"
        user_env[9]  = "ALL"
-       /*user_env[10] = (IF nvchar_utf THEN "4000" ELSE "2000")*/
-       user_env[11] = /*(IF unicodeTypes THEN "nvarchar2" ELSE */ "varchar2" /*) */
+       user_env[10] = string(ora_varlen) /* maximum char column length */
+                             + "," + STRING(lExpandClob)  /* expand to clob */
+                             + "," + STRING(lCharSemantics) /* use char semantics */
+       user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2") 
        user_env[12] = "date"
        user_env[13] = "number"
        user_env[14] = "number"
@@ -264,7 +332,7 @@ ASSIGN user_env[1]  = df-file
        user_env[32] = ?
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
-    
+
 IF iFmtOption = 1 THEN 
   ASSIGN sqlwidth = TRUE. /* Use _Width field for size */
 ELSE IF (lFormat = FALSE) THEN
@@ -280,6 +348,12 @@ ELSE
 
 RUN prodict/ora/_gendsql.p.
  
+IF lCharSemantics = TRUE THEN DO:
+   MESSAGE "Remember that you may have to run the update schema utility after you load" SKIP
+           "the .df file into the schema holder for it to be valid."
+           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+END.
+
 IF NOT schdbcon THEN 
    DISCONNECT DICTDB. 
 ELSE DO:

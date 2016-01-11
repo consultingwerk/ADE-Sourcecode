@@ -269,7 +269,23 @@ FUNCTION targetActions RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-loadToolbar) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadToolbar Procedure
+PROCEDURE loadToolbar:
+/*------------------------------------------------------------------------------
+    Purpose: make panel polymorphistic...  
+    Parameters: <none>
+    Notes:   This is called from createobjects in toolbar.
+------------------------------------------------------------------------------*/
+   run loadPanel in target-procedure.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-countButtons) = 0 &THEN
 
@@ -327,25 +343,6 @@ PROCEDURE enableObject :
   {get PanelState cState}.
   RUN setButtons IN TARGET-PROCEDURE(cState).
   
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-initializeObject) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject Procedure 
-PROCEDURE initializeObject :
-/*------------------------------------------------------------------------------
-  Purpose:  SmartPanel-specific initialization
-   Params:  <none>
-    Notes:  
-------------------------------------------------------------------------------*/
-  RUN loadPanel IN TARGET-PROCEDURE.
-  RUN SUPER.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -637,7 +634,7 @@ PROCEDURE resetTargetActions :
  {get EnabledObjHdls cHandles}
  {get StaticPrefix  cPrefix}.
  &UNDEFINE xp-assign
-
+ 
  DO iAction = 1 TO NUM-ENTRIES(cActionList):
    ASSIGN 
     cAction = REPLACE(ENTRY(iAction,cActionList),cPrefix,'':U)

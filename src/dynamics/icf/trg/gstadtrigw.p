@@ -93,13 +93,7 @@ IF NOT NEW gst_audit AND gst_audit.{&TRIGGER_OBJ} <> o_gst_audit.{&TRIGGER_OBJ} 
 /* Customisations to WRITE trigger */
 {icf/trg/gstadtrigw.i}
 
-
-
-/* Update Audit Log */
-IF CAN-FIND(FIRST gsc_entity_mnemonic
-            WHERE gsc_entity_mnemonic.entity_mnemonic = 'gstad':U
-              AND gsc_entity_mnemonic.auditing_enabled = YES) THEN
-  RUN af/app/afauditlgp.p (INPUT "WRITE":U, INPUT "gstad":U, INPUT BUFFER gst_audit:HANDLE, INPUT BUFFER o_gst_audit:HANDLE).
+/* NO audit log updates for the Auditing table - will get us in a bunch of recursion trouble. */
 
 /* Standard bottom of WRITE trigger code */
 {af/sup/aftrigendw.i}

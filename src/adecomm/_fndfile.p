@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f_findfile
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f_findfile 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*
 ** Program:        _fndfile.p
 ** Author:         Robert Ryan
@@ -340,7 +340,7 @@ DO:
     ASSIGN pDirList = DirList + ",":U + pDirList.
 
   RUN Make_Rel (INPUT-OUTPUT pFileName). /* make filename relative to PROPATH */
-    
+
   /* Make sure the file name is valid. */
   IF SEARCH(pAbsoluteFileName) EQ ? AND pfilename NE "" THEN DO:
     MESSAGE pFileName SKIP
@@ -1183,7 +1183,8 @@ DEFINE VARIABLE i AS INTEGER NO-UNDO.
 
 DO i = 1 to NUM-ENTRIES(PROPATH):
   IF pFileName BEGINS TRIM(ENTRY(i,PROPATH))        AND
-                      TRIM(ENTRY(i,PROPATH)) NE ""  THEN 
+                      TRIM(ENTRY(i,PROPATH)) NE ""  AND
+                      TRIM(ENTRY(i,PROPATH)) NE "." THEN 
   DO:
     /* If it's there, chop off the leading part */
     ASSIGN pFileName = SUBSTRING(pFileName, LENGTH(ENTRY(i,PROPATH)) + 2, -1, "CHARACTER":U).

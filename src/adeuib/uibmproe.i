@@ -2061,7 +2061,7 @@ PROCEDURE save_window:
           IF _P._SAVE-AS-FILE = "" THEN
              ASSIGN _P._SAVE-AS-FILE = _P.object_fileName.
           
-          RUN af/cod/afsvwizdw.w (INPUT NO, OUTPUT lRegisterObj, OUTPUT lOK).
+          run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).
           IF rRecid <> RECID(_P) THEN
             FIND _P WHERE  RECID(_P) = rRecid .
           IF NOT lOK THEN 
@@ -2313,8 +2313,9 @@ PROCEDURE save_window:
          /* IZ 9872 and IZ 9903 Workaround to be fixed properly later */
          IF NOT VALID-HANDLE(_h_cur_widg) THEN _h_cur_widg = _h_win.
 
-         RUN af/cod/afsvwizdw.w (INPUT IF ask_file_name THEN YES ELSE NO, 
-                                 OUTPUT lRegisterObj,OUTPUT lOK).
+         run adeuib/_saveaswizd.w (input (if ask_file_name then yes else no),
+                                   output lRegisterObj,
+                                   output lOK).                                 
                                  
          IF rRecid <> RECID(_P) THEN
            FIND _P WHERE  RECID(_P) = rRecid .
@@ -2754,7 +2755,7 @@ DO:
         END.
         openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
         /* If file was already registed, its content is not modified */
-        RUN call_sew IN _h_UIB (INPUT "SE_OPEN":U ). /* Start Section Editor Window to allow file synchronization */
+        RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ). /* Start Section Editor Window to allow file synchronization */
     END.
 END.
 
@@ -3317,8 +3318,9 @@ PROCEDURE sensitize_main_window :
       l = FALSE.
       IF VALID-HANDLE(_h_cur_widg) THEN DO:
         FIND _U WHERE _U._HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
-        IF AVAILABLE _U THEN
-          l = _h_cur_widg:TYPE <> "TEXT":U AND _U._TYPE <> "SmartObject":U.
+        IF AVAILABLE _U THEN DO:
+          l = _U._TYPE <> "TEXT":U AND _U._TYPE <> "SmartObject":U.
+        END.	  
       END.    
       ASSIGN m_insert:SENSITIVE          = l 
                                          OR mi_insert_procedure:SENSITIVE

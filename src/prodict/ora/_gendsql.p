@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -60,6 +60,7 @@
               value stored in sqlwidth 
      08/04/05 Reworked handling of sqlwidth so it doesn't interfere with handling of defaults 20050216-014
      06/12/06 Support for int64
+     06/11/07 Unicode and clob support for ORACLE
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -155,6 +156,11 @@ DEFINE VARIABLE iExtents      AS INTEGER               NO-UNDO.
 DEFINE VARIABLE lMandatory    AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE iWidth        AS INTEGER               NO-UNDO.
 DEFINE VARIABLE cfldwidth     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE longwid       AS INTEGER               NO-UNDO.
+DEFINE VARIABLE longType      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE longIndex     AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE index_df_start  AS INTEGER             NO-UNDO.
+DEFINE VARIABLE index_sql_start AS INTEGER             NO-UNDO.
 
 DEFINE TEMP-TABLE upt-blob NO-UNDO
     FIELD upt-line AS CHARACTER
@@ -289,12 +295,11 @@ PROCEDURE write-tbl-sql:
     FOR EACH DICTDB._Field OF DICTDB._File:
       IF DICTDB._Field._For-type = "LONG" OR DICTDB._Field._For-type = "LONGRAW" THEN
             ASSIGN col-long = col-long + 1.
-      IF DICTDB._Field._Dtype > 18 THEN
+      IF DICTDB._Field._Dtype > 19 THEN
         ASSIGN unsptdt = TRUE.
     END.  
     FOR EACH new-obj WHERE add-type = "F"
                        AND tbl-name = tablename:  
-
       IF new-obj.for-type = " LONG" OR new-obj.for-type = " LONG RAW" THEN
         ASSIGN col-long = col-long + 1.
       IF new-obj.for-type = " UNSUPPORTED" THEN
@@ -508,7 +513,7 @@ PROCEDURE write-tbl-sql:
       PUT STREAM tosql UNFORMATTED comment_chars line SKIP.          
     ELSE IF NOT LAST-OF(tblname) THEN DO:
       IF crtdefault AND blankdefault THEN DO:
-        IF INDEX(line, "VARCHAR2") > 0 AND
+        IF (INDEX(line, "VARCHAR2") > 0 OR INDEX(line, "NVARCHAR2") > 0) AND 
            INDEX(line, "DEFAULT") = 0  THEN
           ASSIGN line = line + " DEFAULT ' ' ".
       END.
@@ -1352,6 +1357,17 @@ PROCEDURE create-idx-field:
   IF AVAILABLE DICTDB._File THEN DO:        
     FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
     IF AVAILABLE DICTDB._Field THEN DO:
+
+      IF DICTDB._Field._Data-type = "Character" THEN DO:
+          /* a long or clob column */
+          IF DICTDB._Field._For-itype = 8 OR DICTDB._Field._For-itype = 112 THEN
+          DO:
+              /* we can't create an index on a long/clob column. So need to skip the index */
+              RUN skip-long-index (INPUT  DICTDB._Field._For-type).
+              RETURN.
+          END.
+      END.
+
       IF NOT shadowcol THEN DO:
           IF DICTDB._Field._Data-type <> "Character" THEN DO:
             IF INDEX(idxline, "(") = 0 THEN
@@ -1396,7 +1412,7 @@ PROCEDURE create-idx-field:
                                                     
                       IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */        
                             ASSIGN shw-col = 0.
-                                             
+
                             FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
                                   IF DICTDB._Field._Extent = 0 THEN                   
                                     ASSIGN shw-col = shw-col + 1.
@@ -1439,15 +1455,16 @@ PROCEDURE create-idx-field:
                              ELSE 
                                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-name SKIP.
 
-                             IF j < 4001 THEN DO:                                   
-                                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                             /*IF j <= longwid THEN DO:                                   */
+                                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + user_env[11]  /*"VARCHAR2"*/ + "(" +
                                                STRING(j) + ");" SKIP(1).
-                                 ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".  
-                             END.      
-                             ELSE DO:
-                                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
-                                 ASSIGN new-obj.for-type = "LONG".
+                                 ASSIGN new-obj.for-type = /*"VARCHAR2"*/ user_env[11] + "(" + STRING(j) + ")".  
+                             /*END.      */
+                            /* ELSE DO: this can't happen
+                                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + /*"LONG"*/ longType + ";" SKIP(1).
+                                 ASSIGN new-obj.for-type = /*"LONG"*/ longType.
                              END.     
+                             */
 
                              IF INDEX(idxline, "(") = 0 THEN
                                ASSIGN idxline = idxline + "(" + new-obj.fld-name.
@@ -1475,6 +1492,17 @@ PROCEDURE create-idx-field:
       IF AVAILABLE rename-obj THEN DO:      
         FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = old-name NO-ERROR.                   
         IF AVAILABLE DICTDB._Field THEN DO:
+
+            IF DICTDB._Field._Data-type = "Character" THEN DO:
+                /* a long or clob column */
+                IF DICTDB._Field._For-itype = 8 OR DICTDB._Field._For-itype = 112 THEN
+                DO:
+                    /* we can't create an index on a long/clob column. So need to skip the index */
+                    RUN skip-long-index (INPUT  DICTDB._Field._For-type).
+                    RETURN.
+                END.
+            END.
+
             IF NOT shadowcol THEN DO:
                   IF DICTDB._Field._Data-type <> "Character" THEN DO:
                     IF INDEX(idxline, "(") = 0 THEN
@@ -1550,15 +1578,16 @@ PROCEDURE create-idx-field:
                              ELSE 
                                   PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-name SKIP.
             
-                              IF j < 4001 THEN DO:                    
-                                    PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                             /* IF j <= longwid THEN DO: */
+                                    PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + /*"VARCHAR2"*/ user_env[11] + "(" +
                                                    STRING(j) + ");" SKIP(1).
-                                    ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".  
-                              END.      
-                              ELSE DO:
-                                    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
-                                    ASSIGN new-obj.for-type = "LONG".
+                                    ASSIGN new-obj.for-type = /*"VARCHAR2"*/ user_env[11] + "(" + STRING(j) + ")".  
+                              /*END.
+                               ELSE DO: this can't happen
+                                    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + /*"LONG"*/ longType + ";" SKIP(1).
+                                    ASSIGN new-obj.for-type = /*"LONG"*/ longType.
                               END.     
+                              */
 
                             IF INDEX(idxline, "(") = 0 THEN
                               ASSIGN idxline = idxline + "(" + new-obj.fld-name.
@@ -1591,8 +1620,15 @@ PROCEDURE create-idx-field:
                              AND new-obj.tbl-name = tablename
                              AND new-obj.prg-name = ilin[2]
                                         NO-ERROR.                                      
-        IF AVAILABLE new-obj THEN DO:                                                                        
-          IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" THEN DO:                      
+        IF AVAILABLE new-obj THEN DO:                                                      
+            IF CAN-DO("LONG,CLOB,NCLOB", SUBSTRING(new-obj.for-type,2)) THEN DO:
+                /* we can't create an index on a long/clob column. So need to skip the index */
+                RUN skip-long-index (INPUT SUBSTRING(new-obj.for-type,2)).
+                RETURN.
+            END.
+          
+          IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR"
+              OR SUBSTRING(new-obj.for-type,2,8) = "NVARCHAR" THEN DO:                      
             ASSIGN fortype = new-obj.for-type
                    forname = new-obj.for-name.
             IF NOT shadowcol THEN DO:
@@ -1644,7 +1680,7 @@ PROCEDURE create-idx-field:
                              new-obj.for-name = "U##" + forname
                              new-obj.fld-name = "U##" + ilin[2]
                              new-obj.prg-name = ilin[2]
-                             new-obj.for-type = (IF fortype BEGINS "CHAR" THEN "VARCHAR2"
+                             new-obj.for-type = (IF fortype BEGINS "CHAR" THEN /*"VARCHAR2"*/ user_env[11]
                                                                ELSE fortype). 
                                       
                       IF DICTDB._File._Fil-Misc2[7] <> "" AND DICTDB._File._Fil-Misc2[7] <> ? THEN
@@ -1656,9 +1692,9 @@ PROCEDURE create-idx-field:
                   END.                 
 
                   IF INDEX(idxline, "(") = 0 THEN
-                    ASSIGN idxline = idxline + "(" + new-obj.for-name.
+                    ASSIGN idxline = idxline + "(" + (IF AVAILABLE n-obj THEN n-obj.for-name ELSE new-obj.for-name).
                   ELSE
-                    ASSIGN idxline = idxline + ", " + new-obj.for-name. 
+                    ASSIGN idxline = idxline + ", " + (IF AVAILABLE n-obj THEN n-obj.for-name ELSE new-obj.for-name).
                 END.
 
           END.
@@ -1680,7 +1716,15 @@ PROCEDURE create-idx-field:
                    AND new-obj.prg-name = ilin[2]
                                NO-ERROR.                     
     IF AVAILABLE new-obj THEN DO:
-      IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" THEN DO:
+
+        IF CAN-DO("LONG,CLOB,NCLOB", SUBSTRING(new-obj.for-type,2)) THEN DO:
+            /* we can't create an index on a long/clob column. So need to skip the index */
+            RUN skip-long-index (INPUT SUBSTRING(new-obj.for-type,2)).
+            RETURN.
+        END.
+
+      IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" 
+          OR SUBSTRING(new-obj.for-type,2,8) = "NVARCHAR" THEN DO:
           IF NOT shadowcol THEN DO:
                 IF INDEX(idxline, "(") = 0 THEN
                   ASSIGN idxline = idxline + "(UPPER(" + new-obj.for-name + ")".
@@ -1719,6 +1763,49 @@ PROCEDURE create-idx-field:
   END.                                                 
 END PROCEDURE.
 
+/* skip an index if it contains a long or clob column */
+PROCEDURE skip-long-index:
+    DEFINE INPUT PARAMETER cType AS CHARACTER NO-UNDO.
+
+    DEFINE VARIABLE currpos AS INTEGER NO-UNDO.
+
+    /* remember this is an index we can't create, and get rid of idxline which is the sql to be added
+       to the .sql file.
+    */
+    ASSIGN longIndex = TRUE
+           idxline = ?.
+
+    /* remove all df lines for this index */
+    FOR EACH df-info WHERE df-tbl = tablename AND df-info.df-seq >= index_df_start:
+        DELETE df-info.
+    END.
+    ASSIGN dfseq = index_df_start.
+
+    IF shadowcol THEN DO:
+        FOR EACH shad-col:
+            DELETE shad-col.
+        END.
+
+        /* if the index had other fields that required a shadow column, we need to remove the shadow
+           column from the .sql file. This is not pretty but does the job.
+        */
+        currpos = SEEK(tosql).
+        IF currpos > index_sql_start THEN DO:
+            SEEK STREAM tosql TO index_sql_start.
+            PUT STREAM tosql  UNFORMATTED FILL(" ", currpos - index_sql_start) SKIP.
+            SEEK STREAM tosql TO index_sql_start.
+        END.
+        
+    END.
+
+    ASSIGN efile = tablename + ".e".
+    OUTPUT TO value(efile) APPEND.
+    PUT UNFORMATTED idxname " in " tablename " is a index that contain a column of type "
+        cType " and will not be contained in the" SKIP
+        "df file and no CREATE INDEX statement was generated in the sql file." SKIP(1).
+    OUTPUT CLOSE.
+
+END PROCEDURE.
 
 PROCEDURE process-extents-with-fldwidth:
     DEFINE INPUT PARAMETER iMode AS INTEGER NO-UNDO.
@@ -1734,11 +1821,12 @@ PROCEDURE process-extents-with-fldwidth:
                       INTEGER(ENTRY(2,cfldwidth)) ELSE 0).
 
     IF fieldtype <> "decimal" THEN
-        /* if not decimal, we only need to do this for LONG and VARCHAR2 columns */
+        /* if not decimal, we only need to do this for LONG and VARCHAR2/NVARCHAR2  columns */
         FIND FIRST new-obj WHERE new-obj.add-type = "F" AND 
                                  new-obj.tbl-name = tablename AND 
                                  new-obj.fld-name = fieldname AND 
                                  (new-obj.for-type BEGINS " VARCHAR2" OR 
+                                  new-obj.for-type BEGINS " NVARCHAR2" OR
                                   new-obj.for-type BEGINS " LONG")
                            NO-LOCK NO-ERROR. 
 
@@ -1765,8 +1853,8 @@ PROCEDURE process-extents-with-fldwidth:
           /* if the size is still too big to be a VARCHAR2, there is nothing left
              to do - leave it as it is
           */
-          IF (ora_version > 7 AND iWidth < 4001) OR
-             (iWidth < 2001) THEN DO:
+          IF (ora_version > 7 AND iWidth <= longwid) /*OR
+             (iWidth < 2001)*/ THEN DO:
 
             IF new-obj.for-type BEGINS " LONG" THEN DO:
               /* if it is a LONG now, need to recreate df-info record since
@@ -1796,18 +1884,21 @@ PROCEDURE process-extents-with-fldwidth:
                  and the FOREIGN-TYPE and FOREIGN-CODE in the df
               */
               IF iMode = 1 THEN DO: /* sql-info */
-                  ASSIGN new-obj.for-type = "VARCHAR2 (" + STRING(iWidth) + ")"
+                  ASSIGN new-obj.for-type = /*"VARCHAR2 ("*/ user_env[11] + " (" + STRING(iWidth) + ")"
                          sql-info.LINE = REPLACE (sql-info.LINE, " LONG", " " + new-obj.for-type).
               END.
               ELSE IF iMode = 2 THEN DO: /* alt-info */
-                 ASSIGN new-obj.for-type = "VARCHAR2 (" + STRING(iWidth) + ")"
+                 ASSIGN new-obj.for-type = /*"VARCHAR2 ("*/ user_env[11] + " (" + STRING(iWidth) + ")"
                         alt-info.a-line = REPLACE (alt-info.a-line, " LONG", " " + new-obj.for-type).
               END.
 
               FIND df-info WHERE df-info.df-tbl = tablename AND 
                                  df-info.df-fld = fieldname AND 
                                  df-info.df-line BEGINS "  FOREIGN-TYPE".
-              ASSIGN df-info.df-line = '  FOREIGN-TYPE "VARCHAR2"'.
+              IF user_env[11] = "VARCHAR2" THEN
+                 ASSIGN df-info.df-line = '  FOREIGN-TYPE "VARCHAR2"'.
+              ELSE
+                 ASSIGN df-info.df-line = '  FOREIGN-TYPE "NVARCHAR2"'.
               
               FIND df-info WHERE df-info.df-tbl = tablename
                              AND df-info.df-fld = fieldname
@@ -1895,11 +1986,11 @@ PROCEDURE process-fld-width:
 
       IF AVAILABLE alt-info THEN DO:
           
-         IF new-obj.for-type BEGINS " VARCHAR2" THEN DO:  
+         IF new-obj.for-type BEGINS " VARCHAR2" OR new-obj.for-type BEGINS " NVARCHAR2" THEN DO:  
              
-            /* validate max size based on ORACLE version */
-            IF (ora_version > 7 AND iWidth < 4001) OR 
-               iWidth < 2001 THEN DO: 
+            /* validate max size */
+            IF (ora_version > 7 AND iWidth <= longwid) /*OR 
+               iWidth < 2001*/ THEN DO: 
 
                 /* we need to update FORMAT with the sql width - that's what we do upon migration.
                    The adjust schema is the process that later adjusts it to match the original 
@@ -1910,13 +2001,34 @@ PROCEDURE process-fld-width:
                                           ELSE df-info.df-line).
             END.
             ELSE DO: 
-                  ASSIGN new-obj.for-type = " LONG"
-                         left_paren = INDEX(alt-info.a-line, " VARCHAR2")
+                  ASSIGN new-obj.for-type = " " +  longType /*" LONG"*/
+                         left_paren = INDEX(alt-info.a-line, /*" VARCHAR2"*/  " " + user_env[11])
                          extline = SUBSTRING(alt-info.a-line, left_paren, INDEX(alt-info.a-line, ")") - left_paren)
-                         alt-info.a-line = REPLACE(alt-info.a-line, extline + ")", " LONG")
+                         alt-info.a-line = REPLACE(alt-info.a-line, extline + ")", " " +  longType /*" LONG"*/)
                          iWidth = 0.
                   /* There is no format statement for a long */
-                  DELETE df-info.
+                  IF longType = "LONG" THEN
+                     DELETE df-info.
+
+                  /* if we are processing extents, change the size of all elements */
+                  IF iExtents > 0 THEN DO:
+                      ASSIGN cTemp = new-obj.for-type
+                             extlinenum = alt-info.a-line-num.
+
+                      FOR EACH alt-info WHERE a-tblname = tablename
+                                        AND a-fldname = fieldname 
+                                        AND a-line BEGINS "ADD"
+                                        AND a-line-num > extlinenum:
+                           FIND NEXT new-obj WHERE new-obj.add-type = "F" AND
+                                                   new-obj.tbl-name = tablename AND
+                                                   new-obj.fld-name = fieldname NO-ERROR.
+    
+                           ASSIGN new-obj.for-type = cTemp
+                                  left_paren = INDEX(alt-info.a-line, /*" VARCHAR2"*/  " " + user_env[11])
+                                  extline = SUBSTRING(alt-info.a-line, left_paren, INDEX(alt-info.a-line, ")") - left_paren)
+                                  alt-info.a-line = REPLACE(alt-info.a-line, extline + ")", " " +  longType /*" LONG"*/).
+                      END. /* FOR EACH */
+                  END.
 
                   /* we are changing the type from VARCHAR2 to LONG, so need to
                      change all the relevant information
@@ -1924,14 +2036,28 @@ PROCEDURE process-fld-width:
                   FIND df-info WHERE df-info.df-tbl = tablename
                                  AND df-info.df-fld = fieldname
                                  AND df-info.df-line BEGINS "  FOREIGN-CODE".
-                  ASSIGN df-info.df-line = "  FOREIGN-CODE 8".
+                  ASSIGN df-info.df-line = "  FOREIGN-CODE ".
                   
+                  IF longType = "LONG" THEN
+                      ASSIGN df-info.df-line = df-info.df-line + "8".
+                  ELSE /* it is a clob or nclob */
+                      ASSIGN df-info.df-line = df-info.df-line + "112".
+
                   FIND df-info WHERE df-info.df-tbl = tablename
                                  AND df-info.df-fld = fieldname
                                  AND df-info.df-line BEGINS "  FOREIGN-TYPE".
-                  ASSIGN df-info.df-line = '  FOREIGN-TYPE "LONG"'.
+                  ASSIGN df-info.df-line = '  FOREIGN-TYPE "' + longType + '"'.
+                      
+                  IF longType = "NCLOB" THEN DO:
+                      CREATE df-info.
+                      ASSIGN df-info.df-seq  = dfseq
+                             dfseq = dfseq + 1
+                             df-info.df-tbl  = tablename 
+                             df-info.df-fld  = fieldname
+                             df-info.df-line = "FOREIGN-MISC25 1".
+                  END.
 
-            END. /* check ora_version */
+            END. /* check max fld length */
          END. /* for-type BEGINS VARCHAR2 */
 
          /* adjust the size */
@@ -1948,16 +2074,16 @@ PROCEDURE process-fld-width:
                     extline = SUBSTRING(new-obj.for-type, left_paren, INDEX(new-obj.for-type, cDelim) - left_paren)
                     /* now replace it with new value */
                     new-obj.for-type = REPLACE(new-obj.for-type,extline, "(" + fsize).
-         
+
              /* if we are processing extents, change the size of all elements */
              IF iExtents > 0 THEN DO:
                  ASSIGN cTemp = new-obj.for-type
                         extlinenum = alt-info.a-line-num.
 
                  FOR EACH alt-info WHERE a-tblname = tablename
-                                      AND a-fldname = fieldname 
-                                      AND a-line BEGINS "ADD"
-                                      AND a-line-num > extlinenum:
+                                         AND a-fldname = fieldname 
+                                         AND a-line BEGINS "ADD"
+                                         AND a-line-num > extlinenum:
                       FIND NEXT new-obj WHERE new-obj.add-type = "F" AND
                                               new-obj.tbl-name = tablename AND
                                               new-obj.fld-name = fieldname NO-ERROR.
@@ -1981,10 +2107,10 @@ PROCEDURE process-fld-width:
                       NO-ERROR.
       IF AVAILABLE sql-info THEN DO:     
         
-        IF new-obj.for-type BEGINS " VARCHAR2" THEN DO:  
+        IF new-obj.for-type BEGINS " VARCHAR2" OR new-obj.for-type BEGINS " NVARCHAR2" THEN DO:  
 
-            IF (ora_version > 7 AND iWidth < 4001) OR
-               iWidth < 2001 THEN DO: 
+            IF (ora_version > 7 AND iWidth <= longwid) /*OR
+               iWidth < 2001*/ THEN DO: 
 
               /* we need to update FORMAT with the sql width - that's what we do upon migration.
                  The adjust schema is the process that later adjusts it to match the original 
@@ -1994,25 +2120,62 @@ PROCEDURE process-fld-width:
                                           "  FORMAT " + '"x(' + ilin[2] + ')"'
                                         ELSE df-info.df-line).
             END.
-            ELSE DO:                      
-              ASSIGN new-obj.for-type = " LONG"
-                     left_paren = INDEX(sql-info.line, " VARCHAR2")
+            ELSE DO:       
+
+              ASSIGN new-obj.for-type = " " +  longType /*" LONG"*/
+                     left_paren = INDEX(sql-info.line, /*" VARCHAR2"*/ " " + user_env[11])
                      extline = SUBSTRING(sql-info.line, left_paren, INDEX(sql-info.line, ")") - left_paren)
-                     sql-info.line = REPLACE(sql-info.line, extline + ")", " LONG")
+                     sql-info.line = REPLACE(sql-info.line, extline + ")", " " +  longType /*" LONG"*/)
                      iWidth  = 0.
 
               /* There is no format statement for a long */
-              DELETE df-info.
+              IF longType = "LONG" THEN
+                  DELETE df-info.
+
+              /* if we are processing extents, change the size of all elements */
+              IF iExtents > 0 THEN DO:
+                  ASSIGN cTemp = new-obj.for-type
+                         extlinenum = sql-info.line-num.
+
+                  FOR EACH sql-info WHERE tblname = tablename
+                                    AND fldname = fieldname 
+                                    AND line <> "" /*BEGINS fieldname*/
+                                    AND sql-info.line-num > extlinenum:
+
+                      FIND NEXT new-obj WHERE new-obj.add-type = "F" AND
+                                              new-obj.tbl-name = tablename AND
+                                              new-obj.fld-name = fieldname NO-ERROR.
+
+                      ASSIGN new-obj.for-type = cTemp
+                             left_paren = INDEX(sql-info.line, /*" VARCHAR2"*/ " " + user_env[11])
+                             extline = SUBSTRING(sql-info.line, left_paren, INDEX(sql-info.line, ")") - left_paren)
+                             sql-info.line = REPLACE(sql-info.line, extline + ")", " " +  longType /*" LONG"*/).
+                  END.
+              END. /* iExtents > 0 */
 
               FIND df-info WHERE df-info.df-tbl = tablename
                              AND df-info.df-fld = fieldname
                              AND df-info.df-line BEGINS "  FOREIGN-CODE".
-              ASSIGN df-info.df-line = "  FOREIGN-CODE 8".
+              ASSIGN df-info.df-line = "  FOREIGN-CODE ".
+              
+              IF longType = "LONG" THEN
+                  ASSIGN df-info.df-line = df-info.df-line + "8".
+              ELSE /* it is a clob or nclob */
+                  ASSIGN df-info.df-line = df-info.df-line + "112".
 
               FIND df-info WHERE df-info.df-tbl = tablename
                              AND df-info.df-fld = fieldname
                              AND df-info.df-line BEGINS "  FOREIGN-TYPE".
-              ASSIGN df-info.df-line = '  FOREIGN-TYPE "LONG"'.
+              ASSIGN df-info.df-line = '  FOREIGN-TYPE "' + longType + '"'.
+
+              IF longType = "NCLOB" THEN DO:
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq  = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl  = tablename 
+                         df-info.df-fld  = fieldname
+                         df-info.df-line = "FOREIGN-MISC25 1".
+              END.
 
             END.
         END. /* varchar */                    
@@ -2086,6 +2249,17 @@ ASSIGN ilin = ?
        minwidth = 30
        uptseq = 1.
    
+/* For char types, the first entry in user_env[10] has the maximum size */
+ASSIGN longwid = integer(entry(1,user_env[10])).
+
+/* The second entry in user_env[10] has the YES if user wants to expand character columns to be
+   CLOB instead of LONG
+*/
+IF LOGICAL(entry(2,user_env[10])) THEN
+   ASSIGN longType = "CLOB".
+ELSE /* if using unicode data types, then columns are expanded to nclob */
+   ASSIGN longType = (IF user_env[11] = "NVARCHAR2" THEN "NCLOB" ELSE "LONG").
+
 OUTPUT STREAM todf TO VALUE(dfout) NO-ECHO NO-MAP.
 OUTPUT STREAM tosql TO VALUE(sqlout) NO-ECHO NO-MAP.
 
@@ -2098,6 +2272,10 @@ RUN adecomm/_setcurs.p ("WAIT").
 FIND FIRST DICTDB._File NO-ERROR.
 IF AVAILABLE DICTDB._File THEN
   ASSIGN dbrecid = DICTDB._File._Db-recid.
+
+/* this defines if user wants character semantics */
+IF LOGICAL(entry(3,user_env[10])) THEN
+   PUT STREAM tosql UNFORMATTED "ALTER SESSION SET NLS_LENGTH_SEMANTICS='CHAR';" SKIP.
 
 DO ON STOP UNDO, LEAVE:
     /* when IMPORT hits the end, it generates ENDKEY.  This is how loop ends */
@@ -2292,7 +2470,7 @@ DO ON STOP UNDO, LEAVE:
                                     NO-LOCK NO-ERROR.
           IF AVAILABLE DICTDB._File THEN DO:
             MESSAGE "The Delta DF File contains ADD TABLE" ilin[3] SKIP
-                  "and table alrady exists in the schema holder." SKIP
+                  "and table already exists in the schema holder." SKIP
                   "This process is being aborted."  SKIP (1)
                   VIEW-AS ALERT-BOX ERROR.
             RETURN.
@@ -2985,7 +3163,7 @@ DO ON STOP UNDO, LEAVE:
                      df-info.df-tbl = tablename
                      df-info.df-fld = fieldname.
 
-              IF sqlwidth AND new-obj.for-type = " VARCHAR2" THEN
+              IF sqlwidth AND (new-obj.for-type = " VARCHAR2" OR new-obj.for-type = " NVARCHAR2") THEN
                 ASSIGN df-line = "  " + ilin[1] + ' "'.
               ELSE
                 ASSIGN df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
@@ -3036,17 +3214,22 @@ DO ON STOP UNDO, LEAVE:
                   IF j = 8 AND sqlwidth = FALSE THEN j = minwidth.
                 END.       
                 IF ora_version > 7 THEN DO: 
-                  IF j < 4001 THEN DO:              
+                  IF j <= longwid  THEN DO:              
                     IF AVAILABLE new-obj THEN
-                      ASSIGN new-obj.for-type = " VARCHAR2 (" + STRING(j) + ")" 
-                             dffortype = "VARCHAR2"
+                      ASSIGN new-obj.for-type = /*" VARCHAR2 ("*/ " " + user_env[11] + "(" + STRING(j) + ")" 
+                             dffortype = user_env[11] /*"VARCHAR2"*/
                              dfforitype = "1".
                   END.
-                  ELSE  /* > 4000 */                     
-                    IF AVAILABLE new-obj THEN
-                      ASSIGN new-obj.for-type = " LONG"
-                             dffortype = "LONG"
-                             dfforitype = "8".                       
+                  ELSE  /* > longwid  */                     
+                    IF AVAILABLE new-obj THEN DO:
+                      ASSIGN new-obj.for-type = " " +  longType /*" LONG"*/
+                             dffortype = longType /*"LONG"*/
+                             .
+                      IF longType = "LONG" THEN
+                          ASSIGN dfforitype = "8".
+                      ELSE /* whether clob or nclob, this is code 112 */
+                          ASSIGN dfforitype = "112".
+                    END.
                 END.
                 ELSE DO: /* Not V8 */
                   IF j < 2001 THEN DO:
@@ -3129,6 +3312,11 @@ DO ON STOP UNDO, LEAVE:
                   ASSIGN new-obj.for-type = " LONG RAW"
                        dffortype = "LONGRAW"
                        dfforitype = "24".
+              ELSE IF fieldtype = "Clob"  THEN
+                  ASSIGN new-obj.for-type = (IF longType = "NCLOB" THEN " NCLOB" ELSE " CLOB")
+                         lngth = 4000
+                         dffortype = (IF longType = "NCLOB" THEN "NCLOB" ELSE "CLOB")
+                         dfforitype = "112".
               ELSE IF AVAILABLE new-obj AND (new-obj.for-type = "" OR new-obj.for-type = ?) THEN
                 ASSIGN new-obj.for-type = " UNSUPPORTED" .
 
@@ -3188,6 +3376,43 @@ DO ON STOP UNDO, LEAVE:
                          df-line = "  FOREIGN-MAXIMUM " + string(lngth).
               END.
 
+              /* field-misc25 needs to be updated for unicode data types */
+              IF CAN-DO("NVARCHAR2,NCLOB",dffortype) THEN DO:
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = "  FIELD-MISC25 1".
+              END.
+
+              IF fieldtype = "Clob" THEN DO: /* TEMPORARY */
+                  FIND FIRST DICTDB._Db WHERE DICTDB._Db._Db-type = "ORACLE".
+
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = '  CLOB-CODEPAGE "' + DICTDB._Db._Db-xl-name + '"'. 
+
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = '  CLOB-COLLATION "' 
+                                + (IF DICTDB._Db._Db-coll-name = ? 
+                                      THEN "basic" ELSE DICTDB._Db._Db-coll-name) + '"'.
+
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = "  CLOB-TYPE 1". /* using db codepage */
+              END.
+
               ASSIGN all_digits = 0
                      dec_point  = 0.            
             END. /* WHEN FORMAT */                           
@@ -3228,7 +3453,7 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN df-line = "  " + ilin[1] + " ?".
               IF crtdefault THEN  DO:
                 IF AVAILABLE new-obj THEN DO: 
-                  IF blankdefault AND new-obj.For-type BEGINS " VARCHAR2" AND
+                  IF blankdefault AND (new-obj.For-type BEGINS " VARCHAR2" OR new-obj.For-type BEGINS " NVARCHAR2") AND
                   (ilin[2] = "" OR ilin[2] = ? OR ilin[2] = "?") THEN DO:
                     ASSIGN for-init = " DEFAULT ' '".
 
@@ -3259,7 +3484,7 @@ DO ON STOP UNDO, LEAVE:
  
                   ASSIGN for-init = "".
                    /* Character */ 
-                  IF new-obj.for-type BEGINS " VARCHAR2" THEN 
+                  IF new-obj.for-type BEGINS " VARCHAR2" OR new-obj.for-type BEGINS " NVARCHAR2" THEN 
                     ASSIGN for-init = " DEFAULT '" + ilin[2] + "'".                                
                   ELSE IF new-obj.for-type BEGINS " NUMBER" THEN DO:  
                     /* logical no or false */
@@ -3408,7 +3633,8 @@ DO ON STOP UNDO, LEAVE:
                                    AND new-obj.for-name = fieldname
                                    NO-ERROR.
                     IF AVAILABLE new-obj THEN
-                        ASSIGN new-obj.for-name = new-obj.for-name + "##1".
+                        ASSIGN new-obj.for-name = new-obj.for-name + "##1"
+                               fortype = new-obj.for-type.
 
                     IF (LENGTH(fieldname) + length(ilin[2]) + 2) < integer(user_env[29]) THEN DO:
                
@@ -3548,7 +3774,9 @@ DO ON STOP UNDO, LEAVE:
 
                   IF fieldtype = "decimal" OR (NOT new-obj.for-type BEGINS " NUMBER" AND
                      new-obj.for-type <> " DATE" AND
-                     new-obj.for-type <> " LONG") THEN DO:
+                     new-obj.for-type <> " LONG" AND
+                     new-obj.for-type <> " CLOB" AND
+                     new-obj.for-type <> " NCLOB" ) THEN DO:
 
                     /* start with the fld width value */
                     ASSIGN iWidth = integer(ilin[2]).
@@ -3565,7 +3793,8 @@ DO ON STOP UNDO, LEAVE:
                        IF iWidth > 38 THEN
                           ASSIGN iWidth = 38.        
                     END.
-                    ELSE IF iExtents > 0 AND new-obj.for-type BEGINS " VARCHAR2" THEN
+                    ELSE IF iExtents > 0 
+                         AND (new-obj.for-type BEGINS " VARCHAR2" OR new-obj.for-type BEGINS " NVARCHAR2")  THEN
                          ASSIGN iWidth = (iWidth / iExtents) - 2.
 
                     ASSIGN fsize = STRING(iWidth).
@@ -3940,8 +4169,19 @@ DO ON STOP UNDO, LEAVE:
 
           ASSIGN wordidx = FALSE
                  wordfile = ?
-                 is-unique = FALSE.
-          
+                 is-unique = FALSE
+                 longIndex = FALSE
+                 /* remember the first one */
+                 index_df_start = dfseq.
+
+          /* remember current position in the tosql stream. If shadowcol is on, and we detect an index
+             with a character component that translates to a long/clob column, than we will need to skip
+             the index and remove any shadow column from the .sql file for that index, if one exists.
+             so remember the position in the stream, so we can go back if needed.
+          */
+          IF shadowcol THEN
+              ASSIGN index_sql_start = SEEK(tosql).
+
           IF tablename <> ilin[5] THEN
             ASSIGN tablename = ilin[5]
                    comment_chars = ""
@@ -4180,6 +4420,9 @@ DO ON STOP UNDO, LEAVE:
             END.
             WHEN "INDEX-FIELD" OR WHEN "KEY-FIELD" THEN DO:   
               IF wordidx THEN NEXT.
+
+              IF longIndex THEN NEXT. /* if index with long/clob column, skip this */
+
               ELSE IF df-idx[1] <> ? THEN DO:
                 DO i = 1 TO 6:
                   IF df-idx[i] <> ? THEN DO:

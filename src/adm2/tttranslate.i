@@ -95,7 +95,7 @@
   FIELD cWidgetType         AS CHARACTER FORMAT "X(20)":U LABEL "Widget type":U         /* widget type, e.g. text, button, etc. */
   FIELD cWidgetName         AS CHARACTER FORMAT "X(40)":U LABEL "Widget name":U         /* widget name or if type is text, text to translate */
   FIELD hWidgetHandle       AS HANDLE                                                   /* handle of widget if known / required */
-  FIELD iWidgetEntry        AS INTEGER   FORMAT ">9":U     LABEL "Element":U             /* widget entry, used for radio-sets, etc. */
+  FIELD iWidgetEntry        AS INTEGER   FORMAT ">>>9":U  LABEL "Element":U             /* widget entry, used for radio-sets, etc. */
   FIELD lDelete             AS LOGICAL   FORMAT "YES/NO":U LABEL "Delete":U             /* yes = global translation, no = specific object (if not blank) */
   FIELD cTranslatedLabel    AS CHARACTER FORMAT "X(60)":U LABEL "Translated label":U    /* translated label */
   FIELD cOriginalLabel      AS CHARACTER FORMAT "X(60)":U LABEL "Original label":U      /* original untranslated label */

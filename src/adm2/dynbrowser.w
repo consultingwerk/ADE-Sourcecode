@@ -7,7 +7,7 @@ This object can then be drawn onto any 'smart' container such as a SmartWindow, 
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTableWin 
 /***********************************************************************
-* Copyright (C) 2000-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -108,7 +108,7 @@ DEFINE FRAME F-Main
      br_table AT ROW 1 COL 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1 SCROLLABLE .
+         AT COL 1 ROW 1 SCROLLABLE.
 
 
 /* *********************** Procedure Settings ************************ */

@@ -132,6 +132,7 @@ RebuildOnRepos,ToggleDataTargets
  &GLOBAL-DEFINE xpTransferChildrenForAll 
  &GLOBAL-DEFINE xpUpdateSource  
  &GLOBAL-DEFINE xpUpdatableColumns  
+ &GLOBAL-DEFINE xpUpdatableWhenNew  
  
 
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN  
@@ -164,6 +165,7 @@ DO:
      ghADMProps:ADD-NEW-FIELD('FirstRowNum':U, 'INT':U, 0, ?, ?).
      ghADMProps:ADD-NEW-FIELD('ForeignFields':U, 'CHAR':U, 0, ?, '':U).
      ghADMProps:ADD-NEW-FIELD('ForeignValues':U, 'CHAR':U, 0, ?, ?).
+     ghADMProps:ADD-NEW-FIELD('IgnoreTreeViewFilter':U, 'LOGICAL':U, ?, ?, ?).
      ghADMProps:ADD-NEW-FIELD('IndexInformation':U, 'CHARACTER':U, 0, ?,?). 
      ghADMProps:ADD-NEW-FIELD('LargeColumns':U, 'CHAR':U, 0, ?, ?).
      ghADMProps:ADD-NEW-FIELD('LastRowNum':U, 'INT':U, 0, ?, ?).
@@ -185,6 +187,7 @@ DO:
      ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
      ghADMProps:ADD-NEW-FIELD('TransferChildrenForAll':U, 'LOGICAL':U, 0, ?, NO).
      ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, ?).
+     ghADMProps:ADD-NEW-FIELD('UpdatableWhenNew':U, 'CHARACTER':U,0,?,'':U).
      ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'CHARACTER':U).
  &ENDIF  /* "{&ADMSuper}" = "" */
 

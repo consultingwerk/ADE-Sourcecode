@@ -244,6 +244,7 @@ PROCEDURE initProps :
   {set DBNames cDBNames}  
   {set QueryHandle hQuery}
   {set PhysicalTables cPhysicalTables}
+  {set Tables cTables}   /* List of DB table names */
   .
   &UNDEFINE xp-assign
   
@@ -277,7 +278,6 @@ PROCEDURE initProps :
      This is a form usable by dynamic BUFFER-COPY and BUFFER-COMPARE.
   */
   
-  {set Tables cTables}. /* List of DB table names */
   cAssignList = "{&ASSIGN-LIST}":U.  /* Start with the raw preproc value. */
   iAssigns = NUM-ENTRIES(cAssignList, " ":U).
   

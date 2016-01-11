@@ -1248,7 +1248,7 @@
 1004904222.09 1004904130.09 1000708739.09 no "bottom" "BrowseToolbar" "BrowseToolbar" 0 0
 1004905123.09 1004904315.09 1003504456 no "M21" "afspfoldrw.w" "afspfoldrw.w" 0 0
 1004905209.09 1004904315.09 1000708643.09 no "M11" "FolderTop" "FolderTop" 0 0
-1004905282.09 1004904315.09 1004901559.09 no "M11" "gsmsvfullo.w" "gsmsvfullo.w" 1004905278.09 100
+1004905282.09 1004904315.09 1004901559.09 no "M11" "gsmsvfullow" "gsmsvfullo.w" 1004905278.09 100
 1004905293.09 1004904315.09 1004904304.09 no "M11" "gsmpyviewv.w" "gsmpyviewv.w" 1004905276.09 200
 1004905308.09 1004904315.09 1004901568.09 no "M11" "gsmsvfullb" "gsmsvfullb" 1004905278.09 202
 1004905324.09 1004904315.09 1000708781.09 no "M91" "BrowseToolbarNoUpdate" "BrowseToolbarNoUpdate" 1004905278.09 201
@@ -2644,10 +2644,10 @@ PSC
 filename=ryc_object_instance
 records=0000000002641
 ldbname=ICFDB
-timestamp=2006/10/12-14:55:15
+timestamp=2007/10/04-15:21:52
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=utf-8
+cpstream=UTF-8
 .
-0000215392
+0000215391

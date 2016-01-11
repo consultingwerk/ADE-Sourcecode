@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007-08 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -65,6 +65,7 @@ History:
     slutz       08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
     fernando    04/19/06 Fixing output of message
     fernando    05/26/06 Added support for int64
+    fernando    06/11/07 Unicode and clob support    
 --------------------------------------------------------------------*/
 
 
@@ -476,7 +477,7 @@ if can-do(odbtyp,user_dbtype)
     l_logi-types = "BIT".
 else if user_dbtype = "ORACLE"
    then assign
-    l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,BLOB,BFILE"
+    l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,BLOB,BFILE,NCHAR,NVARCHAR2,CLOB,NCLOB"
     l_chda-types = "DATE"
     l_date-types = ""
     l_dcml-types = "FLOAT"
@@ -798,7 +799,7 @@ for each gate-work
       DICTDB._File._For-type     = s_ttb_tbl.ds_type
       DICTDB._File._For-owner    = s_ttb_tbl.ds_user
       DICTDB._File._For-name     = s_ttb_tbl.ds_name.
-  
+      DICTDB._File._Fil-misc1[5] = s_ttb_tbl.ds_msc15.
     if oldf
      then assign
       DICTDB._File._Can-Create   = tab_Can-Crea
@@ -825,7 +826,6 @@ for each gate-work
 
     for each s_ttb_fld where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
       IF s_ttb_fld.ds_name BEGINS "SYS_NC" THEN NEXT.
-      
       /* if the main-part of date-field is of type character we don't
        * need the time-part, so we skip it...
        */
@@ -891,7 +891,9 @@ for each gate-work
         DICTDB._Field._Fld-misc2[4] = s_ttb_fld.ds_msc24
         DICTDB._Field._Fld-misc2[5] = ( if can-do(odbtyp,user_dbtype)
                                         then s_ttb_fld.ds_shdn
-                                        else DICTDB._Field._Fld-misc2[5]
+                                        else IF user_dbtype = "ORACLE" 
+                                            THEN s_ttb_fld.ds_msc25 
+                                            ELSE DICTDB._Field._Fld-misc2[5]
                                       )
         DICTDB._Field._Fld-misc2[6] = s_ttb_fld.ds_msc26
         DICTDB._Field._Fld-stoff    = s_ttb_fld.ds_stoff
@@ -899,6 +901,10 @@ for each gate-work
         DICTDB._Field._For-Itype    = s_ttb_fld.ds_Itype
         DICTDB._Field._For-Name     = s_ttb_fld.ds_name
         DICTDB._Field._For-type     = s_ttb_fld.ds_type
+        DICTDB._Field._For-Allocated = ( if user_dbtype = "ORACLE"
+                                         THEN s_ttb_fld.ds_allocated
+                                         ELSE DICTDB._Field._For-Allocated
+                                       )
         DICTDB._Field._Mandatory    = s_ttb_fld.pro_mand
         DICTDB._Field._Decimals     = s_ttb_fld.pro_dcml
         DICTDB._Field._Order        = ( if available w_field
@@ -909,7 +915,8 @@ for each gate-work
         DICTDB._Field._Format       = ( IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_format 
                                         ELSE s_ttb_fld.pro_frmt
                                       )
-        DICTDB._Field._Initial      = ( IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_init
+        DICTDB._Field._Initial      = ( IF DICTDB._Field._Data-type = "CLOB" THEN ? /* TEMPORARY */
+                                        ELSE IF AVAILABLE w_field AND NOT fld-dif THEN w_field.pro_init
                                         ELSE s_ttb_fld.pro_init
                                       )
         s_ttb_fld.fld_recid         = RECID(DICTDB._Field).
@@ -924,7 +931,7 @@ for each gate-work
       IF user_dbtype = "MSS" AND DICTDB._Db._Db-misc1[1] = 1 
                              AND DICTDB._Field._Data-type = "character" THEN
         ASSIGN DICTDB._Field._Fld-Case  = FALSE.
-
+                                                        
       IF user_dbtype = "ORACLE" THEN DO:
         CASE DICTDB._Field._Data-type:
           WHEN "CHARACTER" THEN DO:
@@ -936,7 +943,8 @@ for each gate-work
             IF DICTDB._Field._For-type = "Char" OR
                DICTDB._Field._For-type = "VarChar" OR
                DICTDB._Field._For-type = "VarChar2" 
-                /* OR DICTDB._Field._For-type = "NVarChar2" */ THEN
+                OR DICTDB._Field._For-type = "NChar" 
+                 OR DICTDB._Field._For-type = "NVarChar2"  THEN
                  ASSIGN DICTDB._Field._For-Maxsize = DICTDB._Field._Fld-Misc1[3].
           END.
           WHEN "INTEGER" OR WHEN "LOGICAL" THEN DO:
@@ -959,6 +967,12 @@ for each gate-work
           WHEN "RAW" THEN 
             IF DICTDB._Field._For-type = "RAW" THEN
               ASSIGN DICTDB._Field._For-Maxsize = DICTDB._Field._Fld-misc1[1].
+          WHEN "CLOB" THEN DO:
+                ASSIGN DICTDB._Field._Charset = DICTDB._Db._Db-xl-name
+                    DICTDB._Field._Collation = (IF DICTDB._DB._Db-coll-name <> ? THEN DICTDB._DB._Db-coll-name
+                                                ELSE SESSION:CPCOLL)
+                    DICTDB._Field._Attributes1 = 1. /* should always be 1 (i.e dbcodepage) */
+            END.
         END CASE.      
       END.
 

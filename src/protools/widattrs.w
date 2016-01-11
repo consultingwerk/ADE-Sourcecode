@@ -102,7 +102,7 @@ DEFINE BUTTON vbWidHelp
 DEFINE VARIABLE cWidget AS CHARACTER FORMAT "X(40)":U 
      LABEL "Object" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 18
-     LIST-ITEMS "Frame","Fill-in","Toggle-box","Combo-box","Radio-set","Slider","Editor","Text","Literal","Selection-list","Button","Image","Rectangle","Control-frame","Window","Field-group","Browse","Browse Column","Error-status","Compiler","File-info","Rcode-info","Session","Color-table","Procedure","Clipboard","Debugger","Last-event","Menu","Sub-menu","Menu-item (normal)","Menu-item (toggle)","Dialog-box","Server","Font-table" 
+     LIST-ITEMS "Frame","Fill-in","Toggle-box","Combo-box","Radio-set","Slider","Editor","Text","Literal","Selection-list","Button","Image","Rectangle","Control-frame","Window","Field-group","Browse","Browse Column","Error-status","Compiler","File-info","Rcode-info","Session","Color-table","Procedure","Clipboard","Debugger","Last-event","Menu","Sub-menu","Menu-item (normal)","Menu-item (toggle)","Dialog-box","Server","Font-table","Dataset ","Data-source","Soap-fault ","Soap-fault-detail","Soap-header","Sax-reader","Soap-header-entryref","Call" 
      DROP-DOWN-LIST
      SIZE 24 BY 1 NO-UNDO.
 

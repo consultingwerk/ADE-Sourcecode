@@ -336,17 +336,6 @@ FUNCTION getPropertyList RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isObjQuoted Procedure 
-FUNCTION isObjQuoted RETURNS LOGICAL
-  (INPUT pcQueryString  AS CHARACTER,
-   INPUT piPosition     AS INTEGER) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-setPropertyList) = 0 &THEN
 
@@ -926,125 +915,93 @@ PROCEDURE afmessagep :
         DEFINE VARIABLE cCode                         AS CHARACTER  NO-UNDO.
         
         /* remove trailing NL characters which are sometimes added by the ADM */
-        ASSIGN pcMessageList = TRIM(pcMessageList,"~n":U).
+        pcMessageList = TRIM(pcMessageList,"~n":U).
         
         cPropertyList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                        INPUT "currentUserObj,currentLanguageObj":U,
-                                                        INPUT NO).
+                                         "currentUserObj,currentLanguageObj":U, NO).
         
-        ASSIGN dUserObj     = DECIMAL(ENTRY(1,cPropertyList,CHR(3))) NO-ERROR.
-        ASSIGN dLanguageObj = DECIMAL(ENTRY(2,cPropertyList,CHR(3))) NO-ERROR.
-        
-        ASSIGN plUpdateErrorLog = NO NO-ERROR.
+        dUserObj     = DECIMAL(ENTRY(1,cPropertyList,CHR(3))) NO-ERROR.
+        dLanguageObj = DECIMAL(ENTRY(2,cPropertyList,CHR(3))) NO-ERROR.
+        plUpdateErrorLog = NO.
         
         message-loop:
         DO iMessageLoop = 1 TO NUM-ENTRIES(pcMessageList, CHR(3)):
-          ASSIGN
-            cFullMessage = ENTRY(iMessageLoop, pcMessageList, CHR(3))
-            .    
+            cFullMessage = ENTRY(iMessageLoop, pcMessageList, CHR(3)).
         CASE NUM-ENTRIES(cFullMessage, CHR(4)):
-            WHEN 3 THEN   /* standard ADM2 */
-            DO:
-              ASSIGN
-                cMessage  = ENTRY(1,cFullMessage, CHR(4))
-                cfield    = ENTRY(2,cFullMessage, CHR(4))
-                ctable    = ENTRY(3,cFullMessage, CHR(4))
-                cprog1    = "":U
-                cprog2    = "":U
-                .
-            END.
-            WHEN 5 THEN   /* Astra enhanced ADM2 */
-            DO:
-              ASSIGN
-                cMessage  = ENTRY(1,cFullMessage, CHR(4))
-                cfield    = ENTRY(2,cFullMessage, CHR(4))
-                ctable    = ENTRY(3,cFullMessage, CHR(4))
-                cprog1    = ENTRY(4,cFullMessage, CHR(4))
-                cprog2    = ENTRY(5,cFullMessage, CHR(4))
-                .
-            END.
-            OTHERWISE   /* unsupported */
-            DO:
-              ASSIGN
-                cMessage  = ENTRY(1,cFullMessage, CHR(4))
-                cfield    = "":U
-                ctable    = "":U
-                cprog1    = "":U
-                cprog2    = "":U
-                .
-            END.
+                WHEN 3 THEN   /* standard ADM2 */
+                  ASSIGN
+                    cMessage  = ENTRY(1,cFullMessage, CHR(4))
+                    cfield    = ENTRY(2,cFullMessage, CHR(4))
+                    ctable    = ENTRY(3,cFullMessage, CHR(4))
+                    cprog1    = "":U
+                    cprog2    = "":U.
+                WHEN 5 THEN   /* Astra enhanced ADM2 */
+                  ASSIGN
+                    cMessage  = ENTRY(1,cFullMessage, CHR(4))
+                    cfield    = ENTRY(2,cFullMessage, CHR(4))
+                    ctable    = ENTRY(3,cFullMessage, CHR(4))
+                    cprog1    = ENTRY(4,cFullMessage, CHR(4))
+                    cprog2    = ENTRY(5,cFullMessage, CHR(4)).
+                OTHERWISE   /* unsupported */
+                  ASSIGN
+                    cMessage  = ENTRY(1,cFullMessage, CHR(4))
+                    cfield    = "":U
+                    ctable    = "":U
+                    cprog1    = "":U
+                    cprog2    = "":U.
           END CASE.
           
           IF cfield = "?":U THEN ASSIGN cField = "":U.
           IF ctable = "?":U THEN ASSIGN ctable = "":U.
         
           /* now see if actual message part is structured with caret delimiters */
-          CASE NUM-ENTRIES(cMessage, "^":U):
-            WHEN 3 THEN   /* old Astra 1 way */
-            DO:
-              ASSIGN
-                cErrorGroup   = ENTRY(1,cMessage, "^":U)      
-                cErrorCode    = ENTRY(2,cMessage, "^":U)      
-                cProg12       = ENTRY(3,cMessage, "^":U)     
-                cErrorInclude = "":U
-                .
-            END.
-            WHEN 4 THEN   /* new Astra way */
-            DO:
-              ASSIGN
-                cErrorGroup   = ENTRY(1,cMessage, "^":U)      
-                cErrorCode    = ENTRY(2,cMessage, "^":U)      
-                cProg12       = ENTRY(3,cMessage, "^":U)     
-                cErrorInclude = ENTRY(4,cMessage, "^":U)
-                .
-            END.
-            OTHERWISE   /* not Astra structured - must be hard-coded */
-            DO:
-              ASSIGN
-                cErrorGroup   = "":U      
-                cErrorCode    = "":U      
-                cProg12       = "":U     
-                cErrorInclude = "":U
-                .
-            END.
-          END CASE.
+              CASE NUM-ENTRIES(cMessage, "^":U):
+                WHEN 3 THEN   /* old Astra 1 way */
+                  ASSIGN
+                    cErrorGroup   = ENTRY(1,cMessage, "^":U)      
+                    cErrorCode    = ENTRY(2,cMessage, "^":U)      
+                    cProg12       = ENTRY(3,cMessage, "^":U)     
+                    cErrorInclude = "":U.
+                WHEN 4 THEN   /* new Astra way */
+                  ASSIGN
+                    cErrorGroup   = ENTRY(1,cMessage, "^":U)      
+                    cErrorCode    = ENTRY(2,cMessage, "^":U)      
+                    cProg12       = ENTRY(3,cMessage, "^":U)     
+                    cErrorInclude = ENTRY(4,cMessage, "^":U).
+                OTHERWISE   /* not Astra structured - must be hard-coded */
+                  ASSIGN
+                    cErrorGroup   = "":U      
+                    cErrorCode    = "":U      
+                    cProg12       = "":U     
+                    cErrorInclude = "":U.
+              END CASE.
         
           IF cProg12 = "?":U THEN ASSIGN cProg12 = "":U.
           IF cErrorInclude = "?":U THEN ASSIGN cErrorInclude = "":U.
           
           /* hard-coded message with insertion codes */
           IF cErrorGroup = "?":U THEN
-          DO:
             ASSIGN
               cMessage = cErrorCode
               cErrorGroup   = "":U      
-              cErrorCode    = "":U 
-              .     
-          END.
+              cErrorCode    = "":U. 
         
-          ASSIGN plSuppressDisplay = NO.
+          plSuppressDisplay = NO.
           IF NUM-ENTRIES(cErrorGroup,"|":U) = 2 THEN  /* old Astra way of adding |suppress to error code */
-          DO:
             ASSIGN
               plSuppressDisplay = ENTRY(2,cErrorGroup,"|":U) = "suppress":U
-              cErrorGroup = ENTRY(1,cErrorGroup,"|":U)
-              .
-          END.
+              cErrorGroup = ENTRY(1,cErrorGroup,"|":U).
           
           ASSIGN cErrorCode  = TRIM(cErrorCode)
-                 cErrorGroup = TRIM(cErrorGroup)
-                 .
+                 cErrorGroup = TRIM(cErrorGroup).
         
           /* make gsc_error not available so that hard coded messages do not get over written with the previous loop's error record */
-          FIND gsc_error NO-LOCK
-              WHERE gsc_error.ERROR_obj = -1 NO-ERROR.
+          FIND gsc_error NO-LOCK WHERE gsc_error.ERROR_obj = -1 NO-ERROR.
         
           /* now we have bits, read message file if appropriate */
-          ASSIGN 
-            iErrorCode = INTEGER(cErrorCode) NO-ERROR.
+          iErrorCode = INTEGER(cErrorCode) NO-ERROR.
           IF ERROR-STATUS:ERROR THEN
             ASSIGN iErrorCode = 0.
-          ERROR-STATUS:ERROR = FALSE.
           
           IF cErrorGroup <> "":U AND iErrorCode <> 0 THEN
           DO:
@@ -1085,52 +1042,45 @@ PROCEDURE afmessagep :
             
             /* If unsuccessful, get message in source language */
             IF NOT AVAILABLE gsc_error THEN
-            DO:
               FIND FIRST gsc_error NO-LOCK
                    WHERE gsc_error.error_group     = cErrorGroup
                      AND gsc_error.error_number    = iErrorCode
                      AND gsc_error.source_language = TRUE
                    NO-ERROR.
-            END.
             
             /* If unsuccessful, get message in any language */
             IF NOT AVAILABLE gsc_error THEN
-            DO:
               FIND FIRST gsc_error NO-LOCK
                    WHERE gsc_error.error_group     = cErrorGroup
                      AND gsc_error.error_number    = iErrorCode
                    NO-ERROR.
-            END.
           END.  /* if error group and error code specified */
         
           IF AVAILABLE gsc_error THEN
           DO:
             ASSIGN
               cMessage1 = gsc_error.ERROR_summary_description
-              cMessage2 = gsc_error.ERROR_full_description
-              .
+              cMessage2 = gsc_error.ERROR_full_description.
             IF gsc_error.UPDATE_error_log THEN  
-              ASSIGN plUpdateErrorLog = YES.
+              plUpdateErrorLog = YES.
           END.
           ELSE
           DO:
               /* Replace all the ampersand characters (&), if they are not to be used for substitution */
-              ASSIGN cCleanMessage = "":U.
+              cCleanMessage = "":U.
               DO iEntries = 1 TO NUM-ENTRIES(cMessage, "&":U):
-                  ASSIGN cAmpersandEntry = ENTRY(iEntries, cMessage, "&":U).
+                  cAmpersandEntry = ENTRY(iEntries, cMessage, "&":U).
         
                   IF iEntries                                                       >= 2 AND
                      LOOKUP(SUBSTRING(cAmpersandEntry, 1, 1), "1,2,3,4,5,6,7,8,9":U) > 0 THEN
-                      ASSIGN cCleanMessage = cCleanMessage + "&" + cAmpersandEntry.
+                      cCleanMessage = cCleanMessage + "&" + cAmpersandEntry.
                   ELSE
-                      ASSIGN cCleanMessage = cCleanMessage + (IF cCleanMessage = "":U THEN "":U ELSE "&&":U) + cAmpersandEntry.
+                      cCleanMessage = cCleanMessage + (IF cCleanMessage = "":U THEN "":U ELSE "&&":U) + cAmpersandEntry.
               END.    /* loop through word */
         
               ASSIGN
                   cMessage1 = cCleanMessage
-                  cMessage2 = cCleanMessage
-                   .
-        
+                  cMessage2 = cCleanMessage.
           END.  /*  n/a error */
         
           /* See if can work out error group and code from standard Progress Message */
@@ -1139,29 +1089,28 @@ PROCEDURE afmessagep :
             ASSIGN
               ipos1 = R-INDEX(cMessage1, "(":U) + 1  
               ipos2 = R-INDEX(cMessage1, ")":U) - 1   
-              ilen = (ipos2 - ipos1) + 1
-              .
+              ilen = (ipos2 - ipos1) + 1.
             IF ipos1 > 1 AND iLen > 0 THEN
             DO:
               ASSIGN 
                 cCode = SUBSTRING(cMessage1, ipos1, ilen)
                 iCode = 0.
-              ASSIGN iCode = INTEGER(cCode) NO-ERROR.
-              ASSIGN iErrorCode = iCode.
+              iCode = INTEGER(cCode) NO-ERROR.
+              iErrorCode = iCode.
               IF iErrorCode <> 0 THEN ASSIGN cErrorGroup = "PSC":U.
             END.
           END.
         
           /* Translate insertion codes */
           DO iloop = 1 TO NUM-ENTRIES(cErrorInclude, "|":U):
-            ASSIGN cOriginalText = ENTRY(iloop, cErrorInclude, "|":U).
+            cOriginalText = ENTRY(iloop, cErrorInclude, "|":U).
         
             IF cOriginalText <> "":U THEN
             DO:
                 cTranslatedText = DYNAMIC-FUNCTION("translatePhrase":U IN gshTranslationManager,
                                                    INPUT cOriginalText,
-                                                   INPUT IF AVAILABLE gsc_error THEN gsc_error.LANGUAGE_obj ELSE dLanguageObj).
-                ASSIGN cErrorInclude = REPLACE(cErrorInclude, cOriginalText, cTranslatedText).
+                                                   INPUT IF AVAILABLE gsc_error THEN gsc_error.LANGUAGE_obj ELSE dLanguageObj).                                                               
+                entry(iLoop, cErrorInclude, '|':u) = replace(entry(iLoop, cErrorInclude, '|':u), cOriginalText, cTranslatedText).
             END.    /* original text blank */
           END.
         
@@ -1195,17 +1144,24 @@ PROCEDURE afmessagep :
           IF cProg12 = "":U AND cProg1 <> "":U THEN
             ASSIGN cProg12 = cProg1 + (IF cProg2 <> "":U THEN (":":U + cProg2) ELSE "":U).
           
-          ASSIGN pcFullList = pcFullList + (IF pcSummaryList <> "":U THEN CHR(3) ELSE "":U) +
-                 TRIM(cMessage2) + CHR(10) + CHR(10) +
-                 "*** Error: ":U + 
-                 IF cErrorGroup = "":U THEN "":U ELSE (CAPS(TRIM(cErrorGroup)) + "-":U + TRIM(STRING(iErrorCode)) + " ":U) +
-                 IF cTable <> "":U THEN ("Table: ":U + TRIM(LC(cTable)) + " ":U) ELSE "":U +
-                 IF cField <> "":U THEN ("Field: ":U + TRIM(LC(cField)) + " ":U) ELSE "":U +
-                 IF cProg12 <> "":U THEN ("Program: ":U + TRIM(LC(cProg12))) ELSE "":U
-                 . 
-          ASSIGN pcSummaryList = pcSummaryList + (IF pcSummaryList <> "":U THEN CHR(3) ELSE "":U) +
-                 TRIM(cMessage1) + IF (cErrorGroup <> "PSC":U AND cErrorGroup <> "":U) THEN (" (":U + CAPS(TRIM(cErrorGroup)) + ":":U + TRIM(STRING(iErrorCode)) + ")":U) ELSE "":U. 
-        
+          /* The number of messages is determined by the number of Summary messages, since a gsc_error record
+             might have zero detail texts. */
+          ASSIGN pcFullList = pcFullList
+                            + (IF pcSummaryList <> "":U THEN CHR(3) ELSE "":U)
+                            + TRIM(cMessage2).
+          /* Only add extra text if this message comes from the gsc_error table */
+          if cErrorGroup ne '' then
+              assign pcFullList = pcFullList + CHR(10) + CHR(10)
+                                + "*** Message Code: "
+                                + CAPS(cErrorGroup) + "-":U + STRING(iErrorCode) + " ":U
+                                + (IF cTable <> "":U THEN ("Table: " + TRIM(cTable) + " ":U) ELSE "":U)
+                                + (IF cField <> "":U THEN ("Field: " + TRIM(cField) + " ":U) ELSE "":U) 
+                                + (IF cProg12 <> "":U THEN ("Program: " + TRIM(cProg12)) ELSE "":U).
+
+          ASSIGN pcSummaryList = pcSummaryList
+                               + (IF pcSummaryList <> "":U THEN CHR(3) ELSE "":U)
+                               + TRIM(cMessage1)
+                               + IF (cErrorGroup <> "PSC":U AND cErrorGroup <> "":U) THEN (" (":U + CAPS(cErrorGroup) + ":":U + STRING(iErrorCode) + ")":U) ELSE "":U. 
         END.  /* message-loop */
         
         /* Translate title */
@@ -1225,10 +1181,12 @@ PROCEDURE afmessagep :
               cTranslatedText = DYNAMIC-FUNCTION("translatePhrase":U IN gshTranslationManager,
                                                  INPUT cOriginalText,
                                                  INPUT IF AVAILABLE gsc_error THEN gsc_error.LANGUAGE_obj ELSE dLanguageObj).
-              ASSIGN pcNewButtonList = REPLACE(pcNewButtonList, cOriginalText, cTranslatedText).
+              entry(iLoop, pcNewButtonList) = replace(entry(iLoop, pcNewButtonList), cOriginalText, cTranslatedText).
           END.  /* original text not blank */
         END.
-    &ENDIF
+    &ENDIF 
+    error-status:error = no.
+    return.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4438,7 +4396,7 @@ ACCESS_LEVEL=PUBLIC
     END.    /* run the object (not runonce and not validhandle)*/
     
     SESSION:SET-WAIT-STATE('':U).
-        
+    
     /* see if handle now valid and if so, update temp-table with details */        
     IF VALID-HANDLE(phProcedureHandle) THEN
     DO:
@@ -4550,7 +4508,7 @@ ACCESS_LEVEL=PUBLIC
             if plOnceOnly and lAlreadyrunning then  
               run viewObject IN phProcedureHandle no-error.
             else   
-            RUN initializeObject IN phProcedureHandle NO-ERROR.
+              RUN initializeObject IN phProcedureHandle NO-ERROR.
                         
             /* There may be code in the container that forces a shutdown while the
              * container is instantiating. We need to cater for this.             */
@@ -7621,88 +7579,7 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isObjQuoted Procedure 
-FUNCTION isObjQuoted RETURNS LOGICAL
-  (INPUT pcQueryString  AS CHARACTER,
-   INPUT piPosition     AS INTEGER):
-/*------------------------------------------------------------------------------
-  Purpose: Looks at the object number in the query string and determines whether
-           or not it is wrapped in quotes
-
-    Notes: This was used by the DEPRECATED fixQueryString 
-    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cAllowedCharacters  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCharacter          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lQuotedInFront      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lQuotedBehind       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lObjQuoted          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lFinished           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iCounter            AS INTEGER    NO-UNDO.
-
-  ASSIGN
-      cAllowedCharacters = "1234567890 ":U + "'" + '"':U + CHR(10) + CHR(13)
-      lQuotedInFront     = FALSE
-      lQuotedBehind      = FALSE
-      lObjQuoted         = FALSE.
-
-  /* Read forward through the string */
-  IF LENGTH(pcQueryString) >= piPosition THEN
-  DO:
-    ASSIGN
-        lFinished = FALSE
-        iCounter  = piPosition.
-
-    DO WHILE lFinished = FALSE:
-      ASSIGN
-          iCounter   = iCounter + 1.
-          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
-
-      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
-         (cCharacter = "'":U OR cCharacter = '"':U) THEN
-        ASSIGN
-            lQuotedBehind = TRUE
-            lFinished     = TRUE.
-
-      IF iCounter >= LENGTH(pcQueryString) THEN lFinished = TRUE.
-    END.
-  END.
-
-  /* Read backward through the string */
-  IF piPosition > 1 THEN
-  DO:
-    ASSIGN
-        lFinished = FALSE
-        iCounter  = piPosition.
-
-    DO WHILE lFinished = FALSE:
-      ASSIGN
-          iCounter   = iCounter - 1.
-          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
-
-      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
-         (cCharacter = "'":U OR cCharacter = '"':U) THEN
-        ASSIGN
-            lQuotedInFront = TRUE
-            lFinished      = TRUE.
-
-      IF iCounter <= 1 THEN lFinished = TRUE.
-    END.
-  END.
-
-  IF lQuotedInFront AND lQuotedBehind THEN
-    lObjQuoted = TRUE.
-
-  RETURN lObjQuoted.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-setPropertyList) = 0 &THEN
 

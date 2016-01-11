@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,6 +14,7 @@ History:
    09/16/05   K. McIntosh  Prevented deletion of valid report data, also found
                            & fixed problem with usage of BUFFER-VALUE in LENGTH
                            function for INTEGER elements of arrays 20031121-042.
+   10/26/07   fernando     Make sure recommended length is not > 31995 - OE00098662
 
 ----------------------------------------------------------------------------*/
 
@@ -111,6 +112,7 @@ PROCEDURE Display-Report:
     DISPLAY STREAM rpt rpt-line WITH FRAME shorpt.
     DOWN STREAM rpt WITH FRAME shorpt.
   END.
+
 END PROCEDURE.
 
 PROCEDURE Process-Tables :
@@ -362,6 +364,7 @@ PROCEDURE DisplayFieldInfo :
 DEFINE INPUT PARAMETER pFile AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE numrec AS INTEGER NO-UNDO.
+DEFINE VARIABLE size   AS INTEGER NO-UNDO.
 
 FIND FIRST ttExceed WHERE ttExceed.tFile = pFile NO-ERROR.
 
@@ -424,7 +427,11 @@ FOR EACH ttExceed WHERE ttExceed.tFile = pFile:
                  scr-count = scr-count + 1.
         END.
        
-                 
+      
+       /* SQL client cannot access fields having widths greater than 31995 */
+       ASSIGN size = ((ttExceed.tLength + 1) * ttExceed.tExtent).
+       IF size > 31995 THEN
+          ASSIGN size = 31995.
        
         CASE ttExceed.tdtype:
             WHEN "character" OR WHEN "raw" THEN DO:
@@ -435,7 +442,7 @@ FOR EACH ttExceed WHERE ttExceed.tFile = pFile:
                            scr-count = scr-count + 1.
                     CREATE sc-rpt.
                     ASSIGN rpt-id = scr-count
-                           rpt-line = "      Recommended Field Width: " + STRING(((ttExceed.tLength + 1) * ttExceed.tExtent)  )
+                           rpt-line = "      Recommended Field Width: " + STRING(size)
                            scr-count = scr-count + 1.                    
                 END.                                         
             END.
@@ -447,7 +454,7 @@ FOR EACH ttExceed WHERE ttExceed.tFile = pFile:
                            scr-count = scr-count + 1.
                     CREATE sc-rpt.
                     ASSIGN rpt-id = scr-count
-                           rpt-line = "      Recommended Field Width: " + STRING(((ttExceed.tLength + 1) * ttExceed.tExtent)  )
+                           rpt-line = "      Recommended Field Width: " + STRING(size)
                            scr-count = scr-count + 1.                    
                 END.                
             END.
@@ -459,7 +466,7 @@ FOR EACH ttExceed WHERE ttExceed.tFile = pFile:
                        scr-count = scr-count + 1.
                 CREATE sc-rpt.
                 ASSIGN rpt-id = scr-count
-                       rpt-line = "      Recommended Field Width: " + STRING(((ttExceed.tLength + 1) * ttExceed.tExtent)  )
+                       rpt-line = "      Recommended Field Width: " + STRING(size)
                        scr-count = scr-count + 1.                    
               END.  
             END.

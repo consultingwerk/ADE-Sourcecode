@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: afcalcpopd.w
@@ -36,6 +36,8 @@
 &ELSE
   DEFINE INPUT PARAMETER ip_handle AS HANDLE NO-UNDO.
 &ENDIF
+
+{src/adm2/globals.i}
 
 /* Local Variable Definitions ---                                       */
 
@@ -265,7 +267,10 @@ ASSIGN
 ON GO OF FRAME Dialog-Frame /* Calculator */
 DO:
   DEFINE VARIABLE cCurrentValue AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cError        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cError        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cMessageList  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cButton       AS CHARACTER NO-UNDO.
+
   IF VALID-HANDLE(ip_handle) AND CAN-QUERY(ip_handle,"screen-value":U) THEN
   DO:
     DEFINE VARIABLE dValue AS DECIMAL INITIAL 0 NO-UNDO.
@@ -277,8 +282,19 @@ DO:
     DO:
       cError = ERROR-STATUS:GET-MESSAGE(1).
       ip_handle:SCREEN-VALUE = cCurrentValue NO-ERROR.
-      MESSAGE cError
-              VIEW-AS ALERT-BOX ERROR.
+
+      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) +
+                    {aferrortxt.i 'AF' '150' '' '' fi_value:SCREEN-VALUE ip_handle:FORMAT}.
+
+      RUN showMessages IN gshSessionManager (INPUT cMessageList,
+                                             INPUT "ERROR":U,
+                                             INPUT "OK",
+                                             INPUT "OK",
+                                             INPUT ?,
+                                             INPUT "Error",
+                                             INPUT TRUE,
+                                             INPUT THIS-PROCEDURE,
+                                             OUTPUT cButton).
       RETURN NO-APPLY.
     END.
   END.

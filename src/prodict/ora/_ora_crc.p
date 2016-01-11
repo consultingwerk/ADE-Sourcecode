@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -9,18 +9,26 @@
 
    Modified:  DLM 12/29/97 Added _ianum
               DLM 07/13/98 Added _Owner to _File Find
-
+         fernando 06/11/07 Unicode support - new field
 */
 
 DEFINE INPUT PARAMETER dbkey AS RECID NO-UNDO.
 
+DEFINE VARIABLE isNew AS LOGICAL NO-UNDO INITIAL NO.
+
 FIND _Db WHERE RECID(_Db) = dbkey NO-LOCK NO-ERROR.
+
+IF NOT AVAILABLE _Db THEN RETURN.
+ELSE IF _Db._Db-type <> "ORACLE" THEN RETURN.
 
 FIND _File
   WHERE _File._Db-recid = dbkey
     AND _File._File-name = "oracle_columns" 
-    AND _File._Owner = "_FOREIGN" NO-ERROR.
-IF AVAILABLE _File THEN RETURN.
+    AND (_File._Owner = "_FOREIGN" OR _File._owner = "PUB") NO-ERROR.
+
+IF NOT AVAILABLE _File THEN DO:
+
+ASSIGN isNew = YES.
 
 CREATE _File.
 ASSIGN
@@ -170,5 +178,37 @@ ASSIGN
   _Field._For-Maxsize  = 0
   _Field._For-Name = "DEFAULT$"
   _Field._For-Type = "long".
+
+END.
+ELSE DO:
+
+/* This field was added to 10.1C for the Unicode Support. Make sure that we
+  add it if this was an pre-10.1C schema holder
+*/
+   FIND _Field OF _File WHERE _Field._File-recid   = RECID(_File) 
+                     AND _Field._Field-Name   = "CHARSETFORM" NO-ERROR.
+   IF NOT AVAILABLE(_Field) AND NOT CAN-DO("READ-ONLY",DBRESTRICTIONS("DICTDB")) THEN
+      ASSIGN isNew = YES.
+END.
+
+/* if this is a new schema, or if the field doesn't exist, then create it */
+IF isNew THEN DO:
+
+    CREATE _Field. /* file: col$ */
+    ASSIGN
+      _Field._File-recid   = RECID(_File)
+      _Field._Field-Name   = "CHARSETFORM"
+      _Field._Data-Type    = "integer"
+      _Field._Initial      = ?
+      _Field._Mandatory    = yes
+      _Field._Format       = "->>>>>>>>>9"
+      _Field._Order        = 100
+      _Field._Fld-stdtype  = 8192
+      _Field._Fld-stoff    = 10
+      _Field._For-Maxsize  = 12
+      _Field._For-Name = "CHARSETFORM"
+      _Field._For-Type = "number".
+END.
+
 
 RETURN.

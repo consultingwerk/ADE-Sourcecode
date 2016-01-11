@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: sharvars.i
@@ -53,7 +53,6 @@ Modified by gfs on 12/18/96 - Changed _h_Controls to COM-HANDLE
 &SCOPED-DEFINE NEWGLOB NEW GLOBAL
 &ENDIF
 
-
 DEFINE {1} SHARED VAR _AB_license     AS INTEGER                    NO-UNDO.
        /* _AB_license      is 1 when only UIB is licensed, 2 when only   */
        /*                  WebSpeed is licensed and 3 when both are      */
@@ -62,7 +61,6 @@ DEFINE {1} SHARED VAR _AB_license     AS INTEGER                    NO-UNDO.
 DEFINE {1} SHARED VAR _AB_Tools       AS CHARACTER                  NO-UNDO.  /* jep-icf */
        /* _AB_Tools        Comma list of "UIB,Workshop,Enable-ICF"       */
        /*                  Used in conjunction with _AB_license          */
-
 
 DEFINE {1} SHARED VAR _auto_check     AS LOGICAL INITIAL FALSE      NO-UNDO
                                VIEW-AS TOGGLE-BOX LABEL "Auto Syntax Check".
@@ -100,7 +98,7 @@ DEFINE {1} SHARED VAR _cur_row_mult   AS DECIMAL  INITIAL 1.0       NO-UNDO.
        /*  _cur_row_mult   TTY simulators shows rows closer together     */
        /*         than GUI mode - this  is the multiplier       */
        /*                  showing this compression (usually 0.62)       */
-                                       
+
 DEFINE {1} SHARED VAR _cur_user_id    AS CHAR   FORMAT "X(8)"       NO-UNDO
                   INITIAL "0000001".
        /* _cur_user_id     is the id of the current user which lets us   */
@@ -110,7 +108,7 @@ DEFINE {1} SHARED VAR _cur_win_type   AS LOGICAL INITIAL ?          NO-UNDO
                                       LABEL "Window Type".
        /* _cur_win_type    is true if we are working in GUI mode and     */
        /*                  false if we are in TTY mode                   */
-      
+
 DEFINE {1} SHARED VAR _custom_draw   AS CHAR     INITIAL ?        NO-UNDO.
        /* _custom_draw     is the name of custom object to be drawn      */
        /*                  next.  custom_draw is ? if no custom widget   */
@@ -134,7 +132,7 @@ DEFINE {1} SHARED VAR _dblclick_section_ed AS LOGICAL               NO-UNDO.
        /* _dblclick_section_ed is the switch to determine if a property  */
        /*                  sheet or the section editor should come up on */
        /*                  the double click of and object.               */
-       
+
 DEFINE {1} SHARED VAR _DynamicsIsRunning AS LOGICAL                 NO-UNDO.
        /* _DynamicsIsRunning is a flag for the AppBuilder that is TRUE   */
        /*                  if and only if Dynamics is running when the   */
@@ -172,11 +170,11 @@ DEFINE {1} SHARED VAR _dyn_cst_template AS CHARACTER                 NO-UNDO.
 
 DEFINE {1} SHARED VAR _dyn_cst_palette AS CHARACTER                 NO-UNDO.       
        /* Contains a list of all dynamic palette objects */
-       
+
 DEFINE {1} SHARED VAR _err_msg         AS CHARACTER                 NO-UNDO.
        /* _err_msg         is the first error message from the last      */
        /*                  compile attempt                               */
-       
+
 DEFINE {1} SHARED VAR _err_recid       AS RECID INITIAL ?           NO-UNDO.
        /* _err_recid       is the record ID of the trigger temptable     */
        /*                  record containing the trigger code that       */
@@ -300,7 +298,7 @@ DEFINE {1} SHARED VAR _numeric_decimal  AS CHAR                     NO-UNDO.
        /*                   the user's setting after NUMERIC-FORMAT is   */
        /*                   changed to "AMERICAN" for generating 4GL and */
        /*                   compiling code                               */
-       
+
 DEFINE {1} SHARED VAR _numeric_separator  AS CHAR                   NO-UNDO.
        /* _numeric_separator  is any character allowed by the 4GL to     */
        /*                     represent the thousands separator, it is   */
@@ -333,13 +331,13 @@ DEFINE {1} SHARED VAR _orig_dte_fmt    AS CHARACTER                 NO-UNDO.
 
 DEFINE {1} SHARED VAR _palette_choice AS RECID    INITIAL ?        NO-UNDO.
        /* The recid of the palette item (not custom)currently selected   */
-       
+
 DEFINE {1} SHARED VAR _palette_count   AS INTEGER                   NO-UNDO.
        /* _palette_count   number of items on the object palette         */
 
 DEFINE {1} SHARED VAR _palette_custom_choice AS RECID    INITIAL ?  NO-UNDO.
        /* The recid of the custom item currently selected   */
-       
+
 DEFINE {1} SHARED VAR _palette_labels  AS LOGICAL                   NO-UNDO.
        /* _palette_labels  does the palette display labels? yes/no       */
 
@@ -352,23 +350,23 @@ DEFINE {1} SHARED VAR _palette_top     AS LOGICAL                   NO-UNDO.
 DEFINE {1} SHARED VAR _print_pg_length AS INTEGER                   NO-UNDO.
        /* _print_pg_length   determines the page length for printing 
                              procedures and sections of procedures       */
-                               
+
 DEFINE {1} SHARED VAR _print_font      AS INTEGER                   NO-UNDO.
        /* _print_font        determines the font used when printing      */
-       
+
 DEFINE {1} SHARED VAR _print_dialog    AS LOGICAL                   NO-UNDO.
        /* _print_dialog      determines if the print dialog is used
                              when printing                               */
-                                                            
+
 DEFINE {1} SHARED VAR _remote_file     AS LOGICAL                   NO-UNDO.
        /* _remote_file     is the option that determines if File Open    */
        /*                  and Save As defaults to a local disk (false)  */
        /*                  or a remote WebSpeed agent (true).            */
-       
+
 DEFINE {1} SHARED VAR _query-u-rec     AS RECID                     NO-UNDO.
        /* _query-i-rec     is the recid of the _U record for the browse  */
        /*                  that has an attached query                    */
-       
+
 DEFINE {1} SHARED VAR _save_file       AS CHARACTER                 NO-UNDO.
        /* _save_file       is the file-name (8 + .w = 10 chars) of       */
        /*                  .w file being edited                          */
@@ -379,7 +377,7 @@ DEFINE {1} SHARED VAR _save_mode       AS CHARACTER                 NO-UNDO.
        /*                  1 is ask_file_name, 2 is (_remote_file AND    */
        /*                  NOT ask_file_name AND _save_file eq ?).  See  */
        /*                  adeuib/uibmproe.i for example.                */
-       
+
 DEFINE {1} SHARED VAR _second_corner_x AS INTEGER                   NO-UNDO.
        /* _second_corner_x is the x co-ordinate when the user releases   */
        /*                  the mouse button while drawing a box.         */
@@ -408,7 +406,7 @@ DEFINE {1} SHARED VAR _tt_log_name    AS CHAR
                                  INITIAL "TEMP-TABLES,TEMP-DB"      NO-UNDO.
        /* _tt_log_name     is the logical name of the database holding   */
        /*                  temp-table definitions                        */
-       
+
 DEFINE {1} SHARED VAR _tty_bgcolor    AS INTEGER   INITIAL 0        NO-UNDO.
        /*  _tty_bgcolor    TTY simulators use this background color      */
 
@@ -449,6 +447,18 @@ DEFINE {1} SHARED VAR _widgetid_start   AS INTEGER                   NO-UNDO.
 DEFINE {1} SHARED VAR _widgetid_increment AS INTEGER                 NO-UNDO.
        /* _widgetid_increment  widget ID increment value                 */
 
+DEFINE {1} SHARED VAR _widgetid_save_filename     AS LOGICAL         NO-UNDO.
+       /* _widgetid_assign   determines whether to save the widget-id    */
+       /*                    file name automatially                      */ 
+
+DEFINE {1} SHARED VAR _widgetid_default_filename  AS LOGICAL         NO-UNDO.
+       /* _widgetid_assign   determines whether the widget-id file name  */
+       /*                    is the default value                        */ 
+
+DEFINE {1} SHARED VAR _widgetid_custom_filename   AS CHARACTER       NO-UNDO.
+       /* _widgetid_assign   the custom name of the widget-id file name. */
+       /*                    The default value is blank.                 */
+
 DEFINE {1} SHARED VAR _UIB_VERSION    AS CHAR   INITIAL "AB_v10r12"  NO-UNDO.  
        /*  _UIB_VERSION      UIB Verson Number                           */
        /*    7.1A002  (WTW 2/8/93)  Added Code Sections                  */
@@ -474,12 +484,12 @@ DEFINE {1} SHARED VAR _UIB_VERSION    AS CHAR   INITIAL "AB_v10r12"  NO-UNDO.
 DEFINE {1} SHARED VAR _WebBrowser   AS CHARACTER INITIAL ?          NO-UNDO.
        /* _WebBrowser    is the name of the web browser to use to call   */
        /*                the Technical Services web page                 */ 
-               
+
 DEFINE {1} SHARED VAR s_tmp-file    AS CHARACTER.
        /* s_tmp-file     is the variable that holds the temporary        */
        /*                filename of the procedure that is to be run     */ 
        /*                testing tty-mode                                */
-      
+
 DEFINE {1} SHARED VAR Stop_Button   AS WIDGET-HANDLE                NO-UNDO.
        /* Stop_Button    is the handle of the UIB Stop Button            */
 
@@ -491,7 +501,7 @@ DEFINE {1} SHARED VAR xPalette      AS HANDLE                       NO-UNDO.
 DEFINE {1} SHARED VAR web-tmp-file    AS CHARACTER                  NO-UNDO.
        /* web-tmp-file   is the variable that holds the temporary        */
        /*                filename used for remote file management        */ 
-      
+
 /* Section Editor Window Shared Vars. */
 DEFINE {1} SHARED VARIABLE   se_section  AS CHARACTER               NO-UNDO.
        /* se_section     is a section type like _CONTROL, _PROCEDURE,    */
@@ -508,7 +518,7 @@ DEFINE {1} SHARED VARIABLE _iTabOrder    AS INTEGER                 NO-UNDO
                                             INITIAL 100000.
        /* _iTabOrder     Used to set _TAB-ORDER for non field-level */
        /*                widgets when they're read in.              */
-                    
+
 &IF DEFINED(SE_Name) = 0 &THEN
 /* This is defined as a shared object in _sewin.w. We must preprocess
    out the DEFINE SHARED or we get a duplicate var name error when

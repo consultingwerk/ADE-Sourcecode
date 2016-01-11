@@ -759,7 +759,7 @@ FUNCTION startB2BObject RETURNS HANDLE
    {get ContainerSource hContainer}.
    {get ContainerHandle hWidget}.
    
-   DO ON STOP UNDO, RETURN ERROR:
+   DO ON STOP UNDO, RETURN ?:
      RUN constructObject IN hContainer 
                 (INPUT  pcContainer,
                  INPUT  hWidget,

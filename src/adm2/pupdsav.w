@@ -7,12 +7,12 @@ to its TABLEIO-TARGET. "
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-WIn 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: pupdsav.w
@@ -196,17 +196,17 @@ DEFINE RECTANGLE RECT-1
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Panel-Frame
-     Btn-Save AT ROW 1.33 COL 2
-     Btn-Update AT ROW 1.33 COL 11
-     Btn-Reset AT ROW 1.33 COL 20.2
-     Btn-Add AT ROW 1.33 COL 29.2
-     Btn-Copy AT ROW 1.33 COL 38.2
-     Btn-Delete AT ROW 1.33 COL 47.2
-     Btn-Cancel AT ROW 1.33 COL 56.2
-     RECT-1 AT ROW 1 COL 1
+     Btn-Save   AT ROW 1.33 COL 2    WIDGET-ID 2 
+     Btn-Update AT ROW 1.33 COL 11   WIDGET-ID 4
+     Btn-Reset  AT ROW 1.33 COL 20.2 WIDGET-ID 6
+     Btn-Add    AT ROW 1.33 COL 29.2 WIDGET-ID 8
+     Btn-Copy   AT ROW 1.33 COL 38.2 WIDGET-ID 10
+     Btn-Delete AT ROW 1.33 COL 47.2 WIDGET-ID 12
+     Btn-Cancel AT ROW 1.33 COL 56.2 WIDGET-ID 14
+     RECT-1     AT ROW 1    COL 1    WIDGET-ID 16
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1 SCROLLABLE .
+         AT COL 1 ROW 1 SCROLLABLE  WIDGET-ID 100.
 
 
 /* *********************** Procedure Settings ************************ */

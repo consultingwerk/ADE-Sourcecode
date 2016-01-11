@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -28,6 +28,7 @@ Included in:
   prodict/dump/_dmpsec.p    
   
 History:
+   fernando   06/20/07  Support for large files
   
 */
 /*------------------ begin Trailer-INFO ------------------*/
@@ -41,7 +42,12 @@ History:
   {&trailer-info}
   
   PUT {&stream} UNFORMATTED
-    "." SKIP
-      STRING({&data-end},"9999999999") SKIP. /* location of trailer */
+    "." SKIP .
+
+  /* location of trailer */
+  IF {&data-end} > 9999999999 THEN
+      PUT {&stream} UNFORMATTED STRING({&data-end}) SKIP.
+  ELSE
+      PUT {&stream} UNFORMATTED STRING({&data-end},"9999999999") SKIP.
 
 /*------------------ end   Trailer-INFO ------------------*/

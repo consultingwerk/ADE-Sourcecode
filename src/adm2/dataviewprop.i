@@ -99,6 +99,7 @@ DataIsFetched,ResortOnSave
 {src/adm2/dataqueryprop.i}
 
  &GLOBAL-DEFINE xpBusinessEntity
+ &GLOBAL-DEFINE xpDataContainerName
  &GLOBAL-DEFINE xpDataSetName
  &GLOBAL-DEFINE xpDataSetSource
  &GLOBAL-DEFINE xpDataTable
@@ -111,6 +112,7 @@ IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
   &IF "{&ADMSuper}":U = "":U &THEN 
      ghADMProps:ADD-NEW-FIELD('BusinessEntity':U, 'CHAR':U, 0,'X(40)':U, '':U). 
+     ghADMProps:ADD-NEW-FIELD('DataContainerName':U, 'CHARACTER':U, 0, ?,"DataContainer":U).
      ghADMProps:ADD-NEW-FIELD('DataSetName':U, 'CHAR':U, 0,'X(40)':U, '':U). 
      ghADMProps:ADD-NEW-FIELD('DataSetSource':U, 'HANDLE':U).   
      ghADMProps:ADD-NEW-FIELD('DataTable':U, 'CHAR':U, 0,'X(20)':U, '':U). 

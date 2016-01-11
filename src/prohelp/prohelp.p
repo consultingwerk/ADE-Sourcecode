@@ -1,15 +1,15 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 DEFINE VARIABLE user-prog  AS CHARACTER FORMAT  "x(60)".
 
 DEFINE VARIABLE cmd AS CHARACTER EXTENT 15 INITIAL [
-  "prohelp/recentms.p",
-  "prohelp/message.p",
-  "prohelp/keyboard.p",
+  "prohelp/_rcntmsg.p",
+  "prohelp/_msgs.p",
+  "prohelp/_keybrd.p",
   "prohelp/statemnt.p",
   "prohelp/function.p",
   "prohelp/operator.p",
@@ -19,7 +19,7 @@ DEFINE VARIABLE cmd AS CHARACTER EXTENT 15 INITIAL [
   "",
   "",
   "prohelp/dirlist.p",
-  "prodemo/menu.p",
+  "",
   "",
   ""
 ].
@@ -61,9 +61,11 @@ REPEAT:
   IF FRAME-INDEX > 0 THEN DO:
     STATUS DEFAULT.
     HIDE ALL NO-PAUSE.
+
     IF cmd[FRAME-INDEX] <> "" THEN RUN VALUE(cmd[FRAME-INDEX]).
     ELSE IF FRAME-INDEX = 10 THEN DICTIONARY.
     ELSE IF FRAME-INDEX = 11 THEN OS-COMMAND.
+    ELSE IF FRAME-INDEX = 13 THEN MESSAGE "This option was removed in 10.1C" VIEW-AS ALERT-BOX.
     ELSE IF FRAME-INDEX = 14 THEN QUIT.
     ELSE IF FRAME-INDEX = 15 THEN DO ON ERROR UNDO getchoice,RETRY getchoice:
       HIDE ALL.

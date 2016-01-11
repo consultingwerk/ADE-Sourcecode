@@ -3,6 +3,9 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME diDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS diDialog 
+/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*---------------------------------------------------------------------------------
   File:         adeuib/_tempdbEntity.w
 
@@ -519,8 +522,8 @@ PROCEDURE importData :
         fiSep:INPUT-VALUE                        NE "Upper":U  THEN
      DO:
          RUN showMessages IN gshSessionManager (INPUT  "AF^5^" + LC(PROGRAM-NAME(1)) + ":" + LC(PROGRAM-NAME(2)) + "^" 
-                                                               + '"field separator"' 
-                                                               + '"The field separator should be either blank, a single character or ´Upper´"'
+                                                               + 'field separator' + '|':u
+                                                               + 'The field separator should be either blank, a single character or ~'Upper~''
                                                                +  CHR(4) + "?" + CHR(4) + "?" + CHR(4) + PROGRAM-NAME(1) 
                                                                + CHR(4) + PROGRAM-NAME(2),
                                                 INPUT  "ERR":U,

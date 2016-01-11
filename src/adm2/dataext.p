@@ -136,17 +136,6 @@ FUNCTION getDataLogicProcedure RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getDataModified) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataModified Procedure 
-FUNCTION getDataModified RETURNS LOGICAL
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getDataReadBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataReadBuffer Procedure 
@@ -1512,7 +1501,7 @@ PROCEDURE doReturnUpd :
         lQueryOpened = TRUE.  /* Must reposition below  */ 
       END.          
     END. /* not autocommit  */
-
+ 
     /* Go through each 'U' copy and use it to find the 'before-image' for delete
        or refresh also copy the contents to rowObject if adm-fields-changed */
     hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod = "U"':U).
@@ -1521,7 +1510,7 @@ PROCEDURE doReturnUpd :
     DO WHILE hRowObjUpd:AVAILABLE:
       iTempRowNum = hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
       /* Refreshing the update record if required (changed data was reset on server).*/
-      IF INDEX(pcUndoIds,STRING(iTempRowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U) <> 0 THEN
+      IF INDEX("," + pcUndoIds,"," + STRING(iTempRowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U) <> 0 THEN
       DO:
         hRowObject:FIND-FIRST('WHERE RowNum = ':U + STRING(iTempRowNum)).
         /* Copy the refreshed db field values to row object. */
@@ -1555,6 +1544,15 @@ PROCEDURE doReturnUpd :
       hQuery:QUERY-OPEN().
       hQuery:GET-FIRST().
       DO WHILE hRowObjUpd:AVAILABLE:
+        iTempRowNum = hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE.
+        /* Refreshing the deleted record if required (changed data was reset on server).
+           (doUndoDelete does this unconditionally for non autocommit)*/
+        IF INDEX("," + pcUndoIds,"," + STRING(iTempRowNum) + CHR(3) + "ADM-FIELDS-CHANGED":U) <> 0 THEN
+        DO:
+          hRowObject:FIND-FIRST('WHERE RowNum = ':U + STRING(iTempRowNum)).
+          /* Copy the refreshed db field values to row object. */
+          hRowObject:BUFFER-COPY(hRowObjUpd,'RowMod':U).
+        END. /* UndoIds matches RowNum and ADM-FIELDS-CHANGED */
         hRowObjUpd:BUFFER-DELETE().
         hQuery:GET-NEXT().
       END.
@@ -2200,52 +2198,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getDataModified) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataModified Procedure 
-FUNCTION getDataModified RETURNS LOGICAL
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns TRUE if the current RowObject record is modified, 
-               Returns no if there is no current RowObject.
-  Parameters:  <none>  
-  Notes:       We need to check updateTargets since this may be called from 
-               the toolbar as a result of the updateSource's  
-               setDataModifed -> publish updateState, BEFORE the updateState
-               reaches us...                       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lDataModified AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cUpdateSource AS CHAR      NO-UNDO.
-  DEFINE VARIABLE iSource       AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hSource       AS HANDLE    NO-UNDO.
-
-  &SCOPED-DEFINE xpDataModified
-  {get DataModified lDataModified}.
-  &UNDEFINE xpDataModified
-  
-  IF lDataModified = NO THEN
-  DO:
-    {get UpdateSource cUpdateSource}.
-    DO iSource = 1 TO NUM-ENTRIES(cUpdateSource):
-      hSource = WIDGET-HANDLE(ENTRY(iSource,cUpdateSource)).
-      IF VALID-HANDLE(hSource) THEN 
-      DO:
-        {get DataModified lDataModified hSource}.
-        IF lDataModified THEN
-          LEAVE.
-      END.
-    END.
-  END.
-
-  RETURN lDataModified.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getDataReadBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataReadBuffer Procedure 
@@ -2451,7 +2403,7 @@ Parameters:  <none>
             {get ASHandle hAsHandle}.
         END.
         /* Check again as this is should be retrieved at start up from the calls 
-	        above */
+                above */
         cDBNames = SUPER().  
         /* Just in case something went wrong go and get it */
         IF cDbNames = ? THEN
@@ -3458,10 +3410,12 @@ FUNCTION getQueryWhere RETURNS CHARACTER
 /*------------------------------------------------------------------------------
   Purpose:     Returns the current where-clause for the database query.
   Parameters:  <none>
-  Notes:       (See getOpenQuery for the original where clause.)
-               The Where clause is stored locally on the client for statless 
-               SDOs. 
-               restartServerObject will use it  
+  Notes:       The Where clause is stored locally on the client for stateless 
+               SDOs.
+             - If it is undefined on the client then it returns the BaseQuery 
+               in order to always have a value. 
+             - Unknown means unprepared when connected to the database. 
+             - See super - query.p                      
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQuery         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hAppServer     AS HANDLE     NO-UNDO.
@@ -3508,7 +3462,7 @@ FUNCTION getQueryWhere RETURNS CHARACTER
   END. /* If 'Client' */
   
   ELSE RETURN SUPER().
-      
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

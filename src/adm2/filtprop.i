@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : filtprop.i
     Purpose     : Defines basic properties.
@@ -131,6 +131,7 @@ FieldColumn
  &GLOB xpFieldTooltips
  &GLOB xpFieldHelpIds
  &GLOB xpVisualBlank
+ &GLOB xpFieldWidgetIDs
  {src/adm2/visprop.i}
  
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
@@ -188,6 +189,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('FieldTooltips':U,'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldHelpIds':U,'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('VisualBlank':U,'CHAR':U, 0, ?, '<Blank>':U).
+  ghADMProps:ADD-NEW-FIELD('FieldWidgetIDs':U,'CHAR':U, 0, ?, '':U).
 &ENDIF
 
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/

@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -22,6 +22,7 @@
              D. McMann 10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
              fernando  06/15/06 Expanding Dump-name to 32 characters
              fernando  09/27/06 Use a different delimiter for areaname - 20051228-008
+             fernando  10/03/07 Fixed delimiter issue on area name list - OE00135682
              
 */
 
@@ -215,20 +216,17 @@ ELSE DO:
              filearea = DICTDB._Area._Area-name.
     ELSE
       /* 20051228-008 - use other delimiter in case area name has comma */
-      ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name + CHR(1).
+      ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
 
   END.
   
-  IF NUM-ENTRIES(arealist) = 1 THEN
-    ASSIGN arealist = arealist + CHR(1).
-    
   FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
   IF arealist = ? THEN 
     ASSIGN arealist = DICTDB._Area._Area-name
            filearea = DICTDB._Area._Area-name
            s_In_Schema_Area = TRUE.
   ELSE
-    ASSIGN arealist = arealist + DICTDB._Area._Area-name.
+    ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
 
   ASSIGN areaname:LIST-ITEMS IN FRAME frame-d = arealist.
          

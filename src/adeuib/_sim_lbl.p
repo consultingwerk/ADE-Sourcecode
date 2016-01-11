@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -37,7 +37,7 @@ Date Created: December 6, 1992
 
 ----------------------------------------------------------------------------*/
 /* -------------------------- INPUT PARAMETERS ---------------------------- */
-define input parameter h_self        as widget-handle 	    	     NO-UNDO.
+DEFINE INPUT PARAMETER h_self        AS widget-handle 	    	     NO-UNDO.
 
 {adeuib/sharvars.i}
 {adeuib/layout.i}
@@ -63,7 +63,7 @@ IF CAN-DO("TOGGLE-BOX,BUTTON",_U._TYPE) THEN DO:
   IF (_U._LABEL-SOURCE = "D") AND (_U._TABLE EQ ?) THEN txt = _U._NAME.
   ELSE IF _U._LABEL-ATTR EQ "" OR _U._LABEL-ATTR EQ "U":U
                                                    THEN txt = _U._LABEL.
-  ELSE RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, no, OUTPUT txt). 
+  ELSE RUN adeuib/_strfmt.p (_U._LABEL, _U._LABEL-ATTR, NO, OUTPUT txt). 
 END.
 ELSE IF _F._INITIAL-DATA NE ? THEN
        CASE _F._DATA-TYPE:
@@ -87,7 +87,7 @@ ASSIGN txt = TRIM(txt).
 
 IF _L._WIN-TYPE AND NOT CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN DO: /* GUI mode */
   /* NOTE: txt is CASE-SENSITIVE and we also care about "x" ne "x  ". */
-  IF h_self:LABEL NE txt  OR LENGTH(h_self:LABEL, "raw":U) ne LENGTH(txt, "raw":U)
+  IF h_self:LABEL NE txt  OR LENGTH(h_self:LABEL, "raw":U) NE LENGTH(txt, "raw":U)
   THEN h_self:LABEL = txt.
 END. 
 ELSE DO:
@@ -154,10 +154,11 @@ ELSE DO:
                                                        " ":U
                                                   ELSE "_":U, INTEGER(_L._WIDTH) -
                                                 LENGTH(txt, "raw":U)).
+
        ASSIGN h_self:FORMAT       = IF _F._DATA-TYPE NE "Character":U AND
                                        _cur_win_type THEN _F._FORMAT
                                     ELSE "X(" + STRING(MAX(1,LENGTH(txt,"raw":U))) + ")"
-              h_self:SCREEN-VALUE = txt.            
+              h_self:SCREEN-VALUE = txt NO-ERROR.
      END.
      OTHERWISE /* DO NOTHING */ .
   END CASE.

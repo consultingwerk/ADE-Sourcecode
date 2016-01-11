@@ -17,6 +17,9 @@
       pTempFile: Name of temp file to Open for remote web files
       pMode : Mode of open
         OPEN:     Open the file as a WINDOW or DIALOG-BOX
+        OPEN-NOEDIT: 
+                  Open the file as a WINDOW or DIALOG-BOX 
+                  but don't open an editor for it. (Used in OpenEdge Architect).
         UNTITLED: Open the file as a WINDOW or DIALOG-BOX, but don't
                     use the filename. (Open as UNTITLED).
         IMPORT:   Import into the UIB's current frame or window.
@@ -57,6 +60,12 @@ DEFINE VARIABLE cRelName        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cRelNameFull    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lSetMRU         AS LOGICAL    NO-UNDO.
 
+DEFINE VARIABLE lOpenNoEdit     AS LOGICAL    NO-UNDO.
+
+IF pMode EQ "OPEN-NOEDIT" THEN
+DO:
+    ASSIGN pMode = "OPEN" lOpenNoEdit = TRUE.
+END.
 
 /* BEFORE-OPEN hook */
 IF pMode NE "UNTITLED" AND pMode NE "IMPORT" THEN DO:
@@ -158,7 +167,7 @@ DEFINE VARIABLE cLinkedFile  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
 
 /* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
-IF OEIDEIsRunning THEN
+IF OEIDEIsRunning AND NOT lOpenNoEdit THEN
 DO:
     IF _DynamicsIsRunning          
         AND cRelNameFull > "" THEN
@@ -193,7 +202,7 @@ DO:
         ELSE    
             openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
         /* If file was already registed, its content is not modified */
-        RUN call_sew IN _h_UIB (INPUT "SE_OPEN":U ). /* Start Section Editor Window to allow file synchronization */
+        RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ). /* Start Section Editor Window to allow file synchronization */
     END.
 END.
 

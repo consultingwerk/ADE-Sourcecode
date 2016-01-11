@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -109,28 +109,19 @@ PROCEDURE start-super-proc :
   DEFINE INPUT PARAMETER pcProcName AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE hProc             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iExt              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iPos              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cFile             AS CHARACTER  NO-UNDO.
 
-  iExt = R-INDEX(pcProcName,'.':U).
-  IF iExt > 1 THEN
-    ASSIGN
-      cFile      = SUBSTR(pcProcName,1,iExt - 1).
-  ELSE
-    ASSIGN cFile = pcProcName.
-
-    /* if we can find the procedure, don't bother looking for it under the auditing directory.
-       The only exception for now is browser.p because the one under auditing/adm2 has a fix for a
-       browser bug which is not fixed under the main version.
-    */
-    IF pcProcName = "adm2/browser.p":U OR 
-        ( SEARCH(cFile + ".r":U) = ? AND SEARCH(pcProcName) = ?) THEN DO:
-    
-          /* try to find in the auditing directory */
-          IF SEARCH("auditing/":U + cFile + ".r":U)  <> ? OR
-             SEARCH("auditing/":U + pcProcName) <> ? THEN
-              ASSIGN pcProcName = "auditing/":U + pcProcName.
-    END.
+  /* We no run the ADM2 under auditing/adm2. So need to adjust relative path to file
+     name and also the file names are now prefixed with "aud_".
+  */
+  ASSIGN /* find the file name */
+         iPos = R-INDEX(pcProcName,"/")
+		 iPos = (IF Ipos < 0 THEN R-INDEX(pcProcName,"\") ELSE iPos)
+		 /* get the file name */
+         cFile = SUBSTRING(pcProcName,iPos + 1)
+		 /* now add the prefix for the file name */
+         pcProcName = "auditing/":U + REPLACE(pcProcName,cFile,"aud_" + cFile).	
 
   hProc = SESSION:FIRST-PROCEDURE.
   DO WHILE VALID-HANDLE(hProc) AND hProc:FILE-NAME NE pcProcName:

@@ -126,7 +126,7 @@ DEFINE VARIABLE gcError       AS CHARACTER  NO-UNDO.
 
 DO ON STOP UNDO, LEAVE:
     /* Call the Add to Repository dialog. Passes data back in an _RyObject record. */
-    RUN ry/obj/ryaddfile.w
+    RUN adeuib/_addreposfile.w 
         (INPUT phWindow,                /* Parent Window    */
          INPUT pcProductModule,         /* Product Module   */
          INPUT pcFileName,              /* Object to add    */

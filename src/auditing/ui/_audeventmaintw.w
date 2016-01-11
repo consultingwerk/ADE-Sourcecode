@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -26,6 +26,9 @@
   Author: 
 
   Created: March 04, 2005
+  
+  History
+  fernando    06/20/07  Support for large files
 
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
@@ -999,7 +1002,7 @@ PROCEDURE doExport :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE csave-file       AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE errorMsg         AS CHARACTER   NO-UNDO.
-DEFINE VARIABLE numRecs          AS INTEGER     NO-UNDO.
+DEFINE VARIABLE numRecs          AS INT64       NO-UNDO.
 
     DO ON ERROR UNDO, LEAVE.
     
@@ -1050,7 +1053,7 @@ PROCEDURE doImport :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE c-file           AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE errorMsg         AS CHARACTER   NO-UNDO.
-DEFINE VARIABLE numRecs          AS INTEGER     NO-UNDO.
+DEFINE VARIABLE numRecs          AS INT64       NO-UNDO.
 DEFINE VARIABLE hEventDataSet    AS HANDLE      NO-UNDO.
 DEFINE VARIABLE error%           AS INTEGER     NO-UNDO.
 

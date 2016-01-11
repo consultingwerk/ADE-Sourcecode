@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : visual.p
     Purpose     : Code common to all objects with a visualization, including
@@ -75,6 +75,20 @@ RUN processEventProcedure IN TARGET-PROCEDURE ( INPUT ENTRY((4 * iLoop + 1)    ,
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-applyFocusToFrame) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyFocusToFrame Procedure 
+FUNCTION applyFocusToFrame RETURNS LOGICAL
+  ( phFrame AS HANDLE,
+    pcField AS CHAR,
+    pcFrameList AS CHAR,
+    pcObjectList AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-assignFocusedWidget) = 0 &THEN
 
@@ -216,7 +230,7 @@ FUNCTION enableWidget RETURNS LOGICAL
 &IF DEFINED(EXCLUDE-fieldSecurityRule) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fieldSecurityRule Procedure 
-FUNCTION fieldSecurityRule RETURNS CHARACTER 
+FUNCTION fieldSecurityRule RETURNS CHARACTER
   ( phWidget AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -632,6 +646,17 @@ FUNCTION getSecuredTokens RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseWidgetID Procedure 
+FUNCTION getUseWidgetID RETURNS LOGICAL
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWidth Procedure 
@@ -1000,6 +1025,17 @@ FUNCTION setSecuredTokens RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWidgetID Procedure 
+FUNCTION setWidgetID RETURNS LOGICAL
+        (INPUT piWidgetID AS INTEGER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-toggleWidget) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD toggleWidget Procedure 
@@ -1242,6 +1278,8 @@ PROCEDURE createObjects :
 
   RUN updateFieldProperties IN TARGET-PROCEDURE.
   
+  {set ObjectsCreated true}.
+  
   RETURN.
 END PROCEDURE.  /* createObjects */
 
@@ -1428,23 +1466,13 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hSource            AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cResult            AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lResult            AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE hContainerSource   AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cNonSmartFrames    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hFrame             AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lPopupsInFields    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE hChildFrame        AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE iFrame             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lIsContainer       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lCreated           AS LOGICAL    NO-UNDO.
-  define variable cObjectType            as character                no-undo.
+  define variable cObjectType       as character   no-undo.
     
   /* createObjects for visual mainly class builds property lists 
-     most extended classes will already have created objects at this stage
-     Check this no-error .. the prop is currently in the containr, so objects 
-     that need to run createObjects here does not have this property.. */ 
-  
-  {get ObjectsCreated lCreated} NO-ERROR.
-  /* unknown (if func does not exist) ..  */
+     most extended classes will already have created objects at this stage */ 
+  {get ObjectsCreated lCreated}.
+  /* unknown not really supported, but only skip if really TRUE..  */
   IF NOT (lCreated = YES) THEN
      RUN createObjects IN TARGET-PROCEDURE.
 
@@ -1460,7 +1488,7 @@ PROCEDURE initializeObject :
     RUN viewObject IN TARGET-PROCEDURE.
     RETURN.                      
   END.       /* END DO design mode */
-       
+   
   /* Set the procedure's CURRENT-WINDOW to its parent window container
      (which may be several levels up). This will assure correct parenting
      of alert boxes, etc. */
@@ -1469,7 +1497,7 @@ PROCEDURE initializeObject :
   {get ObjectType cObjectType}.  
   &undefine xp-Assign
   IF NOT VALID-HANDLE(hContainer) THEN
-    RETURN.       /* If no container then skip all visual initialization. */
+    RETURN.  /* If no container then skip all visual initialization. */
  
   hParent = hContainer.
   DO WHILE VALID-HANDLE(hParent:PARENT) AND hParent:TYPE NE "WINDOW":U:
@@ -1477,7 +1505,7 @@ PROCEDURE initializeObject :
   END.
   
   IF VALID-HANDLE(hParent) AND hParent:TYPE = "WINDOW":U THEN
-     TARGET-PROCEDURE:CURRENT-WINDOW = hParent.
+    TARGET-PROCEDURE:CURRENT-WINDOW = hParent.
     
   /* The visual class takes care of viewing and enabling all non-window-like
      objects; things like viewers, browsers etc. 
@@ -1489,12 +1517,12 @@ PROCEDURE initializeObject :
      they need their visualisation deferred, until it's time, according
      to the containr class.
      
-         We check the ObjectType of the object, since checking the container
+     We check the ObjectType of the object, since checking the container
      handle's type is not guaranteed: we only need to do this for window-like
      containers, like windows, dialogs and contained smartframes. We don't 
      want to do it for dynamic viewers etc, which have FRAMEs as their
      container handles (just like Dialogues or SmartFrames).
-   */
+  */
   if not can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
   DO:
     {get DisableOnInit lDisableOnInit}.   
@@ -1529,41 +1557,6 @@ PROCEDURE initializeObject :
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
   END.
   
-  IF VALID-HANDLE(hContainer) AND VALID-HANDLE(gshSessionManager) THEN 
-  DO:
-    /* set-up widgets */
-    {get ContainerSource hContainerSource}.
-    IF NOT VALID-HANDLE(hContainerSource) THEN 
-      ASSIGN hContainerSource = TARGET-PROCEDURE.
-    
-    /* If window then this is container class, so get the main frame */
-    IF hContainer:TYPE = 'WINDOW':U THEN
-      {get WindowFrameHandle hFrame}.
-    ELSE 
-      hFrame = hContainer.
-
-    {get PopupButtonsInFields lPopupsInFields}.
-    IF lPopupsInFields = ? THEN
-      ASSIGN lPopupsInFields = NO.     
-    /* Now do the widget walk */
-    RUN widgetWalk IN gshSessionManager (INPUT hContainerSource, 
-                                           INPUT TARGET-PROCEDURE, 
-                                           INPUT hFrame, 
-                                           INPUT "setup":U,
-                                           INPUT lPopupsInFields).
-    
-    /* Also do the widgetwalk for non smart frames dropped on this objects
-       frame  */ 
-    DO iFrame = 1 TO NUM-ENTRIES(cNonSmartFrames):
-      hChildFrame = WIDGET-HANDLE(ENTRY(iFrame,cNonSmartFrames)).
-      RUN widgetWalk IN gshSessionManager (INPUT hContainerSource, 
-                                           INPUT TARGET-PROCEDURE, 
-                                           INPUT hChildFrame, 
-                                           INPUT "setup":U,
-                                           INPUT lPopupsInFields).
-    END.
-  END.
-
   RETURN.
 
 END PROCEDURE.
@@ -1824,22 +1817,21 @@ PROCEDURE processAction :
                work nornmally itself as container handles, etc. are not valid
                yet. Also this keeps the code size down.
 ------------------------------------------------------------------------------*/
-
 DEFINE INPUT PARAMETER pcAction               AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE hContainerSource              AS HANDLE     NO-UNDO.
 
-{get containersource hContainerSource}.
-IF NOT VALID-HANDLE(hContainerSource) THEN 
-  ASSIGN hContainerSource = TARGET-PROCEDURE.
-
-CASE pcAction:
-  WHEN "Ctrl-page-up":U THEN
-    PUBLISH "selectPrevTab":U FROM hContainerSource.
-  WHEN "ctrl-page-down":U THEN
-    PUBLISH "selectNextTab":U FROM hContainerSource.
-END CASE.
-
+  if pcAction = "Ctrl-page-up":U 
+  or pcAction = "ctrl-page-down":U THEN
+  do:
+    /* the containersource overrides this for these events, so we know we're 
+       not a container that can handle these events and can just pass it up to 
+       our container source */
+    {get containersource hContainerSource}.
+    IF VALID-HANDLE(hContainerSource) THEN 
+      run processAction in hContainerSource(pcAction).  
+  end.
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1868,7 +1860,7 @@ PROCEDURE processEventProcedure :
     DEFINE INPUT  PARAMETER pcEventParameter    AS CHARACTER            NO-UNDO.
 
     DEFINE VARIABLE hActionTarget           AS HANDLE                   NO-UNDO.
-    
+
     CASE pcActionTarget:
         WHEN "SELF":U      THEN ASSIGN hActionTarget = TARGET-PROCEDURE.
         WHEN "CONTAINER":U THEN {get ContainerSource hActionTarget}.
@@ -1976,26 +1968,23 @@ PROCEDURE updateFieldProperties :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainerSource   AS HANDLE     NO-UNDO.  
+  DEFINE VARIABLE lPopupsinFields    AS LOGICAL    NO-UNDO.
   
   &SCOPED-DEFINE xp-assign
   {get AllFieldNames cAllFieldNames}
   {get EnabledObjFlds cEnabledObjFlds}
   {get ObjectType cObjectType}
   {get ContainerHandle hFrame}
+  {get ContainerSource hContainerSource}
+  {get PopupButtonsInFields lPopupsInFields}
   .
   &UNDEFINE xp-assign 
     
@@ -2022,19 +2011,17 @@ PROCEDURE updateFieldProperties :
     DO WHILE VALID-HANDLE(hField): 
       IF hField:TYPE <> 'FRAME':U THEN
       DO:
-        /* Editor use read-only as disabled */ 
-        IF hField:TYPE = 'EDITOR':U THEN
-          ASSIGN
-            hField:SENSITIVE = TRUE
-            hField:READ-ONLY = TRUE. 
-    
         ASSIGN
           cFieldName = hField:NAME 
           iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
-    
+                
         IF iLocal > 0 THEN
         DO:
-          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
+          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 
+           /* if marked as read-only in design remove from enable list
+             (Remember to add editor back in list above if this logic is 
+              removed/changed..) */
+          or (hField:type = 'EDITOR':U and hField:read-only = false) then 
             ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
           ELSE
             ASSIGN
@@ -2043,15 +2030,27 @@ PROCEDURE updateFieldProperties :
               cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
                                           iLocal,cEnabledObjHdls,',').
         END.
-        hTarget = hField. 
-        
+        /* Editor is always sensitive (false is useless - affects scrollbars)
+           and use read-only as disabled */ 
+        IF hField:TYPE = 'EDITOR':U then
+          assign
+            hField:SENSITIVE = true
+            hField:READ-ONLY = TRUE. /* initialize disabled */
+               
         /* Anonymous widgets are not allowed (labels) */
         IF cFieldName > '' THEN
           ASSIGN
-            /* V10 will have qualified names here shortname is for v9 */
             cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
-            cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
+            cAllFieldHandles = cAllFieldHandles + ',' + STRING(hField). 
       END. /* not a frame */
+      else if valid-handle(gshSessionManager) then 
+        /* widgetwalk non smart frames on this objects frame  */ 
+        RUN widgetWalk IN gshSessionManager (hContainerSource, 
+                                             TARGET-PROCEDURE, 
+                                             hField, 
+                                             "setup":U,
+                                             lPopupsInFields).  
+           
       hField = hField:NEXT-SIBLING.
     END. /* do while */   
     
@@ -2059,7 +2058,7 @@ PROCEDURE updateFieldProperties :
       cAllFieldNames   = TRIM(cAllFieldNames,",")
       cAllFieldHandles = TRIM(cAllFieldHandles,",").
   
-  /* Store the properties */
+    /* Store the properties */
     &SCOPED-DEFINE xp-assign
     {set EnabledObjFlds cEnabledObjFlds}
     {set EnabledObjHdls cEnabledObjHdls}
@@ -2067,10 +2066,17 @@ PROCEDURE updateFieldProperties :
     {set AllFieldNames cAllFieldNames}
     .
     &UNDEFINE xp-assign
-  END. /* if allfieldnames = '' AND not viewer */
-
+    /*  do the widget walk */
+    IF VALID-HANDLE(gshSessionManager) THEN 
+      RUN widgetWalk IN gshSessionManager (hContainerSource, 
+                                           TARGET-PROCEDURE, 
+                                           hFrame, 
+                                           "setup":U,
+                                           lPopupsInFields).
+  END. /* if allfieldnames = '' */
   RETURN.
-END PROCEDURE.  /* createObjects */
+
+END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2078,6 +2084,65 @@ END PROCEDURE.  /* createObjects */
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-applyFocusToFrame) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyFocusToFrame Procedure 
+FUNCTION applyFocusToFrame RETURNS LOGICAL
+  ( phFrame AS HANDLE,
+    pcField AS CHAR,
+    pcFrameList AS CHAR,
+    pcObjectList AS CHAR ) :
+/*------------------------------------------------------------------------------
+    Purpose: Override the smart utility to look for field name. 
+             Applies focus ("entry") to the specified or first tab 
+             item in the passed frame, including possible child frames and 
+             optionally through the child objects that owns the frame.   
+ Parameters:
+  phFrame      - frame handle to check
+  pcField      - field name of widget to apply entry to 
+               - blank or ? means find first tab item. 
+  pcFrameList  - List of frame handles that belongs to SmartObjects.   
+  pcObjectList - List of objects that corresponds to the frame list.   
+    Notes:   This is a frame level utility used by the object level applyFocus
+             not really intended for direct calls. 
+             Use applyFocus or run applyEntry.
+           - Returns false also if a widget is found, but cannot be focused 
+             because it is not visible or sensitive.        
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cAllFieldNames   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE iObject          AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE hObject          AS HANDLE      NO-UNDO.
+ 
+  IF pcField > "":U then
+  DO:
+    {get AllFieldNames cAllFieldNames}.
+    {get AllFieldHandles cAllFieldHandles}.
+    iObject = LOOKUP(pcField,cAllFieldNames). 
+    IF iObject > 0 THEN
+    DO:
+      hObject = WIDGET-HANDLE(ENTRY(iObject,cAllFieldHandles)).
+      IF hObject:TYPE = "procedure":U THEN
+      DO:
+        if {fnarg applyFocus pcField hObject} then
+          return TRUE.
+      END.
+      ELSE IF hObject:VISIBLE AND hObject:SENSITIVE THEN
+      DO:
+         APPLY "entry":U TO hObject.
+         RETURN TRUE.
+      END.
+    END.
+  END.
+  RETURN SUPER(phFrame,pcField,pcFrameList,pcObjectList).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-assignFocusedWidget) = 0 &THEN
 
@@ -2725,7 +2790,8 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
           IF ERROR-STATUS:ERROR THEN lInvalid = YES.
         END.  /* else no error */
       END.  /* if can-query file-name */  
-      ELSE IF CAN-SET(hField, 'SENSITIVE':U) THEN
+      /* skip editor here as we need to use read-only (below) */
+      else if hField:type <> 'editor':u and CAN-SET(hField, 'SENSITIVE':U) THEN
       DO:
         hField:SENSITIVE = NO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
@@ -2874,7 +2940,8 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
           IF ERROR-STATUS:ERROR THEN lInvalid = YES.
         END.  /* else no error */
       END.  /* if can-query file-name */
-      ELSE IF CAN-SET(hField, 'SENSITIVE':U) THEN
+      /* skip editor here as we need to use read-only (below) */
+      else if hField:type <> 'editor':u and CAN-SET(hField, 'SENSITIVE':U) THEN
       DO:
         hField:SENSITIVE = YES.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
@@ -2942,7 +3009,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-fieldSecurityRule) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fieldSecurityRule Procedure 
-FUNCTION fieldSecurityRule RETURNS CHARACTER 
+FUNCTION fieldSecurityRule RETURNS CHARACTER
   ( phWidget AS HANDLE ) :
 /*------------------------------------------------------------------------------
   Purpose: Check a field name against the FieldSecurity of the object 
@@ -3916,6 +3983,23 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseWidgetID Procedure 
+FUNCTION getUseWidgetID RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+RETURN CAN-DO(SESSION:STARTUP-PARAMETERS, "-usewidgetid":U).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWidth Procedure 
@@ -4205,15 +4289,16 @@ FUNCTION resetWidgetValue RETURNS LOGICAL
    Params:  INPUT pcNameList AS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cField                AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cOnlyField            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cQualifier            AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cValue                AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hDataSource           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
-DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iField        AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cField        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cQualifier    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cValue        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE hDataSource   AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hField        AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hTarget       AS HANDLE    NO-UNDO.
+DEFINE VARIABLE lInvalid      AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE hColumnHandle AS HANDLE    NO-UNDO.
+DEFINE VARIABLE cWidgetName   AS CHARACTER NO-UNDO.
 
   /* If the first name in the list is qualified that is stored so that it can be used
      as the qualifier for following non-qualified names in the list.  */
@@ -4235,12 +4320,17 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
         {get DataSource hDataSource hTarget}.
         IF VALID-HANDLE(hDataSource) THEN
         DO:
-          IF NUM-ENTRIES(cField, '.':U) > 1 THEN
-            cOnlyField = ENTRY(NUM-ENTRIES(cField, '.':U), cField, '.':U).
-          ELSE cOnlyField = cField.
-          cValue = {fnarg columnValue cOnlyField hDataSource}.
-          lInvalid = NOT DYNAMIC-FUNCTION('assignWidgetValue':U IN TARGET-PROCEDURE,
-                                           INPUT cField, INPUT cValue).
+          /*This function is designed only to work with db fields, if a non-db field is passed as parameter,
+            the columnHandle function returns null. That field is ignored.*/
+          ASSIGN cWidgetName   = DYNAMIC-FUNCTION('widgetName':U IN TARGET-PROCEDURE, INPUT hField) 
+                 hColumnHandle = DYNAMIC-FUNCTION('columnHandle':U IN hDataSource, INPUT cWidgetName).
+          IF hColumnHandle = ? THEN
+              lInvalid = YES.
+          ELSE DO:
+              cValue = {fnarg columnValue cWidgetName hDataSource}.
+              lInvalid = NOT DYNAMIC-FUNCTION('assignWidgetValue':U IN TARGET-PROCEDURE,
+                                               INPUT cField, INPUT cValue).
+          END.
         END.  /* if valid data source */
         ELSE lInvalid = YES.
       END. /* else (if not secured hidden) */
@@ -4710,7 +4800,7 @@ FUNCTION setFont RETURNS LOGICAL
  IF VALID-HANDLE(hFrame) THEN
     hFrame:FONT = piFont.
  
-  RETURN TRUE.
+ RETURN TRUE.
 
 END FUNCTION.
 
@@ -4880,6 +4970,26 @@ FUNCTION setSecuredTokens RETURNS LOGICAL
 
     RETURN TRUE. 
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setWidgetID Procedure 
+FUNCTION setWidgetID RETURNS LOGICAL
+        (INPUT piWidgetID AS INTEGER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hFrame AS HANDLE     NO-UNDO.
+    {get ContainerHandle hFrame}.
+    ASSIGN hFrame:WIDGET-ID = piWidgetID NO-ERROR.
+    RETURN NOT ERROR-STATUS:ERROR.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

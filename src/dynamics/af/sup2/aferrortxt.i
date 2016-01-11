@@ -1,10 +1,14 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* aferrortxt.i Standard Error Format Include.
+
+    NOTE: This file is duplicate by errortxt.i. The
+          file was duplicated because of the problems passing arguments straight
+          through from one include to another (especially when tildes are involved).
 
    This include returns an error message string formatted to conform to how the
    Astra showMessages function expects a standard error message.

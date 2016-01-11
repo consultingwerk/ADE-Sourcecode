@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /**********************************************************************************/
-/* Copyright (C) 2005-2006 by Progress Software Corporation. All rights reserved. */
+/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights reserved. */
 /* Prior versions of this work may contain portions contributed by                */
 /* participants of Possenet.                                                      */             
 /**********************************************************************************/
@@ -114,6 +114,17 @@ FUNCTION bufferCompareFields RETURNS CHARACTER
     INPUT phBuffer2 AS HANDLE,
     INPUT pcExclude AS CHAR,
     INPUT pcOption  AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferExclusiveLock) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferExclusiveLock Procedure 
+FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
+  ( cBuffer     AS character)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -305,17 +316,6 @@ FUNCTION firstBufferName RETURNS CHARACTER PRIVATE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTargetProcedure Procedure 
 FUNCTION getTargetProcedure RETURNS HANDLE
   (   )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
-FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcClass AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1306,10 +1306,11 @@ PROCEDURE bufferCommit :
                                  INPUT-OUTPUT pocMessages).
       UNDO, RETURN.      /* Bail out if application code rejected the txn. */
     END.   /* END DO IF RETURN-VALUE NE "" */
+ 
     RUN bufferProcessUpdate IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).    
     RUN bufferProcessDelete IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).
     RUN bufferProcessNew IN TARGET-PROCEDURE (INPUT-OUTPUT pocMessages, INPUT-OUTPUT pocUndoIds).
-    
+ 
     IF pocUndoIds NE "":U THEN
       UNDO Trans-Blk, LEAVE Trans-Blk.
 
@@ -1325,7 +1326,7 @@ PROCEDURE bufferCommit :
     /* if not SBO then return the latest version of the record to the client
        otherwise the SBO will take care of this for each SDO at the very end of the transaction */
     IF NOT lQueryContainer THEN
-        RUN refreshBuffer IN TARGET-PROCEDURE (OUTPUT pocMessages, OUTPUT pocUndoIds).
+      RUN refreshBuffer IN TARGET-PROCEDURE (OUTPUT pocMessages, OUTPUT pocUndoIds).
 
   END. /* END transaction block. */ 
 
@@ -1445,10 +1446,10 @@ PROCEDURE bufferProcessDelete PRIVATE :
   DEFINE INPUT-OUTPUT PARAMETER pocMessages AS CHARACTER NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pocUndoIds  AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd       AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDeleteMsg       AS CHARACTER NO-UNDO.  
-
+  DEFINE VARIABLE cUndoIds        AS CHARACTER NO-UNDO.  
+    
     {get RowObjUpd hRowObjUpd}.
 
      /* set up RowObjUpd query */
@@ -1459,30 +1460,11 @@ PROCEDURE bufferProcessDelete PRIVATE :
     hQuery:GET-FIRST().
 
     DO WHILE hRowObjUpd:AVAILABLE:
-      /* This will procedure will do the Delete (looking at RowMod) */
-      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
-      IF RETURN-VALUE NE "":U THEN
-      DO:
-        /* fetchDbRowForUpdate will return "Delete" as LAST element of the 
-           return-value if the Delete and not the FIND EXCLUSIVE-LOCK failed. */
-        IF ENTRY(NUM-ENTRIES(RETURN-VALUE),RETURN-VALUE) = "Delete":U THEN
-        DO:
-          IF NUM-ENTRIES(RETURN-VALUE) = 2 THEN
-            cDeleteMsg = {fnarg messageNumber 23}.
-          ELSE /* support return-value from triggers */
-            ASSIGN 
-              cDeleteMsg = RETURN-VALUE 
-              ENTRY(NUM-ENTRIES(cDeleteMsg),cDeleteMsg) = "":U
-              ENTRY(1,cDeleteMsg) = "":U
-              cDeleteMsg = TRIM(cDeleteMsg,",":U).
-        END. /* if entry(num-entries(return-value) = 'delete' */ 
-        ELSE /* locked record */
-          cDeleteMsg = {fnarg messageNumber 18}.
-
-        RUN addMessage IN TARGET-PROCEDURE
-              (cDeleteMsg, ?, ENTRY(1,RETURN-VALUE)).
-        pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
-      END.      /* END DO IF RETURN-VALUE NE "" */
+      /* Check for conflicts and do the delete           
+         prepares errors if not avail, locked or optimistic locking conflict */     
+      RUN processDBRowForUpdate IN TARGET-PROCEDURE (output cUndoIds).
+      if cUndoIds > "" then
+        pocUndoIds = pocUndoIds + cUndoIds.
       hQuery:GET-NEXT().
     END.        /* END FOR EACH block */
 
@@ -1588,11 +1570,9 @@ PROCEDURE bufferProcessUpdate PRIVATE :
 
   DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hRowObjUpd2   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lCheck        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cASDivision   AS CHARACTER NO-UNDO.
-
-    {get ASDivision cASDivision}.
+  DEFINE VARIABLE hQuery        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cUndoIds      AS CHARACTER NO-UNDO.
+ 
     {get RowObjUpd hRowObjUpd}.
 
     CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd.
@@ -1609,82 +1589,46 @@ PROCEDURE bufferProcessUpdate PRIVATE :
     REPEAT:
       hQuery:GET-NEXT().
       IF hQuery:QUERY-OFF-END THEN LEAVE Process-Update-Records-Blk.
-
-       /* For each table in the join, update its fields if on the enabled list.
-         NOTE: at present at least we don't check whether fields in this table
-         have actually been modified in this record. */
-      RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
-      IF RETURN-VALUE NE "":U THEN
+      
+      /* fetch buffers for update with exlusive lock, checks for conflicts
+         and delete buffers that is to be deleted. 
+         prepares errors if not avail, locked or optimistic locking conflict */     
+      RUN processDBRowForUpdate IN TARGET-PROCEDURE (output cUndoIds).
+      if cUndoIds > "" then
       DO:
-        RUN addMessage IN TARGET-PROCEDURE ({fnarg messageNumber 18}, ?, RETURN-VALUE).
-        pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+        pocUndoIds = pocUndoIds + cUndoIds.
         UNDO Process-Update-Records-Blk, NEXT Process-Update-Records-Blk.
       END.
-        /* Check first whether we care if the database record has been
-           changed by another user. This is a settable instance property. */
-      {get CheckCurrentChanged lCheck}.
-      IF lCheck THEN
+      
+      /* If we haven't 'next'ed because of an error, do the update. */
+      /* Now find the changed version of the record, move its fields to the
+         database record(s) which were found above, and report any errors
+         (which would be database triggers at this point). */
+      hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U +
+                             STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+      /* Copy the ChangedFields to this buffer too */
+      ASSIGN hRowObjUpd2:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE = 
+                   hRowObjUpd:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE.
+      RUN assignDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2).
+      IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
       DO:
-          RUN compareDBRow IN TARGET-PROCEDURE.
-          IF RETURN-VALUE NE "":U THEN /* Table name that didn't compare is returned. */
-          DO:
-            RUN addMessage IN TARGET-PROCEDURE
-                  (SUBSTITUTE({fnarg messageNumber 8}, '':U /* No field names available. */) , ?, 
-                   RETURN-VALUE  /* Table name that didn't compare */).
-            pocUndoIds = pocUndoIds + string(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + 
-                         CHR(3) + "ADM-FIELDS-CHANGED":U + ",":U.
-            /* Get the changed version of the record in order to copy
-               the new database values into it to pass back to the client.*/
-            hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U +
-                                   STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
-            RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.            
-            IF ERROR-STATUS:ERROR THEN
-            DO:
-              /* Errors are now added to the message queue in refetchDbRow, 
-                  but we still check for return-value just in case.. */ 
-              IF RETURN-VALUE <> '':U THEN
-                RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
-              pocUndoIds = pocUndoIds + STRING(hRowObjUpd2:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
-            END.  /* If ERROR */
-            IF cASDivision = 'Server':U THEN
-              pocMessages = LEFT-TRIM(pocMessages + CHR(3) + 
-                                      DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE) , CHR(3)).
-
-            /* Don't try to write values to db. Just process next update record. */
-            NEXT Process-Update-Records-Blk.
-          END.  /* END DO IF compareDBRow returned a table value */
-      END.    /* END DO IF CheckCurrentChanged */
-
-      DO:   /* If we haven't 'next'ed because of an error, do the update. */
-          /* Now find the changed version of the record, move its fields to the
-             database record(s) which were found above, and report any errors
-             (which would be database triggers at this point). */
-          hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U +
-                                 STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
-          /* Copy the ChangedFields to this buffer too */
-          ASSIGN hRowObjUpd2:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE = 
-                       hRowObjUpd:BUFFER-FIELD('ChangedFields':U):BUFFER-VALUE.
-          RUN assignDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2).
-          IF RETURN-VALUE NE "":U THEN  /* returns table name in error. */
-          DO:
-            RUN addMessage IN TARGET-PROCEDURE (?, ?, RETURN-VALUE).
-            pocUndoIds = pocUndoIds + STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
-            UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
-          END.   /* END DO IF RETURN-VALUE NE "" */
-          
-          /* Pass back the final values to the client. Note - because we
-             want to get values changed by the db trigger, we copy *all*
-             fields, not just the ones that are enabled in the Data Object. */
-          RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.          
-          IF ERROR-STATUS:ERROR THEN
-          DO:
-            /* Errors are now added to the message queue in refetchDbRow, 
-               but we still check for return-value just in case.. */ 
-            IF RETURN-VALUE <> '':U THEN
-              RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
-            pocUndoIds = pocUndoIds + STRING(hRowObjUpd2:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
-          END.  /* if ERROR */
-      END.  /* END DO the update for this row if no error */
+        RUN addMessage IN TARGET-PROCEDURE (?, ?, RETURN-VALUE).
+        pocUndoIds = pocUndoIds + STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+        UNDO, NEXT. /* The FOR EACH block is undone and nexted. */
+      END.   /* END DO IF RETURN-VALUE NE "" */
+      
+      /* Pass back the final values to the client. Note - because we
+         want to get values changed by the db trigger, we copy *all*
+         fields, not just the ones that are enabled in the Data Object. */
+      RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.          
+      IF ERROR-STATUS:ERROR THEN
+      DO:
+        /* Errors are now added to the message queue in refetchDbRow, 
+       but we still check for return-value just in case.. */ 
+        IF RETURN-VALUE <> '':U THEN
+          RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
+        pocUndoIds = pocUndoIds + STRING(hRowObjUpd2:BUFFER-FIELD('RowNum':U):BUFFER-VALUE) + CHR(3) + ",":U.
+      END.  /* if ERROR */
     END.  /* END FOR EACH RowObjUpd */
    
     DELETE OBJECT hQuery.
@@ -1898,10 +1842,13 @@ PROCEDURE compareDBRow :
   DEFINE VARIABLE cRowIdent         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cExclude          AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lSame             AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cCLOBColumns      AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cCLOBColumns      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTables           AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable            AS CHARACTER NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get BufferHandles cBuffers}        /* DB buffer handles */
+  {get Tables cTables}        /* DB buffer names  */
   {get AssignList cAssigns}           /* List of fields whose names were changed */
   {get RowObjUpd hRowObjUpd}
   {get CLOBColumns cCLOBColumns}
@@ -1913,32 +1860,33 @@ PROCEDURE compareDBRow :
   DO iTable = 1 TO NUM-ENTRIES(cBuffers):
     IF ENTRY(iTable, cRowIdent) NE "":U THEN /* allow for outer join w/ no rec */
     DO:
-      ASSIGN
-        hBuffer  = WIDGET-HANDLE(ENTRY(iTable, cBuffers))
-        /* don't compare with field form other tables that have the same 
-           name, but are not used */ 
-        cExclude = {fnarg excludeColumns iTable}.
-      
-      /* If array elements are present, we must compare them manually.
-         We also do this if there are CLOBColumns, since buffer-compare 
-         currently cannot compare CLOBs */
-      IF INDEX(cAssigns, "[":U) > 0 OR cCLOBColumns > '' THEN 
-        lSame = DYNAMIC-FUNCTION('bufferCompareDBToRO':U IN TARGET-PROCEDURE,
-                                    hRowObjUpd, 
-                                    hBuffer, 
-                                    cExclude, 
-                                    ENTRY(iTable, cAssigns, {&adm-tabledelimiter})).
-      ELSE
-        lSame = hBuffer:BUFFER-COMPARE(hRowObjUpd, 
-                                       'BINARY':U,
-                                       cExclude, 
-                                       ENTRY(iTable, cAssigns, {&adm-tabledelimiter})).
-         
-      IF NOT lSame THEN
-      DO:
-        {get Tables cBuffers}.
-        RETURN ENTRY(iTable, cBuffers).
-      END.  /* END DO IF AVAILABLE */
+      cTable = entry(iTable,cTables).   
+      /* only compare exclusive locked tables */
+      IF {fnarg bufferExclusiveLock cTable} then
+      do:      
+        assign                       
+          hBuffer  = WIDGET-HANDLE(ENTRY(iTable, cBuffers))
+          /* don't compare with same named unused fields in other tables */ 
+          cExclude = {fnarg excludeColumns iTable}.
+        
+        /* If array elements are present, we must compare them manually.
+           We also do this if there are CLOBColumns, since buffer-compare 
+           currently cannot compare CLOBs */
+        IF INDEX(cAssigns, "[":U) > 0 OR cCLOBColumns > '' THEN 
+          lSame = DYNAMIC-FUNCTION('bufferCompareDBToRO':U IN TARGET-PROCEDURE,
+                                      hRowObjUpd, 
+                                      hBuffer, 
+                                      cExclude, 
+                                      ENTRY(iTable, cAssigns, {&adm-tabledelimiter})).
+        ELSE
+          lSame = hBuffer:BUFFER-COMPARE(hRowObjUpd, 
+                                         'BINARY':U,
+                                         cExclude, 
+                                         ENTRY(iTable, cAssigns, {&adm-tabledelimiter})).
+           
+        IF NOT lSame THEN
+          RETURN cTable.
+      end. /* if bufferExclusiveLock */
     END.    /* END DO IF cRowIdent NE "" */
   END.      /* END DO iTable */
   RETURN.
@@ -2435,6 +2383,7 @@ PROCEDURE fetchDBRowForUpdate :
   Purpose:     Retrieves with EXCLUSIVE-LOCK the database records associated 
                with the current RowObjUpd record, as identified by a list of 
                RowIds in the RowIdent field of that record.
+               
                IF the RowMod field is "D" for Delete, deletes the DB record(s).
  
   Parameters:  <none>
@@ -2443,6 +2392,9 @@ PROCEDURE fetchDBRowForUpdate :
                reason - most likely because it is locked by another user, but
                perhaps because it has been deleted), the table name of the 
                first unlockable record is returned as the return value.
+             - The lockBufferForUpdate checks the NoLockReadOnlyTables to decide
+               if read only tables also need to be locked and included in 
+               optimistic lock comparison.    
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iTable           AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hRowObjUpd       AS HANDLE    NO-UNDO.
@@ -2450,6 +2402,7 @@ PROCEDURE fetchDBRowForUpdate :
   DEFINE VARIABLE hBuffer          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cBuffers         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTables          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable           AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hRowIdent        AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cRowIdent        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hRowMod          AS HANDLE    NO-UNDO.
@@ -2460,45 +2413,64 @@ PROCEDURE fetchDBRowForUpdate :
   DEFINE VARIABLE lFirstRecDeleted AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lSchemaValidate  AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE hLogicObject     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cDelMessage      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAsDivision      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE rRowidList       AS ROWID    EXTENT {&maxtables} NO-UNDO.
-  DEFINE VARIABLE lOneToOne        AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE cDelMessage      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cAsDivision      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE rRowidList       AS ROWID     EXTENT {&maxtables} NO-UNDO.
+  DEFINE VARIABLE lOneToOne        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lCheck           AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lOk              AS LOGICAL   NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get BufferHandles cBuffers}     /* DB Buffer handles. */
   {get RowObjUpd hRowObjUpd} 
-  {get Tables cTables}             /* DB Table names. */
+  {get Tables cTables}             /* DB query buffer/Table names. */
   {get UpdatableColumnsByTable cUpdTbls}.
   &UNDEFINE xp-assign
+  
   ASSIGN hRowIdent = hRowObjUpd:BUFFER-FIELD('RowIdent':U)
          cRowIdent = hRowIdent:BUFFER-VALUE
          hRowMod   = hRowObjUpd:BUFFER-FIELD('RowMod':U).
   DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
     hBuffer = WIDGET-HANDLE(ENTRY(iTable, cBuffers)).
-    IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/ no rec*/
+    IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/no rec*/
     DO:
-      rRowid = TO-ROWID(ENTRY(iTable, cRowIdent)).
-
-      IF NOT hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT) THEN
-      DO:
-        IF hRowMod:BUFFER-VALUE = "D":U AND iTable > 1 THEN
-          NEXT.
-        ELSE
-          RETURN ENTRY(iTable, cTables).
-      END.
-      IF hRowMod:BUFFER-VALUE = "D":U THEN
-      DO:
-        IF ENTRY(iTable, cUpdTbls, {&adm-tabledelimiter}) = "":U THEN
-          /* Table has no enabled fields, so it's not updatable
-             and can't be deleted. */
-          NEXT.
-        ELSE DO ON ERROR UNDO, LEAVE:
+      ASSIGN
+        rRowid = TO-ROWID(ENTRY(iTable, cRowIdent))
+        cTable = entry(iTable,cTables).      
+      if {fnarg bufferExclusiveLock cTable} then 
+        lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
+      else
+        lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
+            
+      if not lok then
+        RETURN ENTRY(iTable, cTables).
+    END.
+  end.
+  
+  /* Check first whether we care if the database record has been
+     changed by another user. This is a settable instance property. */
+  {get CheckCurrentChanged lCheck}.
+  IF lCheck THEN
+  DO:
+    RUN compareDBRow IN TARGET-PROCEDURE.
+    IF RETURN-VALUE NE "":U THEN /* Table name that didn't compare is returned. */
+      RETURN RETURN-VALUE + ",":U + "<conflict>":U. 
+  END.
+  
+  /* delete */
+  IF hRowMod:BUFFER-VALUE = "D":U THEN
+  DO:  
+    DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
+      hBuffer = WIDGET-HANDLE(ENTRY(iTable, cBuffers)).
+      IF ENTRY(iTable, cRowIdent) NE "":U  /* allow for outer-join w/ no rec*/
+      /* Table has no enabled fields, so it's not updatable and can't be deleted. */
+      and ENTRY(iTable, cUpdTbls, {&adm-tabledelimiter}) > "":U THEN
+      do:
+        DO ON ERROR UNDO, LEAVE:
           lDelSuccess = hBuffer:BUFFER-DELETE() NO-ERROR.
           /* The above statement does not support schema delete validation,
              so check for error 7347. */
           lSchemaValidate = ERROR-STATUS:GET-NUMBER(1) = 7347.
-          
           
           /* The DO ON ERROR will ensure that the RETURN below sends message 
              7374 back to the user if no static delete function is found. 
@@ -2519,52 +2491,52 @@ PROCEDURE fetchDBRowForUpdate :
         IF NOT (lDelSuccess) = TRUE THEN
         DO:
           cDelMessage = IF RETURN-VALUE <> '':U THEN RETURN-VALUE ELSE ERROR-STATUS:GET-MESSAGE(1).
-          /* Signal that Delete failed. Support return-value from triggers */
+            /* Signal that Delete failed. Support return-value from triggers */
           RETURN ENTRY(iTable, cTables) 
                  + (IF cDelMessage <> '':U THEN ',':U + cDelMessage ELSE '':U)
                  + ",Delete":U.  
         END.
         ELSE DO:
           IF iTable = 1 THEN
-            /* If you delete the first record in a join, then you must
-               always delete the result list entry and remove the row
-               from the query. */
-            lFirstRecDeleted = yes.
+              /* If you delete the first record in a join, then you must
+                       always delete the result list entry and remove the row
+                       from the query. */
+             lFirstRecDeleted = yes.
           iDelCnt = iDelCnt + 1.
         END.
-      END.  /* END DO IF "D"elete */
-    END.    /* END DO IF RowIdent NE "" */
-    /* If there is no record for this buffer then do a release to clear
-       out any leftover record in case code looks at it later. */
-    ELSE hBuffer:BUFFER-RELEASE() NO-ERROR.
-  END.      /* END DO iTable */
-  
-  /* sendRows currently does not reopen the query when running locally, so 
-     we do a delete-result-list-entry so transferRows does not find this 
-     row in the result list when determining where to start retrieving records 
-     for the next batch. */
-  &SCOPED-DEFINE xp-assign
-  {get AsDivision cAsDivision}
-  {get UpdateFromSource lOneToOne}.
-  &UNDEFINE xp-assign                            
-  IF cAsDivision = '':U AND NOT (lOneToOne = TRUE) THEN
-  DO:
-    /* Only delete result list entry if all records in the row are deleted,
-     or if the first record in the row is deleted. */
-    IF lFirstRecDeleted OR (iDelCnt = NUM-ENTRIES(cRowIdent)) THEN
+      END.    /* END DO IF RowIdent NE "" */
+      /* If there is no record for this buffer then do a release to clear
+             out any leftover record in case code looks at it later. */
+      ELSE hBuffer:BUFFER-RELEASE() NO-ERROR.
+    END.      /* END DO iTable */
+    
+    /* sendRows currently does not reopen the query when running locally, so 
+             we do a delete-result-list-entry so transferRows does not find this 
+             row in the result list when determining where to start retrieving records 
+             for the next batch. */
+    &SCOPED-DEFINE xp-assign
+    {get AsDivision cAsDivision}
+    {get UpdateFromSource lOneToOne}.
+    &UNDEFINE xp-assign                            
+    IF cAsDivision = '':U AND NOT (lOneToOne = TRUE) THEN
     DO:
-      {get QueryHandle hQuery}.
-      IF hQuery:IS-OPEN THEN
+      /* Only delete result list entry if all records in the row are deleted,
+             or if the first record in the row is deleted. */
+      IF lFirstRecDeleted OR (iDelCnt = NUM-ENTRIES(cRowIdent)) THEN
       DO:
-        DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
-          rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
+        {get QueryHandle hQuery}.
+        IF hQuery:IS-OPEN THEN
+        DO:
+          DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
+            rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
+          END.
+          IF hQuery:REPOSITION-TO-ROWID(rRowidList) THEN
+            hQuery:DELETE-RESULT-LIST-ENTRY().
         END.
-        IF hQuery:REPOSITION-TO-ROWID(rRowidList) THEN
-          hQuery:DELETE-RESULT-LIST-ENTRY().
       END.
     END.
-  END.
-
+  END.  /* END DO IF "D"elete */
+  
   RETURN.
 END PROCEDURE.
 
@@ -3302,6 +3274,105 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-processDBRowForUpdate) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processDBRowForUpdate Procedure 
+PROCEDURE processDBRowForUpdate :
+/*------------------------------------------------------------------------------
+  Purpose:  fetches buffers for update with exlusive lock, checks for conflicts
+            and deletes buffers that is to be deleted and collects and prepares 
+            errors if not avail, locked or optimistic locking conflict 
+              
+  Parameters:  
+   output pocUndoIds - list of any RowObject ROWNUM whose changes need to be 
+                        undone as the result of errors in the form of:
+             "RowNumCHR(3)<adm-error-string>,..." 
+              where <adm-error-flag> is blank or adm-fields-changed for conflict
+  Notes:    A wrapper for fetchDBRowForUpdate that also does error handling.    
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER pocUndoIds AS CHARACTER   NO-UNDO.
+  
+  DEFINE VARIABLE hRowObjUpd   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cErrorType   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cErrorTable  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iNumEntries  AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cReturnValue AS CHARACTER NO-UNDO. 
+  DEFINE VARIABLE cDeleteMsg   AS CHARACTER NO-UNDO. 
+  DEFINE VARIABLE hRowObjUpd2  AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cRowNum      AS CHARACTER NO-UNDO. 
+ 
+  RUN fetchDBRowForUpdate IN TARGET-PROCEDURE.
+  IF RETURN-VALUE NE "":U THEN
+  DO:
+    cReturnValue = RETURN-VALUE.
+    {get RowObjUpd hRowObjUpd}.
+ 
+    assign
+      iNumEntries  = NUM-ENTRIES(cReturnValue)
+      cErrorTable  = entry(1,cReturnValue)     
+      cErrorType  = if iNumEntries > 1 then 
+                    entry(iNumEntries,cReturnValue)
+                    else 'lock':U
+      cRowNum     = STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE).
+    
+    if cErrorType = "lock":U then
+    do: 
+      RUN addMessage IN TARGET-PROCEDURE ({fnarg messageNumber 18}, ?, cErrorTable).
+      pocUndoIds = pocUndoIds + cRowNum + CHR(3) + ",":U.     
+    end.                 
+    /* fetchDbRowForUpdate will return "Delete" as LAST element of the 
+       return-value if the Delete failed. */
+    else if cErrorType = "Delete":U then
+    do:
+      if num-entries(cReturnValue) = 2 THEN
+         cDeleteMsg = {fnarg messageNumber 23}.
+      ELSE /* support return-value from triggers */
+        ASSIGN 
+          cDeleteMsg = cReturnValue 
+          ENTRY(NUM-ENTRIES(cDeleteMsg),cDeleteMsg) = "":U
+          ENTRY(1,cDeleteMsg) = "":U
+          cDeleteMsg = TRIM(cDeleteMsg,",":U).
+      RUN addMessage IN TARGET-PROCEDURE (cDeleteMsg, ?, cErrorTable).
+      pocUndoIds = pocUndoIds + cRowNum + CHR(3) + ",":U.     
+    END. /* if entry(num-entries(return-value) = 'delete' */ 
+     /* Table name that didn't compare is returned with <conflict> as last entry. */
+    else if cErrorType = "<conflict>" then 
+    DO:
+      RUN addMessage IN TARGET-PROCEDURE
+                  (SUBSTITUTE({fnarg messageNumber 8}, '':U /* No field names available. */) , ?, 
+                   cErrorTable  /* Table name that didn't compare */).
+      pocUndoIds = pocUndoIds + cRowNum + CHR(3) + "ADM-FIELDS-CHANGED":U + ",":U.
+      
+      if hRowObjUpd:buffer-field('RowMod':U):buffer-value = "D" then
+        hRowObjUpd2 = hRowObjUpd.
+      else do:
+        /* Get the changed version of the record in order to copy
+           the new database values into it to pass back to the client.*/
+        CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd.
+        hRowObjUpd2:FIND-FIRST('WHERE RowMod = "U" AND RowNum = ':U + cRowNum).
+      end.
+      RUN refetchDBRow IN TARGET-PROCEDURE (INPUT hRowObjUpd2) NO-ERROR.            
+      if hRowObjUpd2 <> hRowObjUpd then
+        delete object hRowObjUpd2.
+   
+      IF ERROR-STATUS:ERROR THEN
+      DO:
+        /* Errors are now added to the message queue in refetchDbRow, 
+           but we still check for return-value just in case.. */ 
+        IF RETURN-VALUE <> '':U THEN
+          RUN addMessage IN TARGET-PROCEDURE (RETURN-VALUE, ?, ?).
+        pocUndoIds = pocUndoIds + cRowNum + CHR(3) + ",":U.     
+      END.  /* If ERROR */
+    end. /* <conflict> */  
+  end. /* return-value <> '' */ 
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-refetchDBRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refetchDBRow Procedure 
@@ -3331,13 +3402,16 @@ PROCEDURE refetchDBRow :
   DEFINE VARIABLE cColumns       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iColumn        AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hColumn        AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE iCalc            AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cCalcCol         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iCalc          AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cCalcCol       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cCalculatedColumns AS CHARACTER NO-UNDO.
   DEFINE VARIABLE rRORowid       AS ROWID      NO-UNDO.
+  DEFINE VARIABLE cTables        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable         AS CHARACTER NO-UNDO.
   
   &SCOPED-DEFINE xp-assign
   {get BufferHandles cBuffers}       /* Database buffer handles */
+  {get Tables cTables}               /* DB buffer names  */
     /* This is the list of fields whose RowObject names are different from
      the database names. */
   {get AssignList cAssigns}.
@@ -3356,8 +3430,10 @@ PROCEDURE refetchDBRow :
   DO iTable = 1 TO NUM-ENTRIES(cBuffers):   
     IF ENTRY(iTable, cRowIdent) NE "":U THEN
     DO:         
-      ASSIGN hBuffer  = WIDGET-HANDLE(ENTRY(iTable, cBuffers))
-             rRowid = TO-ROWID(ENTRY(iTable, cRowIdent)).
+      ASSIGN hBuffer = WIDGET-HANDLE(ENTRY(iTable, cBuffers))
+             rRowid  = TO-ROWID(ENTRY(iTable, cRowIdent))
+             cTable = entry(iTable,cTables)
+             lFound  = FALSE. /* buffer-release ERROR will undo - not set lfound*/
 
       /* Due to a core issue, FIND-BY-ROWID will *not* fire WRITE triggers. 
          Releasing the buffer will properly fire any WRITE triggers and will 
@@ -3373,7 +3449,11 @@ PROCEDURE refetchDBRow :
         RETURN ERROR.
       END.
       
-      lFound = hBuffer:FIND-BY-ROWID(rRowid,SHARE-LOCK,NO-WAIT).
+      if {fnarg bufferExclusiveLock cTable} then 
+        lFound = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
+      else
+        lFound = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
+      
       /* See comments above... 
          find-by-rowid will fire triggers when called from the transaction block,
          if the trigger returns ERROR find-by-rowid will return false
@@ -3385,7 +3465,7 @@ PROCEDURE refetchDBRow :
                  THEN {fnarg messageNumber 18} 
                  ELSE RETURN-VALUE,
                  ?,
-                 ?).  
+                 cTable).  
         RETURN ERROR. 
       END.
 
@@ -4681,10 +4761,18 @@ FUNCTION bufferCompareDBToRO RETURNS LOGICAL
                                             field pairs are mappings of fields
                                             from the target/source buffers where
                                             the field names differ.
-    Notes:    The primary purpose of this procedure is to detect when 
-              individual array fields are referenced in the assign-list 
-              (pcAssigns) from the database buffer and the ensure that they
-              are compared properly.  
+ Notes: The primary purpose of this procedure is to detect when 
+        individual array fields are referenced in the assign-list (pcAssigns) 
+        from the database buffer and ensure that they are compared properly. 
+       - We RIGHT-TRIM the database value to ignore possible trailing blanks.         
+         Trailing blanks in db fields is an accident and is ignored in 
+         the SDO's normal buffer-compare used when there are no clobs or arrays
+         It is, however, a quite common  problem (substring in import?). 
+         The field value has lost the trailing in the SDO before image and the 
+         optimistic lock comparison would fail and always prevent save of data 
+         if the value is changed by the client. 
+         (The fact that it is an accident means that we don't care if the 
+          trailing blank actually had been changed in the meantime)
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cField            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hField            AS HANDLE     NO-UNDO.
@@ -4740,7 +4828,7 @@ DEFINE VARIABLE cLargeColumns     AS CHARACTER  NO-UNDO.
         ELSE IF hField:DATA-TYPE = 'CHARACTER':U THEN
           lSame = COMPARE(hField:BUFFER-VALUE,
                           "=":U,
-                          hField2:BUFFER-VALUE(iExt),
+                          right-trim(hField2:BUFFER-VALUE(iExt)),
                           "RAW":U).
 
         ELSE 
@@ -4774,7 +4862,7 @@ DEFINE VARIABLE cLargeColumns     AS CHARACTER  NO-UNDO.
             ELSE IF hField:DATA-TYPE = 'CHARACTER':U THEN
               lSame = COMPARE(hField:BUFFER-VALUE,
                               "=":U,
-                              hField2:BUFFER-VALUE(iExt),
+                              right-trim(hField2:BUFFER-VALUE(iExt)),
                               "RAW":U).
 
             ELSE 
@@ -4849,6 +4937,49 @@ DEFINE VARIABLE cDataType      AS CHARACTER  NO-UNDO.
                       + cName.
    END.
    RETURN cChangedFlds.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferExclusiveLock) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferExclusiveLock Procedure 
+FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
+  ( cBuffer     AS character) :
+/*------------------------------------------------------------------------------
+  Purpose: return true if buffer should be exclusive locked for update   
+           Yes - buffer should be exclusive locked (default also for joined
+                 read-only tables)
+           No  - buffer is read only and should also remain no-locked
+    cBuffer    -  tabke name (of SDO query) 
+     Notes:      Private
+                 The public NoLockReadOnlyTables property is used to define 
+                 which read only tables that can remain unlocked. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTables               AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cUpdColsByTable       AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE iTable                AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cNoLockReadOnlyTables AS CHARACTER   NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get Tables cTables}             /* DB Table names. */
+  {get UpdatableColumnsByTable cUpdColsByTable}
+  {get NoLockReadOnlyTables cNoLockReadOnlyTables}
+   .
+  &UNDEFINE xp-assign  
+  
+  iTable = LOOKUP(cBuffer,cTables).
+  If entry(iTable, cUpdColsByTable, {&adm-tabledelimiter}) = "":U 
+  and (cNoLockReadOnlyTables = 'all':U 
+       or lookup(cBuffer,cNoLockReadOnlyTables) > 0
+       ) then
+    RETURN FALSE.    
+  
+  return true.
 
 END FUNCTION.
 
@@ -5906,28 +6037,6 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 ------------------------------------------------------------------------------*/
 
   RETURN ghTargetProcedure.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
-FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcClass AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Override instanceOf to support SmartDataObject subtypes in 
-           non repository
-    Notes: This is currently only supported for DataView, Data and Query 
-------------------------------------------------------------------------------*/
- IF pcClass = 'Query':U THEN
-   RETURN TRUE.
-
- RETURN SUPER(pcClass).
 
 END FUNCTION.
 

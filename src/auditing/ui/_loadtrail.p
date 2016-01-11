@@ -2,14 +2,14 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from PROGRESS Software Corporation. */
 /*************************************************************/
 /*------------------------------------------------------------------------
-    File        : _lodtrail.p
+    File        : _loadtrail.p
     Purpose     : This is similar to the _loadtrail procedure used in
                   the prodict project. This is only used for the import
                   .d option in the events maintenance window.
@@ -29,6 +29,10 @@
     Author(s)   : Fernando de Souza
     Created     : Feb 23,2005
     Notes       :
+    
+    History:
+    fernando    06/20/07   Support for large files
+    
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -36,7 +40,7 @@
 /* ***************************  Definitions  ************************** */
 
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER irecs      AS INTEGER   NO-UNDO.
+DEFINE OUTPUT PARAMETER irecs      AS INT64     NO-UNDO.
 DEFINE OUTPUT PARAMETER maptype    AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER codepage   AS CHARACTER NO-UNDO.
 
@@ -46,7 +50,9 @@ DEFINE VARIABLE lvar#    AS INTEGER             NO-UNDO.
 DEFINE VARIABLE c        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cerror   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cerrors  AS INTEGER   INITIAL 0 NO-UNDO.
-DEFINE VARIABLE i        AS INTEGER             NO-UNDO.
+
+/* i is used in _lodtrail.i */
+DEFINE VARIABLE i        AS INT64               NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -102,7 +108,7 @@ ASSIGN codepage = "UNDEFINED":U.
 {auditing/include/_lodtrail.i
     &file    = "pcFileName"
     &entries = "IF lvar[i] BEGINS ""records=""
-                  THEN irecs     = INTEGER(SUBSTRING(lvar[i],9,-1,""character"")).
+                  THEN irecs     = INT64(SUBSTRING(lvar[i],9,-1,""character"")).
                 IF lvar[i] BEGINS ""map=""       
                   THEN maptype   = SUBSTRING(lvar[i],5,-1,""character"").
                "   }

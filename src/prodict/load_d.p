@@ -26,7 +26,8 @@ History
                         procedure more readable 20050930-008. 
     fernando   03/16/06 Handle case with too many tables selected - bug 20050930-006.    
     fernando   02/27/07 Support for long dump name - OE00146586
-
+    fernando   12/12/07 Don't need to set user_env[5] anymore
+    
 Multi-DB-Support:
     the syntax of file-name is:
            [ <DB>. ] <tbl>             [ <DB>. ] <tbl>
@@ -243,16 +244,21 @@ FOR EACH DICTDB._Db NO-LOCK:
   ELSE 
     ASSIGN user_env[2] = dot-d-dir + 
                          (IF l_Dump-name = ? THEN 
-                                      STRING((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) ELSE l_Dump-name) + 
+                                      STRING((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) ELSE l_Dump-name) +
                          (IF l_Dump-name BEGINS "_aud" THEN 
                             ".ad" ELSE ".d"). 
                          /* full path and name of .d-file */
 
   /* Indicate "y"es to disable triggers for dump of all files */
+  /* Now we don't have do this. A blank string will indicate disable triggers
+     for all files.
+  */
+  /*
   ASSIGN user_env[5] = "y".
   DO i = 2 TO NUM-ENTRIES((IF isCpUndefined THEN user_env[1] ELSE user_longchar)):
     ASSIGN user_env[5] = user_env[5] + ",y".
   END.
+  */
 
   /* other needed assignments */
   ASSIGN drec_db     = RECID(_Db)

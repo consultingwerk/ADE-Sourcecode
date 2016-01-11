@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 **********************************************************************/
@@ -42,6 +42,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
   family can be switched with each other.  0 = an orphan: cannot be changed.
 */
 /* history:
+    06/11/07    fernando    Unicode and clob support
     06/05/26    fernando    Added support for int64
     98/01/15    D. McMann   Swapped Cursor and Number/logical so that the
                             Number entries are contiguous
@@ -63,18 +64,24 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
    * ? to use the PROGRESS default format  
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
   /*description     datatyp  sz code pro type fm format*/
   /*--------------- -------  - ----- -------- -- ------*/ 
   "Character string,Char      ,0, 4096,character,0,|c", 
   "Var-length Char ,VarChar   ,0, 4096,character,0,|c",
   "Var-length Char2,VarChar2  ,0, 4096,character,0,|c",
+  "NVarChar2       ,NVarChar2 ,0, 4096,character,0,|c",
+  "NChar           ,NChar     ,0, 4096,character,0,|c",
   "Number          ,Number    ,0, 8192,decimal  ,1,|#",
   "Number          ,Number    ,0, 8192,integer  ,1,|i",
   "Number          ,Number    ,0, 8192,int64    ,1,|i",
   "Number          ,Number    ,0, 8192,logical  ,1,|?",
   "Cursor          ,Cursor    ,0, 8192,integer  ,1,|i",
   "Float           ,Float     ,0, 8192,decimal  ,0,|#",
+  "CLOB            ,CLOB      ,0,    0,CLOB     ,0,|c",
+  "CLOB            ,CLOB      ,0,    0,character,0,|c",
+  "NCLOB           ,NCLOB     ,0,    0,CLOB     ,0,|c",
+  "NCLOB           ,NCLOB     ,0,    0,character,0,|c",
   "BLOB            ,BLOB      ,0,    0,BLOB     ,0,|c",
   "BFILE           ,BFILE     ,0,    0,BLOB     ,0,|c",           
   "Date            ,Date      ,0,12288,date     ,2,|?",

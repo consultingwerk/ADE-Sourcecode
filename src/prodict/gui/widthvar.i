@@ -107,7 +107,7 @@ DEFINE {1} FRAME frm-width
       SKIP(.33) 
 WITH FRAME frm-width 
      1 DOWN 
-     WIDTH 82 
+     WIDTH 83 
      NO-BOX 
      KEEP-TAB-ORDER 
      SIDE-LABELS.

@@ -1,11 +1,14 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
-/* loaddiff */
+/* loaddiff 
+
+  fernando   06/20/07  Support for large files
+*/
 
 /*----------------------------  DEFINES  ---------------------------*/
 
@@ -17,11 +20,11 @@ DEFINE VARIABLE holdline  AS CHARACTER FORMAT "x(80)" NO-UNDO.
 DEFINE VARIABLE holdline2 AS CHARACTER FORMAT "x(80)" NO-UNDO.
 DEFINE VARIABLE numfields AS INTEGER   INITIAL      0 NO-UNDO.
 DEFINE VARIABLE numvalue  AS DECIMAL   DECIMALS    10 NO-UNDO.
-DEFINE VARIABLE reccount  AS INTEGER   INITIAL      0 NO-UNDO.
+DEFINE VARIABLE reccount  AS INT64     INITIAL      0 NO-UNDO.
 
 /* fields for dif load */
 DEFINE NEW SHARED STREAM   loaderr.
-DEFINE NEW SHARED VARIABLE recs   AS INTEGER INITIAL 0. /*UNDO*/
+DEFINE NEW SHARED VARIABLE recs   AS INT64   INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER           NO-UNDO.
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER INITIAL ? NO-UNDO.
@@ -166,7 +169,7 @@ DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE: /* start reading the data */
     reason = err_lang[6]. /* 8th record doesn't start with 0, */
     LEAVE _outer.
   END.
-  reccount = INTEGER(SUBSTRING(holdline,3,78,"character")). /* read number of records */
+  reccount = INT64(SUBSTRING(holdline,3,78,"character")). /* read number of records */
 
   IMPORT STREAM b holdline. /* get rid of blank comment line */
   DO WHILE TRUE:

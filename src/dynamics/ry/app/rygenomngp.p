@@ -1757,6 +1757,13 @@ ACCESS_LEVEL=PUBLIC
     IF plUseSDOFieldOrder EQ ? THEN
         ASSIGN plUseSDOFieldOrder = FALSE.
 
+    if pcProductModuleCode eq ? or pcProductModuleCode eq '':u then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"product module code"'}.
+            
+    if not can-find(first gsc_product_module where
+                          gsc_product_module.product_module_code = pcProductModuleCode) then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"product module"' "'Product module code: ' + pcProductModuleCode"}.
+
     /* Find the result code */
     IF pcResultCode EQ "":U THEN
         ASSIGN pcResultCode = "{&DEFAULT-RESULT-CODE}":U.
@@ -1823,7 +1830,7 @@ ACCESS_LEVEL=PUBLIC
                        NO-ERROR.
 
                 IF cDatabase EQ ? OR cDatabase EQ "":U THEN
-                    ASSIGN cDatabase = DYNAMIC-FUNCTION("getBufferDbName":U IN ghDesignManager, INPUT pcTableName).
+                    ASSIGN cDatabase = DYNAMIC-FUNCTION("getBufferDbName":U IN ghDesignManager, INPUT cTable).
 
                 IF cDatabase EQ ? OR cDatabase EQ "":U THEN
                     ASSIGN cDatabase = LDBNAME("DICTDB":U).
@@ -1867,7 +1874,8 @@ ACCESS_LEVEL=PUBLIC
                             OUTPUT TABLE ttLink,
                             OUTPUT TABLE ttUiEvent,
                             OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
-       
+        if return-value ne '':u or error-status:error then return error return-value.
+               
         cCalcClassList = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT 'CalculatedField':U).
 
         /* get all instances and determine their sequence */
@@ -1903,7 +1911,7 @@ ACCESS_LEVEL=PUBLIC
         ASSIGN cProcedureName     = "generateDynamicBrowse":U
                cObjectDescription = "Dynamic browse for " + (IF plGenerateFromDataObject THEN pcSdoObjectName ELSE pcTableName).
     ELSE
-        RETURN ERROR {aferrortxt.i 'RY' '13' '?' '?' 'pcObjectType' "'the DynBrow or DynView class'"}.
+        RETURN ERROR {aferrortxt.i 'RY' '13' '?' '?' "'~~'' + pcObjectType + '~~''" "'DynBrow or DynView '"}.
 
     /* If there are no displayed fields, there can be no displayed tables or databases */
     IF cDisplayedFields EQ "":U THEN
@@ -2277,6 +2285,7 @@ FUNCTION cleanStoreAttributeValues RETURNS LOGICAL
       INPUT pcCleanToLevel              AS CHARACTER,
       INPUT phStoreAttributeBuffer      AS HANDLE       ) :
 /*------------------------------------------------------------------------------
+ACCESS_LEVEL=PROTECTED
   Purpose:  Cleans up the ttStoreAttribute TT
     Notes: * We need to compare default values set at the class and master object 
              level to ensure that we do not add attributes at instance level that
@@ -2284,128 +2293,15 @@ FUNCTION cleanStoreAttributeValues RETURNS LOGICAL
            * pcCleanToLevel - MASTER, CLASS: Master used when validating instances
                               and CLASS used when validating Masters.
            * pcClassName - only required when pcCleanToLevel is CLASS.
+           
+           * This code has been moved to the Rep Design Manager - it should be
+             called there. This stub remains for backwards compatability.
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cAttributeName      AS CHARACTER    NO-UNDO.
-    DEFINE VARIABLE hAttributeField     AS HANDLE       NO-UNDO.
-    DEFINE VARIABLE hObjectBuffer       AS HANDLE       NO-UNDO.
-    DEFINE VARIABLE hAttributeBuffer    AS HANDLE       NO-UNDO.
-    DEFINE VARIABLE dInstanceId         AS DECIMAL      NO-UNDO.
-    DEFINE VARIABLE lDeleteRecord       AS LOGICAL      NO-UNDO.
-    DEFINE VARIABLE cInheritClasses     AS CHARACTER    NO-UNDO.
-    DEFINE VARIABLE cValue              AS CHARACTER    NO-UNDO.
-    DEFINE VARIABLE iValue              AS INTEGER      NO-UNDO.
-    DEFINE VARIABLE dValue              AS DECIMAL      NO-UNDO.
-    DEFINE VARIABLE dtValue             AS DATE         NO-UNDO.
-    DEFINE VARIABLE iDataType           AS INTEGER      NO-UNDO.
-    
-    /* Scope these buffers to this procedure. */    
-    DEFINE BUFFER ttObject            FOR ttObject.
-    DEFINE BUFFER ttObjectAttribute   FOR ttObjectAttribute.
-    DEFINE BUFFER ttClassAttribute    FOR ttClassAttribute.
-    
-    IF NOT VALID-HANDLE(phStoreAttributeBuffer) THEN
-        RETURN FALSE.
-        
-    /* Get the Master Object from the cache. Do this first since
-       the class name is not passed in when cleaning to master level.
-     */
-    IF pcCleanToLevel EQ "MASTER":U THEN
-    DO:
-        RUN retrieveDesignObject IN ghDesignManager ( INPUT  pcObjectName,
-                                                      INPUT  "",                        /* Get default result Codes */
-                                                      OUTPUT TABLE ttObject,
-                                                      OUTPUT TABLE ttPage,
-                                                      OUTPUT TABLE ttLink,
-                                                      OUTPUT TABLE ttUiEvent,
-                                                      OUTPUT TABLE ttObjectAttribute ) NO-ERROR.
-        FIND FIRST ttObject WHERE ttObject.tLogicalObjectName       = pcObjectName         
-                             AND ttObject.tContainerSmartObjectObj = 0 NO-ERROR.
-        IF AVAILABLE ttObject THEN
-            ASSIGN pcClassName = ttObject.tClassName.
-    END.    /* clean to master */
-    
-    /* At this stage there should always be a class specified. It will either
-       be passed in as the parameter when the clean to level is CLASS, or it 
-       will be derived from the ttObject record when cleaning to the MASTER level.       
-       
-       In either case, we cannot go any further without a class. This also serves
-       as validation for the existence of the ttObject record, since the value of
-       the class name will only be set if there is an existing ttObject record.
-     */
-    IF pcClassName EQ ? OR pcClassName EQ "":U THEN
-        RETURN FALSE.     
-     
-    /* Get the class attributes */
-    IF NOT CAN-FIND(FIRST ttClassAttribute WHERE ttClassAttribute.tClassname = pcClassName) THEN
-       RUN retrieveDesignClass IN ghDesignManager
-                               ( INPUT  pcClassName,
-                                 OUTPUT cInheritClasses,
-                                 OUTPUT TABLE ttClassAttribute,
-                                 OUTPUT TABLE ttUiEvent,
-                                 output table ttSupportedLink         ) NO-ERROR.                                   
-               
-    IF NOT VALID-HANDLE(ghQuery4) THEN
-       CREATE QUERY ghQuery4.
-
-    ghQuery4:SET-BUFFERS(phStoreAttributeBuffer).
-
-     /* Use PRESELECT since we may delete some of the records in the TT. */
-    ghQuery4:QUERY-PREPARE(" PRESELECT EACH ":U + phStoreAttributeBuffer:NAME).
-    ghQuery4:QUERY-OPEN().
-   
-    ghQuery4:GET-FIRST().
-    DO WHILE phStoreAttributeBuffer:AVAILABLE:
-       ASSIGN cAttributeName = phStoreAttributeBuffer:BUFFER-FIELD("tAttributeLabel":U):BUFFER-VALUE
-              lDeleteRecord  = NO
-              iDataType      = 0
-              cValue         = "":U.
-       
-       FIND ttClassAttribute WHERE ttClassAttribute.tClassname      = pcClassName
-                               AND ttClassAttribute.tAttributelabel = cAttributeName NO-ERROR.
-       IF AVAIL ttClassAttribute THEN
-          ASSIGN cValue    = ttClassAttribute.tAttributeValue
-                 iDataType = ttClassAttribute.tDataType.
-       
-       IF pcCleanToLevel EQ "MASTER":U THEN
-       DO:
-          FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
-                                   AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                                   AND ttObjectAttribute.tAttributeLabel    = cAttributeName NO-ERROR.
-          IF AVAIL ttObjectAttribute THEN
-             ASSIGN cValue    = ttObjectAttribute.tAttributeValue
-                    iDataType = ttObjectAttribute.tDataType.
-       END.    /* clean to: MASTER */
-       
-       CASE iDataType:
-           WHEN {&LOGICAL-DATA-TYPE} THEN
-               ASSIGN lDeleteRecord = (LOGICAL(cValue) EQ phStoreAttributeBuffer:BUFFER-FIELD("tLogicalValue":U):BUFFER-VALUE).
-           WHEN {&DATE-DATA-TYPE} THEN DO:
-               ASSIGN dtValue = DATE(cValue) NO-ERROR.
-               IF NOT ERROR-STATUS:ERROR THEN
-                  ASSIGN lDeleteRecord = (dtValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tDateValue":U):BUFFER-VALUE).
-           END.
-           WHEN {&INTEGER-DATA-TYPE} THEN DO:
-               ASSIGN iValue = INTEGER(cValue) NO-ERROR.
-               IF NOT ERROR-STATUS:ERROR THEN
-                   lDeleteRecord = (iValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tIntegerValue":U):BUFFER-VALUE).
-           END.
-           WHEN {&DECIMAL-DATA-TYPE} THEN DO:
-               ASSIGN dValue = DECIMAL(cValue) NO-ERROR.
-               IF NOT ERROR-STATUS:ERROR THEN
-                 ASSIGN lDeleteRecord = (dValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tDecimalValue":U):BUFFER-VALUE).
-           END.
-           OTHERWISE
-               ASSIGN lDeleteRecord = (cValue EQ phStoreAttributeBuffer:BUFFER-FIELD("tCharacterValue":U):BUFFER-VALUE) NO-ERROR.
-       END CASE.   /* data type */
-       
-       IF lDeleteRecord THEN
-           phStoreAttributeBuffer:BUFFER-DELETE().
-        
-        ghQuery4:GET-NEXT().
-    END.    /* available phStoreAttributeBuffer */
-    ghQuery4:QUERY-CLOSE().
-    
-    RETURN TRUE.
+    return dynamic-function('cleanStoreAttributeValues':U in ghDesignManager,
+                            pcObjectName,
+                            pcClassName,
+                            pcCleanToLevel,
+                            phStoreAttributeBuffer).
 END FUNCTION.   /* cleanStoreAttributeValues */
 
 /* _UIB-CODE-BLOCK-END */

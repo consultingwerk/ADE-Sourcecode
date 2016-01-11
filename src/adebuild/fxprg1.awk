@@ -5,14 +5,19 @@
 # 
 # Called from adebuild/pbuildfxprg
 ##################################################################################
-/<session/ {
-  if(substr($1,1,8)=="<session") {
-    if(length($2)>0){
-      sesstype=substr($2,14)
-      sesstype=substr(sesstype,1,length(sesstype) - 2)
-      if(sesstype!=""){session[++i]=sesstype}
-    }
-  }
+# Note the blank space after session
+/<session\ / {
+  # Get session type from XML Markup
+  # Line looks like:
+  # 	<sessions><session SessionType="Migrate100Setup"><properties><bound_icfdb>no</bound_icfdb>
+  # or
+  # 	<session SessionType="Migrate100Setup"><properties><bound_icfdb>no</bound_icfdb>  
+  sesstype=$2
+  startpos=index(sesstype,"\"")
+  sesstype=substr(sesstype,startpos+1)
+  endpos=index(sesstype,"\"")
+  sesstype=substr(sesstype,1,endpos-1)
+  if(sesstype!=""){session[++i]=sesstype}
 }
 
 /<migration_source_branch>/ {

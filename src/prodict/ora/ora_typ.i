@@ -1,8 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
+* Copyright (C) 2004,2007 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet. 
 *********************************************************************/
 
 /*--------------------------------------------------------------------
@@ -24,19 +23,20 @@ Included in:
     
 History:
     hutegger    95/03   abstracted from prodict/ora/ora_mak.i
-
+    fernando 06/11/07   Unicode support - adding Unicode data types, and clob support
 --------------------------------------------------------------------*/
 /*h-*/
     
 assign 
   l_dt = (IF    ds_columns.type# =  1
-             OR ds_columns.type# = 97  THEN "VARCHAR2"
-        ELSE IF ds_columns.type# = 96  THEN "CHAR"
+             OR ds_columns.type# = 97  THEN
+               (IF ds_columns.charsetform = 1 THEN "VARCHAR2" ELSE "NVARCHAR2")
+        ELSE IF ds_columns.type# = 96  THEN (IF ds_columns.charsetform = 1 THEN "CHAR" ELSE "NCHAR")
         ELSE IF ds_columns.type# =  2  
              OR ds_columns.type# = 29  THEN "NUMBER"         
         ELSE IF ds_columns.type# =  9  THEN "VARCHAR"
         ELSE IF ds_columns.type# = 11
-             OR ds_columns.type# = 104 /*20070112-004*/ 
+             OR ds_columns.type# = 104 /* Bug# 20070112-004 */
              OR ds_columns.type# = 69  THEN "ROWID"
         ELSE IF ds_columns.type# = 12  THEN "DATE"
         ELSE IF ds_columns.type# =  8  THEN "LONG"
@@ -45,6 +45,7 @@ assign
         ELSE IF ds_columns.type# = 24  THEN "LONGRAW"
         ELSE IF ds_columns.type# = 252 THEN "LOGICAL"
         ELSE IF ds_columns.type# = 102 THEN "CURSOR"
+        ELSE IF ds_columns.type# = 112 THEN (IF ds_columns.charsetform = 1 THEN "CLOB" ELSE "NCLOB")
         ELSE IF ds_columns.type# = 113 THEN "BLOB"
         ELSE IF ds_columns.type# = 114 THEN "BFILE"
         ELSE                                "UNDEFINED").

@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -34,6 +34,7 @@
     kmcintos Oct 21, 2005  Installed workaround for bug # 20050920-031 in 
                            order to complete fix for 20050908-026.  
                            20050921-017.
+    fernando 11/30/07      Check if read-only mode.                           
                             
 ------------------------------------------------------------------------*/
 /*          This .p file was created with the Progress AppBuilder.      */
@@ -49,6 +50,9 @@ IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN "No Permission".
 END.
+
+IF checkReadOnly("DICTDB","_Db-option") NE "" THEN
+   RETURN "No Permission".
 
 CREATE WIDGET-POOL.
 
@@ -334,7 +338,7 @@ PROCEDURE displayOptions :
                hField:HELP
              &ENDIF           = hDbOption::_db-option-description             
              hField:MODIFIED  = FALSE
-             hField:SENSITIVE = 
+             hField:SENSITIVE = (NOT ronly) AND 
                      featureEnabled(STRING(hDbOption::_db-option-type)).
     ELSE 
       ASSIGN hField:CHECKED   = FALSE

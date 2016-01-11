@@ -1,5 +1,5 @@
 /************************************************************  
- * Copyright (c) 2006 by Progress Software Corporation      *
+ * Copyright (c) 2006,2007 by Progress Software Corporation      *
  * All rights reserved.                                     *
 ************************************************************/
 /*---------------------------------------------------------------------------------
@@ -33,8 +33,8 @@ define buffer gsmsy        for gsm_session_type_property.
 define buffer gsmsy_parent for gsm_session_type_property.
 
 &scoped-define PROPERTY-NAME setup_type_file
-&scoped-define PROPERTY-VALUE db/icf/dfd/setup101B.xml
-&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup,Migrate101ASetup
+&scoped-define PROPERTY-VALUE db/icf/dfd/setup101C.xml
+&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup,Migrate101ASetup,Migrate101BSetup
 
 publish 'DCU_WriteLog' ('Start update of {&PROPERTY-NAME} session property ...').
 

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
   File: launch.i
 
@@ -195,12 +195,22 @@
         ASSIGN lRunErrorStatus = FALSE
                cRunReturnValue = "":U.
 
-        RUN VALUE({&IProc}) IN hPlip {&PList} NO-ERROR.
+        DO ON STOP UNDO, LEAVE:
+            RUN VALUE({&IProc}) IN hPlip {&PList} NO-ERROR.
+        END.
 
         /* This stores the ERROR-STATUS and RETURN-VALUE resulting from the run statement */
         ASSIGN lRunErrorStatus = ERROR-STATUS:ERROR
                cRunReturnValue = TRIM(RETURN-VALUE)
                .
+
+        /*Fix for OE00025321. We set the error-status:error value in a flag, but the error message is never saved,
+          so the error message will be overriden by the error message returned by killplip.
+          If killplips does not fail, we have error-status:error = yes, but the error message is lost. So now we
+          store the error message in a variable.*/
+        IF lRunErrorStatus AND cRunReturnValue = "" THEN
+            ASSIGN cRunReturnValue = ERROR-STATUS:GET-MESSAGE(1).
+
         IF {&AutoKill} = YES AND VALID-HANDLE(gshSessionManager) THEN
             RUN killPlips IN gshSessionManager (INPUT "":U, STRING(hPlip)).
 

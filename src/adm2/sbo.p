@@ -2366,9 +2366,8 @@ PROCEDURE commitTransaction :
       /* don't send message from one-to-one SDOs to outside while refreshing */
       IF lOneToOne THEN
         {set BlockDataAvailable TRUE}.
-
-      PUBLISH 'DataAvailable':U FROM hTopDO  
-                        (IF lAutoCommit THEN 'SAME':U ELSE 'RESET':U).  
+      
+      PUBLISH 'DataAvailable':U FROM hTopDO ('RESET':U).  
 
       /* Reset external data-targets if one-to-one */
       IF lOneToOne THEN
@@ -2460,18 +2459,15 @@ PROCEDURE commitTransaction :
     IF lOneToOne THEN
       {set BlockDataAvailable TRUE}.
 
-    /* Unless one-to-one this will refresh external targets 
-      'Different' here is historical, should investigate what really is 
-       needed for this error case..  */
+    /* Unless one-to-one this will refresh external targets */
 
-    PUBLISH 'dataAvailable':U FROM hTopDO('DIFFERENT':U).
+    PUBLISH 'dataAvailable':U FROM hTopDO('RESET':U).
     
     /* Reset external data-targets if one-to-one */
     IF lOneToOne THEN
     DO:
       {set BlockDataAvailable FALSE}.
-      /* Uset DIFFERENT because that was used above (may be overkill) */ 
-      PUBLISH 'DataAvailable':U FROM TARGET-PROCEDURE ('DIFFERENT':U).  
+      PUBLISH 'DataAvailable':U FROM TARGET-PROCEDURE ('RESET':U).  
     END.
   END. /* if not lCommitOk */  
   
@@ -3917,6 +3913,68 @@ PROCEDURE fetchPrev :
     END.
   
     RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fetchRows) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchRows Procedure 
+PROCEDURE fetchRows :
+/*------------------------------------------------------------------------------
+  Purpose:     SBO version of the event procedure to retrieve rows
+               in one of the ContainedDataObjects. It uses the ObjectMapping
+               SBO property to match the caller to its Target, or uses
+               the MasterDataObject by default.
+  Parameters:  See data.p version
+     Notes:    Uses the MasterDataObject by default.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcRequest       AS character  NO-UNDO.
+  DEFINE INPUT  PARAMETER piMinRequested  AS INTEGER    NO-UNDO.
+  DEFINE INPUT  PARAMETER plUseBatch      AS LOGICAL    NO-UNDO.
+    
+  DEFINE VARIABLE hObject     AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE cMapping    AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE iObject     AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE hRequester  AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE cNavSource  AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE lOneToOne   AS LOGICAL    NO-UNDO.
+  
+  /* A target have to set the TargetProcedure to be identified */ 
+  {get TargetProcedure hRequester SOURCE-PROCEDURE} NO-ERROR.   
+  IF NOT VALID-HANDLE(hRequester) THEN
+    hRequester = SOURCE-PROCEDURE.
+  
+  {get ObjectMapping cMapping}.
+  iObject = LOOKUP(STRING(hRequester), cMapping).
+  IF iObject NE 0 THEN
+      hObject = WIDGET-HANDLE(ENTRY(iObject + 1, cMapping)).
+  IF NOT VALID-HANDLE(hObject) THEN
+      {get MasterDataObject hObject}.
+
+  /* there is no publishing on next and prev since we remain at current,
+     so we only block dataavailable if first or last */
+  if pcRequest = 'first' or pcRequest = 'last' then 
+  do: 
+    lOneToOne   = {fn hasOneToOneTarget hObject}
+                    OR 
+                  {fn getUpdateFromSource hObject}.
+    IF lOneToOne THEN
+      {set BlockDataAvailable TRUE}.
+  end.
+  
+  RUN fetchRows IN hObject(pcRequest,piMinRequested,plUseBatch).
+
+  IF lOneToOne THEN
+  DO:
+    {set BlockDataAvailable FALSE}.
+    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE('FIRST':U). 
+  END.
+  
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -9115,7 +9173,7 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
   DEFINE VARIABLE iCount               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hEntry               AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cEntry               AS CHARACTER  NO-UNDO.
-
+ 
   IF NOT CAN-DO('Add,Copy':U,pcMode)  THEN
   DO:
     MESSAGE  SUBSTITUTE({fnarg messageNumber 58}, 'newDataObjectRow()', pcMode) 
@@ -9248,10 +9306,13 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
                         + (IF cValue <> ? THEN cValue ELSE '?':U).
   END. /* do iColumn = 1 to */
   
-  /* We need to ensure that potential GroupAssigntargets also get the new record
+  /* One-to-one has not gotten the message yet.  
+     We need to ensure that potential GroupAssigntargets also get the new record
      so we cannot just run in requester. We cannot publish from SDOs either here
-     because then add mode will be lost in datatargets if more than one is in addmode */
-  PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ('DIFFERENT':U).
+     because then add mode will be lost in datatargets
+     (old comment before checking for targetnames: if more than one is in addmode)*/ 
+  IF NUM-ENTRIES(pcTargetNames) > 1 THEN
+    PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ('DIFFERENT':U).
 
   RETURN cValueList.
 
@@ -9706,7 +9767,7 @@ FUNCTION submitRow RETURNS LOGICAL
 
   IF NOT lSuccess THEN
     RETURN FALSE.
-
+   
   IF lOneToOne AND NOT lAutoCommit THEN
   DO:
     {set BlockDataAvailable FALSE}.
@@ -9723,7 +9784,6 @@ FUNCTION submitRow RETURNS LOGICAL
   ELSE 
      {set RowObjectState 'RowUpdated':U}.  
   
- 
   RETURN lSuccess.
 
 END FUNCTION.

@@ -401,7 +401,11 @@ FUNCTION isCreate RETURNS LOGICAL:
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  RETURN (NOT AVAILABLE old_{&DATA-LOGIC-TABLE}).   /* Function return value. */
+  RETURN (AVAILABLE b_{&DATA-LOGIC-TABLE} 
+          AND (b_{&DATA-LOGIC-TABLE}.Rowmod = 'A':U
+               or
+               b_{&DATA-LOGIC-TABLE}.Rowmod = 'C':U)
+               ).      
 
 END FUNCTION.
 

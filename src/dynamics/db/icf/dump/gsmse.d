@@ -1,3 +1,4 @@
+6046.49 "Migrate101BSetup" "Migrate101BSetup" "WBC,GUI" "WIN32" 0 yes 910749.24
 113310.48 "Migrate21Setup" "Migrate21Setup" "WBC,GUI" "WIN32" 0 yes 910749.24
 910719.24 "Basic" "Basic Session Type" "" "" 0 yes 0
 910722.24 "ProgressSetup" "ProgressSetup" "GUI,WBC" "WIN32" 0 yes 910749.24
@@ -13,10 +14,10 @@
 910782.24 "ASICFRuntime" "Runtime AppServer" "APP" "" 0 yes 910754.24
 1500005.24 "dcuphase1" "Session type for batch DCU phase 1" "GUI,BTC" "" 0 no 910719.24
 1500008.24 "dcuphase2" "DCU batch upgrade - phase 2" "BTC" "" 0 yes 910752.24
-1000000011.39 "rtb_092dyndep" "Roundtable 092dyn-dep Session" "GUI" "WIN32" 0 yes 910762.24
-1000000013.39 "rtb_093dyndep" "Roundtable 093dyn-dep Session" "GUI" "WIN32" 0 yes 910762.24
-1000000015.39 "rtb_093dyndev" "Roundtable 093dyn-dev Session" "GUI" "WIN32" 0 yes 910762.24
-1000000017.39 "rtb_093dyntst" "Roundtable 093dyn-tst Session" "GUI" "WIN32" 0 yes 910762.24
+1000000011.39 "rtb_093dyndep" "Roundtable 092dyn-dep Session" "GUI" "WIN32" 0 yes 910762.24
+1000000013.39 "rtb_094dyndep" "Roundtable 093dyn-dep Session" "GUI" "WIN32" 0 yes 910762.24
+1000000015.39 "rtb_094dyndev" "Roundtable 093dyn-dev Session" "GUI" "WIN32" 0 yes 910762.24
+1000000017.39 "rtb_094dyntst" "Roundtable 093dyn-tst Session" "GUI" "WIN32" 0 yes 910762.24
 1004947449.09 "ICFDevAS" "Dynamics Development with AS" "GUI" "WIN32" 0 yes 910764.24
 1004947452.09 "ASICFDev" "AppServer Service Type for ICF Dev" "APP" "WIN32,UNIX" 0 yes 910754.24
 1004955892.09 "ICFRuntime" "Dynamics Run Time Environment" "GUI,WBC" "WIN32" 0 yes 910760.24
@@ -28,12 +29,12 @@
 .
 PSC
 filename=gsm_session_type
-records=0000000000027
+records=0000000000028
 ldbname=ICFDB
-timestamp=2006/06/20-13:11:56
+timestamp=2007/05/03-15:28:21
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000002199
+0000002280

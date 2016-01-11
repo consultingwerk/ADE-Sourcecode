@@ -102,15 +102,15 @@ DEFINE BUTTON Btn-Up
      LABEL "Move &Up" 
      SIZE 15 BY 1.14.
 
-DEFINE VARIABLE cAppPartition AS CHARACTER FORMAT "x(23)" 
+DEFINE VARIABLE cAppPartition AS CHARACTER FORMAT "x(25)" 
      LABEL "&Partition" 
      VIEW-AS COMBO-BOX 
      DROP-DOWN-LIST
-     SIZE 27.8 BY 1 NO-UNDO.
+     SIZE 36.6 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cObjectNames AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
-     SIZE 29 BY 5.24 NO-UNDO.
+     SIZE 34.6 BY 5.24 NO-UNDO.
 
 DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no 
      LABEL "&Open query on initialization" 
@@ -121,11 +121,11 @@ DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
-     cAppPartition AT ROW 2.19 COL 17 COLON-ALIGNED
-     lOpenOnInit AT ROW 4.57 COL 19
-     Btn-Up AT ROW 6.71 COL 19
-     cObjectNames AT ROW 6.71 COL 35 NO-LABEL
-     Btn-Down AT ROW 8.14 COL 19
+     cAppPartition AT ROW 2.19 COL 9.4 COLON-ALIGNED
+     lOpenOnInit AT ROW 4.57 COL 11.4
+     Btn-Up AT ROW 6.71 COL 11.4
+     cObjectNames AT ROW 6.71 COL 27.4 NO-LABEL
+     Btn-Down AT ROW 8.14 COL 11.4
      "  Select the AppServer partition on which to run:" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 1.24 COL 2
           BGCOLOR 1 FGCOLOR 15 
@@ -135,7 +135,7 @@ DEFINE FRAME Attribute-Dlg
      "   Place SDOs in proper update order:" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 5.76 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     SPACE(1.19) SKIP(9.32)
+     SPACE(1.19) SKIP(5.56)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartBusinessObject Properties":L.

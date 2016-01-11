@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -136,6 +136,27 @@ define variable gcCurrentLogicalName             as character            no-undo
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-setFieldWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFieldWidgetIDs Procedure
+FUNCTION setFieldWidgetIDs RETURNS LOGICAL 
+	(INPUT pcFieldWidgetIDs AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFieldWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldWidgetIDs Procedure
+FUNCTION getFieldWidgetIDs RETURNS CHARACTER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 &IF DEFINED(EXCLUDE-assignRadioSetWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignRadioSetWidth Procedure 
@@ -263,7 +284,76 @@ CREATE QUERY ghRenderingQuery.
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignPopupWidgetID) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignPopupWidgetID Procedure
+PROCEDURE assignPopupWidgetID:
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phField AS HANDLE  NO-UNDO.
+DEFINE INPUT  PARAMETER phPopup AS HANDLE  NO-UNDO.
+
+DEFINE VARIABLE cWidgetIDs     AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE iObject  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hObject  AS HANDLE     NO-UNDO.
+
+{get FieldWidgetIDs cWidgetIDs}.
+
+    ASSIGN iObject = LOOKUP(phField:NAME, cWidgetIDs).
+
+    IF iObject GT 0 THEN
+        ASSIGN phPopup:WIDGET-ID = INT(ENTRY(iObject + 1, cWidgetIDs)) + 2 NO-ERROR.
+
+RETURN.
+
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF 
+&IF DEFINED(EXCLUDE-assignWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignWidgetID Procedure
+PROCEDURE assignWidgetID:
+/*------------------------------------------------------------------------------
+    Purpose: Assign widget-ids for the viewer fields.
+
+    Parameters:
+        pcWidgetID: comma separated list with the field names and
+                    their widget-ids
+
+    Notes: For Dynamic viewers the field widget-ids are stored in the XML file.
+           AssignWidgetIDs in containr.p collects those widget-id values from
+           the XML file, and then calls this procedure passing those widget-ids
+           in the input parameter.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER phField AS HANDLE  NO-UNDO.
+
+DEFINE VARIABLE cWidgetIDs     AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE iObject  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE hObject  AS HANDLE     NO-UNDO.
+
+{get FieldWidgetIDs cWidgetIDs}.
+
+    ASSIGN iObject = LOOKUP(phField:NAME, cWidgetIDs).
+
+    IF iObject GT 0 THEN
+        ASSIGN phField:WIDGET-ID = INT(ENTRY(iObject + 1, cWidgetIDs)) NO-ERROR.
+
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-changeFrameSizeAttributes) = 0 &THEN
 
@@ -324,7 +414,7 @@ END PROCEDURE.  /* changeFrameSizeAttributes */
 &ENDIF
 
 &IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
-
+ 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
 PROCEDURE createObjects :
 /*------------------------------------------------------------------------------
@@ -333,7 +423,6 @@ PROCEDURE createObjects :
 ------------------------------------------------------------------------------*/
     /* Because we want all our code inline, we end up blowing section editor limits */
     {ry/prc/rydynvcroi.i}
-    
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.    /* createObjects */
@@ -444,12 +533,12 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/    
-    /* Ensure that the widgets on the viewer have been created. */
+
     IF NOT {fn getObjectsCreated} THEN
        RUN createObjects IN TARGET-PROCEDURE.
     
     RUN SUPER.
-  
+
     RETURN.
 END PROCEDURE.  /* initializeObject */
 
@@ -679,7 +768,41 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-setFieldWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFieldWidgetIDs Procedure
+FUNCTION setFieldWidgetIDs RETURNS LOGICAL 
+	(INPUT pcFieldWidgetIDs AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+{set FieldWidgetIDs pcFieldWidgetIDs}.
+RETURN TRUE.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
+&ENDIF
+&IF DEFINED(EXCLUDE-getFieldWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFieldWidgetIDs Procedure
+FUNCTION getFieldWidgetIDs RETURNS CHARACTER 
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cFieldWidgetIDs AS CHARACTER  NO-UNDO.
+{get FieldWidgetIDs cFieldWidgetIDs}.
+RETURN cFieldWidgetIDs.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 &IF DEFINED(EXCLUDE-assignRadioSetWidth) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignRadioSetWidth Procedure 

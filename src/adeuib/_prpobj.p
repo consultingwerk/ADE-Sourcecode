@@ -99,7 +99,7 @@ DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 {adeuib/triggers.i}             /* Trigger Temp-table definition            */
 {adeuib/uibhlp.i}               /* Help pre-processor directives            */
 {adeuib/sharvars.i}             /* The shared variables                     */
-{adm2/globals.i}
+{src/adm2/globals.i}
 /** Contains definitions for dynamics design-time temp-tables. **/
 {destdefi.i}
 
@@ -2392,12 +2392,24 @@ PROCEDURE font_edit.
 END. /* font_edit */
 
 PROCEDURE format_change.
-  DEFINE VARIABLE cTestFile  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTestFile    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cScreenValue AS CHARACTER NO-UNDO.
 
   /* Validate format string */
-  run adecomm/_tmpfile.p (INPUT "", INPUT ".AB", OUTPUT cTestFile).
+  RUN adecomm/_tmpfile.p (INPUT "", INPUT ".AB", OUTPUT cTestFile).
+
+  ASSIGN cScreenValue = SELF:SCREEN-VALUE.
+
+  IF notAmerican AND
+      LOOKUP(_F._DATA-TYPE,"INTEGER,INT64,DECIMAL":U) > 0 THEN
+  RUN adecomm/_convert.p ("N-TO-A":U,
+                          _F._FORMAT, 
+                          ",",
+                          ".",
+                          OUTPUT cScreenValue).
+
   OUTPUT TO VALUE(cTestFile).
-  PUT UNFORMATTED "DEF VAR X AS " + _F._DATA-TYPE + " FORMAT '" + SELF:SCREEN-VALUE + "'.":U SKIP.
+  PUT UNFORMATTED "DEF VAR X AS " + _F._DATA-TYPE + " FORMAT '" + cScreenValue + "'.":U SKIP.
   OUTPUT CLOSE.
   COMPILE VALUE(cTestFile) NO-ERROR.
   OS-DELETE VALUE(cTestFile).
@@ -5703,7 +5715,7 @@ PROCEDURE CUSTOM-SUPER-PROC_change:
 
  ASSIGN CURRENT-WINDOW:PRIVATE-DATA = STRING(THIS-PROCEDURE).
  
- RUN ry/obj/gopendialog.w (INPUT CURRENT-WINDOW,
+ RUN adeuib/_opendialog.w (INPUT CURRENT-WINDOW,
                            INPUT "",
                            INPUT No,
                            INPUT "Get Object",

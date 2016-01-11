@@ -120,7 +120,7 @@ DO ON STOP UNDO, LEAVE:
                               "Save As" , "Save As" , "SAVE", 
                               INPUT-OUTPUT File_Name ,
                               OUTPUT Dlg_Answer ).       
-       
+
     IF Dlg_Answer = YES AND File_Name ne ? THEN DO:
       IF Web_File THEN
         Option_List = (IF Web_Untitled THEN CHR(3) + "untitled":U ELSE "").
@@ -166,6 +166,7 @@ DO ON STOP UNDO, LEAVE:
           
         pw_Editor:PRIVATE-DATA = Private_Data.
     END.
+    ELSE RETURN "ERROR".
 END.
 RETURN cReturnValue.
 

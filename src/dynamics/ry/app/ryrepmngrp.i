@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+/* Copyright © 1984-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
@@ -1350,7 +1350,7 @@ ACCESS_LEVEL=PRIVATE
     DEFINE VARIABLE cTranslatedLabels           AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cTooltips                   AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cEntry                      AS CHARACTER            NO-UNDO.
-    
+    DEFINE VARIABLE lOk AS LOGICAL NO-UNDO.
     DEFINE BUFFER rycso                      FOR ryc_smartobject.
     DEFINE BUFFER gsc_object_type            FOR gsc_object_type.
 
@@ -1541,7 +1541,7 @@ ACCESS_LEVEL=PRIVATE
              */
             IF cDataType EQ ? THEN
             DO:
-                assign cError = {aferrortxt.i 'AF' '40' '?' '?' "'Unable to determine the DATA-TYPE for' + ryc_object_instance.instance_name + ' on ' + ryc_smartobject.object_filename"}.
+                assign cError = {aferrortxt.i 'AF' '40' '?' '?' "'Unable to determine the DATA-TYPE for ' + ryc_object_instance.instance_name + ' on ' + ryc_smartobject.object_filename"}.
                 leave ENTITY-LOOP.
             end.    /* no data type */
 
@@ -1575,20 +1575,29 @@ ACCESS_LEVEL=PRIVATE
                used when building the temp-table needs to be ?, so that the
                4GL default inheritance works properly.
              */
-            hEntityTable:ADD-NEW-FIELD( ryc_object_instance.instance_name,
+            lOk = hEntityTable:ADD-NEW-FIELD( ryc_object_instance.instance_name,
                                         cDataType, 
                                         0,            /* Extents */
                                         (if cFormat eq "?" then ? else cFormat),
                                         cInitial,
                                         (if cLabel eq "?" then ? else cLabel),
-                                        (if cColumnLabel eq "?" then ? else cColumnLabel) ).
-            
+                                        (if cColumnLabel eq "?" then ? else cColumnLabel) ) NO-ERROR.                                        
+             IF NOT lOk THEN
+             DO:
+                /*Error 22 is checked for the fix of OE00100384. Show a specific message for a known error helps the user to
+                  identify the problem.*/
+                IF ERROR-STATUS:GET-NUMBER(1) = 22 THEN
+                    ASSIGN cError = {aferrortxt.i 'AF' '40' '?' '?' "'Invalid FORMAT ' + QUOTER(cFormat) + ' for DATA-TYPE ' + QUOTER(cDataType)"}.
+                ELSE
+                    ASSIGN cError = {aferrortxt.i 'AF' '40' '?' '?' "'Cannot update record for ' + QUOTER(ryc_object_instance.instance_name) + ' on ' + QUOTER(ryc_smartobject.object_filename)"}.
+                LEAVE ENTITY-LOOP.
+             END.
             /* Count the number of fields in the temp-table,
                primarily to determine whether ther are actually any.
              */
-            assign iNumFields = iNumFields + 1.                                        
+            ASSIGN iNumFields = iNumFields + 1.                                        
         END.    /* each object instance. */
-        
+
         /* If there are no fields associated with the entity, then 
            a temp-table cannot be created. Return an error.
          */
@@ -1616,6 +1625,7 @@ ACCESS_LEVEL=PRIVATE
     
     if cError ne "":U then
     do:
+
         DELETE OBJECT hEntityTable NO-ERROR.
         RETURN ERROR cError.
     end.    /* there was an error */
@@ -6245,6 +6255,9 @@ FUNCTION entityDefaultValue RETURNS CHARACTER
 
   cDefaultValue = hEntityField:INITIAL NO-ERROR.
 
+  IF hEntityField:DATA-TYPE BEGINS "DATETIME":U THEN
+      RETURN hEntityField:DEFAULT-VALUE.
+  ELSE
   IF  hEntityField:DATA-TYPE = "Date":U
   AND SESSION:DATE-FORMAT <> "mdy":U
   AND cDefaultValue <> "today":U

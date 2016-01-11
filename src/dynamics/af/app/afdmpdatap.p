@@ -47,6 +47,16 @@ iErrorNum = dynamic-function('prepareDirectory':u in hDeploymentHelper,
 if iErrorNum gt 0 then
     return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to write to directory ' + pcOutputdir"}.
 
+if pcLobDir ne ? and pcLobDir ne '':u then
+do:
+    iErrorNum = dynamic-function('prepareDirectory':u in hDeploymentHelper,
+                                  pcLobDir,
+                                  No,     /* clear contents? */
+                                  Yes     /* create if missing */ ).
+    if iErrorNum gt 0 then
+        return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to write to directory ' + pcLobDir"}.
+end.    /* a lobdir was specified */
+
 /* check encoding */
 if pcCodePage ne '':u then
 do:

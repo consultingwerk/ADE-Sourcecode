@@ -1,17 +1,20 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
-/* loaddbff */
+/* loaddbff 
+
+  fernando   06/20/07  Support for large files
+*/
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
 DEFINE NEW SHARED STREAM   loaderr.
-DEFINE NEW SHARED VARIABLE recs   AS INTEGER INITIAL 0. /*UNDO*/
+DEFINE NEW SHARED VARIABLE recs   AS INT64   INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER           NO-UNDO.
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER INITIAL ? NO-UNDO.

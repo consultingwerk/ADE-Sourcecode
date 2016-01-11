@@ -338,6 +338,15 @@ END PROCEDURE.
 
 
 PROCEDURE SecEdWindow:
+/*------------------------------------------------------------------------------
+  Purpose: Represents the SecEdWindow procedure used by the section 
+           in the AppBuilder.
+  Parameters: 
+  Notes: 
+      - Parameter p_command uses a value "SE_OEOPEN" to indicate 
+      that the section editor is being accessed in an open operation 
+      from _open-w.p.
+------------------------------------------------------------------------------*/    
     DEFINE INPUT PARAMETER pi_section AS CHARACTER NO-UNDO.
     DEFINE INPUT PARAMETER pi_recid AS RECID NO-UNDO.
     DEFINE INPUT PARAMETER pi_event AS CHARACTER NO-UNDO.
@@ -346,6 +355,11 @@ PROCEDURE SecEdWindow:
     DEFINE VARIABLE cWidgetName   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cWindowName   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE hWindowHandle AS HANDLE     NO-UNDO.
+    
+    DEFINE VARIABLE lActivateEditor AS LOGICAL    NO-UNDO INITIAL TRUE.
+    
+    IF p_command = "SE_OEOPEN" THEN
+        ASSIGN p_command = "" lActivateEditor = FALSE.
 
     CASE p_command:
         WHEN "SE_ERROR" THEN
@@ -361,7 +375,7 @@ PROCEDURE SecEdWindow:
                     findAndSelect(getProjectName(),
                                 b_P._save-as-file,
                                 '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK ":U + 
-                                _SEW_TRG._tSECTION + " " + _tEVENT + " " + _SEW_U._name + '"').                    
+                                _SEW_TRG._tSECTION + " " + _tEVENT + " " + _SEW_U._name + '"', TRUE).                    
                 END.
             END.
         END.    
@@ -384,10 +398,10 @@ PROCEDURE SecEdWindow:
                 DO:
                     FIND b_P WHERE b_P._WINDOW-HANDLE = _h_win NO-LOCK NO-ERROR.
                     IF AVAILABLE b_P THEN
-                    DO:
+                    DO:                        
                         findAndSelect(getProjectName(),
                                 b_P._save-as-file,
-                                '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ":U + cWidgetName + " " + cWindowName + '"').
+                                '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ":U + cWidgetName + " " + cWindowName + '"', lActivateEditor).
                     END.
                 END.                        
             END.
@@ -708,17 +722,19 @@ PROCEDURE NewTriggerBlock.
   DEFINE BUFFER b_U FOR _U.
 
       IF NOT VALID-HANDLE(_h_cur_widg) THEN RETURN.
-      IF _h_cur_widg:TYPE = "TEXT":U THEN RETURN.
+      
+      FIND _SEW_U WHERE _HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
+      IF NOT AVAILABLE _SEW_U THEN RETURN.
+      IF _SEW_U._TYPE = "TEXT":U THEN RETURN.      
+      IF _SEW_U._TYPE = "SmartObject":U THEN RETURN.
+      new_recid = RECID(_SEW_U).      
+      
       IF NOT CAN-QUERY(_h_cur_widg, "WINDOW":U) THEN RETURN.
       FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:WINDOW NO-LOCK NO-ERROR.
       /* For dialog-boxes the _WINDOW-HANDLE field corresponds to the FRAME */
       IF NOT AVAILABLE b_P THEN
           FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:FRAME NO-LOCK NO-ERROR.
       IF NOT AVAILABLE b_P THEN RETURN.
-      FIND _SEW_U WHERE _HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
-      IF NOT AVAILABLE _SEW_U THEN RETURN.
-      IF _SEW_U._TYPE = "SmartObject":U THEN RETURN.
-      new_recid = RECID(_SEW_U).
 
   ASSIGN se_section = "_CONTROL":U /* Type_Trigger */
          new_spcl   = ?.      
@@ -882,13 +898,13 @@ IF INDEX(p_new_event, ".":U) > 0 THEN /* OCX event */
   findAndSelect(getProjectName(),
   b_P._save-as-file,
               '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ":U 
-                  + cWidgetName + " " + cWindowName + '"').
+                  + cWidgetName + " " + cWindowName + '"', TRUE).
 ELSE
 DO:
   IF _h_cur_widg:TYPE = "FRAME":U THEN
       cWidgetName = "FRAME ":U + cWidgetName.
   findAndSelect(getProjectName(), b_P._save-as-file,
-              '"' + "ON ":U + p_new_event + " OF ":U + cWidgetName + '"'). 
+              '"' + "ON ":U + p_new_event + " OF ":U + cWidgetName + '"', TRUE). 
 END.              
                
 END PROCEDURE.
@@ -1110,7 +1126,7 @@ END.
 findAndSelect(getProjectName(),
   b_P._save-as-file,
             '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK ":U + se_section + " "
-                  + new_event + " " + cWindowName + '"'  ).
+                  + new_event + " " + cWindowName + '"', TRUE ).
     
 END.
 

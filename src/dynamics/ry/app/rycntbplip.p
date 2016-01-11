@@ -27,11 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/******************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions     *
-* contributed by participants of Possenet.                        *
-*******************************************************************/
+/* Copyright (C) 2006-2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*---------------------------------------------------------------------------------
   File: rycntbplip.p
 
@@ -2443,7 +2441,7 @@ PROCEDURE setAttributeValue :
          WHERE ryc_attribute.attribute_label = bttAttributeValue.c_attribute_label NO-ERROR.
 
     IF NOT AVAILABLE ryc_attribute THEN
-        RETURN ERROR {aferrortxt.i 'AF' '5' 'ryc_attribute' '?' '"attribute"' "'Attribute Label = `' + bttAttributeValue.c_attribute_label + '`'"}.
+        RETURN ERROR {aferrortxt.i 'AF' '5' 'ryc_attribute' '?' '"attribute"' "'Attribute Label = ~~'' + bttAttributeValue.c_attribute_label + '~~''"}.
 
     CREATE ryc_attribute_value NO-ERROR.
 

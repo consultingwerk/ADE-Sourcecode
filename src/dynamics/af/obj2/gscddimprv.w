@@ -496,6 +496,11 @@ END.
 ON CHOOSE OF buAdd IN FRAME frMain /* Add > */
 DO:
   RUN moveRecs (brAvailable:HANDLE, brSelected:HANDLE, NO, "":U).
+  apply 'entry' to brAvailable.
+  
+  if brAvailable:focused-row ne ? then
+      browse brAvailable:select-focused-row().
+  run setSensitive.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -564,6 +569,12 @@ END.
 ON CHOOSE OF buRemove IN FRAME frMain /* < Remove */
 DO:
   RUN moveRecs ( brSelected:HANDLE, brAvailable:HANDLE, NO, "":U).
+  apply 'entry' to brSelected.
+  
+  if brSelected:focused-row ne ? then
+      browse brSelected:select-focused-row().
+  run setSensitive.
+  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -869,7 +880,8 @@ PROCEDURE importADOs :
   DEFINE VARIABLE tStart AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dEnd   AS DATE       NO-UNDO.
   DEFINE VARIABLE tEnd   AS INTEGER    NO-UNDO.
-
+  def var cEDOFile as character no-undo.
+  def var lError as logical no-undo.
 
   DEFINE BUFFER bttSelected FOR ttSelected.
   DEFINE BUFFER bttImportParam FOR ttImportParam.
@@ -905,8 +917,9 @@ PROCEDURE importADOs :
 
     dStart = TODAY.
     tStart = TIME.
-
-
+    lError = No.
+    SESSION:SET-WAIT-STATE("GENERAL":U).
+    
     REPEAT WHILE NOT QUERY-OFF-END("qSelected"):
       iCount = iCount + 1.
   
@@ -916,8 +929,7 @@ PROCEDURE importADOs :
                                 + bttSelected.cFileName.
 
       hTT = ?.
-      
-      SESSION:SET-WAIT-STATE("GENERAL":U).
+      buImport:sensitive = no.
 
       RUN importDeploymentDataset IN ghDSAPI
         (bttSelected.cPath,
@@ -928,15 +940,10 @@ PROCEDURE importADOs :
          NO,
          INPUT TABLE ttImportParam,
          INPUT TABLE-HANDLE hTT,
-         OUTPUT cRetVal) 
-      .
-      
-      SESSION:SET-WAIT-STATE("":U).
-      
-      fiProcessing:SCREEN-VALUE = "":U.
-  
+         OUTPUT cRetVal) no-error.
+            
       {afcheckerr.i &display-error = YES}.
-
+      
       IF daDate = ? THEN
         ASSIGN 
           daDate = bttSelected.daModDate
@@ -955,11 +962,26 @@ PROCEDURE importADOs :
             daDate = bttSelected.daModDate
             iTime  = bttSelected.iModTime
           .
-
-
       END.
+
+      /* Look for the existence of an EDO file. If one exists,
+         flag the import as having errors. */
+      cEDOFile = dynamic-function('buildFileName' in ghDSAPI, 
+                                  bttSelected.cRootDir, bttSelected.cPath).
+      if num-entries(cEDOFile, '.':U) gt 1 then
+          entry(num-entries(cEDOFile, '.':u), cEDOFile, '.':u) = 'edo':u.
+      else
+          cEDOFile = cEDOFile + '.edo':u.
+      
+      /* Keep any ADOs which have load errors in the 'selected' browser. */
+      if search(cEDOFile) ne ? then
+          lError = yes.
+       else
+           delete bttSelected.
+      
       GET NEXT qSelected.
     END.
+    SESSION:SET-WAIT-STATE("":U).
 
     dEnd = TODAY.
     tEnd = TIME.
@@ -971,13 +993,15 @@ PROCEDURE importADOs :
       EXPORT "Dataset Import":U STRING(dStart,"99/99/9999") STRING(tStart,"HH:MM:SS") STRING(dEnd,"99/99/9999") STRING(tEnd,"HH:MM:SS").
       OUTPUT CLOSE.
     END.
-
+    
+    if lError then
+        fiProcessing:Screen-Value = 'Completed with errors'.
+    else
+        fiProcessing:SCREEN-VALUE = "Complete".
     
     EMPTY TEMP-TABLE ttAvailable.
-    EMPTY TEMP-TABLE ttSelected.
 
     RUN deletePool IN ghDSAPI.
-
 
     IF daDate <> ? THEN
       setLastUpdate(daDate,iTime).
@@ -1086,13 +1110,21 @@ PROCEDURE moveRecs :
     hQuery:QUERY-OPEN().
     hQuery:GET-FIRST().
     REPEAT WHILE NOT hQuery:QUERY-OFF-END:
-      hToBuff:BUFFER-CREATE().
-      hToBuff:BUFFER-COPY(hFromBuff).
-      IF pcDefault <> "":U AND
-         pcDefault <> ? THEN
-        RUN VALUE(pcDefault) IN THIS-PROCEDURE (INPUT hToBuff).
-      hFromBuff:BUFFER-DELETE().
-      hToBuff:BUFFER-RELEASE().
+      /* Check if the source record is in the target buffer already. 
+         If so, just remove the record from the source buffer 
+         and leave the target buffer as-is. */
+      hToBuff:find-first('where ' + hToBuff:name + '.cFileName = ':u + quoter(hFromBuff::cFileName)) no-error.
+      if not hToBuff:available then
+      do:
+          hToBuff:BUFFER-CREATE().
+          hToBuff:BUFFER-COPY(hFromBuff).
+          IF pcDefault <> "":U AND
+             pcDefault <> ? THEN
+            RUN VALUE(pcDefault) IN THIS-PROCEDURE (INPUT hToBuff).
+          hToBuff:BUFFER-RELEASE().            
+      end.
+                  
+      hFromBuff:BUFFER-DELETE().      
       hQuery:GET-NEXT().
     END.
     hQuery:QUERY-CLOSE().
@@ -1106,13 +1138,20 @@ PROCEDURE moveRecs :
     hFromBuff = hFromQry:GET-BUFFER-HANDLE(1).
     REPEAT iCount = 1 TO phFrom:NUM-SELECTED-ROWS:
       phFrom:FETCH-SELECTED-ROW(iCount).
-      hToBuff:BUFFER-CREATE().
-      hToBuff:BUFFER-COPY(hFromBuff).
-      IF pcDefault <> "":U AND
-         pcDefault <> ? THEN
-        RUN VALUE(pcDefault) IN THIS-PROCEDURE (INPUT hToBuff).
-      hFromBuff:BUFFER-DELETE().
-      hToBuff:BUFFER-RELEASE().
+      /* Check if the source record is in the target buffer already. 
+         If so, just remove the record from the source buffer 
+         and leave the target buffer as-is. */
+      hToBuff:find-first('where ' + hToBuff:name + '.cFileName = ':u + quoter(hFromBuff::cFileName)) no-error.
+      if not hToBuff:available then
+      do:
+          hToBuff:BUFFER-CREATE().
+          hToBuff:BUFFER-COPY(hFromBuff).
+          IF pcDefault <> "":U AND
+             pcDefault <> ? THEN
+            RUN VALUE(pcDefault) IN THIS-PROCEDURE (INPUT hToBuff).          
+          hToBuff:BUFFER-RELEASE().
+      end.
+      hFromBuff:BUFFER-DELETE().          
     END.
   END.
 

@@ -197,7 +197,7 @@ DEFINE VARIABLE fiPageSequence AS INTEGER FORMAT ">>9":U INITIAL 0
      SIZE 5.8 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiSecurityToken AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Security token" 
+     LABEL "Security action" 
      VIEW-AS FILL-IN 
      SIZE 57.6 BY 1 NO-UNDO.
 
@@ -213,17 +213,17 @@ DEFINE RECTANGLE rctReplace
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 77.8 BY 2.81.
 
-DEFINE VARIABLE toEnableOnCreate AS LOGICAL INITIAL no 
+DEFINE VARIABLE toEnableOnCreate AS LOGICAL INITIAL NO 
      LABEL "Enable on create" 
      VIEW-AS TOGGLE-BOX
      SIZE 21.8 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toEnableOnModify AS LOGICAL INITIAL no 
+DEFINE VARIABLE toEnableOnModify AS LOGICAL INITIAL NO 
      LABEL "Enable on modify" 
      VIEW-AS TOGGLE-BOX
      SIZE 21.8 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toEnableOnView AS LOGICAL INITIAL no 
+DEFINE VARIABLE toEnableOnView AS LOGICAL INITIAL NO 
      LABEL "Enable on view" 
      VIEW-AS TOGGLE-BOX
      SIZE 21.8 BY .81 NO-UNDO.
@@ -586,7 +586,7 @@ PROCEDURE adm-create-objects :
                      WHERE ryc_customization_result.customization_result_obj = ryc_smartobject.customization_result_obj OUTER-JOIN,
                      FIRST ryc_customization_type NO-LOCK
                      WHERE ryc_customization_type.customization_type_obj = ryc_customization_result.customization_type_obj OUTER-JOIN
-                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,ryc_customization_result,ryc_customization_typeBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.template_smartobject,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,logical,character,character,logical,logicalBrowseFieldFormatsX(70)|YES/NO|X(35)|X(35)|YES/NO|YES/NORowsToBatch200BrowseTitleContainer LookupViewerLinkedFieldsryc_smartobject.customization_result_obj,ryc_smartobject.object_filename,ryc_smartobject.template_smartobject,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,logical,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(70),YES/NO,X(35)ViewerLinkedWidgets?,?,?,?ColumnLabels,Template,,,,ContainerColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiValidContainersParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1":U) > 0|MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldNamedSmartObjectObjDisplayFieldyesEnableFieldnoLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,ryc_customization_result,ryc_customization_typeBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.template_smartobject,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,logical,character,character,logical,logicalBrowseFieldFormatsX(70)|YES/NO|X(35)|X(35)|YES/NO|YES/NORowsToBatch200BrowseTitleContainer LookupViewerLinkedFieldsryc_smartobject.customization_result_obj,ryc_smartobject.object_filename,ryc_smartobject.template_smartobject,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,logical,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(70),YES/NO,X(35)ViewerLinkedWidgets?,?,?,?ColumnLabels,Template,,,,ContainerColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiValidContainersParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1":U) > 0|MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousYESPopupOnUniqueAmbiguousNOPopupOnNotAvailNOBlankOnNotAvailNOMappedFieldsUseCacheYESSuperProcedureFieldNamedSmartObjectObjDisplayFieldYESEnableFieldNOLocalFieldNOHideOnInitNODisableOnInitNOObjectLayout':U ,
              OUTPUT hPageTemplateObject ).
        RUN repositionObject IN hPageTemplateObject ( 10.24 , 13.80 ) NO-ERROR.
        RUN resizeObject IN hPageTemplateObject ( 1.00 , 63.60 ) NO-ERROR.

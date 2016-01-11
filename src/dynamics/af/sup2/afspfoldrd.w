@@ -1,14 +1,14 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: folderd.p
@@ -83,7 +83,7 @@ DEFINE VARIABLE hSelect AS HANDLE NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
@@ -243,11 +243,11 @@ DEFINE VARIABLE fiVisibleRows AS INTEGER FORMAT ">>>9":U INITIAL 0
      SIZE 10 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-10
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 73 BY .1.
 
 DEFINE RECTANGLE RECT-11
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 73 BY .1.
 
 DEFINE VARIABLE tbInherit AS LOGICAL INITIAL no 
@@ -363,7 +363,7 @@ DEFINE VARIABLE fiTooltip AS CHARACTER FORMAT "X(256)":U
      SIZE 55.6 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-12
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 73 BY .1.
 
 DEFINE VARIABLE tbTabHidden AS LOGICAL INITIAL no 
@@ -373,20 +373,20 @@ DEFINE VARIABLE tbTabHidden AS LOGICAL INITIAL no
 
 DEFINE BUTTON btn-browse 
      LABEL "&Browse..." 
-     SIZE 18 BY 1.14.
+     SIZE 26 BY 1.14.
 
 DEFINE BUTTON mouse-test  NO-FOCUS
      LABEL "" 
-     SIZE 17.6 BY 11.81.
+     SIZE 25 BY 11.81.
 
 DEFINE RECTANGLE RECT-2
-     EDGE-PIXELS 999  NO-FILL 
-     SIZE 18.6 BY 12.05.
+     EDGE-PIXELS 999  NO-FILL   
+     SIZE 26.4 BY 12.05.
 
 DEFINE VARIABLE slMousePointer AS CHARACTER INITIAL "Arrow" 
      VIEW-AS SELECTION-LIST SINGLE NO-DRAG SCROLLBAR-VERTICAL 
      LIST-ITEMS "AppStarting","Arrow","Cross","Help","IBeam","No","Size","Size-E","Size-N","Size-NE","Size-NW","Size-S","Size-SE","Size-SW","Size-W","UpArrow","Wait","Glove","Compiler-Wait" 
-     SIZE 49 BY 12.1 NO-UNDO.
+     SIZE 41.4 BY 12.1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -401,6 +401,59 @@ DEFINE FRAME gDialog
          TITLE "Edit Properties"
          DEFAULT-BUTTON Btn_OK.
 
+DEFINE FRAME FRAME-C
+     mouse-test AT ROW 3.05 COL 47.6
+     slMousePointer AT ROW 2.91 COL 4.6 NO-LABEL
+     btn-browse AT ROW 15.52 COL 47
+     "Mouse Cursor:" VIEW-AS TEXT
+          SIZE 14 BY .57 AT ROW 2 COL 4.8
+     RECT-2 AT ROW 2.95 COL 47
+    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
+         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
+         AT COL 3.4 ROW 2.48
+         SIZE 75.2 BY 16.29.
+
+DEFINE FRAME FRAME-B
+     btn-lookup-2 AT ROW 1.91 COL 24
+     fiIndex AT ROW 1.81 COL 16.2 COLON-ALIGNED
+     fiTabLabel AT ROW 3.19 COL 16.2 COLON-ALIGNED HELP
+          "FolderLabels"
+     fiTooltip AT ROW 4.33 COL 16.2 COLON-ALIGNED HELP
+          "Tooltip"
+     fiHotkey AT ROW 5.48 COL 16.2 COLON-ALIGNED HELP
+          "Hotkey"
+     fiTabFGColor AT ROW 6.86 COL 16.2 COLON-ALIGNED HELP
+          "TabFGColor"
+     fiTabBGColor AT ROW 8 COL 16.2 COLON-ALIGNED HELP
+          "TabBGColor"
+     fiTabINColor AT ROW 9.14 COL 16.2 COLON-ALIGNED HELP
+          "TabINColor"
+     fiImageDisabled AT ROW 10.52 COL 16.2 COLON-ALIGNED HELP
+          "ImageEnabled"
+     fiImageEnabled AT ROW 11.67 COL 16.2 COLON-ALIGNED HELP
+          "ImageDisabled"
+     fiEnableStates AT ROW 13.14 COL 16.2 COLON-ALIGNED HELP
+          "EnableStates"
+     Btn-Add AT ROW 1.71 COL 57.2
+     fiDisableStates AT ROW 14.29 COL 16.2 COLON-ALIGNED HELP
+          "DisableStates"
+     tbTabHidden AT ROW 16.29 COL 18 HELP
+          "TabHidden"
+     Btn-Delete AT ROW 1.71 COL 52.4
+     Btn-Insert AT ROW 1.71 COL 47.6
+     Btn-Left AT ROW 1.71 COL 38
+     Btn-Next AT ROW 1.71 COL 33.2
+     Btn-Previous AT ROW 1.71 COL 28.4
+     Btn-Remove AT ROW 1.71 COL 62
+     Btn-Right AT ROW 1.71 COL 42.8
+     "Attributes:" VIEW-AS TEXT
+          SIZE 11.2 BY .95 AT ROW 16.19 COL 5
+     RECT-12 AT ROW 15.86 COL 2.4
+    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
+         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
+         AT COL 2.8 ROW 2.19
+         SIZE 76.4 BY 16.33.
+
 DEFINE FRAME FRAME-A
      btn_About AT ROW 1.33 COL 4.4
      cbSizing AT ROW 3.76 COL 17.6 COLON-ALIGNED HELP
@@ -409,7 +462,7 @@ DEFINE FRAME FRAME-A
           "TabPosition"
      fiSelectorFGColor AT ROW 4.91 COL 17.6 COLON-ALIGNED HELP
           "SelectorFGColor"
-     cbvisualization AT ROW 4.91 COL 54.8 COLON-ALIGNED HELP
+     cbVisualization AT ROW 4.91 COL 54.8 COLON-ALIGNED HELP
           "TabVisualization"
      fiSelectorBGColor AT ROW 6.05 COL 17.6 COLON-ALIGNED HELP
           "SelectorBGColor"
@@ -439,74 +492,21 @@ DEFINE FRAME FRAME-A
           "ImageXOffset"
      fiImageYOffset AT ROW 14.19 COL 60.8 COLON-ALIGNED HELP
           "ImageYOffset"
+     btn-lookup AT ROW 5 COL 37.8
      tbResize AT ROW 15.91 COL 19.8
      tbInherit AT ROW 15.91 COL 50.8 HELP
           "InheritColor"
-     btn-lookup AT ROW 5 COL 37.8
      tbPopupSelection AT ROW 16.76 COL 19.8 HELP
           "PopupSelectionEnabled"
      fiTitle AT ROW 1.95 COL 11 COLON-ALIGNED NO-LABEL
-     RECT-10 AT ROW 3.24 COL 1.8
-     RECT-11 AT ROW 15.67 COL 1.8
      "Options:" VIEW-AS TEXT
           SIZE 8.2 BY .81 AT ROW 15.91 COL 8.2
+     RECT-10 AT ROW 3.24 COL 1.8
+     RECT-11 AT ROW 15.67 COL 1.8
     WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
          AT COL 3.4 ROW 2.48
          SIZE 74.8 BY 16.67.
-
-DEFINE FRAME FRAME-B
-     btn-lookup-2 AT ROW 1.91 COL 24
-     fiIndex AT ROW 1.81 COL 16.2 COLON-ALIGNED
-     fiTabLabel AT ROW 3.19 COL 16.2 COLON-ALIGNED HELP
-          "FolderLabels"
-     fiTooltip AT ROW 4.33 COL 16.2 COLON-ALIGNED HELP
-          "Tooltip"
-     fiHotkey AT ROW 5.48 COL 16.2 COLON-ALIGNED HELP
-          "Hotkey"
-     fiTabFGColor AT ROW 6.86 COL 16.2 COLON-ALIGNED HELP
-          "TabFGColor"
-     fiTabBGColor AT ROW 8 COL 16.2 COLON-ALIGNED HELP
-          "TabBGColor"
-     fiTabINColor AT ROW 9.14 COL 16.2 COLON-ALIGNED HELP
-          "TabINColor"
-     fiImageDisabled AT ROW 10.52 COL 16.2 COLON-ALIGNED HELP
-          "ImageEnabled"
-     fiImageEnabled AT ROW 11.67 COL 16.2 COLON-ALIGNED HELP
-          "ImageDisabled"
-     fiEnableStates AT ROW 13.14 COL 16.2 COLON-ALIGNED HELP
-          "EnableStates"
-     fiDisableStates AT ROW 14.29 COL 16.2 COLON-ALIGNED HELP
-          "DisableStates"
-     Btn-Add AT ROW 1.71 COL 57.2
-     tbTabHidden AT ROW 16.29 COL 18 HELP
-          "TabHidden"
-     Btn-Delete AT ROW 1.71 COL 52.4
-     Btn-Insert AT ROW 1.71 COL 47.6
-     Btn-Left AT ROW 1.71 COL 38
-     Btn-Next AT ROW 1.71 COL 33.2
-     Btn-Previous AT ROW 1.71 COL 28.4
-     Btn-Remove AT ROW 1.71 COL 62
-     Btn-Right AT ROW 1.71 COL 42.8
-     RECT-12 AT ROW 15.86 COL 2.4
-     "Attributes:" VIEW-AS TEXT
-          SIZE 11.2 BY .95 AT ROW 16.19 COL 5
-    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
-         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
-         AT COL 2.8 ROW 2.19
-         SIZE 76.4 BY 16.33.
-
-DEFINE FRAME FRAME-C
-     mouse-test AT ROW 3.05 COL 55.4
-     slMousePointer AT ROW 2.91 COL 4.6 NO-LABEL
-     btn-browse AT ROW 15.43 COL 55.4
-     RECT-2 AT ROW 2.95 COL 54.8
-     "Mouse Cursor:" VIEW-AS TEXT
-          SIZE 14 BY .57 AT ROW 2 COL 4.8
-    WITH 1 DOWN NO-BOX NO-HIDE KEEP-TAB-ORDER OVERLAY NO-HELP 
-         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
-         AT COL 3.4 ROW 2.48
-         SIZE 75.2 BY 16.29.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -632,7 +632,7 @@ ASSIGN
        FRAME FRAME-C:HIDDEN           = TRUE.
 
 /* SETTINGS FOR DIALOG-BOX gDialog
-   NOT-VISIBLE EXP-POSITION                                             */
+   NOT-VISIBLE EXP-POSITION FRAME-NAME                                  */
 ASSIGN 
        FRAME gDialog:SCROLLABLE       = FALSE
        FRAME gDialog:ROW              = 5
@@ -1284,7 +1284,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/sup2/afspfoldrw.r':U ,
              INPUT  FRAME gDialog:HANDLE ,
-             INPUT  'FolderLabels':U + '&General|&Tabs|&Cursor' + 'TabFGcolor':U + 'Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default' + 'TabINColor':U + 'Default|GrayText|GrayText' + 'ImageEnabled':U + '||' + 'ImageDisabled':U + '||' + 'Hotkey':U + '||' + 'Tooltip':U + '||' + 'TabHidden':U + 'no|no|no' + 'EnableStates':U + 'ALL|All|All' + 'DisableStates':U + 'ALL|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '0' + 'FolderMenu':U + '' + 'TabsPerRow':U + '5' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Autosized' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'FolderLabels':U + '&General|&Tabs|&Cursor' + 'TabFGcolor':U + 'Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default' + 'TabINColor':U + 'Default|GrayText|GrayText' + 'ImageEnabled':U + '||' + 'ImageDisabled':U + '||' + 'Hotkey':U + '||' + 'Tooltip':U + '||' + 'TabHidden':U + 'no|no|no' + 'EnableStates':U + 'ALL|All|All' + 'DisableStates':U + 'ALL|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '0' + 'FolderMenu':U + '' + 'TabsPerRow':U + '5' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Autosized' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'TABS' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_folder ).
        RUN repositionObject IN h_folder ( 1.14 , 2.00 ) NO-ERROR.
        RUN resizeObject IN h_folder ( 18.33 , 78.20 ) NO-ERROR.
@@ -1342,23 +1342,23 @@ PROCEDURE enable_UI :
           fiImageDisabled fiImageEnabled fiEnableStates fiDisableStates 
           tbTabHidden 
       WITH FRAME FRAME-B.
-  ENABLE btn-lookup-2 fiIndex Btn-Add Btn-Delete Btn-Insert Btn-Left Btn-Next 
-         Btn-Previous Btn-Remove Btn-Right RECT-12 
+  ENABLE btn-lookup-2 RECT-12 fiIndex Btn-Add Btn-Delete Btn-Insert Btn-Left 
+         Btn-Next Btn-Previous Btn-Remove Btn-Right 
       WITH FRAME FRAME-B.
   {&OPEN-BROWSERS-IN-QUERY-FRAME-B}
-  DISPLAY cbSizing cbposition fiSelectorFGColor cbvisualization 
+  DISPLAY cbSizing cbposition fiSelectorFGColor cbVisualization 
           fiSelectorBGColor fiFolderMenu fiTabFont fiSelectorFont fiTabHeight 
           fiPanelOffset fiSelectorWidth fiLabelOffset fiVisibleRows fiTabsPerRow 
           fiImageWidth fiImageHeight fiImageXOffset fiImageYOffset tbResize 
           tbInherit tbPopupSelection fiTitle 
       WITH FRAME FRAME-A.
-  ENABLE btn_About cbvisualization tbResize btn-lookup tbPopupSelection fiTitle 
-         RECT-10 RECT-11 
+  ENABLE btn_About RECT-10 RECT-11 cbVisualization btn-lookup tbResize 
+         tbPopupSelection fiTitle 
       WITH FRAME FRAME-A.
   {&OPEN-BROWSERS-IN-QUERY-FRAME-A}
   DISPLAY slMousePointer 
       WITH FRAME FRAME-C.
-  ENABLE mouse-test slMousePointer btn-browse RECT-2 
+  ENABLE mouse-test RECT-2 slMousePointer btn-browse 
       WITH FRAME FRAME-C.
   {&OPEN-BROWSERS-IN-QUERY-FRAME-C}
 END PROCEDURE.

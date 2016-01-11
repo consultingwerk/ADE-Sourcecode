@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _search.w
@@ -403,7 +403,8 @@ do with frame {&FRAME-NAME}:
           end case.
           i = i + 1.
         end.  /* do while i <= 3 */
-                                             
+
+        IF error = 0 THEN
         assign
             cDate = substring(cDate, 1, 2) 
                   + "/" + substring(cDate, 3, 2) 
@@ -415,8 +416,7 @@ do with frame {&FRAME-NAME}:
                     + ":"
                     + string(file-sec,"99")
 
-            dateStr = string(modDate) + " " + modTime
-        .
+            dateStr = string(modDate) + " " + modTime.
         
         /*
          * Try to get the dates/teims to lineup. But never

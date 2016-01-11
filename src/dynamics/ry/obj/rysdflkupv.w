@@ -1,12 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Connected Databases 
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
@@ -28,6 +21,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/***********************************************************************
+* Copyright (C) 1984-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: rysdflkupv.w
 
@@ -107,6 +106,7 @@ DEFINE VARIABLE gcQueryTables          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcPhysicalTableNames   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcTempTableNames       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcViewerFields         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glAssigned             AS LOGICAL    NO-UNDO.
 
 /* temp-table for query field information */
 DEFINE TEMP-TABLE ttFields NO-UNDO
@@ -333,17 +333,17 @@ DEFINE VARIABLE fiRowsToBatch AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0
      VIEW-AS FILL-IN 
      SIZE 12 BY 1 TOOLTIP "Enter the number of rows to batch" NO-UNDO.
 
-DEFINE VARIABLE toDisplayField AS LOGICAL INITIAL no 
+DEFINE VARIABLE toDisplayField AS LOGICAL INITIAL NO 
      LABEL "Display field" 
      VIEW-AS TOGGLE-BOX
      SIZE 17.2 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toEnableField AS LOGICAL INITIAL no 
+DEFINE VARIABLE toEnableField AS LOGICAL INITIAL NO 
      LABEL "Enable field" 
      VIEW-AS TOGGLE-BOX
      SIZE 16.8 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toLabel AS LOGICAL INITIAL no 
+DEFINE VARIABLE toLabel AS LOGICAL INITIAL NO 
      LABEL "No-label" 
      VIEW-AS TOGGLE-BOX
      SIZE 12.8 BY .95 NO-UNDO.
@@ -361,22 +361,22 @@ DEFINE VARIABLE fiParentFilterQueryLabel AS CHARACTER FORMAT "X(256)":U INITIAL 
       VIEW-AS TEXT 
      SIZE 17.6 BY .62 NO-UNDO.
 
-DEFINE VARIABLE toBlankOnNotAvail AS LOGICAL INITIAL no 
+DEFINE VARIABLE toBlankOnNotAvail AS LOGICAL INITIAL NO 
      LABEL "Blank out invalid value" 
      VIEW-AS TOGGLE-BOX
      SIZE 53.2 BY .81 TOOLTIP "Blank out the lookup field when an entered value could not be found." NO-UNDO.
 
-DEFINE VARIABLE toPopupOnAmbiguous AS LOGICAL INITIAL no 
+DEFINE VARIABLE toPopupOnAmbiguous AS LOGICAL INITIAL NO 
      LABEL "Popup lookup browse on ambiguous find" 
      VIEW-AS TOGGLE-BOX
      SIZE 52.8 BY .81 TOOLTIP "Auto popup lookup browse when a value entered results in an ambiguous find." NO-UNDO.
 
-DEFINE VARIABLE toPopupOnNotAvail AS LOGICAL INITIAL no 
+DEFINE VARIABLE toPopupOnNotAvail AS LOGICAL INITIAL NO 
      LABEL "Popup lookup browse if no match could be found" 
      VIEW-AS TOGGLE-BOX
      SIZE 53.2 BY .81 TOOLTIP "Auto popup lookup browse when an invalid value was entered." NO-UNDO.
 
-DEFINE VARIABLE toPopupOnUniqueAmbiguous AS LOGICAL INITIAL no 
+DEFINE VARIABLE toPopupOnUniqueAmbiguous AS LOGICAL INITIAL NO 
      LABEL "Popup lookup browse on unique ambiguous find" 
      VIEW-AS TOGGLE-BOX
      SIZE 53.2 BY .81 TOOLTIP "Popup lookup browse when a value entered results in an unique ambiguous find." NO-UNDO.
@@ -452,23 +452,18 @@ DEFINE FRAME frMain
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1 SCROLLABLE .
 
-DEFINE FRAME frPage1
-     fiFieldDatatype AT ROW 1 COL 107.6 COLON-ALIGNED NO-TAB-STOP 
-     coKeyField AT ROW 1.1 COL 14.2 COLON-ALIGNED
-     fiFieldFormat AT ROW 2.05 COL 107.6 COLON-ALIGNED
-     coDisplayedField AT ROW 2.14 COL 14.2 COLON-ALIGNED
-     fiFieldWidth AT ROW 3.1 COL 107.6 COLON-ALIGNED
-     fiFieldLabel AT ROW 3.19 COL 14.2 COLON-ALIGNED
-     toEnableField AT ROW 3.19 COL 124.6
-     toLabel AT ROW 3.24 COL 79
-     fiRowsToBatch AT ROW 4.14 COL 107.6 COLON-ALIGNED
-     fiFieldToolTip AT ROW 4.24 COL 14.2 COLON-ALIGNED
-     toDisplayField AT ROW 4.24 COL 124.6
-     fiBrowseTitle AT ROW 5.29 COL 14.2 COLON-ALIGNED
+DEFINE FRAME frPage2
+     fiParentField AT ROW 1 COL 20.6 COLON-ALIGNED
+     EdParentFilterQuery AT ROW 2.05 COL 22.6 NO-LABEL
+     toPopupOnAmbiguous AT ROW 1 COL 92.6
+     toPopupOnUniqueAmbiguous AT ROW 1.81 COL 92.6
+     toPopupOnNotAvail AT ROW 2.57 COL 92.6
+     toBlankOnNotAvail AT ROW 3.38 COL 92.6
+     fiParentFilterQueryLabel AT ROW 2.1 COL 4.8 NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1.8 ROW 11.86
-         SIZE 145.2 BY 5.43.
+         AT COL 1.8 ROW 14.05
+         SIZE 145.2 BY 3.24.
 
 DEFINE FRAME frPage3
      buClearMap AT ROW 1.14 COL 129.8
@@ -487,18 +482,23 @@ DEFINE FRAME frPage3
          AT COL 1.8 ROW 11.86
          SIZE 145.2 BY 5.81.
 
-DEFINE FRAME frPage2
-     fiParentField AT ROW 1 COL 20.6 COLON-ALIGNED
-     EdParentFilterQuery AT ROW 2.05 COL 22.6 NO-LABEL
-     toPopupOnAmbiguous AT ROW 1 COL 92.6
-     toPopupOnUniqueAmbiguous AT ROW 1.81 COL 92.6
-     toPopupOnNotAvail AT ROW 2.57 COL 92.6
-     toBlankOnNotAvail AT ROW 3.38 COL 92.6
-     fiParentFilterQueryLabel AT ROW 2.1 COL 4.8 NO-LABEL
+DEFINE FRAME frPage1
+     fiFieldDatatype AT ROW 1 COL 107.6 COLON-ALIGNED NO-TAB-STOP 
+     coKeyField AT ROW 1.1 COL 14.2 COLON-ALIGNED
+     fiFieldFormat AT ROW 2.05 COL 107.6 COLON-ALIGNED
+     coDisplayedField AT ROW 2.14 COL 14.2 COLON-ALIGNED
+     fiFieldWidth AT ROW 3.1 COL 107.6 COLON-ALIGNED
+     fiFieldLabel AT ROW 3.19 COL 14.2 COLON-ALIGNED
+     toEnableField AT ROW 3.19 COL 124.6
+     toLabel AT ROW 3.24 COL 79
+     fiRowsToBatch AT ROW 4.14 COL 107.6 COLON-ALIGNED
+     fiFieldToolTip AT ROW 4.24 COL 14.2 COLON-ALIGNED
+     toDisplayField AT ROW 4.24 COL 124.6
+     fiBrowseTitle AT ROW 5.29 COL 14.2 COLON-ALIGNED
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1.8 ROW 14.05
-         SIZE 145.2 BY 3.24.
+         AT COL 1.8 ROW 11.86
+         SIZE 145.2 BY 5.43.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -509,7 +509,7 @@ DEFINE FRAME frPage2
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
    Add Fields to: Neither
-   Other Settings: PERSISTENT-ONLY COMPILE
+   Other Settings: PERSISTENT-ONLY
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -666,29 +666,18 @@ OPEN QUERY {&SELF-NAME} FOR EACH ttFields BY ttFields.cFieldName INDEXED-REPOSIT
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define BROWSE-NAME BrBrowse
-&Scoped-define SELF-NAME BrBrowse
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BrBrowse vTableWin
-ON LEAVE OF BrBrowse IN FRAME frMain
+ON "ROW-LEAVE" OF BrBrowse IN FRAME frMain
 DO:
-  /* We should re-build the displayed field list */
-  DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields  AS CHARACTER  NO-UNDO.
-  
-  DEFINE BUFFER bttFields FOR ttFields.
-
+  ASSIGN glAssigned = TRUE.
   RUN assignBrowseData.
-
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BrBrowse vTableWin
-ON ROW-LEAVE OF BrBrowse IN FRAME frMain
+ON 'VALUE-CHANGED':U OF ttFields.iBrowseFieldSeq,ttFields.lLinkedField,
+ttFields.cLinkedWidget,ttFields.cColumnLabels,ttFields.cColumnFormat IN BROWSE brBrowse
 DO:
-  APPLY "LEAVE":U TO SELF.
+    IF glTrackChanges THEN
+        PUBLISH "changesMade":U FROM ghContainerSource.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1269,7 +1258,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'af/sup2/afspfoldrw.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'FolderLabels':U + '&Details|&Other|Map F&ields' + 'TabFGcolor':U + 'Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + 'Dynamic Lookup Details|Other Details|Map fields from data source to widgets on the viewer' + 'TabHidden':U + 'no|no|no' + 'EnableStates':U + 'All|All|All' + 'DisableStates':U + 'All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '8' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'Tabs' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitObjectLayout':U ,
+             INPUT  'FolderLabels':U + '&Details|&Other|Map F&ields' + 'TabFGcolor':U + 'Default|Default|Default' + 'TabBGcolor':U + 'Default|Default|Default' + 'TabINColor':U + 'GrayText|GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + 'Dynamic Lookup Details|Other Details|Map fields from data source to widgets on the viewer' + 'TabHidden':U + 'no|no|no' + 'EnableStates':U + 'All|All|All' + 'DisableStates':U + 'All|All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '8' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'TabVisualization':U + 'Tabs' + 'PopupSelectionEnabled':U + 'yes' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_afspfoldrw ).
        RUN repositionObject IN h_afspfoldrw ( 10.71 , 1.40 ) NO-ERROR.
        RUN resizeObject IN h_afspfoldrw ( 7.05 , 146.40 ) NO-ERROR.
@@ -1284,7 +1273,7 @@ PROCEDURE adm-create-objects :
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10)|X(10)|X(70)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Maintenance DataObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiDataChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0|MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local_Maint_SDO>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10)|X(10)|X(70)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Maintenance DataObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiDataChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0|MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousYESPopupOnUniqueAmbiguousNOPopupOnNotAvailNOBlankOnNotAvailNOMappedFieldsUseCacheYESSuperProcedureDataSourceNameFieldName<Local_Maint_SDO>DisplayFieldYESEnableFieldYESLocalFieldYESHideOnInitNODisableOnInitNOObjectLayout':U ,
              OUTPUT hMaintenanceSDO ).
        RUN repositionObject IN hMaintenanceSDO ( 11.91 , 23.40 ) NO-ERROR.
        RUN resizeObject IN hMaintenanceSDO ( 1.00 , 70.00 ) NO-ERROR.
@@ -1299,7 +1288,7 @@ PROCEDURE adm-create-objects :
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj,
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10)|X(35)|X(70)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Maintenance ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local_Maint_Object>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitObjectLayout':U ,
+                     BY gsc_product.product_code BY gsc_product_module.product_module_code BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsgsc_product.product_code,gsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,character,character,character,characterBrowseFieldFormatsX(10)|X(35)|X(70)|X(35)|X(35)RowsToBatch200BrowseTitleLookup Maintenance ObjectViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousYESPopupOnUniqueAmbiguousNOPopupOnNotAvailNOBlankOnNotAvailNOMappedFieldsUseCacheYESSuperProcedureDataSourceNameFieldName<Local_Maint_Object>DisplayFieldYESEnableFieldYESLocalFieldYESHideOnInitNODisableOnInitNOObjectLayout':U ,
              OUTPUT hMaintenanceObject ).
        RUN repositionObject IN hMaintenanceObject ( 12.95 , 23.40 ) NO-ERROR.
        RUN resizeObject IN hMaintenanceObject ( 1.00 , 70.00 ) NO-ERROR.
@@ -1338,7 +1327,6 @@ PROCEDURE assignBrowseData :
   DEFINE VARIABLE cViewerLinkedWidgets  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumnLabels         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumnFormat         AS CHARACTER  NO-UNDO.
-
 
   DEFINE BUFFER bttFields FOR ttFields.
 
@@ -1549,7 +1537,9 @@ PROCEDURE assignValues :
      edMappedFields = "?":U THEN
     edMappedFields = "":U.
 
-  RUN assignBrowseData.
+  IF NOT glAssigned THEN
+      RUN assignBrowseData.
+  ASSIGN glAssigned = FALSE.
 
   ghDataTable:FIND-FIRST().
   IF NOT ghDataTable:AVAILABLE THEN
@@ -2105,6 +2095,8 @@ PROCEDURE pageSelected :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER piPageNum AS INTEGER    NO-UNDO.
 
+  DEFINE VARIABLE hLabel AS HANDLE NO-UNDO.
+
   CASE piPageNum:
     WHEN 1 THEN DO:
       {set FieldHidden TRUE hMaintenanceSDO}.
@@ -2119,6 +2111,13 @@ PROCEDURE pageSelected :
       ASSIGN FRAME frPage2:HIDDEN = FALSE.
       {set FieldHidden FALSE hMaintenanceSDO}.
       {set FieldHidden FALSE hMaintenanceObject}.
+      /*Fix for OE00090022. The label for the dynlookups is visible and not hidden, but it is
+        overlay for some frame making it do dissapear. Change the code that causes this bug could
+        be lead in regresions, se we just move the labels to the top.*/
+      ASSIGN hLabel = DYNAMIC-FUNCTION('getLabelHandle':U IN hMaintenanceSDO).
+      hLabel:MOVE-TO-TOP().
+      ASSIGN hLabel = DYNAMIC-FUNCTION('getLabelHandle':U IN hMaintenanceObject).
+      hLabel:MOVE-TO-TOP().
     END.
     WHEN 3 THEN DO:
       {set FieldHidden TRUE hMaintenanceSDO}.
@@ -2143,7 +2142,7 @@ PROCEDURE populateLookup :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER plValidateOnly AS LOGICAL    NO-UNDO.
-  
+
   DEFINE VARIABLE cQuery                      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cBufferList                 AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cValueList                  AS CHARACTER  NO-UNDO.
@@ -2508,11 +2507,11 @@ PROCEDURE queryBuilder :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lCancel   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iLoop     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cMessage  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton   AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE lCancel       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iLoop         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cMessage      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTblListEntry AS CHARACTER NO-UNDO.
   getFuncLibHandle().
 
   DO WITH FRAME frMain:
@@ -2553,21 +2552,30 @@ PROCEDURE queryBuilder :
            _OptionList  = "":U
            _OrdList     = "":U
            _TblOptList  = "":U
-           _TuneOptions = "":U.
-    DO iLoop = 1 TO {&MaxTbl}:
-      _JoinCode[iLoop] = "":U.
-    END.
-    DO iLoop = 1 TO {&MaxTbl}:
-      _Where[iLoop] = "":U.
-    END.
-    
+           _TuneOptions = "":U
+           _JoinCode    = "":U
+           _Where       = "":U.
+
     IF EdQuery:SCREEN-VALUE <> "":U THEN DO:
       ASSIGN _4GLQury     = EdQuery:SCREEN-VALUE + ":":U
-             _TblList     = REPLACE(seQueryTables:LIST-ITEMS,",":U,{&Sep1})
              _OptionList  = gcQueryBuilderOptionList
              _TblOptList  = gcQueryBuilderTableOptionList
              _TuneOptions = gcQueryBuilderTuneOptions
              _OrdList     = REPLACE(REPLACE(gcQueryBuilderOrderList,",":U,{&Sep1}),"^":U,{&Sep2}).
+
+      DO iLoop = 1 TO NUM-ENTRIES(seQueryTables:LIST-ITEMS):
+          ASSIGN cTblListEntry = TRIM(ENTRY(iLoop, EdQuery:SCREEN-VALUE, CHR(10))).
+
+          IF INDEX(cTblListEntry, " OF ") > 0 THEN
+               ASSIGN cTblListEntry = ENTRY(2, cTblListEntry, " ") + " " +
+                                      ENTRY(3, cTblListEntry, " ") + " " +
+                                      ENTRY(4, cTblListEntry, " ").
+          ELSE ASSIGN cTblListEntry = ENTRY(iLoop, seQueryTables:LIST-ITEMS).
+
+          ASSIGN _TblList = _TblList + cTblListEntry + {&Sep1}.
+      END.
+      ASSIGN _TblList = TRIM(_TblList, {&Sep1}).
+
       DO iLoop = 1 TO NUM-ENTRIES(gcQueryBuilderJoinCode):
         _JoinCode[iLoop] = ENTRY(iLoop,gcQueryBuilderJoinCode).
         IF iLoop > 1 AND
@@ -2874,7 +2882,6 @@ PROCEDURE setInfo :
            gcQueryBuilderTuneOptions     = phDataTable:BUFFER-FIELD('cQueryBuilderTuneOptions':U):BUFFER-VALUE
            gcQueryBuilderWhereClauses    = phDataTable:BUFFER-FIELD('cQueryBuilderWhereClauses':U):BUFFER-VALUE.
     glQueryBuilder = FALSE.
-    
     IF gcQueryBuilderWhereClauses <> "":U OR
        gcQueryBuilderJoinCode <> "":U THEN
       glQueryBuilder = TRUE.

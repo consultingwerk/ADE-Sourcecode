@@ -1,12 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/***********************************************************************
+* Copyright (C) 1984-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: ryctpshtsp.p
 
@@ -4997,7 +4996,11 @@ PROCEDURE saveContainer :
   DEFINE VARIABLE lErrorStatus              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lContinue                 AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hLastCallingProc          AS HANDLE     NO-UNDO.
- 
+
+  DEFINE VARIABLE lSaveWidgetIDFileName       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lUseDefaultWidgetIDFileName AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cWidgetIDFileName           AS CHARACTER NO-UNDO.
+
   ERROR-STATUS:ERROR = FALSE.
 
   DEFINE BUFFER ttObjectInstance FOR ttObjectInstance.
@@ -5030,6 +5033,27 @@ PROCEDURE saveContainer :
     /* When we are adding, a different object type could have been chosen, so make sure the attribute records are correct */
     IF {fnarg getUserProperty 'ContainerMode':U} = "ADD":U THEN
     DO:
+     GET-KEY-VALUE SECTION "ProAB":U KEY "WidgetIDSaveFileName":U VALUE lSaveWidgetIDFileName.
+     GET-KEY-VALUE SECTION "ProAB":U KEY "WidgetIDDefaultFileName":U VALUE lUseDefaultWidgetIDFileName.
+     IF CAN-DO("true,yes,on",lSaveWidgetIDFileName) AND
+        NOT CAN-DO("true,yes,on",lUseDefaultWidgetIDFileName) THEN     DO:
+         GET-KEY-VALUE SECTION "ProAB":U KEY "WidgetIDFileName":U VALUE cWidgetIDFileName.
+         IF cWidgetIDFileName NE ? AND cWidgetIDFileName NE "" THEN
+         DO:
+            CREATE ttAttributeValue.
+            ASSIGN ttAttributeValue.d_container_smartobject_obj = 0.0 /*ttSmartObject.d_smartobject_obj*/
+                   ttAttributeValue.d_primary_smartobject_obj   = ttSmartObject.d_smartobject_obj
+                   ttAttributeValue.d_object_instance_obj       = 0.0
+                   ttAttributeValue.d_smartobject_obj           = ttSmartObject.d_smartobject_obj
+                   ttAttributeValue.d_object_type_obj           = ttSmartObject.d_object_type_obj
+                   ttAttributeValue.c_attribute_label           = "WidgetIDFileName":U
+                   ttAttributeValue.d_customization_result_obj  = dCustomizationResultObj
+                   ttAttributeValue.c_action                    = "A":U
+                   ttAttributeValue.c_character_value           = cWidgetIDFileName
+                   ttAttributeValue.i_data_type                 = 1.
+         END.
+     END.
+
       FOR EACH ttAttributeValue NO-LOCK
          WHERE ttAttributeValue.d_container_smartobject_obj = 0.00
            AND ttAttributeValue.d_smartobject_obj           = ttSmartObject.d_smartobject_obj
@@ -5083,7 +5107,7 @@ PROCEDURE saveContainer :
                           INPUT-OUTPUT TABLE ttObjectMenuStructure)"
             &OnApp    = 'YES'
             &AutoKill = YES}
-  
+
   ASSIGN
       lErrorStatus = ERROR-STATUS:ERROR
       cReturnValue = RETURN-VALUE.
@@ -5130,7 +5154,7 @@ PROCEDURE saveContainer :
 
       PUBLISH "enableSearchLookups":U FROM TARGET-PROCEDURE (INPUT FALSE).
     END.
-    
+
     /* Set the handles of the TEMP-TABLES in the TARGET-PROCEDURE as user properties so the other procedures and viewers can have access them */
     DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttObjectMenuStructure":U, STRING(TEMP-TABLE ttObjectMenuStructure:DEFAULT-BUFFER-HANDLE)).
     DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttObjectInstance":U,      STRING(TEMP-TABLE ttObjectInstance:DEFAULT-BUFFER-HANDLE)).
@@ -5139,7 +5163,7 @@ PROCEDURE saveContainer :
     DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttSmartLink":U,           STRING(TEMP-TABLE ttSmartLink:DEFAULT-BUFFER-HANDLE)).
     DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttUiEvent":U,             STRING(TEMP-TABLE ttUiEvent:DEFAULT-BUFFER-HANDLE)).
     DYNAMIC-FUNCTION("setUserProperty":U IN TARGET-PROCEDURE, "ttPage":U,                STRING(TEMP-TABLE ttPage:DEFAULT-BUFFER-HANDLE)).
-    
+
     RUN displayContainerDetails IN TARGET-PROCEDURE (INPUT DYNAMIC-FUNCTION("getCurrentPage":U IN TARGET-PROCEDURE)).
 
     PUBLISH "updateTitle":U FROM TARGET-PROCEDURE.

@@ -35,12 +35,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DataLogicProcedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright (C) 2000-2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*---------------------------------------------------------------------------------
   File: rytemlogic.p
 
@@ -408,13 +405,13 @@ PROCEDURE writePreTransValidate :
   IF NOT AVAILABLE gsc_manager_type                                          AND
      LOOKUP(b_ryc_ui_event.action_target, "SELF,CONTAINER,ANYWHERE":U) EQ 0  THEN
       ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
-                          + {af/sup2/aferrortxt.i 'AF' '5' 'ryc_ui_event' 'action_target' "'action target'" "'The action type must either be a valid manager type or one of `SELF`,`CONTAINER` OR `ANYWHERE`.'"}.
+                          + {af/sup2/aferrortxt.i 'AF' '5' 'ryc_ui_event' 'action_target' "'action target'" "'The action type must either be a valid manager type or one of ~~'SELF~~',~~'CONTAINER~~' OR ~~'ANYWHERE~~'.'"}.
 
   /* If the action target is ANYWHERE, the action type must be PUBLISH. */
   IF b_ryc_ui_event.action_target EQ "ANYWHERE":U AND
      b_ryc_ui_event.action_type   NE "PUBLISH":U  THEN
       ASSIGN cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U)
-                          + {af/sup2/aferrortxt.i 'AF' '22' 'ryc_ui_event' 'action_target' "'action type'" "'`PUBLISH`'" "'action target of `ANYWHERE`'"}.
+                          + {af/sup2/aferrortxt.i 'AF' '22' 'ryc_ui_event' 'action_target' "'action type'" "'~~'PUBLISH~~''" "'action target of ~~'ANYWHERE~~''"}.
 
 
   ERROR-STATUS:ERROR = NO.

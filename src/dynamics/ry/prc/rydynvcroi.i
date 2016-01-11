@@ -1,4 +1,4 @@
-/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+/* Copyright © 1984-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ DEFINE VARIABLE lKeepPositions              AS LOGICAL              NO-UNDO.
 DEFINE VARIABLE iAttributeEntry             AS INTEGER              NO-UNDO.
 DEFINE VARIABLE cClassName                  AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE lLocalField                 AS LOGICAL              NO-UNDO.
-define variable cInstanceProperties         as character            no-undo.
+DEFINE VARIABLE cInstanceProperties         AS CHARACTER            NO-UNDO.
 
 DEFINE VARIABLE cPhysicalFilename AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cWidgetName       AS CHARACTER  NO-UNDO.
@@ -77,17 +77,20 @@ DEFINE VARIABLE iLabelBGColor     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLabelFgColor     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lUseThinRendering AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cSDFDataSource    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lUseWidgetID      AS LOGICAL    NO-UNDO.
 
 /* Is this viewer a generated object? If so, then we don't need
    to create the widgets dynamically, since they are created in the
    generated procedure itself.
  */
-if not can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') then
+IF NOT CAN-DO(TARGET-PROCEDURE:INTERNAL-ENTRIES, 'adm-assignObjectProperties') THEN
 do:
     /* Don't do this more than once. */
     IF {fn getObjectsCreated} THEN
         RETURN.
-    
+
+    ASSIGN lUseWidgetID = DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE).
+
     /* Get the InstanceID of the viewer. We use this to determine what the contained instances are.
      * Also, use the ObjectName property since this contains the instance name of this viewer (as opposed
      * to the object filename/logical object name). This is the name that is used to cache this object.
@@ -106,16 +109,16 @@ do:
     FOR EACH ttWidget WHERE ttWidget.tTargetProcedure = TARGET-PROCEDURE: 
       DELETE ttWidget. 
     END.
-    
+
     /* Give ourselves plenty of room to work with. */
     ASSIGN hDefaultFrame:SCROLLABLE           = YES
            hDefaultFrame:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT
            hDefaultFrame:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH
            hDefaultFrame:SCROLLABLE           = NO.
-    
+
     IF cDataSourceNames EQ ? THEN
         ASSIGN cDataSourceNames = "":U.
-    
+
     ASSIGN cPropertyNames = "ShowPopup":U.
     /* Pass in the instance Id to find the record because we want to get the
        right record, as quickly as possible.
@@ -127,11 +130,11 @@ do:
     ASSIGN lViewerShowPopup = LOGICAL(ENTRY(LOOKUP("ShowPopup":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
     IF lViewerShowPopup EQ ? THEN
         ASSIGN lViewerShowPopup = YES.
-    
+
     /* Determine whether the popup buttons should be in the field or not. */
     IF lPopupButtonInField EQ ? THEN
         ASSIGN lPopupButtonInField = NO.
-    
+
     IF NOT VALID-HANDLE(ghCacheObject) THEN
         RUN returnCacheBuffers IN gshRepositoryManager ( OUTPUT ghCacheObject,
                                                          OUTPUT ghCachePage,
@@ -139,22 +142,22 @@ do:
     /* Ain't gonna do nuttin' without the cache records. */
     IF NOT VALID-HANDLE(ghCacheObject) THEN
         RETURN.
-    
+
     /* Set defaults */
     ASSIGN lObjectTranslated        = NO
            gcErrorMessage           = "":U
            hDefaultFrame:SCROLLABLE = TRUE.
-    
+
     /* Now process the viewer widgets */
     IF NOT VALID-HANDLE(ghRenderingQuery) THEN
         CREATE QUERY ghRenderingQuery.
-    
+
     ghRenderingQuery:SET-BUFFERS(ghCacheObject).
     ghRenderingQuery:QUERY-PREPARE("FOR EACH ":U + ghCacheObject:NAME + " WHERE ":U
                                    + ghCacheObject:NAME + ".ContainerInstanceId = ":U + QUOTER(dInstanceId)
                                    + " BY ":U + ghCacheObject:NAME + ".Order ":U).
     ghRenderingQuery:QUERY-OPEN().
-    
+
     ghRenderingQuery:GET-FIRST().
     DO WHILE ghCacheObject:AVAILABLE:
         /* Get all the property values from the Repository.
@@ -163,7 +166,7 @@ do:
                cWidgetName     = ghCacheObject:BUFFER-FIELD("ObjectName":U):BUFFER-VALUE
                cPropertyNames  = "*":U
                cPropertyValues = "":U.
-        
+
         RUN getInstanceProperties IN gshRepositoryManager ( INPUT        STRING(dInstanceId),
                                                             INPUT        "":U,
                                                             INPUT-OUTPUT cPropertyNames,
@@ -174,9 +177,9 @@ do:
             ASSIGN gcErrorMessage  = (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
             LEAVE.
         END.    /* error retrieving properties. */
-        
+
         CREATE ttWidget.
-        
+
         /* We HAVE to re-initialize our variables to ensure we don't carry over the previous widget assignments */
         ASSIGN cPhysicalFilename  = ?
                dHeight            = ?
@@ -192,50 +195,50 @@ do:
                iLabelFont         = ?
                iLabelBGColor      = ?
                iLabelFgColor      = ?
-               
+
                ttWidget.tTargetProcedure   = TARGET-PROCEDURE.
-    
+
         /* We only want to reposition objects if translation occurred. To do this we will set this variable and check it before
            we run the extra code.
          */
         ASSIGN ttWidget.tTranslated = LOGICAL(ENTRY(LOOKUP("ObjectHasTranslation":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
         If ttWidget.tTranslated EQ ? THEN
             ASSIGN ttWidget.tTranslated = NO.
-        
+
         IF NOT lObjectTranslated 
         AND ttWidget.tTranslated THEN
             ASSIGN lObjectTranslated = TRUE.
-        
+
         /* Retrieve the security */
         ASSIGN cSecuredFields  = ENTRY(LOOKUP("FieldSecurity":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
         ASSIGN cSecuredTokens  = ENTRY(LOOKUP("SecuredTokens":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-        
+
         ASSIGN ttWidget.tWidgetType = ENTRY(LOOKUP("VisualizationType":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
         IF ttWidget.tWidgetType EQ "":U OR ttWidget.tWidgetType EQ ? THEN
           ASSIGN ttWidget.tWidgetType = "FILL-IN":U.
         ASSIGN cClassName = ENTRY(LOOKUP("ClassName":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-    
+
         ASSIGN ttWidget.tTabOrder = INTEGER(ENTRY(LOOKUP("Order":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.    
         ASSIGN ttWidget.tRow = DECIMAL(ENTRY(LOOKUP("Row":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
         ASSIGN ttWidget.tColumn = DECIMAL(ENTRY(LOOKUP("Column":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}))  NO-ERROR.
         ASSIGN ttWidget.tWidth = DECIMAL(ENTRY(LOOKUP("Width-Chars":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
         ASSIGN ttWidget.tFont = INTEGER(ENTRY(LOOKUP("Font":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
         ASSIGN ttWidget.tInitialValue = ENTRY(LOOKUP("InitialValue":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-        
+
         ASSIGN lDisplayField = LOGICAL(ENTRY(LOOKUP("DisplayField":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.    
         If lDisplayField EQ ? THEN 
             ASSIGN lDisplayField = NO.
-        
+
         ASSIGN dHeight = DECIMAL(ENTRY(LOOKUP("Height-Chars":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
-        
+
         /* Validation */
         IF ttWidget.tRow = ?    OR ttWidget.tRow = 0    THEN ASSIGN ttWidget.tRow = 1.
         IF ttWidget.tColumn = ? OR ttWidget.tColumn = 0 THEN ASSIGN ttWidget.tColumn = 1.       
         IF ttWidget.tWidth = ?  OR ttWidget.tWidth = 0  THEN ASSIGN ttWidget.tWidth = FONT-TABLE:GET-TEXT-WIDTH-CHARS("wwwwwwww":U, ttWidget.tFont).
         IF dHeight = ? OR dHeight = 0 THEN ASSIGN dHeight = 1.
-        
+
         ASSIGN ttWidget.tEndRow = ttWidget.tRow + dHeight.
-        
+
         /* Objects of type Procedure should be treated as static SDFs as far as possible. */
         IF DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, cClassName, "Field":U) OR
            DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, cClassName, "Procedure":U) THEN
@@ -248,7 +251,7 @@ do:
             ASSIGN lLocalField = LOGICAL(ENTRY(LOOKUP("LocalField":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.    
             IF lLocalField EQ ? THEN
                 ASSIGN lLocalField = NO.
-    
+
             ASSIGN lUseThinRendering = DYNAMIC-FUNCTION("getSessionParam":U IN TARGET-PROCEDURE,
                                                          INPUT "UseThinRendering":U ).
             ASSIGN cPhysicalFilename = IF lUseThinRendering THEN
@@ -258,17 +261,17 @@ do:
                not have been set and RenderingProcedure should be used. */
             IF (cPhysicalFilename EQ "":U OR cPhysicalFilename EQ ?) AND lUseThinRendering THEN
               ASSIGN cPhysicalFilename = ENTRY(LOOKUP("RenderingProcedure":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-    
+
             IF cPhysicalFilename EQ "":U OR cPhysicalFilename EQ ? THEN
                 ASSIGN cPhysicalFilename = ENTRY(LOOKUP("PhysicalObjectName":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-    
+
             /* Can't do very much without the rendering procedure ... */
             IF cPhysicalFilename EQ "":U OR cPhysicalFilename EQ ? THEN
             DO:
                 ghRenderingQuery:GET-NEXT().
                 NEXT.
             END.    /* no physical file */
-            
+
             /* Create the object.
                We set the current logical name to the InstanceID of the instance we are creating,
                so that the correct instance can be retrieved.
@@ -277,28 +280,28 @@ do:
             cInstanceProperties = 'LogicalObjectName' + chr(4)
                                 + ENTRY(LOOKUP("LogicalObjectName":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) 
                                 NO-ERROR.
-            
+
             RUN constructObject IN TARGET-PROCEDURE (INPUT  cPhysicalFilename,
                                                      INPUT  hDefaultFrame:HANDLE,
                                                      INPUT  cInstanceProperties,
                                                      OUTPUT hDataFieldProcedure ).
             {set CurrentLogicalName ''}.
-            
+
             RUN repositionObject IN hDataFieldProcedure (ttWidget.tRow, ttWidget.tColumn) NO-ERROR.
             RUN resizeObject     IN hDataFieldProcedure (dHeight, ttWidget.tWidth) NO-ERROR.
-            
+
             &SCOPED-DEFINE xp-assign
             {get Width dWidgetWidth hDataFieldProcedure}
             {get Height dWidgetHeight hDataFieldProcedure}
             {set FieldName cWidgetName hDataFieldProcedure}.
             &UNDEFINE xp-assign
-            
+
             /* Build lists of the fields to display and enable */
             IF lDisplayField AND NOT lLocalField THEN
               ASSIGN
                 cDisplayedFields = cDisplayedFields + cWidgetName + ",":U
                 cFieldHandles    = cFieldHandles + STRING(hDataFieldProcedure) + ",":U.    
-    
+
             IF lEnabled THEN
                 IF lLocalField THEN
                    ASSIGN 
@@ -308,7 +311,7 @@ do:
                    ASSIGN
                       cEnabledFields  = cEnabledFields + cWidgetName + ",":U
                       cEnabledHandles = cEnabledHandles + STRING(hDataFieldProcedure) + ",":U.
-            
+
             cSDFDataSource = ''.  
             {get DataSourceName cSDFDataSource hDataFieldProcedure} NO-ERROR.
             IF cSDFDataSource > '' THEN
@@ -322,7 +325,7 @@ do:
                                           + (IF cSecuredFields NE "":U THEN ENTRY(2, cSecuredFields) ELSE "":U) 
                    cAllFieldHandles       = cAllFieldHandles + STRING(hDataFieldProcedure) + ",":U
                    cAllFieldNames         = cAllFieldNames + cWidgetName + ",":U.
-    
+
         END.    /* render the SmartDataField */
         ELSE
         DO:
@@ -339,7 +342,7 @@ do:
             ASSIGN lEnabled = LOGICAL(ENTRY(LOOKUP("Enabled":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
             IF lEnabled EQ ? THEN
                 ASSIGN lEnabled = YES.
-            
+
             /* Only certain widget types with certain data types get to have
                popups added. In addition, only add popups if this frame supports
                them, as per the ShowPopup attribute of the viewer/frame.
@@ -354,22 +357,22 @@ do:
                 IF lShowPopup EQ ? THEN
                     ASSIGN lShowPopup = YES.
             END.    /* a fill-in of type dec or date */
-                            
+
             ASSIGN iLabelFont = INTEGER(ENTRY(LOOKUP("LabelFont":U, cPropertyNames), cPropertyValues, {&Value-Delimiter})) NO-ERROR.
-            
+
             /* Some widgets may not have the LABELS attribute. */        
             ASSIGN iAttributeEntry = LOOKUP("Labels":U, cPropertyNames).
             IF iAttributeEntry GT 0 THEN
                 ASSIGN lHasLabel = LOGICAL(ENTRY(iAttributeEntry, cPropertyValues, {&Value-Delimiter})) NO-ERROR.
             ELSE
                 ASSIGN lHasLabel = YES.
-            
+
             IF lHasLabel THEN
                 ASSIGN ttWidget.tLabel = TRIM(REPLACE(ENTRY(LOOKUP("Label":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}), ":":U, "":U)) NO-ERROR.
-            
+
             /* Assign the widget tablename */
             ASSIGN ttWidget.tTableName  = ENTRY(LOOKUP("TableName":U, cPropertyNames), cPropertyValues, {&Value-Delimiter}) NO-ERROR.
-            
+
             /* If the table name is a null, that means that this attribute does not exist 
                for the widget. In this case, this widget cannot be attached to an SDO and so 
                the table name should be set to blank (to indicate that it is not to be associated
@@ -383,26 +386,29 @@ do:
             IF cDataSourceNames EQ "":U OR
                DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, cClassName, "CalculatedField":U) THEN
                 ASSIGN ttWidget.tTableName = "RowObject":U.
-            
+
             /* Sanity check: make sure that we have a valid value. */
             IF ttWidget.tTableName EQ ? THEN
                 ASSIGN ttWidget.tTableName = "":U.           
-            
+
             ASSIGN hLabel = ?.
-            
+
             /* Now create the widget */
             CREATE VALUE(ttWidget.tWidgetType) hField
                 ASSIGN FRAME       = hDefaultFrame:HANDLE
                        NAME        = cWidgetName
                        ROW         = ttWidget.tRow
                        WIDTH-CHARS = ttWidget.tWidth.
-            
+
+            IF lUseWidgetID THEN
+                RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hField).
+
             /* Build lists of the fields to display and enable */
             IF lDisplayField AND ttWidget.tTableName > "":U THEN
               ASSIGN 
                 cDisplayedFields = cDisplayedFields + cWidgetName + ",":U 
                 cFieldHandles    = cFieldHandles + STRING(hField) + ",":U.
-            
+
             /* display field */
             IF lEnabled THEN
                 IF ttWidget.tTableName EQ "":U THEN
@@ -412,7 +418,7 @@ do:
                    ASSIGN
                       cEnabledFields  = cEnabledFields  + cWidgetName + ",":U
                       cEnabledHandles = cEnabledHandles + STRING(hField) + ",":U.
-            
+
             /* Set widget attributes */           
             /* CLOB must be visualized as longchar */
             IF cDataType = 'CLOB':U OR cDataType = 'LONGCHAR':U THEN 
@@ -447,7 +453,7 @@ do:
                 &PropertyValues       = cPropertyValues
                 &Value-Delimiter      = {&Value-Delimiter}
             }
-    
+
             /* Create a label for this widget. */
             IF ttWidget.tLabel <> ? THEN
             DO:
@@ -456,23 +462,38 @@ do:
                  * for displaying their labels. These will be handled separately in a following section */
                 IF CAN-SET(hField, "SIDE-LABEL-HANDLE":U) THEN 
                 DO:
-                    ASSIGN
-                      iLabelWidthP    = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttWidget.tLabel + ":":U, iLabelFont) + 3.
-                      dLabelMinHeight = IF hField:HEIGHT >= 1 
-                                        THEN 1
-                                        ELSE FONT-TABLE:GET-TEXT-HEIGHT(iLabelFont).
+                    ASSIGN iLabelWidthP = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttWidget.tLabel + ":":U, iLabelFont) + 3.
+
                     IF iLabelWidthP > 0 THEN
                     DO:
                         CREATE TEXT hLabel
                             ASSIGN FRAME        = hDefaultFrame
                                    FORMAT       = "x(":U + STRING(LENGTH(ttWidget.tLabel, "Column":U) + 1) + ")":U
-                                   HEIGHT-CHARS = MIN(hField:HEIGHT,dLabelMinHeight) 
                                    NAME         = "LABEL_":U + REPLACE(cWidgetName, ".":U, "_":U)
                                    TAB-STOP     = NO            /* Labels should never be in the tab order */
                                    ROW          = hField:ROW
-                                   SCREEN-VALUE = ttWidget.tLabel + ":":U
-                                   WIDTH-PIXELS = iLabelWidthP.
-                        
+                                   SCREEN-VALUE = ttWidget.tLabel + ":":U.
+
+                    ASSIGN hField:SIDE-LABEL-HANDLE = hLabel.
+
+                    /*The widget-id for the widget itself was set before, but then the widget didn't have the label assigned yet.
+                      So re-assigning the widget-id for the object also assigns the widget-id for its label, which should be
+                      the widget widget-id -1.
+                      Assign the widget-id only here causes two problems:
+                      1- Widget-id won't be assigned for widgets that don't have lables, like buttons.
+                      2- Core realizes combo-box and selection-lists when hField:HEIGHT-CHARS, above in the code is set, widget-id
+                         cannot be assigned to widgets already realized.*/
+                    IF lUseWidgetID THEN
+                        RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hField).
+
+                      /*Because HEIGHT-CHARS and WIDTH-PIXELS realize combo-box, editor and selection-list widgets
+                        we have to move those attributes after the widget-id is assigned.*/
+                      ASSIGN dLabelMinHeight = IF hField:HEIGHT >= 1 
+                                        THEN 1
+                                        ELSE FONT-TABLE:GET-TEXT-HEIGHT(iLabelFont)
+                             hLabel:HEIGHT-CHARS = MIN(hField:HEIGHT,dLabelMinHeight)
+                             hLabel:WIDTH-PIXELS = iLabelWidthP.
+
                         IF hField:X - hLabel:WIDTH-PIXELS > 0 THEN
                           ASSIGN hLabel:X = hField:X - hLabel:WIDTH-PIXELS.
                         ELSE
@@ -496,8 +517,7 @@ do:
                         
                         ASSIGN hLabel:FONT    = iLabelFont WHEN iLabelFont NE ?
                                hLabel:FGCOLOR = iLabelFgColor WHEN iLabelFgColor NE ?
-                               hLabel:BGCOLOR = iLabelBGColor WHEN iLabelBGColor NE ?
-                               hField:SIDE-LABEL-HANDLE = hLabel.
+                               hLabel:BGCOLOR = iLabelBGColor WHEN iLabelBGColor NE ?.
                         
                         /* When KCP = yes, make sure that the label doesn't overwrite any 
                            other widget. When KCP=no, then we will sort out the layout a 
@@ -518,7 +538,7 @@ do:
                                                     THEN MAX(hField:WIDTH-CHARS, FONT-TABLE:GET-TEXT-WIDTH-CHARS(hField:LABEL, hField:FONT) + 4)
                                                     ELSE hField:WIDTH-CHARS.
             END.  /* ttWidget.tlabel <> ? */
-    
+
             /* Text widgets are usually meant to display one piece of data, and are not generally used for displaying data from an SDO.
              * It is however, possible to display data from an SDO in a text widget. In this case, the format and value is taken from the
              * DataField. We know which fields these are because of the value of the DisplayField attre.
@@ -566,7 +586,9 @@ do:
                         TRIGGERS:
                             ON CHOOSE PERSISTENT RUN runLookup IN gshSessionManager (INPUT hField).
                         END TRIGGERS.
-        
+                    
+                    IF lUseWidgetID THEN
+                        RUN assignPopupWidgetID IN TARGET-PROCEDURE (INPUT hField, INPUT hPopup).
                     /* The lookup widget should be placed outside of the fill-in */
                     IF lPopupButtonInField = NO THEN
                         ASSIGN hPopup:HEIGHT-PIXELS = hField:HEIGHT-PIXELS - 4
@@ -628,7 +650,7 @@ do:
             ghRenderingQuery:GET-NEXT().
         END.    /* ttobject query  */
         ghRenderingQuery:QUERY-CLOSE().
-        
+
         /* Set the Enabled~ and DisplayedFields properties. */
         ASSIGN cAllFieldHandles   = RIGHT-TRIM(cAllFieldHandles, ",":U)
                cAllFieldNames     = RIGHT-TRIM(cAllFieldNames, ",":U)

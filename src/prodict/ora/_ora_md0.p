@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,7 +28,7 @@ History:
 
     mcmann      97/12/29    Removed reference to oracle 6
     mcmann      03/10/17    Add NO-LOCK statement to _Db find in support of on-line schema add
-
+    fernando    06/11/07    Unicode support
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -53,7 +53,7 @@ ASSIGN
                     then ora_codepage
                     else _Db._Db-xl-name
                  )
-  user_env[11] = "varchar2" /*(IF unicodeTypes THEN "nvarchar2" ELSE "varchar2") */
+  user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2")
   .
  
 /*------------------------------------------------------------------*/

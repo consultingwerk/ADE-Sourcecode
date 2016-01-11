@@ -37,6 +37,7 @@ DEFINE VARIABLE lStartDsc   AS LOGICAL   NO-UNDO.
 DEFINE STREAM instream.
 DEFINE STREAM outstream.
 
+DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -86,7 +87,8 @@ DEFINE STREAM outstream.
 
 /* ***************************  Main Block  *************************** */
 
-RUN adecomm/_tmpfile.p ("ws":U, ".tmp":U, OUTPUT pConverted).
+/* If the OEIDE is running use .html so that the untitled file name can use the .html extension. */
+RUN adecomm/_tmpfile.p ("ws":U, IF OEIDEIsRunning THEN ".html":U ELSE ".tmp":U, OUTPUT pConverted).
 
 INPUT STREAM instream FROM VALUE(pTemplate) NO-ECHO.
 OUTPUT STREAM outstream TO VALUE(pConverted).

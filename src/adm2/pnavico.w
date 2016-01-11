@@ -7,12 +7,12 @@ icons and are arranged horizontally."
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS P-Win 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: - pnavico.w
@@ -186,14 +186,14 @@ DEFINE RECTANGLE RECT-1
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Panel-Frame
-     Btn-First AT ROW 1.33 COL 2
-     Btn-Prev AT ROW 1.33 COL 6
-     Btn-Next AT ROW 1.33 COL 10
-     Btn-Last AT ROW 1.33 COL 14
-     RECT-1 AT ROW 1 COL 1
+     Btn-First AT ROW 1.33 COL 2  WIDGET-ID 2
+     Btn-Prev  AT ROW 1.33 COL 6  WIDGET-ID 4
+     Btn-Next  AT ROW 1.33 COL 10 WIDGET-ID 6
+     Btn-Last  AT ROW 1.33 COL 14 WIDGET-ID 8
+     RECT-1    AT ROW 1 COL 1     WIDGET-ID 10
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1 SCROLLABLE .
+         AT COL 1 ROW 1 SCROLLABLE WIDGET-ID 100.
 
 
 /* *********************** Procedure Settings ************************ */

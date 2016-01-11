@@ -268,8 +268,14 @@ CASE {&widgetBeingProcessed}:TYPE:
         IF LOOKUP("FgColor":U, {&PropertyNames}) GT 0 THEN
             ASSIGN {&widgetBeingProcessed}:FGCOLOR = INTEGER(ENTRY(LOOKUP("FgColor":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
         ASSIGN {&widgetBeingProcessed}:HELP = ENTRY(LOOKUP("Help":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter}) NO-ERROR.
+
         ASSIGN {&widgetBeingProcessed}:INNER-CHARS = INTEGER(ENTRY(LOOKUP("Inner-Chars":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
-        ASSIGN {&widgetBeingProcessed}:INNER-LINES = INTEGER(ENTRY(LOOKUP("Inner-Lines":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
+        
+        /* Avoid setting inner-lines to 0 as it resizes the widget (possibly an ABL default to keep minimum 3 inner-lines?) 
+           Inner lines is a valid attribute in the datafield class, but not in the dynSelection class */
+        IF LOOKUP("Inner-Lines":U, {&PropertyNames}) GT 0 
+        AND NOT CAN-DO("?,0,":U, ENTRY(LOOKUP("Inner-Lines":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) THEN
+          ASSIGN {&widgetBeingProcessed}:INNER-LINES = INTEGER(ENTRY(LOOKUP("Inner-Lines":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter})) NO-ERROR.
         
         IF LOOKUP("List-Item-Pairs":U, {&PropertyNames}) GT 0 AND
            ENTRY(LOOKUP("List-Item-Pairs":U, {&PropertyNames}), {&PropertyValues}, {&Value-Delimiter}) NE ? AND

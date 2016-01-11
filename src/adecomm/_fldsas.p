@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,6 +24,8 @@ Output Parameter:
 Author: Laura Stern
 
 Date Created: 04/02/93 
+
+History:    fernando   11/13/2007 Leave untouched fields alone - OE00150364
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -170,6 +172,17 @@ do ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE:
       	    GO of frame fld_string_attrs
       	    focus p_Buf._Label-SA.
 
+   /* leave any untouched field alone */
+   IF NOT p_ReadOnly THEN DO:
+        IF p_Buf._Label-SA = "" THEN
+           p_Buf._Label-SA = ?.
+        IF p_Buf._Col-label-SA  = "" THEN
+           p_Buf._Col-label-SA  = ?.
+        IF p_Buf._Format-SA = "" THEN
+           p_Buf._Format-SA = ?.
+        IF p_Buf._Initial-SA = "" THEN
+           p_Buf._Initial-SA = ?.
+   END.
    p_Modified = yes.
 end.
 

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -436,12 +436,12 @@ PROCEDURE generateObject :
 ACCESS_LEVEL=PUBLIC
      Purpose: 
   Parameters: pcObject - the name of the obejct to generate
-                      pcTemplateFilename - the template to use
-                      pcHookFilename - the hook procedure for the generation process
-                      pcLanguages - * or CSV list of languages
-                      pcResultCodes - a CSV list of codes; at least DEFAULT-RESULT-CODE needed
-                      pcSuperProcedureLocation - Inline,Property,Constructor
-                      pcGeneratedFileRoot - the root directory for generation
+              pcTemplateFilename - the template to use
+              pcHookFilename - the hook procedure for the generation process
+              pcLanguages - * or CSV list of languages
+              pcResultCodes - a CSV list of codes; at least DEFAULT-RESULT-CODE needed
+              pcSuperProcedureLocation - Inline,Property,Constructor
+              pcGeneratedFileRoot - the root directory for generation
               pcOptions - GenerateTranslations, GenerateSecurity,ThinRendering
               pcGeneratedObjectName - the name of the generated file
        Notes: 
@@ -482,8 +482,8 @@ ACCESS_LEVEL=PUBLIC
     dynamic-function('setTokenValue' in target-procedure, 'GenerateFileRoot', pcGeneratedFileRoot).
     
     /* Set options */
-    dynamic-function('setTokenValue' in target-procedure,
-                     'GenerateSecurity', can-do(pcOptions, 'GenerateSecurity')).
+    /* ALWAYS generate security */
+    dynamic-function('setTokenValue' in target-procedure, 'GenerateSecurity', True).
     dynamic-function('setTokenValue' in target-procedure,
                      'GenerateTranslations', can-do(pcOptions, 'GenerateTranslations')).
     dynamic-function('setTokenValue' in target-procedure,
@@ -747,7 +747,11 @@ ACCESS_LEVEL=PUBLIC
 ------------------------------------------------------------------------------*/
     define variable lSuper            as logical                    no-undo.
     
+    lSuper = Yes.
+    
     lSuper = super() no-error.
+    if lSuper eq ? then
+        lSuper = Yes.
     
     empty temp-table ttContext.
     
@@ -845,11 +849,13 @@ FUNCTION destroyGenerator RETURNS LOGICAL
   Purpose: Cleanup on generator destruction
         Notes:
 ------------------------------------------------------------------------------*/
-    define variable lSuper             as logical                no-undo.
+    define variable lSuper             as logical  initial ?     no-undo.
     define variable iLoop              as integer                no-undo.
     define variable hSuper             as handle                 no-undo.
     
     lSuper = super() no-error.
+    if lSuper eq ? then
+        lSuper = Yes.
     
     /* Remove all context. Do this via a function call since
        the context is available to the hook procedure, and it may
@@ -1132,13 +1138,14 @@ ACCESS_LEVEL=PUBLIC
   Purpose: Actions to perform before anything else happens.
         Notes:
 ------------------------------------------------------------------------------*/
-    define variable lSuper            as logical                    no-undo.
-    
+    define variable lSuper            as logical   initial ? no-undo.    
+   
     /* Remove all context. Do this via a function call since
        the context is available to the hook procedure, and it may
-       want to clear the context at some other point.
-     */
-    dynamic-function('clearContext' in target-procedure).
+       want to clear the context at some other point. */
+    lSuper = dynamic-function('clearContext' in target-procedure).
+    if lSuper eq ? then
+        lSuper = yes. 
     
     /* Remove the other internal generation temp tables */
     empty temp-table ttTemplate.
@@ -1149,7 +1156,7 @@ ACCESS_LEVEL=PUBLIC
     lSuper = super() no-error.    
     if lSuper eq ? then
         lSuper = yes.
-    
+
     error-status:error = no.
     return (lSuper ne no).
 END FUNCTION.    /* initializeGenerator */

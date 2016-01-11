@@ -331,7 +331,7 @@ PROCEDURE dataLookup :
  IF pcType= "Dynamics":U AND _DynamicsIsRunning THEN
  DO:
    RUN adecomm/_setcurs.p ("WAIT":U).
-   RUN ry/obj/gopendialog.w (INPUT CURRENT-WINDOW,
+   RUN adeuib/_opendialog.w (INPUT CURRENT-WINDOW,
                              INPUT "",
                              INPUT No,
                              INPUT "Get Object",

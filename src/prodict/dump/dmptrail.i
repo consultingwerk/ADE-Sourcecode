@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,13 +29,15 @@ included in:
     
 history:
     hutegger    94/03/02    creation
+    fernando    Jun 19,2007 Support for large files
     
 */
 /*------------------ begin Trailer-INFO ------------------*/
+  DEFINE VARIABLE i64       AS INT64   NO-UNDO.
 
   PUT {&stream} UNFORMATTED "." SKIP.
   
-  i = SEEK({&seek-stream}).
+  i64 = SEEK({&seek-stream}).
   
   PUT {&stream} UNFORMATTED "PSC" SKIP.
   
@@ -45,11 +47,17 @@ history:
     ( if user_env[5] = "<internal defaults apply>"
        then "UNDEFINED"
        else user_env[5] 
-     )                                          SKIP.
+     ) SKIP.
    
   PUT {&stream} UNFORMATTED
-    "." SKIP
-      STRING(i,"9999999999") SKIP. /* location of trailer */
+    "." SKIP .
+
+  /* location of trailer */
+  IF i64 > 9999999999 THEN
+      PUT {&stream} UNFORMATTED STRING(i64) SKIP.
+  ELSE
+      PUT {&stream} UNFORMATTED STRING(i64,"9999999999") SKIP.
+
 
 /*------------------ end   Trailer-INFO ------------------*/
 

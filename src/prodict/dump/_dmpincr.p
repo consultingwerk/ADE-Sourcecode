@@ -78,6 +78,8 @@ History:
     fernando    06/12/06    Support for int64 - allow int->int64 type change
     fernando    08/16/06    raw comparison when checking if char values are different - 20060301-002
     fernando    02/27/2007  Added case for critical field change - OE00147106   
+    fernando    08/10/2007 Close error stream when area mismatch error is detected - OE00136202
+    fernando    11/12/07    Ignore blank -sa fields during incremental - OE00150364
 */
 /*h-*/
 
@@ -240,6 +242,8 @@ FUNCTION checkRenameField RETURNS CHARACTER (  /* 02/01/29 vap (IZ# 1525) */
 FUNCTION checkRenameSequence RETURNS CHARACTER (  /* 02/01/29 vap (IZ# 1525) */
                              INPUT pcRenameFrom   AS CHARACTER ,
                              INPUT pcRenameToList AS CHARACTER ) IN h_dmputil.
+
+FUNCTION CHECK_SA_FIELDS RETURNS LOGICAL (INPUT c1 AS CHAR, INPUT c2 AS CHAR) FORWARD.
 
 /* mainline code **********************************************************/
 
@@ -833,7 +837,10 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR COMPARE(DICTDB._Field._Format,"NE",DICTDB2._Field._Format,"RAW") THEN 
         ddl[3] = "  FORMAT " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Format-SA,'"',OUTPUT c).
-      IF NOT l OR COMPARE(DICTDB._Field._Format-SA,"NE",DICTDB2._Field._Format-SA,"RAW") THEN
+      IF NOT l OR 
+          /* ignore this field if they are a combination of ? and empty strings */
+          (CHECK_SA_FIELDS(DICTDB._Field._Format-SA,DICTDB2._Field._Format-SA) AND 
+          COMPARE(DICTDB._Field._Format-SA,"NE",DICTDB2._Field._Format-SA,"RAW")) THEN
         ddl[4] = "  FORMAT-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Initial,'"',OUTPUT c).
       IF NOT l OR DICTDB._Field._Field-rpos <> DICTDB2._Field._Field-rpos THEN 
@@ -841,7 +848,10 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR COMPARE(DICTDB._Field._Initial,"NE",DICTDB2._Field._Initial,"RAW") THEN
         ddl[6] = "  INITIAL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Initial-SA,'"',OUTPUT c).
-      IF NOT l OR COMPARE(DICTDB._Field._Initial-SA,"NE",DICTDB2._Field._Initial-SA,"RAW") THEN
+      IF NOT l OR 
+           /* ignore this field if they are a combination of ? and empty strings */
+           (CHECK_SA_FIELDS(DICTDB._Field._Initial-SA,DICTDB2._Field._Initial-SA) AND 
+             COMPARE(DICTDB._Field._Initial-SA,"NE",DICTDB2._Field._Initial-SA,"RAW")) THEN
         ddl[7] = "  INITIAL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Help,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Help,"NE",DICTDB2._Field._Help,"RAW") THEN
@@ -853,14 +863,19 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR COMPARE(DICTDB._Field._Label,"NE",DICTDB2._Field._Label,"RAW") THEN
         ddl[10] = "  LABEL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Label-SA,'"',OUTPUT c).
-      IF NOT l OR COMPARE(DICTDB._Field._Label-SA,"NE",DICTDB2._Field._Label-SA,"RAW") THEN
+      IF NOT l OR 
+             /* ignore this field if they are a combination of ? and empty strings */
+             (CHECK_SA_FIELDS(DICTDB._Field._Label-SA,DICTDB2._Field._Label-SA) AND 
+             COMPARE(DICTDB._Field._Label-SA,"NE",DICTDB2._Field._Label-SA,"RAW")) THEN
         ddl[11] = "  LABEL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Col-label,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Col-label,"NE",DICTDB2._Field._Col-label,"RAW") THEN
         ddl[12] = "  COLUMN-LABEL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Col-label-SA,'"',OUTPUT c).
       IF NOT l OR 
-               COMPARE(DICTDB._Field._Col-label-SA,"NE",DICTDB2._Field._Col-label-SA,"RAW") THEN
+              /* ignore this field if they are a combination of ? and empty strings */
+              (CHECK_SA_FIELDS(DICTDB._Field._Col-label-SA,DICTDB2._Field._Col-label-SA) AND 
+               COMPARE(DICTDB._Field._Col-label-SA,"NE",DICTDB2._Field._Col-label-SA,"RAW")) THEN
         ddl[13] = "  COLUMN-LABEL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Can-Read,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Can-read,"NE",DICTDB2._Field._Can-read,"RAW") THEN
@@ -937,6 +952,7 @@ DO ON STOP UNDO, LEAVE:
                  "and Blob Field " + '"' + DICTDB2._Field._Field-name + '"' +
                  new_lang[11] + '"' + LDBNAME("DICTDB2") + '"'   SKIP
                 "are not in the same area." SKIP(1).
+          OUTPUT STREAM err-log CLOSE.
           
           ASSIGN s_errorsLogged = TRUE.
         END.        
@@ -1638,3 +1654,12 @@ SESSION:IMMEDIATE-DISPLAY = no.
 IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
   run adecomm/_setcurs.p ("").
 RETURN.
+
+FUNCTION CHECK_SA_FIELDS RETURNS LOGICAL (INPUT c1 AS CHAR, INPUT c2 AS CHAR) :
+
+    /* ignore this field if they are a combination of ? and empty strings */
+    RETURN 
+            ( NOT (c1 EQ '' AND c2 EQ ?) AND 
+              NOT (c1 EQ ? AND c2 EQ '')).
+
+END FUNCTION.

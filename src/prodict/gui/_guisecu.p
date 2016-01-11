@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -15,6 +15,7 @@
    History:  D. McMann changed length of text fields to x(500)
              
              03/13/06 fernando Using temp-table instead of cache_file - bug 20050930-006.
+             12/14/07 fernando Fixed example
 
 -------------------------------------------------------------------*/
 
@@ -129,7 +130,7 @@ ASSIGN msgSecu1:SCREEN-VALUE =
 ASSIGN msgSecu2:SCREEN-VALUE = 
    "" + cr +
    "*" + cr +
-   "!<u1>,*" + cr +
+   "!u1,*" + cr +
    "ab*" + cr +
    "".
 

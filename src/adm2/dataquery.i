@@ -21,7 +21,7 @@
 &ENDIF
 
 &IF "{&ADMClass}":U = "dataquery":U &THEN
-  {adm2/dataqueryprop.i}
+  {src/adm2/dataqueryprop.i}
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */

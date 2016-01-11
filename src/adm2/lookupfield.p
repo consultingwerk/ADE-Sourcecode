@@ -26,7 +26,9 @@
 /* Custom exclude file */
 {src/adm2/custom/lookupfieldexclcustom.i}
 
-DEFINE VARIABLE glUseNewAPI    AS LOGICAL    NO-UNDO INIT TRUE.
+/* glUsenewAPI is conditionally defined in smrtprop.i based on &admSUPER names
+   and can be used in and below the main-block in this super */
+   
 DEFINE VARIABLE gcCacheOptions AS CHARACTER  NO-UNDO INIT 'ALL':U.
 
 /* Create copies of the lookup and combo temp tables */
@@ -865,12 +867,8 @@ SUBSCRIBE TO "RepositoryCacheCleared":U ANYWHERE.
 SUBSCRIBE TO "returnCacheManager":U ANYWHERE.
 
 IF VALID-HANDLE(gshSessionManager) THEN
-DO:
-  glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
-                                     'keep_old_field_api':U) = 'YES':U).
   gcCacheOptions = DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
                                     'field_cache_options':U).
-END.
 
 IF gcCacheOptions = ? OR gcCacheOptions = '':U THEN
   gcCacheOptions = 'ALL':U.
@@ -2164,29 +2162,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyField Procedure 
-FUNCTION getKeyField RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Returns the name of the key field
-    Notes:   
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyField AS CHARACTER NO-UNDO.
-  &scoped-define xpKeyField
-  {get KeyField cKeyField}.
-  &undefine xpKeyField
-  
-  RETURN cKeyField.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getKeyFormat) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFormat Procedure 
@@ -3299,28 +3274,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyField Procedure 
-FUNCTION setKeyField RETURNS LOGICAL
-  ( pcKeyField AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Stores the name of the key field
-Parameters: INPUT pcKeyField - fieldname    
-    Notes:   
-------------------------------------------------------------------------------*/
-  &SCOPED-DEFINE xpKeyField
-  {set KeyField pcKeyField}.
-  &UNDEFINE xpKeyField
-  
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-setKeyFormat) = 0 &THEN
 

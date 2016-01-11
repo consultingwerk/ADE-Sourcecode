@@ -86,17 +86,7 @@ DO:
     RUN error-message (lv-errgrp, lv-errnum, lv-include).
 END.
 
-
-
-
-
-
-
-/* Update Audit Log */
-IF CAN-FIND(FIRST gsc_entity_mnemonic
-            WHERE gsc_entity_mnemonic.entity_mnemonic = 'gstad':U
-              AND gsc_entity_mnemonic.auditing_enabled = YES) THEN
-  RUN af/app/afauditlgp.p (INPUT "CREATE":U, INPUT "gstad":U, INPUT BUFFER gst_audit:HANDLE, INPUT BUFFER o_gst_audit:HANDLE).
+/* NO audit log updates for the Auditing table - will get us in a bunch of recursion trouble. */
 
 /* Standard bottom of CREATE trigger code */
 {af/sup/aftrigendc.i}

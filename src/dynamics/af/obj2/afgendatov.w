@@ -81,7 +81,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartObject yes
 
 {src/adm2/globals.i}
-{adeuib/sharvars.i}
 
 DEFINE VARIABLE ghContainerSource                       AS HANDLE                   NO-UNDO.
 DEFINE VARIABLE ghHeaderInfoBuffer                      AS HANDLE                   NO-UNDO.
@@ -888,15 +887,15 @@ PROCEDURE setPreferences :
                                            OUTPUT cPrefData).     /* Found profile data.   */
   IF cPrefData <> ? AND
      cPrefData <> "":U THEN DO:
-    cSDOType = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_Type":U,cPrefData,TRUE,CHR(3)).
-    cSDOPM   = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_PM":U,cPrefData,TRUE,CHR(3)).
-    cSDOSuf  = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"OG_SDO_Suf":U,cPrefData,TRUE,CHR(3)).
-    cSDOSort = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_Sort":U,cPrefData,TRUE,CHR(3)).
-    lSDOFlw  = LOGICAL(DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_Follow":U,cPrefData,TRUE,CHR(3))).
-    cSDOAps  = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_ApsPart":U,cPrefData,TRUE,CHR(3)).
-    cDLPType = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"DLP_Type":U,cPrefData,TRUE,CHR(3)).
-    cDLPPM   = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDO_DlpPM":U,cPrefData,TRUE,CHR(3)).
-    cDLPSuf  = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"OG_SDO_DLPSuf":U,cPrefData,TRUE,CHR(3)).
+    cSDOType = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_Type":U,cPrefData,TRUE,CHR(3)).
+    cSDOPM   = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_PM":U,cPrefData,TRUE,CHR(3)).
+    cSDOSuf  = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"OG_SDO_Suf":U,cPrefData,TRUE,CHR(3)).
+    cSDOSort = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_Sort":U,cPrefData,TRUE,CHR(3)).
+    lSDOFlw  = LOGICAL(DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_Follow":U,cPrefData,TRUE,CHR(3))).
+    cSDOAps  = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_ApsPart":U,cPrefData,TRUE,CHR(3)).
+    cDLPType = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"DLP_Type":U,cPrefData,TRUE,CHR(3)).
+    cDLPPM   = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDO_DlpPM":U,cPrefData,TRUE,CHR(3)).
+    cDLPSuf  = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"OG_SDO_DLPSuf":U,cPrefData,TRUE,CHR(3)).
     
     DO WITH FRAME {&FRAME-NAME}:
       IF cSDOType <> ? AND

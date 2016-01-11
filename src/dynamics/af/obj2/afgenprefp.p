@@ -71,7 +71,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-DynamicSmartDataViewer yes
 
 {src/adm2/globals.i}
-{adeuib/sharvars.i}
 
 DEFINE VARIABLE gcAllFieldNames           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcAllFieldHandles         AS CHARACTER  NO-UNDO.
@@ -223,39 +222,39 @@ PROCEDURE assignFieldHandles :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  ASSIGN hSDOObjectType = getFieldHandle("coSDOType":U)
-         hSDOProdMod    = getFieldHandle("cSDOProdMod":U)
-         hSDOSuffix     = getFieldHandle("fiSDOSuffix":U)
-         hSDOSortOrder  = getFieldHandle("raSort":U)
-         hSDOOverWrite  = getFieldHandle("toPromptSDOOvrWrt":U)
-         hFollowJoins   = getFieldHandle("toFollow":U)
-         hAppServPart   = getFieldHandle("coAppServer":U)
+  ASSIGN hSDOObjectType = {fnarg getFieldHandle 'coSDOType'}
+         hSDOProdMod    = {fnarg getFieldHandle 'cSDOProdMod'}
+         hSDOSuffix     = {fnarg getFieldHandle 'fiSDOSuffix'}
+         hSDOSortOrder  = {fnarg getFieldHandle 'raSort'}
+         hSDOOverWrite  = {fnarg getFieldHandle 'toPromptSDOOvrWrt'}
+         hFollowJoins   = {fnarg getFieldHandle 'toFollow'}
+         hAppServPart   = {fnarg getFieldHandle 'coAppServer'}
 
-         hDlpObjectType = getFieldHandle("coDlpType":U)
-         hDlpProdMod    = getFieldHandle("cDlpProdMod":U)
-         hDlpSuffix     = getFieldHandle("fiDlpSuffix":U)
+         hDlpObjectType = {fnarg getFieldHandle 'coDlpType'}
+         hDlpProdMod    = {fnarg getFieldHandle 'cDlpProdMod'}
+         hDlpSuffix     = {fnarg getFieldHandle 'fiDlpSuffix'}
 
-         hDflObjectType = getFieldHandle("coDflType":U)
-         hDflProdMod    = getFieldHandle("cDflProdMod":U)
+         hDflObjectType = {fnarg getFieldHandle 'coDflType'}
+         hDflProdMod    = {fnarg getFieldHandle 'cDflProdMod'}
 
-         hSDBObjectType = getFieldHandle("coSDBType":U)
-         hSDBProdMod    = getFieldHandle("cSDBProdMod":U)
-         hSDBSuffix     = getFieldHandle("fiSDBSuffix":U)
+         hSDBObjectType = {fnarg getFieldHandle 'coSDBType'}
+         hSDBProdMod    = {fnarg getFieldHandle 'cSDBProdMod'}
+         hSDBSuffix     = {fnarg getFieldHandle 'fiSDBSuffix'}
 
-         hSDVObjectType = getFieldHandle("coSDVType":U)
-         hSDVProdMod    = getFieldHandle("cSDVProdMod":U)
-         hSDVSuffix     = getFieldHandle("fiSDVSuffix":U).
+         hSDVObjectType = {fnarg getFieldHandle 'coSDVType'}
+         hSDVProdMod    = {fnarg getFieldHandle 'cSDVProdMod'}
+         hSDVSuffix     = {fnarg getFieldHandle 'fiSDVSuffix'}.
   
   IF NOT VALID-HANDLE(hSDOProdMod) THEN
-    hSDOProdMod = getFieldHandle("hSDOProdMod":U).
+    hSDOProdMod = {fnarg getFieldHandle 'hSDOProdMod'}.
   IF NOT VALID-HANDLE(hDlpProdMod) THEN
-    hDlpProdMod = getFieldHandle("hDlpProdMod":U).
+    hDlpProdMod = {fnarg getFieldHandle 'hDlpProdMod'}.
   IF NOT VALID-HANDLE(hDflProdMod) THEN
-    hDflProdMod = getFieldHandle("hDflProdMod":U).
+    hDflProdMod = {fnarg getFieldHandle 'hDflProdMod'}.
   IF NOT VALID-HANDLE(hSDBProdMod) THEN
-    hSDBProdMod = getFieldHandle("hSDBProdMod":U).
+    hSDBProdMod = {fnarg getFieldHandle 'hSDBProdMod'}.
   IF NOT VALID-HANDLE(hSDVProdMod) THEN
-    hSDVProdMod = getFieldHandle("hSDVProdMod":U).
+    hSDVProdMod = {fnarg getFieldHandle 'hSDVProdMod'}.
 
 END PROCEDURE.
 
@@ -311,38 +310,38 @@ PROCEDURE getPreferenceDetails :
     RUN setDefaultsAll IN TARGET-PROCEDURE.
   ELSE DO:
     
-    hSDOObjectType:SCREEN-VALUE = retrieveValue("SDO_Type").
-    hSDOSuffix:SCREEN-VALUE     = retrieveValue("OG_SDO_Suf").
-    hSDOSortOrder:SCREEN-VALUE  = IF retrieveValue("SDO_Sort") <> ? THEN retrieveValue("SDO_Sort") ELSE "Order".
-    hSDOOverWrite:CHECKED       = IF LOGICAL(retrieveValue("SDO_OvrWrt")) <> ? THEN LOGICAL(retrieveValue("SDO_OvrWrt")) ELSE TRUE.
-    hFollowJoins:CHECKED        = IF LOGICAL(retrieveValue("SDO_Follow")) <> ? THEN LOGICAL(retrieveValue("SDO_Follow")) ELSE TRUE.
-    hAppServPart:SCREEN-VALUE   = retrieveValue("SDO_ApsPart").
-    hDlpObjectType:SCREEN-VALUE = retrieveValue("DLP_type").
-    hDlpSuffix:SCREEN-VALUE     = retrieveValue("OG_SDO_DlpSuf").
-    hDflObjectType:SCREEN-VALUE = retrieveValue("DFL_Type").
-    hSDBObjectType:SCREEN-VALUE = retrieveValue("SDB_Type").
-    hSDBSuffix:SCREEN-VALUE     = retrieveValue("OG_SDB_Suf").
-    hSDVObjectType:SCREEN-VALUE = retrieveValue("SDV_Type").
-    hSDVSuffix:SCREEN-VALUE     = retrieveValue("OG_SDV_Suf").
+    hSDOObjectType:SCREEN-VALUE = {fnarg retrieveValue 'SDO_Type'}.
+    hSDOSuffix:SCREEN-VALUE     = {fnarg retrieveValue 'OG_SDO_Suf'}.
+    hSDOSortOrder:SCREEN-VALUE  = IF {fnarg retrieveValue 'SDO_Sort'} <> ? THEN {fnarg retrieveValue 'SDO_Sort'} ELSE "Order".
+    hSDOOverWrite:CHECKED       = IF LOGICAL({fnarg retrieveValue 'SDO_OvrWrt'}) <> ? THEN LOGICAL({fnarg retrieveValue 'SDO_OvrWrt'}) ELSE TRUE.
+    hFollowJoins:CHECKED        = IF LOGICAL({fnarg retrieveValue 'SDO_Follow'}) <> ? THEN LOGICAL({fnarg retrieveValue 'SDO_Follow'}) ELSE TRUE.
+    hAppServPart:SCREEN-VALUE   = {fnarg retrieveValue 'SDO_ApsPart'}.
+    hDlpObjectType:SCREEN-VALUE = {fnarg retrieveValue 'DLP_type'}.
+    hDlpSuffix:SCREEN-VALUE     = {fnarg retrieveValue 'OG_SDO_DlpSuf'}.
+    hDflObjectType:SCREEN-VALUE = {fnarg retrieveValue 'DFL_Type'}.
+    hSDBObjectType:SCREEN-VALUE = {fnarg retrieveValue 'SDB_Type'}.
+    hSDBSuffix:SCREEN-VALUE     = {fnarg retrieveValue 'OG_SDB_Suf'}.
+    hSDVObjectType:SCREEN-VALUE = {fnarg retrieveValue 'SDV_Type'}.
+    hSDVSuffix:SCREEN-VALUE     = {fnarg retrieveValue 'OG_SDV_Suf'}.
     
     IF hSDOSuffix:SCREEN-VALUE = ? OR
        hSDOSuffix:SCREEN-VALUE = "?":U THEN
-      setDefaultValue("SDOSUFFIX").
+      {fnarg setDefaultValue 'SDOSUFFIX'}.
     IF hDlpSuffix:SCREEN-VALUE = ? OR
        hDlpSuffix:SCREEN-VALUE = "?":U THEN
-      setDefaultValue("DLPSUFFIX").
+      {fnarg setDefaultValue 'DLPSUFFIX'}.
     IF hSDBSuffix:SCREEN-VALUE = ? OR
        hSDBSuffix:SCREEN-VALUE = "?":U THEN
-      setDefaultValue("SDBSUFFIX").
+      {fnarg setDefaultValue 'SDBSUFFIX'}.
     IF hSDVSuffix:SCREEN-VALUE = ? OR
        hSDVSuffix:SCREEN-VALUE = "?":U THEN
-      setDefaultValue("SDVSUFFIX").
+      {fnarg setDefaultValue 'SDVSUFFIX'}.
 
-    DYNAMIC-FUNCTION("setDataValue":U IN hSDOProdMod, retrieveValue("SDO_PM")).
-    DYNAMIC-FUNCTION("setDataValue":U IN hDlpProdMod, retrieveValue("SDO_DlpPM")).
-    DYNAMIC-FUNCTION("setDataValue":U IN hDflProdMod, retrieveValue("DFL_PM")).
-    DYNAMIC-FUNCTION("setDataValue":U IN hSDBProdMod, retrieveValue("SDB_PM")).
-    DYNAMIC-FUNCTION("setDataValue":U IN hSDVProdMod, retrieveValue("SDV_PM")).
+    DYNAMIC-FUNCTION("setDataValue":U IN hSDOProdMod, {fnarg retrieveValue 'SDO_PM'}).
+    DYNAMIC-FUNCTION("setDataValue":U IN hDlpProdMod, {fnarg retrieveValue 'SDO_DlpPM'}).
+    DYNAMIC-FUNCTION("setDataValue":U IN hDflProdMod, {fnarg retrieveValue 'DFL_PM'}).
+    DYNAMIC-FUNCTION("setDataValue":U IN hSDBProdMod, {fnarg retrieveValue 'SDB_PM'}).
+    DYNAMIC-FUNCTION("setDataValue":U IN hSDVProdMod, {fnarg retrieveValue 'SDV_PM'}).
     
     IF DYNAMIC-FUNCTION("getDataValue":U IN hSDOProdMod) = ? THEN
       RUN valueChanged IN hSDOProdMod.
@@ -581,14 +580,15 @@ PROCEDURE updateRecord :
             (IF hSDVObjectType:SCREEN-VALUE <> ?                       THEN hSDVObjectType:SCREEN-VALUE                       ELSE "":U) + CHR(3) + 
             (IF DYNAMIC-FUNCTION("getDataValue":U IN hSDVProdMod) <> ? THEN DYNAMIC-FUNCTION("getDataValue":U IN hSDVProdMod) ELSE "":U) + CHR(3) + 
             (IF hSDVSuffix:SCREEN-VALUE <> ?                           THEN hSDVSuffix:SCREEN-VALUE                           ELSE "":U). 
-  
-  gcPrefData = DYNAMIC-FUNCTION("assignMappedEntry" IN _h_func_lib,
-               cEntries,           /* 18 Names         */
-               gcPrefData,         /* String to Change */
-               cValues,            /* 18 Vlaues        */
-               CHR(3),             /* Delimiter        */
-               TRUE).              /* Name then Value  */
-  
+    
+    /* build merged list */
+    gcPrefData = DYNAMIC-FUNCTION("assignMappedEntry" IN target-procedure,
+                   cEntries,           /* 18 Names         */
+                   gcPrefData,         /* String to Change */
+                   cValues,            /* 18 Vlaues        */
+                   CHR(3),             /* Delimiter        */
+                   TRUE).              /* Name then Value  */
+    
   /* Store cProfile in repository */
   RUN setProfileData IN gshProfileManager (INPUT "General":U,       /* Profile type code */
                                            INPUT "Preference":U,    /* Profile code */
@@ -666,20 +666,19 @@ END FUNCTION.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION retrieveValue Procedure 
 FUNCTION retrieveValue RETURNS CHARACTER
   ( pcAttr AS CHARACTER) :
-/*------------------------------------------------------------------------------
+    /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValue AS CHARACTER  FORMAT "X(100)":U NO-UNDO.
+    DEFINE VARIABLE cValue AS CHARACTER  FORMAT "X(100)":U NO-UNDO.
 
-  cValue = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,
+    cValue = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,
                              pcAttr,
                              gcPrefData,
                              TRUE,
                              CHR(3)).
 
-  RETURN cValue.   /* Function return value. */
-
+    RETURN cValue.   /* Function return value. */
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

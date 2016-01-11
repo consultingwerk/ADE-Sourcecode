@@ -29,6 +29,7 @@ Included in:
 History:
     hutegger    94/07/29    creation
     mcmann      05/21/2002  Added new input-output parameter
+    knavneet    08/12/2007  if as400, s_owner is not assigned to *
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -39,10 +40,10 @@ if NUM-ENTRIES(user_env[25]) = 5
   s_owner = ENTRY(3,user_env[25])
   s_type  = ENTRY(4,user_env[25])
   s_qual  = ENTRY(5,user_env[25]).
-else if user_dbtype <> "ORACLE"
- then assign /* oracle-routine inits these values by itself */
+else if user_dbtype <> "ORACLE" 
+then assign /* oracle-routine inits these values by itself */
   s_name  = "*"
-  s_owner = "*"
+  s_owner = (IF "{&frame}" = "frm_as400" THEN s_owner ELSE "*")
   s_type  = "*"
   s_qual  = "*".
 

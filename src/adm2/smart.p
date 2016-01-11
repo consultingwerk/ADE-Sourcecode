@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -42,6 +42,7 @@ DEFINE TEMP-TABLE ADMLink NO-UNDO
 DEFINE VARIABLE glIsCrystalInstalled AS LOGICAL INIT ? NO-UNDO.
 
 DEFINE VARIABLE glIcfIsRunning       AS LOGICAL INITIAL ? NO-UNDO.
+def var gcMessageBoxType as character initial ? no-undo.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -73,6 +74,31 @@ FUNCTION anyMessage RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-applyFocus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyFocus Procedure 
+FUNCTION applyFocus RETURNS LOGICAL
+  ( pcField AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyFocusToFrame) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyFocusToFrame Procedure 
+FUNCTION applyFocusToFrame RETURNS LOGICAL
+  ( phFrame AS HANDLE,
+    pcField AS CHAR,
+    pcFrameList AS CHAR,
+    pcObjectList AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignBufferValueFromReference) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignBufferValueFromReference Procedure 
@@ -90,6 +116,34 @@ FUNCTION assignBufferValueFromReference RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignLinkProperty Procedure 
 FUNCTION assignLinkProperty RETURNS LOGICAL
   ( pcLink AS CHARACTER, pcPropName AS CHARACTER, pcPropValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignMappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignMappedEntry Procedure 
+FUNCTION assignMappedEntry RETURNS CHARACTER
+   (pcEntryNames  AS CHAR,
+    pcList        AS CHAR,
+    pcEntryValues AS CHAR,
+    pcDelimiter   AS CHAR,
+    plFirst       AS LOG)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTargetLinkState) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTargetLinkState Procedure 
+FUNCTION assignTargetLinkState RETURNS LOGICAL
+        ( pcLinkType    as char,
+          plActive      as logical,
+          plQueryObject as logical ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -440,6 +494,17 @@ FUNCTION getManagerHandle RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getMessageBoxType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getMessageBoxType Procedure 
+FUNCTION getMessageBoxType RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getObjectHidden) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectHidden Procedure 
@@ -489,6 +554,17 @@ FUNCTION getObjectPage RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectParent Procedure 
 FUNCTION getObjectParent RETURNS HANDLE
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getObjectsCreated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectsCreated Procedure 
+FUNCTION getObjectsCreated RETURNS LOGICAL
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -754,18 +830,6 @@ FUNCTION isFunctionInCallStack RETURNS LOGICAL
 FUNCTION isLinkInactive RETURNS LOGICAL
   (pcLinkType AS CHAR,
    phObject   AS HANDLE) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isObjQuoted Procedure 
-FUNCTION isObjQuoted RETURNS LOGICAL
- (INPUT pcQueryString  AS CHARACTER,
-   INPUT piPosition     AS INTEGER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1111,6 +1175,17 @@ FUNCTION setLogicalVersion RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setMessageBoxType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setMessageBoxType Procedure 
+FUNCTION setMessageBoxType RETURNS LOGICAL
+        ( input pcMessageBoxType as character ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setObjectHidden) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectHidden Procedure 
@@ -1138,6 +1213,17 @@ FUNCTION setObjectName RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectParent Procedure 
 FUNCTION setObjectParent RETURNS LOGICAL
   ( phParent AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectsCreated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectsCreated Procedure 
+FUNCTION setObjectsCreated RETURNS LOGICAL
+   ( plCreated AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1376,57 +1462,7 @@ FUNCTION signature RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */ 
-&IF DEFINED(EXCLUDE-addServerError) = 0 &THEN
-		
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addServerError Procedure
-PROCEDURE addServerError:
-/*------------------------------------------------------------------------------
-    Purpose: Adds server ERROR to the message stack. 
-             This is only used for unexpected ERRORs returned from the 
-             Service Adapter, not normal save or query exceptions/errors.              
-    Parameters: pcEvent - 'DEFINE'
-                        - 'RETRIEVE' 
-                        - 'SUBMIT' 
-                pcMessage - error message (service adapterreturn-value)  
-                          - ? or blank use error-status
-                pcEntities - requested entities/objects                  
-    Notes:
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pcEvent   AS CHARACTER  NO-UNDO.
-  DEFINE INPUT  PARAMETER pcMessage AS CHARACTER  NO-UNDO.  
-  DEFINE INPUT  PARAMETER pcEntities AS CHARACTER  NO-UNDO. 
-  
-  DEFINE VARIABLE cHeader  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iMessage AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iError   AS INTEGER    NO-UNDO.
-  
-  IF pcMessage = ? OR pcMessage = "" THEN 
-  DO iError = 1 TO ERROR-STATUS:NUM-MESSAGES: 
-    pcMessage = pcMessage 
-              + (IF iError = 1 THEN "" ELSE "~n")
-              + ERROR-STATUS:GET-MESSAGE(iError).   
-  END.
-  
-  CASE pcEvent:
-    WHEN 'define' THEN iMessage = 98.
-    WHEN 'retrieve' THEN iMessage = 99.
-    WHEN 'submit' THEN iMessage = 100.    
-  END.  
-  
-  IF iMessage > 0 THEN 
-  DO:
-    cHeader = SUBSTITUTE({fnarg messageNumber iMessage},pcEntities).
-    RUN addMessage IN TARGET-PROCEDURE(cHeader,?,?).
-  END.    
-  RUN addMessage IN TARGET-PROCEDURE(pcMessage,?,?).  
-  RETURN.   
-END PROCEDURE.
-	
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
+/* **********************  Internal Procedures  *********************** */
 
 &IF DEFINED(EXCLUDE-addLink) = 0 &THEN
 
@@ -1707,6 +1743,57 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-addServerError) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addServerError Procedure 
+PROCEDURE addServerError :
+/*------------------------------------------------------------------------------
+    Purpose: Adds server ERROR to the message stack. 
+             This is only used for unexpected ERRORs returned from the 
+             Service Adapter, not normal save or query exceptions/errors.              
+    Parameters: pcEvent - 'DEFINE'
+                        - 'RETRIEVE' 
+                        - 'SUBMIT' 
+                pcMessage - error message (service adapterreturn-value)  
+                          - ? or blank use error-status
+                pcEntities - requested entities/objects                  
+    Notes:
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcEvent   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcMessage AS CHARACTER  NO-UNDO.  
+  DEFINE INPUT  PARAMETER pcEntities AS CHARACTER  NO-UNDO. 
+  
+  DEFINE VARIABLE cHeader  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iMessage AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iError   AS INTEGER    NO-UNDO.
+  
+  IF pcMessage = ? OR pcMessage = "" THEN 
+  DO iError = 1 TO ERROR-STATUS:NUM-MESSAGES: 
+    pcMessage = pcMessage 
+              + (IF iError = 1 THEN "" ELSE "~n")
+              + ERROR-STATUS:GET-MESSAGE(iError).   
+  END.
+  
+  CASE pcEvent:
+    WHEN 'define' THEN iMessage = 98.
+    WHEN 'retrieve' THEN iMessage = 99.
+    WHEN 'submit' THEN iMessage = 100.    
+  END.  
+  
+  IF iMessage > 0 THEN 
+  DO:
+    cHeader = SUBSTITUTE({fnarg messageNumber iMessage},pcEntities).
+    RUN addMessage IN TARGET-PROCEDURE(cHeader,?,?).
+  END.    
+  RUN addMessage IN TARGET-PROCEDURE(pcMessage,?,?).  
+  RETURN.   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-adjustTabOrder) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adjustTabOrder Procedure 
@@ -1767,92 +1854,13 @@ PROCEDURE applyEntry :
   Parameters:  INPUT pcField AS CHARACTER -- optional fieldname; if specified,
                (if this parameter is not blank or unknown), then
                the frame field of that name will be positioned to. 
-             - sets focus into viewer properly when container launched and we 
-               do an apply entry.
+       Notes:             
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcField  AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcField AS CHARACTER NO-UNDO.
   
-  DEFINE VARIABLE hContainer      AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hWidget         AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hWidget2        AS HANDLE NO-UNDO.  /* Astra2 */
-  DEFINE VARIABLE hWidget3        AS HANDLE NO-UNDO.  /* Astra2 */
-
-  IF pcField = ? THEN pcField = "":U.
-  
-  {get ContainerHandle hContainer}.
-  IF VALID-HANDLE(hContainer) THEN
-  DO: 
-     /* find first frame */
-     IF hContainer:TYPE = "WINDOW":U THEN 
-       {get WindowFrameHandle hContainer}.    
-     
-     /* could be invalid if the container has no frame */
-     IF VALID-HANDLE(hContainer) THEN
-     DO:     
-       ASSIGN hWidget = hContainer:CURRENT-ITERATION
-              hWidget = hWidget:FIRST-TAB-ITEM.
-          
-          /* Ensure focus is placed onto an actual field if possible and also to cope with 
-             initially focusing smartdatafields
-          */
-       DO WHILE VALID-HANDLE(hWidget) :          
-            IF NOT (hWidget:NAME BEGINS "Folder" OR hWidget:NAME BEGINS "Panel") AND 
-               hWidget:SENSITIVE AND hWidget:VISIBLE AND
-              (pcField = "":U OR hWidget:NAME = pcField) THEN
-            DO:
-               /* In case the new widget with focus is not in the
-                  CURRENT-WINDOW, change CURRENT-WINDOW to be the
-                  window of the new widget; otherwise it won't actually
-                  get focus. */
-               DO WHILE (VALID-HANDLE(hContainer) AND 
-                 hContainer:TYPE NE "WINDOW":U):
-                   hContainer = hContainer:PARENT.
-               END.
-               IF hContainer:TYPE = "WINDOW":U THEN
-                 CURRENT-WINDOW = hContainer.
-              
-              ASSIGN
-                hWidget2 = ?
-                hWidget3 = ?
-                .
-              IF hWidget:TYPE = "FRAME" THEN
-              DO:
-                hWidget2 = hWidget:FIRST-CHILD NO-ERROR.
-                IF VALID-HANDLE(hWidget2) AND CAN-QUERY(hWidget2, "type":U) AND hWidget2:TYPE = "FIELD-GROUP" THEN
-                  ASSIGN hWidget2 = hWidget2:FIRST-TAB-ITEM NO-ERROR.
-                IF VALID-HANDLE(hWidget2) AND CAN-QUERY(hWidget2, "type":U) AND hWidget2:TYPE = "FRAME":U
-                   AND hWidget2:SENSITIVE AND hWidget2:VISIBLE THEN
-                DO: /* SDF */
-                  hWidget3 = hWidget2:FIRST-CHILD NO-ERROR.
-                  IF VALID-HANDLE(hWidget3) AND CAN-QUERY(hWidget3, "type":U) AND hWidget3:TYPE = "FIELD-GROUP" THEN
-                    ASSIGN hWidget3 = hWidget3:FIRST-TAB-ITEM NO-ERROR.
-                END.
-
-                DO WHILE VALID-HANDLE(hWidget3) AND
-                   NOT (hWidget3:SENSITIVE AND hWidget3:VISIBLE): /* jump to 1st visible enabled widget */
-                  ASSIGN hWidget3 = hWidget3:NEXT-TAB-ITEM.
-                END.
-                
-                DO WHILE VALID-HANDLE(hWidget2) AND
-                   (NOT (hWidget2:SENSITIVE AND hWidget2:VISIBLE) OR hWidget2:TYPE = "frame":U): /* jump to 1st visible enabled widget */
-                  ASSIGN hWidget2 = hWidget2:NEXT-TAB-ITEM.
-                END.
-              END.
-              IF VALID-HANDLE(hwidget3) THEN  
-                APPLY "ENTRY":U TO hWidget3.
-              ELSE IF VALID-HANDLE(hwidget2) THEN
-                APPLY "ENTRY":U TO hWidget2.
-              ELSE
-                APPLY "ENTRY":U TO hWidget.              
-               
-              RETURN.
-            END.
-            ELSE ASSIGN hWidget = hWidget:NEXT-TAB-ITEM.            
-       END. 
-     END. /* valid hcontainer 'frame' */
-  END. /* valid hcontainer */ 
-  
+  {fnarg applyFocus pcField}.
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2313,7 +2321,7 @@ Parameter: pcState  - 'Add'      - activate newly added links by subscribing to
                       'ADD':U,pcLink,phObject). 
    END.
  END CASE.
-
+ 
  IF VALID-HANDLE(phObject) THEN
  DO:
    DO iEvent = 1 TO NUM-ENTRIES(cEvents):
@@ -2472,6 +2480,7 @@ PROCEDURE modifyUserLinks :
                   ",":U + STRING(phObject) + ",":U, ",":U)
                cHandles = SUBSTR(cHandles, 2, LENGTH(cHandles) - 2)
                cNewEntry = pcLinkName + CHR(4) + cHandles.
+        LEAVE.    /* Our entry has been removed. */
       END.    /* END DO IF REMOVE */       
     END.      /* END DO IF cLinkName = pcLinkName */
     ELSE cLinkEntry = "":U.
@@ -2588,15 +2597,17 @@ PROCEDURE removeAllLinks :
      "Container-Source,Container-Target,Page-Source,Page-Target":U.
       
   DO iLink = 1 TO NUM-ENTRIES(cSupportedLinks):
-    cLink = TRIM(ENTRY(iLink, cSupportedLinks)).
-    iHyphen = R-INDEX(ENTRY(iLink, cSupportedLinks), "-":U).
-    cLinkType = SUBSTR(cLink, 1, iHyphen - 1).  /* Base link type */
-    cDirection = SUBSTR(cLink, iHyphen + 1).    /* Source or Target */
+    assign 
+      cLink = TRIM(ENTRY(iLink, cSupportedLinks))
+      iHyphen = R-INDEX(ENTRY(iLink, cSupportedLinks), "-":U)
+      cLinkType = SUBSTR(cLink, 1, iHyphen - 1)  /* Base link type */
+      cDirection = SUBSTR(cLink, iHyphen + 1)     /* Source or Target */
+      cObjects = ?. 
     IF cDirection = "TARGET":U THEN             /* This object is the Target */
     DO:
       /* Note: Can't use {get} for variable properties.*/
       cObjects = dynamic-function("get":U + cLinkType + "Source":U
-        IN TARGET-PROCEDURE) NO-ERROR. 
+        IN TARGET-PROCEDURE) NO-ERROR.   
       IF cObjects NE ? THEN
         DO iObject = 1 TO NUM-ENTRIES(cObjects):  /* May be multiple sources. */
           hObject = WIDGET-HANDLE(ENTRY(iObject, cObjects)).
@@ -2607,7 +2618,7 @@ PROCEDURE removeAllLinks :
     END.                  /* END This object is the Target */
     ELSE DO:                                     /* This object is the Source */
       cObjects = dynamic-function("get":U + cLinkType + "Target":U
-        IN TARGET-PROCEDURE) NO-ERROR.     
+        IN TARGET-PROCEDURE) NO-ERROR.      
       IF cObjects NE ? THEN          /* Might be unknown if no prop function. */   
         DO iObject = 1 TO NUM-ENTRIES(cObjects): /* May be multiple targets. */
           hObject = WIDGET-HANDLE(ENTRY(iObject, cObjects)).
@@ -3193,6 +3204,109 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-applyFocus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyFocus Procedure 
+FUNCTION applyFocus RETURNS LOGICAL
+  ( pcField AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Apply entry to a widget
+  pcfield - a field name
+          - ? first in tab order  
+    Notes:  Similar to applyEntry (which just calls this), but returns result 
+            allowing callers to manage focus across multiple contained objects.  
+          - container.p overrides this and passes ContainerHandle frames and 
+            ContainerTargets as the last parameters to applyFocusToframe in 
+            order to call applyFocus in child objects when their frame is
+            encountered .
+------------------------------------------------------------------------------*/ 
+  DEFINE VARIABLE hFrame AS HANDLE      NO-UNDO.
+  
+  {get ContainerHandle hFrame}.
+  RETURN DYNAMIC-FUNC("applyFocusToFrame":U IN TARGET-PROCEDURE, 
+                       hFrame,pcField,"","").
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyFocusToFrame) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyFocusToFrame Procedure 
+FUNCTION applyFocusToFrame RETURNS LOGICAL
+  ( phFrame AS HANDLE,
+    pcField AS CHAR,
+    pcFrameList AS CHAR,
+    pcObjectList AS CHAR ) :
+/*------------------------------------------------------------------------------
+    Purpose: Utility that applies focus ("entry") to the specified or first tab 
+             item in the passed frame, including possible child frames and 
+             optionally through the child objects that owns the frame.   
+ Parameters:
+  phFrame      - frame handle to check
+  pcField      - field name of widget to apply entry to 
+               - blank or ? means find first tab item. 
+  pcFrameList  - List of frame handles that belongs to SmartObjects.   
+  pcObjectList - List of objects that corresponds to the frame list.   
+    Notes:   This is a frame level utility used by the object level applyFocus
+             not really intended for direct calls. 
+             Use applyFocus or run applyEntry     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hWidget AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE iObject AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE hObject AS HANDLE      NO-UNDO.
+
+  IF NOT VALID-HANDLE(phFrame) 
+  OR lookup(phFrame:TYPE,'FRAME,DIALOG-BOX':U) = 0 THEN
+    RETURN FALSE.
+
+  if pcField = ? then 
+    pcField = "":U.
+  
+  ASSIGN 
+    hWidget = phFrame:CURRENT-ITERATION
+    hWidget = hWidget:FIRST-TAB-ITEM. 
+ 
+  DO WHILE VALID-HANDLE(hWidget):
+
+    IF hWidget:VISIBLE THEN
+    DO:
+      IF hWidget:TYPE = "frame":U THEN
+      DO:
+        iObject = lookup(string(hWidget),pcFrameList). 
+        if iObject > 0 then
+        do:
+          hObject = WIDGET-HANDLE(ENTRY(iObject,pcObjectList)).
+          if {fnarg applyFocus pcField hObject} then
+            return TRUE.
+        end.
+        ELSE
+        IF DYNAMIC-FUNC("applyFocusToFrame":U IN TARGET-PROCEDURE, 
+                         hWidget,pcfield,pcFrameList,pcObjectList) THEN
+          RETURN TRUE.
+      END.
+      ELSE IF hWidget:SENSITIVE AND (pcField = "":U OR pcField = hWidget:NAME) THEN
+      DO:
+         APPLY "entry"  TO hWidget.
+         RETURN TRUE.
+      END.
+    END.
+
+    hWidget = hWidget:NEXT-TAB-ITEM. 
+  END. /* do while valid hWidget */
+
+  RETURN FALSE.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignBufferValueFromReference) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignBufferValueFromReference Procedure 
@@ -3412,6 +3526,138 @@ FUNCTION assignLinkProperty RETURNS LOGICAL
     
   RETURN lReturn.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignMappedEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignMappedEntry Procedure 
+FUNCTION assignMappedEntry RETURNS CHARACTER
+   (pcEntryNames  AS CHAR,
+    pcList        AS CHAR,
+    pcEntryValues AS CHAR,
+    pcDelimiter   AS CHAR,
+    plFirst       AS LOG) :
+/*------------------------------------------------------------------------------
+  Purpose: Assign a value to a mapped entry list. This is the analog of the
+           assignMappedEntry function copied from adeuib/_abfuncs.w
+           Returns the updated list.
+              
+Parameters:  INPUT pcEntryNames  - entry names to set (pcDelimiter delimited).  
+             INPUT pcList        - Delimited Name<deL>Value string to assign new values to.
+             INPUT pcEntryValues - New values to assign (pcDelimiter delimited).
+             INPUT pcDelmiter    - Delimiter of 1st 3 parameters    
+             INPUT plFirst       - TRUE  - Name first, value second.
+                                   FALSE - Value first, Name second.
+                                          
+    Notes: Assigns the value to all occurances of pcEntry in the pcList     
+           If it can't find the pcEntry, it adds the pcEntry <DEL> pcValue at the end.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iEntry      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLookUp     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iNumEntries AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lAssigned   AS LOGICAL    NO-UNDO.
+
+  /* Find out how many name/values need to be set */
+  iNumEntries = NUM-ENTRIES(pcEntryNames, pcDelimiter).
+  /* Make sure that we have the correct number of values */
+  IF NUM-ENTRIES(pcEntryValues, pcDelimiter) NE iNumEntries THEN DO:
+    RETURN ?.  /* Names and values don't match, return ? */
+  END.
+
+  DO iEntry = 1 TO iNumEntries:
+    ASSIGN lAssigned = NO
+           cName     = ENTRY(iEntry, pcEntryNames,  pcDelimiter)
+           cValue    = ENTRY(iEntry, pcEntryValues, pcDelimiter).
+
+    /* Find all occurances */
+    DO iLookUp = IF plFirst THEN 1 ELSE 2 TO NUM-ENTRIES(pcList, pcDelimiter) BY 2:
+      IF ENTRY(iLookup, pcList, pcDelimiter) = cName THEN DO:
+         ENTRY(iLookup + (IF plFirst THEN 1 ELSE -1), pcList, pcDelimiter) = cValue.
+         lAssigned = YES.
+      END.
+    END. /* Look to find all occurances */
+
+    IF NOT lAssigned THEN DO: /* Couldn't find at least one instance,
+      create the name value pair at the end */
+      pcList = pcList + (IF pcList = "":U THEN "" ELSE pcDelimiter) +
+                        (IF plFirst THEN cName + pcDelimiter + cValue
+                                    ELSE cValue + pcDelimiter + cName).
+    END. /* If we can't find the pcEntry */
+  END.  /* Loop through all name/value pairs to be assigned */
+
+  RETURN pcList.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTargetLinkState) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTargetLinkState Procedure 
+FUNCTION assignTargetLinkState RETURNS LOGICAL
+        ( pcLinkType    as char,
+          plActive      as logical,
+          plQueryObject as logical ):
+/*------------------------------------------------------------------------------
+    Purpose: Disable links to targets.
+ Parameters:  pcLinkType    - Link type name (e.g. "Data" for data-target) 
+              plActive      - Yes - Active
+                            - No  - Inactive 
+              plQueryObject - Yes - only targets where QueryObject = true 
+                                 (Dataview, sdo, sbo)
+                            - No  - only targets where QueryObject = false 
+                                 (visual)
+                            - ?   Any/all targets                             
+      Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTargets  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lOk       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQuery    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cState    AS CHARACTER  NO-UNDO.
+  
+  cTargets = dynamic-function("get":U + pcLinkType + "Target":U in target-procedure)
+             no-error.
+  /* design time error (don't throw error, but give a hint if used with 
+     unsupported link) */
+  if error-status:error then 
+    message error-status:get-message(1) view-as alert-box error.
+     
+  if plActive then 
+    cState = 'Active':U. 
+  else 
+    cState = 'Inactive':U.
+      
+  do iTarget = 1 TO num-entries(cTargets):
+    hTarget = widget-handle(entry(iTarget,cTargets)).
+    if valid-handle(hTarget) then 
+    do:  
+      if plQueryObject <> ? then
+      do: 
+        {get QueryObject lQuery hTarget}.
+        lOk = (lQuery = plQueryObject).
+      end.
+      else 
+        lOk = true.
+        
+      if lOk then 
+        run linkStateHandler in hTarget(cState,
+                                        target-procedure,
+                                        pcLinkType + "Source":U).
+    end. /* valid target */
+  end. /* Do iTarget = 1 to NUM */
+  return true. 
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -4316,6 +4562,53 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getMessageBoxType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getMessageBoxType Procedure 
+FUNCTION getMessageBoxType RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the type of message  
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable rRowid as rowid no-undo.
+    define variable lProfileExists as logical no-undo.
+
+    if gcMessageBoxType eq ? and valid-handle(gshSessionManager) then
+    do:
+        /* check user prefs first. */
+        run checkProfileDataExists in gshProfileManager ('General',
+                                                         'Preference',
+                                                         'MessageBoxType',
+                                                         No,    /*plCheckPermanentOnly*/
+                                                         No,    /*plCheckCacheOnly*/
+                                                         output lProfileExists ) no-error.
+        
+        if lProfileExists then
+            run getProfileData in gshProfileManager ('General':u, /* Profile type code     */
+                                                     'Preference':u, /* Profile code          */
+                                                     'MessageBoxType':u, /* Profile data key      */
+                                                     'No':u,              /* Get next record flag  */
+                                                     input-output rRowid,       /* Rowid of profile data */
+                                                     output gcMessageBoxType ).            /* Found profile data. */        
+        
+        /* if no user pref exists, use session params */
+        if gcMessageBoxType eq ? or gcMessageBoxType eq '':u then
+            gcMessageBoxType = dynamic-function('getSessionParam':u in target-procedure, 'MessageBoxType').
+    end.    /* not set yet */
+
+    /* if no value can be found, use Complex as default */
+    if gcMessageBoxType eq ? or gcMessageBoxType eq '':u then
+        gcMessageBoxType = "Complex".    
+    
+    return gcMessageBoxType.    
+END FUNCTION.    /* getMessageBoxType */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getObjectHidden) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectHidden Procedure 
@@ -4449,6 +4742,33 @@ FUNCTION getObjectParent RETURNS HANDLE
   ELSE RETURN ?.
   
  END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getObjectsCreated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectsCreated Procedure 
+FUNCTION getObjectsCreated RETURNS LOGICAL
+        (  ):
+/*------------------------------------------------------------------------------
+  Purpose:  Returns whether this object has run createObjects for page 0.
+   Params:  <none>
+    Notes:  This is used in createObjects to avoid double create. Some 
+            containers run createObjects from the main block while others
+            start them from initializeObject. The create initializeObject is 
+            often too late so this flag was introduced to allow us to have more
+            control over when the objects are created and run createObjects 
+            before initializeObject for all objects without risking a double 
+            create.            
+----------------------------------------------------------------------------*/
+  DEFINE VARIABLE lCreated AS LOGICAL NO-UNDO.
+  {get ObjectsCreated lCreated}.
+  RETURN lCreated.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4884,14 +5204,15 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
 FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcObjectType        AS CHARACTER ) :
+    ( INPUT pcClass        AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose: Resolve if this is an instance Of a particular class/object type 
     Notes: For Dynamics this does include the inheritance hierarchy 
  ------------------------------------------------------------------------------*/      
-    DEFINE VARIABLE cClassName         AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cClassName         AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cObjectType        AS CHARACTER NO-UNDO.
     
-    IF {fn getUseRepository} AND VALID-HANDLE(gshRepositoryManager) THEN
+    IF VALID-HANDLE(gshRepositoryManager) THEN
     DO:
         {get ClassName cClassName}.
         /* Using ClassIsA is more robust because IsA() depends on this
@@ -4899,18 +5220,31 @@ FUNCTION instanceOf RETURNS LOGICAL
            attempt to cache the class if it is not already cached, something
            that IsA() cannot do.
          */
-        if cClassName eq ? or cClassName eq '' then
-            return false.
-        else
-        IF cClassName EQ pcObjectType THEN
+        IF cClassName EQ pcClass THEN
             RETURN TRUE.
-        ELSE
-            RETURN DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, cClassName, pcObjectType).
+        ELSE if cClassName > "" 
+        AND DYNAMIC-FUNCTION('ClassIsA':U IN gshRepositoryManager, cClassName, pcClass) then
+            RETURN TRUE.
     END.    /* Using the Repository */
     
-    /* Current workaround to ensure that this can replace all direct use of 
-     * objecttype is to compare with the object type */ 
-    RETURN pcObjectType EQ {fn getObjectType}.  
+    /* allow transparent references for Dynamics classes in adm2 */  
+    case pcClass:
+        when "Base":U then pcClass = "Smart":U.
+        when "DynCombo":U then pcClass = "Combo":U.
+        when "DynLookup":U then pcClass = "Lookup":U.
+        when "DataVisual":U then pcClass = "Datavis":U.
+        when "Container":U then pcClass = "Containr":U.         
+    end. 
+    
+    /* check super stack */
+    if {fnarg instanceOfSuper pcClass} then 
+        return true. 
+      
+    /* somewhat questionable perhaps, but needed for backwards compatibilty 
+       with early versions */
+    {get ObjectType cObjectType}.    
+    return pcClass = cObjectType.    
+      
 END FUNCTION.   /* instanceOf */
 
 /* _UIB-CODE-BLOCK-END */
@@ -5193,89 +5527,6 @@ Parameters:
   END.
   ELSE 
     RETURN iPos > 0.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isObjQuoted Procedure 
-FUNCTION isObjQuoted RETURNS LOGICAL
- (INPUT pcQueryString  AS CHARACTER,
-   INPUT piPosition     AS INTEGER):
-/*------------------------------------------------------------------------------
-  Purpose: Looks at the object number in the query string and determines whether
-           or not it is wrapped in quotes.
-    Notes: Was used by the DEPRECATED fixQueryString. 
-           Will also be DEPRECATED as it is meaningless standalone
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cAllowedCharacters  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCharacter          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lQuotedInFront      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lQuotedBehind       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lObjQuoted          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lFinished           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iCounter            AS INTEGER    NO-UNDO.
-
-  ASSIGN
-      cAllowedCharacters = "1234567890 ":U + "'" + '"':U + CHR(10) + CHR(13)
-      lQuotedInFront     = FALSE
-      lQuotedBehind      = FALSE
-      lObjQuoted         = FALSE.
-
-  /* Read forward through the string */
-  IF LENGTH(pcQueryString) >= piPosition THEN
-  DO:
-    ASSIGN
-        lFinished = FALSE
-        iCounter  = piPosition.
-
-    DO WHILE lFinished = FALSE:
-      ASSIGN
-          iCounter   = iCounter + 1.
-          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
-
-      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
-         (cCharacter = "'":U OR cCharacter = '"':U) THEN
-        ASSIGN
-            lQuotedBehind = TRUE
-            lFinished     = TRUE.
-
-      IF iCounter >= LENGTH(pcQueryString) THEN lFinished = TRUE.
-    END.
-  END.
-
-  /* Read backward through the string */
-  IF piPosition > 1 THEN
-  DO:
-    ASSIGN
-        lFinished = FALSE
-        iCounter  = piPosition.
-
-    DO WHILE lFinished = FALSE:
-      ASSIGN
-          iCounter   = iCounter - 1.
-          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
-
-      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
-         (cCharacter = "'":U OR cCharacter = '"':U) THEN
-        ASSIGN
-            lQuotedInFront = TRUE
-            lFinished      = TRUE.
-
-      IF iCounter <= 1 THEN lFinished = TRUE.
-    END.
-  END.
-
-  IF lQuotedInFront AND lQuotedBehind THEN
-    lObjQuoted = TRUE.
-
-  RETURN lObjQuoted.
-
 
 END FUNCTION.
 
@@ -6030,8 +6281,6 @@ FUNCTION setHideOnInit RETURNS LOGICAL
 Parameters: plHideOnInit - logical           
     Notes: Also used for non visual object in order to publish LinkState 
            correctly for activation and deactivation of links.   
-           Defaults to no, set to yes from the container when it runs initPages 
-           to initialize non visible pages 
 ------------------------------------------------------------------------------*/
   &scop xpHideOnInit
   {set HideOnInit plHideOnInit}.
@@ -6187,6 +6436,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setMessageBoxType) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setMessageBoxType Procedure 
+FUNCTION setMessageBoxType RETURNS LOGICAL
+        ( input pcMessageBoxType as character ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+    gcMessageBoxType = pcMessageBoxType.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setObjectHidden) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectHidden Procedure 
@@ -6259,6 +6528,31 @@ FUNCTION setObjectParent RETURNS LOGICAL
   ELSE RETURN FALSE.
   
  END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectsCreated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectsCreated Procedure 
+FUNCTION setObjectsCreated RETURNS LOGICAL
+  ( plCreated AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns a flag indicating whether this object has run createObjects
+            for page 0.
+   Params:  <none>
+    Notes:  Some containers run createObjects from the main block while others
+            start them from initializeObject. The create initializeObject is 
+            often too late so this flag was introduced to allow us to have more
+            control over when the objects are created and run createObjects 
+            before initializeObject for all objects 
+----------------------------------------------------------------------------*/
+  {set ObjectsCreated plCreated}.
+  RETURN TRUE.
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

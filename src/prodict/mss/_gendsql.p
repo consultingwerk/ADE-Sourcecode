@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -26,6 +26,8 @@
               07/19/06  fernando Unicode support - support only MSS 2005    
               10/13/06  fernando Fix qualifier name if not the same as DSN - 20061005-002   
                                  Add dsrv-precision to new char fields - 20061005-003       
+              01/28/08 fernando  Fix foreign attributes for logical field. Made foreign-owner and
+                                 foreign-name lowercase - OE00164229
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -277,7 +279,7 @@ PROCEDURE write-tbl-sql:
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
                  df-tbl = tblname
-                 df-line = "  HIDDEN-FLDS " + string(fldnum + 2).
+                 df-line = '  HIDDEN-FLDS "' + string(fldnum + 2) + ',"'.
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
@@ -711,7 +713,7 @@ PROCEDURE write-seq-sql:
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
-           df-line = '  FOREIGN-OWNER "' + CAPS(mss_username) + '"'.
+           df-line = '  FOREIGN-OWNER "' + LOWER(mss_username) + '"'.
     
   END.
   /* update sequence table */
@@ -1801,7 +1803,7 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
                  df-info.df-tbl = tablename
-                 df-line = '  FOREIGN-NAME "' + CAPS(forname) + '"'.
+                 df-line = '  FOREIGN-NAME "' + LOWER(forname) + '"'.
 
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
@@ -1813,7 +1815,7 @@ DO ON STOP UNDO, LEAVE:
             ASSIGN df-info.df-seq = dfseq
                    dfseq = dfseq + 1
                    df-info.df-tbl = tablename
-                   df-line = '  FOREIGN-OWNER "' + CAPS(mss_username) + '"'.
+                   df-line = '  FOREIGN-OWNER "' + LOWER(mss_username) + '"'.
           END.
         END.
         ELSE DO:          
@@ -2398,7 +2400,7 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN df-info.df-seq = dfseq
                  dfseq = dfseq + 1
                  df-info.df-tbl = tablename
-                 df-line = '  FOREIGN-NAME "' + CAPS(fieldname) + '"'. 
+                 df-line = '  FOREIGN-NAME "' + LOWER(fieldname) + '"'. 
 
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
@@ -2532,9 +2534,12 @@ DO ON STOP UNDO, LEAVE:
                        dffortype = "TIMESTAMP"
                        lngth     = 7. 
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
-                ASSIGN new-obj.for-type = " INTEGER"
-                       dffortype = "INTEGER"
-                       lngth = 22.
+                /*OE00164229 - logical should map to tinyint */
+                ASSIGN new-obj.for-type = " TINYINT"
+                       dffortype = "TINYINT"
+                       lngth = 1
+                       dec_point = 0
+                       all_digits = 3.
               ELSE IF fieldtype = "Recid" AND AVAILABLE new-obj THEN
                 ASSIGN new-obj.for-type = " INTEGER"
                        dffortype = "INTEGER"
@@ -2576,12 +2581,15 @@ DO ON STOP UNDO, LEAVE:
                      df-info.df-fld = fieldname
                      df-line = "  FIELD-MISC13 " + STRING(lngth).
                  
-              CREATE df-info.
-              ASSIGN df-info.df-seq = dfseq
-                     dfseq = dfseq + 1
-                     df-info.df-tbl = tablename
-                     df-info.df-fld = fieldname
-                     df-line = "  FOREIGN-MAXIMUM " + string(lngth).
+              /* OE00164229 - don't set this for logical */
+              IF fieldtype NE "logical" THEN DO:
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = "  FOREIGN-MAXIMUM " + string(lngth).
+              END.
 
               /* 20061005-003 - missing this for character fields */
               IF fieldtype = "character" THEN DO:
@@ -2656,7 +2664,8 @@ DO ON STOP UNDO, LEAVE:
                    /* Character */ 
                   IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN 
                     ASSIGN for-init = " DEFAULT '" + ilin[2] + "'".                                
-                  ELSE IF new-obj.for-type BEGINS " INTEGER" OR  new-obj.for-type BEGINS " DECIMAL" THEN DO:  
+                  ELSE IF new-obj.for-type BEGINS " INTEGER" OR  new-obj.for-type BEGINS " DECIMAL"
+                       OR new-obj.for-type BEGINS " TINYINT" THEN DO:  
                     /* logical no or false */
                     IF ilin[2] BEGINS "N" OR ilin[2] BEGINS "F" THEN
                       ASSIGN for-init = " DEFAULT 0 ".
@@ -3693,7 +3702,7 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN df-info.df-seq = dfseq
                        dfseq = dfseq + 1
                        df-info.df-tbl = tablename
-                       df-line = "  FOREIGN-NAME " + '"' + CAPS(forname) + '"'.
+                       df-line = "  FOREIGN-NAME " + '"' + LOWER(forname) + '"'.
 
                 ASSIGN df-idx = ?.
               END.   
@@ -3915,7 +3924,7 @@ DO ON STOP UNDO, LEAVE:
             CREATE df-info.
             ASSIGN df-info.df-seq = dfseq
                    dfseq = dfseq + 1
-                   df-line = '  FOREIGN-NAME "' + CAPS(forname) + '"'.
+                   df-line = '  FOREIGN-NAME "' + LOWER(forname) + '"'.
 
           END.
          

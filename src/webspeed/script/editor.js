@@ -270,18 +270,18 @@
       Notes:       
     -------------------------------------------------------------------------*/
     var cReturn = "";
-    
+ 
     if (isIE4up) {
       var cReturn = fileChanges(evt, "fileClose", "fileClose");
       if (cReturn != "cancel" && cReturn != "Cancel" && cReturn != null)
-        parent.location.href = "../workshop/welcome.html";
+        parent.location.href =  "../webtools/welcome.html";
     }
     else if (isNav4up) {
       if (evt == undefined)
         var cReturn = fileChanges(evt, "fileClose", "fileClose");
         
       if (cReturn != getUnknown() && evt != "cancel" && evt != "Cancel")
-        parent.location.href = "../workshop/welcome.html";
+        parent.location.href = "../webtools/welcome.html";
     }
   }
   

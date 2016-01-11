@@ -71,13 +71,13 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-DynamicSmartDataViewer yes
 
 {src/adm2/globals.i}
-{adeuib/sharvars.i}
 {src/adm2/inrepprmod.i}
 
 DEFINE VARIABLE gcFields      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcHandles     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcProfileData AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
+define variable ghRepDesignManager as handle no-undo.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -101,38 +101,6 @@ DEFINE VARIABLE rRowid        AS ROWID      NO-UNDO.
 
 /* ************************  Function Prototypes ********************** */
 
-&IF DEFINED(EXCLUDE-disableWidget) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD disableWidget Procedure 
-FUNCTION disableWidget RETURNS LOGICAL
-  ( pcNameList AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-enableWidget) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD enableWidget Procedure 
-FUNCTION enableWidget RETURNS LOGICAL
-  ( pcNameList AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-FetchPMListItemPairs) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD FetchPMListItemPairs Procedure 
-FUNCTION FetchPMListItemPairs RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-getScreenValues) = 0 &THEN
 
@@ -152,17 +120,6 @@ FUNCTION setWidgetAttribute RETURNS LOGICAL
   ( pcWidget AS CHARACTER,
     pcAttr   AS CHARACTER,
     pcValue  AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-WidgetHandle) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD WidgetHandle Procedure 
-FUNCTION WidgetHandle RETURNS HANDLE
-  ( pcWidgetName AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -259,15 +216,20 @@ PROCEDURE InitializeObject :
     setWidgetAttribute("coDynObjectType", "LIST-ITEMS", cSubClasses).
                      
     /* Get Product module list */
-    cPMItemPairs = fetchPMListItemPairs().
+    ghRepDesignManager = {fnarg getManagerHandle 'RepositoryDesignManager':u}.
+    cPMItemPairs = dynamic-function('getProductModuleList':u in ghRepDesignManager,
+                                    'product_module_obj':u,
+                                    'product_module_code,product_module_description':u,
+                                    '&1 // &2':u,
+                                    chr(4)).
 
     /* Set up SDO product module combo */
-    setWidgetAttribute("coProdMod", "Delimiter", CHR(4)).
-    setWidgetAttribute("coProdMod", "LIST-ITEM-PAIRS", cPMItemPairs).
+    dynamic-function('setWidgetAttribute':u in target-procedure, "coProdMod", "Delimiter", CHR(4)).
+    dynamic-function('setWidgetAttribute':u in target-procedure, "coProdMod", "LIST-ITEM-PAIRS", cPMItemPairs).
 
     /* Set up DLP product module combo */
-    setWidgetAttribute("coDLPProdMod", "Delimiter", CHR(4)).
-    setWidgetAttribute("coDLPProdMod", "LIST-ITEM-PAIRS", cPMItemPairs).
+    dynamic-function('setWidgetAttribute':u in target-procedure, "coDLPProdMod", "Delimiter", CHR(4)).
+    dynamic-function('setWidgetAttribute':u in target-procedure, "coDLPProdMod", "LIST-ITEM-PAIRS", cPMItemPairs).
 
     /* Make a list of all screen-value objects to set along with a list
        of their values.                                                 */
@@ -277,7 +239,7 @@ PROCEDURE InitializeObject :
                      "SDO_AdSuf,SDO_DLPOpt,SDO_DLPPM,SDO_DLPPre,SDO_DLPSuf":U.
 
     /* Display all of the screen values */
-    RUN setScreenValues(cSVobjs, cSVvals).
+    RUN setScreenValues in target-procedure (cSVobjs, cSVvals).
 
   END.  /* if gcProfileData NE "" */
 
@@ -303,7 +265,7 @@ PROCEDURE ResetHalf :
   DEFINE VARIABLE cSVVals      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hBar         AS HANDLE     NO-UNDO.
 
-  hBar = WidgetHandle("RECT-1").
+  hBar = {fnarg WidgetHandle 'RECT-1':u}.
   IF SELF:Y < hBar:Y THEN DO: /* Top button was pressed */
     /* Make a list of all screen-value objects to set along with a list
        of their values.                                                 */
@@ -311,18 +273,18 @@ PROCEDURE ResetHalf :
                      "fiAddSuffix":U
            cSVVals = "SDO_Type,SDO_PM,SDO_RmPre,SDO_RmSuf,SDO_AdPre,":U +
                      "SDO_AdSuf":U.
-           disableWidget("buSDOReset":U).
+    {fnarg disableWidget 'buSDOReset':u}.
   END.
   ELSE DO: /* Bottom button was pressed */
     /* Make a list of all screen-value objects to set along with a list
        of their values.                                                 */
     ASSIGN cSVobjs = "raSet,coDLPProdMod,fiAddPrefix-2,fiAddSuffix-2":U
            cSVVals = "SDO_DLPOpt,SDO_DLPPM,SDO_DLPPre,SDO_DLPSuf":U.
-           disableWidget("buDLPReset":U).
+    {fnarg disableWidget 'buDLPReset':u}.
   END.
 
   /* Reset the screen values */
-  RUN setScreenValues(cSVobjs, cSVvals).
+  RUN setScreenValues in target-procedure (cSVobjs, cSVvals).
 
 END PROCEDURE.
 
@@ -354,7 +316,7 @@ PROCEDURE setScreenValues :
    DO iEntry = 1 TO NUM-ENTRIES(pcSVobjs):
      ASSIGN iFldPos      = LOOKUP(ENTRY(iEntry, pcSVobjs), gcFields)
             hField       = WIDGET-HANDLE(ENTRY(iFldPos, gcHandles))
-            cScreenValue = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,
+            cScreenValue = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,
                                             ENTRY(iEntry,pcSVvals),
                                             gcProfileData,
                                             TRUE,
@@ -404,12 +366,12 @@ PROCEDURE UpdateRecord :
          cPDEntries = "SDO_Type,SDO_PM,SDO_RmPre,SDO_RmSuf,SDO_AdPre,":U +
                       "SDO_AdSuf,SDO_DLPOpt,SDO_DLPPM,SDO_DLPPre,SDO_DLPSuf":U.
 
-  cSValues = getScreenValues(cSVobjects).
+  cSValues = {fnarg getScreenValues cSVobjects}.
 
   cPDEntries = REPLACE(cPDEntries, ",":U, CHR(3)).
  
 
-  gcProfileData = DYNAMIC-FUNCTION("assignMappedEntry" IN _h_func_lib,
+  gcProfileData = DYNAMIC-FUNCTION("assignMappedEntry" IN target-procedure,
                cPDEntries,             /* 10 Names         */
                gcProfileData,          /* String to Change */
                cSVAlues,               /* 10 Vlaues        */
@@ -446,10 +408,10 @@ PROCEDURE ValueChanged :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hBar   AS HANDLE     NO-UNDO.
 
-  hBar = WidgetHandle("RECT-1":U).
+  hBar = {fnarg WidgetHandle 'RECT-1':u}.
 
-  IF SELF:Y < hBar:Y THEN enableWidget("buSDOReset":U).
-  ELSE enableWidget("buDLPReset":U).
+  IF SELF:Y < hBar:Y THEN {fnarg enableWidget 'buSDOReset':u}.
+  ELSE {fnarg enableWidget 'buDLPReset':u}.
 
   RUN SUPER.
  
@@ -462,116 +424,7 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
-&IF DEFINED(EXCLUDE-disableWidget) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION disableWidget Procedure 
-FUNCTION disableWidget RETURNS LOGICAL
-  ( pcNameList AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: To disable all widgets in the list  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hWidget   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE i         AS INTEGER    NO-UNDO.
-
-  DO i = 1 TO NUM-ENTRIES(pcNameList):
-    hWidget = widgetHandle(ENTRY(i,pcNameList)).
-    hWidget:SENSITIVE = FALSE.
-  END.
-
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-enableWidget) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION enableWidget Procedure 
-FUNCTION enableWidget RETURNS LOGICAL
-  ( pcNameList AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: To enable all widgets in the list  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hWidget   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE i         AS INTEGER    NO-UNDO.
-
-  DO i = 1 TO NUM-ENTRIES(pcNameList):
-    hWidget = widgetHandle(ENTRY(i,pcNameList)).
-    hWidget:SENSITIVE = TRUE.
-  END.
-
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-FetchPMListItemPairs) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION FetchPMListItemPairs Procedure 
-FUNCTION FetchPMListItemPairs RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  To return a string of all Product Module for the purpose of attaching
-            it to a combo box.
-    Notes:  It is in the standard list-item-pairs format and it takes into account
-            the user preference "DispRepos".
-------------------------------------------------------------------------------*/
-   /* Create a list of all product modules appropriate product modules */
-    DEFINE VARIABLE cListItemPairs AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cQuery         AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
-    DEFINE VARIABLE hQuery         AS HANDLE     NO-UNDO.
-
-    /* Apply the session's filter set to the product modules */
-    CREATE QUERY hQuery.
-    CREATE BUFFER hBuffer FOR TABLE "gsc_product_module":U BUFFER-NAME "gsc_product_module":U.
-
-    cQuery = "FOR EACH gsc_product_module NO-LOCK WHERE [&FilterSet=|&EntityList=GSCPM]":U.
-
-    RUN processQueryStringFilterSets IN gshGenManager (INPUT  cQuery,
-                                                       OUTPUT cQuery).
-
-    /* Setup and prepare the query */
-    hQuery:SET-BUFFERS(hBuffer).
-    hQuery:QUERY-PREPARE(cQuery).
-    hQuery:QUERY-OPEN().
-    hQuery:GET-FIRST().
-
-    clistItemPairs = "".
-
-    /* I am referencing the db-buffer here directly on the dynamic viewer because that is what the old code did... */
-    /* Step through the query if there is data */
-    DO WHILE NOT hQuery:QUERY-OFF-END:
-      ASSIGN clistItemPairs = cListItemPairs + CHR(4)
-                            + hBuffer:BUFFER-FIELD("product_module_code":U):BUFFER-VALUE
-                            + " // " + hBuffer:BUFFER-FIELD("product_module_description":U):BUFFER-VALUE + CHR(4)
-                            + STRING(hBuffer:BUFFER-FIELD("product_module_obj":U):BUFFER-VALUE).
-
-      /* Find the next record */
-      hQuery:GET-NEXT().
-    END.
-    cListItemPairs = LEFT-TRIM(cListItemPairs, CHR(4)).
-
-    DELETE OBJECT hQuery.
-    DELETE OBJECT hBuffer.
-
-    RETURN cListItemPairs.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-getScreenValues) = 0 &THEN
 
@@ -589,7 +442,7 @@ FUNCTION getScreenValues RETURNS CHARACTER
   DEFINE VARIABLE iField       AS INTEGER    NO-UNDO.
 
   DO iField = 1 TO NUM-ENTRIES(pcFieldList):
-    hField = WidgetHandle(ENTRY(iField, pcFieldList)).
+    hField = {fnarg WidgetHandle "ENTRY(iField, pcFieldList)"}.
     cScreenValue =  hField:SCREEN-VALUE.
 
     /* Convert PM obj numbers back to Codes */
@@ -648,26 +501,4 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-WidgetHandle) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION WidgetHandle Procedure 
-FUNCTION WidgetHandle RETURNS HANDLE
-  ( pcWidgetName AS CHARACTER) :
-/*------------------------------------------------------------------------------
-  Purpose:  Given a widget name, return its handle
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iFieldPos AS INTEGER    NO-UNDO.
-
-  iFieldPos = LOOKUP(pcWidgetName, gcFields).
-  
-  RETURN IF iFieldPos > 0 THEN WIDGET-HANDLE(ENTRY(iFieldPos, gcHandles))
-         ELSE ?.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 

@@ -141,6 +141,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('EnabledFields':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('EnabledHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('EnabledObjFldsToDisable':U,'CHARACTER':U, 0, ?, ?).  
+  ghADMProps:ADD-NEW-FIELD('EnabledWhenNew':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FieldHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldsEnabled':U, 'LOGICAL':U, 0, ?, no). 
   ghADMProps:ADD-NEW-FIELD('GroupAssignSource':U, 'HANDLE':U).

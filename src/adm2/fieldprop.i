@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : fieldprop.i
     Purpose     : Starts Super procedure field.p and defines SmartDataField
@@ -98,12 +98,12 @@
 
   /* These preprocessors tell at compile time which properties can be
      retrieved directly from the temp-table. */
-
   &GLOB xpFieldName
   &GLOB xpFieldEnabled
   &GLOB xpEnableField
   &GLOB xpDisplayField
-  
+  &GLOBAL-DEFINE xpFrameWidgetID
+  &global-define xpKeyField
 
   /* Include the next property file up the chain to get property FIELDs
      defined. */
@@ -111,6 +111,13 @@
   {src/adm2/visprop.i}
   
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
+  &IF "{&xcInstanceProperties}":U NE "":U &THEN
+    &GLOB xcInstanceProperties {&xcInstanceProperties},
+  &ENDIF
+  &GLOB xcInstanceProperties {&xcInstanceProperties}~
+KeyField
+
+
   IF NOT {&ADM-PROPS-DEFINED} THEN
   DO:
   &IF "{&ADMSuper}":U = "":U &THEN
@@ -123,6 +130,8 @@
     ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
     ghADMProps:ADD-NEW-FIELD('CustomSuperProc':U, 'CHARACTER':U, 0, ?, '':U).
     ghADMProps:ADD-NEW-FIELD('LocalField':U, 'LOGICAL':U, 0, ?, NO).
+    ghADMProps:ADD-NEW-FIELD('FrameWidgetID':U, 'INT':U).
+    ghADMProps:ADD-NEW-FIELD('KeyField':U, 'CHAR':U, 0, ?, '':U).     
   &ENDIF
 
     {src/adm2/custom/fieldpropcustom.i}

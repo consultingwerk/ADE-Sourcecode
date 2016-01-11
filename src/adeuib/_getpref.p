@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _getpref.p
@@ -159,6 +159,14 @@ GET-KEY-VALUE SECTION sctn KEY "AssignWidgetID" VALUE v.
   IF v = ? THEN _widgetid_assign = TRUE.
   ELSE IF CAN-DO ("true,yes,on",v) THEN _widgetid_assign = TRUE. 
     ELSE _widgetid_assign = FALSE.
+GET-KEY-VALUE SECTION sctn KEY "WidgetIDSaveFileName" VALUE v.
+  IF v = ? THEN _widgetid_save_filename = TRUE.
+  ELSE IF CAN-DO ("true,yes,on",v) THEN _widgetid_save_filename = TRUE. 
+    ELSE _widgetid_save_filename = FALSE.
+GET-KEY-VALUE SECTION sctn KEY "WidgetIDDefaultFileName" VALUE v.
+  IF v = ? THEN _widgetid_default_filename = TRUE.
+  ELSE IF CAN-DO ("true,yes,on",v) THEN _widgetid_default_filename = TRUE. 
+    ELSE _widgetid_default_filename = FALSE.
 
 /* Read in Numeric Values  */
 GET-KEY-VALUE SECTION sctn KEY "GridUnitHeight" VALUE v.
@@ -265,6 +273,10 @@ GET-KEY-VALUE SECTION sctn KEY "XFTRfile" VALUE v.
   IF v eq ? THEN
     v = "adeuib{&SLSH}startup.xft" .
   {&XFTR-FILE} = v.
+GET-KEY-VALUE SECTION sctn KEY "WidgetIDFileName" VALUE v.
+  IF v eq ? THEN
+    v = "".
+  _widgetid_custom_filename = v.
 
 /* Read in TTY simulator Values */
 GET-KEY-VALUE SECTION sctn KEY "TTYBackgroundColor" VALUE v.

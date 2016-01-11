@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,7 +39,7 @@ History:
     hutegger    95/03   created out of _ora_fun.p
     mcmann    09/30/02  Added THREE-D to frame to match the rest of the
                         utility.
-
+   fernando   06/11/07  Unicode and clob support
 --------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------
@@ -106,6 +106,7 @@ define variable rid                 as recid     no-undo.
 define variable stoff               as integer   no-undo.
 define variable tnam                as character no-undo.
 DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.
 
 define buffer over_file         for DICTDB._File.
 define buffer ds_columns        for DICTDBG.oracle_arguments.
@@ -194,9 +195,24 @@ IF p_typevar = 9 THEN DO:
 END.
 
 
+find first DICTDB._Db
+  where DICTDB._Db._Db-name = LDBNAME("DICTDBG")
+  and   DICTDB._Db._Db-type = "ORACLE".
+ASSIGN oraversion = INTEGER(DICTDB._Db._Db-misc1[3]).
+
+/* just make sure the info in the schema holder isn't invalid */
+IF oraversion > 8 THEN DO:
+   RUN prodict/ora/_get_oraver.p (OUTPUT oraversion).
+   /* if something went wrong that we could not get the version, just keep the value
+      from the schema holder
+   */
+   IF oraversion = 0 THEN
+       oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). 
+END.
+
 assign
-  l_char-types  = "CHAR,VARCHAR,VARCHAR2,ROWID"
-  l_chrw-types  = "LONG,RAW,LONGRAW"
+  l_char-types  = "CHAR,VARCHAR,VARCHAR2,ROWID,NCHAR,NVARCHAR2"
+  l_chrw-types  = "LONG,RAW,LONGRAW,CLOB,NCLOB"
   l_date-types  = "DATE"
   l_dcml-types  = ""
   l_floa-types  = "FLOAT"
@@ -275,7 +291,7 @@ if p_typevar = 9
 _crtloop:
 for each ds_columns
   fields( obj# procedure$ overload# sequence# type# position argument
-          level# in_out default$ default# length_)
+          level# in_out default$ default# length_ charsetform)
   where ds_columns.obj# = onum
   no-lock
   by ds_columns.procedure$
@@ -406,7 +422,16 @@ for each ds_columns
             )
     fnam  = pnam.
   
-  
+  /* NCHAR and NVARCHAR2 (Unicode Types) are only supported as such
+     with Oracle 9 and up, otherwise, they will be treated as character
+  */
+  IF (l_dt = "NVARCHAR2" OR l_dt = "NCHAR") AND oraversion < 9 THEN DO:
+      IF l_dt = "NVARCHAR2" THEN
+          l_dt = "VARCHAR2".
+      ELSE
+          l_dt = "CHAR".
+  END.  
+
   RUN prodict/gate/_gat_fnm.p
     ( INPUT        "FIELD",
       INPUT        rid,
@@ -468,6 +493,10 @@ for each ds_columns
   {prodict/gate/gat_pul2.i
     &undo      = "next"
     }
+
+  /* this is just for ORACLE 9 and above */
+  IF oraversion > 8 THEN
+     ASSIGN s_ttb_fld.ds_msc25 = (IF ds_columns.charsetform = 2 THEN '1' ELSE ?).
 
   /* fix the format for logical if it is an empty string */
   IF CAN-DO(l_logi-types,s_ttb_fld.ds_type) THEN

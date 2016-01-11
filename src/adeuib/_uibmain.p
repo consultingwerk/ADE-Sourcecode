@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -76,7 +76,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 {adeuib/pre_proc.i}             
 {adecomm/adestds.i}        /* Standared ADE Preprocessor Directives */
 {adeuib/uibhlp.i}          /* UIB Help File Preprocessor Directives */
-{adm2/support/admhlp.i}    /* ADM Help File Preprocessor Directives */
+{src/adm2/support/admhlp.i} /* ADM Help File Preprocessor Directives */
 {adeuib/property.i NEW}    /* Property temp-table Definitions       */
 {adeuib/custwidg.i NEW}    /* Custom User Widgets Temp-Table        */
 {adeuib/links.i    NEW}    /* ADM links temp-table def              */
@@ -742,12 +742,12 @@ DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
       ASSIGN LanguageExtension = 
              LC(SUBSTRING(CURRENT-LANGUAGE,1,3,"CHARACTER":u)).
   
-  ASSIGN HelpFileName        = LC((HelpFileDir + p_HelpID + LanguageExtension + ".hlp":u))
+  ASSIGN HelpFileName        = LC((HelpFileDir + p_HelpID + LanguageExtension + ".chm":u))
          FILE-INFO:FILE-NAME = HelpFileName
          HelpFileFullName    = LC(FILE-INFO:FULL-PATHNAME).
 
   IF HelpFileFullName = ? THEN
-    ASSIGN HelpFileFullName = LC(HelpFileDir + p_HelpID + "eng":u + ".hlp":u).
+    ASSIGN HelpFileFullName = LC(HelpFileDir + p_HelpID + "eng":u + ".chm":u).
 
   RETURN LC(HelpFileFullName).
   

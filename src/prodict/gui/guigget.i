@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2008 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -63,13 +63,13 @@ Define INPUT PARAMETER p_Sel-Type   as char NO-UNDO.
 
 define new shared variable s_edt_diff   as character NO-UNDO.
 define new shared variable s_tgl_upd    as logical   NO-UNDO.
+define     shared variable s_is_as400     as logical   NO-UNDO. 
 
 &SCOPED-DEFINE xxDS_DEBUG   DEBUG
 &SCOPED-DEFINE DATASERVER YES
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 &UNDEFINE DATASERVER
-
 Define var canned      as logical NO-UNDO init TRUE.
 Define var flg2patt    as logical NO-UNDO.
 Define var inc_user    as logical NO-UNDO.
@@ -105,10 +105,14 @@ DEFINE BROWSE bgate-work QUERY qgate-work
             &IF "{&GATE_FLG2}" = "YES"
              &THEN gate-flg2 FORMAT "yes/no"   COLUMN-LABEL "Changed"
              &ENDIF
-            gate-user FORMAT "X(16)" COLUMN-LABEL "Owner/Library"
+            gate-user FORMAT "X(16)" 
             gate-type FORMAT "X(11)" COLUMN-LABEL "Object Type"
             gate-qual FORMAT "X(22)" COLUMN-LABEL "Qualifier"
   WITH SIZE 75 BY 12 FONT 0 /*MULTIPLE*/.
+IF s_is_as400 THEN
+     gate-user:label IN BROWSE bgate-work = "Col/Lib".
+ELSE 
+     gate-user:label IN BROWSE bgate-work = "Owner".
 
 &IF "{&WINDOW-SYSTEM}" = "TTY"
  &THEN
@@ -207,7 +211,7 @@ FORM
 
    tblpatt  FORMAT "x(29)"  LABEL "Object Name" 
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
-   usrpatt  FORMAT "x(15)"  LABEL "Owner/Library" 
+   usrpatt  FORMAT "x(15)"   
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
    typpatt  FORMAT "x(15)"  LABEL "Object Type" 
                                     colon 14 {&STDPH_FILL} SKIP({&VM_WID})
@@ -223,6 +227,11 @@ FORM
       	view-as DIALOG-BOX TITLE "Select Objects by Pattern Match"
         SIDE-LABELS CENTERED 
         DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel.
+
+IF s_is_as400 THEN
+     usrpatt:label IN frame tbl_patt = "Col/Lib".
+ELSE
+     usrpatt:label IN frame tbl_patt = "Owner".
 
 &IF "{&WINDOW-SYSTEM}" = "TTY"
  &THEN

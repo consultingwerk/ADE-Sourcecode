@@ -2,6 +2,7 @@
 "ActionGroups" 430.7063 1 "Comma separated list of actionGroups.
 Repository toolbar uses categories while non-repository objects
 uses parent actions" "" no no "" no "" "" no yes 1003498429
+"ActionWidgetIDs" 430.7063 1 "Comma separated list containing the action names and their widget-ids." "" no no "" no "" "" no yes 4606.84251
 "AddFunction" 438.7063 1 "" "SET" yes no "" no "" "" no yes 684.7063
 "AllFieldHandles" 7.7063 1 "Contains the handles of all objects and widgets on the visual objects. The list corresponds to AllFieldNames. The list has the procedure-handles of SDF containerTargets and widget-handles of widgets." "" yes no "" no "" "" no yes 88.7063
 "AllFieldNames" 7.7063 1 "Contains a comma-separated list of names of all objects and widgets on the visual objects. The corresponding handles are stored in AllFieldHandles. The list stores the FieldName of SmartDataFields and the NAME attribute of widgets." "" yes no "" no "" "" no yes 90.7063
@@ -228,6 +229,8 @@ delimited list of handles." "" yes no "" no "" "" no yes 449.5498
 "ContainerType" 5.7063 1 "The Type of Container which this SmartObject is --
 blank if the object is not a container, otherwise ""WINDOW"" for
 a SmartWindow , ""FRAME"" for a SmartFrame." "" yes no "" no "" "" no yes 19.7063
+"ContainerWidgetIDs" 1005097792.101 1 "Comma sepparated list that stores the container names and their widget-id values.
+Container names and widget-ids are created using the Runtime Widget-id assignment tool'." "" no no "" no "" "" no no 4781.84251
 "CONTEXT-HELP-ID" 1005078412.09 4 "" "" no no "" no "" "" no no 1005099306.101
 "CONVERT-3D-COLORS" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099322.101
 "CreateHandles" 9.7063 1 "A comma-separated list of the handles of the fields in the data visualization object which should be enabled for an Add or Copy operation." "" yes no "" no "" "" no yes 104.7063
@@ -252,6 +255,7 @@ The list of columns for each contained Data Object is comma-delimited, and quali
 "DataColumnsByTable" 154.7063 1 "A comma-delimited list of the columnNames separated
 by CHR(1) to identify groups of columns that belong to the same table. If grouping is not required, use DataColums to get a comma separated summary list." "" no no "" no "" "" no yes 507.7063
 "DataContainer" 347.7063 3 "Indicates whether or not this container is a Data Container." "" no no "" no "" "" no yes 424.7063
+"DataContainerName" 152.7063 1 "The DataContainerName is passed to getManagerHandle to start the DataContainer for an instance. The DataContainer and the Service Adpater has a one-to-one relationship. This property allows applications to run in the same session with separate Service Adapters. This might be necessary if Business Entity references need different namepaces because the applications have been developed separately." "" no no "" no "" "" no yes 90725.66
 "DataDelimiter" 152.7063 1 "The delimiter to use for data values passed to the registered DataReadHandler when traversing the query." "" no no "" no "" "" no yes 200000003010.66
 "DataFieldDefs" 152.7063 1 "The name of the include file in which the field definitions for this SDO's RowObject table are stored" "" yes no "Master" no "" "" no yes 204.7063
 "DataHandle" 152.7063 10 "The handle to the temp-table (RowObject) query" "" yes no "" no "" "" no yes 170.7063
@@ -401,6 +405,7 @@ when the fields are disabled. The supported values are:
 
 ? as repository value tells the get function to return default;  (All) for normal viewers and (none) for viewers with no db fields." "" no no "" no "" "" no yes 9071.66
 "EnabledObjHdls" 7.7063 1 "A comma-separated list of the handles of widgets enabled in this object NOT associated with data fields" "" yes no "" no "" "" no yes 82.7063
+"EnabledWhenNew" 9.7063 1 "A comma separated list of fields that only should be enabled in new mode.  Defaults to  unknown as a signal to set this from the UpdateTarget's UpdatableWhenNew property. The list can also be set and can also contain non data bound objects in a SmartDataViewer. Non data bound objects works if the objects also are defined in the EnabledObjFlds property and are specified to work as data fields in the EnabledObjFldsToDisable property." "GET" no no "" no "" "" no yes 100667.66
 "EnableField" 432.7063 3 "TRUE if the SmartDataField is to be enabled for user input along with other fields in its Container, otherwise false.
 This instance property is initialized by the AppBuilder in adm-create-objects." "" no no "" no "" "" no yes 1005101029.101
 "ENableStates" 1003183341 1 "" "" no no "" no "" "" no no 1003202026
@@ -473,6 +478,7 @@ Some database designs separate fields by uppercasing the first character of each
 "FieldSpacingPxl" 608.7063 4 "" "" no no "" no "" "" no yes 640.7063
 "FieldTooltip" 1005095447.101 1 "Tooltip for displayed Dynamic Lookup/Dynamic Combo field." "" no no "" no "" "" no no 1005089869.28
 "FieldTooltips" 608.7063 1 "Stores the internal list of fields and TOOLTIPs" "" yes no "" no "" "" no yes 650.7063
+"FieldWidgetIDs" 1005095446.101 1 "Comma separated list with the field name and its widget-id." "" no no "" no "" "" no yes 4686.84251
 "FieldWidths" 608.7063 1 "Stores the internal list of overridden field widths." "" yes no "" no "" "" no yes 646.7063
 "FillBatchOnRepos" 152.7063 3 "Sets the flag on or off which indicates whether 'fetchRowIdent'
 will fetch enough rows to fill a batch when repositioning to (or near) the end of a dataset where an entire batch wouldn't be retrieved." "" no no "" no "" "" no yes 213.7063
@@ -499,6 +505,7 @@ Use columnFilterTarget for a column." "" yes no "" no "" "" no yes 610.7063
 "FolderTabType" 1003183341 4 "" "" no no "" no "" "" no yes 1003202016
 "FolderTabWidth" 3000002003.09 5 "Optional width for tabs" "" no no "" no "" "" no no 3484.66
 "FolderType" 1003183341 1 "" "" no no "" no "" "" no no 528.1713
+"FolderWidgetIDs" 3000002003.09 1 "Widget-ids for the folder pages." "" no no "" no "" "" no yes 4613.84251
 "FolderWindowToLaunch" 436.7063 1 "If Dynamics is running, this property specifies a window to launch upon the occurence of toolbar events ""View"", ""Copy"", ""Modify"" or ""Add""." "" no no "" no "" "" no yes 1003466958
 "FONT" 1005078412.09 4 "WidgetAttributes Font" "GET,SET" no no "" no "" "" no yes 1005099311.101
 "ForeignFields" 154.7063 1 "A comma-separated list, consisting of thefirst local db fieldname, followed by the matching source temp-table field name, followed by more pairs if there is more than one field to match." "" no no "" no "" "" no yes 1003183462
@@ -507,6 +514,7 @@ Use columnFilterTarget for a column." "" yes no "" no "" "" no yes 610.7063
 "FRAME" 1005078412.09 1 "" "" no no "" no "" "" no no 1005099310.101
 "FrameMinHeightChars" 1005095446.101 5 "The calculated minimum height of the viewer's frame, in characters." "" no no "" no "" "" no no 1005109052.101
 "FrameMinWidthChars" 1005095446.101 5 "The calculated minimum width of the viewer's frame, in characters." "" no no "" no "" "" no no 1005109053.101
+"FrameWidgetID" 432.7063 4 "Widget-id of the field frame" "" no no "" no "" "" no yes 4689.84251
 "FullRowSelect" 1005097792.101 3 "If yes, the entire row of the node is selected. If no, only the text is selected." "SET" no no "" no "" "" no yes 3508.66
 "GenerationTemplate" 5.7063 1 "The template file used generate static objects." "" no no "Class" no "" "" yes yes 30000000030001.53733
 "GRAPHIC-EDGE" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099328.101
@@ -541,12 +549,13 @@ No    - Never hide on close.
 Null  - Follow rules (Default)" "" no no "" no "" "" no yes 149992.9875
 "HideOnInit" 5.7063 3 "Flag indicating whether to visualize at initialization.
 Also used for non visual object in order to publish LinkState correctly for activation and deactivation of links.   
-Defaults to 'NO', set to 'YES' from the container when it runs initPages to initialize non visible pages" "" no no "" no "" "" no yes 1003183447
+Defaults to 'NO', set to 'YES' from the container when it runs initPages to initialize non visible pages" "GET" no no "" no "" "" no yes 1003183447
 "HideSelection" 1005097792.101 3 "Used to set the property of a SmartTreeView object to indicate that a node should appear as selected or not." "SET" no no "" no "" "" no yes 1005081439.28
 "HORIZONTAL" 1005078412.09 3 "When TRUE, radio-sets are oriented horizontally." "" no no "" no "" "" no no 13481.409
 "HotKey" 3000002003.09 1 "For SmartPak folder" "" no no "" no "" "" no no 3496.66
 "HtmlClass" 1005078412.09 1 "CLASS property for an HTML tag" "" no no "" no "" "" no no 522.1713
 "HtmlStyle" 1005078412.09 1 "STYLE property for an HTML tag" "" no no "" no "" "" no no 3012.1713
+"IgnoreTreeViewFilter" 152.7063 3 "Decides whether general filter criteria applied to a TreeView should be applied to the data object. A TRUE value overrides default behaviour and ignores the criteria. This property supports the behaviour that previously was achieved by adding an empty NoTreeFilter procedure stub to a static SDO. Note that data sources on TreeView nodes do not support the notion of instances and instance attributes, so the property must typically be defined at the master level." "GET" no no "" no "" "" no yes 1000096124.66
 "IMAGE-DOWN-FILE" 1005078412.09 1 "" "" no no "" no "" "" no no 3000040674.09
 "IMAGE-FILE" 1005078412.09 1 "" "" no no "" no "" "" no no 3000040675.09
 "IMAGE-INSENSITIVE-FILE" 1005078412.09 1 "" "" no no "" no "" "" no no 3000040676.09
@@ -648,7 +657,7 @@ belong to.
 "LogFile" 505.49 1 "The LogFile used to log errors for the consumer when running
 in batch mode." "" no no "" no "" "" no yes 884.7063
 "LogicalObjectName" 5.7063 1 "Maps to the object name in the Repository. Managed by the Repository manager at runtime." "" yes no "" no "" "" no yes 1003299781
-"LogicalVersion" 3000002003.09 1 "The version of a logical (non-static) object, as stored in the" "" no no "" no "" "" no no 1000000272.48
+"LogicalVersion" 3000002003.09 1 "The version of a logical (non-static) object." "" no no "" no "" "" no no 1000000272.48
 "LookupFilterValue" 3000002003.09 1 "Filter value for the lookup" "SET" no no "" no "" "" no no 3232.66
 "LookupHandle" 1005095447.101 10 "" "" yes no "" no "" "" no yes 825.7063
 "LookupImage" 1005095447.101 1 "Image to use for Dynamic Lookup button (binoculars) - default will always be adeicon/select.bmp" "" no no "" no "" "" no yes 1005089887.28
@@ -713,6 +722,7 @@ or other Container with DataObjects." "" no no "" no "" "" no yes 1004979019.09
 "NewRecord" 9.7063 1 "Is 'ADD' or 'COPY' when the current record is a new unsaved record.  Otherwise the value is 'NO'." "set" yes no "" no "" "" no yes 98.7063
 "NO-EMPTY-SPACE" 1005078412.09 3 "Browse last column will widen, if necessary, to fill any empty space in the right of the browse." "" no no "" no "" "" no no 14660.409
 "NO-FOCUS" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099321.101
+"NoLockReadOnlyTables" 152.7063 1 "Read only (no updatable columns) tables specified in this comma separated list will remain NO-LOCKed during the transaction and not be included in the optimistic locking check. The property can be set to 'ALL' to indicate that this applies to all read only tables. The default behavior, when this property is blank, is to apply EXCLUSIVE-LOCK to joined read only tables during the transaction and to include them in the optimistic lock conflict check." "" no no "" no "" "" no yes 101793.66
 "NoLookups" 3000002003.09 3 "Whether to display a lookup or not" "" no no "" no "" "" no no 1005095449.101
 "NotEmpty" 1005078412.09 3 "Set to TRUE if this field cannot be empty. Not empty means not blank for a character field and not 0 for an integer or a decimal." "" no no "" no "" "" no yes 32990.66
 "NotNull" 1005078412.09 3 "Set to TRUE if a null value (unknown value) is not allowed in this field." "" no no "" no "" "" no yes 32988.66
@@ -1131,6 +1141,7 @@ The option applies to objects where SaveSource is TRUE (TableioSource's TableioT
 "UNIQUE-MATCH" 1005078412.09 1 "" "" no no "" no "" "" no no 1005099333.101
 "UpdatableColumns" 154.7063 1 "A comma-separated list of updatable columns in all tables of the query. Note that the data class does not store this, but derrives it from  'UpdatableColumnsByTable'." "" no no "" no "" "" no yes 533.7063
 "UpdatableColumnsByTable" 154.7063 1 "A comma-separated list of updatable columns grouped by table and delimited by {&adm-datadelimiter} (defined in the globals include)." "" no no "" no "" "" no yes 531.7063
+"UpdatableWhenNew" 152.7063 1 "A comma separated list of columns that only should be updatable in new mode.  The DataVisual class uses this as default in its corresponding EnabledWhenNew property. The client side data object will only accept changes to these columns when the record is new. There is no attempt to enforce this in the transaction logic on the server side." "" no no "" no "" "" no yes 100670.66
 "UpdateActive" 347.7063 3 "TRUE if ANY of the contained object's have active updates.
 - Updating objects publishes 'updateActive' (true or false) to their  container targets. (from setDataModified, setNewRecord or setRowObjectState).
 - If the value is FALSE updateActive turns around and publishes 
@@ -1175,6 +1186,7 @@ Toggles on and off with space-bar and off with back-space." "" yes no "" no "" "
 "WaitForObject" 347.7063 10 "The handle of the object (most likely a SmartConsumer)  in the container that contains a WAIT-FOR that needs to be started 
 with 'startWaitFor'" "" yes no "" no "" "" no yes 371.7063
 "Waiting" 505.49 3 "Stores the Waiting property which is used by the adapter's waitForMessages to determne whether to continue waiting for messages." "" no no "" no "" "" no yes 896.7063
+"WidgetIDFileName" 347.7063 1 "Name of the XML file used to store the container widget-id values." "" no no "" no "" "" no yes 4542.84251
 "Width" 3000002003.09 1 "A widget's width. The unit of measurement is determined by another
 parameter." "" no no "" no "" "" no no 1005078416.09
 "WIDTH-CHARS" 1005078412.09 5 "Width in characters. This may currently be used when rendering some objects. There is no get function, use getWidth to retrieve the realized value from an object." "" no no "" no "" "" no no 1005099285.101
@@ -1193,12 +1205,12 @@ stores the frame handle also for a SmartContainer.
 .
 PSC
 filename=ryc_attribute
-records=0000000000842
+records=0000000000853
 ldbname=ICFDB
-timestamp=2006/10/12-14:55:11
+timestamp=2007/12/03-15:38:42
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=utf-8
+cpstream=UTF-8
 .
-0000144565
+0000147887

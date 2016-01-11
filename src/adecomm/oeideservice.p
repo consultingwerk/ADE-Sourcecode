@@ -179,7 +179,8 @@ FUNCTION closeEditor RETURNS LOGICAL
 FUNCTION findAndSelect RETURNS LOGICAL
          (projectName  AS CHARACTER,
           fileName     AS CHARACTER,
-          cText        AS CHARACTER)  FORWARD.
+          cText        AS CHARACTER,
+          activateEditor AS LOGICAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -711,7 +712,7 @@ DEFINE VARIABLE lStatus AS LOGICAL     NO-UNDO.
    
    CREATE SOCKET hSocket.
    
-   lStatus = hSocket:CONNECT("-H localhost -S ":U + OS-GETENV("ECLIPSE_PORT":U)) NO-ERROR.
+   lStatus = hSocket:CONNECT("-H localhost -S ":U + OS-GETENV("OEA_PORT":U)) NO-ERROR.
    IF NOT lStatus THEN RETURN.
    
    pcCommand = pcCommand + "~n".
@@ -768,12 +769,23 @@ DEFINE INPUT-OUTPUT PARAMETER pcFileName AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cBaseFileName     AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cUntitledFileName AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE i                 AS INTEGER     NO-UNDO.
+DEFINE VARIABLE cFileExt          AS CHARACTER   NO-UNDO.
 
+/* Use the file extension of the specified file name unless it is .tmp. */
+i = R-INDEX(pcFileName, ".").
+IF i > 0 THEN
+DO:
+    cFileExt = SUBSTRING(pcFileName, i).
+    IF cFileExt = ".tmp":U THEN
+        cFileExt = "".
+END.    
+
+i = 0.
 cBaseFileName = OS-GETENV("ECLIPSE_ROOT") + "Untitled".
-FILE-INFO:FILE-NAME = cBaseFileName + STRING(i).
+FILE-INFO:FILE-NAME = cBaseFileName + STRING(i) + cFileExt.
 DO WHILE FILE-INFO:FULL-PATHNAME <> ?:
     i = i + 1.
-    FILE-INFO:FILE-NAME = cBaseFileName + STRING(i).
+    FILE-INFO:FILE-NAME = cBaseFileName + STRING(i) + cFileExt.
 END.
 cUntitledFileName = FILE-INFO:FILE-NAME.
 FILE-INFO:FILE-NAME = pcFileName.
@@ -1230,7 +1242,8 @@ END FUNCTION.
 FUNCTION findAndSelect RETURNS LOGICAL
          (projectName  AS CHARACTER,
           fileName     AS CHARACTER,
-          cText        AS CHARACTER) :
+          cText        AS CHARACTER,
+          activateEditor AS LOGICAL) :
 /*------------------------------------------------------------------------------
   Purpose:  Finds and select the specified text in the OEIDE Editor
     Notes:  
@@ -1250,7 +1263,8 @@ FUNCTION findAndSelect RETURNS LOGICAL
     RUN sendRequest("IDE findAndSelect ":U 
                   + QUOTER(getProjectName()) + " "
                   + QUOTER(fileName) + " "
-                  + QUOTER(cText), FALSE, OUTPUT cResult).
+                  + QUOTER(cText) + " "
+                  + (IF activateEditor THEN "TRUE" ELSE "FALSE"), FALSE, OUTPUT cResult).
     RETURN TRUE.
 
 END FUNCTION.
@@ -1302,7 +1316,9 @@ END.
 OUTPUT TO VALUE(name).
 OUTPUT CLOSE.
 
-name = REPLACE(name, "~\", "/").       
+name = REPLACE(name, "~\", "/").
+name = REPLACE(name, "//", "/").
+       
 RETURN name.
 
 END FUNCTION.

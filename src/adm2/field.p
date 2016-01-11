@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -52,6 +52,27 @@
 
 
 /* ************************  Function Prototypes ********************** */
+&IF DEFINED(EXCLUDE-getFrameWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFrameWidgetID Procedure
+FUNCTION getFrameWidgetID RETURNS INTEGER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFrameWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFrameWidgetID Procedure
+FUNCTION setFrameWidgetID RETURNS LOGICAL 
+	(INPUT piFrameWidgetID AS INTEGER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-formattedValue) = 0 &THEN
 
@@ -168,6 +189,17 @@ FUNCTION getFieldHandle RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldName Procedure 
 FUNCTION getFieldName RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyField Procedure 
+FUNCTION getKeyField RETURNS CHARACTER
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -306,6 +338,17 @@ FUNCTION setFieldName RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setKeyField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyField Procedure 
+FUNCTION setKeyField RETURNS LOGICAL
+  ( pcKeyField AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setKeyFieldValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyFieldValue Procedure 
@@ -384,7 +427,95 @@ FUNCTION setSavedScreenValue RETURNS LOGICAL
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignWidgetID) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignWidgetID Procedure
+PROCEDURE assignWidgetID:
+/*------------------------------------------------------------------------------
+    Purpose: This procedure is called from combo.p, lookup.p and select.p to
+             assign widget-ids for their created widgets.
+             Before assign the widget-id to those widgets it is required to
+             validate the container source and WidgetIDFileName attribute, if
+             they have invalid values, we don't set the widget-ids in order to
+             avoid duplicates.
+    Parameters:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER hWidget1 AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER iWidget1 AS INTEGER    NO-UNDO.
+DEFINE INPUT  PARAMETER hWidget2 AS HANDLE     NO-UNDO.
+DEFINE INPUT  PARAMETER iWidget2 AS INTEGER    NO-UNDO.
+
+DEFINE VARIABLE hContainer AS HANDLE NO-UNDO.
+DEFINE VARIABLE cFileName  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cUIBMode   AS CHARACTER  NO-UNDO.
+
+{get UIBMode cUIBMode}.
+
+IF cUIBMode BEGINS 'DESIGN':U THEN RETURN.
+
+ASSIGN hContainer = DYNAMIC-FUNCTION('getContainerSource' IN TARGET-PROCEDURE) NO-ERROR.
+
+IF NOT VALID-HANDLE(hContainer) THEN RETURN.
+
+ASSIGN cFileName = DYNAMIC-FUNCTION('getWidgetIDFileName' IN hContainer).
+
+IF cFileName = ? OR cFileName = "" THEN RETURN.
+
+IF hWidget1 NE ? THEN
+ASSIGN hWidget1:WIDGET-ID = iWidget1 NO-ERROR.
+
+IF hWidget2 NE ? THEN
+ASSIGN hWidget2:WIDGET-ID = iWidget2 NO-ERROR.
+
+RETURN.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-assignLabelWidgetID) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignLabelWidgetID Procedure
+PROCEDURE assignLabelWidgetID:
+/*------------------------------------------------------------------------------------
+    Purpose: Assign the widget-id for the field label.
+    Parameters: <none>
+    Notes: The label is placed over the viewer frame, and not over the SDF frame.
+           Therefore if another widget over the frame has the same widget-id value (4)
+           than the label, we get duplicate widget-ids.
+           In order to avoid that this procedure gets the widget-id assigned to the
+           SDF frame, and adds that value to the label widget-id set to 4.
+------------------------------------------------------------------------------------*/
+DEFINE VARIABLE hLabel         AS HANDLE    NO-UNDO.
+DEFINE VARIABLE iFrameWidgetID AS INTEGER   NO-UNDO.
+DEFINE VARIABLE hContainer     AS HANDLE    NO-UNDO.
+DEFINE VARIABLE cFileName      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cUIBMode       AS CHARACTER NO-UNDO.
+  &SCOPED-DEFINE xp-assign
+  {get LabelHandle hLabel}
+  {get FrameWidgetID iFrameWidgetID}
+  {get ContainerSource hContainer}
+  {get UIBMode cUIBMode}.  
+  &UNDEFINE xp-assign
+
+IF cUIBMode BEGINS 'DESIGN':U THEN RETURN.
+
+IF NOT VALID-HANDLE(hContainer) THEN RETURN.
+
+ASSIGN cFileName = DYNAMIC-FUNCTION('getWidgetIDFileName' IN hContainer).
+
+IF cFileName = ? THEN RETURN.
+
+  ASSIGN hLabel:WIDGET-ID = iFrameWidgetID + 4 NO-ERROR.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-clearField) = 0 &THEN
 
@@ -1405,3 +1536,82 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFrameWidgetID) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFrameWidgetID Procedure
+FUNCTION getFrameWidgetID RETURNS INTEGER 
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iFrameWidgetID AS INTEGER    NO-UNDO.
+{get FrameWidgetID iFrameWidgetID}.
+RETURN iFrameWidgetID.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-setFrameWidgetID) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFrameWidgetID Procedure
+FUNCTION setFrameWidgetID RETURNS LOGICAL 
+	(INPUT piFrameWidgetID AS INTEGER):
+/*------------------------------------------------------------------------------
+    Purpose: The container use this property to set the widget-id value for the
+             SmartDataField frame.
+    Notes: This value is required to set the widget-id value for the label.
+------------------------------------------------------------------------------*/
+{set FrameWidgetID piFrameWidgetID}.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyField Procedure 
+FUNCTION getKeyField RETURNS CHARACTER
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the name of the field name which value is: 
+           - received from the SmartDataViewer in setDataValue  
+           - retrieved by the SmartDataViewer in getDataValue   
+    Notes:   
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cKeyField AS CHARACTER NO-UNDO.
+  {get KeyField cKeyField}.
+  RETURN cKeyField.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setKeyField) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyField Procedure 
+FUNCTION setKeyField RETURNS LOGICAL
+  ( pcKeyField AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Stores the name of the field to use as the keyfield in the selection
+Parameters: INPUT picKeyField - fieldname    
+    Notes: - received from the SmartDataViewer in setDataValue  
+           - retrieved by the SmartDataViewer in getDataValue   
+------------------------------------------------------------------------------*/
+
+  {set KeyField pcKeyField}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF

@@ -108,9 +108,10 @@ DO:
 END.
 
 IF NOT CAN-DO(ABTools, "Enable-ICF":u) THEN
-DO:
-  FIND pt-function WHERE pt-function.pcFile = "ry/uib/_v89dcnv.w":U NO-ERROR.
-  IF AVAILABLE pt-function THEN pt-function.pdisplay = NO.
+for each pt-function WHERE 
+         pt-function.pcFile = "ry/uib/_v89dcnv.w":U or
+         pt-function.pcFile = "adeuib/_convertadm2dynamics.w":u:
+    pt-function.pdisplay = NO.
 END.
 
 FOR EACH pt-function WHERE pt-function.pdisplay = yes BY pt-function.order:

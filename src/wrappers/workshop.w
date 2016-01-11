@@ -80,7 +80,12 @@ PROCEDURE output-frameset :
 /*------------------------------------------------------------------------------
   Purpose:     Output the "Frameset" html page.
   Parameters:  <none>
-  Notes:       
+  Notes:       The use of get-location for the Welcome.html is really 
+               not necessary as the file is not static anymore. 
+               It was kept like this for backwards compatiblility with 
+               potential overrides. (Somewhat inconsistent as  
+               webspeed/scripts/editor.js don't use get-location when it 
+               shows the welcome on close of the editor)
 ------------------------------------------------------------------------------*/
  {&OUT}
    { workshop/html.i  &SEGMENTS = "head"                      

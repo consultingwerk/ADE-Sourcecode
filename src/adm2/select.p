@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------
     File        : select.p
     Purpose     : Super procedure for select class.
@@ -259,17 +259,6 @@ FUNCTION getHelpId RETURNS INTEGER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyField Procedure 
-FUNCTION getKeyField RETURNS CHARACTER
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLabel Procedure 
@@ -330,6 +319,17 @@ FUNCTION getOptionalBlank RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOptionalString Procedure 
 FUNCTION getOptionalString RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getParentFieldHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getParentFieldHandle Procedure 
+FUNCTION getParentFieldHandle RETURNS HANDLE
+  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -561,17 +561,6 @@ FUNCTION setFormat RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setHelpId Procedure 
 FUNCTION setHelpId RETURNS LOGICAL
   ( piHelpId AS INTEGER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyField Procedure 
-FUNCTION setKeyField RETURNS LOGICAL
-  ( pcKeyField AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -964,7 +953,7 @@ PROCEDURE dataAvailable :
   {get Modify lModify}. 
   IF pcMode > '':U AND NOT lModify THEN
     RETURN.
-
+ 
   &SCOPED-DEFINE xp-assign
   {set Modify FALSE} /* Turn off modify mode */
   {get SelectionHandle hSelection}.
@@ -1442,15 +1431,16 @@ PROCEDURE initializeObject :
 */
 /*------------------------------------------------------------------------------
   Purpose: Override of initializeObject in order to subscribe to 
-           the ChangedEvent if defined and initializeSelection      
+           the ChangedEvent and refreshObject if necessary and to create the 
+           widgets in initializeSelection.      
   Parameters:  <none>
   Notes:    
 ---------------------------------------------------------------------------*/
-  
-  DEFINE VARIABLE cEvent     AS CHAR   NO-UNDO.
-  DEFINE VARIABLE hContainer AS HANDLE NO-UNDO.
-  DEFINE VARIABLE cUIBMode    AS CHAR   NO-UNDO.
-  
+  DEFINE VARIABLE cEvent       AS CHAR   NO-UNDO.
+  DEFINE VARIABLE hContainer   AS HANDLE NO-UNDO.
+  DEFINE VARIABLE cUIBMode     AS CHAR   NO-UNDO.
+  DEFINE VARIABLE hParentField AS HANDLE NO-UNDO.
+   
   RUN SUPER.
   
   {get ChangedEvent cEvent}.
@@ -1462,11 +1452,19 @@ PROCEDURE initializeObject :
     IF NOT (cUIBMode BEGINS "DESIGN":U)  THEN
        SUBSCRIBE PROCEDURE hContainer TO cEvent IN TARGET-PROCEDURE.
   END.
-
-  RUN initializeSelection IN TARGET-PROCEDURE.
   
-  RETURN.
+  /* Check if we have a parent field and subscribe to 'refreshObject' if we do.  
+     We ignore the QueryOpened event if the parentfield is not in synch 
+     with its datasource and thus need to be told when to refresh again. 
+     The parent will publish 'refreshObject' from rowSelected to signal 
+     that it is in synch with its source. */ 
+  {get ParentFieldHandle hParentField}.
+  if valid-handle(hParentField) then
+     subscribe procedure target-procedure to "refreshObject":U in hParentField. 
+  
+  RUN initializeSelection IN TARGET-PROCEDURE.
 
+RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1638,7 +1636,6 @@ Parameters:  <none>
          cList = {fn buildList}. 
   END. /* not browser */
 
-
   CASE cViewAsType:
     WHEN "Selection-List":U THEN
     DO:
@@ -1650,10 +1647,15 @@ Parameters:  <none>
                  Y                = 0
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS
                  HEIGHT-PIXELS    = hFrame:HEIGHT-PIXELS
-                 HIDDEN           = FALSE
+                 HIDDEN           = TRUE
                  DELIMITER        = {&selectionSeparator}
                  SENSITIVE        = FALSE.
-          
+
+        IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+          RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hSelection, INPUT 2,
+                                                  INPUT ?,          INPUT 0).
+        ASSIGN hSelection:HIDDEN = FALSE NO-ERROR.
+
           IF cList NE "":U THEN
             hSelection:LIST-ITEM-PAIRS = cList.
     END. /* when "selection-list" */
@@ -1670,9 +1672,14 @@ Parameters:  <none>
                  Y                = 0
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS 
                  HEIGHT-PIXELS    = hFrame:HEIGHT-PIXELS
-                 HIDDEN           = FALSE
+                 HIDDEN           = TRUE
                  SENSITIVE        = FALSE.
-    END. /* when "radio-set" */
+
+        IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+          RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hSelection, INPUT 2,
+                                              INPUT ?,          INPUT 0).
+        ASSIGN hSelection:HIDDEN = FALSE NO-ERROR.
+     END. /* when "radio-set" */
     WHEN "Combo-Box":U THEN
     DO:
       IF cViewAsOption = "SIMPLE":U AND hFrame:HEIGHT = 1 THEN
@@ -1696,6 +1703,11 @@ Parameters:  <none>
                  HIDDEN           = TRUE
                  SENSITIVE        = FALSE.
 
+        IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+          RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hSelection, INPUT 2,
+                                              INPUT ?,          INPUT 0).
+        ASSIGN hSelection:HIDDEN = FALSE NO-ERROR.
+
        IF cList NE "":U THEN
        DO:
          IF {fn getUsePairedList} THEN
@@ -1703,10 +1715,6 @@ Parameters:  <none>
          ELSE 
            hSelection:LIST-ITEMS = cList.
        END.
-       /* The frame (sometimes decimals??) protests about the height if 
-          exactly 1 so we use no-error. */ 
-       ASSIGN 
-           hSelection:HIDDEN       = FALSE NO-ERROR.
        
        IF iNumRows > 0 THEN
           hSelection:INNER-LINES = MIN(hSelection:NUM-ITEMS,iNumRows).
@@ -1734,46 +1742,52 @@ Parameters:  <none>
                                     THEN hSelection:FORMAT
                                     ELSE cDispFormat 
                  WIDTH-PIXELS     = hFrame:WIDTH-PIXELS - 24
-                 HIDDEN           = FALSE
+                 HIDDEN           = TRUE
                  SENSITIVE        = (cUIBMode BEGINS "DESIGN":U) = FALSE
                  READ-ONLY        = TRUE
                  TAB-STOP         = FALSE.
                                
-        CREATE BUTTON hBtn
-          ASSIGN NO-FOCUS         = TRUE
-                 FRAME            = hFrame
-                 X                = hSelection:WIDTH-P + (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 4)
-                 Y                = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
-                 WIDTH-PIXELS     = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 22 else 19)
-                 HEIGHT-P         = hSelection:HEIGHT-P - (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
-                     
-                 HIDDEN           = FALSE
-                 SENSITIVE        = FALSE
+       CREATE BUTTON hBtn
+         ASSIGN NO-FOCUS         = TRUE
+                FRAME            = hFrame
+                X                = hSelection:WIDTH-P + (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 4)
+                Y                = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
+                WIDTH-PIXELS     = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 22 else 19)
+                HEIGHT-P         = hSelection:HEIGHT-P - (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
+                HIDDEN           = TRUE
+                SENSITIVE        = FALSE
               TRIGGERS:
                 ON CHOOSE PERSISTENT 
                   RUN chooseButton IN TARGET-PROCEDURE.
               END.
+
+       IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+         RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hSelection, INPUT 2,
+                                                  INPUT hBtn,       INPUT 6).
+       ASSIGN hSelection:HIDDEN = FALSE
+              hBtn:HIDDEN       = FALSE NO-ERROR.
+
        {get SelectionImage cSelectionImg}.
-        hBtn:LOAD-IMAGE(cSelectionImg).      
-        hFrame:HEIGHT = hSelection:HEIGHT.
-       
+       hBtn:LOAD-IMAGE(cSelectionImg).      
+       hFrame:HEIGHT = hSelection:HEIGHT.
+
        {get DefineAnyKeyTrigger lAnyKey}.
-       
+
        IF lAnyKey THEN 
          ON ANY-KEY OF hSelection 
            PERSISTENT RUN anyKey IN TARGET-PROCEDURE.
-    
+
        {set ButtonHandle hBtn}.
        /* create entry/leave trigger */
        
        ON ENTRY OF hSelection 
          PERSISTENT RUN enterSelect IN TARGET-PROCEDURE.
-       
+
        ON LEAVE OF hSelection 
          PERSISTENT RUN leaveSelect IN TARGET-PROCEDURE.
     END. /* when "browser" */
   END CASE. /* cViewAsType */
-  
+
   {set SelectionHandle hSelection}.
   IF VALID-HANDLE(hSelection) THEN
   DO:
@@ -1791,12 +1805,12 @@ Parameters:  <none>
       IF cLabel <> ? THEN
         {fnarg createLabel cLabel}. 
     END. /* cLabel <> "":U */
-    
+
     hSelection:MOVE-TO-BOTTOM().
     hSelection:TOOLTIP = cToolTIP.
     IF iHelpId <> ? THEN 
      hSelection:CONTEXT-HELP-ID = iHelpId.
-    
+
     {get LocalField lLocal}.
     IF NOT lLocal THEN
       ON VALUE-CHANGED OF hSelection PERSISTENT RUN valueChanged  IN TARGET-PROCEDURE.
@@ -2085,14 +2099,41 @@ PROCEDURE queryOpened :
   Purpose: subscribe to dataSource     
   Parameters:  
   Notes:    The SmartSelect need to know that the query changed as this cannot 
-            be detected through the ordinary publish "dataAvailable". 
+            be detected through the ordinary publish "dataAvailable".
+          - This event is ignored if the parent SDO of our SDO has an SDF that 
+            is not in synch. if we are a child then the queryopened event is 
+            typically a result of setDataValue in a parent SDF repositioning 
+            its datasource, which then opens child SDOs.     
 ------------------------------------------------------------------------------*/  
   DEFINE VARIABLE lInitialized AS LOGICAL NO-UNDO.
-
+  
+  DEFINE VARIABLE hGrandDad          AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE hParentField       AS HANDLE  NO-UNDO. 
+  DEFINE VARIABLE cParentField       AS CHAR    NO-UNDO. 
+  DEFINE VARIABLE cParentValue       AS CHAR    NO-UNDO. 
+  DEFINE VARIABLE cParentVisualValue AS CHAR    NO-UNDO. 
+  
   /* we're not ready for this event until we have initialized. */
   {get ObjectInitialized lInitialized}.
-  IF lInitialized THEN
-     RUN refreshobject IN TARGET-PROCEDURE. 
+  if not lInitialized then 
+    return. 
+  
+  /* Check if we have a parent field and ignore this event if the 
+     parentfield is not in synch with its datasource. */ 
+  {get ParentFieldHandle hParentField}.
+  if valid-handle(hParentField) then
+  do:    
+    {get DataSource hGrandDad hParentField}.
+    {get FieldName cParentField hParentField}.      
+    {get DataValue cParentVisualValue hParentField}.     
+    cParentValue = {fnarg columnValue cParentField hGrandDad}.
+    if cParentValue <> cParentVisualValue then
+      return.
+  end.
+  
+  /* if we get here then do the refresh */
+  RUN refreshobject IN TARGET-PROCEDURE. 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2143,13 +2184,13 @@ PROCEDURE refreshObject :
         hSelection:LIST-ITEMS = ?.
     END.
     ELSE DO: 
-      IF cList <> "":U THEN
-        hSelection:LIST-ITEM-PAIRS = cList. 
+      IF cList <> "":U THEN 
+        hSelection:LIST-ITEM-PAIRS = cList.
       ELSE
         hSelection:LIST-ITEM-PAIRS = ?.
     END.
   END.
-  
+ 
   /* Is old value still in the list? t*/
   hSelection:SCREEN-VALUE = cOldValue NO-ERROR.
 
@@ -2233,6 +2274,11 @@ PROCEDURE rowSelected :
   DEFINE VARIABLE hWindow             AS HANDLE     NO-UNDO.
 
   RUN dataAvailable IN TARGET-PROCEDURE('':U).
+  
+  /* We're now in synch with the SDO so publish refreshObject to child SDFs
+     which subscribes to this in initializeObject, because they ignore 
+     QueryOpened events while we're not in synch with the SDO */ 
+  publish "refreshObject":U from target-procedure.
   
   {get containerSource hContainer}.
   {get containerSource hRealContainer hContainer}.
@@ -2567,14 +2613,13 @@ FUNCTION createLabel RETURNS HANDLE
    {get ContainerHandle hFrame}.
     
    hParentFrame = hFrame:FRAME.
- 
    iLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(pcLabel + ": ":U, hFrame:FONT).
        
    CREATE TEXT hLabel
      ASSIGN FRAME                 = hParentFrame
             X                     = hFrame:X - iLabelLength
             Y                     = hFrame:Y
-            HIDDEN                = FALSE
+            HIDDEN                = TRUE
             WIDTH-PIXELS          = iLabelLength
             FORMAT                = "x(256)":U
             SCREEN-VALUE          = pcLabel + ":":U
@@ -2585,9 +2630,13 @@ FUNCTION createLabel RETURNS HANDLE
   {set LabelHandle hLabel}
   {get SelectionHandle hSelection}.
   &UNDEFINE xp-assign
-  
+
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+     RUN assignLabelWidgetID IN TARGET-PROCEDURE.  
+
   hSelection:SIDE-LABEL-HANDLE = hLabel.
-  
+
+  hLabel:HIDDEN = FALSE.
   RETURN hLabel. 
 END FUNCTION.
 
@@ -2922,7 +2971,7 @@ FUNCTION getDisplayValue RETURNS CHARACTER
   {get SelectionHandle hSelection}.
    
   IF NOT VALID-HANDLE(hSelection) THEN
-    RETURN ERROR. 
+    RETURN ?. 
 
   &SCOPED-DEFINE xp-assign
   {get UsePairedList lUsedPair}
@@ -3099,29 +3148,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyField Procedure 
-FUNCTION getKeyField RETURNS CHARACTER
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose: Returns the name of the field name which value is: 
-           - received from the SmartDataViewer in setDataValue  
-           - retrieved by the SmartDataViewer in getDataValue   
-    Notes:   
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cKeyField AS CHARACTER NO-UNDO.
-  {get KeyField cKeyField}.
-  RETURN cKeyField.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLabel Procedure 
@@ -3244,6 +3270,51 @@ FUNCTION getOptionalString RETURNS CHARACTER
   DEFINE VARIABLE cOptionalString AS CHARACTER NO-UNDO.
   {get OptionalString cOptionalString}.
   RETURN cOptionalString.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getParentFieldHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getParentFieldHandle Procedure 
+FUNCTION getParentFieldHandle RETURNS HANDLE
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the handle of the parent SDF if any   
+    Notes: Used in initializeObject and queryopened.
+         - Checks if the SDO has a parent SDO and returns the SDF target of
+           this if it exists.
+         - Could possibly be a property (or derived from ParentField moved
+           here) and/or link, but the usage is rare and the main logic is only 
+           executed for those who have a parent. The parent sdo would also 
+           typically only have one target.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSource        AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE hGrandDad          AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE cParentSiblings    AS CHAR    NO-UNDO.
+  DEFINE VARIABLE hTarget            AS handle  NO-UNDO.
+  DEFINE VARIABLE iTarget            AS INTEGER NO-UNDO.
+  
+  {get DataSource hDataSource}.
+  if valid-handle(hDataSource) then
+  do:
+    {get DataSource hGrandDad hDataSource}.
+    if valid-handle(hGrandDad) then
+    do:
+      {get DataTarget cParentSiblings hGrandDad}.
+      do iTarget = 1 to num-entries(cParentSiblings):
+        hTarget = widget-handle(entry(iTarget,cParentSiblings)).
+        if {fnarg instanceOf 'Field':U hTarget} then
+          return hTarget.
+      end.                   
+    end.    
+  end.
+  
+  RETURN ?.    
 
 END FUNCTION.
 
@@ -3641,12 +3712,9 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
   /* repositionDataSource if called externally.  */  
   IF NOT lInternal THEN
   DO:
-    {get RepositionDataSource lRepositionSource}.
-    IF cViewAs ='Browser':U OR lRepositionSource THEN
-      lAvailable = {fnarg repositionDataSource pcValue}.
-
     IF cViewAs ='Browser':U THEN
     DO:
+      lAvailable = {fnarg repositionDataSource pcValue}.
       IF NOT lAvailable THEN
       DO:
         IF pcValue = '?':U OR pcValue = ? THEN
@@ -3705,7 +3773,11 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
    
       IF ERROR-STATUS:GET-NUMBER(1) = 4058 OR pcValue = ? THEN   
         RUN clearField IN TARGET-PROCEDURE.
-
+      /* synch sdo after datavalue is set 
+        (child select queryopened checks if in synch) */       
+      {get RepositionDataSource lRepositionSource}.
+      if lRepositionSource then 
+         {fnarg repositionDataSource pcValue}.    
     END. /* else (not fill-in or editable combo) */
   END.
 
@@ -3839,27 +3911,6 @@ Parameters: INPUT pcHelpId - Integer
     Notes:  
 ------------------------------------------------------------------------------*/
   {set HelpId piHelpId}.
-  RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setKeyField) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyField Procedure 
-FUNCTION setKeyField RETURNS LOGICAL
-  ( pcKeyField AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Stores the name of the field to use as the keyfield in the selection
-Parameters: INPUT picKeyField - fieldname    
-    Notes: - received from the SmartDataViewer in setDataValue  
-           - retrieved by the SmartDataViewer in getDataValue   
-------------------------------------------------------------------------------*/
-
-  {set KeyField pcKeyField}.
   RETURN TRUE.
 END FUNCTION.
 

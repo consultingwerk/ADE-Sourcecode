@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,7 +39,7 @@ History:
     hutegger    95/04   created out of ora_lkm.i
     mcmann     03/20/01 Added support for decending indexes
     mcmann     05/11/01 Change unique condition to be = 1
-
+    fernando   06/11/07 Unicode support
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -60,7 +60,7 @@ DEFINE VARIABLE h1 AS INTEGER NO-UNDO.
 
 {prodict/gate/gat_pul.i
   &buffer        = " "" "" "
-  &col-fields    = "scale precision_ length_ null$ default$"
+  &col-fields    = "scale precision_ length_ null$ default$ charsetform"
   &colid         = "col#"
   &colid-t-cmnt  = "?"
   &comment       = "comment$"
@@ -82,7 +82,7 @@ DEFINE VARIABLE h1 AS INTEGER NO-UNDO.
                     )"
   &length        = "ds_columns.length_"
   &mand          = "(ds_columns.null$ <> 0)"
-  &msc23         = "s_ttb_fld.ds_msc23"
+  &msc23         =  "s_ttb_fld.ds_msc23"
   &name          = "ds_columns.name"
   &objid         = "obj#"
   &precision     = "ds_columns.precision_"

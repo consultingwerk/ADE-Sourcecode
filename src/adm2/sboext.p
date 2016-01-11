@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : sboext.p
     Purpose     : Super procedure for sbo class.
@@ -530,6 +530,17 @@ FUNCTION getRowUpdated RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableColumns Procedure 
 FUNCTION getUpdatableColumns RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableWhenNew Procedure 
+FUNCTION getUpdatableWhenNew RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2441,6 +2452,26 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
             the value is derived on the fly by querying the contained SDOs.
 ------------------------------------------------------------------------------*/
   RETURN {fnarg columnPropertyList 'UpdatableColumns':U}.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdatableWhenNew Procedure 
+FUNCTION getUpdatableWhenNew RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns a list of all UpdatableWhenNew Columns of contained
+            DataObjects, qualified by their ObjectName.
+   Params:  <none>
+    Notes:   
+------------------------------------------------------------------------------*/
+  RETURN {fnarg columnPropertyList 'UpdatableWhenNew':U}.
 
 END FUNCTION.
 

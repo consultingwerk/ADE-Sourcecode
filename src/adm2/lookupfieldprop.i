@@ -133,7 +133,6 @@ DO:
   ghADMProps:ADD-NEW-FIELD('DisplayDataType':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldLabel':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldTooltip':U, 'CHARACTER':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('KeyField':U,           'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('KeyFormat':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('KeyDataType':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('Labels':U,             'LOGICAL':U,   0, ?, TRUE).

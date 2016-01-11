@@ -264,6 +264,8 @@ PROCEDURE setStatus :
   DEFINE INPUT  PARAMETER pcValue  AS CHARACTER  NO-UNDO.
   
   DEFINE VARIABLE cTitle AS CHARACTER  NO-UNDO.
+  define variable dWidth as decimal no-undo.
+  
   cTitle = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                             "window_title":U) NO-ERROR.
   IF cTitle <> "":U AND
@@ -273,6 +275,24 @@ PROCEDURE setStatus :
     {&WINDOW-NAME}:TITLE = "Status":U.
 
   DO WITH FRAME {&FRAME-NAME}:
+    /* Fit the whole ADO name in, if possible. Don't exceed the width of the session */
+    if {&window-name}:width-chars lt length(pcValue, 'column':u) then
+    do:
+        /*The 3.4 chr padding is taken from the original frame/widget defs. */
+        /* Make sure the window doesn't exceed the available work area */        
+        {&window-name}:width-chars = length(pcValue, 'column':u) + 3.4.
+        {&window-name}:width-pixels = min({&window-name}:width-pixels, session:work-area-width-pixels).
+        dWidth = {&window-name}:width-chars.
+        
+        /* Always re-centre nicely */        
+        {&WINDOW-NAME}:X = MAX((SESSION:WORK-AREA-WIDTH-PIXELS - {&WINDOW-NAME}:WIDTH-PIXELS) / 2,1).
+        
+        frame {&frame-name}:width-chars = dWidth.
+        
+        /* Remove the padding; we want the widget width to be as close to the value as possible. */
+        fiStatus:width-chars = dWidth - 3.4.
+    end.    /*resize */
+            
     fiStatus:SCREEN-VALUE = pcValue.
   END.
 

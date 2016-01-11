@@ -20,8 +20,8 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wiWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+*rights reserved. Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -75,8 +75,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 {af/sup2/afglobals.i}
 {afrun2.i     &define-only = YES}
 
-{afcheckerr.i &define-only = YES}
-
 DEFINE VARIABLE glDoOnceOnly  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE ghDSAPI       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE glWritingADOs AS LOGICAL    NO-UNDO.
@@ -96,7 +94,7 @@ DEFINE VARIABLE glWritingADOs AS LOGICAL    NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -134,7 +132,7 @@ DEFINE VARIABLE fiProcess AS CHARACTER FORMAT "X(256)":U
      SIZE 113.2 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 147.2 BY 1.71.
 
 
@@ -157,8 +155,7 @@ DEFINE FRAME frMain
    Type: SmartWindow
    Allow: Basic,Browse,DB-Fields,Query,Smart,Window
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
-   Design Page: 1
-   Other Settings: COMPILE
+   Design Page: 2
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -204,7 +201,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW wiWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-                                                                        */
+   FRAME-NAME                                                           */
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wiWin)
 THEN wiWin:HIDDEN = yes.
 
@@ -289,7 +286,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyntoolbar.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'EdgePixels2DeactivateTargetOnHidenoDisabledActionsFlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsToolbarAutoSizeyesToolbarDrawDirectionHorizontalLogicalObjectNameFolderTopNoSDOAutoResizeDisabledActionsHiddenActionsUpdate,Txtok,TxtcancelHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0RemoveMenuOnHidenoCreateSubMenuOnConflictyesNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EdgePixels2DeactivateTargetOnHidenoDisabledActionsFlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsToolbarAutoSizeyesToolbarDrawDirectionHorizontalLogicalObjectNameFolderTopNoSDODisabledActionsHiddenActionsUpdate,Txtok,TxtcancelHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0RemoveMenuOnHidenoCreateSubMenuOnConflictyesNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyntoolbar ).
        RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
        RUN resizeObject IN h_dyntoolbar ( 1.57 , 150.00 ) NO-ERROR.
@@ -324,16 +321,12 @@ PROCEDURE adm-create-objects :
        /* Size in AB:  ( 23.57 , 144.00 ) */
 
        /* Initialize other pages that this page requires. */
-       RUN initPages ('2') NO-ERROR.
+       RUN initPages ('2':U) NO-ERROR.
 
        /* Links to SmartFrame h_gscdddsxprtf. */
        RUN addLink ( h_gscddrsxprtf , 'recordSet':U , h_gscdddsxprtf ).
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_dyntoolbar ,
-             buGenerate:HANDLE IN FRAME frMain , 'BEFORE':U ).
-       RUN adjustTabOrder ( h_folder ,
-             h_dyntoolbar , 'AFTER':U ).
        RUN adjustTabOrder ( h_gscdddsxprtf ,
              h_folder , 'AFTER':U ).
     END. /* Page 1 */
@@ -346,11 +339,13 @@ PROCEDURE adm-create-objects :
        RUN repositionObject IN h_gscddrsxprtf ( 4.14 , 3.40 ) NO-ERROR.
        /* Size in AB:  ( 20.91 , 144.20 ) */
 
+       /* Initialize other pages that this page requires. */
+       RUN initPages ('1':U) NO-ERROR.
+
+       /* Links to SmartFrame h_gscddrsxprtf. */
+       RUN addLink ( h_gscdddsxprtf , 'updateRecordSet':U , h_gscddrsxprtf ).
+
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_dyntoolbar ,
-             buGenerate:HANDLE IN FRAME frMain , 'BEFORE':U ).
-       RUN adjustTabOrder ( h_folder ,
-             h_dyntoolbar , 'AFTER':U ).
        RUN adjustTabOrder ( h_gscddrsxprtf ,
              h_folder , 'AFTER':U ).
     END. /* Page 2 */
@@ -573,7 +568,7 @@ PROCEDURE writeADOs :
   DEFINE VARIABLE tStart AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dEnd   AS DATE       NO-UNDO.
   DEFINE VARIABLE tEnd   AS INTEGER    NO-UNDO.
-
+  
   /* Obtain the buffer handles to the two tables that we need to do this
      job. */
   RUN getDatasetBuffer IN h_gscdddsxprtf
@@ -598,7 +593,8 @@ PROCEDURE writeADOs :
 
   dStart = TODAY.
   tStart = TIME.
-  
+
+  session:set-wait-state('general':u).  
   RUN writeADOSet IN ghDSAPI
     (cOutDir, 
      cOutBlank, 
@@ -611,7 +607,9 @@ PROCEDURE writeADOs :
      hRecordSet,
      lByDate,
      dtStart,
-     dtEnd).
+     dtEnd).  
+  session:set-wait-state('':u).
+  UNSUBSCRIBE TO "DSAPI_StatusUpdate":U IN ghDSAPI.
   
   dEnd = TODAY.
   tEnd = TIME.
@@ -624,9 +622,6 @@ PROCEDURE writeADOs :
     OUTPUT CLOSE.
   END.
   
-
-  UNSUBSCRIBE TO "DSAPI_StatusUpdate":U IN ghDSAPI.
-     
   RUN refreshData IN h_gscdddsxprtf.
   RUN refreshData IN h_gscddrsxprtf.
 

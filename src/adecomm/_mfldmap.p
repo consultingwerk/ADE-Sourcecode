@@ -84,14 +84,14 @@ DEFINE INPUT        PARAMETER p_Items   AS CHARACTER NO-UNDO.
 DEFINE INPUT        PARAMETER p_Dlmtr   AS CHARACTER NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER p_Result  AS CHARACTER NO-UNDO.
   &ELSE
-DEFINE var  p_nDest   AS CHARACTER NO-UNDO.
-DEFINE var  p_nSource AS CHARACTER NO-UNDO.
-DEFINE var  p_hDest   AS HANDLE NO-UNDO.
+DEFINE VAR  p_nDest   AS CHARACTER NO-UNDO.
+DEFINE VAR  p_nSource AS CHARACTER NO-UNDO.
+DEFINE VAR  p_hDest   AS HANDLE NO-UNDO.
 
-DEFINE var  p_hSource AS HANDLE NO-UNDO.
+DEFINE VAR  p_hSource AS HANDLE NO-UNDO.
 DEFINE VAR  p_TT      AS CHARACTER NO-UNDO.
-DEFINE var  p_Items   AS CHARACTER NO-UNDO.
-DEFINE var  p_Dlmtr   AS CHARACTER NO-UNDO INIT ",".
+DEFINE VAR  p_Items   AS CHARACTER NO-UNDO.
+DEFINE VAR  p_Dlmtr   AS CHARACTER NO-UNDO INIT ",".
 DEFINE VAR  p_Result  AS CHARACTER NO-UNDO.
 
 RUN dcust.w PERSISTENT SET p_hSource.
@@ -104,11 +104,11 @@ DEFINE VAR stat AS LOGICAL NO-UNDO. /* For status of widget methods */
 /*--------------------------------------------------------------------------*/
 
 DEFINE VARIABLE v_TargetLst AS CHARACTER  NO-UNDO
-  VIEW-AS SELECTION-LIST SIZE 31 by 10 SCROLLBAR-V SCROLLBAR-H.
+  VIEW-AS SELECTION-LIST SIZE 31 BY 10 SCROLLBAR-V SCROLLBAR-H SORT.
 DEFINE VARIABLE v_SourceLst AS CHARACTER NO-UNDO
-  VIEW-AS SELECTION-LIST SIZE 31 by 10 SCROLLBAR-V SCROLLBAR-H.
+  VIEW-AS SELECTION-LIST SIZE 31 BY 10 SCROLLBAR-V SCROLLBAR-H SORT.
 DEFINE VARIABLE v_MapLst AS CHARACTER NO-UNDO
-  VIEW-AS SELECTION-LIST MULTIPLE SIZE 62 by 3 SCROLLBAR-V SCROLLBAR-H.
+  VIEW-AS SELECTION-LIST MULTIPLE SIZE 62 BY 3 SCROLLBAR-V SCROLLBAR-H.
 
 DEFINE VARIABLE cArrayEntry AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cArrayList  AS CHARACTER NO-UNDO.
@@ -144,9 +144,9 @@ DEFINE VARIABLE dest_TblLst        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE source_TblLst      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE lDbAware           AS LOGICAL             NO-UNDO.
 
-Define button qbf-ok   label "OK"      {&STDPH_OKBTN} AUTO-GO.
-Define button qbf-cn   label "Cancel"  {&STDPH_OKBTN} AUTO-ENDKEY.
-Define button qbf-hlp  label "&Help"   {&STDPH_OKBTN}.
+DEFINE BUTTON qbf-ok   LABEL "OK"      {&STDPH_OKBTN} AUTO-GO.
+DEFINE BUTTON qbf-cn   LABEL "Cancel"  {&STDPH_OKBTN} AUTO-ENDKEY.
+DEFINE BUTTON qbf-hlp  LABEL "&Help"   {&STDPH_OKBTN}.
 
 /* Dialog Button Box */
 &IF {&OKBOX} &THEN
@@ -209,7 +209,7 @@ ON "VALUE-CHANGED" OF v_TargetLst IN FRAME FldPicker
      qbf-unmap:SENSITIVE THEN 
   ASSIGN
      v_MapLst:SCREEN-VALUE = ""
-     qbf-unmap:SENSITIVE       = no.
+     qbf-unmap:SENSITIVE       = NO.
 /* IF pair chosen */
   IF v_TargetLst:SCREEN-VALUE NE ? AND
      v_SourceLst:SCREEN-VALUE NE ? AND
@@ -230,7 +230,7 @@ ON "VALUE-CHANGED" OF v_MapLst IN FRAME FldPicker DO:
   THEN ASSIGN
     v_TargetLst:SCREEN-VALUE  = ""
     v_SourceLst:SCREEN-VALUE  = ""
-    qbf-map:SENSITIVE       = no.
+    qbf-map:SENSITIVE       = NO.
 END.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -250,8 +250,8 @@ END.  /* On GO of Frame FldPicker */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-on WINDOW-CLOSE OF FRAME FldPicker
-   apply "END-ERROR" to frame FldPicker.
+ON WINDOW-CLOSE OF FRAME FldPicker
+   APPLY "END-ERROR" TO FRAME FldPicker.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -368,7 +368,7 @@ ON   CHOOSE                OF qbf-unmap     IN FRAME FldPicker
     /* Fix dblist  and smartdatalist */
     DO qbf_i = 1 TO NUM-ENTRIES(map_item, CHR(10)):
       /* Keep the position in the list highlighted if there was only one. */
-      IF NUM-ENTRIES(map_item,CHR(10)) eq 1 THEN 
+      IF NUM-ENTRIES(map_item,CHR(10)) EQ 1 THEN 
           RUN adecomm/_delitem.p (v_MapLst:HANDLE, 
                                    ENTRY (qbf_i, map_item, CHR(10)), 
                                    OUTPUT cnt).
@@ -392,7 +392,7 @@ ON   CHOOSE                OF qbf-unmap     IN FRAME FldPicker
     END.
 
     /* If the target is empty then disable all the buttons. */
-    empty_target = ( v_MapLst:SCREEN-VALUE eq ? ).
+    empty_target = ( v_MapLst:SCREEN-VALUE EQ ? ).
     ASSIGN
          qbf-unmap:SENSITIVE IN FRAME FldPicker = NOT empty_target
          .
@@ -406,7 +406,7 @@ END /*TRIGGER*/ .
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /*----- HELP -----*/
-on HELP of FRAME FldPicker OR CHOOSE OF qbf-hlp IN FRAME FldPicker
+ON HELP OF FRAME FldPicker OR CHOOSE OF qbf-hlp IN FRAME FldPicker
    RUN "adecomm/_adehelp.p" 
      (INPUT "AB", INPUT "CONTEXT", INPUT {&Foreign_Fields}, INPUT ?).
 
@@ -436,7 +436,7 @@ DO:
   RUN adecomm/_getdlst.p
       (INPUT v_TargetLst:HANDLE,
        INPUT p_hDest,
-       INPUT no,
+       INPUT NO,
        INPUT "2",
        INPUT ?,
        OUTPUT t_log).
@@ -458,7 +458,7 @@ DO:
        INPUT v_TargetLst:HANDLE,
        INPUT dest_TblLst,
        INPUT p_TT,
-       INPUT yes,
+       INPUT YES,
        INPUT p_Items,
        INPUT 2, /* expand EACH array element */
        INPUT "",
@@ -490,7 +490,7 @@ DO:
     RUN adecomm/_getdlst.p (
        INPUT v_TargetLst:HANDLE,
        INPUT p_hDest,
-       INPUT no,
+       INPUT NO,
        INPUT "2|" + dest_TblLst,
        INPUT ?,
        OUTPUT t_log).
@@ -509,7 +509,7 @@ DO:
   RUN adecomm/_getdlst.p (
      INPUT v_SourceLst:HANDLE,
      INPUT p_hSource,
-     INPUT no,
+     INPUT NO,
      INPUT IF lDbAware THEN "1"  /* no qualifier for source */
            ELSE "2|" + source_TblLst,
      INPUT ?,
@@ -521,7 +521,7 @@ DO:
   RUN adecomm/_getdlst.p (
      INPUT v_SourceLst:HANDLE,
      INPUT p_hSource,
-     INPUT no,
+     INPUT NO,
      INPUT "2",
      INPUT ?,
      OUTPUT t_log).
@@ -535,7 +535,7 @@ DO:
      INPUT v_SourceLst:HANDLE,
      INPUT source_TblLst,
      INPUT p_TT,
-     INPUT yes,
+     INPUT YES,
      INPUT "1",
      INPUT 2, /* expand arrays */
      INPUT "",
@@ -553,14 +553,14 @@ RUN adeuib/_keygues.p (
   OUTPUT dest_supply-list).
 REMOVE */
   
-IF dest_unique-list ne "" THEN DO:
+IF dest_unique-list NE "" THEN DO:
   /* For BROWSE and QUERY objects, the unique-list should probably NOT
    * be in the acceptable keys because they imply a unique entry. */
   cnt = NUM-ENTRIES(dest_accept-list).
   DO i = 1 TO cnt:
      fieldName = ENTRY(i, dest_accept-list).
      IF NOT CAN-DO(dest_unique-list, fieldName) 
-     THEN cTemp = (IF cTemp eq "" THEN "" ELSE cTemp + ",":U) + fieldName.
+     THEN cTemp = (IF cTemp EQ "" THEN "" ELSE cTemp + ",":U) + fieldName.
   END.
   dest_accept-list = cTemp.   
 END.
@@ -646,7 +646,7 @@ ASSIGN
 IF v_TargetLst:NUM-ITEMS > 0 THEN v_TargetLst:SCREEN-VALUE = v_TargetLst:ENTRY(1).
 
 /* Assume a cancel until the user hits OK. */
-l_Cancel = yes.
+l_Cancel = YES.
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   APPLY "ENTRY"  TO v_TargetLst IN FRAME FldPicker.
   WAIT-FOR "CHOOSE" OF qbf-ok IN FRAME FldPicker OR

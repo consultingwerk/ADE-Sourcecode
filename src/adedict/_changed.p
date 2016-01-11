@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -264,18 +264,20 @@ case (p_Obj):
           changed = YES.
 
       IF NOT changed THEN DO:
-
           /* For a Progress db, most fields are not valid for CLOB/BLOB fields */
           IF {adedict/ispro.i} AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
              changed = input frame fldprops s_lob_size <> b_Field._Fld-Misc2[1].
           END.
           ELSE  
               changed =  input frame fldprops b_Field._Format 	  <> b_Field._Format     OR
-                         input frame fldprops b_Field._Label      <> b_Field._Label      OR
-                         input frame fldprops b_Field._Col-Label  <> b_Field._Col-Label  OR
                          input frame fldprops b_Field._Initial    <> b_Field._Initial    OR
                          input frame fldprops b_Field._Mandatory  <> b_Field._Mandatory  OR
                          input frame fldprops b_Field._Help       <> b_Field._Help.
+              /* _Label and _Col-label may not be sensitive if CLOB and DataServers */
+              IF NOT changed THEN DO:
+                  changed = (IF b_Field._Label:SENSITIVE THEN input frame fldprops b_Field._Label  <> b_Field._Label ELSE NO) OR
+                            (IF b_Field._Col-Label:SENSITIVE THEN input frame fldprops b_Field._Label  <> b_Field._Label ELSE NO).
+              END.
       END.
 
       if NOT changed then

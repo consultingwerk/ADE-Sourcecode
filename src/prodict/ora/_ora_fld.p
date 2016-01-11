@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -57,7 +57,7 @@ DEFINE         VARIABLE retriev     AS LOGICAL     NO-UNDO.
 DEFINE         VARIABLE c           AS CHARACTER   NO-UNDO.
 DEFINE         VARIABLE pro_typ     AS CHARACTER   NO-UNDO.
 DEFINE         VARIABLE gat_typ     AS CHARACTER   NO-UNDO.
-DEFINE         VARIABLE isblob      AS LOGICAL     NO-UNDO.
+DEFINE         VARIABLE islob      AS LOGICAL     NO-UNDO.
 
 
 { prodict/dictvar.i }
@@ -139,10 +139,10 @@ ASSIGN
                           WHERE _View-ref._Ref-Table = user_filename
                           AND   _View-ref._Base-Col = dfields._Field-name).
 
-IF dfields._For-type = "BLOB" THEN 
-  ASSIGN isblob = TRUE.
+IF dfields._For-type = "BLOB" OR dfields._data-type = "CLOB" THEN 
+  ASSIGN islob = TRUE.
 ELSE
-  ASSIGN isblob = FALSE.
+  ASSIGN islob = FALSE.
 
 RELEASE _File.
 
@@ -197,9 +197,9 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   /*dfields._For-Name*/
   /*dfields._For-Type*/
     dfields._Format
-    dfields._Label WHEN NOT isblob
-    dfields._Col-label WHEN NOT isblob
-    dfields._Initial WHEN NOT isblob
+    dfields._Label WHEN NOT islob
+    dfields._Col-label WHEN NOT islob
+    dfields._Initial WHEN NOT islob
   /*dfields._Fld-stoff*/
     dfields._Decimals WHEN dfields._Data-type = "DECIMAL"
     dfields._Order
@@ -208,11 +208,11 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     /* Suppress update of retrieve until implemented in Progress */
   /* retriev
     dfields._For-retrieve = IF retriev THEN ? ELSE 1 */
-    dfields._Mandatory WHEN NOT isblob
+    dfields._Mandatory WHEN NOT islob
     dfields._Extent  WHEN chg-extent
-    dfields._Valexp WHEN NOT isblob
-    dfields._Valmsg WHEN NOT isblob
-    dfields._Help WHEN NOT isblob
+    dfields._Valexp WHEN NOT islob
+    dfields._Valmsg WHEN NOT islob
+    dfields._Help WHEN NOT islob
     dfields._Desc
     WITH FRAME ora_fld.
 

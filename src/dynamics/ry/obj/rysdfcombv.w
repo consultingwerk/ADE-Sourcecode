@@ -1,12 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -36,6 +29,12 @@ DEFINE TEMP-TABLE RowObject
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/****************************************************************************
+* Copyright (C) 1984-2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions               *
+* contributed by participants of Possenet.                                  *
+*                                                                           *
+****************************************************************************/
 /*---------------------------------------------------------------------------------
   File: rysdflkupv.w
 
@@ -115,6 +114,7 @@ DEFINE VARIABLE gcDataSourceName       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcQueryTables          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcPhysicalTableNames   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcTempTableNames       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glAssigned             AS LOGICAL    NO-UNDO.
 
 /* temp-table for query field information */
 DEFINE TEMP-TABLE ttFields NO-UNDO
@@ -328,22 +328,22 @@ DEFINE VARIABLE fiInnerLines AS INTEGER FORMAT "->9":U INITIAL 0
      VIEW-AS FILL-IN 
      SIZE 9.4 BY 1 TOOLTIP "The number of visible inner lines for the Dynamic Combo" NO-UNDO.
 
-DEFINE VARIABLE toDisplayField AS LOGICAL INITIAL no 
+DEFINE VARIABLE toDisplayField AS LOGICAL INITIAL NO 
      LABEL "Display field" 
      VIEW-AS TOGGLE-BOX
      SIZE 17.2 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toEnableField AS LOGICAL INITIAL no 
+DEFINE VARIABLE toEnableField AS LOGICAL INITIAL NO 
      LABEL "Enable field" 
      VIEW-AS TOGGLE-BOX
      SIZE 16.8 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toLabel AS LOGICAL INITIAL no 
+DEFINE VARIABLE toLabel AS LOGICAL INITIAL NO 
      LABEL "No-label" 
      VIEW-AS TOGGLE-BOX
      SIZE 12.8 BY .95 NO-UNDO.
 
-DEFINE VARIABLE toSortfield AS LOGICAL INITIAL no 
+DEFINE VARIABLE toSortfield AS LOGICAL INITIAL NO 
      LABEL "Sort" 
      VIEW-AS TOGGLE-BOX
      SIZE 17.2 BY .81 NO-UNDO.
@@ -654,6 +654,7 @@ DO:
     ELSE
       DISABLE fiDescSubstitute.
   END.
+  ASSIGN glAssigned = TRUE.
   RUN assignBrowseData.
 END.
 
@@ -667,6 +668,11 @@ DO:
   APPLY "LEAVE":U TO SELF.
 END.
 
+ON 'VALUE-CHANGED':U OF ttFields.iDisplaySeq IN BROWSE brBrowse
+DO:
+    IF glTrackChanges THEN
+        PUBLISH "changesMade":U FROM ghContainerSource.
+END.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1210,7 +1216,6 @@ PROCEDURE assignBrowseData :
   DEFINE VARIABLE cColumnLabels         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumnFormat         AS CHARACTER  NO-UNDO.
 
-
   DEFINE BUFFER bttFields FOR ttFields.
 
   /* work out rest of values from temp-table, etc. */
@@ -1361,7 +1366,9 @@ PROCEDURE assignValues :
   IF fiDefaultValue = ? THEN
     fiDefaultValue = "?":U.
 
-  RUN assignBrowseData.
+  IF NOT glAssigned THEN
+      RUN assignBrowseData.
+  ASSIGN glAssigned = FALSE.
 
   ghDataTable:FIND-FIRST().
   IF NOT ghDataTable:AVAILABLE THEN
@@ -1392,7 +1399,7 @@ PROCEDURE assignValues :
       ghDataTable:BUFFER-FIELD('dFieldWidth':U):BUFFER-VALUE         = fiFieldWidth
       ghDataTable:BUFFER-FIELD('cComboFlag':U):BUFFER-VALUE          = raFlag
       ghDataTable:BUFFER-FIELD('cFlagValue':U):BUFFER-VALUE          = IF fiFieldDataType = "DECIMAL":U THEN
-                                                                         REPLACE(STRING(DECIMAL(fiDefaultValue)),SESSION:NUMERIC-DECIMAL-POINT,".":U)
+                                                                          REPLACE(STRING(DECIMAL(fiDefaultValue)),SESSION:NUMERIC-DECIMAL-POINT,".":U)
                                                                        ELSE fiDefaultValue
       ghDataTable:BUFFER-FIELD('iInnerLines':U):BUFFER-VALUE         = fiInnerLines
       ghDataTable:BUFFER-FIELD('iBuildSequence':U):BUFFER-VALUE      = fiBuildSeq
@@ -1402,7 +1409,13 @@ PROCEDURE assignValues :
       ghDataTable:BUFFER-FIELD('lDisplayField':U):BUFFER-VALUE       = toDisplayField
       ghDataTable:BUFFER-FIELD('lSort':U):BUFFER-VALUE               = toSortField
       ghDataTable:BUFFER-FIELD('cDataSourceName':U):BUFFER-VALUE     = gcDataSourceName
-      .
+      ghDataTable:BUFFER-FIELD('cQueryBuilderJoinCode':U):BUFFER-VALUE        = gcQueryBuilderJoinCode       
+      ghDataTable:BUFFER-FIELD('cQueryBuilderOptionList':U):BUFFER-VALUE      = gcQueryBuilderOptionList     
+      ghDataTable:BUFFER-FIELD('cQueryBuilderTableOptionList':U):BUFFER-VALUE = gcQueryBuilderTableOptionList
+      ghDataTable:BUFFER-FIELD('cQueryBuilderOrderList':U):BUFFER-VALUE       = gcQueryBuilderOrderList      
+      ghDataTable:BUFFER-FIELD('cQueryBuilderTuneOptions':U):BUFFER-VALUE     = gcQueryBuilderTuneOptions    
+      ghDataTable:BUFFER-FIELD('cQueryBuilderWhereClauses':U):BUFFER-VALUE    = gcQueryBuilderWhereClauses.
+      
 
 END PROCEDURE.
 
@@ -1422,6 +1435,7 @@ DEFINE INPUT  PARAMETER pcSource AS CHARACTER  NO-UNDO.
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN 
       EdQuery:SCREEN-VALUE       = '':U
+      seQueryTables:LIST-ITEMS   = "":U
       EdQuery:SENSITIVE          = FALSE
       fiBaseQueryLabel:SENSITIVE = FALSE 
       seQueryTables:SENSITIVE    = FALSE
@@ -1457,6 +1471,7 @@ PROCEDURE clearAll :
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN edQuery:SCREEN-VALUE     = "":U
            seQueryTables:LIST-ITEMS = "":U.
+
     ASSIGN gcQueryTables        = "":U
            gcBufferList         = "":U
            gcTempTableList      = "":U
@@ -1973,14 +1988,14 @@ DEFINE VARIABLE cDataColumns      AS CHARACTER  NO-UNDO.
     hSDO = DYNAMIC-FUNCTION('getDataViewSource':U IN hMainviewer). 
     IF VALID-HANDLE(hSDO) THEN
       lDataView = TRUE.
-    else
+    ELSE
       RUN startDataObject IN gshRepositoryManager (INPUT gcDataSourceName, OUTPUT hSDO).
       
   /* This API is used for both SDO and DatView data sources. SDOs must not have
      the qualification, while DataViews shuld have the field names qualified by
      the table/entity name.
    */    
-  if not lDataView then     
+  IF NOT lDataView THEN     
   DO WITH FRAME frPage1:
     /* If this combo was based on a query the key field was qualified with the table name
        and should be removed from the key field */
@@ -1993,7 +2008,7 @@ DEFINE VARIABLE cDataColumns      AS CHARACTER  NO-UNDO.
 
   /* If this combo was based on a query, its display fields were qualified with table names
      and should be removed from the browse field list */
-  IF not lDataView and NUM-ENTRIES(ENTRY(1, gcBrowseFields),".":U) > 1 THEN
+  IF NOT lDataView AND NUM-ENTRIES(ENTRY(1, gcBrowseFields),".":U) > 1 THEN
   DO:
     DO iField = 1 TO NUM-ENTRIES(gcBrowseFields):
       cTempBrowseFields = cTempBrowseFields + 
@@ -2155,13 +2170,14 @@ PROCEDURE queryBuilder :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lCancel   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iLoop     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cMessage  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lCancel       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iLoop         AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cMessage      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cButton       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTblListEntry AS CHARACTER NO-UNDO.
 
   getFuncLibHandle().
-  
+
   DO WITH FRAME frMain:
     IF EdQuery:SCREEN-VALUE <> "":U AND
        NOT glQueryBuilder THEN DO:
@@ -2178,7 +2194,7 @@ PROCEDURE queryBuilder :
                                              OUTPUT cButton).
       RETURN NO-APPLY.
     END.
-    
+
     IF gcTempTableList <> "":U THEN DO:
       cMessage = "We are sorry, but the Query Builder cannot be used with Temp Tables.~n" +
                  "Remove the Temp Tables and try again.".
@@ -2200,21 +2216,32 @@ PROCEDURE queryBuilder :
            _OptionList  = "":U
            _OrdList     = "":U
            _TblOptList  = "":U
-           _TuneOptions = "":U.
-    DO iLoop = 1 TO {&MaxTbl}:
-      _JoinCode[iLoop] = "":U.
-    END.
-    DO iLoop = 1 TO {&MaxTbl}:
-      _Where[iLoop] = "":U.
-    END.
-    
+           _TuneOptions = "":U
+           _JoinCode    = "":U
+           _Where       = "":U.
+
     IF EdQuery:SCREEN-VALUE <> "":U THEN DO:
       ASSIGN _4GLQury     = EdQuery:SCREEN-VALUE + ":":U
-             _TblList     = REPLACE(seQueryTables:LIST-ITEMS,",":U,{&Sep1})
              _OptionList  = gcQueryBuilderOptionList
              _TblOptList  = gcQueryBuilderTableOptionList
              _TuneOptions = gcQueryBuilderTuneOptions
              _OrdList     = REPLACE(REPLACE(gcQueryBuilderOrderList,",":U,{&Sep1}),"^":U,{&Sep2}).
+
+      /*The 'Query Builder' (_query.p) needs the OF option for the joins of the table, otherwise it is
+        missed the next time the Query Builder is opened. Fix for OE00104049.*/
+      DO iLoop = 1 TO NUM-ENTRIES(seQueryTables:LIST-ITEMS):
+          ASSIGN cTblListEntry = TRIM(ENTRY(iLoop, EdQuery:SCREEN-VALUE, CHR(10))).
+
+          IF INDEX(cTblListEntry, " OF ") > 0 THEN
+               ASSIGN cTblListEntry = ENTRY(2, cTblListEntry, " ") + " " +
+                                      ENTRY(3, cTblListEntry, " ") + " " +
+                                      ENTRY(4, cTblListEntry, " ").
+          ELSE ASSIGN cTblListEntry = ENTRY(iLoop, seQueryTables:LIST-ITEMS).
+
+          ASSIGN _TblList = _TblList + cTblListEntry + {&Sep1}.
+      END.
+      ASSIGN _TblList = TRIM(_TblList, {&Sep1}).
+
       DO iLoop = 1 TO NUM-ENTRIES(gcQueryBuilderJoinCode):
         _JoinCode[iLoop] = ENTRY(iLoop,gcQueryBuilderJoinCode).
         IF iLoop > 1 AND
@@ -2488,7 +2515,7 @@ PROCEDURE setInfo :
   
   DEFINE VARIABLE cSortString     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSource         AS HANDLE     NO-UNDO.
- 
+
   phDataTable:FIND-FIRST().
   IF NOT phDataTable:AVAILABLE THEN
     RETURN.

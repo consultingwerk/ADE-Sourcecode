@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -741,9 +741,9 @@ ELSE DO:
   END.
   ELSE
     FIND DICTDB._Area WHERE DICTDB._Area._Area-num = _File._ianum.
-END.
 
-ASSIGN s_lob_Area = DICTDB._Area._Area-name.
+  ASSIGN s_lob_Area = DICTDB._Area._Area-name.
+END.
 
 FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
                       AND DICTDB._Area._Area-type = 6 NO-LOCK:

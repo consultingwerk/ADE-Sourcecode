@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -90,6 +90,7 @@ History:
     mcmann      05/13/03  Removed CLOB and CFILE from Oracle information
     mcmann      11/05/03  Removed check on index name = table name 20031105-020
     fernando    06/12/06  Support for large sequences
+    fernando    06/11/07  Unicode and clob support
 */
 
 /*
@@ -124,6 +125,14 @@ History
  &THEN 
 &GLOBAL-DEFINE shdw-prefix U##
   define variable typevar       as integer   no-undo.
+
+DEFINE TEMP-TABLE ds-field-attributes
+       FIELD f_name AS CHAR
+       FIELD f_length AS INT
+       INDEX f_name f_name.
+
+DEFINE VARIABLE tth         AS HANDLE NO-UNDO.
+
  &ELSE  /* ODBC */ 
 &GLOBAL-DEFINE shdw-prefix _S#_
  &ENDIF
@@ -166,7 +175,7 @@ define variable pnam            as character no-undo.
 define variable progvar         as character no-undo.
 DEFINE VARIABLE s               AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
-/*DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.*/
+DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.
 
 /*define variable shadow_col    as character no-undo.*/
 define variable spclvar         as character no-undo.
@@ -309,10 +318,20 @@ RUN adecomm/_setcurs.p ("WAIT").
     leave.
     end.     /* should actually never happen */
 
-/*    find first DICTDB._Db
+    find first DICTDB._Db
       where DICTDB._Db._Db-name = LDBNAME("DICTDBG")
       and   DICTDB._Db._Db-type = "ORACLE".
-    ASSIGN oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). */
+    ASSIGN oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). 
+
+    /* just make sure the info in the schema holder isn't invalid */
+    IF oraversion > 8 THEN DO:
+       RUN prodict/ora/_get_oraver.p (OUTPUT oraversion).
+       /* if something went wrong that we could not get the version, just keep the value
+          from the schema holder
+       */
+       IF oraversion = 0 THEN
+           oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). 
+    END.
  &ENDIF
   
 assign
@@ -336,8 +355,8 @@ assign
   user_env         = "". /* yes this is destructive, but we need the -l space */
 &ELSEIF "{&db-type}" = "oracle"
  &THEN 
-  l_char-types     = "CHAR,VARCHAR,VARCHAR2,ROWID"
-  l_chrw-types     = "LONG,RAW,LONGRAW,BLOB,BFILE"
+  l_char-types     = "CHAR,VARCHAR,VARCHAR2,ROWID,NVARCHAR2,NCHAR"
+  l_chrw-types     = "LONG,RAW,LONGRAW,BLOB,BFILE,CLOB,NCLOB"
   l_date-types     = "DATE"
   l_dcml-types     = "NUMBER"
   l_floa-types     = "FLOAT"
@@ -635,6 +654,14 @@ for each gate-work
  /* shadow_col = "" */
     array_name = "".
 
+  &IF "{&db-type}" = "oracle"
+   &THEN
+      /* this is only used for ORACLE */
+      EMPTY TEMP-TABLE ds-field-attributes NO-ERROR.
+      /* reset this since we use inside the loop below to know when run stored-proc */
+      ASSIGN tth = ?.
+  &ENDIF
+
   for each ds_columns
     fields ({&objid} {&colid} name {&type} {&col-fields})
     where ds_columns.{&objid} = onum
@@ -671,16 +698,34 @@ for each gate-work
   
   &IF "{&db-type}" = "oracle"
    &THEN
-   
-      /* NCHAR and NVARCHAR2 (Unicode Types) are only supported as such
-         with Oracle 10g and up, otherwise, they will be treated as character
-      */
-      /*IF (l_dt = "NVARCHAR2" OR l_dt = "NCHAR") AND oraversion < 10 THEN DO:
-          IF l_dt = "NVARCHAR2" THEN
-              l_dt = "VARCHAR2".
-          ELSE
-              l_dt = "CHAR".
-      END. */
+
+      IF oraversion < 9 THEN DO:
+          /* NCHAR and NVARCHAR2 (Unicode Types) are only supported as such
+             with Oracle 9 and up, otherwise, they will be treated as character.
+            NCLOB continues to be unsupported in pre-Oracle 9.
+          */
+          IF (l_dt = "NVARCHAR2" OR l_dt = "NCHAR" OR l_dt = "NCLOB") THEN DO:
+              IF l_dt = "NCLOB" THEN
+                 l_dt = "UNDEFINED".
+              ELSE 
+                  l_dt = (IF l_dt = "NVARCHAR2" THEN "VARCHAR2" ELSE "CHAR").
+          END.
+      END.
+      ELSE DO:
+        IF tth = ? AND INDEX(l_dt,"CHAR") > 0 THEN DO:
+
+            /* instead of adding a new table to the metaschema, let's just get the info we want for
+            character fields. If this somehow fails, we just won't get it and that's fine
+            since the RUN below has no-error. 
+            */
+            ASSIGN tth = TEMP-TABLE ds-field-attributes:HANDLE.
+
+            RUN STORED-PROC DICTDBG.send-sql-statement LOAD-RESULT-INTO tth NO-ERROR
+                            ("select name,nvl(spare3,0) from sys.col$ where obj# = "
+                              + string(onum)).
+        END.
+
+      END.
 
       find first ds_comments
         where ds_comments.{&objid} = onum
@@ -744,6 +789,24 @@ for each gate-work
     */   
        ASSIGN s_ttb_fld.ds_itype = ds_columns.{&type}.
 
+      &IF "{&db-type}" = "oracle" &THEN
+          /* for ORACLE 9 and above, ds_msc25 will be "1" if this is a column
+             of Unicode data type 
+          */
+          IF oraversion > 8 THEN
+             ASSIGN s_ttb_fld.ds_msc25 = (IF ds_columns.charsetform = 2 THEN '1' ELSE ?).
+
+          /* let's try to fix format for field that may gave been defined with character semantics */
+          IF s_ttb_fld.pro_type = "character" THEN DO:
+              FIND ds-field-attributes WHERE ds-field-attributes.f_name = ds_columns.name NO-ERROR.
+              IF AVAILABLE ds-field-attributes AND
+                 ds-field-attributes.f_length > 0 AND {&Length} NE ds-field-attributes.f_length THEN DO:
+                 ASSIGN s_ttb_fld.pro_frmt  = "x(" + STRING(min(320,max(1,ds-field-attributes.f_length))) + ")"
+                        /* we save away the character semantics size of the field */
+                        s_ttb_fld.ds_allocated = ds-field-attributes.f_length.
+              END.
+          END.
+      &ENDIF
 
       FOR first ds_columns-2
         where ds_columns-2.{&objid} = onum

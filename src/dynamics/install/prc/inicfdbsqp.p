@@ -36,8 +36,7 @@ do transaction:
     if error-status:error or error-status:num-messages gt 0 then
         lOk = no.        
     else
-        assign hBuffer::_seq-max = piDbVersion
-               hBuffer::_seq-init = piDbVersion.
+        hBuffer::_seq-max = piDbVersion.
     
     hBuffer:buffer-release().
 end.    /* transaction */                    

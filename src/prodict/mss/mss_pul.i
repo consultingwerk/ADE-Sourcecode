@@ -30,7 +30,7 @@ History:
                        
    D. McMann  01/08/03 Added logic to find default value for initial value
    fernando   09/11/07 Fixing issue with Initial when not Unicode case - OE00157726
-
+   knavneet   11/14/07 Fixing issue with numeric default for char column - OE00127261
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -123,7 +123,7 @@ IF l_init <> ? THEN DO:
              assign the unknow value like we did in previous version 
           */
           IF INDEX(l_init, "(") > 0 THEN DO:
-              IF ntyp = "character" THEN 
+              IF ntyp = "character" AND SUBSTRING(l_init,2,1) = '~'' THEN 
                 ASSIGN l_init = SUBSTRING(l_init, (INDEX(l_init, "(") + 3))
                        l_init = SUBSTRING(l_init, 1, (INDEX(l_init, ')') - 3)) .
               ELSE

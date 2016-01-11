@@ -35,15 +35,23 @@ DEFINE VARIABLE lookstmt    AS CHARACTER.
 DEFINE VARIABLE more-row    AS INTEGER INIT 19.
 DEFINE VARIABLE percol      AS INTEGER INIT 16.
 DEFINE VARIABLE numcol      AS INTEGER INIT 3.
-
+DEFINE VARIABLE cInputFrom  AS CHARACTER NO-UNDO.
 
 stmt-arr1 = "".
 stmt-arr2 = "".
 stmt-arr3 = "".
 stmts     = "".
+ASSIGN cInputFrom = SEARCH("prohelp/indata/stmtlist.txt").
+IF cInputFrom = ? THEN
+DO:
+    MESSAGE "The procedure 'prohelp/indata/stmtlist.txt' required for this option was not found" 
+            VIEW-AS ALERT-BOX.
+    RETURN.
+END.
+
 LOAD-ARRAYS:
 DO:
-    INPUT FROM VALUE(SEARCH("prohelp/indata/stmtlist.txt")) NO-ECHO.
+    INPUT FROM VALUE(cInputFrom) NO-ECHO.
     array1:
     REPEAT i = 1 to 48:
        SET stmt-arr1[i].

@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007-08 by Progress Software Corporation. All    *
+* rights  reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                            *
 **********************************************************************/
                                                                        /*
@@ -164,6 +164,10 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
                                               /* ODB: proc-param-names */
                                               /* ORA: ?                */
                                               /* SYB: ?                */
+          field ds_msc15         as integer   initial ?
+                                              /*    misc1[5]    */
+                                              /* ODB & MSS: RECID type */
+                                              /* 1=32 bits & 2=64bits  */
           field ds_name          as character case-sensitive
                                               /* foreign name          */
           field ds_recid         as integer   initial ?
@@ -207,6 +211,10 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
           field ds_msc24         as character initial ?
                                               /*    misc2[4]    */
                                               /* ODB: fld-properties */
+          field ds_msc25         as character initial ?
+                                              /*    misc2[5]    */
+                                              /* ORA: ? or 1 for Unicode data type */
+                                              /* ODB: ? - note that misc2[5] is used for ODB - see ds_shdn below */
           field ds_msc26         as character initial ?
                                               /*    misc2[6]    */
                                               /* ODB: Extent char "_" or "#" */
@@ -222,6 +230,7 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
           field ds_stdtype       as integer
           field ds_stoff         as integer
           field ds_type          as character
+          field ds_allocated     AS INTEGER   INITIAL ?
           field fld_recid        as recid     initial ?
           field pro_case         as logical   initial FALSE
           field pro_dcml         as integer   initial ?

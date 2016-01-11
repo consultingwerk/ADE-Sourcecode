@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *********************************************************************/
@@ -28,7 +28,7 @@ Output Parameter:
                 q       list of allowed/supported functions/features
                 
 History:
-
+    06/11/07    fernando    Unicode support - new fields in oracle_columns
     04/20/06    fernando    Added NOTTCACHE define - 20050930-006  
     07/18/02    D. McMann   Changed default codepage to iso8859-1
     06/04/02    D. McMann   Added check for problem creating hidden files
@@ -196,6 +196,8 @@ ELSE IF system BEGINS "q" THEN DO:
   system = "acdu,dgor,adnrsu#,100,2l,16,DBA,SYS.*,ora,dnors,iso8859-1".
   ASSIGN dbkey = drec_db.
   RUN "prodict/ora/_ora_crt.p" (dbkey).
+  RUN "prodict/ora/_ora_crc.p" (dbkey). /* columns  */
+  RUN "prodict/ora/_ora_cra.p" (dbkey). /* argument */
 end.
 
 

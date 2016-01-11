@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,6 +23,9 @@
    fernando    05/25/06 Added support for large sequences
    fernando    08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)
    moloney     09/22/06 Set initial value for TIME & TIMESTAMP columns mapped to CHARCTER and load w/out an initial value
+   fernando    10/02/07 Error handling - OE00158774
+   fernando    11/13/07 Check _initial value for sequences - OE00112332
+   gih         11/27/07 Fix load of ICU rules - OE00129463
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -89,6 +92,11 @@ ASSIGN
   error_text[52] = "Invalid Initial value":t25
   error_text[53] = "Value is too large":t25
   error_text[54] = "Invalid character in the Dump Name":35
+  error_text[55] = "Neither BLOB nor CLOB fields may have extents":46
+  error_text[56] = "Client error raised while loading definitions":46
+  error_text[57] = "The upper limit must be greater than the initial value":54
+  error_text[58] = "The lower limit must be less than the initial value":51
+  error_text[59] = "Invalid foreign data type for field":35
 .
 
 &SCOPED-DEFINE WARN_MSG_SQLW 48
@@ -251,6 +259,7 @@ PROCEDURE Show_Error:
       ELSE IF iobj    =   "s":u  THEN "SEQUENCE ":u + 
                (IF wseq._Seq-Name   = ? THEN "" ELSE wseq._Seq-Name)
       ELSE "? ?":u).
+
   IF user_env[6] = "f" THEN DO:
   OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
 
@@ -597,7 +606,7 @@ PROCEDURE Load_Icu_Rules:
   IF longrules > 0 THEN
     COPY-LOB lpMptr TO lcRules NO-CONVERT NO-ERROR.
   ELSE DO:
-    COPY-LOB lpMptr FOR iLength TO lpToo NO-ERROR.
+    COPY-LOB lpMptr FOR (iPosition - 1) TO lpToo NO-ERROR.
     COPY-LOB lpToo TO lcRules NO-CONVERT NO-ERROR.
     SET-SIZE(lpToo) = 0.
   END.
@@ -1868,8 +1877,12 @@ IF cerror = ?
     RUN adecomm/_setcurs.p ("").
   
    ELSE DO:  /* all but last definition-set executed */
+
     IF do-commit OR (NOT (ierror > 0 AND user_env[4] BEGINS "y":u)) THEN
     finish: DO:
+
+      ASSIGN stopped = TRUE.
+
       /* Copy any remaining buffer values to the database */
       RUN adecomm/_setcurs.p ("WAIT").
 
@@ -1881,15 +1894,11 @@ IF cerror = ?
          THEN FIND _Db WHERE RECID(_Db) = drec_db.
         END.
 
-     IF AVAILABLE wfil AND imod <> ? THEN 
-            RUN "prodict/dump/_lod_fil.p".
-      
+      IF AVAILABLE wfil AND imod <> ? THEN 
+         RUN "prodict/dump/_lod_fil.p".
          
-
-        IF AVAILABLE wfld AND imod <> ? THEN 
-            RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
-       
-
+      IF AVAILABLE wfld AND imod <> ? THEN 
+         RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
 
       IF AVAILABLE widx
        AND imod <> ?
@@ -1901,7 +1910,7 @@ IF cerror = ?
        AND imod <> ?
        THEN RUN "prodict/dump/_lod_seq.p".
    
-
+ 
       RUN adecomm/_setcurs.p ("").
 
       /* Error occurred when trying to save data from last command? */
@@ -1931,6 +1940,8 @@ IF cerror = ?
       RUN adecomm/_setcurs.p ("WAIT").
 
       RUN "prodict/dump/_lodfini.p".
+
+      ASSIGN stopped = false.
       END.   /* finish: */
     
     END.     /* all but last definition-set executed */

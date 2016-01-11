@@ -90,14 +90,18 @@
   DO:
     RUN start-super-proc("adm2/toolbar.p":U).
 
-    /* Subscribe to RemoveMenu from container */
+    /* Subscribe to createObjects from container */
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
-                          "ContainerSourceEvents":U,"RemoveMenu":U).
-
-    /* Subscribe to RebuildMenu from container */
+                          "ContainerSourceEvents":U,"createObjects":U).
+    /* Subscribe to removeMenu from container */
     RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
-                          "ContainerSourceEvents":U,"RebuildMenu":U).
+                          "ContainerSourceEvents":U,"removeMenu":U).
 
+    /* Subscribe to rebuildMenu from container */
+    RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                          "ContainerSourceEvents":U,"rebuildMenu":U).
+
+ 
   END.
 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */

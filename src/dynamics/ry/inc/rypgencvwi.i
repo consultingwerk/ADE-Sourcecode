@@ -1,4 +1,5 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright ¸ 2006-2007 Progress Software Corporation.  
+   All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : rypgencvwi.i
     Purpose     : Contains contents of processLoop-createViewerWidgets
@@ -304,17 +305,11 @@
             
             dynamic-function('setTokenValue' in target-procedure,
                              'InstanceRenderingProcedure', cValue).
-                                              
-            /* Build the list of instance properties */
+
+            /* Previously, we built a list. Now we generated {set}s individually.
+	           However, we must pass in LogicalObjectName so that  instances will
+	           run pgen'ed files, if they exist. */
             cValue = 'LogicalObjectName' + chr(4) + ttInstance.ObjectName.
-            for each ttProperty where
-                     ttProperty.PropertyOwner = ttInstance.InstanceName and
-                     ttProperty.UseInList = yes:                                 
-                cValue = cValue + chr(3)
-                       + ttProperty.PropertyName + chr(4)
-                       + (if ttProperty.PropertyValue eq ? then '?' else ttProperty.PropertyValue).
-            end.    /* property list. */
-                        
             dynamic-function('setTokenValue' in target-procedure,
                              'InstanceInstanceProperties',
                              quoter(cValue)).
@@ -323,9 +318,7 @@
 /** ------------------ WIDGET ---------------------- **/
         do:
             /* Remember that the widget properties are instance, master & class props,
-               because there is no procedure for datafields.
-             */
-             
+               because there is no procedure for datafields. */
             /* Visualization Type */
             find ttProperty where
                  ttProperty.PropertyName = 'VisualizationType' and

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@ History:
                         This needed to be done for LOB support
     KSM	02/26/05    Added warning message for adding "Active" index while 
                         on-line
+    fernando 10/03/07   Handle comma on the area name - OE00135682
 ----------------------------------------------------------------------------*/
 
 
@@ -783,6 +784,9 @@ do:
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
+
+/* OE00135682 - use other delimiter in case area name has comma */
+s_lst_idx_Area:DELIMITER in frame newidx = CHR(1).
 
 /* Set up for filling the list of all fields from the current table */
 find x_File where RECID(x_file) = s_TblRecId.

@@ -1,16 +1,16 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
 "Version 9 SmartFolder object"
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: folder.w - ADM SmartFolder program
@@ -108,7 +108,7 @@ FolderLabels
 
 &Scoped-define ADM-SUPPORTED-LINKS Page-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Folder-Frm
 
 /* Standard List Definitions                                            */
@@ -148,6 +148,13 @@ FUNCTION getFolderTabType RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFolderTabWidth C-Win 
 FUNCTION getFolderTabWidth RETURNS DECIMAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFolderWidgetIDs C-Win 
+FUNCTION getFolderWidgetIDs RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -222,6 +229,13 @@ FUNCTION setFolderTabWidth RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFolderWidgetIDs C-Win 
+FUNCTION setFolderWidgetIDs RETURNS LOGICAL
+  (INPUT pcWidgetIDs AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPageTarget C-Win 
 FUNCTION setPageTarget RETURNS LOGICAL
   ( pcTarget AS CHARACTER )  FORWARD.
@@ -229,50 +243,47 @@ FUNCTION setPageTarget RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 /* ***********************  Control Definitions  ********************** */
 
 
 /* Definitions of the field level widgets                               */
 DEFINE RECTANGLE Rect-Bottom
-     EDGE-PIXELS 0  
+     EDGE-PIXELS 0    
      SIZE 33.6 BY .14
      BGCOLOR 7 .
 
 DEFINE RECTANGLE Rect-Left
-     EDGE-PIXELS 0  
+     EDGE-PIXELS 0    
      SIZE .6 BY 4.24
      BGCOLOR 15 .
 
 DEFINE RECTANGLE Rect-Main
-     EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL   
      SIZE 33.8 BY 4.33
      BGCOLOR 8 FGCOLOR 0 .
 
 DEFINE RECTANGLE Rect-Right
-     EDGE-PIXELS 0  
+     EDGE-PIXELS 0    
      SIZE .6 BY 4.33
      BGCOLOR 7 .
 
 DEFINE RECTANGLE Rect-Top
-     EDGE-PIXELS 0  
+     EDGE-PIXELS 0    
      SIZE 33.6 BY .14
      BGCOLOR 15 .
-
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Folder-Frm
      Rect-Bottom AT ROW 6 COL 1
-     Rect-Left AT ROW 1.76 COL 1.2
-     Rect-Main AT ROW 2.05 COL 3.2
-     Rect-Right AT ROW 1.86 COL 34.2
-     Rect-Top AT ROW 1.71 COL 1.2
+     Rect-Left   AT ROW 1.76 COL 1.2 
+     Rect-Main   AT ROW 2.05 COL 3.2
+     Rect-Right  AT ROW 1.86 COL 34.2 
+     Rect-Top    AT ROW 1.71 COL 1.2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
          SCROLLABLE SIZE 204.8 BY 34.33.
-
 
 /* *********************** Procedure Settings ************************ */
 
@@ -321,7 +332,7 @@ END.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME Folder-Frm
-   NOT-VISIBLE                                                          */
+   NOT-VISIBLE FRAME-NAME                                               */
 ASSIGN 
        FRAME Folder-Frm:HIDDEN           = TRUE
        FRAME Folder-Frm:HEIGHT           = 7.76
@@ -354,7 +365,8 @@ ASSIGN
   &GLOB xpPageTargetEvents   
   &GLOB xpFolderFont       
   &GLOB xpFolderTabWidth       
-  
+  &GLOB xpFolderWidgetIDs
+
   /* Now include the other props files which will start the ADMProps def. */
   {src/adm2/visprop.i}
 
@@ -366,7 +378,8 @@ ASSIGN
   ghADMProps:ADD-NEW-FIELD('FolderFont':U, 'INT':U, 0, ?, -1).
   ghADMProps:ADD-NEW-FIELD('FolderTabWidth':U, 'DEC':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FolderTabHeight':U, 'DEC':U, 0, ?, ?).
-  
+  ghADMProps:ADD-NEW-FIELD('FolderWidgetIDs':U, 'CHAR':U, 0, ?, '':U).
+
   /* Now include our parent class file for visual objects. */
   {src/adm2/visual.i}
 
@@ -378,7 +391,60 @@ ASSIGN
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignWidgetIDs Procedure
+PROCEDURE assignWidgetIDs:
+/*---------------------------------------------------------------------------------
+    Purpose: Assigns widget-ids for the fill-ins and text widgets created
+             dynamically for each page.
+
+    Parameters: piPage: Page number in which the widgets are being created.
+
+    Notes: In order to avoid performance loses at runtime, we run this procedure
+           only if the -usewidgetid session parameter is being used. For that
+           reason we do not assign the widget-ids for the widgets in
+           create-folder-page, in which they are created; instead create-folder-page
+           calls this procedure only if -usewidgetid is being used.
+---------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER piPage AS INTEGER    NO-UNDO.
+
+DEFINE VARIABLE cPages        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPageWidgetID AS INTEGER    NO-UNDO.
+
+{get FolderWidgetIDs cPages}.
+
+IF cPages = "":U OR cPages = ? THEN RETURN.
+
+ASSIGN iPageWidgetID = INT(ENTRY(piPage, cPages)) NO-ERROR.
+
+IF ERROR-STATUS:ERROR THEN
+DO:
+    MESSAGE "Page '" + STRING(piPage) + "' is not defined in the Widget-ID XML file." SKIP(2)
+            "WIDGET-IDs for this page are not going to be assigned."
+         VIEW-AS ALERT-BOX.
+    ASSIGN ERROR-STATUS:ERROR = FALSE.
+    RETURN.
+END.
+
+ASSIGN hLeftVertical[piPage]:WIDGET-ID   = iPageWidgetID + 2
+       hFiller[piPage]:WIDGET-ID         = iPageWidgetID + 4
+       hLeftDot[piPage]:WIDGET-ID        = iPageWidgetID + 6
+       hTopHorizontal[piPage]:WIDGET-ID  = iPageWidgetID + 8
+       hRightVertical1[piPage]:WIDGET-ID = iPageWidgetID + 10
+       hRightVertical2[piPage]:WIDGET-ID = iPageWidgetID + 12
+       hRightDot[piPage]:WIDGET-ID       = iPageWidgetID + 14
+       page-label[piPage]:WIDGET-ID      = iPageWidgetID + 16
+       NO-ERROR.
+
+RETURN.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeFolderPage C-Win 
 PROCEDURE changeFolderPage :
@@ -491,7 +557,7 @@ PROCEDURE create-folder-label :
         ON MOUSE-SELECT-CLICK  
            PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
        END TRIGGERS.         
-    
+
     CREATE RECTANGLE hFiller[p-page#]
         ASSIGN 
            FRAME             = FRAME {&FRAME-NAME}:HANDLE
@@ -510,7 +576,6 @@ PROCEDURE create-folder-label :
            ON MOUSE-SELECT-CLICK  
               PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
          END TRIGGERS.         
-
 
    CREATE RECTANGLE hLeftDot[p-page#]
      ASSIGN 
@@ -567,7 +632,7 @@ PROCEDURE create-folder-label :
           ON MOUSE-SELECT-CLICK  
               PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
       END TRIGGERS.         
-    
+
    CREATE RECTANGLE hRightVertical2[p-page#]
       ASSIGN 
          FRAME             = FRAME {&FRAME-NAME}:HANDLE
@@ -605,7 +670,7 @@ PROCEDURE create-folder-label :
         ON MOUSE-SELECT-CLICK  
              PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
       END TRIGGERS.         
-   
+ 
     CREATE TEXT page-label[p-page#]
        ASSIGN 
          FRAME         = FRAME {&FRAME-NAME}:HANDLE
@@ -633,7 +698,11 @@ PROCEDURE create-folder-label :
             ON MOUSE-SELECT-CLICK 
                PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
          END TRIGGERS.
-      
+
+    /*Assigns widget-ids only if the -usewidgetid session parameter is being used*/
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+    RUN assignWidgetIDs (INPUT p-page#).
+
     ASSIGN      
       /*
       sts = image-hdl[p-page#]:LOAD-IMAGE("adeicon/lefttab":U,
@@ -740,6 +809,7 @@ PROCEDURE create-folder-label :
              ON 'ALT-9':U OF hContainer ANYWHERE PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).
        END CASE.
      END.
+  
   RETURN.  
 END PROCEDURE.
 
@@ -940,6 +1010,13 @@ PROCEDURE initializeFolder :
     {get FolderFont   iFont}.
     {get FolderLabels folder-labels}.
     {get FolderTabType tab-type}.
+
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+     ASSIGN Rect-Bottom:WIDGET-ID IN FRAME {&FRAME-NAME}= 2
+            Rect-Left:WIDGET-ID  = 4 
+            Rect-Main:WIDGET-ID  = 6
+            Rect-Right:WIDGET-ID = 8 
+            Rect-Top:WIDGET-ID   = 10 NO-ERROR.
     
     ASSIGN
       iFont           = IF iFont < 0 THEN ? ELSE iFont
@@ -1298,6 +1375,22 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFolderWidgetIDs C-Win 
+FUNCTION getFolderWidgetIDs RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cWidgetIDs AS CHARACTER NO-UNDO.
+  {get FolderWidgetIDs cWidgetIDs}.
+  RETURN cWidgetIDs.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerCol C-Win 
 FUNCTION getInnerCol RETURNS DECIMAL
   ( /* parameter-definitions */ ) :
@@ -1473,6 +1566,21 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFolderWidgetIDs C-Win 
+FUNCTION setFolderWidgetIDs RETURNS LOGICAL
+  (INPUT pcWidgetIDs AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set FolderWidgetIDs pcWidgetIDs}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPageTarget C-Win 
 FUNCTION setPageTarget RETURNS LOGICAL
   ( pcTarget AS CHARACTER ) :
@@ -1488,4 +1596,3 @@ END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-

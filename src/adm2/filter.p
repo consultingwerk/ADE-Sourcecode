@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -47,6 +47,27 @@
 
 
 /* ************************  Function Prototypes ********************** */
+&IF DEFINED(EXCLUDE-getFieldWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFieldWidgetIDs Procedure
+FUNCTION getFieldWidgetIDs RETURNS CHARACTER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFieldWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFieldWidgetIDs Procedure
+FUNCTION setFieldWidgetIDs RETURNS LOGICAL 
+	(INPUT pcFieldWidgetIDs AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-assignColumnFormat) = 0 &THEN
 
@@ -969,7 +990,54 @@ FUNCTION unBlankFillin RETURNS LOGICAL
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignFieldWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignFieldWidgetIDs Procedure
+PROCEDURE assignFieldWidgetIDs:
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER cFieldHandles    AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER cLabelHandles    AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER cOperatorHandles AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cFieldWidgetIDs AS CHARACTER NO-UNDO.
+DEFINE VARIABLE hLabel          AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hOperator       AS HANDLE    NO-UNDO.
+DEFINE VARIABLE hField          AS HANDLE    NO-UNDO.
+DEFINE VARIABLE iWidgetID       AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iFields         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iField          AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iFieldPos       AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cField          AS CHARACTER NO-UNDO.
+
+{get FieldWidgetIDs cFieldWidgetIDs}.
+ASSIGN iFields = NUM-ENTRIES(cFieldHandles).
+
+REPEAT iField = 1 TO iFields:
+    ASSIGN hField    = WIDGET-HANDLE(ENTRY(iField, cFieldHandles))
+           cField    = hField:NAME
+           iFieldPos = LOOKUP(cField, cFieldWidgetIDs).
+
+    IF iFieldPos > 0 THEN
+    ASSIGN iWidgetID           = INT(ENTRY(iFieldPos + 1, cFieldWidgetIDs))
+           hOperator           = WIDGET-HANDLE(ENTRY(iField, cOperatorHandles))
+           hLabel              = WIDGET-HANDLE(ENTRY(iField, cLabelHandles))
+           hField:WIDGET-ID    = iWidgetID
+           hLabel:WIDGET-ID    = iWidgetID + 2
+           hOperator:WIDGET-ID = iWidgetID + 4.
+END. /* REPEAT iField = 1 TO iFields: */
+
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-applyFilter) = 0 &THEN
 
@@ -996,7 +1064,8 @@ PROCEDURE applyFilter :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iField           AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hField           AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE EnabledHandles    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cEnabledHandles  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cEnabledFields   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFieldNames      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFieldValues     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRangeValue      AS CHARACTER NO-UNDO.
@@ -1029,12 +1098,15 @@ PROCEDURE applyFilter :
   DEFINE VARIABLE xcInlineOpList   AS CHAR      NO-UNDO INIT ">=,>,<,<=":U.
   DEFINE VARIABLE xcRangeOperator  AS CHAR      NO-UNDO INIT "<=":U.
      
-  {get EnabledHandles EnabledHandles}.
-  {get OperatorHandles cOperatorHandles}.
-  {get OperatorStyle cOperatorStyle}.
-  {get Operator cDefaultOperator}.
-  {get useBegins lUseBegins}.
+  &scop xp-assign   
+  {get EnabledHandles cEnabledHandles}
+  {get EnabledFields cEnabledFields}
+  {get OperatorHandles cOperatorHandles}
+  {get OperatorStyle cOperatorStyle}
+  {get Operator cDefaultOperator}
+  {get useBegins lUseBegins}
   {get FilterTarget cFilterTarget}.
+  &undefine xp-assign
   
   /* What happened to the intention to support multiple filter targets ?*/
   hFilterTarget = WIDGET-HANDLE(cFilterTarget).
@@ -1046,17 +1118,18 @@ PROCEDURE applyFilter :
   RUN confirmContinue IN hFilterTarget (INPUT-OUTPUT lCancel).
   IF lCancel THEN RETURN.
 
-  DO iField = 1 TO NUM-ENTRIES(EnabledHandles):
+  DO iField = 1 TO NUM-ENTRIES(cEnabledHandles):
     ASSIGN
-      hField      = WIDGET-HANDLE(ENTRY(iField,EnabledHandles))
+      hField      = WIDGET-HANDLE(ENTRY(iField,cEnabledHandles))
+      cField      = ENTRY(iField,cEnabledFields) 
+      cField      = (IF NUM-ENTRIES(cField,".":U) = 1 
+                     THEN "RowObject.":U ELSE "":U) 
+                     + cField
       hOperator   = ?
       hRangeField = ?
-      cField      = (IF NUM-ENTRIES(hField:NAME,".":U) = 1 
-                     THEN "RowObject.":U ELSE "":U) 
-                     + hField:NAME
       cOperator   = "":U.
       
-    /* Chweck if we have a true operator or a range field */
+    /* Check if we have a true operator or a range field */
     IF cOperatorHandles <> "":U THEN
     DO:
        hdl = WIDGET-HANDLE(ENTRY(iField,cOperatorHandles)).
@@ -1084,16 +1157,22 @@ PROCEDURE applyFilter :
     DO:
       ASSIGN
         cValue        = hField:INPUT-VALUE
-        cOperator     = cDefaultOperator
-        iWildCardChar = INDEX(cValue,".":U)
-        iWildCard     = INDEX(cValue,"*":U)
-        iWildCard     = IF lUseBegins AND iWildCard = LENGTH(cValue) 
-                        THEN 0
-                        ELSE iWildCard
-        iWildCard     = IF iWildCard > 0 AND iWildCardChar > 0
-                        THEN MIN(iWildCard,iWildCardChar) 
-                        ELSE MAX(iWildCard,iWildCardChar). 
+        cOperator     = cDefaultOperator.
       
+      /* use function as hField is char when inline */
+      if {fnarg columnDataType cField} = 'character':U then
+        assign iWildCardChar = INDEX(cValue,".":U)
+               iWildCard     = INDEX(cValue,"*":U)
+               iWildCard     = IF lUseBegins AND iWildCard = LENGTH(cValue) 
+                               THEN 0
+                               ELSE iWildCard
+               iWildCard     = IF iWildCard > 0 AND iWildCardChar > 0
+                               THEN MIN(iWildCard,iWildCardChar) 
+                               ELSE MAX(iWildCard,iWildCardChar). 
+      else
+        assign iWildCardChar = 0 
+               iWildCard     = 0.
+        
       /* A valid hOperator means that the screen-value holds the operator */ 
       IF VALID-HANDLE(hOperator) THEN   
         cOperator = hOperator:SCREEN-VALUE.            
@@ -1624,15 +1703,15 @@ PROCEDURE initializeObject :
         hField      = DYNAMIC-FUNC("createField":U IN TARGET-PROCEDURE,
                            hContainerHandle,               /* frame */
                            cField,                         /* name */
-                           IF cOperatorStyle = "INLINE":U  /*datatype */
-                           THEN "CHARACTER":U
-                           ELSE cDataType,
-                           IF lWordIdx                    /* viewas */
-                           THEN "editor":U
-                           ELSE "fill-in":u,
-                           IF cOperatorStyle = "INLINE":U  /* format */
-                           THEN {&charformat}
-                           ELSE cFormat,
+                           (IF cOperatorStyle = "INLINE":U  /*datatype */
+                            THEN "CHARACTER":U
+                            ELSE cDataType),
+                           (IF lWordIdx                    /* viewas */
+                            THEN "editor":U
+                            ELSE "fill-in":u),
+                           (IF cOperatorStyle = "INLINE":U  /* format */
+                            THEN {&charformat}
+                            ELSE cFormat),
                            NOT (cUIBMode BEGINS "DESIGN":U), /* Enable */
                            cToolTip,
                            iHelpId,
@@ -1663,6 +1742,7 @@ PROCEDURE initializeObject :
               
       END.
       ELSE DO: 
+
         IF  cOperatorStyle = "EXPLICIT":U 
         OR (cOperatorStyle = "RANGE" AND hField:TYPE <> "EDITOR":U) THEN
           ASSIGN
@@ -1686,7 +1766,7 @@ PROCEDURE initializeObject :
                             + (IF cEnabledHandles NE "":U THEN "," ELSE "":U)
                             + STRING(hField).
       END.
-      
+
       ASSIGN
         dRow          = dRow + hField:HEIGHT
         cFieldHandles = cFieldHandles + 
@@ -1704,8 +1784,13 @@ PROCEDURE initializeObject :
     /*  APPLY  "END-RESIZE":U TO hContainerHandle.*/
     END. /* if cUIBmode begins 'design' */
 
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+    RUN assignFieldWidgetIDs IN TARGET-PROCEDURE (INPUT cFieldHandles,
+                                                  INPUT cLabelHandles,
+                                                  INPUT cOperatorHandles).
+
     IF NOT lHidden THEN 
-      hContainerHandle:HIDDEN = FALSE NO-ERROR.
+       hContainerHandle:HIDDEN = FALSE NO-ERROR.
 
     IF cUIBmode = "DESIGN":U AND ERROR-STATUS:GET-NUMBER(1) = 6491 THEN
     DO:      
@@ -1716,7 +1801,6 @@ PROCEDURE initializeObject :
        VIEW-AS ALERT-BOX INFORMATION.
     END. /* if error */
 
-
     {set LabelHandles cLabelHandles}.
     {set OperatorHandles cOperatorHandles}.
     {set FieldsEnabled yes}.    
@@ -1725,7 +1809,7 @@ PROCEDURE initializeObject :
     {set EnabledFields cDisplayedFields}.
     {set FieldHandles cFieldHandles}.
   END.   /* if cEnabledHandles = ""  */
- 
+
   RUN ResetFields IN TARGET-PROCEDURE.
   
   RETURN.
@@ -1984,6 +2068,41 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-getFieldWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFieldWidgetIDs Procedure
+FUNCTION getFieldWidgetIDs RETURNS CHARACTER 
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cFieldWidgetIDs AS CHARACTER  NO-UNDO.
+{get FieldWidgetIDs cFieldWidgetIDs}.
+RETURN cFieldWidgetIDs.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-setFieldWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFieldWidgetIDs Procedure
+FUNCTION setFieldWidgetIDs RETURNS LOGICAL 
+	(INPUT pcFieldWidgetIDs AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+{set FieldWidgetIDs pcFieldWidgetIDs}.
+RETURN TRUE.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-assignColumnFormat) = 0 &THEN
 
@@ -2349,7 +2468,7 @@ FUNCTION blankNumericFormat RETURNS LOGICAL
        FORMAT       = phField:FORMAT
        SCREEN-VALUE = '1'.
 
-   /* Prepend digits untill screen-value is not within format limits */  
+   /* Prepend digits until screen-value is not within format limits */  
    DO WHILE TRUE:
      ASSIGN
        hField:SCREEN-VALUE = '1' + hField:SCREEN-VALUE 
@@ -2391,9 +2510,7 @@ Parameters: INPUT pcColumn - The name of the column in the filter-target.
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE hFilterTarget  AS HANDLE.
     DEFINE VARIABLE cDataType      AS CHARACTER.
-    DEFINE VARIABLE cOperatorStyle AS CHAR    NO-UNDO.
-
-   {get OperatorStyle coperatorStyle}.
+  
     hFilterTarget = {fnarg columnFilterTarget pcColumn}.
     
     IF VALID-HANDLE(hFilterTarget) THEN 
@@ -2776,9 +2893,7 @@ FUNCTION createField RETURNS HANDLE
               INPUT pdWidth    - decimal width   
        Notes: PRIVATE
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE hLabel        AS HANDLE    NO-UNDO.
    DEFINE VARIABLE hField        AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE hOperator     AS HANDLE    NO-UNDO.
              
    CREATE VALUE(pcViewAS) hField
      ASSIGN 
@@ -2789,7 +2904,7 @@ FUNCTION createField RETURNS HANDLE
        WIDTH     = pdWidth
        TOOLTIP   = pcTooltip
        CONTEXT-HELP-ID = piHelpid
-       HIDDEN    = FALSE       
+       HIDDEN    = FALSE
        SENSITIVE = TRUE
        READ-ONLY = NOT plEnable
        TAB-STOP  = plEnable.
@@ -2888,7 +3003,22 @@ Parameters: INPUT phField - The handle of the actual filter field
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hOperator AS HANDLE NO-UNDO.
-  
+
+  /* Remove BEGINS from list if not character and CONTAINS if not editor */ 
+  IF pcType <> "Fill-in":U THEN
+  DO:
+    IF phField:DATA-TYPE <> "CHARACTER" THEN 
+      pcValues = REPLACE(pcValues, "BEGINS":U, "":U).    
+    IF phField:TYPE <> "EDITOR" THEN 
+      pcValues = REPLACE(pcValues, "CONTAINS":U, "":U).
+  END. /* hoperator <> fill-in */
+
+  REPEAT:
+      IF INDEX(pcValues, ",,") > 0
+      THEN ASSIGN pcValues = REPLACE(pcValues, ",,", ",").
+      ELSE LEAVE.
+  END.
+
   IF pcType = "Radio-set":U THEN 
     CREATE RADIO-SET hOperator
      ASSIGN 
@@ -2898,7 +3028,7 @@ Parameters: INPUT phField - The handle of the actual filter field
        RADIO-BUTTONS   = pcValues
        HORIZONTAL      = TRUE
        HEIGHT          = phField:HEIGHT
-       HIDDEN          = FALSE       
+       HIDDEN          = FALSE
        SENSITIVE       = NOT phField:READ-ONLY.
   
   ELSE IF pcType = "Combo-box":U THEN
@@ -2909,7 +3039,7 @@ Parameters: INPUT phField - The handle of the actual filter field
        COL             = pdCol
        WIDTH           = pdWidth
        LIST-ITEM-PAIRS = pcValues
-       HIDDEN          = FALSE       
+       HIDDEN          = FALSE
        SENSITIVE       = NOT phField:READ-ONLY.
 
  ELSE 
@@ -2923,20 +3053,11 @@ Parameters: INPUT phField - The handle of the actual filter field
        WIDTH     = phField:WIDTH
        DATA-TYPE = phField:DATA-TYPE
        FORMAT    = phField:FORMAT
-       HIDDEN    = FALSE       
+       HIDDEN    = FALSE 
        SENSITIVE = TRUE
        READ-ONLY       = phField:READ-ONLY
        TAB-STOP        = phField:TAB-STOP.
      
-  /* Remove BEGINS from list if not character and CONTAINS if not editor */ 
-  IF hOperator:TYPE <> "Fill-in":U THEN
-  DO:
-    IF phField:DATA-TYPE <> "CHARACTER" THEN 
-      hOperator:DELETE('BEGINS':U).    
-    IF phField:TYPE <> "EDITOR" THEN 
-      hOperator:DELETE('CONTAINS':U).
-  END. /* hoperator <> fill-in */
-
   RETURN hOperator.   /* Function return value. */
 
 END FUNCTION.

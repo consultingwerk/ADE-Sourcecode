@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -89,6 +89,9 @@ DEFINE TEMP-TABLE workDb
     FIELD display-value    AS CHARACTER
     FIELD dbGuid           AS CHARACTER
     INDEX id id.
+
+/* If this is WebSpeed, exit */
+IF SESSION:CLIENT-TYPE = "WEBSPEED" THEN RETURN ERROR.
 
 {src/adm2/widgetprto.i}
 
@@ -657,6 +660,10 @@ IF THIS-PROCEDURE:PERSISTENT THEN DO:
   END.
 END. 
 
+/* if started from the operating system, prompt for login ids */
+IF PROGRAM-NAME(2) = ? THEN
+  RUN _prostar.p.
+
 /* define OldCurrentWindowFocus so we can override the ENTRY trigger 
    of the window
 */
@@ -670,7 +677,7 @@ ASSIGN fill-warning = "NOTE: Any fields not shown in the browse will" +
 /* Include custom  Main Block code for SmartWindows. */
 {src/adm2/windowmn.i}
 
-/* if started from the operating system, quit */
+/* We are exiting. If started from the operating system, quit */
 IF NOT THIS-PROCEDURE:PERSISTENT AND PROGRAM-NAME(2) = ? THEN
    QUIT.
 
@@ -853,7 +860,7 @@ PROCEDURE adm-create-objects :
        RUN resizeObject IN h_dyntoolbar ( 1.24 , 30.80 ) NO-ERROR.
 
        RUN constructObject (
-             INPUT  'adm2/folder.w':U ,
+             INPUT  'auditing/adm2/aud_folder.w':U ,
              INPUT  FRAME fMain:HANDLE ,
              INPUT  'FolderLabels':U + 'Policy|Audit Tables|Audit Fields|Audit Events' + 'FolderTabWidth0FolderFont-1HideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_folder ).
@@ -1041,7 +1048,7 @@ DEFINE VARIABLE iLoop      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE cList      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cdbInfo    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cWorking   AS CHARACTER NO-UNDO.
-
+DEFINE VARIABLE supp_warn  AS LOGICAL   NO-UNDO.
 
     DO WITH FRAME {&FRAME-NAME}:
         ASSIGN 
@@ -1088,7 +1095,16 @@ DEFINE VARIABLE cWorking   AS CHARACTER NO-UNDO.
         ELSE
             ASSIGN coDatabase:SCREEN-VALUE = ENTRY(2,coDatabase:LIST-ITEM-PAIRS).
     
+         /* remember if session parameter is set */
+         supp_warn = SESSION:SUPPRESS-WARNINGS.
+         /* suppress warnings for now */
+         IF NOT supp_warn THEN
+            SESSION:SUPPRESS-WARNINGS = YES.
+
          APPLY "VALUE-CHANGED":U TO coDatabase. /* force refresh of database list */
+
+         IF NOT supp_warn THEN
+            SESSION:SUPPRESS-WARNINGS = NO.
     END.
 
 END PROCEDURE.
@@ -3564,7 +3580,15 @@ PROCEDURE selectPage :
 
   DEFINE INPUT PARAMETER piPageNum AS INTEGER NO-UNDO.
 
+  DEFINE VARIABLE supp_warn AS LOGICAL NO-UNDO.
+
   /* Code placed here will execute PRIOR to standard behavior. */
+
+  /* remember if session parameter is set */
+  supp_warn = SESSION:SUPPRESS-WARNINGS.
+  /* suppress warnings for now */
+  IF NOT supp_warn THEN
+     SESSION:SUPPRESS-WARNINGS = YES.
 
   IF piPageNum <> 3 THEN
      ASSIGN fill-warning:VISIBLE IN FRAME {&FRAME-NAME} = NO.
@@ -3576,6 +3600,9 @@ PROCEDURE selectPage :
   IF piPageNum = 3 THEN
      ASSIGN fill-warning:VISIBLE IN FRAME {&FRAME-NAME} = YES.
 
+  /* restore warnings setting if appropriate */
+  IF NOT supp_warn THEN
+     SESSION:SUPPRESS-WARNINGS = NO.
 
 END PROCEDURE.
 

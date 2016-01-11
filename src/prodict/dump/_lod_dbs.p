@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,9 @@ history:
                                 Codepage 850  =now=>  IBM850
     hutegger    94/05/06    updated rule for "codepage allowed" when
                             modifying DICTDB._Db
+                            
+   fernando     10/04/07    Handle error modifying collation table
+   fernando     12/06/07    Load collation name for DataServers
    
 */
 /*h-*/
@@ -40,6 +43,7 @@ define shared temp-table s_ttb_fake-cp
     field   db-recid    as recid.
     
 DEFINE VARIABLE scrap AS CHARACTER NO-UNDO.
+DEFINE VARIABLE canned AS LOGICAL NO-UNDO.
 
 /*---------------------------------------------------------------------*/
 
@@ -92,7 +96,12 @@ if imod = "a":u then do: /*--------------------------------------------*/
             DICTDB._Db._Db-misc1[3] = INTEGER(OS-GETENV("ORAVERSION")). 
           ELSE
             DICTDB._Db._Db-misc1[3] = 7.       
-    END.    
+    END.  
+
+    /* for DataServers, load collation name if it was specified */
+    IF wdbs._Db-coll-name ne ? and wdbs._Db-coll-name NE "" THEN
+       ASSIGN DICTDB._Db._Db-coll-name = wdbs._Db-coll-name.    
+
     {prodict/dictgate.i
       &action =query
       &dbtype =user_dbtype 
@@ -125,6 +134,9 @@ else if imod = "m":u then do: /*---------------------------------------*/
     user_dbtype = wdbs._Db-type
     drec_db     = RECID(DICTDB._Db).
 
+  DO ON ERROR UNDO, LEAVE:
+  ASSIGN canned = YES.
+  
   if DICTDB._Db._Db-xl-name <> wdbs._Db-xl-name then do:
 /* Jannery: codepage can be changed via .df-load, but
  *          only when db is empty! <hutegger> 94/06 
@@ -197,6 +209,13 @@ else if imod = "m":u then do: /*---------------------------------------*/
     DICTDB._Db._Db-misc2[7] = wdbs._Db-misc2[7]
     DICTDB._Db._Db-misc2[8] = wdbs._Db-misc2[8].
 
+    ASSIGN canned = NO.
+   END.
+
+   IF canned THEN DO:
+       ierror = 56.
+       RETURN.
+   END.
   end. /*--------------------------------------------------------------*/
 else if imod = "r":u then do: /*---------------------------------------*/
 

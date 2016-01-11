@@ -25,6 +25,10 @@ Needs:
   NOTE: IF YOU MODIFY THE TRAILER: PLEASE FIX THE BYTECOUNT BELOW in Find_PSC. 
   ALSO, prodict/user/userload.i USES SIMILAR ROUTINES TO THESE. PLEASE CHECK 
   THEM AS WELL.
+  
+  History:
+  fernando    06/20/07   Support for large files
+  
 */
 ASSIGN codepage = SESSION:STREAM.
 
@@ -43,20 +47,69 @@ PROCEDURE read-trailer.
   /* Read trailer of file and find codepage */
   /* (partially stolen from lodtrail.i)     */
   
-  /*DEFINE VARIABLE i     AS INT            NO-UNDO.*/
+  DEFINE VARIABLE tempi AS DECIMAL          NO-UNDO.
+  DEFINE VARIABLE j     AS INTEGER          NO-UNDO.
+
   INPUT FROM VALUE({&file}) NO-ECHO NO-MAP.
   SEEK INPUT TO END.
-  SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
 
+  i = SEEK(INPUT) - 11.
+  SEEK INPUT TO i. /* position to possible beginning of last line */
+
+  READKEY PAUSE 0.
+
+  /* Now we need to deal with a large offset, which is a variable size
+     value in the trailer, for large values.
+     Now go back one character at a time until we find a new line or we have
+     gone back too far.
+     For the non-large offset format, the previous char will be a
+     newline character, so we will  detect that right away and read the
+     value as usual. Unless the file has CRLF (Windows), in which case
+     we will go back 1 character to read the value properly - to
+     account for the extra byte.
+     For larger values, we will read as many digits as needed.
+     The loop below could stop after 10 digits, but I am letting it go
+     up to 50 to try to catch a bad value.
+  */
+  DO WHILE LASTKEY <> 13 AND j <= 50:
+      ASSIGN j = j + 1
+             i = i - 1.
+      SEEK INPUT TO i.
+      READKEY PAUSE 0.
+  END.
+
+  /* now we can start reading it */
   READKEY PAUSE 0.
   ASSIGN
     lvar# = 0
     lvar  = ""
     i     = 0.
+
   DO WHILE LASTKEY <> 13 AND i <> ?: /* get byte count (last line) */
-    i = (IF LASTKEY > 47 AND LASTKEY < 58 
-          THEN i * 10 + LASTKEY - 48
-          ELSE ?).
+      IF LASTKEY > 47 AND LASTKEY < 58 THEN DO:
+          /* check if can fit the value into an int64 type. We need
+             to manipulate it with a decimal so that we don't get fooled
+             by a value that overflows. This is so that we catch a
+             bad offset in the file.
+           */
+          ASSIGN tempi = i /* first move it to a decimal */
+                 tempi = tempi * 10 + LASTKEY - 48. /* get new value */
+          i = INT64(tempi) NO-ERROR. /* see if it fits into an int64 */
+          
+          /* check if the value overflows becoming negative or an error happened. 
+             If so, something is wrong (too many digits or invalid values),
+             so forget this.
+          */
+          IF  i < 0 OR
+              ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+              ASSIGN i = 0.
+              LEAVE. /* we are done with this */
+          END.
+
+      END.
+      ELSE 
+          ASSIGN i = ?. /* bad character */
+
     READKEY PAUSE 0.
   END.
   IF i > 0 then run get_psc. /* get it */
@@ -98,8 +151,8 @@ PROCEDURE find_psc:
    * anything to this trailer, you must change this number to reflect
    * the number of bytes you added. I'll use 256 to add a little padding. (gfs)
    */
-  DEFINE VARIABLE p AS INTEGER INITIAL 256. /* really 204, added extra just in case */
-  DEFINE VARIABLE l AS INTEGER.             /* last char position */
+  DEFINE VARIABLE p AS INT64 INITIAL 256. /* really 204, added extra just in case */
+  DEFINE VARIABLE l AS INT64.             /* LAST char position */
   
   SEEK INPUT TO END.
   ASSIGN l = SEEK(INPUT). /* store off EOF */
@@ -128,9 +181,9 @@ END.
 PROCEDURE read_bits:
   /* reads trailer given a starting position 
    */ 
-  DEFINE INPUT PARAMETER i as INTEGER. /* "SEEK TO" location */
+  DEFINE INPUT PARAMETER pi as INT64. /* "SEEK TO" location */
     
-  SEEK INPUT TO i.
+  SEEK INPUT TO pi.
   REPEAT:
     IMPORT lvar[lvar# + 1].
     lvar# = lvar# + 1.

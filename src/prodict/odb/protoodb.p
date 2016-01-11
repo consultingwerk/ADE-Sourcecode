@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,6 +35,9 @@
           K. McIntosh 02/28/05  Added ability to override default x(8) character field
                                 handling when deciding field width
           fernando    08/14/06  Removed Informix from list of valid foreign db types
+          knavneet    08/03/07  For db2/400, making library name a required field
+                      08/22/07  For db2/400, changing label from Library to Collection/Library and defaulting it to what is specified in the DSN.
+          fernando    10/18/07  Make sure pcompatible is mantain disabled after error - OE00134723           
 */            
 
 
@@ -61,10 +64,16 @@ DEFINE VARIABLE odbctypes     AS CHARACTER
   INITIAL "Sybase,DB2/400,DB2(Other),Other(MS Access),Other(Generic),DB2,Other(MSAcce~ ss)" NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
-DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE lExpand             AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE lCompatible_enabled AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN 
+ DEFINE VARIABLE dsn_name      AS CHARACTER                NO-UNDO.
+ DEFINE VARIABLE default_lib   AS CHARACTER                NO-UNDO.
+ FUNCTION getRegEntry RETURN CHARACTER (INPUT dsnName as CHARACTER, keyName  AS CHARACTER) FORWARD. 
+&ENDIF.
 batch_mode = SESSION:BATCH-MODE.
 
 FORM
@@ -96,7 +105,7 @@ FORM
   odb_collname FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Collation name" colon 36 SKIP({&VM_WID})
   odb_library FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
-     LABEL "Library" COLON 36 
+     LABEL "Collection/Library" COLON 36 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
   &ELSE SKIP({&VM_WIDG}) &ENDIF
 
@@ -110,7 +119,7 @@ FORM
   movedata view-as toggle-box label "Move Data" COLON 38 SKIP({&VM_WID})
   SPACE(2) cFormat VIEW-AS TEXT NO-LABEL 
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                                HORIZONTAL NO-LABEL SKIP({&VM_WID})
   lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 40
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
@@ -148,6 +157,7 @@ END PROCEDURE.
 /*   TRIGGERS   */
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+
  ON LEAVE of codb_type IN FRAME x DO :
    IF codb_type BEGINS "SQL" THEN codb_type = "Sql Server 6".
    IF LOOKUP(input codb_type, odbctypes) = 0 THEN DO:
@@ -167,6 +177,9 @@ END PROCEDURE.
      ASSIGN pcompatible:sensitive in frame x = YES
             pcompatible = TRUE
             pcompatible:screen-value in frame x = "yes".   
+
+   ASSIGN lCompatible_enabled = pcompatible.
+
    IF codb_type:SCREEN-VALUE BEGINS "Oth" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
               shadowcol:SCREEN-VALUE IN FRAME X = "no".
@@ -184,6 +197,7 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
+
  ON VALUE-CHANGED OF codb_type IN FRAME X DO:
    /* If the user has chosen DB2/400, display and enable the Library fill-in. 
       Otherwise, hide it. */
@@ -196,8 +210,10 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
+
  ON ENTRY OF pro_dbname IN FRAME X DO:
-   IF codb_type EQ "DB2/400" THEN
+
+   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
             odb_library:SENSITIVE IN FRAME X = TRUE.
    ELSE
@@ -207,7 +223,9 @@ END PROCEDURE.
             odb_library                         = "".
  END.
 &ENDIF  
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+
  ON VALUE-CHANGED of odb_type IN FRAME x OR
     LEAVE of odb_type IN FRAME x DO :
    IF odb_type:screen-value BEGINS "DB2" OR
@@ -220,6 +238,9 @@ END PROCEDURE.
      ASSIGN pcompatible:sensitive in frame x = YES
             pcompatible:screen-value in frame x = "yes"
             pcompatible = TRUE.  
+
+   ASSIGN lCompatible_enabled = pcompatible.
+
    IF odb_type:SCREEN-VALUE BEGINS "Other(G" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
               shadowcol:SCREEN-VALUE = "NO".
@@ -237,6 +258,7 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
+
  ON ENTRY OF pro_dbname IN FRAME X DO:
    IF odb_type EQ "DB2/400" THEN
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
@@ -247,7 +269,32 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
  END.
-&ENDIF  
+&ENDIF
+  
+/* Please Note: In the event that we cover DB2 drivers on a UNIX platform:
+   The DataDirect ODBC driver on the UNIX platform has a corresponding 
+   location in the ODBC.INI file the connection string attribute
+   "Collection" (COL=<value>) and AlternateID (AID=<value>)  
+   where these values can be extracted.
+   Also Note: The registry keys & values for SQL qualifier are specific to DataDirect drivers.
+   The process for obtaining the appropriate qualifier may change if access to DB2 native
+   drivers through the ODBC DataServer is considered in the future */
+
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN"
+&THEN
+  ON LEAVE of odb_dbname in frame X DO:
+  dsn_name = odb_dbname:SCREEN-VALUE.
+  default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
+                   getRegEntry(dsn_name,"AlternateID")
+                 ELSE (IF getRegEntry(dsn_name,"Collection") <> ? THEN
+                   getRegEntry(dsn_name,"Collection")
+                 ELSE (IF getRegEntry(dsn_name,"LogOnID") <> ? THEN
+                   getRegEntry(dsn_name,"LogOnID")
+                 ELSE "" ))).
+  ASSIGN odb_library:SCREEN-VALUE IN FRAME X = default_lib
+         odb_library                         = default_lib.
+  END. 
+&ENDIF.
 
 ON LEAVE OF odb_library IN FRAME X 
   ASSIGN odb_library.
@@ -298,11 +345,19 @@ IF NOT batch_mode THEN DO:
    &ENDIF
 END.
 
+ASSIGN pcompatible = YES
+    lCompatible_enabled = YES.
+
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
   
   IF redo THEN
-        RUN cleanup.
+     RUN cleanup.
+
+  IF logfile_open THEN DO:
+     OUTPUT STREAM logfile CLOSE.
+     logfile_open = FALSE.
+  END.
 
   IF wrg-ver THEN DO:
     MESSAGE "The DataServer for ODBC was designed to work with MS SQL Server 6 and " SKIP
@@ -312,8 +367,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     RETURN.
   END.
 
-  ASSIGN pcompatible = YES
-         run_time = TIME.
+  ASSIGN run_time = TIME.
 
   IF OS-GETENV("PRODBNAME")   <> ? THEN
       pro_dbname   = OS-GETENV("PRODBNAME").
@@ -414,6 +468,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   _updtvar: 
   DO WHILE TRUE:
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    
       DISPLAY cFormat lExpand WITH FRAME x.
       UPDATE pro_dbname
         pro_conparms
@@ -426,7 +481,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_codepage  
         odb_collname
         odb_library
-        pcompatible     
+        pcompatible WHEN lCompatible_enabled    
         shadowcol
         loadsql
         movedata WHEN mvdta
@@ -522,6 +577,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             VIEW-AS ALERT-BOX ERROR.  
         NEXT _updtvar.
       END.
+     IF odb_library:HIDDEN = NO and odb_library = "" OR odb_library = ? THEN DO:
+       MESSAGE "Collection/Library is required."
+            VIEW-AS ALERT-BOX ERROR.
+       NEXT-PROMPT odb_library with frame x.
+       NEXT _updtvar.
+     END.
+     ELSE
+       ASSIGN odb_library = UPPER(odb_library).
     END.      
     LEAVE _updtvar.
   END.
@@ -592,3 +655,37 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END.
 END.
 
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+
+&SCOPED-DEFINE KEY_PATH "ODBC~\ODBC.INI~\"
+
+/* Function : getRegEntry
+   Purpose  : To read from WindowsRegistry
+   Input    : DSN name as charcter & Key as Character
+   Output   : Value read from registry as character */
+
+FUNCTION getRegEntry RETURN CHARACTER 
+ (INPUT dsnName as CHARACTER, keyName AS CHARACTER):
+  DEFINE VARIABLE keyData AS CHARACTER NO-UNDO INIT ?.
+
+  /* Look for User DSN first */
+   LOAD "SOFTWARE" BASE-KEY "HKEY_CURRENT_USER".
+   USE "SOFTWARE".
+   GET-KEY-VALUE SECTION {&KEY_PATH} + dsnName
+   KEY keyName
+   VALUE keyData.
+   UNLOAD "SOFTWARE".
+
+  /* Look for System DSN, if User DSN not found */
+  IF keyData EQ ? THEN DO:
+   LOAD "SOFTWARE" BASE-KEY "HKEY_LOCAL_MACHINE".
+   USE "SOFTWARE".
+   GET-KEY-VALUE SECTION {&KEY_PATH} + dsnName
+   KEY keyName
+   VALUE keyData.
+   UNLOAD "SOFTWARE".
+  END.
+
+  RETURN keyData.
+END FUNCTION.
+&ENDIF 

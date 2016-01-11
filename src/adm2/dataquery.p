@@ -1,11 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/**********************************************************************************/
-/* Copyright (C) 2006 by Progress Software Corporation. All rights reserved. */
-/* Prior versions of this work may contain portions contributed by participants   */      
-/* of Possenet.                                                                   */               
-/******************************************************************************/
+/***********************************************************************
+* Copyright (C) 2006-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataquery.p
     Purpose     : Super procedure for dataquery class.
@@ -82,6 +83,17 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
 FUNCTION bufferWhereClause RETURNS CHARACTER
   (pcBuffer AS CHAR,
    pcWhere  AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-calcBatchSize) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD calcBatchSize Procedure 
+FUNCTION calcBatchSize RETURNS INTEGER
+        ( piNeeded as int) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -426,6 +438,17 @@ FUNCTION getForeignValues RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getIgnoreTreeViewFilter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIgnoreTreeViewFilter Procedure 
+FUNCTION getIgnoreTreeViewFilter RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyFields Procedure 
@@ -690,6 +713,17 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableWhenNew Procedure 
+FUNCTION getUpdatableWhenNew RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getUpdateSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateSource Procedure 
@@ -732,6 +766,18 @@ FUNCTION insertExpression RETURNS CHARACTER
   (pcWhere      AS CHAR,   
    pcExpression AS CHAR,     
    pcAndOr      AS CHAR) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-maskQuotes) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD maskQuotes Procedure 
+FUNCTION maskQuotes RETURNS CHARACTER
+  ( pcString      AS CHAR,
+    pcReplaceChar AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1090,6 +1136,17 @@ FUNCTION setForeignValues RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setIgnoreTreeViewFilter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setIgnoreTreeViewFilter Procedure 
+FUNCTION setIgnoreTreeViewFilter RETURNS LOGICAL
+  ( plIgnoreTreeViewFilter AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setIndexInformation Procedure 
@@ -1304,6 +1361,17 @@ FUNCTION setTransferChildrenForAll RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdatableColumns Procedure 
 FUNCTION setUpdatableColumns RETURNS LOGICAL
   (pcColumns AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdatableWhenNew Procedure 
+FUNCTION setUpdatableWhenNew RETURNS LOGICAL
+  (pcUpdatableWhenNew AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1804,7 +1872,7 @@ PROCEDURE processLinkState :
   DEFINE VARIABLE lToggleTargets   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lActiveTarget    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
-  
+
   {get ObjectInitialized lInitialized}.
   IF NOT linitialized THEN
      RETURN.
@@ -1931,7 +1999,7 @@ PROCEDURE processLinkState :
       pcState = pcState + "Data":U.   
     
   end.
-  
+
   PUBLISH 'linkState':U FROM TARGET-PROCEDURE (pcState). 
 
 END PROCEDURE.
@@ -2289,7 +2357,7 @@ DO:
       CREATE ttTable.
       ASSIGN ttTable.iRow  = iRowNum
              ttTable.iCol  = iField.
-      IF LOOKUP({fnarg columnDataType cColumn},'CLOB,BLOB,INT64':U) > 0 THEN
+      IF LOOKUP({fnarg columnDataType cColumn},'CLOB,BLOB,INT64,RAW':U) > 0 THEN
       DO:
          IF NOT lLOBMessageDisplayed THEN
          DO:
@@ -2302,7 +2370,7 @@ DO:
          ttTable.cCell = "":U.
       END.
       ELSE
-         ttTable.cCell = {fnarg columnStringValue cColumn}.
+         ttTable.cCell = RIGHT-TRIM({fnarg columnStringValue cColumn}).
     END. /* Loop through the buffer fields */
     
     iNumRecords    = iNumRecords + 1.
@@ -2404,7 +2472,7 @@ PROCEDURE updateQueryPosition :
   DEFINE VARIABLE lQuery       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iROwNum      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cParentPos   AS CHARACTER  NO-UNDO.
-
+  
   {get RowObject hRowObject}.
   IF VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE THEN
   DO:
@@ -2458,7 +2526,7 @@ PROCEDURE updateQueryPosition :
   END.  /* else (not avail)*/
   
   {set QueryPosition cQueryPos}.
-  
+ 
   RETURN.
 
 END PROCEDURE.
@@ -2977,6 +3045,7 @@ FUNCTION bufferWhereClause RETURNS CHARACTER
  DEFINE VARIABLE iByPos      AS INT        NO-UNDO.        
  DEFINE VARIABLE iIdxRePos   AS INT        NO-UNDO.  
  DEFINE VARIABLE iOptionPos  AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cTmpQuery   AS CHARACTER  NO-UNDO.
 
  /* If unkown value is passed used the existing query string */
  IF pcWhere = ? THEN
@@ -3044,12 +3113,17 @@ FUNCTION bufferWhereClause RETURNS CHARACTER
      /* Remove comma or period before inserting the new expression */
      ASSIGN
        cFoundWhere = RIGHT-TRIM(cFoundWhere,",.":U). 
-     
-     IF {fnarg whereClauseBuffer cFoundWhere} = pcBuffer THEN
+       /* We mask quoted strings to ensure the following table and keyword lookup
+          only finds stuff in the expression(in lack of parsing) */ 
+       cTmpQuery   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                       cFoundWhere,'':U)
+       .
+
+     IF {fnarg whereClauseBuffer cTmpQuery} = pcBuffer THEN
      DO:
        ASSIGN
-         iByPos        = INDEX(cFoundWhere," BY ":U)    
-         iIdxRePos     = INDEX(cFoundWhere + " ":U," INDEXED-REPOSITION ":U)
+         iByPos        = INDEX(cTmpQuery," BY ":U)    
+         iIdxRePos     = INDEX(cTmpQuery + " ":U," INDEXED-REPOSITION ":U)
          iOptionPos    = MIN(IF iByPos > 0     THEN iByPos     ELSE LENGTH(cFoundWhere),
                              IF iIdxRePos > 0  THEN iIdxRePos  ELSE LENGTH(cFoundWhere)
                             )
@@ -3072,6 +3146,33 @@ FUNCTION bufferWhereClause RETURNS CHARACTER
 
  RETURN '':U.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-calcBatchSize) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION calcBatchSize Procedure 
+FUNCTION calcBatchSize RETURNS INTEGER
+        ( piNeeded as int):
+/*------------------------------------------------------------------------------
+    Purpose: Calculate a new batch size that is dividible on the batchsize
+             and large enough to include the needed number of rows.
+    Notes:      
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE iRowsToBatch AS INTEGER    NO-UNDO.
+   
+   {get RowsToBatch iRowsToBatch}.
+   if iRowsToBatch = ? or iRowsToBatch = 0 then 
+     return iRowsToBatch.
+   else  
+     return piNeeded 
+            + if (piNeeded modulo iRowsToBatch) = 0 
+              then 0
+              else iRowsToBatch - (piNeeded modulo iRowsToBatch).  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3745,7 +3846,7 @@ FUNCTION getDataModified RETURNS LOGICAL
   {get UpdateSource cUpdateSource}.
   DO iSource = 1 TO NUM-ENTRIES(cUpdateSource):
     hSource = WIDGET-HANDLE(ENTRY(iSource,cUpdateSource)).
-    IF VALID-HANDLE(hSource) THEN 
+    IF VALID-HANDLE(hSource) and {fnarg instanceOf 'DataVisual':U hSource} THEN 
     DO:
       {get DataModified lDataModified hSource}.
       IF lDataModified THEN
@@ -4066,6 +4167,45 @@ FUNCTION getForeignValues RETURNS CHARACTER
   DEFINE VARIABLE cForeignValues AS CHARACTER NO-UNDO.
   {get ForeignValues cForeignValues}.
   RETURN cForeignValues.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getIgnoreTreeViewFilter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIgnoreTreeViewFilter Procedure 
+FUNCTION getIgnoreTreeViewFilter RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Decides whether general filter criteria applied to a TreeView should 
+           be applied to the data object. 
+           A TRUE value overrides default behaviour and ignores the criteria. 
+    Notes: This property supports the behaviour that previously was achieved by 
+           adding an empty NoTreeFilter procedure stub to a static SDO. 
+         - Data sources on TreeView nodes do not support the notion of 
+           instances and instance attributes, so the property must typically be 
+           defined at the master level.
+         - Overridable in order to support the old internal-entries hack          
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lIgnore AS LOGICAL     NO-UNDO.
+  
+  &SCOPED-DEFINE xpIgnoreTreeViewFilter
+  {get IgnoreTreeViewFilter lIgnore}.
+  &UNDEFINE xpIgnoreTreeViewFilter
+  
+  /* default to ? currently in order to support the old internal-entries hack */ 
+  IF lIgnore = ? THEN
+  DO:
+    lIgnore =  LOOKUP("noTreeFilter":U,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0.
+    /* store it for next get */
+    {set IgnoreTreeViewFilter lIgnore}.
+  END.
+
+  RETURN lIgnore.    
 
 END FUNCTION.
 
@@ -4443,8 +4583,7 @@ FUNCTION getQueryPosition RETURNS CHARACTER
     if valid-handle(hDataSource) then
     do: 
       {get QueryPosition cParentPos hDataSource}.
-      if cParentPos begins "NoRecordAvailable":U then
-        cPosition = "NoRecordAvailableExt":U.
+      if cParentPos begins "NoRecordAvailable":U then        cPosition = "NoRecordAvailableExt":U.
     end.  
     if cPosition = '' then  
       cPosition = "NoRecordAvailable":U.  
@@ -4708,6 +4847,30 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
   
   {get UpdatableColumns cColumns}.
   RETURN cColumns.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdatableWhenNew Procedure 
+FUNCTION getUpdatableWhenNew RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return a list of fields that only are updatable when new.
+    Notes: The datavisual class EnabledWhenNew uses this as default.
+         - submitRow (-> submitValidate data.p) checks that no changes are saved
+           for these columns unless the record is new. 
+         - There is no particular behavior for these columns unless they 
+           also are UpdatableColumns.    
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cUpdatableWhenNew AS CHARACTER   NO-UNDO.
+  {get UpdatableWhenNew cUpdatableWhenNew}.
+  RETURN cUpdatableWhenNew.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5004,39 +5167,44 @@ FUNCTION insertExpression RETURNS CHARACTER
   
   DEFINE VARIABLE iByPos        AS INT  NO-UNDO.        
   DEFINE VARIABLE iIdxRePos     AS INT  NO-UNDO.        
-           
-  ASSIGN 
-    /* Get rid of potential line break characters (query builder -> repository)*/   
-    pcWhere       = REPLACE(pcWhere,CHR(10),' ':U)
-    cTable        = {fnarg whereClauseBuffer pcWhere}
-    iTblPos       = INDEX(pcWhere,cTable) + LENGTH(cTable,"CHARACTER":U)
-    
-    iWherePos     = INDEX(pcWhere," WHERE ":U) + 6    
-    iByPos        = INDEX(pcWhere," BY ":U)    
-    iUseIdxPos    = INDEX(pcWhere," USE-INDEX ":U)    
-    iIdxRePos     = INDEX(pcWhere + " ":U," INDEXED-REPOSITION ":U)    
-    iOuterPos     = INDEX(pcWhere + " ":U," OUTER-JOIN ":U)     
-    iLockPos      = MAX(INDEX(pcWhere + " ":U," NO-LOCK ":U),
-                        INDEX(pcWhere + " ":U," SHARE-LOCK ":U),
-                        INDEX(pcWhere + " ":U," EXCLUSIVE-LOCK ":U),
-                        INDEX(pcWhere + " ":U," SHARE ":U),
-                        INDEX(pcWhere + " ":U," EXCLUSIVE ":U)
-                        )    
-    iInsertPos    = LENGTH(pcWhere) + 1 
+  DEFINE VARIABLE cTmpQuery     AS CHARACTER   NO-UNDO.
+
+  /* Get rid of potential line break characters (query builder -> repository)*/   
+  assign
+    pcWhere    = REPLACE(pcWhere,CHR(10),' ':U)
+    /* We mask quoted strings to ensure the following table and keyword lookup
+       only finds stuff in the expression(in lack of parsing) */ 
+    cTmpQuery  = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                  pcWhere,'':U)
+    cTable       = {fnarg whereClauseBuffer cTmpQuery}
+    iTblPos     = INDEX(cTmpQuery,cTable) + LENGTH(cTable,"CHARACTER":U)    
+    iWherePos   = INDEX(cTmpQuery," WHERE ":U) + 6    
+    iByPos      = INDEX(cTmpQuery," BY ":U)    
+    iUseIdxPos  = INDEX(cTmpQuery," USE-INDEX ":U)    
+    iIdxRePos   = INDEX(cTmpQuery + " ":U," INDEXED-REPOSITION ":U)    
+    iOuterPos   = INDEX(cTmpQuery + " ":U," OUTER-JOIN ":U)     
+    iLockPos    = MAX(INDEX(cTmpQuery + " ":U," NO-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," SHARE-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," EXCLUSIVE-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," SHARE ":U),
+                      INDEX(cTmpQuery + " ":U," EXCLUSIVE ":U)
+                      )    
+    iInsertPos  = LENGTH(cTmpQuery) + 1 
                     /* We must insert before the leftmoust keyword,
                        unless the keyword is Before the WHERE keyword */ 
-    iInsertPos    = MIN(
+    iInsertPos  = MIN(
                       (IF iLockPos   > iWherePos THEN iLockPos   ELSE iInsertPos),
                       (IF iOuterPos  > iWherePos THEN iOuterPos  ELSE iInsertPos),
                       (IF iUseIdxPos > iWherePos THEN iUseIdxPos ELSE iInsertPos),
                       (IF iIdxRePos  > iWherePos THEN iIdxRePos  ELSE iInsertPos),
                       (IF iByPos     > iWherePos THEN iByPos     ELSE iInsertPos)
-                       )                                                        
-    lWhere        = INDEX(pcWhere," WHERE ":U) > 0 
-    cWhereOrAnd   = (IF NOT lWhere          THEN " WHERE ":U 
-                     ELSE IF pcAndOr = "":U OR pcAndOr = ? THEN " AND ":U 
-                     ELSE " ":U + pcAndOr + " ":U) 
-    iOfPos        = INDEX(pcWhere," OF ":U).
+                     )                                                        
+    lWhere      = INDEX(cTmpQuery," WHERE ":U) > 0 
+    cWhereOrAnd = (IF NOT lWhere          THEN " WHERE ":U 
+                   ELSE IF pcAndOr = "":U OR pcAndOr = ? THEN " AND ":U 
+                   ELSE " ":U + pcAndOr + " ":U) 
+    iOfPos      = INDEX(cTmpQuery," OF ":U).
+  
   
   IF LEFT-TRIM(pcExpression) BEGINS "OF ":U THEN 
   DO:   
@@ -5046,13 +5214,13 @@ FUNCTION insertExpression RETURNS CHARACTER
     DO:
       ASSIGN
         /* Find the table in the old join */               
-        cRelTable  = ENTRY(1,LEFT-TRIM(SUBSTRING(pcWhere,iOfPos + 4))," ":U)      
+        cRelTable  = ENTRY(1,LEFT-TRIM(SUBSTRING(cTmpQuery,iOfPos + 4))," ":U)      
         /* Find the table in the new join */       
         cJoinTable = SUBSTRING(LEFT-TRIM(pcExpression),3).
       
       IF cJoinTable <> cRelTable THEN
         ASSIGN 
-         iRelTblPos = INDEX(pcWhere + " ":U," ":U + cRelTable + " ":U) 
+         iRelTblPos = INDEX(cTmpQuery + " ":U," ":U + cRelTable + " ":U) 
                       + 1                            
          SUBSTRING(pcWhere,iRelTblPos,LENGTH(cRelTable)) = cJointable. 
     END. /* if iOfPos > 0 */ 
@@ -5067,6 +5235,70 @@ FUNCTION insertExpression RETURNS CHARACTER
                                             
   RETURN RIGHT-TRIM(pcWhere).
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-maskQuotes) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION maskQuotes Procedure 
+FUNCTION maskQuotes RETURNS CHARACTER
+  ( pcString      AS CHAR,
+    pcReplaceChar AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Utility function that masks all quoted strings in the passed string              
+Parameters: pcString = string that might have embedded quoted strings. 
+                     must be syntactically correct - paired single or double.  
+            pcReplaceChar = single char to insert in quoted positions. 
+    Notes: Used in various query manipulation before looking for keywords 
+           (a function that could find a particular token outside of the 
+            quotes would possibly be "better", but (too?) expensive... )   
+------------------------------------------------------------------------------*/
+  define variable iChr          as integer   no-undo.
+  define variable iState        as integer   no-undo.
+  define variable cQuote        as character no-undo.         
+  define variable cChr          as character no-undo.   
+  
+  IF pcReplaceChar = ? OR pcReplaceChar = "":U THEN
+    pcReplaceChar = '0':U.
+  
+  if index(pcString,"'":U) > 0 or index(pcString,'"':U) > 0 then 
+  do:
+    do iChr = 1 to length(pcString):
+      cChr = substring(pcString,iChr,1).
+      case iState:
+        when 0 then 
+        do:
+          if cChr = '"':U or cChr = "'":U then  
+            assign      
+              iState = 1
+              cQuote = cChr.
+        end.  
+        when 1 then /* start quote is found */
+        do:
+          if cChr = '~~':U then iState = 2. /* ignore next */
+          if cChr = cQuote then iState = 3. /* possible end */
+        end.  
+        when 2 then /* prev char was tilde */ 
+          iState = 1.
+        when 3 then /* possible end quote was found */ 
+        do:
+          /* if another quote then we're still in quoted string */
+          if cChr = cQuote then 
+            iState = 1.
+          else 
+            iState = 0.    
+        end.
+      end case.        
+      if iState > 0 then 
+        substring(pcString,iChr,1) = pcReplaceChar.
+    end.    
+  end.
+  RETURN pcString.   
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5459,7 +5691,7 @@ FUNCTION newWhereClause RETURNS CHARACTER
  DEFINE VARIABLE iStart      AS INT    NO-UNDO.
  DEFINE VARIABLE iLength     AS INT    NO-UNDO.
  DEFINE VARIABLE cBufferWhere AS CHAR   NO-UNDO.
-
+ 
  /* Find the buffer's 'expression-entry' in the query */
  cBufferWhere = DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
                                  pcBuffer,
@@ -5869,6 +6101,12 @@ FUNCTION repositionRowObject RETURNS LOGICAL
  DEFINE VARIABLE rRowid     AS ROWID  NO-UNDO.
  
  {get RowObject hRowObject}.
+ /* if the passed value is completely bogus so that TO-ROPWID fails then the 
+    no-error will still suppress the error, but the find-by-rowid is never 
+    executed and the record remains available. 
+    We release the buffer first to ensure that the record only is available 
+    if find is successful. */  
+ hRowObject:buffer-release(). 
  hRowObject:FIND-BY-ROWID(TO-ROWID(pcRowident)) NO-ERROR.
  RETURN VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE.
 END FUNCTION.
@@ -6837,6 +7075,37 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setIgnoreTreeViewFilter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setIgnoreTreeViewFilter Procedure 
+FUNCTION setIgnoreTreeViewFilter RETURNS LOGICAL
+  ( plIgnoreTreeViewFilter AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: Decides whether general filter criteria applied to a TreeView should 
+           be applied to the data object. 
+ Parameter: plIgnoreTreeViewFilter -         
+            - TRUE  - overrides default behaviour and ignores the criteria.
+            - FALSE - don't ignore filter
+            - ? - (default) use the old noTreefilter check   
+    Notes: This property supports the behaviour that previously was achieved by 
+           adding an empty NoTreeFilter procedure stub to a static SDO. 
+         - Data sources on TreeView nodes do not support the notion of 
+           instances and instance attributes, so the property must typically be 
+           defined at the master level.
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpIgnoreTreeViewFilter
+  {set IgnoreTreeViewFilter plIgnoreTreeViewFilter}.
+  &UNDEFINE xpIgnoreTreeViewFilter
+  
+  RETURN TRUE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setIndexInformation Procedure 
@@ -7347,6 +7616,30 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setUpdatableWhenNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdatableWhenNew Procedure 
+FUNCTION setUpdatableWhenNew RETURNS LOGICAL
+  (pcUpdatableWhenNew AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: Set a list of fields that only are updatable when new.
+    Notes: The fields must be UpdatableFields. 
+           The datavisual class EnabledWhenNew uses this as default.
+         - submitRow (-> submitValidate data.p) checks that no changes are saved
+           for these columns unless the record is new. 
+         - There is no particular behavior for these columns unless they 
+           also are UpdatableColumns.    
+------------------------------------------------------------------------------*/
+  {set UpdatableWhenNew pcUpdatableWhenNew}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setUpdateSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateSource Procedure 
@@ -7377,12 +7670,15 @@ FUNCTION sortExpression RETURNS CHARACTER
     Notes: Includes the first BY also (getQuerySort does not) and 
            removes extra spaces.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iByPos      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cExpression AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE iByPos      AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cExpression AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cTmpQuery   AS CHARACTER   NO-UNDO.
+  /* We mask quoted strings to ensure the following BY keyword lookup
+     only finds stuff in the expression(in lack of parsing) */ 
+  cTmpQuery   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                  pcQueryString,'':U).
   /* Any BY ? */ 
-  iByPos = INDEX(pcQueryString + " ":U," BY ":U).
-
+  iByPos = INDEX(cTmpQuery + " ":U," BY ":U).
   IF iByPos > 0 THEN
   DO:
     /* Trim away blanks and period and remove indexed-reposition */

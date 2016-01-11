@@ -1,6 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: callparam.i
 
@@ -51,6 +57,10 @@
     FIELD iInteger       AS INTEGER
     FIELD dDecimal       AS DECIMAL
     FIELD hHandle        AS HANDLE
+    FIELD dtDateTime     AS DATETIME
+    FIELD dzDateTime     AS DATETIME-TZ
+    FIELD rRowid         AS ROWID
+    FIELD rRaw           AS RAW
     INDEX pudx IS UNIQUE PRIMARY
       iParamNo
     .

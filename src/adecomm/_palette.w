@@ -2,12 +2,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME hWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS hWin 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------
 
   File: _palette.w
@@ -17,14 +17,14 @@
 
   Input Parameters:
     <none>
-      
+
   Output Parameters:
     <none>
-    
+
   Author: Wm. T. Wood
 
   Created: April 1994
-  
+
   Modified:
       gfs          - rewrote to make it object-oriented and added many features
       ryan Fall 94 - added some additional methods for Tranman II
@@ -259,7 +259,7 @@ ASSIGN THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}
 ON CLOSE OF THIS-PROCEDURE 
    RUN destroy.
 
-ON HELP ANYWHERE DO:
+ON HELP OF hWin DO:
     IF help_file <> "" AND VALID-HANDLE(help_loc) THEN /* we have help defined */
         RUN value(help_file) IN help_loc.
     ELSE MESSAGE "No help has been defined for this palette" VIEW-AS ALERT-BOX
@@ -315,7 +315,7 @@ PROCEDURE Add-F1-Help :
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER hfile AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER hloc  AS HANDLE    NO-UNDO.
-  
+
   ASSIGN help_file = hfile
          help_loc  = hloc.
 END PROCEDURE.
@@ -338,15 +338,15 @@ PROCEDURE Add-Function :
   DEFINE INPUT PARAMETER pcFname AS CHARACTER. /* Function name */
   DEFINE INPUT PARAMETER perrun  AS LOGICAL.   /* Run Persistent? */
   DEFINE INPUT PARAMETER order   AS INTEGER.   /* order of item */
-  
+
   DEFINE VARIABLE fh AS WIDGET.
   DEFINE VARIABLE rc AS LOG.
-  
+
   fh = hFrame.
   CREATE tt.
   ASSIGN tt.flabel = pcFname
          tt.order  = order.
-    
+
   /* Make a button. */
   CREATE BUTTON tt.h_btn ASSIGN
       LABEL     = pcFname
@@ -363,7 +363,7 @@ PROCEDURE Add-Function :
 
   /* Some get the button file name for the item.. */
   rc = tt.h_btn:LOAD-IMAGE-UP (pcImage) NO-ERROR.
-    
+
   /* Attach Triggers */  
   IF perrun THEN
     ON CHOOSE OF tt.h_btn PERSISTENT 
@@ -373,7 +373,7 @@ PROCEDURE Add-Function :
       RUN VALUE(pcFile).
   num-items = num-items + 1.
   RUN redraw.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -458,14 +458,14 @@ PROCEDURE Build-Menubar :
   CREATE MENU-ITEM RuleLine
       ASSIGN SUBTYPE = "RULE":U
              PARENT  = MENU m_File:HANDLE.
-             
+
   CREATE MENU-ITEM m_Exit
       ASSIGN parent = MENU m_File:HANDLE
              label  = "E&xit"
              TRIGGERS:
                  ON CHOOSE PERSISTENT RUN destroy IN THIS-PROCEDURE.  
              END.
-             
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -536,7 +536,7 @@ PROCEDURE Get-Items-Per-Row :
 -------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER items-per-row AS INTEGER NO-UNDO.
   DEFINE VARIABLE item-width-p          AS INTEGER NO-UNDO.
-  
+
   ASSIGN item-width-p  = palette-size
          items-per-row = 
         TRUNCATE (({&WINDOW-NAME}:WIDTH-P / item-width-p) + 0.33 , 0).  
@@ -554,10 +554,10 @@ PROCEDURE Get-Location :
 -------------------------------------------------------------*/
   DEFINE OUTPUT PARAMETER px AS INTEGER NO-UNDO.
   DEFINE OUTPUT PARAMETER py AS INTEGER NO-UNDO.
-  
+
   ASSIGN px = hWin:x
          py = hWin:y.
-         
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -575,26 +575,26 @@ PROCEDURE Realize :
   DEFINE INPUT PARAMETER px AS INTEGER            NO-UNDO.
   DEFINE INPUT PARAMETER py AS INTEGER            NO-UNDO.
   DEFINE INPUT PARAMETER items-per-row AS INTEGER NO-UNDO.
-  
+
   DEF VAR ch AS CHAR         NO-UNDO.
   DEF VAR iX AS INTEGER      NO-UNDO.
   DEF VAR iY AS INTEGER      NO-UNDO.
   DEF VAR o  AS INTEGER      NO-UNDO.
 
   DEF VAR i  AS INTEGER      NO-UNDO.
-  
+
   DEF VAR lResult AS LOGICAL NO-UNDO.
-  
+
   DEF VAR cItem  AS CHAR     NO-UNDO.
   DEF VAR cFile  AS CHAR     NO-UNDO.
   DEF VAR pHdl   AS HANDLE   NO-UNDO.
   DEF VAR pName  AS LOGICAL  NO-UNDO.
-  
+
   DEF VAR h      AS WIDGET   NO-UNDO.
 
   IF px <> ? AND py <> ? THEN 
       RUN Set-Location (INPUT px, INPUT py).
-  
+
   /* Create a frame to store the graph (in the current window). */
   CREATE FRAME hFrame ASSIGN 
     BOX = NO  
@@ -615,7 +615,7 @@ PROCEDURE Realize :
     CREATE tt.
     ASSIGN tt.flabel = ch
            tt.order  = o.
-               
+
     /* Make a button. */
     CREATE BUTTON tt.h_btn ASSIGN
           LABEL       = ch
@@ -643,7 +643,7 @@ PROCEDURE Realize :
            .
     /* Some get the button file name for the item.. */
     lResult = h:LOAD-IMAGE-UP (cFile) NO-ERROR.
-    
+
     /* Attach Triggers */
     cFile = ENTRY(2, cItem).  /* File name to run */
     IF cFile ne "" THEN DO:
@@ -672,9 +672,9 @@ PROCEDURE Realize :
     /* Start a new row, (maybe). */
     IF iX >= items-per-row * h:WIDTH-P 
     THEN ASSIGN iX = 0 iY = h:Y + h:HEIGHT-P.
-  
+
   END. /* DO WHILE valid next object */
-  
+
   /* Set the window size to the frame size. */
   ASSIGN hWin:WIDTH        = hFrame:WIDTH
          hWin:HEIGHT       = hFRAME:HEIGHT 
@@ -721,7 +721,7 @@ PROCEDURE Redraw :
   ASSIGN item-width-p  = palette-size
          item-height-p = palette-size
          .
-   
+
   /* Get the window size in items_per_row.  Round this to a nice number.
      NOTE: Add a little to the width in case the user is close the next integer
      number of rows.  */
@@ -746,7 +746,7 @@ PROCEDURE Redraw :
   THEN border-pixels = (( 9 * SESSION:PIXELS-PER-COLUMN) - 
                        (item-width-p * items_per_row)) / 2.
   &ENDIF
-  
+
   /* Hide the window, "Maximize" it and the contained frame,
      then reposition the contained buttons. */
   ASSIGN 
@@ -814,7 +814,7 @@ PROCEDURE Run-Persistent :
   DEFINE INPUT PARAMETER pName  AS LOG  NO-UNDO.
   DEFINE INPUT PARAMETER fName  AS CHAR NO-UNDO.
   DEFINE VARIABLE hProc         AS HANDLE     NO-UNDO.
-  
+
   IF SEARCH(pcFile) eq ? AND 
     SEARCH(SUBSTRING(pcFile,1,(LENGTH(pcFile,"CHARACTER":u) - 2),
                      "CHARACTER":u) + ".r") EQ ?
@@ -840,9 +840,9 @@ PROCEDURE Set-Button-Size :
   Notes:       
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER bSize AS INT NO-UNDO.
-  
+
   IF bSize > 0 THEN ASSIGN palette-size = bSize.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -872,7 +872,7 @@ PROCEDURE Set-Items :
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER item-list AS CHAR NO-UNDO.
   ASSIGN pcItems = item-list.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -886,9 +886,9 @@ PROCEDURE Set-Label-Font :
   Notes:       
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER lFont AS INTEGER NO-UNDO.
-  
+
   IF lFont >= 0 THEN ASSIGN palette-font = lFont.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -903,11 +903,11 @@ PROCEDURE Set-Location :
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER px AS INTEGER NO-UNDO.
   DEFINE INPUT PARAMETER py AS INTEGER NO-UNDO.
-  
+
   ASSIGN
       hWin:x = px
       hWin:y = py.
-      
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -921,7 +921,7 @@ PROCEDURE Set-Menu :
   Notes:       
 -------------------------------------------------------------*/
   DEFINE INPUT PARAMETER switch AS LOGICAL NO-UNDO.
-  
+
   RUN Build-Menubar.
   IF switch THEN DO: /* switch menu on */
       ASSIGN {&WINDOW-NAME}:MENU-BAR   = MENU menu-bar-hwin:HANDLE
@@ -993,10 +993,10 @@ PROCEDURE Set-Top-Only :
     ASSIGN 
       MENU-ITEM m_top-only_Window:CHECKED IN MENU m_File = True
       toponly                                            = True.
-             
+
     RUN adecomm/_topmost.p (INPUT hWin:hWnd, INPUT yes, OUTPUT rc).
   END.
-  
+
   ELSE ASSIGN  
     MENU-ITEM m_top-only_Window:CHECKED IN MENU m_File = False
     toponly                                            = False.       
@@ -1039,7 +1039,7 @@ PROCEDURE Swap_Order :
   DEFINE VARIABLE torder          AS INTEGER   NO-UNDO.
   DEFINE BUFFER tt1 FOR tt.
   DEFINE BUFFER tt2 FOR tt.
-  
+
   FIND tt1 WHERE tt1.flabel = pcFname1 NO-ERROR.
   IF AVAILABLE (tt1) THEN DO:
       FIND tt2 WHERE tt2.flabel = pcFname2 NO-ERROR.
@@ -1070,10 +1070,10 @@ PROCEDURE Update-Function :
   DEFINE INPUT PARAMETER pcFname AS CHARACTER NO-UNDO. /* Function name */
   DEFINE INPUT PARAMETER perrun  AS LOGICAL   NO-UNDO. /* Run Persistent? */
   DEFINE INPUT PARAMETER oldname AS CHARACTER NO-UNDO. /* original name */
-  
+
   DEFINE VARIABLE fh AS WIDGET.
   DEFINE VARIABLE rc AS LOG.
-  
+
   fh = hFrame.
   FIND tt WHERE tt.flabel = oldname NO-ERROR.
   IF AVAILABLE (tt) THEN DO:
@@ -1085,10 +1085,10 @@ PROCEDURE Update-Function :
              tt.h_btn:TOOLTIP        = pcFname
 &ENDIF
       .
-      
+
       /* Some get the button file name for the item.. */
       rc = tt.h_btn:LOAD-IMAGE-UP (pcImage) NO-ERROR.
-    
+
       /* Attach Triggers */  
       IF perrun THEN
           ON CHOOSE OF tt.h_btn PERSISTENT 

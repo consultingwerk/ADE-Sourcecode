@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,7 +13,12 @@ input:
                 or it may be in user_longchar, if list was too big.
   user_env[2] = directory (if >1 file in user_env[1]) or filename to dump into
   user_env[3] = "MAP <name>" or "NO-MAP" OR ""
-  user_env[4] = comma separated list of "y" (yes) or "n" (no) which
+  user_env[4] = comma separated list of table numbers for table that we should not
+                disable trigger for when the dump is done. All other tables will
+                have triggers disabled by default.
+                We may still get called with the old method if called from an
+                old dumpo_d.p. For the old method:
+                comma separated list of "y" (yes) or "n" (no) which
                       corresponds to file list in user_env[1], indicating for each,
                              whether triggers should be disabled when the dump is done.
   user_env[5] = "<internal defaults apply>" or "<target-code-page>"
@@ -30,7 +35,9 @@ History:
     K. McIntosh Oct 19, 2005  Insert a slash between the directory and filename
                               just in case there isn't one already 20050928-004.
     fernando    Nov 03, 2005  Added code to audit dump operation                          
-    fernando    Mar 14, 20006 Handle case with too many tables selected - bug 20050930-006. 
+    fernando    Mar 14, 2006  Handle case with too many tables selected - bug 20050930-006. 
+    fernando    Jun 19, 2007  Support for large files
+    fernando    Dec 12, 2007  Improved how we use user_env[4].
 */
 /*h-*/
 
@@ -45,7 +52,6 @@ DEFINE NEW SHARED VARIABLE ypos AS INTEGER NO-UNDO.
 DEFINE VARIABLE cerr        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE cntr        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE fil         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE loop        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE lots        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE mdy         AS CHARACTER NO-UNDO.
@@ -67,6 +73,9 @@ DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
 DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE has_aud   AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE isCpUndefined AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE cRecords  AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE dis_trig     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE old_dis_trig AS LOGICAL   NO-UNDO.
 
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
@@ -145,6 +154,12 @@ IF has_aud = TRUE THEN DO:
   RETURN.
 END.
 
+IF NOT CONNECTED(user_dbname) THEN DO:
+    MESSAGE "Database" user_dbname "is not connected!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN.
+END.
+
 PAUSE 0.
 SESSION:IMMEDIATE-DISPLAY = yes.
 VIEW FRAME dumpdata.
@@ -178,6 +193,11 @@ IF has_lchar THEN
    numCount = NUM-ENTRIES(user_longchar).
 ELSE
    numCount = NUM-ENTRIES(user_env[1]).
+
+/* it user_env[5] has the old format, remember this */
+/* this is just in case someone is using an old version of dump_d.p */
+IF ENTRY(1, user_env[4]) = "y" OR ENTRY(1, user_env[4]) = "n" THEN
+  ASSIGN old_dis_trig = YES.
 
 DO ON STOP UNDO, LEAVE:
   DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
@@ -295,23 +315,39 @@ DO ON STOP UNDO, LEAVE:
   
     CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname).
 
-    RUN "prodict/misc/_rundump.i" (INPUT ENTRY(1, user_env[4]))
-                VALUE(_File._File-name) VALUE(useix) VALUE(user_env[31]).
+    /* check if we can disable triggers. List now contains just the
+      table numbers for tables that we should not disable triggers for.
+    */
+    ASSIGN dis_trig = ENTRY(1, user_env[4]).
+    IF NOT old_dis_trig THEN DO:
+        IF dis_trig NE "" AND dis_trig = STRING(_File._File-number) THEN
+           ASSIGN dis_trig = "n".
+        ELSE 
+           ASSIGN dis_trig = "y".
+    END.
 
-    user_env[4] = SUBSTRING(user_env[4]
-                           ,LENGTH(ENTRY(1,user_env[4]),"character") + 2
-                           ,-1
-                           ,"character"
-                           ).
-  
+    RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
+                VALUE(_File._File-name) VALUE(useix) VALUE(user_env[31]).
+                                       
+    /* move on to the next one in the list */
+    IF old_dis_trig OR (dis_trig = "n") THEN
+       user_env[4] = SUBSTRING(user_env[4]
+                               ,LENGTH(ENTRY(1,user_env[4]),"character") + 2
+                               ,-1
+                               ,"character"
+                               ).
 
 /*------------------ Trailer-INFO ------------------*/
 
+  /* if value is too large to fit in format, write it as it is */
+  ASSIGN cRecords = STRING(recs,"9999999999999") NO-ERROR.
+  IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+     ASSIGN cRecords = STRING(recs).
 
   {prodict/dump/dmptrail.i
     &entries      = "PUT STREAM dump UNFORMATTED
                       ""filename=""   DICTDB._File._File-name SKIP
-                      ""records=""    STRING(recs,""9999999999999"") SKIP
+                      ""records=""    cRecords SKIP
                       ""ldbname=""    LDBNAME(user_dbname) SKIP
                       ""timestamp=""  stamp SKIP
                       ""numformat=""
@@ -337,8 +373,15 @@ DO ON STOP UNDO, LEAVE:
     OUTPUT STREAM dump CLOSE.
   
     COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
-    DISPLAY DICTDB._File._File-name fil STRING(recs,">>>>>>>>>>>>9") @ msg
-      WITH FRAME dumpdata.
+    DISPLAY DICTDB._File._File-name fil WITH FRAME dumpdata.
+
+    /* make sure value can fit in format */
+    msg = STRING(recs,">>>>>>>>>>>>9") NO-ERROR.
+    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+        msg = "**********". /* too big to fit on the screen */
+
+    DISPLAY msg WITH FRAME dumpdata.
+
     cntr = cntr + 1.
   
     /* audit dump of tables */

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -36,6 +36,7 @@ History:
     05/07/99 mcmann     Added space between user name and connection parms
                         when @ is used.   
     06/04/02 mcmann     Added check for error creating hidden files.                 
+    06/13/07 fernando   Unicode support
 
 --------------------------------------------------------------------*/
 /*h-*/
@@ -51,8 +52,6 @@ History:
 
 DEFINE NEW SHARED VARIABLE l_closelog  AS logical   NO-UNDO.
 
-DEFINE VARIABLE c           AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE j           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_debug     AS logical   NO-UNDO.
 
@@ -123,6 +122,14 @@ RUN prodict/ora/_ora_vts.p.
 IF RETURN-VALUE = "1" THEN
    RETURN "1".
    
+/* if unicode types, make sure database is Oracle V9 or later */
+IF unicodeTypes THEN DO:
+   RUN prodict/ora/_get_oraver.p (OUTPUT j).
+   IF j < 9 THEN DO:
+       RETURN "3".
+   END.
+END.
+
 /*
 ** Create the schema in Oracle 
 */

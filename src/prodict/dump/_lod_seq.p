@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -11,6 +11,7 @@
     K. McIntosh 06/17/04 Added subtransaction to avoid exceeding
 				 max sequences 20030619-003
     K. McIntosh 09/14/04 Fixed error number for max sequences 20040910-010
+    fernando    11/13/07 Check _initial value - OE00112332
 */
 
 { prodict/dump/loaddefs.i }
@@ -30,6 +31,11 @@ IF imod = "a" THEN crt-blk: DO ON ERROR UNDO, LEAVE:
   IF CAN-FIND(_Sequence WHERE _Sequence._Db-recid = drec_db
      AND _Sequence._Seq-name = wseq._Seq-name) THEN
      ierror = 7. /* "&2 already exists with name &3" */
+      
+  IF ((wseq._Seq-Incr > 0) AND (wseq._Seq-Init >= wseq._Seq-Max)) THEN
+      ierror = 57.
+  ELSE IF ((wseq._Seq-Incr < 0) AND (wseq._Seq-Init <= wseq._Seq-Min)) THEN
+      ierror = 58.
       
   IF ierror > 0 THEN RETURN.
   CREATE _Sequence.

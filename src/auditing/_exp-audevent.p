@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -20,6 +20,9 @@
     Created     : Feb 23,2005
     Notes       :
     
+    History:
+    
+    fernando      06/20/07   Support for large files
   ----------------------------------------------------------------------*/
 
 /*********************************************************************/
@@ -29,15 +32,16 @@
 
 DEFINE DATASET dsttAuditEvent FOR ttAuditEvent.
 
-DEFINE VARIABLE stamp AS CHARACTER NO-UNDO.
-DEFINE VARIABLE pos   AS INTEGER   NO-UNDO.
+DEFINE VARIABLE stamp    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE pos      AS INT64      NO-UNDO.
+DEFINE VARIABLE cRecords AS CHARACTER  NO-UNDO.
 
 /*********************************************************************/
 /* parameters                                                        */
 /*********************************************************************/
 DEFINE INPUT  PARAMETER pcFileName  AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER DATASET     FOR dsttAuditEvent.
-DEFINE OUTPUT PARAMETER pnumRecords AS INTEGER   NO-UNDO.
+DEFINE OUTPUT PARAMETER pnumRecords AS INT64     NO-UNDO.
 
 
 /*********************************************************************/
@@ -64,14 +68,25 @@ DO ON ERROR UNDO, LEAVE.
 
     pos = SEEK(OUTPUT).
 
+    /* if values is too big, don't format it */
+    IF pNumRecords > 9999999999999 THEN
+       cRecords = STRING(pNumRecords).
+    ELSE
+       cRecords = STRING(pnumRecords,"9999999999999").
+
     PUT UNFORMATTED "PSC":U SKIP
                     "filename=_aud-event":U SKIP
-                    "records=":U STRING(pnumRecords,"9999999999999") SKIP
+                    "records=":U  cRecords SKIP
                     "timestamp=":U stamp SKIP
                     "map=NO-MAP":U SKIP
                     "cpstream=":U SESSION:CPSTREAM SKIP
-                    ".":U SKIP
-                    STRING(pos,"9999999999") SKIP.
+                    ".":U SKIP.
+
+    /* if values is too big, don't format it */
+    IF pos > 9999999999 THEN
+       PUT UNFORMATTED STRING(pos) SKIP.
+    ELSE
+       PUT UNFORMATTED STRING(pos,"9999999999") SKIP.
 
 END. /* DO block */
 

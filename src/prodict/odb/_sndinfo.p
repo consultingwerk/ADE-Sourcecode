@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -8,6 +8,7 @@
 /* _sndinfo.p - 
 
    History:  DLM Removed warning message about driver not being certified 11/23/98
+             knavneet While checking the driver name we read the 1st ENTRY from _Db-misc2[1] as it may have Library name appended to it for DB2/400 01/24/07
 
 */
 { prodict/dictvar.i }
@@ -59,7 +60,7 @@ FOR EACH DICTDBG.GetInfo_buffer:
 
         END. /* _Db._Db-misc2[1] = ? DO */
     
-    ELSE IF DICTDB._Db._Db-misc2[1] <> DICTDBG.GetInfo_buffer.driver_name THEN
+    ELSE IF ENTRY(1,DICTDB._Db._Db-misc2[1]) <> DICTDBG.GetInfo_buffer.driver_name THEN
     DO:
       MESSAGE
 	    "The Schema Holder was not created with the ODBC driver you have"

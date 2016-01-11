@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -34,8 +34,8 @@
 DEFINE VARIABLE gcLookupFilterValue    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glRecordBeingSaved     AS LOGICAL    NO-UNDO.
 
-DEFINE VARIABLE glUseNewAPI       AS LOGICAL     NO-UNDO.
-DEFINE VARIABLE ghSDFCacheManager AS HANDLE     NO-UNDO.
+/* glUsenewAPI is conditionally defined in smrtprop.i based on &admSUPER names
+   and can be used in and below the main-block in this super */ 
 
 /* Create copies of the lookup and combo temp tables */
 DEFINE TEMP-TABLE ttLookupCopy LIKE ttLookup.
@@ -74,7 +74,6 @@ DEFINE TEMP-TABLE ttDComboCopy LIKE ttDCombo.
 
 
 /* ************************  Function Prototypes ********************** */
-
 &IF DEFINED(EXCLUDE-buildFieldQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildFieldQuery Procedure 
@@ -800,7 +799,6 @@ END.
 
 &ENDIF
 
-
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -827,30 +825,23 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
+
 {src/adm2/lookupprop.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
- 
-
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
 
 /* ***************************  Main Block  *************************** */
-glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
-                                    'keep_old_field_api':U) = 'YES':U).
-
-ghSDFCacheManager = {fnarg getManagerHandle 'SDFCacheManager':U}.
-
+/* glUsenewAPI is conditionally defined in smrtprop.i based on &admSUPER names*/
+    
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
-
+/* **********************  Internal Procedures  *********************** */ 
 &IF DEFINED(EXCLUDE-assignNewValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignNewValue Procedure 
@@ -917,8 +908,11 @@ PROCEDURE assignNewValue :
     {set DataModified plSetModified}.
     RUN notifyChildFields IN TARGET-PROCEDURE ('Fetch':U). 
   END.
-
+  
   {get DataValue cKeyFieldValue}.
+  /* could have been passed in as blank, ensure it is set after display
+     for lookupComplete below  */
+  pcDisplayFieldValue = hLookup:input-value. 
   hDynLookupBuf = {fn returnLookupBuffer}.
   IF hDynLookupBuf:AVAILABLE AND
      hDynLookupBuf:BUFFER-FIELD('cFoundDataValues':U):BUFFER-VALUE > "":U
@@ -1661,7 +1655,6 @@ PROCEDURE initializeBrowse :
   DEFINE VARIABLE hBrowseObject    AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hLookup          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cBrowseTitle     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iRowsToBatch     AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hBrowseWindow    AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cDisplayedValue  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hWindowHandle    AS HANDLE    NO-UNDO.
@@ -1682,20 +1675,16 @@ PROCEDURE initializeBrowse :
     {get ContainerSource hContainer}.
     {get ContainerSource hRealContainer hContainer}.
     {get ContainerHandle hWindowHandle hRealContainer}.        
-     
     /* Construct the window and objects 
        NOTE: Currently containr constructObject looks for LogicalObjectName as
              the FIRST entry and sets the current name for correct launch */         
-    
     IF VALID-HANDLE(gshSessionManager) THEN
       RUN launchContainer IN gshSessionManager (                                                    
           INPUT "rydynlookw":U,     /* pcObjectFileName       */
           INPUT "":U,               /* pcPhysicalName         */
           INPUT "":U,               /* pcLogicalName          */
           INPUT FALSE,              /* plOnceOnly             */
-          INPUT "HideOnInit":U + CHR(4) + 'YES':U
-                + CHR(3)
-                + "StartPage":U + CHR(4) + '1':U,    
+          INPUT "StartPage":U + CHR(4) + '1':U,     
                                      /* pcInstanceAttributes   */ 
           INPUT "":U,               /* pcChildDataKey         */
           INPUT "":U,               /* pcRunAttribute         */
@@ -1707,29 +1696,14 @@ PROCEDURE initializeBrowse :
           OUTPUT cProcedureType     /* pcProcedureType        */       
       ).       
     
-    /*
-    RUN constructObject IN hContainer (
-         INPUT  'ry/uib/rydyncontw.w':U,
-         INPUT  ?,
-         INPUT  'LaunchLogicalName':U + CHR(4) + 'rydynlookw':U + CHR(3) + "InitialPageList":U + CHR(4) + "*":U,
-         OUTPUT hBrowseContainer).
-    
-    /* set caller object so can get focus back on exit */
-    IF hRealContainer <> ? AND VALID-HANDLE(hBrowseContainer) 
-       AND LOOKUP("setCallerObject":U, hBrowseContainer:INTERNAL-ENTRIES) <> 0 THEN
-    DO:
-      DYNAMIC-FUNCTION('setCallerObject':U IN hBrowseContainer, INPUT hRealContainer).
-    END.
-    
-    RUN initializeObject IN hBrowseContainer.  
-    */
     {get ContainerHandle hBrowseWindow hBrowseContainer}.
     {get BrowseTitle cBrowseTitle}.
     /* Set window title */
     hBrowseWindow:TITLE = cBrowseTitle.
     
     IF VALID-HANDLE(hContainer) THEN
-      PUBLISH "initializeBrowse":U FROM hContainer (INPUT TARGET-PROCEDURE).            /* Handle to lookup - use to determine which lookup is being initialized */
+      /* Handle to lookup - use to determine which lookup is being initialized */
+      PUBLISH "initializeBrowse":U FROM hContainer (INPUT TARGET-PROCEDURE).
     
     &SCOPED-DEFINE xp-assign
     {get LookupHandle hLookup}
@@ -1756,7 +1730,11 @@ PROCEDURE initializeBrowse :
     .
     &UNDEFINE xp-assign
     
-    RUN viewObject IN hBrowseContainer.  
+    /* Force a resize of the newly-launched window. We do this because
+       the resize performed on initialisation is done before the browser
+       and filter have been constructed, and so there are some minor sizing 
+       issues. This resize call sorts those out. */
+    run resizeWindow in hBrowseContainer no-error.
   END.  /* not valid handle browse container */
   
   /* View and focus the browser */
@@ -1923,7 +1901,7 @@ PROCEDURE initializeLookup :
            DATA-TYPE        = cDisplayDataType 
            FORMAT           = cDisplayFormat
            WIDTH-PIXELS     = hFrame:WIDTH-PIXELS - 24
-           HIDDEN           = FALSE
+           HIDDEN           = TRUE
            SENSITIVE        = (cUIBMode BEGINS "DESIGN":U) = FALSE  
            READ-ONLY        = (cUIBMode BEGINS "DESIGN":U) = TRUE
            TAB-STOP         = FALSE.
@@ -1935,19 +1913,26 @@ PROCEDURE initializeLookup :
            Y                = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
            WIDTH-PIXELS     = (if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 22 else 19)
            HEIGHT-P         = hLookup:HEIGHT-P - ( if SESSION:WINDOW-SYSTEM eq 'MS-WINXP' then 0 else 1)
-           HIDDEN           = FALSE
+           HIDDEN           = TRUE
            SENSITIVE        = hLookup:SENSITIVE
         TRIGGERS:
           ON CHOOSE PERSISTENT 
             RUN chooseButton IN TARGET-PROCEDURE.
         END.
-  
+
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+      RUN assignWidgetID IN TARGET-PROCEDURE (INPUT hLookup, INPUT 6,
+                                              INPUT hBtn,    INPUT 2).
+
   &SCOPED-DEFINE xp-assign
   {set LookupHandle hLookup}
   {set ButtonHandle hBtn}       
   {get LookupImage cLookupImg}.
   &UNDEFINE xp-assign
-     
+
+  ASSIGN hBtn:HIDDEN    = FALSE
+         hLookup:HIDDEN = FALSE.
+
   hBtn:LOAD-IMAGE(cLookupImg).
   hFrame:HEIGHT = hLookup:HEIGHT.
 
@@ -1956,13 +1941,13 @@ PROCEDURE initializeLookup :
    PERSISTENT RUN enterLookup IN TARGET-PROCEDURE.
   ON LEAVE OF hLookup 
    PERSISTENT RUN leaveLookup IN TARGET-PROCEDURE.
-    
+
   IF VALID-HANDLE(hLookup) THEN
   DO:
     /* create a label if not blank */  
     IF cLabel NE "":U THEN
       {fnarg createLabel cLabel}. 
-  
+
     hLookup:MOVE-TO-BOTTOM().
     hLookup:TOOLTIP = cToolTIP.
 
@@ -2268,7 +2253,7 @@ DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
     /* Check for child Lookups or Combos and flag them for data retrieval */
     IF hWidget:TYPE = "PROCEDURE":U AND {fn getObjectType hWidget} = "SmartDataField":U THEN
     DO:
-      IF LOOKUP("dynamicCombo":U, hWidget:INTERNAL-ENTRIES) > 0 THEN
+      IF {fnarg instancOf 'DynCombo':U hWidget} THEN
         cDynComboList = IF cDynComboList = "":U 
                           THEN STRING(hWidget)
                           ELSE cDynComboList + ",":U + STRING(hWidget).
@@ -3212,17 +3197,20 @@ FUNCTION createLabel RETURNS HANDLE
      ASSIGN FRAME                 = hParentFrame
             X                     = hFrame:X - iLabelLength
             Y                     = hFrame:Y
-            HIDDEN                = FALSE
+            HIDDEN                = TRUE
             WIDTH-PIXELS          = iLabelLength
             FORMAT                = "x(256)"
             SCREEN-VALUE          = pcLabel + ":":U
             HEIGHT-PIXELS         = SESSION:PIXELS-PER-ROW 
-            HIDDEN                = lVisible
             .  
    IF hLabel:COL <= 0 THEN
      hLabel:COL = 1.
-  
-   {set LabelHandle hLabel}.
+
+   {set LabelHandle hLabel}. 
+   IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+     RUN assignLabelWidgetID IN TARGET-PROCEDURE.
+
+   ASSIGN hLabel:HIDDEN = lVisible.
    hLookup:SIDE-LABEL-HANDLE = hLabel.
 
   RETURN hLabel. 
@@ -3446,7 +3434,7 @@ FUNCTION getDataValue RETURNS CHARACTER
   {get LookupHandle hLookup}.
   
   IF NOT VALID-HANDLE(hLookup) THEN
-    RETURN ERROR. 
+    RETURN ?. 
 
   /* This is to fix issue #6773
      When the user is in a lookup field and the value

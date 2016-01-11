@@ -1,9 +1,9 @@
-/********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------
   File: thinsdo.w
 
@@ -22,4 +22,4 @@
 &GLOBAL-DEFINE ADM-EXCLUDE-STATIC
 &SCOPED-DEFINE exclude-start-super-proc
 
-{adm2/dynsdo.w}
+{src/adm2/dynsdo.w}

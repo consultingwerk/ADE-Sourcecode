@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -231,6 +231,28 @@ FUNCTION getTreeRunAttribute RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowName Procedure 
 FUNCTION getWindowName RETURNS CHARACTER ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newHeight) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newHeight Procedure 
+FUNCTION newHeight RETURNS LOGICAL
+  ( pdHeight AS DECIMAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newWidth Procedure 
+FUNCTION newWidth RETURNS CHARACTER
+  ( pdWidth AS DECIMAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -518,7 +540,7 @@ PROCEDURE createObjects :
     DEFINE VARIABLE iEntry                      AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iResizeOnPage               AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
-    DEFINE variable iNumberofPages              as integer              no-undo.
+    DEFINE VARIABLE iNumberofPages              AS integer              NO-UNDO.
     DEFINE VARIABLE cDataTargets                AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cSdoForeignFields           AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cInitialPageList            AS CHARACTER            NO-UNDO.
@@ -534,13 +556,13 @@ PROCEDURE createObjects :
     DEFINE VARIABLE hContainingWindow           AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hWindow                     AS HANDLE               NO-UNDO.
     DEFINE VARIABLE lPageObjectsCreated         AS LOGICAL              NO-UNDO.
-    DEFINE variable lInitPage        as logical    extent 100           no-undo.
+    DEFINE VARIABLE lInitPage        AS logical    EXTENT 100           NO-UNDO.
     
     /* Is this viewer a generated object? If so, then we don't need
        to create the widgets dynamically, since they are created in the
        generated procedure itself.
      */
-    if not can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') then
+    IF NOT CAN-DO(TARGET-PROCEDURE:internal-entries, 'adm-assignObjectProperties') THEN
     do:
         &SCOPED-DEFINE xp-assign
         {get CurrentPage iCurrentPage}
@@ -548,14 +570,14 @@ PROCEDURE createObjects :
         {get ContainerHandle hDefaultFrame}
         {get ContainerType cContainerType}.
         &UNDEFINE xp-assign
-            
+
         /* Only run createObjects once per page. We can check the 
            ObjectsCreated property for page 0, but need to be a little 
            more careful for pages 1+. Emulate the behaviour in selectPage()
            where the PageNTargets are checked for the existence of objects.
            If there are none, then the page has not yet been constructed.
          */
-        IF iCurrentPage EQ 0 THEN
+       IF iCurrentPage EQ 0 THEN
         DO:
             {get ObjectsCreated lPageObjectsCreated}.
             IF lPageObjectsCreated THEN
@@ -586,7 +608,7 @@ PROCEDURE createObjects :
            can't use context since there are a number of functions that use
            link and page information which is currently not stored in context.
          */
-        if not ghCacheObject:available then
+        IF NOT ghCacheObject:AVAILABLE THEN
         do:
             /* Always use the logical object name because
                we want to get the contents of this container. 
@@ -595,8 +617,8 @@ PROCEDURE createObjects :
                container.
              */
             {get LogicalObjectName cObjectName}.
-            RUN cacheRepositoryObject in gshRepositoryManager ( INPUT cObjectName,
-                                                                INPUT "Page:0," + string(iCurrentPage),
+            RUN cacheRepositoryObject IN gshRepositoryManager ( INPUT cObjectName,
+                                                                INPUT "Page:0," + STRING(iCurrentPage),
                                                                 INPUT ?, /* pcRunAttribute */
                                                                 INPUT ? /* pcResultCode */ ) NO-ERROR.
                 
@@ -608,15 +630,15 @@ PROCEDURE createObjects :
             ghCacheObject:FIND-FIRST(" WHERE ":U
                                      + ghCacheObject:NAME + ".ObjectName = ":U + QUOTER(cObjectName) + " and "
                                      + ghCacheObject:name + '.ContainerInstanceId = 0 ' ) NO-ERROR.
-            if ghCacheObject:available then
+            IF ghCacheObject:AVAILABLE THEN
             do:
                 dInstanceId = ghCacheObject:buffer-field('InstanceId'):buffer-value.
                 {set InstanceId dInstanceId}.
-            end.    /* cached record available. */
+            END.    /* cached record available. */
             /* no ELSE required. if the record is not available,
                it will be caught a little later and reported.
              */
-        end.    /* container not cached */
+        END.    /* container not cached */
         
         IF NOT ghCacheObject:AVAILABLE THEN
         DO:
@@ -711,27 +733,27 @@ PROCEDURE createObjects :
         ASSIGN cInitPages = LEFT-TRIM(cInitPages, ",":U).
             
         /* Make pages init in numerical order. */
-        assign lInitPage = no
-               iNumberOfPages = num-entries(cInitPages).
-        if iNumberOfPages gt 1 then
+        ASSIGN lInitPage = NO
+               iNumberOfPages = NUM-ENTRIES(cInitPages).
+        IF iNumberOfPages GT 1 THEN
         do:           
             /* store the ordered list.
                we need to add 1 to the extent because page 0 may be
                in this list.
              */        
-            do iEntry = 1 to iNumberOfPages:
-                lInitPage[integer(entry(iEntry, cInitPages)) + 1] = yes.
-            end.    /* loop through initPages */
+            DO iEntry = 1 TO iNumberOfPages:
+                lInitPage[integer(entry(iEntry, cInitPages)) + 1] = YES.
+            END.    /* loop through initPages */
                     
             /* rebuild the initpages list */
             cInitPages = ''.
-            do iEntry = 1 to extent(lInitPage) while iNumberOfPages gt 0:
-                if lInitPage[iEntry] then
-                    assign cInitPages = cInitPages + ',' + string(iEntry - 1)
+            DO iEntry = 1 TO EXTENT(lInitPage) WHILE iNumberOfPages GT 0:
+                IF lInitPage[iEntry] THEN
+                    ASSIGN cInitPages = cInitPages + ',' + STRING(iEntry - 1)
                            iNumberOfPages = iNumberOfPages - 1.
-            end.    /* loop through */
-            cInitPages = left-trim(cInitPages, ',').
-        end.    /* more than on page being init'ed. */
+            END.    /* loop through */
+            cInitPages = LEFT-TRIM(cInitPages, ',').
+        END.    /* more than on page being init'ed. */
                     
         /* Now make sure that we have all of these pages cached.
            The Repository API accepts the InstanceId as an object name;
@@ -801,8 +823,8 @@ PROCEDURE createObjects :
                    hDefaultFrame:HEIGHT         = SESSION:HEIGHT-CHARS
                    hDefaultFrame:SCROLLABLE     = FALSE
                    NO-ERROR.
-            
-        /* Build all objects on the current page.
+ 
+         /* Build all objects on the current page.
          */
         IF NOT DYNAMIC-FUNCTION("buildAllObjects":U IN TARGET-PROCEDURE,
                                 INPUT cObjectName, INPUT cInitPages      ) THEN
@@ -837,11 +859,7 @@ PROCEDURE createObjects :
                 ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + "Unable to add all the links needed to run this container.":U.
             RETURN.
         END.    /* addAllLinks failed */
-    end.    /* not a generated object */
-    /* Deep create.
-       Create the contained objects for certain classes of objects: dynamic containers,
-       both object and widget containers. This excludes data objects. */
-    PUBLISH "createObjects":U FROM TARGET-PROCEDURE.        
+    END.    /* not a generated object */     
 
     /* Set up the ForeignFields for all SDOs that have been
        started already.                                     */
@@ -865,8 +883,8 @@ PROCEDURE createObjects :
        way, objects on page zero will be initialized completely before running the select of the
        StartPage */
     RUN SUPER.
-    
-    if not can-do(target-procedure:internal-entries, 'adm-assignObjectProperties') then
+
+    IF NOT CAN-DO(TARGET-PROCEDURE:internal-entries, 'adm-assignObjectProperties') THEN
     do:
         /* Make sure that we get the current StartPage. If this is page 0,
            then set the property. We can do this since we are past the RUN
@@ -875,7 +893,7 @@ PROCEDURE createObjects :
         */
         IF iCurrentPage EQ 0 THEN
             {set StartPage iStartPage}.
-    end.    /* not a generated object */
+    END.    /* not a generated object */
     
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
@@ -976,7 +994,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iCurrentPageNumber          AS INTEGER              NO-UNDO.    
     DEFINE VARIABLE iStartPage                  AS INTEGER              NO-UNDO.
-    define variable iHidePage                   as integer              no-undo.
+    DEFINE VARIABLE iHidePage                   AS integer              NO-UNDO.
     DEFINE VARIABLE cErrorMessage               AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cButton                     AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE hFolder                     AS HANDLE               NO-UNDO.
@@ -986,7 +1004,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE hContainerSource            AS HANDLE               NO-UNDO.
     DEFINE VARIABLE lObjectInitted              AS LOGICAL              NO-UNDO.
     DEFINE VARIABLE hContainerHandle            AS HANDLE               NO-UNDO.
-    define variable cDisabledTabs               as character no-undo.
+    DEFINE VARIABLE cDisabledTabs               AS CHARACTER            NO-UNDO.
     
     /* Retrieve container mode set already, i.e. from where window was launched from
        and before initializeObject was run. If a mode is retrieved here, we will not
@@ -999,12 +1017,12 @@ PROCEDURE initializeObject :
     {get ContainerMode cContainerMode}
     {get ContainerHandle hContainerHandle}.
     &UNDEFINE xp-assign
-    
+
     /* Make sure that all the objects are created first. */
     IF NOT {fn getObjectsCreated} THEN
         RUN createObjects IN TARGET-PROCEDURE.
-    
-    /*CreateObjects may set 'forcedExit', so we have to check it here*/
+
+/*CreateObjects may set 'forcedExit', so we have to check it here*/
     IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U THEN
        RETURN.
 
@@ -1029,7 +1047,7 @@ PROCEDURE initializeObject :
       ASSIGN hFolder = WIDGET-HANDLE({fnarg linkHandles 'Page-Source'}).
     
     /*  At least one tab needs to be enabled for this window to run. */    
-    IF VALID-HANDLE(hFolder) then
+    IF VALID-HANDLE(hFolder) THEN
     do:
         {get TabEnabled cTabEnabled hFolder}.
         if {fn getTabsEnabled hFolder} EQ NO THEN
@@ -1040,26 +1058,26 @@ PROCEDURE initializeObject :
             END.
             
             /* The window controls its self-destruction. This will cause all * objects contained on
-	           it to be destroyed, too. Don't overwrite any forced exit statements already there      */
+                   it to be destroyed, too. Don't overwrite any forced exit statements already there      */
             IF VALID-HANDLE(hContainerHandle) THEN
                 IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
                     ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + {aferrortxt.i 'RY' '11'}.
             
-            error-status:error = no.
+            ERROR-STATUS:error = NO.
             RETURN.
-        end.    /* no tabs enabled */
+        END.    /* no tabs enabled */
         
         /* Determine the disabled pages */
         DO iLoop = 1 TO NUM-ENTRIES(cTabEnabled,"|":U):
-            if not logical(entry(iLoop, cTabEnabled, '|':u)) then
-                cDisabledTabs = cDisabledTabs + ',':u + string(iLoop).
+            IF NOT LOGICAL(ENTRY(iLoop, cTabEnabled, '|':u)) THEN
+                cDisabledTabs = cDisabledTabs + ',':u + STRING(iLoop).
         END.
-        cDisabledTabs = left-trim(cDisabledTabs, ',':u).
+        cDisabledTabs = LEFT-TRIM(cDisabledTabs, ',':u).
         
         /* Set the secured tabs in the container and folder object.
-	       this is convoluted, yes, but there's a variable in the folder
-	       object that is never set otherwise for dynamic containers and
-	       so cannot be relied upon. */
+               this is convoluted, yes, but there's a variable in the folder
+               object that is never set otherwise for dynamic containers and
+               so cannot be relied upon. */
         {fnarg disablePagesInFolder "'security,' + cDisabledTabs"}.
     END.    /* no tabs enabled */
             
@@ -1124,19 +1142,19 @@ PROCEDURE initializeObject :
         ASSIGN cInitialPageList = cInitialPageList + ",":U
                                 + {fnarg pageNrequiredpages iStartPage} + ','
                                 + {fnarg pageNRequiredPages 0}
-               cInitialPageList = trim(cInitialPageList, ',').
+               cInitialPageList = TRIM(cInitialPageList, ',').
         
         IF cInitialPageList NE "":U THEN
         DO iLoop = 1 TO NUM-ENTRIES(cInitialPageList):
-            iHidePage = integer(entry(iLoop, cInitialPageList)) no-error.
+            iHidePage = INTEGER(ENTRY(iLoop, cInitialPageList)) NO-ERROR.
             
             /* Don't waste time hiding the start page or page 0.
                Also skip any invalid entries.            
              */
-            if iHidePage eq ? or
-               iHidePage eq iStartPage or
-               iHidePage eq 0 then
-                next.
+            IF iHidePage EQ ? OR
+               iHidePage EQ iStartPage OR
+               iHidePage EQ 0 THEN
+                NEXT.
             
             RUN hidePage IN TARGET-PROCEDURE (INPUT iHidePage).
         END.    /* loop through page list */
@@ -1445,7 +1463,7 @@ PROCEDURE selectPage :
     IF lLockWindow THEN
         /* Now lock the window */
         {fnarg lockContainingWindow TRUE hContainerWindow}.
-    
+
     RUN SUPER ( INPUT piPageNum ).
     
     IF lLockWindow THEN
@@ -1806,7 +1824,15 @@ ACCESS_LEVEL=PRIVATE
                                                       OUTPUT hObjectProcedure ) NO-ERROR.
             IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
                 RETURN FALSE.
-                
+
+            /*There is a core behavior, in which HEIGH-CHARS realizes combo-box, editor and selection-list widgets. Because that attribute is
+              used in createObjects for the dynView, and because the widget-id cannot be set after the widget is realized, we have
+              to set the field widget-ids before createObject is executed, and assign widget-ids in create objects befor HEIGH-CHARS is used.*/
+            IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) AND
+               DYNAMIC-FUNCTION('instanceOf' IN hObjectProcedure, INPUT "DynView") THEN
+                    RUN assignWidgetIDs IN hObjectProcedure (INPUT DYNAMIC-FUNCTION('pageNTargets':U IN hObjectProcedure, INPUT hObjectProcedure, INPUT 0), 0).
+
+
             /* Something may have gone wrong and the handle may be invalid. */
             IF NOT VALID-HANDLE(hObjectProcedure) THEN
                 RETURN FALSE.
@@ -1864,18 +1890,26 @@ ACCESS_LEVEL=PRIVATE
                         ELSE
                             RETURN FALSE.
                     END.    /* loop through super procedures */
-                    
+
                     /* Store the list of super procedures in context. */
                     ASSIGN cSuperHandles = LEFT-TRIM(cSuperHandles, ",":U).
                     {set SuperProcedureHandle cSuperHandles hObjectProcedure}.
                  END.    /* these are not class supers. */
             END.    /* There is a SuperProcedure */
         END.    /* loop through instances on this page. */
+
+        /*DynSBO inherits from SBO, which also inherits from visual, therefore this procedure is executed
+          for SBOs or DynSBOs. DynSBOs are in fact, not visual objects from the GUI perspective, so we don;t
+          assign widget-ids for SBOs. We have to avoid calling assignWidgetIDs for SBOs.*/
+        IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) AND
+           NOT DYNAMIC-FUNCTION('instanceOF' IN TARGET-PROCEDURE, INPUT 'SBO':U )THEN
+        RUN assignWidgetIDs IN TARGET-PROCEDURE (INPUT DYNAMIC-FUNCTION('pageNTargets':U IN TARGET-PROCEDURE, INPUT TARGET-PROCEDURE, INPUT iPageNumber), iPageNumber).
+
     END.    /* loop through pages requested */
-    
-     /* Set the CurrentPage to the 'proper' current page.*/
+
+    /* Set the CurrentPage to the 'proper' current page.*/
     {set CurrentPage iCurrentPage}.
-    
+
     RETURN TRUE.
 END FUNCTION.   /* buildAllObjects */
 
@@ -2267,9 +2301,9 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
        retrieve the title from the window. If not, then use
            the WindowName property from the ADMProps table.
      */
-    cWindowName = super().
+    cWindowName = SUPER().
     
-    if cWindowName eq ? then
+    IF cWindowName EQ ? THEN
     do:
     {get ClassName cClassName}.      
 
@@ -2278,10 +2312,61 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
             &SCOPED-DEFINE xpWindowName
             {get WindowName cWindowName}.
             &UNDEFINE xpWindowName
-    end.    /* object realised as a frame */
+    END.    /* object realised as a frame */
         
       RETURN cWindowName.
 END FUNCTION.   /* getWindowName */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newHeight) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newHeight Procedure 
+FUNCTION newHeight RETURNS LOGICAL
+  ( pdHeight AS DECIMAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override container   
+    Notes: Do nothing. 
+           - This is not supported when using a dynamic Layout Managed container
+           - And would not have any effect even if it did increase the 
+             frame/window, since this typically is called during 
+             initialization and resizing/) 
+           - Most likely also unnecessary when the layout manager is used.
+             since the virtual sizes are set very large during initialize/resize.
+           - We return ? as we do not really know if it is ok...      
+------------------------------------------------------------------------------*/
+
+  RETURN ?.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newWidth Procedure 
+FUNCTION newWidth RETURNS CHARACTER
+  ( pdWidth AS DECIMAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override container   
+    Notes: Do nothing. 
+           - This is not supported when using a dynamic Layout Managed container
+           - And would not have any effect even if it did increase the 
+             frame/window, since this typically is called during 
+             initialization and resizing/) 
+           - Most likely also unnecessary when the layout manager is used.
+             since the virtual sizes are set very large during initialize/resize.
+           - We return ? as we do not really know if it is ok...      
+------------------------------------------------------------------------------*/
+  RETURN "".   /* Function return value. */
+
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2402,7 +2487,7 @@ FUNCTION setCurrentLogicalName RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
     gcCurrentObjectName = pcCurrentObjectName.
     
-    RETURN true.
+    RETURN TRUE.
 END FUNCTION.    /* setCurrentLogicalName */
 
 /* _UIB-CODE-BLOCK-END */
@@ -2426,7 +2511,7 @@ FUNCTION setWindowName RETURNS LOGICAL
        possible when the current container is a DynFrame object,
        as when a container is used in a treeview.
      */
-    if not super(pcWindowName) then
+    IF NOT super(pcWindowName) THEN
     DO:
         {get ClassName cClassName}.
         IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,

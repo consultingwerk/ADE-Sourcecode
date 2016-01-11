@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,7 +30,7 @@ Date Created: 02/05/92
               01/31/03 D. McMann Added support for Blobs
               08/26/03 D. McMann Display of updated LOB fields 20030826-013
               06/08/06 fernando  Added support for int64
-
+              06/13/07 fernando  Support for Clob for DataServers
 ----------------------------------------------------------------------------*/
 
 
@@ -359,7 +359,7 @@ display  b_Field._Field-Name  b_Field._Mandatory
       	 s_Fld_InView  	      when s_CurrObj = {&Obj_FLD}
    with {&Frame}.
 
-IF b_Field._Dtype = {&DTYPE_BLOB} AND NOT ispro  THEN
+IF (b_Field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) AND NOT ispro  THEN
     DISPLAY b_field._Fld-case WITH {&Frame}.
 
 IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
@@ -459,7 +459,7 @@ else do:
        APPLY "entry" to b_Field._Field-Name in {&Frame}.
 
    END.
-   ELSE IF b_field._Dtype = {&DTYPE_BLOB} THEN DO:
+   ELSE IF (b_field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) THEN DO:
      DISABLE all except
         s_btn_Close
 	    s_btn_Prev

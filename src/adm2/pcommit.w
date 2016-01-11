@@ -7,12 +7,12 @@ to its TABLEIO-TARGET. "
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-WIn 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: pCommit.w
@@ -139,12 +139,12 @@ DEFINE RECTANGLE RECT-1
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Panel-Frame
-     Btn-Commit AT ROW 1.33 COL 2
-     Btn-Undo AT ROW 1.33 COL 11
-     RECT-1 AT ROW 1 COL 1
+     Btn-Commit AT ROW 1.33 COL 2  WIDGET-ID 2
+     Btn-Undo   AT ROW 1.33 COL 11 WIDGET-ID 4 
+     RECT-1     AT ROW 1 COL 1     WIDGET-ID 6
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1 SCROLLABLE .
+         AT COL 1 ROW 1 SCROLLABLE WIDGET-ID 100.
 
 
 /* *********************** Procedure Settings ************************ */

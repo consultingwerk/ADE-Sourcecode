@@ -2,12 +2,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS V-table-Win 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File:
@@ -74,7 +74,7 @@ CREATE WIDGET-POOL.
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE PrintFont AS INTEGER FORMAT ">9":U INITIAL 0 
+DEFINE VARIABLE PrintFont AS INTEGER FORMAT ">>9":U INITIAL 0 
      LABEL "Font" 
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEM-PAIRS "Item 1",0

@@ -117,11 +117,11 @@ DEFINE BUTTON btnDisplayed
      LABEL "&Edit display field list" 
      SIZE 25 BY 1.14.
 
-DEFINE VARIABLE c_AppPartition AS CHARACTER FORMAT "x(23)" 
+DEFINE VARIABLE c_AppPartition AS CHARACTER FORMAT "x(25)" 
      LABEL "&Partition" 
      VIEW-AS COMBO-BOX 
      DROP-DOWN-LIST
-     SIZE 27.8 BY 1 NO-UNDO.
+     SIZE 40.4 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fObjectname AS CHARACTER FORMAT "X(256)":U 
      LABEL "Instance &name" 
@@ -154,7 +154,7 @@ DEFINE VARIABLE radFieldList AS INTEGER
      SIZE 18 BY 3.1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 51 BY 4.29.
 
 DEFINE VARIABLE ckCurChanged AS LOGICAL INITIAL no 
@@ -508,6 +508,17 @@ ON VALUE-CHANGED OF lCached IN FRAME Attribute-Dlg /* Cache data */
 DO:
   ASSIGN lCached.
   initObjects().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lOpenOnInit
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lOpenOnInit Attribute-Dlg
+ON VALUE-CHANGED OF lOpenOnInit IN FRAME Attribute-Dlg /* Open query on initialization */
+DO:
+   initObjects().
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -877,6 +888,7 @@ FUNCTION initObjects RETURNS LOGICAL
                                       AND lBatch:CHECKED = FALSE 
                                       AND lUpdateFromSource:CHECKED = FALSE
                                       AND glhasForeignFields = FALSE
+                                      AND lOpenOnInit:CHECKED = TRUE
       lShared:CHECKED               = lShared AND lShared:SENSITIVE
       lCached:SENSITIVE             = (c_AppPartition:SCREEN-VALUE <> noPartition
                                        OR cObjType BEGINS "SmartBusinessObject":U)
@@ -905,7 +917,7 @@ FUNCTION initObjects RETURNS LOGICAL
                                       AND NOT lCached:CHECKED
       serverOperatingMode:CHECKED   = serverOperatingMode:SENSITIVE AND serveroperatingMode:CHECKED 
       .
-
+ 
   END.
   RETURN TRUE.
   

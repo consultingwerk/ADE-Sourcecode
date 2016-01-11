@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@ History:
   K McIntosh 05/26/05  Added ELSE when not first _db-detail record 20050525-038.
   fernando   11/09/05  Added code for _db-option 20051109-033 
   fernando   06/16/06  Assign _db-recid in _db-option when loading db options - 20060612-001
+  fernando   06/20/07  Support for large files
 */
    
 /* Will be "y" or "n" to indicate whether to disable triggers or not */
@@ -41,13 +42,13 @@ DEFINE INPUT PARAMETER p_Disable AS CHARACTER NO-UNDO.
 
 DEFINE SHARED STREAM   loaderr.
 DEFINE SHARED VARIABLE errs    AS INTEGER NO-UNDO.
-DEFINE SHARED VARIABLE recs    AS INTEGER. /*UNDO*/
+DEFINE SHARED VARIABLE recs    AS INT64. /*UNDO*/
 DEFINE SHARED VARIABLE xpos    AS INTEGER NO-UNDO.
 DEFINE SHARED VARIABLE ypos    AS INTEGER NO-UNDO.
 
-DEFINE        VARIABLE errbyte AS INTEGER NO-UNDO.
+DEFINE        VARIABLE errbyte AS INT64   NO-UNDO.
 DEFINE        VARIABLE errline AS INTEGER NO-UNDO.
-DEFINE        VARIABLE nxtstop AS INTEGER NO-UNDO.
+DEFINE        VARIABLE nxtstop AS INT64   NO-UNDO.
 DEFINE        VARIABLE err%    AS INTEGER NO-UNDO.
 DEFINE        VARIABLE ans999  AS LOGICAL NO-UNDO.
 DEFINE        VARIABLE stopped AS LOGICAL NO-UNDO INIT FALSE.

@@ -83,7 +83,23 @@ FUNCTION getObjectType RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure
+PROCEDURE destroyObject:
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+  delete procedure this-procedure.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-retrieveData) = 0 &THEN
 

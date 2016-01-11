@@ -34,7 +34,9 @@
   /* NOTE: IN 9.1B beta, this is needed to provide SBO routines
      with the proper calling procedure. */
   DEFINE VARIABLE ghTargetProcedure AS HANDLE NO-UNDO.
-  DEFINE VARIABLE glUseNewAPI       AS LOGICAL    NO-UNDO.
+  
+/* glUsenewAPI is conditionally defined in smrtprop.i based on &admSUPER names
+   and can be used in and below the main-block in this super */ 
 
   /* Create copies of the lookup and combo temp tables */
   DEFINE TEMP-TABLE ttLookupCopy LIKE ttLookup.
@@ -199,11 +201,6 @@ FUNCTION setShowPopup RETURNS LOGICAL
 
   glIsDynamicsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN TARGET-PROCEDURE) = YES NO-ERROR.
 
-  glUseNewAPI = YES.
-  IF glIsDynamicsRunning THEN
-    glUseNewAPI = NOT (DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE,
-                                        'keep_old_field_api':U) = 'YES':U).
-
   /* Get handle to SDF Cache Manager */
   IF glUseNewAPI THEN
   DO:
@@ -310,6 +307,13 @@ PROCEDURE addRecord :
         ghTargetProcedure = TARGET-PROCEDURE.
         cColValues = DYNAMIC-FUNCTION("addRow":U IN hUpdateTarget, cFields). 
         ghTargetProcedure = ?.
+        IF cColValues = ? THEN
+        DO:
+          {set NewRecord "NO"}.
+          IF {fn anyMessage} THEN
+            {fn showDataMessages}.
+          RETURN "ADM-ERROR":U.
+        END.
         RUN displayFields IN TARGET-PROCEDURE(cColValues). 
       END.
       ELSE DO:
@@ -476,7 +480,7 @@ PROCEDURE cancelRecord :
 
   RUN SUPER.  
   IF RETURN-VALUE EQ "ADM-ERROR":U THEN RETURN "ADM-ERROR":U. 
-  
+
   PUBLISH 'cancelRecord':U FROM TARGET-PROCEDURE. /* Intended for GroupAssign */
   
   /* apply entry ? will reach first visible Ga target if this is hidden,
@@ -544,34 +548,34 @@ PROCEDURE copyRecord :
         END.
         
         /* copyRow cannot return LargeColumns so replace the name with SKIP */
-       {get LargeColumns cLargeColumns hUpdateTarget}.
-       lNoQual = INDEX(cFields,'.':U) = 0.
-       IF lNoQual THEN
-         {get DataSourceNames cSourceNames} NO-ERROR.   
-       DO iField = 1 TO NUM-ENTRIES(cLargeColumns):
-         ASSIGN
-           cColumn = ENTRY(iField,cLargeColumns)
-           iPos    = LOOKUP(cColumn,cFields).  
-         IF NUM-ENTRIES(cColumn,".":U) > 1 
-         AND iPos = 0 
-         AND lNoQual 
-         AND NUM-ENTRIES(cSourceNames) = 1 
-         AND ENTRY(1,cColumn,".":U) = cSourceNames THEN
-           iPos = LOOKUP(ENTRY(2,cColumn,".":U),cFields).  
-         IF iPos > 0 THEN
-           ENTRY(iPos,cFields) = 'SKIP':U.
-       END.
+        {get LargeColumns cLargeColumns hUpdateTarget}.
+        lNoQual = INDEX(cFields,'.':U) = 0.
+        IF lNoQual THEN
+          {get DataSourceNames cSourceNames} NO-ERROR.   
+        DO iField = 1 TO NUM-ENTRIES(cLargeColumns):
+          ASSIGN
+            cColumn = ENTRY(iField,cLargeColumns)
+            iPos    = LOOKUP(cColumn,cFields).  
+          IF NUM-ENTRIES(cColumn,".":U) > 1 
+          AND iPos = 0 
+          AND lNoQual 
+          AND NUM-ENTRIES(cSourceNames) = 1 
+          AND ENTRY(1,cColumn,".":U) = cSourceNames THEN
+            iPos = LOOKUP(ENTRY(2,cColumn,".":U),cFields).  
+          IF iPos > 0 THEN
+            ENTRY(iPos,cFields) = 'SKIP':U.
+        END.
 
         ghTargetProcedure = TARGET-PROCEDURE.
         cColValues = DYNAMIC-FUNCTION("copyRow":U IN hUpdateTarget, cFields). 
+        ghTargetProcedure = ?.
         IF cColValues = ? THEN
         DO:
           {set NewRecord "NO"}.
-          {fn showDataMessages}.
+          IF {fn anyMessage} THEN
+            {fn showDataMessages}.
           RETURN "ADM-ERROR":U.
         END.
-
-        ghTargetProcedure = ?.
         RUN displayFields IN TARGET-PROCEDURE(cColValues). 
       END.
       ELSE DO:
@@ -640,106 +644,206 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-disableCreateFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableCreateFields Procedure 
+PROCEDURE disableCreateFields :
+/*------------------------------------------------------------------------------
+  Purpose:  Disable fields that only are enabled on create (EnabledWhenNew)    
+  Parameters:  <none>
+  Notes:    EnableFields will enable fields that are specified in the 
+            EnabledWhenNew list on Add or Copy. This method is called to 
+            disable these on cancelRecord or updateRecord. The method is also 
+            called from initalizeObject in order disable objects enabled in 
+            enableObject.     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iField            AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hField            AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cField            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cName             AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lInitialized      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cEnabledWhenNew   AS CHARACTER NO-UNDO.   
+  DEFINE VARIABLE cEnabledFields    AS CHARACTER NO-UNDO.  
+  DEFINE VARIABLE cEnabledObjFlds   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cObjectsToDisable AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iEnable           AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cDisableList      AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE cTargets          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hTarget           AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iTarget           AS INTEGER   NO-UNDO.  
+  
+  &SCOPED-DEFINE xp-assign
+  {get ObjectInitialized lInitialized}
+  {get EnabledFields cEnabledFields}
+  {get EnabledObjFlds cEnabledObjFlds}
+  {get EnabledObjFldsToDisable cObjectsToDisable}
+  {get EnabledWhenNew cEnabledWhenNew} 
+  .
+  &UNDEFINE xp-assign
+  
+  /* Bail out if not initialized yet, as the Enabled* properties may not 
+     be properly set yet. */
+  IF NOT lInitialized THEN 
+    RETURN.
+                      
+  IF cEnabledWhenNew = "":U THEN
+    RETURN.
+
+  /* we could in principle just pass enabledWhenNew directly to DisableFieldList.
+     But the list is typcially short and the behavior should be consistent with 
+     EnableFields or EnableObjects, which enables these.  
+     The rule is also that EnabledWhenNew, which can have any fields as it
+     is not validated, should not override EnabledObjFlds, which should always 
+     remain enabled, unless otherwise specified by EnabledObjFldsToDisable. */             
+  DO iField = 1 TO NUM-ENTRIES(cEnabledWhenNew):
+    /* EnabledWhenNew might contain both fields and objects */ 
+    assign
+      cField = ENTRY(iField, cEnabledWhenNew)
+      iEnable = lookup(cField,cEnabledFields).
+    if iEnable = 0 then 
+    do:
+      if cObjectsToDisable = '(All)':U 
+      or can-do(cObjectsToDisable,cField) then 
+        iEnable = lookup(cField,cEnabledObjFlds).
+    end.
+    IF iEnable > 0 THEN
+       cDisableList = cDisableList 
+                    + (IF cDisableList = "":U THEN "":U ELSE ",":U)
+                    + cField. 
+  end.
+  IF cDisableList > "":U THEN
+    RUN disableFieldList IN TARGET-PROCEDURE (cDisableList).
+
+  /* notify groupassign targets (may change to publish in future) */
+  {get GroupAssignTarget cTargets}.
+  DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+    hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+    RUN disableCreateFields IN hTarget.
+  END.
+  
+  RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-disableFieldList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFieldList Procedure 
+PROCEDURE disableFieldList :
+/*------------------------------------------------------------------------------
+   Purpose: Disable a list of fields or objects.       
+Parameters:  pcFieldList  - List of fields to disable.
+     Notes:  The passed fields must be in the viewer's AllFieldNames. 
+          -  This is intended for use by the viewer's public disable* methods 
+             and should typically not be called by external objects as no 
+             properties are set or events fired.              
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcFieldList  AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE cAllFieldHandles AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iField           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cFieldName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldPos        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hField           AS HANDLE     NO-UNDO.
+  
+  &SCOPED-DEFINE xp-assign
+  {get AllFieldHandles cAllFieldHandles}
+  {get AllFieldNames cAllFieldNames}
+  .
+  &UNDEFINE xp-assign
+
+  DO iField = 1 TO NUM-ENTRIES(pcFieldList):
+    ASSIGN
+      cFieldName = ENTRY(iField,pcFieldList)    
+      iFieldPos  = LOOKUP(cFieldName,cAllFieldNames).
+    IF iFieldPos > 0 THEN
+    DO:
+      /* The field may be a SmartObject procedure handle. */
+      hField  = WIDGET-HANDLE(ENTRY(iFieldPos,cAllFieldHandles)).
+      IF VALID-HANDLE(hField) THEN
+      DO:
+        /* A SmartObject procedure handle */
+        IF hField:TYPE = "PROCEDURE":U THEN
+          RUN disableField IN hField NO-ERROR.
+        ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
+        DO:
+          /* Editors must remain sensitive for scrollbars, uset R-O*/
+          IF hField:TYPE = "EDITOR":U THEN 
+            hField:READ-ONLY = yes.  
+          ELSE 
+            hField:SENSITIVE = no.   
+          DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,hField, NO).
+        END.  /* END DO NOT HIDDEN */
+      END. /* valid hfield */
+    END. /* ifieldpos > 0 */
+  END. /* do ifield = 1 to pcFieldList */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-disableFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFields Procedure 
 PROCEDURE disableFields :
 /*------------------------------------------------------------------------------
   Purpose:     Disables fields in the ENABLED-FIELDS list (AppBuilder generated
-               preprocessor).
-  Parameters:  INPUT pcFieldType AS CHARACTER -- 'All' or 'Create'
-  Notes:       At present at least, this takes an argument which may be
-               "All" or "Create" to allow, e.g., cancelRecord to disable just
-               ADM-CREATE-FIELDS.
-               "Create" is currently not supported. 
-               When a frame field is a SmartObject itself (for example, a 
+               preprocessor) and set the objects FieldsEnabled to false.
+  Parameters:  INPUT pcFieldType AS CHARACTER -- 'All' 
+  Notes:       At present this takes an argument which may be "All" 
+            -  When a frame field is a SmartObject itself (for example, a 
                SmartField), disableField is run in the SmartObject to disable
                it.
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcFieldType AS CHARACTER NO-UNDO.
   
-  DEFINE VARIABLE cEnableFields  AS CHARACTER NO-UNDO. /* Field handles. */
-  DEFINE VARIABLE cEnableObjects AS CHARACTER NO-UNDO. /* Object handles */
-  DEFINE VARIABLE iField         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hField         AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lEnabled       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lEnabled          AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lInitialized      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cEnabledFields    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cObjectsToDisable AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lInitialized   AS LOGICAL    NO-UNDO.
-
+  
   &SCOPED-DEFINE xp-assign
   {get FieldsEnabled lEnabled}.
   {get ObjectInitialized lInitialized}
   .
   &UNDEFINE xp-assign
  
- /* Bail out if not initialized yet, as the Enabled* properties may not 
-    be properly set yet. initializeObject calls this if necessary 
-    (SDFs currently add themselves to the lists. There are logic to remove 
-    fields from the list for one-to-one SBOs in initializeObject) */
+  /* Bail out if not initialized yet, as the Enabled* properties may not 
+     be properly set yet. initializeObject calls this if necessary 
+     (SDFs currently add themselves to the lists. There are logic to remove 
+     fields from the list for one-to-one SBOs in initializeObject) */
   IF NOT lInitialized THEN 
     RETURN.
 
   IF lEnabled THEN
   DO:  
-      /* CreateFields not yet supported
-       IF pcFieldType = "Create":U THEN     /* Disable just Create-only fields */
-        {get CreateHandles cEnableFields}.
-      ELSE 
-      */
-      IF pcFieldType = "All":U THEN
-      DO:
-        &SCOPED-DEFINE xp-assign
-        {get EnabledHandles cEnableFields}
-        {get EnabledObjHdls cEnableObjects}
-        {get EnabledObjFldsToDisable cObjectsToDisable}.
-        &UNDEFINE xp-assign
-        /* {get CreateHandles cCreateFields}.
-           IF cCreateFields NE "":U THEN
-             cEnableFields = cEnableFields + ",":U + cCreateFields.*/
-      END. /* pcfieldtype =  'all' */
-      
-      DO iField = 1 TO NUM-ENTRIES(cEnableFields):
-         hField = WIDGET-HANDLE(ENTRY(iField, cEnableFields)).
-         /* "Frame Field" May be a SmartObject procedure handle */
-         IF hField:TYPE = "PROCEDURE":U THEN
-           RUN disableField IN hField NO-ERROR.
-         ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-         DO:
-           IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-             hField:READ-ONLY = yes.  
-           ELSE hField:SENSITIVE = no.     
-           DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
-                             hField, NO).
-         END.  /* END DO NOT HIDDEN */
-      END.     /* END DO iField     */
-      
-      /* Disable no db fields */
-      IF cObjectsToDisable <> '(none)':U THEN
-      DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
-         hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
-         IF hField:TYPE = "PROCEDURE":U THEN 
-           cName = {fn getFieldName hField} NO-ERROR.
-         ELSE 
-           cName = hField:NAME.  
-          
-         IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
-         DO:
-           /* "Frame Field" May be a SmartObject procedure handle */
-           IF hField:TYPE = "PROCEDURE":U THEN
-             RUN disableField IN hField NO-ERROR.
-           ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-           DO:
-             IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-               hField:READ-ONLY = yes.  
-             ELSE hField:SENSITIVE = no.   
-             DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
-                               hField, NO).
-           END.  /* END DO NOT HIDDEN */
-         END.
-      END.     /* END DO iField     */
-      
-      {set fieldsEnabled no}.
+    &SCOPED-DEFINE xp-assign
+    {get EnabledFields cEnabledFields}
+    {get EnabledObjFlds cEnabledObjFlds}
+    {get EnabledObjFldsToDisable cObjectsToDisable}
+    .
+    &UNDEFINE xp-assign
+    
+    IF cEnabledFields > "" THEN
+      RUN disableFieldList IN TARGET-PROCEDURE (cEnabledFields). 
+
+    /* Disable no db fields if specified in EnabledObjFldsToDisable */
+    IF cObjectsToDisable = '(All)':U THEN
+      cObjectsToDisable = cEnabledObjFlds.
+    
+    IF cObjectsToDisable > "" THEN
+      RUN disableFieldList IN TARGET-PROCEDURE (cObjectsToDisable). 
+    
+    {set fieldsEnabled no}.
   END.
   
   RUN SUPER(pcFieldType).
@@ -826,7 +930,7 @@ Parameters:  pcFieldList  - List of fields to display.
   {get DataSourceNames cDataSourceNames}
   .
   &UNDEFINE xp-assign
-  
+
   IF VALID-HANDLE(phDataSource) THEN
   DO:
     {get QueryPosition cQueryPosition phDataSource}.
@@ -904,7 +1008,7 @@ Parameters:  pcFieldList  - List of fields to display.
            in the DisplayFromSource property... ) */         
         IF NOT CAN-DO(pcFromSource,cFieldName) THEN 
           cValue = RIGHT-TRIM(ENTRY(iField, pcColValues, CHR(1))).
-        
+          
         /** else get the value from the SDO... unless this is a longchar widget
             in which case it is assigned directly below.. 
             Note: cDisplayFromSource is set to blank above if no valid-handle
@@ -917,12 +1021,10 @@ Parameters:  pcFieldList  - List of fields to display.
         /*** BEGIN display value ***/
         IF hField:TYPE = 'PROCEDURE':U THEN 
         DO:
-         /* Do not set if position (see notes)
-            Also do not set the value for Dynamic Combos 
+          /* Do not set if position (see notes)
+             Also do not set the value for Dynamic Combos 
             - they get data thru publish displayfield in displayfields   */  
-
-          IF NOT lPosition 
-          AND LOOKUP("dynamicCombo":U,hField:INTERNAL-ENTRIES) = 0 THEN 
+          IF NOT lPosition and not {fnarg instanceOf 'dynCombo':U hField} THEN 
             {set DataValue cValue hField}.
         END.
         ELSE 
@@ -1370,25 +1472,30 @@ PROCEDURE enableFields :
   Notes:       When the frame field is a SmartObject (for example, a 
                SmartField), enableField is run in the SmartObject.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cEnableFields  AS CHARACTER NO-UNDO.  /* Field handles. */
-  DEFINE VARIABLE cEnableObjects AS CHARACTER NO-UNDO. /* Object handles */
-  DEFINE VARIABLE iField         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hField         AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lEnabled       AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE cState         AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cNewRecord     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cUpdateTarget  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hGASource      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hFrameHandle   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cEnabledFields  AS CHARACTER NO-UNDO.  /* Field handles. */
+  DEFINE VARIABLE cEnabledHandles AS CHARACTER NO-UNDO.  /* Field handles. */
+  DEFINE VARIABLE cEnableObjects  AS CHARACTER NO-UNDO. /* Object handles */
+  DEFINE VARIABLE iField          AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hField          AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lEnabled        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cState          AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cNewRecord      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cUpdateTarget   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hGASource       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hFrameHandle    AS HANDLE    NO-UNDO.
   
   /* Field Security Check */
-  DEFINE VARIABLE cAllFieldHandles AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cSecuredFields   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iFieldPos        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecuredFields    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldPos         AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cObjectsToDisable AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cName            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE cName             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lInitialized      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lEnable           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lHide             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFieldSecRule     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledWhenNew   AS CHARACTER  NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get FieldsEnabled lEnabled}
   {get GroupAssignSource hGASource}
@@ -1396,6 +1503,7 @@ PROCEDURE enableFields :
   /* Get Secured Fields */
   {get FieldSecurity cSecuredFields}
   {get ObjectInitialized lInitialized}
+  {get EnabledWhenNew cEnabledWhenNew}
   .
   &UNDEFINE xp-assign
   
@@ -1426,47 +1534,72 @@ PROCEDURE enableFields :
     &UNDEFINE xp-assign
   END.
   
-  IF  (NOT lEnabled) 
+  IF  (NOT lEnabled OR (cEnabledWhenNew > "":U and cNewRecord <> "no":U)) 
   AND (cUpdateTarget NE "":U) 
   AND (cState = "RecordAvailable":U OR cNewRecord NE "No":U) THEN     
-  DO:  
+  DO:     
     &SCOPED-DEFINE xp-assign
-    {get EnabledHandles cEnableFields}
+    {get EnabledHandles cEnabledHandles}
+    {get EnabledFields  cEnabledFields}
     {get EnabledObjHdls cEnableObjects}
     {get EnabledObjFldsToDisable cObjectsToDisable}.
     &UNDEFINE xp-assign
-    DO iField = 1 TO NUM-ENTRIES(cEnableFields):
+    DO iField = 1 TO NUM-ENTRIES(cEnabledHandles):
       ASSIGN 
-        hField    = WIDGET-HANDLE(ENTRY(iField, cEnableFields))      
-        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
+        hField    = WIDGET-HANDLE(ENTRY(iField, cEnabledHandles))      
+        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles)
+        lHide     = false
+        lEnable   = true.
       
       IF VALID-HANDLE(hField) THEN 
       DO:
-        /* "Frame Field" May be a SmartObject procedure handle */
-        IF hField:TYPE = "PROCEDURE":U THEN 
-        DO:
-          IF ((iFieldPos <> 0 
-               AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
-               AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
-              OR iFieldPos = 0) 
-             OR cSecuredFields = "":U THEN 
-            /* Check Security */
+        /* check if enabledwhennew should be enabled or not */ 
+        if cEnabledWhenNew > "" then
+        do:
+          cName = Entry(iField,cEnabledFields).
+          /* if new and already enabled then only enabledwhennew fields should
+             be enabled (add and copy calls enablefields) */  
+          if cNewRecord <> "no" then
+          do:
+            if lEnabled 
+            and lookup(cName,cEnabledWhenNew) = 0 then
+              lEnable = false.
+          end.
+          else /* not new skip enabled when new fields */
+          if lookup(cName,cEnabledWhenNew) > 0 then
+            lEnable = false.
+        end. /* cEnabledwhenNew > '' */    
+        
+        /* Check Security */
+        if cSecuredFields > "":U then  
+        do:
+          iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).     
+          IF iFieldPos > 0 
+          AND NUM-ENTRIES(cSecuredFields) >= iFieldPos then
+          do: 
+            assign
+              cFieldSecRule = ENTRY(iFieldPos,cSecuredFields)
+              lHide         = (cFieldSecRule = "Hidden":U).
+            if cFieldSecRule > "" then   
+              lEnable       = false.
+          end.
+        end. /* cSecuredFields > "":U */
+        
+        if lHide then
+        do:
+          if hField:TYPE = "PROCEDURE":U THEN 
+            RUN hideObject IN hField NO-ERROR.
+        end.    
+        else if not lEnable then
+        do:
+          if hField:TYPE = "PROCEDURE":U THEN   
+            RUN disableField IN hField NO-ERROR.
+        end.
+        else do:      
+          /* "Frame Field" May be a SmartObject procedure handle */
+          IF hField:TYPE = "PROCEDURE":U THEN 
             RUN enableField IN hField NO-ERROR.
-          ELSE DO:  
-            IF ENTRY(iFieldPos,cSecuredFields) = "Hidden":U THEN
-              RUN hideObject IN hField NO-ERROR.
-            ELSE 
-              RUN disableField IN hField NO-ERROR.
-          END.  /* else do - secured */
-        END.  /* If Handle type is PROCEDURE */
-        ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-        DO:
-           /* Check Security */
-          IF ((iFieldPos <> 0 
-               AND NUM-ENTRIES(cSecuredFields) >= iFieldPos
-               AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
-              OR iFieldPos = 0) 
-             OR cSecuredFields = "":U THEN 
+          ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
           DO:
             hField:SENSITIVE = YES.
             IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
@@ -1477,131 +1610,93 @@ PROCEDURE enableFields :
               DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
                                 hField, YES). 
             
-         END.  /* IF security check succeeds */
-        END.  /* If the field is not hidden */
+          END.  /* If the field is not hidden */
+        end. /* lEnable (secured and enablewhennew rule) */
       END.  /* If hField is a valid handle */
     END.  /* Looping through the fields */
+    
     /* Enable no db fields */
     IF cObjectsToDisable <> '(none)':U THEN
     DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
-      hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).      
+      assign 
+        hField  = WIDGET-HANDLE(ENTRY(iField, cEnableObjects))    
+        lHide   = false
+        lEnable = true.
+      
       IF hField:TYPE = "PROCEDURE":U THEN 
         cName = {fn getFieldName hField} NO-ERROR.
       ELSE 
         cName = hField:NAME.  
+        
       IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
-      DO:      
-        iFieldPos = 0.
-        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).     
-        IF VALID-HANDLE(hField) THEN DO:  
-          /* "Frame Field" May be a SmartObject procedure handle */
-          IF hField:TYPE = "PROCEDURE":U THEN 
-          DO:          
-            IF ((iFieldPos <> 0 
-                 AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
-                 AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
-                OR iFieldPos = 0) 
-               OR cSecuredFields = "":U THEN /* Check Security */
-              RUN enableField IN hField NO-ERROR.
-            ELSE DO:
-              IF ENTRY(iFieldPos,cSecuredFields) = "Hidden":U THEN
-                RUN hideObject IN hField NO-ERROR.
-              ELSE 
-                RUN disableField IN hField NO-ERROR.
-            END.
-          END.
-          ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-          DO:
-            /* Check Security */
-            IF ((iFieldPos <> 0 
-                 AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
-                 AND ENTRY(iFieldPos,cSecuredFields) = "":U) 
-                OR iFieldPos = 0) 
-               OR cSecuredFields = "":U THEN 
+      DO: 
+        IF VALID-HANDLE(hField) THEN 
+        DO:  
+          /* if new and already enabled then only enabledwhennew fields should
+             be enabled (add and copy calls enablefields) */  
+          if cEnabledWhenNew > "" then
+          do:
+            if cNewRecord <> "no" then
+            do:
+              if lEnabled 
+              and lookup(cName,cEnabledWhenNew) = 0 then
+                lEnable = false.
+            end.
+            else
+            if lookup(cName,cEnabledWhenNew) > 0 then
+              lEnable = false.
+          end.     
+          /* Check Security */
+          if cSecuredFields > "":U then  
+          do:
+            iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).     
+            IF iFieldPos > 0 
+            AND NUM-ENTRIES(cSecuredFields) >= iFieldPos then
+            do: 
+              assign 
+                cFieldSecRule = ENTRY(iFieldPos,cSecuredFields)
+                lHide         = (cFieldSecRule = "Hidden":U).
+              if cFieldSecRule > "" then   
+                lEnable       = false.
+            end.
+          end. /* cSecuredFields > "":U */
+          if lHide then 
+          do:
+            if hField:TYPE = "PROCEDURE":U THEN 
+              RUN hideObject IN hField NO-ERROR.
+          end.
+          else if not lEnable then 
+          do:
+            if hField:TYPE = "PROCEDURE":U THEN   
+              RUN disableField IN hField NO-ERROR.           
+          end.    
+          else
+          do:  
+            /* "Frame Field" May be a SmartObject procedure handle */
+            IF hField:TYPE = "PROCEDURE":U THEN 
+              RUN enableField IN hField NO-ERROR.   
+            ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
             DO:
               hField:SENSITIVE = YES.
               IF hField:TYPE = "EDITOR":U THEN /* Ed's must be sensitive, not R-O*/
                 hField:READ-ONLY = NO.
-             /* don't enable if read-only (can-query is ok as only fields can 
-                have popups) */
+              /* don't enable if read-only (can-query is ok as only fields can 
+                     have popups) */
               IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
                 DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
                                   hField, YES). 
-            END.  /* If security check succeeds */
-          END.  /* If the field isn't hidden */
+            END.  /* If the field isn't hidden */
+          end. /* lEnable */
         END.  /* IF it is a valid field */
-      END.
+      END. /*  cObjectsToDisable = 'all' or has field */
     END.  /* Do for all enabled objects */
 
     /* If the list of enabled field handles isn't set, it may because this
        object hasn't been fully initialized yet. So don't set the enabled
        flag because we may be through here again. */
-    IF cEnableFields NE "":U THEN
+    IF cEnabledHandles NE "":U THEN
       {set FieldsEnabled yes}.
   END.
-  ELSE /* Ensure that SDF fields is disabled if no record available */
-  IF (NOT lEnabled) AND (cUpdateTarget NE "":U) AND (cState = "NoRecordAvailable":U) THEN
-  DO:
-    &SCOPED-DEFINE xp-assign
-    {get EnabledHandles cEnableFields}
-    {get EnabledObjHdls cEnableObjects}
-    {get EnabledObjFldsToDisable cObjectsToDisable}
-     .
-    &UNDEFINE xp-assign
-    DO iField = 1 TO NUM-ENTRIES(cEnableFields):
-      ASSIGN
-        hField    = WIDGET-HANDLE(ENTRY(iField, cEnableFields))       
-        iFieldPos = 0
-        iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-       
-      IF VALID-HANDLE(hField) THEN 
-      DO:
-        /* "Frame Field" May be a SmartObject procedure handle */
-        IF hField:TYPE = "PROCEDURE":U THEN
-          RUN disableField IN hField NO-ERROR.
-        ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-        DO:
-          IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-            hField:READ-ONLY = yes.  
-          ELSE 
-            hField:SENSITIVE = NO.   
-          DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
-                           hField, NO). 
-        END.  /* END DO NOT HIDDEN */
-      END.  /* If hField is valid */
-    END.     /* END DO iField     */
-    
-    IF cObjectsToDisable <> '(none)':U THEN
-    DO iField = 1 TO NUM-ENTRIES(cEnableObjects):
-      hField = WIDGET-HANDLE(ENTRY(iField, cEnableObjects)).
-      IF hField:TYPE = "PROCEDURE":U THEN 
-        cName = {fn getFieldName hField} NO-ERROR.
-      ELSE 
-        cName = hField:NAME.  
-      IF cObjectsToDisable = '(All)':U OR CAN-DO(cObjectsToDisable,cName) THEN
-      DO:   
-        ASSIGN 
-          iFieldPos = 0
-          iFieldPos = LOOKUP(STRING(hField),cAllFieldHandles).
-        
-        IF VALID-HANDLE(hField) THEN 
-        DO:
-          /* "Frame Field" May be a SmartObject procedure handle */
-          IF hField:TYPE = "PROCEDURE":U THEN
-            RUN disableField IN hField NO-ERROR.
-          ELSE IF NOT hField:HIDDEN THEN /* Skip fields hidden for multi-layout */
-          DO:
-            IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
-              hField:READ-ONLY = YES.  
-            ELSE 
-              hField:SENSITIVE = NO.  
-            DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
-                              hField, NO).
-          END.  /* END DO NOT HIDDEN */
-        END.  /* If a valid handle */
-      END.
-    END.  /* END DO iField     */
-  END.  /* Disbling SDF if not data available */ 
   RUN SUPER.
 
   PUBLISH 'enableFields':U FROM TARGET-PROCEDURE.  /* In case of GroupAssign */
@@ -1705,7 +1800,6 @@ PROCEDURE initializeObject :
    END.
     /* synchronize the NewRecord value with our GA-Source */
    {set NewRecord cNewRecord}.
-
    IF cNewRecord <> "NO":U THEN
       RUN displayRecord IN TARGET-PROCEDURE.
  END.
@@ -1717,8 +1811,11 @@ PROCEDURE initializeObject :
     (that would have been the case if this GAtarget had been initialized) */  
  IF (cGaMode > '':U AND cGaMode <> "view":U)
  OR NOT (lSaveSource = FALSE) THEN
+ do:
    RUN enableFields IN TARGET-PROCEDURE.
-  
+    /* Disable EnabledWhenNew fields  */
+   RUN disableCreateFields IN TARGET-PROCEDURE.
+ end.
  ELSE 
  DO:
    {set FieldsEnabled YES}.
@@ -2313,6 +2410,8 @@ PROCEDURE updateFieldProperties :
   DEFINE VARIABLE iMap               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cSourceType        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lSBO               AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hContainerSource   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lPopupsInFields    AS LOGICAL    NO-UNDO.
   
   {get AllFieldHandles cAllFieldhandles}.
   IF cAllFieldHandles = '' THEN
@@ -2324,8 +2423,11 @@ PROCEDURE updateFieldProperties :
     {get EnabledObjFlds cEnabledObjFlds}
     {get EnabledFields cEnabledFields}
     {get DataFieldMapping cDataFieldMapping}
-     .
+    {get PopupButtonsInFields lPopupsInFields}
+    {get ContainerSource hContainerSource}
+    .
     &UNDEFINE xp-assign
+    
     IF VALID-HANDLE(hDataSource) THEN
     DO:
       {get ObjectType cSourceType hDataSource}.
@@ -2362,8 +2464,7 @@ PROCEDURE updateFieldProperties :
         cTargetFrames = cTargetFrames + ',':U + STRING(hChildFrame). 
       ELSE /* keep list in synch with cTargets
          (blank is avoided as list is trimmed after loop) */
-        cTargetFrames = cTargetFrames + ',' + '?'.
-  
+        cTargetFrames = cTargetFrames + ',' + '?'.  
     END. /* containerTarget loop */
   
     ASSIGN
@@ -2451,8 +2552,15 @@ PROCEDURE updateFieldProperties :
                                   + STRING(hTarget). 
             END. /* lenable */
           END.
-        END.
-      END.    /* FRAME widget (ie SDF) */
+        END. /* Frame belongs to ContainerTarget (Smart) */
+        else if valid-handle(gshSessionManager) then
+          /* not SDF - widgetwalk non smart frames on this objects frame  */ 
+          RUN widgetWalk IN gshSessionManager (INPUT hContainerSource, 
+                                               INPUT TARGET-PROCEDURE, 
+                                               INPUT hField, 
+                                               INPUT "setup":U,
+                                               INPUT lPopupsInFields).  
+      END.    /* FRAME widget */
       ELSE
       DO:
         IF hField:TYPE = 'EDITOR':U THEN
@@ -2511,6 +2619,7 @@ PROCEDURE updateFieldProperties :
               cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
                                          iLocal,cEnabledObjHdls,',').
         END.
+        
         hTarget = hField.
       END.
 
@@ -2544,8 +2653,15 @@ PROCEDURE updateFieldProperties :
     {set DataSourceNames cDataSourceNames}
     .
     &UNDEFINE xp-assign
-  END.
-
+    /* Now do the widget walk */
+    if valid-handle(gshSessionManager) then
+      RUN widgetWalk IN gshSessionManager (INPUT hContainerSource, 
+                                           INPUT TARGET-PROCEDURE, 
+                                           INPUT hFrame, 
+                                           INPUT "setup":U,
+                                           INPUT lPopupsInFields).
+  END. /*allfieldhandles = '' */   
+  
   RETURN. 
 
 END PROCEDURE.

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" sObject _INLINE
@@ -20,8 +20,8 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -97,14 +97,14 @@ DEFINE VARIABLE ghSDFCacheManager           AS HANDLE     NO-UNDO.
 &Scoped-define PROCEDURE-TYPE SmartObject
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS fiReportDirectory coSourceLanguage ~
-flnTemplate flnPalette coFilterSet BuClearSesFilters ToDebugEnabled ~
-BuClearPerFilters toShowTooltips BuClearSesSDO toInitPagesForTrans ~
-BuClearPerSDO toCustomizeDefault buClearWindowPositions ~
+flnTemplate flnPalette coFilterSet coMessageBoxType BuClearSesFilters ~
+ToDebugEnabled BuClearPerFilters toShowTooltips BuClearSesSDO ~
+toInitPagesForTrans BuClearPerSDO toCustomizeDefault buClearWindowPositions ~
 toSaveWindowPositions buClearSDFCache BuClearTopOnly toTopOnly 
 &Scoped-Define DISPLAYED-OBJECTS fiReportDirectory coSourceLanguage ~
 flnTemplate flnPalette coFilterSet ToSesFiltersActive ToDebugEnabled ~
@@ -162,6 +162,15 @@ DEFINE VARIABLE coFilterSet AS CHARACTER FORMAT "X(256)":U INITIAL "0"
      LABEL "Session Filter Set" 
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEM-PAIRS "Item 1","0"
+     DROP-DOWN-LIST
+     SIZE 50 BY 1 NO-UNDO.
+
+DEFINE VARIABLE coMessageBoxType AS CHARACTER FORMAT "X(256)":U INITIAL "0" 
+     LABEL "Message Box Type" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     LIST-ITEM-PAIRS "Simple","Simple",
+                     "Detail","Detail",
+                     "Complex","Complex"
      DROP-DOWN-LIST
      SIZE 50 BY 1 NO-UNDO.
 
@@ -246,23 +255,24 @@ DEFINE FRAME frMain
      flnTemplate AT ROW 3.81 COL 20 COLON-ALIGNED
      flnPalette AT ROW 4.95 COL 20 COLON-ALIGNED
      coFilterSet AT ROW 6.1 COL 20 COLON-ALIGNED
-     BuClearSesFilters AT ROW 7.52 COL 5.8
-     ToSesFiltersActive AT ROW 7.52 COL 22
-     ToDebugEnabled AT ROW 7.52 COL 61.4
-     BuClearPerFilters AT ROW 8.71 COL 5.8
-     ToPerFiltersActive AT ROW 8.71 COL 22
-     toShowTooltips AT ROW 8.71 COL 61.4
-     BuClearSesSDO AT ROW 9.91 COL 5.8
-     ToSesSDOActive AT ROW 9.91 COL 22
-     toInitPagesForTrans AT ROW 9.91 COL 61.4
-     BuClearPerSDO AT ROW 11.1 COL 5.8
-     ToPerSDOActive AT ROW 11.1 COL 22
-     toCustomizeDefault AT ROW 11.1 COL 61.4
-     buClearWindowPositions AT ROW 12.29 COL 5.8
-     toSaveWindowPositions AT ROW 12.29 COL 22
-     buClearSDFCache AT ROW 12.33 COL 61.4
-     BuClearTopOnly AT ROW 13.48 COL 5.8
-     toTopOnly AT ROW 13.48 COL 22
+     coMessageBoxType AT ROW 7.38 COL 20 COLON-ALIGNED WIDGET-ID 2
+     BuClearSesFilters AT ROW 8.71 COL 5.8
+     ToSesFiltersActive AT ROW 8.71 COL 22
+     ToDebugEnabled AT ROW 8.71 COL 61.4
+     BuClearPerFilters AT ROW 9.91 COL 5.8
+     ToPerFiltersActive AT ROW 9.91 COL 22
+     toShowTooltips AT ROW 9.91 COL 61.4
+     BuClearSesSDO AT ROW 11.1 COL 5.8
+     ToSesSDOActive AT ROW 11.1 COL 22
+     toInitPagesForTrans AT ROW 11.1 COL 61.4
+     BuClearPerSDO AT ROW 12.29 COL 5.8
+     ToPerSDOActive AT ROW 12.29 COL 22
+     toCustomizeDefault AT ROW 12.29 COL 61.4
+     buClearWindowPositions AT ROW 13.48 COL 5.8
+     toSaveWindowPositions AT ROW 13.48 COL 22
+     buClearSDFCache AT ROW 13.52 COL 61.4
+     BuClearTopOnly AT ROW 14.67 COL 5.8
+     toTopOnly AT ROW 14.67 COL 22
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -294,7 +304,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 13.95
+         HEIGHT             = 14.67
          WIDTH              = 98.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -317,11 +327,13 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
+/* SETTINGS FOR COMBO-BOX coMessageBoxType IN FRAME frMain
+   NO-DISPLAY                                                           */
 /* SETTINGS FOR TOGGLE-BOX ToPerFiltersActive IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR TOGGLE-BOX ToPerSDOActive IN FRAME frMain
@@ -672,6 +684,17 @@ END.
 &Scoped-define SELF-NAME coFilterSet
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coFilterSet sObject
 ON VALUE-CHANGED OF coFilterSet IN FRAME frMain /* Session Filter Set */
+DO:
+  {set DataModified TRUE}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME coMessageBoxType
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coMessageBoxType sObject
+ON VALUE-CHANGED OF coMessageBoxType IN FRAME frMain /* Message Box Type */
 DO:
   {set DataModified TRUE}.
 END.
@@ -1040,7 +1063,6 @@ PROCEDURE initializeObject :
   END.
   ELSE ASSIGN flnPalette:SCREEN-VALUE = "*":U.
 
-
   /* Determine if user wants to builf customizations from the default layout
      or the previous layout */
   ASSIGN rRowid  = ?
@@ -1054,20 +1076,31 @@ PROCEDURE initializeObject :
   IF cProfileData = "Yes":U OR cProfileData = "" OR cProfileData = ? THEN
     toCustomizeDefault:CHECKED = YES.
 
+    rRowid = ?.
+    cProfileData = ?.
+    /* check user prefs first. */
+    run checkProfileDataExists in gshProfileManager ('General',
+                                                     'Preference',
+                                                     'MessageBoxType',
+                                                     No,    /*plCheckPermanentOnly*/
+                                                     No,    /*plCheckCacheOnly*/
+                                                     output lExists ) no-error.
+        
+    if lExists then
+        run getProfileData in gshProfileManager ('General':u, /* Profile type code     */
+                                                 'Preference':u, /* Profile code          */
+                                                 'MessageBoxType':u, /* Profile data key      */
+                                                 "No":U,              /* Get next record flag  */
+                                                 input-output rRowid,       /* Rowid of profile data */
+                                                 output cProfileData ).
+    else
+        /* defaults from session param */
+        cProfileData = dynamic-function('getSessionParam':u in target-procedure, 'MessageBoxType').
 
-  /* Code placed here will execute AFTER standard behavior.    */
-  DEFINE VARIABLE cLinkHandles              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainerSource          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hToolbarSource            AS HANDLE     NO-UNDO.
-
-  /* Get handle of container, then get toolbar source of contaner which will give
-     us the containers toolbar.
-     We then subscribe this procedure to toolbar events in the containers toolbar so
-     that we can action an OK or CANCEL being pressed in the toolbar.
-     We also subscribe the container toolbar to update states in this procedure so we
-     can change the state of the toolbar into update mode when something is changed
-     on the viewer.
-  */
+    if cProfileData eq ? or cProfileData eq '':u then
+        cProfileData = 'Complex':u.
+    
+    coMessageBoxType:screen-value = cProfileData no-error.                                                 
 
 END PROCEDURE.
 
@@ -1316,6 +1349,17 @@ PROCEDURE updateRecord :
                                                    INPUT toCustomizeDefault:SCREEN-VALUE,
                                                    INPUT NO,
                                                    INPUT "PER":U).
+                                                   
+          /* Save MB type */
+          RUN setProfileData IN gshProfileManager (INPUT "General":U,
+                                                   INPUT "Preference":U,
+                                                   INPUT "MessageBoxType":U,
+                                                   INPUT ?,
+                                                   INPUT coMessageBoxType:SCREEN-VALUE,
+                                                   INPUT NO,
+                                                   INPUT "PER":U).
+          /* Trigger a re-fetch of the MessageBoxType on next request */
+          {set MessageBoxType ?}.
 
           /* instruct the other viewers to do likewise */
           lContinue = TRUE.  

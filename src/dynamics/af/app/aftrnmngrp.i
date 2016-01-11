@@ -787,10 +787,8 @@ IF NOT (SESSION:REMOTE OR SESSION:CLIENT-TYPE = "WEBSPEED":U) AND NOT plAllLangu
 cache-loop:
 FOR EACH ttTranslate:
 
-  /* toolbar only supports global translations, window title and tabs and sdf's only specific */
+  /* toolbar only supports global translations, sdf's only specific */
   IF ttTranslate.cObjectName = "rydyntoolt.w" THEN ASSIGN ttTranslate.lGlobal = YES.
-  IF ttTranslate.cWidgetType = "TITLE":U THEN ASSIGN ttTranslate.lGlobal = NO.
-  IF ttTranslate.cWidgetType = "TAB":U THEN ASSIGN ttTranslate.lGlobal = NO.
   IF NOT NUM-ENTRIES(ttTranslate.cObjectName,":":U) = 2 THEN ASSIGN ttTranslate.lGlobal = NO. /* SDF */
 
   IF ttTranslate.dLanguageObj = 0 THEN
@@ -805,7 +803,9 @@ FOR EACH ttTranslate:
          AND ttTranslation.WIDGET_entry = ttTranslate.iWidgetEntry
        NO-ERROR.
   /* If tried specific and not found, try global */
-  IF NOT AVAILABLE ttTranslation AND ttTranslate.cWidgetType <> "TITLE":U AND ttTranslate.cWidgetType <> "TAB":U AND NOT NUM-ENTRIES(ttTranslate.cObjectName,":":U) = 2 AND ttTranslate.lGlobal = NO THEN
+  IF NOT AVAILABLE ttTranslation AND 
+     NOT NUM-ENTRIES(ttTranslate.cObjectName,":":U) = 2 AND 
+     ttTranslate.lGlobal = NO THEN
     FIND FIRST ttTranslation
          WHERE ttTranslation.language_obj = ttTranslate.dLanguageObj
            AND ttTranslation.OBJECT_filename = "":U

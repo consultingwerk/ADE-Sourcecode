@@ -543,9 +543,9 @@ PROCEDURE copyColumns :
     
   IF VALID-HANDLE(hFromBuffer) THEN 
   DO:
-
+    /* don't copy systemfields */
     IF hFromBuffer:AVAILABLE THEN 
-      hRowObject:BUFFER-COPY(hFrombuffer).
+      hRowObject:BUFFER-COPY(hFrombuffer,"RowNum,RowIdent,RowMod,RowIdentIdx,RowUserProp":u).
   
     DELETE OBJECT hFromBuffer . 
   END.
@@ -1632,7 +1632,7 @@ FUNCTION columnName RETURNS CHARACTER
   Purpose: Resolves the external unique name of the column from the passed 
            field handle.  
     Notes: This is the name a visual data-target would use as its identifier, 
-           so the sdoname is added a squalier whern running inside an SBO.
+           so the sdoname is added as qualifier when running inside an SBO.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lQueryContainer   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cObjectName       AS CHARACTER  NO-UNDO.

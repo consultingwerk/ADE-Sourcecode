@@ -1,13 +1,13 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
-*********************************************************************/
+***********************************************************************/
 /* admmsgs.i -- include file with translatable ADM messages (and others
    which need to be modifiable without changing ADM source procedures). */
 
-  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 100
+  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 101
     INIT [
      "You must select a single row for deletion.",                                        /*  1 */
      "Current values must be saved or cancelled before Add or Copy.",                     /*  2 */
@@ -173,7 +173,7 @@
     cADMMessages[92] = "Could not find or open file &1"
     cADMMessages[93] = "Copy of large object to column ~'&1~' failed. &2" 
     cADMMessages[94] = "Copy of large object to before image column ~'&1~' failed. &2" 
-    cADMMessages[95] = "&1 does not support retrieval of large data." + CHR(10) 
+    cADMMessages[95] = "&1 does not support retrieval of large or binary data." + CHR(10) 
                      + "Column '&2' is &3 data-type."
     cADMMessages[96] = "The newly added or changed record was successfully saved, but falls outside of the current filter criteria." + chr(10)
                      + "To be able to view this record, adjust the filter criteria."
@@ -187,6 +187,7 @@
     cADMMessages[98] = "Fetch of '&1' definitions failed due to an unexpected error."
     cADMMessages[99] = "Fetch of '&1' data failed due to an unexpected error."
     cADMMessages[100] = "Save of '&1' data failed due to an unexpexted error." 
+    cADMMessages[101] = "Column &1 can only be updated when the record is new."
     .         
     /* Assigns to cADMMessages are separated in multiple groups to avoid 
        exceeding the default number of input characters: -inp 4096

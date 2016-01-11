@@ -5,12 +5,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: src/adm2/support/_wizlog.w
@@ -55,7 +55,7 @@ DEFINE VARIABLE gcLogicTemplate    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lIsDynamicsRunning AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

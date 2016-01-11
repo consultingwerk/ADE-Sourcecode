@@ -2,12 +2,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME WINDOW-1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS WINDOW-1 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File:             _prospy.w
@@ -45,7 +45,7 @@ CREATE WIDGET-POOL.
 {protools/psvar.i &new = new}
 {protools/_runonce.i}
 {protools/ptlshlp.i} /* PRO*Tools Help include file */
-{adm2/support/admhlp.i}  /* ADM Help include file */
+{src/adm2/support/admhlp.i}  /* ADM Help include file */
 
 DEFINE NEW GLOBAL SHARED VARIABLE wfRunning      AS CHARACTER NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE h_ade_tool     AS HANDLE    NO-UNDO.

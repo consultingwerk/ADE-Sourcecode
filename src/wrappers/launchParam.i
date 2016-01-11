@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
   File: launchparam.i
 
@@ -74,6 +74,14 @@ ASSIGN ttSeqType.iParamNo      = {&order}
     &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.tDate.                      
     &ELSEIF "{&param-type}" = "INTEGER"   &THEN ASSIGN ttSeqType.iInteger   = {&param-name}.
     &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.iInteger.                          
+    &ELSEIF "{&param-type}" = "DATETIME"   &THEN ASSIGN ttSeqType.dtDateTime   = {&param-name}.
+    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.dtDateTime.                          
+    &ELSEIF "{&param-type}" = "DATETIME-TZ"   &THEN ASSIGN ttSeqType.dzDateTime   = {&param-name}.
+    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.dzDateTime.  
+    &ELSEIF "{&param-type}" = "RAW"   &THEN ASSIGN ttSeqType.rRaw   = {&param-name}.
+    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.rRaw.
+    &ELSEIF "{&param-type}" = "ROWID"   &THEN ASSIGN ttSeqType.rRowid   = {&param-name}.
+    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.rRowid.  
     &ELSEIF "{&param-type}" = "HANDLE"    &THEN ASSIGN ttSeqType.hHandle    = {&param-name}.
     &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = ttSeqType.hHandle.                      
     &ELSE ASSIGN ttSeqType.lLogical = {&param-name}.

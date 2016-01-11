@@ -19,12 +19,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: gsmpydbdfv.w
 
@@ -151,17 +151,17 @@ DEFINE VARIABLE fiService AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 73.6 BY 1 NO-UNDO.
 
-DEFINE VARIABLE toHostVerify AS LOGICAL INITIAL no 
+DEFINE VARIABLE toHostVerify AS LOGICAL INITIAL NO 
      LABEL "Host verification disabled (-nohostverify)" 
      VIEW-AS TOGGLE-BOX
      SIZE 46.4 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toSessionReuse AS LOGICAL INITIAL no 
+DEFINE VARIABLE toSessionReuse AS LOGICAL INITIAL NO 
      LABEL "Session reuse disabled (-nosessionreuse)" 
      VIEW-AS TOGGLE-BOX
      SIZE 46.4 BY .81 NO-UNDO.
 
-DEFINE VARIABLE toSSL AS LOGICAL INITIAL no 
+DEFINE VARIABLE toSSL AS LOGICAL INITIAL NO 
      LABEL "SSL enabled (-ssl)" 
      VIEW-AS TOGGLE-BOX
      SIZE 46.4 BY .81 NO-UNDO.
@@ -271,21 +271,6 @@ DO:
   ELSE
      ASSIGN toSSL:CHECKED             = FALSE
             toSSL:SENSITIVE           = FALSE.
-
-  IF toSSL:CHECKED THEN
-      ASSIGN
-         toSessionReuse:SENSITIVE     = TRUE
-         toHostVerify:SENSITIVE       = TRUE
-         .
-  ELSE DO:
-      ASSIGN toSessionReuse:CHECKED   = FALSE
-             toHostVerify:CHECKED     = FALSE
-             toSessionReuse:SENSITIVE = FALSE
-             toHostVerify:SENSITIVE   = FALSE.
-      EdEditor:SCREEN-VALUE = TRIM(REPLACE(EdEditor:SCREEN-VALUE, '-ssl':U, '':U)).
-      EdEditor:SCREEN-VALUE = TRIM(REPLACE(EdEditor:SCREEN-VALUE, '-nosessionreuse':U, '':U)).
-      EdEditor:SCREEN-VALUE = TRIM(REPLACE(EdEditor:SCREEN-VALUE, '-nohostverify':U, '':U)).
-  END.
 END.
 
 /* _UIB-CODE-BLOCK-END */

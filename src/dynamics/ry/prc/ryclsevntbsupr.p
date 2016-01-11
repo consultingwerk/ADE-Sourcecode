@@ -27,6 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/* Copyright (C) 2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*---------------------------------------------------------------------------------
   File: ryclspropbsupr.p
 
@@ -793,7 +796,7 @@ PROCEDURE updateRecord :
                                                        INPUT  "&OK", /* button list */
                                                        INPUT  "&OK", /* default button */ 
                                                        INPUT  "&OK", /* cancel button */
-                                                       INPUT  "Duplicate event `" + cEventName + "`", /* window title */
+                                                       INPUT  "Duplicate event ~'" + cEventName + "~'", /* window title */
                                                        INPUT  YES, /* display if empty */ 
                                                        INPUT  hContainer,
                                                        OUTPUT cButton       ).

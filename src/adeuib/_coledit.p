@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -9,10 +9,10 @@
   File: adeuib/_coledit.p
 
   Description:
-  
+
   This procedure is designed to edit the columns of a browse, SmartData.  This procedure
   gets called from two places: The UIB Browse property sheet and the Query Builder.
-  
+
   The output of this procedure is the proper set of _BC records that completely
   reflects the columns of the browse.  Except for _rdbrow.p, this is the ONLY
   procedure that can create or modify these record.  
@@ -24,7 +24,7 @@
     2) The other kind is a calculated field in which case _BC._DBNAME contains
        the identifier "_<CALC>",  _BC._TABLE is ? and _BC._DISP-NAME contains the
        expression of the calculated field.
-  
+
   There are two kinds of columns that can be defined for a SmartData:
     1) A database field in which case _BC._DBNAME, _BC._TABLE and _BC._NAME are
        completely filled in. _DISP-NAME contains a unique field name.
@@ -32,7 +32,7 @@
        the identifier "_<CALC>",  _BC._TABLE is ?, _BC._NAME contains the
        expression of the calculated field. _DISP-NAME contains a unique field 
         name.
-  
+
   The input of this procedure is really:
      1) The RECID of the browse or SmartData query being editted.  
         This is the shared variable _query-u-rec.
@@ -50,7 +50,7 @@
         that can manipulate _BC records, the current set of records with the RECID
         of the browse or SmartData query is the current set when this procedure 
         starts up.
-               
+
 
   Input Parameters:
       Tbl-List - Comma delimitted list of DB tables whose fields can be choosen
@@ -87,7 +87,7 @@
                          that contain "@ fieldname"    
             08/08/00 JEP Assign _P recid to newly created _TRG records.
             11.15.00 AC  Added fix for bug #20000904-004 
-            
+
 NOTE: The variable isReport is used to enable calculated fields 
       for WebReports. 
       Remove this when making calculated fields for SDO's. 
@@ -997,7 +997,7 @@ ON CHOOSE OF b_calc-fld DO:
   
     /* After Ok or Cancel button have been pressed do the following */      
     IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
-  
+
     IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
   END.
 
@@ -1006,24 +1006,20 @@ ON CHOOSE OF b_calc-fld DO:
            empty-msg:VISIBLE   IN FRAME bc-editor = FALSE 
            empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
 
-  /* Add the new entry to the _BC Table */
-  /* First make a space for the new entry */
-  IF AVAILABLE _BC THEN 
-    cur-seq = _BC._SEQUENCE.
-    ELSE cur-seq = 0.
-  FOR EACH _BC WHERE _BC._x-recid = _query-u-rec AND 
-                     _BC._SEQUENCE > cur-seq BY _BC._SEQUENCE DESCENDING:
-    _BC._SEQUENCE = _BC._SEQUENCE + 1.
-  END. 
+  FIND LAST _BC WHERE _BC._x-recid = _query-u-rec NO-LOCK NO-ERROR.
+  IF NOT AVAILABLE(_BC) THEN
+      ASSIGN cur-seq = 1.
+  ELSE
+      ASSIGN cur-seq = _BC._SEQUENCE + 1.
 
   /* Find unique name */
   IF isSmartData AND NOT isDynSDO THEN
     RUN adeshar/_bstfnam.p (INPUT _query-u-rec, INPUT "CALC", INPUT ?, INPUT ?,
                             OUTPUT UniqueName).
-    
+
   CREATE _BC.
   ASSIGN _BC._x-recid   = _query-u-rec
-         _BC._SEQUENCE  = cur-seq + 1
+         _BC._SEQUENCE  = cur-seq
          _BC._DBNAME    = "_<CALC>":U
          _BC._TABLE     = ?
          _BC._DISP-NAME = IF isSmartData THEN UniqueName 
@@ -2148,6 +2144,7 @@ PROCEDURE add-fields.ip:
   DEFINE VARIABLE pcInheritClasses   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSchemaColLabel    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumnName        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewFieldList      AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER x_BC FOR _BC.
 
@@ -2185,14 +2182,20 @@ PROCEDURE add-fields.ip:
                      ELSE _BC._DISP-NAME.
     END.
   END.  /* for eac _BC */
-  
+
+  ASSIGN cNewFieldList = "".
   IF srcSmartData THEN 
        RUN adecomm/_mfldsel.p (INPUT ?, INPUT p_hSmartData,
                                INPUT tt-info, INPUT imode,
-                               INPUT CHR(10), INPUT "", INPUT-OUTPUT Fld-List).
-  ELSE RUN adecomm/_mfldsel.p (INPUT Tbl-List, INPUT ?,
+                               INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
+  ELSE
+       RUN adecomm/_mfldsel.p (INPUT Tbl-List, INPUT ?,
                                INPUT tt-info, INPUT imode,
-                               INPUT CHR(10), INPUT "", INPUT-OUTPUT Fld-List).
+                               INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
+
+  IF cNewFieldList NE "":U THEN
+      ASSIGN cNewFieldList = TRIM(cNewFieldList, CHR(10))
+             Fld-List      = TRIM(Fld-List + CHR(10) + cNewFieldList, CHR(10)).
 
   RUN adecomm/_setcurs.p ("":U).
 
@@ -2213,15 +2216,15 @@ PROCEDURE add-fields.ip:
     ELSE
       IF LOOKUP(_BC._DISP-NAME,Fld-List,CHR(10)) = 0 THEN DELETE _BC.
   END.
-     
+
   /* Resequence _BC Records adding new ones as necessary               */
   cur-seq = 0.
   AddFieldLoop:
-  DO i = 1 TO NUM-ENTRIES(Fld-List,CHR(10)):
+  DO i = 1 TO NUM-ENTRIES(cNewFieldList,CHR(10)):
     ASSIGN cur-seq  = cur-seq + 1
-           tmp-name = ENTRY(i,Fld-List,CHR(10)).
+           tmp-name = ENTRY(i,cNewFieldList,CHR(10)).
 
-    /* Search procedure temp-table info to see if this Fld-List entry is a temp-table
+    /* Search procedure temp-table info to see if this cNewFieldList entry is a temp-table
        field instead of a real db field. If so, then prefix tmp-name with "Temp-Tables"
        to reflect that it is a temp-table entry.                                         */
     BUFFER-SEARCH-BLOCK:
@@ -2229,7 +2232,7 @@ PROCEDURE add-fields.ip:
       IF NUM-ENTRIES(tmp-name, ".":U) > 1 AND 
          NUM-ENTRIES(ENTRY(ii,tt-info),"|":U) > 1 AND
          ENTRY(1, tmp-name, ".":U) = ENTRY(2, ENTRY(ii,tt-info), "|":U) THEN DO:
-           tmp-name = "Temp-Tables.":U + tmp-name.                        
+           tmp-name = "Temp-Tables.":U + tmp-name.
         LEAVE BUFFER-SEARCH-BLOCK.
       END.  /* Found buffer */
     END. /* BUFFER-SEARCH-BLOCK REPEAT */
@@ -2252,6 +2255,7 @@ PROCEDURE add-fields.ip:
            cColumnName = IF iMode = "2":U 
                          THEN tmp-tbl + '.':U + tmp-name 
                          ELSE tmp-name.
+
     FIND _BC WHERE _BC._x-recid = _query-u-rec AND
                    _BC._DBNAME  = tmp-db AND
                    _BC._TABLE   = tmp-tbl AND
@@ -2322,7 +2326,7 @@ PROCEDURE add-fields.ip:
                      lFoundLabel     = TRUE.
            ELSE
               ASSIGN lFoundLabel = FALSE.
-                     
+
            FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                                           AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
                                           AND ttObjectAttribute.tAttributeLabel    = "ColumnLabel":U NO-ERROR.
@@ -2340,7 +2344,7 @@ PROCEDURE add-fields.ip:
                      lFoundFormat    = True.
            ELSE
               ASSIGN lFoundFormat  = FALSE.          
-           
+
            FIND FIRST ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj    = ttObject.tSmartObjectObj
                                           AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj 
                                           AND ttObjectAttribute.tAttributeLabel    = "Help":U NO-ERROR.
@@ -2355,7 +2359,7 @@ PROCEDURE add-fields.ip:
                   lFoundLabel  = FALSE
                   lFoundFormat = FALSE
                   lFoundHelp   = FALSE.
-          
+
       END.  /* if SmartData */
 
       IF srcSmartData THEN
@@ -2382,7 +2386,7 @@ PROCEDURE add-fields.ip:
                                                    ELSE IF imode = "3":U AND tmp-db = "Temp-Tables":U AND                   
                                                      CAN-FIND(_tt WHERE _tt._name = tmp-tbl AND _tt._table-type = "B":U) THEN
                                                        tmp-tbl + ".":U + tmp-name
-                                                   ELSE ENTRY(i,Fld-List,CHR(10)))
+                                                   ELSE ENTRY(i,cNewFieldList,CHR(10)))
              _BC._ENABLED   = IF isSmartData THEN TRUE ELSE FALSE
              _BC._INHERIT-VALIDATION = IF (isSmartData AND
                                            NOT CAN-DO(_AB_Tools,"Enable-ICF") AND
@@ -2390,7 +2394,7 @@ PROCEDURE add-fields.ip:
                                              THEN TRUE
                                              ELSE FALSE
              tmp-name       = ENTRY(1,_BC._NAME,"[":U).
-                               
+
       IF NOT srcSmartData THEN DO:
         RUN setDICTDBalias.ip (INPUT-OUTPUT tmp-db, 
                                INPUT-OUTPUT tmp-tbl, 
@@ -2414,7 +2418,14 @@ PROCEDURE add-fields.ip:
                                OUTPUT valmsg,
                                OUTPUT valmsg-sa, 
                                OUTPUT _BC._MANDATORY).
-        
+        IF CAN-DO("BLOB,CLOB":U, _BC._data-type) THEN 
+        DO:
+            MESSAGE _BC._NAME + ' is defined as a large object and cannot be added to a SmartDataBrowser.':U
+             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            DELETE _BC.
+            NEXT AddFieldLoop.
+        END.
+
         /* _s-schem.p returns the column-label if it exists */
         RUN adecomm/_s-schem.p (tmp-db, tmp-tbl, _BC._NAME, 
                                 IF isSmartData THEN "FIELD:COL-LABEL":U
@@ -2437,7 +2448,7 @@ PROCEDURE add-fields.ip:
                                   INPUT _numeric_decimal,
                                   OUTPUT bcformat).
         ELSE bcformat = _BC._FORMAT.
-          
+
         /* Set up the WIDTH */
         ASSIGN _BC._WIDTH = IF _BC._DATA-TYPE BEGINS "DA" /* Date */
                               THEN FONT-TABLE:GET-TEXT-WIDTH-CHARS(_BC._FORMAT)
@@ -2470,7 +2481,7 @@ PROCEDURE add-fields.ip:
                _BC._HELP       = _BC._DEF-HELP
                _BC._FORMAT     = _BC._DEF-FORMAT
                data_type       = _BC._DATA-TYPE.
-        
+
         IF NUM-ENTRIES(_BC._DEF-LABEL,"!":U) > 1 THEN DO:
           DO iw = 2 TO NUM-ENTRIES(_BC._DEF-LABEL,"!":U):
             ASSIGN _BC._DEF-WIDTH = MAX(_BC._DEF-WIDTH, 
@@ -2482,35 +2493,15 @@ PROCEDURE add-fields.ip:
     END.  /* If we don't have the _BC record already */
     ELSE _BC._SEQUENCE = -1.
 
-    /* Before setting the sequence number,  see if the cur-seq # is available */
-    IF NOT CAN-FIND(x_BC WHERE x_BC._x-recid = _query-u-rec AND x_BC._SEQUENCE = cur-seq)
-      THEN _BC._SEQUENCE = cur-seq.
-    ELSE DO:  /* Need to move things down - EXCEPT THE CURRENT ONE IF IT IS A 
-                 CALCULATED field                                              */
-      FIND LAST x_BC WHERE x_BC._x-recid = _query-u-rec.
-      last-seq = x_BC._SEQUENCE.
-      REPEAT ii = last-seq TO cur-seq BY -1:
-        FIND x_BC WHERE x_BC._x-recid = _query-u-rec AND
-                        x_BC._SEQUENCE = ii NO-ERROR.
-        IF AVAILABLE x_BC THEN DO:
-          /* Before incrementing, make sure its not the current one AND a
-             calculated field */
-          IF x_BC._SEQUENCE NE cur-seq OR x_BC._DBNAME NE "_<CALC>":U THEN
-             x_BC._SEQUENCE = x_BC._SEQUENCE + 1.
-        END.
-      END.  /* Repeat ii */
-      
-      /* Things have been moved down */
-      /* The cur-seq may still not be available if it is a CALCULATED field */
-      FIND x_BC WHERE x_BC._x-recid = _query-u-rec AND
-                      x_BC._SEQUENCE = cur-seq NO-ERROR.
-      IF AVAILABLE x_BC THEN  /* Must be a CALCULATED field - skip over it */
-        cur-seq = cur-seq + 1.
-      ASSIGN _BC._SEQUENCE = cur-seq.
-    END.                      
+    FIND LAST x_BC WHERE x_BC._x-recid = _query-u-rec NO-LOCK NO-ERROR.
+    IF NOT AVAILABLE(x_BC) THEN
+      ASSIGN _BC._SEQUENCE = 1.
+    ELSE
+      ASSIGN _BC._SEQUENCE = x_BC._SEQUENCE + 1.
+    
     ASSIGN cur-record = RECID(_BC).
-  END.  /* DO i = 1 to NUM-ENTRIES of Fld-List */
-   
+  END.  /* DO i = 1 to NUM-ENTRIES of cNewFieldList */
+
   /* Reopen browse */
   {&OPEN-QUERY-brw-flds}
   ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(MIN(

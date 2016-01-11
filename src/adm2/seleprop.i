@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : seleprop.i
     Purpose     : Defines basic properties.
@@ -26,7 +26,7 @@
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
-AutoRefresh,ChangedEvent,DisplayedField,KeyField,DataSourceFilter,NumRows,~
+AutoRefresh,ChangedEvent,DisplayedField,DataSourceFilter,NumRows,~
 Optional,OptionalString,Label,Sort,ViewAs,ToolTip,Format,HelpId,BrowseTitle,~
 BrowseFields,ExitBrowseOnAction,CancelBrowseOnExit,RepositionDataSource,~
 DefineAnyKeyTrigger,StartBrowseKeys
@@ -101,7 +101,6 @@ DefineAnyKeyTrigger,StartBrowseKeys
   &GLOBAL-DEFINE xpTooltip 
   &GLOBAL-DEFINE xpHelpId 
   &GLOBAL-DEFINE xpChangedEvent 
-  &GLOBAL-DEFINE xpKeyField
   &GLOBAL-DEFINE xpDisplayedField
   &GLOBAL-DEFINE xpDataSourceFilter
   &GLOBAL-DEFINE xpNumRows
@@ -128,7 +127,6 @@ DefineAnyKeyTrigger,StartBrowseKeys
   &GLOBAL-DEFINE xpCancelBrowseOnExit
   &GLOBAL-DEFINE xpRepositionDataSource
   &GLOBAL-DEFINE xpStartBrowseKeys
-  
   {src/adm2/fieldprop.i}
   
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
@@ -144,7 +142,6 @@ DO:
   ghADMProps:ADD-NEW-FIELD('Format':U, 'CHAR':U, 0, ?, ?).    
   ghADMProps:ADD-NEW-FIELD('ChangedEvent':U, 'CHAR':U, 0, ?, '':U).       
   ghADMProps:ADD-NEW-FIELD('DisplayedField':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('KeyField':U, 'CHAR':U, 0, ?, '':U).     
   ghADMProps:ADD-NEW-FIELD('DataSourceFilter':U, 'CHAR':U, 0, ?, '':U).   
   ghADMProps:ADD-NEW-FIELD('NumRows':U, 'INT':U, 0, ?, 5).          
   ghADMProps:ADD-NEW-FIELD('Optional':U, 'LOG':U, 0, ?, no).
@@ -169,7 +166,6 @@ DO:
   ghADMProps:ADD-NEW-FIELD('RepositionDataSource':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('DefineAnyKeyTrigger':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('StartBrowseKeys':U, 'CHARACTER':U, 0, ?, 'NEXT-FRAME':U).  
- 
 &ENDIF
 
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/

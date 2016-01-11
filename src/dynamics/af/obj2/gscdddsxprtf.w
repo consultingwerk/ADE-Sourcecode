@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" fFrameWin _INLINE
@@ -20,8 +20,8 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS fFrameWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -120,21 +120,21 @@ DEFINE VARIABLE hQrySelected  AS HANDLE     NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 &Scoped-define BROWSE-NAME brAvailable
 
 /* Definitions for FRAME fMain                                          */
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiRootDirectory buRootDirectory ~
-fiBlankDirectory buBlankDir lResetModified lAllModified lIncludeDeletions ~
-lRemoveDeletion brAvailable brSelected buAddAll buAdd buRemove buRemoveAll ~
-buSelAllAvail buDeselAllAvail buSelAllSelect buDeselAllSelect buProperties ~
-RECT-2 RECT-3 RECT-4 
+&Scoped-Define ENABLED-OBJECTS fiRootDirectory buRootDirectory RECT-2 ~
+RECT-3 RECT-4 fiBlankDirectory buBlankDir lResetModified lAllModified ~
+lRemoveDeletion lIncludeDeletions brAvailable brSelected buAddAll buAdd ~
+buRemove buRemoveAll buSelAllAvail buDeselAllAvail buSelAllSelect ~
+buDeselAllSelect buProperties 
 &Scoped-Define DISPLAYED-OBJECTS fiRootDirectory fiBlankDirectory ~
-lResetModified lAllModified lIncludeDeletions lFullDS dtStart dtEnd ~
-lRemoveDeletion toByDate 
+lResetModified lAllModified lFullDS lRemoveDeletion dtStart dtEnd toByDate ~
+lIncludeDeletions 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -243,15 +243,15 @@ DEFINE VARIABLE fiRootDirectory AS CHARACTER FORMAT "X(256)":U
      SIZE 97.6 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 57.2 BY 16.81.
 
 DEFINE RECTANGLE RECT-3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 66.8 BY 16.81.
 
 DEFINE RECTANGLE RECT-4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 68.8 BY 2.48.
 
 DEFINE VARIABLE lAllModified AS LOGICAL INITIAL no 
@@ -291,7 +291,7 @@ DEFINE BROWSE brAvailable
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 55.2 BY 14.71.
+    WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 55.2 BY 14.29.
 
 DEFINE BROWSE brSelected
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS brSelected fFrameWin _STRUCTURED
@@ -310,12 +310,12 @@ DEFINE FRAME fMain
      buBlankDir AT ROW 2.19 COL 119
      lResetModified AT ROW 3.29 COL 25
      lAllModified AT ROW 3.38 COL 80.4
-     lIncludeDeletions AT ROW 4.19 COL 25
      lFullDS AT ROW 4.19 COL 77.4
+     lRemoveDeletion AT ROW 4.29 COL 30
      dtStart AT ROW 5 COL 100 COLON-ALIGNED
      dtEnd AT ROW 5 COL 123.8 COLON-ALIGNED
-     lRemoveDeletion AT ROW 5.1 COL 25
      toByDate AT ROW 5.14 COL 77.4
+     lIncludeDeletions AT ROW 5.38 COL 25
      brAvailable AT ROW 7.48 COL 2
      brSelected AT ROW 7.48 COL 78.8
      buAddAll AT ROW 11.14 COL 58.8
@@ -327,13 +327,13 @@ DEFINE FRAME fMain
      buSelAllSelect AT ROW 22.48 COL 79.2
      buDeselAllSelect AT ROW 22.48 COL 100.8
      buProperties AT ROW 22.48 COL 122.6
-     RECT-2 AT ROW 7.1 COL 1
-     RECT-3 AT ROW 7.1 COL 77.6
-     RECT-4 AT ROW 3.76 COL 76
      "Available datasets:" VIEW-AS TEXT
           SIZE 19.6 BY .62 AT ROW 6.71 COL 3.2
      "Selected datasets:" VIEW-AS TEXT
           SIZE 18.8 BY .62 AT ROW 6.71 COL 80
+     RECT-2 AT ROW 7.1 COL 1
+     RECT-3 AT ROW 7.1 COL 77.6
+     RECT-4 AT ROW 3.76 COL 76
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -347,7 +347,7 @@ DEFINE FRAME fMain
    Type: SmartFrame
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: PERSISTENT-ONLY COMPILE
+   Other Settings: PERSISTENT-ONLY
  */
 
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
@@ -388,8 +388,8 @@ END.
 /* SETTINGS FOR WINDOW fFrameWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME fMain
-   NOT-VISIBLE                                                          */
-/* BROWSE-TAB brAvailable toByDate fMain */
+   NOT-VISIBLE FRAME-NAME                                               */
+/* BROWSE-TAB brAvailable lIncludeDeletions fMain */
 /* BROWSE-TAB brSelected brAvailable fMain */
 ASSIGN 
        FRAME fMain:HIDDEN           = TRUE.
@@ -439,6 +439,16 @@ END.
 ON DEFAULT-ACTION OF brSelected IN FRAME fMain
 DO:
   APPLY "CHOOSE":U TO buRemove.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brSelected fFrameWin
+ON VALUE-CHANGED OF brSelected IN FRAME fMain
+DO:
+  run enableControls.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -628,6 +638,17 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME lResetModified
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lResetModified fFrameWin
+ON VALUE-CHANGED OF lResetModified IN FRAME fMain /* Reset data modified status */
+DO:
+    run enableControls.  
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME toByDate
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toByDate fFrameWin
 ON VALUE-CHANGED OF toByDate IN FRAME fMain /* By date */
@@ -735,49 +756,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableControls fFrameWin 
-PROCEDURE enableControls :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-      lAllModified
-      toByDate
-      brAvailable:SENSITIVE = NOT lAllModified 
-      brSelected:SENSITIVE = NOT lAllModified 
-      buAdd:SENSITIVE = NOT lAllModified 
-      buAddAll:SENSITIVE = NOT lAllModified 
-      buDeselAllAvail:SENSITIVE = NOT lAllModified 
-      buDeselAllSelect:SENSITIVE = NOT lAllModified 
-      buProperties:SENSITIVE = NOT lAllModified 
-      buRemove:SENSITIVE = NOT lAllModified 
-      buRemoveAll:SENSITIVE = NOT lAllModified 
-      buSelAllAvail:SENSITIVE = NOT lAllModified 
-      buSelAllSelect:SENSITIVE = NOT lAllModified 
-      lFullDS:SENSITIVE = lAllModified 
-      lIncludeDeletions:SENSITIVE = NOT lAllModified 
-      lRemoveDeletion:SENSITIVE = NOT lAllModified 
-      lResetModified:SENSITIVE = NOT lAllModified
-      toByDate:SENSITIVE = lAllModified
-      dtStart:SENSITIVE = toByDate
-      dtEnd:SENSITIVE = toByDate
-    .
-    IF toByDate THEN
-        DISPLAY TODAY @ dtStart TODAY @ dtEnd.
-    ELSE
-        ASSIGN
-          dtStart:SCREEN-VALUE = ?
-          dtEnd:SCREEN-VALUE = ?.
-    enableDateButtons(toByDate).
-  END.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI fFrameWin  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
@@ -789,15 +767,65 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiRootDirectory fiBlankDirectory lResetModified lAllModified 
-          lIncludeDeletions lFullDS dtStart dtEnd lRemoveDeletion toByDate 
+  DISPLAY fiRootDirectory fiBlankDirectory lResetModified lAllModified lFullDS 
+          lRemoveDeletion dtStart dtEnd toByDate lIncludeDeletions 
       WITH FRAME fMain.
-  ENABLE fiRootDirectory buRootDirectory fiBlankDirectory buBlankDir 
-         lResetModified lAllModified lIncludeDeletions lRemoveDeletion buAddAll 
-         buAdd buRemove buRemoveAll buSelAllAvail buDeselAllAvail 
-         buSelAllSelect buDeselAllSelect buProperties RECT-2 RECT-3 RECT-4 
+  ENABLE fiRootDirectory buRootDirectory RECT-2 RECT-3 RECT-4 fiBlankDirectory 
+         buBlankDir lResetModified lAllModified lRemoveDeletion 
+         lIncludeDeletions buAddAll buAdd buRemove buRemoveAll buSelAllAvail 
+         buDeselAllAvail buSelAllSelect buDeselAllSelect buProperties 
       WITH FRAME fMain.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableControls fFrameWin 
+PROCEDURE enableControls :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def var hQry as handle no-undo.
+    
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN
+      lAllModified
+      toByDate
+      brAvailable:SENSITIVE = NOT lAllModified 
+      brSelected:SENSITIVE = NOT lAllModified 
+      buAdd:SENSITIVE = NOT lAllModified 
+      buAddAll:SENSITIVE = NOT lAllModified 
+      buDeselAllAvail:SENSITIVE = NOT lAllModified 
+      buDeselAllSelect:SENSITIVE = NOT lAllModified  and brSelected:num-selected-rows gt 0
+
+      buRemove:SENSITIVE = NOT lAllModified 
+      buRemoveAll:SENSITIVE = NOT lAllModified 
+      
+      buSelAllAvail:SENSITIVE = NOT lAllModified
+      buSelAllSelect:SENSITIVE = NOT lAllModified and brSelected:num-iterations gt 0
+      
+      lFullDS:SENSITIVE = lAllModified 
+      lIncludeDeletions:SENSITIVE = NOT lAllModified 
+      lResetModified:SENSITIVE = NOT lAllModified
+      lRemoveDeletion:SENSITIVE = lResetModified:SENSITIVE and lResetModified:checked
+      toByDate:SENSITIVE = lAllModified
+      dtStart:SENSITIVE = toByDate
+      dtEnd:SENSITIVE = toByDate
+    .
+    IF toByDate THEN
+        DISPLAY TODAY @ dtStart TODAY @ dtEnd.
+    ELSE
+        ASSIGN
+          dtStart:SCREEN-VALUE = ?
+          dtEnd:SCREEN-VALUE = ?.
+    enableDateButtons(toByDate).
+    
+    buProperties:SENSITIVE = NOT lAllModified and brSelected:sensitive and brSelected:num-selected-rows gt 0 .
+      
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -977,6 +1005,7 @@ PROCEDURE initializeObject :
   END.
 
   RUN populateAvailable.
+  run enableControls.
 
   RUN openQueries.
 
@@ -1013,9 +1042,11 @@ PROCEDURE moveRecs :
   DEFINE VARIABLE hToBuff   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hQuery    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iCount    AS INTEGER    NO-UNDO.
+  def var iCurrentRow as integer no-undo.
 
   hFromQry = phFrom:QUERY.
   hToQry   = phTo:QUERY.
+  iCurrentRow = ?.
 
   hWrkBuff = hToQry:GET-BUFFER-HANDLE(1).
   CREATE BUFFER hToBuff FOR TABLE hWrkBuff.
@@ -1050,6 +1081,9 @@ PROCEDURE moveRecs :
     hFromBuff = hFromQry:GET-BUFFER-HANDLE(1).
     REPEAT iCount = 1 TO phFrom:NUM-SELECTED-ROWS:
       phFrom:FETCH-SELECTED-ROW(iCount).
+      if iCurrentRow eq ? then
+          iCurrentRow = hFromQry:current-result-row - 1.
+          
       hToBuff:BUFFER-CREATE().
       hToBuff:BUFFER-COPY(hFromBuff).
       IF pcDefault <> "":U AND
@@ -1057,15 +1091,23 @@ PROCEDURE moveRecs :
         RUN VALUE(pcDefault) IN THIS-PROCEDURE (INPUT hToBuff).
       hFromBuff:BUFFER-DELETE().
       hToBuff:BUFFER-RELEASE().
-    END.
+    END.    
   END.
 
   DELETE OBJECT hToBuff.
   hToBuff = ?.
 
   openQuery(INPUT BUFFER ttDSAvailable:HANDLE, INPUT-OUTPUT hQryAvailable).
-
   openQuery(INPUT BUFFER ttDSSelected:HANDLE, INPUT-OUTPUT hQrySelected).
+  
+    /* Reposition to previous location, if there are any records in the browser. */
+    if iCurrentRow ne ? and hFromQry:num-results gt 0 then
+    do:
+        hFromQry:reposition-to-row(iCurrentRow).
+        phFrom:select-focused-row().
+    end.
+    
+  run enableControls.
 
 END PROCEDURE.
 
@@ -1130,7 +1172,10 @@ PROCEDURE populateAvailable :
     BUFFER-COPY bgsc_deploy_dataset TO bttDSAvailable.
 
   END.
-
+  
+  /* Tell the recordset view to update itself. */
+  publish 'updateRecordSet'.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1160,6 +1205,8 @@ PROCEDURE refreshData :
   Notes:       
 ------------------------------------------------------------------------------*/
   EMPTY TEMP-TABLE ttDSAvailable.
+  
+  /* Strictly, unnecessary, since gscddxmlp.p deletes the records in writeADOSet */
   EMPTY TEMP-TABLE ttDSSelected.
 
   RUN populateAvailable.
@@ -1184,9 +1231,9 @@ PROCEDURE selectRecs :
   DEFINE INPUT  PARAMETER plSelect AS LOGICAL    NO-UNDO.
 
   IF plSelect THEN
-    phBrowse:SELECT-ALL().
+    phBrowse:SELECT-ALL() no-error.
   ELSE
-    phBrowse:DESELECT-ROWS().
+    phBrowse:DESELECT-ROWS() no-error.
 
 END PROCEDURE.
 

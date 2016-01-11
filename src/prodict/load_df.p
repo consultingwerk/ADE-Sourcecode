@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -36,6 +36,7 @@ History:
     mcmann      10/17/03    Add NO-LOCK statement to _Db find in support of on-line schema add
     kmcintos    07/28/05    Added check for false alarm in read_bits 
                             20050727-041.
+    fernando    06/20/07    Support for large files
 
 ----------------------------------------------------------------------------*/
 /*h-*/
@@ -51,7 +52,7 @@ DEFINE VARIABLE save_ab     AS LOGICAL        NO-UNDO.
 DEFINE VARIABLE codepage    AS CHARACTER      NO-UNDO FORMAT "X(20)".
 DEFINE VARIABLE lvar        AS CHAR EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#       AS INT            NO-UNDO.
-DEFINE VARIABLE i           AS INT            NO-UNDO.
+DEFINE VARIABLE i           AS INT64          NO-UNDO.
 DEFINE VARIABLE old-session AS CHARACTER      NO-UNDO INITIAL ?.
 DEFINE VARIABLE counter     AS INTEGER        NO-UNDO INITIAL 1.
 
@@ -155,13 +156,15 @@ PROCEDURE read-cp.
   /* Read trailer of file and find codepage */
   /* (partially stolen from lodtrail.i)     */
   
-  DEFINE VARIABLE i     AS INT            NO-UNDO.
-
   INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
   SEEK INPUT TO END.
-  SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
+  i = SEEK(INPUT) - 12.
+  SEEK INPUT TO i. /* position to possible beginning of last line */
 
   READKEY PAUSE 0.
+  IF LASTKEY = 13 THEN /* deal with CRLF on Windows */
+      READKEY PAUSE 0.
+
   ASSIGN
     lvar# = 0
     lvar  = ""
@@ -172,6 +175,7 @@ PROCEDURE read-cp.
           ELSE ?).
     READKEY PAUSE 0.
   END.
+
   IF i > 0 then run get_psc. /* get it */
   ELSE RUN find_psc. /* look for it */
   INPUT CLOSE.
@@ -208,8 +212,8 @@ PROCEDURE find_psc:
    * anything to this trailer, you must change this number to reflect
    * the number of bytes you added. I'll use 256 to add a little padding. (gfs)
    */
-  DEFINE VARIABLE p AS INTEGER INITIAL 256. /* really 204, added extra just in case */
-  DEFINE VARIABLE l AS INTEGER.             /* last char position */
+  DEFINE VARIABLE p AS INT64   INITIAL 256. /* really 204, added extra just in case */
+  DEFINE VARIABLE l AS INT64.               /* LAST char position */
   
   SEEK INPUT TO END.
   ASSIGN l = SEEK(INPUT). /* EOF */
@@ -239,9 +243,9 @@ END.
 PROCEDURE read_bits:
   /* reads trailer given a starting position 
    */ 
-  DEFINE INPUT PARAMETER i as INTEGER. /* "SEEK TO" location */
+  DEFINE INPUT PARAMETER i as INT64  . /* "SEEK TO" location */
 
-  DEFINE VARIABLE iStartAt   AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE iStartAt   AS INT64       NO-UNDO.
   DEFINE VARIABLE iLinesRead AS INTEGER     NO-UNDO INITIAL 1.
     
   iStartAt = i.

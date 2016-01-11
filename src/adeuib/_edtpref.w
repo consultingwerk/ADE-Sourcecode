@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME dPreferences
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS dPreferences 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: adeuib/_edtpref.w
@@ -280,6 +280,7 @@ DO:
     RUN assign-new-values IN h_vprint.
   IF VALID-HANDLE(h_vwidgetid) THEN DO:
     RUN assign-new-values IN h_vwidgetid.
+    
     IF RETURN-VALUE EQ "Error":U THEN
       RETURN NO-APPLY.
   END.
@@ -366,8 +367,6 @@ PROCEDURE adm-create-objects :
        /* Size in AB:  ( 15.71 , 63.00 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             Btn_OK:HANDLE , 'BEFORE':U ).
        RUN adjustTabOrder ( h_vgenrl ,
              h_folder , 'AFTER':U ).
     END. /* Page 1 */
@@ -381,8 +380,6 @@ PROCEDURE adm-create-objects :
        /* Size in AB:  ( 4.62 , 69.00 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             Btn_OK:HANDLE , 'BEFORE':U ).
        RUN adjustTabOrder ( h_vwebcon ,
              h_folder , 'AFTER':U ).
     END. /* Page 2 */
@@ -396,8 +393,6 @@ PROCEDURE adm-create-objects :
        /* Size in AB:  ( 9.24 , 74.80 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             Btn_OK:HANDLE , 'BEFORE':U ).
        RUN adjustTabOrder ( h_vgrid ,
              h_folder , 'AFTER':U ).
     END. /* Page 3 */
@@ -411,8 +406,6 @@ PROCEDURE adm-create-objects :
        /* Size in AB:  ( 3.86 , 64.00 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             Btn_OK:HANDLE , 'BEFORE':U ).
        RUN adjustTabOrder ( h_vprint ,
              h_folder , 'AFTER':U ).
     END. /* Page 4 */
@@ -420,14 +413,12 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adeuib/_vwidgetid.w':U ,
              INPUT  FRAME dPreferences:HANDLE ,
-             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisable?ModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vwidgetid ).
-       RUN repositionObject IN h_vwidgetid ( 3.62 , 6.00 ) NO-ERROR.
-       /* Size in AB:  ( 3.76 , 50.00 ) */
+       RUN repositionObject IN h_vwidgetid ( 4.71 , 15.80 ) NO-ERROR.
+       /* Size in AB:  ( 10.95 , 52.00 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             Btn_OK:HANDLE , 'BEFORE':U ).
        RUN adjustTabOrder ( h_vwidgetid ,
              h_folder , 'AFTER':U ).
     END. /* Page 5 */

@@ -504,17 +504,16 @@ PROCEDURE processRecord :
   DEFINE VARIABLE hb  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hf  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE i1  AS INTEGER    NO-UNDO.
-
   DO TRANSACTION:
     CREATE BUFFER hb FOR TABLE STRING(cDBid + ".":U + cTable).
-
+    
     IF cAction = "add":U THEN DO:
       hb:BUFFER-CREATE().
       ASSIGN cRowID = STRING(hb:ROWID).
     END.
     hb:FIND-BY-ROWID(TO-ROWID(cRowid)).
-
-    IF cAction = "del":U THEN do:
+    IF cAction = "delete":U THEN 
+    do:
       hb:BUFFER-DELETE().
       ASSIGN cRowID = ''.
     END.

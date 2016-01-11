@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -133,11 +133,11 @@ ASSIGN _U._SUBTYPE             = pcSubtype
                                                             "WIDGET-HANDLE":U
        _U._ALIGN               = IF f_side_labels       THEN "C" ELSE "L"
        _F._FORMAT              = {&AFF_format}
-       _F._FORMAT-ATTR         = IF {&AFF_format-sa} ne ? 
+       _F._FORMAT-ATTR         = IF {&AFF_format-sa} NE ? 
                                  THEN {&AFF_format-sa} ELSE ""
        _F._FORMAT-SOURCE       = IF from_schema OR _U._DBNAME NE ? THEN "D" ELSE "E"
        _U._HELP-SOURCE         = IF from_schema OR _U._DBNAME NE ? THEN "D" ELSE "E"
-       _L._NO-LABELS           = ({&AFF_no-label} eq "Y")
+       _L._NO-LABELS           = ({&AFF_no-label} EQ "Y")
        /* If no-labels then don't show the label */
        tmp-label               = _U._LABEL  /* We MAY need this in the Temp-Table case */
        _U._LABEL               = IF _L._NO-LABELS 
@@ -145,13 +145,13 @@ ASSIGN _U._SUBTYPE             = pcSubtype
                                  ELSE (IF v_label = ? THEN _U._NAME ELSE v_label)
        _U._LABEL-SOURCE        = IF (from_schema OR _U._DBNAME NE ?)
                                  THEN "D" ELSE "E"
-       _F._AUTO-RETURN         = ({&AFF_auto-return} eq "Y")
-       _F._DEBLANK             = ({&AFF_deblank} eq "Y")
-       _F._BLANK               = ({&AFF_blank} eq "Y")
-       _F._PASSWORD-FIELD      = ({&AFF_password-field} eq "Y")
-       _F._NATIVE              = ({&AFF_native} eq "Y")
+       _F._AUTO-RETURN         = ({&AFF_auto-return} EQ "Y")
+       _F._DEBLANK             = ({&AFF_deblank} EQ "Y")
+       _F._BLANK               = ({&AFF_blank} EQ "Y")
+       _F._PASSWORD-FIELD      = ({&AFF_password-field} EQ "Y")
+       _F._NATIVE              = ({&AFF_native} EQ "Y")
        _F._UNDO                = IF _U._TABLE = ? AND tmp-tbl = ? 
-                                    THEN ({&AFF_undo} eq "y") ELSE TRUE
+                                    THEN ({&AFF_undo} EQ "y") ELSE TRUE
        _U._TOOLTIP             = {&AFF_TOOLTIP}
        _U._TOOLTIP-ATTR        = {&AFF_TOOLTIP-ATTR}
        _U._DROP-TARGET         = {&AFF_drop-target} = "y"
@@ -165,7 +165,7 @@ ASSIGN _U._SUBTYPE             = pcSubtype
   (LABEL-SOURCE = "D"), the UIB stores the label locally in _U._LABEL.  This
   will not have been set if the there is no label in the frame. (Note: we
   are assuming here that the frame has column-labels. */
-IF (_U._DBNAME NE ?) AND _L._NO-LABELS AND (_U._LABEL eq "") THEN DO:
+IF (_U._DBNAME NE ?) AND _L._NO-LABELS AND (_U._LABEL EQ "") THEN DO:
   IF _U._DBNAME NE "Temp-Tables" THEN 
     RUN adeuib/_fldlbl.p
             (_U._DBNAME, _U._TABLE, _U._NAME, NO,
@@ -239,7 +239,7 @@ SESSION:SET-NUMERIC-FORMAT(_numeric_separator, _numeric_decimal).
 
 /* Need to convert the initial data value from the dictionary to a 
    non-American format for display in the design window */
-IF CAN-DO("DECIMAL,INTEGER":U,_F._DATA-TYPE) THEN DO:
+IF CAN-DO("DECIMAL,INTEGER,INT64":U,_F._DATA-TYPE) THEN DO:
   RUN adecomm/_convert.p (INPUT 'A-TO-N', 
                           INPUT _F._INITIAL-DATA, 
                           INPUT _numeric_separator, 
@@ -251,13 +251,13 @@ END.  /* if integer or decimal */
 
 /* Set the FORMAT and SCREEN-VALUE */
 IF _cur_win_type THEN DO:  /* We handle the TTY case in _sim_lbl.p */
-  IF _U._HANDLE:DATA-TYPE eq "CHARACTER":U 
+  IF _U._HANDLE:DATA-TYPE EQ "CHARACTER":U 
   THEN ASSIGN _U._HANDLE:FORMAT       = "X(50)"
               _U._HANDLE:SCREEN-VALUE = _F._INITIAL-DATA.
-  ELSE ASSIGN _U._HANDLE:SCREEN-VALUE = IF LOOKUP(_U._HANDLE:DATA-TYPE, "INTEGER,DECIMAL":U) > 0 
+  ELSE ASSIGN _U._HANDLE:SCREEN-VALUE = IF LOOKUP(_U._HANDLE:DATA-TYPE, "INTEGER,DECIMAL,INT64":U) > 0 
                                         THEN "0":U ELSE ?
               _U._HANDLE:FORMAT       = _F._FORMAT
-              _U._HANDLE:SCREEN-VALUE = (IF _U._HANDLE:DATA-TYPE eq "LOGICAL":U THEN
+              _U._HANDLE:SCREEN-VALUE = (IF _U._HANDLE:DATA-TYPE EQ "LOGICAL":U THEN
                                            IF _F._INITIAL-DATA = "":U THEN "no":U 
                                            ELSE TRIM(_F._INITIAL-DATA)
                                          ELSE _F._INITIAL-DATA).

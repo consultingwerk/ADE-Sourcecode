@@ -144,6 +144,9 @@ do:
   def var ok_overwrite as logical.
   def var v_dirname as char.
   def var v_basename as char.
+  def var cSubDir as char no-undo.
+  def var cFile as char no-undo.
+  def var cTmp as char no-undo.
 
   assign v_TmpDir  = p_Dir:SCREEN-VALUE in frame filecomm 
          v_TmpFilt = TRIM( p_File:SCREEN-VALUE in frame filecomm )
@@ -251,6 +254,7 @@ do:
         then do: 
           /* Save as, so check if file already exists and warn user. */
           assign file-info:filename = File_Name.
+          /* file already exists */
           if ( file-info:full-pathname <> ? )
           then do:
 
@@ -266,10 +270,10 @@ do:
                      INPUT v_TmpFilt ,
                      OUTPUT Fullpath ).
 
-           assign File_Name = FullPath
-                  File-Info:file-name = File_Name.
+          assign File_Name = FullPath
+                 File-Info:file-name = File_Name.
 
-           if can-do( p_Options , "ASK-OVERWRITE" ) and
+          if can-do( p_Options , "ASK-OVERWRITE" ) and
               ( file-info:full-pathname <> ? )
            then do:
               assign ok_overwrite = no.
@@ -284,9 +288,37 @@ do:
                   return no-apply.
               end.
             end.
-           end. /* <> ? */
+          end. /* <> ? */
+          else
+          /* file doesn't exist on disk yet */
+          do:
+              /* separate the path from the actual file name */
+              run adecomm/_osprefx.p (File_Name, output cSubDir, output cFile).
+              
+              /* If no path typed in, add selected path and file to create filename */
+              if cSubDir eq '':u then
+                  run adecomm/_osfmush.p ( v_TmpDir, File_Name, OUTPUT File_Name ).
+              else
+              /* some path info typed in */
+              do: 
+                  /* The path from _osprefx has a trailing directory separator.
+                     file-info:full-pathname doesn't, so our comparison won't work
+                     unless its removed.
+                     Also make everything forward slash for ease of comparison. */                 
+                  cSubDir = replace(cSubDir, '~\', '/').
+                  cSubDir = right-trim(cSubDir, '/').
+                  
+                  file-information:file-name = cSubDir.
+                  cTmp = replace(file-information:full-pathname, '~\', '/').
+                  
+                  /* If a full path typed in, use that, in the form of File_Name.
+                     If not, add relative path to selected path. */
+                  if cTmp ne cSubDir then
+                      run adecomm/_osfmush.p ( v_TmpDir, File_Name, OUTPUT File_Name ).
+              end.    /* some pathing */
+          end.    /* file doesn't exist */
+           
            assign p_File:SCREEN-VALUE in frame filecomm = File_Name.
-
         end. /* when YES */
 
       end case.

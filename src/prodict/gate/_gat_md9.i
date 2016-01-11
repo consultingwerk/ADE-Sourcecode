@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -31,6 +31,7 @@ History:
     99/03/05    Mario B     bug 98-10-26-014, clean up empty .e files revised
     00/05/31    D. McMann   Added check for MSS to use correct name for alias
     10/17/03    D. McMann   Add NO-LOCK statement to _Db find in support of on-line schema add
+    06/20/07    fernando    Support for large files
     
 */
 
@@ -39,7 +40,7 @@ History:
 
 DEFINE NEW SHARED STREAM   loaderr.
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER INITIAL 0 NO-UNDO.
-DEFINE NEW SHARED VARIABLE recs   AS INTEGER INITIAL 0. /*UNDO*/
+DEFINE NEW SHARED VARIABLE recs   AS INT64 INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE            VARIABLE noload AS CHARACTER NO-UNDO.

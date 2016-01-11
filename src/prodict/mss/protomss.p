@@ -17,6 +17,7 @@
              fernando  04/14/06 Unicode support
              fernando  07/19/06 Unicode support - restrict UI
              moloney   03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
+             fernando  08/10/07 Removed UI restriction for Unicode support
 */            
 
 
@@ -42,7 +43,6 @@ DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
-DEFINE VARIABLE lUnicode      AS LOGICAL INITIAL FALSE    NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -81,7 +81,7 @@ FORM
   space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" SKIP({&VM_WID})
   cFormat VIEW-AS TEXT NO-LABEL AT 10
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                              HORIZONTAL NO-LABEL SKIP({&VM_WID})
   lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46 
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG}) 
@@ -287,13 +287,6 @@ ELSE
   ASSIGN lExpand = TRUE
          lFormat = FALSE.
 
-IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
-  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
-
-  IF tmp_str BEGINS "Y" THEN
-      ASSIGN lUnicode = TRUE.
-END.
-
 IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
 
   tmp_str      = OS-GETENV("UNICODETYPES").
@@ -360,11 +353,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
-     IF NOT lUnicode THEN
-        ASSIGN unicodeTypes:VISIBLE IN FRAME X = NO
-               lUniExpand:VISIBLE = NO.
-     ELSE
-         lUniExpand:SENSITIVE = NO.
+     lUniExpand:SENSITIVE = NO.
 
      DISPLAY cFormat lExpand WITH FRAME X.
      UPDATE pro_dbname
@@ -384,8 +373,8 @@ IF NOT batch_mode THEN
         movedata WHEN mvdta = TRUE
         shadowcol WHEN mss_incasesen = FALSE      
         dflt
-        unicodeTypes WHEN lUnicode
-        lUniExpand WHEN lUnicode AND unicodeTypes
+        unicodeTypes
+        lUniExpand WHEN unicodeTypes
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
@@ -405,13 +394,11 @@ IF NOT batch_mode THEN
     IF shadowcol:SCREEN-VALUE = "yes" THEN
       ASSIGN shadowcol = TRUE.
 
-    IF lUnicode THEN DO: 
-        IF unicodeTypes:SCREEN-VALUE ="yes" THEN
-           ASSIGN unicodeTypes = YES.
+    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
+       ASSIGN unicodeTypes = YES.
 
-        IF lUniExpand:SCREEN-VALUE ="yes" THEN
-           ASSIGN lUniExpand = YES.
-    END.
+    IF lUniExpand:SCREEN-VALUE ="yes" THEN
+       ASSIGN lUniExpand = YES.
 
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").

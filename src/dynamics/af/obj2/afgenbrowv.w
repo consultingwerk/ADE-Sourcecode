@@ -73,7 +73,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &glob   astra2-staticSmartObject yes
 
 {src/adm2/globals.i}
-{adeuib/sharvars.i}
 
 DEFINE VARIABLE ghContainerSource                       AS HANDLE           NO-UNDO.
 
@@ -489,9 +488,9 @@ PROCEDURE setPreferences :
                                            OUTPUT cPrefData).     /* Found profile data.   */
   IF cPrefData <> ? AND
      cPrefData <> "":U THEN DO:
-    cSDBType = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDB_Type":U,cPrefData,TRUE,CHR(3)).
-    cSDBPM   = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"SDB_PM":U,cPrefData,TRUE,CHR(3)).
-    cSDBSuf  = DYNAMIC-FUNCTION("mappedEntry" IN _h_func_lib,"OG_SDB_Suf":U,cPrefData,TRUE,CHR(3)).
+    cSDBType = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDB_Type":U,cPrefData,TRUE,CHR(3)).
+    cSDBPM   = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"SDB_PM":U,cPrefData,TRUE,CHR(3)).
+    cSDBSuf  = DYNAMIC-FUNCTION("mappedEntry" IN target-procedure,"OG_SDB_Suf":U,cPrefData,TRUE,CHR(3)).
     
     DO WITH FRAME {&FRAME-NAME}:
       IF cSDBType <> ? AND

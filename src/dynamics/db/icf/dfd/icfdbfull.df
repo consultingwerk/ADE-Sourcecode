@@ -34,11 +34,11 @@ ADD SEQUENCE "seq_session_id"
   MAX-VAL 999999999
 
 ADD SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 101101
+  INITIAL 0
   INCREMENT 1
   CYCLE-ON-LIMIT yes
   MIN-VAL 0
-  MAX-VAL 101101
+  MAX-VAL 101201
 
 ADD TABLE "gsc_custom_procedure"
   AREA "Schema Area"
@@ -2521,6 +2521,9 @@ E.g. Scheme option names, transaction narrations, valid people titles, etc."
   TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsclttrigc.p" CRC "?" 
   TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsclttrigd.p" CRC "?" 
   TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsclttrigw.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gscltreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gscltrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gscltreplw.p" CRC "?" 
 
 ADD FIELD "language_text_obj" OF "gsc_language_text" AS decimal 
   FORMAT "->>>>>>>>>>>>>>>>>9.999999999"

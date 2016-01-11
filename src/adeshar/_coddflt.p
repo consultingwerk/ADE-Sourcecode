@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -374,12 +374,8 @@ CASE p_template:
          IF _BC._LABEL-ATTR NE "":U AND _BC._LABEL-ATTR <> ? THEN
             tmp_string = tmp_string + ":":U + _BC._LABEL-ATTR.
       END.
-      IF _BC._FORMAT NE "":U AND _BC._FORMAT NE ? AND
-         (_BC._FORMAT NE _BC._DEF-FORMAT OR
-         ((_BC._FORMAT-ATTR NE _BC._DEF-FORMAT-ATTR) AND
-          _BC._FORMAT-ATTR NE "":U AND
-          _BC._FORMAT-ATTR NE ?
-         )) THEN
+      IF _BC._FORMAT NE "":U AND _BC._FORMAT NE ? OR
+         _BC._FORMAT NE _BC._DEF-FORMAT THEN
       DO:
         tmp_string = tmp_string + " FORMAT """ + _BC._FORMAT + """".
         IF _BC._FORMAT-ATTR NE "":U AND _BC._FORMAT-ATTR <> ? THEN

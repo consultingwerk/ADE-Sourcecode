@@ -220,7 +220,9 @@ PROCEDURE FetchCustomizationTypes :
                       ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
   &ELSE
     /* Make a list of customization types */
-    FOR EACH ryc_customization_type BY ryc_customization_type.customization_type_code:
+    FOR EACH ryc_customization_type
+             no-lock
+             BY ryc_customization_type.customization_type_code:
       IF NOT plWithResultCode OR
         CAN-FIND(FIRST ryc_customization_result 
            WHERE ryc_customization_result.customization_type_obj = 

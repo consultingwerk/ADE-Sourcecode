@@ -254,6 +254,17 @@ FUNCTION getNewBatchInfo RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getNoLockReadOnlyTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNoLockReadOnlyTables Procedure 
+FUNCTION getNoLockReadOnlyTables RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getOpenQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenQuery Procedure 
@@ -611,6 +622,17 @@ FUNCTION setLastResultRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNewBatchInfo Procedure 
 FUNCTION setNewBatchInfo RETURNS LOGICAL
   ( pcNewBatchInfo AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setNoLockReadOnlyTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNoLockReadOnlyTables Procedure 
+FUNCTION setNoLockReadOnlyTables RETURNS LOGICAL
+  ( pcNoLockReadOnlyTables AS char )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1292,6 +1314,33 @@ FUNCTION getNewBatchInfo RETURNS CHARACTER
   {get NewBatchInfo cValue}.
   RETURN cValue.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getNoLockReadOnlyTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNoLockReadOnlyTables Procedure 
+FUNCTION getNoLockReadOnlyTables RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Read only (no updatable columns) tables specified in this comma 
+           separated list will remain NO-LOCKed during the transaction and 
+           not be included in the optimistic locking check. 
+           A value of 'ALL' means that this applies to all read only tables. 
+           The default behavior, when this property is blank, is to apply 
+           EXCLUSIVE-LOCK to joined read only tables during the transaction 
+           and to include them in the optimistic lock conflict check.
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cNoLockReadOnlyTables AS CHARACTER   NO-UNDO.
+  
+  {get NoLockReadOnlyTables cNoLockReadOnlyTables}.
+  
+  RETURN cNoLockReadOnlyTables.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2110,6 +2159,32 @@ FUNCTION setNewBatchInfo RETURNS LOGICAL
 
   {set NewBatchInfo pcNewBatchInfo}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setNoLockReadOnlyTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNoLockReadOnlyTables Procedure 
+FUNCTION setNoLockReadOnlyTables RETURNS LOGICAL
+  ( pcNoLockReadOnlyTables AS char ) :
+/*------------------------------------------------------------------------------
+ Purpose:  Read only (no updatable columns) tables specified in this comma 
+           separated list will remain NO-LOCKed during the transaction and 
+           not be included in the optimistic locking check. 
+           A value of 'ALL' means that this applies to all read only tables. 
+           The default behavior, when this property is blank, is to apply 
+           EXCLUSIVE-LOCK to joined read only tables during the transaction 
+           and to include them in the optimistic lock conflict check.
+  Notes:
+------------------------------------------------------------------------------*/
+  {set NoLockReadOnlyTables pcNoLockReadOnlyTables}.
+ 
+  RETURN TRUE.  
 
 END FUNCTION.
 

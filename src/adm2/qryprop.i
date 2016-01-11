@@ -106,6 +106,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpLastDBRowIdent
  &GLOB xpLastResultRow            
  &GLOB xpNewBatchInfo
+ &GLOB xpNoLockReadOnlyTables
  &GLOB xpPhysicalTables
  &GLOB xpPositionForClient 
  &GLOB xpQueryHandle            
@@ -144,6 +145,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('LastDBRowIdent':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('LastResultRow':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('NewBatchInfo':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('NoLockReadOnlyTables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('PhysicalTables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('PositionForClient':U, 'CHARACTER':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('QueryHandle':U, 'HANDLE':U).

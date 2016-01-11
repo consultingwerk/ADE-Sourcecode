@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,7 +35,8 @@ OUTPUT:
    user_filename
    user_env[1]
       Contains the filename selected, or 'ALL', or a comma-separated list
-      of filenames.  If a comma-sep list is returned in user_env[1], 'SOME'
+      of filenames.  Or it may be in user_longchar, if list was too big.
+      If a comma-sep list is returned in user_env[1], 'SOME'
       is returned in user_filename.
  
 Author: Laura Stern
@@ -79,12 +80,10 @@ History
     hutegger    94/03/31    modified select-button-trigger so it does NOT
                             deselct already selected tables
     fernando    03/13/06    Using temp-table to store table names - bug 20050930-006.
+    fernando    12/13/07    Handle long list of selected tables
                             
 ----------------------------------------------------------------------------*/
 
-/* This whole file should be used only on GUI, but in case it gets compiled
-for TTY mode, let's just turn it into a big empty file */
-/*H-*/
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -259,7 +258,25 @@ do:
       	 user_filename = "ALL"
          user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
    else do:
-      user_env[1] = chosen.
+      user_env[1] = chosen NO-ERROR.
+      /* if we couldn't add it to user_env[1], try the longchar in case
+         string is too big .
+      */
+      IF NOT ERROR-STATUS:ERROR THEN
+         ASSIGN user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
+      ELSE DO:
+         /* if undefined codepage, then there is nothing we can do but
+            error out
+         */
+         IF isCpUndefined THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1)
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            RETURN NO-APPLY.
+         END.
+
+         ASSIGN user_env[1] = ""
+                user_longchar = chosen.
+      END.
 
       if NUM-ENTRIES(chosen) > 1 THEN
       	 assign user_filename = "SOME".
@@ -329,16 +346,21 @@ do:
          do ix = 1 to cache_file#:
           if   CAN-DO(pattern, cache_file[ix]) 
        	   AND NOT LOOKUP(cache_file[ix], choice) > 0
-             then do: 
-                      assign choice = choice 
-                                + (if choice = "" then "" else ",") 
-                                + cache_file[ix] no-error.
-                      IF ERROR-STATUS:ERROR THEN DO:
-                         MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
-                                  SKIP ERROR-STATUS:GET-MESSAGE(1)
-                                  VIEW-AS ALERT-BOX ERROR.
-                         LEAVE.
-                      END.
+             then do:
+                /* the assign below used to be one statement, but I separated it
+                   in two to handle selecting lots of tables so we don't run
+                   out of stack space.
+                */
+                IF choice = "" THEN
+                   ASSIGN choice = cache_file[ix].
+                ELSE
+                   ASSIGN choice = choice + "," + cache_file[ix] NO-ERROR.
+                IF ERROR-STATUS:ERROR THEN DO:
+                   MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                            SKIP ERROR-STATUS:GET-MESSAGE(1)
+                            VIEW-AS ALERT-BOX ERROR.
+                   LEAVE.
+                END.
               end.
       	 end.     	     
       end.
@@ -402,7 +424,7 @@ DO:
        end.
    END.
    ELSE do ix = 1 to cache_file#:
-      stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+          stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
    end.
 
    ASSIGN tlist:SCREEN-VALUE = selsave. /* put 'em back */
@@ -554,9 +576,9 @@ do:
        end.
    END.
    ELSE do ix = 1 to cache_file#:
-        stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
-   END.
-
+          stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+   end.
+   
    /* Initialize the combo box and initialize the choose based on the 
       last table name chosen. This is only for choose 1 lists. */
    if NOT p_some then

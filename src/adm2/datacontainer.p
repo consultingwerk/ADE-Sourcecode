@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /******************************************************************************/
-/* Copyright (c) 2005,2006 Progress Software Corporation, All rights reserved.*/
+/* Copyright (c) 2005-2007 Progress Software Corporation, All rights reserved.*/
 /******************************************************************************/
 /*------------------------------------------------------------------------
     File        : adm2/datacontainer.p
@@ -50,33 +50,44 @@ DEFINE VARIABLE ghService AS HANDLE     NO-UNDO.
  "Could not retrieve dataset for entity '&1'."
 
 /* This TT is used to keep track of the requested datasets.
+   After the first retrieveData call has been executed the DataView calls 
+   retrieveDataset, which used this tt to find and return the datasetproceure.
+   
    This could/may be replaced by making the datasets into container targets
    of the requestor. Note that the current implementation also allows
-   non-containers to own a dataset though */
+   non-containers to own a dataset though 
+   
+   The datasetname is typically unique..., but this is not enforced in tools 
+   even if the default is the BE, so someone could theoretically have: 
+      BusinessEntity DatasetName  
+      -------------- -----------
+      customer       A  
+      customer       B
+      order          A
+      order          B                   */
+      
 DEFINE TEMP-TABLE ttDataset NO-UNDO
-  FIELD Requestor        AS HANDLE
-  FIELD DatasetName      AS CHARACTER
   FIELD BusinessEntity   AS CHARACTER
+  FIELD DatasetName      AS CHARACTER
+  FIELD Requestor        AS HANDLE
   FIELD DatasetProcedure AS HANDLE
-  INDEX Requestor AS PRIMARY UNIQUE Requestor DatasetName BusinessEntity
-  INDEX DatasetProcedure DatasetProcedure.
-
-/* Note: the current relationship to ttDataset is using 3 fields...,
-         this is however not exposed in code, so not a big deal..
+  INDEX InstanceId AS PRIMARY UNIQUE BusinessEntity DatasetName 
+  INDEX DatasetProcedure as unique DatasetProcedure
+  INDEX Requestor  Requestor.
+  
+/* Note: the current relationship to ttDataset is using 2 fields...,
          Can also be changed without code changes 
-         ( OF is being used in code, the assumption being that no amateur 
-           adds ambiguous relations..)  */  
+         ( OF is being used in code)  */  
 DEFINE TEMP-TABLE ttDataTable NO-UNDO
-  FIELD Requestor        AS HANDLE
-  FIELD DatasetName      AS CHARACTER
   FIELD BusinessEntity   AS CHARACTER
+  FIELD DatasetName      AS CHARACTER
   FIELD DataTable        AS CHARACTER 
   FIELD RequestType      AS CHARACTER
   FIELD NumRows          AS INTEGER
   FIELD NextContext      AS CHARACTER
   FIELD PrevContext      AS CHARACTER
   INDEX DataTable AS PRIMARY 
-    UNIQUE Requestor DatasetName BusinessEntity DataTable.
+    UNIQUE BusinessEntity DatasetName DataTable.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -96,6 +107,17 @@ DEFINE TEMP-TABLE ttDataTable NO-UNDO
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-getSubmitParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSubmitParent Procedure
+FUNCTION getSubmitParent RETURNS LOGICAL
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-cloneDataset) = 0 &THEN
 
@@ -369,8 +391,9 @@ PROCEDURE retrieveData :
 /*------------------------------------------------------------------------------
   Purpose:    Retrieve data from the service  
   Parameters:   phRequestor      - The requesting object handle used as the key 
-                                   to identify the scope of the dataset.
+                                   to identify the lifetime of the dataset.
                                   (the requestor may be the actual dataview)
+                                   This is only used to delete the TTs. 
                 plRefresh        - Refresh, empties existing data 
                 plAppend         - Append to existing data. 
                                    Equivalent of RebuildOnRepos, except 
@@ -379,7 +402,8 @@ PROCEDURE retrieveData :
                --- one entry per table -------     
     
                 pcRequests       - chr(1) separated (may have query with comma)
-                pcDataTables     - Comma separated list of tables                                       
+                pcDataTables     - Comma separated list of tables
+                                   qualifed by unique dataset id                                         
                 pcQueries        - chr(1) separated ( query may have comma)
                 pcBatchSizes     - Comma separated list of tables
                 pcForeignFields  - chr(1) separated ( has comma)
@@ -389,8 +413,8 @@ PROCEDURE retrieveData :
                 pcDatasetSources - Comma separated list of dataset procedures
                                    ? on first request 
                 pcEntities       - Comma separated list of entities 
-                pcEntityNames    - Comma separated list of entity instance names
-                            
+                pcEntityNames    - Comma separated list of entity instance 
+                                   names that are unique within the session.                   
   Notes:  There are both an Refresh and Append because it is valid to have 
           refresh = yes and still have append = yes, as a signal to start from 
           top (Pass 'FIRST' in the navcontext to the service adapter)  
@@ -459,7 +483,7 @@ PROCEDURE retrieveData :
   define variable cParentFetch  as character no-undo.  
   DEFINE BUFFER bDataset   FOR TEMP-TABLE ttDataset.
   DEFINE BUFFER bDataTable FOR TEMP-TABLE ttDataTable.
-
+ 
   ASSIGN
     iNumEntities = NUM-ENTRIES(pcEntityNames)  
     iNumTables   = NUM-ENTRIES(pcDataTables)
@@ -511,8 +535,7 @@ PROCEDURE retrieveData :
         cEntity[iEntity]      = ENTRY(iEntity,pcEntities)
         hDSProcedure[iEntity] = WIDGET-HANDLE(ENTRY(iEntity,pcDatasetSources)).
      
-    FIND bDataTable WHERE bDataTable.Requestor = phRequestor
-                    AND   bDataTable.DatasetName = cEntityName
+    FIND bDataTable WHERE bDataTable.DatasetName = cEntityName
                     AND   bDataTable.BusinessEntity = ENTRY(iEntity,pcEntities)
                     AND   bDataTable.DataTable = cTable
                     NO-ERROR.
@@ -527,7 +550,7 @@ PROCEDURE retrieveData :
            ensure that it is legal, same or child object.  */            
         IF AVAIL bDataTable THEN
         DO:
-          /* Deny request from different object than earlier request */
+           /* Deny request from different object than earlier request */
           IF cRequest = 'DEFS':U
           OR (    bDataTable.RequestType <> 'DEFS':U  
               AND bDataTable.RequestType <> 'ALL':U) THEN
@@ -544,8 +567,7 @@ PROCEDURE retrieveData :
         END.
         ELSE DO:
           /* dataset could be initialized earlier than this DataView  */  
-          FIND bDataset WHERE bDataset.Requestor      = phRequestor
-                        AND   bDataset.BusinessEntity = ENTRY(iEntity,pcEntities)
+          FIND bDataset WHERE bDataset.BusinessEntity = ENTRY(iEntity,pcEntities)
                         AND   bDataset.DatasetName    = cEntityName
                         NO-ERROR.
           IF AVAIL bDataset THEN
@@ -628,8 +650,7 @@ PROCEDURE retrieveData :
     IF NOT AVAIL bDataTable THEN
     DO:
       CREATE bDataTable.
-      ASSIGN bDataTable.Requestor   = phRequestor
-             bDataTable.DatasetName = cEntityName
+      ASSIGN bDataTable.DatasetName = cEntityName
              bDataTable.BusinessEntity = ENTRY(iEntity,pcEntities)
              bDataTable.DataTable = cTable.
     END.
@@ -867,7 +888,7 @@ DEFINE OUTPUT PARAMETER phDataset     AS HANDLE     NO-UNDO.
  
  IF NOT AVAIL bttDataset THEN
  DO:
-   RUN retrieveData IN {fn getDataContainerHandle}
+   RUN retrieveData IN target-procedure
                          (phRequestor,
                           NO,
                           NO,
@@ -970,7 +991,7 @@ PROCEDURE submitDataset :
        the dataviews later (and false is returned)  */
     plCompleted = DYNAMIC-FUNCTION("mergeChangeDataset":U IN phDatasetSource,
                                    hChangedDataset[1],
-                                   plSubmitParent OR pcDataTable = "" ).
+                                   plSubmitParent OR pcDataTable = "" ).                            
   END. /* else (not unexpected error) */
  END PROCEDURE.
 
@@ -980,6 +1001,34 @@ PROCEDURE submitDataset :
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-getSubmitParent) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSubmitParent Procedure
+FUNCTION getSubmitParent RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the optional setting of SubmitParent from Service Adapter 
+    Notes: Returns YES if no service adapter value is defined. 
+------------------------------------------------------------------------------*/ 
+  define variable lSubmitParent as logical    no-undo.
+  define variable hAdapter      as handle     no-undo. 
+  
+  hAdapter = {fn getServiceAdapter}.
+  if not valid-handle(hAdapter) then 
+    return ?. 
+    
+  lSubmitParent = {fn getSubmitParent hAdapter} no-error.
+  if error-status:get-message(1) > "":U then
+    lSubmitparent = true.
+  
+  return lSubmitParent.  
+  
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-cloneDataset) = 0 &THEN
 

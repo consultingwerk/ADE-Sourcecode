@@ -33,7 +33,6 @@ Author: Wm.T.Wood
 
 Date Created: May 1996
 ----------------------------------------------------------------------------*/
-
 DEFINE INPUT  PARAMETER p_db-tbl-fld AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER p_fld_type   AS CHARACTER NO-UNDO.
 

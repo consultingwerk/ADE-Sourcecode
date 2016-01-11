@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -626,7 +626,7 @@ REPEAT iColumn = 1 TO NUM-ENTRIES(cDataColumns):
     ASSIGN cColumn   = ENTRY(iColumn, cDataColumns)
            cDataType = {fnarg columnDataType cColumn phDataObject}.
 
-    IF cDataType = "INT64":U AND CAN-DO(pcFieldList, cColumn)
+    IF (cDataType = "INT64":U OR cDataType = "RAW":U) AND CAN-DO(pcFieldList, cColumn)       
     THEN DO:
            ASSIGN pcFieldList = REPLACE(pcFieldList, cColumn, "!" + cColumn).
 
@@ -1055,7 +1055,7 @@ DEFINE VARIABLE cNumFormatQuoted     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iInteger             AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iInt64               AS INT64      NO-UNDO.
 DEFINE VARIABLE dDecimal             AS DECIMAL    NO-UNDO.
-
+DEFINE VARIABLE cBeforeClipBoard     AS CHARACTER  NO-UNDO.
 /*  Windows but now running on another OS */
 IF OPSYS = "win32":U THEN 
 DO:
@@ -1160,11 +1160,18 @@ FOR EACH ttTable
          BY ttTable.iCol
       ON ERROR UNDO fe-blk, LEAVE fe-blk:
 
-  ASSIGN cDataType = ENTRY(ttTable.iCol, cDataTypeList).
-
-  /* Remove any tabs from the cell.  We use them as a delimiter, so having them in data is going to screw up our layout */
-  ASSIGN ttTable.cCell = REPLACE(ttTable.cCell, CHR(9), " ":U).
-
+  ASSIGN 
+    cDataType = ENTRY(ttTable.iCol, cDataTypeList)
+    /* Remove any tabs from the cell.  We use them as a delimiter, 
+       so having them in data is going to screw up our layout */
+    ttTable.cCell = REPLACE(ttTable.cCell, CHR(9), " ":U)
+    /* Remove LineFeed and CarriageReturn so it does not appear in the csv file
+       We will replace them with LineFeed again when loaded into Excel. 
+       Check for both Windows LF (chr(10)) and CR (chr(13)) in data */   
+    ttTable.cCell = REPLACE(ttTable.cCell, CHR(10) + CHR(13), CHR(3)) 
+    ttTable.cCell = REPLACE(ttTable.cCell, CHR(13), CHR(3))
+    ttTable.cCell = REPLACE(ttTable.cCell, CHR(10), CHR(3)).
+    
   /* If the data type is numeric, format it so it makes sense to Excel */
   CASE cDataType:
     WHEN "DECIMAL":U OR WHEN "INTEGER":U THEN 
@@ -1235,7 +1242,6 @@ FOR EACH ttTable
              ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
              NO-ERROR.
     END.
-
     WHEN "DATETIME":U OR WHEN "DATETIME-TZ":U THEN
       ASSIGN ttTable.cCell = '"':U + ttTable.cCell + '"':U.
   END CASE.
@@ -1308,6 +1314,17 @@ FOR EACH ttTable
         WHEN "DATETIME":U THEN chWorkSheet:Columns(cRange3):NumberFormat = "@":U.
     END CASE.
 END.
+/* Save the clipboard content so we can restore it later if possible */
+/* if it is still unknown later, the clipboard was not containing text (image),
+   so we will not be able to restore it anyway */
+cBeforeClipboard = ?. 
+/* success if clipboard contains a text < 32k, otherwise fails and leave 
+   unknown value in cBeforeClipboard */
+do on stop undo,leave:
+  cBeforeClipboard = CLIPBOARD:VALUE NO-ERROR.
+end.
+
+chWorkSheet:Range(cFullRange):REPLACE(CHR(3), CHR(10)).
 chWorkSheet:Range(cFullRange):CUT.
 chWorkbook:CLOSE().
 
@@ -1412,6 +1429,9 @@ FOR EACH ttTable
     ASSIGN chWorkSheet:Range(cRange1):Font:Bold = TRUE.
 END. /* heading-loop */
 chWorkSheet:PASTE.
+/* Restore clipboard */
+IF cBeforeClipboard <> ? THEN 
+  CLIPBOARD:VALUE = cBeforeClipboard.
 
 /* Now populate the headers (they were formatted above but not populated).     *
  * We have to do it here because we can't format in the text file.  Also,      *
@@ -1941,7 +1961,8 @@ PROCEDURE exportToXML :
           ELSE 
           IF cDataType = "DECIMAL":U THEN STRING(DECIMAL(REPLACE(ttTable.cCell,"%":U,"":U)))
           ELSE
-          IF cDataType = "CHARACTER":U AND LENGTH( ttTable.cCell ) > 319 THEN SUBSTRING( ttTable.cCell, 1, 319 )
+          IF cDataType = "CHARACTER":U AND LENGTH( ttTable.cCell ) > 319
+          THEN SUBSTRING( ttTable.cCell, 1, 319 )
           ELSE ttTable.cCell
         .                                            
   END.  /* data-loop */

@@ -24,6 +24,8 @@ Author: D.M.Adams
 
 Date Created:  June 1996
 ---------------------------------------------------------------------------- */
+/*Copyright (c) by PROGRESS SOFTWARE CORPORATION. 1996 - AllRights Reserved. */
+
 { src/web/method/cgidefs.i }
 { src/web/method/htmoff.i }   /* Run time Web HTMOFF temp table              */
 

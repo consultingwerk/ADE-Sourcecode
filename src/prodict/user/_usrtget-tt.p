@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *                         *
 *********************************************************************/
@@ -32,6 +32,7 @@ History:
                       pattern matching is presented.  BUG# 19991025-003
    D. McMann 05/10/00 Added ability for user to display hidden files
    fernando  02/02/02 storing table names in temp-table - 20050930-006.
+   fernando  12/13/07 Handle long list of "some" selected tables    
    
 *************************************************************/
 
@@ -104,6 +105,8 @@ DEFINE VARIABLE cLast      AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE cTemp      AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE cFile_name AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE p_curflag  AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE isCpUndefined AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE use_lchar  AS LOGICAL                NO-UNDO.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
@@ -213,6 +216,9 @@ ASSIGN
   p_typed       = (IF user_filename = "SOME" THEN "" ELSE user_filename)
   cache_dirty   = p_some AND p_all OR (p_some AND p_allw) /* this is important! */
   user_filename = "".
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+   isCpUndefined = YES.
 
 /* get the first table name */
 FIND FIRST tt_cache_file NO-LOCK NO-ERROR.
@@ -497,6 +503,10 @@ IF NOT p_option THEN DO:
 
       IF p_some THEN DO:
         user_filename = "".
+
+      IF NOT isCpUndefined THEN
+         user_longchar = "".
+
 	/* The commented out sections within this block are because we
 	 * no longer allow ALL to be in the list when we present the flavor
 	 * that allows wildcards and the select/deselect of one or more files. 
@@ -519,15 +529,36 @@ IF NOT p_option THEN DO:
                   IF tt_cache_file.p_flag /* OR (p_all AND point_flag[1]) OR (p_allw
                      AND point_flag[1]) */ THEN DO:	     
                     count = count + 1.
-                    user_filename = user_filename + "," + tt_cache_file.cName.
+
+                    IF COUNT = 1 THEN
+                       user_filename = tt_cache_file.cName.
+                    ELSE DO:
+                       IF use_lchar THEN
+                          user_longchar = user_longchar + "," + tt_cache_file.cName NO-ERROR.
+                       ELSE
+                          user_filename = user_filename + "," + tt_cache_file.cName NO-ERROR.
+
+                       IF ERROR-STATUS:ERROR THEN DO:
+                           /* if undefined codepage, nothing we can do but error out */
+                           IF isCpUndefined THEN
+                               user_filename = user_filename + "," + tt_cache_file.cName.
+
+                           ASSIGN user_longchar =  user_filename + "," + tt_cache_file.cName. 
+                                  use_lchar = YES.
+                       END.
+                    END.
+
                   END.
               /*ELSE IF tt_cache_file.p_flag AND NOT p_all AND NOT p_allw
                    THEN count = cache_file# - 1.*/
               END. /* FOR EACH */
           END.
 
+        /*  can't happen anymore 
+        
         IF user_filename BEGINS "," THEN
           user_filename = SUBSTRING(user_filename,2).
+        */
        END. /* IF user_filename = "" */
       END.
       ELSE
@@ -661,9 +692,12 @@ FIND FIRST _File WHERE _File._Db-recid = drec_db
 ASSIGN
   user_filename = (IF AVAILABLE _File THEN _File._File-name
                   ELSE user_filename)
-  user_env[1]   = user_filename
+  user_env[1]   = (IF NOT use_lchar THEN user_filename ELSE "")
   drec_file     = RECID(_File).
 
+IF use_lchar THEN
+   user_filename = "SOME".
+ELSE 
 IF user_filename MATCHES "*,*" THEN DO:
    IF p_all OR p_allw AND NOT p_some OR (count = cache_file#)
      THEN user_filename = "ALL".

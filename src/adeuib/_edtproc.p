@@ -85,8 +85,8 @@ DEFINE VARIABLE icon-wp           AS INTEGER                 NO-UNDO.
 
 DEFINE VARIABLE xTables           AS CHAR NO-UNDO.
 DEFINE VARIABLE proc-type         AS CHAR NO-UNDO.
-DEFINE VARIABLE txt_attrs         AS CHAR VIEW-AS TEXT SIZE 64 BY .77 FORMAT "X(40)".
-DEFINE VARIABLE txt_tbls          AS CHAR VIEW-AS TEXT SIZE 64 BY .77 FORMAT "X(40)".
+DEFINE VARIABLE txt_attrs         AS CHAR VIEW-AS TEXT SIZE 66.5 BY .77 FORMAT "X(40)".
+DEFINE VARIABLE txt_tbls          AS CHAR VIEW-AS TEXT SIZE 66.5 BY .77 FORMAT "X(40)".
 
 DEFINE VARIABLE last-tab          AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_link        AS WIDGET-HANDLE           NO-UNDO.
@@ -137,25 +137,25 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
       
   IF NOT RETRY THEN DO:
     DEFINE FRAME {&FRAME-NAME}
-         rect-pal          AT ROW 1.13  COL 67.5
-         btn_libraries     AT ROW 1.13  COL 68.75    
+         rect-pal          AT ROW 1.13  COL 70
+         btn_libraries     AT ROW 1.13  COL 72   
          proc-type         AT ROW 1.13  COL 13 COLON-ALIGNED
                            FORMAT "X(50)" LABEL "Type" 
-                           VIEW-AS FILL-IN SIZE 51 BY 1
+                           VIEW-AS FILL-IN SIZE 53.5 BY 1
          save_name         COLON 13 FORMAT "X(80)" LABEL "File Name"
-                           VIEW-AS FILL-IN SIZE 51 BY 1
+                           VIEW-AS FILL-IN SIZE 53.5 BY 1  
          broker_url        COLON 13 FORMAT "X(255)" LABEL "Broker URL"
-                           VIEW-AS FILL-IN SIZE 51 BY 1
+                           VIEW-AS FILL-IN SIZE 53.5 BY 1
          _P._DESC          COLON 13 LABEL "&Description"
-                           VIEW-AS EDITOR SIZE 51 BY 3 SCROLLBAR-VERTICAL
+                           VIEW-AS EDITOR SIZE 53.5 BY 3 SCROLLBAR-VERTICAL
                                    {&STDPH_ED4GL}       
          OCX-file          COLON 13 LABEL "&OCX Binary"
-                           VIEW-AS COMBO-BOX SIZE 51 BY 1 
+                           VIEW-AS COMBO-BOX SIZE 53.5 BY 1 
                                    INNER-LINES 2
                                    LIST-ITEMS "{&Dflt-OCX}" ,
                                               "{&OtherOpt}"
          compile-into      COLON 13 LABEL "Compile &in"
-                           VIEW-AS COMBO-BOX SIZE 51 BY 1
+                           VIEW-AS COMBO-BOX SIZE 53.5 BY 1
                                    INNER-LINES 3
                                    LIST-ITEMS "{&Dflt-Dir}" , 
                                               "{&Cur-Dir}" , 
@@ -164,8 +164,8 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
          txt_tbls          AT 2 BGC 1 FGC 15 NO-LABEL SKIP(0.1)
          xTables           AT 3 NO-LABEL FORMAT "X(256)"
                            VIEW-AS EDITOR SCROLLBAR-V
-                           INNER-CHARS 40 INNER-LINES 2
-         btn_xTables       TO 65 SKIP(0.25)
+                           INNER-CHARS 45 INNER-LINES 2
+         btn_xTables       TO 67.5 SKIP(0.25)
          SKIP ({&VM_WIDG})
          txt_attrs         AT 2   BGC 1 FGC 15 NO-LABEL
          b_adv             AT ROW-OF txt_attrs       COL 71.5
@@ -173,16 +173,14 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
          _P._compile       TO 65 VIEW-AS TOGGLE-BOX LABEL "&Compile Master on Save"
          _P._app-srv-aware AT ROW-OF txt_attrs + 2   COL 3
                               VIEW-AS TOGGLE-BOX LABEL "App&Server Aware"
-         _P._partition   VIEW-AS COMBO-BOX SIZE 28.3 BY 1 COLON 36 
-                                   FORMAT "X(23)" LABEL "Partition"
+         _P._partition   VIEW-AS COMBO-BOX SIZE 30.8 BY 1 COLON 36 
+                                   FORMAT "X(25)" LABEL "Partition"
        WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
-            SIDE-LABELS SIZE 78 BY 16
+            SIDE-LABELS SIZE 79.5 BY 16
             TITLE "Procedure Settings" THREE-D.
     ASSIGN 
          FRAME {&FRAME-NAME}:HIDDEN = TRUE
          FRAME {&FRAME-NAME}:SCROLLABLE = FALSE
-         btn_libraries:COLUMN       = IF SESSION:WIDTH-PIXELS > 700 THEN 69.5
-                                                                   ELSE 68.75
          txt_tbls:SCREEN-VALUE IN FRAME {&FRAME-NAME}  = " External Tables":L30
          txt_attrs:SCREEN-VALUE IN FRAME {&FRAME-NAME} = " Other Settings":L30
          last-tab                   = _P._compile:HANDLE IN FRAME {&FRAME-NAME}
@@ -199,16 +197,10 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
                        dynamic-function("definedPartitions" IN appSrvUtils)
          .
     
-
     /* Handle sizing based on screen real estate */
     ASSIGN icon-hp = btn_libraries:HEIGHT-P IN FRAME {&FRAME-NAME}
            icon-wp = btn_libraries:WIDTH-P IN FRAME {&FRAME-NAME}.
 
-    IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":u AND
-       SESSION:WIDTH-PIXELS = 640 AND SESSION:PIXELS-PER-COLUMN = 6 THEN
-      ASSIGN icon-hp = 32
-             icon-wp = 34
-             FRAME {&FRAME-NAME}:WIDTH = 89 .
     /* *************************** Generate Needed Widgets ************************** */
 
     /* Set up the stuff at the top of the property sheet --- NON-toggle stuff         */         

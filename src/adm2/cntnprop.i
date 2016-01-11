@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : cntnprop.i
     Purpose     : Starts containr.p super procedure and defines general
@@ -135,7 +135,6 @@
  &GLOBAL-DEFINE xpReEnableDataLinks
  &GLOBAL-DEFINE xpWindowTitleViewer
  &GLOBAL-DEFINE xpUpdateActive
- &GLOBAL-DEFINE xpObjectsCreated
  &GLOBAL-DEFINE xpInstanceNames
  &GLOBAL-DEFINE xpClientNames
  &GLOBAL-DEFINE xpDataContainer
@@ -152,7 +151,9 @@
  &GLOBAL-DEFINE xpProcessList
  /* page security tokens, in page order. pipe-delimited */
  &global-define xpPageTokens 
-
+ &GLOBAL-DEFINE xpDataContainerName
+ &GLOBAL-DEFINE xpWidgetIDFileName
+ 
   /* Now include the next-level-up property include file. This builds up
      the property temp-table definition, which we will then add our 
      field definitions to. If this is a non-visual ('virtual') container,
@@ -219,7 +220,6 @@ DO:
   ghADMProps:ADD-NEW-FIELD('ReEnableDataLinks':U, 'CHARACTER':U).  
   ghADMProps:ADD-NEW-FIELD('WindowTitleViewer':U, 'CHARACTER':U).  
   ghADMProps:ADD-NEW-FIELD('UpdateActive':U, 'LOGICAL':U).  
-  ghADMProps:ADD-NEW-FIELD('ObjectsCreated':U, 'LOGICAL':U).  
   ghADMProps:ADD-NEW-FIELD('InstanceNames':U, 'CHARACTER':U, 0, ?,'':U) .
   ghADMProps:ADD-NEW-FIELD('ClientNames':U, 'CHARACTER':U, 0, ?,'':U) .
   ghADMProps:ADD-NEW-FIELD('ContainedDataObjects':U, 'CHARACTER':U, 0, ?,'':U).
@@ -235,8 +235,9 @@ DO:
   ghADMProps:ADD-NEW-FIELD('ProcessList':U, 'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('PageLayoutInfo':U, 'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('PageTokens':U, 'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('DataContainerName':U, 'CHARACTER':U, 0, ?,"DataContainer":U).
+  ghADMProps:ADD-NEW-FIELD('WidgetIDFileName':U, 'CHARACTER':U, 0, ?,"{&WIDGETID-FILE-NAME}":U).
 &ENDIF
-
 
   {src/adm2/custom/cntnpropcustom.i}
 END.

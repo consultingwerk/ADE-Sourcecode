@@ -18,11 +18,17 @@
 
 /* ***************************  Definitions  ************************** */
 
+/*Defines the temp-tables and prodataset for the widget-id assignments.*/
+DEFINE TEMP-TABLE ttXMLFileNames NO-UNDO
+FIELD cFileName AS CHARACTER
+INDEX cfilename cfilename.
+{adecomm/dswid.i}
+
 /* Tell cntnattr.i that this is the Super Procedure */
 &SCOP ADMSuper containr.p
 
   {src/adm2/custom/containrexclcustom.i}
-
+  
 /* This variable is needed at least temporarily in 9.1B so that a called
    fn can tell who the actual source was.  */
 DEFINE VARIABLE ghTargetProcedure    AS HANDLE    NO-UNDO.
@@ -100,6 +106,17 @@ FUNCTION applyContextFromClient RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyContextFromServer Procedure 
 FUNCTION applyContextFromServer RETURNS LOGICAL
   ( pcContext AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyFocus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD applyFocus Procedure 
+FUNCTION applyFocus RETURNS LOGICAL
+  ( pcField AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -427,6 +444,17 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataContainerName Procedure 
+FUNCTION getDataContainerName RETURNS CHARACTER
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDisabledAddModeTabs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDisabledAddModeTabs Procedure 
@@ -592,17 +620,6 @@ FUNCTION getNavigationTarget RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getObjectsCreated) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectsCreated Procedure 
-FUNCTION getObjectsCreated RETURNS LOGICAL
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getOutMessageTarget) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOutMessageTarget Procedure 
@@ -662,7 +679,7 @@ FUNCTION getPageSource RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPageTokens Procedure 
 FUNCTION getPageTokens RETURNS CHARACTER
-        (  ) FORWARD.
+    (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -857,6 +874,17 @@ FUNCTION getWaitForObject RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getWidgetIDFileName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWidgetIDFileName Procedure 
+FUNCTION getWidgetIDFileName RETURNS CHARACTER
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWindowFrameHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowFrameHandle Procedure 
@@ -929,6 +957,28 @@ FUNCTION isRequestTreeRoot RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD lockContainingWindow Procedure 
 FUNCTION lockContainingWindow RETURNS LOGICAL
     ( INPUT plLockWindow            AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newHeight) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newHeight Procedure 
+FUNCTION newHeight RETURNS LOGICAL
+        ( pdHeight as decimal ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newWidth Procedure 
+FUNCTION newWidth RETURNS LOGICAL
+        ( pdWidth as decimal ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1191,6 +1241,17 @@ FUNCTION setDataContainer RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataContainerName Procedure 
+FUNCTION setDataContainerName RETURNS LOGICAL
+  ( pcName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDisabledAddModeTabs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDisabledAddModeTabs Procedure 
@@ -1367,17 +1428,6 @@ FUNCTION setNavigationTarget RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setObjectsCreated) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectsCreated Procedure 
-FUNCTION setObjectsCreated RETURNS LOGICAL
-  ( plCreated AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setOutMessageTarget) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOutMessageTarget Procedure 
@@ -1437,7 +1487,7 @@ FUNCTION setPageSource RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPageTokens Procedure 
 FUNCTION setPageTokens RETURNS LOGICAL
-        ( input pcPageTokens    as character  ) FORWARD.
+    ( input pcPageTokens    as character  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1653,6 +1703,17 @@ FUNCTION setWaitForObject RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setWidgetIDFileName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWidgetIDFileName Procedure 
+FUNCTION setWidgetIDFileName RETURNS LOGICAL
+        (INPUT pcWidgetIDFileName AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setWindowFrameHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWindowFrameHandle Procedure 
@@ -1788,6 +1849,205 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignWidgetIDs Procedure 
+PROCEDURE assignWidgetIDs :
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcObjectHandles AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER piPageNumber    AS INTEGER    NO-UNDO.
+
+DEFINE VARIABLE cXMLFileName    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iObject         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cObject         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hObject         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cInstances      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cContainerFile  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cContainerPath  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cContainerName  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hSource         AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iParentWidgetID AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lOk             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cActions        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE isDynamicObject AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cInitialPages   AS CHARACTER  NO-UNDO.
+
+&SCOPED-DEFINE xp-assign
+{get logicalObjectName cContainerFile}
+{get ContainerSource hSource}
+{get InitialPageList cInitialPages}.
+&UNDEFINE xp-assign
+
+IF cContainerFile NE "" THEN ASSIGN isDynamicObject = TRUE.
+
+IF NOT isDynamicObject THEN
+    ASSIGN cContainerFile = REPLACE(TARGET-PROCEDURE:FILE-NAME, "~\", "/")
+           cContainerPath = IF INDEX(cContainerFile, "/") > 0 THEN SUBSTRING(cContainerFile, 1, R-INDEX(cContainerFile, "/") - 1) ELSE ""
+           cContainerName = SUBSTRING(cContainerFile, R-INDEX(cContainerFile, "/") + 1).
+ELSE
+    ASSIGN cContainerName = cContainerFile
+           cContainerPath = "":U.
+
+IF VALID-HANDLE(hSource) THEN
+DO:
+    {get ContainerHandle hContainer}.
+    IF hContainer:TYPE NE 'WINDOW':U THEN
+    ASSIGN iParentWidgetID = hContainer:WIDGET-ID.
+END.
+ELSE
+    ASSIGN iParentWidgetID = 0.
+
+/*We need to get and process the XML file name only for page zero*/
+IF piPageNumber = 0 OR CAN-DO(cInitialPages, STRING(piPageNumber)) THEN
+DO:
+    {get WidgetIDFileName cXmlFileName} NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN RETURN.
+
+    /*IF the xml file name is blank or null, is because we have to use the default value,
+      which is the file name with the '.xml' extension*/
+    IF cXMLFileName = "":U OR cXMLFileName = ? THEN
+       IF isDynamicObject THEN
+           ASSIGN cXMLFileName = cContainerFile + ".xml":U.
+       ELSE
+           ASSIGN cXMLFileName = cContainerFile
+                  cXMLFileName = REPLACE(cXMLFileName, SUBSTRING(cXMLFileName, R-INDEX(cXMLFileName, "."), -1), ".xml").
+
+    ASSIGN cXMLFileName = SEARCH(REPLACE(cXMLFileName, "~\", "/")).
+
+    {set WidgetIDFileName cXMLFileName}.
+
+    /*If the xml file cannot be found, just returns*/
+    IF cXMLFileName = ? OR cXMLFileName = "" THEN
+        RETURN.
+
+    /*Checks that the XML file was not previously loaded*/
+    IF NOT CAN-FIND(FIRST ttXMLFileNames WHERE ttXMLFileNames.cFileName = cXMLFileName) THEN
+    DO:
+        ASSIGN lOk = DATASET dsWidgetID:READ-XML("FILE":U, cXMLFileName, "MERGE":U, ?, FALSE) NO-ERROR.
+        /*If the xml file does not have a valid format for the widget-id functionality, shows the error and returns*/
+        IF NOT lOk THEN
+        DO:
+            MESSAGE "The WIDGET-ID XML file '" cXMLFileName "' cannot be loaded."
+             VIEW-AS ALERT-BOX ERROR.
+            RETURN.
+        END. /* IF NOT lOk THEN */
+
+        CREATE ttXMLFileNames.
+        ASSIGN ttXMLFileNames.cFileName = cXMLFileName.
+    END. /*IF NOT CAN-FIND(FIRST ttXMLFileNames*/
+
+END. /*IF piPageNumber = 0 THEN*/
+
+FIND FIRST Container NO-LOCK WHERE Container.contPath = cContainerPath AND
+                                   Container.contName = cContainerName NO-ERROR.
+                                   
+IF NOT AVAILABLE(container) THEN RETURN.
+
+/*Every toolbar use the same widget-ids for their toolbar buttons, so get the widget-ids once, and later
+  set them to every toolbar involved in the window.*/
+FOR EACH Action NO-LOCK WHERE Action.contPath = Container.contPath AND
+                              Action.contName = Container.contName:
+    ASSIGN cActions = cActions + Action.ActionID + "," + STRING(Action.WidgetID) + ",".
+END.
+ASSIGN cActions = TRIM(cActions, ",").
+
+REPEAT iObject = 1 TO NUM-ENTRIES(pcObjectHandles):
+    ASSIGN hObject = WIDGET-HANDLE(ENTRY(iObject, pcObjectHandles))
+           cInstances = "".
+
+    /*Widget-ids can only be set for visual objects*/
+    IF NOT DYNAMIC-FUNCTION("instanceOf":U IN hObject, INPUT "visual":U) THEN
+       NEXT.
+
+    ASSIGN cObject = DYNAMIC-FUNCTION('getObjectName':U IN hObject).
+
+    FIND FIRST Instance NO-LOCK WHERE Instance.contPath = Container.contPath AND
+                                      Instance.contName = Container.contName AND
+                                      Instance.ID       = cObject NO-ERROR.
+    IF NOT AVAILABLE(Instance) THEN NEXT.
+
+    {set WidgetID "iParentWidgetID + Instance.widgetID" hObject}.
+
+    /*If the object is a folder we have to set the widget-ids for its page before we set the main frame widget-id*/
+    IF DYNAMIC-FUNCTION("instanceOf":U IN hObject, "SmartFolder":U) THEN
+    DO:
+        FOR EACH Pages NO-LOCK WHERE Pages.contPath = Container.contPath AND
+                                     Pages.contName = Container.contName
+                                     BY Pages.PageNumber:
+            ASSIGN cInstances = cInstances + STRING(Pages.widgetID) + ",".
+        END.
+
+        ASSIGN cInstances = TRIM(cInstances, ",":U).
+        {set FolderWidgetIDs cInstances hObject}.
+    END. /* IF Instance.ObjectType = "SmartFolder":U THEN */
+
+    /*If the object is a Toolbar we have to set the widget-ids for its actions before we set the main frame widget-id*/
+    IF DYNAMIC-FUNCTION("instanceOf":U IN hObject, "Toolbar":U) THEN
+        {set ActionWidgetIDs cActions hObject}.
+
+    /*If the object is a SDF inside of a viewer, we have to set the SDF frame widget-id. This is required because
+      the SDF label is placed in the viewer frame, so this value is used later to avoid duplicates.*/
+    IF DYNAMIC-FUNCTION("instanceOf":U IN hObject, "Field":U) THEN
+        {set FrameWidgetID Instance.widgetID hObject}.
+
+    /*If the object is a SmartFilter, we have to set the widget-ids for each filter field.*/
+    IF DYNAMIC-FUNCTION("instanceOf":U IN hObject, "Filter":U) THEN
+    DO:
+        FOR EACH InstanceChildren WHERE InstanceChildren.parentInstanceID = Instance.ID       AND
+                                        InstanceChildren.contPath         = Instance.contPath AND
+                                        InstanceChildren.contName         = Instance.contName
+                                        NO-LOCK:
+
+            ASSIGN cInstances = cInstances + InstanceChildren.ID + "," + STRING(InstanceChildren.WidgetID) + ",".
+        END. /* FOR EACH InstanceChildren */
+
+        ASSIGN cInstances = TRIM(cInstances, ",").
+        {set FieldWidgetIDs cInstances hObject}.
+    END. /* WHEN "dynfilter":U THEN */
+
+END. /*REPEAT iObject = 1 TO NUM-ENTRIES(pcObjectHandles):*/
+
+/*For dynamic viewers, we have to get the field names and their widget-ids*/
+IF DYNAMIC-FUNCTION("instanceOf":U IN TARGET-PROCEDURE, "DynView":U) THEN
+DO:
+    FOR EACH Instance WHERE Instance.contPath         = Container.contPath AND
+                            Instance.contName         = Container.contName AND
+                            Instance.ObjectType      NE "SmartDataField":U
+                            NO-LOCK:
+        ASSIGN cInstances = cInstances + Instance.ID + "," + STRING(Instance.WidgetID) + ",".
+    END. /* FOR EACH InstanceChildren */
+
+    ASSIGN cInstances = TRIM(cInstances, ",":U).
+    {set FieldWidgetIDs cInstances}.
+
+    ASSIGN cInstances = "":U.
+END. /*IF DYNAMIC-FUNCTION("instanceOf":U IN hObject, "DynView":U) THEN*/
+
+/*If we can find a TreeNode instance, is because we are in a DynTree, so we have to get all nodes in the treeview*/
+IF CAN-FIND(FIRST TreeNode WHERE TreeNode.contPath         = Container.contPath AND
+                                 TreeNode.contName         = Container.contName) THEN
+DO:
+    FOR EACH TreeNode NO-LOCK WHERE TreeNode.contPath   = Container.contPath AND
+                                    TreeNode.contName   = Container.contName:
+        ASSIGN cInstances = cInstances + ",":U + ENTRY(1, TreeNode.ID, "_":U) + ",":U + ENTRY(2, TreeNode.ID, "_":U) + ",":U + STRING(TreeNode.widgetID).
+    END. /*FOR EACH Instance*/
+
+    DYNAMIC-FUNCTION('setContainerWidgetIDs':U IN TARGET-PROCEDURE, INPUT TRIM(cInstances, ",")) NO-ERROR.
+END. /*TreeNodes*/ 
+
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-bufferFetchContainedData) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bufferFetchContainedData Procedure 
@@ -1822,7 +2082,7 @@ PROCEDURE bufferFetchContainedData :
   DEFINE VARIABLE hSource          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cSkipList        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hMaster          AS HANDLE     NO-UNDO.
-
+    
   &SCOPED-DEFINE xp-assign
   /* all SDOs in container including those inside an SBO */
   {get ContainedDataObjects cObjects}                      
@@ -2078,9 +2338,8 @@ PROCEDURE cancelObject :
       Purpose: Cancel an object.                  
       Parameters:  <none>
       Notes:  If this is the window container or a virtual container then 
-              override and *not* call SUPER.    
-              if not cancel and undo all containertargets and then destroy.             
-              Published from containerTargets or called directly    
+              cancel and undo all containertargets and then destroy.             
+            - Published from containerTargets or called directly    
             - There is a slight overhead in this construct as destroyObject
               (called from exitObject -> apply 'close') does a publish 
               'confirmExit', which really is unnecessary after this has 
@@ -2098,8 +2357,9 @@ PROCEDURE cancelObject :
 
   {get ContainerHandle hContainer}.
   
+  /* republish until we reached top window */
   IF VALID-HANDLE(hContainer) AND hContainer:TYPE <> 'WINDOW':U THEN
-    RUN SUPER. 
+    PUBLISH 'cancelObject':U FROM TARGET-PROCEDURE.  
   ELSE DO:  
     /* Cancel and undo all Container targets  */
     PUBLISH 'confirmCancel':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lError).
@@ -2256,14 +2516,13 @@ PROCEDURE changePage :
                a Container when CurrentPage is reset
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE cObjects    AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE iPageNum    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lInitted    AS LOGICAL   NO-UNDO.
-
+  
   DEFINE VARIABLE cRequiredPages AS CHARACTER                NO-UNDO.  
   DEFINE VARIABLE iPageLoop      AS INTEGER                  NO-UNDO.
-
+  
   /* Let folder know, if any*/
   PUBLISH 'changeFolderPage':U FROM TARGET-PROCEDURE.  /* IN page-source */
   {get CurrentPage iPageNum}.
@@ -2274,13 +2533,20 @@ PROCEDURE changePage :
   DO:
     {get ObjectInitialized lInitted}.
     cObjects = pageNTargets(TARGET-PROCEDURE, iPageNum).
-
+    
     IF cObjects = "":U THEN 
     DO:                            /* Page hasn't been created yet: */
       RUN changeCursor IN TARGET-PROCEDURE('WAIT':U) NO-ERROR.
-
+      
       /* Get objects on the new page created. */
       RUN createObjects IN TARGET-PROCEDURE.
+      
+      /*Sets widget-ids if the -usewidgetid session parameter is being used*/
+      IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN
+      DO:
+          ASSIGN cObjects = pageNTargets(TARGET-PROCEDURE, iPageNum).
+          RUN assignWidgetIDs IN TARGET-PROCEDURE (cObjects, iPageNum).
+      END.
 
       /* If the current container object has been initialized already,
          then initialize the new objects. Otherwise wait to let it happen
@@ -2293,12 +2559,12 @@ PROCEDURE changePage :
           */
           RUN packWindow IN TARGET-PROCEDURE ( INPUT iPageNum, INPUT YES) NO-ERROR.
           RUN resizewindow IN TARGET-PROCEDURE NO-ERROR.
-
+          
           /* Initialise all linked pages before init'ing the current
              page.
            */
           ASSIGN cRequiredPages = {fnarg pageNRequiredPages iPageNum}.   
-
+          
           IF cRequiredPages NE "":U AND cRequiredPages NE "?":U THEN
           DO:
               DO iPageLoop = 1 TO NUM-ENTRIES(cRequiredPages):
@@ -2306,14 +2572,14 @@ PROCEDURE changePage :
                      so that it is init'ed
                    */
                   {set CurrentPage "INTEGER(ENTRY(iPageLoop, cRequiredPages))"}.
-
+                  
                   /* Ensure that everything is nicely init'ed ... */
                   RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
-
+                  
                   /* ... and make sure that we never see it. */
                   RUN notifyPage IN TARGET-PROCEDURE ("hideObject":U).
               END.    /* loop through other pages */
-
+           
               /* Reset the CurrentPage to the actual current page.
                */
               {set CurrentPage iPageNum}.
@@ -2321,16 +2587,18 @@ PROCEDURE changePage :
                     
           RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
       END.    /* container has been initted. */
-
+      
       RUN changeCursor IN TARGET-PROCEDURE("":U) NO-ERROR.
     END.    /* END DO if page not created yet */
     ELSE 
     DO:
-        /* If the container has been init'ed, then view its contents.
+        IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN
+        RUN assignWidgetIDs IN TARGET-PROCEDURE (cObjects, iPageNum).
+      /* If the container has been init'ed, then view its contents.
          If not, 'view' will have no effect yet  */
       IF lInitted THEN
         RUN notifyPage IN TARGET-PROCEDURE ("viewObject":U).
-
+   
     END.     /* END DO if page had been created */
   END.       /* END DO if PageNum NE 0 */
 
@@ -2381,8 +2649,29 @@ PROCEDURE changePage :
           VIEW defaultFrameHdl.
     END.
   &ENDIF
-
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-clearWidgetIDCache) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearWidgetIDCache Procedure 
+PROCEDURE clearWidgetIDCache :
+/*------------------------------------------------------------------------------
+    Purpose: Empties the dataset temp-tables for the widget-id.
+    Parameters: <none>
+    Notes: This is published from clearClientCache in the repository manager
+           (ryrepmngrp.i), when the Compile->Clear Repository Cache menu is
+           selected.
+------------------------------------------------------------------------------*/
+DATASET dsWidgetID:EMPTY-DATASET().
+EMPTY TEMP-TABLE ttObjectNames.
+EMPTY TEMP-TABLE ttXMLFileNames.
+RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2840,7 +3129,7 @@ PROCEDURE constructObject :
     END.
   END. /* if not valid-handle(phObject) */
   /* Now create the default link to the containing object. */
-  RUN addLink IN TARGET-PROCEDURE(INPUT TARGET-PROCEDURE, INPUT "CONTAINER":U, INPUT phObject).     
+  RUN addLink IN TARGET-PROCEDURE(INPUT TARGET-PROCEDURE, INPUT "CONTAINER":U, INPUT phObject).    
   {get CurrentPage iCurrentPage}.
   IF iCurrentPage <> 0 THEN
   DO:
@@ -2873,7 +3162,7 @@ Parameters: <none>
   DEFINE VARIABLE iPage           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER    NO-UNDO.
-
+ 
   {get CurrentPage iPage}.
   IF iPage = 0 THEN
     {get ObjectsCreated lObjectsCreated}.
@@ -2881,12 +3170,17 @@ Parameters: <none>
   IF iPage <> 0 OR NOT lObjectsCreated THEN
   DO:
     RUN adm-create-objects IN TARGET-PROCEDURE NO-ERROR.
+    
+    /* Deep create.
+       Create the contained objects for certain classes of objects: dynamic containers,
+       both object and widget containers. This excludes data objects. */
+    PUBLISH "createObjects":U FROM TARGET-PROCEDURE.        
   
     /* new for 9.1B: run an additional optional procedure in the container,
        which can do any work that must be done after all the contained objects
        have been created and the links established, but before initializeObject.*/
     RUN postCreateObjects IN TARGET-PROCEDURE NO-ERROR.
-
+    
     /* if page 0 then this is the start up so ensure that we run the startpage */
     IF iPage = 0 THEN
     DO:
@@ -4216,23 +4510,24 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lHideOnInit      AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lDisableOnInit   AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lInitialized     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cType            AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iStartPage       AS INTEGER   NO-UNDO.
   DEFINE VARIABLE iResizeOnPage    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE hWaitForObject   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hContainerSource AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lFetchPending    AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lQueryObject     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lUseRepository   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hWidget          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDataContainer   AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lQueryObject     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lUseRepository   AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hWidget          AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lObjectsCreated  AS LOGICAL   NO-UNDO.
 
-  DEFINE VARIABLE hContainingWindow             AS HANDLE                 NO-UNDO.
-  DEFINE VARIABLE lParentInitted                AS LOGICAL                NO-UNDO.
-  define variable cObjectType                   as character              no-undo.
-  DEFINE VARIABLE hContainerHandle              AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainingWindow             AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lParentInitted                AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cObjectType                   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hContainerHandle              AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cObjects                      AS CHARACTER NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get ContainerType cType}
@@ -4262,13 +4557,26 @@ PROCEDURE initializeObject :
       RUN createObjects IN TARGET-PROCEDURE NO-ERROR.
       IF ERROR-STATUS:ERROR OR RETURN-VALUE <> '':U THEN
         RETURN 'ADM-ERROR':U.
+
     END.   /* This will run adm-create-objects*/
   END.   /* END DO IF cType */
 
   IF cType NE "VIRTUAL":U THEN    /* Skip for non-visual contaioners. */
   DO:
-     RUN initializeVisualContainer IN TARGET-PROCEDURE.
-   
+     /*Sets widget-ids if the -usewidgetid session parameter is being used*/
+     IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN
+     DO:
+         ASSIGN cObjects = DYNAMIC-FUNCTION('pageNTargets':U IN TARGET-PROCEDURE, INPUT TARGET-PROCEDURE, INPUT 0).
+         
+         IF iStartPage NE 0 THEN
+         ASSIGN cObjects = cObjects + "," + DYNAMIC-FUNCTION('pageNTargets':U IN TARGET-PROCEDURE, INPUT TARGET-PROCEDURE, INPUT iStartPage)
+                cObjects = TRIM(cObjects, ",":U).
+
+         RUN assignWidgetIDs IN TARGET-PROCEDURE (INPUT cObjects, 0).
+     END. /*IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN*/
+
+    RUN initializeVisualContainer IN TARGET-PROCEDURE.
+    
     &SCOPED-DEFINE xp-assign
     {get HideOnInit lHideOnInit}
     {get DisableOnInit lDisableOnInit}
@@ -4283,14 +4591,14 @@ PROCEDURE initializeObject :
        unnecessary) */      
     IF lDisableOnInit THEN
       dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
-                        'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
+                         'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
     
     else if lHideOnInit then 
-       /* For containers, whether DISABLE is explicitly set or not, we
-          need to set it for the container itself if HideOnInit is true,
+      /* For containers, whether DISABLE is explicitly set or not, we
+         need to set it for the container itself if HideOnInit is true,
          otherwise the 'enable' below will force the container
-          to be viewed if it contains any simple objects. */
-       lDisableOnInit = yes.
+         to be viewed if it contains any simple objects. */
+      lDisableOnInit = yes.     
   END. /* cType <> 'VIRTUAL' */
 
   IF cType = "WINDOW":U THEN
@@ -4338,7 +4646,7 @@ PROCEDURE initializeObject :
     RUN manualInitializeObjects IN TARGET-PROCEDURE.
   ELSE
     PUBLISH 'initializeObject':U FROM TARGET-PROCEDURE.
-
+ 
   {set ObjectMapping cObjectMapping} NO-ERROR.
   {set PendingPage ?}.   
     /* Set StartPage to 0 so selectPage() will do the right thing. */
@@ -4436,12 +4744,14 @@ PROCEDURE initializeObject :
     
     IF NOT lDisableOnInit THEN
       RUN enableObject IN TARGET-PROCEDURE.
-
+ 
     IF NOT lHideOnInit THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       run hideObject in target-procedure.
   END.
+
+  SUBSCRIBE TO "RepositoryCacheCleared":U ANYWHERE RUN-PROCEDURE 'clearWidgetIDCache':U.
 
   IF RETURN-VALUE = "ADM-ERROR":U THEN 
     RETURN "ADM-ERROR":U.
@@ -4468,40 +4778,44 @@ PROCEDURE initializeVisualContainer :
   DEFINE VARIABLE cContainerName            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSecuredTokens            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisabledPages            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectList               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectType               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLoop                     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hObject                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hFrame                    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hFolder                   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cFolderLabels             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cLabel                    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lObjectSecured            AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lObjectTranslated         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lTranslate                AS LOGICAL    NO-UNDO.
   define variable cPageTokens               as character no-undo.
   define variable cToken                    as character no-undo.
-
-  /* Code to enable Dynamics / ADM2 windows to run docked in the IDE */
-  IF OEIDEIsRunning AND VALID-HANDLE(hOEIDEService) THEN
-  DO:
+  
+  /* oeide vars */
   DEFINE VARIABLE cViewId                   AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE cSecondId                 AS CHARACTER   NO-UNDO.
-    DEFINE VARIABLE hWindow                 AS HANDLE      NO-UNDO.
-    ASSIGN
-      cViewId = "com.openedge.pdt.oestudio.views.OEAppBuilderView" /* use existing Appbuilder view */
-      cSecondId = "DesignView_"
-                + DYNAMIC-FUNCTION('getProjectName':U IN hOEIDEService) /* linked to specific project   */
+  
+  {get ContainerHandle hContainer}.   
+  /* Code to enable Dynamics / ADM2 windows to run docked in the IDE.
+     Any window continer (no class type check) */
+  if hContainer:type = "window":U  /* only for windows (not frames) */
+  and OEIDEIsRunning 
+  and valid-handle(hOEIDEService) then 
+  do:
+    assign  
+      /* use existing Appbuilder view */
+      cViewId = "com.openedge.pdt.oestudio.views.OEAppBuilderView":U 
+      /* linked to specific project   */
+      cSecondId = "DesignView_":U
+                + DYNAMIC-FUNCTION('getProjectName':U IN hOEIDEService)
       .
-    {get ContainerHandle hWindow}.                /* need widget handle of actual window */
-    IF hWindow:TYPE = "window":U THEN             /* only do for windows (not frames) */
-      RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hWindow).      
-  END.
-  /* End of IDE docking code */
-
-  {get ObjectType cObjectType}.
-  IF CAN-DO('SmartFrame,SmartWindow,SmartDialog':U,cObjectType) THEN 
-  DO:
+    RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hContainer).      
+  END.  /* End of IDE docking code */
+                  
+  /* This method is not called for ContainerType virtual while 
+     DataVisual (datavis.p) doesn't support windowname and page source (folder)
+     TVController gets windowname from child containers and has no folder */
+  if  not {fnarg instanceOf 'DataVisual':U} 
+  and not {fnarg instanceOf 'TVController':U} then  
+  do:
     &SCOPED-DEFINE xp-assign
-    {get ContainerHandle hContainer}
     {get ObjectSecured lObjectSecured}
     {get ObjectTranslated lObjectTranslated}
     {get LogicalObjectName cContainerName}.
@@ -4518,14 +4832,17 @@ PROCEDURE initializeVisualContainer :
     IF lObjectSecured AND lObjectTranslated THEN
       RETURN.
     
-    if not lObjectTranslated then
+    /* Avoid creating translation TT if no translation needed or supported */
+    lTranslate = not lObjectTranslated and valid-handle(gshTranslationManager). 
+    /* prepare for translation */
+    if lTranslate then
     do:        
       /* If no logicalObjectname i.e inside static container then derive the 
-	       master name from the file-name. (remove path and extension)  */
+               master name from the file-name. (remove path and extension)  */
       IF cContainername = '' THEN
         ASSIGN
           cContainerName = TARGET-PROCEDURE:FILE-NAME
-            cContainerName = LC(TRIM(REPLACE(cContainerName,"~\":U,"/":U)))
+          cContainerName = TRIM(REPLACE(cContainerName,"~\":U,"/":U))
           cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1)
           cContainerName = IF R-INDEX(cContainerName,'.':U) > 0 
                            THEN SUBSTR(cContainerName,1,R-INDEX(cContainerName,'.':U) - 1)
@@ -4549,15 +4866,14 @@ PROCEDURE initializeVisualContainer :
         ttTranslate.cOriginalTooltip = "":U  
         ttTranslate.cTranslatedTooltip = "":U.
       RELEASE ttTranslate.
-    end.    /* object not translated */
+    end.    /* translate */
     
     /* We use the folder labels in both cases: security and translation */
     /* look for tab folder and translate folder tabs */
-    {get PageSource hObject}.
-    
-    IF VALID-HANDLE(hObject) THEN
-      {get FolderLabels cFolderLabels hObject}.
-
+    {get PageSource hFolder}.
+    if valid-handle(hFolder) then 
+    do:    
+      {get FolderLabels cFolderLabels hFolder}.
       /* check security for folder labels */
       if not lObjectSecured then
       do:
@@ -4574,12 +4890,12 @@ PROCEDURE initializeVisualContainer :
                cToken = entry(iLoop, cPageTokens, '|':u)
                no-error.
         
-      IF not lObjectSecured and cSecuredTokens gt '':u AND 
-         can-do(cSecuredTokens, cToken) THEN
+        if not lObjectSecured and cSecuredTokens gt '':u 
+        and can-do(cSecuredTokens, cToken) THEN
           ASSIGN cDisabledPages = cDisabledPages
                                 + (IF cDisabledPages <> "":U THEN ",":U ELSE "":U)
                                 +  STRING(iLoop).
-      if not lObjectTranslated then
+        if lTranslate then
         do:
           CREATE ttTranslate.
           ASSIGN
@@ -4589,7 +4905,7 @@ PROCEDURE initializeVisualContainer :
             ttTranslate.lDelete = NO
             ttTranslate.cWidgetType = "TAB":U
             ttTranslate.cWidgetName = "TAB":U
-            ttTranslate.hWidgetHandle = hObject
+            ttTranslate.hWidgetHandle = hFolder
             ttTranslate.iWidgetEntry = iLoop
             ttTranslate.cOriginalLabel = cLabel
             ttTranslate.cTranslatedLabel = "":U
@@ -4597,50 +4913,45 @@ PROCEDURE initializeVisualContainer :
             ttTranslate.cTranslatedTooltip = "":U
             .
           RELEASE ttTranslate.
-      end.    /* not translated */
+        end.  /* translate */
       END.  /* label-loop */
-
-    /* Now got all translation widgets - get translations */
-    IF lObjectTranslated NE YES THEN
+    end. /* valid hFolder - pageSource */
+    
+    /* Got all translation widgets - get translations 
+       folder labels and WindowName (from translate of type "title") */
+    IF lTranslate /* implies valid-handle */ THEN
     DO:
-        IF VALID-HANDLE(gshTranslationManager) THEN
       RUN multiTranslation IN gshTranslationManager 
                                               (INPUT NO,
                                                INPUT-OUTPUT TABLE ttTranslate).
 
-        /* now action the translations */  
+      /* do the translations */  
       translate-loop:
       FOR EACH ttTranslate:         
-          
-          IF  ttTranslate.cTranslatedLabel = "":U 
-          AND ttTranslate.cTranslatedTooltip = "":U THEN 
-             NEXT translate-loop.
-    
-          IF ttTranslate.cWidgetType = "title":U 
-          AND ttTranslate.cTranslatedLabel <> "":U THEN
+        if ttTranslate.cTranslatedLabel > "":U then
+        do: 
+          if ttTranslate.cWidgetType = "title":U then
             {set WindowName ttTranslate.cTranslatedLabel}.
-          
-          IF ttTranslate.cWidgetType = "tab":U THEN
-          DO:
-            ASSIGN iLoop = LOOKUP(ttTranslate.cOriginalLabel, cFolderLabels, "|":U).
-            IF iLoop > 0 THEN
-              ASSIGN ENTRY(iLoop, cFolderLabels, "|":U) = ttTranslate.cTranslatedLabel. 
-          END.
-        END.
+          else
+          if ttTranslate.cWidgetType = "tab":U then
+            entry(ttTranslate.iWidgetEntry, cFolderLabels, "|":U) = ttTranslate.cTranslatedLabel. 
+        end.
+      end. 
 
       /* translate pages */
-        IF cFolderLabels <> "":U THEN
-          {set FolderLabels cFolderLabels hObject}.
-    END.    /* object translated */
+      IF valid-handle(hFolder) and cFolderLabels <> "":U THEN
+        {set FolderLabels cFolderLabels hFolder}.
+    END. /* translate */
     
     /* secure pages */
     IF lObjectSecured NE YES AND cDisabledPages <> "":U THEN
-      DYNAMIC-FUNCTION("disablePagesInFolder":U IN TARGET-PROCEDURE, INPUT "security," + cDisabledPages).
+      DYNAMIC-FUNCTION("disablePagesInFolder":U IN TARGET-PROCEDURE, 
+                       "security,":U + cDisabledPages).
+     
+  END. /* not datavisal and not tvcontroller */
 
-  END. 
-
-    ASSIGN ERROR-STATUS:ERROR = NO.
-    RETURN.
+  ASSIGN ERROR-STATUS:ERROR = NO.
+  RETURN.
 END PROCEDURE.  /* initializeVisualContainer */
 
 /* _UIB-CODE-BLOCK-END */
@@ -4665,7 +4976,7 @@ PROCEDURE initPages :
   DEFINE VARIABLE cPageObjects AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCnt         AS INTEGER   NO-UNDO.
   define variable lInitialized as logical   no-undo. 
-    
+   
   {get CurrentPage iCurrentPage}.
   DO iCnt = 1 TO NUM-ENTRIES(pcPageList): 
     iPage = INT(ENTRY(iCnt,pcPageList)).     
@@ -4687,11 +4998,17 @@ PROCEDURE initPages :
            It is now the page that will become or remain visible.    
            Incidentally GroupAssignHidden, which was the only logic that 
            depended on this previously now also is correct if called from here) 
-           */
+             */       
         &SCOPED-DEFINE xp-assign
         {get ObjectInitialized lInitialized}
         {set PendingPage iCurrentPage}.
         &UNDEFINE xp-assign
+
+        /*Sets widget-ids if the -usewidgetid session parameter is being used*/
+        cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
+        IF DYNAMIC-FUNCTION("getUseWidgetID":U IN TARGET-PROCEDURE) THEN
+        RUN assignWidgetIDs IN TARGET-PROCEDURE (cPageObjects, iPage).
+
         /* if not initialized then this is to soon - wait for publish ()
            We keep pendingPage so objects on not pending page remains hidden
            (getHideOnInit) */
@@ -4899,13 +5216,13 @@ PROCEDURE notifyPage :
       IF lQuery AND NOT lInitted THEN
         RUN initializeObject IN hObject NO-ERROR.    
     END.
-  END.
+  END.   
 
   DO iVar = 1 TO NUM-ENTRIES(cObjects):
     ASSIGN
       hObject  = WIDGET-HANDLE(ENTRY(iVar, cObjects))
       lQuery   = FALSE
-      lInitted = FALSE.        
+      lInitted = FALSE. 
     IF VALID-HANDLE(hObject) THEN
     DO:
       lOK = TRUE.
@@ -4926,7 +5243,7 @@ PROCEDURE notifyPage :
         {get HideOnInit lHide hObject}.    
         IF lHide THEN                      
           lOk = FALSE.                     
-      END.                                 
+      END.   
       IF lOk then
         RUN VALUE(pcProc) IN hObject NO-ERROR.
     END.
@@ -5125,11 +5442,9 @@ PROCEDURE okObject :
 /* -----------------------------------------------------------------------------
       Purpose: Save and close an object (Ok action)    
       Parameters:  <none>
-      Notes:  If this is the window container or a virtual container then 
-              override and *not* call SUPER.    
-              if not then save and commit all containertargets and destroy if 
-              no errors occured.
-              Published from containerTargets or called directly.
+      Notes:  If this is the window container or a virtual container then confirm 
+              (save and commit all containertargets) and destroy if no errors.
+            - Published from containerTargets or called directly.
             - There is a slight overhead in this construct as destroyObject
               (called from exitObject -> apply 'close') does a publish 
               'confirmExit', which really is unnecessary after this has 
@@ -5147,8 +5462,9 @@ PROCEDURE okObject :
 
   {get ContainerHandle hContainer}.
   
+  /* republish until we reached top window */
   IF VALID-HANDLE(hContainer) AND hContainer:TYPE <> 'WINDOW':U THEN
-    RUN SUPER. 
+    PUBLISH 'okObject':U FROM TARGET-PROCEDURE.  
   ELSE DO:  
     /* Save and commit all Container targets  */
     PUBLISH 'confirmOk':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lError).
@@ -5393,7 +5709,7 @@ ELSE DO:
       END. /* fieldname <> '' (SDF) */
     END.
   END.
- 
+  
   /* Second pass  - pass position option to visual targets */  
   IF NOT lPosition THEN 
   DO iTarget = 1 TO NUM-ENTRIES(cTargets):
@@ -5414,6 +5730,72 @@ ELSE DO:
 END.
 
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-processAction) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processAction Procedure 
+PROCEDURE processAction :
+/*------------------------------------------------------------------------------
+  Purpose:     Override visual to capture paging events.
+  Parameters:  input name of action
+  Notes:       Passes event on to super if not ctrl-page-* or this container
+               is not a page target or window.
+             - This is not a container standalone event, but more of a shortkey
+               to the actual page source as it relies on a pagesource to figure 
+               out number of pages.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcAction       AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE hPageSource           AS HANDLE      NO-UNDO.
+DEFINE VARIABLE iPage                 AS INTEGER     NO-UNDO.
+DEFINE VARIABLE hContainer            AS HANDLE      NO-UNDO.
+DEFINE VARIABLE iNumTabs              AS INTEGER     NO-UNDO.
+DEFINE VARIABLE cTabs                 AS CHARACTER   NO-UNDO. 
+ 
+    if pcAction =  "ctrl-page-down":U 
+    or pcAction =  "ctrl-page-up":U then
+    do:
+      &SCOPED-DEFINE xp-assign
+      {get ContainerHandle hContainer}   
+      {get PageSource hPageSource}
+      {get CurrentPage iPage}.
+      &UNDEFINE xp-assign
+    
+      if valid-handle(hPageSource) then
+      do:
+        {get FolderLabels cTabs hPageSource}.
+        iNumTabs = num-entries(cTabs,"|").
+        case pcAction:
+          when "ctrl-page-up":U then
+          do:
+            if iPage > 1 then
+              run selectPage in target-procedure(iPage - 1).
+           /* dynamics only: PUBLISH "selectPrevTab":U FROM target-procedure.*/
+          end.
+          when "ctrl-page-down":U then
+          do:
+            if iPage  < iNumTabs then
+              run selectPage in target-procedure(iPage + 1).
+           /* dynamics only: PUBLISH "selectNextTab":U FROM target-procedure.*/
+          end.
+        end case.
+      end.
+    
+      /* super simply calls containersource - no point if this is a window */
+      if not valid-handle(hPageSource) and hContainer:type <> "Window":U then
+        run super(pcAction).
+    end.
+    else
+      run super(pcAction).
+    
+    return. 
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5463,19 +5845,46 @@ PROCEDURE resizeWindow :
   DEFINE VARIABLE hContainerHandle AS HANDLE NO-UNDO.
   DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
   DEFINE VARIABLE hFrame           AS HANDLE NO-UNDO.  
-
+  DEFINE VARIABLE lScrollable      AS LOGICAL    NO-UNDO.
+  
   {get ContainerHandle hContainerHandle}.
   IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:TYPE = 'Window':U THEN
   DO:
     {get WindowFrameHandle hFrame}.
-    IF VALID-HANDLE(hFrame) THEN
+    /* don't resize frame if it is not a child of the window 
+      (protects customers that used the &frame-name for separate frames)  */  
+    IF VALID-HANDLE(hFrame) and hFrame:parent = hContainerhandle THEN
     DO:
-      /* Intentionally separate statments with no-error to always shrink if 
+      /* We set scrollable false since we do not want scrollbars if all 
+         contents of the frame fits in the window.  
+         We log the actual value for reassign after resize */ 
+      assign 
+        lScrollable = hFrame:scrollable
+        hFrame:scrollable = false.
+      /* Intentionally separate statements with no-error to always shrink if 
          possible. We could have used max(frame,window) to ensure that the 
          frames only were increased, but we want to shrink unless some widget 
          inside the frame prevents it.  */
       hFrame:WIDTH  = hContainerHandle:WIDTH NO-ERROR.
       hFrame:HEIGHT = hContainerHandle:HEIGHT NO-ERROR.
+      /* if the frame was scrollable set it back */
+      if lScrollable then
+      do:
+        hFrame:scrollable = true.    
+        /* if the size did not fit force scrollbars 
+           We turned scrollable off to remove the undesired side effect of 
+           scrollbars for a frame that fits in the window, but we want this  
+           default behavior if the frame is not fitting  */
+        if hFrame:virtual-width > hFrame:width then 
+          assign 
+            hFrame:width-p = hFrame:width-p + 1 
+            hFrame:width-p = hFrame:width-p - 1. 
+        else
+        if hFrame:virtual-height > hFrame:height then
+          assign
+           hFrame:height-p = hFrame:height-p + 1 
+           hFrame:height-p = hFrame:height-p - 1.           
+      end.
     END.
   END.
   ELSE DO: /* No window here so pass up to the next contanier*/
@@ -5513,7 +5922,7 @@ PROCEDURE selectPage :
   &SCOPED-DEFINE xp-assign
   {get PendingPage iPendingPage}
   {get StartPage iStartPage}
-  {get CurrentPage iCurrentPage}. 
+  {get CurrentPage iCurrentPage}.
   &UNDEFINE xp-assign
 
   /* If this property has its initial value of unknown, then we are
@@ -5981,7 +6390,7 @@ PROCEDURE viewObject :
   DO:
     hFrame:HIDDEN = NO.
   END.
-
+  
   IF VALID-HANDLE(hContainer) AND hContainer:TYPE = "WINDOW":U THEN
   DO:
     APPLY "ENTRY" TO hContainer.
@@ -6006,7 +6415,7 @@ PROCEDURE viewObject :
         hContainer:WINDOW-STATE = WINDOW-NORMAL.
     END.
   END.
-
+  
   RETURN.
 
 END PROCEDURE.
@@ -6348,6 +6757,85 @@ FUNCTION applyContextFromServer RETURNS LOGICAL
   {set AsHasStarted TRUE}.
 
   RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-applyFocus) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION applyFocus Procedure 
+FUNCTION applyFocus RETURNS LOGICAL
+  ( pcField AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Apply entry to first or specified widget.
+           Overrides smart.p in order to pass COntainerTargets and their 
+           ContainerHandle frame handles to applyFocusToFrame in order to 
+           call applyFocus in objects when their frame is encountered in 
+           the tab order.
+  pcfield - a field name
+          - ? first in tab order  
+    Notes:  Similar to applyentry but returns result allowing callers to 
+            manage this across multiple contained objects.  
+            
+------------------------------------------------------------------------------*/
+    
+  DEFINE VARIABLE hContainer       AS HANDLE NO-UNDO. 
+  DEFINE VARIABLE hWindow          AS HANDLE NO-UNDO. 
+  DEFINE VARIABLE cTargets         AS CHARACTER NO-UNDO. 
+  DEFINE VARIABLE iTarget          AS INTEGER NO-UNDO.
+  DEFINE VARIABLE hTarget          AS HANDLE NO-UNDO.
+  DEFINE VARIABLE cTargetFrames    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hChildFrame      AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hWidget          AS HANDLE NO-UNDO.
+  DEFINE VARIABLE lWin             AS LOGICAL NO-UNDO.
+  
+  {get ContainerHandle hContainer}.
+  {get ContainerTarget cTargets}.
+   
+  if not valid-handle(hContainer) then 
+    return false. 
+    
+   /* Build list of frames for identification in widgetloop */
+  DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
+    hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).      
+    {get ContainerHandle hChildFrame hTarget}.
+    cTargetFrames = cTargetFrames 
+                  + (if iTarget = 1 then "" else ',':U) 
+                  + if valid-handle(hChildFrame) 
+                    then STRING(hChildFrame)
+                    else "". 
+  END. /* containerTarget loop */ 
+  /* find primary adm frame if window */
+  IF hContainer:TYPE = "WINDOW":U THEN
+  do: 
+    hWindow = hContainer.
+    {get WindowFrameHandle hContainer}.  
+  end.  
+  
+  /* could be invalid if this container has no frame */
+  if valid-handle(hContainer) then
+  do:
+    IF DYNAMIC-FUNC("applyFocusToFrame":U IN TARGET-PROCEDURE, 
+                     hContainer,pcField,cTargetFrames,cTargets) THEN
+      RETURN TRUE.
+  end.
+  ELSE DO: /* the window with no containerhandle can still have frames from 
+              smart objects. In this case we have no tab order between the 
+              frames and use the widget order (possibly the same?) */
+    hWidget = hWindow:FIRST-CHILD.
+    do while valid-handle(hWidget).
+      IF DYNAMIC-FUNC("applyFocusToFrame":U IN TARGET-PROCEDURE, 
+                       hWidget,pcField,cTargetFrames,cTargets) THEN
+         RETURN TRUE.
+      hWidget = hWidget:NEXT-SIBLING.
+    end.          
+  end.
+  
+  RETURN FALSE.   
 
 END FUNCTION.
 
@@ -7635,12 +8123,61 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
   ( ) :
 /*------------------------------------------------------------------------------
   Purpose: Returns the datacontainer that handles all data requests.  
-    Notes:  
+    Notes: If the RequestHandle (the object that manages the request for this
+           object) is another object then we just return the DataContainerHandle
+           from it. If the container does its own request we resolve the handle 
+           here.      
+         - The DataContainerName allows override (for namespacing).  
+         - The ghDatacontainer variable is for the class and only used for 
+           the default DataContainer
+         - Duplicated in dataview.p 
 ------------------------------------------------------------------------------*/
-  IF NOT VALID-HANDLE(ghDataContainer) THEN
+  define variable cName          as character no-undo.
+  define variable hRequestHandle as handle    no-undo.
+  
+  {get RequestHandle hRequesthandle}.
+  if hRequestHandle <> target-procedure and hRequestHandle <> ? then
+    return {fn getDataContainerHandle hRequestHandle}.
+  else    
+  do: 
+    {get DataContainerName cName}.
+    if cName = '':U or cName = 'DataContainer':U then
+    do:
+      if not valid-handle(ghDataContainer) then 
         ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
   
-  RETURN ghDataContainer.
+      return ghDataContainer.
+    end.
+    else 
+      return {fnarg getManagerHandle cName}.
+  end.
+       
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataContainerName Procedure 
+FUNCTION getDataContainerName RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  The DataContainerName is passed to getManagerHandle to start the 
+            DataContainer for an instance. 
+    Notes:  The DataContainer and the Service Adapter has a one-to-one 
+            relationship. This property allows applications to run in the same 
+            session with separate Service Adapters. 
+            This might be necessary if Business Entity references need 
+            different namepaces because the applications have been developed 
+            separately.
+          - Duplicated in dataview.p 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cName AS CHARACTER   NO-UNDO.
+  {get DataContainerName cName}.
+  RETURN cName.
 
 END FUNCTION.
 
@@ -7967,33 +8504,6 @@ FUNCTION getNavigationTarget RETURNS CHARACTER
 
   {get NavigationTarget cNavigationTarget}.
   RETURN cNavigationTarget. 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getObjectsCreated) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectsCreated Procedure 
-FUNCTION getObjectsCreated RETURNS LOGICAL
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns whether this object has run createObjects for page 0.
-   Params:  <none>
-    Notes:  This is used in createObjects to avoid double create. Some 
-            containers run createObjects from the main block while others
-            start them from initializeObject. The create initializeObject is 
-            often too late so this flag was introduced to allow us to have more
-            control over when the objects are created and run createObjects 
-            before initializeObject for all objects without risking a double 
-            create.            
-----------------------------------------------------------------------------*/
-  DEFINE VARIABLE lCreated AS LOGICAL NO-UNDO.
-  {get ObjectsCreated lCreated}.
-  RETURN lCreated.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -8560,6 +9070,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getWidgetIDFileName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWidgetIDFileName Procedure 
+FUNCTION getWidgetIDFileName RETURNS CHARACTER
+        (  ):
+/*------------------------------------------------------------------------------
+    Purpose: Returns the xml file name that stores the widget-id values for
+             the container.
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cWidgetIDFileName AS CHARACTER  NO-UNDO.
+{get WidgetIDFileName cWidgetIDFileName}.
+RETURN cWidgetIDFileName.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getWindowFrameHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWindowFrameHandle Procedure 
@@ -8914,6 +9444,55 @@ END FUNCTION.   /* lockContainingWindow */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-newHeight) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newHeight Procedure 
+FUNCTION newHeight RETURNS LOGICAL
+        ( pdHeight as decimal ):
+/*------------------------------------------------------------------------------
+    Purpose: Tell the container that new height is needed for an object
+  Parameter: pdHeight - total height needed for the object based on current 
+                        position. Typically (o:row - 1) + o:height     
+    Notes:   This is primarily for simple window size increase when/before 
+             objects are resized or dynamically created.
+           - Containers might override just to ignore this if they don't support 
+             size increase or if  sizing/resizing is handled by other mechanisms, 
+             like the Dynamics Layout Manager.     
+------------------------------------------------------------------------------*/
+   if pdHeight > {fn getHeight} then
+     run resizeObject in target-procedure(pdHeight,{fn getWidth}).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-newWidth) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newWidth Procedure 
+FUNCTION newWidth RETURNS LOGICAL
+        ( pdWidth as decimal ):
+/*------------------------------------------------------------------------------
+    Purpose: Tell the container of a new width needed for an object. 
+  Parameter: pdWidth - Total width needed for the object based on current 
+                       position. Typically (o:col - 1) + o:width    
+   Notes:   This is primarily for simple window size increase when/before 
+            objects are resized or dynamically created.
+          - Containers might override just to ignore this if they don't support 
+            size increase or if sizing/resizing is handled by other mechanisms, 
+            like the Dynamics Layout Manager.     
+------------------------------------------------------------------------------*/
+   if pdWidth > {fn getWidth} then
+     run resizeObject in target-procedure({fn getHeight},pdWidth).
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-obtainContextForClient) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION obtainContextForClient Procedure 
@@ -9100,7 +9679,7 @@ FUNCTION pageNTargets RETURNS CHARACTER
   DEFINE VARIABLE cTargets    AS CHARACTER NO-UNDO INIT "":U.
   DEFINE VARIABLE cEntry      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cAllTargets AS CHARACTER NO-UNDO.
-
+  
   /* For page 0 we remove paged objects from the containertarget property*/
   IF piPageNum = 0 THEN
     {get ContainerTarget cTargets phTarget}.
@@ -9531,6 +10110,32 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDataContainerName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataContainerName Procedure 
+FUNCTION setDataContainerName RETURNS LOGICAL
+  ( pcName AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  The DataContainerName is passed to getManagerHandle to start the 
+            DataContainer for an instance. 
+    Notes:  The DataContainer and the Service Adapter has a one-to-one 
+            relationship. This property allows applications to run in the same 
+            session with separate Service Adapters. 
+            This might be necessary if Business Entity references need 
+            different namepaces because the applications have been developed 
+            separately.
+          - Duplicated in dataview.p 
+------------------------------------------------------------------------------*/
+  {set DataContainerName pcName}.
+  RETURN true.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDisabledAddModeTabs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDisabledAddModeTabs Procedure 
@@ -9852,31 +10457,6 @@ FUNCTION setNavigationTarget RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
  {set NavigationTarget cTarget}.
   RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setObjectsCreated) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectsCreated Procedure 
-FUNCTION setObjectsCreated RETURNS LOGICAL
-  ( plCreated AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns a flag indicating whether this object has run createObjects
-            for page 0.
-   Params:  <none>
-    Notes:  Some containers run createObjects from the main block while others
-            start them from initializeObject. The create initializeObject is 
-            often too late so this flag was introduced to allow us to have more
-            control over when the objects are created and run createObjects 
-            before initializeObject for all objects 
-----------------------------------------------------------------------------*/
-  {set ObjectsCreated plCreated}.
-  RETURN TRUE.
 
 END FUNCTION.
 
@@ -10428,6 +11008,24 @@ FUNCTION setWaitForObject RETURNS LOGICAL
 
   {set WaitForObject phObject}.
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setWidgetIDFileName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setWidgetIDFileName Procedure 
+FUNCTION setWidgetIDFileName RETURNS LOGICAL
+        (INPUT pcWidgetIDFileName AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+{set WidgetIDFileName pcWidgetIDFileName}.
+RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

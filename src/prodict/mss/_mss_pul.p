@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 -08 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -53,7 +53,7 @@ History:
     07/19/06 fernando  Unicode support - restrict to MSS 2005
     08/24/06 fernando  Add warning about non utf-8 codepage and unicode columns - 20060802-024
     10/06/06 fernando  Check object name in case it has underscore - 20031205-003
-    
+    08/10/07 fernando  Removed UI restriction for Unicode support    
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -178,7 +178,6 @@ DEFINE VARIABLE s                AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE itype            AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE has_recid_idx    AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE lUnicode         AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE isUnicodeType    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE warn_tablename   AS CHARACTER NO-UNDO.
@@ -323,13 +322,6 @@ end PROCEDURE.
 /*------------------------------------------------------------------*/
 /*---------------------------  MAIN-CODE  --------------------------*/
 /*------------------------------------------------------------------*/
-
-IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
-  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
-
-  IF tmp_str BEGINS "Y" THEN
-      ASSIGN lUnicode = TRUE.
-END.
 
 assign
   batch-mode   = SESSION:BATCH-MODE
@@ -700,7 +692,15 @@ for each gate-work
      */
      IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
         NEXT.
-
+     IF DICTDBG.SQLColumns_buffer.column-name begins 'PROGRESS_RECID'
+       THEN DO:
+         IF DICTDBG.SQLColumns_buffer.data-type = 4 /* int */
+          THEN
+            s_ttb_tbl.ds_msc15 = 1.
+         IF DICTDBG.SQLColumns_buffer.data-type = -5 /* bigint */
+          THEN
+            s_ttb_tbl.ds_msc15 = 2.
+      END.
       find first column-id
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
 
@@ -749,7 +749,7 @@ for each gate-work
                isUnicodeType = (DICTDBG.SQLColumns_buffer.data-type <= -8 
                                 AND DICTDBG.SQLColumns_buffer.data-type >= -10).
 
-        IF l_dt = "UNDEFINED" OR (NOT lUnicode AND isUnicodeType) THEN DO:
+        IF l_dt = "UNDEFINED" THEN DO:
 
           RUN error_handling
             ( 2, 
@@ -1152,6 +1152,19 @@ for each gate-work
                     s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
           else assign
               s_ttb_idx.ds_msc21 = entry(s_ttb_idx.hlp_level,l_matrix).
+          /* OE00164266 - set the PROGRESS_RECID size if it is an integer */
+          find first s_ttb_fld
+           where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl)
+             and  ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
+              no-lock no-error.
+          IF available s_ttb_fld then do:
+            if s_ttb_fld.ds_type = "INTEGER"
+             then
+               s_ttb_tbl.ds_msc15 = 1. /* RECID is 4 byte */
+            if s_ttb_fld.ds_type = "BIGINT"
+             then
+               s_ttb_tbl.ds_msc15 = 2. /* RECID is 8 byte */
+          END.
 
        end.     /* for each s_ttb_idx */
     end.     /* no progress_recid -> check indexes for ROWID usability */
@@ -1325,11 +1338,9 @@ for each gate-work
         do:
 
            { prodict/mss/mss_typ.i DICTDBG.SQLProcCols_buffer.data-type  bug29 }
-           ASSIGN m1 = 0
-                isUnicodeType = (DICTDBG.SQLProcCols_buffer.data-type <= -8 
-                                 AND DICTDBG.SQLProcCols_buffer.data-type >= -10).
+           ASSIGN m1 = 0.
 
-           IF l_dt = "UNDEFINED" OR (NOT lUnicode AND isUnicodeType) THEN DO:
+           IF l_dt = "UNDEFINED" THEN DO:
               RUN error_handling
                 ( 2, 
                   s_ttb_tbl.ds_name, "" 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -12,6 +12,7 @@
    
    fernando   04/17/06 Unicode support
    fernando   07/19/06 Unicode support - restrict UI   
+   fernando   08/10/07 Removed UI restriction for Unicode support   
 */   
 
 { prodict/user/uservar.i NEW }
@@ -30,9 +31,9 @@ DEFINE VARIABLE l_dbnr        AS INTEGER                NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                               INITIAL "For field widths use:"
                               FORMAT "x(20)" NO-UNDO.
-DEFINE VARIABLE lUnicode      AS LOGICAL INITIAL FALSE  NO-UNDO.
 DEFINE VARIABLE tmp_str       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE s_res         AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE hasUniSupport AS LOGICAL                NO-UNDO.
 
 FORM
   " "   SKIP 
@@ -58,7 +59,7 @@ FORM
   lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
   SKIP({&VM_WID}) SPACE(13) cFormat VIEW-AS TEXT NO-LABEL  
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "4GL Format", 2
+                                             "ABL Format", 2
                                  HORIZONTAL NO-LABEL SKIP({&VM_WID})
   lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 49
 
@@ -165,7 +166,7 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
 END. 
 
 ON LEAVE OF long-length IN FRAME read-df DO:
-  IF (NOT lUnicode OR unicodeTypes:SCREEN-VALUE = "no") AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
+  IF (unicodeTypes:SCREEN-VALUE = "no") AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
     MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
@@ -196,13 +197,6 @@ END.
     {&CAN_BTN}
 }
  
-IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
-  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
-
-  IF tmp_str BEGINS "Y" THEN
-      ASSIGN lUnicode = TRUE.
-END.
-
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
    btn_Help:visible IN FRAME read-df = yes.
 &ENDIF
@@ -214,16 +208,13 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
              mss_conparms = "<current working database>".
     ELSE IF DICTDB._Db._Db-type = "MSS" THEN
       ASSIGN mss_dbname = DICTDB._Db._Db-name
-             shadowcol = (IF _Db-misc1[1] = 0 THEN TRUE ELSE FALSE).             
+             shadowcol = (IF _Db-misc1[1] = 0 THEN TRUE ELSE FALSE)
+             hasUniSupport = (DICTDB._Db._Db-xl-name = "utf-8").             
   END.
 END.
 
 ASSIGN pcompatible = TRUE
        long-length = 8000.       
-
-IF NOT lUnicode THEN
-    ASSIGN unicodeTypes:VISIBLE IN FRAME read-df = NO
-           lUniExpand:VISIBLE IN FRAME read-df = NO.
 
 DISPLAY cFormat lFormat WITH FRAME read-df.
 
@@ -238,8 +229,8 @@ UPDATE df-file
        shadowcol WHEN shadowcol = TRUE
        dflt
        create_df
-       unicodeTypes WHEN lUnicode
-       lUniExpand WHEN lUnicode AND unicodeTypes
+       unicodeTypes WHEN hasUniSupport
+       lUniExpand WHEN unicodeTypes
        iFmtOption
        lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
@@ -248,12 +239,10 @@ UPDATE df-file
        &ENDIF
   WITH FRAME read-df.
        
-IF lUnicode THEN DO:
-    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
-       ASSIGN unicodeTypes = YES.
-    IF lUniExpand:SCREEN-VALUE ="yes" THEN
-       ASSIGN lUniExpand = YES.
-END.
+IF unicodeTypes:SCREEN-VALUE ="yes" THEN
+   ASSIGN unicodeTypes = YES.
+IF lUniExpand:SCREEN-VALUE ="yes" THEN
+   ASSIGN lUniExpand = YES.
 
 ASSIGN user_env[1]  = df-file
        user_env[3]  = ""

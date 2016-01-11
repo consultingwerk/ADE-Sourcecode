@@ -478,7 +478,7 @@ DEFINE VARIABLE lok               AS LOGICAL    NO-UNDO.
   IF _DynamicsIsRunning THEN
   DO:
     RUN adecomm/_setcurs.p ("WAIT":U).
-    RUN ry/obj/gopendialog.w (INPUT CURRENT-WINDOW,
+    RUN adeuib/_opendialog.w (INPUT CURRENT-WINDOW,
                               INPUT "",
                               INPUT No,
                               INPUT "Get Object",
@@ -595,7 +595,7 @@ END PROCEDURE.
 FUNCTION getOpenObjectFilter RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Required by ry/obj/gopendialog.w invoked in lookupSDO
+  Purpose:  Required by adeuib/_opendialog.w invoked in lookupSDO
     Notes:  
 ------------------------------------------------------------------------------*/
 

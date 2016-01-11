@@ -72,11 +72,15 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* MIP object identifying preprocessor */
 &glob   mip-structured-procedure    yes
 
+/* Query core limitation used to define extents in query logic */                                                    
+&SCOPED-DEFINE MaxTables 18  
+
 /* input-output temp-table for combo boxes / selection lists whose list items pairs
    need to be built
 */
 {af/sup2/afttlkctrl.i}
 {af/sup2/afglobals.i}
+
 
 DEFINE INPUT-OUTPUT PARAMETER TABLE FOR ttLookCtrl. /* lookup control information */
 DEFINE OUTPUT PARAMETER TABLE-HANDLE ohttLookup.    /* table handle for lookup Data dynamic temp-table */
@@ -231,7 +235,7 @@ DEFINE VARIABLE lOk                AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cRowid             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iStartRow          AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cStartRowId        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE rRowIDs            AS ROWID EXTENT 10 NO-UNDO.
+DEFINE VARIABLE rRowIDs            AS ROWID EXTENT {&MaxTables} NO-UNDO.
 DEFINE VARIABLE lOffEnd            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cPlipName          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cBufferName        AS CHARACTER  NO-UNDO.

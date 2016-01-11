@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : toolprop.i
     Purpose     : Defines basic properties.
@@ -144,6 +144,7 @@ MenuMergeOrder,RemoveMenuOnHide,CreateSubMenuOnConflict,NavigationTargetName
 &GLOBAL-DEFINE xpCreateSubMenuOnConflict
 &GLOBAL-DEFINE xpRemoveMenuOnHide
 &GLOBAL-DEFINE xpSubMenuLabelRetrieval
+&GLOBAL-DEFINE xpActionWidgetIDs
 
 {src/adm2/visprop.i}
     
@@ -201,6 +202,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('CreateSubMenuOnConflict':U, 'LOGICAL':U, 0, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('RemoveMenuOnHide':U, 'LOGICAL':U, 0, ?, FALSE).
   ghADMProps:ADD-NEW-FIELD('SubMenuLabelRetrieval':U, 'CHAR':U, 0, ?, 'Label':U).
+  ghADMProps:ADD-NEW-FIELD('ActionWidgetIDs':U, 'CHAR':U).
 &ENDIF
 
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/

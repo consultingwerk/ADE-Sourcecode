@@ -34,6 +34,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/* Copyright (C) 2007 by Progress Software Corporation. All rights    
+   reserved.  Prior versions of this work may contain portions
+   contributed by participants of Possenet. */
 /*---------------------------------------------------------------------------------
   File: ryclspropbsupr.p
 
@@ -546,7 +549,7 @@ ACCESS_LEVEL=PRIVATE
                 when {&LOGICAL-DATA-TYPE} then
                 do:
                     {get LookupList hLookupList}.
-                    cLookupValue = 'Yes' + chr(3) + 'YES' + chr(3) + 'No' + chr(3) + 'NO'.
+                    cLookupValue = 'Yes' + chr(3) + 'YES' + chr(3) + 'No' + chr(3) + 'NO' + chr(3) + 'Null' + chr(3) + '?'.
                 end.    /* logical */
                 when {&CHARACTER-DATA-TYPE} then
                 do:
@@ -1240,7 +1243,7 @@ PROCEDURE updateRecord :
                                                        INPUT  "&OK", /* button list */
                                                        INPUT  "&OK", /* default button */ 
                                                        INPUT  "&OK", /* cancel button */
-                                                       INPUT  "Duplicate attribute `" + cAttributeLabel + "`", /* window title */
+                                                       INPUT  "Duplicate attribute ~'" + cAttributeLabel + "~'", /* window title */
                                                        INPUT  YES, /* display if empty */ 
                                                        INPUT  hContainer,
                                                        OUTPUT cButton       ).

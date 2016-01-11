@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000, 2007 by Progress Software Corporation. All     *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -57,7 +57,6 @@ define input        parameter p_master   as   character.
 define variable               canned     as   logical init yes.
 define variable               l_link     as   character format "x(30)".
 define variable               l_verify   as   logical.
-
 form
                                                           skip({&VM_WIDG})
   l_link    label "Link-Path  "  format "x(30)" colon 18  skip({&VM_WIDG})
@@ -197,13 +196,12 @@ on WINDOW-CLOSE of frame frm_as400
 /*---------------------------  MAIN-CODE  --------------------------*/
 
 /*------------------------------------------------------------------*/
-
 /* Default owner to userid of person doing the pull of objects.  20030605-037 */
 IF INDEX(USERID("DICTDBG"), "/") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "/") - 1)).
 ELSE IF INDEX(USERID("DICTDBG"), "@") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "@") - 1)).
-ELSE
+ELSE IF p_frame NE "frm_as400" OR (p_frame = "frm_as400" AND p_owner = "*") THEN
     ASSIGN p_owner = USERID("DICTDBG").
 
 do on ENDKEY undo,leave:

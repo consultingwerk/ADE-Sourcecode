@@ -70,6 +70,12 @@ DEFINE OUTPUT PARAMETER h_tbl_brws  AS HANDLE          NO-UNDO.
 /* ----------------------------------------------------------------- */
 /*                        FOR FIELDS ONLY                            */
 /* ----------------------------------------------------------------- */
+/* just for syntax check ... */
+&if "{&wdth)}" = "" and "{&hght}" = "" &then
+  &scop hght 10
+  &scop wdth  50
+&endif    
+
 &IF "{&FLDS}" = "YES" &THEN
 DEFINE OUTPUT PARAMETER h_fld_brws  AS HANDLE          NO-UNDO.
 &ENDIF           /* End of fields only output parameter definitions  */
@@ -77,14 +83,14 @@ DEFINE OUTPUT PARAMETER h_fld_brws  AS HANDLE          NO-UNDO.
 DEFINE OUTPUT PARAMETER p_Stat 	    AS LOGICAL         NO-UNDO.
 
 
-DEFINE QUERY  tbl-browse-m FOR _FILE SCROLLING.
+DEFINE QUERY  tbl-browse-m FOR DICTDB._FILE SCROLLING.
 DEFINE BROWSE tbl-browse-m QUERY tbl-browse-m NO-LOCK
-       DISPLAY _FILE._FILE-NAME
+       DISPLAY DICTDB._FILE._FILE-NAME
     WITH NO-ROW-MARKERS NO-COLUMN-SCROLLING MULTIPLE
          SIZE {&WDTH} BY {&HGHT} NO-LABELS.
-DEFINE QUERY  tbl-browse-s FOR _FILE SCROLLING.
+DEFINE QUERY  tbl-browse-s FOR DICTDB._FILE SCROLLING.
 DEFINE BROWSE tbl-browse-s QUERY tbl-browse-s NO-LOCK
-       DISPLAY _FILE._FILE-NAME
+       DISPLAY DICTDB._FILE._FILE-NAME
     WITH NO-ROW-MARKERS NO-COLUMN-SCROLLING SINGLE
          SIZE {&WDTH} BY {&HGHT} NO-LABELS.
 
@@ -148,55 +154,55 @@ RUN adecomm/_setcurs.p ("WAIT":u).
 FIND DICTDB._DB WHERE RECID(DICTDB._DB) = p_DBID NO-LOCK.
 IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
   IF multi-tbl THEN 
-    OPEN QUERY tbl-browse-m FOR EACH _FILE NO-LOCK 
+    OPEN QUERY tbl-browse-m FOR EACH DICTDB._FILE NO-LOCK 
        WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
-             CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-             NOT _FILE._HIDDEN AND
-             (_File._FOR-TYPE = ? OR
-              NOT CAN-DO(p_filters,_File._FOR-TYPE)) BY _File._FILE-NAME.
+             CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":U)) AND
+             NOT DICTDB._FILE._HIDDEN AND
+             (DICTDB._FILE._FOR-TYPE = ? OR
+              NOT CAN-DO(p_filters,DICTDB._File._FOR-TYPE)) BY DICTDB._File._FILE-NAME.
   ELSE
-    OPEN QUERY tbl-browse-s FOR EACH _FILE NO-LOCK 
+    OPEN QUERY tbl-browse-s FOR EACH DICTDB._FILE NO-LOCK 
        WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
-             CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-             NOT _FILE._HIDDEN AND
-             (_File._FOR-TYPE = ? OR
-              NOT CAN-DO(p_filters,_File._FOR-TYPE)) BY _File._FILE-NAME.
+             CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":U)) AND
+             NOT DICTDB._FILE._HIDDEN AND
+             (DICTDB._FILE._FOR-TYPE = ? OR
+              NOT CAN-DO(p_filters,DICTDB._File._FOR-TYPE)) BY DICTDB._File._FILE-NAME.
 END.  /* If DB > 8 */
 ELSE DO:
   IF multi-tbl THEN 
-    OPEN QUERY tbl-browse-m FOR EACH _FILE NO-LOCK 
-       WHERE CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-             NOT _FILE._HIDDEN AND
-             (_File._FOR-TYPE = ? OR
-              NOT CAN-DO(p_filters,_File._FOR-TYPE)) BY _File._FILE-NAME.
+    OPEN QUERY tbl-browse-m FOR EACH DICTDB._FILE NO-LOCK 
+       WHERE CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":U)) AND
+             NOT DICTDB._FILE._HIDDEN AND
+             (DICTDB._FILE._FOR-TYPE = ? OR
+              NOT CAN-DO(p_filters,_File._FOR-TYPE)) BY DICTDB._File._FILE-NAME.
   ELSE
-    OPEN QUERY tbl-browse-s FOR EACH _FILE NO-LOCK 
-       WHERE CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-             NOT _FILE._HIDDEN AND
-             (_File._FOR-TYPE = ? OR
-              NOT CAN-DO(p_filters,_File._FOR-TYPE)) BY _File._FILE-NAME.
+    OPEN QUERY tbl-browse-s FOR EACH DICTDB._FILE NO-LOCK 
+       WHERE CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":U)) AND
+             NOT DICTDB._FILE._HIDDEN AND
+             (DICTDB._File._FOR-TYPE = ? OR
+              NOT CAN-DO(p_filters,DICTDB._File._FOR-TYPE)) BY DICTDB._File._FILE-NAME.
 
 END.
 
 IF NUM-ENTRIES(in-value) > 0 THEN DO:  /* SELECT these tables in the browse */
   DO i = 1 TO NUM-ENTRIES(in-value):
     IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
-      FIND _FILE NO-LOCK
+      FIND DICTDB._FILE NO-LOCK
                WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
-                     CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-                            NOT _FILE._HIDDEN AND
-                            (_File._FOR-TYPE = ? OR
+                     CAN-DO(DICTDB._FILE._Can-Read, USERID("DICTDB":U)) AND
+                            NOT DICTDB._FILE._HIDDEN AND
+                            (DICTDB._FILE._FOR-TYPE = ? OR
                              NOT CAN-DO(p_filters,_File._FOR-TYPE)) AND
-                             _File._FILE-NAME = ENTRY(i,in-value) NO-ERROR.
+                             DICTDB._FILE._FILE-NAME = ENTRY(i,in-value) NO-ERROR.
     ELSE
-      FIND _FILE NO-LOCK
-               WHERE CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-                            NOT _FILE._HIDDEN AND
-                            (_File._FOR-TYPE = ? OR
+      FIND DICTDB._FILE NO-LOCK
+               WHERE CAN-DO(DICTDB._FILE._Can-Read, USERID("DICTDB":U)) AND
+                            NOT DICTDB._FILE._HIDDEN AND
+                            (DICTDB._FILE._FOR-TYPE = ? OR
                              NOT CAN-DO(p_filters,_File._FOR-TYPE)) AND
-                             _File._FILE-NAME = ENTRY(i,in-value) NO-ERROR.
-    IF AVAILABLE _FILE THEN DO:
-      cur-rec = RECID(_FILE).
+                             DICTDB._FILE._FILE-NAME = ENTRY(i,in-value) NO-ERROR.
+    IF AVAILABLE DICTDB._FILE THEN DO:
+      cur-rec = RECID(DICTDB._FILE).
       IF multi-tbl THEN REPOSITION tbl-browse-m TO RECID cur-rec.
       ELSE REPOSITION tbl-browse-s TO RECID cur-rec.
       p_Stat = h_tbl_brws:SELECT-FOCUSED-ROW().
@@ -207,7 +213,7 @@ IF NUM-ENTRIES(in-value) > 0 THEN DO:  /* SELECT these tables in the browse */
   /* Sometimes with multiple db's the wrong DB is selected */
   IF h_tbl_brws:NUM-SELECTED-ROWS > 0 THEN DO:
     ASSIGN p_Stat  = h_tbl_brws:FETCH-SELECTED-ROW(1)
-           cur-rec = RECID(_FILE).
+           cur-rec = RECID(DICTDB._FILE).
     IF multi-tbl THEN REPOSITION tbl-browse-m TO RECID cur-rec.
     ELSE REPOSITION tbl-browse-s TO RECID cur-rec.
   END. /* If there are any selected rows. */
@@ -272,7 +278,7 @@ ON VALUE-CHANGED OF tbl-browse-s DO:
   FOR EACH tbl-fld:
     DELETE tbl-fld.
   END.
-  cur-rec = RECID(_FILE).
+  cur-rec = RECID(DICTDB._FILE).
   run open_fld_browse.
 END. 
 
@@ -281,27 +287,27 @@ END.
    database may exist in this one physical database.  */
 RUN adecomm/_setcurs.p ("WAIT":u).
 
-IF NOT AVAILABLE _FILE THEN DO:
+IF NOT AVAILABLE DICTDB._FILE THEN DO:
   IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
     IF cur-rec NE ? THEN
-       FIND _FILE NO-LOCK WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
-                                RECID(_FILE) = cur-rec NO-ERROR.
-    IF NOT AVAILABLE _FILE THEN
-      FIND FIRST _FILE NO-LOCK 
+       FIND DICTDB._FILE NO-LOCK WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
+                                RECID(DICTDB._FILE) = cur-rec NO-ERROR.
+    IF NOT AVAILABLE DICTDB._FILE THEN
+      FIND FIRST DICTDB._FILE NO-LOCK 
          WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
-               CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-               NOT _FILE._HIDDEN AND
-               (_File._FOR-TYPE = ? OR
+               CAN-DO(DICTDB._FILE._Can-Read, USERID("DICTDB":U)) AND
+               NOT DICTDB._FILE._HIDDEN AND
+               (DICTDB._FILE._FOR-TYPE = ? OR
                 NOT CAN-DO(p_filters,_File._FOR-TYPE)).
   END.
   ELSE DO: /* DBVERSION = 8 */
     IF cur-rec NE ? THEN
-       FIND _FILE NO-LOCK WHERE RECID(_FILE) = cur-rec NO-ERROR.
-    IF NOT AVAILABLE _FILE THEN
-      FIND FIRST _FILE NO-LOCK 
-         WHERE CAN-DO(_File._Can-Read, USERID("DICTDB":U)) AND
-               NOT _FILE._HIDDEN AND
-               (_File._FOR-TYPE = ? OR
+       FIND DICTDB._FILE NO-LOCK WHERE RECID(DICTDB._FILE) = cur-rec NO-ERROR.
+    IF NOT AVAILABLE DICTDB._FILE THEN
+      FIND FIRST DICTDB._FILE NO-LOCK 
+         WHERE CAN-DO(DICTDB._FILE._Can-Read, USERID("DICTDB":U)) AND
+               NOT DICTDB._FILE._HIDDEN AND
+               (DICTDB._FILE._FOR-TYPE = ? OR
                 NOT CAN-DO(p_filters,_File._FOR-TYPE)).
   END.
 END.
@@ -324,9 +330,9 @@ PROCEDURE load-private-data:
   DO i = 1 TO h_tbl_brws:NUM-SELECTED-ROWS:
     ASSIGN p_Stat = h_tbl_brws:FETCH-SELECTED-ROW(i)
            h_tbl_brws:PRIVATE-DATA = (IF i = 1
-                                      THEN _FILE._FILE-NAME
+                                      THEN DICTDB._FILE._FILE-NAME
                                       ELSE (h_tbl_brws:PRIVATE-DATA +
-                                           ",":U + _FILE._FILE-NAME)).
+                                           ",":U + DICTDB._FILE._FILE-NAME)).
   END.
   
   &IF "{&FLDS}" = "YES" &THEN
@@ -349,7 +355,7 @@ END.
                                  
 PROCEDURE open_fld_browse.
   IF p_DType = ? THEN DO:
-    FOR EACH _FIELD OF _FILE NO-LOCK
+    FOR EACH _FIELD OF DICTDB._FILE NO-LOCK
              WHERE CAN-DO(_Field._Can-Read, USERID("DICTDB":U)):
       CREATE tbl-fld.
       ASSIGN tbl-fld.fld-nm = _FIELD._FIELD-NAME + 
@@ -360,7 +366,7 @@ PROCEDURE open_fld_browse.
   END. /* Select all fields */
   
   ELSE DO:
-    FOR EACH _FIELD OF _FILE NO-LOCK
+    FOR EACH _FIELD OF DICTDB._FILE NO-LOCK
              WHERE _Field._DATA-TYPE = p_DType AND
                    CAN-DO(_Field._Can-Read, USERID("DICTDB":U)):
       CREATE tbl-fld.

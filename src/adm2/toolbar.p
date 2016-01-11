@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -12,14 +12,23 @@
     Purpose     : Super procedure for toolbar class.
 
     Syntax      : RUN start-super-proc("adm2/toolbar.p":U).
-
-    Modified    : 1/12/2000
-    Modified    : 03/25/2002      Mark Davies (MIP)
-                  Added getMinHeight override procedure.
-  ------------------------------------------------------------------------*/
-/*          This .W file was created with the Progress UIB.             */
-/*----------------------------------------------------------------------*/
-
+    Notes       : The toolbar currently only creates one Band per instance while
+                  the repository allows multiple instances of the same band on 
+                  a toolbar. 
+                  This is mainly due to the fact that the key to various
+                  construct* APIs uses the Band as parameter. The fact that there
+                  also is an action created for each band is also relying on 
+                  the band name being unique.                  
+                - Supporting multiple Bands per toolbar would require that 
+                  the Bandinstance key is changed to something unique. It could 
+                  possibly just use the menukey, but this complicates things 
+                  when it comes to the action name and also when building the 
+                  menukey as the menukey is parentmenukey + action. This would
+                  not work very well if the action is the menukey. 
+                - (Although this sounds complicated it is likely that a fix 
+                   to support this would/could end up simplifying the 
+                   relationships)    
+-------------------------------------------------------------------------- */
 /* ***************************  Definitions  ************************** */
 &SCOP ADMSuper toolbar.p
 &SCOP adm-panel-type toolbar
@@ -117,7 +126,7 @@ DEFINE TEMP-TABLE tBandInstance NO-UNDO
  /* Used to sort items added directly on the placeholder's position */
  FIELD PlaceholderSeq AS INT 
 INDEX Hdl Hdl hTarget
-INDEX hTarget hTarget Band
+INDEX hTarget as unique hTarget Band
 INDEX menubarhdl MenuBarHdl ObjectName Band 
 INDEX menuname  MenuName hTarget
 INDEX menukey   MenuKey  hTarget
@@ -193,6 +202,38 @@ DEFINE TEMP-TABLE ttSubMergeTarget
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-Actions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD actions Procedure
+FUNCTION actions RETURNS CHARACTER 
+	(INPUT pcActionType AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getActionWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getActionWidgetIDs Procedure
+FUNCTION getActionWidgetIDs RETURNS CHARACTER 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setActionWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setActionWidgetIDs Procedure
+FUNCTION setActionWidgetIDs RETURNS LOGICAL 
+	(INPUT pcActionWidgetIDs AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 &IF DEFINED(EXCLUDE-actionAccelerator) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD actionAccelerator Procedure 
@@ -2740,7 +2781,76 @@ IF VALID-HANDLE(gshSessionManager) THEN
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-assignActionWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignActionWidgetIDs Procedure
+PROCEDURE assignActionWidgetIDs:
+/*------------------------------------------------------------------------------
+    Purpose: Assigns widget-ids for the toolbar buttons.
+
+    Parameters: <none>
+    Notes: This procedure is called from the createToolbar function, only if the
+           -usewidgetid session parameter is being used.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cActionWidgetIDs AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iActions         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iAction          AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iActionPos       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cAction          AS CHARACTER  NO-UNDO.
+
+{get ActionWidgetIDs cActionWidgetIDs}.
+
+ASSIGN iActions = NUM-ENTRIES(cActionWidgetIDs).
+
+REPEAT iAction =  1 TO iActions:
+    ASSIGN cAction    = ENTRY(iAction, cActionWidgetIDs)
+           iActionPos = LOOKUP(cAction, cActionWidgetIDs).
+
+    IF iActionPos > 0 THEN    DO:
+        FIND FIRST tButton WHERE tButton.hTarget = TARGET-PROCEDURE AND
+                                 tButton.name    = cAction
+                                 NO-LOCK NO-ERROR.
+        IF AVAILABLE(tButton) THEN 
+        ASSIGN tButton.hdl:WIDGET-ID = INT(ENTRY(iAction + 1, cActionWidgetIDs)).
+    END. /* IF iActionPos > 0 THEN */
+END. /* REPEAT iAction =  1 TO iActions: */
+
+RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF 
+&IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure
+PROCEDURE createObjects:
+/*------------------------------------------------------------------------------
+    Purpose:  Load the toolbar and actions if necessary.  
+    Parameters: <none>
+    Notes:    This is NOT currently a create of actions for the instance. 
+              This is published from the container to ensure that toolbar 
+              actions are loaded before ANY object is initialized to avoid 
+              errors if any objects call action methods in the toolbar before 
+              it is initialized.    
+------------------------------------------------------------------------------*/
+  IF {fn getUseRepository} THEN
+    RUN loadToolbar IN TARGET-PROCEDURE.
+  /* If not repository, init (load) all actions in the toolbar class.  */         
+  ELSE IF NOT {fn getActionsLoaded} THEN
+    RUN initAction IN TARGET-PROCEDURE.
+  
+  run super. 
+  
+  return.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-bandActionList) = 0 &THEN
 
@@ -3234,7 +3344,7 @@ PROCEDURE initAction :
                 "addRecord":U {&dlmt}
                 "CREATE":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "RecordState=RecordAvailable,NoRecordAvailable and Editable and DataModified=no and CanNavigate()":U
+                "RecordState=RecordAvailable,NoRecordAvailable and Editable and DataModified=no and canNavigate() and canUpdate()":U
                 ).
 
    defineAction("UPDATE":U,xcColumns,
@@ -3245,7 +3355,7 @@ PROCEDURE initAction :
                 "updateMode('updateBegin')":U {&dlmt}
                 "WRITE":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "RecordState=RecordAvailable and Editable and ObjectMode=View":U
+                "RecordState=RecordAvailable and Editable and ObjectMode=View and canUpdate()":U
                 ).
                    
    defineAction("COPY":U,xcColumns,
@@ -3256,7 +3366,7 @@ PROCEDURE initAction :
                 "copyRecord":U {&dlmt}
                 "CREATE":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "RecordState=RecordAvailable and Editable and DataModified=no and canNavigate()":U
+                "RecordState=RecordAvailable and Editable and DataModified=no and canNavigate() and canUpdate()":U
                 ).
   
     defineAction("DELETE":U,xcColumns,
@@ -3267,7 +3377,7 @@ PROCEDURE initAction :
                 "deleteRecord":U {&dlmt}
                 "DELETE":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "RecordState=RecordAvailable and DataModified=no and canNavigate()":U
+                "RecordState=RecordAvailable and DataModified=no and canNavigate() and canUpdate()":U
                 ).
                 
    defineAction("SAVE":U,xcColumns,
@@ -3399,7 +3509,7 @@ PROCEDURE initAction :
                 "startFilter":U {&dlmt}
                 "READ":U {&dlmt}
                 "FUNCTION":U {&dlmt}
-                "FilterAvailable=yes":U {&dlmt}
+                "FilterAvailable=yes and RecordState=RecordAvailable,NoRecordAvailable":U {&dlmt}
                 "navigation-target":U
                 ).
                                                                                        
@@ -3439,9 +3549,8 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cHidden          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPanelType       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTableioTarget   AS CHARACTER  NO-UNDO.
-
-
-
+  define variable hContainerSource as handle     no-undo.
+   
   &SCOPED-DEFINE xp-assign
   {get TableioType cTableioType}
   {get HiddenActions cHidden}
@@ -3450,6 +3559,7 @@ PROCEDURE initializeObject :
   {get UseRepository lUseRepository}
   {get PanelType cPanelType}
   {get TableioTarget cTableioTarget}
+  {get ContainerSource hContainerSource}
   .
   &UNDEFINE xp-assign
 
@@ -3463,11 +3573,10 @@ PROCEDURE initializeObject :
     {get ObjectInitialized lInit}.
     IF lInit THEN RETURN "ADM-ERROR":U.
   END.
-
-  IF NOT {fn getActionsLoaded} AND NOT lUseRepository THEN
-     /* This is considered class properties and will only be defined the
-        first time an instance is initialized. */
-    RUN initAction IN TARGET-PROCEDURE. 
+  
+  /* allow standalone (simulation?) */
+  IF NOT valid-handle(hContainerSource) then  
+    RUN createObjects IN TARGET-PROCEDURE. 
 
   /* Ensure tableio toolbar 'Update' action is hidden if TableioType is "Save" 
      and ensure that only one of 'Reset' or 'UndoChange' is present */
@@ -3556,7 +3665,6 @@ PROCEDURE initializeObject :
 
     IF lUseRepository THEN
     DO:
-      RUN loadToolbar IN TARGET-PROCEDURE. 
       {fn constructToolbar}.
       {fn constructMenu}.
     END.
@@ -3630,11 +3738,12 @@ PROCEDURE linkState :
   DEFINE VARIABLE hContainer              AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTargetContainer        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cContainerType          AS CHARACTER  NO-UNDO.
-
+  
   /* Data objects that receive 'active' message from child data objects
      appends 'data' as a signal to not activate the navigation toolbar */ 
   if pcState = 'ActiveData':U then 
     return.
+ 
   &SCOPED-DEFINE xp-assign
   {get LinkTargetNames cLinkTargetNames}
   {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
@@ -3650,9 +3759,10 @@ PROCEDURE linkState :
       NO-ERROR.
     
     IF cLinkType = 'ContainerToolbar':U THEN NEXT.
-
+     
     IF CAN-DO(cTargets,STRING(SOURCE-PROCEDURE)) THEN
     DO:
+       
       IF pcState BEGINS 'active':U 
       AND NOT lDeactivateTargetOnHide
       AND NUM-ENTRIES(cTargets) > 1  THEN
@@ -3660,13 +3770,13 @@ PROCEDURE linkState :
         TargetLoop:
         DO iTarget = 1 TO NUM-ENTRIES(cTargets):
           hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)). 
-          IF hTarget <> SOURCE-PROCEDURE THEN
+          IF hTarget <> SOURCE-PROCEDURE then 
             RUN linkStateHandler IN hTarget ('inactive':U,
                                              TARGET-PROCEDURE,
-                                             cLink) NO-ERROR. 
+                                             cLink) NO-ERROR.   
         END.
       END.
-
+       
       IF (pcState BEGINS 'active':U OR lDeactivateTargetOnHide) THEN
       DO: 
         /* If an indirect message from a Target of our Target, we check 
@@ -3704,13 +3814,14 @@ PROCEDURE linkState :
                 END.
                 /* We are in the same window as a visible target of the publisher, 
                    ignore the request */
-                IF VALID-HANDLE(hContainer) AND hContainer = hTargetContainer THEN
+                IF VALID-HANDLE(hContainer) AND hContainer = hTargetContainer then   
                    RETURN.
+          
               END. /* not hidden */
             END. /* not query (visual) */
           END. /* loop through targets of publisher */
         END.
-
+       
         RUN linkStateHandler IN SOURCE-PROCEDURE (REPLACE(pcState,'Target':U,'':U),
                                                   TARGET-PROCEDURE,
                                                   cLink) NO-ERROR. 
@@ -5290,8 +5401,7 @@ Parameters:  pcLink - link name
              is overidden in an instance. This allows for example the panel 
              to have a different hide rule than the toolbar, but an override of 
              these action* functions in a custom super-procedure will have no 
-             effect. 
-  IMPORTANT: This procedure is duplicated in the Panel super proc panel.p         
+             effect.         
 ------------------------------------------------------------------------------*/  
   DEFINE INPUT PARAMETER pcLink   AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER phTarget AS HANDLE     NO-UNDO.
@@ -5324,7 +5434,10 @@ Parameters:  pcLink - link name
   DEFINE VARIABLE cEnablerule AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cHiderule   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cImagerule  AS CHARACTER  NO-UNDO.
-
+  
+  DEFINE VARIABLE lIsOn       AS LOGICAL    NO-UNDO. 
+  DEFINE VARIABLE lIsOff      AS LOGICAL    NO-UNDO. 
+  
   DEFINE BUFFER bttAction FOR ttAction. 
 
   hBuffer = DYNAMIC-FUNCTION('linkRuleBuffer':U IN TARGET-PROCEDURE,
@@ -5351,106 +5464,150 @@ Parameters:  pcLink - link name
   END.
   ghTargetProcedure = ?.
 
-  FOR EACH bttAction WHERE bttAction.link = pcLink :
-                     /*
-                     AND  (bttAction.EnableRule <> '':U
-                           OR 
-                           bttAction.HideRule <> '':U 
-                           OR 
-                           bttAction.ImageAlternateRule <> '':U
-                           OR 
-                           bttAction.Type = 'PROPERTY':U)
-                           */
+  FOR EACH bttAction WHERE bttAction.link = pcLink 
+                           and
+                           (lookup(bttAction.Action,piocEnable) > 0
+                            or
+                            lookup(bttAction.Action,piocDisable) > 0
+                            or
+                            lookup(bttAction.Action,piocVisible) > 0
+                            or 
+                            lookup(bttAction.Action,piocHidden) > 0
+                            or 
+                            lookup(bttAction.Action,piocImage1) > 0
+                            or 
+                            lookup(bttAction.Action,piocImage2) > 0
+                            or 
+                            lookup(bttAction.Action,piocTrue) > 0
+                            or 
+                            lookup(bttAction.Action,piocFalse) > 0
+                           ):
     
-    cEnableRule  = IF NOT lEnableRule 
-                   THEN bttAction.EnableRule
-                   ELSE {fnarg actionEnableRule bttAction.Action}. 
+    assign 
+      lIsOn  = ? 
+      lIsOff = ?
+      lIsOn  = CAN-DO(piocEnable,bttAction.Action)
+      lIsOff = CAN-DO(piocDisable,bttAction.Action).
     
-      
-    IF cEnableRule = '':U OR DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
-                                              cEnableRule,
-                         /* If the rule is overidden we may not have 
-                            the property in the linkRulebuffer so 
-                            we check the object directly 
-                            (checkRule checks the type of the handle)*/ 
-                                              IF NOT lEnableRule THEN hBuffer ELSE phTarget,
-                                              FALSE
-                                             ) THEN 
-    DO:
-      IF CAN-DO(piocDisable,bttAction.Action) THEN
-        cEnable = cEnable + ",":U + bttAction.Action.    
-    END.
-    ELSE DO:
-      IF CAN-DO(piocEnable,bttAction.Action) THEN
-        cDisable = cDisable + ",":U + bttAction.Action. 
-    END.
-   
-    cHideRule = IF NOT lHideRule 
-                THEN bttAction.HideRule 
-                ELSE {fnarg actionHideRule bttAction.Action}.
+    if lIsOn or lIsOff then
+    do:
+      cEnableRule  = IF NOT lEnableRule 
+                     THEN bttAction.EnableRule
+                     ELSE {fnarg actionEnableRule bttAction.Action}. 
+    
+      IF cEnableRule = '':U OR DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
+                                                cEnableRule,
+                           /* If the rule is overidden we may not have 
+                              the property in the linkRulebuffer so 
+                              we check the object directly 
+                                (checkRule checks the type of the handle)*/ 
+                                                IF NOT lEnableRule THEN hBuffer ELSE phTarget,
+                                                FALSE
+                                               ) THEN 
+      DO:
+        IF lIsOff THEN
+          cEnable = cEnable + ",":U + bttAction.Action.    
+      END.
+      ELSE DO:
+        IF lIsOn THEN
+          cDisable = cDisable + ",":U + bttAction.Action. 
+      END.
+    end. /* on or off */
+    
+    /* hidden is ON (rule) */
+    assign 
+      lIsOn  = ? 
+      lIsOff = ?
+      lIsOn  = CAN-DO(piocHidden,bttAction.Action)
+      lIsOff = CAN-DO(piocVisible,bttAction.Action).
+    
+    if lIsOn or lIsOff then
+    do:
+      cHideRule = IF NOT lHideRule 
+                  THEN bttAction.HideRule 
+                  ELSE {fnarg actionHideRule bttAction.Action}.
 
-    IF cHideRule <> '':U THEN 
-    DO:
-      IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
-                          cHideRule,
-                          /* if the rule is overidden we may not have 
-                             the property in the linkrulebuffer so 
-                             we check the object directly  
-                            (checkRule checks the type of the handle)*/ 
-                           IF NOT lHideRule THEN hBuffer ELSE phTarget,
-                           FALSE
-                         ) THEN 
+      IF cHideRule <> '':U THEN 
       DO:
-        IF CAN-DO(piocVisible,bttAction.Action) THEN
-          cHidden = cHidden + ",":U + bttAction.Action. 
+        IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
+                             cHideRule,
+                            /* if the rule is overidden we may not have 
+                               the property in the linkrulebuffer so 
+                               we check the object directly  
+                              (checkRule checks the type of the handle)*/ 
+                             IF NOT lHideRule THEN hBuffer ELSE phTarget,
+                             FALSE
+                           ) THEN 
+        DO:
+          IF lIsOff THEN
+            cHidden = cHidden + ",":U + bttAction.Action. 
+        END.
+        ELSE DO:
+          IF lIsOn THEN
+            cVisible = cVisible + "," + bttAction.Action. 
+        END.
       END.
-      ELSE DO:
-        IF CAN-DO(piocHidden,bttAction.Action) THEN
-          cVisible = cVisible + "," + bttAction.Action. 
-      END.
-    END.
+    end. /* on or off */
     
-    cImageRule = IF NOT lImageRule 
-                 THEN bttAction.ImageAlternateRule
-                 ELSE {fnarg actionImageAlternateRule bttAction.Action}.                       
-
-    IF cImageRule <> '':U THEN
-    DO:
-      IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
-                          cImageRule,
-                         /* If the rule is overidden we may not have 
-                            the property in the linkRulebuffer so 
-                            we check the object directly 
-                            (checkRule checks the type of the handle)*/ 
-                          IF NOT lImageRule THEN hBuffer ELSE phTarget,                          
-                          FALSE) THEN 
-      DO:
-        IF CAN-DO(piocImage1,bttAction.Action) THEN
-          cImage2 = cImage2 + ",":U + bttAction.Action. 
-      END.
-      ELSE DO:
-        IF CAN-DO(piocImage2,bttAction.Action) THEN
-          cImage1 = cImage1 + "," + bttAction.Action. 
-      END.
-    END.
+    assign 
+      lIsOn  = ? 
+      lIsOff = ?
+      lIsOn  = CAN-DO(piocImage2,bttAction.Action)
+      lIsOff = CAN-DO(piocImage1,bttAction.Action).
     
-    IF bttAction.Type = 'PROPERTY':U THEN
-    DO:
-      IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
-                          bttAction.OnChoose,
-                          hBuffer,
-                          FALSE) THEN 
-      DO:
-        IF CAN-DO(piocFalse,bttAction.Action) THEN
-          cTrue = cTrue + ",":U + bttAction.Action. 
-      END.
-      ELSE DO:
-        IF CAN-DO(piocTrue,bttAction.Action) THEN
-            cFalse = cFalse + ",":U + bttAction.Action. 
-      END.
-    END.
-  END.  /* for each bttAtction */
+    if lIsOn or lIsOff then
+    do:
+      cImageRule = IF NOT lImageRule 
+                   THEN bttAction.ImageAlternateRule
+                   ELSE {fnarg actionImageAlternateRule bttAction.Action}.                       
   
+      IF cImageRule <> '':U THEN
+      DO:
+        IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
+                            cImageRule,
+                           /* If the rule is overidden we may not have 
+	                            the property in the linkRulebuffer so 
+	                            we check the object directly 
+	                            (checkRule checks the type of the handle)*/ 
+                            IF NOT lImageRule THEN hBuffer ELSE phTarget,                          
+                            FALSE) THEN 
+        DO:
+          IF lIsOff THEN
+            cImage2 = cImage2 + ",":U + bttAction.Action. 
+        END.
+        ELSE DO:
+          IF lIsOn THEN
+            cImage1 = cImage1 + "," + bttAction.Action. 
+        END.
+      END.
+    end. /* on or off */
+    
+    assign 
+      lIsOn  = ? 
+      lIsOff = ?
+      lIsOn  = CAN-DO(piocTrue,bttAction.Action)
+      lIsOff = CAN-DO(piocFalse,bttAction.Action).
+    
+    if lIsOn or lIsOff then
+    do:
+      IF bttAction.Type = 'PROPERTY':U THEN
+      DO:
+        IF DYNAMIC-FUNCTION('checkRule':U IN TARGET-PROCEDURE,
+                            bttAction.OnChoose,
+                            hBuffer,
+                            FALSE) THEN 
+        DO:
+          IF lIsOff THEN
+            cTrue = cTrue + ",":U + bttAction.Action. 
+        END.
+        ELSE DO:
+          IF lIsOn THEN
+            cFalse = cFalse + ",":U + bttAction.Action. 
+        END.
+      END.
+    end. /* on or off */
+  END.  /* for each bttAtction */
+   
   ASSIGN
     piocEnable   = TRIM(cEnable,',':U) 
     piocDisable  = TRIM(cDisable,',':U) 
@@ -5461,7 +5618,6 @@ Parameters:  pcLink - link name
     piocFalse    = TRIM(cFalse,',':U)
     piocTrue     = TRIM(cTrue,',':U).
  
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5855,7 +6011,9 @@ Parameter: input comma seperated list of actions to view
     IF AVAILABLE btButton AND VALID-HANDLE(btButton.Hdl) 
     AND btButton.hdl:HIDDEN = TRUE THEN 
     DO:
-      btButton.Hdl:HIDDEN = FALSE.          
+      /* no-error - could be in wrong position, 
+         moveButtons has not been called yet (relies on HIDDEN true) */
+      btButton.Hdl:HIDDEN = FALSE no-error.     
       IF NOT lButtonsChanged THEN ASSIGN lButtonsChanged = TRUE.
     END.
   END. /* do iLoop = 1 to num-entries(pcViewActions) */
@@ -5945,15 +6103,10 @@ Parameters: <none>
   {get UseRepository lUseRepos}
    .
   &UNDEFINE xp-assign
-  /*
-  IF lUseRepos  THEN
-  {fn constructMenu}.
-  */
-  /* If the toolbar is not used, just move the frame to bottom
-   (keeping it hidden, caused overlapping frames to remain hidden??) */
+
+   /* Keep frame hidden if no toolbar and runtime */ 
+  IF lToolbar or cUIBMode = 'Design':U THEN
     hFrame:HIDDEN = FALSE NO-ERROR.
-  IF NOT lToolbar THEN
-    hFrame:MOVE-TO-BOTTOM().
   
   IF cUIBMode ='Design':U THEN
   DO:
@@ -6173,6 +6326,92 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-Actions) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION actions Procedure
+FUNCTION actions RETURNS CHARACTER 
+	(INPUT pcActionType AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:Returns the actions for the selected action type.
+    Notes: pcActionType values could be 'Menu', 'Toolbar', 'all' or blank.
+           'Menu' will return only menu action, and 'Toolbar' will return
+           only toolbar actions. 'All' or blank will return all action types.
+------------------------------------------------------------------------------*/
+  DEFINE BUFFER btMenu   FOR tMenu.
+  DEFINE BUFFER btButton FOR tButton.
+
+  DEFINE VARIABLE cLink        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cActions     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cControlType AS CHARACTER  NO-UNDO.
+
+  IF pcActionType = "":U THEN
+      ASSIGN pcActionType = "all":U.
+
+  IF pcActionType = 'Toolbar':U OR pcActionType = 'all':U THEN
+  FOR EACH btButton WHERE btButton.hTarget = TARGET-PROCEDURE:
+
+    IF VALID-HANDLE(btButton.hdl) THEN
+    DO:
+      cControlType = {fnarg actionControlType btButton.Name}.
+      IF cControlType = 'Action':U THEN
+        cActions = cActions + btButton.Name + ",":U.
+    END.
+  END.
+
+  IF pcActionType = 'Menu':U OR pcActionType = 'all':U THEN
+  FOR EACH btMenu WHERE btMenu.hTarget = TARGET-PROCEDURE:
+
+    IF NOT CAN-DO(cActions,btMenu.Name) AND VALID-HANDLE(btMenu.hdl) THEN
+    DO: 
+      cControlType = {fnarg actionControlType btMenu.Name}.
+      IF cControlType = 'Action':U THEN
+        cActions = cActions + btMenu.Name + ",":U.
+    END.
+  END.
+  ASSIGN cActions = TRIM(cActions, ",":U).
+
+  RETURN cActions. 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-getActionWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getActionWidgetIDs Procedure
+FUNCTION getActionWidgetIDs RETURNS CHARACTER 
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cActionWidgetIDs AS CHARACTER  NO-UNDO.
+
+{get ActionWidgetIDs cActionWidgetIDs}.
+RETURN cActionWidgetIDs.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+&IF DEFINED(EXCLUDE-setActionWidgetIDs) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setActionWidgetIDs Procedure
+FUNCTION setActionWidgetIDs RETURNS LOGICAL 
+	(INPUT pcActionWidgetIDs AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+{set ActionWidgetIDs pcActionWidgetIDs}.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-actionAccelerator) = 0 &THEN
 
@@ -7307,7 +7546,8 @@ FUNCTION assignActionAccelerator RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Accelerator":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Accelerator":U,pcValue).
 
 END FUNCTION.
 
@@ -7326,7 +7566,8 @@ FUNCTION assignActionAccessType RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"AccessType":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"AccessType":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7344,7 +7585,8 @@ FUNCTION assignActionCaption RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Caption":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Caption":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7362,7 +7604,8 @@ FUNCTION assignActionDescription RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Description":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Description":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7380,7 +7623,8 @@ FUNCTION assignActionEnableRule RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"EnableRule":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"EnableRule":U,pcValue).
 
 END FUNCTION.
 
@@ -7399,7 +7643,8 @@ FUNCTION assignActionHideRule RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"HideRule":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"HideRule":U,pcValue).
 
 END FUNCTION.
 
@@ -7418,7 +7663,8 @@ FUNCTION assignActionImage RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Image":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Image":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7436,7 +7682,8 @@ FUNCTION assignActionImageAlternateRule RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"ImageAlternateRule":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"ImageAlternateRule":U,pcValue).
 
 END FUNCTION.
 
@@ -7476,7 +7723,8 @@ FUNCTION assignActionName RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Name":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Name":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7494,7 +7742,8 @@ FUNCTION assignActionOrder RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Order":U,STRING(piValue)).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Order":U,STRING(piValue)).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7512,7 +7761,8 @@ FUNCTION assignActionParent RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Parent":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Parent":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7530,7 +7780,8 @@ FUNCTION assignActionRefresh RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Refresh":U,STRING(plValue)).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Refresh":U,STRING(plValue)).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7548,7 +7799,8 @@ FUNCTION assignActionSecondImage RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Image2":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Image2":U,pcValue).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7566,7 +7818,8 @@ FUNCTION assignActionTooltip RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN assignColumn("Action":U,pcId,"Tooltip":U,pcValue).
+  RETURN dynamic-function("assignColumn":U in target-procedure,
+                          "Action":U,pcId,"Tooltip":U,pcValue).
 
 END FUNCTION.
 
@@ -7587,9 +7840,9 @@ FUNCTION assignColumn RETURNS LOGICAL PRIVATE
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hBuffer AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hColumn AS HANDLE NO-UNDO.
-  
+  DEFINE VARIABLE hBuffer  AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hColumn  AS HANDLE NO-UNDO.
+  define variable cMessage as character no-undo.
   IF DYNAMIC-FUNCTION("find":U + pcObject, pcId,?) THEN     
   DO:
     ASSIGN
@@ -7598,9 +7851,12 @@ FUNCTION assignColumn RETURNS LOGICAL PRIVATE
       hColumn:BUFFER-VALUE = pcValue.
     RETURN TRUE.
   END. 
-  ELSE 
-    errorMessage (SUBSTITUTE({fnarg messageNumber 40},'assign':U + pcColumn + "()":U, pcId)).
-         
+  ELSE do: /* error (design time...) */
+    cMessage = (SUBSTITUTE({fnarg messageNumber 40},
+                           'assign' + pcObject + pcColumn + "()":U, 
+                           pcId)).     
+    {fnarg errorMessage cMessage}.
+  end.    
   RETURN FALSE.
 END FUNCTION.
 
@@ -7621,18 +7877,13 @@ FUNCTION bandActions RETURNS CHARACTER
  DEFINE BUFFER bttBand       FOR ttBand.
  DEFINE BUFFER bttBandAction FOR ttBandAction.
 
- DEFINE VARIABLE cLogicalObject AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cActionList    AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cType          AS CHARACTER  NO-UNDO.
-
- {get LogicalObjectName cLogicalObject}.
  
- FOR EACH bttBandAction 
+  FOR EACH bttBandAction 
       WHERE bttBandAction.Band = pcParentBand 
- BY bttBandAction.Sequence:    
+      BY bttBandAction.Sequence:    
    IF bttBandAction.ChildBand = '':U THEN
    DO:
-     cType = {fnarg actionType bttBandAction.Action}.
      IF NOT CAN-DO('Separator,Placeholder':U,bttBandAction.Action) THEN
      DO:
        cActionList = cActionList 
@@ -8297,37 +8548,8 @@ FUNCTION canFindAction RETURNS LOGICAL
   Purpose: Check if an action exist. 
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cToolbar     AS CHARACTER  NO-UNDO.
-
+ 
   {&findaction}
-  
-  /* if not initilized then ensure load  
-    (this will be removed when/if initAction is moved to createObjects and
-     containers publish createObjects deep also for non adm ) */
-  IF NOT AVAIL ttAction THEN
-  DO:
-   /* This check is cheaper than the function calls and it also ensures that 
-      we're not helping/dealing with a potential case that somehow 
-      failed to load at init */
-    {get ObjectInitialized lInitialized}.
-    IF NOT lInitialized THEN 
-    DO:
-      IF {fn getUseRepository} THEN
-      DO:
-        {get LogicalObjectName cToolbar}.
-        /* Check if this toolbar is in the cache. If not we need to load it */
-        IF NOT CAN-FIND(FIRST ttToolbarBand
-                        WHERE ttToolbarBand.Toolbar = cToolbar) THEN
-          RUN loadToolbar IN TARGET-PROCEDURE.
-      END.
-      ELSE IF NOT {fn getActionsLoaded} THEN
-        RUN initAction IN TARGET-PROCEDURE.
-      
-      {&findaction}
-    END.  /* not initialized */
-  END. /* not avail */
-
   RETURN AVAIL ttAction.
 
 END FUNCTION.
@@ -8346,30 +8568,8 @@ FUNCTION canFindCategory RETURNS LOGICAL
   Purpose: Check if an action exist. 
     Notes:  
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
  
- lok = findCategory(pcCategory,TARGET-PROCEDURE).
- 
- /* if not initilized then ensure load  
-    (this will be removed when/if initAction is moved to createObjects and
-     containers publish createObjects deep also for non adm ) */
- IF NOT lok THEN
- DO:
-   /* This check is cheaper than the function calls and it also ensures that 
-      we're not helping/dealing with a potential case that someehow 
-      failed to load at init */
-   {get ObjectInitialized lInitialized}.
-   IF NOT lInitialized 
-   AND NOT {fn getActionsLoaded} 
-   AND NOT {fn getUseRepository} THEN 
-   DO:
-     RUN initAction IN TARGET-PROCEDURE.
-     lok = findCategory(pcCategory,TARGET-PROCEDURE).
-   END.
- END.
-
- RETURN lok.
+ RETURN findCategory(pcCategory,TARGET-PROCEDURE).
 
 END FUNCTION.
 
@@ -8686,10 +8886,17 @@ FUNCTION constructMenuBand RETURNS LOGICAL
   FOR EACH bttBandAction WHERE bttBandAction.Band = bttBand.Band 
   BY bttBandAction.Sequence:
     
-    IF bttBandAction.Childband <> '':U
-    AND CAN-DO(cHiddenMenuBands,bttBandAction.ChildBand)  THEN
-      NEXT.
-    
+    IF bttBandAction.Childband <> '':U then
+    do:
+      if CAN-DO(cHiddenMenuBands,bttBandAction.ChildBand)  THEN
+        NEXT.
+        
+      /* Ensure band are only added once for each toolbar (See notes)   */       
+      if can-find(btBandInstance where btBandInstance.Band = bttBandAction.ChildBand
+                                 and   btBandInstance.hTarget = Target-procedure) then
+        NEXT.                           
+                               
+    end.
     ASSIGN cAction  = bttBandAction.Action.
 
     /* Publish Event */
@@ -8978,15 +9185,19 @@ FUNCTION constructObjectMenus RETURNS LOGICAL
           BY bttObjectBand.ObjectName
           BY bttObjectBand.Sequence:
         
-        /* Ensure band are only added once for each object 
-           (two toolbars could have placeholders) */
-        IF NOT CAN-FIND(FIRST btBandInstance 
+        /* Ensure band are only added once for each toolbar (See notes)   */
+        if not can-find (btBandInstance where btBandInstance.Band    = bttBand.Band
+                                        and   btBandInstance.hTarget = TARGET-PROCEDURE) 
+        /* if we add support for band multiple times per toolbar then we might 
+           still need the below as customers may rely on it as it existed before 
+           the stricter check above was added */
+         /* (two toolbars could have placeholders) */
+        and  NOT CAN-FIND(FIRST btBandInstance 
                           WHERE btBandInstance.MenubarHdl = hMenubar
                           AND   btBandInstance.ObjectName = bttObjectBand.ObjectName
                           AND   btBandInstance.Band       = bttObjectBand.Band) THEN
-        DO:
-         
-  
+       
+        DO:          
           /* separate with rule if on submenu */
           IF btParentInstance.Hdl:TYPE <> 'menu':U THEN           
             DYNAMIC-FUNCTION('createMenuAction':U IN TARGET-PROCEDURE,
@@ -9144,6 +9355,9 @@ FUNCTION constructToolbar RETURNS LOGICAL
       END.
     END.
     
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+      RUN assignActionWidgetIDs IN TARGET-PROCEDURE.
+
     IF lAnyActions THEN
     DO:
       {fn createToolbarBorder}.
@@ -10152,6 +10366,9 @@ Parameters: INPUT pcActions - A comma seaparted list of actions or actionGroups
     END. /* do iBtn = 1 to num-entries(cAction) */  
   END. /* do i = 1 to num-entries(pcActions) */ 
   
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+  RUN assignActionWidgetIDs IN TARGET-PROCEDURE.
+
   /* Set the available actionsgroups for the Instance Property dialog */      
   {set AvailToolbarActions cAvailToolbarActions}.  
   
@@ -10836,6 +11053,7 @@ FUNCTION getActionsLoaded RETURNS LOGICAL
            custom initAction may need to call the SET.    
          - Non repository only
 ------------------------------------------------------------------------------*/
+
   RETURN glActionsLoaded. 
 
 END FUNCTION.
@@ -13741,6 +13959,7 @@ FUNCTION setActionsLoaded RETURNS LOGICAL
            Considered PRIVATE, but not defined as private since 
            custom initAction may need to call it if it does not call SUPER  
 ------------------------------------------------------------------------------*/
+ 
   glActionsLoaded = plIsLoaded. 
 
 END FUNCTION.
@@ -13854,8 +14073,9 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   DEFINE VARIABLE iOrder         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE i              AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cLink          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE lUseRepository AS LOGICAL   NO-UNDO.
+  define variable cMessage       as character no-undo.
+  
   /* Tell findAction to use phTarget (this is undefined in findaction) */
   &SCOPED-DEFINE TargetProc phTarget
   {&findaction}
@@ -13865,7 +14085,8 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
     IF  NOT CAN-DO(pcColumns,"Instance":U)
     AND CAN-FIND(FIRST bttAction WHERE bttAction.Action = pcAction) THEN 
     DO:
-      errorMessage (SUBSTITUTE({fnarg messageNumber 38}, pcAction)).
+      cMessage = SUBSTITUTE({fnarg messageNumber 38 phTarget}, pcAction).
+      {fnarg errorMessage cMessage phTarget}.
       RETURN FALSE.
     END.
     
@@ -13886,7 +14107,8 @@ FUNCTION setBuffer RETURNS LOGICAL PRIVATE
   DO:
     IF ttAction.ProcedureHandle <> phTarget THEN 
     DO:
-      errorMessage (SUBSTITUTE({fnarg messageNumber 39}, pcAction)).
+      cMessage = SUBSTITUTE({fnarg messageNumber 39 phTarget}, pcAction).
+      {fnarg errorMessage cMessage phTarget}.
       RETURN FALSE.
     END.
   END. /* else (avail action) can-do(pccolumns,'instance') */ 

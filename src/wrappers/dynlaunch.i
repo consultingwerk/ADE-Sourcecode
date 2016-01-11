@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
   File: dynlaunch.i
 
@@ -174,6 +174,7 @@
         ASSIGN hParameterTable = TEMP-TABLE ttSeqType:HANDLE
                cRunReturnValue = "":U.
 
+        DO ON STOP UNDO, LEAVE:
         &IF DEFINED(tablesInCall) = 0 &THEN /* This preprocessor will have been defined in launchParam.i */        
         /* We're not passing temp-tables, so use calltable.p */
         RUN adm2/calltable.p ON hAppserver ({&iProc},
@@ -193,6 +194,8 @@
                                                     ) NO-ERROR.
         &ENDIF
         
+        END.
+
         /* If the error status was set, but no RETURN-VALUE, set it */    
         ASSIGN lRunErrorStatus = ERROR-STATUS:ERROR.
         

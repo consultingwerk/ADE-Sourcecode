@@ -37,6 +37,7 @@
                            in sec-trgs.i to fire.
     kmcintos Oct 21, 2005  Set initial value of _PAM-plug-in field to FALSE
                            when it's set from this UI 20050926-003.
+    fernando 11/30/07      Check if read-only mode.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -57,6 +58,9 @@ IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN "".
 END.
+
+IF checkReadOnly("DICTDB","_sec-authentication-system") NE "" THEN
+   RETURN.
 
 DEFINE VARIABLE hColumn AS HANDLE      NO-UNDO EXTENT 2.
 
@@ -240,8 +244,14 @@ END.
 ON VALUE-CHANGED OF BROWSE bSystem DO:
 
   RUN displayRecord.
-  RUN setFieldState ( INPUT "ResetMode" ).
-  RUN setButtonState ( INPUT "ResetMode" ).
+  IF ronly THEN DO:
+      RUN setFieldState  ( INPUT "DisableMode" ).
+      RUN setButtonState ( INPUT "DisableMode" ).
+  END.
+  ELSE DO:
+      RUN setFieldState  ( INPUT "DisableMode" ).
+      RUN setButtonState ( INPUT "ResetMode" ).
+  END.
   
 END.
 
@@ -329,8 +339,8 @@ END.
   END.
   
   ON ENTRY OF btnDone IN FRAME {&FRAME-NAME} DO:
-    IF LAST-EVENT:WIDGET-LEAVE EQ 
-         BROWSE bSystem:HANDLE THEN DO:
+    IF NOT ronly AND LAST-EVENT:WIDGET-LEAVE EQ 
+         BROWSE bSystem:HANDLE  THEN DO:
       APPLY "ENTRY" TO btnCreate IN FRAME {&FRAME-NAME}.
       RETURN NO-APPLY.
     END.
@@ -521,8 +531,14 @@ PROCEDURE initializeUI :
   FRAME {&FRAME-NAME}:TITLE = FRAME {&FRAME-NAME}:TITLE + " (" +
                               LDBNAME("DICTDB") + ")".
 
-  RUN setButtonState ( INPUT "ResetMode" ).
-  RUN setFieldState  ( INPUT "ResetMode" ).
+  IF ronly THEN DO:
+      RUN setButtonState ( INPUT "DisableMode" ).
+      RUN setFieldState  ( INPUT "DisableMode" ).
+  END.
+  ELSE DO:
+      RUN setButtonState ( INPUT "ResetMode" ).
+      RUN setFieldState  ( INPUT "ResetMode" ).
+  END.
   RUN openQuery.
 
   APPLY "ENTRY" TO BROWSE bSystem.

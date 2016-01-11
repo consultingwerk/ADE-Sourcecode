@@ -385,6 +385,8 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
     ##If:End##    
     define variable lVisible as logical no-undo.
     define variable cSecurityAction as character no-undo.
+    define variable dWidgetWidth as decimal no-undo.
+    define variable dWidgetHeight as decimal no-undo.
     
     lVisible = ##[InstanceVisible]##.
     /* All widgets default to being visible */
@@ -396,10 +398,39 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
                                              INPUT  frame {&Frame-Name}:handle,
                                              INPUT  ##[InstanceInstanceProperties]##,
                                              OUTPUT ##getInstanceHandleName([InstanceName])##).
+    &scoped-define xp-Assign
+    {set LogicalObjectName '##[InstanceObjectName]##' ##getInstanceHandleName([InstanceName])##}
+    ##Loop:InstanceProperties-Assign##
+    {set ##[PropertyName]## ##[PropertyValue]## ##getInstanceHandleName([InstanceName])##}
+    ##Exclude:##
+    /* Break up the assign statement every 50 properties or so,
+       since they all make up one assign statement. */
+    ##Exclude:End##    
+    ##Every:50##
+    .
+    &undefine xp-Assign
+    &scoped-define xp-Assign
+    ##Every:End##    
+    ##Loop:End##
+    .
+    &undefine xp-Assign
+        
+    /* Keep forced 'Set' properties separate. */
+    &scoped-define xp-Assign
+    ##Loop:InstanceProperties-Set##
+    {set ##[PropertyName]## ##[PropertyValue]## ##getInstanceHandleName([InstanceName])##}
+    ##Loop:End##
+    .
+    &undefine xp-Assign                                             
             
     RUN repositionObject IN ##getInstanceHandleName([InstanceName])## (##[InstanceRow]##, ##[InstanceColumn]##) NO-ERROR.
     RUN resizeObject     IN ##getInstanceHandleName([InstanceName])## (##[InstanceHeight]##, ##[InstanceWidth]##) NO-ERROR.
     {fnarg setCurrentLogicalName ''}.
+    &scoped-define xp-assign 
+    {get Width dWidgetWidth ##getInstanceHandleName([InstanceName])##}
+    {get Height dWidgetHeight ##getInstanceHandleName([InstanceName])##}
+    .
+    &undefine xp-assign     
     
     ##If:instanceIsVisual([InstanceClass])##
     /* If this is not a generated object, then make sure it will be secured and translated.
@@ -443,8 +474,7 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
                ##If:[InstanceIsLongChar]##
                /* When using a LongChar, the LARGE attribute must be set to
                   true BEFORE setting the DataType, else message 11212 
-                  results.
-                */
+                  results. */
                large = yes
                ##If:End##    /* LongChar data type */
                ##If:widgetCanSetDataType([InstanceType])##
@@ -554,8 +584,7 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
        DataField. We know which fields these are because of the value of the DisplayField attribute.
 
 	   The code below is only for those text widgets that are not going to display data from a data source (ie things like the 
-       labels on rectangles)
-     */
+       labels on rectangles) */
     ##getInstanceHandleName([InstanceName])##:screen-value = '##[InstanceInitialValue]##'.
     ##If:End##
     
@@ -589,7 +618,9 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
         assign ##getInstanceHandleName([InstanceName])##:hidden = not lVisible
                ##getInstanceHandleName([InstanceName])##:side-label-handle:hidden = ##getInstanceHandleName([InstanceName])##:hidden
                no-error.
-            
+    
+    dWidgetHeight = ##[InstanceHeight]##.
+    dWidgetWidth = ##[InstanceWidth]##.
     ##If:End## /* instance is widget */
             
     /* Build lists of the fields to display and enable */
@@ -605,9 +636,9 @@ procedure adm-create-##getInstanceHandleName([InstanceName])## :
            pcAllFieldHandles = pcAllFieldHandles + ',' + string(##getInstanceHandleName([InstanceName])##).
            pcAllFieldNames = pcAllFieldNames + ',##[InstanceName]##'.
     
-    assign pdFrameWidth = max(pdFrameWidth, ##[InstanceColumn]## + ##[InstanceWidth]## - 1)
-           pdFrameHeight = max(pdFrameHeight, ##[InstanceRow]## + ##[InstanceHeight]## - 1).
-            
+    assign pdFrameWidth = max(pdFrameWidth, ##[InstanceColumn]## + dWidgetWidth - 1)
+           pdFrameHeight = max(pdFrameHeight, ##[InstanceRow]## + dWidgetHeight - 1).
+    
     /* Create ttWidget records for repositioning after translation. */            
     phWidgetBuffer:buffer-create().
     assign phWidgetBuffer:buffer-field('tWidgetHandle'):buffer-value = ##getInstanceHandleName([InstanceName])##
@@ -649,9 +680,13 @@ procedure translate-##[LanguageCode]##:
     hWidgetBuffer:find-first('where ' + hWidgetBuffer:name
                              + '.tWidgetHandle = widget-handle(' + quoter(##getInstanceHandleName([InstanceName])##) + ')').
     hWidgetBuffer:buffer-field('tTranslated'):buffer-value = yes.
+    cLabel= '##[TranslatedLabel]##'.
     ##If:[InstanceIsSdf]##
     ##If:[InstanceLabelTranslated]##
-    {set ##[LabelAttribute]## ##[TranslatedLabel]## ##getInstanceHandleName([InstanceName])##}.
+    ##Exclude:##
+    /* Use a dyn-function here instead of {set} since it makes dealing with quotes way way easier. */
+    ##Exclude:End##
+    dynamic-function('set##[LabelAttribute]##' in ##getInstanceHandleName([InstanceName])##, cLabel).
     ##If:End##    /* label translated */
     ##If:[InstanceTooltipTranslated]##
     {set ##[TooltipAttribute]## ##[TranslatedTooltip]## ##getInstanceHandleName([InstanceName])##}.
@@ -659,11 +694,11 @@ procedure translate-##[LanguageCode]##:
     ##If:End##    /* instance is sdf */
     ##If:[InstanceIsWidget]##
     ##If:[InstanceLabelTranslated]##
-    assign cLabel= '##[TranslatedLabel]##:'
-           iFont = ##getInstanceHandleName([InstanceName])##:Font.
+    iFont = ##getInstanceHandleName([InstanceName])##:Font.
     if can-set(##getInstanceHandleName([InstanceName])##, 'Side-Label-Handle') then
     do:
-        assign hLabel = ##getInstanceHandleName([InstanceName])##:Side-Label-Handle               
+        assign cLabel = cLabel + ':':u
+               hLabel = ##getInstanceHandleName([InstanceName])##:Side-Label-Handle               
                iLabelWidthPixels = font-table:get-text-width-pixels(cLabel, iFont) + 3
                dLabelMinHeight = if ##getInstanceHandleName([InstanceName])##:height-chars ge 1 then 1 else font-table:get-text-height(iFont)
                hLabel:format = 'x(' + string(length(cLabel, 'Column') + 1) + ')'
@@ -674,8 +709,7 @@ procedure translate-##[LanguageCode]##:
         /* If this viewer has the KeepChildPositions set to yes,
            make sure that the label doesn't overwrite the widget.           
            The tooltip of the label is set to the whole label's value 
-           so that we can see what the correct label is.
-		 */
+           so that we can see what the correct label is. */
         if lKeepChildPositions then
             assign hLabel:width-pixels = ##getInstanceHandleName([InstanceName])##:x - hLabel:x - 2
                    hLabel:tooltip = cLabel.
@@ -717,6 +751,7 @@ procedure displayObjects :
               combos and DynLookups.
             * Called from datavis.p initializeObject.  
 ------------------------------------------------------------------------------*/
+
 ##Loop:createViewerDisplayObjects##
     ##If:[InstanceIsLocal]##
     ##If:[InstanceIsSdf]##
@@ -725,7 +760,6 @@ procedure displayObjects :
                      '',                /* pcDisplayedValue */
                      no   ) no-error.   /* plSetModified */
     ##If:End##    /* instance is sdf */
-    
     ##If:[InstanceIsWidget]##
     ##getInstanceHandleName([InstanceName])##:screen-value = '##[InstanceInitialValue]##'.
     if can-set(##getInstanceHandleName([InstanceName])##, 'Modified') then
@@ -733,7 +767,7 @@ procedure displayObjects :
     ##If:End##    /* instance widget */
     ##If:End##    /* instance local */    
 ##Loop:End##
-    
+
     error-status:error = no.
     return.
 end procedure.    /* displayObjects */
@@ -744,7 +778,7 @@ FUNCTION getHeight RETURNS DECIMAL
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
   Notes:       * This function must appear here because the Dynamics viewer super
-                 procedure is not an ADM2 procedure and thus dones't have the 
+                 procedure is not an ADM2 procedure and thus doesn't have the 
                  ghProp variable defined.
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE dHeight             AS DECIMAL                      NO-UNDO.
@@ -758,7 +792,6 @@ FUNCTION getHeight RETURNS DECIMAL
         /* We take the code from getMinHeight in visual.p and put it here since
          * that API causes a recursive call if the Height and MinHeight values 
          * differ. */
-        /*{get MinHeight dMinHeight}.*/
         &SCOPED-DEFINE xpMinHeight
         {get MinHeight dMinHeight}.
         &UNDEFINE xpMinHeight
@@ -781,7 +814,7 @@ FUNCTION getWidth RETURNS DECIMAL
 /*------------------------------------------------------------------------------
   Purpose:     Super Override
   Notes:       * This function must appear here because the Dynamics viewer super
-                 procedure is not an ADM2 procedure and thus dones't have the 
+                 procedure is not an ADM2 procedure and thus doesn't have the 
                  ghProp variable defined.
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE dWidth     AS DECIMAL    NO-UNDO.
@@ -795,7 +828,6 @@ FUNCTION getWidth RETURNS DECIMAL
         /* We take the code from getMinWidth in visual.p and put it here since
          * that API causes a recursive call if the Width and MinWidth values 
          * differ. */
-        /*{get MinWidth dMinWidth}.*/
         &SCOPED-DEFINE xpMinWidth
         {get MinWidth dMinWidth}.
         &UNDEFINE xpMinWidth

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,7 +13,10 @@
   user_env[2] = load path (for >1 file) or load filename (for 1 file)
   user_env[3] = "MAP <name>" or "NO-MAP" OR ""
   user_env[4] = error percentage
-  user_env[5] = comma separated list of "y" (yes) or "n" (no) which
+  user_env[5] = comma separated list of table numbers of tables not to disable
+                triggers for. We'll disable triggers for all other tables.
+                May bet called by old version of load_d.p with old method:
+                comma separated list of "y" (yes) or "n" (no) which
                 corresponds to file list in user_env[1], indicating for each,
                 whether triggers should be disabled when the dump is done.
   user_env[10] = codepage (set in _usrload.p)
@@ -49,14 +52,20 @@ history
     fernando    Nov 03, 2005  Added code to audit dump operation         
     fernando    Mar 14, 20006 Handle case with too many tables selected - bug 20050930-006.                         
     fernando    Sep 14, 2006  Log error messages when a stop condition was raised - 20060905-013
+    fernando    Jun 20, 2007  Support for large files
+    fernando    Dec 12, 2007  Improved use of user_env[5]
 */
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
+/* can only fit 8 digits in the recs value in the form */
+&SCOPED-DEFINE MAX_RECS_FORMAT      "ZZZZZZZ9"
+&SCOPED-DEFINE MAX_RECS_FORMAT_SIZE 8
+
 DEFINE NEW SHARED STREAM   loaderr.
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER  NO-UNDO.
-DEFINE NEW SHARED VARIABLE recs   AS INTEGER. /*UNDO*/
+DEFINE NEW SHARED VARIABLE recs   AS INT64.   /*UNDO*/
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER  NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER  NO-UNDO.
 
@@ -70,11 +79,12 @@ DEFINE VARIABLE dsname     AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE error%     AS INTEGER             NO-UNDO.
 DEFINE VARIABLE fil-d      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE fil-e      AS CHARACTER           NO-UNDO.
-DEFINE VARIABLE i          AS INTEGER             NO-UNDO.
+DEFINE VARIABLE i          AS INT64               NO-UNDO.
 DEFINE VARIABLE infinity   AS LOGICAL             NO-UNDO.
-DEFINE VARIABLE irecs      AS INTEGER             NO-UNDO.
+DEFINE VARIABLE irecs      AS INT64               NO-UNDO.
+DEFINE VARIABLE crecs      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE l          AS LOGICAL             NO-UNDO.
-DEFINE VARIABLE load_size  AS INTEGER             NO-UNDO.
+DEFINE VARIABLE load_size  AS INT64               NO-UNDO.
 DEFINE VARIABLE lpath      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE lvar       AS CHARACTER EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#      AS INTEGER             NO-UNDO.
@@ -91,6 +101,8 @@ DEFINE VARIABLE lobdir     AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cTemp      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE phDbName   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE newAppCtx  AS LOGICAL   INIT NO   NO-UNDO.
+DEFINE VARIABLE dis_trig   AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE old_dis_trig  AS LOGICAL  NO-UNDO.
 
 DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
@@ -108,7 +120,7 @@ DEFINE FRAME loaddata
   msg    FORMAT "x(8)"     COLUMN-LABEL "Records!Loaded"
   errs   FORMAT "ZZZZZZZ9" COLUMN-LABEL "Total  !Errors " 
     ATTR-SPACE SPACE(0)
-  irecs  FORMAT "ZZZZZZZ9" COLUMN-LABEL "Expected!Records" SPACE(1)
+  crecs  FORMAT "X({&MAX_RECS_FORMAT_SIZE})" COLUMN-LABEL "Expected! Records" SPACE(1)
   HEADER
     " Loading Data.   Press " +
     KBLABEL("STOP") + " to terminate the load process." format "x(66)" SKIP(1)
@@ -320,6 +332,11 @@ IF has_lchar THEN
 ELSE
    numCount = NUM-ENTRIES(user_env[1]).
 
+/* it user_env[5] has the old format, remember this */
+/* this is just in case someone is using an old version of load_d.p */
+IF ENTRY(1, user_env[5]) = "y" OR ENTRY(1, user_env[5]) = "n" THEN
+   ASSIGN old_dis_trig = YES.
+
 stoploop:
 DO ON STOP UNDO, LEAVE:
   DO ix = 1 to numCount /*WHILE ENTRY(1,user_env[1]) <> ""*/ :
@@ -347,11 +364,11 @@ DO ON STOP UNDO, LEAVE:
        &ENDIF
     END.
  
-    
     ASSIGN
       infinity = FALSE
       recs     = 0
       irecs    = ?
+      crecs    = STRING(irecs,{&MAX_RECS_FORMAT})
       d-was    = ?
       maptype  = ""
       fil-d    = (IF NOT use_ds THEN lpath
@@ -365,14 +382,14 @@ DO ON STOP UNDO, LEAVE:
   
     DISPLAY DICTDB._File._File-name fil-d new_lang[1] @ msg
       WITH FRAME loaddata. /* loading */
-    COLOR DISPLAY MESSAGES DICTDB._File._File-name fil-d msg errs irecs
+    COLOR DISPLAY MESSAGES DICTDB._File._File-name fil-d msg errs crecs
       WITH FRAME loaddata.
       
     IF SEARCH(fil-d) <> ? THEN DO:    
       {prodict/dump/lodtrail.i
         &file    = "fil-d"
         &entries = "IF lvar[i] BEGINS ""records=""
-                      THEN irecs     = INTEGER(SUBSTRING(lvar[i],9,-1,""character"")).
+                      THEN irecs     = INT64(SUBSTRING(lvar[i],9,-1,""character"")).
                     IF lvar[i] BEGINS ""ldbname=""    
                       THEN d-ldbname = SUBSTRING(lvar[i],9,-1,""character"").
                     IF lvar[i] BEGINS ""dateformat=""
@@ -382,7 +399,7 @@ DO ON STOP UNDO, LEAVE:
                     IF lvar[i] BEGINS ""map=""       
                       THEN maptype   = SUBSTRING(lvar[i],5,-1,""character"").
                    "
-        }       
+        }
      END.
      ELSE DO:
       ASSIGN fil-out = (IF NOT use_ds THEN lpath
@@ -402,8 +419,13 @@ DO ON STOP UNDO, LEAVE:
       ASSIGN terrors = terrors + 1.
       next. /* skip that file */
       END.
-      
-    DISPLAY  irecs WITH FRAME loaddata.
+         
+    /* if we can't fit the value in the format, display asterisks */
+    crecs = STRING(irecs,{&MAX_RECS_FORMAT}) NO-ERROR.
+    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+       crecs = "**********".
+
+    DISPLAY crecs WITH FRAME loaddata.
    
     /* check if number of records is unknown or known */
     IF irecs = ? AND (error% > 0 AND error% < 100)
@@ -425,9 +447,9 @@ DO ON STOP UNDO, LEAVE:
        IF user_env[6] = "f" THEN 
           OUTPUT STREAM loaderr TO fil-e NO-ECHO.
        DO:
-        COLOR DISPLAY NORMAL DICTDB._File._File-name fil-d msg errs irecs
+        COLOR DISPLAY NORMAL DICTDB._File._File-name fil-d msg errs crecs
           WITH FRAME loaddata.
-        DISPLAY DICTDB._File._File-name fil-d new_lang[12] @ msg irecs
+        DISPLAY DICTDB._File._File-name fil-d new_lang[12] @ msg crecs
           WITH FRAME loaddata. /* ERROR! */
        END.
        OUTPUT CLOSE.
@@ -560,6 +582,19 @@ DO ON STOP UNDO, LEAVE:
       errs = 1.
     END.
     ELSE DO:
+
+      /* check if we can disable triggers. List now contains just the
+        table numbers for tables that we should not disable triggers for.
+      */
+      ASSIGN dis_trig = ENTRY(1, user_env[5]).
+
+      IF NOT old_dis_trig THEN DO:
+         IF dis_trig NE "" AND dis_trig = STRING(_File._File-number) THEN
+            dis_trig = "n".
+         ELSE
+            dis_trig = "y".
+      END.
+
       IF caps(user_env[35]) = "ORA" THEN DO:
          IF irecs <> ? THEN
            ASSIGN load_size = irecs.  
@@ -571,7 +606,7 @@ DO ON STOP UNDO, LEAVE:
            SESSION:SUPPRESS-WARNINGS = YES.
            RETURN.
          END.
-         RUN "prodict/ora/_runload.i" (INPUT ENTRY(1, user_env[5]))
+         RUN "prodict/ora/_runload.i" (INPUT dis_trig)
                                     c 
                                     error%
                                     load_size 
@@ -579,7 +614,7 @@ DO ON STOP UNDO, LEAVE:
                                     (IF irecs = ? THEN 100 else irecs).
       END.
       ELSE
-        RUN "prodict/misc/_runload.i" (INPUT ENTRY(1, user_env[5]))
+        RUN "prodict/misc/_runload.i" (INPUT dis_trig)
                                     c 
                                     error%
                                     load_size 
@@ -589,11 +624,13 @@ DO ON STOP UNDO, LEAVE:
 
       IF RETURN-VALUE = "stopped" THEN UNDO stoploop, LEAVE stoploop.
 
-      user_env[5] = SUBSTRING(user_env[5]
-                             ,LENGTH(ENTRY(1,user_env[5]),"character") + 2
-                             ,-1
-                             ,"character"
-                             ).
+      /* move on to the next one in the list */
+      IF old_dis_trig OR (dis_trig = "n") THEN
+         user_env[5] = SUBSTRING(user_env[5]
+                                 ,LENGTH(ENTRY(1,user_env[5]),"character") + 2
+                                 ,-1
+                                 ,"character"
+                                 ).
   
       IF irecs = ? THEN _irecs: DO: /*----------- for reading damaged trailer */
         /* this code is used when a trailer might be present, but not in its
@@ -606,7 +643,7 @@ DO ON STOP UNDO, LEAVE:
         SEEK INPUT TO i. /* just to get eol right */
         REPEAT WHILE irecs = ?:
           IMPORT c.
-          IF c BEGINS "records=" THEN irecs = INTEGER(SUBSTRING(c,9,-1,"character")).
+          IF c BEGINS "records=" THEN irecs = INT64(SUBSTRING(c,9,-1,"character")).
         END.
       END. /*---------------------------------- end of damaged trailer reader */
   
@@ -629,15 +666,34 @@ DO ON STOP UNDO, LEAVE:
     OUTPUT STREAM loaderr CLOSE.
 
     IF errs = 0 THEN OS-DELETE VALUE(fil-e).
-  
-    COLOR DISPLAY NORMAL DICTDB._File._File-name fil-d msg errs irecs
+
+    /* if value can't fit into format, display asterisks */
+    crecs = STRING(irecs,{&MAX_RECS_FORMAT}) NO-ERROR.
+    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+        crecs = "**********".
+
+    COLOR DISPLAY NORMAL DICTDB._File._File-name fil-d msg errs crecs
       WITH FRAME loaddata.
+
     DISPLAY
-      DICTDB._File._File-name fil-d STRING(recs,"ZZZZZZZ9") @ msg errs irecs
-      WITH FRAME loaddata.
+      DICTDB._File._File-name fil-d errs crecs WITH FRAME loaddata.
+
+    /* if the value is too big to be displayed, display asterisks */
+    ASSIGN msg = STRING(recs,"ZZZZZZZ9") NO-ERROR.
+    IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN
+       msg = "********".
+
+    DISPLAY msg WITH FRAME loaddata NO-ERROR.
+
     IF use_ds THEN DO:
+
+      /* see if value can fit into default format before displaying on screen */
+      ASSIGN msg = STRING(recs,"->,>>>,>>9") NO-ERROR.
+      IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+          ASSIGN msg = "********".
+
       DISPLAY STREAM dsfile
-        DICTDB._File._File-name fil-d recs errs
+        DICTDB._File._File-name fil-d msg errs
         (IF errs = 0 THEN "-" ELSE fil-e) @ fil-e
         WITH FRAME dsfile.
       DOWN STREAM dsfile WITH FRAME dsfile.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -81,6 +81,7 @@ History:
     D. McMann   08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
     fernando    10/13/06 Use UPPER in the query when comparing owner and foreign name
                          for MSS and ODBC
+    fernando    06/11/07 Unicode support for ORACLE
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -328,7 +329,7 @@ if can-do(odbtyp,user_dbtype)
     l_logi-types = "BIT".
 else if user_dbtype = "ORACLE"
    then assign
-    l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW"
+    l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,NCHAR,NVARCHAR2"
     l_chda-types = ""
     l_date-types = "DATE"
     l_dcml-types = "FLOAT"

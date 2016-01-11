@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -28,6 +28,7 @@ Last modified on:
 08/16/00 D. McMann  Added _db-recid to StorageObject find 20000815029
 06/08/06 fernando   Support for large key entries
 08/21/06 fernando   Fix can-write check on _Index (20051216-011).
+11/16/07 fernando   Support for _aud-audit-data* indexes deactivation
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -46,6 +47,7 @@ Define var frstfld   as char	NO-UNDO init "".
 Define var lst_item  as char	NO-UNDO.
 Define var name_mod  as logical NO-UNDO. /* name modifiable */
 DEFINE VAR idx_mod   AS LOGICAL NO-UNDO INIT YES.
+DEFINE VAR canAudDeact AS LOGICAL NO-UNDO.
 
 /*============================Mainline code==================================*/
 
@@ -174,6 +176,14 @@ IF _File._For-type = ? AND NOT is-pre-101b-db THEN DO:
         s_msg = "".
 END.
 
+/* we will allow some of the indexes on the _aud-audit-data tables to be
+   deactivated. The primary index and the _audit-time index cannot be
+   deactivated.
+*/
+IF (NOT s_Idx_Primary) AND (_file-name BEGINS "_aud-audit-data") AND
+   (b_Index._Index-Name NE "_audit-time") THEN
+   ASSIGN canAudDeact = YES.
+
 /* Set status line */
 display "" @ s_Status s_msg ActRec with frame idxprops. /* clears from last time */
 
@@ -190,9 +200,11 @@ do:
    find _File where RECID(_File) = s_TblRecId.
    if _File._Frozen then
    do:
-      s_Status:screen-value in frame idxprops =
-	"Note: This file is frozen and cannot be modified.".
-      s_Idx_ReadOnly = true.
+       IF NOT canAudDeact THEN DO:
+          s_Status:screen-value in frame idxprops =
+    	"Note: This file is frozen and cannot be modified.".
+          s_Idx_ReadOnly = true.
+       END.
    end.
    ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
       s_Status:screen-value in frame idxprops =
@@ -241,7 +253,7 @@ display b_Index._Index-Name
    with frame idxprops.
 
 
-if s_Idx_ReadOnly then
+if s_Idx_ReadOnly OR canAudDeact then
 do:
    disable all EXCEPT	
       b-idx-list
@@ -250,6 +262,9 @@ do:
 	  s_btn_Next
 	  s_btn_Help
 	  with frame idxprops.
+
+   ActRec:sensitive in frame idxprops = no.
+
    enable  
       b-idx-list
 	  s_btn_Close 
@@ -257,8 +272,24 @@ do:
 	  s_btn_Next
 	  s_btn_Help
 	  with frame idxprops.
-      apply "entry" to s_btn_Close in frame idxprops.
 
+   IF canAudDeact THEN DO:
+      IF     
+          &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
+            &THEN ActRec:Label = "Ac&tive"
+            &ELSE ActRec:Label = "Active"
+          &ENDIF
+        AND b_Index._Active /*AND INDEX(capab, {&CAPAB_INACTIVATE}) > 0*/
+        THEN do:
+         /* ActRec:sensitive in frame idxprops = YES.*/
+          enable ActRec
+                 s_btn_OK
+	             s_btn_Save
+               with frame idxprops.
+      END.
+   END.
+
+   apply "entry" to s_btn_Close in frame idxprops.
 end.
 else do:
    /* Get gateway capabilities */

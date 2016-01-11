@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -40,6 +40,7 @@
                            the AUDIT-POLICY handle 20050614-032.
     kmcintos Oct 28, 2005  Added code to enforce mandatory assignment of
                            access code 20051028-022.
+    fernando 11/30/07      Check if read-only mode.                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -57,6 +58,10 @@ IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
   RETURN "".
 END.
           
+IF checkReadOnly("DICTDB","_sec-authentication-system") NE "" OR
+   checkReadOnly("DICTDB","_sec-authentication-domain") NE "" THEN
+   RETURN.
+
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
@@ -440,8 +445,14 @@ END.
 ON VALUE-CHANGED OF BROWSE bDomain DO:
 
   RUN displayRecord.
-  RUN setFieldState ( INPUT "ResetMode" ).
-  RUN setButtonState ( INPUT "ResetMode" ).
+  IF ronly THEN DO:
+      RUN setFieldState ( INPUT "DisableMode" ).
+      RUN setButtonState ( INPUT "DisableMode" ).
+  END.
+  ELSE DO:
+      RUN setFieldState ( INPUT "ResetMode" ).
+      RUN setButtonState ( INPUT "ResetMode" ).
+  END.
 
 END.
 
@@ -525,7 +536,7 @@ END.
   END.
                         
   ON ENTRY OF btnDone IN FRAME {&FRAME-NAME} DO:
-    IF LAST-EVENT:WIDGET-LEAVE EQ
+    IF NOT ronly AND LAST-EVENT:WIDGET-LEAVE EQ
               BROWSE bDomain:HANDLE THEN DO:
       APPLY "ENTRY" TO btnCreate IN FRAME {&FRAME-NAME}.
       RETURN NO-APPLY.
@@ -656,10 +667,12 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY {&DISPLAYED-OBJECTS}  
       WITH FRAME Dialog-Frame.
+
   ENABLE {&ENABLED-OBJECTS} 
-         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
-            BtnHelp RECT-2 &ENDIF      
-      WITH FRAME Dialog-Frame.
+        &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
+         BtnHelp RECT-2 &ENDIF      
+    WITH FRAME Dialog-Frame.
+
   VIEW FRAME Dialog-Frame.
 END PROCEDURE.
 
@@ -742,8 +755,14 @@ PROCEDURE initializeUI:
     FRAME {&FRAME-NAME}:TITLE = FRAME {&FRAME-NAME}:TITLE +
                                 " (" + LDBNAME("DICTDB") + ")".
 
-  RUN setButtonState ( INPUT "ResetMode" ).
-  RUN setFieldState  ( INPUT "ResetMode" ).
+  IF ronly THEN DO:
+      RUN setButtonState ( INPUT "DisableMode" ).
+      RUN setFieldState  ( INPUT "DisableMode" ).
+  END.
+  ELSE DO:
+      RUN setButtonState ( INPUT "ResetMode" ).
+      RUN setFieldState  ( INPUT "ResetMode" ).
+  END.
   RUN openQuery.
   
   APPLY "ENTRY" TO BROWSE bDomain.

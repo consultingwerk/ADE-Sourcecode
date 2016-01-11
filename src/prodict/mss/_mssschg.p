@@ -100,7 +100,7 @@ FORM
     f_comm                   AT 2 NO-LABEL {&STDPH_EDITOR}
       VIEW-AS EDITOR 
       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-               SIZE 65 BY 4 BUFFER-LINES 4
+               SIZE 65 BY 4
       &ELSE 
                SIZE 65 BY 3 SCROLLBAR-VERTICAL
       &ENDIF

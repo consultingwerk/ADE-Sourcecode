@@ -32,6 +32,7 @@ Included in:
 History:
   Nov 04, 2005 fernando    Try to find trailer info if byte count is incorrect. 20051104-046
   Mar 05, 2007 fernando    Check if trailer start seems correct - OE00135015
+  Jun 20, 2007 fernando    Support for large files
 */
 
 RUN readTrailer.
@@ -39,15 +40,16 @@ RUN readTrailer.
 /********************* INTERNAL PROCEDURES *****************************/
 
 PROCEDURE readTrailer.
-  DEFINE VARIABLE iNumRecs AS INTEGER     NO-UNDO.
   DEFINE VARIABLE iCount   AS INTEGER     NO-UNDO.
 
   DEFINE VARIABLE cInput   AS CHARACTER   NO-UNDO.
 
   DEFINE VARIABLE hField   AS HANDLE      NO-UNDO.
 
-  DEFINE VARIABLE EndPos   AS INTEGER     NO-UNDO.
-  DEFINE VARIABLE m        AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE EndPos   AS INT64       NO-UNDO.
+  DEFINE VARIABLE m        AS INT64       NO-UNDO.
+
+  DEFINE VARIABLE j        AS INTEGER     NO-UNDO.
 
   /* 20051104-046
   
@@ -60,17 +62,48 @@ PROCEDURE readTrailer.
 
   INPUT FROM VALUE({2}) NO-ECHO NO-MAP.
   SEEK INPUT TO END.
-  EndPos = SEEK(INPUT). /* store odd EOF */
+  ASSIGN EndPos = SEEK(INPUT) /* store odd EOF */
+         m = EndPos - 11.
 
-  SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
+  SEEK INPUT TO m. /* position to possible beginning of last line */
+
+  READKEY PAUSE 0.
+
+  /* Now we need to deal with a large offset, which is a variable size
+     value in the trailer, for large values.
+     Now go back one character at a time until we find a new line or we have
+     gone back too far.
+     For the non-large offset format, the previous char will be a
+     newline character, so we will  detect that right away and read the
+     value as usual. Unless the file has CRLF (Windows), in which case
+     we will go back 1 character to read the value properly - to
+     account for the extra byte.
+     For larger values, we will read as many digits as needed.
+     The loop below could stop after 10 digits, but I am letting it go
+     up to 50 to try to catch a bad value.
+  */
+  DO WHILE LASTKEY <> 13 AND j <= 50:
+      ASSIGN j = j + 1
+             m = m - 1.
+      SEEK INPUT TO m.
+      READKEY PAUSE 0.
+  END.
 
   IMPORT UNFORMATTED cInput.
 
-  {3} = INTEGER(cInput).
+  {3} = INT64(CINPUT) NO-ERROR.
 
-  SEEK INPUT TO {3}.
-
-  m = SEEK(INPUT).
+  /* If the above failed it could be because the value is too big
+     for some reason. This file must be corrupted somehow. But as long as
+     the seal info later is correct, that would be fine.
+     We will try to find the trailer info in the method below
+  */
+  IF ERROR-STATUS:NUM-MESSAGES  > 0 THEN
+     ASSIGN m = ?.
+  ELSE DO:
+     SEEK INPUT TO {3}.
+     m = SEEK(INPUT).
+  END.
 
   /* OE00135015
      If the location of the trailer seems ok based on the size of the file, still want to
@@ -103,12 +136,10 @@ PROCEDURE readTrailer.
      END.
   END.
   
-
   REPEAT ON ERROR UNDO, LEAVE:
     {1} = TRUE.
     IMPORT UNFORMATTED cInput.
     cInput = TRIM(cInput).
-
     IF cInput = "." THEN DO:
       {1} = FALSE.
       LEAVE.

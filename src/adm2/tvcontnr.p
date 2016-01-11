@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -160,11 +160,11 @@ FUNCTION assignTempObjNumber RETURNS DECIMAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getCurrentTreeFrame) = 0 &THEN
+&IF DEFINED(EXCLUDE-getContainerWidgetIDs) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentTreeFrame Procedure 
-FUNCTION getCurrentTreeFrame RETURNS HANDLE
-  ( /* parameter-definitions */ )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getContainerWidgetIDs Procedure 
+FUNCTION getContainerWidgetIDs RETURNS CHARACTER
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -309,6 +309,17 @@ FUNCTION retrieveNodeData RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAutoSort Procedure 
 FUNCTION setAutoSort RETURNS LOGICAL
   ( plAutoSort AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setContainerWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setContainerWidgetIDs Procedure 
+FUNCTION setContainerWidgetIDs RETURNS LOGICAL
+        (INPUT cContainerWidgetIDs AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -530,8 +541,8 @@ PROCEDURE applyFilter :
   DEFINE VARIABLE cFilterFieldValue    AS CHARACTER  NO-UNDO.
   DEFINE BUFFER bThisNode          FOR ttNode.
 
-  IF pcFilterData > "":U AND 
-     NOT LOOKUP("noTreeFilter",phSDOHandle:INTERNAL-ENTRIES) > 0 THEN 
+  IF pcFilterData > "":U 
+  AND {fn getIgnoreTreeViewFilter phSDOHandle} = NO THEN 
   DO iLoop = 1 TO NUM-ENTRIES(pcFilterData, CHR(1)):
     cFilterString = ENTRY(iLoop, pcFilterData,CHR(1)).
     IF NUM-ENTRIES(cFilterString) >= 3 THEN 
@@ -563,6 +574,56 @@ PROCEDURE applyFilter :
     cWhere = bThisNode.parent_node_filter + CHR(3) + CHR(3) + "AND":U.
     {set manualAddQueryWhere cWhere phSDOHandle}.
   END. /* First Level Structured Node */
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignContainerWidgetID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignContainerWidgetID Procedure 
+PROCEDURE assignContainerWidgetID :
+/*------------------------------------------------------------------------------
+    Purpose: Assign the widget-id value to the container launched when the
+             specified node is selected.
+    Parameters:
+    Notes: This procedure is called by createRepositoryObjects, only if the
+           -usewidgetid session parameter is used.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pdNodeObj           AS DECIMAL    NO-UNDO.
+DEFINE INPUT  PARAMETER pcLogicalObjectName AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER phObjectHandle      AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE cContainerWidgetIDs AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iWidgetID           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObject             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iObjects            AS INTEGER    NO-UNDO.
+
+DEFINE BUFFER bttNode FOR ttNode.
+
+{get ContainerWidgetIDs cContainerWidgetIDs}.
+
+FIND FIRST bttNode WHERE bttNode.node_obj = pdNodeObj NO-LOCK NO-ERROR.
+
+IF NOT AVAILABLE(bttNode) THEN RETURN.
+
+ASSIGN iObjects = NUM-ENTRIES(cContainerWidgetIDs).
+
+REPEAT iObject = 1 TO iObjects BY 3:
+    IF ENTRY(iObject, cContainerWidgetIDs) = bttNode.node_code AND
+       ENTRY(iObject + 1, cContainerWidgetIDs) = bttNode.logical_object THEN
+    DO:
+        ASSIGN iWidgetID = INT(ENTRY(iObject + 2, cContainerWidgetIDs)).
+        LEAVE. 
+    END.
+END. /*REPEAT iObject = 1 TO iObjects BY 3:*/
+
+IF iWidgetID > 0 THEN 
+DYNAMIC-FUNCTION('setWidgetID' IN phObjectHandle, INPUT iWidgetID).
+
+RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -816,75 +877,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-calcNewTreeSize) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE calcNewTreeSize Procedure 
-PROCEDURE calcNewTreeSize :
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PRIVATE
-  Purpose:    Calculates the Min sizes of the TreeView to see if the object will fit
-  Parameters:  <none>
-  Notes:       *** THIS API HAS BEEN DEPRECATED ***
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hResizeBar           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hTitleBar            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hWindow              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE dFrameMinWidth       AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE dFrameMinHeight      AS DECIMAL    NO-UNDO.
-  
-  DEFINE BUFFER ttPropNewSize FOR ttProp.
-  
-  {get ResizeBar hResizeBar}.
-  {get TitleBar hTitleBar}.
-  {get ContainerHandle hWindow}.
-
-  /* Get the Min Sizes of all launched frames */
-  FOR EACH ttFrame
-      WHERE ttFrame.hTargetProcedure = TARGET-PROCEDURE
-      NO-LOCK:
-    ASSIGN dFrameMinWidth  = MAX(ttFrame.dFrameMinWidth,dFrameMinWidth)
-           dFrameMinHeight = MAX(ttFrame.dFrameMinHeight,dFrameMinHeight).
-  END.
-  
-  /* Check if we will be able to fit the SmartFrame in the available space and if
-     we cannot do that then we will need to adjust the size of the TreeView Container */
-  IF hWindow:MIN-WIDTH-CHARS < (hResizeBar:COL + dFrameMinWidth + {&FRAME_WIDTH_SPACE}) THEN
-    hWindow:MIN-WIDTH-CHARS = hResizeBar:COL + dFrameMinWidth + {&FRAME_WIDTH_SPACE} NO-ERROR.
-  IF hWindow:MIN-HEIGHT-CHARS < (hTitleBar:ROW + dFrameMinHeight + {&FRAME_HEIGHT_SPACE}) THEN
-    hWindow:MIN-HEIGHT-CHARS = hTitleBar:ROW + dFrameMinHeight + {&FRAME_HEIGHT_SPACE} NO-ERROR.
-      
-  /* If the TreeView container's min sizes were adjusted then we need to resize it */
-  FIND FIRST ttPropNewSize WHERE ttPropNewSize.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK.
-  IF hWindow:MIN-WIDTH-CHARS  > ttPropNewSize.dTreeMinWidth  OR
-     hWindow:MIN-HEIGHT-CHARS > ttPropNewSize.dTreeMinHeight THEN
-  DO:
-    IF hWindow:WIDTH-CHARS < hWindow:MIN-WIDTH-CHARS THEN
-      ASSIGN hWindow:VIRTUAL-WIDTH-CHARS  = hWindow:MIN-WIDTH-CHARS 
-             hWindow:WIDTH-CHARS          = hWindow:MIN-WIDTH-CHARS
-             NO-ERROR.
-
-    IF hWindow:HEIGHT-CHARS < hWindow:MIN-HEIGHT-CHARS THEN
-      ASSIGN hWindow:VIRTUAL-HEIGHT-CHARS = hWindow:MIN-HEIGHT-CHARS
-             hWindow:HEIGHT-CHARS         = hWindow:MIN-HEIGHT-CHARS
-             NO-ERROR.
-    ASSIGN ttPropNewSize.lResizeFrameNow = FALSE.
-    RUN resizeWindow IN TARGET-PROCEDURE. 
-    ASSIGN ttPropNewSize.lResizeFrameNow = TRUE.
-  END.
-  
-  /* Set the new properties */
-  ASSIGN ttPropNewSize.dTreeMinWidth    = MAX(ttPropNewSize.dTreeMinWidth,hWindow:MIN-WIDTH-CHARS)
-         ttPropNewSize.dTreeMinHeight   = MAX(ttPropNewSize.dTreeMinHeight,hWindow:MIN-HEIGHT-CHARS)
-         ttPropNewSize.dFolderMinWidth  = MAX(ttPropNewSize.dFolderMinWidth,dFrameMinWidth)
-         ttPropNewSize.dFolderMinHeight = MAX(ttPropNewSize.dFolderMinHeight,dFrameMinHeight).
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-cancelNew) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cancelNew Procedure 
@@ -1016,7 +1008,7 @@ PROCEDURE createRepositoryObjects :
   DEFINE VARIABLE lSecured         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cDummyButton     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dParentNodeObj   AS DECIMAL    NO-UNDO.
-    define variable cProperties        as character                        no-undo.
+  DEFINE VARIABLE cProperties      AS CHARACTER  NO-UNDO.
     
   DEFINE BUFFER bttFrame FOR ttFrame.
   DEFINE BUFFER bttNode  FOR ttNode.
@@ -1144,14 +1136,17 @@ PROCEDURE createRepositoryObjects :
     END.
     
     {set CurrentLogicalName pcLogicalObjectName}.
-    cProperties = 'LogicalObjectName' + chr(4) + pcLogicalObjectName.
+    cProperties = 'LogicalObjectName' + CHR(4) + pcLogicalObjectName.
     RUN constructObject IN TARGET-PROCEDURE
       ( INPUT 'ry/uib/rydynframw.w',
         INPUT hWindow,
         INPUT cProperties,
         OUTPUT hObjectHandle ).
     {set CurrentLogicalName ''}.
-    
+
+    IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+        RUN assignContainerWidgetID IN TARGET-PROCEDURE (INPUT pdNodeObj, INPUT pcLogicalObjectName, INPUT hObjectHandle) NO-ERROR.
+
     CREATE ttFrame.
     ASSIGN ttFrame.hTargetProcedure = TARGET-PROCEDURE
            ttFrame.hFrameHandle     = hObjectHandle
@@ -1643,10 +1638,13 @@ PROCEDURE initializeObject :
   /* This event is published when the Resize Fill-in is moved */
   SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO "treeResized":U IN TARGET-PROCEDURE.
   
-  RUN assignInitialProperties IN TARGET-PROCEDURE.  
-  
+  RUN assignInitialProperties IN TARGET-PROCEDURE.
+
+  IF DYNAMIC-FUNCTION('getUseWidgetID':U IN TARGET-PROCEDURE) THEN
+      RUN assignWidgetIDs IN TARGET-PROCEDURE("",0).
+
   RUN SUPER.
-  
+
   {get TreeViewOCX hTreeViewOCX}.  
   IF VALID-HANDLE(hTreeViewOCX) THEN
   DO:
@@ -3944,38 +3942,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-treePackDone) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE treePackDone Procedure 
-PROCEDURE treePackDone :
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PRIVATE
-  Purpose:     This procedure is called from the TreeView rendering procedure
-               to notify us that the TreeView Packing is done. This will allow
-               us to save the min sizes of the Dynamic TreeView container
-  Parameters:  <none>
-  Notes:       *** THIS API HAS BEEN DEPRECATED ***
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hWindow AS HANDLE     NO-UNDO.
-
-  {get ContainerHandle hWindow}.
-  FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE EXCLUSIVE-LOCK NO-ERROR.
-  IF NOT AVAILABLE ttProp THEN
-  DO:
-    CREATE ttProp.
-    ASSIGN ttProp.hTargetProcedure = TARGET-PROCEDURE.
-  END.
-
-  ASSIGN ttProp.dTreeMinWidth  = hWindow:MIN-WIDTH-CHARS
-         ttProp.dTreeMinHeight = hWindow:MIN-HEIGHT-CHARS.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-treeResized) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE treeResized Procedure 
@@ -4782,27 +4748,18 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getCurrentTreeFrame) = 0 &THEN
+&IF DEFINED(EXCLUDE-getContainerWidgetIDs) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentTreeFrame Procedure 
-FUNCTION getCurrentTreeFrame RETURNS HANDLE
-  ( /* parameter-definitions */ ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getContainerWidgetIDs Procedure 
+FUNCTION getContainerWidgetIDs RETURNS CHARACTER
+        (  ):
 /*------------------------------------------------------------------------------
-ACCESS_LEVEL=PRIVATE
-  Purpose:  This function is called from the TreeView rendering procedure to 
-            establish which resize and packing procedure to run. If the handle 
-            is valid, we will run the pack and resize for the launched frame if
-            it is not valid we run the standard pack and resize procedures for
-            the Dynamic TreeView
-    Notes:  *** THIS API HAS BEEN DEPRECATED ***
+    Purpose:
+    Notes:
 ------------------------------------------------------------------------------*/
-  FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE NO-LOCK NO-ERROR.
-  
-  IF AVAILABLE ttProp AND ttProp.lResizeFrameNow THEN
-    RETURN ttProp.hCurrentFrame.
-  ELSE 
-    RETURN ?.
-
+DEFINE VARIABLE cContainerWidgetIDs AS CHARACTER  NO-UNDO.
+{get ContainerWidgetIDs cContainerWidgetIDs}.
+RETURN cContainerWidgetIDs.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5272,6 +5229,24 @@ FUNCTION setAutoSort RETURNS LOGICAL
   
   RETURN TRUE.   /* Function return value. */
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setContainerWidgetIDs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setContainerWidgetIDs Procedure 
+FUNCTION setContainerWidgetIDs RETURNS LOGICAL
+        (INPUT cContainerWidgetIDs AS CHARACTER):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+{set ContainerWidgetIDs cContainerWidgetIDs}.
+RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

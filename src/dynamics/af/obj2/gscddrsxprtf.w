@@ -20,8 +20,8 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS fFrameWin 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -550,7 +550,34 @@ END.
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-updateRecordSet) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateRecordSet Procedure
+PROCEDURE updateRecordSet:
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+    IF VALID-HANDLE(ghDatasetSource) THEN
+    DO:
+        RUN getDatasetBuffer IN ghDatasetSource (OUTPUT ghDatasetBuffer).
+        RUN setupDatasetInfo.
+        
+        IF VALID-HANDLE(ghFilterProc) THEN
+            RUN buildFilter IN ghFilterProc (fiAvailTitle:SCREEN-VALUE in frame {&frame-name}).
+            
+        RUN setSensitive.
+    END.
+    
+    return.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRelated fFrameWin 
 PROCEDURE addRelated :
@@ -1020,7 +1047,6 @@ PROCEDURE refreshData :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
   EMPTY TEMP-TABLE ttSelected.
 
   IF VALID-HANDLE(ghQrySelected) AND
@@ -1161,8 +1187,11 @@ PROCEDURE setupDatasetInfo :
   DO WITH FRAME {&FRAME-NAME}:
     fiDataset:SCREEN-VALUE = "No dataset record selected.".
     fiAvailTitle:SCREEN-VALUE = "":U.
+    
+    if valid-handle(ghEntityBuffer) then
+        brAvailable:Query = ?.    
     RETURN.
-  END.
+  END.    /* no dataset selected */
 
   hDSCode     = ghDatasetBuffer:BUFFER-FIELD("dataset_code":U).
   hDSDesc     = ghDatasetBuffer:BUFFER-FIELD("dataset_description":U).
@@ -1176,7 +1205,6 @@ PROCEDURE setupDatasetInfo :
     gcFieldForFile = hFileName:BUFFER-VALUE.
   ELSE
     gcFieldForFile = "":U.
-
 
   RUN setupQueryInfo.
 
@@ -1264,32 +1292,16 @@ PROCEDURE viewObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  /* Code placed here will execute PRIOR to standard behavior. */
-
-  RUN SUPER.
-
-  /* Code placed here will execute AFTER standard behavior.    */
-  IF VALID-HANDLE(ghDatasetSource) THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    RUN getDatasetBuffer IN ghDatasetSource (OUTPUT ghDatasetBuffer).
-
-    RUN setupDatasetInfo.
-
-    IF VALID-HANDLE(ghFilterProc) THEN
-      RUN buildFilter IN ghFilterProc (fiAvailTitle:SCREEN-VALUE).
-
-    RUN setSensitive.
-
-  END.
-
+    RUN SUPER.
+    
+    run updateRecordSet.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addRowToSelected fFrameWin 
 FUNCTION addRowToSelected RETURNS LOGICAL
   ( INPUT phBuffer AS HANDLE ):
@@ -1450,7 +1462,9 @@ FUNCTION openQuery RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-
+  if not valid-handle(phBuffer) and not valid-handle(phQuery) then
+    return false.
+    
   IF NOT VALID-HANDLE(phQuery) THEN
     CREATE QUERY phQuery.
 
@@ -1460,11 +1474,9 @@ FUNCTION openQuery RETURNS LOGICAL
     phQuery:ADD-BUFFER(phBuffer).
 
   phQuery:QUERY-PREPARE(pcForEach).
-
   phQuery:QUERY-OPEN().
 
   RETURN TRUE.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

@@ -5,7 +5,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -960,7 +960,7 @@ PROCEDURE generate4GLPrograms :
   /* Set mouse pointer */
   THIS-PROCEDURE:CURRENT-WINDOW:LOAD-MOUSE-POINTER("ARROW":U).
   RUN showMessages IN gshSessionManager (INPUT cMessage,
-                                         INPUT (IF lError THEN "ERR":U ELSE 'MES'),
+                                         INPUT (IF lError THEN "ERR":U ELSE 'INF'),
                                          INPUT "OK":U,
                                          INPUT "OK":U,
                                          INPUT "OK":U,
@@ -1019,12 +1019,13 @@ PROCEDURE initializeData :
       END.
       coObjectType:SCREEN-VALUE = "<All>":U.
 
-      coObjectType:DELIMITER = CHR(3).
-      FOR EACH gsc_product_module NO-LOCK BY gsc_product_module.product_module_code:
-          coProductModule:ADD-LAST(gsc_product_module.product_module_code + " / ":U + 
-                                   gsc_product_module.product_module_description,
-                                   gsc_product_module.product_module_code).
-      END.
+      coProductModule:DELIMITER = CHR(3).
+      coProductModule:list-item-pairs = dynamic-function('getProductModuleList':u in ghRepDesignManager,
+                                                         'product_module_code',
+                                                         'product_module_code,product_module_description',
+                                                         '&1 / &2',
+                                                         chr(3)).
+      coProductModule:add-first("<All>","<All>").
       coProductModule:SCREEN-VALUE = "<All>":U.
   END.
 

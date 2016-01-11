@@ -1187,35 +1187,44 @@ PROCEDURE transferToExcel :
         chWorkSheet:Range(cRange):FONT:Bold = TRUE
         cStoreColumns                       = cStoreColumns + STRING(phBrowse:GET-BROWSE-COLUMN(iColumn)) + CHR(4).
   END.
+  
+  
   ASSIGN cStoreColumns = RIGHT-TRIM(cStoreColumns, CHR(4)) NO-ERROR.
 
   /* Position the browse to the first row */
   phBrowse:SELECT-ROW(1).
-
-  /* Step through the rows in the browse */
-  DO iRow = 1 TO phBrowse:QUERY:NUM-RESULTS:
-    iCurrentRow = iCurrentRow + 1.
-
-    DO iColumn = 1 TO iNumColumns:
-        ASSIGN cRange                          = CHR(ASC("A":U) + iColumn - 1) + STRING(iCurrentRow)
-               hColumn                         = WIDGET-HANDLE(ENTRY(iColumn, cStoreColumns, CHR(4)))
-               chWorkSheet:Range(cRange):VALUE = hColumn:SCREEN-VALUE.
+  
+  /* add block for error */
+  ProcessRecords:
+  DO on error undo,leave:  
+    /* Step through the rows in the browse */
+    DO iRow = 1 TO phBrowse:QUERY:NUM-RESULTS:
+      iCurrentRow = iCurrentRow + 1.
+  
+      DO iColumn = 1 TO iNumColumns:
+          ASSIGN cRange                          = CHR(ASC("A":U) + iColumn - 1) + STRING(iCurrentRow)
+                 hColumn                         = WIDGET-HANDLE(ENTRY(iColumn, cStoreColumns, CHR(4)))
+                 chWorkSheet:Range(cRange):VALUE = hColumn:SCREEN-VALUE no-error.
+      END.
+      /* this looop is very slow (navigates visible rows) and the user might 
+         press cancel in Excel. Avoid ugly errors */
+      if error-status:error then 
+        leave ProcessRecords.
+      phBrowse:SELECT-NEXT-ROW().
     END.
-
-    phBrowse:SELECT-NEXT-ROW().
-  END.
-
-  ASSIGN cRange    = "A3:":U + STRING((CHR(ASC("A":U) + (iNumColumns - 1)) + "3":U)).
-  chWorkSheet:Range(cRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
-
-  ASSIGN cRange    = "A3:":U + STRING((CHR(ASC("A":U) + (iNumColumns - 1)) + STRING(iCurrentRow))).
-  chWorkSheet:Range(cRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
-  chWorkSheet:Range(cRange):COLUMNS:AutoFit.
-
-  ASSIGN chExcel:WindowState   = -4143 /* Maximized */
-         chExcel:VISIBLE       = TRUE
-         chExcel:DisplayAlerts = TRUE.
-
+    
+    ASSIGN cRange    = "A3:":U + STRING((CHR(ASC("A":U) + (iNumColumns - 1)) + "3":U)).
+    chWorkSheet:Range(cRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
+  
+    ASSIGN cRange    = "A3:":U + STRING((CHR(ASC("A":U) + (iNumColumns - 1)) + STRING(iCurrentRow))).
+    chWorkSheet:Range(cRange):COLUMNS:BorderAround(1,-4138,-4105,-4105).
+    chWorkSheet:Range(cRange):COLUMNS:AutoFit.
+  
+    ASSIGN chExcel:WindowState   = -4143 /* Maximized */
+           chExcel:VISIBLE       = TRUE
+           chExcel:DisplayAlerts = TRUE.
+  END. /* do on error */
+  
   /* Make sure that the COM objects are released properly */
   IF VALID-HANDLE(chWorkSheet)  THEN RELEASE OBJECT chWorkSheet.
   IF VALID-HANDLE(chWorkbook)   THEN RELEASE OBJECT chWorkbook.
@@ -1226,7 +1235,6 @@ PROCEDURE transferToExcel :
       chWorkSheet          = ?
       chWorkbook           = ?
       chExcel              = ?.
-
   /* Put the browse and the query back to the way they were */
   phBrowse:SET-REPOSITIONED-ROW(iReposRow).
   phBrowse:QUERY:REPOSITION-TO-ROW(iSelectedRow).

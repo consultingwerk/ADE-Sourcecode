@@ -129,7 +129,7 @@ This table supports the registration of services and whether they are connected 
 
 " "logical_service_obj" yes "logical_service_code" 0 "" ? yes yes "ICFDB" "" "" "" yes
 "GSCLT" "language text" "gsc_language_text" yes "" 54 "physical_file_name" "" "Totally generic text file for all supported languages. Text's may be associated with another entity (via owning_obj) or may be simply generic text of a certain type. Numbers enclosed in {} are for parameter substitution.
-E.g. Scheme option names, transaction narrations, valid people titles, etc." "language_text_obj" yes "category_obj,owning_obj,language_obj,text_tla" 4 "_" ? no yes "ICFDB" "" "" "" yes
+E.g. Scheme option names, transaction narrations, valid people titles, etc." "language_text_obj" yes "category_obj,owning_obj,language_obj,text_tla" 4 "_" ? yes yes "ICFDB" "" "" "" yes
 "GSCMM" "multi media type" "gsc_multi_media_type" yes "" 1004924370.09 "multi_media_type_description" "" "This table contains information related to different types of multi media files." "multi_media_type_obj" yes "multi_media_type_code" 4 "_" ? yes yes "ICFDB" "" "" "" yes
 "GSCMT" "manager type" "gsc_manager_type" yes "" 1004924410.09 "manager_type_name" "" "This table contains the definition of the standard manager types that are used in the framework.
 
@@ -872,10 +872,10 @@ PSC
 filename=gsc_entity_mnemonic
 records=0000000000128
 ldbname=ICFDB
-timestamp=2005/06/30-15:33:25
+timestamp=2007/10/04-15:21:41
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000104659
+0000104660

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,08 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -62,6 +62,7 @@ DEFINE VARIABLE l_rep-presel     AS logical   NO-UNDO.
 DEFINE VARIABLE escape_char      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE quote_char       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE fromProto        AS LOGICAL   NO-UNDO INIT NO.
+DEFINE NEW SHARED VARIABLE s_is_as400 as LOGICAL NO-UNDO INIT NO.
 
 DEFINE BUFFER gate-buff FOR gate-work.
 DEFINE stream s_stm_errors.

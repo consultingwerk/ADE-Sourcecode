@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,13 +13,11 @@ in:  user_env[2] = Name of file to dump to.
 
 History:
     hutegger    94/02/24    code-page - support and trailer-info added
-    
+    fernando    06/19/07    Support for large files    
 */
 /*h-*/
 
 { prodict/user/uservar.i }
-
-DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
 
 IF NOT CAN-FIND(FIRST DICTDB._User) THEN DO:
    MESSAGE "There are no user records to dump." SKIP

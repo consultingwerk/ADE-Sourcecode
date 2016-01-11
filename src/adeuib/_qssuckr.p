@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -1277,7 +1277,7 @@ PROCEDURE qssucker_cleanup:
   RUN adecomm/_setcurs.p ("").        /* Restore cursor pointers           */
   
 END PROCEDURE.
-  
+
 PROCEDURE get_window_hidden_value.
   FIND _U WHERE _U._HANDLE = _h_win.
   _inp_line = "".
@@ -1288,7 +1288,7 @@ END.  /* Get Window Hidden value */
 
 PROCEDURE analyze-suspend-reader :  
   DEFINE VARIABLE done AS LOGICAL NO-UNDO.
-  
+
   /* If we are importing unnamed frame or a dialog box, remember to reset
      to the originally selected frame so that any Queries or SmartObjects
      will import onto the correct default frame (or Window). Remember that
@@ -1304,9 +1304,9 @@ PROCEDURE analyze-suspend-reader :
     /* Read the next line */
     _inp_line = "".
     IMPORT STREAM _P_QS _inp_line.
-    
+
     CASE _inp_line[1]:
-  
+
       WHEN "_QUERY-BLOCK" THEN DO:    /* Read Query stuff for Browsers & frames */
         RUN adeuib/_rdqury.p (INPUT file_version).       
         IF RETURN-VALUE = "_ABORT":U THEN DO:
@@ -1315,16 +1315,17 @@ PROCEDURE analyze-suspend-reader :
            RETURN "_ABORT":U.
         END.
       END.  /* _QUERY-BLOCK CASE */
-  
+
       WHEN "_UIB-PREPROCESSOR-BLOCK" THEN DO:
         /* We are in the Preprocessor section.  We only need to parse it if we
            are NOT in IMPORT mode. */ 
         ASSIGN cur_sect = {&STDPREPROCS}
                DONE = (import_mode eq "IMPORT":U).
-        
+
         REPEAT WHILE NOT DONE:
           _inp_line = "".
           IMPORT STREAM _P_QS UNFORMATTED _inp_line[1].
+
           /* Does this list the ADM-SUPPORTED-LINKS?  Note: SmartContainer 
              links are not read here.  They are read in the Procedure Settings.*/
           IF _inp_line[1] BEGINS "&Scoped-define ADM-SUPPORTED-LINKS ":U THEN DO:
@@ -1340,6 +1341,8 @@ PROCEDURE analyze-suspend-reader :
               _P._type-list = _P._type-list + ",Html-Mapping":U.
             */
           END.
+          ELSE IF _inp_line[1] BEGINS "&Scoped-define WIDGETID-FILE-NAME ":U THEN
+              ASSIGN _p._widgetid-file-name = TRIM(SUBSTRING(_inp_line[1], 34, -1, "CHARACTER":U)).
            /* Get FRAME-NAME pre-processor definition */
           ELSE IF _inp_line[1] BEGINS  "/* Name of first Frame and/or Browse":U OR 
                   _inp_line[1] BEGINS  "/* Name of designated FRAME-NAME":U  THEN 
@@ -1406,11 +1409,11 @@ PROCEDURE analyze-suspend-reader :
           ELSE DONE = _inp_line[1] BEGINS "/* _UIB-PREPROCESSOR-BLOCK-END".
         END.
       END.
-      
+
       WHEN "_UIB-CTRLTRIG-STUB" THEN ASSIGN cur_sect = {&CONTROLTRIG}.
-      
+
       WHEN "_UIB-INTPROC-STUB" THEN ASSIGN cur_sect = {&INTPROCS}.   
-      
+
       WHEN "_CREATE-WINDOW" THEN DO:  /* Already Read Window stuff             */
         ASSIGN cur_sect = {&CONTROLDEFS}.
         _inp_line[3] = " ".           /* Skip over it this time                */
@@ -1421,7 +1424,7 @@ PROCEDURE analyze-suspend-reader :
                                "CHARACTER":U) EQ ".".
         END.
       END.  /* End window creation CASE */
-  
+
       WHEN "_CREATE-DYNAMIC" THEN DO:  /* Container for OCX's */
         ASSIGN cur_sect = {&CONTROLDEFS}.
         RUN adeuib/_rdcont.p (_h_win, import_mode).
@@ -1430,15 +1433,15 @@ PROCEDURE analyze-suspend-reader :
           RETURN "_ABORT".
         END.
       END.  /* End dynamic widget creation CASE */
-  
+
       WHEN "_RUN-TIME-ATTRIBUTES" THEN DO:
           ASSIGN cur_sect = {&RUNTIMESET}.
           RUN read_run_time_attributes.   
       END.
-  
+
       WHEN "_UIB-CODE-BLOCK":U THEN DO:
         FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
-        
+
         /* Look for the special Alternate-Layout Procedure. In 8.0a1p 
            (pre-release) and earlier, we based the name of the procedure 
            on the {&WINDOW-NAME}-LAYOUTS.  This was changed in 8.0a1 to
@@ -1455,7 +1458,7 @@ PROCEDURE analyze-suspend-reader :
           RUN adeuib/_cdsuckr.p (import_mode, cBrokerURL).
         END.
       END.
-  
+
       WHEN "_EXPORT-CODE-BLOCK" THEN DO:   /* Importing a SmartObject */
         /* There are some code blocks we only write out when we export a group
            of widgets.  One of these is the ADM-CREATE-OBJECTS that is needed
@@ -1465,12 +1468,12 @@ PROCEDURE analyze-suspend-reader :
           RUN adeuib/_rdsmar.p (RECID(_U)).
         END.      
       END.  /* End dynamic widget creation CASE */
-  
+
       WHEN "_ANALYZER_BEGIN" THEN DO:
         INPUT STREAM _P_QS CLOSE.
         LEAVE DIRECTION-LOOP.
       END.
-      
+
       WHEN "/*" THEN
         IF _inp_line[2] = "Procedure" AND _inp_line[3] = "Description" THEN
           RUN Get_Proc_Desc.
@@ -1479,6 +1482,11 @@ PROCEDURE analyze-suspend-reader :
   
     END CASE.  
   END. /* DIRECTION-LOOP */
+
+/*_P._widgetid-file-name=? is used only when the window is created, when the window is re-opened, this value
+  must have a valid file name, or it must be blank.*/
+IF import_mode = "WINDOW":U AND _P._widgetid-file-name = ? THEN
+    ASSIGN _P._widgetid-file-name = "":U.
 END PROCEDURE.
 
 PROCEDURE layout_reader:
@@ -2726,6 +2734,8 @@ PROCEDURE processRepositoryObject:
          for dynamic objects */
 
   DEFINE VARIABLE lIsValidClass AS LOGICAL NO-UNDO.
+  def var lCanFindPropSheet as log no-undo.
+  def var lCanFindDesignTemplate as log no-undo.
 
   DO ON ERROR UNDO, LEAVE:
 
@@ -2750,12 +2760,21 @@ PROCEDURE processRepositoryObject:
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynContainer":U)  OR
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynDataView":U)  OR
                       DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynTree":U).
+      
+        lCanFindDesignTemplate = search(_Ryobject.design_template_file) ne ?.
+        
+        /* In certain cases, the property sheets are in adeuib. In this case, we don't always ship 
+           source code and so need to also look for the r-code, which will be run. */
+        lCanFindPropSheet = search(_Ryobject.design_propsheet_file) ne ? or
+                            search(replace(_Ryobject.design_propsheet_file, ".p", ".r")) ne ? or
+                            search(replace(_Ryobject.design_propsheet_file, ".w", ".r")) ne ? .
+        
+        /* Only check for the existence of the propsheet file for DynContainer objects. */                            
+        if not dynamic-function('classIsA' in gshRepositoryManager, _RyObject.object_type_code, 'DynContainer') then
+            lCanFindPropSheet = Yes.
 
-      IF NOT lIsValidClass OR SEARCH(_Ryobject.design_template_file) = ?  
-                           OR (SEARCH(_Ryobject.design_propsheet_file) = ? 
-                                 AND DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynContainer":U) ) THEN
- 
-      DO:    
+      IF NOT lIsValidClass OR not lCanFindDesignTemplate or not lCanFindPropSheet then 
+      DO:
       /* If we can't determine the template file or the property sheet procedure, we can't open the object. */
         /* Reset the cursor for user input.*/
         RUN adecomm/_setcurs.p ("").
@@ -2776,7 +2795,7 @@ PROCEDURE processRepositoryObject:
                    + "If its loading from the repository, ensure there is an object and object instance in the appropriate 'Template'" + CHR(10)
                    + "and 'Palette' class and that the 'PaletteNewTemplate' and the TemplatePropertySheet' attributes are set."
              VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        ELSE IF SEARCH(_Ryobject.design_template_file) = ? THEN
+        ELSE IF not lCanFindDesignTemplate THEN
           MESSAGE "Cannot open or create the dynamic object " 
                    + (IF _RyObject.object_filename > "" THEN " '" + _RyObject.object_filename + "'." ELSE "."  )  + CHR(10) + CHR(10)
                    + "The dynamic object's template file '" + _Ryobject.design_template_file + "' could not be found." + CHR(10)
@@ -2785,8 +2804,7 @@ PROCEDURE processRepositoryObject:
                    + "If its loading the .cst from the repository, ensure that the 'PaletteNewTemplate' and the TemplatePropertySheet'" + CHR(10)
                    + "attributes are set and can be found in the PROPATH."
              VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        ELSE IF  (SEARCH(_Ryobject.design_propsheet_file) = ? 
-                     AND DYNAMIC-FUNCTION("ClassIsA":U IN gshRepositoryManager, _RyObject.object_type_code,"DynContainer":U) )  THEN
+        ELSE IF not lCanFindPropSheet then
           MESSAGE "Cannot open or create the dynamic container " 
                    + (IF _RyObject.object_filename > "" THEN " '" + _RyObject.object_filename + "'." ELSE "."  )  + CHR(10) + CHR(10)
                    + "The dynamic object's property file '" + _Ryobject.design_propsheet_file + "' could not be found." + CHR(10) 

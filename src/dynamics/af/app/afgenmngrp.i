@@ -1236,7 +1236,7 @@ PROCEDURE getEntityDisplayField :
     IF ttEntityMnemonic.table_has_object_field THEN
       ASSIGN
         cWhereClause = TRIM(ttEntityMnemonic.entity_mnemonic_description) + ".":U  + TRIM(ttEntityMnemonic.entity_object_field) + 
-                       " = ":U + pcOwningValue.
+                       " = ":U + quoter(pcOwningValue).
     ELSE IF NUM-ENTRIES(ttEntityMnemonic.entity_key_field) = NUM-ENTRIES(pcOwningValue,CHR(1)) THEN DO:
       IF VALID-HANDLE(hBuffer) THEN DO iLoop = 1 TO NUM-ENTRIES(ttEntityMnemonic.entity_key_field):
         ASSIGN
