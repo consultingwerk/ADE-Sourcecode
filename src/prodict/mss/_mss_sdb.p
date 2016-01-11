@@ -81,7 +81,12 @@ FOR EACH DICTDBG.GetInfo_buffer:
           DICTDB._Db._Db-misc2[4] = "".
         
   REPEAT i = 1 TO 80:
-    IF ( CAN-DO(odbc-bug-list[i], driver-prefix) OR
+    IF i = 17 THEN DO:
+      IF DICTDB._Db._Db-Misc1[1] = 1 THEN 
+        ASSIGN DICTDB._Db._Db-misc2[4] = DICTDB._Db._Db-misc2[4]
+                                   + string(i) + "," .
+    END.
+    ELSE IF ( CAN-DO(odbc-bug-list[i], driver-prefix) OR
          CAN-DO(odbc-bug-list[i], "ALL") ) AND
          NOT CAN-DO(odbc-bug-excld[i], driver-prefix) THEN
       ASSIGN DICTDB._Db._Db-misc2[4] = DICTDB._Db._Db-misc2[4]

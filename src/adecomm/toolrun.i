@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -102,6 +102,9 @@ Author: Mike Pacholec
 Date Created: May 21, 1993
           
 Change Log:
+08-19-01 jep   For EXLCUDE_UIB menu items, added support for h_sm handle to specify
+               dynamic Tools menu parent in place of static mnu_Tools reference.
+               Part of ICF support. jep-icf
 06-29-99 jep   Added TOOL_RUN support for including file a second time.
                See above notes.
 05-07-99 gfs   Added Actuate DWB and ARD
@@ -272,7 +275,8 @@ IF ade_licensed[{&WTOOL_IDX}] <> {&NOT_AVAIL} THEN
 DO:
   CREATE MENU-ITEM mnu_webtools 
     ASSIGN LABEL  = "&WebT&ools" 
-           PARENT = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+           PARENT = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                    &ELSE h_sm &ENDIF
          TRIGGERS:
            ON CHOOSE PERSISTENT RUN adeweb/_abrunwb.p("workshop").
          END TRIGGERS.
@@ -292,7 +296,8 @@ IF ade_licensed[{&RB_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_rb_wh
         ASSIGN 
             LABEL       = "Report B&uilder"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_rbuild.p" ).
     END TRIGGERS.
@@ -315,7 +320,8 @@ IF ade_licensed[{&RPT_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_rpt_wh
         ASSIGN 
             LABEL       = "&RESULTS"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "results.p" ).
     END TRIGGERS.
@@ -337,7 +343,8 @@ IF ade_licensed[{&TRAN_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_tran_wh
         ASSIGN 
             LABEL       = "&Translation Manager"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_tran.p" ).
     END TRIGGERS.
@@ -359,7 +366,8 @@ IF ade_licensed[{&VTRAN_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_vtran_wh
         ASSIGN
             LABEL       = "&Visual Translator"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_vtran.p").
     END TRIGGERS.
@@ -381,7 +389,8 @@ IF ade_licensed[{&COMP_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_comp_wh
         ASSIGN 
             LABEL       = "Application &Compiler"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_comp.p" ).
     END TRIGGERS.
@@ -403,7 +412,8 @@ IF ade_licensed[{&DWB_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_dwb_wh
         ASSIGN 
             LABEL       = "Actuate Developer &Workbench"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN adecomm/_rundwb.p.
     END TRIGGERS.
@@ -421,7 +431,8 @@ IF ade_licensed[{&ARD_IDX}] <> {&NOT_AVAIL} THEN DO:
     CREATE MENU-ITEM mnu_ard_wh
         ASSIGN 
             LABEL       = "e.Report Des&igner"
-            PARENT      = MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
+                          &ELSE h_sm &ENDIF
     TRIGGERS:
         ON CHOOSE {&PERSISTENT} RUN adecomm/_runard.p.
     END TRIGGERS.

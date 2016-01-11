@@ -1,0 +1,1477 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>Method Libraries</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The Original
+Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">2.1</TD>	<TD CLASS="Text1"><A HREF="#2.1">ADE Library Manager Object</A></TD></TR>
+<TR><TD CLASS="Text1">2.2</TD>	<TD CLASS="Text1"><A HREF="#2.2">Included-Libraries Code Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.3</TD>	<TD CLASS="Text1"><A HREF="#2.3">Calling the Library Manager to Open Method Library Files</A></TD></TR>
+<TR><TD CLASS="Text1">2.4</TD>	<TD CLASS="Text1"><A HREF="#2.4">How the AppBuilder Uses Method Library Files</A></TD></TR>
+<TR><TD CLASS="Text1">2.4.1</TD>	<TD CLASS="Text1"><A HREF="#2.4.1">Method Library Dialog Box</A></TD></TR>
+<TR><TD CLASS="Text1">2.4.2</TD>	<TD CLASS="Text1"><A HREF="#2.4.2">Creating Local Overrides</A></TD></TR>
+<TR><TD CLASS="Text1">2.4.3</TD>	<TD CLASS="Text1"><A HREF="#2.4.3">Insert Call Dialog Box</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">3.1</TD>	<TD CLASS="Text1"><A HREF="#3.1">Variables</A></TD></TR>
+<TR><TD CLASS="Text1">3.2</TD>	<TD CLASS="Text1"><A HREF="#3.2">Temp-Tables</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>	<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>	<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.1</TD>	<TD CLASS="Text1"><A HREF="#5.1">ADE Object Manager and ADE Objects</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>	<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>	<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>	<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>	<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>	<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>	<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>	<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<P><A NAME="1"><B>1. Overview</B></a></p>
+
+
+<p>A method library or primary include file is a structured
+Progress include file that is part of the standard set of ADM class files that
+are used to help define ADM objects and their behavior. This document describes
+how the AppBuilder opens, manages, and uses method libraries. Using method
+library files, the AppBuilder can add method libraries to a procedure, create
+local override procedures and functions for super procedures, and insert
+procedure and function calls into code sections.</p>
+
+<p><b>Note:</b>
+The term &quot;method library&quot; is used synonymous with the term
+&quot;primary include file&quot; throughout this and other Progress and Open
+Source documents as well as in the ADE Tools. Please see the <i>Progress ADM 2 Guide</i> for more details on
+method library or primary include files.</p>
+
+<p><b>Note:</b>
+ADM1 relied heavily on the procedures and functions defined in method libraries
+to provide a SmartObject's functionality. In ADM2, super procedures now contain
+most of those procedures and functions.</p>
+
+<P><A NAME="2"><B>2. Architecture</B></A></P>
+
+<p>A method library or primary include file is a structured
+Progress include file that is part of the standard set of ADM class files that
+are used to help define ADM objects and their behavior. A method library starts
+the super procedure for an ADM class, can initialize some properties, references
+the class property file, is referenced directly in a template or in another
+class' primary include file, and references the custom primary include file, if
+relevant.</p>
+
+<P><A NAME="2.1"><B>2.1. ADE Library Manager Object</B></A></P>
+
+<p>The AppBuilder uses a persistent ADE object, called the
+Method Library Manager object, to manage method libraries. It is also referred
+to as the Library Manager object. For more information on persistent ADE
+objects, see <A HREF="#5.1"><b>Section 5.1</A> “ADE Object Manager and ADE Objects”</b>. The Library
+Manager object reads and manages method libraries and their code sections and
+handles requests from AppBuilder for information about them.</p>
+
+<p>AppBuilder starts the Library Manager object during its
+own startup process with this call in _uibmain.p:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>/* Initialize the ADE
+LIB-MGR Object. */</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN adecomm/_adeobj.p
+(&quot;LIB-MGR&quot;:U, INPUT-OUTPUT _h_mlmgr).</p>
+
+</div>
+
+<p>The Library Manager's ADE object name is
+&quot;LIB-MGR&quot; and its persistent procedure source file is
+adeshar/_mlmgr.p (This pairing is specified in the ADE object manager
+procedure, _adeobj.p). The AppBuilder defines its shared variable, _h_mlmgr,
+(in sharvars.i) to store the Library Manager's persistent procedure handle.
+This allows AppBuilder to reference the Library Manager object when making
+calls to the Library Manager's internal procedures and functions.</p>
+
+<p>You can see the adeshar/_mlmgr.p persistent procedure
+running during an AB session using the Procedure Object Viewer Protool. </p>
+
+<p><b>Note: </b>
+You must turn off the Procedure Viewer's &quot;Hide ADE Procedures&quot; option
+to see the procedure.</p>
+
+
+<P><A NAME="2.2"><B>2.2 Included-Libraries Code Section</B></A></P>
+
+<p>Method Library file references are contained in the
+AB-maintained Included-Libraries code section of a structured AppBuilder file.
+Here is an example of an Included-Libraries code section:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>&amp;ANALYZE-SUSPEND _UIB-CODE-BLOCK
+_CUSTOM _INCLUDED-LIB Include </p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>/* *********************
+Included-Libraries ******************** */</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>{src/adm2/smart.i}</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>/* _UIB-CODE-BLOCK-END */</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>&amp;ANALYZE-RESUME</p>
+
+</div>
+
+<p>You use the AppBuilder's Method Library dialog box to add,
+remove, or modify references to method libraries for an AppBuilder procedure
+file.</p>
+
+<P><A NAME="2.3"><B>2.3 Calling the Library Manager to Open Method Library Files</B></A></P>
+
+<p>The Library Manager opens method library files when the
+AppBuilder performs either of the following actions:</p>
+
+<ul>
+
+<li>Reads an Included-Libraries section in a procedure
+object </li>
+
+<li>Opens a method library file directly for editing</li>
+
+</ul>
+
+<p>While reading code sections from an AppBuilder procedure
+file, the AppBuilder checks if it is reading an Included-Libraries section. If
+it is, the AppBuilder calls the ADE Library Manager object (LIB-MGR, handle
+_h_mlmgr) to open all the method libraries referenced in that section. (See the
+Open Source AppBuilder information on &quot;Opening .w Files&quot;.)</p>
+
+<p>The AppBuilder calls the adeuib/_cdsuckr.p procedure to
+read code sections. Here is the call in _cdsuckr.p to open included libraries:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>/* Call ADE LIB-MGR to
+open Included Library files. */</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>ELSE IF _TRG._tEVENT =
+&quot;_INCLUDED-LIB&quot;:U THEN DO:</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>IF VALID-HANDLE( _h_mlmgr ) THEN DO:</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">    </span>RUN get-inclib-list IN _h_mlmgr ( INPUT<span
+style="mso-spacerun: yes">  </span>_TRG._tCODE ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                      </span>INPUT<span
+style="mso-spacerun: yes">  </span>{&amp;EOL},</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                      </span>OUTPUT ml_inclibs ).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">    </span>RUN open-lib IN _h_mlmgr ( INPUT STRING( _U._WINDOW-HANDLE ) ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                               </span>INPUT ml_inclibs ).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>END.</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>END.</p>
+
+</div>
+
+<p>The call to the Library Manager get-inclib-list procedure
+passes in the Included-Libraries code block and a delimiter and receives back a
+comma-separated list of include file references, without the include braces.
+For example, in the code example in <A HREF="#2.2"><b>Section 2.2</A>, Included-Libraries Code Section</b>, the
+get-inclib-list procedure would return &quot;src/adm2/smart.i&quot; in the
+ml_inclibs variable.</p>
+
+<p>Once the list of method library files to open is
+established, the AppBuilder calls the Library Manager procedure open-lib to
+actually open the specified library files. The AppBuilder uses the procedure
+file's design window widget handle (_U._WINDOW-HANDLE) to identify the parent
+object of the method library files to open.</p>
+
+<P><A NAME="2.4"><B>2.4 How the AppBuilder Uses Method Library Files</B></A></P>
+
+<p>The AppBuilder uses information in method library files
+to:</p>
+
+<ul>
+
+<li>Edit the Method Libraries (Included-Libraries code
+section) of a procedure object using the Method Libraries dialog box.</li>
+
+<li>Create local override procedures and functions for super
+procedures using the New Procedure and New Function dialog boxes of the Section
+Editor.</li>
+
+<li>Insert procedure and function calls into code sections
+using the Insert Call dialog box of the Section Editor.</li>
+
+</ul>
+
+<p>The sections that follow describe the technical and
+programming aspects of these uses in more detail.</p>
+
+<P><A NAME="2.4.1"><B>2.4.1 Method Library Dialog Box</B></A></P>
+
+<p>The Method Library dialog box is used to add, remove, or
+modify references to method libraries for an AppBuilder procedure file. It is
+accessed from the AppBuilder Procedure Setting’s dialog box. The
+adeuib/_mldlg.w procedure implements the Method Library dialog box. The file is
+an AB procedure file. Accessed from this dialog box is the Add/Modify Method
+Library References dialog box, implemented by the adeuib/_mlref.p procedure. It
+is used to add or modify a specific method library reference in an AppBuilder
+procedure.</p>
+
+<p>The Method Library dialog box (_mldlg.w) set-init-values
+internal procedure builds a list of the included library names using this
+Library Manager call:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-inclib-names IN
+h_mlmgr (INPUT<span style="mso-spacerun: yes">  </span>p_Parent_ID ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                 </span>OUTPUT p_Include_List ).</p>
+
+</div>
+
+<p>The call returns a comma-delimited list of included
+library names. The set-init-values procedure then adds include braces {} to the
+names and displays the include references in the dialog’s Method Libraries
+list.</p>
+
+<p>When the dialog is closed, if any changes have been made,
+the Method Library dialog box closes and reopens the library owner object
+representing the procedure object using the following Library Manager calls:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN close-parent IN
+h_mlmgr (INPUT p_Parent_ID ).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN open-lib IN h_mlmgr
+(INPUT p_Parent_ID ,<span style="mso-spacerun: yes">   </span></p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                         </span>INPUT p_Include_List ).</p>
+
+</div>
+
+<p>By closing and reopening the library owner, the lists of
+procedures and functions used for local overrides and insert calls is rebuilt
+and any new super procedures are run, reflecting the latest method library and
+super procedure information.</p>
+
+<P><A NAME="2.4.2"><B>2.4.2 Creating
+Local Overrides</B></A></P>
+
+<p>The New Procedure and New Function dialog boxes are used
+to create local overrides of procedures and functions defined by a procedure
+object’s super procedures. These dialogs are accessed from the Section Editor’s
+“New” button. The adeuib/_newproc.w and adeuib/_newfunc.w procedures implement
+the dialog boxes. Both files are AppBuilder procedure files.</p>
+
+<p>The New Procedure and New Function dialogs are called from
+the Section Editor’s NewBlock internal procedure. The NewBlock internal
+procedure calls the Get_Proc_Lists internal procedure to build a list of all
+procedures and functions that can be overridden. The Get_Proc_Lists procedure
+in turn calls the Library Manager’s get-saved methods and get-saved-funcs
+procedures to perform the actual building of the procedure and function name
+lists.</p>
+
+<p>After accumulating the list of procedure and function names
+defined in the procedure object itself and all of it’s included method library
+files, NewBlock builds a list of super procedure handles and a name list of all
+procedures and functions defined in all super procedures run by the procedure
+object. The names list is combined with those defined by the object internally
+to create the complete list of procedures and functions that can be overridden
+(using either ADM1 “adm-“ to “local-“ prefixes or ADM2 override super procedure
+entries). The super procedure handles list and accumulated override list become
+part of the input parameters to _newproc.w. The code example below shows these
+calls as they occur in NewBlock for calling the New Procedure dialog box.</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-super-procedures
+IN _h_mlmgr ( INPUT STRING(_SEW._hwin) ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Procs ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Handles).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-super-procs IN
+_h_mlmgr (INPUT Super_Handles ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style='mso-tab-count:
+3'>                                                </span><span
+style="mso-spacerun: yes">      </span>INPUT-OUTPUT Smart_List).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN adeuib/_newproc.w (
+INPUT Super_Handles<span style="mso-spacerun: yes">   </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT new_command<span style="mso-spacerun:
+yes">     </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT Smart_List<span style="mso-spacerun:
+yes">      </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT Invalid_List<span
+style="mso-spacerun: yes">    </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT-OUTPUT new_name ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Type<span style="mso-spacerun:
+yes">   </span><span style="mso-spacerun: yes">        </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Code_Block<span style="mso-spacerun:
+yes">     </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT a_OK<span style="mso-spacerun:
+yes">           </span>).</p>
+
+</div>
+
+<p>The _newproc.w call returns the following information:</p>
+
+<ul>
+
+<li>The type of function block that should be created,
+(example: Type = “_LOCAL” for local override)</li>
+
+<li>The code block to which the new procedure should
+initialize </li>
+
+<li>Whether or not the user pressed OK in the dialog box. </li>
+
+</ul>
+
+<p>If the type of procedure to create is a standard
+procedure, then the code block returned is null and NewBlock calls
+adeshar/_coddflt.p to generate standard code for the new procedure. Otherwise,
+the type of procedure to create is an override of a super procedure internal
+entry and the code block returned is the override code generated by _newproc.w.</p>
+
+<p>NewBlock performs a similar set of calls to the Library
+Manager object to build lists of super procedure function names and procedure
+handles that are passed as input parameters to the New Function dialog box’s
+adeuib/_newfunc.w procedure. Those calls are show here:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-super-procedures
+IN _h_mlmgr ( INPUT STRING(_SEW._hwin) ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Procs ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Handles).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-super-funcs IN
+_h_mlmgr (INPUT Super_Handles ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                               </span><span style="mso-spacerun:
+yes">  </span>INPUT-OUTPUT Smart_List).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN adeuib/_newfunc.w (
+INPUT Super_Handles<span style="mso-spacerun: yes">   </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT new_command<span style="mso-spacerun:
+yes">     </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT Smart_List<span style="mso-spacerun:
+yes">      </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT Invalid_List<span
+style="mso-spacerun: yes">    </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>INPUT-OUTPUT new_name ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Type<span style="mso-spacerun:
+yes">           </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Returns_Type<span
+style="mso-spacerun: yes">   </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Define_As<span style="mso-spacerun:
+yes">      </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT Code_Block<span style="mso-spacerun:
+yes">     </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                        </span>OUTPUT a_OK<span style="mso-spacerun:
+yes">           </span>).</p>
+
+</div>
+
+<span style='font-size:10.0pt;font-family:"Times New Roman";mso-fareast-font-family:
+"Times New Roman";mso-ansi-language:EN-US;mso-fareast-language:EN-US;
+mso-bidi-language:AR-SA'><br clear=all style='page-break-before:always'>
+</span>
+
+<p>The _newfunc.w call returns the following information:</p>
+
+<ul>
+
+<li>The type of function block that should be created</li>
+
+<li>The function return data–type</li>
+
+<li>The function implementation block type (<b>Note: </b> Currently only Implementation _FUNCTION is
+supported)</li>
+
+<li>The code block the function should initialize to</li>
+
+<li>Whether or not the user pressed OK in the dialog box. </li>
+
+</ul>
+
+<p>Since function code blocks are built by the _newfunc.w
+procedure, no call to _coddflt.p is necessary.</p>
+
+<p>The returned information is then used by procedure
+NewBlock to create the appropriate _SEW_TRG record, which ultimately becomes
+and _TRG code section record.</p>
+
+<P><A NAME="2.4.3"><B>2.4.3 Insert
+Call Dialog Box</B></A></P>
+
+<p>The Insert Call dialog box is used to insert procedure and
+function calls into code sections using the Section Editor. The
+adeuib/_inscall.w procedure implements the Insert Call dialog box. </p>
+
+<p><b>Note: </b>
+The adeuib/_inscal8.w procedure implements the Insert Call dialog box for
+version 8 ADM1 calls. Both files are AppBuilder procedure files.</p>
+
+<p>The Insert Call dialog box is called from the Section
+Editor’s InsertProcName internal procedure, which calls the Section Editor’s
+build_proc_list and build_func_list procedures to build separate lists of all
+procedure and function names defined by the procedure object. InsertProcName
+also calls the Library Manager’s get-saved methods and get-saved-funcs
+procedures to add procedure and function names defined in method library files
+to the name lists.</p>
+
+<p>In addition to accumulating lists of procedure and
+function names defined in the procedure object itself and all of it’s included
+method library files, InsertProcName builds a list of super procedure handles
+and super procedures names run by the procedure object. This is accomplished
+with a call to the Library Manager’s get-super-procedures procedure. The super
+procedure handles and names are combined to create a paired objects list. All
+the lists are then passed to _inscall.w to display the Insert Call dialog box.
+Here are those calls from InsertProcName:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>/* Build a list of the
+object's Super Procedures and add them to</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">   </span>the Objects list. */</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN get-super-procedures
+IN _h_mlmgr ( INPUT STRING(_SEW._hwin) ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Procs ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">                                       </span>INPUT-OUTPUT Super_Handles).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>DO iItem = 1 TO
+NUM-ENTRIES(Super_Handles):</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>ASSIGN hSuper_Proc = WIDGET-HANDLE(ENTRY(iItem, Super_Handles )).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>IF NOT VALID-HANDLE(hSuper_Proc) THEN NEXT.</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">  </span>ASSIGN Objects = Objects + &quot;,&quot; + hSuper_Proc:FILE-NAME
++ &quot; &quot; + STRING(hSuper_Proc).</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>END.</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'>RUN adeuib/_inscall.w</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">    </span>(INPUT<span style="mso-spacerun: yes">  </span>Objects ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">    </span><span style="mso-spacerun: yes"> </span>INPUT<span
+style="mso-spacerun: yes">  </span>This_Methods ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>INPUT<span style="mso-spacerun: yes">  </span>This_Funcs<span
+style="mso-spacerun: yes">   </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>INPUT<span style="mso-spacerun: yes">  </span>Super_Handles,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>INPUT<span style="mso-spacerun: yes">  </span>Proc_Id,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>OUTPUT Command<span style="mso-spacerun: yes">      </span>,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>OUTPUT Return_Value ,</p>
+
+<p class=CodeTextIndent style='border:none;mso-border-alt:solid windowtext .5pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt'><span style="mso-spacerun:
+yes">     </span>OUTPUT OK<span style="mso-spacerun: yes">           </span>) .</p>
+
+</div>
+
+<p>The InsertProcName procedure uses the return values to
+create an appropriate code section record.</p>
+
+
+
+<P><A NAME="3"><B>3. Primary Data Structures</B></A></P>
+
+<p>AppBuilder and the Library Manager use a combination of
+variables and temp-tables as the primary data structures to manager method
+libraries.</p>
+
+<P><A NAME="3.1"><B>3.1 Variables</B></A></P>
+
+<p>The following table lists several important variables used
+throughout the Library Manager code that are defined by the Library Manager:</p>
+
+<p><b>Table 1 - Key Variables Defined
+by Library Manager</b></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Variable Name</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Data Type</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>Tag_*</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Tag_* variables
+  are various code tokens or tags found in AB structure files that indicate
+  certain code sections and code blocks. Library Manager uses them during code
+  processing/parsing.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>Type_Include_Lib</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>The string &quot;
+  _INCLUDED-LIB &quot; the Library Manager code uses to parse and search for an
+  Included-Libraries section within a library file. Used for reading and
+  opening nested included library references.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>Tag_RunSuper</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>The string &quot;
+  RUN start-super-proc&quot; the Library Manager code uses to parse and
+  determine if it should run an ADM super procedure.</p>
+  </td>
+ </tr>
+</table>
+
+<p>The following table lists several important shared
+variables defined by AppBuilder in adeuib/sharvars.i that are used in managing
+method libraries and the Library Manager.</p>
+
+<p><b>Table <span
+style='mso-field-code:"SEQ Table \\* ARABIC"'>2</span> - Key Shared Variables
+Defined by AppBuilder (sharvars.i) for LIB-MGR<o:p></o:p></b></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Variable Name</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Data Type</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_h_mlmgr</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Handle</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Procedure handle
+  of the Method Library Manager. See OpenSource Method Library Manager Guide
+  for more information.</p>
+  </td>
+ </tr>
+</table>
+
+
+
+<P><A NAME="3.2"><B>3.2 Temp-Tables</B></A></P>
+
+<p>The temp-table _LIB-OWNER cross-references an owning
+procedure file (an _P) and all its referenced library files (_LIB). The
+following table describes the fields in _LIB-OWNER.</p>
+
+<p>Though several procedure object files can be open in the
+AppBuilder with include references to the same method libraries, only one _LIB
+record is created for each method library. This reflects the same structure as
+Progress source files and includes. Each reference represents an owning
+reference and one _LIB-OWNER record is created for each reference. If the
+references are to the same method library file, only one _LIB record is used to
+represent that library file.</p>
+
+<p><b>Table 3 - Fields of the
+_LIB-OWNER Temp-Table</b></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Field Name</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Data Type</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_PARENT-ID</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>ID of parent
+  object. AB uses design window widget handle (_U._WINDOW-HANDLE).</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_ORDER</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Integer</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Number used in an
+  index to preserve the order in which a library file references are read. </p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_LIB-FILE-NAME</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Full pathname of
+  the library file.</p>
+  </td>
+ </tr>
+</table>
+
+<p>The temp-table _LIB represents all library files currently
+open in the AppBuilder. Only one _LIB record is created for each method
+library. The following table describes the fields in _LIB.</p>
+
+<p><b>Table 4 - Key Fields of the _LIB
+Temp-Table</b></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Field Name</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Data Type</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_FILE –NAME</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Name of the
+  library file as it is used in source code or as it is opened by the
+  AppBuilder.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_FULL –PATHNAME</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Full operating
+  system pathname of the library file.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_SAVED-SMART-METHODS</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Comma-delimited
+  list of ADM smart method (event procedure) names defined in a method library
+  file. These procedures are prefixed with “adm-“ and are primarily defined in
+  ADM1 method library files.The Section Editor calls LIB-MGR procedure
+  get-saved-methods to retrieve this list when displaying the Insert Call and
+  New Procedure dialog boxes.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_SAVED-ALL-METHODS</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Comma-delimited
+  list of all procedure names defined in a method library file.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_SAVED-ALL-FUNCTIONS</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Comma-delimited
+  list of all function names defined in a method library file.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_SAVED-SMART-FUNCTIONS</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Comma-delimited
+  list of all ADM smart function names defined in a method library file. These
+  functions are prefixed with “adm-“ and are primarily defined in ADM1 method
+  library files. No smart functions were defined for ADM1 method library files.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_LOCAL-TEMPLATE</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Field not used.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_METHOD-TEMPLATE</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Field not used.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_SUPER-PROCS</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Comma-delimited
+  list of super procedure names the method library runs.The Section Editor
+  calls LIB-MGR procedure get-super-procedures to retrieve this list and a list
+  of the running super procedure handles when displaying the Insert Call and
+  New Procedure dialog boxes.</p>
+  </td>
+ </tr>
+</table>
+
+<p>Temp-table _CODE-SECTION is all the code sections read
+from all the library files currently open in the AppBuilder. Only the
+AB-maintained Included-Libraries code sections are actually read. They are the
+only code sections actually used by ADE code and only reading them increases
+the speed of opening library files. The following table describes the fields in
+_CODE-SECTION.</p>
+
+<p><b>Table 5 - Key Fields of the
+_CODE-SECTION Temp-Table </b></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Field Name</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Data Type</b></p>
+   </td>
+   <td width=184 valign=top style='width:138.3pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_LIB-RECID</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Recid</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Recid of the _LIB
+  record that owns the code section.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_ORDER </p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Integer</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Number used in an
+  index to preserve the order in which code sections are read. Ensures
+  Included-Libraries sections are maintained in correct order.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_PARENT-NAME</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Name of parent
+  widget for the code block.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_TYPE </p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Type of
+  AppBuilder code section. Example: _CUSTOM or _CONTROL.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_NAME </p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>AppBuilder widget
+  name owning the code section. Example: btn-OK.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=190 valign=top style='width:142.8pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>_CODE-BLOCK </p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Character</p>
+  </td>
+  <td width=184 valign=top style='width:138.3pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Stores a code
+  section’s code.</p>
+  </td>
+ </tr>
+</table>
+
+<P><A NAME="4"><B>4 Primary Algorithms and Processes</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="5"><B>5 Advanced Topics</B></A></P>
+
+<P><A NAME="5.1"><B>5.1 ADE Object Manager and
+ADE Objects</B></A></P>
+
+<p>ADE tools can use the adecomm/_adeobj.p procedure (also
+referred to as ADE object manager) to start and get the handle of a persistent
+ADE object. A persistent ADE object is a persistently running procedure that
+the ADE tools start and call to support ADE-related functionality.</p>
+
+<p>The ADE object manager’s _adeobj.p procedure has two
+parameters:</p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=264 valign=top style='width:2.75in;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Parameter</b></p>
+   </td>
+   <td width=295 valign=top style='width:221.4pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+ </thead>
+ <tr>
+  <td width=264 valign=top style='width:2.75in;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>INPUT p_Object_Name</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>String Identifying the ADE
+  Object to run.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=264 valign=top style='width:2.75in;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p>INPUT-OUTPUT p_hObject</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p>Persistent Procedure Handle of
+  the requested object.</p>
+  </td>
+ </tr>
+</table>
+
+<p>Each ADE object processed by _adeobj.p has a string,
+called its object name, used to uniquely identify it. The _adeobj.p procedure
+defines a list of object names and the source file references needed to run
+them. A caller then passes the object name and receives back that ADE object's
+persistent procedure handle. If caller happens to pass the correct handle for
+the object, the same handle is passed back. Otherwise, the ADE object manager
+traces the session's persistent procedure chain looking for a persistent
+procedure whose file name reference matches that of the ADE object requested.
+If one is found, that persistent procedure's handle is returned. If no file
+name match is found, the ADE object manager runs the ADE object's source file
+persistently and returns its handle.</p>
+
+<P><A NAME="6"><B>6 Dependencies</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="7"><B>7 Source
+File</B></A></P>
+
+<p>There are three
+source files that implement most of the various aspects of managing method
+libraries. They are briefly described here:</p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Source File</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+   <td width=372 valign=top style='width:279.0pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+  </tr>
+ </thead>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Adeshar/_mlmgr.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>ADE
+  Method Library Manager or Library Manager object procedure. This is the
+  Library Manager object used to read and manage method libraries and their
+  code sections and handle requests for information about them. You can see
+  this persistent procedure running using the Procedure Object Viewer protool when
+  the AppBuilder is active. </span></p>
+  <p><b>Note: </b> You must turn off
+  the &quot;Hide ADE Procedures&quot; option to see the procedure.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Adeuib/_mldlg.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Method
+  Library dialog box procedure. Used to add, remove, or modify references to
+  method libraries for an AppBuilder procedure file. This file is itself an AB
+  procedure file.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Adeuib/_mlref.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Add/Modify
+  Method Library Reference dialog box. Used to add or modify a specific method
+  library reference in an AppBuilder procedure.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+</table>
+
+<P><A NAME="8"><B>8 Process and Requirements</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="9"><B>9 Execution Methods</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="10"><B>10 Requirements and Strategies</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="11"><B>11 Supplementary Information</B></A></P>
+
+<p>Not Applicable.</p>
+
+<P><A NAME="12"><B>12 Related Documentation</B></A></P>
+
+<p>Anyone working with the Method Libraries should read the
+following related documents:</p>
+
+<ul>
+
+<li><i>ADM 2 Guide</i>
+and Online Help</li>
+
+<li><i>AppBuilder
+Developer’s Guide</i></p>
+
+<li>AppBuilder OpenSource documents on the ADE Object
+Mamanger</li>
+
+</ul>
+
+<p><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+</div>
+
+</SPAN>

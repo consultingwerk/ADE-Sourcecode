@@ -347,14 +347,14 @@ PROCEDURE displayTab :
     DO:
         RUN selectPage ( INPUT 1 ).
         /* Put focus in the insert window. Fixes 19990603-009 (jep). */ 
-        RUN ApplyEntry IN h_coderef-objnames.
+        RUN ApplyEntryCodeRef IN h_coderef-objnames.
     END.
 
     WHEN "Preprocessor":U THEN
     DO:
         RUN selectPage ( INPUT 2 ).
         /* Put focus in the insert window. Fixes 19990603-009 (jep). */ 
-        RUN ApplyEntry IN h_coderef-preproc.
+        RUN ApplyEntryCodeRef IN h_coderef-preproc.
     END.
   END CASE.
 
@@ -443,6 +443,10 @@ PROCEDURE initializeObject :
   /* If Webspeed Workshop-only, then change image from AB to Workshop. */
   IF _AB_License = 2 THEN
     {&WINDOW-NAME}:LOAD-ICON("adeicon/workshp%":U) NO-ERROR.
+
+  /* jep-icf: Override titlebar icon for ICF. */
+  IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+    {&WINDOW-NAME}:LOAD-ICON("adeicon/icfdev.ico":U) NO-ERROR.
 
   RUN initPages("1,2":U).
 

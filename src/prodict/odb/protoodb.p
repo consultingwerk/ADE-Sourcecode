@@ -41,6 +41,8 @@
                                 19990305027  
                       02/01/00  Added sqlwidth support                                             
                       04/12/00  Added long Progress Database path name
+                      09/05/01  Added support for wrong version of SQL Server
+                      11/16/01  Added logic to block moving data if running -rx
                     
 */            
 
@@ -61,6 +63,9 @@ DEFINE VARIABLE i             AS INTEGER                  NO-UNDO.
 DEFINE VARIABLE err-rtn       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE codb_type     AS CHARACTER FORMAT "x(32)" NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
+DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
+DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE odbctypes     AS CHARACTER 
   INITIAL "SQL Server 6,Sybase,DB2/MVS,DB2/6000,DB2/NT,Informix,MS Access,Other,DB2,SQLSERVER,MSAccess,SQLSERVER6.5" NO-UNDO.
 
@@ -93,7 +98,9 @@ FORM
   odb_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
      LABEL "ODBC connect parameters" colon 36 SKIP({&VM_WID})
   odb_codepage FORMAT "x(32)"  view-as fill-in size 32 by 1
-     LABEL "Codepage for Schema Image" colon 36 SKIP({&VM_WIDG}) SPACE(4)
+     LABEL "Codepage for Schema Image" colon 36 SKIP({&VM_WID})
+  odb_collname FORMAT "x(32)"  view-as fill-in size 32 by 1
+     LABEL "Collation name" colon 36 SKIP({&VM_WIDG}) SPACE(4)
   pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects" 
   loadsql view-as toggle-box label "Load SQL" SPACE(5)
   movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
@@ -212,6 +219,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF redo THEN
         RUN cleanup.
 
+  IF wrg-ver THEN DO:
+    MESSAGE "The DataServer for ODBC was designed to work with MS SQL Server 6 and " SKIP
+            "below.  You have tried to connect to a later version. " SKIP
+            "Use the DataServer for MS SQL Server to perform this function. " SKIP(1)       
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN.
+  END.
+
   ASSIGN pcompatible = YES
          run_time = TIME.
 
@@ -232,9 +247,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF OS-GETENV("ODBCCONPARMS") <> ? THEN
       odb_conparms = OS-GETENV("ODBCCONPARMS").
   IF OS-GETENV("ODBCCODEPAGE") <> ? THEN
-      odb_codepage = OS-GETENV("odbCODEPAGE").
+      odb_codepage = OS-GETENV("ODBCODEPAGE").
   ELSE
      ASSIGN odb_codepage = session:cpinternal.
+  IF OS-GETENV("ODBCCOLLNAME") <> ? THEN
+      odb_collname = OS-GETENV("ODBCCOLLNAME").
+  ELSE
+     ASSIGN odb_collname = session:CPCOLL.
   IF OS-GETENV("MOVEDATA")    <> ? THEN
       tmp_str      = OS-GETENV("MOVEDATA").
   IF tmp_str BEGINS "Y" THEN movedata = TRUE.
@@ -253,9 +272,20 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE 
     loadsql = TRUE.
  
+  IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
+    ASSIGN mvdta = FALSE.
+  ELSE
+    ASSIGN mvdta = TRUE.
+
   if   pro_dbname   = ldbname("DICTDB")
    and pro_conparms = ""
    then assign pro_conparms = "<current working database>".
+
+  IF redoblk THEN DO:
+      MESSAGE "You have received error messages from the client stating why" SKIP
+              "the process was stopped.  Correct the errors and try again." SKIP
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  END.
   /*
    * if this is not batch mode, allow override of environment variables.
    */
@@ -273,9 +303,10 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_password
         odb_conparms
         odb_codepage  
+        odb_collname
         pcompatible        
         loadsql
-        movedata
+        movedata WHEN mvdta
         btn_OK btn_Cancel 
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -291,6 +322,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_password
         odb_conparms
         odb_codepage
+        odb_collname
         pcompatible
         loadsql
         movedata
@@ -392,7 +424,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     ASSIGN redo = FALSE.
     UNDO, RETRY.
   END.
-
+  ELSE IF RETURN-VALUE = "wrg-ver" THEN DO:
+    ASSIGN wrg-ver = TRUE.
+    UNDO, RETRY.
+  END.
+  ELSE IF RETURN-VALUE = "undo" THEN DO:
+    ASSIGN redoblk = TRUE.
+    UNDO, RETRY.
+  END.
   /*
    * If this is batch mode, make sure we close the output file we
    * opened above.

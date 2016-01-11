@@ -42,7 +42,7 @@
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
-DataSourceNames,UpdateTargetNames
+DataSourceNames,UpdateTargetNames,LogicalObjectName 
 
   {src/adm2/custom/datavisdefscustom.i}
 
@@ -104,7 +104,6 @@ DataSourceNames,UpdateTargetNames
   /* These preprocessors tell at compile time which properties can be
      retrieved directly from the property temp-table. */
   &GLOBAL-DEFINE xpFieldsEnabled         
-  &GLOBAL-DEFINE xpNewRecord             
   &GLOBAL-DEFINE xpDisplayedFields       
   &GLOBAL-DEFINE xpEnabledHandles        
   &GLOBAL-DEFINE xpCreateHandles         
@@ -120,7 +119,8 @@ DataSourceNames,UpdateTargetNames
   &GLOBAL-DEFINE xpGroupAssignSourceEvents 
   &GLOBAL-DEFINE xpGroupAssignTargetEvents 
   &GLOBAL-DEFINE xpDisplayedTables
-  
+  &GLOBAL-DEFINE xpWindowTitleField
+  &GLOBAL-DEFINE xpObjectMode
   /* Include the next property file up the chain; we will add our field
      definitions to its list. As of 9.1A, if this visual object is also
      a SmartContainer, we include container properties as well. */
@@ -133,6 +133,7 @@ DataSourceNames,UpdateTargetNames
 
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('FieldsEnabled':U, 'LOGICAL':U, 0, ?, no). 
+  ghADMProps:ADD-NEW-FIELD('Editable':U, 'LOGICAL':U, 0, ?, ?). 
   ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('NewRecord':U, 'CHAR':U, 0, ?, 'No':U). /* Values: Add, Copy, No */
   ghADMProps:ADD-NEW-FIELD('RowIdent':U, 'CHAR':U, 0, ?, '':U).
@@ -143,7 +144,7 @@ DataSourceNames,UpdateTargetNames
   ghADMProps:ADD-NEW-FIELD('FieldHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('TableIOSource':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('TableIOSourceEvents':U, 'CHAR':U, 0, ?, 
-    'addRecord,updateRecord,copyRecord,deleteRecord,resetRecord,cancelRecord,updateMode':U).
+    'addRecord,updateRecord,copyRecord,deleteRecord,resetRecord,cancelRecord,updateMode,toolbar':U).
   ghADMProps:ADD-NEW-FIELD('SaveSource':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('RecordState':U, 'CHAR':U, 0, ?, 'NoRecordAvailable':U).
   ghADMProps:ADD-NEW-FIELD('UpdateTarget':U, 'CHAR':U, 0, ?, '':U).
@@ -151,7 +152,7 @@ DataSourceNames,UpdateTargetNames
   ghADMProps:ADD-NEW-FIELD('GroupAssignTarget':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('GroupAssignSourceEvents':U, 'CHAR':U, 0, ?, 
     'addRecord,copyRecord,updateRecord,resetRecord,cancelRecord,enableFields,disableFields,collectChanges,validateFields':U).
-  ghADMProps:ADD-NEW-FIELD('GroupAssignTargetEvents':U, 'CHAR':U, 0, ?, 'updateState':U).
+  ghADMProps:ADD-NEW-FIELD('GroupAssignTargetEvents':U, 'CHAR':U, 0, ?, 'updateState,LinkState':U).
   ghADMProps:ADD-NEW-FIELD('DisplayedTables':U, 'CHAR':U, 0, ?, 
   &IF "{&DISPLAYED-TABLES}":U NE "":U &THEN
     REPLACE("{&DISPLAYED-TABLES}":U, " ":U, ",":U)).
@@ -159,7 +160,8 @@ DataSourceNames,UpdateTargetNames
     REPLACE("{&INTERNAL-TABLES}":U, " ":U, ",":U)).
   &ENDIF
   ghADMProps:ADD-NEW-FIELD('UpdateTargetNames':U, 'CHAR':U, 0, ?, ?).
-
+  ghADMProps:ADD-NEW-FIELD('WindowTitleField', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('ObjectMode','CHARACTER', 0, ?, 'View':U).  
 &ENDIF
 
   {src/adm2/custom/dvispropcustom.i}

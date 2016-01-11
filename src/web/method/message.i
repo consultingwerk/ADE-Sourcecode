@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -26,10 +26,11 @@
 /*--------------------------------------------------------------------------
     Library     : message.i
     Purpose     : Utilities for message queuing and output
-
-    Syntax      : {src/web/method/message.i}
-    Author(s)   : B.Burton 
-    Created     : 01/14/97
+    Syntax      : { src/web/method/message.i }
+    Updated     : 01/14/97 billb@progress.com
+                    Initial version
+                  01/23/02 adams@progress.com
+                    Modified seq-grp index, added grp-seq index
     Notes       : cgidefs.i must be included before this file.
     
     	    	  This file is for internal use by WebSpeed runtime
@@ -51,11 +52,13 @@
 DEFINE VARIABLE msg-seq AS INTEGER NO-UNDO.
 
 /* Output message work table */
-DEFINE TEMP-TABLE message-tbl NO-UNDO
-  FIELD seq AS INTEGER
-  FIELD grp AS CHARACTER
-  FIELD msg AS CHARACTER
-  INDEX seq-grp seq msg.
+DEFINE TEMP-TABLE ttMessage NO-UNDO
+  FIELD seq AS  INTEGER
+  FIELD grp AS  CHARACTER
+  FIELD msg AS  CHARACTER
+  INDEX grp-seq IS PRIMARY grp seq
+  INDEX seq-grp seq grp.
+  
 &ANALYZE-RESUME
 /* *********************** Procedure Settings ************************ */
 
@@ -84,11 +87,11 @@ Returns: TRUE if there are one or more messages queued, otherwise FALSE.
 FUNCTION available-messages RETURNS LOGICAL
   (INPUT p_grp AS CHARACTER) :
 
-  DEFINE VARIABLE v-status AS LOGICAL NO-UNDO INITIAL FALSE.
+  DEFINE VARIABLE v-status AS LOGICAL NO-UNDO.
 
-  FOR FIRST message-tbl WHERE
-      (IF p_grp = ? THEN TRUE		/* match any group */
-       ELSE message-tbl.grp = p_grp):   /* else, match specified group */
+  FOR FIRST ttMessage WHERE
+    (IF p_grp = ? THEN TRUE       /* match any group */
+     ELSE ttMessage.grp = p_grp): /* else, match specified group */
     ASSIGN v-status = TRUE.
   END.
 
@@ -109,19 +112,19 @@ Returns: Comma-delimited list of message groups.
 ****************************************************************************/
 FUNCTION get-message-groups RETURNS CHARACTER :
 
-  DEFINE VARIABLE v-out AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE v-cnt AS INTEGER NO-UNDO INITIAL 0.
+  DEFINE VARIABLE v-out AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE v-cnt AS INTEGER     NO-UNDO.
 
-  FOR EACH message-tbl
-       BREAK BY message-tbl.grp:
+  FOR EACH ttMessage
+    BREAK BY ttMessage.grp:
     /* At the start of each group, save the group name */
-    IF FIRST-OF(message-tbl.grp) THEN
+    IF FIRST-OF(ttMessage.grp) THEN
       ASSIGN
         v-cnt = v-cnt + 1
         v-out = v-out +
     	  /* add delimiter after the first group */
       	  (IF v-cnt = 1 THEN "" ELSE ",":U) +
-          message-tbl.grp.
+          ttMessage.grp.
   END.
 
   RETURN v-out.
@@ -145,23 +148,22 @@ FUNCTION get-messages RETURNS CHARACTER
   (INPUT p_grp AS CHARACTER,
    INPUT p_delete AS LOGICAL) :
 
-  DEFINE VARIABLE v-out AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE v-mdelim AS CHARACTER NO-UNDO INITIAL "~n":U.
-  DEFINE VARIABLE v-gdelim AS CHARACTER NO-UNDO INITIAL "~t":U.
+  DEFINE VARIABLE v-out    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE v-mdelim AS CHARACTER  NO-UNDO INITIAL "~n":U.
+  DEFINE VARIABLE v-gdelim AS CHARACTER  NO-UNDO INITIAL "~t":U.
 
   IF p_delete = ? THEN p_delete = TRUE.
 
-  FOR EACH message-tbl WHERE
-      (IF p_grp = ? THEN TRUE		/* match any group */
-       ELSE message-tbl.grp = p_grp)   /* else, match specified group */
-      BY message-tbl.seq BY message-tbl.grp:
+  FOR EACH ttMessage WHERE
+    (IF p_grp = ? THEN TRUE	   /* match any group */
+     ELSE ttMessage.grp = p_grp)   /* else, match specified group */
+    BY ttMessage.seq BY ttMessage.grp:
     ASSIGN
       v-out = v-out +
       	(IF v-out = "" THEN "" ELSE v-mdelim) + /* message delimiter */
-        /* message-tbl.grp + v-gdelim +   maybe output group if p_grp = ? */
-	message-tbl.msg.
+	ttMessage.msg.
     IF p_delete THEN
-      DELETE message-tbl.
+      DELETE ttMessage.
   END.
 
   RETURN v-out.
@@ -187,17 +189,15 @@ FUNCTION queue-message RETURNS INTEGER
   (INPUT p_grp AS CHARACTER,
    INPUT p_message AS CHARACTER) :
 
-  /* Replace tab and newline characters with a space to prevent problems
-     with an application parsing the output of get-messages(). */
+  CREATE ttMessage.
   ASSIGN
-    p_message = REPLACE(p_message, "~n":U, " ":U).
-  CREATE message-tbl.
-  ASSIGN
-    msg-seq = msg-seq + 1.  /* increment global sequence counter */
-  ASSIGN
-    message-tbl.seq = msg-seq
-    message-tbl.grp = (IF p_grp = ? THEN "" ELSE p_grp)
-    message-tbl.msg = (IF p_message = ? THEN "" ELSE p_message).
+    /* Replace tab and newline characters with a space to prevent problems
+       with an application parsing the output of get-messages(). */
+    p_message     = REPLACE(p_message, "~n":U, " ":U)
+    msg-seq       = msg-seq + 1  /* increment global sequence counter */
+    ttMessage.seq = msg-seq
+    ttMessage.grp = (IF p_grp = ? THEN "" ELSE p_grp)
+    ttMessage.msg = (IF p_message = ? THEN "" ELSE p_message).
   RETURN msg-seq.
 END FUNCTION. /* queue-message */
 &ANALYZE-RESUME
@@ -254,9 +254,9 @@ Examples:
   * All queued messages on a self-contained page with HTML HEAD and BODY.  
     output-messages ("page",?,"Application Error Messages").
 ****************************************************************************/
-  DEFINE INPUT PARAMETER p_option   AS CHARACTER NO-UNDO.
-  DEFINE INPUT PARAMETER p_grp 	    AS CHARACTER NO-UNDO.
-  DEFINE INPUT PARAMETER p_message  AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER p_option   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER p_grp 	    AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER p_message  AS CHARACTER  NO-UNDO.
 &ELSE
 FUNCTION output-messages RETURNS INTEGER
   (INPUT p_option AS CHARACTER,
@@ -264,12 +264,12 @@ FUNCTION output-messages RETURNS INTEGER
    INPUT p_message AS CHARACTER) :
 &ENDIF
 
-  DEFINE VARIABLE message-title     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE message-heading   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE msg-list  	    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE msg-out    	    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE msg-cnt   	    AS INTEGER NO-UNDO INITIAL 0.
-  DEFINE VARIABLE msg-return-cnt    AS INTEGER NO-UNDO.
+  DEFINE VARIABLE message-title     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE message-heading   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE msg-list  	    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE msg-out    	    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE msg-cnt   	    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE msg-return-cnt    AS INTEGER    NO-UNDO.
 
   /*
   ** If we're generating an entire HTML page ...
@@ -288,15 +288,15 @@ FUNCTION output-messages RETURNS INTEGER
     "<HEAD><TITLE>":U message-title "</TITLE></HEAD>~n":U
     "<BODY>~n":U
     "<H1>":U message-title "</H1>~n~n":U
-    {&END}
+    .
 
     /* Output messages by running ourself with the "all" option */
-&IF DEFINED(OM-FUNCTION) = 0 &THEN
+    &IF DEFINED(OM-FUNCTION) = 0 &THEN
     RUN output-messages (INPUT "all":U, INPUT ?, INPUT p_message).
     ASSIGN msg-return-cnt = INTEGER(RETURN-VALUE).  /* # of messages output */
-&ELSE
+    &ELSE
     ASSIGN msg-return-cnt = output-messages("all":U, ?, "").
-&ENDIF
+    &ENDIF
 
     /* Output HTML footer */
     {&OUT}
@@ -305,7 +305,7 @@ FUNCTION output-messages RETURNS INTEGER
       "contact " + HelpAddress + "</P>~n":U ELSE "")
     "</BODY>~n":U
     "</HTML>~n":U
-    {&END}
+    .
 
     RETURN msg-return-cnt.
   END. /* p_option = "page" */
@@ -315,13 +315,13 @@ FUNCTION output-messages RETURNS INTEGER
     /* If nothing has been output yet, run ourself with the "page" option
        to get the HTML header also. */
     IF output-content-type = "" THEN DO:
-&IF DEFINED(OM-FUNCTION) = 0 &THEN
+      &IF DEFINED(OM-FUNCTION) = 0 &THEN
       RUN output-messages IN THIS-PROCEDURE (INPUT "page":U,
                                             INPUT ?, INPUT p_message).
       RETURN RETURN-VALUE.  /* return number of messages output */
-&ELSE
+      &ELSE
       RETURN output-messages("page":U, ?, p_message).
-&ENDIF
+      &ENDIF
     END.
   END.
 
@@ -331,8 +331,8 @@ FUNCTION output-messages RETURNS INTEGER
   IF p_option = "all":U THEN DO:
     ASSIGN
       p_option = "group":U
-      p_grp = ?
-      msg-seq = 0.  /* reset global message counter */
+      p_grp    = ?
+      msg-seq  = 0.  /* reset global message counter */
     /* Fall through to "group" handling */
   END.
 
@@ -343,10 +343,11 @@ FUNCTION output-messages RETURNS INTEGER
   IF p_option = "group":U THEN DO:
     /* If something was specified in the message argument, use that for
        the message group heading.  Otherwise, use a generic message. */
-    ASSIGN message-heading =
+    ASSIGN 
+      message-heading =
       (IF p_message = ? THEN "Messages of type " +
         p_grp + ":":U ELSE p_message)
-      msg-list = get-messages(p_grp, TRUE). /* get messages deleting them */
+      msg-list        = get-messages(p_grp, TRUE). /* get messages deleting them */
 
     /* Output all messages returned */
     DO msg-cnt = 1 TO NUM-ENTRIES(msg-list, "~n":U):
@@ -378,13 +379,8 @@ END PROCEDURE. /* output-messages */
 END FUNCTION. /* output-messages */
 &ENDIF
 
-
 &ENDIF  /* DEFINED(MESSAGE_I) = 0 */
-
 
 &ANALYZE-RESUME
 
 &ENDIF
-
- 
-

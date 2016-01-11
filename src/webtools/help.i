@@ -48,6 +48,9 @@
 /* WebTools SpeedScript */
 &GLOBAL-DEFINE Webtools_Messages_Help messages.htm
 
-/* SDO Internal Entries and Parameters */
+/* WCIAT */
+&GLOBAL-DEFINE WCIAT_Load_HTML notavailable.htm
+&GLOBAL-DEFINE WCIAT_Event_Maintenance notavailable.htm
+&GLOBAL-DEFINE WCIAT_Generate_PPO notavailable.htm
 
 /* help.i - end of file */

@@ -23,7 +23,9 @@
 
 /* loaddefs.i - definitions for load .df file 
     Modified from prodict/dump/loaddefs.i 2/23/95 DLM 
-    Modified 12/01/95 for definitions of temportary tables DLM */
+    Modified 12/01/95 for definitions of temportary tables DLM 
+             10/09/01 Added new funtion for changing primary index on existing table. DLM    
+*/
 
 DEFINE {1} SHARED VARIABLE iarg AS CHARACTER NO-UNDO. /* usually = ilin[2] */
 DEFINE {1} SHARED VARIABLE ikwd AS CHARACTER NO-UNDO. /* usually = ilin[1] */
@@ -108,6 +110,93 @@ DEFINE VARIABLE lfld        AS CHARACTER           No-UNDO.
 /* LOAD SHARED PROCEDURES                                           */
 /* The following procedures are shared by the various load routines */
 /*==================================================================*/
+PROCEDURE New_Prime:
+  DEFINE VARIABLE As4Name AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE As4Library AS CHARACTER NO-UNDO.
+
+  /* For As4Name validation */
+  DEFINE VARIABLE i AS INTEGER.
+  DEFINE VARIABLE lngth AS INTEGER.
+  DEFINE VARIABLE nam  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE pass AS INTEGER   NO-UNDO. 
+
+  /* Find old primary index and create place holder for new logical */
+  FIND keyed_index WHERE keyed_index._File-number = as4dict.p__file._file-number 
+         AND keyed_index._idx-num = as4dict.p__file._Fil-Misc1[7] NO-ERROR.                             
+  IF AVAILABLE (keyed_index) THEN DO:
+  /* We should always have an As400 Name, but check for it just in case */
+    IF keyed_index._As4-File = "" THEN
+      IF LENGTH(keyed_index._Index-name) < 11 THEN
+        ASSIGN nam = CAPS(keyed_index._Index-name).
+      ELSE DO:
+        ASSIGN nam = CAPS(SUBSTRING(keyed_index._Index-name,1,10)).
+          {as4dict/load/as4name.i}
+        ASSIGN As4Name = CAPS(nam).
+      END.
+    ELSE
+      assign As4Name = CAPS(keyed_index._As4-File).
+
+    ASSIGN AS4Library = CAPS(user_dbname).
+         
+      /* Do a CHKF to see if the file exists already */
+      dba_cmd = "CHKF".
+      RUN as4dict/_dbaocmd.p
+       (INPUT "LF",
+        INPUT As4Name,
+        INPUT As4Library,
+        INPUT 0,
+        INPUT 0).
+       
+      IF dba_return = 1 THEN DO pass = 1 TO 9999:
+         IF user_env[29] = "yes" THEN
+           ASSIGN As4Name = SUBSTRING(As4Name,1,lngth - LENGTH(STRING(pass)))
+                            + STRING(pass).
+         ELSE        
+           ASSIGN As4Name = SUBSTRING(As4Name + "_______",1,10 - LENGTH(STRING(pass)))
+                                        + STRING(pass)   
+                  dba_cmd = "CHKF".
+         RUN as4dict/_dbaocmd.p
+             (INPUT "LF",
+              INPUT As4Name,
+              INPUT as4dict.p__File._AS4-Library,
+              INPUT 0,
+              INPUT 0).
+   
+         IF dba_return <> 1 THEN
+           assign pass = 10000.
+      END.     
+
+      IF dba_return = 1 THEN DO:
+        ierror = 7.  /* File already exists */
+        RETURN.
+      END.   
+      ELSE If dba_return = 2 THEN DO:
+        dba_cmd = "RESERVE".
+        RUN as4dict/_dbaocmd.p 
+         (INPUT "LF",
+          INPUT As4Name,
+          INPUT As4Library,
+          INPUT 0,
+          INPUT 0).                     
+
+        If dba_return <> 12 THEN DO:
+          RUN as4dict/_dbamsgs.p.
+          ierror = 23.
+          RETURN.                  
+        END.
+      END.
+
+      ELSE IF dba_return > 2 THEN DO:
+        RUN as4dict/_dbamsgs.p.
+        ierror = 23. /* default error to general table attr error */              
+        RETURN.
+      END.
+      ASSIGN SUBSTRING(keyed_index._I-Misc2[4],9,1) = "N"
+             keyed_index._I-Res1[4] = 1.
+    END. /* Keyed Index Available */
+END PROCEDURE.
+
+
 PROCEDURE Swap_Primary:
 
 /*  If the primary index is being deleted, swap the primary to another
@@ -128,7 +217,7 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
    that index the primary index.                                   */
 
    IF as4dict.p__file._Prime-Index <> as4dict.p__file._Fil-Misc1[7] THEN DO:
-      FIND keyed_index WHERE keyed_index._File-number = as4dict.p__file._file-number 
+     FIND keyed_index WHERE keyed_index._File-number = as4dict.p__file._file-number 
          AND keyed_index._idx-num = as4dict.p__file._Fil-Misc1[7] NO-ERROR.                             
       IF AVAILABLE (keyed_index) THEN DO:
           /* We should always have an As400 Name, but check for it just

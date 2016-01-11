@@ -30,7 +30,9 @@
 
     Parameters:
     Description:
-    Notes  :
+    Notes  :    Added "ADD-REPOS" feature to support IZ 2513 Error when
+                trying to save structured include in Dynamics framework.
+
     Authors: John Palazzo
     Date   : January, 1994
 **************************************************************************/
@@ -64,8 +66,10 @@ DO:
         WHEN "NEW"      THEN RUN adecomm/_pwnew.p.
         
         WHEN "OPEN"     THEN RUN adecomm/_pwopen.p.
-        
+
         WHEN "NEW-PWIN" THEN RUN adecomm/_pwnewpw.p ( INPUT pw_Window ).
+
+        WHEN "ADD-REPOS" THEN RUN adecomm/_pwaddfile.p (INPUT pw_Editor).
 
         WHEN "SAVE"     THEN RUN adecomm/_pwsave.p (INPUT pw_Editor).
         

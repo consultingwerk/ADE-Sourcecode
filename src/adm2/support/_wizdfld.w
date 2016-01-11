@@ -88,6 +88,8 @@ FUNCTION is-sdo-proxy RETURNS LOGICAL
 FUNCTION shutdown-sdo RETURNS LOGICAL
         (INPUT procHandle AS HANDLE) IN hFuncLib.
 
+FUNCTION getDataSourceNames   RETURNS CHARACTER IN hWizProc.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -250,15 +252,55 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Addf C-Win
 ON CHOOSE OF b_Addf IN FRAME DEFAULT-FRAME /* Add Fields... */
 DO:
-  DEFINE VARIABLE tbllist AS CHARACTER                      NO-UNDO.
-  DEFINE VARIABLE tbl     AS CHARACTER                      NO-UNDO.
-  DEFINE VARIABLE fld     AS CHARACTER                      NO-UNDO.
-  DEFINE VARIABLE i       AS INTEGER                        NO-UNDO.
+  DEFINE VARIABLE tbllist       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE tbl           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE fld           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSourceNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceFields AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataObjects  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExclude      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumns      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cColumnName   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnObject AS CHARACTER  NO-UNDO.
 
   /* Run adecomm/_getdlst to allow the user to select fields */
-  IF VALID-HANDLE(h_do) THEN DO: /* Choosing from a SDO */
-    RUN adecomm/_mfldsel.p ("", h_do, ?, "1", ",", "",
-                            INPUT-OUTPUT fld-list).
+  IF VALID-HANDLE(h_do) THEN 
+  DO: /* Choosing from a SDO or SBO */
+    cSourceNames = getDataSourceNames().
+     
+    /* A previous wizard page may have specified and stored DataObjectNames.
+        (this is for support of SBOs) */
+    IF cSourceNames <> ? AND cSourceNames <> '':U THEN
+    DO:
+      cDataObjects = {fn getDataObjectNames h_do} NO-ERROR. 
+      IF NUM-ENTRIES(cSourceNames) < NUM-ENTRIES(cDataObjects) THEN
+      DO:
+        cColumns = {fn getDataColumns h_Do} NO-ERROR.
+        DO iColumn = 1 TO NUM-ENTRIES(cColumns):
+           ASSIGN 
+             cColumnName   = ENTRY(iColumn,cColumns)
+             cColumnObject = ENTRY(1,cColumnName,'.':U).
+            IF LOOKUP(cColumnObject,cSourceNames) = 0 THEN
+            DO:
+              ASSIGN cExclude = cExclude
+                              + (IF cExclude <> '':U THEN ',':U ELSE '':U)
+                              + cColumnName.
+            END.  /* lookup ccolumnObject,cSourcenamews = 0 */ 
+        END. /* do icolumn = 1 to */
+      END. /* num-entries <> num-entries */
+    END. /* cSourcenames <> ? or blank */
+   
+    RUN adecomm/_mfldsel.p 
+                 ("", 
+                  h_do, 
+                  ?, 
+                  "1", 
+                  ",", 
+                  cExclude,
+                  INPUT-OUTPUT fld-list).
+
     RUN adecomm/_setcurs.p ("":U).
   END.  /* IF valid h_do */
   ELSE DO:  /* Choosing from a database */

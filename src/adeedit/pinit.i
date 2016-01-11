@@ -57,6 +57,7 @@ Author: John Palazzo
   RUN InitTemps .
   RUN InitFileList .
   RUN InitFindReplace .
+  RUN CreateFileMenuItems.  /* IZ 2513 */
   RUN InitMRUList .
   
   /*----------------------------------------------------------------------

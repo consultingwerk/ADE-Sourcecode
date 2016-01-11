@@ -55,6 +55,8 @@ History:
     10/25/00 D. McMann Added " to Progress_Recid name since names are now quoted.
     11/20/00 Recid index causing meta schema mismatches correct for index name. #147
     04/18/01 Added check for stored procedure parameter @RETURN_VALUE new for SQL Server 2000
+    10/16/01 D. McMann Added logic for fields that begin with progress_
+    04/02/02 D. McMann Added logic to increase counter after ident field
     
 */
 
@@ -590,8 +592,12 @@ for each gate-work
     assign i = 1.
     _loop:
     for each DICTDBG.GetFieldIds_buffer:
-      IF DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_' OR
-         DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_' THEN DO:                 
+
+      IF DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_RECID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_ROWID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO: 
+
         IF s_ttb_tbl.ds_recid = 0 THEN 
           ASSIGN s_ttb_tbl.ds_recid = i
                  s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name
@@ -599,11 +605,11 @@ for each gate-work
                
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 6)) = "_IDENT_"
-           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ",".
+           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ","
+                       i = i + 1.
                    
         NEXT _loop.
       END.  
-
       CREATE column-id.
       assign
         column-id.col-name = TRIM(DICTDBG.GetFieldIds_buffer.field-name)
@@ -611,13 +617,14 @@ for each gate-work
         i                  = i + 1.
 
         /* Shave the quotes off.                                          */
-      if (LENGTH(quote, "character") = 1)
+      if (LENGTH(quote, "character") = 1) AND SUBSTRING(column-id.col-name,1,1) = quote
        then assign
          column-id.col-name = SUBSTRING(column-id.col-name
                                  ,2
                                  ,LENGTH(column-id.col-name, "character") - 2
                                  , "character"
                                  ).
+
     end.  /*  for each DICTDBG.GetFieldIds_buffer */
 
     /* if there are any doubled-up quotes, replace them with one quote */
@@ -637,8 +644,10 @@ for each gate-work
     assign field-position = 0.
 
     for each DICTDBG.SQLColumns_buffer:
+
       find first column-id
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
+
       IF NOT AVAILABLE column-id THEN NEXT.     
       assign field-position = column-id.col-id.
       

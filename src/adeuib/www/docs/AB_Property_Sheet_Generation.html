@@ -1,0 +1,1302 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Property Sheet Generation</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+Copyright &copy; 2000 by Progress Software Corporation ("PSC"), 14 Oak Park, Bedford, MA 01730, 
+and other contributors as listed below. All Rights Reserved.
+</P>
+
+<P>
+The Initial Developer of the Original Code is PSC. The Original Code is Progress IDE code 
+released to open source December 1, 2000.
+</P>
+
+<P>
+The contents of this file are subject to the Possenet Public License Version 1.0 (the "License"); 
+you may not use this file except in compliance with the License. A copy of the License is available 
+as of the date of this notice at <A
+HREF="http://www.possenet.org/license.html">http://www.possenet.org/license.html</A>
+</P>
+
+<P>
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF 
+ANY KIND, either express or implied. You should refer to the License for the specific language 
+governing rights and limitations under the License. 
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+
+<P>
+1 <A HREF="#1">Overview</A><BR>
+2. <A HREF="#2">Architecture</A><BR>
+2.1 <A HREF="#2.1">AppBuilder Database</A><BR>
+2.2 <A HREF="#2.2">Attribute Maintenance</A><BR>
+2.3 <A HREF="#2.3">Sequencing</A><BR>
+2.4 <A HREF="#2.4">Code Generation</A><BR>
+3. <A HREF="#3">Primary Data Structures</A><BR>
+4. <A HREF="#4">Primary Algorithms and Processes</A><BR>
+5. <A HREF="#5">Advanced Topics</A><BR>
+6. <A HREF="#6">Dependencies</A><BR>
+7.<A HREF="#7"> Source Files</A><BR>
+8.<A HREF="#8"> Build Process and Requirements</A><BR>
+9. <A HREF="#9">Execution Methods</A><BR>
+10. <A HREF="#10">Test Requirements and Strategies</A><BR>
+11. <A HREF="#11">Supplementary Information</A><BR>
+12. <A HREF="#12">Related Documentation
+</P>
+
+
+
+
+
+
+
+
+
+
+<P>
+<A NAME="#1"><B>1. Overview</B></A> 
+</P>
+
+<P>
+A portion of the code that comprises the AppBuilder
+Property Sheets is generated via data in an AppBuilder database. This database contains information about the
+GUI attributes that display on the AppBuilder Property Sheets and how those
+attributes are should display on the Property Sheets.
+</P>
+
+<P>
+<A NAME="#2"><B>2. Architecture</B></A> 
+</P>
+
+<P>
+The process of generating the portions of the AppBuilder
+property Sheet code that displays GUI attributes consists of the following
+components:
+</P>
+
+<P>
+…
+AppBuilder Database
+</P>
+
+<P>
+…
+Attribute maintenance
+</P>
+
+<P>
+…
+Sequence Attributes
+</P>
+
+<P>
+…
+Code Generation
+</P>
+
+<P>
+<A NAME="#2.1"><B>2.1 AppBuilder Database</B></A> 
+</P>
+
+<P>
+The following files are available for creating an
+AppBuilder database:
+</P>
+
+<P>
+…
+ab.df ñ Data definition for the database, it contains a
+table called abAttribute that
+</P>
+
+<P>
+…
+abAttribute.d ñ Data for the abAttribute table, it
+holds data for all GUI attributes displayed in various Property Sheets.
+</P>
+
+<P>
+<A NAME="#2.2"><B>2.2 Attribute Maintenance</B></A> 
+</P>
+
+<P>
+An Attribute Maintenance
+window is available for maintaining the GUI attributes that are displayed in
+the Property Sheet.
+</P>
+
+
+
+<P>
+Figure 1:
+Property Sheet Attributes ñ Maintaining GUI Attributes
+</P>
+
+<P ALIGN="center">
+<IMG SRC="AB_Property_Sheet_Generation_files/image002.jpg" BORDER="0">
+</P>
+
+
+<P>
+A SmartDataBrowser displays the following data for an
+attribute:
+</P>
+
+<P>
+…
+Attribute Name
+</P>
+
+<P>
+…
+Custom
+</P>
+
+<P>
+…
+Display Sequence
+</P>
+
+<P>
+…
+Class
+</P>
+
+<P>
+…
+Character Data
+</P>
+
+<P>
+A Default tab folder
+contains a SmartDataViewer for maintaining the following default attribute
+data:
+</P>
+
+<P>
+…
+Attribute Name
+</P>
+
+<P>
+…
+Description
+</P>
+
+<P>
+…
+Sequence
+</P>
+
+<P>
+…
+Display Sequence
+</P>
+
+<P>
+…
+Class radio-set
+</P>
+
+<P>
+…
+Datatype radio-set
+</P>
+
+<P>
+…
+Advanced toggle
+</P>
+
+<P>
+…
+Can Set for Custom toggle
+</P>
+
+<P>
+…
+Geometry toggle
+</P>
+
+<P>
+…
+Multiple Layout toggle
+</P>
+
+<P>
+A Widgets tab folder
+contains a SmartDataViewer for choosing which widgets the attribute applies to:
+</P>
+
+
+
+<P>
+Figure 2:
+Property Sheet Attributes ñ Widgets
+</P>
+
+<P ALIGN="center">
+<IMG SRC="AB_Property_Sheet_Generation_files/image004.jpg" BORDER="0">
+</P>
+
+
+<P>
+An Actions tab folder
+existing for maintaining the following for an attribute:
+</P>
+
+<P>
+…
+Character Data
+</P>
+
+<P>
+…
+Trigger Code
+</P>
+
+<P>
+…
+Attribute to U Code
+</P>
+
+
+
+<P>
+Figure 3:
+Property Sheet Attributes ñ Actions
+</P>
+
+<P ALIGN="center">
+<IMG SRC="AB_Property_Sheet_Generation_files/image006.jpg" BORDER="0">
+</P>
+
+
+<P>
+<A NAME="#2.3"><B>2.3 Sequencing</B></A> 
+</P>
+
+<P>
+There are two types of sequencing for an attribute:
+</P>
+
+<P>
+…
+Sequence ñ This is the order of the attributes by
+multi-layout, then alphabetically by name.
+When entering a new attribute, sequence should not be set and the
+Re-Sequence button should be chosen to re-sequence all attributes and assign
+the sequence number of the new attribute appropriately, based on multi-layout
+and the name.
+</P>
+
+<P>
+…
+Display sequence ñ This is the order in which the
+attributes appear on the property sheets, the increment of the display sequence
+is 5. When creating a new attribute
+enter the display sequence in between the two attributes that the new attribute
+needs to display. Choosing the
+Re-Sequence button will re-sequence the display sequences incrementing them by
+5. The toggle box attributes that display
+on the property sheet should display in alphabetical order.
+</P>
+
+<P>
+For example, if you were to add an
+attribute called ìfooî to the attribute database and that attribute needed to
+display as the last fill-in on the upper portion of the property sheet and the attribute is not
+multi-layout, you would assign the displaySeq to be 132 to put ìfooî in between
+the context-help-file and the color attribute (button) and you would not assign
+the sq. Then, re-sequencing the
+attributes assigns the sq to be 64 for foo (in between non-multi-layout
+attributes flat and format) and assigns the displaySeq to be 135 (after
+context-help-file which is still 130 and before color which is now 140). If you were to add an attribute
+called ìbarî
+to the database, and that attribute needed to display as a toggle-box on the property
+sheet, you would assign the displaySeq to be 257 to put ìbarî in between the
+auto-return and the blank attribute, and you would not assign the sq. Then re-sequencing the attributes
+assigns
+the sq to be 37 for bar (in between auto-return and blank) and assigns the
+displaySeq to be 260 (after auto-return which is still 255 and before blank
+which is now 265).
+</P>
+
+<P>
+<A NAME="#2.4"><B>2.4 Code Generation</B></A> 
+</P>
+
+<P>
+The following procedures are generated as part of the
+Property Sheet:
+</P>
+
+<P>
+…
+adeuib/_cr_prop.p ñ This procedure is called at the
+initialization of the AppBuilder, it creates and initializes all property
+temp-table records. A _PROP temp-table
+record is created and populated with data stored in abAttribute. For example, the code generated in this
+procedure
+to create the _PROP record for the NO-AUTO-VALIDATE GUI attribute is:
+</P>
+
+
+
+<P>
+CREATE _PROP.
+</P>
+
+<P>
+ASSIGN _PROP._NAME = &quot;NO-AUTO-VALIDATE&quot;
+</P>
+
+<P>
+ _PROP._SQ = 112
+</P>
+
+<P>
+ _PROP._DISP-SEQ = 415
+</P>
+
+<P>
+ _PROP._CLASS = 1
+</P>
+
+<P>
+ _PROP._DATA-TYPE = &quot;L&quot;
+</P>
+
+<P>
+ _PROP._SIZE =
+&quot;?&quot;
+</P>
+
+<P>
+ _PROP._ADV = no
+</P>
+
+<P>
+ _PROP._CUSTOM = yes
+</P>
+
+<P>
+ _PROP._GEOM = no
+</P>
+
+<P>
+ _PROP._WIDGETS = &quot;DIALOG-BOX,FRAME,BROWSE&quot;.
+</P>
+
+
+
+<P>
+Figure 4:
+Property Sheet Code Sample
+</P>
+
+<P>
+…
+adeuib/tog-hand.i ñ This procedure contains handle
+definitions for the attribute toggle-boxes.
+This is included in adeuib/_prpobj.p.
+The handles are the attribute name with ìh_î prefix. For example, the code generated in this
+procedure to define the handle for the EXPANDABLE GUI attribute is:
+</P>
+
+
+
+<P>
+DEFINE VARIABLE
+h_EXPANDABLE AS WIDGET-HANDLE
+NO-UNDO.
+</P>
+
+
+
+<P>
+Figure 5:
+Handle Definitions Code Sample
+</P>
+
+<P>
+…
+adeuib/tog-disp.i ñ This procedure contains toggle-box
+creation and initialization code for the attributes, it is included within a
+CASE statement in adeuib/_prpobj.p. For
+example, the code generated in this procedure to create and initialize the
+STATUS-AREA attribute is:
+</P>
+
+
+
+<P>
+WHEN
+&quot;STATUS-AREA&quot; THEN DO:
+</P>
+
+<P>
+ CREATE TOGGLE-BOX h_STATUS-AREA
+</P>
+
+<P>
+ ASSIGN FRAME = FRAME prop_sht:HANDLE
+</P>
+
+<P>
+ ROW = cur-row + ((togcnt - 1) MOD tog-rows) * 
+</P>
+
+<P>
+ tog-spc
+</P>
+
+<P>
+ COLUMN = IF togcnt &lt;= tog-rows THEN 4.5
+</P>
+
+<P>
+ ELSE IF togcnt &lt;= tog-rows * 2 THEN tog-col-2
+</P>
+
+<P>
+ ELSE tog-col-3
+</P>
+
+<P>
+ LABEL = &quot;Status-Area&quot;
+</P>
+
+<P>
+ CHECKED =
+_C._STATUS-AREA
+</P>
+
+<P>
+ SENSITIVE =
+TRUE
+</P>
+
+<P>
+ TRIGGERS:
+</P>
+
+<P>
+ ON VALUE-CHANGED PERSISTENT RUN STATUS-AREA_proc.
+</P>
+
+<P>
+ END TRIGGERS.
+</P>
+
+<P>
+END.
+</P>
+
+
+
+<P>
+Figure
+6: Toggle Box and
+Initialization Code Sample
+</P>
+
+<P>
+…
+adeuib/tog-proc.i ñ This procedure contains internal
+procedures run by the toggle-box trigger code, it is included in
+adeuib/_prpobj.p. For example, the code
+generated in this procedure for the MIN-BUTTON attribute is:
+</P>
+
+
+
+<P>
+PROCEDURE MIN-BUTTON_proc:
+</P>
+
+<P>
+ C._MIN-BUTTON =
+SELF:CHECKED.
+</P>
+
+<P>
+ IF _C._MIN-BUTTON AND
+_C._CONTEXT-HELP THEN DO:
+</P>
+
+<P>
+ ASSIGN
+h_context-help:CHECKED = FALSE.
+</P>
+
+<P>
+ APPLY
+&quot;VALUE-CHANGED&quot;:U TO h_context-help.
+</P>
+
+<P>
+ END. 
+</P>
+
+<P>
+END.
+</P>
+
+
+
+<P>
+Figure
+7: Internal
+Procedures for Toggle-Box Trigger Code Sample
+</P>
+
+<P>
+…
+adeuib/atog-han.i ñ This procedure contains handle
+definitions for the attribute toggle-boxes on the Advanced Property Sheet. This is included in
+adeuib/_advprop.w. The handles are the attribute name with ìh_î
+prefix. For example, the code generated
+in this procedure to define the handle for the MOVABLE GUI attribute is:
+</P>
+
+
+
+<P>
+DEFINE VARIABLE h_MOVABLE AS WIDGET-HANDLE NO-UNDO.
+</P>
+
+
+
+<P>
+…
+adeuib/atog-dis.i ñ This procedure contains toggle-box
+creation and initialization code for the attributes for the Advanced Property
+Sheet, it is included within a CASE statement in adeuib/_advprop.w. For example, the code generated in this
+procedure
+to create and initialize the RESIZABLE attribute is:
+</P>
+
+
+
+<P>
+WHEN &quot;RESIZABLE&quot; THEN DO:
+</P>
+
+<P>
+ CREATE TOGGLE-BOX
+h_RESIZABLE
+</P>
+
+<P>
+ ASSIGN FRAME = FRAME adv-dial:HANDLE
+</P>
+
+<P>
+ ROW = cur-row + ((togcnt - 1) MOD
+tog-rows) 
+</P>
+
+<P>
+ * tog-spc
+</P>
+
+<P>
+ COLUMN = IF togcnt &lt;= tog-rows THEN
+tog-col-1
+</P>
+
+
+<P>
+ELSE IF togcnt &lt;= tog-rows * 2 THEN tog-col-2
+</P>
+
+
+<P>
+ELSE IF togcnt &lt;= tog-rows * 3 THEN tog-col-3
+</P>
+
+
+<P>
+ELSE tog-col-4
+</P>
+
+<P>
+ LABEL = &quot;Resizable&quot;
+</P>
+
+<P>
+ CHECKED = _U._RESIZABLE
+</P>
+
+
+<P>
+SENSITIVE = TRUE
+</P>
+
+<P>
+ TRIGGERS:
+</P>
+
+<P>
+ ON
+VALUE-CHANGED DO:
+</P>
+
+
+<P>
+_U._RESIZABLE = SELF:CHECKED.
+</P>
+
+<P>
+ END.
+</P>
+
+<P>
+ END TRIGGERS.
+</P>
+
+<P>
+END.
+</P>
+
+
+
+<P>
+…
+adeuib/custprop.i ñ This procedure contains code to
+assign attribute values of universal widget records from Custom widget
+definitions, it is included within a CASE statement in adeuib/_usecust.p. For example, the code generated for
+the
+LIST-ATTRIBUTES is:
+</P>
+
+
+
+<P>
+WHEN &quot;LIST-ITEMS&quot;:U THEN 
+</P>
+
+<P>
+DO:
+</P>
+
+<P>
+/* For Combo-boxes and Selection-lists, we want a CHR(10) delimited list */
+</P>
+
+<P>
+ IF
+CAN-DO(&quot;COMBO-BOX,SELECTION-LIST&quot;, _U._TYPE)
+</P>
+
+<P>
+ THEN _F._LIST-ITEMS
+= REPLACE(cValue, &quot;,&quot;:U, CHR(10)).
+</P>
+
+<P>
+ ELSE _F._LIST-ITEMS
+= cValue.
+</P>
+
+<P>
+END.
+</P>
+
+
+
+
+
+<P>
+Figure
+8: Assigning
+Attribute values of Universal Widget Sample Code
+</P>
+
+<P>
+…
+adeuib/layout.i ñ This procedure contains definitions
+for Multiple Layout Support (_LAYOUT and _L), it is included in
+adeuib/_prpobj.p and various adeuib procedures.
+</P>
+
+<P>
+<A NAME="#3"><B>3. Primary Data Structures</B></A> 
+</P>
+
+<P>
+The
+Attribute data is store in _PROP temp-table records. These records contain the following data:
+</P>
+
+<P>
+…
+Attribute name (_NAME)
+</P>
+
+<P>
+…
+Sequence (_SQ)
+</P>
+
+<P>
+…
+Display Sequence (_DISP-SEQ)
+</P>
+
+<P>
+…
+Class (_CLASS)
+</P>
+
+<P>
+…
+Datatype of the attribute value (_DATA-TYPE)
+</P>
+
+<P>
+…
+Size (_SIZE)
+</P>
+
+<P>
+…
+Advanced (_ADV)
+</P>
+
+<P>
+…
+Custom (_CUSTOM)
+</P>
+
+<P>
+…
+Geometry (_GEOM)
+</P>
+
+<P>
+…
+Widgets (_WIDGETS)
+</P>
+
+<P>
+The
+abAttribute table in the ab database contains the following fields:
+</P>
+
+<P>
+…
+sequence ñ This is the sequence of the attribute, it
+corresponds to _PROP._SQ. 
+</P>
+
+<P>
+…
+name ñ This is the name of the attribute, it
+corresponds to _PROP._NAME
+</P>
+
+<P>
+…
+multiLayout ñ This is used to determine whether an _L
+field definition is generated for the attribute in layout.i.
+</P>
+
+<P>
+…
+class ñ This is the class of the attribute, it
+corresponds to _PROP._CLASS. The
+following are possible class values:
+</P>
+
+<P>
+…
+Class 1 is a property sheet toggle box, code is
+generated to create the toggle box (tog-disp.i), define the toggle box
+(tog-hand.i) and for the toggle box VALUE-CHANGED trigger procedure
+(tog-proc.i).
+</P>
+
+<P>
+…
+Class 9 is an advanced property sheet toggle box, code
+is generated to create the toggle box (atog-dis.i), and to define the toggle
+box (atog-han.i).
+</P>
+
+<P>
+…
+Class 2 ñ 8 indicates non-toggle box property sheet
+attributes. These class numbers
+are not used by any code.
+</P>
+
+<P>
+…
+dataType ñ This is the datatype of the attribute, it
+corresponds to_ PROP._DATA-TYPE.
+</P>
+
+<P>
+…
+chrData ñ This is the label and checked value of the
+attribute, delimited with an exclamation mark.
+This generates code to assign the LABEL and the CHECKED attributes of
+the toggle box (atog-dis.i and tog-disp.i).
+It also generates the LABEL for _L field definitions (layout.i).
+</P>
+
+<P>
+…
+adv ñ This corresponds to _PROP._ADV. 
+</P>
+
+<P>
+…
+geom. ñ This corresponds to _PROP._GEOM. This is not used by any code.
+</P>
+
+<P>
+…
+descrip ñ This is a description of the attribute. 
+</P>
+
+<P>
+…
+displaySeq ñ This determines the order in which the
+attributes are processed and displayed by the property sheet, it corresponds to
+_PROP._DISP-SEQ. 
+</P>
+
+<P>
+…
+widgSize ñ This corresponds to _PROP._SIZE. This is not used by any code. 
+</P>
+
+<P>
+…
+trigCode ñ This is the attributeís toggle-box
+VALUE-CHANGED trigger code. This
+generates the trigger code in an internal procedure in tog-proc.i. And it generates the VALUE-CHANGED trigger
+code for advanced property sheet toggles-boxes in atog-dis.i. 
+</P>
+
+<P>
+…
+custom ñ This determines whether the attribute can be
+set for custom widgets, it corresponds to _PROP._CUSTOM and it is used to
+generate custprop.i.
+</P>
+
+<P>
+…
+attr2Ucode ñ This is what the attribute is set to for
+custom widgets, it is used to generate custprop.i.
+</P>
+
+<P>
+…
+The following logical values determine which widgets
+the attribute applies to:
+</P>
+
+<P>
+…
+wind ñ Window 
+</P>
+
+<P>
+…
+frm ñ Frame
+</P>
+
+<P>
+…
+brow ñ Browse
+</P>
+
+<P>
+…
+dial ñ Dialog-Box
+</P>
+
+<P>
+…
+butt ñ Button
+</P>
+
+<P>
+…
+comb ñ Combo-Box
+</P>
+
+<P>
+…
+edit ñ Editor
+</P>
+
+<P>
+…
+fil ñ Fill-In
+</P>
+
+<P>
+…
+imag ñ Image
+</P>
+
+<P>
+…
+radi ñ Radio-Set
+</P>
+
+<P>
+…
+rec ñ Rectangle
+</P>
+
+<P>
+…
+sele ñ Selection-List
+</P>
+
+<P>
+…
+slid ñ Slider
+</P>
+
+<P>
+…
+txt ñ Text
+</P>
+
+<P>
+…
+togg ñ Toggle-Box
+</P>
+
+<P>
+…
+proc ñ Procedures
+</P>
+
+<P>
+…
+ocx ñ ActiveX control
+</P>
+
+<P>
+<A NAME="#4"><B>4. Primary Algorithms and Processes</B></A> 
+</P>
+
+<P>
+Not Applicable
+</P>
+
+<P>
+<A NAME="#5"><B>5. Advanced Topics</B></A> 
+</P>
+
+<P>
+Not Applicable
+</P>
+
+<P>
+<A NAME="#6"><B>6. Dependencies</B></A>
+</P>
+
+<P>
+Not Applicable
+</P>
+
+<P>
+<A NAME="#7"><B>7. Source Files</B></A>
+</P>
+
+<P>
+Provide a
+one-line description for each source file used by the tool. For example:
+</P>
+
+<P>
+This tool uses
+the following source files:
+</P>
+
+
+ 
+  
+   
+<P>
+   Source File
+</P>
+   
+   
+   
+<P>
+   Description
+</P>
+   
+   
+  
+ 
+ 
+  
+<P>
+  adeuib/dabattribute.w
+</P>
+  
+  
+  
+<P>
+  Attribute
+  SmartDataObject.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/dabattribute.i
+</P>
+  
+  
+  
+<P>
+  Attribute
+  SmartDataObject include.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/dabattribute_cl.w
+</P>
+  
+  
+  
+<P>
+  Attribute
+  SmartDataObject proxy.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/vabattribute.w
+</P>
+  
+  
+  
+<P>
+  Default
+  attribute SmartDataViewer.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/vabattraction.w
+</P>
+  
+  
+  
+<P>
+  Action
+  attribute SmartDataViewer.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/vabattrwidg.w
+</P>
+  
+  
+  
+<P>
+  Widget
+  attribute SmartDataViewer.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/wabattribute.w
+</P>
+  
+  
+  
+<P>
+  Property
+  Sheet Attribute maintenance SmartWindow.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/wabattrgencode.w
+</P>
+  
+  
+  
+<P>
+  Property
+  Sheet Generator.
+</P>
+  
+  
+ 
+
+<P>
+<A NAME="#8"><B>8. Build Process and Requirements</B></A>
+</P>
+
+
+<P>
+To use the ab database to maintain Property Sheet
+attributes, follow these steps:
+</P>
+
+<P>
+1.
+Create an empty database called ìabî
+</P>
+
+<P>
+2.
+Load adeuib/ab.df into the new empty ab database
+</P>
+
+<P>
+3.
+Load the data into the abAttribute table (adeuib/abAttr.d)
+</P>
+
+<P>
+Run adeuib/wabattribute.w to maintain attribute
+information, re-sequence attributes and generate property sheet code.
+</P>
+
+
+<P>
+<A NAME="#9"><B>9. Execution Methods</B></A>
+</P>
+
+<P>
+Not Applicable
+</P>
+
+<P>
+<A NAME="#10"><B>10. Test Requirements and Strategies</B></A>
+</P>
+
+<P>
+Not Applicable
+</P>
+
+<P>
+<A NAME="#10"><B>11. Supplementary Information</B></A>
+</P>
+
+<P>
+The
+tog-proc.i include file is generated to hold the toggle-box VALUE-CHANGED
+trigger code in internal procedures.
+This was done because including the trigger code in the VALUE-CHANGED
+triggers within tog-disp.i exceeded the action code segment of
+adeuib/_prpobj.p. The advanced property
+sheet, adeuib/_advprop.w does not have this problem so the VALUE-CHANGED
+trigger code is included in atog-dis.i.
+</P>
+
+
+<P>
+<A NAME="#12"><B>12. Related Documentation</B></A>
+</P>
+
+<P>
+Provide a list of documents that contain additional
+information about the tool. For example:
+</P>
+
+<P>
+The following documents provide additional information
+about the tool:
+</P>
+
+<P>
+…
+&lt;PSC user
+documentation&gt;
+</P>
+
+<P>
+…
+&lt;White
+papers&gt;
+</P>
+
+<P>
+…
+&lt;Other related
+documents&gt;
+</P>
+
+
+
+
+
+
+
+</SPAN>
+

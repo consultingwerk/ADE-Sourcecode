@@ -38,6 +38,10 @@ DEFINE VARIABLE mi_rule     AS HANDLE             NO-UNDO.
 DEFINE TEMP-TABLE mruWork LIKE MRU_Files.
 &ENDIF
 
+DEFINE VARIABLE mi_AddRepos AS HANDLE             NO-UNDO.
+DEFINE VARIABLE mi_rule_pr1 AS HANDLE             NO-UNDO.
+DEFINE VARIABLE mi_Print    AS HANDLE             NO-UNDO.
+DEFINE VARIABLE mi_rule_pr2 AS HANDLE             NO-UNDO.
 DEFINE VARIABLE mi_Exit     AS HANDLE             NO-UNDO.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
@@ -141,12 +145,8 @@ DEFINE SUB-MENU mnu_File
   TRIGGERS:
     ON CHOOSE RUN SaveAsFile ( INPUT ProEditor ) .
   END.
-  RULE
-  MENU-ITEM _Print     LABEL "&Print"
-  TRIGGERS:
-    ON CHOOSE RUN FilePrint( ProEditor ) .
-  END.
-  RULE.
+
+/* IZ 2513 Add to Repository and Print menu items are created dynamically in adeedit/pinit.i. */
 
 DEFINE SUB-MENU mnu_Edit
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN

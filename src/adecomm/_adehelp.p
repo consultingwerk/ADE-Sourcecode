@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -45,7 +45,7 @@ DESCRIPTION:
         are identified this way - where the help id string is a tool name.
         For example, some tool names from the PROGRESS ADE toolset are:
 
-            User Interface Builder  :   uib
+            AppBuilder              :   ab
             Procedure Editor        :   edit
             Data Dictionary         :   dict
             
@@ -58,10 +58,19 @@ DESCRIPTION:
             
         The help id string is used as part of the help file name,
         which is described in "Naming of PROGRESS Help Files" below.
-
+        
     2. Location of PROGRESS Help Files
     
         PROGRESS help files are located in the DLC/prohelp directory.
+        Dynamics help files are located in the Dynamics/prohelp directory.
+        
+        All help files in DLC must also exist in Dynamics, with the exception of 
+        the files for which Dynamics has custom information, such as 
+        icfabeng.hlp. This is necessary because the help files contain different 
+        help topics (using Help .cnt Content files) and only know about the help 
+        files in their own directory. If Dynamics did not have duplicate help 
+        files, ADE Help would find the DLC/prohelp files, and these do not 
+        contain Dynamics help topics.
         
     3. Naming of PROGRESS Help Files
         
@@ -75,7 +84,41 @@ DESCRIPTION:
         
         For portability across operating system, help file names are
         lowercase.
-    
+        
+        Dynamics help files have the prefix 'ic' before the help id.
+        Example: icabeng.hlp.
+
+    4. Notes for Dynamics
+   
+       ADE Help takes into account that Dynamics help files have the prefix 'ic' 
+       before the help id. ADE Help calls from Dynamics can have just the help 
+       id (like 'ab') or can have the Dynamics prefix 'ic' (like 'icab'). This 
+       is because existing ADE help calls use only the help id while Dynamics 
+       specific help calls may use the 'ic' prefix in front of the help id.
+
+       Given this, if the Dynamics framework (ICF) is running, ADE help        
+       examines the help id. If the prefix is not 'ic', then ADE help adds the 
+       prefix and searches for a Dynamics help file. Otherwise, the help id is 
+       used as is to search for the help file. For example, a newer Dynamics 
+       call could have 'icab' as the help id. ADE help does not alter that 
+       request, since its appropriate for Dynamics. When no 'ic' prefix is 
+       passed, ADE help wants to force a search for a Dynamics help (if the 
+       framework is running) and adds the prefix to search for a Dynamics 
+       specific help file. If one is not found, then a search is performed for a 
+       standard named help file.
+
+       Dynamics Help files are located in Dynamics/prohelp. Dynamics help files        
+       that are replacements for DLC/prohelp files begin with the prefix 'ic'. 
+       For example, Dynamics/prohelp/icabeng.hlp is a replacement help file for 
+       DLC/prohelp/abeng.hlp. When Dynamics is running, it's directory is 
+       earlier in the Propath than the installed DLC directory. This ensures the 
+       SEARCH always finds Dynamics help files before the DLC help files, 
+       whether or not they are Dynamics specific or standard ADE help files.
+       
+       The context ids for pre-Dynamics help topics are the same in both DLC and
+       Dynamics help files. The Dynamics help files introduce new help topics
+       not found in the DLC help files.
+
 INPUT PARAMETERS:
     
     p_HelpID
@@ -166,6 +209,8 @@ DEFINE VARIABLE HelpFileDir           AS CHARACTER INITIAL "prohelp/":u NO-UNDO.
 DEFINE VARIABLE HelpFileName          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE HelpFileFullName      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE LanguageExtension     AS CHARACTER INITIAL "eng":u NO-UNDO.
+DEFINE VARIABLE lIsICFRunning         AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE ICFPrefix             AS CHARACTER INITIAL "ic":u NO-UNDO.
 
 DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
 
@@ -199,7 +244,33 @@ DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   ASSIGN HelpFileName     = HelpFileDir +  
                             p_HelpID + LanguageExtension + ".hlp":u
          HelpFileFullName = SEARCH(HelpFileName).
-  
+
+
+  /* IZ 3056 If ICF is running and the help id doesn't begin with 'ic', force
+     a search for an 'ic' help file of the same name. This enables
+     existing tool calls that don't pass the 'ic' string to still
+     find icf help files if they exist for that tool. Otherwise,
+     the help id is taken as is and the search continues unchanged. */
+  ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+  ASSIGN lIsICFRunning = (lIsICFRunning = YES) NO-ERROR.
+  IF lIsICFRunning AND NOT p_helpID BEGINS ICFPrefix THEN
+  DO:
+    /* Add the ICF prefix to determine the name. */
+    ASSIGN HelpFileName     = HelpFileDir + ICFPrefix + p_HelpID + LanguageExtension + ".hlp":u
+           HelpFileFullName = SEARCH(HelpFileName).
+    /* If an icf help file is found, change the ID to add the 'ic' prefix. */
+    IF (HelpFileFullName <> ?) THEN
+      ASSIGN p_HelpID = ICFPrefix + p_HelpID.
+    /* If the help file full name is unknown, the prefix is not added and
+       ADE Help searches using the passed help id in the ASSIGN below. */
+  END.
+
+  /* Determine the help file name and full path. */
+  ASSIGN HelpFileName     = HelpFileDir +  
+                            p_HelpID + LanguageExtension + ".hlp":u
+         HelpFileFullName = SEARCH(HelpFileName).
+
+
   IF HelpFileFullName = ? THEN
   DO: /* Assign default help file name. */
     ASSIGN HelpFileName     = HelpFileDir + p_HelpID + "eng":u + ".hlp":u

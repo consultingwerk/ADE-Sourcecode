@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -29,11 +29,16 @@ Generates a formatted report on database or SmartData tables. The user can custo
 <HTML>
 <HEAD>
 <TITLE>Browse</TITLE>
+<SCRIPT LANGUAGE="SpeedScript">
+/* Create an unnamed pool to store all the widgets created by this procedure.
+   This is a good default which assures that this procedure's triggers and 
+   internal procedures will execute in this procedure's storage, and that 
+   proper cleanup will occur on deletion of the procedure. */
+CREATE WIDGET-POOL.
+</SCRIPT>
 </HEAD>
-
 <BODY BGCOLOR="#FFFFFF">
 <SCRIPT LANGUAGE="SpeedScript">
-
   /*--------------------------------------------------------------------
     Template: browse.html
 
@@ -146,13 +151,13 @@ Generates a formatted report on database or SmartData tables. The user can custo
   &SCOPED-DEFINE Display-Fields "  <TR><TD>" Name "</TD><TD>" Custnum "</TD></TR>"
   &SCOPED-DEFINE Result-Rows    10
 
-  DEFINE VARIABLE jumpto-value        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE {&Filter-Field}-key AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE repo-to             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE i-count             AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE JumpForm            AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE TmpUrl              AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE DelimiterField      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE jumpto-value        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE {&Filter-Field}-key AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE repo-to             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE i-count             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE JumpForm            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE TmpUrl              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE DelimiterField      AS CHARACTER  NO-UNDO.
 
   /* Get all the fields from the input */
   ASSIGN
@@ -289,7 +294,6 @@ Generates a formatted report on database or SmartData tables. The user can custo
       TmpUrl         = url-format(?,'jumpto-name,{&Filter-field},NoJumpForm',?)
       DelimiterField = (IF INDEX(TmpUrl,"?") > 0 THEN ? ELSE "?").
 </SCRIPT>
-
 <DIV ALIGN="center"><CENTER>
 <TABLE BORDER="2">
   <TR>
@@ -297,34 +301,32 @@ Generates a formatted report on database or SmartData tables. The user can custo
       <A HREF="`TmpUrl%20+%20url-field('repo-to','1',DelimiterField)`"
         onMouseOver="window.status='First `{&amp;Result-Rows}`'; return true"
         onMouseOut="window.status=''; return true">
-        <IMG SRC="`RootURL`/images/first-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+      <IMG SRC="`RootURL`/images/first-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
     </TD>
     <TD>
       <A HREF="`TmpUrl%20+%20url-field('repo-to',string(repo-to%20-%20({&amp;result-rows}%20*%202)),DelimiterField)`"
         onMouseOver="window.status='Prev `{&amp;Result-Rows}`'; return true"
         onMouseOut="window.status=''; return true">
-        <IMG SRC="`RootURL`/images/prev-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+      <IMG SRC="`RootURL`/images/prev-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
     </TD>
     <TD>
       <A HREF="`TmpUrl%20+%20url-field('repo-to',string(repo-to),DelimiterField)`"
         onMouseOver="window.status='Next `{&amp;Result-Rows}`'; return true"
         onMouseOut="window.status=''; return true">
-        <IMG SRC="`RootURL`/images/next-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+      <IMG SRC="`RootURL`/images/next-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
     </TD>
-    <td>
+    <TD>
       <A HREF="`TmpUrl%20+%20url-field('repo-to','-999',DelimiterField)`"
         onMouseOver="window.status='Last `{&amp;Result-Rows}`'; return true"
         onMouseOut="window.status=''; return true">
-        <IMG SRC="`RootURL`/images/last-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
+      <IMG SRC="`RootURL`/images/last-au.gif" BORDER="0" WIDTH="16" HEIGHT="16"></A>
     </TD>
   </TR>
 </TABLE>
 </CENTER></DIV>
-
 <SCRIPT LANGUAGE="SpeedScript">
   END. /* Close of "IF repo-to ne 0 THEN DO:" */
 </SCRIPT>
-
 </BODY>
 </HTML>
 

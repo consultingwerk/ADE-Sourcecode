@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -52,6 +52,7 @@ DEFINE VARIABLE Label2       AS CHARACTER FORMAT "x(50)" VIEW-AS TEXT.
 DEFINE VARIABLE DBEtestvalue AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ProName      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ABLic        AS INTEGER   NO-UNDO.
+DEFINE VARIABLE ABTools      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Workshop-only AS LOGICAL  NO-UNDO.
 
 DEFINE VARIABLE majorversion  AS INTEGER   NO-UNDO.
@@ -59,6 +60,11 @@ DEFINE VARIABLE minorversion  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE dot           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE patchlevel    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE POSSEVersion  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cTextFile     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCommercialVer   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cLine         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lICF          AS LOGICAL    NO-UNDO.
+
 
 DEFINE IMAGE AboutImage &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                            SIZE-PIXELS 32 BY 32.
@@ -67,7 +73,7 @@ DEFINE IMAGE AboutImage &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                          &ENDIF
 
 DEFINE RECTANGLE TopLine    
-  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE 45 BY .04.
+  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE 45 BY .08.
 DEFINE RECTANGLE BottomLine LIKE TopLine.
 DEFINE RECTANGLE ContainerRectangle
   EDGE-PIXELS 2 SIZE-PIXELS 40 BY 40 BGCOLOR 8.
@@ -80,7 +86,7 @@ DEFINE FRAME Dialog-1
   ContainerRectangle AT ROW 1.5 COLUMNS 3
   AboutImage AT ROW 1.67 COLUMNS 3.57
   AboutText NO-LABELS AT ROW 1.75 COLUMNS {&StartCol}
-            VIEW-AS EDITOR SIZE 55 BY 6 NO-BOX
+            VIEW-AS EDITOR SIZE 55 BY 7 NO-BOX
   SKIP(1)
   TopLine AT 11 SKIP(0.5)
   Label1 AT {&StartCol} NO-LABELS SKIP(.15)
@@ -92,7 +98,7 @@ DEFINE FRAME Dialog-1
 &ELSE
   ContainerRectangle AT ROW 1.5 COLUMNS 3
   AboutText NO-LABELS AT ROW 1.75 COLUMNS {&StartCol}
-            VIEW-AS EDITOR SIZE 50 BY 7 NO-BOX
+            VIEW-AS EDITOR SIZE 50 BY 6 NO-BOX
   SKIP
   TopLine AT 11     SKIP
   BottomLine AT 11  SKIP(1)
@@ -129,7 +135,7 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
       result                 = AboutImage:LOAD-IMAGE(pIcon).
 
     /* Check for WebSpeed Workshop */
-    RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT ABLic).
+    RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT ABLic, OUTPUT ABTools).
     IF ABLic = 2 THEN Workshop-Only = TRUE.
     ELSE Workshop-Only = FALSE.
   &ENDIF 
@@ -162,8 +168,28 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
                      "PROGRESS ":u + pTitle.
   END.
   
-  /* Read the POSSE version from POSSEINFO.XML */
-  RUN adecomm/_readpossever.p (OUTPUT POSSEVersion).
+  /* Determine whether Dynamics is running */
+  ASSIGN lICF = (DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) = YES) NO-ERROR.
+  ERROR-STATUS:ERROR = NO.
+  IF lICF THEN    /* Get the commercial version */
+    ASSIGN cTextFile = SEARCH("ICFVersion":U)
+           cTextFile = IF cTextFile = ? THEN SEARCH("ICFVersion.txt":U)
+                                    ELSE cTextFile.
+  /* Only get Posseversion if this is not a commercial version */
+  IF cTextFile = "" OR ctextFile = ? THEN
+  DO: /* Read the POSSE version from POSSEINFO.XML */
+      RUN adecomm/_readpossever.p (OUTPUT POSSEVersion).
+  END.
+  ELSE DO:
+     /* Read the commercial version from the "ICFVersion" text file */
+    ASSIGN cCommercialVer = "".
+    INPUT FROM VALUE(cTextFile) NO-ECHO.
+    REPEAT:
+        IMPORT UNFORMATTED cLine.
+        ASSIGN cCommercialVer = cCommercialVer + cLine + CHR(10).
+    END.
+    INPUT CLOSE.
+  END.
 
   /* If this is MS-WINDOWS, go out and make some WIN API calls */
   IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":u THEN
@@ -183,15 +209,23 @@ RETURN.
 
 /*---------------------------------------------------------------------------*/
 PROCEDURE Realize:
-
+    
 DO WITH FRAME {&FRAME-NAME}:
   AboutText =
     ProName + CHR(10) +
 
     (IF Workshop-Only
      THEN pTitle + " (Build: ":U + PROVERSION + patchLevel + ")":U 
-     ELSE "Version ":U + PROVERSION + patchLevel) + CHR(10) +
-    "POSSE Version ":U + POSSEVersion + CHR(10)+
+     ELSE "Version ":U + PROVERSION + patchLevel
+    ) + CHR(10) +
+    (IF cCommercialVer <> "" AND cCommercialVer <> ?
+     THEN cCommercialVer + CHR(10) 
+     ELSE ""
+    ) +
+    (IF POSSEVersion <> "" AND POSSEVersion <> ? 
+     THEN ("POSSE Version ":U + POSSEVersion + CHR(10) ) 
+     ELSE ""
+    )  + 
     "Copyright (c) 1984-" + STRING(YEAR(TODAY)) + " Progress Software Corp." + CHR(10) +
     "All rights reserved" + CHR(10).
 

@@ -325,7 +325,7 @@ This code sets the file type.
 File-types:
   PROGRESS Schema   _File-num = -1..-6, -30..-32
   FAST TRACK Schema _File-num = -7..-29
-  PROGRESS/SQL      _Db-lang = 1
+  PROGRESS/SQL      _Db-lang = 1 for SQL89 and 2 for SQL92
   non-PROGRESS      _Db-type <> "PROGRESS"
   PROGRESS          (whatever's left)
 */
@@ -334,7 +334,7 @@ ftyp = (IF wfil._File-number >= -29
        AND wfil._File-number <= -7 THEN "FAST TRACK Schema"
        ELSE IF wfil._File-number < 0 THEN "PROGRESS Schema"
        ELSE IF wfil._File-number > 32767  THEN "SQL92 View"
-       ELSE IF wfil._Db-lang = 1  THEN "PROGRESS/SQL"
+       ELSE IF wfil._Db-lang > 0  THEN "PROGRESS/SQL"
        ELSE                             user_dbtype)
       + (IF wfil._For-Type = ? THEN "" ELSE " (" + wfil._For-Type + ")").
 i = INDEX(ftyp,") (").
@@ -356,7 +356,7 @@ DISPLAY
   wfil._Frozen
   wfil._File-label
   wfil._Dump-name
-  (IF wfil._Db-lang = 1 THEN ENTRY(1,wfil._Can-Create) ELSE wfil._For-Owner)
+  (IF wfil._Db-lang > 0 THEN ENTRY(1,wfil._Can-Create) ELSE wfil._For-Owner)
     @ wfil._For-Owner
   (IF wfil._For-Size = ? THEN "n/a" ELSE STRING(wfil._For-Size))
     @ wfil._For-Size

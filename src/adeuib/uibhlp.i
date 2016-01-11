@@ -138,7 +138,7 @@
 &GLOBAL-DEFINE Procedure_Names_Dlg_Box 49184
 
 /* Preprocessor Names dialog box */
-&GLOBAL-DEFINE Preprocessor_Names_Dlg_Box 49185
+&GLOBAL-DEFINE Preprocessor_Names_Dlg_Box 47218
 
 /* Section List dialog box */
 &GLOBAL-DEFINE Section_List_Dlg_Box 49186
@@ -156,7 +156,7 @@
 &GLOBAL-DEFINE Widget_Filters_Dlg_Box 49190
 
 /* Widget Names dialog box */
-&GLOBAL-DEFINE Widget_Names_Dlg_Box 49191
+&GLOBAL-DEFINE Widget_Names_Dlg_Box 47218
 
 /* Window Parameters dialog box */
 &GLOBAL-DEFINE Window_Parm_Dlg_Box 49192
@@ -561,8 +561,62 @@
 
 /* New for 9.1A -------------------------------------------------*/
 
+
 /* Help on New ADM2 Class dialog box */
 &GLOBAL-DEFINE New_ADM_2_Class_Dialog_Box 185
 
+/* New for Dynamics 1.1A ----------------------------------------*/
+/* help file is icabeng.hlp -- Dynamics AppBuilder --------------*/
+
+/* Help for Advanced Settings Dialog in Object Generator */
+&GLOBAL-DEFINE Adv_Settings_for_Object_Generator_Dlg_Box        47208
+
+/* Help for Generate Objects Dialog Box */
+&GLOBAL-DEFINE Generate_Objects_Dlg_Box                            47210
+
+/* Help for Choose a Layout Dialog box in Page Layout Builder (Open) */
+&GLOBAL-DEFINE Choose_a_Layout_Object_Dialog_Box                47217
+
+/* Help for Dynamic Launcher Dialog Box */
+&GLOBAL-DEFINE Dynamic_Launcher_Dialog_Box                        47113
+
+/* Help for Object Lookup Dialog Box in Page Layout Builder*/
+&GLOBAL-DEFINE Object_Lookup_Dialog_Box                            47211
+
+/* Help for Page Layout Builder */
+&GLOBAL-DEFINE Page_Layout_Window                                47220
+
+/* Help for Product Module Lookup Dlg Box in Page Layout BUilder */
+&GLOBAL-DEFINE Product_Module_Lookup_Dialog_Box                    47221
+
+/* Help for Session reset Dialog Box on AppBuilder File Menu */
+&GLOBAL-DEFINE Session_Reset_Dialog_Box                            47223
+
+/* Help for Set Site number dialog box */
+&GLOBAL-DEFINE Set_Site_Number_Dialog_Box                        47224
+
+/* Help for Smart TreeView Instance Properties */
+&GLOBAL-DEFINE SmTreeView_Instance_Properties_Dialog_Box        47238
+
+/* Help for Dynamic Combo Instance Properties */
+&GLOBAL-DEFINE Dynamic_Combo_Instance_Properties_Dialog_Box        47239
+
+/* Help for Dynamic Lookup Instance Properties */
+&GLOBAL-DEFINE Dynamic_Lookup_Instance_Properties_Dialog_Box    47240
+
+/* Help for Dynamic SDB Instance Properties */
+&GLOBAL-DEFINE Dynamic_SmDataBrowser_Instance_Properties_Dialog_Box 47245
+
+/* Help for SmartData Field Cue Card */
+&GLOBAL-DEFINE SmDataField_Cue_Card	                                47247 
+
+
+/* help file is icadseng.hlp -- Dynamics Administration Menu -----*/
+
+/* Help for the Entity Mnemonic IMport Dialog Box */
+&GLOBAL-DEFINE Entity_Mnemonic_Import_Dialog_Box  2080 
+
+/* Help for DataSet Export Properties Dialog box */
+&GLOBAL-DEFINE DataSet_Export_Properties_Dialog_Box	2098
 
 

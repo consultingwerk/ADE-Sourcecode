@@ -104,7 +104,7 @@
 
 
 /* ***************************  Main Block  *************************** */
-  DEFINE VARIABLE cAppSErvice          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAppService          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cASDivision          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cServerOperatingMode AS CHARACTER  NO-UNDO.
 
@@ -113,8 +113,8 @@
   
  /* NOTE: If REMOTE = true, we are running on an AppServer, so ignore the 
     AppService (partition) value, which is meaningful only to the client. 
-    Also set the ASDivision property to Server; otherwise just leave it blank.
-    Note that AsDivision is set to Client in initializeObject upon connect
+    Also set the ASDivision property to Server.
+    Note that AsDivision is set to 'Client' or blank in connectServer upon 
     in appserver.p */
   IF SESSION:REMOTE THEN
   DO:
@@ -131,13 +131,16 @@
   &ENDIF
   
   IF cASDivision = '':U THEN
-    cServerOperatingMode = 'NONE':U.
-  
+     cServerOperatingMode = 'NONE':U.
+  /* keep as as unknown if nothing was changed here, getAsDivision uses this 
+     as an indication that it does not know yet, Blank means that we do know */
+  ELSE 
+    {set ASDivision cASDivision}.
+
   {set ServerOperatingMode cServerOperatingMode}.
   {set AppService cAppService}.
-  {set ASDivision cASDivision}.
-
-  /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
+  
+    /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
 
   {src/adm2/custom/appservercustom.i}
 

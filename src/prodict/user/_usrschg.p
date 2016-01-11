@@ -43,6 +43,7 @@ Used/Modified Shared Objects:
          no other environment variables changed
 
 History:
+    D. McMann 06/16/01  Added collation name for all DataServers and case sensitive for MSS
     D. McMann 06/07/00  Changed tty frame layout
     D. McMann 04/01/99  Added check for Oracle to assign _DB-misc1[3].
     D. McMann 03/26/99  Added support for MS SQL Server 7
@@ -78,6 +79,7 @@ History:
 DEFINE VARIABLE amode    AS LOGICAL            NO-UNDO. /*true=add,false=modify*/
 DEFINE VARIABLE c        AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE codepage AS CHARACTER          NO-UNDO format "x(40)".
+DEFINE VARIABLE collname AS CHARACTER          NO-UNDO FORMAT "x(40)".
 DEFINE VARIABLE dblst    AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE f_addr   AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE f_comm   AS CHARACTER          NO-UNDO.
@@ -94,6 +96,8 @@ DEFINE VARIABLE dsource  AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE dstitle  AS CHARACTER FORMAT "x(24)"    NO-UNDO.
 DEFINE VARIABLE ovtitle  AS CHARACTER FORMAT "x(15)"    NO-UNDO.
 DEFINE VARIABLE oraver   AS INTEGER FORMAT "9" NO-UNDO.
+DEFINE VARIABLE olddb    AS CHARACTER          NO-UNDO.
+DEFINE VARIABLE olddbtyp AS CHARACTER          NO-UNDO.
 
 /* LANGUAGE DEP  END.ENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
@@ -123,6 +127,8 @@ FORM
       {&STDPH_FILL}  SKIP ({&VM_WID})
     
   codepage                     COLON 23 LABEL "Code Page" 
+      {&STDPH_FILL}  SKIP ({&VM_WID})
+  collname                     COLON 23 LABEL "Collation" 
       {&STDPH_FILL}  SKIP ({&VM_WID})
   new_lang[3]   FORMAT "x(63)" AT 2 NO-LABEL VIEW-AS TEXT 
   SKIP ({&VM_WID})
@@ -191,18 +197,7 @@ ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:
   &adbtype  = "user_env[3]" 
   }  /* checks if codepage contains convertable code-page */
  
-/*      
-/* -----LEAVE of Connections Parameters on add (f_comm) ----*/
-ON LEAVE OF f_comm IN FRAME userschg DO:
- dname = TRIM(INPUT FRAME userschg f_comm).
- IF amode AND (dname = "" or dname = ?) THEN DO:
-   MESSAGE new_lang[12] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-   APPLY "ENTRY" TO f_comm IN FRAME userschg.
-   RETURN NO-APPLY.
- END.  
-END. 
- */
-  
+
 /* -----LEAVE of Oracle Version on add oraver ------------- */
 ON LEAVE OF oraver IN FRAME userschg DO:
   IF INPUT oraver <> 7 AND INPUT oraver <> 8 THEN DO:
@@ -243,13 +238,22 @@ ON HELP OF FRAME userschg OR CHOOSE of btn_Help IN FRAME userschg DO:
     END.
 &ENDIF
 
+/* ----- Cancel ------ */
+ON 'choose':U OF btn_cancel IN FRAME userschg DO:
+    ASSIGN canned = TRUE
+           user_dbname = olddb
+           user_dbtype =  olddbtyp.
+    RETURN.
+END.
 /*============================Mainline Code===============================*/
 
 ASSIGN
   amode    = (user_env[1] = "add")
   fmode    = (user_env[3] <> "")
-  dblst    = (IF fmode THEN user_env[3] ELSE SUBSTRING(GATEWAYS,10)).
-             /* 10 = LENGTH("PROGRESS") + 2 */
+  olddb    = user_dbname
+  olddbtyp = user_dbtype
+  dblst    = (IF fmode THEN user_env[3] ELSE SUBSTRING(GATEWAYS,10)). /* 10 = LENGTH("PROGRESS") + 2 */
+
 IF user_env[3] <> "ORACLE" THEN
   ASSIGN dstitle = "ODBC Data Source Name:".
 ELSE  
@@ -273,9 +277,12 @@ IF NOT amode
 if user_env[1] = "add"
   then do:
     { prodict/dictgate.i &action=query &dbtype=dblst &dbrec=? &output=codepage }
-    assign codepage = ENTRY(11,codepage).
+    assign codepage = ENTRY(11,codepage)
+           collname = SESSION:CPCOLL.
     END.
-  else  assign codepage = DICTDB._Db._Db-xl-name.
+  else  assign codepage = DICTDB._Db._Db-xl-name
+               collname = (IF DICTDB._DB._Db-coll-name <> ? THEN DICTDB._DB._Db-coll-name
+                             ELSE SESSION:CPCOLL).
     
 
 IF i > 0 THEN DO:
@@ -323,6 +330,7 @@ DISPLAY
   new_lang[3]  WHEN NOT x-l
   f_addr       WHEN x-p
   codepage
+  collname
   dstitle
   ovtitle
   f_comm
@@ -330,51 +338,23 @@ DISPLAY
   
  
 IF INDEX(dblst,",") = 0 THEN DISPLAY dblst @ DICTDB._Db._Db-type WITH FRAME userschg.
- 
-/*  The code below will fill in the default Sybase codepage name
-       on the create schema menu.
-*/
-/* this was putting up the alert box over the info - exit when dismissed -
-   never gave user chance to see the info underneath.
-IF dict_rog
-  THEN DO: /* (check for read-only) */
-    MESSAGE new_lang[5]  /* look but don't touch */
-      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    user_path = "".
-    END.   /* (check for read-only) */
 
-ELSE IF ronly 
-  THEN DO: /* check for r/o because of permissions */
-    MESSAGE new_lang[8] /* look but don't touch */
-            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    user_path = "".
-    END.   /* check for r/o because of permissions */
-*/
-  
-IF dict_rog OR ronly
-  THEN DO:
-    MESSAGE (IF dict_rog THEN new_lang[5] ELSE new_lang[8])
+IF dict_rog OR ronly THEN DO:
+  MESSAGE (IF dict_rog THEN new_lang[5] ELSE new_lang[8])
       VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-      user_path = "".
+  ASSIGN  user_path = "".
+  HIDE FRAME userschg NO-PAUSE.
+  RETURN.    
+END.  /* dict_rog OR ronly (we're in read-only mode - view only) */
       
-    DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME userschg:
-      ASSIGN
-        f_comm:read-only = yes
-        f_comm:sensitive = yes.
-      APPLY "ENTRY" TO btn_OK.
-      PROMPT-FOR  /* just to be consistent with what's below... */
-        btn_OK
-        {&HLP_BTN_NAME}.
-      END.
-    END.  /* dict_rog OR ronly (we're in read-only mode - view only) */
-      
-  ELSE _trx: DO TRANSACTION WITH FRAME userschg:
+ELSE _trx: DO TRANSACTION WITH FRAME userschg:
 
-    DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
+  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
       PROMPT-FOR
         DICTDB._Db._Db-name WHEN x-l   AND               NOT (dict_rog OR ronly)
         DICTDB._Db._Db-type WHEN amode AND NOT fmode AND NOT (dict_rog OR ronly)
         codepage            WHEN amode AND               NOT (dict_rog OR ronly)
+        collname            WHEN amode AND               NOT (dict_rog OR ronly)
         oraver              WHEN amode AND user_env[3] = "ORACLE"
         f_comm              WHEN                         NOT (dict_rog OR ronly)
         f_addr              WHEN x-p   AND               NOT (dict_rog OR ronly)
@@ -382,11 +362,11 @@ IF dict_rog OR ronly
         btn_Cancel
         {&HLP_BTN_NAME}.
       canned = false.
-      END.
+   END.
 
-    IF canned THEN UNDO _trx, LEAVE _trx.
+   IF canned THEN UNDO _trx, LEAVE _trx.
 
-    IF amode
+   IF amode
       THEN DO: /* create a new DICTDB._Db for a schema for a Non-PROGRESS db */
           
         CREATE DICTDB._Db.
@@ -416,7 +396,7 @@ IF dict_rog OR ronly
 
     ASSIGN
       DICTDB._Db._Db-name    = INPUT DICTDB._Db._Db-name
-      user_env[2]     = DICTDB._Db._Db-name
+      user_env[2]            = DICTDB._Db._Db-name
       DICTDB._Db._Db-addr    = (IF DICTDB._Db._Db-addr = ? THEN "" ELSE DICTDB._Db._Db-addr)
       DICTDB._Db._Db-comm    = TRIM(INPUT f_comm)
       /* Remove any line feeds (which we get on WINDOWS) */
@@ -427,12 +407,13 @@ IF dict_rog OR ronly
    DICTDB._Db._Db-xl-name = if codepage = "<internal defaults apply>" 
                          then ? 
                          else codepage.
+   DICTDB._Db._Db-coll-name = INPUT collname.
 
     IF x-p THEN DICTDB._Db._Db-addr = INPUT f_addr.
 
-    { prodict/user/usercon.i }
+   { prodict/user/usercon.i }
 
- END.   /* _trx: do transaction */
+END.   /* _trx: do transaction */
 
 RELEASE DICTDB._Db.   /* I'm not sure why we need this? (los) */
 

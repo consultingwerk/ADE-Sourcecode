@@ -53,6 +53,8 @@ user_env[13] = line starter character (_dmpasci.p only)
 user_env[14] = "y" - disable triggers, "n" - do not disable triggers
 
 HISTORY:
+04/17/01 by mcmann Added ldbname to compile check and delete of temp file.
+                   20010412-001
 07/13/98 by mcmann Added _Owner to _File finds
 08/01/95 by tomn - added support for mnemonics
 07/28/94 by gfs - added context-sensitive help to export dlg.
@@ -247,7 +249,7 @@ PROCEDURE Validate_Frame:
      OUTPUT TO VALUE(tmpfile) NO-MAP.
         PUT UNFORMATTED
            "OUTPUT TO " user_env[4] "." SKIP
-           "FOR EACH "  user_env[1] " "
+           "FOR EACH " LDBNAME("DICTDB") "." user_env[1] " "
                         user_env[2]:SCREEN-VALUE " "
                         user_env[3]:SCREEN-VALUE ":" SKIP
            "END." SKIP
@@ -261,8 +263,10 @@ PROCEDURE Validate_Frame:
                ERROR BUTTONS OK.
        IF user_env[2]:SCREEN-VALUE <> "" THEN APPLY "ENTRY" TO user_env[2].
        ELSE APPLY "ENTRY" TO user_env[3].
+       OS-DELETE VALUE(tmpfile).
        RETURN "ERROR".
      END. 
+     OS-DELETE VALUE(tmpfile).
      RETURN "".
   END.
 END.

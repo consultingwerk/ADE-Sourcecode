@@ -17,7 +17,7 @@
 * should refer to the License for the specific language governing    *
 * rights and limitations under the License.                          *
 *                                                                    *
-* Contributors:                                                      *
+* Contributors:  Fernando de Souza                                                    *
 *                                                                    *
 *********************************************************************/
 /*
@@ -56,8 +56,8 @@
 { aderes/j-define.i }
 { aderes/a-define.i }
 
-&GLOBAL-DEFINE blockSize 30
-&GLOBAL-DEFINE fileSize  5
+&GLOBAL-DEFINE blockSize 28
+&GLOBAL-DEFINE fileSize  3
 
 DEFINE INPUT PARAMETER pName AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER pBase AS CHARACTER NO-UNDO.

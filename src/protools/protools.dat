@@ -21,3 +21,4 @@
 "PRO*Spy for Version 9" "protools/_prospy9.w" "adeicon/prospy9.bmp" yes yes 210 no
 "WebClient Application Assembler" "protools/_prowcapped.p" "adeicon/prowcapped" no yes 220 no
 "XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 230 no
+"Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 240 no

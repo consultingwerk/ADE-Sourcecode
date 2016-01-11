@@ -33,6 +33,7 @@
            08/07/97 Added new DBA command for word index support D. McMann 
            11/30/98 Added loop for check of AS/400 name D. McMann 98-09-11-038  
            11/22/00 Moved check for size of index before creating information
+           02/18/02 Added logic to handle WRONG FILE FORMAT when calculating AS4 names
           
 */
                     
@@ -109,7 +110,9 @@ IF widx._Wordidx = 0 THEN DO:
           INPUT 0,
           INPUT 0).
           
-   IF dba_return = 1 THEN 
+   IF dba_return = 1 OR dba_return = 11 OR
+       CAN-FIND(FIRST wtp__Index WHERE wtp__Index._AS4-FILE = as4name
+                  AND wtp__Index._AS4-Library = wtp__File._AS4-Library) THEN 
    DO pass = 1 TO 9999:
      IF user_env[29] = "yes" THEN
        ASSIGN As4Name = SUBSTRING(As4Name,1,lngth - LENGTH(STRING(pass)))
@@ -126,12 +129,14 @@ IF widx._Wordidx = 0 THEN DO:
         INPUT 0,
         INPUT 0).
    
-     IF dba_return <> 1 THEN
+     IF dba_return <> 1 AND dba_return <> 11 AND 
+         NOT CAN-FIND(FIRST wtp__Index WHERE wtp__Index._AS4-FILE = as4name
+                  AND wtp__Index._AS4-Library = wtp__File._AS4-Library) THEN
        assign pass = 10000.
    END.    
           
    
-    IF dba_return = 1 THEN DO:
+    IF dba_return = 1 OR dba_return = 11 THEN DO:
       ierror = 7.  /* File already exists */
       RETURN.
     END.   

@@ -157,7 +157,7 @@ do:
        or index(cache_db_t[choice],"/V8") <> 0
     /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[choice])*/
       then do:
-      	 message new_lang[15] version new_lang[16] version new_lang[17]  version /* cannot use V5/V6/V7/V8 db */
+      	 message new_lang[15] PROVERSION new_lang[16] version new_lang[17] /* cannot use V5/V6/V7/V8 db */
       	    view-as alert-box error buttons ok.
       	 return NO-APPLY.
       end.

@@ -93,8 +93,8 @@
 &IF "{&ADMSuper}":U EQ "":U &THEN
   {src/adm2/actiprto.i}
 &ENDIF
-
-{src/adm2/panlprop.i}
+ 
+{src/adm2/visprop.i}
   
 &IF "{&ADMSuper}":U = "":U &THEN
 &ENDIF

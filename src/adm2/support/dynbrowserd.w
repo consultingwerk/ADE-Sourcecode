@@ -43,7 +43,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-
+{adeuib/uibhlp.i}          /* Help File Preprocessor Directives         */
 &GLOBAL-DEFINE WIN95-BTN YES
 
 /* Parameters Definitions ---                                           */
@@ -77,9 +77,10 @@
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS l_Enable l_View l_calcWidth i_numdown ~
-l_ScrollRemote 
+l_ScrollRemote l_FetchOnReposToEnd 
 &Scoped-Define DISPLAYED-OBJECTS c_SDOList c_SearchField l_Enable l_View ~
-l_calcWidth c_Layout i_numdown i_maxWidth l_ScrollRemote 
+l_calcWidth c_Layout i_numdown i_maxWidth l_ScrollRemote ~
+l_FetchOnReposToEnd 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -156,6 +157,11 @@ DEFINE VARIABLE l_Enable AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 20 BY .86 NO-UNDO.
 
+DEFINE VARIABLE l_FetchOnReposToEnd AS LOGICAL INITIAL no 
+     LABEL "&Fetch Data to Fill Browse on Reposition to End of Batch" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 58.6 BY .86 NO-UNDO.
+
 DEFINE VARIABLE l_ScrollRemote AS LOGICAL INITIAL no 
      LABEL "&Scroll Remote Results List" 
      VIEW-AS TOGGLE-BOX
@@ -180,7 +186,8 @@ DEFINE FRAME Attribute-Dlg
      c_Layout AT ROW 10.52 COL 33.2 COLON-ALIGNED
      i_numdown AT ROW 11.67 COL 33.2 COLON-ALIGNED
      i_maxWidth AT ROW 12.81 COL 33.2 COLON-ALIGNED
-     l_ScrollRemote AT ROW 14.1 COL 3
+     l_ScrollRemote AT ROW 14.05 COL 2.8
+     l_FetchOnReposToEnd AT ROW 15.1 COL 2.8
      "  Behavior During 'Initialize'" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 9.57 COL 2
           BGCOLOR 1 FGCOLOR 15 
@@ -194,7 +201,7 @@ DEFINE FRAME Attribute-Dlg
      "  Allow Reposition using a Search Field" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 7.19 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     SPACE(0.19) SKIP(8.04)
+     SPACE(0.19) SKIP(8.15)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Dynamic SmartDataBrowser Properties":L.
@@ -258,7 +265,7 @@ DO:
   DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
      
    /* Reassign the attribute values back in the SmartObject. */
-  ASSIGN l_Enable l_View c_SearchField l_ScrollRemote
+  ASSIGN l_Enable l_View c_SearchField l_ScrollRemote l_FetchOnReposToEnd
          c_Layout = c_Layout:SCREEN-VALUE WHEN c_Layout:SENSITIVE
          i_NumDown l_CalcWidth i_MaxWidth.
          
@@ -267,7 +274,8 @@ DO:
   DYNAMIC-FUNC("setDisplayedFields":U IN p_hSMO, INPUT gcDisplayedFields) NO-ERROR.
   DYNAMIC-FUNC("setScrollRemote":U IN p_hSMO, INPUT l_ScrollRemote) NO-ERROR.
   DYNAMIC-FUNC("setEnabledFields":U IN p_hSMO, INPUT gcEnabledFields) NO-ERROR.
-  
+  DYNAMIC-FUNC("setFetchOnReposToEnd":U IN p_hSMO,l_FetchOnReposToEnd) NO-ERROR.
+
   cObjectName = DYNAMIC-FUNCTION('getObjectName' IN ghSDO) NO-ERROR.
   
   DYNAMIC-FUNC("setDataSourceNames":U IN p_hSMO,cObjectName) NO-ERROR. 
@@ -422,6 +430,18 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME l_FetchOnReposToEnd
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_FetchOnReposToEnd Attribute-Dlg
+ON VALUE-CHANGED OF l_FetchOnReposToEnd IN FRAME Attribute-Dlg /* Fetch Data to Fill Browse on Reposition to End of Batch */
+DO:
+  ASSIGN l_ScrollRemote.
+  
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME l_ScrollRemote
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_ScrollRemote Attribute-Dlg
 ON VALUE-CHANGED OF l_ScrollRemote IN FRAME Attribute-Dlg /* Scroll Remote Results List */
@@ -450,7 +470,7 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 
 /* Attach the standard OK/Cancel/Help button bar. */
 { adecomm/okbar.i  &TOOL = "AB"
-                   &CONTEXT = {&VisualSmartObject_Attributes_Dlg_Box} }
+                   &CONTEXT = {&Dynamic_SmDataBrowser_Instance_Properties_Dialog_Box} }
 
 /* ***************************  Main Block  *************************** */
 
@@ -535,9 +555,10 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY c_SDOList c_SearchField l_Enable l_View l_calcWidth c_Layout i_numdown 
-          i_maxWidth l_ScrollRemote 
+          i_maxWidth l_ScrollRemote l_FetchOnReposToEnd 
       WITH FRAME Attribute-Dlg.
   ENABLE l_Enable l_View l_calcWidth i_numdown l_ScrollRemote 
+         l_FetchOnReposToEnd 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -577,6 +598,7 @@ PROCEDURE get-SmO-attributes :
     l_CalcWidth = DYNAMIC-FUNC("getCalcWidth":U IN p_hSMO).
     i_MaxWidth  = DYNAMIC-FUNC("getMaxWidth":U IN p_hSMO).
     l_ScrollRemote = DYNAMIC-FUNC("getScrollRemote":U IN p_hSMO).
+    l_FetchOnReposToEnd = DYNAMIC-FUNC("getFetchOnReposToEnd":U IN p_hSMO).
     cSourceName = DYNAMIC-FUNC("getDataSourceNames":U IN p_hSMO).
     
     /* MaxWidth needs be be enabled if CalcWidth is true */

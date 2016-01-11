@@ -90,13 +90,23 @@ FolderLabels
   DEFINE VARIABLE giPrevPage           AS INTEGER NO-UNDO.
   DEFINE VARIABLE giTabHeightPxl       AS INTEGER NO-UNDO.  
   DEFINE VARIABLE number-of-pages      AS INTEGER NO-UNDO.
-  DEFINE VARIABLE up-image             AS HANDLE  NO-UNDO.  
-  DEFINE VARIABLE up-image2            AS HANDLE  NO-UNDO.  
   DEFINE VARIABLE tab-type             AS INT NO-UNDO. /* 1,2 */
   DEFINE VARIABLE container-hdl        AS HANDLE NO-UNDO.
   DEFINE VARIABLE page-label           AS HANDLE EXTENT {&max-labels} NO-UNDO.
-  DEFINE VARIABLE image-hdl            AS HANDLE EXTENT {&max-labels} NO-UNDO.
-  DEFINE VARIABLE image-hdl2           AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  
+  DEFINE VARIABLE giColor3dFace      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE giColor3dHighlight AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE giColor3dShadow    AS INTEGER    NO-UNDO.
+
+
+  DEFINE VARIABLE hLeftVertical        AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hRightVertical1      AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hRightVertical2      AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hLeftDot             AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hRightDot            AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hTopHorizontal       AS HANDLE EXTENT {&max-labels} NO-UNDO.
+  DEFINE VARIABLE hFiller              AS HANDLE EXTENT {&max-labels} NO-UNDO.
+
   DEFINE VARIABLE page-enabled         AS LOGICAL EXTENT {&max-labels} NO-UNDO.
   
   DEF VAR width-tab-values    AS INT INIT [110,72] EXTENT 2 NO-UNDO.
@@ -154,6 +164,34 @@ FUNCTION getFolderTabType RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFolderTabWidth C-Win 
 FUNCTION getFolderTabWidth RETURNS DECIMAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerCol C-Win 
+FUNCTION getInnerCol RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerHeight C-Win 
+FUNCTION getInnerHeight RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerRow C-Win 
+FUNCTION getInnerRow RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerWidth C-Win 
+FUNCTION getInnerWidth RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -366,13 +404,22 @@ PROCEDURE changeFolderPage :
       Parameters:  <none>
       Notes: 
     -------------------------------------------------------------*/   
-    DEFINE VARIABLE sts     AS LOGICAL NO-UNDO.
-    DEFINE VARIABLE page#   AS INTEGER NO-UNDO.
-  
+    DEFINE VARIABLE sts      AS LOGICAL   NO-UNDO.
+    DEFINE VARIABLE page#    AS INTEGER   NO-UNDO.
+    DEFINE VARIABLE cUIBMode AS CHARACTER NO-UNDO.
+
     IF VALID-HANDLE (container-hdl) THEN 
       {get CurrentPage page# container-hdl}.
-    ELSE ASSIGN page# = 0.    /* For design mode. */
-
+    ELSE IF giPrevPage <> 0 THEN
+    DO: 
+      {get UIBmode cUIBMode}.      
+      IF cUIBmode = 'Design':U THEN
+      DO:
+        page# = giPrevPage.
+        giPrevPage = 0.
+      END.
+    END.
+ 
     RUN ShowCurrentPage(page#).
      
     RETURN. 
@@ -388,7 +435,6 @@ PROCEDURE create-folder-label :
       Parameters:  INPUT page number, label
       Notes:       
     -------------------------------------------------------------*/   
-     
     DEFINE INPUT PARAMETER p-page#        AS INTEGER   NO-UNDO.
     DEFINE INPUT PARAMETER p-page-label   AS CHARACTER NO-UNDO.
 
@@ -405,6 +451,7 @@ PROCEDURE create-folder-label :
     
     {get FolderTabWidth dWidth}.
     {get FolderFont iFont}.
+
     ASSIGN
       lFixed     = dWidth <> 0 AND dWidth <> ?
       iFont      = IF iFont < 0 THEN ? ELSE iFont
@@ -425,74 +472,178 @@ PROCEDURE create-folder-label :
      /* If variable width and not page 1 find the pos of the previous tab */
      IF iX = 0 THEN
      DO iLoop = p-page# - 1 TO 1 BY -1:
-       IF VALID-HANDLE(image-hdl[iLoop]) THEN 
+       IF VALID-HANDLE(hRightVertical2[iLoop]) THEN 
        DO:
-         iX = iX + image-hdl[iLoop]:X 
-                 + image-hdl[iloop]:WIDTH-PIXEL + 2.
+         iX = iX + hRightVertical2[iLoop]:X 
+                 + hRightVertical2[iloop]:WIDTH-PIXEL.
          LEAVE. 
        END.
        ELSE /* add space for empty tabs */ 
          iX = iX + xiEmptyPxl.
      END. /* if ix = 0 then do iloop =  */
     
-    CREATE IMAGE image-hdl[p-page#]
-      ASSIGN 
+   CREATE RECTANGLE hLeftVertical[p-page#]
+     ASSIGN 
         FRAME             = FRAME {&FRAME-NAME}:HANDLE
         X                 = iX  
-        Y                 = 2   
-        WIDTH-PIXEL       = iTabWidth - 2 
-        HEIGHT-PIXEL      = giTabHeightPxl - 2
+        Y                 = 4   
+        WIDTH-PIXEL       = 1 
+        HEIGHT-PIXEL      = giTabHeightPxl - 4
         PRIVATE-DATA      = "Tab-Folder":U
-        CONVERT-3D-COLORS = YES
+        EDGE-PIXELS       = 0
+        FILLED            = YES
+        BGCOLOR           = giColor3dHighlight
+        /*CONVERT-3D-COLORS = YES*/
         SENSITIVE         = YES
        TRIGGERS:      
         ON MOUSE-SELECT-CLICK  
            PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
        END TRIGGERS.         
     
-    CREATE IMAGE image-hdl2[p-page#]
+    CREATE RECTANGLE hFiller[p-page#]
+        ASSIGN 
+           FRAME             = FRAME {&FRAME-NAME}:HANDLE
+           X                 = iX + 1 
+           Y                 = 3   
+           GRAPHIC-EDGE      = FALSE
+           WIDTH-PIXEL       = iTabWidth - 3 
+           HEIGHT-PIXEL      = giTabHeightPxl - 3
+           PRIVATE-DATA      = "Tab-Folder":U
+           EDGE-PIXELS       = 0
+           FILLED            = YES
+           BGCOLOR           = giColor3DFace
+          /* CONVERT-3D-COLORS = YES  */
+           SENSITIVE         = YES
+         TRIGGERS:      
+           ON MOUSE-SELECT-CLICK  
+              PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+         END TRIGGERS.         
+
+
+   CREATE RECTANGLE hLeftDot[p-page#]
+     ASSIGN 
+        FRAME             = FRAME {&FRAME-NAME}:HANDLE
+        X                 = iX + 1 
+        Y                 = 3   
+        GRAPHIC-EDGE      = FALSE
+        WIDTH-PIXEL       = 1
+        HEIGHT-PIXEL      = 1
+        PRIVATE-DATA      = "Tab-Folder":U
+        EDGE-PIXELS       = 0 
+        BGCOLOR           = giColor3dHighlight
+        FILLED            = YES
+        /*CONVERT-3D-COLORS = YES*/
+        SENSITIVE         = YES
+       TRIGGERS:      
+         ON MOUSE-SELECT-CLICK  
+            PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+       END TRIGGERS.         
+    
+   CREATE RECTANGLE hTopHorizontal[p-page#]
+     ASSIGN 
+        FRAME             = FRAME {&FRAME-NAME}:HANDLE
+        X                 = iX + 2 
+        Y                 = 2   
+        GRAPHIC-EDGE      = FALSE
+        WIDTH-PIXEL       = iTabWidth - 4 
+        HEIGHT-PIXEL      = 1
+        PRIVATE-DATA      = "Tab-Folder":U
+        EDGE-PIXELS       = 0 
+        BGCOLOR           = giColor3dHighlight
+        FILLED            = YES
+        /*CONVERT-3D-COLORS = YES*/
+        SENSITIVE         = YES
+      TRIGGERS:      
+        ON MOUSE-SELECT-CLICK  
+           PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+      END TRIGGERS.         
+
+   CREATE RECTANGLE hRightVertical1[p-page#]
+      ASSIGN 
+        FRAME             = FRAME {&FRAME-NAME}:HANDLE
+        X                 = iX + iTabWidth - 2
+        Y                 = 4   
+        WIDTH-PIXEL       = 1 
+        HEIGHT-PIXEL      = giTabHeightPxl - 4
+        PRIVATE-DATA      = "Tab-Folder":U
+        EDGE-PIXELS       = 0        
+        BGCOLOR           = giColor3dShadow
+        FILLED            = YES
+        /*CONVERT-3D-COLORS = YES*/
+        SENSITIVE         = YES
+      TRIGGERS:      
+          ON MOUSE-SELECT-CLICK  
+              PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+      END TRIGGERS.         
+    
+   CREATE RECTANGLE hRightVertical2[p-page#]
       ASSIGN 
          FRAME             = FRAME {&FRAME-NAME}:HANDLE
-         X                 = image-hdl[p-page#]:X + image-hdl[p-page#]:WIDTH-P  
-         Y                 = 3    
-         WIDTH-PIXEL       = 2 
-         HEIGHT-PIXEL      = giTabHeightPxl - 3
+         X                 = iX + iTabWidth - 1
+         Y                 = 4   
+         WIDTH-PIXEL       = 1 
+         HEIGHT-PIXEL      = giTabHeightPxl - 4
          PRIVATE-DATA      = "Tab-Folder":U
-         CONVERT-3D-COLORS = YES
+         EDGE-PIXELS       = 0
+         FILLED            = YES
+         BGCOLOR           = 0
+         /*CONVERT-3D-COLORS = YES*/
          SENSITIVE         = YES
-        TRIGGERS:      
-         ON MOUSE-SELECT-CLICK 
-            PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
-        END TRIGGERS.       
-    
+       TRIGGERS:      
+          ON MOUSE-SELECT-CLICK  
+             PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+       END TRIGGERS.         
+
+   CREATE RECTANGLE hRightDot[p-page#]
+      ASSIGN 
+         FRAME             = FRAME {&FRAME-NAME}:HANDLE
+         X                 = iX + iTabWidth - 2 
+         Y                 = 3   
+         GRAPHIC-EDGE      = FALSE
+         EDGE-PIXEL        = 0
+         WIDTH-PIXEL       = 1
+         HEIGHT-PIXEL      = 1
+         PRIVATE-DATA      = "Tab-Folder":U
+         BGCOLOR           = 0
+         FILLED            = YES
+         
+        /*CONVERT-3D-COLORS = YES*/
+         SENSITIVE         = YES
+      TRIGGERS:      
+        ON MOUSE-SELECT-CLICK  
+             PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
+      END TRIGGERS.         
+   
     CREATE TEXT page-label[p-page#]
        ASSIGN 
          FRAME         = FRAME {&FRAME-NAME}:HANDLE
           /* keep it nicely 2 pxls above the folder top line */
-          Y            = image-hdl[p-page#]:Y + image-hdl[p-page#]:HEIGHT-PIXEL 
+          Y            = hLeftVertical[p-page#]:Y + hLeftVertical[p-page#]:HEIGHT-PIXEL 
                          - iLblHeight
                          - 2 
           /* center label, but make sure X is 2 pxls left of tab:X 
              (visible when the tab to its left is selected) */
-          X            = MAX(image-hdl[p-page#]:X + 2,
-                         image-hdl[p-page#]:X + image-hdl[p-page#]:WIDTH-PIXEL  
-                         - ((image-hdl[p-page#]:WIDTH-PIXEL - iLblWidth) / 2)
+          X            = MAX(hLeftVertical[p-page#]:X + 2,
+                         hLeftVertical[p-page#]:X + hTopHorizontal[p-page#]:WIDTH-PIXEL  + 2
+                         - ((hTopHorizontal[p-page#]:WIDTH-PIXEL + 2 - iLblWidth) / 2)
                             - iLblWidth
                            ) 
-          /* Never wider than 4 pxls ( - 2 and image2) less than tab */
-          WIDTH-PIXEL  = MIN(image-hdl[p-page#]:WIDTH-PIXEL - 2,ilblWidth)
+          /* Never wider than 4 pxls less than tab (sam as top rectangle) */
+          WIDTH-PIXEL  = MIN(hTopHorizontal[p-page#]:WIDTH-PIXEL,ilblWidth)
           HEIGHT-PIXEL = iLblHeight
           FORMAT       = "X(255)":U
           SENSITIVE    = YES 
           FONT         = iFont
+          HIDDEN       = YES
           SCREEN-VALUE = p-page-label
           PRIVATE-DATA = "Tab-Folder":U    
          TRIGGERS:      
             ON MOUSE-SELECT-CLICK 
                PERSISTENT RUN label-trigger IN THIS-PROCEDURE (p-page#).        
          END TRIGGERS.
-    
+      
     ASSIGN      
+      /*
       sts = image-hdl[p-page#]:LOAD-IMAGE("adeicon/lefttab":U,
                                            0,
                                            0,
@@ -500,13 +651,20 @@ PROCEDURE create-folder-label :
                                            giTabHeightPxl - 2)
 
       sts = image-hdl2[p-page#]:LOAD-IMAGE("adeicon/righttab":U)
-      sts = image-hdl[p-page#]:MOVE-TO-TOP()
-      sts = image-hdl2[p-page#]:MOVE-TO-TOP()
+      */
       sts = page-label[p-page#]:MOVE-TO-TOP()
-      
+      /*
+      sts = hLeftVertical[p-page#]:MOVE-TO-TOP() 
+      sts = hLeftDot[p-page#]:MOVE-TO-TOP() 
+      sts = hTopHorizontal[p-page#]:MOVE-TO-TOP() 
+      sts = hRightVertical1[p-page#]:MOVE-TO-TOP() 
+      sts = hRightVertical2[p-page#]:MOVE-TO-TOP() 
+      sts = hRightDot[p-page#]:MOVE-TO-TOP() 
+      sts = hHideError[p-page#]:MOVE-TO-TOP() 
+      */
       page-enabled[p-page#]     = yes
-      image-hdl[p-page#]:HIDDEN = no     /* Set HIDDEN off explicitly */
-      page-label[p-page#]:HIDDEN = no.   /*  or it may come up hidden. */
+     
+      page-label[p-page#]:HIDDEN = NO NO-ERROR.   /*  or it may come up hidden. */
   
   RETURN.  
 END PROCEDURE.
@@ -575,22 +733,36 @@ PROCEDURE deleteFolderPage :
     DEFINE VARIABLE pos1    AS INTEGER NO-UNDO INIT 0.
     DEFINE VARIABLE pos2    AS INTEGER NO-UNDO. 
     DEFINE VARIABLE labels  AS CHARACTER NO-UNDO.
-   
     {get FolderLabels labels}.
 
     IF VALID-HANDLE (page-label[p-page#]) THEN /* Make sure this page exists */
         DELETE WIDGET page-label[p-page#].
-    IF VALID-HANDLE (image-hdl[p-page#]) THEN  
-        DELETE WIDGET image-hdl[p-page#].  
-                          
+    IF VALID-HANDLE (hLeftVertical[p-page#]) THEN  
+        DELETE WIDGET hLeftVertical[p-page#].
+    IF VALID-HANDLE (hLeftDot[p-page#]) THEN  
+        DELETE WIDGET hLeftDot[p-page#].
+    IF VALID-HANDLE (hTopHorizontal[p-page#]) THEN  
+        DELETE WIDGET hTopHorizontal[p-page#].
+    IF VALID-HANDLE (hRightVertical1[p-page#]) THEN  
+        DELETE WIDGET hRightVertical1[p-page#].
+    IF VALID-HANDLE (hRightVertical2[p-page#]) THEN  
+        DELETE WIDGET hRightVertical2[p-page#].
+    IF VALID-HANDLE (hFiller[p-page#]) THEN  
+        DELETE WIDGET hFiller[p-page#].
+    
+    IF giPrevPage = p-page#  THEN
+      giPrevPage = 0.
+
     /* Remove the label from the FOLDER-LABELS attribute list */
     DO i = 1 TO p-page# - 1:                                      
         pos1 = INDEX(labels,'|':U, pos1 + 1).
     END.
     pos2 = INDEX(labels,'|':U, pos1 + 1).
+    
     labels = IF pos2 ne 0 THEN SUBSTR(labels, 1, pos1, "CHARACTER":U) +
                                   SUBSTR(labels, pos2, -1, "CHARACTER":U)       
                           ELSE SUBSTR(labels, 1, pos1 - 1, "CHARACTER":U).
+
     {set FolderLabels labels}.
 
     RETURN. 
@@ -661,7 +833,7 @@ PROCEDURE initializeFolder :
       Parameters:  <none>
       Notes:       Run automatically as part of folder startup.
     -------------------------------------------------------------*/   
-
+ 
     DEFINE VARIABLE folder-labels      AS CHARACTER NO-UNDO.  
     DEFINE VARIABLE char-hdl           AS CHARACTER NO-UNDO.
     DEFINE VARIABLE i                  AS INTEGER   NO-UNDO.
@@ -670,6 +842,12 @@ PROCEDURE initializeFolder :
     DEFINE VARIABLE temp-hdl           AS HANDLE    NO-UNDO.             
     DEFINE VARIABLE del-hdl            AS HANDLE    NO-UNDO.             
     DEFINE VARIABLE rebuild            AS LOGICAL   NO-UNDO INIT no.
+    DEFINE VARIABLE hContainer         AS HANDLE    NO-UNDO.
+    DEFINE VARIABLE lHidden            AS LOGICAL    NO-UNDO.
+    
+    {get Color3dFace giColor3dFace}.
+    {get Color3dHighlight giColor3dHighlight}.
+    {get Color3dShadow giColor3dShadow}.
     
     {get FolderFont   iFont}.
     {get FolderLabels folder-labels}.
@@ -679,9 +857,12 @@ PROCEDURE initializeFolder :
       iFont           = IF iFont < 0 THEN ? ELSE iFont
       iLblHeight      = FONT-TABLE:GET-TEXT-HEIGHT-PIXELS(iFont)
       giTabHeightPxl  = MAX(xiTabMinHeightPxl,iLblHeight + 8)  
-      number-of-pages = NUM-ENTRIES(folder-labels,'|':U).
-    
-    
+      number-of-pages = NUM-ENTRIES(folder-labels,'|':U)
+      rect-top:BGCOLOR IN FRAME {&FRAME-NAME}    = giColor3dHighlight  
+      rect-left:BGCOLOR IN FRAME {&FRAME-NAME}   = giColor3dHighlight  
+      rect-right:BGCOLOR IN FRAME {&FRAME-NAME}  = giColor3dShadow  
+      rect-bottom:BGCOLOR IN FRAME {&FRAME-NAME} = giColor3dShadow  .
+
     /* Get the folder's CONTAINER for triggers.
        Note that in design mode the CONTAINER may not be specified;
        the code takes this into account. Also the broker will not
@@ -689,59 +870,42 @@ PROCEDURE initializeFolder :
     ASSIGN char-hdl = dynamic-function('linkHandles':U, 'Container-Source':U)
            container-hdl = WIDGET-HANDLE(char-hdl).
       
-    IF VALID-HANDLE(up-image) THEN 
-    DO:  /* Rebuilding an existing folder */
-       temp-hdl = FRAME {&FRAME-NAME}:HANDLE.
-       temp-hdl = temp-hdl:FIRST-CHILD.    /* Field group */
-       temp-hdl = temp-hdl:FIRST-CHILD.   /* First dynamic widget */
-       DO WHILE VALID-HANDLE(temp-hdl):  
-          del-hdl = temp-hdl.
-          temp-hdl = temp-hdl:NEXT-SIBLING.
-          IF del-hdl:PRIVATE-DATA = "Tab-Folder":U THEN DELETE WIDGET del-hdl.  
-       END.
+      /* Rebuilding an existing folder */
+    temp-hdl = FRAME {&FRAME-NAME}:HANDLE.
+    temp-hdl = temp-hdl:FIRST-CHILD.    /* Field group */
+    temp-hdl = temp-hdl:FIRST-CHILD.   /* First dynamic widget */
+    DO WHILE VALID-HANDLE(temp-hdl):  
+      del-hdl = temp-hdl.
+      temp-hdl = temp-hdl:NEXT-SIBLING.
+      IF del-hdl:PRIVATE-DATA = "Tab-Folder":U THEN DELETE WIDGET del-hdl.  
+    END.
+   
+    {get ContainerSource hContainer}.
+    IF VALID-HANDLE(hContainer) THEN
+    DO:
+     /* if the frame is hidden by its container, we unhide it now. as 
+       there's a performance overhead of doing this after all widgets
+       have been created. */  
+      {get ObjectHidden lHidden hContainer}.
     END.
 
-    CREATE IMAGE up-image
-     ASSIGN 
-      FRAME             = FRAME {&FRAME-NAME}:HANDLE
-      X                 = 0
-      Y                 = 0
-      WIDTH-PIXEL       = width-tab-values[tab-type] + 2
-      HEIGHT-PIXEL      = giTabHeightPxl + 1
-      PRIVATE-DATA      = "Tab-Folder":U
-      SENSITIVE         = YES
-      CONVERT-3D-COLORS = YES
-      HIDDEN            = YES.  /* page 0  */
-
-    up-image:LOAD-IMAGE("adeicon/lefttab":U).
-
-    CREATE IMAGE up-image2
-     ASSIGN 
-      FRAME             = FRAME {&FRAME-NAME}:HANDLE
-      X                 = UP-IMAGE:X + UP-IMAGE:WIDTH-PIXELS 
-      Y                 = 1
-      WIDTH-PIXEL       = 2 
-      HEIGHT-PIXEL      = giTabHeightPxl
-      PRIVATE-DATA      = "Tab-Folder":U
-      SENSITIVE         = YES
-      CONVERT-3D-COLORS = YES
-      HIDDEN            = YES.  /* page 0 */
+    IF lHidden THEN 
+      FRAME {&FRAME-NAME}:HIDDEN = FALSE.   
+    ELSE 
+      FRAME {&FRAME-NAME}:HIDDEN = TRUE.
     
-    up-image2:LOAD-IMAGE("adeicon/righttab":U).
-    
-    /* hide in case the size is not wide enough for all tabs */
-    ASSIGN FRAME {&FRAME-NAME}:HIDDEN = TRUE.
     DO i = 1 TO number-of-pages:       
        IF ENTRY(i,folder-labels,'|':U) NE "":U THEN /*Allow skipping of pos'ns*/
             RUN create-folder-label (i, ENTRY(i, folder-labels,'|':U)).
     END. 
-    
+ 
     RUN resizeObject (FRAME {&FRAME-NAME}:HEIGHT, FRAME {&FRAME-NAME}:WIDTH).
-    FRAME {&FRAME-NAME}:HIDDEN = FALSE.  
+
+    IF FRAME {&FRAME-NAME}:HIDDEN THEN
+       FRAME {&FRAME-NAME}:HIDDEN = FALSE.   
     FRAME {&FRAME-NAME}:MOVE-TO-BOTTOM().
-    
+
     RUN changeFolderPage.
-     
     RETURN.
   END PROCEDURE.
 
@@ -795,6 +959,10 @@ PROCEDURE resizeObject :
   DEFINE INPUT PARAMETER p-height AS DECIMAL NO-UNDO.
   DEFINE INPUT PARAMETER p-width  AS DECIMAL NO-UNDO.
   
+  DEFINE VARIABLE cLabels AS CHARACTER  NO-UNDO.
+
+  {get FolderLabels cLabels}.
+
 &IF "{&WINDOW-SYSTEM}":U <> "TTY":U &THEN  
   /* This is the minimum height needed for all the tabs and rectangles to exist: */
   p-Height = MAX((giTabHeightPxl / SESSION:PIXELS-PER-ROW) + 0.2,p-height) .
@@ -824,12 +992,14 @@ PROCEDURE resizeObject :
          FRAME {&FRAME-NAME}:WIDTH  = p-width
          FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-PIXELS = 
              FRAME {&FRAME-NAME}:HEIGHT-PIXELS
+         /* May not have been set yet, or (Bug# 20010914-001) it may be blank or
+            it may have been deleted. */
          FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-PIXELS  = 
-             IF (number-of-pages = 0)    /* May not have been set yet. */
+             IF (number-of-pages = 0 OR ENTRY(number-of-pages,cLabels,'|':U) EQ '':U)    
              THEN FRAME {&FRAME-NAME}:WIDTH-PIXELS
              ELSE MAX(FRAME {&FRAME-NAME}:WIDTH-PIXELS,
-                     image-hdl2[number-of-pages]:X 
-                     + image-hdl2[number-of-pages]:WIDTH-PIXEL + 2).
+                     hRightVertical2[number-of-pages]:X 
+                     + hRightVertical2[number-of-pages]:WIDTH-PIXEL + 2).
 
 .
             
@@ -883,42 +1053,87 @@ PROCEDURE showCurrentPage :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER page# AS INTEGER NO-UNDO.
-
+ 
   DEFINE VARIABLE sts     AS LOGICAL NO-UNDO.
+  
+
+  IF page# = giPrevPage THEN
+    RETURN.
+  
+  IF giPrevPage <> 0 AND giPrevPage <= {&max-labels}   
+  AND VALID-HANDLE(page-label[giPrevPage]) THEN
+  DO:
+    /* Check that the label really is UP... This relieves us from having 
+       to reset giprevpage in delete and create etc...  */
+    IF hTopHorizontal[giPrevPage]:Y  = 0 THEN
+     ASSIGN 
+      page-label[giPrevPage]:Y           = page-label[giPrevPage]:Y + 1
+      hLeftVertical[giPrevPage]:Y        = hLeftVertical[giPrevPage]:Y + 2 
+      hLeftVertical[giPrevPage]:X        = hLeftVertical[giPrevPage]:X + 2 
+      hLeftVertical[giPrevPage]:HEIGHT-P = hLeftVertical[giPrevPage]:HEIGHT-P - 2
+      hLeftDot[giPrevPage]:X             = hLeftDot[giPrevPage]:X + 2
+      hLeftDot[giPrevPage]:Y             = hLeftDot[giPrevPage]:Y + 2
+      hTopHorizontal[giPrevPage]:Y       = 2
+      hTopHorizontal[giPrevPage]:WIDTH-P = hTopHorizontal[giPrevPage]:WIDTH-P - 4 
+      hTopHorizontal[giPrevPage]:X       = hTopHorizontal[giPrevPage]:X + 2      
+      hFiller[giPrevPage]:X              = hFiller[giPrevPage]:X + 2 
+      hFiller[giPrevPage]:WIDTH-P        = hFiller[giPrevPage]:WIDTH-P - 4 
+      hFiller[giPrevPage]:Y              = hFiller[giPrevPage]:Y + 2 
+      hFiller[giPrevPage]:HEIGHT-P       = hFiller[giPrevPage]:HEIGHT-P - 3 
+      hRightDot[giPrevPage]:Y            = hRightDot[giPrevPage]:Y + 2
+      hRightDot[giPrevPage]:X            = hRightDot[giPrevPage]:X - 2
+      hRightVertical1[giPrevPage]:Y        = hRightVertical1[giPrevPage]:Y + 2 
+      hRightVertical1[giPrevPage]:X        = hRightVertical1[giPrevPage]:X - 2 
+      hRightVertical1[giPrevPage]:HEIGHT-P = hRightVertical1[giPrevPage]:HEIGHT-P - 3
+      hRightVertical2[giPrevPage]:Y        = hRightVertical2[giPrevPage]:Y + 2 
+      hRightVertical2[giPrevPage]:X        = hRightVertical2[giPrevPage]:X - 2 
+      hRightVertical2[giPrevPage]:HEIGHT-P = hRightVertical2[giPrevPage]:HEIGHT-P - 3
+  
+    NO-ERROR.
+  END.
 
   IF page# > 0 AND page# <= {&max-labels} 
   AND VALID-HANDLE (page-label[page#]) THEN 
-    ASSIGN 
-      up-image:HIDDEN  = TRUE
-      up-image2:HIDDEN  = TRUE
-      up-image:WIDTH-P = image-hdl[page#]:WIDTH-P + 4 
-      up-image:X       = image-hdl[page#]:X -  2
-      up-image:Y       = 0 
-      up-image:HIDDEN  = no
-      up-image2:X      = up-image:X + up-image:WIDTH-PIXELS 
-      up-image2:Y      = 1 
-      up-image2:HIDDEN = no
-      sts              = up-image:MOVE-TO-TOP()
-      sts              = up-image2:MOVE-TO-TOP()
-      /* raise text */
-      page-label[page#]:Y = page-label[page#]:Y - 1
-      up-image:HIDDEN  = FALSE
-      up-image2:HIDDEN = FALSE NO-ERROR.
+  DO:
+    /* Check that the label really is down... */
+    IF hTopHorizontal[Page#]:Y  = 2 THEN
 
-  /* If there are no tabs at all leave the up-image viewed for appearance.
-     Otherwise if the user has selected page 0, hide the up-image in order
-     to visually deselect all pages. */
-  ELSE IF number-of-pages > 0 THEN
-    ASSIGN
-      up-image:HIDDEN  = yes
-      up-image2:HIDDEN = yes.
-  
-  /* reset raised text */
-  IF giPrevPage <> 0 AND giPrevPage <= {&max-labels} 
-  AND VALID-HANDLE(page-label[giPrevPage]) THEN
-      page-label[giPrevPage]:Y = page-label[giPrevPage]:Y + 1.
+     ASSIGN 
+   /* raise text (not as much as tab) */
+     page-label[page#]:Y = page-label[page#]:Y - 1
+     sts = hFiller[page#]:MOVE-TO-TOP()
+     sts = hLeftDot[page#]:MOVE-TO-TOP()
+     sts = hLeftVertical[page#]:MOVE-TO-TOP() 
+     sts = hRightDot[page#]:MOVE-TO-TOP()
+     sts = hRightVertical1[page#]:MOVE-TO-TOP()
+     sts = hRightVertical2[page#]:MOVE-TO-TOP()
+      
+   
+      hFiller[page#]:X              = hFiller[page#]:X - 2 
+      hFiller[page#]:Y              = hFiller[page#]:Y - 2 
+      hFiller[page#]:WIDTH-P        = hFiller[page#]:WIDTH-P + 4 
+      hFiller[page#]:HEIGHT-P       = hFiller[page#]:HEIGHT-P + 3 
 
-  giPrevPage       = page#.
+      hLeftVertical[page#]:Y        = hLeftVertical[page#]:Y - 2 
+      hLeftVertical[page#]:X        = hLeftVertical[page#]:X - 2 
+      hLeftVertical[page#]:HEIGHT-P = hLeftVertical[page#]:HEIGHT-P + 2
+      hLeftDot[page#]:X             = hLeftDot[page#]:X - 2
+      hLeftDot[page#]:Y             = hLeftDot[page#]:Y - 2
+      hTopHorizontal[page#]:Y       = 0
+      hTopHorizontal[page#]:WIDTH-P = hTopHorizontal[page#]:WIDTH-P + 4 
+      hTopHorizontal[page#]:X       = hTopHorizontal[page#]:X - 2      
+      hRightDot[page#]:Y            = hRightDot[page#]:Y - 2
+      hRightDot[page#]:X            = hRightDot[page#]:X + 2
+      hRightVertical1[page#]:Y        = hRightVertical1[page#]:Y - 2 
+      hRightVertical1[page#]:X        = hRightVertical1[page#]:X + 2 
+      hRightVertical1[page#]:HEIGHT-P = hRightVertical1[page#]:HEIGHT-P + 3
+      hRightVertical2[page#]:Y        = hRightVertical2[page#]:Y - 2 
+      hRightVertical2[page#]:X        = hRightVertical2[page#]:X + 2 
+      hRightVertical2[page#]:HEIGHT-P = hRightVertical2[page#]:HEIGHT-P + 3
+    NO-ERROR.
+  END.
+
+  giPrevPage = page#.
 
 END PROCEDURE.
 
@@ -988,6 +1203,70 @@ FUNCTION getFolderTabWidth RETURNS DECIMAL
   {get FolderTabWidth dWidth}.
   RETURN dWidth.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerCol C-Win 
+FUNCTION getInnerCol RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner Col relative to container  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN (2 / SESSION:PIXELS-PER-COL)
+         + FRAME {&FRAME-NAME}:COL.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerHeight C-Win 
+FUNCTION getInnerHeight RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner width   
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN (FRAME {&FRAME-NAME}:HEIGHT-P 
+          - (4 + giTabHeightPxl)) /  SESSION:PIXELS-PER-ROW. 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerRow C-Win 
+FUNCTION getInnerRow RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner Row relative to container 
+    Notes:  
+------------------------------------------------------------------------------*/
+   RETURN   /*((IF lUpperTabs 
+             THEN (iTabHeightPixels * iPanelTotal)
+                   + {&TAB-PIXEL-OFFSET}
+             ELSE 0) */
+            (giTabHeightPxl + 2)  
+            / SESSION:PIXELS-PER-ROW
+            + FRAME {&FRAME-NAME}:ROW.
+           
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerWidth C-Win 
+FUNCTION getInnerWidth RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner width   
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN (FRAME {&FRAME-NAME}:WIDTH-P - 4) / SESSION:PIXELS-PER-COL.    
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

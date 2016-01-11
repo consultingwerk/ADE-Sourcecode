@@ -330,6 +330,7 @@ ON CHOOSE OF MENU-ITEM _About IN MENU mnu_Help
 ON CHOOSE OF MENU-ITEM _exit IN MENU mnu_File
 DO:
     DEFINE VARIABLE OK_Close AS LOGICAL INIT TRUE NO-UNDO.
+    DEFINE VARIABLE OK_Shut  AS LOGICAL INIT TRUE NO-UNDO.
     
     /* Now perform a close all for any open Procedure Windows belonging to
        the Desktop. The Procedure Windows created from ProTools are ones
@@ -342,6 +343,13 @@ DO:
     END.
     /* Cancel the close event. */
     IF OK_Close <> TRUE THEN RETURN NO-APPLY.
+    
+    /* Issue the shutdown event for the Desktop. Don't stop the event, just
+       notify those interested. */
+    RUN adecomm/_adeevnt.p
+        (INPUT 'Desktop', INPUT 'Shutdown', INPUT STRING(THIS-PROCEDURE),
+         INPUT STRING(Desktop_Window), OUTPUT OK_Shut).
+         
 END.
 
 &IF {&TOOL_STACKING} = 1 &THEN

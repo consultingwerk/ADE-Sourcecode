@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -27,8 +27,10 @@ File: xmlwidg.i
 Description:
     Universal WebSpeed XML temp-table definitions.
 
-Author:  D.M.Adams
-Created: 05/01/00
+Updated: 05/01/00 adams@progress.com
+           Initial version
+         02/09/02 adams@progress.com
+           Modified tNode indexes
 
 ----------------------------------------------------------------------------*/
 
@@ -80,22 +82,27 @@ DEFINE TEMP-TABLE tNode NO-UNDO
   FIELD useValue             AS CHARACTER  LABEL "Use"
   FIELD xNodeRef             AS HANDLE     LABEL "X Node Handle"
   
-  INDEX node IS PRIMARY node
+  INDEX node IS PRIMARY node parentNode /* added parentNode (adams) */
   INDEX xNodeRef xNodeRef
   INDEX parentName parentName nodeName
-  INDEX parentNode parentNode node
+  INDEX parentNode parentNode element /* used by adm2/b2b.p chambers */
   INDEX tvNode tvNode
   INDEX documentPath documentPath
+  /* Both parentName and element are used together with nodeName for
+     searching.  Since likelihood of nodeName used more than once is low
+     and cost of additional indexes is high, we'll go with single index
+     (adams) */
+  INDEX nodename nodename /* chambers */
   .
   
 /* tSchema - XML schema <SCHEMA> node attributes */
 DEFINE TEMP-TABLE tSchema NO-UNDO
   FIELD attrName             AS CHARACTER LABEL "Name"
   FIELD attrValue            AS CHARACTER LABEL "Value"
+  index attrname is primary attrname /* chambers */
   .
-  
+
 /* tData - XML node structure as it appears in data file format */
-DEFINE TEMP-TABLE tData LIKE tNode.
+DEFINE TEMP-TABLE tData NO-UNDO LIKE tNode.
   
 /* xmlwidg.i - end of file */
-

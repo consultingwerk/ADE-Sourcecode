@@ -31,6 +31,7 @@ IN:
     dot-d-dir                : directory relativ to working-directory
     
 History
+    mcmann     07/13/01 Added check for environmental variable DSTYPE
     mcmann     98/07/13 Added _Owner check for V9
     laurief     97/12   Removed RMS,CISAM code
     hutegger    95/06   multi-db support
@@ -82,7 +83,9 @@ assign
                                 else dot-d-dir + "/"
                               ).
 
-
+/* This allows the bulk load utility of a dataserver to be run */
+IF OS-GETENV("DSTYPE")   <> ? THEN
+  user_env[35]  = OS-GETENV("DSTYPE").
 /****** 1. step: create temp-table from input file-list ***********/
 
 if file-name = "ALL"

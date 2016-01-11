@@ -113,8 +113,8 @@ FUNCTION getRowObject RETURNS HANDLE
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Method-Library ASSIGN
-         HEIGHT             = 5.1
-         WIDTH              = 58.6.
+         HEIGHT             = 15.52
+         WIDTH              = 55.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -181,8 +181,12 @@ FUNCTION getRowObject RETURNS HANDLE
   END.        /* END DO ON ANY */
 &ENDIF
 
-  /* Subscribe to refreshBrowse. This is published from data sources
-     for example after a commit */
+ /* Subscribe to FilterActive when data links are established. This is used 
+    to display filter tick, etc. when a filter is active. */
+  RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
+                      "DataSourceEvents":U,"FilterActive":U).
+
+  /* Subscribe to refreshBrowse. This is published from data sources */
   RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "DataSourceEvents":U,"RefreshBrowse":U).
 
@@ -190,7 +194,6 @@ FUNCTION getRowObject RETURNS HANDLE
      on cancelRow for a new record  */
   RUN modifyListProperty(THIS-PROCEDURE, "ADD":U, 
                       "DataSourceEvents":U,"CancelNew":U).
-
 
   hBuffer = BROWSE {&BROWSE-NAME}:HANDLE.
   {set BrowseHandle hBuffer}.
@@ -213,8 +216,11 @@ FUNCTION getRowObject RETURNS HANDLE
   {set DisplayedFields cViewCols}.
   {set EnabledFields cEnabled}.
 
-  /* If there are any enabled fields, set the enabled prop to yes,
-     because they will be explitly disabled by initializeObject if needed. */
+ /* If there are any enabled fields, set the enabled prop to yes. 
+    This is necessary because disableFields and enableFields and also logic 
+    that runs these methods are totally depending of the properties matching 
+    the objects true state and the browser is enabled as default from the
+    4GL definition. */
   IF cEnabled NE "":U THEN
     {set FieldsEnabled yes}.
 
@@ -239,7 +245,10 @@ FUNCTION getRowObject RETURNS HANDLE
      no other where clause is specified. */
   cBaseQuery = SUBSTR('{&OPEN-QUERY-{&BROWSE-NAME}}':U,
      INDEX('{&OPEN-QUERY-{&BROWSE-NAME}}':U,"FOR EACH":U)).
-  IF NOT hQuery:QUERY-PREPARE(cBaseQuery) THEN /* Prepare for the first OPEN */
+
+  /* Fix European decimal format issues with potential numbers in query string
+    (fixQueryString is a function in smartcustom.p) */
+  IF NOT hQuery:QUERY-PREPARE({fn fixQueryString cBaseQuery}) THEN /* Prepare for the first OPEN */
     MESSAGE "Query Prepare in Browser failed." VIEW-AS ALERT-BOX.
  
   /* Designate this object as a potential DataSource because it has a query. 
@@ -250,9 +259,13 @@ FUNCTION getRowObject RETURNS HANDLE
     "SupportedLinks":U, "Navigation-Target":U).
   /* Since this is both the query and the browser object, subscribe
      to dataAvailable in this object to get those published events. */
+  
   SUBSCRIBE TO 'dataAvailable':U IN THIS-PROCEDURE.
 &ELSE
   {set QueryObject no}.
+  RUN modifyListProperty (THIS-PROCEDURE, 'ADD':U,
+    "SupportedLinks":U, "Toolbar-Target":U).
+
 &ENDIF
 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
@@ -293,7 +306,6 @@ PROCEDURE dataAvailable :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pcRelative AS CHARACTER NO-UNDO.
- 
 
   DEFINE VARIABLE hBrowse           AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hDataSource       AS HANDLE    NO-UNDO.
@@ -304,15 +316,32 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE hSource           AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cDisplayed        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cColumns          AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE lInitialized      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE hToolbarSource    AS HANDLE     NO-UNDO.
+  /* Do nothing if source sdo is not initialized - used when runing
+     tableout procedure in sdo to disable standard behaviour of linked objects
+     whilst we scroll through the sdo query*/
+  {get DataSource hSource}.
+
+  IF VALID-HANDLE(hSource) THEN
+  DO:
+    {get objectinitialized lInitialized hSource}.
+    IF NOT lInitialized THEN RETURN.
+  END.
+
+  {get ToolbarSource hToolbarSource}.
+  IF VALID-HANDLE(hToolbarSOurce) THEN
+      RUN resetToolbar IN hToolbarSource.
   /* if we got this message from "ourselves", because someone selected
      a row in the browser, which ran dataAvailable in the DataSource,
      then ignore it when it comes back. */
   IF glReposition THEN 
   DO:
-     glReposition = no.
-     RETURN.  
+    glReposition = no.
+    RETURN.  
   END.
+ 
+
   /* If a Relative flag of FIRST/NEXT/LAST/PREV comes from a master query,
      and we are a dependent detail query OF that master, then treat these
      as just being DIFFERENT rows, and signal our super proc (query.p)
@@ -320,17 +349,17 @@ PROCEDURE dataAvailable :
   {get QueryObject lSelfQuery}.
   {get QueryObject lSourceQuery SOURCE-PROCEDURE} NO-ERROR.
   
-  /* If this is a browse with its own query, we have to differentiate 
-     between events coming from this browser
-     through the VALUE-CHANGED trigger, which we want to respond to,
-     and the event published by our super procedure, query.p,
-     which we need to ignore to avoid an infinite loop. So brschnge.i
-     sends a special parameter of VALUE-CHANGED for that trigger,
-     which we convert to DIFFERENT. Otherwise we ignore DIFFERENT if it
-     comes from "ourself" or when we browse an SDO */
+   /* If this is a browse with its own query, we have to differentiate 
+     between events coming from this browser through the VALUE-CHANGED trigger, 
+     which we want to respond to, and the event published by our super procedure,
+     query.p, which we need to ignore to avoid an infinite loop. So brschnge.i
+     sends a special parameter of VALUE-CHANGED for that trigger,which we 
+     convert to DIFFERENT. Otherwise we ignore DIFFERENT if it comes from 
+     "ourself" or when we browse an SDO. We also ignore 'RESET' from an SDO. */
+
   IF NOT lSelfQuery OR (lSelfQuery AND THIS-PROCEDURE = SOURCE-PROCEDURE) THEN
   DO:
-    IF pcRelative = "DIFFERENT":U THEN
+    IF pcRelative = 'DIFFERENT':U THEN
     DO:
      /* Before the SBO was introduced the browse always received 'FIRST'
         at start up, so glRepositon was always changed from its initial ? value.
@@ -340,9 +369,16 @@ PROCEDURE dataAvailable :
       IF glReposition = ? THEN glReposition = NO.
       {get DataSource hDataSource}.
       cRowIdent = ENTRY(1,{fnarg colValues '':U hDataSource},CHR(1)).
-      {set RowIdent cRowIdent}.        
+      {set RowIdent cRowIdent}.   
       RETURN.
     END. /* pcRelative = different */
+    ELSE IF LOOKUP(pcRelative,"SAME,RESET":U) > 0 THEN
+    DO:
+       /* this is necessary because BROWSER:REFRESH does not refresh */
+       /* the current row */
+       RUN displayRecord IN TARGET-PROCEDURE. 
+       RUN refreshBrowse IN TARGET-PROCEDURE.
+    END.
   END.
   /* If the browser has its own db query and no Foreign Fields, and this
      request didn't come from itself, then this is a request from an SDO
@@ -350,7 +386,6 @@ PROCEDURE dataAvailable :
   IF lSelfQuery AND SOURCE-PROCEDURE NE THIS-PROCEDURE THEN 
   DO:
     {get ForeignFields cFields}.
-    {get DataSource hSource}.
     IF cFields = "":U AND VALID-HANDLE(hSource) THEN
     DO:
       {get DisplayedFields cDisplayed}.
@@ -374,7 +409,7 @@ PROCEDURE dataAvailable :
         IF glReposition = ? THEN no ELSE yes.
   
   {get BrowseHandle hBrowse}.
-
+  
   CASE pcRelative:
     WHEN "FIRST":U THEN 
     DO:
@@ -411,20 +446,18 @@ PROCEDURE dataAvailable :
     END.    
     WHEN "REPOSITIONED":U THEN /* NOTHING..  We did navigate, but a REPOSITION has 
                                 already synced the browse */ .
-
-    OTHERWISE RUN SUPER(pcRelative).  /* Let super take care of 'same','diff'*/
   END CASE.
- 
+  
   IF NOT lSelfQuery 
   AND LOOKUP(pcRelative,'REPOSITIONED,FIRST,NEXT,PREV,LAST':U) NE 0 THEN 
   DO:
-    /* colValues will return ALL rowids for an SBO when no fields is passed, 
-       but getRowident will filter away the abundant ones.. */
+    RUN SUPER(pcRelative).  
+   /* colValues will return ALL rowids for an SBO when no fields is passed, 
+      but getRowident will filter away the abundant ones.. */
     {get DataSource hDataSource}.
-    cRowIdent = ENTRY(1,{fnarg colValues '':U hDataSource},CHR(1)).
+    cRowIdent = ENTRY(1,{fnarg colValues '':U hdataSource},CHR(1)).
     {set RowIdent cRowIdent}.  
   END.
-  
   RETURN.
 END PROCEDURE.
 

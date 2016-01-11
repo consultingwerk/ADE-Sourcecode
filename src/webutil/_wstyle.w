@@ -107,7 +107,8 @@ ON CLOSE OF THIS-PROCEDURE
    RUN dispatch ('destroy':U).
 
 /* Run the local/adm-destroy procedures, if the procedure is ending.    */
-IF NOT THIS-PROCEDURE:PERSISTENT THEN RUN dispatch ('destroy':U).
+IF NOT THIS-PROCEDURE:PERSISTENT THEN 
+  RUN dispatch ('destroy':U).
 
 /* ********************** Function Definitions ************************ */
 

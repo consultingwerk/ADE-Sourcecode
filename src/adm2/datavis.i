@@ -136,9 +136,35 @@ PROCEDURE displayObjects :
   DEFINE VARIABLE cNewRecord AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hFirstBuff AS HANDLE     NO-UNDO.
 
-  &IF "{&DISPLAYED-OBJECTS}":U NE "":U &THEN
+  DEFINE VARIABLE cEnabledObjHdls       AS CHARACTER            NO-UNDO.
+  DEFINE VARIABLE iObjectLoop           AS INTEGER              NO-UNDO.
+  DEFINE VARIABLE hFrameField           AS HANDLE               NO-UNDO.
+  
+  &IF "{&ICF-DYNAMIC-VIEWER}":U EQ "YES":U &THEN  
+  {get EnabledObjHdls cEnabledObjHdls}.
+
+  DO iObjectLoop = 1 TO NUM-ENTRIES(cEnabledObjHdls):
+      ASSIGN hFrameField = WIDGET-HANDLE(ENTRY(iObjectLoop, cEnabledObjHdls)) NO-ERROR. 
+      IF VALID-HANDLE(hFrameField) THEN        
+      DO:
+          FIND ttWidget WHERE
+               ttWidget.tWidgetHandle = hFrameField AND
+               ttWidget.tVisible      = YES
+               NO-ERROR.
+          IF AVAILABLE ttWidget THEN
+          DO:
+              IF ttWidget.tWidgetType = "SmartDataField":U THEN
+                  RUN setAttributesInObject IN gshSessionManager ( INPUT ttWidget.tWidgetHandle,
+                                                                   INPUT ("DataValue":U + CHR(4) + ttWidget.tInitialValue) ) NO-ERROR.
+              ELSE
+              IF CAN-SET(ttWidget.tWidgetHandle, "SCREEN-VALUE":U) THEN
+                  ASSIGN ttWidget.tWidgetHandle:SCREEN-VALUE = ttWidget.tInitialValue.
+          END.  /* avail ttWidget */
+      END.  /* valid frame field */
+  END.  /* object loop */
+  &ELSEIF "{&DISPLAYED-OBJECTS}":U NE "":U &THEN
     DISPLAY {&UNLESS-HIDDEN} {&DISPLAYED-OBJECTS} WITH FRAME {&FRAME-NAME}.
-  &ENDIF
+  &ENDIF  
 
   &IF "{&BROWSE-NAME}":U NE "":U &THEN
      /* This piece of code is here to specifically refresh a browse row for

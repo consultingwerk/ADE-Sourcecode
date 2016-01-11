@@ -32,6 +32,12 @@
     Description :
 
     Modified    : May 19, 1999 Version 9.1A
+    Modified    : 10/23/2001          Mark Davies (MIP)
+                  Added two new fields for ResizeHorizontal and ResizeVertical
+    Modified    : 11/02/2001          Mark Davies (MIP)
+                  Replaced properties for FrameMinHeightChars and FrameMinWidthChars with MinHeight and MinWidth
+    Modified    : 11/14/2001          Mark Davies (MIP)
+                  Renamed property 'DisplayFieldsSecurity' to 'FieldSecurity'
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -114,27 +120,43 @@ HideOnInit,DisableOnInit,ObjectLayout
   &GLOB xpObjectEnabled
   &GLOB xpLayoutVariable
   &GLOB xpDefaultLayout
-  &GLOB xpHideOnInit
   &GLOB xpDisableOnInit
   &GLOB xpEnabledObjFlds
   &GLOB xpEnabledObjHdls
-
+  &GLOB xpFieldSecurity       /* This property contains the security for all objects found in the AllFieldHandles Property */
+  &GLOB xpAllFieldHandles     /* quick access to all handles on object, e.g. viewer, whether enabled or not */
+  &GLOB xpAllFieldNames       /* quick access to all fields on object, e.g. viewer, whether enabled or not */
+  
+  &GLOBAL-DEFINE xpResizeHorizontal
+  &GLOBAL-DEFINE xpResizeVertical
+  
   /* Include the next property file up the chain (in this case, the top
      of the chain); it starts the property temp-table definition and we
      add our field definitions to it. */
 
-  {src/adm2/smrtprop.i}
-
+&IF DEFINED(APP-SERVER-VARS) = 0 &THEN
+   {src/adm2/smrtprop.i}
+ /* else if appserver aware (adecomm/appserv.i) include appserver props */
+&ELSE
+   {src/adm2/appsprop.i}
+&ENDIF
+  
 &IF "{&ADMSuper}":U = "":U &THEN
-  ghADMProps:ADD-NEW-FIELD('ObjectLayout':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('LayoutOptions':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('ObjectEnabled':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('LayoutVariable':U, 'CHAR':U, 0, ?, '{&LAYOUT-VARIABLE}':U).
-  ghADMProps:ADD-NEW-FIELD('DefaultLayout':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('HideOnInit':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('DisableOnInit':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('EnabledObjFlds':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('EnabledObjHdls':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ObjectLayout':U,     'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('LayoutOptions':U,    'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ObjectEnabled':U,    'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('LayoutVariable':U,   'CHARACTER':U, 0, ?, '{&LAYOUT-VARIABLE}':U).
+  ghADMProps:ADD-NEW-FIELD('DefaultLayout':U,    'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('DisableOnInit':U,    'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('EnabledObjFlds':U,   'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('EnabledObjHdls':U,   'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('FieldSecurity':U,    'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('AllFieldHandles':U,  'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('AllFieldNames':U,    'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('MinHeight':U,        'DECIMAL':U, 0, ?, 0).
+  ghADMProps:ADD-NEW-FIELD('MinWidth':U,         'DECIMAL':U, 0, ?, 0).
+  ghADMProps:ADD-NEW-FIELD('ResizeHorizontal':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ResizeVertical':U,   'LOGICAL':U, 0, ?, ?).
 &ENDIF
 
   {src/adm2/custom/vispropcustom.i}

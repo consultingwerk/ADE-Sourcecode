@@ -110,7 +110,6 @@ DefineAnyKeyTrigger,StartBrowseKeys
   &GLOBAL-DEFINE xpAutoRefresh 
   &GLOBAL-DEFINE xpModify 
   &GLOBAL-DEFINE xpStarting 
-  &GLOBAL-DEFINE xpLabel 
   &GLOBAL-DEFINE xpFormat 
   &GLOBAL-DEFINE xpTooltip 
   &GLOBAL-DEFINE xpHelpId 
@@ -152,7 +151,7 @@ DefineAnyKeyTrigger,StartBrowseKeys
   ghADMProps:ADD-NEW-FIELD('Modify':U, 'LOG':U, 0, ?, no).       
   ghADMProps:ADD-NEW-FIELD('Label':U, 'CHAR':U, 0, ?, '':U).    
   ghADMProps:ADD-NEW-FIELD('ToolTip':U, 'CHAR':U, 0, ?, '':U).    
-  ghADMProps:ADD-NEW-FIELD('HelpId':U, 'INT':U, 0, ?, ?).    
+  ghADMProps:ADD-NEW-FIELD('HelpId':U, 'INT':U, 0, ?, 0).    
   ghADMProps:ADD-NEW-FIELD('Format':U, 'CHAR':U, 0, ?, ?).    
   ghADMProps:ADD-NEW-FIELD('ChangedEvent':U, 'CHAR':U, 0, ?, '':U).       
   ghADMProps:ADD-NEW-FIELD('DisplayedField':U, 'CHAR':U, 0, ?, '':U).
@@ -181,8 +180,7 @@ DefineAnyKeyTrigger,StartBrowseKeys
   ghADMProps:ADD-NEW-FIELD('RepositionDataSource':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('DefineAnyKeyTrigger':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('StartBrowseKeys':U, 'CHARACTER':U, 0, ?, 'NEXT-FRAME':U).  
-  ghADMProps:ADD-NEW-FIELD('DataValue':U, 'CHARACTER':U, 0, ?, '':U). 
-  ghADMProps:ADD-NEW-FIELD('DisplayValue':U, 'CHARACTER':U, 0, ?, '':U). 
+ 
 &ENDIF
 
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/

@@ -47,11 +47,13 @@ Included in:
 
 History:
     hutegger    95/03   creation
+    mcmann     08/21/01 D. McMann Added check for &sh being set to ? to stop comparing ? to ""
+                        which was causing the variable to exceed 32K.
     
 --------------------------------------------------------------------*/        
 /*h-*/
 
-if {&sh} <> {&ns}
+if ({&sh} <> {&ns}) AND {&sh} <> ? 
  then assign 
     l_{&msgvar}-msg = l_{&msgvar}-msg + "    " + "{&object} "
                     + {&o-name} + ": " + "{&attrbt}"

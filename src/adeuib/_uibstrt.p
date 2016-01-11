@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -74,6 +74,9 @@ Modified:
                    numeric formats
   9/30/99 jep      Set the advanced/color editor dialog box help file name with
                    call to procedure SetEdHelpFile defined in adecomm/peditor.i.
+  8/15/01 jep      ICF development environment support. jep-icf
+                   Use _AB_Tools to see if Enable-ICF is true and make window
+                   changes and status bar changes based on that.
 ---------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER h_menu_frame    AS WIDGET NO-UNDO. 
 DEFINE INPUT  PARAMETER h_menubar       AS WIDGET NO-UNDO.
@@ -105,13 +108,17 @@ DEFINE VARIABLE i             AS INTEGER                    NO-UNDO.
 DEFINE VARIABLE j             AS INTEGER                    NO-UNDO.
 DEFINE VARIABLE non           AS LOGICAL                    NO-UNDO. /* any non-PRO dbs? */
 DEFINE VARIABLE org           AS CHARACTER                  NO-UNDO.
+DEFINE VARIABLE status-boxes  AS CHARACTER                  NO-UNDO.
+DEFINE VARIABLE cText         AS CHARACTER INITIAL "12345678901234567890" NO-UNDO. 
+DEFINE VARIABLE chars-per-col AS DECIMAL   INITIAL 1.0                    NO-UNDO.
 
 /* ===================================================================== */
 /*                             LICENSE CHECK                             */
 /* ===================================================================== */
-RUN adeshar/_ablic.p (INPUT YES /* ShowMsgs */ , OUTPUT _AB_license).
+RUN adeshar/_ablic.p (INPUT YES /* ShowMsgs */ , OUTPUT _AB_license, OUTPUT _AB_Tools). /* jep-icf */
 IF _AB_license = ? THEN 
   RETURN "NO-LICENSE":U. /* The AB is not licensed */
+/* jep-icf: AB License check has additional _AB_Tools parameter. */
 
 /* ====================================================================== */
 /*            Setup environment and compute some globals                  */
@@ -195,6 +202,17 @@ CREATE WINDOW _h_menu_win
                 STATUS-AREA    = FALSE
                 TITLE          = "{&UIB_NAME}"
                 HIDDEN         = yes.   
+
+/* jep-icf: Adjust width to account for extra ICF status bar boxes user and company. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+DO:
+  /* jep-icf: Since the status box displays text, add an appropriate amount to the main window
+     taking into account the window's font. */
+  ASSIGN chars-per-col = FONT-TABLE:GET-TEXT-WIDTH(cTEXT, _h_menu_win:FONT) / LENGTH(cText) NO-ERROR.
+  ASSIGN _h_menu_win:WIDTH    = _h_menu_win:WIDTH + (17 * chars-per-col) + (25 * chars-per-col) NO-ERROR.
+  ASSIGN h_menu_frame:WIDTH-P = _h_menu_win:WIDTH-P NO-ERROR.
+END.
+
 /* Shorten the Menu bar if it is too big */
 IF _h_menu_win:X + _h_menu_win:WIDTH-P > SESSION:WIDTH-PIXELS
 THEN _h_menu_win:WIDTH-P = SESSION:WIDTH-PIXELS - _h_menu_win:X.
@@ -208,7 +226,13 @@ ASSIGN ldummy                 = _h_menu_win:LOAD-ICON( {&ADEICON-DIR} +
                                 "{&icon-ext}" )                          
        h_m_rule:WIDTH-PIXELS  = h_menu_frame:WIDTH-PIXELS -
                                 h_menu_frame:BORDER-LEFT-PIXELS -
-                                h_menu_frame:BORDER-RIGHT-PIXELS . 
+                                h_menu_frame:BORDER-RIGHT-PIXELS .
+
+        
+/* jep-icf: Override AppBuilder titlebar icon for ICF. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+    _h_menu_win:LOAD-ICON("adeicon/icfdev.ico":U) NO-ERROR.
+
                                 
 /* Walk the widget tree to make sure all widgets fit in the frame -- this
  * (hopefully) will solve any problem of font changes. This is a last-ditch
@@ -222,18 +246,23 @@ DO WHILE h NE ?:
   IF h:X + h:WIDTH-P >= h_menu_frame:WIDTH-P 
   THEN h:WIDTH-P = h_menu_frame:WIDTH-P - h:X - 1. 
   IF h:Y + h:HEIGHT-P >= h_menu_frame:HEIGHT-P 
-  THEN h:HEIGHT-P = h_menu_frame:HEIGHT-P - h:Y - 1. 
+  THEN h:HEIGHT-P = h_menu_frame:HEIGHT-P - h:Y - 1.
+  /* jep-icf: Size toolbar rectangle to equal the frame width. */
+  IF (h:NAME = "tbrect":u) THEN
+    ASSIGN h:WIDTH-P = h_menu_frame:WIDTH-P NO-ERROR.
   h = h:NEXT-SIBLING.
 END.
 
 /* Add a Status Bar to the main window.  Enlarge the window to accomodate this. */
+ASSIGN status-boxes = "30,4,17,3":U.
+/* jep-icf: Add status boxes for icf information user and company. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+  ASSIGN status-boxes = status-boxes + ",17,25":U.
+
 RUN adecomm/_status.p (INPUT _h_menu_win,
-                       INPUT IF SESSION:WIDTH-PIXELS EQ 640 AND
-                                SESSION:PIXELS-PER-COLUMN EQ 8 
-                             THEN "30,4,12,3":U  
-                             ELSE "30,4,17,3":U,
+                       INPUT status-boxes,
                        INPUT False,
-                       INPUT 4,
+                       INPUT 4, /* font */
                        OUTPUT _h_status_line, OUTPUT idummy).              
 
   ASSIGN _h_menu_win:HEIGHT-P   = _h_menu_win:HEIGHT-P + _h_status_line:HEIGHT-P.

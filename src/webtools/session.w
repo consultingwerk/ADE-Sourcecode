@@ -3,7 +3,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -27,21 +27,27 @@
 /*------------------------------------------------------------------------
   File: session.w
   
-  Description: List the Global WebSpeed session variables defined in 
+  Description: List the global WebSpeed session variables defined in 
                cgi-defs.i and in the Session
-
-  Modifications: Cleaned up HTML.                    nhorn 1/8/97
-                 Add Web Context Variables           nhorn 1/22/97
-                 Added NUMERIC-DECIMAL-POINT and     tsm   5/25/99
-                 NUMERIC-SEPARATOR session 
-                 attributes for v9.1   
-                 Added CONTEXT-HELP-FILE session     tsm   6/11/99
-                 attribute for v9.1                                               
 
   Parameters:  <none>
 
-  Author:  Wm. T. Wood
-  Created: Sept. 9, 1996
+  Updated: 09/09/1996 wood@progress.com
+             Initial version
+           01/08/1997 nhorn@progress.com
+             Cleaned up HTML.
+           01/22/1997 nhorn@progress.com
+             Add Web Context Variables
+           05/25/1999 tsm@progress.com
+             Added NUMERIC-DECIMAL-POINT and NUMERIC-SEPARATOR session 
+             attributes for v9.1   
+           06/11/1999 tsm@progress.com
+             Added CONTEXT-HELP-FILE session attribute for v9.1
+           08/16/2001 adams@progress.com
+             Added OS option
+           10/01/2001 adams@progress.com
+             Added WEB-CONTEXT:HTML-CHARSET
+             
 ------------------------------------------------------------------------*/
 /*           This .W file was created with WebSpeed Workshop.           */
 /*----------------------------------------------------------------------*/
@@ -78,11 +84,8 @@ DEFINE TEMP-TABLE tt NO-UNDO
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
 &ANALYZE-SUSPEND _INCLUDED-LIBRARIES
-/* Standard WebTool Included Libraries --  */
-{ webtools/webtool.i }
-
-/* Needed to check CGI Variables List --   */
-{ src/web/method/cgiarray.i }
+{ webtools/webtool.i }        /* Standard WebTool libraries */
+{ src/web/method/cgiarray.i } /* Needed to check CGI variables */
 &ANALYZE-RESUME _END-INCLUDED-LIBRARIES
 
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM "Main Code Block" 
@@ -150,6 +153,32 @@ PROCEDURE create-CGI-list :
     tt.lbl = ch + "<SUP>*</SUP>":U.
   END.
   
+END PROCEDURE.
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE create-OS-list 
+PROCEDURE create-OS-list :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cPair AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iPos  AS INTEGER    NO-UNDO.
+
+INPUT THROUGH "set":U NO-ECHO NO-MAP.
+REPEAT:
+  IMPORT UNFORMATTED cPair.
+
+  iPos = INDEX(cPair, "=":U).
+  IF iPos = 0 THEN NEXT.
+
+  CREATE tt. 
+    ASSIGN 
+      tt.lbl = SUBSTRING(cPair, 1, iPos - 1, "character":U)
+      tt.val = SUBSTRING(cPair, iPos + 1, -1, "character":U).
+END.
+INPUT CLOSE.
+
 END PROCEDURE.
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE create-session-list 
@@ -266,6 +295,12 @@ PROCEDURE create-Web-Context-list :
    ASSIGN tt.lbl = "EXCLUSIVE-ID"
           tt.val = WEB-CONTEXT:EXCLUSIVE-ID.
 
+   &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN
+   CREATE tt.
+   ASSIGN tt.lbl = "HTML-CHARSET"
+          tt.val = WEB-CONTEXT:HTML-CHARSET.
+   &ENDIF
+   
    CREATE tt.
    ASSIGN tt.lbl = "HTML-END-OF-LINE"
           tt.val = WEB-CONTEXT:HTML-END-OF-LINE.
@@ -358,7 +393,7 @@ PROCEDURE dump-list :
 ------------------------------------------------------------------------------*/
   DEFINE VAR htmlVal AS CHAR NO-UNDO.
 
-  {&OUT} '<UL><TABLE BORDER = "0" CELLPADDING = "0" CELLSPACING = "0" >~r~n'.
+  {&OUT} '<UL><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0">~r~n'.
   FOR EACH tt:
     /* Convert all values to html-viewable characters. */
     RUN AsciiToHtml IN web-utilities-hdl (tt.val, OUTPUT htmlVal).
@@ -377,33 +412,29 @@ PROCEDURE process-web-request :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VAR i       AS INTEGER NO-UNDO.
-  DEFINE VAR cnt     AS INTEGER NO-UNDO.
-  DEFINE VAR l_CGI   AS LOGICAL NO-UNDO.
-  DEFINE VAR l_SES   AS LOGICAL NO-UNDO.
-  DEFINE VAR l_WS    AS LOGICAL NO-UNDO.
-  DEFINE VAR l_WC    AS LOGICAL NO-UNDO.
-  
-  DEFINE VAR sections AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cnt      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE l_CGI    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE l_OS     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE l_SES    AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE l_WS     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE l_WC     AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE ix       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE sections AS CHARACTER NO-UNDO.
 
-  /* 
-   * Output the MIME header and set up the object as state-less or state-aware. 
-   * This is required if any HTML is to be returned to the browser.
-   */   
+  /* Output the MIME header. */   
   RUN outputContentType IN web-utilities-hdl ("text/html":U).
   
-  
-  /* 
-   * Get the list of lists that we are to return. 
-   */
+  /* Get the list of lists that we are to return. */
   RUN GetField IN web-utilities-hdl ("Sections", OUTPUT sections).
   /* Always show something. */
-  IF REQUEST_METHOD eq "GET" AND sections eq "" THEN sections = "CGI".
-  ASSIGN l_CGI = LOOKUP ("CGI",sections) > 0
-         l_SES = LOOKUP ("SESSION", sections) > 0
-         l_WS  = LOOKUP ("WebSpeed", sections) > 0
-	 l_WC  = LOOKUP ("Web-Context", sections) > 0
-         .
+  IF REQUEST_METHOD eq "GET" AND sections eq "" THEN sections = "CGI":U.
+  ASSIGN 
+    l_CGI = LOOKUP("CGI":U,sections) > 0
+    l_SES = LOOKUP("SESSION":U, sections) > 0
+    l_WS  = LOOKUP("WebSpeed":U, sections) > 0
+    l_WC  = LOOKUP("Web-Context":U, sections) > 0
+    l_OS  = LOOKUP("OS":U, sections) > 0
+    .
          
   {&OUT} 
    {webtools/html.i 
@@ -421,20 +452,22 @@ PROCEDURE process-web-request :
     '<TR><TD ALIGN="LEFT">'
     format-label ("List Variables for":U, "TOP":U, "":U) '<BR>~n'
     '<FONT COLOR="' get-color("HIGHLIGHT":U) '"><B>'
-    '<INPUT TYPE="CHECKBOX" NAME = "Sections" VALUE = "CGI"' 
-            (IF l_CGI THEN " CHECKED>" ELSE ">") 'CGI ~n'
-    '<INPUT TYPE="CHECKBOX" NAME = "Sections" VALUE = "WebSpeed"' 
-            (IF l_WS THEN " CHECKED>" ELSE ">") 'WebSpeed ~n'
-    '<INPUT TYPE="CHECKBOX" NAME = "Sections" VALUE = "Web-Context"'
+    '<INPUT TYPE="checkbox" NAME="Sections" VALUE="cgi"' 
+      (IF l_CGI THEN " CHECKED>" ELSE ">") 'CGI ~n'
+    '<INPUT TYPE="checkbox" NAME="Sections" VALUE="webspeed"' 
+      (IF l_WS THEN " CHECKED>" ELSE ">") 'WebSpeed ~n'
+    '<INPUT TYPE="checkbox" NAME="Sections" VALUE="web-context"'
 	    (IF l_WC THEN " CHECKED>" ELSE ">") 'Web-Context ~n' 
-    '<INPUT TYPE="CHECKBOX" NAME = "Sections" VALUE = "SESSION"' 
-            (IF l_SES THEN " CHECKED>" ELSE ">") 'Session <B></TD>~n'
+    '<INPUT TYPE="checkbox" NAME="Sections" VALUE="session"' 
+      (IF l_SES THEN " CHECKED>" ELSE ">") 'Session ~n'
+    '<INPUT TYPE="checkbox" NAME="Sections" VALUE="os"' 
+      (IF l_OS THEN " CHECKED>" ELSE ">") 'OS <B></TD>~n'
     '<TD><INPUT TYPE = "SUBMIT" VALUE = "Get List"></TD></TR>~n'
     '</TABLE>~n'
     '</CENTER>~n'
     '</FORM>~n'.
   
-  /* Output a the global CGI Variables. */
+  /* Output the global CGI variables. */
   IF l_CGI THEN DO:
     {&OUT} '<HR>' format-text('CGI Environment Variables', 'H3':U) '~n'.  
     /* Dump the CGI variables. */
@@ -447,7 +480,7 @@ PROCEDURE process-web-request :
       '<BR><BR> ~n'.  
   END.
    
-  /* Output the Miscellaneous WebSpeed Variables. */
+  /* Output the miscellaneous WebSpeed variables. */
   IF l_WS THEN DO:
     {&OUT} '<HR>' format-text('WebSpeed Variables', 'H3':U) '~n'.
     /* Dump the CGI variables. */
@@ -455,7 +488,7 @@ PROCEDURE process-web-request :
     RUN dump-list.     
   END.  
   
-  /* Output the Web Context Variables. */
+  /* Output the Web Context variables. */
   IF l_WC THEN DO:
     {&OUT} '<HR>' format-text('WebSpeed WEB-CONTEXT Attributes', 'H3':U) '~n'. 
     /* Dump the Web Context variables. */
@@ -463,11 +496,19 @@ PROCEDURE process-web-request :
     RUN dump-list.     
   END.  
 
-  /* Output the PROGRESS Session Variables. */
+  /* Output the PROGRESS Session variables. */
   IF l_SES THEN DO:
     {&OUT} '<HR>' format-text('WebSpeed SESSION Attributes', 'H3':U) '~n'. 
     /* Dump the CGI variables. */
     RUN create-session-list.
+    RUN dump-list.     
+  END.  
+  
+  /* Output the OS variables. */
+  IF l_OS THEN DO:
+    {&OUT} '<HR>' format-text('OS Environment Variables', 'H3':U) '~n'.
+    /* Dump the OS variables. */
+    RUN create-OS-list.
     RUN dump-list.     
   END.  
   

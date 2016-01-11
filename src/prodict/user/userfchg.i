@@ -28,7 +28,7 @@
 {4} = FALSE.
 
 RUN VALUE("prodict/" +  
-  IF   _File._Db-lang = 1            THEN "pro/_pro_sql.p"
+  IF   _File._Db-lang > 0            THEN "pro/_pro_sql.p"
   ELSE IF user_dbtype = "ORACLE"     THEN "ora/_ora_fld.p"
   ELSE IF CAN-DO(odbtyp,user_dbtype) THEN "odb/_odb_fld.p"
   ELSE IF user_dbtype = "AS400"      THEN "as4/_as4_fld.p"

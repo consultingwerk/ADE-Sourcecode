@@ -1,0 +1,2002 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-RESUME
+/* Connected Databases 
+          sports2000       PROGRESS
+*/
+&Scoped-define WINDOW-NAME wWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/*------------------------------------------------------------------------
+
+  File: 
+
+  Description: from cntnrwin.w - ADM SmartWindow Template
+
+  Input Parameters:
+      <none>
+
+  Output Parameters:
+      <none>
+
+  History: New V9 Version - January 15, 1998
+
+  Modified: 02/11/2002        Mark Davies (MIP)
+            Fix for issue #3869 - HIGH-CHARACTER preprocessor is wrong
+            Replace HIGH-CHARACTER preprocessor value with value retreived
+            from function getHighKey in general manager.
+------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress AB.              */
+/*----------------------------------------------------------------------*/
+
+/* Create an unnamed pool to store all the widgets created 
+     by this procedure. This is a good default which assures
+     that this procedure's triggers and internal procedures 
+     will execute in this procedure's storage, and that proper
+     cleanup will occur on deletion of the procedure. */
+
+CREATE WIDGET-POOL.
+
+/* ***************************  Definitions  ************************** */
+
+{af/sup2/afglobals.i}
+
+/* Parameters Definitions ---                                           */
+
+DEFINE VARIABLE lInitialized AS LOGICAL INITIAL FALSE.
+
+/* Local Variable Definitions ---                                       */
+
+{src/adm2/schemai.i}  
+
+DEFINE VARIABLE gcFilterOrFind      AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE glFilterModified    AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE gcDataObjectType    AS CHARACTER    NO-UNDO.
+
+/* the high character is appended to character > operations */
+
+&SCOPED-DEFINE DISABLED-BACKGROUND 8
+&SCOPED-DEFINE NON-SORT-COLOR 7
+
+DEFINE VARIABLE cSortBy AS CHARACTER    NO-UNDO.
+
+DEFINE TEMP-TABLE ttCacheSchema     NO-UNDO LIKE ttSchema.
+
+DEFINE TEMP-TABLE ttDataObject      NO-UNDO
+    FIELD tSdoHandle        AS HANDLE
+    FIELD tSdoOrder         AS INTEGER
+    FIELD tFieldNames       AS CHARACTER
+    FIELD tFieldValues      AS CHARACTER
+    FIELD tFieldOperators   AS CHARACTER
+    FIELD tSdoSignature     AS CHARACTER
+    FIELD tFilterSettings   AS CHARACTER    /* as stored per profile */
+    FIELD tSboHandle        AS HANDLE
+    FIELD tMasterObject     AS LOGICAL      INITIAL NO
+    INDEX idxOrder
+        tSdoOrder
+    .
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE SmartWindow
+&Scoped-define DB-AWARE no
+
+&Scoped-define ADM-CONTAINER WINDOW
+
+&Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
+
+/* Name of first Frame and/or Browse and/or first Query                 */
+&Scoped-define FRAME-NAME fMain
+&Scoped-define BROWSE-NAME brFilter
+
+/* Internal Tables (found by Frame, Query & Browse Queries)             */
+&Scoped-define INTERNAL-TABLES ttSchema
+
+/* Definitions for BROWSE brFilter                                      */
+&Scoped-define FIELDS-IN-QUERY-brFilter ttSchema.INDEX_position ttSchema.COLUMN_label ttSchema.search_from ttSchema.search_to ttSchema.search_contains ttSchema.search_matches (IF ttSchema.TABLE_label <> ? THEN ttSchema.TABLE_label ELSE ttSchema.TABLE_name)   
+&Scoped-define ENABLED-FIELDS-IN-QUERY-brFilter ttSchema.search_from ttSchema.search_to ttSchema.search_contains ttSchema.search_matches   
+&Scoped-define ENABLED-TABLES-IN-QUERY-brFilter ttSchema
+&Scoped-define FIRST-ENABLED-TABLE-IN-QUERY-brFilter ttSchema
+&Scoped-define SELF-NAME brFilter
+&Scoped-define QUERY-STRING-brFilter FOR EACH ttSchema WHERE NOT ttSchema.adm_column AND ttSchema.table_name <> ""                         AND INDEX(ttschema.COLUMN_name, ~
+       "_obj") = 0         BY ttSchema.sdo_order         BY ttSchema.table_sequence         BY ttSchema.index_position         BY ttSchema.column_label
+&Scoped-define OPEN-QUERY-brFilter OPEN QUERY {&browse-name}     FOR EACH ttSchema WHERE NOT ttSchema.adm_column AND ttSchema.table_name <> ""                         AND INDEX(ttschema.COLUMN_name, ~
+       "_obj") = 0         BY ttSchema.sdo_order         BY ttSchema.table_sequence         BY ttSchema.index_position         BY ttSchema.column_label.
+&Scoped-define TABLES-IN-QUERY-brFilter ttSchema
+&Scoped-define FIRST-TABLE-IN-QUERY-brFilter ttSchema
+
+
+/* Definitions for FRAME fMain                                          */
+&Scoped-define OPEN-BROWSERS-IN-QUERY-fMain ~
+    ~{&OPEN-QUERY-brFilter}
+
+/* Standard List Definitions                                            */
+&Scoped-Define ENABLED-OBJECTS rsPermanent brFilter fiRowsToBatch ToRebuild ~
+EdManualQuery 
+&Scoped-Define DISPLAYED-OBJECTS rsPermanent fiRowsToBatch ToRebuild ~
+EdManualQuery fiManualQuery 
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD evaluateOuterJoins wWin 
+FUNCTION evaluateOuterJoins RETURNS CHARACTER
+  (pcQueryString  AS CHARACTER,
+   pcFilterFields AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD evaluateQueryString wWin 
+FUNCTION evaluateQueryString RETURNS LOGICAL
+  ( INPUT phSdoHandle       AS HANDLE,
+    INPUT pcFieldNames      AS CHARACTER ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateActive wWin 
+FUNCTION getUpdateActive RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWindowName wWin 
+FUNCTION getWindowName RETURNS CHARACTER
+    ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ***********************  Control Definitions  ********************** */
+
+/* Define the widget handle for the window                              */
+DEFINE VAR wWin AS WIDGET-HANDLE NO-UNDO.
+
+/* Definitions of handles for SmartObjects                              */
+DEFINE VARIABLE h_afspfoldrw AS HANDLE NO-UNDO.
+DEFINE VARIABLE h_dyntoolbar AS HANDLE NO-UNDO.
+
+/* Definitions of the field level widgets                               */
+DEFINE VARIABLE EdManualQuery AS CHARACTER 
+     VIEW-AS EDITOR MAX-CHARS 3000 SCROLLBAR-VERTICAL LARGE
+     SIZE 71.6 BY 10.57 NO-UNDO.
+
+DEFINE VARIABLE fiManualQuery AS CHARACTER FORMAT "X(256)":U INITIAL "Manual Query (not saved):" 
+      VIEW-AS TEXT 
+     SIZE 50 BY .62 TOOLTIP "If modify query here, this will override filters for now, but is not saved" NO-UNDO.
+
+DEFINE VARIABLE fiRowsToBatch AS INTEGER FORMAT ">>>>>9":U INITIAL 0 
+     LABEL "Rows to Batch" 
+     VIEW-AS FILL-IN 
+     SIZE 14 BY 1 TOOLTIP "Records to retrieve per Appserver call (default 200)" NO-UNDO.
+
+DEFINE VARIABLE rsPermanent AS CHARACTER 
+     VIEW-AS RADIO-SET HORIZONTAL
+     RADIO-BUTTONS 
+          "Session", "SES",
+"Permanent", "PER"
+     SIZE 29 BY .95 NO-UNDO.
+
+DEFINE VARIABLE ToRebuild AS LOGICAL INITIAL no 
+     LABEL "Rebuild on Reposition" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 40.8 BY .81 TOOLTIP "Rebuild dataset on reposition (set to YES for large datasets)" NO-UNDO.
+
+/* Query definitions                                                    */
+&ANALYZE-SUSPEND
+DEFINE QUERY brFilter FOR 
+      ttSchema SCROLLING.
+&ANALYZE-RESUME
+
+/* Browse definitions                                                   */
+DEFINE BROWSE brFilter
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS brFilter wWin _FREEFORM
+  QUERY brFilter DISPLAY
+      ttSchema.INDEX_position FORMAT "x(12)"  COLUMN-LABEL "Index"
+    ttSchema.COLUMN_label   FORMAT "x(25)" COLUMN-LABEL "Column"
+    ttSchema.search_from COLUMN-LABEL "From" FORMAT "X(256)" WIDTH 20
+    ttSchema.search_to COLUMN-LABEL "To" FORMAT "X(256)" WIDTH 20
+    ttSchema.search_contains COLUMN-LABEL "Contains" FORMAT "X(256)" WIDTH 20
+    ttSchema.search_matches COLUMN-LABEL "Matches" FORMAT "X(256)" WIDTH 20
+    (IF ttSchema.TABLE_label <> ? THEN  ttSchema.TABLE_label ELSE ttSchema.TABLE_name) FORMAT "x(25)" COLUMN-LABEL "Table"
+ENABLE ttSchema.search_from
+ttSchema.search_to
+ttSchema.search_contains
+ttSchema.search_matches
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 74 BY 13.14 ROW-HEIGHT-CHARS .62 EXPANDABLE.
+
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME fMain
+     rsPermanent AT ROW 1.24 COL 1 NO-LABEL
+     brFilter AT ROW 4.1 COL 4
+     fiRowsToBatch AT ROW 4.24 COL 18.2 COLON-ALIGNED
+     ToRebuild AT ROW 4.33 COL 35.8
+     EdManualQuery AT ROW 6.43 COL 5 NO-LABEL
+     fiManualQuery AT ROW 5.57 COL 2.8 COLON-ALIGNED NO-LABEL
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 80 BY 17.
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: SmartWindow
+   Allow: Basic,Browse,DB-Fields,Query,Smart,Window
+   Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
+   Other Settings: COMPILE
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+IF SESSION:DISPLAY-TYPE = "GUI":U THEN
+  CREATE WINDOW wWin ASSIGN
+         HIDDEN             = YES
+         TITLE              = "Find / Filter"
+         HEIGHT             = 17
+         WIDTH              = 80
+         MAX-HEIGHT         = 35.67
+         MAX-WIDTH          = 204.8
+         VIRTUAL-HEIGHT     = 35.67
+         VIRTUAL-WIDTH      = 204.8
+         RESIZE             = yes
+         SCROLL-BARS        = no
+         STATUS-AREA        = no
+         BGCOLOR            = ?
+         FGCOLOR            = ?
+         THREE-D            = yes
+         MESSAGE-AREA       = no
+         SENSITIVE          = yes.
+ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
+/* END WINDOW DEFINITION                                                */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB wWin 
+/* ************************* Included-Libraries *********************** */
+
+{src/adm2/containr.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR WINDOW wWin
+  NOT-VISIBLE,,RUN-PERSISTENT                                           */
+/* SETTINGS FOR FRAME fMain
+                                                                        */
+/* BROWSE-TAB brFilter rsPermanent fMain */
+ASSIGN 
+       EdManualQuery:RETURN-INSERTED IN FRAME fMain  = TRUE.
+
+/* SETTINGS FOR FILL-IN fiManualQuery IN FRAME fMain
+   NO-ENABLE                                                            */
+ASSIGN 
+       fiRowsToBatch:PRIVATE-DATA IN FRAME fMain     = 
+                "nolookups".
+
+IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wWin)
+THEN wWin:HIDDEN = yes.
+
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK BROWSE brFilter
+/* Query rebuild information for BROWSE brFilter
+     _START_FREEFORM
+OPEN QUERY {&browse-name}
+    FOR EACH ttSchema WHERE NOT ttSchema.adm_column AND ttSchema.table_name <> ""
+                        AND INDEX(ttschema.COLUMN_name, "_obj") = 0
+        BY ttSchema.sdo_order
+        BY ttSchema.table_sequence
+        BY ttSchema.index_position
+        BY ttSchema.column_label
+     _END_FREEFORM
+     _Query            is OPENED
+*/  /* BROWSE brFilter */
+&ANALYZE-RESUME
+
+ 
+
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME wWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
+ON END-ERROR OF wWin /* Find / Filter */
+OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
+  /* This case occurs when the user presses the "Esc" key.
+     In a persistently run window, just ignore this.  If we did not, the
+     application would exit. */
+  IF THIS-PROCEDURE:PERSISTENT THEN RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
+ON WINDOW-CLOSE OF wWin /* Find / Filter */
+DO:
+  /* This ADM code must be left here in order for the SmartWindow
+     and its descendents to terminate properly on exit. */
+  APPLY "CLOSE":U TO THIS-PROCEDURE.
+  RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wWin wWin
+ON WINDOW-RESIZED OF wWin /* Find / Filter */
+DO:
+    DEFINE VARIABLE dObjectWidth AS DECIMAL.
+    DEFINE VARIABLE dObjectHeight AS DECIMAL.
+
+    DEFINE VARIABLE dNewWidth AS DECIMAL.
+    DEFINE VARIABLE dNewHeight AS DECIMAL.
+
+    /* make the frame bigger if the window is bigger */
+
+    dNewWidth = {&WINDOW-NAME}:WIDTH.
+    dNewHeight = {&WINDOW-NAME}:HEIGHT.
+
+    FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.   
+    FRAME {&FRAME-NAME}:WIDTH  = MAX(FRAME {&FRAME-NAME}:WIDTH,  dNewWidth ).
+    FRAME {&FRAME-NAME}:HEIGHT = MAX(FRAME {&FRAME-NAME}:HEIGHT, dNewHeight).
+
+    /* the toolbar */
+
+    dObjectHeight = DYNAMIC-FUNCTION('getHeight' IN h_dyntoolbar).
+    RUN resizeObject IN h_dyntoolbar (INPUT dObjectHeight, INPUT dNewWidth).
+
+    /* the folder window */
+
+    RUN resizeObject IN h_afspfoldrw (
+        INPUT dNewHeight - 1.67 - 0.24,
+        INPUT dNewWidth - 2
+        ).
+
+    /* the browser */
+
+    brFilter:WIDTH = dNewWidth - 6.
+    brFilter:HEIGHT = dNewHeight - 3.66.
+    EdManualQuery:WIDTH = dNewWidth - 8.4.
+    EdManualQuery:HEIGHT = dNewHeight - 6.43.
+
+    /* the frame, in case it actually got smaller */
+
+    rsPermanent:MOVE-TO-TOP().                                      
+
+    FRAME {&FRAME-NAME}:WIDTH  = dNewWidth.
+    FRAME {&FRAME-NAME}:HEIGHT = dNewHeight.
+
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME fMain
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fMain wWin
+ON MOUSE-SELECT-DBLCLICK OF FRAME fMain
+DO:
+    DEFINE VARIABLE cQueryColumns           AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cQueryWhere             AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cQueryString            AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE hContainerSource        AS HANDLE       NO-UNDO.
+    DEFINE VARIABLE cLogicalObjectName      AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cRunAttribute           AS CHARACTER    NO-UNDO.                                                         
+    DEFINE VARIABLE csdoName                AS CHARACTER    NO-UNDO.                                                     
+
+    FOR EACH ttDataObject:
+        {get QueryColumns cQueryColumns ttDataObject.tSdoHandle}.
+        {get QueryWhere cQueryWhere ttDataObject.tSdoHandle}.
+        {get QueryString cQueryString ttDataObject.tSdoHandle}.
+        
+        MESSAGE
+            "SDO Name = " ENTRY(1, ttDataObject.tSdoSignature) SKIP
+            "SBO Name (if any) = " ENTRY(2, ttDataObject.tSdoSignature) SKIP
+            "Logical Object Name = " ENTRY(3, ttDataObject.tSdoSignature) SKIP
+            "Run Attribute = " ENTRY(4, ttDataObject.tSdoSignature) SKIP(2)
+            "Query Columns:" cQueryColumns SKIP
+            "Query Where:" cQueryWhere SKIP
+            "Query String:" cQueryString
+            .
+    END.    /* each dataobject */
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define BROWSE-NAME brFilter
+&Scoped-define SELF-NAME brFilter
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFilter wWin
+ON ITERATION-CHANGED OF brFilter IN FRAME fMain
+DO:
+    DEFINE VARIABLE hColumn AS HANDLE.
+
+    hColumn = BROWSE {&BROWSE-NAME}:GET-BROWSE-COLUMN(5).
+    IF ttSchema.word_index
+        THEN hColumn:READ-ONLY = FALSE.
+        ELSE hColumn:READ-ONLY = TRUE.
+
+    hColumn = BROWSE {&BROWSE-NAME}:GET-BROWSE-COLUMN(6).
+    IF ttSchema.COLUMN_datatype = "character" 
+        THEN hColumn:READ-ONLY = FALSE.
+        ELSE hColumn:READ-ONLY = TRUE.
+
+    ttSchema.SEARCH_matches:BGCOLOR IN BROWSE {&BROWSE-NAME} = (IF ttSchema.COLUMN_datatype = "character" THEN ? ELSE {&DISABLED-BACKGROUND}).
+    ttSchema.SEARCH_contains:BGCOLOR IN BROWSE {&BROWSE-NAME} = (IF ttSchema.word_index THEN ? ELSE {&DISABLED-BACKGROUND}).
+
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFilter wWin
+ON ROW-DISPLAY OF brFilter IN FRAME fMain
+DO:
+    ttSchema.SEARCH_matches:BGCOLOR IN BROWSE {&BROWSE-NAME} = (IF ttSchema.COLUMN_datatype = "character" THEN ? ELSE {&DISABLED-BACKGROUND}).
+    ttSchema.SEARCH_contains:BGCOLOR IN BROWSE {&BROWSE-NAME} = (IF ttSchema.word_index THEN ? ELSE {&DISABLED-BACKGROUND}).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFilter wWin
+ON START-SEARCH OF brFilter IN FRAME fMain
+DO:
+    DEFINE VARIABLE hCurrentColumn  AS HANDLE   NO-UNDO.
+    DEFINE VARIABLE rCurrentRow     AS ROWID    NO-UNDO.
+
+    ASSIGN
+        hCurrentColumn = {&BROWSE-NAME}:CURRENT-COLUMN
+        rCurrentRow    = ROWID({&FIRST-TABLE-IN-QUERY-{&BROWSE-NAME}}).
+
+    IF VALID-HANDLE(hCurrentColumn)
+        AND NOT hCurrentColumn:LABEL-BGCOLOR = {&NON-SORT-COLOR} THEN DO:
+        ASSIGN
+            cSortBy = (IF hCurrentColumn:TABLE <> ? THEN
+                             hCurrentColumn:TABLE + '.':U + hCurrentColumn:NAME
+                             ELSE hCurrentColumn:NAME).
+
+        RUN openQuery.
+
+        APPLY "ITERATION-CHANGED":U TO brFilter IN FRAME {&FRAME-NAME}.
+
+        IF NUM-RESULTS( '{&BROWSE-NAME}':U ) > 0 THEN DO:
+            REPOSITION {&BROWSE-NAME} TO ROWID rCurrentRow NO-ERROR.
+            {&BROWSE-NAME}:CURRENT-COLUMN = hCurrentColumn.
+            APPLY 'VALUE-CHANGED':U TO {&BROWSE-NAME}.
+          END.
+    END.
+
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFilter wWin
+ON VALUE-CHANGED OF brFilter IN FRAME fMain
+DO:
+    DEFINE VARIABLE hColumn AS HANDLE.
+
+    hColumn = BROWSE {&BROWSE-NAME}:GET-BROWSE-COLUMN(5).
+    IF ttSchema.word_index
+        THEN hColumn:READ-ONLY = FALSE.
+        ELSE hColumn:READ-ONLY = TRUE.
+
+    hColumn = BROWSE {&BROWSE-NAME}:GET-BROWSE-COLUMN(6).
+    IF ttSchema.COLUMN_datatype = "character" 
+        THEN hColumn:READ-ONLY = FALSE.
+        ELSE hColumn:READ-ONLY = TRUE.
+
+    glFilterModified = TRUE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK wWin 
+
+
+/* ***************************  Main Block  *************************** */
+
+ON CTRL-PAGE-UP OF FRAME {&FRAME-NAME} ANYWHERE DO:
+  PUBLISH "selectPrevTab":U.
+END.
+
+ON CTRL-PAGE-DOWN OF FRAME {&FRAME-NAME} ANYWHERE DO:
+  PUBLISH "selectNextTab":U.
+END.
+
+/* Include custom  Main Block code for SmartWindows. */
+{src/adm2/windowmn.i}
+
+ASSIGN
+    BROWSE {&browse-name}:COLUMN-RESIZABLE   = TRUE
+    BROWSE {&browse-name}:NUM-LOCKED-COLUMNS = 2.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects wWin  _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE currentPage  AS INTEGER NO-UNDO.
+
+  ASSIGN currentPage = getCurrentPage().
+
+  CASE currentPage: 
+
+    WHEN 0 THEN DO:
+       RUN constructObject (
+             INPUT  'adm2/dyntoolbar.w':U ,
+             INPUT  FRAME fMain:HANDLE ,
+             INPUT  'FlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksToolbarBandsAstraFilterToolbarParentMenuToolbarAutoSizeyesToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameFilterToolbarAutoResizeDisabledActionsHiddenActionsHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0EdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_dyntoolbar ).
+       RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
+       RUN resizeObject IN h_dyntoolbar ( 1.33 , 80.00 ) NO-ERROR.
+
+       RUN constructObject (
+             INPUT  'af/sup2/afspfoldrw.w':U ,
+             INPUT  FRAME fMain:HANDLE ,
+             INPUT  'FolderLabels':U + '&Filter / Find|Advanced' + 'TabFGcolor':U + 'Default|Default' + 'TabBGcolor':U + 'Default|Default' + 'TabINColor':U + 'GrayText|GrayText' + 'ImageEnabled':U + '' + 'ImageDisabled':U + '' + 'Hotkey':U + '' + 'Tooltip':U + '|Advanced filter settings' + 'TabHidden':U + 'no|no' + 'EnableStates':U + 'All|All' + 'DisableStates':U + 'All|All' + 'VisibleRows':U + '10' + 'PanelOffset':U + '20' + 'FolderMenu':U + '' + 'TabsPerRow':U + '4' + 'TabHeight':U + '3' + 'TabFont':U + '4' + 'LabelOffset':U + '0' + 'ImageWidth':U + '0' + 'ImageHeight':U + '0' + 'ImageXOffset':U + '0' + 'ImageYOffset':U + '2' + 'TabSize':U + 'Proportional' + 'SelectorFGcolor':U + 'Default' + 'SelectorBGcolor':U + 'Default' + 'SelectorFont':U + '4' + 'SelectorWidth':U + '3' + 'TabPosition':U + 'Upper' + 'MouseCursor':U + '' + 'InheritColor':U + 'no' + 'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_afspfoldrw ).
+       RUN repositionObject IN h_afspfoldrw ( 2.67 , 2.00 ) NO-ERROR.
+       RUN resizeObject IN h_afspfoldrw ( 15.24 , 78.00 ) NO-ERROR.
+
+       /* Links to toolbar h_dyntoolbar. */
+       RUN addLink ( h_dyntoolbar , 'Toolbar':U , THIS-PROCEDURE ).
+
+       /* Links to SmartFolder h_afspfoldrw. */
+       RUN addLink ( h_afspfoldrw , 'Page':U , THIS-PROCEDURE ).
+
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dyntoolbar ,
+             rsPermanent:HANDLE IN FRAME fMain , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_afspfoldrw ,
+             rsPermanent:HANDLE IN FRAME fMain , 'AFTER':U ).
+    END. /* Page 0 */
+
+  END CASE.
+  /* Select a Startup page. */
+  IF currentPage eq 0
+  THEN RUN selectPage IN THIS-PROCEDURE ( 1 ).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyFilter wWin 
+PROCEDURE applyFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cFieldNames     AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cFieldValues    AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cFieldOperators AS CHARACTER    NO-UNDO.
+    DEFINE VARIABLE cFilterSettings AS CHARACTER    NO-UNDO.        
+    DEFINE VARIABLE cnt             AS INTEGER.
+    DEFINE VARIABLE lValid          AS LOGICAL      NO-UNDO.
+    DEFINE VARIABLE lContinue       AS LOGICAL      NO-UNDO.    
+    DEFINE VARIABLE cHighChar       AS CHARACTER    NO-UNDO.
+
+    cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
+
+    ASSIGN
+        lContinue = NO
+        lValid = YES.
+
+    DEFINE BUFFER bttSchema FOR ttSchema.
+
+    FOR EACH ttDataObject:
+        ASSIGN cFieldNames     = "":U
+               cFieldValues    = "":U
+               cFieldOperators = "":U
+               .
+        FOR EACH bttSchema WHERE
+                 bttSchema.sdo_handle = ttDataObject.tSdoHandle :
+            IF NOT lContinue THEN
+              RUN validateRecord (BUFFER bttSchema,
+                                  OUTPUT lValid,
+                                  OUTPUT lContinue) NO-ERROR.
+    
+            IF  NOT lValid 
+            AND NOT lContinue THEN DO:
+                RUN openQuery.
+                APPLY "ITERATION-CHANGED":U TO brFilter IN FRAME {&FRAME-NAME}.    
+                APPLY "entry":U TO brFilter IN FRAME {&FRAME-NAME}.
+                RETURN "DoNotExit":U.
+            END.
+    
+            IF bttSchema.SEARCH_from <> "" THEN
+            DO:
+                cnt = cnt + 1.
+                cFieldNames     = cFieldNames     + (IF cnt = 1 THEN "" ELSE ",") + bttSchema.COLUMN_name.
+                cFieldValues    = cFieldValues    + (IF cnt = 1 THEN "" ELSE CHR(1)) + bttSchema.SEARCH_from.
+                cFieldOperators = cFieldOperators + (IF cnt = 1 THEN "" ELSE ",") + ">=".
+            END.
+            IF bttSchema.SEARCH_to <> "" THEN
+            DO:
+                cnt = cnt + 1.
+                cFieldNames     = cFieldNames     + (IF cnt = 1 THEN "" ELSE ",") + bttSchema.COLUMN_name.
+                cFieldValues    = cFieldValues    + (IF cnt = 1 THEN "" ELSE CHR(1)) + bttSchema.SEARCH_to.
+                IF bttSchema.COLUMN_datatype = "Character" THEN cFieldValues = cFieldValues + cHighChar.
+                cFieldOperators = cFieldOperators + (IF cnt = 1 THEN "" ELSE ",") + "<=".            
+            END.
+            IF bttSchema.SEARCH_contains <> "" AND bttSchema.word_index THEN
+            DO:
+                cnt = cnt + 1.
+                cFieldNames     = cFieldNames     + (IF cnt = 1 THEN "" ELSE ",") + bttSchema.COLUMN_name.
+                cFieldValues    = cFieldValues    + (IF cnt = 1 THEN "" ELSE CHR(1)) + bttSchema.SEARCH_contains.
+                cFieldOperators = cFieldOperators + (IF cnt = 1 THEN "" ELSE ",") + "CONTAINS".            
+            END.
+            IF bttSchema.SEARCH_matches <> "" AND bttSchema.column_datatype = "Character" THEN
+            DO:
+                cnt = cnt + 1.
+                cFieldNames     = cFieldNames     + (IF cnt = 1 THEN "" ELSE ",") + bttSchema.COLUMN_name.
+                cFieldValues    = cFieldValues    + (IF cnt = 1 THEN "" ELSE CHR(1)) + bttSchema.SEARCH_matches.
+                cFieldOperators = cFieldOperators + (IF cnt = 1 THEN "" ELSE ",") + "MATCHES".            
+            END.
+        END.
+
+        /* Update ttDataObject */
+        ASSIGN ttDataObject.tFieldNames     = cFieldNames
+               ttDataObject.tFieldValues    = cFieldValues
+               ttDataObject.tFieldOperators = cFieldOperators
+               .
+    END.    /* each dataobject */
+
+/*  MESSAGE "About to apply" SKIP "Names:" cFieldNames SKIP "Values:" cFieldValues SKIP "Operators:" cFieldOperators. */
+
+    IF gcFilterOrFind <> "Find":U THEN 
+      RUN assignFilter ( INPUT TRUE /* save */ ).
+    ELSE
+      RUN assignFind.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignFilter wWin 
+PROCEDURE assignFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER plSaveSettings           AS LOGICAL          NO-UNDO.
+    
+    DEFINE VARIABLE lSuccess AS LOGICAL NO-UNDO.         
+    DEFINE VARIABLE cEmptyString AS CHARACTER.                                                 
+    DEFINE VARIABLE cFilterSettings AS CHARACTER NO-UNDO. 
+    
+    DEFINE VARIABLE cManualAddQueryWhere          AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE cManualAssignQuerySelection   AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE cManualSetQuerySort           AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE cEntry                        AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE cBuffer                       AS CHARACTER  NO-UNDO. 
+    DEFINE VARIABLE iLoop                         AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE cQueryString                  AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cQueryWhere                   AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cSaveQueryWhere               AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE lManual                       AS LOGICAL    NO-UNDO.
+    DEFINE VARIABLE lSboOpened                    AS LOGICAL    NO-UNDO.
+
+    ASSIGN lManual = NO.
+
+    DO WITH FRAME {&FRAME-NAME}:
+        /* There should be only one of these. */
+        FIND FIRST ttDataObject NO-ERROR.
+
+        {get QueryWhere cSaveQueryWhere ttDataObject.tSdoHandle}.
+
+        /* manual query entered */
+        IF EdManualQuery:SCREEN-VALUE <> cSaveQueryWhere THEN
+        DO:
+            {set QueryWhere EdManualQuery:SCREEN-VALUE ttDataObject.tSdoHandle}.
+            ASSIGN lManual  = YES
+                   lSuccess = YES
+                   .
+        END.
+        ASSIGN fiRowsToBatch
+               toRebuild
+               .
+        {set rowsToBatch fiRowsToBatch ttDataObject.tSdoHandle}.
+        {set rebuildOnRepos toRebuild ttDataObject.tSdoHandle}.
+    END.    /* not SBO */
+
+    IF NOT lManual THEN
+    DO:
+        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
+            {set QueryColumns cEmptyString ttDataObject.tSdoHandle}.
+            {set QueryWhere   cEmptyString ttDataObject.tSdoHandle}.
+            {set QueryString  cEmptyString ttDataObject.tSdoHandle}.
+
+            ASSIGN lSuccess = DYNAMIC-FUNCTION("assignQuerySelection":U IN ttDataObject.tSdoHandle,
+                                               ttDataObject.tFieldNames,
+                                               ttDataObject.tFieldValues,
+                                               ttDataObject.tFieldOperators).
+            IF NOT lSuccess THEN
+                LEAVE.
+        END.    /* each data object */
+    END.    /* not manual */
+
+    /* See if any manual query settings available and re-apply these as 
+     * appropriate                                                       */
+    IF lSuccess AND NOT lManual THEN
+    DO:
+        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
+            {get ManualAssignQuerySelection cManualAssignQuerySelection ttDataObject.tSdoHandle}.
+            {get ManualAddQueryWhere        cManualAddQueryWhere        ttDataObject.tSdoHandle}.
+            {get ManualSetQuerySort         cManualSetQuerySort         ttDataObject.tSdoHandle}.
+            
+            loop-1:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualAssignQuerySelection, CHR(4)):
+                ASSIGN cEntry = ENTRY(iLoop, cManualAssignQuerySelection, CHR(4)).      
+                IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-1.
+                DYNAMIC-FUNCTION("assignQuerySelection" IN ttDataObject.tSdoHandle,
+                                 ENTRY(1,cEntry,CHR(3)),
+                                 ENTRY(2,cEntry,CHR(3)),
+                                 ENTRY(3,cEntry,CHR(3))). 
+            END.    /* loop-21*/
+
+            loop-2:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualAddQueryWhere, CHR(4)):
+                ASSIGN cEntry = ENTRY(iLoop, cManualAddQueryWhere, CHR(4)).      
+                IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-2.
+                ASSIGN cBuffer = ENTRY(2,cEntry,CHR(3)).
+                IF cBuffer = "?":U THEN ASSIGN cBuffer = "":U.
+                DYNAMIC-FUNCTION("addQueryWhere" IN ttDataObject.tSdoHandle,
+                                 ENTRY(1,cEntry,CHR(3)),
+                                 cBuffer,
+                                 ENTRY(3,cEntry,CHR(3))). 
+            END.    /* loop-2 */
+
+            loop-3:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualSetQuerySort, CHR(4)):
+                ASSIGN cEntry = ENTRY(iLoop, cManualSetQuerySort, CHR(4)).
+                IF NUM-ENTRIES(cEntry, CHR(3)) <> 1 THEN NEXT loop-3.
+                DYNAMIC-FUNCTION("SetQuerySort" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3))). 
+            END.    /* loop-3 */        
+        END.    /* each data object descending */
+    END.    /* not manual, success */
+
+    /* Evaluate OUTER-JOINs in the query */
+    IF lSuccess THEN
+    DO:
+        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
+            ASSIGN lSuccess = DYNAMIC-FUNCTION("evaluateQueryString":U, INPUT ttDataObject.tSdoHandle, INPUT ttDataObject.tFieldNames).
+            IF NOT lSuccess THEN
+                LEAVE.
+        END.    /* each dataobject */
+    END.    /* success */
+
+    IF lSuccess THEN
+    DO:
+        IF gcDataObjectType EQ "SmartBusinessObject":U THEN
+            ASSIGN lSboOpened = NO.
+        ELSE
+            ASSIGN lSboOpened = YES.
+
+        FOR EACH ttDataObject:
+            {set FilterActive "ttDataObject.tFieldNames <> ''" ttDataObject.tSdoHandle}.
+
+            /* Ensure that the SBO query has been re-opened (if this is an SBO)
+             * since the opeing of the SBO query will ensure that the various 
+             * foreign fields are in place correctly. We only want to do this once,
+             * though.
+             * 
+             * If this is the master data object, then its opening will cause all of the
+             * related foreign fields to be set up.                                     */
+            IF NOT lSboOpened                        AND
+               NOT ttDataObject.tMasterObject        AND
+               VALID-HANDLE(ttDataObject.tSboHandle) THEN
+                DYNAMIC-FUNCTION("openQuery":U IN ttDataObject.tSboHandle).
+
+            ASSIGN lSuccess = DYNAMIC-FUNC('openQuery' IN ttDataObject.tSdoHandle).
+
+            IF NOT lSuccess THEN
+                LEAVE.
+        END.    /* each data object */
+    END.    /* success */
+        
+    IF lSuccess THEN 
+    DO:
+        ASSIGN glFilterModified = FALSE.
+        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
+            /* save these settings, since they apparently work */
+            ASSIGN ttDataObject.tFilterSettings = ttDataObject.tFieldNames  + CHR(3)
+                                                + ttDataObject.tFieldValues + CHR(3)
+                                                + ttDataObject.tFieldOperators.
+        END.
+        IF plSaveSettings THEN            
+            RUN saveFilter.
+    END.    /* success opeing. */
+    ELSE
+    DO:
+        /* do not save the settings */
+        ASSIGN cFilterSettings = "":U + CHR(3) + "":U + CHR(3) + "":U.
+        /* clear the filter */
+        RUN clearFilter.
+
+        IF gcDataObjectType EQ "SmartBusinessObject":U THEN
+            ASSIGN lSboOpened = NO.
+        ELSE
+            ASSIGN lSboOpened = YES.
+
+        /* reopen the query with no filter in place */
+        FOR EACH ttDataObject BY ttdataObject.tSdoOrder DESCENDING:        
+            {set QueryColumns cEmptyString ttDataObject.tSdoHandle}.
+            {set QueryWhere   cEmptyString ttDataObject.tSdoHandle}.
+    
+            {get ManualAssignQuerySelection cManualAssignQuerySelection ttDataObject.tSdoHandle}.
+            {get ManualAddQueryWhere        cManualAddQueryWhere        ttDataObject.tSdoHandle}.
+            {get ManualSetQuerySort         cManualSetQuerySort         ttDataObject.tSdoHandle}.
+    
+            loop-4:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualAssignQuerySelection, CHR(4)):
+              ASSIGN cEntry = ENTRY(iLoop, cManualAssignQuerySelection, CHR(4)).      
+              IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-4.
+              DYNAMIC-FUNCTION("assignQuerySelection" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3)),
+                                                                      ENTRY(2,cEntry,CHR(3)),
+                                                                      ENTRY(3,cEntry,CHR(3))). 
+            END.
+    
+            loop-5:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualAddQueryWhere, CHR(4)):
+              ASSIGN cEntry = ENTRY(iLoop, cManualAddQueryWhere, CHR(4)).      
+              IF NUM-ENTRIES(cEntry, CHR(3)) <> 3 THEN NEXT loop-5.
+              ASSIGN cBuffer = ENTRY(2,cEntry,CHR(3)).
+              IF cBuffer = "?":U THEN ASSIGN cBuffer = "":U.
+              DYNAMIC-FUNCTION("addQueryWhere" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3)),
+                                                               cBuffer,
+                                                               ENTRY(3,cEntry,CHR(3))). 
+            END.
+    
+            loop-6:
+            DO iLoop = 1 TO NUM-ENTRIES(cManualSetQuerySort, CHR(4)):
+              ASSIGN cEntry = ENTRY(iLoop, cManualSetQuerySort, CHR(4)).      
+              IF NUM-ENTRIES(cEntry, CHR(3)) <> 1 THEN NEXT loop-6.
+              DYNAMIC-FUNCTION("SetQuerySort" IN ttDataObject.tSdoHandle,ENTRY(1,cEntry,CHR(3))). 
+            END.
+    
+            /* Evaluate OUTER-JOINs in the query */
+            DYNAMIC-FUNCTION("evaluateQueryString":U, INPUT ttDataObject.tSdoHandle, INPUT ttDataObject.tFieldNames).
+            {set FilterActive "ttDataObject.tFieldNames <> ''" ttDataObject.tSdoHandle}.
+
+            /* Ensure that the SBO query has been re-opened (if this is an SBO)
+             * since the opeing of the SBO query will ensure that the various 
+             * foreign fields are in place correctly. We only want to do this once,
+             * though.
+             * 
+             * If this is the master data object, then its opening will cause all of the
+             * related foreign fields to be set up.                                     */
+            IF NOT lSboOpened                        AND
+               NOT ttDataObject.tMasterObject        AND
+               VALID-HANDLE(ttDataObject.tSboHandle) THEN
+                DYNAMIC-FUNCTION("openQuery":U IN ttDataObject.tSboHandle).
+
+            DYNAMIC-FUNC('openQuery' IN ttDataObject.tSdoHandle).
+        END.
+
+        ASSIGN ttDataObject.tFilterSettings = cFilterSettings.
+
+        /* even if told not to save, save these blank settings */
+        RUN saveFilter.
+    END.    /* no success setting filtered queries. */
+
+    DO WITH FRAME {&FRAME-NAME}:
+        FIND FIRST ttDataObject.
+        {get QueryWhere cQueryWhere ttDataObject.tSdoHandle}.
+        ASSIGN  EdManualQuery:SCREEN-VALUE = cQueryWhere.
+    END.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignFind wWin 
+PROCEDURE assignFind :
+/*------------------------------------------------------------------------------
+  Purpose:     Action Find
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    FOR EACH ttDataObject:
+        DYNAMIC-FUNCTION('findRowWhere':U In ttDataObject.tSdoHandle,
+                         INPUT ttDataObject.tFieldNames,
+                         INPUT ttDataObject.tFieldValues,
+                         INPUT ttDataObject.tFieldOperators).
+    END.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cancelObject wWin 
+PROCEDURE cancelObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    /* hide the filter window for later use */
+
+    RUN hideObject.
+    CLOSE QUERY {&BROWSE-NAME}.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearFilter wWin 
+PROCEDURE clearFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    FOR EACH ttSchema:
+        ASSIGN
+            ttSchema.SEARCH_from     = "":u
+            ttSchema.SEARCH_to       = "":u
+            ttSchema.SEARCH_matches  = "":u
+            ttSchema.SEARCH_contains = "":u.
+
+        IF  VALID-HANDLE(FOCUS) AND FOCUS:TYPE = "FILL-IN" THEN
+            FOCUS:SCREEN-VALUE = "":u.
+    END.
+
+    ASSIGN glFilterModified = YES.
+
+    {&OPEN-QUERY-brFilter}
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI wWin  _DEFAULT-DISABLE
+PROCEDURE disable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     DISABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we clean-up the user-interface by deleting
+               dynamic widgets we have created and/or hide 
+               frames.  This procedure is usually called when
+               we are ready to "clean-up" after running.
+------------------------------------------------------------------------------*/
+  /* Delete the WINDOW we created */
+  IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wWin)
+  THEN DELETE WIDGET wWin.
+  IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI wWin  _DEFAULT-ENABLE
+PROCEDURE enable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     ENABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we display/view/enable the widgets in the
+               user-interface.  In addition, OPEN all queries
+               associated with each FRAME and BROWSE.
+               These statements here are based on the "Other 
+               Settings" section of the widget Property Sheets.
+------------------------------------------------------------------------------*/
+  DISPLAY rsPermanent fiRowsToBatch ToRebuild EdManualQuery fiManualQuery 
+      WITH FRAME fMain IN WINDOW wWin.
+  ENABLE rsPermanent brFilter fiRowsToBatch ToRebuild EdManualQuery 
+      WITH FRAME fMain IN WINDOW wWin.
+  {&OPEN-BROWSERS-IN-QUERY-fMain}
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE exitObject wWin 
+PROCEDURE exitObject :
+/*------------------------------------------------------------------------------
+  Purpose:  Window-specific override of this procedure which destroys 
+            its contents and itself.
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  APPLY "CLOSE":U TO THIS-PROCEDURE.
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject wWin 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+    /* Set the logical object name to the physical name, so that 
+     * security can be applied.                                   */
+    {set LogicalObjectName 'afsdofiltw.w'}.
+
+    IF lInitialized THEN RETURN.
+    ASSIGN lInitialized = TRUE.
+
+    {set HideOnInit TRUE}.
+
+    RUN SUPER.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE okObject wWin 
+PROCEDURE okObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  APPLY "ROW-LEAVE" TO BROWSE {&BROWSE-NAME}.
+
+  ASSIGN  BROWSE {&BROWSE-NAME}
+      ttSchema.SEARCH_from 
+      ttSchema.SEARCH_to 
+      ttSchema.SEARCH_contains 
+      ttSchema.SEARCH_matches NO-ERROR.
+  
+  ERROR-STATUS:ERROR = NO.
+  
+  IF glFilterModified THEN     
+     RUN applyFilter.
+ 
+  IF RETURN-VALUE = "":U THEN
+     RUN cancelObject.
+  
+  ELSE RETURN RETURN-VALUE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openQuery wWin 
+PROCEDURE openQuery :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+CASE cSortBy:
+    WHEN "index" THEN DO:
+        OPEN QUERY {&browse-name}
+            FOR EACH ttSchema WHERE NOT adm_column AND ttSchema.table_name <> ""
+                AND INDEX(ttschema.COLUMN_name, "_obj") = 0
+                BY ttSchema.INDEX_position.
+    END.
+    WHEN "ttSchema.COLUMN_label" THEN DO:
+        OPEN QUERY {&browse-name}
+            FOR EACH ttSchema WHERE NOT adm_column AND ttSchema.table_name <> ""
+                AND INDEX(ttschema.COLUMN_name, "_obj") = 0
+                BY ttSchema.COLUMN_label.
+    END.
+    OTHERWISE DO:
+        OPEN QUERY {&browse-name}
+            FOR EACH ttSchema WHERE NOT adm_column AND ttSchema.table_name <> ""
+                AND INDEX(ttschema.COLUMN_name, "_obj") = 0
+                BY ttSchema.TABLE_sequence BY ttSchema.INDEX_position BY ttSchema.COLUMN_label.
+    END.
+
+END CASE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetFilter wWin 
+PROCEDURE resetFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE iField          AS INTEGER                          NO-UNDO.
+    DEFINE VARIABLE cOperator       AS CHARACTER                        NO-UNDO.    
+    DEFINE VARIABLE cValue          AS CHARACTER                        NO-UNDO.
+    DEFINE VARIABLE cHighChar       AS CHARACTER    NO-UNDO.
+
+    cHighChar = DYNAMIC-FUNCTION("getHighKey":U IN gshGenManager, SESSION:CPCOLL).
+
+    RUN retrieveFilter.
+
+    FOR EACH ttDataObject WHERE
+             NUM-ENTRIES(ttDataObject.tFilterSettings,CHR(3)) EQ 3 :
+        DO iField = 1 TO NUM-ENTRIES(ttDataObject.tFieldNames):
+            FIND FIRST ttSchema WHERE
+                       ttSchema.sdo_handle = ttDataObject.tSdoHandle  AND
+                       ttSchema.FIELD_name = ENTRY(iField, ttDataObject.tFieldNames) 
+                       NO-ERROR.
+            IF AVAILABLE ttSchema THEN
+            DO:
+                ASSIGN cOperator = ENTRY(iField,ttDataObject.tFieldOperators)
+                       cValue = TRIM(ENTRY(iField,ttDataObject.tFieldValues,CHR(1)),cHighChar)
+                       .
+                CASE cOperator:
+                    WHEN ">="       THEN ttSchema.search_from       = cValue.
+                    WHEN "<="       THEN ttSchema.search_to         = cValue.
+                    WHEN "CONTAINS" THEN ttSchema.search_contains   = cValue.
+                    WHEN "MATCHES"  THEN ttSchema.search_matches    = cValue.
+                END CASE.
+            END.    /* avail ttcschema */
+        END.    /* field loop */
+    END.    /* each data object */
+
+    ASSIGN glFilterModified = FALSE.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE retrieveFilter wWin 
+PROCEDURE retrieveFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/    
+    DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
+    DEFINE VARIABLE cSaveFlag           AS CHARACTER                    NO-UNDO.
+    DEFINE VARIABLE cFilterSettings     AS CHARACTER                    NO-UNDO.
+
+    FOR EACH ttDataObject:
+        ASSIGN rRowid = ?.
+        RUN getProfileData IN gshProfileManager ( INPUT        "BrwFilters":U,
+                                                  INPUT        "FilterSet":U,
+                                                  INPUT        ttDataObject.tSdoSignature,
+                                                  INPUT        NO,
+                                                  INPUT-OUTPUT rRowid,
+                                                        OUTPUT ttDataObject.tFilterSettings).
+        IF ttDataObject.tFilterSettings NE "":U THEN
+            ASSIGN cSaveFlag = "SES".
+
+        IF NUM-ENTRIES(ttDataObject.tFilterSettings, CHR(3)) EQ 3 THEN
+            ASSIGN ttDataObject.tFieldNames     = ENTRY(1,ttDataObject.tFilterSettings,CHR(3))
+                   ttDataObject.tFieldValues    = ENTRY(2,ttDataObject.tFilterSettings,CHR(3))
+                   ttDataObject.tFieldOperators = ENTRY(3,ttDataObject.tFilterSettings,CHR(3))
+                   .
+    END.    /* each data object */
+
+    IF cSaveFlag NE "":U THEN
+    DO:
+        ASSIGN rsPermanent = cSaveFlag.
+        DISPLAY rsPermanent WITH FRAME {&FRAME-NAME}.
+    END.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RTB_xref_generator wWin 
+PROCEDURE RTB_xref_generator :
+/* -----------------------------------------------------------
+Purpose:    Generate RTB xrefs for SMARTOBJECTS.
+Parameters: <none>
+Notes:      This code is generated by the UIB.  DO NOT modify it.
+            It is included for Roundtable Xref generation. Without
+            it, Xrefs for SMARTOBJECTS could not be maintained by
+            RTB.  It will in no way affect the operation of this
+            program as it never gets executed.
+-------------------------------------------------------------*/
+  RUN "ry\obj\rydyntoolt.w *RTB-SmObj* ".
+  RUN "af\sup2\afspfoldrw.w *RTB-SmObj* ".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveFilter wWin 
+PROCEDURE saveFilter :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
+
+    ASSIGN rRowid = ?
+           FRAME {&FRAME-NAME} rsPermanent fiRowsToBatch toRebuild
+           .
+    FOR EACH ttDataObject:
+        RUN setProfileData IN gshProfileManager ( INPUT "BrwFilters":U,
+                                                  INPUT "FilterSet":U,
+                                                  INPUT ttDataObject.tSdoSignature,
+                                                  INPUT rRowid,
+                                                  INPUT ttDataObject.tFilterSettings,
+                                                  INPUT FALSE,
+                                                  INPUT rsPermanent).
+        {afcheckerr.i &DISPLAY-ERROR=YES}.
+
+        ASSIGN rRowid = ?.
+        RUN setProfileData IN gshProfileManager ( INPUT "SDO":U,
+                                                  INPUT "Attributes":U,
+                                                  INPUT ttDataObject.tSdoSignature,
+                                                  INPUT rRowid,
+                                                  INPUT STRING(fiRowsToBatch) + CHR(3) + (IF toRebuild THEN "YES":U ELSE "NO":U),
+                                                  INPUT FALSE,
+                                                  INPUT rsPermanent).
+        {afcheckerr.i &DISPLAY-ERROR=YES}.
+    END.    /* each data object */
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPage wWin 
+PROCEDURE selectPage :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER piPageNumber AS INTEGER.
+
+RUN SUPER(piPageNumber).
+
+DO WITH FRAME {&FRAME-NAME}:
+
+  brFilter:HIDDEN = (piPageNumber <> 1).
+  EdManualQuery:HIDDEN = (piPageNumber <> 2).
+  fiManualQuery:HIDDEN = (piPageNumber <> 2).
+  fiRowsToBatch:HIDDEN = (piPageNumber <> 2).
+  ToRebuild:HIDDEN = (piPageNumber <> 2).
+
+  IF NOT brFilter:HIDDEN THEN brFilter:MOVE-TO-TOP().
+  IF NOT EdManualQuery:HIDDEN THEN EdManualQuery:MOVE-TO-TOP().
+  IF NOT fiManualQuery:HIDDEN THEN fiManualQuery:MOVE-TO-TOP().
+  IF NOT fiRowsToBatch:HIDDEN THEN fiRowsToBatch:MOVE-TO-TOP().
+  IF NOT ToRebuild:HIDDEN THEN ToRebuild:MOVE-TO-TOP().
+
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setDataSourceHandle wWin 
+PROCEDURE setDataSourceHandle :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pcFilterOrFind   AS CHARACTER                    NO-UNDO.
+    DEFINE INPUT PARAMETER phDataSource     AS HANDLE                       NO-UNDO.
+    DEFINE INPUT PARAMETER phBrowser        AS HANDLE                       NO-UNDO.
+    
+    DEFINE VARIABLE cQueryWhere                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE iRowsToBatch                AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE lRebuild                    AS LOGICAL                  NO-UNDO.
+    DEFINE VARIABLE hContainerSource            AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cLogicalObjectName          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cRunAttribute               AS CHARACTER                NO-UNDO.                                                         
+    DEFINE VARIABLE csdoName                    AS CHARACTER                NO-UNDO.                                                     
+    DEFINE VARIABLE cFilterSignature            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cWindowTitle                AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hColumn                     AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cTables                     AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cFirstTable                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hBrowser                    AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cDataHandle                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cFieldHandles               AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE iLoop                       AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cFieldNames                 AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cDisplayedFields            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cColumnsByTable             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hParentWindow               AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hDataObject                 AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hSBOContainer               AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cDataObjectNames            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cDataObjectHandles          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE iSdoLoop                    AS INTEGER                  NO-UNDO.
+    DEFINE VARIABLE cDataContainerName          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cDataSourceNames            AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cDataObjectName             AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hMasterDataObject           AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cSdoOrder                   AS CHARACTER                NO-UNDO.
+
+    EMPTY TEMP-TABLE ttSchema.
+    EMPTY TEMP-TABLE ttDataObject.
+    
+    /* set the window size appropriately */                          
+    {&WINDOW-NAME}:MIN-WIDTH = 80.
+    {&WINDOW-NAME}:MIN-HEIGHT = 17.
+
+    /* remember these values for later */
+    ASSIGN gcFilterOrFind = pcFilterOrFind
+           cRunAttribute  = "":U
+           .
+    IF gcFilterOrFind = "Find":U THEN
+    DO:
+      RUN selectPage(1).
+      RUN disableFolderPage IN h_afspfoldrw (2).
+    END.
+    ELSE 
+      RUN enableFolderPage IN h_afspfoldrw (2).
+
+    /* If field is not shown in browser, do not allow  */
+    /* filtering on it, as this may cause confusion.   */
+    cFieldNames = DYNAMIC-FUNCTION("getDisplayedFields" IN phBrowser).
+
+    {get ObjectType gcDataObjectType phDataSource}.
+
+    {get ContainerSource hContainerSource phDataSource}.
+    {get LogicalObjectName cLogicalObjectName hContainerSource}.
+    IF cLogicalObjectName EQ "":U OR cLogicalObjectName EQ ? THEN
+        ASSIGN cLogicalObjectName = hContainerSource:FILE-NAME.
+
+    IF gcDataObjectType EQ "SmartBusinessObject":U THEN
+    DO:
+        {get DataObjectNames      cDataObjectNames   phDataSource}.
+        {get ContainedDataObjects cDataObjectHandles phDataSource}.
+        {get MasterDataObject     hMasterDataObject  phDataSource}.
+        {get DataSourceNames      cDataSourceNames   phBrowser}.
+        {get DataObjectOrdering   cSdoOrder          phDataSource}.
+
+        IF NUM-ENTRIES(cDataSourceNames) NE 1 THEN
+            RUN disableFolderPage IN h_afspfoldrw (2).
+
+        {get LogicalObjectName cDataContainerName phDataSource}.
+        IF cDataContainerName EQ "":U OR cDataContainerName EQ ? THEN
+            ASSIGN cDataContainerName = phDataSource:FILE-NAME.
+
+        DO iSdoLoop = 1 TO NUM-ENTRIES(cDataObjectHandles):
+            ASSIGN hDataObject = WIDGET-HANDLE(ENTRY(iSdoLoop, cDataObjectHandles)).
+
+            /* Only include SDOs which are in the browse's DataSourceNames property. */
+            IF LOOKUP(ENTRY(iSdoLoop, cDataObjectNames), cDataSourceNames) EQ 0 THEN
+                NEXT.
+
+            ASSIGN cTables = cTables + (IF NUM-ENTRIES(cTables) EQ 0 THEN "":U ELSE ",":U)
+                           + DYNAMIC-FUNCTION("getTables" IN hDataObject).
+            RUN describeSchema IN hDataObject ( INPUT  cFieldNames, OUTPUT TABLE ttCacheSchema ).
+
+            FOR EACH ttCacheSchema:
+                CREATE ttSchema.
+                BUFFER-COPY ttCacheSchema TO ttSchema.
+            END.
+
+            {get LogicalObjectName cSdoName hDataObject}.
+            IF cSdoName EQ "":U OR cSdoName EQ ? THEN
+                ASSIGN cSdoName = hDataObject:FILE-NAME.
+
+            CREATE ttDataObject.
+            ASSIGN ttDataObject.tSdoHandle    = hDataObject
+                   ttDataObject.tSdoOrder     = INTEGER(ENTRY(iSdoLoop, cSdoOrder))
+                   ttDataObject.tSdoSignature = cSdoName + ",":U + cDataContainerName + "," + cLogicalObjectName + ",":U + cRunAttribute
+                   ttDataObject.tSboHandle    = phDataSource
+                   ttDataObject.tMasterObject = (hMasterDataObject EQ hDataObject)
+                   .
+        END.    /* data objects */
+    END.    /* SBO */
+    ELSE
+    DO:    
+        ASSIGN cDataContainerName = "":U
+               cTables            = DYNAMIC-FUNCTION("getTables" IN phDataSource)
+               .
+        RUN describeSchema IN phDataSource ( INPUT  cFieldNames, OUTPUT TABLE ttSchema ).
+
+        ASSIGN cFirstTable = ENTRY(1,cTables).
+
+        {get LogicalObjectName cSdoName phDataSource}.
+        IF cSdoName EQ "":U OR cSdoName EQ ? THEN
+            ASSIGN cSdoName = phDataSource:FILE-NAME.
+
+        CREATE ttDataObject.
+        ASSIGN ttDataObject.tSdoHandle    = phDataSource
+               ttDataObject.tSdoOrder     = 1
+               ttDataObject.tSdoSignature = cSdoName + ",":U + cDataContainerName + ",":U + cLogicalObjectName + ",":U + cRunAttribute
+               ttDataObject.tSboHandle    = ?
+               .
+    END.    /* SDO */
+
+    {get ObjectParent hParentWindow}.
+
+    ASSIGN cWindowTitle   = (IF VALID-HANDLE(hParentWindow) THEN " - " + hParentWindow:TITLE ELSE "":U)
+           {&WINDOW-NAME}:TITLE = CAPS(SUBSTRING(gcFilterOrFind, 1, 1)) + LC(SUBSTRING(gcFilterOrFind, 2)) + cWindowTitle
+           .
+    IF gcFilterOrFind <> "Find":U THEN
+        RUN resetFilter.
+
+    ASSIGN
+        hColumn = BROWSE {&BROWSE-name}:FIRST-COLUMN
+        hColumn = hColumn:NEXT-COLUMN
+        hColumn = hColumn:NEXT-COLUMN
+        cSortBy = "ttSchema.sdo_order BY ttSchema.TABLE_sequence BY ttSchema.INDEX_position BY ttSchema.COLUMN_label".
+    DO WHILE VALID-HANDLE(hColumn):
+        ASSIGN
+            hColumn:LABEL-BGCOLOR = {&NON-SORT-COLOR}
+            hColumn = hColumn:NEXT-COLUMN.
+    END.
+
+    /* Display Advanced data for the SDO. */    
+    FIND FIRST ttDataObject NO-ERROR.
+    IF AVAILABLE ttDataObject THEN
+    DO WITH FRAME {&FRAME-NAME}:       
+        {get QueryWhere cQueryWhere ttDataObject.tSdoHandle}.
+        ASSIGN EdManualQuery:SCREEN-VALUE = cQueryWhere.
+
+        {get rowsToBatch iRowsToBatch ttDataObject.tSdoHandle}.
+        {get rebuildOnRepos lRebuild ttDataObject.tSdoHandle}.
+
+        ASSIGN fiRowsToBatch = iRowsToBatch
+               ToRebuild     = lRebuild.
+        DISPLAY
+            fiRowsToBatch
+            ToRebuild
+            .
+    END.
+    ELSE
+        RUN disableFolderPage IN h_afspfoldrw (2).
+
+    {&OPEN-QUERY-brFilter}
+    APPLY "ITERATION-CHANGED":U TO brFilter IN FRAME {&FRAME-NAME}.
+
+    {&WINDOW-NAME}:WIDTH = 92.
+    APPLY "WINDOW-RESIZED" TO {&WINDOW-NAME}.
+
+    RUN viewObject.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE toolbar wWin 
+PROCEDURE toolbar :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcAction AS CHARACTER.
+
+/*     MESSAGE pcAction. */
+
+
+    APPLY "ROW-LEAVE" TO BROWSE {&BROWSE-NAME}.
+
+    ASSIGN  BROWSE {&BROWSE-NAME}
+        ttSchema.SEARCH_from 
+        ttSchema.SEARCH_to 
+        ttSchema.SEARCH_contains 
+        ttSchema.SEARCH_matches NO-ERROR.
+
+
+
+    CASE pcAction:
+        WHEN "Apply"  THEN RUN applyFilter.
+        WHEN "Clear"  THEN RUN clearFilter.
+
+    END CASE.
+
+ERROR-STATUS:ERROR = NO.
+RETURN RETURN-VALUE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE validateRecord wWin 
+PROCEDURE validateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE PARAMETER BUFFER pbttSchema  FOR ttSchema.
+DEFINE OUTPUT PARAMETER plValid     AS LOGICAL    NO-UNDO.
+DEFINE OUTPUT PARAMETER plContinue  AS LOGICAL    NO-UNDO.
+
+ASSIGN plContinue = NO
+       plValid = YES.
+
+DEFINE VARIABLE cErrorMessage   AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cButton         AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cIndexPosition  AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE iLoop           AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iPos1           AS INTEGER      NO-UNDO.
+DEFINE VARIABLE iPos2           AS INTEGER      NO-UNDO.
+DEFINE VARIABLE cPos            AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE dDecimal        AS DECIMAL      NO-UNDO.
+DEFINE VARIABLE tDateFrom       AS DATE         NO-UNDO.
+DEFINE VARIABLE tDateTo         AS DATE         NO-UNDO.
+
+DEFINE VARIABLE lValidList      AS LOGICAL EXTENT 20 NO-UNDO.
+
+DEFINE BUFFER b2ttSchema FOR ttSchema.
+
+
+    IF  NOT pbttSchema.column_indexed
+    AND (pbttSchema.search_from <> "":u
+         OR pbttSchema.search_from <> "":u
+         OR pbttSchema.search_matches <> "":u 
+         OR pbttSchema.search_contains <> "":u) THEN DO:
+
+        ASSIGN
+            cErrorMessage = {af/sup2/aferrortxt.i 'RY' '9' '?' '?' LC(gcFilterOrFind)}.
+
+        RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,    /* messages */
+                                               INPUT  "WAR":U,          /* type */
+                                               INPUT  "&Yes,&No":U,       /* button list */
+                                               INPUT  "&YES":U,          /* default */
+                                               INPUT  "&NO":U,           /* cancel */
+                                               INPUT  "":U,             /* title */
+                                               INPUT  YES,              /* disp. empty */
+                                               INPUT  ?,                /* container handle */
+                                               OUTPUT cButton           /* button pressed */
+                                              ).
+        ASSIGN
+            plContinue = cButton BEGINS "&Y"
+            plValid = IF plContinue THEN YES ELSE NO. /* If the user does not care that the filter is not indexed, then keep validating */
+    END.
+
+    IF NOT plValid THEN RETURN.
+
+    /* Assume all valid to start */
+    DO iLoop = 1 TO NUM-ENTRIES(pbttSchema.index_position):
+      ASSIGN lValidList[iLoop] = YES.
+    END.
+
+    IF  pbttSchema.column_indexed
+    AND (pbttSchema.search_from <> "":u
+         OR pbttSchema.search_to <> "":u
+         OR pbttSchema.search_matches <> "":u 
+         OR pbttSchema.search_contains <> "":u) THEN
+    index-loop:
+    DO iLoop = 1 TO NUM-ENTRIES(pbttSchema.index_position):
+
+      /* If 1st element of any index, then it must be ok */
+      IF INDEX(pbttSchema.index_position,".1":U) > 0 THEN LEAVE index-loop.
+
+      ASSIGN cIndexPosition = ENTRY(iLoop, pbttSchema.index_position).
+      IF NUM-ENTRIES(cIndexPosition,".":U) <> 2 THEN NEXT index-loop.   /* invalid */
+
+      /* Not 1st element of an index, so must check all other fields in this index prior
+         to this position and warn if any do not have a value specified
+      */
+      sub-loop:
+      FOR EACH b2ttSchema NO-LOCK
+         WHERE b2ttSchema.column_indexed
+           AND b2ttSchema.search_from = "":u
+           AND b2ttSchema.search_to = "":u
+           AND b2ttSchema.search_matches = "":u 
+           AND b2ttSchema.search_contains = "":u
+           AND ROWID(b2ttSchema) <> ROWID(pbttSchema):
+        /* see if field in same index */
+        ASSIGN
+          iPos1 = INDEX(b2ttSchema.index_position, ENTRY(1, cIndexPosition, ".":U) + ".":U)
+          iPos2 = 0
+          cPos = "":U.
+
+        IF iPos1 > 0 THEN ASSIGN iPos2 = INDEX(b2ttSchema.index_position, ",":U, iPos1).
+        IF iPos1 > 0 AND iPos2 = 0 THEN ASSIGN iPos2 = LENGTH(b2ttSchema.index_position) + 1.
+        IF iPos1 > 0 AND iPos2 > iPos1 THEN
+          ASSIGN cPos = SUBSTRING(b2ttSchema.index_position, iPos1 + 2, iPos2 - iPos1 - 2) NO-ERROR.
+
+        IF INTEGER(cPos) < INTEGER(ENTRY(2,cIndexPosition,".":U)) THEN
+        DO:
+          ASSIGN lValidList[iLoop] = NO.
+          NEXT index-loop.
+        END.
+      END.
+    END.
+
+    /* If any of the indexes are valid, then all is ok */
+    ASSIGN plValid = NO.
+    DO iLoop = 1 TO NUM-ENTRIES(pbttSchema.index_position):
+      IF lValidList[iLoop] = YES THEN ASSIGN plValid = YES.
+    END.
+
+    IF NOT plValid AND plContinue = NO THEN
+    DO:
+        ASSIGN
+            cErrorMessage = {af/sup2/aferrortxt.i 'RY' '9' '?' '?' LC(gcFilterOrFind)}.
+
+        RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,    /* messages */
+                                               INPUT  "WAR":U,          /* type */
+                                               INPUT  "&Yes,&No":U,     /* button list */
+                                               INPUT  "&No":U,          /* default */
+                                               INPUT  "&No":U,          /* cancel */
+                                               INPUT  "":U,             /* title */
+                                               INPUT  YES,              /* disp. empty */
+                                               INPUT  ?,                /* container handle */
+                                               OUTPUT cButton           /* button pressed */
+                                              ).
+        ASSIGN
+            plContinue = cButton BEGINS "&Y"
+            plValid = IF plContinue THEN YES ELSE NO. /* If the user does not care that the filter is not efficient, then keep validating */
+
+    END.
+
+    IF NOT plValid THEN RETURN.
+
+    IF plValid AND pbttSchema.search_from <> "" OR pbttSchema.search_to <> "" THEN DO:
+
+        CASE pbttSchema.column_datatype:
+            WHEN "decimal" OR WHEN "integer":u THEN DO:
+                ASSIGN 
+                    dDecimal = DECIMAL(pbttSchema.search_from)
+                    dDecimal = DECIMAL(pbttSchema.search_to) NO-ERROR.
+
+                IF  ERROR-STATUS:ERROR THEN DO:
+                    ASSIGN
+                        cErrorMessage = "Invalid data type for " + pbttSchema.COLUMN_label + ".  Should be " + pbttSchema.column_datatype + "."
+                        plValid       = NO
+                        plContinue    = NO.
+                END.
+                ELSE IF  pbttSchema.search_to <> "":U
+                AND DECIMAL(pbttSchema.search_from) > DECIMAL(pbttSchema.search_to) THEN
+                    ASSIGN
+                        cErrorMessage = {af/sup2/aferrortxt.i 'AF' '33' '?' '?' "'to value'" "'the from value'"}
+                        plValid       = NO
+                        plContinue    = NO.
+            END.
+
+            WHEN "date":U THEN DO:
+                ASSIGN 
+                    tDateFrom = DATE(pbttSchema.search_from)
+                    tDateTo   = DATE(pbttSchema.search_to) NO-ERROR.
+
+                IF  ERROR-STATUS:ERROR
+                OR  (tDateFrom = ? AND pbttSchema.search_from <> "")
+                OR  (tDateTo = ?   AND pbttSchema.search_to   <> "":U) THEN DO:
+                    ASSIGN
+                        cErrorMessage = "Invalid data type for " + pbttSchema.COLUMN_label + ".  Should be " + pbttSchema.column_datatype + "."
+                        plValid       = NO
+                        plContinue    = NO.
+
+                END.
+                ELSE IF  pbttSchema.search_to <> "":U
+                AND DATE(pbttSchema.search_from) > DATE(pbttSchema.search_to) THEN
+                    ASSIGN
+                        cErrorMessage = {af/sup2/aferrortxt.i 'AF' '33' '?' '?' "'to value'" "'the from value'"}
+                        plValid = NO.
+            END.
+
+            OTHERWISE DO: /* character, &c. */
+                IF  pbttSchema.search_to <> "":U
+                AND pbttSchema.search_from > pbttSchema.search_to THEN
+                    ASSIGN
+                        cErrorMessage = {af/sup2/aferrortxt.i 'AF' '33' '?' '?' "'to value '" "'the from value'"}
+                        plValid       = NO
+                        plContinue    = NO.
+            END.
+        END CASE.
+
+        IF NOT plValid THEN DO:
+            RUN showMessages IN gshSessionManager (INPUT  cErrorMessage,    /* messages */
+                                                   INPUT  "":U,             /* type */
+                                                   INPUT  "OK":U,           /* button list */
+                                                   INPUT  "OK":U,           /* default */
+                                                   INPUT  "OK":U,           /* cancel */
+                                                   INPUT  "":U,             /* title */
+                                                   INPUT  YES,              /* disp. empty */
+                                                   INPUT  ?,                /* container handle */
+                                                   OUTPUT cButton           /* button pressed */
+                                                  ).
+        END.
+    END.
+
+    IF NOT plValid THEN RETURN.
+
+    plValid = YES.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE viewObject wWin 
+PROCEDURE viewObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  DO WITH FRAME {&FRAME-NAME}:
+    rsPermanent:MOVE-TO-TOP().
+    APPLY "entry":U TO brFilter.
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION evaluateOuterJoins wWin 
+FUNCTION evaluateOuterJoins RETURNS CHARACTER
+  (pcQueryString  AS CHARACTER,
+   pcFilterFields AS CHARACTER):
+/*------------------------------------------------------------------------------
+  Purpose:  Replace OUTER-JOINs in a query with '' if filter criteria is specified
+            on fields of the OUTER-JOINed buffers
+
+    Notes:  This function is identical to the function located in rylookupbv.w.
+            If any modifications are made here, they should also be applied to
+            rylookupbv.w please.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFilterFieldBuffers AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewQueryString     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOuterJoinEntry     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCurrentEntry       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBuffers            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWord               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iQueryLine          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEntry              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iWord               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lEachFirstLast      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFoundBuffer        AS LOGICAL    NO-UNDO.
+
+  /* Initialize the RETURN-VALUE */
+  ASSIGN
+      cNewQueryString = "":U
+      iQueryLine      = 0
+      cBuffers        = "":U.
+
+  /* Step through the Query by each buffer / table entry */
+  DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
+    ASSIGN
+        cCurrentEntry  = ENTRY(iEntry, pcQueryString)
+        cCurrentEntry  = REPLACE(cCurrentEntry, CHR(10), " ":U) WHEN INDEX(cCurrentEntry, CHR(10)) <> 0
+        cCurrentEntry  = REPLACE(cCurrentEntry, CHR(13), " ":U) WHEN INDEX(cCurrentEntry, CHR(13)) <> 0
+        lEachFirstLast = FALSE
+        lFoundBuffer   = FALSE.
+
+    /* If the Entry contains the OUTER-JOIN keyword, continue */
+    IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 THEN
+    DO iWord = 1 TO NUM-ENTRIES(cCurrentEntry, " ":U):
+      ASSIGN
+          cWord = ENTRY(iWord, cCurrentEntry, " ":U).
+
+      /* Set the lEachFirstLast flag when the EACH, FIRST or LAST keywords are encountered */
+      IF TRIM(cWord) = "EACH":U  OR
+         TRIM(cWord) = "FIRST":U OR
+         TRIM(cWord) = "LAST":U  THEN
+        lEachFirstLast = TRUE.
+      ELSE
+        IF TRIM(cWord) <> "":U AND lEachFirstLast = TRUE THEN
+          /* Found the table name */
+          ASSIGN
+              cOuterJoinEntry = cOuterJoinEntry + (IF TRIM(cOuterJoinEntry) = "":U THEN "":U ELSE ",":U) + STRING(iEntry)
+              cBuffers        = cBuffers        + (IF TRIM(cBuffers)        = "":U THEN "":U ELSE ",":U) + cWord
+              lFoundBuffer    = TRUE.
+
+      IF lFoundBuffer = TRUE THEN LEAVE.
+    END.
+  END.
+
+  /* Ensure the variable is empty for the next steps */
+  cWord = "":U.
+
+  /* Pick up to which 'buffer line' in the query do we need to replace OUTER-JOINs with '' */
+  IF TRIM(pcFilterFields) <> "":U THEN
+  DO iEntry = 1 TO NUM-ENTRIES(cBuffers):
+    cCurrentEntry = ENTRY(iEntry, cBuffers).
+
+    DO iWord = 1 TO NUM-ENTRIES(pcFilterFields):
+      IF ENTRY(1, ENTRY(iWord, pcFilterFields), ".":U) = cCurrentEntry THEN
+        cWord = cCurrentEntry.
+    END.
+  END.
+
+  IF cWord <> "":U THEN
+  DO:
+    iQueryLine = INTEGER(ENTRY(LOOKUP(cWord, cBuffers), cOuterJoinEntry)).
+
+    /* Remove the OUTER-JOIN keyword from the relevant strings */
+    DO iEntry = 1 TO NUM-ENTRIES(pcQueryString):
+      cCurrentEntry = ENTRY(iEntry, pcQueryString).
+
+      IF INDEX(cCurrentEntry, "OUTER-JOIN":U) <> 0 AND iEntry <= iQueryLine THEN
+        cCurrentEntry = REPLACE(cCurrentEntry, "OUTER-JOIN":U, "":U).
+
+      cNewQueryString = cNewQueryString +  (IF TRIM(cNewQueryString) = "":U THEN "":U ELSE ",":U) + cCurrentEntry.
+    END.
+  END.
+  ELSE
+    cNewQueryString = pcQueryString.
+
+  RETURN cNewQueryString.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION evaluateQueryString wWin 
+FUNCTION evaluateQueryString RETURNS LOGICAL
+  ( INPUT phSdoHandle       AS HANDLE,
+    INPUT pcFieldNames      AS CHARACTER ):
+/*------------------------------------------------------------------------------
+  Purpose:  See if a query has OUTER-JOINed buffers. If it has and criteria
+            was specified on these OUTER-JOINed buffers, ammend the query string
+            to make the reference to the buffer INNER-JOINed
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cQueryString  AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cFieldNames   AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE iCounter      AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE lSuccess      AS LOGICAL    NO-UNDO.
+
+    /* Initialize the RETURN-VALUE */
+    ASSIGN lSuccess = FALSE.
+    
+    /* Get the original query string */
+    {get QueryString cQueryString phSdoHandle}.
+
+    IF INDEX(cQueryString, "OUTER-JOIN":U) <> 0 THEN
+    DO:
+        /* Get the table-name appended to the field-name */
+        DO iCounter = 1 TO NUM-ENTRIES(pcFieldNames):
+            FIND FIRST ttSchema WHERE
+                       ttSchema.sdo_handle  = phSdoHandle AND
+                       ttSchema.column_name = ENTRY(iCounter, pcFieldNames)
+                       NO-ERROR.
+
+            IF AVAILABLE ttSchema THEN
+                ASSIGN cFieldNames = cFieldNames + (IF TRIM(cFieldNames) = "":U THEN "":U ELSE ",":U) + ttSchema.table_name + ".":U + ENTRY(iCounter, pcFieldNames).    
+        END.
+
+        IF cFieldNames <> "":U THEN cFieldNames = cFieldNames + ",gsm_account.account_obj".
+
+        /* See whether criteria was specified on OUTER-JOINed tables and ammend the query string accordingly */
+        ASSIGN cQueryString = DYNAMIC-FUNCTION("evaluateOuterJoins":U, cQueryString, cFieldNames).
+
+        /* Set the modified query string in the SDO */
+        ASSIGN lSuccess = DYNAMIC-FUNCTION("setQueryString" IN phSdoHandle, cQueryString).
+    END.
+    ELSE
+        ASSIGN lSuccess = TRUE.
+    
+    RETURN lSuccess.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateActive wWin 
+FUNCTION getUpdateActive RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Lie to the ok and cancel, so they become visible 
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWindowName wWin 
+FUNCTION getWindowName RETURNS CHARACTER
+    ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the name of this window.
+    Notes:  * This is a placeholder funciton so that security can be applied
+              to this window.
+------------------------------------------------------------------------------*/
+    RETURN "Filter Window":U.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+

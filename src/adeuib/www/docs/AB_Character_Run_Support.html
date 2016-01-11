@@ -1,0 +1,822 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>Character Run Support</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The
+Original Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">2.1</TD>	<TD CLASS="Text1"><A HREF="#2.1">How the AppBuilder Starts and Communicates with the Character Client Session</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.1</TD>	<TD CLASS="Text1"><A HREF="#2.1.1">Detailed Steps in the TTY Session Start
+Procedure</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.2</TD>	<TD CLASS="Text1"><A HREF="#2.1.2">Detailed Steps on How the Character Run
+Window Works and Communicates with the AppBuilder</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.3</TD>	<TD CLASS="Text1"><A HREF="#2.1.3">Startup Parameters for Character Client
+Session</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.4</TD>	<TD CLASS="Text1"><A HREF="#2.1.4">Character Message File</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.5</TD>	<TD CLASS="Text1"><A HREF="#2.1.5">Command Line Format</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.6</TD>	<TD CLASS="Text1"><A HREF="#2.1.6">Message File Commands</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.7</TD>	<TD CLASS="Text1"><A HREF="#2.1.7">Closing the Character Run Window</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.8</TD>	<TD CLASS="Text1"><A HREF="#2.1.8">Character Client Connection: Tips and
+Issues</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.9</TD>	<TD CLASS="Text1"><A HREF="#2.1.9">Source File Descriptions</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>	<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>	<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>	<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>	<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>	<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>	<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>	<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>	<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>	<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P><A NAME="1"><B>1. Overview</B></a></p>
+
+<p>The AppBuilder allows you to run character-mode procedures
+and view them in actual character-mode format. This document describes the
+internal and technical aspects of AppBuilder's character run support.</p>
+
+<P><A NAME="2"><B>2. Architecture</B></A></P>
+
+<p>When a character procedure is run from the AppBuilder, the
+AppBuilder starts a multi-user Progress character client session called the Character
+Run Window. The Character Run Window runs the character procedure. The
+AppBuilder and Character Run Window sessions communicate with each other by
+reading and writing messages through a file on disk called the TTY, or
+character message file. (The terms <i style='mso-bidi-font-style:normal'>TTY</i>
+or <i style='mso-bidi-font-style:normal'>character command file</i> may also be
+used in this document and in the ADE tools source code to refer to the TTY, or
+character message file.) The character message file contains information needed
+by both sessions to support character run.</p>
+
+<p>Several source procedures work together to accomplish
+character run support. These include the following:</p>
+
+<ul>
+
+<li>TTY Session Start procedure adeuib/_ttyss.p starts the
+multi-user client session and handles processing for the AppBuilder session</li>
+
+<li>TTY Session Run procedure adecomm/_ttysr.p handles
+processing for the Character Run Window client session, such as running the
+procedure</li>
+
+<li>TTY Session Close procedure adeuib/_ttysx.p is called
+by the AppBuilder to close the Character Run Window</li>
+
+</ul>
+
+<p>The following sections describe character run support in
+more detail.</p>
+
+<P><A NAME="2.1"><B>2.1 How the AppBuilder Starts and Communicates with the Character
+Client Session</B></A></P>
+
+<p>To run the character procedure in an actual character
+session, the AppBuilder must start a multi-user Progress character client
+session. The AppBuilder calls procedure adeuib/_ttyss.p to start the character
+client session. This procedure is called the TTY Session Start procedure. </p>
+
+<p><b>Note:</b>
+The character client session must be started in a multi-user mode because the
+client and the AppBuilder session connect to the same databases.</p>
+
+
+<P><A NAME="2"><B>2.1.1  Detailed Steps in the TTY Session Start Procedure</B></A></P>
+
+<p>The TTY Session Start procedure performs the following
+activities:</p>
+
+<ul>
+
+<li>Determines the list of connected databases</li>
+
+<li>Creates the character message file </li>
+
+<li>Starts the multi-user character client session</li>
+
+<li>Passes important command information, such as the
+procedure to run and the connected databases, to the character client session
+using the character message file. </li>
+
+</ul>
+
+<p>The TTY Session Start procedure also determines when the
+AppBuilder can resume design-mode control.</p>
+
+<p><b>2.2.1.1 Details About the TTY Session Start
+Procedure</b></p>
+
+<p>The TTY Session Start procedure performs these actions as
+follows:</p>
+
+<ol>
+
+<li>Initializes the command line that will be written to the
+character message file.
+
+<p>The command line contains the command (such as
+&quot;RUN&quot; or &quot;RUN-DEBUG&quot;) and the AppBuilder assigned temporary
+file name of the character procedure to run, and other important information.
+See <A HREF="#2.1.4">2.1.4</A>, &quot;Character Message File&quot;, in this document
+for details.</p></li>
+
+<li>Build a list of the connected Progress databases that will be
+passed onto the character client session. Add this information to the command
+line.</li>
+
+<li>Check for the character message file and proceed as follows:
+<p>
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=186 valign=top>
+   <p><b>If
+   the character message file…</b></p>
+   </td>
+   <td width=349 valign=top>
+   <p><b>Then…</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=186 valign=top>
+  <p>does not exist </p>
+  </td>
+  <td width=349 valign=top> <p>create it and write the command
+  line information to the message file. Perform a no-wait OS-command shell to
+  the operating system and start the multi-user Progress character client
+  session.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=186 valign=top>
+  <p>does exist</p>
+  </td>
+  <td width=349 valign=top> <p>write the command line
+  information to the existing message file. Do not start another character
+  client session.</p>
+  <p>The existence of the message
+  file indicates that the character client session is already running and the
+  Character Run Window is waiting for the AppBuilder to run another character
+  procedure.</p>
+  </td>
+ </tr>
+</table>
+</p>
+<p><b>Note:</span></b>
+In both situations as outlined in the previous table, the Character Run Window
+responds by running the character procedure it reads from the character message
+file. See section <A HREF="#2.1.2">2.1.2</A> &quot;Detailed Steps on How the Character Run Window
+Works and Communicates with the AppBuilder&quot; for details.</p></li>
+
+<li>Loop and read the character message file. (During this
+looping, the AppBuilder is in run-mode.)</li>
+
+<li>Continue looping if the message file contains run commands
+such as &quot;RUN&quot; or &quot;RUN-DEBUG.&quot; 
+
+
+<p><b>Note:</span></b>
+Run commands indicate that the character procedure is still running in the
+Character Run Window, and that the AppBuilder must remain in run-mode.</p></li>
+
+
+<li>The content of the character message file determines the next
+steps as outlined in this table:
+
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=186 valign=top>
+   <p><b>If
+   the character message file contains the …</b></p>
+   </td>
+   <td width=349 valign=top>
+   <p><b>Then…</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=186 valign=top>
+  <p>OK
+  command</p>
+  </td>
+  <td width=349 valign=top> <p>1. The character procedure has completed running and the
+  Character Run Window is waiting for the next character procedure to run.</p>
+  <p>2. End the looping and the TTY Session Start procedure,
+  returning design-mode control to the AppBuilder. </p>
+  <p><b>Note:</b> The character message file is not deleted so that the next
+  time the AppBuilder runs a character procedure, the Start Session procedure
+  will not start a new character client session and instead, use the existing
+  one.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=186 valign=top>
+  <p>OK-EXIT command</p>
+  </td>
+  <td width=349 valign=top> <p>1. The Character Run Window and the client session have been
+  closed.</p>
+  <p>2. End the looping, delete the character message file, and end
+  the TTY Session Start procedure, returning design-mode control to the
+  AppBuilder. </p>
+  </td>
+ </tr>
+</table></li>
+</ol>
+
+<P><A NAME="2.1.2"><B>2.1.2 Detailed
+Steps on How the Character Run Window Works and Communicates with the
+AppBuilder</B></A></P>
+
+<p>The
+Character Run Window runs the character procedure in the multiuser character
+client session started by the AppBuilder. The Character Run Window is displayed
+and managed by procedure adecomm/_ttysr.p. This procedure is called the TTY
+Session Run procedure. It communicates with the AppBuilder (via TTY Session
+Start procedure) using the character message file. The TTY Session Run
+procedure connects to a list of specified databases, runs the character
+procedure, and waits to run another character procedure. It also ends the
+character client session when necessary.</p>
+
+<p><b>2.2.2.1  Details
+About the TTY Session Run Procedure</b></p>
+
+<p>The
+TTY Session Run procedure performs these actions as follows:</p>
+
+<ol>
+
+<li>Loop and read the command line from the character message
+file.</li>
+
+<li>Check the contents of the character message file and proceed
+as follows:
+<p>
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=144 valign=top>
+   <p><b>If the command is…</b></p>
+   </td>
+   <td width=391 valign=top>
+   <p><b>Then…</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=144 valign=top>
+  <p>A
+  run command such as &quot;RUN&quot; or &quot;RUN-DEBUG&quot;</p>
+  </td>
+  <td width=391 valign=top> <p>Connect to any databases read from the message file,
+  if they are not already connected, and run the character procedure file
+  indicated by the name of the temporary run file retrieved from the character
+  message file.</p>
+  <p>When the character procedure is finished running,
+  display the message &quot;Procedure complete. Waiting for next run.&quot;,
+  and write an &quot;OK&quot; command to the character message file.</p>
+  <p><b>Note:</b> The &quot;OK&quot;
+  message communicates back to the AppBuilder session (via the message file)
+  that the character procedure has completed running, and the Character Run
+  Window is ready to run another procedure. The AppBuilder then returns to
+  design-mode.</p>
+  <p>Continue looping and reading the character message
+  file for commands from the AppBuilder.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=144 valign=top>
+  <p>&quot;OK-EXIT&quot;</p>
+  </td>
+  <td width=391 valign=top> <p>End the looping, delete the character message file,
+  and close the Character Run Window. End the character client session with a
+  QUIT command. </p>
+  <p><b>Note:</b>
+  The Character Run Window receives an &quot;OK-EXIT&quot; command from the
+  AppBuilder when the user chooses Compile</span></span></span></span></span><span
+  style='mso-bookmark:_Toc493510573'><span style='mso-bookmark:_Toc493493155'><span
+  style='mso-bookmark:_Toc493492367'><span style='mso-bookmark:_Toc493492279'><span
+  style='mso-bookmark:_Toc492469803'><span style='font-family:Symbol;
+  mso-ascii-font-family:"Times New Roman";mso-hansi-font-family:"Times New Roman";
+  mso-char-type:symbol;mso-symbol-font-family:Symbol'><span style='mso-char-type:
+  symbol;mso-symbol-font-family:Symbol'>®</span></span>Close Character Run
+  Window in the AppBuilder Main window, or when the user exits AppBuilder.</p>
+  </td>
+ </tr>
+</table></p></li>
+
+
+<p><b>Note:</b> If the character message file becomes
+deleted any time the Character Run Window is waiting to run another procedure,
+end the looping, close the Character Run Window, and end the character client
+session with a QUIT command.</p>
+</ol>
+
+<P><A NAME="2.1.3"><B>2.1.3 Startup
+Parameters for Character Client Session</B></A></P>
+
+<p>The
+following table identifies and describes the startup parameters that the TTY
+Session Start procedure adeuib/_ttyss.p invokes to run the character client
+Progress executable:</p>
+
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=162 valign=top>
+   <p><b>Startup Parameter</b></p>
+   </td>
+   <td width=397 valign=top>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=162 valign=top>
+  <p>-p
+  adecomm/_ttysr.p</p>
+  </td>
+  <td width=397 valign=top> <p>TTY
+  Session Run procedure. See 
+  &quot;Detailed Steps on How the Character Run Window Works and Communicates
+  with the AppBuilder&quot; for details.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=162 valign=top>
+  <p>-param s_tmp_file </p>
+  </td>
+  <td width=397 valign=top> <p>AppBuilder defined shared variable used
+  only for character run support to specify the name of the character message
+  file. In adeuib/_ttyss.p and adeuib/_ttysx.p, its eventually stored in a
+  local variable named tty_command.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=162 valign=top>
+  <p>-T
+  SESSION:TEMP-DIR </p>
+  </td>
+  <td width=397 valign=top> <p>Specifies
+  the character client session to use the same Progress Temporary Directory as
+  the AppBuilder session.</p>
+  </td>
+ </tr>
+</table>
+
+<P><A NAME="2.1.4"><B>2.1.4 Character
+Message File</B></A></P>
+
+<p>The
+AppBuilder and character client (also referred to as the Character Run Window)
+sessions communicate with each other through the character message file (also
+referred to as the TTY message file or command file). The AppBuilder creates
+the file before starting the character client session. This file name follows
+this formatting convention:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p>&quot;pNNNNNm.tty&quot; Example: &quot;p14325m.tty&quot;</p>
+
+</div>
+
+
+<p>This
+list identifies the elements in the file name:</p>
+
+<ul>
+
+<li>The value <i style='mso-bidi-font-style:normal'>p</i>
+is the default ADE temporary file name prefix</li>
+
+<li>The value <i style='mso-bidi-font-style:normal'>N </i>represents
+a random integer from 0 to 9</li>
+
+<li>The value <i style='mso-bidi-font-style:normal'>M </i>indicates
+the file is a message file</li>
+
+<li>The <i style='mso-bidi-font-style:normal'>.tty</i>
+extension shows that the file is part of the character run support</li>
+
+</ul>
+
+<p><b>Note:</b> When the end user closes the Character Run
+Window, the character message file is deleted.</p>
+
+<p>The
+AppBuilder and character client write a command line to the message file. The
+following sections describe the command line format and message file commands.</p>
+
+
+<P><A NAME="2.1.5"><B>2.1.5 Command
+Line Format</B></A></P>
+
+<p>The
+following code shows the standard format of the character message file command
+line:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p>code-page|command|proc-filename|DB=-db dbname -ld ldbname …</p>
+
+</div>
+
+
+<p><b>Example. </b>The following code shows a
+specific use of this command line format:</p>
+
+<div style='border:solid windowtext .5pt;padding:1.0pt 4.0pt 1.0pt 4.0pt'>
+
+<p>ibm850|RUN|p12345cf.ab|DB=-db demo -ld demo</p>
+
+</div>
+
+
+<p>The
+following table identifies and describes each element of the character message
+file command line code format:</p>
+
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=108 valign=top>
+   <p><b>Code element</b></p>
+   </td>
+   <td width=451 valign=top>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=108 valign=top>
+  <p>Code-page</p>
+  </td>
+  <td width=451 valign=top>
+  <p>Stream
+  code page used to create the message file.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=108 valign=top>
+  <p><Command</p>
+  </td>
+  <td width=451 valign=top>  <p>Specifies the character run support
+  command. Commands are: RUN, RUN-DEBUG, OK, and OK-EXIT. </p>
+  <p><b>Note:</b> Command descriptions
+  are given in section 2.1.6, &quot;Message File Commands&quot;, in this
+  document. </p>
+  </td>
+ </tr>
+ <tr>
+  <td width=108 valign=top>
+  <p><Proc-filename</p>
+  </td>
+  <td width=451 valign=top>  <p>Identifies
+  the AppBuilder-assigned temporary file name of the character procedure to run.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=108 valign=top>
+  <p>DB</p>
+  </td>
+  <td width=451 valign=top>  <p>Specifies
+  the database connection information used to connect databases in the
+  character client session. The ellipses indicate additional -db and -ld pairs
+  can follow.</p>
+  </td>
+ </tr>
+</table>
+
+<p><b>2.2.5.1 Resolving
+Different Stream Code Page Settings</b></p>
+
+<p>It
+is possible for the AppBuilder client to start its session with a stream code
+page setting (either -cpstream or the obsolete -stream parameter) that is
+different than that which starts the character client session. This means the
+AppBuilder could write a character message file that the character client
+session cannot properly read.</p>
+
+<p>To
+address this potential problem, the TTY Session Start procedure _ttyss.p adds
+the AppBuilder's stream code page session setting to the front of the command
+line it writes to the message file. Each time the character client reads the
+character message file, it examines the command line string and checks the code
+page; if it's not the same as its setting, the character client reopens the
+file with code page specified in the message file. The character client can
+read and check the stream code page value because the first 128 (positions 0
+through and including 127) characters of all code pages are the US-ASCII
+characters, and code page names are made up of only US-ASCII (positions 0
+through and including 127) characters.</p>
+
+
+<P><A NAME="2.1.6"><B>2.1.6 Message
+File Commands</B></A></P>
+
+<p>The
+command line in the character message file contains, among other elements, a
+command that the AppBuilder and character client sessions use to communicate
+character run instructions and status information.</p>
+
+<p>The
+following table identifies the character message file commands:</p>
+
+<table border=1 cellspacing=0 cellpadding=0>
+
+  <tr>
+   <td width=138 valign=top>
+   <p><b>Character Message File Commands</b></p>
+   </td>
+   <td width=420 valign=top>
+   <p><b>Description</b></p>
+   </td>
+  </tr>
+
+ <tr>
+  <td width=138 valign=top>
+  <p>RUN</p>
+  </td>
+  <td width=420 valign=top> <p>When
+  read by the character client, the RUN command instructs the Character Run
+  Window to run the character procedure. </p>
+  <p>When
+  read by the AppBuilder session, it indicates the character procedure is
+  currently running in the Character Window.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=138 valign=top>
+  <p>RUN-DEBUG</p>
+  </td>
+  <td width=420 valign=top> <p>When
+  read by the character client, it instructs the Character Run Window to run
+  the character procedure by invoking it in the Progress Debugger. </p>
+  <p>When
+  read by the AppBuilder session, it indicates the character procedure is
+  currently running in the Character Window in debug mode.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=138 valign=top>
+  <p>OK</p>
+  </td>
+  <td width=420 valign=top> <p>When read by the AppBuilder session, it
+  indicates the character procedure has ended running and the Character Run
+  Window is waiting to run another procedure. The OK command is not sent to the
+  character client.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=138 valign=top>
+  <p>OK-EXIT</p>
+  </td>
+  <td width=420 valign=top> <p>When
+  read by the character client, it instructs the Character Run Window to close
+  and end its client session.</p>
+  <p>When
+  read by the AppBuilder session, it indicates the character client session has
+  ended and AppBuilder returns to design-mode from run-mode.</p>
+  </td>
+ </tr>
+</table>
+
+<P><A NAME="2.1.7"><B>2.1.7 Closing
+the Character Run Window</B></A></P>
+
+<p>To
+close the Character Run Window, the end user chooses Compile</span></span></span></span></span><span
+style='mso-bookmark:_Toc493510573'><span style='mso-bookmark:_Toc493493155'><span
+style='mso-bookmark:_Toc493492367'><span style='mso-bookmark:_Toc493492279'><span
+style='mso-bookmark:_Toc492469803'><span style='font-family:Symbol;mso-ascii-font-family:
+"Times New Roman";mso-hansi-font-family:"Times New Roman";mso-char-type:symbol;
+mso-symbol-font-family:Symbol'><span style='mso-char-type:symbol;mso-symbol-font-family:
+Symbol'>®</span></span>Close Character Run Window in the AppBuilder Main
+window. This action:</p>
+
+<ul>
+
+<li>Runs the TTY Session Close procedure adeuib/_ttysx.p</li>
+
+<li>Deletes the character message file</li>
+
+</ul>
+
+<p>When
+TTY Session Run procedure detects the character message file has been deleted,
+it ends the character client session, thereby closing the Character Run Window.
+If no character message file exists, the TTY Session Close procedure displays a
+message indicating the Character Run Window is not open.</p>
+
+<P><A NAME="2.1.8"><B>2.1.8 Character
+Client Connection: Tips and Issues</B></A></P>
+
+<p>Note
+the following information as it pertains to character client connections:</p>
+
+<ul>
+
+<li>All databases the AppBuilder is connected with must
+have services running for them before you run a character procedure or layout.
+Otherwise, the character run client will not execute the procedure. This is
+true even if the procedure does not reference any of the connected databases.
+The character run client connects with all the AppBuilder connected databases
+in case the procedure needs any of the databases to run.</li>
+
+<li>Before you can successfully run a character procedure
+or layout, ensure that all databases to which the AppBuilder is connected have
+servers running for them. If all these databases do not have their servers
+running, the character run client will not execute the procedure. </li>
+
+<li>If the application databases with which you are testing
+a character layout require connection parameters in addition to the database
+names, specify the database names and additional connection parameters in the
+default Progress startup.pf file.</li>
+
+<li>If you want to specify different connection parameters
+for the AppBuilder client and the Character Run client, create a parameter file
+for the Character client, then set the Progress WinChar PROSTARTUP registry
+setting to the new parameter file. For example, if the AppBuilder client
+session has different code page settings than the Character client, you can
+specify appropriate code page startup parameters in the character parameter
+file.</li>
+
+
+<li>If you connect to additional databases during the
+AppBuilder session, you must specify only the database name and multi-user
+mode. The Character Run Window client will not recognize any additional
+connection options you specify, and running the character layout might fail to
+connect to the database.</li>
+
+</ul>
+
+<P><A NAME="2.1.9"><B>2.1.9 Source
+File Descriptions</B></A></P>
+
+<p>There
+are several source files that implement most of the character run support.
+Refer to <A HREF="#2">section 2</A>, &quot;Architecture&quot;, earlier in this document.
+It describes the source files for character run support.</p>
+
+<P><A NAME="3"><B>3. Primary Data Structures</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="4"><B>4. Primary Algorithms and Processes</B></A></P>
+
+<p>This section more fully explains how the AppBuilder runs a
+character procedure, focusing on the technical information related to the
+procedure steps described earlier in this document:</p>
+
+<ol>
+
+<li>AppBuilder enters run-mode (disables its main window and tool
+icons, etc.) and creates a temporary source file version of the character
+procedure.</li>
+
+<p>AppBuilder then runs the TTY Session Start procedure
+adeuib/_ttyss.p, which writes information to the character message file that is
+needed by the character client session to run the character procedure. The information
+includes run command (RUN or RUN-DEBUG), the name of the procedure to run, and
+the databases to connect.</p>
+
+<li>TTY Session Start procedure then starts a multiuser Progress
+character client session named the Character Run Window, specifying the TTY
+Session Run procedure adeuib/_ttyss.p as the client -p startup procedure.</li>
+
+<p>TTY Session Start procedure then waits for the
+character client session to communicate back to it using the character message
+file.</p>
+
+<li>TTY Session Run procedure displays the Character Run Window in
+the character client session.</li>
+
+<p>TTY Session Run procedure reads the character
+message file command line, connects the necessary databases, and runs the
+specified character procedure.</p>
+
+<p>When the character run procedure ends, TTY Session
+Run procedure writes to the character message file the &quot;OK&quot; command
+to indicate to the AppBuilder that it is waiting for another procedure to run.</p>
+
+<li>TTY Session Start procedure detects the &quot;OK&quot; command
+in the character message file and returns control to the AppBuilder, which
+resumes in design-mode.</li>
+
+<p>User can change the character procedure and run it
+again, or open and run another character procedure (see item 1).</p>
+
+<li>The user can close the Character Run Window by choosing
+Compile<span style='font-family:Symbol;mso-ascii-font-family:"Times New Roman";
+mso-hansi-font-family:"Times New Roman";mso-char-type:symbol;mso-symbol-font-family:
+Symbol'><span style='mso-char-type:symbol;mso-symbol-font-family:Symbol'>®</span></span>Close
+Character Run Window in the AppBuilder Main window. This runs TTY Session Close
+procedure and it deletes the character message file.</li>
+
+<p>When TTY Session Run procedure detects the character
+message file has been deleted, it ends the character client session, thereby
+closing the Character Run Window.</p>
+
+</ol>
+
+<P><A NAME="5"><B>5. Advanced Topics</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="6"><B>6. Dependencies</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="7"><B>7. Source File</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="8"><B>8. Process and Requirements</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="9"><B>9. Execution Methods</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="10"><B>10. Requirements and Strategies</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="11"><B>11.  Supplementary Information</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="12"><B>12.  Related Documentation</B></A></P>
+
+<p>The following document contains additional information
+about Character Run Support:</p>
+
+<ul>
+
+<li><i style='mso-bidi-font-style:normal'>AppBuilder
+Developer's Guide</i></li>
+
+</div>
+
+</span>

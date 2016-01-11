@@ -55,6 +55,8 @@ IF NOT AVAILABLE DICTDB._Db THEN DO TRANSACTION:
                         }.
     { prodict/gate/gat_cp1a.i
               &incpname = "odb_codepage" }
+  ASSIGN DICTDB._Db._Db-coll-name = (IF odb_collname <> ? AND odb_collname <> "" THEN odb_collname
+                                     ELSE SESSION:CPCOLL).
 END.
 
 ASSIGN

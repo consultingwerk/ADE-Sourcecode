@@ -1,0 +1,678 @@
+
+<SPAN CLASS="Text1">
+
+<P>
+<B>PRO*Tools</B><BR>
+<B>Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+Copyright &copy; 2000 by Progress Software Corporation ("PSC"), 14 Oak Park, Bedford, MA 01730, 
+and other contributors as listed below. All Rights Reserved.
+</P>
+
+<P>
+The Initial Developer of the Original Code is PSC. The Original Code is Progress IDE code 
+released to open source December 1, 2000.
+</P>
+
+<P>
+The contents of this file are subject to the Possenet Public License Version 1.0 (the "License"); 
+you may not use this file except in compliance with the License. A copy of the License is available 
+as of the date of this notice at <A HREF="http://www.possenet.org/license.html">http://www.possenet.org/license.html</A>
+</P>
+
+<P>
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF 
+ANY KIND, either express or implied. You should refer to the License for the specific language 
+governing rights and limitations under the License. 
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>		<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>		<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>		<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>		<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">4.1</TD>		<TD CLASS="Text1"><A HREF="#4.1">ADM1 PRO*Spy (protools/_prospy.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.2</TD>		<TD CLASS="Text1"><A HREF="#4.2">ADM1.0 -&gt; ADM1.1 Upgrade Utility (protools/_smoupg.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.3</TD>		<TD CLASS="Text1"><A HREF="#4.3">AppServer Session Information (protools/_asinfo.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.4</TD>		<TD CLASS="Text1"><A HREF="#4.4">Color Changer (protools/_colorch.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.5</TD>		<TD CLASS="Text1"><A HREF="#4.5">COM Object Viewer (protools/_proobjv.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.6</TD>		<TD CLASS="Text1"><A HREF="#4.6">Configuration Information (protools/_procfg.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.7</TD>		<TD CLASS="Text1"><A HREF="#4.7">Control Hierarchy (protools/_walker.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.8</TD>		<TD CLASS="Text1"><A HREF="#4.8">Database Connections (protools/_dblist.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.9</TD>		<TD CLASS="Text1"><A HREF="#4.9">Editor (protools/_pwedit.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.10</TD>		<TD CLASS="Text1"><A HREF="#4.10">OS Prompt (protools/_osprmt.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.11</TD>		<TD CLASS="Text1"><A HREF="#4.11">PRO*Spy (protools/_prospy9.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.12</TD>		<TD CLASS="Text1"><A HREF="#4.12">Procedure Object Viewer (protools/_ppmgr.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.13</TD>		<TD CLASS="Text1"><A HREF="#4.13">PROPATH Editor (protools/_propath.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.14</TD>		<TD CLASS="Text1"><A HREF="#4.14">Prototype Generator (protools/_protgen.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.15</TD>		<TD CLASS="Text1"><A HREF="#4.15">ProwcApp Editor (protools/_prowcapped.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.16</TD>		<TD CLASS="Text1"><A HREF="#4.16">Run Procedure (protools/_runfile.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.17</TD>		<TD CLASS="Text1"><A HREF="#4.17">Screen Capture (protools/_scrcap.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.18</TD>		<TD CLASS="Text1"><A HREF="#4.18">Screen Scaling Utility (protools/_ppuscl.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.19</TD>		<TD CLASS="Text1"><A HREF="#4.19">Service Parameter Maintenance (protools/_waspartn.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.20</TD>		<TD CLASS="Text1"><A HREF="#4.20">Session Attributes (protools/_session.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.21</TD>		<TD CLASS="Text1"><A HREF="#4.21">Set Font 2 (protools/_edfont.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.22</TD>		<TD CLASS="Text1"><A HREF="#4.22">SmartObject Upgrade Utility (protools/_v89conv.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.23</TD>		<TD CLASS="Text1"><A HREF="#4.23">Window Viewer (protools/_winmgr.w)</A></TD></TR>
+<TR><TD CLASS="Text1">4.24</TD>		<TD CLASS="Text1"><A HREF="#4.24">Windows Information (protools/_wabout.p)</A></TD></TR>
+<TR><TD CLASS="Text1">4.25</TD>		<TD CLASS="Text1"><A HREF="#4.25">XML Schema Mapping (protools/_xmlview.w)</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>		<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>		<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">6.1</TD>		<TD CLASS="Text1"><A HREF="#6.1">Temporary Tables</A></TD></TR>
+<TR><TD CLASS="Text1">6.2</TD>		<TD CLASS="Text1"><A HREF="#6.2">AppBuilder</A></TD></TR>
+<TR><TD CLASS="Text1">6.3</TD>		<TD CLASS="Text1"><A HREF="#6.3">Common Routines</A></TD></TR>
+<TR><TD CLASS="Text1">6.4</TD>		<TD CLASS="Text1"><A HREF="#6.4">Executables</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>		<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>		<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>		<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>		<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>		<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>		<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>	
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<A NAME="1"><B>1. Overview</B></A>
+<BR>
+PRO*Tools are a collection of applets available for
+Progress developers that provide functionality such as information about the
+current Progress session, debugging aides, and deployment tools. It is possible
+to add applets to the PRO*Tools and customize how the existing applets display
+in the PRO*Tools palette and how they are run with the PRO*Tools Customization
+option.
+</P>
+
+<P>
+<A NAME="2"><B>2. Architecture</B></A>
+<BR>
+PRO*Tools are a collection of applets available for
+Progress developers that provide functionality such as information about the
+current Progress session, debugging aides, and deployment tools. It is possible
+to add applets to the PRO*Tools and customize how the existing applets display
+in the PRO*Tools palette and how they are run with the PRO*Tools Customization
+option.
+</P>
+
+<P>
+A startup file is used at initialization of the
+PRO*Tools palette to determine which applets to display on the palette and
+which images to use and what to run for each applet and how to run the applet.
+</P>
+
+<P>
+The startup file, protools/protools.dat stores
+the function definitions for the PRO*Tool applets. It contains the following data:
+</P>
+
+<UL TYPE="square">
+<LI>Applet name
+<LI>Program name
+<LI>Image name
+<LI>Logical value indicating whether the applet is run
+	persistently 
+<LI>Logical value indicating whether the applet is
+	displayed on the palette
+<LI>Logical value that is not used at all
+</UL>
+
+<P>
+A default protools.dat file exits in DLC/gui/protools. PRO*Tools
+Customization allows for a different startup file to be used. Customizing PRO*Tools writes the following key
+values to the ProTools section of the current environment (registry or
+initialization file):
+</P>
+
+<UL TYPE="square">
+<LI>FunctionDefs – Full path name of the startup file
+<LI>ItemsPerRow – Number of applets to display per palette
+row
+<LI>PaletteLoc – Location to display the palette
+</UL>
+
+<P>
+<A NAME="3"><B>3. Primary Data Structures</B></A>
+<BR>
+Function definitions
+in the startup file (protools/protools.dat) are input from the file into
+pt-function temp-table records. These
+temp-table records are then used to create the palette and determine how to run
+the applets from the palette.
+</P>
+
+<P>
+<A NAME="4"><B>4. Primary Data Structures</B></A>
+<BR>
+The primary processes of PRO*Tools include the supported
+applets described in this section.
+</P>
+
+<P>
+<A NAME="4.1"><B>4.1 ADM1 PRO*Spy (protools/_prospy.w)</B></A>
+<BR>
+The ADM1 PRO*Spy is
+available as a debugging tool for ADM1 (Version 8) SmartObject applications.
+It is not included in the startup file
+(protools/protools.dat) for Version 9 and can be added to the startup file
+through PRO*Tools customization.
+</P>
+
+<P>
+<A NAME="4.2"><B>4.2 ADM1.0 -&gt; ADM1.1Upgrade Utility (protools/_smoupg.p)</B></A>
+<BR>
+The Version 8
+SmartObject Upgrade Utility is available for converting ADM1.0 (Version 8.0x)
+SmartObjects into ADM1.1 (Version 8.1x) SmartObjects. The protools/_smoupg.p procedure is a stub
+procedure that determines whether the AppBuilder is running before running the
+upgrade utility, adeuib/_smoupg.w.
+</P>
+
+<P>
+<A NAME="4.3"><B>4.3 AppServer Session Information (protools/_asinfo.w)</B></A>
+<BR>
+The AppServer Session
+Information applet is a dialog box that displays connection and execution
+information for an AppServer. It
+gathers the displayed information for an AppServer by invoking
+adecomm/_asread.p on the AppServer.
+</P>
+
+<P>
+<A NAME="4.4"><B>4.4 Color Changer (protools/_colorch.w)</B></A>
+<BR>
+The Color Changer
+applet is a window that allows Progress system colors 0 through 15 to be
+changed using the SYSTEM-DIALOG COLOR statement. The changed colors can also be saved to the current environment (registry
+or initialization file) with a PUT-KEY-VALUE COLOR ALL statement.
+</P>
+
+<P>
+<A NAME="4.5"><B>4.5 COM Object Viewer (protools/_proobjv.p)</B></A>
+<BR>
+The COM Object Viewer
+applet starts the COM Object Viewer executable, bin\proobjvw.exe, which
+displays the contents of Type Libraries for Automation Servers and ActiveX
+Controls.
+</P>
+
+<P>
+<A NAME="4.6"><B>4.6 Configuration Information (protools/_procfg.w)</B></A>
+<BR>
+The Configuration
+Information applet is a window that displays product configuration information
+for the install that it retrieves from SHOWCFG utility output.  The
+browse that displays the product names and serial numbers uses a temp-table
+called cfg that is not defined in adettdb/TEMP-DB.df. Refer to section 8. Additional Information for
+details regarding temp-table use in PRO*Tool procedures.
+</P>
+
+<P>
+<A NAME="4.7"><B>4.7 Control Hierarchy (protools/_walker.w)</B></A>
+<BR>
+The Control Hierarchy
+applet is a window that displays objects in the Progress session by walking the
+widget tree for each window in the Progress session.
+</P>
+
+<P>
+<A NAME="4.8"><B>4.8 Database Connections (protools/_dblist.w)</B></A>
+<BR>
+The Database
+Connections applet is a window that allows connections to and disconnections
+from databases and displays schema information for connected databases. A database alias called tinydict is created for
+the currently selected database before procedures that access the database
+schema information are invoked. The
+procedures that access the database schema information use tinydict to do so.
+</P>
+
+<P>
+<A NAME="4.9"><B>4.9 Editor (protools/_pwedit.p)</B></A>
+<BR>
+The Editor applet
+invokes the Procedure Window main procedure, adecomm/_pwmain.p.
+</P>
+
+<P>
+<A NAME="4.10"><B>4.10 OS Prompt (protools/_osprmt.p)</B></A>
+<BR>
+The OS Prompt applet
+invokes the MS-DOS command prompt with an appropriate command for the version
+of Windows being used.
+</P>
+
+<P>
+<A NAME="4.11"><B>4.11 PRO*Spy (protools/_prospy9.w)</B></A>
+<BR>
+The PRO*Spy applet is
+a SmartObject debugging tool that runs a SmartObject application and displays
+execution path information logged for the session by turning the EXECUTION-LOG
+session attribute on while the application is run.
+</P>
+
+<P>
+<A NAME="4.12"><B>4.12 Procedure Object Viewer (protools/_ppmgr.w)</B></A>
+<BR>
+The Procedure Object
+Viewer applet is a window that displays the running persistent procedures in
+the Progress session. The following
+are also displayed for the currently selected procedure:
+</P>
+
+<UL TYPE="square">
+<LI>INTERNAL-ENTRIES
+<LI>Parameters for the INTERNAL-ENTRIES (retrieved with GET-SIGNATURE)
+<LI>DB-REFERENCES
+<LI>SUPER-PROCEDURES
+</UL>
+
+<P>
+<A NAME="4.13"><B>4.13 PROPATH Editor (protools/_propath.w)</B></A>
+<BR>
+The PROPATH Editor is a dialog box that displays
+and allows modifications to the first 999 items in the Progress PROPATH and
+allows the user to save the PROPATH in the current environment (registry or
+initialization file).
+</P>
+
+<P>
+<A NAME="4.14"><B>4.14 Prototype Generator (protools/_protgen.w)</B></A>
+<BR>
+The Prototype Generator applet is a window that
+generates prototype include files for a super procedures by running the super
+procedure with adecomm/_runcode.p and then getting the signatures of its
+internal entries.
+</P>
+
+<P>
+<A NAME="4.15"><B>4.15 ProwcApp Editor (protools/_prowcapped.w)</B></A>
+<BR>
+The ProwcApp Editor applet starts the Progress
+Web Client Application Editor executable, bin\prowcappeditor.exe.
+</P>
+
+<P>
+<A NAME="4.16"><B>4.16 Run Procedure (protools/_runfile.w)</B></A>
+<BR>
+The Run Procedure applet is a window that runs a
+procedure with adecomm/_runcode.p.
+</P>
+
+<P>
+<A NAME="4.17"><B>4.17 Screen Capture (protools/_scrcap.w)</B></A>
+<BR>
+The Screen Capture applet allows screen images of
+Progress windows to be captured.
+</P>
+
+<P>
+<A NAME="4.18"><B>4.18 Screen Scaling Utility (protools/_ppuscl.p)</B></A>
+<BR>
+The Screen Scaling Utility assists in scaling the
+size and position of objects in procedures. The protools/_ppuscl.p procedure is a stub procedure that determines
+whether the AppBuilder is running before running the scaling utility,
+adeuib/_ppuscal.w.
+</P>
+
+<P>
+<A NAME="4.19"><B>4.19 Service Parameter Maintenance (protools/_waspartn.w)</B></A>
+<BR>
+The
+Service Parameter Maintenance applet is a window that allows creation of application
+partitions for use by AppBuilder procedures. It uses SmartObjects based on a
+temp-table called ttAppSrv-TT defined in adettdb/temp-db.df to maintain the
+partitions. And it uses the AppServer Utilities (adecomm/as-utils.w) to write
+the partition data to the deployment file (appsrvtt.d). There are two types of
+partitions that can be created by this applet:
+</P>
+
+<UL TYPE="square">
+<LI>AppServer partitions to store AppServer connection
+information for running procedures on an AppServer.
+<LI>JMS Server partitions to store Sonic Adapter connection
+information and the Sonic Broker URL for using the Sonic Adapter.
+</UL>
+
+<P>
+<A NAME="4.20"><B>4.20 Session Attributes (protools/_session.w)</B></A>
+<BR>
+The Session Attributes applet displays attributes
+of the SESSION handle and allows the attribute values to be printed.
+</P>
+
+<P>
+<A NAME="4.21"><B>4.21 Session Attributes (protools/_session.w)</B></A>
+<BR>
+The Set Font 2 applet invokes the SYSTEM-DIALOG
+FONT dialog for font 2. Font 2 is the font used for the ADE source code
+editors.
+</P>
+
+<P>
+<A NAME="4.22"><B>4.22 SmartObject Upgrade Utility (protools/_v89conv.w)</B></A>
+<BR>
+The SmartObject Upgrade Utility assists in
+converting Version 8 SmartObjects to Version 9 SmartObjects. The conversions are data-driven based on the
+v89names.dat file.
+</P>
+
+<P>
+<A NAME="4.23"><B>4.23 Window Viewer (protools/_winmgr.w)</B></A>
+<BR>
+The Window Viewer applet displays open windows
+for the Progress session and can hide a window or view a hidden window and can
+pop a window to the top.
+</P>
+
+<P>
+<A NAME="4.24"><B>4.24 Windows Information (protools/_wabout.p)</B></A>
+<BR>
+The Windows Information applet displays windows
+operation system information with a call to ShellAbout.
+</P>
+
+<P>
+<A NAME="4.25"><B>4.25 XML Schema Mapping (protools/_xmlview.w)</B></A>
+<BR>
+The XML Schema Mapping Tool allows creation and
+editing of schema-based XML mapping files.
+</P>
+
+<P>
+<A NAME="5"><B>5. Advanced Topics</B></A>
+<BR>
+Not Applicable
+</P>
+
+<P>
+<A NAME="6"><B>6. Dependencies</B></A>
+<BR>
+The PRO*Tools have a number of dependencies,
+depending on the tool.
+</P>
+
+<P>
+<A NAME="6.1"><B>6.1 Temporary Tables</B></A>
+<BR>
+The
+SmartObjects that make up the Service Parameter Maintenance applet use
+definitions from adettdb/temp-db.df. In
+order to load these files into the AppBuilder and modify them, connection to a
+TEMP-DB database that includes the definitions in adettdb/temp-db.df is
+required.
+</P>
+
+<P>
+There
+are several other PRO*Tool procedures that include temp-table definitions but
+these definitions are not included in adettdb/temp-db.df. This is currently logged as bug 20000907-009 and
+will be fixed to include these temp-table definitions in adettdb/temp-db.df and
+to update the procedures accordingly to use these temp-table definitions.
+Until this bug is fixed, any of these
+affected files will give errors when loaded into the AppBuilder and saving
+these files in the AppBuilder may remove their temp-table definitions. Until this bug is fixed, care should be taken
+when modifying any of these procedures. The procedures affected are indicated with an * in the source file
+listing.
+</P>
+
+<P>
+<A NAME="6.2"><B>6.2 AppBuilder</B></A>
+<BR>
+The
+following applets require that the AppBuilder be running in order to run them:
+</P>
+
+<UL TYPE="square">
+<LI>Screen Scaling Utility
+<LI>Screen Scaling Utility
+<LI>ADM1.0 -&gt; ADM1.1 Upgrade Utility
+</UL>
+
+<P>
+<A NAME="6.3"><B>6.3 Common Routines</B></A>
+<BR>
+Most of
+the applets depend on various adecomm and adeshar routines, including:
+</P>
+
+<UL TYPE="square">
+<LI>adecomm/_about.p
+<LI>adecomm/_adehelp.p
+<LI>adecomm/_adetool.i
+<LI>adecomm/_dbcnnct.p
+<LI>adecomm/_fndfile.p
+<LI>adecomm/_getfile.p
+<LI>adecomm/_osfext.p
+<LI>adecomm/_osprefx.p
+<LI>adecomm/_relname.p
+<LI>adecomm/_runcode.p
+<LI>adecomm/_s-alert.p
+<LI>adecomm/_scroll.p
+<LI>adecomm/_setcurs.p
+<LI>adecomm/_statdsp.p
+<LI>adecomm/_status.p
+<LI>adecomm/_tmpfile.p
+<LI>adecom/_wfrun.p
+<LI>adecomm/adefext.i
+<LI>adecomm/adestds.i
+<LI>adecomm/commeng.i
+<LI>adecomm/okbar.i
+<LI>adecomm/okform.i
+<LI>adecomm/okrun.i
+<LI>adeshar/_ablic.p
+<LI>adeshar/_puterr.p
+</UL>
+
+<P>
+The
+Database Connections applet depends on additional adecomm routines for database
+connecting/disconnecting, including:
+</P>
+
+<UL TYPE="square">
+<LI>adecomm/_dbconnx.p
+</UL>
+
+<P>
+The
+AppServer Information and Service Parameter Maintenance applets depend on
+additional adecomm routines for AppServer connections, including:
+</P>
+
+<UL TYPE="square">
+	<LI>adecomm/appserv.i</LI>
+	<LI>adecomm/appsrvtt.i</LI>
+	<LI>adecomm/_asread.p</LI>
+</UL>
+
+<P>
+The
+SmartObject Upgrade Utility applet depends on additional adecomm and adeshar
+routines for directory searches and for use of an editable drop-down combo-box
+activex control, including:
+</P>
+
+<UL TYPE="square">
+	<LI>adecomm/cbdropx.i</LI>
+	<LI>adecomm/cbvar.i</LI>
+	<LI>adecomm/dirsrch.i</LI>
+	<LI>adeshar/_seldir.w</LI>
+</UL>
+
+<P>
+The
+PROPATH Editor Search option depends on adecomm/fileinfo.i to use the
+fileinfo.dll to get file information.
+</P>
+
+
+<P>
+<A NAME="6.4"><B>6.4 Executables</B></A>
+<BR>
+The COM
+Object Viewer requires bin/proobjvw.exe to be available.
+</P>
+
+<P>
+The
+ProwcApp Editor requires bin/prowcappeditor.exe to be available.
+</P>
+
+<P>
+<A NAME="7"><B>7. Source Files</B></A>
+<BR>
+This tool uses
+the following source files:
+</P>
+
+<P>
+Note: Files
+flagged with an asterisk (*) identify procedures that cannot be loaded into the
+AppBuilder because required temp-table definitions that have not been included
+in adettdb/TEMP-DB.df.
+</P>
+
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1"><B>Source File</B></TD>				<TD CLASS="Text1"><B>Description</B></TD></TR>
+<TR><TD CLASS="Text1">protools/_protool.p</TD>				<TD CLASS="Text1">Sets up features for the palette defined in the ProTools Function Definitions.</TD></TR>
+<TR><TD CLASS="Text1">protools/_protool.i</TD>				<TD CLASS="Text1">Contains temp-table definition that holds function definitions.</TD></TR>
+<TR><TD CLASS="Text1">adecomm/palette.w</TD>				<TD CLASS="Text1">Creates a palette in a window, run by protools/_protool.p</TD></TR>
+<TR><TD CLASS="Text1">protools/_runonce.i</TD>				<TD CLASS="Text1">Onlyallows one copy of an applet that includes this file to be run.</TD></TR> 
+<TR><TD CLASS="Text1">*protools/_custmiz.w</TD>				<TD CLASS="Text1">Customizationdialog box.</TD></TR> 
+<TR><TD CLASS="Text1">*protools/_custmi2.w</TD>				<TD CLASS="Text1">Add/Updatedialog box for PRO*Tools customizations. </TD></TR>
+<TR><TD CLASS="Text1">protools/_colorch.w</TD>				<TD CLASS="Text1">Color Changer applet window.</TD></TR>
+<TR><TD CLASS="Text1">*protools/_procfg.w</TD>				<TD CLASS="Text1">Configuration Information applet window. </TD></TR>
+<TR><TD CLASS="Text1">protools/_walker.w</TD>				<TD CLASS="Text1">Control Hierarchy applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_dblist.w</TD>				<TD CLASS="Text1">Database Connections applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_schlist.w</TD>				<TD CLASS="Text1">Database Connections Schema detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_schdef.i</TD>				<TD CLASS="Text1">Define temp tables to hold table, field and index information to be displayed by the Database Connections applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_tbllist.p</TD>				<TD CLASS="Text1">Returns a list of table names for a database, used by the Database Connections Schema detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_fldlist.p</TD>				<TD CLASS="Text1">Returns a list of field names for a table in a database, used by the Database Connections Schema detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_idxlist.p</TD>				<TD CLASS="Text1">Returns a list of index names for a table in a database, used by the Database Connections Schema detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_gettbl.p</TD>				<TD CLASS="Text1">Stores table information into a temp-table record for use by the Database Connections Table detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_storarea.p</TD>				<TD CLASS="Text1">Returns the storage area to protools/_gettbl.p.</TD></TR>
+<TR><TD CLASS="Text1">protools/_getfld.p</TD>				<TD CLASS="Text1">Stores field information into a temp-table record for use by the Database Connections Field detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_getidx.p</TD>				<TD CLASS="Text1">Stores index and index information into temp-table records for use by the Database Connections Index detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_tblavbl.p</TD>				<TD CLASS="Text1">Accepts a database name and field name and returns a logical value that indicates whether the table still exists in the database, used by the Database Connections applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_fldavbl.p</TD>				<TD CLASS="Text1">Accepts a database name, table name, and field name and returns a logical value that indicates whether the field still exists in the table, used by the Database Connections applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_idxavbl.p</TD>				<TD CLASS="Text1">Accepts a database name, table name and index name and returns a logical value that indicates whether the index still exists for the table, used by the Database Connections applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_tbldetl.w</TD>				<TD CLASS="Text1">Database Connections Table detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_flddetl.w</TD>				<TD CLASS="Text1">Database Connections Field detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_idxdetl.w</TD>				<TD CLASS="Text1">Database Connections Index detail window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_db_gw.p</TD>				<TD CLASS="Text1">Used by the Database Connections applet to determine whether a database is a schema holder and if so, it returns comma-delimited lists of the foreign db names and their db types.</TD></TR>
+<TR><TD CLASS="Text1">protools/_osprmt.p</TD>				<TD CLASS="Text1">OS Prompt applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_edfont.p</TD>				<TD CLASS="Text1">Set Font 2 applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_pwedit.p</TD>				<TD CLASS="Text1">Editor applet.</TD></TR>
+<TR><TD CLASS="Text1">protools/_ppmgr.w</TD>				<TD CLASS="Text1">ProcedureObject Viewer applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_propath.w</TD>				<TD CLASS="Text1">PROPATH Editor applet dialog box.</TD></TR>
+<TR><TD CLASS="Text1">protools/_search.w</TD>				<TD CLASS="Text1">PROPATH Editor File Search dialog box.</TD></TR>
+<TR><TD CLASS="Text1">protools/_runfile.w</TD>				<TD CLASS="Text1">Run Procedure applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_session.w</TD>				<TD CLASS="Text1">Session Attributes applet dialog box.</TD></TR>
+<TR><TD CLASS="Text1">protoools/_winmgr.w</TD>				<TD CLASS="Text1">Window Viewer applet dialog box.</TD></TR>
+<TR><TD CLASS="Text1">protools/_wabout.p</TD>				<TD CLASS="Text1">Call to Windows ShellAbout.</TD></TR>
+<TR><TD CLASS="Text1">protools/_scrcap.w</TD>				<TD CLASS="Text1">Screen Capture applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_scrprtd.w</TD>				<TD CLASS="Text1">Screen Capture printing options dialog box.</TD></TR>
+<TR><TD CLASS="Text1">*protools/_v89conv.w</TD>				<TD CLASS="Text1">SmartObject Upgrade Utility applet window. </TD></TR>
+<TR><TD CLASS="Text1">protools/_v89conv.wrx</TD>			<TD CLASS="Text1">WRX file for the editable combo-box in _v89conv.w.</TD></TR>
+<TR><TD CLASS="Text1">protools/sort-dia.w</TD>				<TD CLASS="Text1">SmartObject Upgrade Utility Sort Options dialog box.</TD></TR>
+<TR><TD CLASS="Text1">protools/v89names.dat</TD>			<TD CLASS="Text1">Data file used by the SmartObject Upgrade Utility to determine how code is converted.</TD></TR>
+<TR><TD CLASS="Text1">protools/_convt89.p</TD>				<TD CLASS="Text1">SmartObjectUpgrade Utility conversion procedure.</TD></TR>
+<TR><TD CLASS="Text1">protools/makeflds.w</TD>				<TD CLASS="Text1">SmartObject Upgrade Utility conversion procedure called by _convt89.p that generates a space-delimited list of fields from a comma delimited list of tables.</TD></TR>
+<TR><TD CLASS="Text1">protools/_ppuscl.p</TD>				<TD CLASS="Text1">Stub procedure of the Screen Scaling Utility.</TD></TR>
+<TR><TD CLASS="Text1">adeuib/_ppuscal.w</TD>				<TD CLASS="Text1">Screen Scaling Utility applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_proobjv.p</TD>				<TD CLASS="Text1">Starts COM Object Viewer executable, bin\proobjvw.exe.</TD></TR>
+<TR><TD CLASS="Text1">protools/waspartn.w</TD>				<TD CLASS="Text1">Service Parameter Maintenance applet SmartWindow.</TD></TR>
+<TR><TD CLASS="Text1">protools/dappsrv.w</TD>				<TD CLASS="Text1">Service Parameter Maintenance SmartDataObject.</TD></TR>
+<TR><TD CLASS="Text1">protools/vappsrv.w</TD>				<TD CLASS="Text1">Service Parameter Maintenance SmartDataViewer for updating AppServer Partitions.</TD></TR>
+<TR><TD CLASS="Text1">protools/vjmssrv.w</TD>				<TD CLASS="Text1">Service Parameter Maintenance SmartDataViewer for updating JMS Partitions.</TD></TR>
+<TR><TD CLASS="Text1">protools/_protgen.w</TD>				<TD CLASS="Text1">Prototype Generator applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_asinfo.w</TD>				<TD CLASS="Text1">AppServer Session Information applet dialog box.</TD></TR>
+<TR><TD CLASS="Text1">*protools/_prospy9.w</TD>				<TD CLASS="Text1">PRO*Spy applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_prowcapped.p</TD>			<TD CLASS="Text1">Starts Progress Web Client Application Editor executable, bin\prowcappeditor.exe.</TD></TR>
+<TR><TD CLASS="Text1">adexml/_xmlview.w</TD>				<TD CLASS="Text1">XML Schema Mapping applet window.</TD></TR>
+<TR><TD CLASS="Text1">protools/_prospy.w</TD>				<TD CLASS="Text1">ADM1 PRO*Spy</TD></TR>
+<TR><TD CLASS="Text1">protools/_msgcnt.w</TD>				<TD CLASS="Text1">ADM1 PRO*Spy Number of Messages dialog box. </TD></TR>
+<TR><TD CLASS="Text1">protools/_break.w</TD>				<TD CLASS="Text1">ADM1 PRO*Spy Breakpoints dialog box.</TD></TR>
+</TABLE>
+</P> 
+
+<P>
+<A NAME="8"><B>8. Build Process and Requirements</B></A>
+<BR>
+Not Applicable
+</P>
+
+<P>
+<A NAME="9"><B>9. Execution Methods</B></A>
+<BR>
+PRO*Tools can be invoked by the ADE Standard
+Tools menu (adecomm/toolmenu.i and adecomm/toolrun.i) available from most ADE
+Tools.
+</P>
+
+<P>
+<A NAME="10"><B>10. Test Requirements and Strategies</B></A>
+<BR>
+Not Applicable
+</P>
+
+<P>
+<A NAME="11"><B>11. Supplementary Information</B></A>
+<BR>
+Not Applicable
+</P>
+
+<P>
+<A NAME="12"><B>11. Related Documentation</B></A>
+<BR>
+The following documents also provide additional
+information about the tool:
+</P>
+
+<UL TYPE="square">
+	<LI>PRO*Tools Online Help documents each applet, how to
+customize those applets, and how to create new applets.
+
+</UL>
+</P>
+
+</SPAN>
+
+
+

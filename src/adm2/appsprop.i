@@ -96,28 +96,33 @@
 
   /* These preprocessors tell at compile time which properties can
      be retrieved directly from the temp-table */
-&GLOBAL-DEFINE xpASDivision
 &GLOBAL-DEFINE xpASInfo
 &GLOBAL-DEFINE xpASHasStarted
 &GLOBAL-DEFINE xpASInitializeOnRun 
 &GLOBAL-DEFINE xpASUsePrompt
 &GLOBAL-DEFINE xpBindSignature
 &GLOBAL-DEFINE xpServerOperatingMode
+&GLOBAL-DEFINE xpServerFirstCall
+                                      
 /* include properties from smart */
 {src/adm2/smrtprop.i}
 
 &IF "{&ADMSuper}":U = "":U &THEN
   ghADMProps:ADD-NEW-FIELD('AppService':U, 'CHAR':U, 0, ?, '':U).  
-  ghADMProps:ADD-NEW-FIELD('ASDivision':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('ASInfo':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ASDivision':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('ASHandle':U, 'HANDLE':U, 0, ?, ?). 
   /* Set to true on the first connection */
   ghADMProps:ADD-NEW-FIELD('ASHasStarted':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('ASInfo':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ASInitializeOnRun':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('ASUsePrompt':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('BindSignature':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('BindScope':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ServerOperatingMode':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('ServerFileName':U, 'CHAR':U, 0, ?,?). 
-&ENDIF
+  ghADMProps:ADD-NEW-FIELD('ServerFileName':U,  'CHAR':U, 0, ?,?). 
+  ghADMProps:ADD-NEW-FIELD('ServerFirstCall':U, 'LOGICAL':U, 0, ?, NO). 
+  ghADMProps:ADD-NEW-FIELD('NeedContext':U, 'LOGICAL':U, 0, ?, ?). 
+ &ENDIF
 
   {src/adm2/custom/appspropcustom.i}
 

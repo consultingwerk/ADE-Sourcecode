@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -66,7 +66,15 @@ History:
     tsm     06/24/99 When setting _P._broker-url, use the broker url from 
                      the mru filelist if the file is being opened from it
     jep     08/08/00 Assign _P recid to newly created _TRG records.
-
+    jep-icf 08/29/01 ICF support. Use of _RyObject to process NEW and OPEN
+                     repository object requests. Added procedures
+                     setRepositoryObject and processRepositoryObject as part
+                     of this support.
+    jep-icf 09/27/01 IZ 1927 - If can't find template file or property sheet
+                     procedure for a dynamic object, we can't open it.
+    jep-icf 10/11/01 IZ 2467 - Open object cannot open Static SDV.
+                     Fix: processRepositoryObject now adds the object_extension
+                     to the file to open (input parameter open_file).
 ---------------------------------------------------------------------------- */
 
 {adeuib/timectrl.i}  /* Controls inclusion of profiling code */
@@ -75,7 +83,7 @@ History:
 DEFINE INPUT PARAMETER open_file AS CHAR NO-UNDO .
                          /* File to open                                     */
 DEFINE INPUT PARAMETER web_temp_file AS CHAR NO-UNDO .
-                         /* Web file contents in a temp file                 */
+                         /* Web / dynamic file contents in a temp file       */
 DEFINE INPUT PARAMETER import_mode  AS CHAR NO-UNDO .
                          /* "WINDOW", "WINDOW UNTITLED" or "IMPORT"          */
 DEFINE INPUT PARAMETER from_schema  AS LOGICAL NO-UNDO.
@@ -150,7 +158,10 @@ DEFINE VARIABLE adv_never     AS     LOGICAL                           NO-UNDO.
 DEFINE VARIABLE dyn_widget    AS     LOGICAL                           NO-UNDO.
 DEFINE VARIABLE dyn_offset    AS     INTEGER                           NO-UNDO.
 DEFINE VARIABLE web_file      AS     LOGICAL                           NO-UNDO.
-DEFINE VARIABLE import_unnamedframe AS LOGICAL                         NO-UNDO.
+DEFINE VARIABLE dyn_object    AS     LOGICAL                           NO-UNDO. /* jep-icf */
+DEFINE VARIABLE dyn_temp_file AS     CHARACTER                         NO-UNDO. /* jep-icf */
+DEFINE VARIABLE isRyObject    AS     LOGICAL                           NO-UNDO. /* jep-icf */
+DEFINE VARIABLE import_unnamedframe  AS LOGICAL                        NO-UNDO.
 
 DEFINE NEW SHARED VARIABLE def_found  AS LOGICAL INITIAL FALSE         NO-UNDO.
 DEFINE NEW SHARED VARIABLE main_found AS LOGICAL INITIAL FALSE         NO-UNDO.
@@ -172,9 +183,14 @@ DEFINE VAR AbortImport         AS LOGICAL INITIAL FALSE NO-UNDO.
 DEFINE VAR tCode               AS CHAR NO-UNDO.
 DEFINE VAR Selected_Frames     AS INT  NO-UNDO.
 
+/* jep-icf: Process repository object requests. */
+RUN processRepositoryObject.
+IF RETURN-VALUE = "_ABORT":U THEN RETURN "_ABORT":U.
+  
 ASSIGN
   SESSION:NUMERIC-FORMAT = "AMERICAN":U
   web_file               = (web_temp_file <> "").
+  
 
 /* If the mode is not WINDOW/IMPORT, put a message                        */
 /* and abort importing the file.                                          */
@@ -199,8 +215,8 @@ ELSE ASSIGN dot-w-file = open_file
             pressed-ok = TRUE.
               
 /* Make sure we have the full pathname, so that we don't open the same
-   file twice. */
-IF NOT web_file THEN
+   file twice. Don't do this for web or dynamic repository objects. jep-icf */
+IF NOT web_file AND NOT dyn_object THEN
   ASSIGN 
     FILE-INFO:FILE-NAME = open_file
     dot-w-file          = FILE-INFO:FULL-PATHNAME.
@@ -254,6 +270,17 @@ CASE import_mode:
   WHEN "WINDOW UNTITLED":U THEN _save_file = ?.
 END CASE.
 
+
+/*  jep-icf: If dynamic object, dot-w-file contains only the object name. Since 
+    it doesn't really exist (except as data in the repository), set the dot-w-file 
+    variable to the name of a copy of the dynamic object's template file, which the 
+    AB uses for opening such objects. Variable dot-w-file is set back to the object 
+    name (stored in open_file) after the analyze is complete. */
+IF dyn_object THEN
+DO:
+  ASSIGN dot-w-file = dyn_temp_file.
+END.
+              
 /* Analyse and Verify the file we are looking at. If there is a problem
    then exit */
 AbortImport = no.
@@ -262,6 +289,12 @@ AbortImport = no.
 IF AbortImport THEN DO:
   RUN qssucker_cleanup.
   RETURN "_ABORT":U.
+END.
+
+/* jep-icf: If dynamic object, reset variable dot-w-file to the object name. */
+IF dyn_object THEN
+DO:
+  ASSIGN dot-w-file = open_file.
 END.
 
 /* Cannot PASTE when more than one frame is selected.*/
@@ -1078,6 +1111,9 @@ DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
 /* If Treeview design window, refresh the Treeview. */
 RUN TreeviewUpdate.
 
+/* jep-icf: Set some repository object related values. */
+RUN setRepositoryObject.
+
 RETURN.
 
 /****************************** Internal Procedures ***************************/
@@ -1099,6 +1135,24 @@ PROCEDURE qssucker_cleanup:
   IF web_file THEN
     OS-DELETE VALUE(web_temp_file).
 
+  /*  jep-icf: Cleanup repository related stuff. */
+  IF isRyObject THEN
+  DO:
+    /*  jep-icf: Delete the temporary template file for dynamic repository objects. */
+    IF dyn_object AND FALSE THEN
+      OS-DELETE VALUE(dyn_temp_file).
+
+    /*  jep-icf: If _qssuckr ended via an abort, delete the _RyObject. It's not 
+        used beyond the NEW or OPEN processing. */
+    IF AbortImport THEN
+    DO:
+      IF NOT AVAILABLE _RyObject THEN
+        FIND _RyObject WHERE _RyObject.object_filename = open_file NO-ERROR.
+      IF AVAILABLE _RyObject THEN
+        DELETE _RyObject.
+    END. /* AbortImport */
+  END.
+      
   /* The _rd* procedures may have started an sdo */
   IF AVAILABLE _P THEN
     DYNAMIC-FUNCTION("shutdown-sdo" IN _h_func_lib, THIS-PROCEDURE).
@@ -2362,6 +2416,100 @@ PROCEDURE TreeViewUpdate:
   FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
   IF VALID-HANDLE(_P._tv-proc) THEN
     RUN createTree IN _P._tv-proc (RECID(_P)).
+
+END PROCEDURE.
+
+PROCEDURE setRepositoryObject:
+/* jep-icf: Setup an _P record and it's design window for a repository object. */
+
+  DO ON ERROR UNDO, LEAVE:
+
+    /* jep-icf: If there isn't an _RyObject, then we aren't processing a
+       repository object. */
+    IF NOT AVAILABLE _RyObject THEN
+      FIND _RyObject WHERE _RyObject.object_filename = open_file NO-LOCK NO-ERROR.
+    IF NOT AVAILABLE _RyObject THEN RETURN.
+
+    IF AVAILABLE _RyObject THEN
+    DO:
+      FIND _P WHERE _P._WINDOW-HANDLE eq _h_win.
+  
+      /*  jep-icf: Copy the repository related field values into the object's _P 
+          record. With that accomplished, we no longer need the _RyObject record. It 
+          only exists long enough to create a new or open an existing repository 
+          object. From this point on, the _P handles the repository data. */
+      BUFFER-COPY _RyObject TO _P.
+      DELETE _RyObject.
+
+      /* jep-icf: When creating a NEW object, set object_filename to unknown (?). */
+      IF (_P.design_action = "NEW":u) THEN
+      DO:
+        ASSIGN _P.object_filename = ?.
+      END.
+      /* jep-icf: Set some properties of the special dynamic object design window. */
+      IF dyn_object THEN
+        RUN adeuib/_setdesignwin.p (INPUT RECID(_P)).
+    END.
+
+  END.  /* DO ON ERROR */
+
+END PROCEDURE.
+
+
+PROCEDURE processRepositoryObject:
+/* jep-icf: Process a request to create a new or open an existing repository 
+   object. Handles both static and dynamic. */
+
+  DO ON ERROR UNDO, LEAVE:
+
+    /* jep-icf: If there isn't an _RyObject, then we aren't processing a
+       repository object. */
+    FIND _RyObject WHERE _RyObject.object_filename = open_file NO-LOCK NO-ERROR.
+    ASSIGN isRyObject = AVAILABLE _RyObject.
+    IF NOT AVAILABLE _RyObject THEN RETURN.
+
+    ASSIGN dyn_object = _RyObject.logical_object.
+    IF dyn_object THEN
+    DO:
+      ASSIGN dyn_temp_file = _Ryobject.design_template_file.
+
+      /* If we can't determine the template file or the property sheet procedure, we can't open the object. */
+      IF (SEARCH(_Ryobject.design_template_file) = ?) OR (SEARCH(_Ryobject.design_propsheet_file) = ?) THEN DO:
+        /* Reset the cursor for user input.*/
+        RUN adecomm/_setcurs.p ("").
+        MESSAGE "Cannot open or create the dynamic object." SKIP(1)
+                "The dynamic object's template file or property sheet procedure could not be found."
+                "Check that the appropriate custom object files (.cst) are loaded"
+                "and the files specified for the template and property sheet can be"
+                "found in the PROPATH."
+          VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+        ASSIGN AbortImport = Yes.
+        RUN qssucker_cleanup. /* Close everything qssucker does */
+        RETURN "_ABORT":U.
+      END. /* Can't find template or prop sheet. */
+
+      /* jep-icf-temp: We have a dynamic object. Create a special temporary template file to open.
+         Do this for both NEW and OPEN. I don't think we need to do this. So comment out for now. */
+/*
+      RUN adecomm/_tmpfile.p ("dyn":U, ".tmp":U, OUTPUT dyn_temp_file).
+      OS-COPY VALUE(_Ryobject.design_template_file) VALUE(dyn_temp_file).
+*/
+    END.
+    ELSE IF NOT dyn_object THEN /* Static Object */
+    DO:
+      IF _RyObject.design_action = "OPEN":u THEN
+      DO:
+        /* jep-icf-temp: Need to make some API call to return a static object's physical file name. */
+        RUN adecomm/_osfmush.p (INPUT _Ryobject.object_path, INPUT _Ryobject.object_filename,
+                                OUTPUT open_file).
+        /* IZ 2467 Add object extension if there is one. */
+        ASSIGN open_file = open_file + "." + _RyObject.object_extension WHEN (_RyObject.object_extension <> "").
+      END.
+      ELSE /* = "NEW" - The open_file is the template to open, so we don't need to change it. */
+        ASSIGN open_file = open_file.
+    END.
+    
+  END.  /* DO ON ERROR */
 
 END PROCEDURE.
 

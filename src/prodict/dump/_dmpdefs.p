@@ -255,7 +255,7 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
         AND _StorageObject._Object-Number = _File._File-Number 
         AND _StorageObject._Object-type = 1 NO-LOCK NO-ERROR.
     PUT STREAM ddl UNFORMATTED "ADD TABLE """ _File._File-name """".
-    IF _File._Db-lang = 1 THEN
+    IF _File._Db-lang > 0 THEN
       PUT STREAM ddl UNFORMATTED SKIP "  TYPE SQL" SKIP.
     ELSE IF _Db._Db-type <> "PROGRESS"
       THEN PUT STREAM ddl UNFORMATTED "  TYPE " _Db._Db-type SKIP.

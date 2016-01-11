@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -57,22 +57,19 @@ Date Modified: 6/10/94 by RPR (adeicon directory variable)
               05/20/99 by XBO Added New ADM2 class menu item
               06/29/99 by JEP Added Editing Options support.
               11/08/99 by TSN Changed references from "ADM2" to "ADM" on menu
+              08/19/01 by jep Changes for ICF development tools support. jep-icf
+                              - Moved status line preprocessor defs to _uibmain.p.
+                              - Moved "new shared" include references to
+                                _uibmain.p. They didn't belong here anyways.
+                              - Added m_menubar, m_hFile, and m_hEdit handles to
+                                track menu handles instead of using static refs.
+              09/18/01 by jep-icf Added openobject_button handle for the toolbar icon.
+                              Changed Scoped-Define bar_labels, bar_tips,
+                              bar_images, bar_actions to variables.
+              10/10/01 by jep-icf IZ 2101 Run button enabled when editing
+                              dynamic objects. Moved h_button_bar to sharvars.i
+                              and renamed to _h_button_bar (new shared).
 ----------------------------------------------------------------------------*/
-/* Preprocessor Definitions -- 
-   These contain the location of the components of the status line */
-&Global STAT-Main 1
-&Global STAT-Page 2
-&Global STAT-Tool 3
-&Global STAT-Lock 4
-
-
-/* ===================================================================== */
-/*                    SHARED VARIABLES Definitions                       */
-/* ===================================================================== */
-{adeuib/sharvars.i NEW}
-{adeuib/gridvars.i NEW}
-{adeuib/windvars.i NEW}
-{adeuib/dialvars.i NEW}    /* Dialog box border variables         */
 
 /* Compile time defines */
 DEFINE SUB-MENU m_file
@@ -106,6 +103,9 @@ DEFINE SUB-MENU m_compile
        MENU-ITEM mi_preview        LABEL "Code &Preview"  ACCELERATOR "F5".
 
 /* The handles below are needed for adjusting sensitivity.                 */
+DEFINE VARIABLE m_menubar         AS HANDLE                          NO-UNDO. /* jep-icf */
+DEFINE VARIABLE m_hFile           AS HANDLE                          NO-UNDO. /* jep-icf */
+DEFINE VARIABLE m_hEdit           AS HANDLE                          NO-UNDO. /* jep-icf */
 DEFINE VARIABLE m_align           AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE m_layout          AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mi_about          AS HANDLE                          NO-UNDO.
@@ -142,10 +142,11 @@ DEFINE VARIABLE mnu_editor        AS HANDLE                          NO-UNDO.
 DEFINE VARIABLE mnu_protools      AS HANDLE                          NO-UNDO.
 
 /* These variables are necessary for controlling the dynamic tools menu */
-DEFINE VARIABLE mode_button   AS WIDGET-HANDLE                       NO-UNDO.
-DEFINE VARIABLE last-mode     AS CHARACTER                           NO-UNDO.
-DEFINE VARIABLE tool_pgm_list AS CHARACTER                           NO-UNDO.
-DEFINE VARIABLE tool_bomb     AS LOGICAL                             NO-UNDO.
+DEFINE VARIABLE mode_button       AS WIDGET-HANDLE                       NO-UNDO.
+DEFINE VARIABLE last-mode         AS CHARACTER                           NO-UNDO.
+DEFINE VARIABLE tool_pgm_list     AS CHARACTER                           NO-UNDO.
+DEFINE VARIABLE tool_bomb         AS LOGICAL                             NO-UNDO.
+DEFINE VARIABLE openobject_button AS WIDGET-HANDLE                       NO-UNDO.
 
 
 /* Make the tools menu using the ade standards */
@@ -407,40 +408,38 @@ ASSIGN tbrect:WIDTH-PIXELS = FRAME action_icons:WIDTH-PIXELS
 
 /* Add the button bar.  Create a button in the action_icons frame with
    the appropriate icon and action.   */
-&Global-define bar_count 10
+/* jep-icf IZ 2101 Button widget handles are stored in _h_button_bar defined in sharvars.i
+   with max extent currently at 20. */
+DEFINE VARIABLE bar_count   AS INTEGER    NO-UNDO INITIAL 10.
+DEFINE VARIABLE bar_labels  AS CHARACTER  NO-UNDO INITIAL "New,Open,Save,Print,Procedure,Run,Edit,List,Property,Colors".
+DEFINE VARIABLE bar_tips    AS CHARACTER  NO-UNDO INITIAL "New,Open,Save,Print,Procedure settings,Run,Edit code,List objects,Object properties,Colors".
+DEFINE VARIABLE bar_images  AS CHARACTER  NO-UNDO INITIAL "new,open,save,print,proc,run,editcode,list,props,color".
+DEFINE VARIABLE bar_actions AS CHARACTER  NO-UNDO INITIAL "choose_file_new,choose_file_open,choose_file_save,~
+choose_file_print,choose_proc_settings,choose_run,choose_codedit,choose_uib_browser,choose_prop_sheet,adeuib/_selcolr.p".
 
-&Scoped-define bar_labels New,Open,Save,Print,Procedure,Run,Edit,List,~
-Property,Colors
-
-&Scoped-define bar_tips New,Open,Save,Print,Procedure settings,Run,Edit code,List objects,Object properties,Colors
-
-&Scoped-define bar_images new,open,save,print,proc,run,editcode,list,props,color
-
-&Scoped-define bar_actions choose_file_new,choose_file_open,choose_file_save,~
-choose_file_print,choose_proc_settings,choose_run,choose_codedit,choose_uib_browser,~
-choose_prop_sheet,adeuib/_selcolr.p
-
-DEFINE VAR h_button_bar AS WIDGET-HANDLE EXTENT {&bar_count}.
 DEFINE VAR xloc         AS INTEGER NO-UNDO initial 2.
+DEFINE VAR button_skip1 AS INTEGER NO-UNDO initial 4.
+DEFINE VAR button_skip2 AS INTEGER NO-UNDO initial 7.
 
-/* Create a Stop Button image for use when running user's code. 
-   CAUTION: This is a hidden button. Watch out when you use ENABLE ALL
-   WITH FRAME action_icons.
-*/
-/* Now add the rest of the buttons */
-DO i = 1 to {&bar_count}:
+/* jep-icf: Buttons to skip a little extra are up by 1 because of "Open Object" button. */
+IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
+  ASSIGN button_skip1 = 5
+         button_skip2 = 8.
 
-  CREATE BUTTON h_button_bar[i] 
+/* Create the toolbar buttons */
+DO i = 1 to bar_count:
+
+  CREATE BUTTON _h_button_bar[i] 
     ASSIGN FRAME       = FRAME action_icons:HANDLE
 	   X            = xloc
 	   Y            = 4
 	   WIDTH-P      = 24
 	   HEIGHT-P     = 23
-	   PRIVATE-DATA = ENTRY(i,"{&bar_actions}")  
+	   PRIVATE-DATA = ENTRY(i, bar_actions)
 	   BGCOLOR      = std_okbox_bgcolor   /* Grey */
 	   FONT         = 4                   /* Small 8-pt font (MS-Windows) */
 	   SENSITIVE    = YES
-	   TOOLTIP      = ENTRY(i,"{&bar_tips}")
+	   TOOLTIP      = ENTRY(i, bar_tips)
           NO-FOCUS     = YES
           FLAT-BUTTON  = YES
     TRIGGERS:
@@ -448,31 +447,35 @@ DO i = 1 to {&bar_count}:
        ON CHOOSE RUN VALUE(SELF:PRIVATE-DATA).
     END TRIGGERS.
   /* Load up image for button. */
-  ASSIGN ldummy = h_button_bar[i]:LOAD-IMAGE-UP({&ADEICON-DIR} + 
-				  ENTRY(i,"{&bar_images}") + "{&BITMAP-EXT}") NO-ERROR.
+  ASSIGN ldummy = _h_button_bar[i]:LOAD-IMAGE-UP({&ADEICON-DIR} + 
+				  ENTRY(i, bar_images) + "{&BITMAP-EXT}") NO-ERROR.
   /* Add label in case image fails to load. */
   IF ldummy ne YES or ERROR-STATUS:ERROR 
-  THEN ASSIGN h_button_bar[i]:LABEL   = ENTRY(i,"{&bar_labels}").
+  THEN ASSIGN _h_button_bar[i]:LABEL   = ENTRY(i, bar_labels).
   
   /* We are putting dividing rectangles between after the 3rd and
      sixth button in this routine. We have to skip a little extra
      in those cases */
-  IF i = 4 OR i = 7 THEN 
+  IF i = button_skip1 OR i = button_skip2 THEN 
     xloc = xloc + 30.
   ELSE 
     xloc = xloc + 25.            
 END.  /* DO i = 1 to btn_count: */
 
+/* Create a Stop Button image for use when running user's code. 
+   CAUTION: This is a hidden button. Watch out when you use ENABLE ALL
+   WITH FRAME action_icons.
+*/
 /* "Stop" Button overlays the "Run" button, so get handle of the run button. */
-ASSIGN i = LOOKUP( "Run" , "{&bar_labels}" ).
+ASSIGN i = LOOKUP( "Run" , bar_labels).
 CREATE BUTTON Stop_Button
-  ASSIGN FRAME        = h_button_bar[i]:FRAME
-         X            = h_button_bar[i]:X
-         Y            = h_button_bar[i]:Y
-         WIDTH-P      = h_button_bar[i]:WIDTH-P
-         HEIGHT-P     = h_button_bar[i]:HEIGHT-P
+  ASSIGN FRAME        = _h_button_bar[i]:FRAME
+         X            = _h_button_bar[i]:X
+         Y            = _h_button_bar[i]:Y
+         WIDTH-P      = _h_button_bar[i]:WIDTH-P
+         HEIGHT-P     = _h_button_bar[i]:HEIGHT-P
          PRIVATE-DATA = "stop":U
-         BGCOLOR      = h_button_bar[i]:BGCOLOR
+         BGCOLOR      = _h_button_bar[i]:BGCOLOR
          FONT         = 4
          TOOLTIP      = "Stop"
          NO-FOCUS     = YES

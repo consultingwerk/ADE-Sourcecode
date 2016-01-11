@@ -1,0 +1,2388 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r4 GUI ADM1
+&ANALYZE-RESUME
+&Scoped-define WINDOW-NAME CURRENT-WINDOW
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS s-object 
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/************************************************************************
+  File: afspfoldrw.w
+
+  Description: Tab Folder (Page Control) SmartObject
+               From SmartPak src/adm2/folder.w
+
+  Modified: 11/27/2001      Mark Davies (MIP)
+            Force only 1 row tab - for version 2 of Dynamics 
+            This change was as a result of a fix required for 
+            issue #2773 - irregular tabs arrangement in a multi-page DynFold (>4)
+            Changed made in _initializeObject
+  Modified: 03/12/2002      Mark Davies (MIP)
+            Fix for issue #4060 - tab folder + browser causes layout problems
+------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress AppBuilder.      */
+/*----------------------------------------------------------------------*/
+
+&GLOBAL-DEFINE ADMClass Folder
+
+/* Create an unnamed pool to store all the widgets created 
+   by this procedure. This is a good default which assures
+   that this procedure's triggers and internal procedures 
+   will execute in this procedure's storage, and that proper
+   cleanup will occur on deletion of the procedure. */
+
+CREATE WIDGET-POOL.
+
+DEFINE VARIABLE WIDGET-POOL-NAME AS CHARACTER NO-UNDO.
+
+ASSIGN WIDGET-POOL-NAME = STRING(THIS-PROCEDURE:UNIQUE-ID) + "-POOL".
+
+&SCOPED-DEFINE IN-WIDGET-POOL IN WIDGET-POOL WIDGET-POOL-NAME
+
+/* ***************************  Definitions  ************************** */
+
+/* Parameters Definitions ---                                           */
+
+/* Local Variable Definitions ---                                       */
+
+&SCOPED-DEFINE ARRAY-SIZE 30
+
+&SCOPED-DEFINE ADM-PROPERTY-DLG af/sup2/afspfoldrd.w
+
+&SCOPED-DEFINE PROPERTY-ARRAY-LIST TabFGcolor,TabBGcolor,TabINColor,ImageEnabled,~
+ImageDisabled,Hotkey,Tooltip,TabHidden,EnableStates,DisableStates
+
+&SCOPED-DEFINE PROPERTY-BASIC-LIST VisibleRows,PanelOffset,FolderMenu,~
+TabsPerRow,TabHeight,TabFont,LabelOffset,ImageWidth,ImageHeight,ImageXOffset,ImageYOffset,TabSize,~
+SelectorFGcolor,SelectorBGcolor,SelectorFont,SelectorWidth,TabPosition,MouseCursor,InheritColor
+
+&SCOPED-DEFINE ADM-PROPERTY-LIST {&PROPERTY-ARRAY-LIST},{&PROPERTY-BASIC-LIST}
+
+&GLOBAL-DEFINE xcInstanceProperties FolderLabels,{&ADM-PROPERTY-LIST}
+
+&GLOBAL-DEFINE xcTranslatableProperties FolderLabels,{&ADM-PROPERTY-LIST}
+
+&SCOPED-DEFINE MAX-TABS {&ARRAY-SIZE}
+
+&SCOPED-DEFINE MAX-ROWS 10 
+
+DEFINE VARIABLE iCurrentTab AS INTEGER NO-UNDO INITIAL ?.
+
+DEFINE VARIABLE hContainer AS HANDLE NO-UNDO.
+DEFINE VARIABLE hParent    AS HANDLE NO-UNDO.
+
+DEFINE VARIABLE lResult as LOGICAL NO-UNDO.
+
+DEFINE VARIABLE x  AS INTEGER NO-UNDO.
+DEFINE VARIABLE y  AS INTEGER NO-UNDO.
+DEFINE VARIABLE z  AS INTEGER NO-UNDO.
+DEFINE VARIABLE sx AS INTEGER NO-UNDO.
+DEFINE VARIABLE sy AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE iCurrentXPos AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE iSelectedRow   AS INTEGER NO-UNDO.
+DEFINE VARIABLE iSelectedPanel AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE iNextTabPos     AS INTEGER NO-UNDO.
+DEFINE VARIABLE iThisTabSize    AS INTEGER NO-UNDO.
+DEFINE VARIABLE iCurrentRow     AS INTEGER NO-UNDO INITIAL 1.
+DEFINE VARIABLE iPageNo         AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iTabImageTotal  AS INTEGER NO-UNDO.
+DEFINE VARIABLE iTabLabelHeight AS INTEGER NO-UNDO.
+DEFINE VARIABLE iTabImageYPos   AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE lUpperTabs AS LOGICAL NO-UNDO INITIAL TRUE.
+
+DEFINE VARIABLE iPanelCount AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iMenuCount  AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iRowCOunt   AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iPanelTotal AS INTEGER NO-UNDO INITIAL 0.
+
+DEFINE VARIABLE iPanelFrameHeight AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iPanelFrameWidth  AS INTEGER NO-UNDO INITIAL 0.
+
+DEFINE VARIABLE AutoSized  AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE Justified  AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE NoWarnings AS LOGICAL NO-UNDO INITIAL FALSE.
+
+DEFINE VARIABLE iaTabsOnPanel AS INTEGER NO-UNDO EXTENT {&MAX-ROWS} INITIAL [0].
+
+DEFINE VARIABLE iTabTotal        AS INTEGER NO-UNDO INITIAL 1.
+DEFINE VARIABLE iTabCount        AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iTabFrameHeight  AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iTabHeightPixels AS INTEGER NO-UNDO INITIAL 0.
+DEFINE VARIABLE iTabAutoWidth    AS INTEGER NO-UNDO INITIAL 0.
+
+/* Widgets that constitute each tab */
+DEFINE VARIABLE hTabLabel AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabMain  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabLDot  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabRDot  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabLWht  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabLGry  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabRBla  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabRGry  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabBGry  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE hTabIcon  AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+
+/* Panel Widgets */
+DEFINE VARIABLE hTabFrame     AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-ROWS}.
+DEFINE VARIABLE hPanelFrame   AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-ROWS}.
+DEFINE VARIABLE hPanelOverlay AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-ROWS}.
+
+/* Visual Selector Tab Stuff */
+DEFINE VARIABLE hSelFrame AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelLabel AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelMain  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelLDot  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelRDot  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelLWht  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelLGry  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelRBla  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelRGry  AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSelIcon  AS WIDGET-HANDLE NO-UNDO.
+
+DEFINE VARIABLE iSelectorFGColor AS INTEGER NO-UNDO INITIAL ?.
+DEFINE VARIABLE iSelectorBGColor AS INTEGER NO-UNDO INITIAL ?.
+
+/* Menu handles */
+DEFINE VARIABLE hFolderMenu AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hSubMenu    AS WIDGET-HANDLE NO-UNDO.
+DEFINE VARIABLE hMenuItem   AS WIDGET-HANDLE NO-UNDO EXTENT {&MAX-TABS}.
+
+DEFINE VARIABLE lAddFolderMenu   AS LOGICAL   NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE cFolderMenuLabel AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE iaTabFGColor  AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [?].
+DEFINE VARIABLE iaTabBGColor  AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [?].
+DEFINE VARIABLE iaTabINColor  AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [?].
+DEFINE VARIABLE iaTabXOffset  AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [0].
+DEFINE VARIABLE iaTabYOffset  AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [0].
+DEFINE VARIABLE iaTabXiOffset AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [0].
+DEFINE VARIABLE iaTabYiOffset AS INTEGER NO-UNDO EXTENT {&MAX-TABS} INITIAL [0].
+
+DEFINE VARIABLE laTabEnabled AS LOGICAL NO-UNDO EXTENT {&MAX-TABS} INITIAL [TRUE].
+DEFINE VARIABLE laTabHidden  AS LOGICAL NO-UNDO EXTENT {&MAX-TABS} INITIAL [FALSE].
+
+DEFINE VARIABLE caTabImage  AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE caTabiImage AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+
+DEFINE VARIABLE caSavedLabel   AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE caFolderLabel  AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE caHotkey       AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE caEnableGroup  AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+DEFINE VARIABLE caDisableGroup AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+
+DEFINE VARIABLE caTooltipEnabled AS CHARACTER NO-UNDO EXTENT {&MAX-TABS}.
+
+/* Vars to hold colour table numbers */
+DEFINE VARIABLE COLOR-ButtonHilight AS INTEGER NO-UNDO INITIAL 15.
+DEFINE VARIABLE COLOR-ButtonFace    AS INTEGER NO-UNDO INITIAL 8.
+DEFINE VARIABLE COLOR-ButtonShadow  AS INTEGER NO-UNDO INITIAL 7.
+DEFINE VARIABLE COLOR-GrayText      AS INTEGER NO-UNDO INITIAL 7.
+DEFINE VARIABLE COLOR-ButtonText    AS INTEGER NO-UNDO INITIAL 0.
+
+/* Non-Array Constants/Properties */
+DEFINE VARIABLE iVisibleRows   AS INTEGER NO-UNDO.
+DEFINE VARIABLE iPanelOffset   AS INTEGER NO-UNDO.
+DEFINE VARIABLE iTabsPerRow    AS INTEGER NO-UNDO.
+DEFINE VARIABLE iTabHeight     AS INTEGER NO-UNDO.
+DEFINE VARIABLE iTabFont       AS INTEGER NO-UNDO.
+DEFINE VARIABLE iLabelOffset   AS INTEGER NO-UNDO.
+DEFINE VARIABLE iImageWidth    AS INTEGER NO-UNDO.
+DEFINE VARIABLE iImageHeight   AS INTEGER NO-UNDO.
+DEFINE VARIABLE iImageXOffset  AS INTEGER NO-UNDO.
+DEFINE VARIABLE iImageYOffset  AS INTEGER NO-UNDO.
+DEFINE VARIABLE iSelectorFont  AS INTEGER NO-UNDO.
+DEFINE VARIABLE iSelectorWidth AS INTEGER NO-UNDO.
+
+/* Variables to hold Label / TabNumber and ObjectInitialized - Astra2 */
+DEFINE VARIABLE gcPageInformation   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glHasPendingValues  AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE glTabsEnabled       AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE gcSecuredPages      AS CHARACTER  NO-UNDO.
+
+&SCOPED-DEFINE TAB-PIXEL-OFFSET 3
+&SCOPED-DEFINE OBJECT-SPACING 1
+&SCOPED-DEFINE SELECTED-EXT-PIXEL-HEIGHT 3
+&SCOPED-DEFINE TABS-ARE-AUTOSIZED Autosized
+&SCOPED-DEFINE TABS-ARE-JUSTIFIED Justified
+&SCOPED-DEFINE WARNINGS-ARE-SUPPRESSED NoWarnings
+&SCOPED-DEFINE CONTAINER hContainer
+&SCOPED-DEFINE MIN-HEIGHT-CHARS 4.0
+&SCOPED-DEFINE MIN-WIDTH-CHARS 20.0
+
+&SCOPED-DEFINE DELIMITER |
+
+&GLOBAL-DEFINE EXCLUDE-repositionObject
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE SmartFolder
+&Scoped-define DB-AWARE no
+
+&Scoped-define ADM-SUPPORTED-LINKS Page-Source
+
+/* Name of first Frame and/or Browse and/or first Query                 */
+&Scoped-define FRAME-NAME FolderFrame
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerCol s-object 
+FUNCTION getInnerCol RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerHeight s-object 
+FUNCTION getInnerHeight RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerRow s-object 
+FUNCTION getInnerRow RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInnerWidth s-object 
+FUNCTION getInnerWidth RETURNS DECIMAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNoWarnings s-object 
+FUNCTION getNoWarnings RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPanelsMinWidth s-object 
+FUNCTION getPanelsMinWidth RETURNS DECIMAL
+    ( /**/ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTabsEnabled s-object 
+FUNCTION getTabsEnabled RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNoWarnings s-object 
+FUNCTION setNoWarnings RETURNS LOGICAL
+  ( INPUT pNoWarnings AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ***********************  Control Definitions  ********************** */
+
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME FolderFrame
+    WITH 1 DOWN NO-BOX OVERLAY NO-HELP 
+         NO-LABELS NO-UNDERLINE NO-VALIDATE THREE-D 
+         AT X 0 Y 0
+         SIZE-PIXELS 260 BY 152.
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: SmartFolder
+   Compile into: af/sup2
+   Allow: Basic
+   Frames: 1
+   Add Fields to: NEITHER
+   Other Settings: PERSISTENT-ONLY COMPILE
+ */
+
+/* This procedure should always be RUN PERSISTENT.  Report the error,  */
+/* then cleanup and return.                                            */
+IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
+  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  RETURN.
+END.
+
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW s-object ASSIGN
+         HEIGHT             = 7.24
+         WIDTH              = 52.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB s-object 
+/* ************************* Included-Libraries *********************** */
+
+{af/sup2/afspventil.i}
+{af/sup2/afspcolour.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR WINDOW s-object
+  VISIBLE,,RUN-PERSISTENT                                               */
+/* SETTINGS FOR FRAME FolderFrame
+   NOT-VISIBLE                                                          */
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK FRAME FolderFrame
+/* Query rebuild information for FRAME FolderFrame
+     _Options          = "NO-LOCK"
+     _Query            is NOT OPENED
+*/  /* FRAME FolderFrame */
+&ANALYZE-RESUME
+
+ 
+
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME FolderFrame
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL FolderFrame s-object
+ON ENTRY OF FRAME FolderFrame
+/* ANYWHERE  */
+DO:
+/*   IF VALID-HANDLE(FOCUS) THEN APPLY "ENTRY":U TO FOCUS. */
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL FolderFrame s-object
+ON START-RESIZE OF FRAME FolderFrame
+DO:
+  ASSIGN SELF:HIDDEN = TRUE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK s-object 
+
+
+/* ***************************  Main Block  *************************** */
+
+RUN _getColours.
+
+/* Folder-specific properties which are in the property temp-table. */
+&GLOBAL-DEFINE xpFolderLabels
+&GLOBAL-DEFINE xpFolderTabType
+&GLOBAL-DEFINE xpTabFGcolor
+&GLOBAL-DEFINE xpTabBGcolor
+&GLOBAL-DEFINE xpTabINcolor
+&GLOBAL-DEFINE xpImageEnabled
+&GLOBAL-DEFINE xpImageDisabled
+&GLOBAL-DEFINE xpFolderMenu
+&GLOBAL-DEFINE xpTabSize
+&GLOBAL-DEFINE xpHotkey
+&GLOBAL-DEFINE xpTooltip
+&GLOBAL-DEFINE xpTabHidden
+&GLOBAL-DEFINE xpVisibleRows
+&GLOBAL-DEFINE xpPanelOffset
+&GLOBAL-DEFINE xpTabsPerRow
+&GLOBAL-DEFINE xpTabHeight
+&GLOBAL-DEFINE xpTabFont
+&GLOBAL-DEFINE xpLabelOffset
+&GLOBAL-DEFINE xpImageWidth
+&GLOBAL-DEFINE xpImageHeight
+&GLOBAL-DEFINE xpImageXOffset
+&GLOBAL-DEFINE xpImageYOffset
+&GLOBAL-DEFINE xpInheritColor
+&GLOBAL-DEFINE xpSelectorFGcolor
+&GLOBAL-DEFINE xpSelectorBGcolor
+&GLOBAL-DEFINE xpSelectorFont
+&GLOBAL-DEFINE xpSelectorHeight
+&GLOBAL-DEFINE xpSelectorWidth
+&GLOBAL-DEFINE xpTabPosition
+&GLOBAL-DEFINE xpMouseCursor
+&GLOBAL-DEFINE xpEnableStates
+&GLOBAL-DEFINE xpDisableStates
+&GLOBAL-DEFINE xpPageTarget         
+&GLOBAL-DEFINE xpPageTargetEvents
+
+/* Now include the other props files which will start the ADMProps def. */
+{src/adm2/visprop.i}
+
+/* and then we add our folder property defs to that... */
+&IF "{&ADM-VERSION}" = "ADM2.0"
+&THEN
+    FIELD FolderLabels          AS CHARACTER INIT "Label &1"
+    FIELD FolderTabType         AS INTEGER INITIAL 0
+    FIELD TabFGcolor            AS CHARACTER INIT "Default"
+    FIELD TabBGcolor            AS CHARACTER INIT "Default" 
+    FIELD TabINcolor            AS CHARACTER INIT "GrayText"
+    FIELD ImageEnabled          AS CHARACTER 
+    FIELD ImageDisabled         AS CHARACTER
+    FIELD FolderMenu            AS CHARACTER 
+    FIELD TabSize               AS CHARACTER INIT "AutoSized"
+    FIELD Hotkey                AS CHARACTER
+    FIELD Tooltip               AS CHARACTER
+    FIELD TabHidden             AS CHARACTER INIT "No"
+    FIELD VisibleRows           AS INTEGER INIT {&MAX-ROWS}
+    FIELD PanelOffset           AS INTEGER INIT 20
+    FIELD TabsPerRow            AS INTEGER INIT 8
+    FIELD TabHeight             AS INTEGER INIT 3
+    FIELD TabFont               AS INTEGER INIT 4
+    FIELD LabelOffset           AS INTEGER INIT 0
+    FIELD ImageWidth            AS INTEGER
+    FIELD ImageHeight           AS INTEGER
+    FIELD ImageXOffset          AS INTEGER
+    FIELD ImageYOffset          AS INTEGER INIT 2
+    FIELD InheritColor          AS LOGICAL INIT FALSE
+    FIELD SelectorFGcolor       AS CHARACTER INIT "Default"
+    FIELD SelectorBGcolor       AS CHARACTER INIT "Default"
+    FIELD SelectorFont          AS INTEGER INIT 4
+    FIELD SelectorHeight        AS INTEGER INIT 2
+    FIELD SelectorWidth         AS INTEGER INIT 3
+    FIELD TabPosition           AS CHARACTER INIT "Upper"
+    FIELD PageTarget            AS CHARACTER 
+    FIELD PageTargetEvents      AS CHARACTER INIT 'changeFolderPage,deleteFolderPage':U
+
+    {af/sup2/afspcommdf.i}
+
+/* ... and the final period to end the definition... */
+.
+&ELSE
+    ghADMProps:ADD-NEW-FIELD('FolderLabels':U,      'CHAR':U,    0, ?, "Label &1":U).
+    ghADMProps:ADD-NEW-FIELD('FolderTabType':U,     'INTEGER':U, 0, ?, 0).
+    ghADMProps:ADD-NEW-FIELD('TabFGcolor':U,        'CHAR':U,    0, ?, "Default":U).
+    ghADMProps:ADD-NEW-FIELD('TabBGcolor':U,        'CHAR':U,    0, ?, "Default":U).
+    ghADMProps:ADD-NEW-FIELD('TabINcolor':U,        'CHAR':U,    0, ?, "GrayText":U).
+    ghADMProps:ADD-NEW-FIELD('ImageEnabled':U,      'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('ImageDisabled':U,     'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('FolderMenu':U,        'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('TabSize':U,           'CHAR':U,    0, ?, "AutoSized":U).
+    ghADMProps:ADD-NEW-FIELD('Hotkey':U,            'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('Tooltip':U,           'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('TabHidden':U,         'CHAR':U,    0, ?, "No":U).
+    ghADMProps:ADD-NEW-FIELD('VisibleRows':U,       'INTEGER':U, 0, ?, {&MAX-ROWS}).
+    ghADMProps:ADD-NEW-FIELD('PanelOffset':U,       'INTEGER':U, 0, ?, 20).
+    ghADMProps:ADD-NEW-FIELD('TabsPerRow':U,        'INTEGER':U, 0, ?, 8).
+    ghADMProps:ADD-NEW-FIELD('TabHeight':U,         'INTEGER':U, 0, ?, 3).
+    ghADMProps:ADD-NEW-FIELD('TabFont':U,           'INTEGER':U, 0, ?, 4).
+    ghADMProps:ADD-NEW-FIELD('LabelOffset':U,       'INTEGER':U, 0, ?, 0).
+    ghADMProps:ADD-NEW-FIELD('ImageWidth':U,        'INTEGER':U, 0, ?).
+    ghADMProps:ADD-NEW-FIELD('ImageHeight':U,       'INTEGER':U, 0, ?).
+    ghADMProps:ADD-NEW-FIELD('ImageXOffset':U,      'INTEGER':U, 0, ?).
+    ghADMProps:ADD-NEW-FIELD('ImageYOffset':U,      'INTEGER':U, 0, ?, 2).
+    ghADMProps:ADD-NEW-FIELD('InheritColor':U,      'LOGICAL':U, 0, ?, FALSE).
+    ghADMProps:ADD-NEW-FIELD('SelectorFGcolor':U,   'CHAR':U,    0, ?, "Default":U).
+    ghADMProps:ADD-NEW-FIELD('SelectorBGcolor':U,   'CHAR':U,    0, ?, "Default":U).
+    ghADMProps:ADD-NEW-FIELD('SelectorFont':U,      'INTEGER':U, 0, ?, 4).
+    ghADMProps:ADD-NEW-FIELD('SelectorHeight':U,    'INTEGER':U, 0, ?, 2).
+    ghADMProps:ADD-NEW-FIELD('SelectorWidth':U,     'INTEGER':U, 0, ?, 3).
+    ghADMProps:ADD-NEW-FIELD('TabPosition':U,       'CHAR':U,    0, ?, "Upper":U).
+    ghADMProps:ADD-NEW-FIELD('PageTarget':U,        'CHAR':U,    0, ?).
+    ghADMProps:ADD-NEW-FIELD('PageTargetEvents':U,  'CHAR':U,    0, ?, 'changeFolderPage,deleteFolderPage':U).
+
+    {af/sup2/afspcommdf.i}
+&ENDIF
+
+/* Now include out parent class file for visual objects. */
+{src/adm2/visual.i}
+
+/* Include get/set functions for properties */
+{af/sup2/affoldprop.i}
+
+/* Include user-defined folder functions */
+{af/sup2/afspfoldrw.i}
+
+&IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN
+   RUN initializeObject.
+&ENDIF
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeFolderLabel s-object 
+PROCEDURE changeFolderLabel :
+/*------------------------------------------------------------------------------
+  Purpose:     Change the label on a tab
+  Parameters:  Tab number (ordinal), new label
+  Notes:       This does not affect the tab size
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TAB-NUMBER AS INTEGER NO-UNDO.
+
+DEFINE INPUT PARAMETER TAB-LABEL  AS CHARACTER NO-UNDO.
+
+IF TAB-NUMBER <= iTabCount 
+THEN DO:
+    ASSIGN TAB-LABEL = TRIM(TAB-LABEL)
+           caFolderLabel[TAB-NUMBER] = " ":U + TAB-LABEL
+           hTabLabel[TAB-NUMBER]:SCREEN-VALUE = caFolderLabel[TAB-NUMBER].
+
+    IF hMenuItem[TAB-NUMBER]:TYPE = "MENU-ITEM":U 
+    THEN
+        ASSIGN hMenuItem[TAB-NUMBER]:LABEL = TAB-LABEL.
+
+    IF iCurrentTab = TAB-NUMBER 
+    THEN 
+        ASSIGN hSelLabel:SCREEN-VALUE = caFolderLabel[TAB-NUMBER].
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeFolderPage s-object 
+PROCEDURE changeFolderPage :
+/*------------------------------------------------------------------------------
+  Purpose:     AppBuilder support procedure to select a page.
+  Parameters:  <none>
+  Notes:       When the page of the container changes, this ensures the tabs
+               is also changed.
+------------------------------------------------------------------------------*/
+
+IF VALID-HANDLE(hSelFrame) 
+THEN 
+    ASSIGN hSelFrame:HIDDEN = TRUE.
+
+IF VALID-HANDLE({&CONTAINER})  
+THEN 
+    {get CurrentPage iPageNo {&CONTAINER}}.
+
+ASSIGN iPageNo = IF UIBMode() THEN MAXIMUM(1,iPageNo) ELSE iPageNo.
+
+IF iPageNo > 0 AND iPageNo <= iTabTotal AND VALID-HANDLE(hTabLabel[iPageNo]) 
+THEN 
+    RUN _SelectTab(iPageNo).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE create-folder-page s-object 
+PROCEDURE create-folder-page :
+/*------------------------------------------------------------------------------
+  Purpose:     Create a new tab after initialization or modify an existing label
+  Parameters:  Page No, Label Text
+  Notes:       Provided for backward compatibility only. Not recommended for 
+               multiple rows tab folders.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pPageNo AS INTEGER   NO-UNDO.
+DEFINE INPUT PARAMETER pLabel  AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE cFolderLabels AS CHARACTER NO-UNDO.
+
+IF pPageNo > {&MAX-TABS} 
+THEN DO:
+    MESSAGE "Too many tabs. Current maximum is {&MAX-TABS}."
+        VIEW-AS ALERT-BOX WARNING TITLE "Tab Folder".
+    RETURN.
+END.
+
+ASSIGN cFolderLabels = getFolderLabels().
+
+/* If adding a tab beyond the current set, adds as many place holders as required.
+   These will appears as tabs with no-labels.
+*/   
+IF pPageNo > iTabTotal
+THEN DO:
+    ASSIGN cFolderLabels = cFolderLabels + FILL("{&DELIMITER}":U,pPageNo - iTabTotal)
+           ENTRY(pPageno,cFolderLabels,"{&DELIMITER}":U) = pLabel
+           NO-ERROR.
+    setFolderLabels(cFolderLabels).
+
+    IF NOT ERROR-STATUS:ERROR
+    THEN DO:
+        iTabTotal = iTabTotal + 1.
+        RUN _initializeObject.
+        hTabLabel[pPageno]:SCREEN-VALUE = pLabel.
+    END.
+END.
+ELSE IF VALID-HANDLE(hTabLabel[pPageNo])
+THEN DO:
+    ASSIGN hTabLabel[pPageno]:SCREEN-VALUE = pLabel
+           ENTRY(pPageno,cFolderLabels,"{&DELIMITER}":U) = pLabel
+           NO-ERROR.
+
+    setFolderLabels(cFolderLabels).
+
+    IF pPageNo = iCurrentTab 
+    THEN
+        ASSIGN hSelLabel:SCREEN-VALUE = pLabel.
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteFolderPage s-object 
+PROCEDURE deleteFolderPage :
+/*------------------------------------------------------------------------------
+  Purpose:     Deletes a Tab for a page
+  Parameters:  Tab/Page Number
+  Notes:       Deleting a page means that all tabs that appear AFTER this tab
+               will select page numbers 1 less than they previously selected. 
+               Provided for backward compatibility only. Not supported when
+               FolderTabType = 0. Use disableFolderPage instead.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pPageNo AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE cFolderLabels AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE iCount AS INTEGER NO-UNDO.
+
+IF getFolderTabType() = 0
+THEN DO:
+    MESSAGE "Method 'deleteFolderPage' is not supported in this version of"
+            "Astra Tab Folder control."
+        VIEW-AS ALERT-BOX INFORMATION TITLE "Tab Folder".
+    RETURN.
+END.
+
+IF pPageNo <= iTabTotal
+THEN DO:
+    /* Remove the specified tab */
+    DO iCount = 1 TO iTabTotal:
+
+        IF iCount = pPageNo THEN NEXT.
+
+        ASSIGN cFolderLabels = IF cFolderLabels = "" 
+                               THEN ENTRY(iCount,getFolderLabels(),"{&DELIMITER}":U)
+                               ELSE cFolderLabels + "{&DELIMITER}":U + ENTRY(iCount,getFolderLabels(),"{&DELIMITER}":U).
+    END.
+
+    /* Re-initialize */
+    setFolderLabels(cFolderLabels).
+
+    RUN _initializeObject.
+END.
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFolderGroup s-object 
+PROCEDURE disableFolderGroup :
+/*------------------------------------------------------------------------------
+  Purpose:     Enables Tabs with matching Disable states
+  Parameters:  State Value
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER ip-group AS CHARACTER NO-UNDO.
+
+DO z = 1 TO iTabCount:
+    IF CAN-DO(caDisableGroup[z],ip-group) THEN RUN disableFolderPage(z).    
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableFolderPage s-object 
+PROCEDURE disableFolderPage :
+/*------------------------------------------------------------------------------
+  Purpose:     Disable a Tab - make it non-selectable
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER iTabCount AS INTEGER NO-UNDO.
+
+IF VALID-HANDLE(hTabLabel[iTabCount])
+THEN DO:
+    ASSIGN hTabLabel[iTabCount]:SENSITIVE = FALSE
+           hTabLabel[iTabCount]:FGCOLOR   = IF iaTabINColor[iTabCount] = ? THEN COLOR-ButtonShadow ELSE iaTabINColor[iTabCount]
+           hMenuItem[iTabCount]:SENSITIVE = FALSE
+           laTabEnabled[iTabCount]        = FALSE
+           hTabLabel[iTabCount]:TOOLTIP   = "":U.
+
+    IF VALID-HANDLE(hTabIcon[iTabCount]) THEN
+        ASSIGN lResult = hTabIcon[iTabCount]:LOAD-IMAGE(caTabiImage[iTabCount],iaTabXiOffset[iTabCount],iaTabYiOffset[iTabCount],iImageWidth,iImageHeight) 
+               hTabIcon[iTabCount]:SENSITIVE = FALSE
+               NO-ERROR.
+
+    ASSIGN hSelFrame:HIDDEN = iTabCount = iCurrentTab OR hSelFrame:HIDDEN.
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disablePages s-object 
+PROCEDURE disablePages :
+/*------------------------------------------------------------------------------
+  Purpose:     Astra2 procedure to disable specified tab(s)
+
+  Parameters:  INPUT pcPageInformation - Comma delimited list of page numbers or
+                                         page labels (can be mixed) of pages / tabs
+                                         to disable
+
+               OUTPUT plPending - Logical parameter to indicate if disabling the
+                                  tabs are still pending
+  Notes:       if first entry in page information is security, then the pages
+               must be disabled permanently. This is setup in containrcustom.p
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcPageInformation AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER plPending         AS LOGICAL   NO-UNDO.
+
+  IF pcPageInformation <> "":U AND ENTRY(1,pcPageInformation) = "security":U THEN
+  DO:
+    ASSIGN
+      pcPageInformation = REPLACE(pcPageInformation,"Security,":U,"":U)
+      gcSecuredPages = pcPageInformation
+      .
+  END.
+
+  DEFINE VARIABLE cCurrentEntry     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lCurrentDisabled  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iTabNumber        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCounter          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEntry            AS INTEGER    NO-UNDO.
+
+  /* Check to see if folder has been initialized */
+  IF VALID-HANDLE(hTabLabel[1]) THEN
+  DO:
+    ASSIGN lCurrentDisabled = FALSE.
+
+    DO iEntry = 1 TO NUM-ENTRIES(pcPageInformation):
+      ASSIGN
+          cCurrentEntry = ENTRY(iEntry, pcPageInformation).
+
+      /* Check if tab number has been specified */
+      ASSIGN
+          iTabNumber = INTEGER(cCurrentEntry) NO-ERROR.
+
+      /* Tab label was specified */
+      IF ERROR-STATUS:ERROR = TRUE THEN
+      DO:
+        ERROR-STATUS:ERROR = FALSE.
+
+        ASSIGN
+            cCurrentEntry = TRIM(TRIM(cCurrentEntry, "&":U))  /* Remove '&', leading and trailing spaces. */
+            iTabNumber    = 0.
+
+        DO iCounter = 1 TO {&MAX-TABS}:
+
+          IF cCurrentEntry = TRIM(TRIM(caFolderLabel[iCounter], "&":U)) THEN
+            ASSIGN
+                iTabNumber = iCounter.
+
+          IF iTabNumber <> 0 THEN LEAVE.
+        END.
+
+        IF iTabNumber = 0 THEN
+        DO iCounter = 1 TO {&MAX-TABS}:
+
+          IF cCurrentEntry = TRIM(TRIM(caSavedLabel[iCounter], "&":U)) THEN
+            ASSIGN
+                iTabNumber = iCounter.
+
+          IF iTabNumber <> 0 THEN LEAVE.
+        END.
+
+
+      END.
+
+      /* There is a valid tab to disable */
+      IF iTabNumber <> 0 AND
+         iTabNumber <> ? THEN DO:
+
+        /* If the current tab gets disabled, set the variable */
+        IF iCurrentTab = iTabNumber THEN
+          ASSIGN
+              lCurrentDisabled = TRUE.
+
+        RUN disableFolderPage(INPUT iTabNumber). /* Disable the tab */
+
+      END.
+    END.
+
+    ASSIGN plPending = FALSE.
+
+    /* Now check to see if the current page is disabled. If it is, then move to
+       the first enabled tab, else put in view mode. */
+    IF lCurrentDisabled = TRUE THEN
+    DO:
+      ASSIGN
+          iTabNumber = 0.
+
+      /* Find the first enabled tab */
+      DO iCounter = 1 TO {&MAX-TABS}:
+        IF VALID-HANDLE(hTabLabel[iCounter])    AND
+           hTabLabel[iCounter]:SENSITIVE = TRUE THEN
+          ASSIGN
+              iTabNumber = iCounter.
+
+        IF iTabNumber <> 0 THEN LEAVE.
+      END.
+
+      IF iTabNumber <> 0 THEN
+      DO:
+        /* Select the tab */
+        ASSIGN
+            iCurrentTab = iTabNumber
+            glTabsEnabled = YES.
+
+        RUN selectPage IN hContainer (iTabNumber).
+      END.
+      ELSE
+      DO:
+        /* Put folder in view mode as no enabled tabs. Also set button sensitivity 
+           to prevent changing mode.
+        */
+        DYNAMIC-FUNCTION("setContainerMode":U IN hContainer, "View":U).
+        ASSIGN glTabsEnabled = NO.
+      END.
+    END.
+
+  END.
+  ELSE  /* Folder not yet initialized */
+    ASSIGN glHasPendingValues = TRUE
+           plPending          = TRUE
+           gcPageInformation  = pcPageInformation.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI s-object  _DEFAULT-DISABLE
+PROCEDURE disable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     DISABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we clean-up the user-interface by deleting
+               dynamic widgets we have created and/or hide 
+               frames.  This procedure is usually called when
+               we are ready to "clean-up" after running.
+------------------------------------------------------------------------------*/
+  /* Hide all frames. */
+  HIDE FRAME FolderFrame.
+  IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableFolderGroup s-object 
+PROCEDURE enableFolderGroup :
+/*------------------------------------------------------------------------------
+  Purpose:     Enables Tabs with matching Enable states
+  Parameters:  State Value
+  Notes:         
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER ip-group AS CHARACTER NO-UNDO.
+
+DO z = 1 TO iTabCount:
+    IF CAN-DO(caEnableGroup[z],ip-group) THEN RUN enableFolderPage(z).    
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableFolderPage s-object 
+PROCEDURE enableFolderPage :
+/*------------------------------------------------------------------------------
+  Purpose:     Enables a TAB for selection
+  Parameters:  Tab Number
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER iTabCount AS INTEGER NO-UNDO.
+
+IF gcSecuredPages <> "":U AND LOOKUP(STRING(iTabCount), gcSecuredPages) <> 0 THEN RETURN.
+
+IF VALID-HANDLE(hTabLabel[iTabCount]) 
+THEN DO:
+    ASSIGN hTabLabel[iTabCount]:SENSITIVE = NOT UIBMode()
+           hTabLabel[iTabCount]:FGCOLOR   = iaTabFGColor[iTabCount]
+           hMenuItem[iTabCount]:SENSITIVE = hTabLabel[iTabCount]:SENSITIVE
+           laTabEnabled[iTabCount]        = TRUE
+           hTabLabel[iTabCount]:TOOLTIP   = caTooltipEnabled[iTabCount].
+
+    IF VALID-HANDLE(hTabIcon[iTabCount]) THEN 
+        ASSIGN hTabIcon[iTabCount]:SENSITIVE = hTabLabel[iTabCount]:SENSITIVE
+               lResult = hTabIcon[iTabCount]:LOAD-IMAGE(caTabImage[iTabCount],iaTabXOffset[iTabCount],iaTabYOffset[iTabCount],iImageWidth,iImageHeight) 
+               NO-ERROR.
+
+    IF iTabCount = iCurrentTab THEN RUN _selectTab(iTabCount).
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enablePages s-object 
+PROCEDURE enablePages :
+/*------------------------------------------------------------------------------
+  Purpose:     Astra2 procedure to enable specified tab(s)
+
+  Parameters:  INPUT pcPageInformation - Comma delimited list of page numbers or
+                                         page labels (can be mixed) of pages / tabs
+                                         to enable. Can be in any order...
+
+               OUTPUT plPending - Logical parameter to indicate if enabling the
+                                  tabs are still pending
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcPageInformation AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER plPending         AS LOGICAL   NO-UNDO.
+
+  DEFINE VARIABLE cCurrentEntry AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTabNumber    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCounter      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEntry        AS INTEGER    NO-UNDO.
+
+  /* Check to see if folder has been initialized */
+  IF VALID-HANDLE(hTabLabel[1]) THEN
+  DO:
+    DO iEntry = 1 TO NUM-ENTRIES(pcPageInformation):
+      ASSIGN
+          cCurrentEntry = ENTRY(iEntry, pcPageInformation).
+
+      /* Check if tab number has been specified */
+      ASSIGN
+          iTabNumber = INTEGER(cCurrentEntry) NO-ERROR.
+
+      /* Tab label was specified */
+      IF ERROR-STATUS:ERROR = TRUE THEN
+      DO:
+        ERROR-STATUS:ERROR = FALSE.
+
+        ASSIGN
+            cCurrentEntry = TRIM(TRIM(cCurrentEntry, "&":U))  /* Remove '&', leading and trailing spaces. */
+            iTabNumber    = 0.
+
+        DO iCounter = 1 TO {&MAX-TABS}:
+
+          IF cCurrentEntry = TRIM(TRIM(caFolderLabel[iCounter], "&":U)) THEN
+            ASSIGN
+                iTabNumber = iCounter.
+
+          IF iTabNumber <> 0 THEN LEAVE.
+        END.
+
+        IF iTabNumber = 0 THEN
+        DO iCounter = 1 TO {&MAX-TABS}:
+
+          IF cCurrentEntry = TRIM(TRIM(caSavedLabel[iCounter], "&":U)) THEN
+            ASSIGN
+                iTabNumber = iCounter.
+
+          IF iTabNumber <> 0 THEN LEAVE.
+        END.
+
+      END.
+
+      /* There is a valid tab to enable */
+      IF iTabNumber <> 0 AND
+         iTabNumber <> ? THEN DO:
+
+        RUN enableFolderPage(INPUT iTabNumber).
+
+        ASSIGN glTabsEnabled = YES.
+      END.
+    END.
+
+    ASSIGN plPending = FALSE.
+  END.
+  ELSE  /* Folder not yet initialized */
+    ASSIGN glHasPendingValues = TRUE
+           plPending          = TRUE
+           gcPageInformation  = pcPageInformation.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getClientRectangle s-object 
+PROCEDURE getClientRectangle :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE OUTPUT PARAMETER pdColumn  AS DECIMAL NO-UNDO.
+DEFINE OUTPUT PARAMETER pdRow     AS DECIMAL NO-UNDO.
+DEFINE OUTPUT PARAMETER pdWidth   AS DECIMAL NO-UNDO.
+DEFINE OUTPUT PARAMETER pdHeight  AS DECIMAL NO-UNDO.
+
+        pdColumn = FRAME {&FRAME-NAME}:COLUMN + 0.9.
+        pdRow    = FRAME {&FRAME-NAME}:ROW + 1.14 + 0.12.
+        pdWidth  = FRAME {&FRAME-NAME}:WIDTH - 1.8.
+        pdHeight = FRAME {&FRAME-NAME}:HEIGHT - 1.14 - 0.36.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject s-object 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  RUN SUPER.
+
+  ASSIGN hContainer = WIDGET-HANDLE(DYNAMIC-FUNCTION('linkHandles':U, 'Container-Source':U))
+
+         hParent    = IF VALID-HANDLE(FRAME {&FRAME-NAME}:FRAME)
+                      THEN FRAME {&FRAME-NAME}:FRAME
+                      ELSE FRAME {&FRAME-NAME}:PARENT.
+
+  RUN _getProperties. 
+
+  RUN _initializeObject.
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+  /* Astra2 code follows */
+  IF glHasPendingValues = TRUE THEN
+  DO:
+    /* Because of a timing issue the pages weren't disabled. Disable them now */
+
+    RUN disablePages(INPUT  gcPageInformation,
+                     OUTPUT glHasPendingValues). /* If this is true, there is a problem */
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE repositionObject s-object 
+PROCEDURE repositionObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the size of the rectangles which make up the folder
+               "image" whenever it is resized.
+  Parameters:  INPUT height and width 
+  Notes:       Run automatically when the folder is initialized or resized.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pdRow     AS DECIMAL NO-UNDO.
+  DEFINE INPUT PARAMETER pdColumn  AS DECIMAL NO-UNDO.
+    
+  DEFINE VARIABLE dContainerHeight AS DECIMAL NO-UNDO.
+  
+  /* To fix issue #4060 
+     This will ensure that the Frame's ROW is never set outside of the
+     container's height */
+  IF VALID-HANDLE(hContainer) THEN DO:
+    dContainerHeight = DYNAMIC-FUNCTION("getHeight":U IN hContainer).
+  
+    IF (pdRow + FRAME {&FRAME-NAME}:HEIGHT) > dContainerHeight THEN
+      pdRow = pdRow - ((pdRow + FRAME {&FRAME-NAME}:HEIGHT) - dContainerHeight) + .86.
+  END.
+    
+  ASSIGN FRAME {&FRAME-NAME}:ROW    = pdRow
+         FRAME {&FRAME-NAME}:COLUMN = pdColumn.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resizeObject s-object 
+PROCEDURE resizeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Sets the size of the rectangles which make up the folder
+               "image" whenever it is resized.
+  Parameters:  INPUT height and width 
+  Notes:       Run automatically when the folder is initialized or resized.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER p-height AS DECIMAL NO-UNDO.
+DEFINE INPUT PARAMETER p-width  AS DECIMAL NO-UNDO.
+
+DEFINE VARIABLE FRAME-PARENT AS WIDGET-HANDLE NO-UNDO.
+
+SESSION:SET-WAIT-STATE("GENERAL":U).
+
+       FRAME {&FRAME-NAME}:HIDDEN = TRUE NO-ERROR.
+       FRAME {&FRAME-NAME}:SCROLLABLE = TRUE NO-ERROR.
+       FRAME-PARENT = FRAME {&FRAME-NAME}:PARENT NO-ERROR.
+       p-width  = MAX({&MIN-WIDTH-CHARS},p-width) NO-ERROR.
+       p-height = MAX({&MIN-HEIGHT-CHARS},p-height) NO-ERROR.
+       FRAME {&FRAME-NAME}:WIDTH  = p-width NO-ERROR.
+
+       /* we have had to set the frame scrollable before setting the height, as if
+          we do not, then it gpfs sometimes on the help about window which is a 
+          dialog using this folder window. Wierd.
+          With this scrollable = false line it just resizes the folder window
+          wrong - but better than a GPF !!!!
+       */
+       FRAME {&FRAME-NAME}:SCROLLABLE = FALSE NO-ERROR. /* remove at your peril */
+       FRAME {&FRAME-NAME}:HEIGHT-CHARS = p-height NO-ERROR.
+
+/* Check the lResult of the resize from the previous assign. If the container 
+   is resized very small, or a left-to-right/top-to-bottom resize (which is
+   really a MOVE) encounters the virtual size boundary, then Progress will 
+   override the resize and set a minimum value. So we check and reset the 
+   positions and sizes.
+*/
+IF FRAME {&FRAME-NAME}:WIDTH  <> p-width
+OR FRAME {&FRAME-NAME}:HEIGHT <> p-height THEN
+    ASSIGN 
+/*         FRAME {&FRAME-NAME}:ROW = 1    */
+/*         FRAME {&FRAME-NAME}:COLUMN = 1 */
+        FRAME {&FRAME-NAME}:WIDTH  = p-width
+        FRAME {&FRAME-NAME}:HEIGHT = p-height
+        NO-ERROR. 
+
+/* The ADM calls Set-Size before "Initialize" so we need to disable the
+   re-initialize during UIB resizing until the object has been properly
+   instantiated.
+*/
+IF getObjectInitialized() THEN RUN _initializeObject.  
+
+IF UIBMode() 
+THEN DO:
+    IF NOT VALID-HANDLE(hVentilator)
+    THEN DO:
+        RUN _getVentilator(FRAME {&FRAME-NAME}:HANDLE) NO-ERROR.
+        RUN _addVentilatorPopup(FRAME {&FRAME-NAME}:POPUP-MENU).
+    END.
+    ELSE hVentilator:MOVE-TO-TOP().
+END.
+
+SESSION:SET-WAIT-STATE("":U).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectNextTab s-object 
+PROCEDURE selectNextTab :
+/*------------------------------------------------------------------------------
+  Purpose:     Select the previous or next enabled tab
+  Parameters:  None
+  Notes:       Used generally to provide easy keyboard control from PAGE-DOWN
+               trigger of the container frame.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
+
+DO iPage = iCurrentTab + 1 TO iTabCount:
+    IF laTabEnabled[iPage] 
+    THEN DO:        
+        RUN selectPage IN hContainer (iPage).
+        RETURN.
+    END.
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectNextTabCycle s-object 
+PROCEDURE selectNextTabCycle :
+/*------------------------------------------------------------------------------
+  Purpose:     Select the previous or next enabled tab
+  Parameters:  None
+  Notes:       Used generally to provide easy keyboard control from PAGE-DOWN
+               trigger of the container frame.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
+
+
+
+DO iPage = iCurrentTab + 1 TO iTabCount:
+    IF laTabEnabled[iPage] 
+    THEN DO:        
+        RUN selectPage IN hContainer (iPage).
+        RETURN.
+    END.
+END.
+DO iPage = 1 TO iCurrentTab - 1:
+    IF laTabEnabled[iPage] 
+    THEN DO:        
+        RUN selectPage IN hContainer (iPage).
+        RETURN.
+    END.
+END.
+
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPrevTab s-object 
+PROCEDURE selectPrevTab :
+/*------------------------------------------------------------------------------
+  Purpose:     Select the previous or next enabled tab
+  Parameters:  None
+  Notes:       Used generally to provide easy keyboard control from PAGE-UP
+               trigger of the container frame.
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
+
+DO iPage = iCurrentTab - 1 TO 1 BY -1:
+    IF laTabEnabled[iPage] 
+    THEN DO:
+        RUN selectPage IN hContainer (iPage).
+        RETURN.
+    END.
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showCurrentPage s-object 
+PROCEDURE showCurrentPage :
+/*------------------------------------------------------------------------------
+  Purpose:     Called by the UIB to change the visualization
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER page# AS INTEGER NO-UNDO.
+
+IF VALID-HANDLE(hSelFrame) THEN ASSIGN hSelFrame:HIDDEN = TRUE.
+
+ASSIGN iPageNo = page#.
+
+IF iPageNo > 0 AND iPageNo <= iTabTotal 
+THEN DO:
+    ASSIGN iCurrentTab = ?.
+
+    RUN _selectTab(iPageNo).
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _createFolderLabel s-object 
+PROCEDURE _createFolderLabel PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Create a new Dynamic Tab
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+IF iPanelCount > iTabsPerRow THEN
+  iTabsPerRow = iPanelCount.
+IF iPanelCount = 0 
+OR iaTabsOnPanel[iPanelCount] GE iTabsPerRow
+THEN
+    RUN _createFolderPage.
+
+ASSIGN iTabCount = iTabCount + 1 
+       iCurrentXPos = iNextTabPos
+       iaTabsOnPanel[iPanelCount] = iaTabsOnPanel[iPanelCount] + 1
+
+       /* Tab width is either the auto width or the minimum width required to
+          display the defined label.
+       */
+       iThisTabSize = IF {&TABS-ARE-AUTOSIZED} THEN iTabAutoWidth 
+                      ELSE FONT-TABLE:GET-TEXT-WIDTH-PIXELS(caFolderLabel[iTabCount],iTabFont)
+                            + 3 + iTabImageTotal + {&TAB-PIXEL-OFFSET}.
+
+/* If we're auto-sizing and we are placing the last tab on the row, then we resize
+   it so that it meets up exactly with the end of the panel. If we're not auto-sizing
+   and the last tab on the row fits okay and {&TABS-ARE-JUSTIFIED} is true, we do the
+   same and extend its width so that it meets up exactly with the end of the panel.
+*/       
+IF ({&TABS-ARE-AUTOSIZED} OR {&TABS-ARE-JUSTIFIED})
+AND iaTabsOnPanel[iPanelCount] = iTabsPerRow
+THEN 
+    ASSIGN iThisTabSize = iPanelFrameWidth - iNextTabPos - 1.
+
+IF iCurrentXPos + iThisTabSize + {&OBJECT-SPACING} > iPanelFrameWidth
+THEN DO:
+    IF NOT {&WARNINGS-ARE-SUPPRESSED} 
+    THEN
+        MESSAGE "Tab" iTabCount '(labelled "' + caFolderLabel[iTabCount] + '") does not fit on the row.' SKIP(1)
+                "You should either reduce label size(s) or increase container width to make space for"
+                "the Tab." SKIP(1)
+                "You can disable this message by checking the ""Disable Resize Warning"" property." 
+            VIEW-AS ALERT-BOX WARNING TITLE "Insufficient Space".
+    RETURN ERROR.
+END.
+
+/* Create the widgets that make up the tab */    
+CREATE RECTANGLE hTabMain[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           HEIGHT-PIXELS = 1
+           WIDTH-PIXELS = MAX(4,iThisTabSize - 3)
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = IF lUpperTabs THEN COLOR-ButtonHilight ELSE COLOR-ButtonText
+           X = iCurrentXPos + 2
+           Y = IF lUpperTabs THEN 0 ELSE hTabFrame[iPanelCount]:HEIGHT-PIXELS - 1
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hTabLWht[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = iTabHeightPixels - 2
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonHilight
+           X = iCurrentXPos
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hTabLGry[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = iTabHeightPixels - 2
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonFace
+           X = iCurrentXPos + 1
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE TEXT hTabLDot[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = IF lUpperTabs THEN 1 ELSE hTabMain[iTabCount]:WIDTH-PIXELS + 1
+           HEIGHT-PIXELS = 1
+           BGCOLOR = IF lUpperTabs THEN COLOR-ButtonHilight ELSE COLOR-ButtonShadow
+           X = iCurrentXPos + 1 
+           Y = IF lUpperTabs THEN 1 ELSE hTabFrame[iPanelCount]:HEIGHT-PIXELS - 2
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE TEXT hTabRDot[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = 1  
+           HEIGHT-PIXELS = 1
+           BGCOLOR = COLOR-ButtonText
+           X = iCurrentXPos + iThisTabSize - 1 
+           Y = IF lUpperTabs THEN 1 ELSE hTabLDot[iTabCount]:Y
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hTabRGry[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = hTabLWht[iTabCount]:HEIGHT-PIXELS
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonShadow
+           X = iCurrentXPos + iThisTabSize - 1
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hTabRBla[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = iTabHeightPixels - 2
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonText
+           X = iCurrentXPos + iThisTabSize
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = FALSE.
+
+IF iImageHeight > 0 AND iImageWidth > 0 AND caTabImage[iTabCount] <> "":U
+THEN 
+    CREATE IMAGE hTabIcon[iTabCount] {&IN-WIDGET-POOL}
+       ASSIGN 
+           HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS  = iImageWidth
+           HEIGHT-PIXELS = iImageHeight
+           X = iCurrentXPos + 2 + iImageXOffset
+           Y = iTabImageYPos
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = laTabEnabled[iTabCount]
+           CONVERT-3D-COLORS = TRUE
+       TRIGGERS:
+            ON LEFT-MOUSE-DOWN PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount). 
+       END TRIGGERS.
+
+CREATE TEXT hTabLabel[iTabCount] {&IN-WIDGET-POOL} 
+    ASSIGN HIDDEN = laTabHidden[iTabCount]
+           WIDTH-PIXELS  = hTabMain[iTabCount]:WIDTH-PIXELS - iImageWidth - iImageXOffset 
+           HEIGHT-PIXELS = iTabHeightPixels - (IF lUpperTabs THEN 1 ELSE 2) - iLabelOffset
+           FONT = iTabFont
+           FORMAT = "x(256)":U
+           TOOLTIP = caTooltipEnabled[iTabCount]
+           SCREEN-VALUE = " ":U + caFolderLabel[iTabCount]
+           PRIVATE-DATA = STRING(iPanelCount)
+           FGCOLOR = IF iaTabFGColor[iTabCount] = ? THEN COLOR-ButtonText ELSE iaTabFGColor[iTabCount]
+           BGCOLOR = IF iaTabBGColor[iTabCount] = ? THEN COLOR-ButtonFace ELSE iaTabBGColor[iTabCount]
+           X = iCurrentXPos + 2 + iTabImageTotal
+           Y = iLabelOffset + IF lUpperTabs THEN 1 ELSE 0
+           FRAME = hTabFrame[iPanelCount]
+           SENSITIVE = laTabEnabled[iTabCount]
+    TRIGGERS:
+        ON LEFT-MOUSE-DOWN PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount). 
+    END TRIGGERS. 
+
+/* Resize the tab container frame so that it is only as wide as the displayed tabs. */
+ASSIGN hTabFrame[iPanelCount]:WIDTH-PIXELS = hTabRBla[iTabCount]:X + 1
+       hMenuItem[iTabCount] = hTabLabel[iTabCount]
+       hTabFrame[iPanelCount]:VIRTUAL-WIDTH-PIXELS = hTabFrame[iPanelCount]:WIDTH-PIXELS
+       iNextTabPos = hTabRBla[iTabCount]:X + {&OBJECT-SPACING}.
+
+IF iTabCount = 1 THEN RUN _createSelectorTab.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _createFolderPage s-object 
+PROCEDURE _createFolderPage PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Creates a new raised graphic panel
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+/* The panel is the three-d panel that appears beneath each row. All panels are 
+   the same size and are actually disabled button widgets. Panels do not move 
+   when a tab is selected. 
+*/
+
+ASSIGN iPanelCount = iPanelCount + 1 
+       iRowCOunt   = iRowCOunt + IF iPanelCount > iVisibleRows THEN 0 ELSE 1
+       iaTabsOnPanel[iPanelCount] = 0
+       iNextTabPos = {&TAB-PIXEL-OFFSET}.
+
+/* Button to serve as row panels */
+IF iRowCOunt > 0 
+THEN
+    CREATE BUTTON hPanelFrame[iPanelCount] {&IN-WIDGET-POOL}
+        ASSIGN HEIGHT-PIXELS = iPanelFrameHeight
+               WIDTH-PIXELS  = iPanelFrameWidth 
+               X = iPanelOffset * (iRowCOunt - 1)
+               Y = IF lUpperTabs 
+                   THEN iTabHeightPixels * ((iPanelTotal + 1) - iRowCOunt) + {&TAB-PIXEL-OFFSET}
+                   ELSE iTabFrameHeight * (iRowCount - 1)
+               PRIVATE-DATA = STRING(iPanelCount)
+               FRAME = FRAME {&FRAME-NAME}:HANDLE
+               SENSITIVE = FALSE.
+ELSE 
+    ASSIGN hPanelFrame[iPanelCount] = hPanelFrame[iPanelCount - 1].
+
+/* Frame to hold the tabs. Tabs on a row are held in their own container so that
+   row can be moved when a tab on it is selected. As panels don't move, attribute 
+   RULE-ROW is used to record the current panel to which the row is currently 
+   "attached".
+*/
+CREATE FRAME hTabFrame[iPanelCount] {&IN-WIDGET-POOL}
+    ASSIGN BOX = FALSE
+           THREE-D = TRUE
+           RULE-ROW = iPanelCount
+           HEIGHT-PIXELS = iTabFrameHeight
+           WIDTH-PIXELS  = iPanelFrameWidth
+           X = iPanelOffset * (iRowCOunt - 1) 
+           Y = IF lUpperTabs THEN hPanelFrame[iPanelCount]:Y - iTabHeightPixels 
+               ELSE hPanelFrame[iPanelCount]:Y + hPanelFrame[iPanelCount]:HEIGHT-PIXELS 
+           BGCOLOR = FRAME {&FRAME-NAME}:BGCOLOR
+           FGCOLOR = FRAME {&FRAME-NAME}:FGCOLOR
+           FRAME = FRAME {&FRAME-NAME}:HANDLE
+           SCROLLABLE = TRUE
+           SENSITIVE = TRUE.
+
+IF iPanelCount = 1 THEN
+CREATE TEXT hPanelOverlay[iPanelCount] {&IN-WIDGET-POOL} 
+    ASSIGN WIDTH-PIXELS  = iPanelFrameWidth - 4
+           HEIGHT-PIXELS = iPanelFrameHeight - 4
+           X = hPanelFrame[iPanelCount]:X + 1
+           Y = hPanelFrame[iPanelCount]:Y + 1
+           BGCOLOR = COLOR-ButtonFace
+           FGCOLOR = COLOR-ButtonFace
+           FRAME = FRAME {&FRAME-NAME}:HANDLE
+           SENSITIVE = FALSE.
+
+IF iPanelCount > iVisibleRows 
+THEN
+    ASSIGN hTabFrame[iPanelCount]:HIDDEN = TRUE.
+
+ASSIGN lResult = hTabFrame[iPanelCount]:MOVE-TO-BOTTOM()
+       lResult = hPanelFrame[iPanelCount]:MOVE-TO-BOTTOM().
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _createMenuShortcut s-object 
+PROCEDURE _createMenuShortcut PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Create a sub-menu The menu reflects the tab options available.
+  Parameters:  Tab Number
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER iTabCount AS INTEGER NO-UNDO.
+
+IF NOT VALID-HANDLE(hFolderMenu)
+THEN DO:
+    ASSIGN hFolderMenu = THIS-PROCEDURE:CURRENT-WINDOW
+           hFolderMenu = hFolderMenu:MENU-BAR
+           NO-ERROR.
+
+    IF NOT VALID-HANDLE(hFolderMenu) 
+    THEN DO:
+        ASSIGN lAddFolderMenu = FALSE.
+        RETURN.
+    END.
+
+    CREATE SUB-MENU hSubMenu {&IN-WIDGET-POOL}
+        ASSIGN PARENT = hFolderMenu
+               LABEL = cFolderMenuLabel.
+
+    ASSIGN iMenuCount = 1.
+END.
+
+
+CREATE MENU-ITEM hMenuItem[iTabCount] {&IN-WIDGET-POOL}
+    ASSIGN PARENT = hSubMenu
+           ACCELERATOR = caHotkey[iTabCount]
+           LABEL  = TRIM(caFolderLabel[iTabCount])
+           SENSITIVE = laTabEnabled[iTabCount]
+    TRIGGERS:
+        ON CHOOSE PERSISTENT RUN _labelTrigger IN THIS-PROCEDURE (iTabCount). 
+    END TRIGGERS.
+
+ASSIGN iMenuCount = iMenuCount + 1.
+
+IF iTabCount MODULO iTabsPerRow = 0 AND iTabCount < iTabTotal
+THEN 
+    CREATE MENU-ITEM hMenuItem[{&MAX-TABS}] {&IN-WIDGET-POOL}
+        ASSIGN PARENT  = hSubMenu
+               SUBTYPE = "RULE":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _createSelectorTab s-object 
+PROCEDURE _createSelectorTab PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Creates the visual selector TAB
+
+  Parameters:  <none>
+
+  Notes:       
+   When you click on a tab, it appears to "raise" and overlay the tabs either
+   side of it. This frame holds a single tab used for visual selection. It is
+   created and resized to match the selected tab except it is made slightly 
+   higher and wider to give the appearance of selection. Procedure _selectTab 
+   performs the resizing.
+
+------------------------------------------------------------------------------*/
+
+CREATE FRAME hSelFrame {&IN-WIDGET-POOL}
+    ASSIGN HIDDEN = TRUE
+           BOX = FALSE
+           SCROLLABLE = TRUE
+           THREE-D = TRUE
+           OVERLAY = TRUE
+           PRIVATE-DATA  = "Selector":U
+           HEIGHT-PIXELS = iTabFrameHeight + {&SELECTED-EXT-PIXEL-HEIGHT} + IF lUpperTabs THEN 1 ELSE 2
+           WIDTH-PIXELS  = iPanelFrameWidth
+           X = 0 
+           Y = IF lUpperTabs THEN hTabFrame[1]:Y - {&SELECTED-EXT-PIXEL-HEIGHT} 
+               ELSE hTabFrame[1]:Y - 2
+           BGCOLOR = FRAME {&FRAME-NAME}:BGCOLOR
+           FGCOLOR = FRAME {&FRAME-NAME}:FGCOLOR
+           FRAME = FRAME {&FRAME-NAME}:HANDLE
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hSelLWht {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = MAX(1,hSelFrame:HEIGHT-PIXELS - 2)
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonHilight
+           X = 0
+           Y = hTabLWht[1]:Y
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hSelLGry {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = MAX(1,hSelFrame:HEIGHT-PIXELS - 2)
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonFace
+           BGCOLOR = COLOR-ButtonFace
+           X = 1
+           Y = hTabLWht[1]:Y
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE TEXT hSelLDot {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = 1
+           BGCOLOR = hTabLDot[1]:BGCOLOR
+           X = hSelLWht:X + 1
+           Y = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hSelMain {&IN-WIDGET-POOL}
+    ASSIGN HEIGHT-PIXELS = 1
+           WIDTH-PIXELS = 1
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = hTabMain[1]:FGCOLOR
+           X = hSelLWht:X + 2 
+           Y = IF lUpperTabs THEN 0 ELSE hSelFrame:HEIGHT-PIXELS - 1
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE TEXT hSelRDot {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = 1
+           BGCOLOR = COLOR-ButtonText
+           X = hSelMain:WIDTH-PIXELS + 2 
+           Y = IF lUpperTabs THEN 1 ELSE hSelFrame:HEIGHT-PIXELS - 2  
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hSelRGry {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = IF lUpperTabs THEN 1 ELSE 2
+           HEIGHT-PIXELS = hSelLWht:HEIGHT-PIXELS 
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonShadow
+           X = hSelMain:WIDTH-PIXELS + 2
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE RECTANGLE hSelRBla {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS = 1
+           HEIGHT-PIXELS = hSelLWht:HEIGHT-PIXELS  
+           EDGE-PIXELS = 1
+           GRAPHIC-EDGE = FALSE
+           FILLED = TRUE
+           FGCOLOR = COLOR-ButtonText
+           X = hSelMain:WIDTH-PIXELS + 3
+           Y = IF lUpperTabs THEN 2 ELSE 0
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE TEXT hSelLabel {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS  = 1
+           HEIGHT-PIXELS = iTabLabelHeight + 1
+           FORMAT = "x(256)":U
+           FONT = iSelectorFont
+           FGCOLOR = IF iSelectorFGColor = ? THEN COLOR-ButtonText ELSE iSelectorFGColor
+           BGCOLOR = IF iSelectorBGColor = ? THEN COLOR-ButtonFace ELSE iSelectorBGColor
+           X = 2 + iTabImageTotal
+           Y = IF lUpperTabs THEN 1 + iLabelOffset
+               ELSE hSelFrame:HEIGHT-PIXELS - 2 - iTabLabelHeight - iLabelOffset - {&SELECTED-EXT-PIXEL-HEIGHT}
+           FRAME = hSelFrame
+           SENSITIVE = FALSE.
+
+CREATE IMAGE hSelIcon {&IN-WIDGET-POOL}
+    ASSIGN WIDTH-PIXELS  = MAX(1,iImageWidth)
+           HEIGHT-PIXELS = MAX(1,iImageHeight)
+           X =  2 + iImageXOffset
+           Y = iTabImageYPos + IF lUpperTabs THEN 0 ELSE {&SELECTED-EXT-PIXEL-HEIGHT} 
+           FRAME = hSelFrame
+           CONVERT-3D-COLORS = TRUE
+           SENSITIVE = FALSE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _getColours s-object 
+PROCEDURE _getColours PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Calls the support procedure to get colour table mappings
+  Parameters:  <none>
+  Notes:       Colour variables in this procedure are:
+
+ COLOR-ButtonHilight
+ COLOR-ButtonFace 
+ COLOR-ButtonShadow
+ COLOR-GrayText
+ COLOR-ButtonText 
+
+------------------------------------------------------------------------------*/
+
+IF VALID-HANDLE({&SUPER-HDL})
+THEN
+    ASSIGN COLOR-ButtonHilight = COLOR-OF("ButtonHilight")
+           COLOR-ButtonFace    = COLOR-OF("ButtonFace")
+           COLOR-ButtonShadow  = COLOR-OF("ButtonShadow")
+           COLOR-GrayText      = COLOR-OF("GrayText")
+           COLOR-ButtonText    = COLOR-OF("ButtonText")
+           NO-ERROR.
+
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _getProperties s-object 
+PROCEDURE _getProperties PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Parse basic properties and arrays
+  Parameters:  <none>
+  Notes:       Transfer basic properties and property arrays into variables for 
+               easy processing. 
+------------------------------------------------------------------------------*/
+
+    RUN _getPropertyValues.
+
+    IF NOT UIBMode() 
+    THEN DO:
+        ASSIGN lAddFolderMenu = NOT CAN-DO("No,?,":U,getFolderMenu())
+               cFolderMenuLabel = IF getFolderMenu() = "Yes" 
+                                  THEN "&Options" 
+                                  ELSE getFolderMenu().
+    
+        RUN _resolveStateLinks IN THIS-PROCEDURE.
+    END.
+    
+    IF NOT UIBMode()
+    THEN
+        ASSIGN NoWarnings = TRUE.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _getPropertyValues s-object 
+PROCEDURE _getPropertyValues PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cFolderLabels       AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cTabFGColor         AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cTabBGColor         AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cTabINColor         AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cImageEnabled       AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cImageDisabled      AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cHotkey             AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cTooltip            AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cTabHidden          AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cEnableStates       AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cDisableStates      AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cSelectorFGColor    AS CHARACTER                      NO-UNDO.
+    DEFINE VARIABLE cSelectorBGColor    AS CHARACTER                      NO-UNDO.
+
+    ASSIGN cFolderLabels    = getFolderLabels()
+           cTabFGColor      = getTabFGColor()
+           cTabBGColor      = getTabBGColor()
+           cTabINColor      = getTabINColor()
+           cImageEnabled    = getImageEnabled()
+           cImageDisabled   = getImageDisabled()
+           cHotkey          = getHotkey()
+           cTooltip         = getTooltip()
+           cTabHidden       = getTabHidden()
+           cEnableStates    = getEnableStates()
+           cDisableStates   = getDisableStates()
+           cSelectorFGColor = getSelectorFGColor()
+           cSelectorBGColor = getSelectorBGColor()
+           
+           iVisibleRows   = getVisibleRows()
+           iPanelOffset   = getPanelOffset()
+           iTabsPerRow    = getTabsPerRow()
+           iTabHeight     = getTabHeight()
+           iTabFont       = getTabFont()
+           iLabelOffset   = getLabelOffset()
+           iImageWidth    = getImageWidth()
+           iImageHeight   = getImageHeight()
+           iImageXOffset  = getImageXoffset()
+           iImageYOffset  = getImageYoffset()
+           iSelectorFont  = getSelectorFont()
+           iSelectorWidth = getSelectorWidth()
+    
+           iTabTotal = NUM-ENTRIES(cFolderLabels,"{&DELIMITER}":U).
+    DO x = 1 TO iTabTotal:
+        ASSIGN caFolderLabel[x] = ENTRY-OF(x,cFolderLabels,"{&DELIMITER}":U)
+               caSavedLabel[X]  = (IF caSavedLabel[X] <> "":U THEN caSavedLabel[X] ELSE caFolderLabel[x])
+
+               iaTabFGColor[x]  = COLOR-OF(ENTRY-OF(x,cTabFGColor,"{&DELIMITER}":U))
+               iaTabBGColor[x]  = COLOR-OF(ENTRY-OF(x,cTabBGColor,"{&DELIMITER}":U))
+               iaTabINColor[x]  = COLOR-OF(ENTRY-OF(x,cTabINColor,"{&DELIMITER}":U)) 
+               
+               caTabImage[x]    = ENTRY-OF(1,ENTRY-OF(x,cImageEnabled,"{&DELIMITER}":U)," ":U) 
+               caTabiImage[x]   = ENTRY-OF(1,ENTRY-OF(x,cImageDisabled,"{&DELIMITER}":U)," ":U)
+               
+               caHotkey[x]      = ENTRY-OF(x,cHotkey,"{&DELIMITER}":U)
+               
+               caTooltipEnabled[x] = ENTRY-OF(x,cTooltip,"{&DELIMITER}":U)
+
+               laTabHidden[x]    = CAN-DO("Yes,True",ENTRY-OF(x,cTabHidden,"{&DELIMITER}":U))
+    
+               caEnableGroup[x]  = ENTRY-OF(x,cEnableStates,"{&DELIMITER}":U) 
+    
+               caDisableGroup[x] = IF ENTRY-OF(x,cDisableStates,"{&DELIMITER}":U) = "":U THEN ENTRY-OF(x,cEnableStates,"{&DELIMITER}":U)
+                                   ELSE ENTRY-OF(x,cDisableStates,"{&DELIMITER}":U)
+    
+               iaTabXOffset[x]  = INTEGER(ENTRY-OF(2,ENTRY-OF(x,cImageEnabled,"{&DELIMITER}":U)," ":U))
+               iaTabYOffset[x]  = INTEGER(ENTRY-OF(3,ENTRY-OF(x,cImageEnabled,"{&DELIMITER}":U)," ":U))
+               
+               iaTabXiOffset[x] = INTEGER(ENTRY-OF(2,ENTRY-OF(x,cImageDisabled,"{&DELIMITER}":U)," ":U))
+               iaTabYiOffset[x] = INTEGER(ENTRY-OF(3,ENTRY-OF(x,cImageDisabled,"{&DELIMITER}":U)," ":U))
+               
+               NO-ERROR. 
+    END.
+
+    ASSIGN iSelectorFGColor = COLOR-OF(cSelectorFGcolor)
+           iSelectorBGColor = COLOR-OF(cSelectorBGcolor)
+           
+           {&TABS-ARE-AUTOSIZED} = getTabSize() = "AutoSized"
+           {&TABS-ARE-JUSTIFIED} = getTabSize() = "Justified" OR iTabTotal > iTabsPerRow
+           
+           lAddFolderMenu = FALSE.
+
+    RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _initializeObject s-object 
+PROCEDURE _initializeObject PRIVATE :
+/*----------------------------------------------------------------------------
+  Purpose:     Perform Initialisation
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+ASSIGN FRAME {&FRAME-NAME}:HIDDEN = TRUE.
+
+DELETE WIDGET-POOL WIDGET-POOL-NAME NO-ERROR.
+
+ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE = TRUE
+       FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-PIXELS  = FRAME {&FRAME-NAME}:WIDTH-PIXELS
+       FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-PIXELS = FRAME {&FRAME-NAME}:HEIGHT-PIXELS
+       FRAME {&FRAME-NAME}:SCROLLABLE = FALSE
+       NO-ERROR. 
+
+CREATE WIDGET-POOL WIDGET-POOL-NAME PERSISTENT NO-ERROR.
+
+/* Set some defaults. Tab height is based on the selected font or the tab icon,
+   whichever is larger. The width is based on the length of the label or if 
+   {&TABS-ARE-AUTOSIZED} is true, a width which is dependant on the width of the frame 
+   and the number of tabs per row. The width is extended when the tabs are created
+   by the width of the tab icon (if any) plus the pixel space between the tab 
+   and the icon.
+*/
+
+ASSIGN /* Tab height is larger of text height or image height (image height is zero when not used) */
+
+       iTabHeightPixels = iImageHeight + iImageYOffset
+
+       iTabHeightPixels = MAX(iTabHeightPixels + 2,FONT-TABLE:GET-TEXT-HEIGHT-PIXELS(iTabFont) + iTabHeight + iLabelOffset) 
+
+       /* The height of the frame for each row */
+       iTabFrameHeight = iTabHeightPixels  
+
+       /* How many panels are required in total? */
+       iPanelTotal = IF iTabsPerRow > 0 THEN MIN(iVisibleRows,INT(iTabTotal / iTabsPerRow + 0.49)) ELSE 1
+
+       /* The width and height of each hPanelFrame so they all fit in the main frame */
+       iPanelFrameHeight  = FRAME {&FRAME-NAME}:HEIGHT-PIXELS - {&TAB-PIXEL-OFFSET} - (iTabFrameHeight * iPanelTotal)
+       iPanelFrameWidth   = FRAME {&FRAME-NAME}:WIDTH-PIXELS - (iPanelOffset * (iPanelTotal - 1))
+
+       /* Total space occupied by a tab icon */
+       iTabImageTotal = iImageWidth + iImageXOffset
+
+       /* Tab width and label width for auto sizing */
+       iTabAutoWidth = MAXIMUM(((iPanelFrameWidth - ({&TAB-PIXEL-OFFSET} * 2) 
+                     - ({&OBJECT-SPACING} * (iTabsPerRow - 1))) / iTabsPerRow),6 + iTabImageTotal)
+
+       /* Height of each label widget and the Y co-ordinate based on the height */
+       iTabLabelHeight = MAX(1,iTabFrameHeight - 2 - IF lUpperTabs THEN iLabelOffset ELSE 0)
+
+       iRowCOunt = 0 iMenuCount = 0 iPanelCount = 0 iaTabsOnPanel[1] = 0 iTabCount = 0
+
+       lUpperTabs = getTabPosition() = "Upper"
+
+       iTabImageYPos = 1 + iImageYOffset.
+
+       FRAME {&FRAME-NAME}:BGCOLOR = IF getInheritColor()
+                                     THEN hParent:BGCOLOR
+                                     ELSE ?.
+/* Force only 1 row tab - for version 2 of Dynamics */
+/* This change was as a result of a fix required for issue #2773 - irregular tabs arrangement in a multi-page DynFold (>4) */
+IF iTabTotal > iTabsPerRow THEN
+  iTabsPerRow = iTabTotal.
+
+IF iPanelFrameHeight < 1 
+THEN 
+    MESSAGE "Insufficient space in frame to display all tab rows."
+        VIEW-AS ALERT-BOX ERROR TITLE "Insufficient Space".
+
+ELSE
+    /* Create all the tabs */    
+    DO y = 1 TO iTabTotal ON ERROR UNDO, RETRY:
+
+        RUN _createFolderLabel.
+
+        IF laTabEnabled[Y] = FALSE THEN
+          RUN disableFolderPage(y).
+        ELSE
+          RUN enableFolderPage(y).
+
+        IF lAddFolderMenu THEN RUN _createMenuShortcut(y).
+    END.
+
+IF NOT UIBMode() THEN RUN ChangeFolderPage.
+
+ASSIGN FRAME {&FRAME-NAME}:HIDDEN = FALSE
+       lResult = hSelFrame:MOVE-TO-TOP()
+       lResult = FRAME {&FRAME-NAME}:MOVE-TO-BOTTOM()
+       NO-ERROR.
+
+IF NOT UIBMode() AND getMouseCursor() <> "":U 
+THEN
+DO z = 1 TO iPanelCount:
+    hTabFrame[z]:LOAD-MOUSE-POINTER(getMouseCursor()).
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _labelTrigger s-object 
+PROCEDURE _labelTrigger PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Trigger to fire tab selection on mouse lick
+  Parameters:  Tab array index of tab clicked
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER TAB-NUMBER AS INTEGER NO-UNDO.
+
+IF laTabEnabled[TAB-NUMBER] 
+AND iCurrentTab <> TAB-NUMBER 
+AND VALID-HANDLE({&CONTAINER})
+THEN
+    RUN selectPage IN {&CONTAINER} (INPUT TAB-NUMBER).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _ResolveStateLinks s-object 
+PROCEDURE _ResolveStateLinks PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Set enabling/disabling subscriptions
+
+  Parameters:  <none>
+
+  Notes:       Sets the subscriptions that enable or disable buttons, for all
+               Page Targets. Usually, this is just the container.
+
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cList AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE pHandle AS HANDLE NO-UNDO.
+
+DEFINE VARIABLE iCountX AS INTEGER NO-UNDO.
+DEFINE VARIABLE iCountY AS INTEGER NO-UNDO.
+DEFINE VARIABLE iCountZ AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE cEvent AS CHARACTER NO-UNDO.
+
+&SCOPED-DEFINE PUBLISH-EVENTS enableFolderPage,enableFolderGroup,disableFolderPage,disableFolderGroup
+
+ASSIGN cList = DYNAMIC-FUNCTION('linkHandles':U, 'Page-Target':U).
+
+DO iCountX = 1 TO NUM-ENTRIES(cList):
+
+    ASSIGN pHandle = WIDGET-HANDLE(ENTRY(iCountX,cList)).
+
+    IF VALID-HANDLE(pHandle) 
+    THEN 
+    DO iCountY = 1 TO NUM-ENTRIES("{&PUBLISH-EVENTS}":U):
+
+        ASSIGN cEvent = ENTRY(iCountY,"{&PUBLISH-EVENTS}":U).
+
+        SUBSCRIBE TO cEvent IN pHandle.
+    END.
+END.
+
+SUBSCRIBE TO "SelectPrevTab" IN hContainer.
+SUBSCRIBE TO "SelectNextTab" IN hContainer.
+SUBSCRIBE TO "SelectNextTabCycle" IN hContainer.
+
+/* establish keyboard triggers in the container itself */
+
+    DEFINE VARIABLE hContainerHandle AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hFrame AS HANDLE NO-UNDO.
+
+
+
+    {get ContainerHandle hContainerHandle hContainer}.
+
+    CASE hContainerHandle:TYPE:
+        WHEN "FRAME"  THEN ASSIGN hFrame = hContainerHandle.
+        WHEN "WINDOW" THEN ASSIGN hFrame = hContainerHandle:FIRST-CHILD.                             
+    END CASE.
+
+    IF VALID-HANDLE (hFrame) THEN ON "CTRL-TAB" OF hFrame PERSISTENT RUN SelectNextTabCycle IN THIS-PROCEDURE.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE _selectTab s-object 
+PROCEDURE _selectTab PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     Visualize Tab selection
+  Parameters:  Tab array index
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER ipTabNo AS INTEGER NO-UNDO.
+
+ASSIGN iSelectedRow     = INT(hTabLabel[ipTabNo]:PRIVATE-DATA)
+       iSelectedPanel   = hTabFrame[iSelectedRow]:RULE-ROW
+       hSelFrame:HIDDEN = TRUE. 
+
+/* When a tab is selected from an upper row, the row is first swapped with the
+   current row. Although the frames containing tabs do not overlay each other 
+   Progress insists on refreshing adjacent frames. The sequence of assignments 
+   in this block is designed to minimise any flickering effect. The assigment
+   order of X and Y co-ordinates is deliberate.
+*/
+
+IF iSelectedRow <> iCurrentRow 
+THEN DO:
+    ASSIGN sx = hTabFrame[iSelectedRow]:X
+           sy = hTabFrame[iSelectedRow]:Y
+
+           /* Move the rows - quickly and with minimal flicker */
+           lResult = hTabFrame[iSelectedRow]:MOVE-TO-BOTTOM()
+           hTabFrame[iSelectedRow]:Y = hTabFrame[iCurrentRow]:Y
+           hTabFrame[iSelectedRow]:X = hTabFrame[iCurrentRow]:X
+           lResult = hTabFrame[iSelectedRow]:MOVE-TO-TOP() 
+
+           lResult = hTabFrame[iCurrentRow]:MOVE-TO-BOTTOM() 
+           hTabFrame[iCurrentRow]:X = sx
+           hTabFrame[iCurrentRow]:Y = sy
+           hTabFrame[iCurrentRow]:HIDDEN = hTabFrame[iSelectedRow]:HIDDEN
+           lResult = hTabFrame[iCurrentRow]:MOVE-TO-TOP() 
+
+           hTabFrame[iCurrentRow]:RULE-ROW = iSelectedPanel
+           hTabFrame[iSelectedRow]:RULE-ROW = 1
+
+           hPanelFrame[1]:PRIVATE-DATA = STRING(iSelectedRow)
+           hPanelFrame[iSelectedPanel]:PRIVATE-DATA = STRING(iCurrentRow)
+
+           hTabFrame[iSelectedRow]:HIDDEN = FALSE
+           iCurrentRow = iSelectedRow.
+END.
+
+/* Hide and then resize the selector tab to provide visualisation of the selection. 
+   The frame width of the selector frame is the width of the selected tab plus the
+   value of {&TAB-PIXEL-OFFSET}. Also, If the tab isn't the last tab on a full row 
+   (when the remainder of ipTabNo/iTabsPerRow <> 0) then we add a couple of
+   pixels so that it appears to overlay on both the left and right sides. The amount
+   of overlay is held in iSelectorWidth.
+*/
+
+ASSIGN hSelFrame:SCROLLABLE = TRUE
+       hSelFrame:X = 0
+
+       lResult = ipTabNo MODULO iTabsPerRow = 0 
+
+       x = hTabMain[ipTabNo]:WIDTH-PIXELS + {&TAB-PIXEL-OFFSET} +
+               IF lResult THEN 1 
+               ELSE iSelectorWidth
+
+       hSelFrame:WIDTH-PIXELS = x + 3 
+       hSelMain:WIDTH-PIXELS  = MAX(1,x - 1)
+       hSelLDot:WIDTH-PIXELS  = IF lUpperTabs THEN 1 ELSE hSelMain:WIDTH-PIXELS + 1
+       hSelLabel:WIDTH-PIXELS = hSelFrame:WIDTH-PIXELS - hSelLabel:X - 2
+       hSelLGry:WIDTH-PIXELS  = hSelLabel:WIDTH-PIXELS + 1
+       hSelRDot:X  = hSelFrame:WIDTH-PIXELS - 2 
+       hSelRBla:X  = hSelFrame:WIDTH-PIXELS - 1
+       hSelRGry:X  = hSelFrame:WIDTH-PIXELS - 2
+       hSelFrame:X = hTabLWht[ipTabNo]:X - {&TAB-PIXEL-OFFSET} 
+
+       hSelRBla:Y  = IF lUpperTabs THEN hSelRBla:Y
+                     ELSE IF NOT lResult THEN 1 
+                     ELSE 0
+
+       hSelRBla:HEIGHT-PIXELS = IF lUpperTabs THEN hSelRBla:HEIGHT-PIXELS
+                                ELSE IF NOT lResult THEN hSelLWht:HEIGHT-PIXELS - 1
+                                ELSE hSelLWht:HEIGHT-PIXELS
+
+       hSelLabel:SCREEN-VALUE = hTabLabel[ipTabNo]:SCREEN-VALUE
+
+       hSelFrame:VIRTUAL-WIDTH-PIXELS = hSelFrame:WIDTH-PIXELS 
+
+       hSelLabel:FGCOLOR = IF iaTabFGColor[ipTabNo] = ? 
+                           THEN (IF iSelectorFGColor = ? 
+                                THEN COLOR-ButtonText
+                                ELSE iSelectorFGColor)
+                           ELSE IF hTabLabel[ipTabNo]:SENSITIVE 
+                                THEN iaTabFGColor[ipTabNo]
+                                ELSE iaTabINColor[ipTabNo]
+
+       hSelLabel:BGCOLOR = IF iaTabBGColor[ipTabNo] = ? 
+                           THEN (IF iSelectorBGColor = ? 
+                                THEN COLOR-ButtonFace
+                                ELSE iSelectorBGColor)
+                           ELSE iaTabBGColor[ipTabNo]
+
+       lResult = IF VALID-HANDLE(hTabIcon[ipTabNo]) THEN
+                 hSelIcon:LOAD-IMAGE(caTabImage[ipTabNo],iaTabXOffset[ipTabNo],iaTabYOffset[ipTabNo],iImageWidth,iImageHeight)
+                 ELSE FALSE
+
+       hSelIcon:HIDDEN = NOT lResult
+       hSelFrame:SCROLLABLE = FALSE
+       hSelFrame:HIDDEN = FALSE
+       iCurrentTab = ipTabNo.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerCol s-object 
+FUNCTION getInnerCol RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner Col relative to container  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN (2 / SESSION:PIXELS-PER-COL)
+         + FRAME {&FRAME-NAME}:COL.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerHeight s-object 
+FUNCTION getInnerHeight RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner width   
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN (iPanelFrameHeight - 4) / SESSION:PIXELS-PER-ROW. 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerRow s-object 
+FUNCTION getInnerRow RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner Row relative to container 
+    Notes:  
+------------------------------------------------------------------------------*/
+   RETURN  ((IF lUpperTabs 
+             THEN (iTabHeightPixels * iPanelTotal)
+                   + {&TAB-PIXEL-OFFSET}
+             ELSE 0)
+            + 2)  
+            / SESSION:PIXELS-PER-ROW
+            + FRAME {&FRAME-NAME}:ROW.
+           
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInnerWidth s-object 
+FUNCTION getInnerWidth RETURNS DECIMAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return inner width   
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN (iPanelFrameWidth - 4) / SESSION:PIXELS-PER-COL.    
+ 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNoWarnings s-object 
+FUNCTION getNoWarnings RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+RETURN NoWarnings.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPanelsMinWidth s-object 
+FUNCTION getPanelsMinWidth RETURNS DECIMAL
+    ( /**/ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the minimum width the tabs take up.
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE dMinWidth           AS DECIMAL                      NO-UNDO.
+    DEFINE VARIABLE dPanelWidth         AS DECIMAL                      NO-UNDO.
+    DEFINE VARIABLE iTabCount           AS INTEGER                      NO-UNDO.
+
+    /* Ensure that the property values are set. */
+    RUN _getPropertyValues.
+
+    DO iTabCount = 1 TO iTabTotal:        
+        IF iTabCount MOD iTabsPerRow EQ 1 THEN
+            ASSIGN dPanelWidth = 0.
+
+        ASSIGN iThisTabSize = IF {&TABS-ARE-AUTOSIZED} THEN 
+                                iTabAutoWidth 
+                            ELSE
+                                FONT-TABLE:GET-TEXT-WIDTH-PIXELS(caFolderLabel[iTabCount],iTabFont) + 3 + iTabImageTotal + {&TAB-PIXEL-OFFSET}
+                        .
+        ASSIGN dPanelWidth = dPanelWidth + iThisTabSize
+               dMinWidth = MAX(dPanelWidth, dMinWidth)
+               .
+    END.    /* loop through tabs */
+
+    /* We add a little bit to ensure that the last tab is seen. */
+    RETURN (dMinWidth / SESSION:PIXELS-PER-COLUMN) + 2.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTabsEnabled s-object 
+FUNCTION getTabsEnabled RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Pass back flag indicating whether there are any tabs enabled at all.
+           Used by container to set a panel state no-tabs-enabled in the toolbar
+           to prevent user from changing mode. 
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN glTabsEnabled.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNoWarnings s-object 
+FUNCTION setNoWarnings RETURNS LOGICAL
+  ( INPUT pNoWarnings AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+ASSIGN NoWarnings = pNoWarnings NO-ERROR. 
+
+RETURN ERROR-STATUS:ERROR.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+

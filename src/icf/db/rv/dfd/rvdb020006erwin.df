@@ -1,0 +1,1910 @@
+ADD TABLE "rvc_configuration_type"
+  DESCRIPTION "This defines the types of data item which require version control.  Each type should correspond to a single database table.  Any alteration to this table or its direct children will be versioned, and require the item to be checked out.  This is achieved by having suitable REPLICATION triggers on all involved tables.
+
+e.g. ryc_smartobject (and it's related tables: ryc_page, ryc_smartlink, etc.).
+
+In this case the SmartObject is a configuration type.  Any changes to records in ryv_smartobject, ryc_page etc.  will result in a new version of that smartobject.  
+
+The log records maintained are sensitive to schema changes in any of the invoved tables.  Utilities will be provided for restructuring these log entries in the event that version recovery is desired across schema changes.
+
+Fields exist in this table for integration with a SCM tool, e.g. Roundtable. They identify the identifying field in the table that maps to the object name in the SCM tool. They then identify which fields form the primary key to enable a simple cross reference between the SCM object and the primary key of the data. For example, in the ryc_smartbject table, the identify field would be object_filename and the primary key fields would be smartobject_obj. This means that we could find a smartobject record using the object filename and get the smartobject object number."
+  DUMP-NAME "rvcct"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvccttrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvccttrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvccttrigw.p"
+
+ADD FIELD "configuration_type" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "type_table_name" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is the actual name of the table for the data represented by this configuration type."
+  FORMAT "X(35)"
+  LABEL "Type Table Name"
+  VALMSG "s_name"
+  HELP "Type table name"
+
+ADD FIELD "type_description" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is a description of the data being represented by this configuration type."
+  FORMAT "X(35)"
+  LABEL "Type Description"
+  VALMSG "s_description"
+  HELP "Type description"
+
+ADD FIELD "type_locked" OF "rvc_configuration_type" AS LOGICAL
+  DESCRIPTION "If set to YES then this prevents items of this type from being checked out, modified, or checked back in."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Type Locked"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Type locked"
+
+ADD FIELD "type_deployable" OF "rvc_configuration_type" AS LOGICAL
+  DESCRIPTION "If set to NO, then data of this type is not included in deployments to the customer site.  e.g. Data which represents utilities for use in house only.
+
+If the type is deployable, then individual items may still be excluded from the deployment by setting their item_deployable fields to NO.
+
+If the type is not deployable then the item_deployable flag is ignored."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Type Deployable"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Type deployable"
+
+ADD FIELD "baseline_frequency" OF "rvc_configuration_type" AS INTEGER
+  DESCRIPTION "This is the number of new versions which may occur between baselines, after which a new baseline will be created automatically.
+
+Usually baselines are set at developer discression, but this prevents it from being left too long.
+
+A value of zero disables this feature."
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Baseline Frequency"
+  VALMSG "n_integer_2"
+  HELP "Baseline frequency"
+
+ADD FIELD "configuration_type_obj" OF "rvc_configuration_type" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Configuration Type Obj"
+  VALMSG "o_obj"
+  HELP "Configuration type obj"
+  DECIMALS 9
+
+ADD FIELD "scm_code" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is the default object sybtype to use when creating objects automatically into the SCM tool repository, e.g. for a configuration type of RYCSO for ryc_smartobject, this would be set to LSmartObject identifying the object created as a logical smartobject.
+
+This code does not mean that every smartobject is of this type however, it is only used for the creation of objects in the SCM tool.
+"
+  FORMAT "X(15)"
+  LABEL "Scm Code"
+  VALMSG "s_reference"
+  HELP "Scm code"
+
+ADD FIELD "description_fieldname" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is the fieldname for this configuration type that is used to describe an item of data in the table, e.g. for this table it would be type_description.
+
+This information is used when wrting generic objects to determine what information to display about an item of data, e.g. for a window title.
+
+"
+  FORMAT "X(35)"
+  LABEL "Description Fieldname"
+  VALMSG "s_description"
+  HELP "Description fieldname"
+
+ADD FIELD "scm_identifying_fieldname" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This field identifies the single field in the table referenced by this configuration type that maps to the object name in the SCM tool, e.g. for the table ryc_smartobject this would be object_filename.
+
+These fields therefore enable us to dynamically map a particular object in the SCM tool with a configuration item in the ICF Versioning System.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Identifying Fieldname"
+  VALMSG "s_name"
+  HELP "Scm identifying fieldname"
+
+ADD FIELD "scm_primary_key_fields" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is a comma seperated list of the primary key fields for this configuration type.
+
+Related tables will only refer to the primary key of the primary table. We need this information to first find the primary table, then work out what the identifying fieldname is to find the configuration item.
+
+For the table ryc_smartobject, the identifying_field would be the object_filename and the primary key fields would be the smartobject_obj.
+
+
+These fields therefore enable us to dynamically map a particular object in the SCM tool with a configuration item in the ICF Versioning System.
+
+"
+  FORMAT "X(70)"
+  LABEL "Scm Primary Key Fields"
+  VALMSG "s_big_name"
+  HELP "Scm primary key fields"
+
+ADD FIELD "product_module_obj" OF "rvc_configuration_type" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "product_module_fieldname" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This is the fieldname for this configuration type that is used to identify the product module, e.g. product_module_obj.
+
+This is only required if it is possible to obtain a product module from this type of data.
+
+The configuration type also contains an optional default product module to use when cretaing data of this type.
+
+At least one of the fields, the default product module or the product module fieldname must be specified as it is mandatory for new items of data to be allocated to a product module.
+"
+  FORMAT "X(35)"
+  LABEL "Product Module Fieldname"
+  VALMSG "s_description"
+  HELP "Product module fieldname"
+
+ADD FIELD "dataset_code" OF "rvc_configuration_type" AS CHAR
+  DESCRIPTION "This field contains the code to a deployment dataset as defined in the gsc_deploy_dataset table that describes the relationships between the tables that need to be written to the .ado XML file that represents the data for this configuration type."
+  FORMAT "X(10)"
+  LABEL "Dataset Code"
+  VALMSG "s_code"
+  HELP "Dataset code"
+
+ADD INDEX "XPKrvc_configuration_type" ON "rvc_configuration_type"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvc_configuration_type" ON "rvc_configuration_type"
+
+ADD INDEX "XAK1rvc_configuration_type" ON "rvc_configuration_type"
+  UNIQUE
+  INDEX-FIELD "type_table_name" ASCENDING
+
+ADD INDEX "XAK2rvc_configuration_type" ON "rvc_configuration_type"
+  UNIQUE
+  INDEX-FIELD "configuration_type_obj" ASCENDING
+
+ADD INDEX "XIE1rvc_configuration_type" ON "rvc_configuration_type"
+  INDEX-FIELD "type_description" ASCENDING
+
+ADD TABLE "rvm_configuration_item"
+  DESCRIPTION "This is a particular item of data under version control e.g. a particular smartobject. 
+
+Configuration items must belong to a product module.  The configuration type dictates the type of data, and the object name represents the identifying field of the record in the table - also as used for the object name in the SCM tool.
+"
+  DUMP-NAME "rvmci"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmcitrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmcitrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmcitrigw.p"
+
+ADD FIELD "configuration_type" OF "rvm_configuration_item" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "product_module_obj" OF "rvm_configuration_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "item_deployable" OF "rvm_configuration_item" AS LOGICAL
+  DESCRIPTION "If set to NO, then this configuration item is not included in deployments to the customer site.  e.g. Data which represents utilities for use in house only."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Item Deployable"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Item deployable"
+
+ADD FIELD "scm_registered" OF "rvm_configuration_item" AS LOGICAL
+  DESCRIPTION "When a configuration item is first created via the replication triggers associated with the type of data, the item will be flagged as scm_registered = NO indicating that the object has not been created in any software configuration management tool.
+
+The SCM tool is then responsible (maybe as part of task completion) for creating unregistered items in its own repository and then setting this flag to YES.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Scm Registered"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Scm registered"
+
+ADD FIELD "scm_object_name" OF "rvm_configuration_item" AS CHAR
+  DESCRIPTION "The name of the configuration item as used in the software configuration management tool. This is also used to ensure a configuration item does not already exist in the SCM tool.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Object Name"
+  VALMSG "s_name"
+  HELP "Scm object name"
+
+ADD FIELD "configuration_item_obj" OF "rvm_configuration_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Configuration Item Obj"
+  VALMSG "o_obj"
+  HELP "Configuration item obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvm_configuration_item" ON "rvm_configuration_item"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_configuration_item" ON "rvm_configuration_item"
+
+ADD INDEX "XAK1rvm_configuration_item" ON "rvm_configuration_item"
+  UNIQUE
+  INDEX-FIELD "configuration_item_obj" ASCENDING
+
+ADD INDEX "XAK2rvm_configuration_item" ON "rvm_configuration_item"
+  UNIQUE
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+
+ADD INDEX "XAK3rvm_configuration_item" ON "rvm_configuration_item"
+  UNIQUE
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD TABLE "rvm_task"
+  DESCRIPTION "This table replicates the rtb_task table in the Roundtable repository. Its purpose is so that we can add extra fields to the task table, and also add our own indexes for optimum performance with our test status tracking.
+
+We have duplicated the fields from the rtb_task table to avoid having to join to it, plus to allow additional indexing on the fields within it.
+
+The main additions are for actual and estimated hours, current test area and status to track the progress of the task through the workspaces.
+
+Any actions peformed on rtb_task must be done on this table also, and vice-versa, as the tables should be viewed as a single table."
+  DUMP-NAME "rvmta"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmtatrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmtatrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmtatrigw.p"
+
+ADD FIELD "task_number" OF "rvm_task" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "task_workspace" OF "rvm_task" AS CHAR
+  DESCRIPTION "The workspace this task was created in."
+  FORMAT "X(15)"
+  LABEL "Task Workspace"
+  VALMSG "s_reference"
+  HELP "Task workspace"
+
+ADD FIELD "task_manager" OF "rvm_task" AS CHAR
+  DESCRIPTION "The manager assigned to the task"
+  FORMAT "X(15)"
+  LABEL "Task Manager"
+  VALMSG "s_short_name"
+  HELP "Task manager"
+
+ADD FIELD "task_programmer" OF "rvm_task" AS CHAR
+  DESCRIPTION "The main programmer assigned to the task"
+  FORMAT "X(15)"
+  LABEL "Task Programmer"
+  VALMSG "s_short_name"
+  HELP "Task programmer"
+
+ADD FIELD "task_status" OF "rvm_task" AS CHAR
+  DESCRIPTION "The current status of the task. W = Work in Progress, and C = Completed."
+  FORMAT "X(3)"
+  LABEL "Task Status"
+  VALMSG "s_tla"
+  HELP "Task status"
+
+ADD FIELD "task_entered_date" OF "rvm_task" AS DATE
+  DESCRIPTION "The date the task was created"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "%Include(""%DiagramProp(""RootDir"")af/erw/aferlabel.i"")"
+  COLUMN-LABEL "Task Entered Date"
+  VALMSG "d_date_today"
+  HELP "Task entered date"
+
+ADD FIELD "task_completed_date" OF "rvm_task" AS DATE
+  DESCRIPTION "The date the task was completed."
+  FORMAT "99/99/9999"
+  INITIAL "?"
+  LABEL "%Include(""%DiagramProp(""RootDir"")af/erw/aferlabel.i"")"
+  COLUMN-LABEL "Task Completed Date"
+  VALMSG "d_date_empty"
+  HELP "Task completed date"
+
+ADD FIELD "task_user_reference" OF "rvm_task" AS CHAR
+  DESCRIPTION "A user reference field for the task to contain information such as a project reference code for task lookups."
+  FORMAT "X(15)"
+  LABEL "Task User Reference"
+  VALMSG "s_reference"
+  HELP "Task user reference"
+
+ADD FIELD "task_summary" OF "rvm_task" AS CHAR
+  DESCRIPTION "A summary description of the task."
+  FORMAT "X(70)"
+  LABEL "Task Summary"
+  VALMSG "s_big_description"
+  HELP "Task summary"
+
+ADD FIELD "task_description" OF "rvm_task" AS CHAR
+  DESCRIPTION "A full description of the task"
+  FORMAT "X(3000)"
+  LABEL "Task Description"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  VALMSG "s_big_text_block"
+  HELP "Task description"
+
+ADD FIELD "task_priority" OF "rvm_task" AS INTEGER
+  DESCRIPTION "The priority of the task, 1 to 99, 1 is high priority, 99 is low priority."
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Task Priority"
+  VALMSG "n_integer_2"
+  HELP "Task priority"
+
+ADD FIELD "fix_for_task_number" OF "rvm_task" AS INTEGER
+  DESCRIPTION "If this task is a fix for some other task, then this field contains the task number this task is attempting to fix."
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Fix For Task Number"
+  VALMSG "n_integer_8"
+  HELP "Fix for task number"
+
+ADD FIELD "estimated_hrs" OF "rvm_task" AS DECIMAL
+  DESCRIPTION "The total estimated hours for the entire task, including testing time, etc."
+  FORMAT "->>>,>>9.99"
+  INITIAL "0"
+  LABEL "Estimated Hrs"
+  VALMSG "n_decimal_2dp_small"
+  HELP "Estimated hrs"
+  DECIMALS 2
+
+ADD FIELD "actual_hrs" OF "rvm_task" AS DECIMAL
+  DESCRIPTION "The actual total hours spent on the task"
+  FORMAT "->>>,>>9.99"
+  INITIAL "0"
+  LABEL "Actual Hrs"
+  VALMSG "n_decimal_2dp_small"
+  HELP "Actual hrs"
+  DECIMALS 2
+
+ADD FIELD "current_test_area" OF "rvm_task" AS CHAR
+  DESCRIPTION "The current workspace this task is being tested in, e.g. DEV, TST,  V1X, V2X, etc.
+"
+  FORMAT "X(15)"
+  LABEL "Current Test Area"
+  VALMSG "s_reference"
+  HELP "Current test area"
+
+ADD FIELD "current_test_status" OF "rvm_task" AS CHAR
+  DESCRIPTION "The current status of this task, i.e.
+
+1-OPN - Task created
+2-WIP - Task being worked on by programmer
+3-COM - Task completed
+4-TOT - Task in test area, awaiting testing
+5-TIP - Testing in progress
+6-TOK - Tested complete - all ok
+6-BUG - Testing complete - bugs in task
+6-BAS - Bugs in task assigned to new task
+7-DEP - Task deployed to site
+"
+  FORMAT "X(10)"
+  LABEL "Current Test Status"
+  VALMSG "s_code"
+  HELP "Current test status"
+
+ADD FIELD "test_status_date" OF "rvm_task" AS DATE
+  DESCRIPTION "The date the task moved to its current status"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "%Include(""%DiagramProp(""RootDir"")af/erw/aferlabel.i"")"
+  COLUMN-LABEL "Test Status Date"
+  VALMSG "d_date_today"
+  HELP "Test status date"
+
+ADD FIELD "test_status_user" OF "rvm_task" AS CHAR
+  DESCRIPTION "The user that is assigned to the task at its current status."
+  FORMAT "X(15)"
+  LABEL "Test Status User"
+  VALMSG "s_short_name"
+  HELP "Test status user"
+
+ADD FIELD "task_obj" OF "rvm_task" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Task Obj"
+  VALMSG "o_obj"
+  HELP "Task obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvm_task" ON "rvm_task"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_task" ON "rvm_task"
+
+ADD INDEX "XIE1rvm_task" ON "rvm_task"
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "current_test_status" ASCENDING
+  INDEX-FIELD "task_priority" ASCENDING
+  INDEX-FIELD "test_status_date" ASCENDING
+
+ADD INDEX "XIE2rvm_task" ON "rvm_task"
+  INDEX-FIELD "fix_for_task_number" ASCENDING
+
+ADD INDEX "XIE3rvm_task" ON "rvm_task"
+  INDEX-FIELD "test_status_user" ASCENDING
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "current_test_status" ASCENDING
+  INDEX-FIELD "task_priority" ASCENDING
+  INDEX-FIELD "test_status_date" ASCENDING
+
+ADD INDEX "XIE4rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_manager" ASCENDING
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "current_test_status" ASCENDING
+  INDEX-FIELD "task_priority" ASCENDING
+  INDEX-FIELD "test_status_date" ASCENDING
+
+ADD INDEX "XIE5rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_programmer" ASCENDING
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "current_test_status" ASCENDING
+  INDEX-FIELD "task_priority" ASCENDING
+  INDEX-FIELD "test_status_date" ASCENDING
+
+ADD INDEX "XIE6rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_user_reference" ASCENDING
+  INDEX-FIELD "task_entered_date" ASCENDING
+
+ADD INDEX "XIE7rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_summary" ASCENDING
+
+ADD INDEX "XIE8rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_obj" ASCENDING
+
+ADD INDEX "XIE9rvm_task" ON "rvm_task"
+  INDEX-FIELD "task_workspace" ASCENDING
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "current_test_status" ASCENDING
+
+ADD TABLE "rvm_task_history"
+  DESCRIPTION "This table records a history of the different test status's and areas the task has progressed through, recording the date, time and user, and allowing additional recording of notes and hours for each stage of the tasks lifecycle."
+  DUMP-NAME "rvmty"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmtytrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmtytrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmtytrigw.p"
+
+ADD FIELD "task_number" OF "rvm_task_history" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "task_test_area" OF "rvm_task_history" AS CHAR
+  DESCRIPTION "The workspace this task was tested in, e.g. DEV, TST,  V1X, V2X, etc.
+"
+  FORMAT "X(15)"
+  LABEL "Task Test Area"
+  VALMSG "s_reference"
+  HELP "Task test area"
+
+ADD FIELD "task_test_status" OF "rvm_task_history" AS CHAR
+  DESCRIPTION "Thestatus of this task, i.e.
+
+1-OPN - Task created
+2-WIP - Task being worked on by programmer
+3-COM - Task completed
+4-TOT - Task in test area, awaiting testing
+5-TIP - Testing in progress
+6-TOK - Tested complete - all ok
+6-BUG - Testing complete - bugs in task
+6-BAS - Bugs in task assigned to new task
+7-DEP - Task deployed to site
+"
+  FORMAT "X(10)"
+  LABEL "Task Test Status"
+  VALMSG "s_code"
+  HELP "Task test status"
+
+ADD FIELD "test_status_date" OF "rvm_task_history" AS DATE
+  DESCRIPTION "The date the task moved to this status"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "%Include(""%DiagramProp(""RootDir"")af/erw/aferlabel.i"")"
+  COLUMN-LABEL "Test Status Date"
+  VALMSG "d_date_today"
+  HELP "Test status date"
+
+ADD FIELD "task_history_obj" OF "rvm_task_history" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Task History Obj"
+  VALMSG "o_obj"
+  HELP "Task history obj"
+  DECIMALS 9
+
+ADD FIELD "test_status_user" OF "rvm_task_history" AS CHAR
+  DESCRIPTION "The user that is assigned to the task at this status."
+  FORMAT "X(15)"
+  LABEL "Test Status User"
+  VALMSG "s_short_name"
+  HELP "Test status user"
+
+ADD FIELD "task_history_notes" OF "rvm_task_history" AS CHAR
+  DESCRIPTION "Notes assigned to this status of the task, used for testers notes, etc."
+  FORMAT "X(500)"
+  LABEL "Task History Notes"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_small_text_block"
+  HELP "Task history notes"
+
+ADD FIELD "estimated_hrs" OF "rvm_task_history" AS DECIMAL
+  DESCRIPTION "The estimated hours for this stage in the task lifecycle."
+  FORMAT "->>>,>>9.99"
+  INITIAL "0"
+  LABEL "Estimated Hrs"
+  VALMSG "n_decimal_2dp_small"
+  HELP "Estimated hrs"
+  DECIMALS 2
+
+ADD FIELD "actual_hrs" OF "rvm_task_history" AS DECIMAL
+  DESCRIPTION "The actual hours for this stage in the task lifecycle."
+  FORMAT "->>>,>>9.99"
+  INITIAL "0"
+  LABEL "Actual Hrs"
+  VALMSG "n_decimal_2dp_small"
+  HELP "Actual hrs"
+  DECIMALS 2
+
+ADD INDEX "XPKrvm_task_history" ON "rvm_task_history"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "task_test_area" ASCENDING
+  INDEX-FIELD "task_test_status" ASCENDING
+  INDEX-FIELD "test_status_date" ASCENDING
+  INDEX-FIELD "task_history_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_task_history" ON "rvm_task_history"
+
+ADD INDEX "XAK1rvm_task_history" ON "rvm_task_history"
+  UNIQUE
+  INDEX-FIELD "task_history_obj" ASCENDING
+
+ADD INDEX "XIE2rvm_task_history" ON "rvm_task_history"
+  INDEX-FIELD "test_status_user" ASCENDING
+  INDEX-FIELD "task_number" ASCENDING
+
+ADD TABLE "rvm_task_object"
+  DESCRIPTION "This table defines the object versions that were worked on in a task. It is similar to the rtb_ver table in Roundtable, but holds different information for test status tracking and additional indexing.
+
+In this table, we are only interested in PCODE objects, not schema, as schema is always changed outside Roundtable in ERwin and changes stored in incremental df files. We do not need to track testing over schema changes, we rather need to track the program changes made to implement the schema changes, which will be in a seperate task.
+
+Also, this table only contains objects that have been checked in under a task, as until they have been checked in, no test status tracking is required and the object may be deleted."
+  DUMP-NAME "rvmtb"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmtbtrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmtbtrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmtbtrigw.p"
+
+ADD FIELD "task_number" OF "rvm_task_object" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "task_object_name" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "The object name worked on in this task"
+  FORMAT "X(35)"
+  LABEL "Task Object Name"
+  VALMSG "s_name"
+  HELP "Task object name"
+
+ADD FIELD "object_version" OF "rvm_task_object" AS INTEGER
+  DESCRIPTION "The version of the object worked on in this task. Multiple versions of an object can be worked on in the same task."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Object Version"
+  VALMSG "n_integer_6"
+  HELP "Object version"
+
+ADD FIELD "object_product_module" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "The product module for this object"
+  FORMAT "X(10)"
+  LABEL "Object Product Module"
+  VALMSG "s_code"
+  HELP "Object product module"
+
+ADD FIELD "object_type" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "The type of this object, e.g. PCODE"
+  FORMAT "X(10)"
+  LABEL "Object Type"
+  VALMSG "s_code"
+  HELP "Object type"
+
+ADD FIELD "object_description" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "A description of the object"
+  FORMAT "X(70)"
+  LABEL "Object Description"
+  VALMSG "s_big_description"
+  HELP "Object description"
+
+ADD FIELD "previous_object_version" OF "rvm_task_object" AS INTEGER
+  DESCRIPTION "The previous version of this object, priot to work commencing on it in this task."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Previous Object Version"
+  VALMSG "n_integer_6"
+  HELP "Previous object version"
+
+ADD FIELD "current_test_area" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "The current workspace this object version has reached, e.g. DEV, TST,  V1X, V2X, etc. 
+When this object is no longer assigned to a workspace because it has been superceded by a new version in all workspaces, then it is set to ARC for archived.
+"
+  FORMAT "X(15)"
+  LABEL "Current Test Area"
+  VALMSG "s_reference"
+  HELP "Current test area"
+
+ADD FIELD "test_area_date" OF "rvm_task_object" AS DATE
+  DESCRIPTION "The date the object moved to its current test area"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "%Include(""%DiagramProp(""RootDir"")af/erw/aferlabel.i"")"
+  COLUMN-LABEL "Test Area Date"
+  VALMSG "d_date_today"
+  HELP "Test area date"
+
+ADD FIELD "object_test_notes" OF "rvm_task_object" AS CHAR
+  DESCRIPTION "Notes assigned to this task object, used for testers notes, etc."
+  FORMAT "X(500)"
+  LABEL "Object Test Notes"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_small_text_block"
+  HELP "Object test notes"
+
+ADD FIELD "exclude_from_import" OF "rvm_task_object" AS LOGICAL
+  DESCRIPTION "If set to YES, this object version will be excluded from imports, disallowing the object from moving to the next workspace due to bugs in the object that must first be fixed."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Exclude From Import"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Exclude from import"
+
+ADD FIELD "task_object_obj" OF "rvm_task_object" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Task Object Obj"
+  VALMSG "o_obj"
+  HELP "Task object obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvm_task_object" ON "rvm_task_object"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "task_object_name" ASCENDING
+  INDEX-FIELD "object_version" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_task_object" ON "rvm_task_object"
+
+ADD INDEX "XAK1rvm_task_object" ON "rvm_task_object"
+  UNIQUE
+  INDEX-FIELD "task_object_obj" ASCENDING
+
+ADD INDEX "XIE1rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "task_object_name" ASCENDING
+  INDEX-FIELD "object_version" ASCENDING
+
+ADD INDEX "XIE2rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "exclude_from_import" ASCENDING
+
+ADD INDEX "XIE3rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "task_object_name" ASCENDING
+  INDEX-FIELD "exclude_from_import" ASCENDING
+
+ADD INDEX "XIE4rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "exclude_from_import" ASCENDING
+  INDEX-FIELD "task_object_name" ASCENDING
+  INDEX-FIELD "object_version" ASCENDING
+
+ADD INDEX "XIE5rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "current_test_area" ASCENDING
+
+ADD INDEX "XIE6rvm_task_object" ON "rvm_task_object"
+  INDEX-FIELD "current_test_area" ASCENDING
+  INDEX-FIELD "task_object_name" ASCENDING
+
+ADD TABLE "rvm_workspace"
+  DESCRIPTION "This is the definition of a workspace, which is a specific configuration of item versions (in this case the items represent data).  Item versions exist outside the context of a workspace.  Workspaces are used to control the various stages of the development process, typically including Development, Test and Deployment areas.  They also exist to manage customer-specific configurations (e.g. what specific products and versions thereof a customer is running).  
+
+If a workspace becomes obsolete then it can be deleted.  This does not delete the items or their versions, but merely the record of what versions were in the particular workspace.
+
+If using Roundtable, these workspaces should correspond to those in Roundtable itself.
+
+It is possible to check out an entire workspace if desired.
+
+In the first version of the Versioning system we are going to be heavilly dependant on Roundtable integration.  Smartobject records correspond to logical gsc_object records which are actually checked out in roundtable  We will not initially support versioning of orther configuration types.
+"
+  DUMP-NAME "rvmws"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmwstrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmwstrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmwstrigw.p"
+
+ADD FIELD "workspace_obj" OF "rvm_workspace" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Workspace obj"
+  DECIMALS 9
+
+ADD FIELD "workspace_code" OF "rvm_workspace" AS CHAR
+  DESCRIPTION "This is a unique code with which to identify the workspace"
+  FORMAT "X(10)"
+  LABEL "Workspace Code"
+  VALMSG "s_code"
+  HELP "Workspace code"
+
+ADD FIELD "workspace_description" OF "rvm_workspace" AS CHAR
+  DESCRIPTION "Full description of the workspace"
+  FORMAT "X(35)"
+  LABEL "Workspace Description"
+  VALMSG "s_description"
+  HELP "Workspace description"
+
+ADD FIELD "workspace_locked" OF "rvm_workspace" AS LOGICAL
+  DESCRIPTION "This indicates whether the workspace is locked.  If YES, then no items can be checked out from , saved in, or checled back into that workspace.
+
+The purpose is to prevent the contents of a workspace changing during administrative processes (e.g. building, imports etc.).
+
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Workspace Locked"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Workspace locked"
+
+ADD FIELD "data_version_table" OF "rvm_workspace" AS CHAR
+  DESCRIPTION "This is the name of a table which will be used to record the current version stamp data at deployment time.  Thus the version numbers of all items will be available at runtime.  Note that these version numbers will not be updated if the data is changed after deployment (i.e. outside the context of the versioning system).
+
+As soon as data is chaned under a task the version information in this table will be updated.  This happens in advance of the item being checked back in.  Thus the version information always represents the current version existing in the workspace.
+
+In ICF, the data_version_table is ""rym_data_version""."
+  FORMAT "X(35)"
+  LABEL "Data Version Table"
+  VALMSG "s_name"
+  HELP "Data version table"
+
+ADD FIELD "root_directory" OF "rvm_workspace" AS CHAR
+  DESCRIPTION "The root directory for files in the workspace. This should not end in a slash. Also, only forward slashes should be used for portability.
+"
+  FORMAT "X(70)"
+  LABEL "Root Directory"
+  VALMSG "s_file_name"
+  HELP "Root directory"
+
+ADD INDEX "XPKrvm_workspace" ON "rvm_workspace"
+  UNIQUE
+  INDEX-FIELD "workspace_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_workspace" ON "rvm_workspace"
+
+ADD INDEX "XAK1rvm_workspace" ON "rvm_workspace"
+  UNIQUE
+  INDEX-FIELD "workspace_code" ASCENDING
+
+ADD INDEX "XIE1rvm_workspace" ON "rvm_workspace"
+  INDEX-FIELD "workspace_description" ASCENDING
+
+ADD TABLE "rvm_workspace_item"
+  DESCRIPTION "This table defines which item versions exist in a specific workspace.
+
+Where an item is being worked on in the workspace, this table will record both the current version number and the wip version number.  The wip version is available in the database, but may not be checked back in, in which case the wip version recorded here will revert to the current version.
+
+The wip version number will only contain a value whilst the workspace item is checked out under a task, otherwise it will be 0.
+
+When moving items between workspaces, only the item version number will be used. A modification must be completed (checked in) before it can progress to any other workspace."
+  DUMP-NAME "rvmwi"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmwitrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmwitrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmwitrigw.p"
+
+ADD FIELD "workspace_item_obj" OF "rvm_workspace_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Item Obj"
+  VALMSG "o_obj"
+  HELP "Workspace item obj"
+  DECIMALS 9
+
+ADD FIELD "workspace_obj" OF "rvm_workspace_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Workspace obj"
+  DECIMALS 9
+
+ADD FIELD "configuration_type" OF "rvm_workspace_item" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "scm_object_name" OF "rvm_workspace_item" AS CHAR
+  DESCRIPTION "The name of the configuration item as used in the software configuration management tool. This is also used to ensure a configuration item does not already exist in the SCM tool.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Object Name"
+  VALMSG "s_name"
+  HELP "Scm object name"
+
+ADD FIELD "product_module_obj" OF "rvm_workspace_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "item_version_number" OF "rvm_workspace_item" AS INTEGER
+  DESCRIPTION "This is the version number for this item version.
+
+The modification type for a task indicates how the version number will be incremented.  The version number is a six-digit number made up of three two-digit components, e.g. VVRRPP.  The component whose value is incremented corresponds to the indicated modification type.
+
+Version numbers are not incremented on check-out.  They are altered when a checked-out item is first altered.  The version number is only incremented once during a single checkout.
+
+Note:  The verion number on this record is never incremented per se, but a new version is created with the incremented version number."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Item Version Number"
+  VALMSG "n_integer_6"
+  HELP "Item version number"
+
+ADD FIELD "task_version_number" OF "rvm_workspace_item" AS INTEGER
+  DESCRIPTION "This is the version number for this item version.
+
+The modification type for a task indicates how the version number will be incremented.  The version number is a six-digit number made up of three two-digit components, e.g. VVRRPP.  The component whose value is incremented corresponds to the indicated modification type.
+
+Version numbers are not incremented on check-out.  They are altered when a checked-out item is first altered.  The version number is only incremented once during a single checkout.
+
+Note:  The verion number on this record is never incremented per se, but a new version is created with the incremented version number."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Task Version Number"
+  VALMSG "n_integer_6"
+  HELP "Task version number"
+
+ADD FIELD "task_product_module_obj" OF "rvm_workspace_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Task Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Task product module obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvm_workspace_item" ON "rvm_workspace_item"
+  UNIQUE
+  INDEX-FIELD "workspace_item_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_workspace_item" ON "rvm_workspace_item"
+
+ADD INDEX "XAK1rvm_workspace_item" ON "rvm_workspace_item"
+  UNIQUE
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+
+ADD INDEX "XAK3rvm_workspace_item" ON "rvm_workspace_item"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "item_version_number" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+
+ADD INDEX "XAK4rvm_workspace_item" ON "rvm_workspace_item"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "task_version_number" ASCENDING
+  INDEX-FIELD "task_product_module_obj" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+
+ADD INDEX "XIE1rvm_workspace_item" ON "rvm_workspace_item"
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD INDEX "XIE2rvm_workspace_item" ON "rvm_workspace_item"
+  INDEX-FIELD "task_product_module_obj" ASCENDING
+
+ADD TABLE "rvm_workspace_module"
+  DESCRIPTION "This table defines the product modules that belong to a particular workspace, and whether the product module is primary or sourced from a different workspace.
+
+If a product module is primary to this workspace then the data versions should ordinarily be modified within this workspace.  If the product module is not primary, then the data versions should ordinarily be modified in their source workspace and imported into this workspace.  These rules may not be rigorously enforced.
+
+"
+  DUMP-NAME "rvmwm"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvmwmtrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvmwmtrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvmwmtrigw.p"
+
+ADD FIELD "workspace_module_obj" OF "rvm_workspace_module" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Module Obj"
+  VALMSG "o_obj"
+  HELP "Workspace module obj"
+  DECIMALS 9
+
+ADD FIELD "workspace_obj" OF "rvm_workspace_module" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Workspace obj"
+  DECIMALS 9
+
+ADD FIELD "product_module_obj" OF "rvm_workspace_module" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "source_workspace_obj" OF "rvm_workspace_module" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Source Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Source workspace obj"
+  DECIMALS 9
+
+ADD FIELD "include_in_import" OF "rvm_workspace_module" AS LOGICAL
+  DESCRIPTION "This flag is ignored if the product module is primary to this workspace.
+
+However, if the source workspace is different, it indicates whether to include the product module in the import process.  Ordinarily it would be set to YES.  However it may be set NO to prevent incomplete configurations from being imported."
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Include in Import"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Include in import"
+
+ADD INDEX "XPKrvm_workspace_module" ON "rvm_workspace_module"
+  UNIQUE
+  INDEX-FIELD "workspace_module_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvm_workspace_module" ON "rvm_workspace_module"
+
+ADD INDEX "XAK1rvm_workspace_module" ON "rvm_workspace_module"
+  UNIQUE
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD INDEX "XAK2rvm_workspace_module" ON "rvm_workspace_module"
+  UNIQUE
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+
+ADD INDEX "XIE1rvm_workspace_module" ON "rvm_workspace_module"
+  INDEX-FIELD "source_workspace_obj" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+
+ADD TABLE "rvt_action"
+  DESCRIPTION "This table contains entries for every action (CREATE, WRITE, DELETE) for all involved tables in the database.  Actions form parts of a transaction, which must be assigned to a task.
+
+The information stored in the action table is sufficient to replay that action at some later stage: The name of the table, the action, and the raw-transfer data representing the action.
+
+Action entries rely on a raw-transfer operation for the efficient construction of data.  This is sensitive to schema changes in the involved tables.  Utilities will be provided to restructure log entries when version recovery is required across schema changes.
+"
+  DUMP-NAME "rvtac"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvtactrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvtactrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvtactrigw.p"
+
+ADD FIELD "action_obj" OF "rvt_action" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Action Obj"
+  VALMSG "o_obj"
+  HELP "Action obj"
+  DECIMALS 9
+
+ADD FIELD "task_number" OF "rvt_action" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "transaction_id" OF "rvt_action" AS INTEGER
+  DESCRIPTION "The transaction_id field is used to group raw-transfer operations which must occur within the same physical transaction.  
+
+We assume that the transaction_id is an ascending sequence, and that groups of actions should be performed in this sequence.  Within the sequence, all actions with the same transaction_id form part of the same physical transaction.  Experience will dictate whether this sequencing is valid.
+
+We can safely assume that a transaction_id will be unique within a task.
+"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Transaction Id"
+  VALMSG "n_integer_8"
+  HELP "Transaction id"
+
+ADD FIELD "table_name" OF "rvt_action" AS CHAR
+  DESCRIPTION "This is the name of the database table in which the action took place."
+  FORMAT "X(35)"
+  LABEL "Table Name"
+  VALMSG "s_name"
+  HELP "Table name"
+
+ADD FIELD "raw_data" OF "rvt_action" AS RAW
+  DESCRIPTION "This is the raw-transfer data describing the action, from which that action can be reproduced."
+  LABEL "Raw Data"
+  VALMSG "r_raw"
+  HELP "Raw data"
+
+ADD FIELD "event_name" OF "rvt_action" AS CHAR
+  DESCRIPTION "This is the name of the database event which gave rise to this particular action record.
+
+e.g. CREATE DELETE WRITE."
+  FORMAT "X(15)"
+  LABEL "Event Name"
+  VALMSG "s_short_name"
+  HELP "Event name"
+
+ADD FIELD "primary_key_fields" OF "rvt_action" AS CHAR
+  DESCRIPTION "This is a comma seperated list of primary key fields, that corresponds to the primary key values field for the table name.
+This is used for deletes to locate the item of data to delete."
+  FORMAT "X(70)"
+  LABEL "Primary Key Fields"
+  VALMSG "s_big_description"
+  HELP "Primary key fields"
+
+ADD FIELD "primary_key_values" OF "rvt_action" AS CHAR
+  DESCRIPTION "This is a chr(3) seperated list of primary key field values, that corresponds to the primary key fields field for the table name.
+This is used for deletes to locate the item of data to delete."
+  FORMAT "X(70)"
+  LABEL "Primary Key Values"
+  VALMSG "s_big_description"
+  HELP "Primary key values"
+
+ADD INDEX "XPKrvt_action" ON "rvt_action"
+  UNIQUE
+  INDEX-FIELD "action_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_action" ON "rvt_action"
+
+ADD INDEX "XAK1rvt_action" ON "rvt_action"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "transaction_id" ASCENDING
+  INDEX-FIELD "action_obj" ASCENDING
+
+ADD TABLE "rvt_action_underway"
+  DESCRIPTION "This table will only contain records during a  transaction for some acrtion, e.g. deletion, assignment, etc. Its purpose is to make primary table information available to involved tables during the operation, e.g. cascade deletion, object assignment, etc.
+
+The problem is that during a deletion of the primary table, the involved tables replication triggers can not access the primary table anymore, as it has been deleted.
+
+To resolve this issue, we will create a record in this table at the top of the delete trigger of a primary table, and subsequently delete the record at the end of the primary table replication delete trigger. This means the information will be available throughout the entire delete transaction.
+
+For the assignment of data between repositories via the versioning system, we need to know we are doing the assignment and ensure we do not fire off replication code to create transaction and action records, as it is simply moving existing versions of data rather than changing data.
+
+Under normal cicumstances (no active transaction), this table will be empty."
+  DUMP-NAME "rvtau"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvtautrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvtautrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvtautrigw.p"
+
+ADD FIELD "action_table_fla" OF "rvt_action_underway" AS CHAR
+  DESCRIPTION "The FLA of the table whose data is being actioned, e.g. deleted or assigned.
+"
+  FORMAT "X(8)"
+  LABEL "Action Table Fla"
+  VALMSG "s_entity_mnemonic"
+  HELP "Action table fla"
+
+ADD FIELD "action_type" OF "rvt_action_underway" AS CHAR
+  DESCRIPTION "The type of action, e.g.:
+
+DEL = Deletion
+ASS = Assignment of new data"
+  FORMAT "X(3)"
+  LABEL "Action Type"
+  VALMSG "s_tla"
+  HELP "Action type"
+
+ADD FIELD "action_primary_key" OF "rvt_action_underway" AS CHAR
+  DESCRIPTION "A chr(3) delimited list of primary key field values to identify the record being actioned. The field values correspond to the primary key fields specified in the rvc_configuration_type table.
+
+This field is only required for deletions. For other things such as assigns, just the scm object name will be used with the table FLA to locate this record.
+"
+  FORMAT "X(70)"
+  LABEL "Action Primary Key"
+  VALMSG "s_big_description"
+  HELP "Action primary key"
+
+ADD FIELD "action_scm_object_name" OF "rvt_action_underway" AS CHAR
+  DESCRIPTION "The object name of the data item being actioned as referenced in the SCM tool."
+  FORMAT "X(35)"
+  LABEL "Action Scm Object Name"
+  VALMSG "s_name"
+  HELP "Action scm object name"
+
+ADD FIELD "action_underway_obj" OF "rvt_action_underway" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Action Underway Obj"
+  VALMSG "o_obj"
+  HELP "Action underway obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvt_action_underway" ON "rvt_action_underway"
+  UNIQUE
+  INDEX-FIELD "action_type" ASCENDING
+  INDEX-FIELD "action_table_fla" ASCENDING
+  INDEX-FIELD "action_primary_key" ASCENDING
+  INDEX-FIELD "action_scm_object_name" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_action_underway" ON "rvt_action_underway"
+
+ADD INDEX "XIE1rvt_action_underway" ON "rvt_action_underway"
+  INDEX-FIELD "action_underway_obj" ASCENDING
+
+ADD TABLE "rvt_deleted_item"
+  DESCRIPTION "This table records items that were deleted from a workspace in the context of a task. Only registered items that are deleted from a workspace need to be recorded in this table.
+
+The purpose of this table is to provide the SCM tool with the information required to delete its corresponding item from its repository, probably as part of some task completion process.
+
+The SCM tool should remove this record once it has actioned the deletion in its own repository.
+"
+  DUMP-NAME "rvtdi"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvtditrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvtditrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvtditrigw.p"
+
+ADD FIELD "deleted_item_obj" OF "rvt_deleted_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deleted Item Obj"
+  VALMSG "o_obj"
+  HELP "Deleted item obj"
+  DECIMALS 9
+
+ADD FIELD "workspace_obj" OF "rvt_deleted_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Workspace obj"
+  DECIMALS 9
+
+ADD FIELD "task_number" OF "rvt_deleted_item" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "configuration_type" OF "rvt_deleted_item" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "scm_object_name" OF "rvt_deleted_item" AS CHAR
+  DESCRIPTION "The name of the configuration item as used in the software configuration management tool. This is also used to ensure a configuration item does not already exist in the SCM tool.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Object Name"
+  VALMSG "s_name"
+  HELP "Scm object name"
+
+ADD FIELD "product_module_obj" OF "rvt_deleted_item" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvt_deleted_item" ON "rvt_deleted_item"
+  UNIQUE
+  INDEX-FIELD "deleted_item_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_deleted_item" ON "rvt_deleted_item"
+
+ADD INDEX "XAK1rvt_deleted_item" ON "rvt_deleted_item"
+  UNIQUE
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD INDEX "XIE1rvt_deleted_item" ON "rvt_deleted_item"
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD TABLE "rvt_item_version"
+  DESCRIPTION "This represents a single version of a configuration item.  At least one version must exist for the item.
+
+New versions are not created when an item is checked out, but only when an item that has been checked out is first modified.
+
+Once a version has been checked in it may not be deleted.  We may provide archiving facilities, but in principle the item version still exists.
+
+
+
+
+
+"
+  DUMP-NAME "rvtiv"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvtivtrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvtivtrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvtivtrigw.p"
+
+ADD FIELD "configuration_type" OF "rvt_item_version" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "scm_object_name" OF "rvt_item_version" AS CHAR
+  DESCRIPTION "The name of the configuration item as used in the software configuration management tool. This is also used to ensure a configuration item does not already exist in the SCM tool.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Object Name"
+  VALMSG "s_name"
+  HELP "Scm object name"
+
+ADD FIELD "item_version_number" OF "rvt_item_version" AS INTEGER
+  DESCRIPTION "This is the version number for this item version.
+
+The modification type for a task indicates how the version number will be incremented.  The version number is a six-digit number made up of three two-digit components, e.g. VVRRPP.  The component whose value is incremented corresponds to the indicated modification type.
+
+Version numbers are not incremented on check-out.  They are altered when a checked-out item is first altered.  The version number is only incremented once during a single checkout.
+
+Note:  The verion number on this record is never incremented per se, but a new version is created with the incremented version number."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Item Version Number"
+  VALMSG "n_integer_6"
+  HELP "Item version number"
+
+ADD FIELD "product_module_obj" OF "rvt_item_version" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "task_number" OF "rvt_item_version" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "baseline_version" OF "rvt_item_version" AS LOGICAL
+  DESCRIPTION "If set to YES, indicates that the log enties for constructing this data item do not rely on the pre existence of an earlier version of this item in the database.
+
+The first version of an item will always be a baseline version.  The subsequent creation of baseline versions is at developer discression.  Setting baseline versions improves the performance of data item construction, and facilitates the archiving of ealier versions.  However each time an item is baselined this results in additional data being stored in the log table.
+
+The setting of a new baseline version is automated based on the baseline frequency stored in the configuration type table.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Baseline Version"
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Baseline version"
+
+ADD FIELD "previous_version_number" OF "rvt_item_version" AS INTEGER
+  DESCRIPTION "This is the version of the item from which this version was created.
+
+If baseline = NO, then this is the version of this item to which log entries are applied in order to reconstitute the current version.
+
+
+"
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Previous Version Number"
+  VALMSG "n_integer_6"
+  HELP "Previous version number"
+
+ADD FIELD "baseline_version_number" OF "rvt_item_version" AS INTEGER
+  DESCRIPTION "This is the version number for the baseline version from which this item version must be constructed.
+
+In the case that this is indeed a baseline (baseline_version = YES) the baseline_version_number will be 0.
+"
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Baseline Version Number"
+  VALMSG "n_integer_6"
+  HELP "Baseline version number"
+
+ADD FIELD "previous_product_module_obj" OF "rvt_item_version" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Previous Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Previous product module obj"
+  DECIMALS 9
+
+ADD FIELD "item_description" OF "rvt_item_version" AS CHAR
+  DESCRIPTION "This field is populated from the data table and describes this particular data item.  Once populated it can be changed in the version database, but might be reset by changes to the data item itself."
+  FORMAT "X(35)"
+  LABEL "Item Description"
+  VALMSG "s_description"
+  HELP "Item description"
+
+ADD FIELD "versions_since_baseline" OF "rvt_item_version" AS INTEGER
+  DESCRIPTION "This is the number of new versions which have been created since the last baseline of this item.  If this number reaches that specified in the configuration type table, then a new baseline will be created automatically and this number reset to zero."
+  FORMAT "->9"
+  INITIAL "0"
+  LABEL "Versions Since Baseline"
+  VALMSG "n_integer_2"
+  HELP "Versions since baseline"
+
+ADD FIELD "baseline_product_module_obj" OF "rvt_item_version" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Baseline Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Baseline product module obj"
+  DECIMALS 9
+
+ADD FIELD "item_version_obj" OF "rvt_item_version" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Item Version Obj"
+  VALMSG "o_obj"
+  HELP "Item version obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvt_item_version" ON "rvt_item_version"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "item_version_number" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_item_version" ON "rvt_item_version"
+
+ADD INDEX "XAK1rvt_item_version" ON "rvt_item_version"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "item_version_number" ASCENDING
+
+ADD INDEX "XIE1rvt_item_version" ON "rvt_item_version"
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "item_description" ASCENDING
+
+ADD INDEX "XIE2rvt_item_version" ON "rvt_item_version"
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "baseline_product_module_obj" ASCENDING
+  INDEX-FIELD "baseline_version_number" ASCENDING
+
+ADD INDEX "XIE3rvt_item_version" ON "rvt_item_version"
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "previous_product_module_obj" ASCENDING
+  INDEX-FIELD "previous_version_number" ASCENDING
+
+ADD INDEX "XIE4rvt_item_version" ON "rvt_item_version"
+  INDEX-FIELD "item_version_obj" ASCENDING
+
+ADD TABLE "rvt_transaction"
+  DESCRIPTION "This table, in conjunction with rvt_action, contains the information required to construct an item version (including all related table information) from its previous version. The construcrtion of an item version may span multiple transactions.
+
+This table defines all transactions that occur on involved tables in the database. Involved tables means the table being version controlled, plus all its related tables.
+
+We assume in this model that a single transaction affects only a single item version within a single task. This means you cannot have a single transaction that would delete for example many records in a versioned table. Each deletion would need to occur in a seperate transaction. The reason for this is that a single transaction spanning multiple objects and versions would cause massive complexity in the roll forward behaviour.
+
+We also assume that the transaction id is unique within a task. We do not assume it is unique universally (which it would not be).
+
+The storing of the transaction id enables us to reproduce all updates performed in the context of a single transaction. When rolling forward the updates in a single transaction, we will disable all triggers, as the transaction will already include all updates that resulted from the initial firing of the triggers for related tables, e.g. cascade deletes, update of statistical information, etc.
+
+Note: the update of statistical information on unrelated tables will not be performed automatically.
+
+We assume that the transaction_id is in ascending sequence, and that groups of actions should be performed in this sequence.  Within the sequence, all actions with the same transaction_id form part of the same physical transaction.  Experience will dictate whether this sequencing is valid.
+
+The deletion of an item of data in the primary table will not generate transaction and action records. The replication of this deletion between repositories will be handled by the SCM Tool (via import /assign hooks).
+"
+  DUMP-NAME "rvttr"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvttrtrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvttrtrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvttrtrigw.p"
+
+ADD FIELD "task_number" OF "rvt_transaction" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "transaction_id" OF "rvt_transaction" AS INTEGER
+  DESCRIPTION "The transaction_id field is used to group raw-transfer operations which must occur within the same physical transaction.  
+
+We assume that the transaction_id is an ascending sequence, and that groups of actions should be performed in this sequence.  Within the sequence, all actions with the same transaction_id form part of the same physical transaction.  Experience will dictate whether this sequencing is valid.
+
+We can safely assume that a transaction_id will be unique within a task.
+"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Transaction Id"
+  VALMSG "n_integer_8"
+  HELP "Transaction id"
+
+ADD FIELD "configuration_type" OF "rvt_transaction" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "product_module_obj" OF "rvt_transaction" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Product Module Obj"
+  VALMSG "o_obj"
+  HELP "Product module obj"
+  DECIMALS 9
+
+ADD FIELD "scm_object_name" OF "rvt_transaction" AS CHAR
+  DESCRIPTION "The name of the configuration item as used in the software configuration management tool. This is also used to ensure a configuration item does not already exist in the SCM tool.
+"
+  FORMAT "X(35)"
+  LABEL "Scm Object Name"
+  VALMSG "s_name"
+  HELP "Scm object name"
+
+ADD FIELD "item_version_number" OF "rvt_transaction" AS INTEGER
+  DESCRIPTION "This is the version number for this item version.
+
+The modification type for a task indicates how the version number will be incremented.  The version number is a six-digit number made up of three two-digit components, e.g. VVRRPP.  The component whose value is incremented corresponds to the indicated modification type.
+
+Version numbers are not incremented on check-out.  They are altered when a checked-out item is first altered.  The version number is only incremented once during a single checkout.
+
+Note:  The verion number on this record is never incremented per se, but a new version is created with the incremented version number."
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Item Version Number"
+  VALMSG "n_integer_6"
+  HELP "Item version number"
+
+ADD FIELD "transaction_obj" OF "rvt_transaction" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Transaction Obj"
+  VALMSG "o_obj"
+  HELP "Transaction obj"
+  DECIMALS 9
+
+ADD INDEX "XPKrvt_transaction" ON "rvt_transaction"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "transaction_id" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_transaction" ON "rvt_transaction"
+
+ADD INDEX "XAK1rvt_transaction" ON "rvt_transaction"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "transaction_id" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+  INDEX-FIELD "item_version_number" ASCENDING
+
+ADD INDEX "XIE1rvt_transaction" ON "rvt_transaction"
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "scm_object_name" ASCENDING
+  INDEX-FIELD "item_version_number" ASCENDING
+  INDEX-FIELD "transaction_id" ASCENDING
+  INDEX-FIELD "product_module_obj" ASCENDING
+
+ADD INDEX "XIE2rvt_transaction" ON "rvt_transaction"
+  INDEX-FIELD "transaction_obj" ASCENDING
+
+ADD TABLE "rvt_workspace_checkout"
+  DESCRIPTION "This table defines the configuration items that are checked out in the various workspaces. When the item is checked back in, this record will be deleted.
+
+A check_out record can be considered to be a licence to change the item and associated data. 
+
+The checkout of an item should also create a new rtv_item_version record and assign that to be the task version for that item in the workspace."
+  DUMP-NAME "rvtwc"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "trg/rvtwctrigc.p"
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "trg/rvtwctrigd.p"
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "trg/rvtwctrigw.p"
+
+ADD FIELD "workspace_checkout_obj" OF "rvt_workspace_checkout" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Checkout Obj"
+  VALMSG "o_obj"
+  HELP "Workspace checkout obj"
+  DECIMALS 9
+
+ADD FIELD "workspace_obj" OF "rvt_workspace_checkout" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Obj"
+  VALMSG "o_obj"
+  HELP "Workspace obj"
+  DECIMALS 9
+
+ADD FIELD "task_number" OF "rvt_workspace_checkout" AS INTEGER
+  DESCRIPTION "The Roundtable task number for this work"
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Task Number"
+  VALMSG "n_integer_8"
+  HELP "Task number"
+
+ADD FIELD "configuration_type" OF "rvt_workspace_checkout" AS CHAR
+  DESCRIPTION "This is the FLA of the table to which this configuration type relates.  e.g. RYCSO for ryc_smartobject."
+  FORMAT "X(8)"
+  LABEL "Configuration Type"
+  VALMSG "s_entity_mnemonic"
+  HELP "Configuration type"
+
+ADD FIELD "workspace_item_obj" OF "rvt_workspace_checkout" AS DECIMAL
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Workspace Item Obj"
+  VALMSG "o_obj"
+  HELP "Workspace item obj"
+  DECIMALS 9
+
+ADD FIELD "modification_type" OF "rvt_workspace_checkout" AS CHAR
+  DESCRIPTION "This indicates the type of modification e.g. 
+
+VER=Version Change
+REV=Revision Change
+PAT=Patch Change
+UNK=Unknown
+
+It is only required where we have to update the version number from outside of the SCM tool.
+
+This indicates how the version number will be incremented.  The version number is a six-digit number made up of three two-digit components, e.g. VVRRPP.  The component whose value is incremented corresponds to the indicated modification type.
+
+The version number is only incremented once during a single checkout.
+
+Ant says we don't need a Modification_type table on which to store the integer value by which version numbers are incremented (1, 100, 10000).  This was Robin's idea and has been vetoed.  Ant says we can do it later.
+"
+  FORMAT "X(3)"
+  LABEL "Modification Type"
+  VALMSG "s_mnemonic"
+  HELP "Modification type"
+
+ADD INDEX "XPKrvt_workspace_checkout" ON "rvt_workspace_checkout"
+  UNIQUE
+  INDEX-FIELD "workspace_checkout_obj" ASCENDING
+
+UPDATE PRIMARY INDEX "XPKrvt_workspace_checkout" ON "rvt_workspace_checkout"
+
+ADD INDEX "XAK1rvt_workspace_checkout" ON "rvt_workspace_checkout"
+  UNIQUE
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "workspace_item_obj" ASCENDING
+
+ADD INDEX "XAK2rvt_workspace_checkout" ON "rvt_workspace_checkout"
+  UNIQUE
+  INDEX-FIELD "task_number" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "workspace_item_obj" ASCENDING
+
+ADD INDEX "XAK3rvt_workspace_checkout" ON "rvt_workspace_checkout"
+  UNIQUE
+  INDEX-FIELD "configuration_type" ASCENDING
+  INDEX-FIELD "workspace_item_obj" ASCENDING
+  INDEX-FIELD "workspace_obj" ASCENDING
+  INDEX-FIELD "task_number" ASCENDING
+
+ADD INDEX "XAK4rvt_workspace_checkout" ON "rvt_workspace_checkout"
+  UNIQUE
+  INDEX-FIELD "workspace_item_obj" ASCENDING
+
+UPDATE TABLE "rvm_task"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtatrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtatrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtatrigw.p" CRC "?"
+UPDATE TABLE "rvm_task"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtareplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtarepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtareplw.p" CRC "?"
+UPDATE FIELD task_number OF rvm_task  ORDER 10
+UPDATE FIELD task_workspace OF rvm_task  ORDER 20
+UPDATE FIELD task_manager OF rvm_task  ORDER 30
+UPDATE FIELD task_programmer OF rvm_task  ORDER 40
+UPDATE FIELD task_status OF rvm_task  ORDER 50
+UPDATE FIELD task_entered_date OF rvm_task  ORDER 60
+UPDATE FIELD task_completed_date OF rvm_task  ORDER 70
+UPDATE FIELD task_user_reference OF rvm_task  ORDER 80
+UPDATE FIELD task_summary OF rvm_task  ORDER 90
+UPDATE FIELD task_description OF rvm_task  ORDER 100
+UPDATE FIELD task_priority OF rvm_task  ORDER 110
+UPDATE FIELD fix_for_task_number OF rvm_task  ORDER 120
+UPDATE FIELD estimated_hrs OF rvm_task  ORDER 130
+UPDATE FIELD actual_hrs OF rvm_task  ORDER 140
+UPDATE FIELD current_test_area OF rvm_task  ORDER 150
+UPDATE FIELD current_test_status OF rvm_task  ORDER 160
+UPDATE FIELD test_status_date OF rvm_task  ORDER 170
+UPDATE FIELD test_status_user OF rvm_task  ORDER 180
+UPDATE FIELD task_obj OF rvm_task  ORDER 190
+
+UPDATE TABLE "rvm_task_object"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtbtrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtbtrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtbtrigw.p" CRC "?"
+UPDATE TABLE "rvm_task_object"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtbreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtbrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtbreplw.p" CRC "?"
+UPDATE FIELD task_number OF rvm_task_object  ORDER 10
+UPDATE FIELD task_object_name OF rvm_task_object  ORDER 20
+UPDATE FIELD object_version OF rvm_task_object  ORDER 30
+UPDATE FIELD object_product_module OF rvm_task_object  ORDER 40
+UPDATE FIELD object_type OF rvm_task_object  ORDER 50
+UPDATE FIELD object_description OF rvm_task_object  ORDER 60
+UPDATE FIELD previous_object_version OF rvm_task_object  ORDER 70
+UPDATE FIELD current_test_area OF rvm_task_object  ORDER 80
+UPDATE FIELD test_area_date OF rvm_task_object  ORDER 90
+UPDATE FIELD object_test_notes OF rvm_task_object  ORDER 100
+UPDATE FIELD exclude_from_import OF rvm_task_object  ORDER 110
+UPDATE FIELD task_object_obj OF rvm_task_object  ORDER 120
+
+UPDATE TABLE "rvm_task_history"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtytrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtytrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtytrigw.p" CRC "?"
+UPDATE TABLE "rvm_task_history"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "rv/trg/rvmtyreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "rv/trg/rvmtyrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "rv/trg/rvmtyreplw.p" CRC "?"
+UPDATE FIELD task_number OF rvm_task_history  ORDER 10
+UPDATE FIELD task_test_area OF rvm_task_history  ORDER 20
+UPDATE FIELD task_test_status OF rvm_task_history  ORDER 30
+UPDATE FIELD test_status_date OF rvm_task_history  ORDER 40
+UPDATE FIELD task_history_obj OF rvm_task_history  ORDER 50
+UPDATE FIELD test_status_user OF rvm_task_history  ORDER 60
+UPDATE FIELD task_history_notes OF rvm_task_history  ORDER 70
+UPDATE FIELD estimated_hrs OF rvm_task_history  ORDER 80
+UPDATE FIELD actual_hrs OF rvm_task_history  ORDER 90
+
+UPDATE TABLE "rvt_action"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvtactrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvtactrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvtactrigw.p" CRC "?"
+
+UPDATE FIELD action_obj OF rvt_action  ORDER 10
+UPDATE FIELD task_number OF rvt_action  ORDER 20
+UPDATE FIELD transaction_id OF rvt_action  ORDER 30
+UPDATE FIELD event_name OF rvt_action  ORDER 40
+UPDATE FIELD table_name OF rvt_action  ORDER 50
+UPDATE FIELD raw_data OF rvt_action  ORDER 60
+UPDATE FIELD primary_key_fields OF rvt_action  ORDER 70
+UPDATE FIELD primary_key_values OF rvt_action  ORDER 80
+
+UPDATE TABLE "rvt_transaction"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvttrtrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvttrtrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvttrtrigw.p" CRC "?"
+
+UPDATE FIELD task_number OF rvt_transaction  ORDER 10
+UPDATE FIELD transaction_id OF rvt_transaction  ORDER 20
+UPDATE FIELD product_module_obj OF rvt_transaction  ORDER 30
+UPDATE FIELD configuration_type OF rvt_transaction  ORDER 40
+UPDATE FIELD scm_object_name OF rvt_transaction  ORDER 50
+UPDATE FIELD item_version_number OF rvt_transaction  ORDER 60
+UPDATE FIELD transaction_obj OF rvt_transaction  ORDER 70
+
+UPDATE TABLE "rvm_workspace"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmwstrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmwstrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmwstrigw.p" CRC "?"
+UPDATE TABLE "rvm_workspace"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "rv/trg/rvmwsreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "rv/trg/rvmwsrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "rv/trg/rvmwsreplw.p" CRC "?"
+UPDATE FIELD workspace_obj OF rvm_workspace  ORDER 10
+UPDATE FIELD workspace_code OF rvm_workspace  ORDER 20
+UPDATE FIELD workspace_description OF rvm_workspace  ORDER 30
+UPDATE FIELD workspace_locked OF rvm_workspace  ORDER 40
+UPDATE FIELD data_version_table OF rvm_workspace  ORDER 50
+UPDATE FIELD root_directory OF rvm_workspace  ORDER 60
+
+UPDATE TABLE "rvm_configuration_item"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmcitrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmcitrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmcitrigw.p" CRC "?"
+
+UPDATE FIELD configuration_type OF rvm_configuration_item  ORDER 10
+UPDATE FIELD scm_object_name OF rvm_configuration_item  ORDER 20
+UPDATE FIELD product_module_obj OF rvm_configuration_item  ORDER 30
+UPDATE FIELD item_deployable OF rvm_configuration_item  ORDER 40
+UPDATE FIELD scm_registered OF rvm_configuration_item  ORDER 50
+UPDATE FIELD configuration_item_obj OF rvm_configuration_item  ORDER 60
+
+UPDATE TABLE "rvt_item_version"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvtivtrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvtivtrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvtivtrigw.p" CRC "?"
+
+UPDATE FIELD configuration_type OF rvt_item_version  ORDER 10
+UPDATE FIELD scm_object_name OF rvt_item_version  ORDER 20
+UPDATE FIELD product_module_obj OF rvt_item_version  ORDER 30
+UPDATE FIELD item_version_number OF rvt_item_version  ORDER 40
+UPDATE FIELD task_number OF rvt_item_version  ORDER 50
+UPDATE FIELD baseline_version OF rvt_item_version  ORDER 60
+UPDATE FIELD previous_product_module_obj OF rvt_item_version  ORDER 70
+UPDATE FIELD previous_version_number OF rvt_item_version  ORDER 80
+UPDATE FIELD baseline_product_module_obj OF rvt_item_version  ORDER 90
+UPDATE FIELD baseline_version_number OF rvt_item_version  ORDER 100
+UPDATE FIELD item_description OF rvt_item_version  ORDER 110
+UPDATE FIELD versions_since_baseline OF rvt_item_version  ORDER 120
+UPDATE FIELD item_version_obj OF rvt_item_version  ORDER 130
+
+UPDATE TABLE "rvm_workspace_item"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmwitrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmwitrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmwitrigw.p" CRC "?"
+
+UPDATE FIELD workspace_item_obj OF rvm_workspace_item  ORDER 10
+UPDATE FIELD workspace_obj OF rvm_workspace_item  ORDER 20
+UPDATE FIELD configuration_type OF rvm_workspace_item  ORDER 30
+UPDATE FIELD scm_object_name OF rvm_workspace_item  ORDER 40
+UPDATE FIELD product_module_obj OF rvm_workspace_item  ORDER 50
+UPDATE FIELD item_version_number OF rvm_workspace_item  ORDER 60
+UPDATE FIELD task_product_module_obj OF rvm_workspace_item  ORDER 70
+UPDATE FIELD task_version_number OF rvm_workspace_item  ORDER 80
+
+UPDATE TABLE "rvt_workspace_checkout"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvtwctrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvtwctrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvtwctrigw.p" CRC "?"
+
+UPDATE FIELD workspace_checkout_obj OF rvt_workspace_checkout  ORDER 10
+UPDATE FIELD workspace_obj OF rvt_workspace_checkout  ORDER 20
+UPDATE FIELD task_number OF rvt_workspace_checkout  ORDER 30
+UPDATE FIELD configuration_type OF rvt_workspace_checkout  ORDER 40
+UPDATE FIELD workspace_item_obj OF rvt_workspace_checkout  ORDER 50
+UPDATE FIELD modification_type OF rvt_workspace_checkout  ORDER 60
+
+UPDATE TABLE "rvc_configuration_type"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvccttrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvccttrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvccttrigw.p" CRC "?"
+UPDATE TABLE "rvc_configuration_type"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "rv/trg/rvcctreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "rv/trg/rvcctrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "rv/trg/rvcctreplw.p" CRC "?"
+UPDATE FIELD configuration_type OF rvc_configuration_type  ORDER 10
+UPDATE FIELD type_table_name OF rvc_configuration_type  ORDER 20
+UPDATE FIELD type_description OF rvc_configuration_type  ORDER 30
+UPDATE FIELD type_locked OF rvc_configuration_type  ORDER 40
+UPDATE FIELD type_deployable OF rvc_configuration_type  ORDER 50
+UPDATE FIELD baseline_frequency OF rvc_configuration_type  ORDER 60
+UPDATE FIELD scm_code OF rvc_configuration_type  ORDER 70
+UPDATE FIELD scm_identifying_fieldname OF rvc_configuration_type  ORDER 80
+UPDATE FIELD scm_primary_key_fields OF rvc_configuration_type  ORDER 90
+UPDATE FIELD description_fieldname OF rvc_configuration_type  ORDER 100
+UPDATE FIELD product_module_obj OF rvc_configuration_type  ORDER 110
+UPDATE FIELD product_module_fieldname OF rvc_configuration_type  ORDER 120
+UPDATE FIELD configuration_type_obj OF rvc_configuration_type  ORDER 130
+UPDATE FIELD dataset_code OF rvc_configuration_type  ORDER 140
+
+UPDATE TABLE "rvm_workspace_module"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvmwmtrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvmwmtrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvmwmtrigw.p" CRC "?"
+
+UPDATE FIELD workspace_module_obj OF rvm_workspace_module  ORDER 10
+UPDATE FIELD workspace_obj OF rvm_workspace_module  ORDER 20
+UPDATE FIELD product_module_obj OF rvm_workspace_module  ORDER 30
+UPDATE FIELD source_workspace_obj OF rvm_workspace_module  ORDER 40
+UPDATE FIELD include_in_import OF rvm_workspace_module  ORDER 50
+
+UPDATE TABLE "rvt_deleted_item"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvtditrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvtditrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvtditrigw.p" CRC "?"
+
+UPDATE FIELD deleted_item_obj OF rvt_deleted_item  ORDER 10
+UPDATE FIELD workspace_obj OF rvt_deleted_item  ORDER 20
+UPDATE FIELD task_number OF rvt_deleted_item  ORDER 30
+UPDATE FIELD configuration_type OF rvt_deleted_item  ORDER 40
+UPDATE FIELD scm_object_name OF rvt_deleted_item  ORDER 50
+UPDATE FIELD product_module_obj OF rvt_deleted_item  ORDER 60
+
+UPDATE TABLE "rvt_action_underway"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rv/trg/rvtautrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rv/trg/rvtautrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "rv/trg/rvtautrigw.p" CRC "?"
+
+UPDATE FIELD action_type OF rvt_action_underway  ORDER 10
+UPDATE FIELD action_table_fla OF rvt_action_underway  ORDER 20
+UPDATE FIELD action_primary_key OF rvt_action_underway  ORDER 30
+UPDATE FIELD action_scm_object_name OF rvt_action_underway  ORDER 40
+UPDATE FIELD action_underway_obj OF rvt_action_underway  ORDER 50
+
+
+ADD SEQUENCE "seq_obj1"
+  INITIAL 0
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 0
+  MAX-VAL 999999999
+
+ADD SEQUENCE "seq_obj2"
+  INITIAL 0
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 0
+  MAX-VAL 999999999
+
+ADD SEQUENCE "seq_site_reverse"
+  INITIAL 0
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 0
+  MAX-VAL 999999999
+
+ADD SEQUENCE "seq_site_division"
+  INITIAL 0
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 0
+  MAX-VAL 999999999
+
+ADD SEQUENCE "seq_session_id"
+  INITIAL 1
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 1
+  MAX-VAL 999999999
+
+ADD SEQUENCE "seq_RVDB_DBVersion"
+  INITIAL 020006
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 020006
+  MAX-VAL 020006
+
+
+

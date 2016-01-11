@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -64,6 +64,9 @@ Last modifed on 9/29/94  by GFS - Added XFTR file support
                                   MRU File List 
                 05/12/99 by TSM - Added PrintPageLength, PrintFont and PrintDialog
                 05/25/99 by TSM - Made MRU Filelist true as default
+                09/25/01 by JEP - jep-icf: ICF custom files handling.
+                11/14/01 by JEP - jep-icf: Added web.cst to ICF custom files default list.
+                                  Done via IZ 2845.
 ----------------------------------------------------------------------------*/
 DEFINE OUTPUT PARAMETER p_save_settings    AS LOGICAL                NO-UNDO.
 
@@ -88,6 +91,7 @@ DEFINE OUTPUT PARAMETER p_save_settings    AS LOGICAL                NO-UNDO.
 &Scope DEFAULT-CUSTOM-FILES-CS-ONLY  src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}smart.cst,src{&SLSH}template{&SLSH}progress.cst
 &Scope DEFAULT-CUSTOM-FILES-WS-ONLY  src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}web.cst
 &Scope DEFAULT-CUSTOM-FILES-BOTH     src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}smart.cst,src{&SLSH}template{&SLSH}progress.cst,src{&SLSH}template{&SLSH}web.cst
+&Scope DEFAULT-CUSTOM-FILES-ICF-ONLY src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}icfshared.cst,src{&SLSH}template{&SLSH}icfdyn.cst,src{&SLSH}template{&SLSH}icfsmart.cst,src{&SLSH}template{&SLSH}icfprogress.cst,src{&SLSH}template{&SLSH}web.cst
 
 /* Local Variables */
 DEFINE VAR  cnt           AS INTEGER NO-UNDO.
@@ -103,6 +107,22 @@ DEFINE VAR keyname        AS CHAR NO-UNDO.
 */
 SESSION:NUMERIC-FORMAT = "AMERICAN".
     
+/* jep-icf: Setup registry/ini key for saving custom files and the default custom files list. */
+IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
+DO:
+  _custom_files_savekey = "CustomObjectFilesICF":u.
+  _custom_files_default = "{&DEFAULT-CUSTOM-FILES-ICF-ONLY}".
+END.
+ELSE
+DO:
+  _custom_files_savekey = "CustomObjectFiles":u.
+  CASE _AB_license:
+    WHEN 1 THEN _custom_files_default = "{&DEFAULT-CUSTOM-FILES-CS-ONLY}" .
+    WHEN 2 THEN _custom_files_default = "{&DEFAULT-CUSTOM-FILES-WS-ONLY}" .
+    WHEN 3 THEN _custom_files_default = "{&DEFAULT-CUSTOM-FILES-BOTH}" .
+  END CASE.
+END.
+
 FIND FIRST _uib_prefs NO-ERROR.
 IF NOT AVAILABLE _uib_prefs THEN CREATE _uib_prefs.
 
@@ -235,13 +255,9 @@ GET-KEY-VALUE SECTION sctn KEY "CodeListDirectories" VALUE v.
   IF v eq ? THEN
     v = "src{&SLSH}template,.".  /* templates AND current directory */
   {&CODE-DIRS} = v.
-GET-KEY-VALUE SECTION sctn KEY "CustomObjectFiles" VALUE v.
+GET-KEY-VALUE SECTION sctn KEY _custom_files_savekey VALUE v.
   IF v eq ? THEN
-    CASE _AB_license:
-      WHEN 1 THEN v = "{&DEFAULT-CUSTOM-FILES-CS-ONLY}" .
-      WHEN 2 THEN v = "{&DEFAULT-CUSTOM-FILES-WS-ONLY}" .
-      WHEN 3 THEN v = "{&DEFAULT-CUSTOM-FILES-BOTH}" .
-    END CASE.
+    v = _custom_files_default.
   {&CUSTOM-FILES} = v.
 GET-KEY-VALUE SECTION sctn KEY "XFTRfile" VALUE v.
   IF v eq ? THEN

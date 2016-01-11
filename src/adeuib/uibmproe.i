@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -64,6 +64,25 @@ Modified:
                      showed up as blank on the mru filelist.                 
     07/08/99  jep  - Added support for Editing Options menu for
                      Advanced Editing features.
+    08/06/01  jep  - IZ 1508 : AppBuilder Memory Leak w/Section Editors
+    08/19/01  jep  - jep-icf: Search on jep-icf changes for details.
+    09/18/01  jep  - jep-icf: Display icf related status bar info with call
+                     to displayStatusBarInfo. Added call for isModified to
+                     determine changed status of dynamic object properties
+                     in property sheet window.
+    09/18/01  jep  - jep-icf: Add OpenObject_Button create for AB toolbar
+                     to procedure mode-morph and enable it in enable_widgets.
+    09/25/01  jep  - jep-icf: Added ICF custom files handling. Search on
+                     _custom_files_savekey and _custom_files_default.
+    10/02/01  jep  - IZ 1981 Saving asks for Module even if already given in New dialog
+                     Fix: Saving static objects is processed in save_window now.
+    10/10/01  jep-icf IZ 2101 Run button enabled when editing dynamic objects.
+                     Renamed h_button_bar to _h_button_bar (new shared).
+    10/12/01  jep-icf IZ 2381 Save static file always asks to save to repository.
+                     Revised procedure save_window and added save_window_static
+                     to handle static saves properly. Static files are now saved
+                     when they are already from the repository or when they are
+                     being added using AppBuilder's Add to Repository option.
 ----------------------------------------------------------------------------*/
 /*  =======================================================================  */
 /*                        INTERNAL PROCEDURE Definitions                     */
@@ -91,6 +110,7 @@ procedure enable_widgets.
   DEFINE VAR h-tmp       AS WIDGET    NO-UNDO.
   DEFINE VAR i           AS INTEGER   NO-UNDO. 
   DEFINE VAR c           AS INTEGER   NO-UNDO.
+  DEFINE VAR h-menubar   AS WIDGET    NO-UNDO.
 
   PAUSE 0 BEFORE-HIDE.
   ASSIGN SESSION:SYSTEM-ALERT-BOXES = YES
@@ -99,7 +119,8 @@ procedure enable_widgets.
          ldummy                     = SESSION:SET-WAIT-STATE ("")
          _h_menu_win:SENSITIVE      = yes    
          _h_status_line:SENSITIVE   = yes /* Status bar has dbl-click actions */
-         MENU m_menubar:SENSITIVE   = yes 
+         h-menubar                  = _h_menu_win:MENU-BAR  /* jep-icf: avoid static ref */
+         h-menubar:SENSITIVE        = yes                   /* jep-icf: avoid static ref */
          CURRENT-WINDOW             = _h_menu_win 
          SESSION:THREE-D            = YES
          SESSION:DATE-FORMAT        = _orig_dte_fmt.
@@ -143,9 +164,10 @@ procedure enable_widgets.
     
   DO WITH FRAME action_icons:
     /* Sensitize the UIB Main Window. */
-    ASSIGN h_button_bar[1]:SENSITIVE = YES /* New */
-           h_button_bar[2]:SENSITIVE = YES /* Open */
-           Mode_Button:SENSITIVE     = YES WHEN VALID-HANDLE(Mode_Button)
+    ASSIGN _h_button_bar[1]:SENSITIVE  = YES /* New */
+           _h_button_bar[2]:SENSITIVE  = YES /* Open */
+           Mode_Button:SENSITIVE       = YES WHEN VALID-HANDLE(Mode_Button)
+           OpenObject_Button:SENSITIVE = YES WHEN VALID-HANDLE(OpenObject_Button)
            .
     RUN sensitize_main_window ("WIDGET,WINDOW").
     /* Reset the sensitivity of the fill-in fields */ 
@@ -609,7 +631,7 @@ procedure get-attribute :
       IF VALID-HANDLE(hAttrEd) AND hAttrEd:FILE-NAME ne "{&AttrEd}"
       THEN hAttrEd = ?.
       RETURN STRING(hAttrEd).
-    END. 
+    END.
   END CASE.
 
 END.
@@ -713,11 +735,91 @@ PROCEDURE mode-morph.
   DEFINE VARIABLE h_f           AS HANDLE      NO-UNDO.
   DEFINE VARIABLE v             AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE rh            AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE h_icfmenubar  AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE i                 AS INTEGER NO-UNDO.
+  DEFINE VARIABLE AboutImage    AS CHARACTER   NO-UNDO.
+
   
+  /* jep-icf: Check to see if we should replace the AB menubar with ICF menubar. */
+  IF (mode = "INIT":U) AND CAN-DO(_AB_Tools,"Enable-ICF") THEN
+  DO ON ERROR UNDO, LEAVE:
+      /* Start persistent AB Menubar Procedure. */
+      RUN adeuib/_abmbar.w PERSISTENT SET _h_menubar_proc.
+      IF VALID-HANDLE(_h_menubar_proc) THEN
+      DO:
+        /* Get the handle of the menubar that replaces the AB default menubar. */
+        RUN getMenubarHandle IN _h_menubar_proc (INPUT MENU m_menubar:HANDLE, OUTPUT h_icfmenubar).
+        /* Replace the AB's default menu-bar with the new one. */
+        ASSIGN _h_menu_win:MENU-BAR = h_icfmenubar.
+        /* Display icf related status bar info. */
+        RUN displayStatusbarInfo IN _h_menubar_proc.
+      END.
+  END.
+
+
   ASSIGN last-mode  = mode
          h_menu-bar = _h_menu_win:MENU-BAR.
 
   IF mode = "INIT" THEN DO: /* This is the INIT case - create necessary stuff */
+  
+    /* Set AppBuilder's About box image. */
+    ASSIGN AboutImage = IF (_AB_License = 2) THEN "adeicon/workshp%.ico":U ELSE "adeicon/uib%.ico":U.
+    ASSIGN AboutImage = "adeicon/icfdev.ico" WHEN CAN-DO(_AB_Tools, "Enable-ICF":u).
+
+    /* jep-icf: Set handles of several AB menus and items. The menubar may be the
+       default statically defined AB menubar or one that's taken it's place. So
+       we must reference menus and menu items with handles instead.
+       Note: If the order of the File and Edit menu's ever changes, this code will
+       need updating. */
+    ASSIGN m_menubar  = _h_menu_win:MENU-BAR.
+    ASSIGN m_hFile    = h_menu-bar:FIRST-CHILD. /* jep-icf: File menu. */
+    ASSIGN m_hEdit    = m_hFile:NEXT-SIBLING.   /* jep-icf: Edit menu. */
+  
+
+    /* jep-icf: "Open Object" Button takes the place of "Open" button and shifts all remaining buttons to the right. */
+    IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
+    DO:
+      ASSIGN i = LOOKUP( "Open" , bar_labels).
+      CREATE BUTTON OpenObject_Button
+        ASSIGN FRAME        = _h_button_bar[i]:FRAME
+               X            = _h_button_bar[i]:X
+               Y            = _h_button_bar[i]:Y
+               WIDTH-P      = _h_button_bar[i]:WIDTH-P
+               HEIGHT-P     = _h_button_bar[i]:HEIGHT-P
+               PRIVATE-DATA = "openobject":U
+               BGCOLOR      = _h_button_bar[i]:BGCOLOR
+               FONT         = _h_button_bar[i]:FONT
+               TOOLTIP      = "Open Object"
+               NO-FOCUS     = YES
+               FLAT-BUTTON  = YES
+               HIDDEN       = YES
+               SENSITIVE    = FALSE
+        TRIGGERS:
+            ON CHOOSE PERSISTENT RUN choose_object_open IN _h_UIB.
+        END TRIGGERS.
+
+      ldummy = OpenObject_Button:LOAD-IMAGE-UP({&ADEICON-DIR} + OpenObject_Button:PRIVATE-DATA) NO-ERROR.
+      
+      /* Starting with the "Open" button (2), move the remaining toolbar buttons to the right. */
+      DO i = 2 to bar_count:
+          /* Make adjustments for buttons that have the rectangles between them. */
+          IF i = 5 OR i = 8 THEN
+            ASSIGN _h_button_bar[i]:X = _h_button_bar[i]:X + 30.
+          ELSE
+            ASSIGN _h_button_bar[i]:X = _h_button_bar[i]:X + 25.
+      END.  /* DO i = 1 to bar_count */
+      
+      /* Adjust all the icon group rectangles for the new icf buttons. */
+      ASSIGN  group1:WIDTH-P IN FRAME action_icons = group1:WIDTH-P IN FRAME action_icons + 25
+              group2:WIDTH-P IN FRAME action_icons = group2:WIDTH-P IN FRAME action_icons + 25
+              group3:WIDTH-P IN FRAME action_icons = group3:WIDTH-P IN FRAME action_icons + 25
+              group4:WIDTH-P IN FRAME action_icons = group4:WIDTH-P IN FRAME action_icons + 25 NO-ERROR.
+              
+      ASSIGN OpenObject_Button:HIDDEN    = FALSE
+             OpenObject_Button:SENSITIVE = YES.
+    END. /* Enable-ICF */
+
+
     /* Do the visual part first */
     IF _AB_license > 1 THEN DO: /* WebSpeed is licensed then create the 
                                    mode button.                          */
@@ -725,14 +827,14 @@ PROCEDURE mode-morph.
       CREATE BUTTON Mode_Button
       ASSIGN FRAME       = FRAME action_icons:HANDLE
             X            = /*_h_status_line:X + _h_status_line:WIDTH-PIXELS -
-                                              h_button_bar[1]:WIDTH-PIXELS -
+                                              _h_button_bar[1]:WIDTH-PIXELS -
                                               SESSION:PIXELS-PER-COLUMN*/
-                                              h_button_bar[10]:X + h_button_bar[10]:WIDTH-P + 6
-            Y            = h_button_bar[1]:Y
-            WIDTH-P      = h_button_bar[1]:WIDTH-P
-            HEIGHT-P     = h_button_bar[1]:HEIGHT-P
+                                              _h_button_bar[10]:X + _h_button_bar[10]:WIDTH-P + 6
+            Y            = _h_button_bar[1]:Y
+            WIDTH-P      = _h_button_bar[1]:WIDTH-P
+            HEIGHT-P     = _h_button_bar[1]:HEIGHT-P
             PRIVATE-DATA = "Local":U
-            BGCOLOR      = h_button_bar[1]:BGCOLOR
+            BGCOLOR      = _h_button_bar[1]:BGCOLOR
             FONT         = 4
             TOOLTIP      = "(Local/Remote)"
             NO-FOCUS     = YES
@@ -762,25 +864,25 @@ PROCEDURE mode-morph.
     /* Create the visible menu-bar items */
     ASSIGN h           = h_menu-bar
            _visual-obj = no.
-    /* h_button_bar[10] is the color button */
+    /* _h_button_bar[10] is the color button */
     IF _AB_License = 2 THEN DO: /* WebSpeed only */
-      ASSIGN h_button_bar[10]:HIDDEN = TRUE.
+      ASSIGN _h_button_bar[10]:HIDDEN = TRUE.
       /* Reposition the last two toolbar rectangles
          and the mode button */
-      ASSIGN rh = h_button_bar[10]:FRAME
+      ASSIGN rh = _h_button_bar[10]:FRAME
              rh = rh:FIRST-CHILD
              rh = rh:FIRST-CHILD.
       DO WHILE rh <> ?:
         IF rh:PRIVATE-DATA = "group3":U OR
            rh:PRIVATE-DATA = "group4":U THEN 
-             rh:WIDTH-P = rh:WIDTH-P - h_button_bar[10]:WIDTH-P.
+             rh:WIDTH-P = rh:WIDTH-P - _h_button_bar[10]:WIDTH-P.
         ASSIGN rh = rh:NEXT-SIBLING.
       END.
-      ASSIGN Mode_Button:X = Mode_Button:X - h_button_bar[10]:WIDTH-P.
+      ASSIGN Mode_Button:X = Mode_Button:X - _h_button_bar[10]:WIDTH-P.
     END.
     ELSE DO:  /* UIB is licensed */
-      ASSIGN h_button_bar[10]:HIDDEN    = FALSE
-             h_button_bar[10]:SENSITIVE = FALSE.
+      ASSIGN _h_button_bar[10]:HIDDEN    = FALSE
+             _h_button_bar[10]:SENSITIVE = FALSE.
 
       /* Add Layout Menu */
       CREATE SUB-MENU m_layout ASSIGN LABEL = "&Layout" SENSITIVE = YES
@@ -865,8 +967,7 @@ PROCEDURE mode-morph.
     CREATE MENU-ITEM mi_about ASSIGN LABEL = "&About AppBuilder"           PARENT = h_sm
        TRIGGERS: ON CHOOSE
           PERSISTENT RUN adecomm/_about.p 
-                   ("{&UIB_NAME}", {&ADEICON-DIR} + (IF _AB_License = 2 THEN "workshp%":U ELSE "uib%":U)
-                    + "{&ICON-EXT}").
+                   ("{&UIB_NAME}", AboutImage).
        END TRIGGERS.
      
     /* Now go back and fill in non-visible stuff */
@@ -900,7 +1001,7 @@ PROCEDURE mode-morph.
                SENSITIVE = FALSE      PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_goto_page. END TRIGGERS.
     END.  /* IF UIB */
-  
+
     /* Compile Menu */
     ASSIGN h_sm = h_sm:NEXT-SIBLING.  /* Compile menu */
     IF _AB_License NE 2 THEN DO:
@@ -908,6 +1009,14 @@ PROCEDURE mode-morph.
          TRIGGERS: ON CHOOSE PERSISTENT RUN adeuib/_ttysx.p (INPUT TRUE). END TRIGGERS.
     END.  /* IF UIB or BOTH */
 
+    /* jep-icf: If the location of the ICF menu changes in adeuib/_abmbar.w, then
+       we must move this assignment as well. This assignment "skips over" the ICF
+       menu defined by the AB's persistent menubar procedure. */
+    /* ICF Menu */
+    IF CAN-DO(_AB_Tools,"Enable-ICF") THEN DO:
+      ASSIGN h_sm = h_sm:NEXT-SIBLING.  /* ICF menu */
+    END.  /* ICF Menu */
+ 
     /* Tools Menu */
     ASSIGN h_sm = h_sm:NEXT-SIBLING.  /* Tools menu */
     IF _AB_License NE 2 THEN DO:
@@ -923,6 +1032,14 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM mi_color ASSIGN LABEL = "C&olor..." SENSITIVE = FALSE
                PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN adeuib/_selcolr. END TRIGGERS.
+
+    /* jep-icf: Add ICF menu items to the Tools menu. */
+    IF CAN-DO(_AB_Tools,"Enable-ICF") THEN DO:
+      IF VALID-HANDLE(_h_menubar_proc) THEN
+        RUN addICFTools IN _h_menubar_proc (INPUT h_sm).
+    END.  /* ICF */
+
+
     CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                           PARENT = h_sm.
     CREATE MENU-ITEM mi_dbconnect ASSIGN LABEL = "Database Co&nnections" PARENT = h_sm
          TRIGGERS: ON CHOOSE PERSISTENT RUN run-dblist. END TRIGGERS.
@@ -932,6 +1049,7 @@ PROCEDURE mode-morph.
       &MENUBAR     = m_menubar
       &EXCLUDE_UIB = YES
       } 
+
 
     /* Options Menu */
     ASSIGN h_sm = h_sm:NEXT-SIBLING.  /* Options menu */
@@ -980,13 +1098,13 @@ PROCEDURE mode-morph.
     
     /* Appropriately grey or sensitize things */
     IF _AB_License NE 2 THEN
-      ASSIGN h_button_bar[10]:SENSITIVE   = (mode = "UIB") AND _visual-obj
-             m_layout:SENSITIVE          = h_button_bar[10]:SENSITIVE
+      ASSIGN _h_button_bar[10]:SENSITIVE = (mode = "UIB") AND _visual-obj
+             m_layout:SENSITIVE          = _h_button_bar[10]:SENSITIVE
              mi_control_props:SENSITIVE  = m_layout:SENSITIVE
              mi_duplicate:SENSITIVE      = m_layout:SENSITIVE
              mi_tab_edit:SENSITIVE       = m_layout:SENSITIVE
              mi_goto_page:SENSITIVE      = m_layout:SENSITIVE
-             mi_property_sheet:SENSITIVE = h_button_bar[9]:SENSITIVE
+             mi_property_sheet:SENSITIVE = _h_button_bar[9]:SENSITIVE
              mi_color:SENSITIVE          = m_layout:SENSITIVE
              mi_grid_snap:SENSITIVE      = m_layout:SENSITIVE
              mi_grid_display:SENSITIVE   = m_layout:SENSITIVE.
@@ -1107,7 +1225,7 @@ PROCEDURE mru_menu:
       cAbbrevName = cAbbrevName + DYNAMIC-FUNCTION("get-url-host":U IN _h_func_lib, 
                                                    FALSE, _mru_files._broker).
     CREATE MENU-ITEM mi_mrulist[_mru_files._position]
-      ASSIGN PARENT = MENU m_file:HANDLE
+      ASSIGN PARENT = m_hFile   /* jep-icf: replaces static MENU m_File reference. */
              LABEL = STRING(_mru_files._position) + " ":U + cAbbrevName
              TRIGGERS: ON CHOOSE PERSISTENT RUN choose_mru_file (_mru_files._position). END TRIGGERS.
   END.  /* for each _mru_files */
@@ -1116,10 +1234,10 @@ PROCEDURE mru_menu:
   IF AVAIL _mru_files THEN 
     CREATE MENU-ITEM mi_rule
       ASSIGN SUBTYPE = "RULE"
-             PARENT  = MENU m_file:HANDLE.
+             PARENT  = m_hFile. /* jep-icf: replaces static MENU m_File reference. */
          
   CREATE MENU-ITEM mi_exit
-    ASSIGN PARENT = MENU m_file:HANDLE
+    ASSIGN PARENT = m_hFile     /* jep-icf: replaces static MENU m_File reference. */
            LABEL = "E&xit"
            TRIGGERS: ON CHOOSE PERSISTENT RUN exit_proc. END TRIGGERS.
 
@@ -1311,12 +1429,12 @@ PROCEDURE save_palette: /* by GFS 2/95 */
        PUT-KEY-VALUE SECTION sctn KEY "PaletteItemsPerRow" VALUE textout NO-ERROR.
        IF ERROR-STATUS:ERROR THEN STOP.    
        
-       GET-KEY-VALUE SECTION sctn KEY "CustomObjectFiles" VALUE v.
+       GET-KEY-VALUE SECTION sctn KEY _custom_files_savekey VALUE v.
        ASSIGN c_v = {&CUSTOM-FILES}.
-       IF c_v eq "src{&SLSH}template{&SLSH}progress.cst,src{&SLSH}template{&SLSH}smart.cst,src{&SLSH}web{&SLSH}template"
+       IF c_v eq _custom_files_default
          THEN c_v = ?. /* Default Value */
        IF v ne c_v THEN 
-         PUT-KEY-VALUE SECTION sctn KEY "CustomObjectFiles" VALUE c_v NO-ERROR.
+         PUT-KEY-VALUE SECTION sctn KEY _custom_files_savekey VALUE c_v NO-ERROR.
        IF ERROR-STATUS:ERROR THEN STOP.    
 
        ASSIGN okflag = yes. /* got through w/o error */
@@ -1355,6 +1473,7 @@ PROCEDURE save_window:
   DEFINE VARIABLE proxy-file    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hWin          AS WIDGET    NO-UNDO.
   DEFINE VARIABLE hCurWidg      AS WIDGET    NO-UNDO.
+  DEFINE VARIABLE cError        AS CHARACTER NO-UNDO.
 
   DEFINE BUFFER d_P FOR _P.
   DEFINE BUFFER x_U FOR _U.
@@ -1371,6 +1490,64 @@ PROCEDURE save_window:
     user_cancel   = YES 
     lSaveUntitled = (_remote_file AND NOT ask_file_name AND _save_file eq ?)
 	.
+  
+  IF _P.design_ryobject AND _P.logical_object THEN
+  DO:
+    /* Set the cursor pointer in all windows */
+    RUN setstatus ("WAIT":U,"Saving object...").
+
+    IF VALID-HANDLE(_P.design_hpropsheet) THEN
+    DO:
+      DEFINE VARIABLE lNewObject  AS LOGICAL NO-UNDO.
+      
+      /* Plan to add this object to the MRU list of its new and save is completed. */
+      ASSIGN lNewObject = (_P.design_action = "NEW":u)
+             lMRUSave   = lNewObject.
+
+      /* Call the object's property sheet to save the object. */
+      RUN saveObject IN _P.design_hpropsheet
+        (INPUT-OUTPUT _save_file, OUTPUT user_cancel).
+        
+      /* Update MRU list if save of new object is successful. */
+      ASSIGN lMRUSave = (lNewObject AND user_cancel = NO).
+
+      IF NOT user_cancel THEN
+      DO:
+        ASSIGN
+          user_cancel            = NO 
+          _P._FILE-SAVED         = TRUE
+          _P._SAVE-AS-FILE       = _save_file
+          _P.design_action       = "OPEN":u
+          h_title_win            = _P._WINDOW-HANDLE:WINDOW
+          OldTitle               = h_title_win:TITLE.
+
+        RUN adeuib/_wintitl.p (h_title_win, _U._LABEL, _U._LABEL-ATTR, 
+                               _P._SAVE-AS-FILE).
+  
+        /* Change the active window title on the Window menu. */
+        IF (h_title_win:TITLE <> OldTitle) AND VALID-HANDLE(_h_WinMenuMgr) THEN
+          RUN WinMenuChangeName IN _h_WinMenuMgr
+            (_h_WindowMenu, OldTitle, h_title_win:TITLE). 
+  
+        /* Notify the Section Editor of the window title change. Data after 
+           "SE_PROPS" added for 19990910-003. */
+        RUN call_sew ( "SE_PROPS":U ). 
+  
+        /* Update most recently used filelist */    
+        IF lMRUSave AND _mru_filelist THEN 
+          RUN adeshar/_mrulist.p (_save_file, IF _remote_file THEN _BrokerURL ELSE "").
+  
+        /* IZ 776 Redisplay current filename in AB Main window. */
+        RUN display_current IN _h_uib.
+      END. /* save ok */
+  
+    END. /* valid-handle prop sheet */
+
+    RUN setstatus ("":U,"":U).  /* Set the cursor pointer in all windows */
+    RETURN.
+    
+  END. /* dynamic repository object save */          
+
   
   /* If there is no name, or we need to ask, then get a new file name. */
   IF ask_file_name OR _save_file eq ? THEN DO:
@@ -1707,9 +1884,103 @@ PROCEDURE save_window:
 
     /* Unlike other UIB actions, don't Return to pointer mode 
        (see bug 19931206-02). */
+       
+    /* jep-icf: IZ 1981 Save static repository object. */
+    RUN save_window_static (INPUT RECID(_P), OUTPUT cError).
     
   END. /* _save_file NE ? */
 END PROCEDURE. /* save_window */
+
+
+/* save_window_static Saves the current _P as a static repository object. */
+PROCEDURE save_window_static :
+  
+    DEFINE INPUT  PARAMETER pPrecid   AS RECID      NO-UNDO.
+    DEFINE OUTPUT PARAMETER pError    AS CHARACTER  NO-UNDO.
+    
+    DEFINE VARIABLE lPrompt     AS LOGICAL   NO-UNDO.
+    DEFINE VARIABLE cSavedPath  AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cObjPath    AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cFilename   AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cRelname    AS CHARACTER NO-UNDO.
+
+    /* If we aren't running ICF, leave now. */
+    IF NOT CAN-DO(_AB_Tools,"Enable-ICF") THEN RETURN.
+
+    FIND _P WHERE RECID(_P) = pPrecid NO-ERROR.
+    IF NOT AVAILABLE _P THEN
+    DO:
+      RETURN.
+    END.
+    
+    /* If the object isn't defined as a repository object or isn't a static object, leave. */
+    IF (_P.design_ryobject = NO) OR (_P.logical_object = YES) THEN RETURN.
+    
+    DO ON ERROR UNDO, LEAVE:
+
+      RUN setstatus ("":U,"":U).
+      
+      /* The design action might have been "NEW", but now object is save. So the
+         action is changed to "OPEN". */
+      ASSIGN _P.design_action     = "OPEN":U.
+
+      /* For consistent translation from AB type to repository type, reset to AB type.
+         Save code will translate properly to repository type. */
+      ASSIGN _P.object_type_code  = _P._TYPE.
+
+      /* If the user changed the filename during a save as, update the object filename.
+         This results in the file being saved to the repository with a different name. */
+      RUN adecomm/_osprefx.p (INPUT _P._SAVE-AS-FILE, OUTPUT cSavedPath, OUTPUT cFilename).
+      ASSIGN _P.object_filename = cFilename.
+
+      /* Determine the propath relative name for this object. This may be different
+         than the product module and even where the object was originally opened
+         from. */
+      RUN adecomm/_relfile.p
+          (INPUT _P._SAVE-AS-FILE, INPUT NO /* plCheckRemote */,
+           INPUT "" /* pcOptions */, OUTPUT cRelname).
+
+      /* cRelname contains filename. Take it off so we just have propath relative path. */
+      RUN adecomm/_osprefx.p
+          (INPUT cRelname, OUTPUT cRelname, OUTPUT cFilename).
+
+      /* Trim trailing directory slashes (\ or /) and replace remaining ones with
+         forward slash for portability with how repository stores paths. */
+      ASSIGN cRelname = REPLACE(LC(RIGHT-TRIM(cRelname, '~\/')), "~\", "/").
+      ASSIGN _P.object_path = cRelname.
+      
+/*
+      message "Saving object..." SKIP(1)
+              "File:  " _P._SAVE-AS-FILE  SKIP
+              "Type:  " _P._TYPE          SKIP
+              "PMCode:" _P.product_module_code SKIP
+              "OType: " _P.object_type_code SKIP
+              "Path:  " _P.object_path    SKIP
+              "Name:  " _P.object_filename SKIP
+              "Desc:  " _P.object_description SKIP
+              "Action:" _P.design_action    SKIP.
+*/
+
+      /* Prompt for Product Module if for some reason we don't have it. */
+      ASSIGN lPrompt = (_P.product_module_code = "":u).
+      
+      RUN setstatus ("WAIT":U,"Saving object...":U).
+      RUN af/sup2/afsdocrdbp.p
+        (INPUT _P._SAVE-AS-FILE, INPUT _P._TYPE, INPUT _P.product_module_code,
+         INPUT _P.object_description, INPUT lPrompt /* prompt for PM */, OUTPUT pError).
+      RUN setstatus ("":U,"":U).
+        
+      IF (pError <> "") THEN
+      DO ON  STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+          MESSAGE "Object not saved to repository." SKIP(1)
+                  pError
+            VIEW-AS ALERT-BOX.
+      END.
+
+    END. /* DO ON ERROR */
+  
+END PROCEDURE.  /* save_window_static */
+
 
 /* sensitize_main_window - change the sensitive status of widgets in the UIB's
  *       main window based on the current state of affairs.
@@ -1738,23 +2009,26 @@ PROCEDURE sensitize_main_window :
        "Save" button.  If that is already set, then don't worry about it. */
     l = VALID-HANDLE(_h_win).
     IF l THEN FIND _P WHERE _P._WINDOW-HANDLE eq _h_win NO-ERROR.
-    IF l NE h_button_bar[3]:SENSITIVE THEN
-      ASSIGN h_button_bar[3]:SENSITIVE = l /* save */
-             h_button_bar[4]:SENSITIVE = l /* print */
-             h_button_bar[5]:SENSITIVE = l /* proc */
-             h_button_bar[6]:SENSITIVE = l /* run */
-             h_button_bar[7]:SENSITIVE = l /* edit */
-             h_button_bar[8]:SENSITIVE = l /* list */
-             h_button_bar[10]:SENSITIVE = l AND _visual-obj /* color */
+    IF l NE _h_button_bar[3]:SENSITIVE THEN
+    DO:
+      ASSIGN _h_button_bar[3]:SENSITIVE = l /* save */
+             _h_button_bar[4]:SENSITIVE = l /* print */
+             _h_button_bar[5]:SENSITIVE = l /* proc */
+             _h_button_bar[6]:SENSITIVE = l /* run */
+             _h_button_bar[7]:SENSITIVE = l /* edit */
+             _h_button_bar[8]:SENSITIVE = l /* list */
+             _h_button_bar[10]:SENSITIVE = l AND _visual-obj /* color */.
+             
              /* File Menu */
-             MENU-ITEM mi_close:SENSITIVE     IN MENU m_file = l 
+      ASSIGN MENU-ITEM mi_close:SENSITIVE     IN MENU m_file = l 
              MENU-ITEM mi_close_all:SENSITIVE IN MENU m_file = l
              MENU-ITEM mi_save:SENSITIVE      IN MENU m_file = l
              MENU-ITEM mi_save_all:SENSITIVE  IN MENU m_file = l
              MENU-ITEM mi_save_as:SENSITIVE   IN MENU m_file = l 
-             MENU-ITEM mi_print:SENSITIVE     IN MENU m_file = l 
+             MENU-ITEM mi_print:SENSITIVE     IN MENU m_file = l.
+             
              /* Edit Menu */
-             MENU-ITEM mi_paste:SENSITIVE     IN MENU m_edit = l AND
+      ASSIGN MENU-ITEM mi_paste:SENSITIVE     IN MENU m_edit = l AND
                 AVAILABLE _P AND (NOT _P._TYPE BEGINS "WEB":U OR 
                                   CAN-FIND(FIRST _U WHERE _U._SELECTEDib))
              mi_export:SENSITIVE  = l AND
@@ -1765,19 +2039,22 @@ PROCEDURE sensitize_main_window :
                 the existance of selected widgets (like COPY). */ 
              mi_import:SENSITIVE  = l AND
                                     MENU-ITEM mi_paste:SENSITIVE IN MENU m_edit
-                                               WHEN VALID-HANDLE(mi_import) 
+                                               WHEN VALID-HANDLE(mi_import) .
+                                               
              /* Compile Menu */
-             MENU-ITEM mi_run:SENSITIVE       IN MENU m_compile = l 
+      ASSIGN MENU-ITEM mi_run:SENSITIVE       IN MENU m_compile = l 
              MENU-ITEM mi_check:SENSITIVE     IN MENU m_compile = l
              MENU-ITEM mi_debugger:SENSITIVE  IN MENU m_compile = l
-             MENU-ITEM mi_preview:SENSITIVE   IN MENU m_compile = l          
+             MENU-ITEM mi_preview:SENSITIVE   IN MENU m_compile = l .
+
              /* Tools Menu Menu */
-             mi_proc_settings:SENSITIVE = l   WHEN VALID-HANDLE(mi_proc_settings)
-             mi_color:SENSITIVE         = h_button_bar[10]:SENSITIVE
+      ASSIGN mi_proc_settings:SENSITIVE = l   WHEN VALID-HANDLE(mi_proc_settings)
+             mi_color:SENSITIVE         = _h_button_bar[10]:SENSITIVE
                                               WHEN VALID-HANDLE(mi_color)
               /* Windows Menu */
              mi_code_edit:SENSITIVE     = l   WHEN VALID-HANDLE(mi_code_edit).
-
+    END.
+    
     /* Some actions depend on the _P settings. This is the
        Pages (which only work in PAGE-TARGETS) and Alternate Layouts. */
     IF NOT l THEN
@@ -1808,9 +2085,9 @@ PROCEDURE sensitize_main_window :
     l = (_cur_win_type ne NO).  /* This can be ? at startup. */
       
     IF VALID-HANDLE(mi_grid_snap) AND l ne mi_grid_snap:SENSITIVE THEN
-      ASSIGN h_button_bar[10]:SENSITIVE = l AND _visual-obj  /* Color */
+      ASSIGN _h_button_bar[10]:SENSITIVE = l AND _visual-obj  /* Color */
              mi_grid_snap:SENSITIVE    = l AND _visual-obj
-             mi_color:SENSITIVE        = h_button_bar[10]:SENSITIVE
+             mi_color:SENSITIVE        = _h_button_bar[10]:SENSITIVE
                                              WHEN VALID-HANDLE(mi_color).
   END.  /* IF window-check...*/
   
@@ -1820,8 +2097,8 @@ PROCEDURE sensitize_main_window :
        here is the "Property" button.  If that is already set, then don't 
        worry about it. */
     l = VALID-HANDLE(_h_cur_widg).
-    IF l NE h_button_bar[9]:SENSITIVE THEN
-      ASSIGN h_button_bar[9]:SENSITIVE   = l  /* properties */
+    IF l NE _h_button_bar[9]:SENSITIVE THEN
+      ASSIGN _h_button_bar[9]:SENSITIVE   = l  /* properties */
              /* Tools Menu Menu */
              mi_property_sheet:SENSITIVE = l WHEN VALID-HANDLE(mi_property_sheet).
 
@@ -1835,8 +2112,8 @@ PROCEDURE sensitize_main_window :
 
       /* Only change the Color button and menu if we are in GUI mode. */
       IF _cur_win_type AND VALID-HANDLE(mi_color) THEN 
-        ASSIGN h_button_bar[10]:SENSITIVE = l AND _visual-obj   /* color */
-               mi_color:SENSITIVE        = h_button_bar[10]:SENSITIVE.
+        ASSIGN _h_button_bar[10]:SENSITIVE = l AND _visual-obj   /* color */
+               mi_color:SENSITIVE        = _h_button_bar[10]:SENSITIVE.
                                                           /* Tools Menu Menu */
     END.  /* If l ne mi_attributes:SENSITIVE */
 
@@ -1910,6 +2187,13 @@ PROCEDURE sensitize_main_window :
     IF VALID-HANDLE(mi_tab_edit) THEN ASSIGN mi_tab_edit:SENSITIVE = l. 
     
   END.  /* IF widget-check...*/
+  
+  /* jep-icf: Sensitize icf menubar if there is one. The menubar procedure uses the
+     already set enable/disable states of the AB's default static menubar to enable/disable
+     it's menubar. */
+  IF VALID-HANDLE(_h_menubar_proc) THEN
+    RUN sensitize_main_window IN _h_menubar_proc (INPUT pCheck).
+  
 END PROCEDURE. /* sensitize_main_window */
 
 
@@ -2047,10 +2331,10 @@ PROCEDURE setselect.
     IF VALID-HANDLE(mi_color) THEN DO:   
       IF utype = "IMAGE":U THEN
         /* Turn off color button if the current widget is an image */
-        ASSIGN h_button_bar[10]:SENSITIVE = FALSE
+        ASSIGN _h_button_bar[10]:SENSITIVE = FALSE
                mi_color:SENSITIVE        = FALSE.
       ELSE IF _cur_win_type AND _visual-obj THEN
-        ASSIGN h_button_bar[10]:SENSITIVE = TRUE
+        ASSIGN _h_button_bar[10]:SENSITIVE = TRUE
                mi_color:SENSITIVE        = TRUE.
     END.
             
@@ -2997,7 +3281,7 @@ PROCEDURE update_palette :
   RUN adeuib/_cr_cmnu.p(INPUT MENU m_toolbox:HANDLE). /* add custom menus */
 
   /* Create popup menu on the 'New' button */
-  RUN adeuib/_cr_npop.p (INPUT h_button_bar[1]).
+  RUN adeuib/_cr_npop.p (INPUT _h_button_bar[1]).
   ASSIGN hDrawTool = ?
          h_Lock    = ?.
   FIND _palette_item WHERE _palette_item._NAME = "Pointer".
@@ -3021,15 +3305,24 @@ procedure wind-close.
   DEFINE VAR lib_parent AS CHAR              NO-UNDO.
   DEFINE VAR askToSave  AS LOGICAL           NO-UNDO INITIAL FALSE.
   DEFINE VAR tmp_hSecEd AS HANDLE            NO-UNDO.
-
+  
   FIND _U WHERE _U._HANDLE = h_self NO-ERROR.
   FIND _P WHERE _P._u-recid eq RECID(_U).
+
+  /* jep-icf: Change the file saved state of design window based on prop sheet. */
+  IF VALID-HANDLE(_P.design_hpropsheet) THEN
+    ASSIGN _P._FILE-SAVED = NOT DYNAMIC-FUNC('isModified':u IN _P.design_hpropsheet) NO-ERROR.
+  
   ASSIGN /* dma */
     tmp_hSecEd = hSecEd
     hSecEd     = _P._hSecEd.
     
+  /* IZ 1508 This call can create a Section Editor window for
+     a procedure that's being closed. Only make the call if the
+     procedure already has a Section Editor window open for it. - jep */
   /* SEW call to store current trigger code for specific window. */
-  RUN call_sew ( INPUT "SE_STORE_WIN").
+  IF VALID-HANDLE(_P._hSecEd) THEN
+    RUN call_sew ( INPUT "SE_STORE_WIN").
 
   /* If the file is dirty then save, if not, then check to
      see if OCX controls are dirty */
@@ -3410,5 +3703,3 @@ PROCEDURE restorePaletteCustom:
      DELETE _save_custom.
   END.
 END PROCEDURE. /* restore PaletteCustom */
-
-

@@ -221,7 +221,7 @@ assign
    hlist:delimiter = "|".  /* have to pick something not in desc strings */
 
 case p_Type:
-   when {&DTYPE_CHARACTER} then
+   when {&DTYPE_CHARACTER} OR WHEN {&DTYPE_RAW} then
    do:
       do ix = 1 to {&NUM_CHAR_FMTS}:
    	 s_Res = hlist:add-last(STRING(char_fmts[ix],"x(17)") + char_desc[ix]).

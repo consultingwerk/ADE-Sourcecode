@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -66,6 +66,8 @@ Modified by GFS on 2/10/95 -- Add new palette support for RoadRunner.
 		Handle filenames with blanks etc in them. Long Filenames.
            GFS on 3/17/98 - Do not add or warn about missing containers
                             if Webspeed-only product.
+           GFS on 08/31/01 - ICF support of TYPE for NEW dialog items. "DYN"
+                             begins type means object is logical object.
 ----------------------------------------------------------------------------*/
 
 /* Depeding on location of call - main or use custom/add custom */
@@ -356,7 +358,24 @@ PROCEDURE read-custom-file :
                     DELETE _custom.
                     NEXT LINE-LOOP.
                END.
+               IF AVAILABLE(_custom) THEN 
+                 ASSIGN _custom._design_template_file = FILE-INFO:FULL-PATHNAME.
             END.
+            IF CLine BEGINS "TYPE":U              AND 
+               NUM-ENTRIES(TRIM(CLine)," ":U) > 1 AND
+               AVAILABLE(_custom)                 THEN DO:
+              ASSIGN _custom._object_type_code = TRIM(SUBSTRING(cLine,5,-1,"CHARACTER")).
+              IF _custom._object_type_code BEGINS "DYN":U THEN
+                ASSIGN _custom._logical_object = TRUE.
+            END.
+            IF cLine BEGINS "IMAGE-FILE":U        AND 
+               NUM-ENTRIES(TRIM(cLine)," ":U) > 1 AND
+               AVAILABLE(_custom)                 THEN
+              ASSIGN _custom._design_image_file = TRIM(SUBSTRING(cLine,11,-1,"CHARACTER")).
+            IF cLine BEGINS "PROPERTY-SHEET":U    AND 
+               NUM-ENTRIES(TRIM(cLine)," ":U) > 1 AND
+               AVAILABLE(_custom)                 THEN
+              ASSIGN _custom._design_propsheet_file = TRIM(SUBSTRING(cLine,15,-1,"CHARACTER")).
             IF cLine BEGINS "CONTROL" THEN DO:
                    
                      temp = REPLACE(TRIM(SUBSTRING(cLine,8,-1,"CHARACTER"))," ",",").
@@ -375,7 +394,7 @@ PROCEDURE read-custom-file :
                    Custom Object .  NOTE: DO NOT LEFT-TRIM THE LINE.  This line
                    may contain some trigger code for the widget.  Trimming it 
                    will remove any indenting that the user really wants. */
-                _custom._attr = _custom._attr + CHR(10) + RIGHT-TRIM(cLine).
+              _custom._attr = _custom._attr + CHR(10) + RIGHT-TRIM(cLine).
             NEXT LINE-LOOP.
           END. /* Process Custom record */
              

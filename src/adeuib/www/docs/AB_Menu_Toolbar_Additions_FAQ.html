@@ -1,0 +1,282 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Menu and Toolbar Additions FAQs</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<p class=MsoBodyText><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The 
+Original Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">AppBuilder Menu Modifications/A></TD></TR>
+<TR><TD CLASS="Text1">1.1</TD>	<TD CLASS="Text1"><A HREF="#1.1">How do you add a new menu item to the AppBuilder?</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">AppBuilder Toolbar Modifications</A></TD></TR>
+<TR><TD CLASS="Text1">2.1</TD>	<TD CLASS="Text1"><A HREF="#2.1">How do you add a new button to the AppBuilder toolbar?</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<P><A NAME="1"><B>1. AppBuilder Menu Modifications</B></a></p>
+
+<p>This
+section contains information about modifying AppBuilder menus.</p>
+
+<P><A NAME="1.1"><B>1.1 How do you add a new menu item to the AppBuilder?</B></A></P>
+
+<p><b>Steps</b></p>
+
+<p>To add a menu item to the AppBuilder main
+window menu:</p>
+
+<ol>
+
+<li>Define the menu item in the appropriate sub-menu in
+adeuib/uibmdefs.i. Be sure to choose a mnemonic character that does not
+conflict with an existing menu item.</li>
+
+<li>If applicable, add code to the sensitize_main_window internal
+procedure of adeuib/uibmproe.i to set the menu item's SENSITIVE attribute to
+TRUE or FALSE as appropriate.</li>
+
+<li>Add an ON CHOOSE trigger for the menu item in
+adeuib/uibmtrig.i to run the internal procedure to be executed when that menu
+item is chosen.</li>
+
+<li>Create an internal procedure to execute the functionality when
+the menu item is chosen.<span style="mso-spacerun: yes">  </span>Place this
+internal procedure in adeuib/uibmproa.i or adeuib/uibmproe.i depending on the
+name of the internal procedure (uibmproa.i contains procedures that begin with
+a – d and uibmproe.i contains internal procedures that begin with e – z).</li>
+
+</ol>
+
+<p><b>Example</b></p>
+
+<p>The following example illustrates the
+required code modifications for adding a new tool (called Foo) to the
+AppBuilder main window Tools sub-menu:</p>
+
+<ul>
+
+<li>Add the menu item to the mnu_Tools SUB-MENU in
+adeuib/uibmdefs.i:</li>
+
+<p>MENU-ITEM mi_foo LABEL “&amp;Foo…”</p>
+
+<li>Add the ON CHOOSE trigger to adeuib/uibmtrig.i:</li>
+
+<p>ON CHOOSE OF MENU-ITEM mi_foo RUN
+choose_foo_tool.</p>
+
+<li>Add choose_foo_tool internal procedure to adeuib/uibmproa.i:</li>
+
+<p>PROCEDURE choose_foo_tool :</p>
+
+<p><span style="mso-spacerun: yes">  
+</span>RUN adeuib/_footool.w.</p>
+
+<p>END PROCEDURE.</p>
+
+</ul>
+
+<P><A NAME="2"><B>2 AppBuilder
+Toolbar Modifications</B></A></P>
+
+<p>This section contains information about
+modifying the AppBuilder toolbar.</p>
+
+<P><A NAME="2.1"><B>2.1 How do you add a new button to the AppBuilder toolbar?</B></A></P>
+
+<p><b>Steps</b></p>
+
+<p>To
+add a button to the AppBuilder main window toolbar:</p>
+
+<ol>
+
+<li>Add a new bitmap to the adeicon directory for the button’s
+up-image. The bitmap should be 25 pixels by 25 pixels.</li>
+
+<li>Add the new item to the following &amp;SCOPED-DEFINE
+directives in adeuib/uibmdefs.i:</li>
+
+<p>bar_labels
+(Names of the buttons)</p>
+
+<p>bar_tips
+(Tooltips for the buttons)</p>
+
+<p>bar_images (Images for the buttons without
+the .bmp extension)</p>
+
+<p>bar_actions (Internal procedures that
+execute when the buttons are chosen)</p>
+
+<p>Each of the above directives contains a list
+of button characteristics in order of appearance on the toolbar. If, for example, you add a new button as the
+5th item in the toolbar, you must add the item characteristic (name, tooltip,
+image, or action) as the 5th item in each directive.</p>
+
+<li>Add 1 to the &amp;GLOBAL-DEFINE directive, bar_count in
+adeuib/uibmdefs.i.</li>
+
+<li>Adjust the size of the rectangles of the toolbar to
+accommodate the additional button in adeuib/uibmdefs.i.</li>
+
+<li>If applicable, add code to the sensitize_main_window internal
+procedure of adeuib/uibmproe.i to set the menu item's SENSITIVE attribute to
+TRUE or FALSE as appropriate. Be sure to search through adeuib code for
+references to h_button_bar and adjust any references to its extent, as
+necessary.</li>
+
+<li>Create an internal procedure to execute the functionality when
+the toolbar button is chosen. Place this internal procedure in
+adeuib/uibmproa.i or adeuib/uibmproe.i depending on the name of the internal
+procedure (uibmproa.i contains procedures that begin with a – d and uibmproe.i
+contains internal procedures that begin with e – z).</li>
+</ol>
+
+<p><b>Example</b></p>
+
+<p>The
+following example illustrates the required code modifications for adding a new
+tool (called Foo) to the AppBuilder main window toolbar (after the Color button
+and before the Development Mode button):</p>
+
+<ol>
+
+<li>Add foo.bmp to the adeicon directory.</li>
+
+<li>Add 1 to the bar_count &amp;GLOBAL-DEFINE directive in
+adeuib/uibmdefs.i:</li>
+
+<p>&amp;GLOBAL-DEFINE
+bar_count 11</p>
+
+<li>Add the foo to the bar_labels &amp;SCOPED-DEFINE directive in
+adeuib/uibmdefs.i:</li>
+
+<p>&amp;SCOPED-DEFINE
+bar_labels New,Open,Save,Print,Procedure,Run,Edit,List,~</p>
+
+<p>Property,Colors,Foo</p>
+
+<li>Add foo to the bar_tips directive:</li>
+
+<p>&amp;SCOPED-DEFINE
+bar_tips New,Open,Save,Print,Procedure settings,Run,Edit code,List
+objects,Object properties,Colors,Foo</p>
+
+<li>Add foo to the bar_images directive:</li>
+
+<p>&amp;SCOPED-DEFINE
+bar_images new,open,save,print,proc,run,editcode,list,props,color,foo</p>
+
+<li>Add choose_foo_tool to the bar_actions directive:</li>
+
+<p>&amp;SCOPED-DEFINE
+bar_actions
+choose_file_new,choose_file_open,choose_file_save,choose_file_print,choose_proc_settings,choose_run,choose_codedit,choose_uib_browser,choose_prop_sheet,adeuib/_selcolr.p,choose_foo_tool</p>
+
+<li>Adjust the size of the rectangles in adeuib/uibmdefs.i to
+accommodate the new button in the same rectangle as the Color button:</li>
+
+<p>a)<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Change
+the SIZE-PIXELS of rectangle group3 from 265 BY 30 to 290 BY 30</p>
+
+<p>b)<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Change
+the SIZE-PIXELS of rectangle group4 from 295 BY 30 to 320 BY 30</p>
+
+<li>Change appropriate references to h_button_bar[10] to
+h_button_bar[11] in mode-morph in adeuib/uibmproe.i. (This assumes that bar_count was changed from 10 to 11 in step #2
+above).</li>
+
+<p>X =
+h_button_bar[11]:X + h_button_bar[11]:WIDTH-P + 6</p>
+
+<p>ASSIGN
+rh = h_button_bar[11]:FRAME</p>
+
+<p>rh:WIDTH-P
+= rh:WIDTH-P - h_button_bar[11]:WIDTH-P.</p>
+
+<li>Add choose_foo_tool internal procedure to adeuib/uibmproa.i:</li>
+
+<p>PROCEDURE choose_foo_tool :</p>
+
+<p>RUN adeuib/_footool.w.</p>
+
+<p>END PROCEDURE.</p>
+
+</ol>
+
+<P><A NAME="3"><B>3 Related Documentation</B></A></P>
+
+<p>The following documents
+provide additional information about this subject matter:</p>
+
+<ul>
+
+<li>&lt;PSC user documentation&gt;</li>
+
+<li>&lt;Other related documents such as whitepapers&gt;</li>
+
+</div>
+
+</SPAN>

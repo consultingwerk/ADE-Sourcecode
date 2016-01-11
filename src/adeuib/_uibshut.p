@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -40,6 +40,7 @@ Date Created: 1992
 Modified on 12/17/96 by gfs - Delete PROX object
             05/06/99 by tsm - Delete MRU FileList Temp Table records
             05/31/00 by jep - Delete LIB-MGR object
+            08/19/01 by jep - Delete AB's menubar object. Part of ICF. jep-icf
 ----------------------------------------------------------------------------*/
  
 {adeuib/uniwidg.i}
@@ -122,3 +123,7 @@ END.  /* for each mru */
    Insert Call option. -jep */
 IF VALID-HANDLE(_h_mlmgr) THEN
   RUN destroy IN _h_mlmgr NO-ERROR.
+
+/* jep-icf: Shutdown AB menubar procedure. Part of ICF support. */
+IF VALID-HANDLE(_h_menubar_proc) THEN
+  RUN destroy IN _h_menubar_proc NO-ERROR.

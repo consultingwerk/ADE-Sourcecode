@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -297,14 +297,14 @@
     if (isIE4up) {
       var cReturn = fileChanges(evt, "fileClose", "fileClose");
       if (cReturn != "cancel" && cReturn != "Cancel" && cReturn != null)
-        parent.location.href = "/webspeed31C/workshop/welcome.html";
+        parent.location.href = "/webspeed31D/workshop/welcome.html";
     }
     else if (isNav4up) {
       if (evt == undefined)
         var cReturn = fileChanges(evt, "fileClose", "fileClose");
         
       if (cReturn != getUnknown() && evt != "cancel" && evt != "Cancel")
-        parent.location.href = "/webspeed31C/workshop/welcome.html";
+        parent.location.href = "/webspeed31D/workshop/welcome.html";
     }
   }
   
@@ -1099,7 +1099,7 @@
                    fName - file name
       Notes:       
     -------------------------------------------------------------------------*/
-    e.src = "/webspeed31C/images/" + fName + ".gif";
+    e.src = "/webspeed31D/images/" + fName + ".gif";
   }
     
   function setHeaderTitle() {

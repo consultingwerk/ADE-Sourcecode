@@ -17,7 +17,7 @@
 * should refer to the License for the specific language governing    *
 * rights and limitations under the License.                          *
 *                                                                    *
-* Contributors:                                                      *
+* Contributors:   Fernando de Souza                                  *
 *                                                                    *
 *********************************************************************/
 
@@ -37,7 +37,7 @@ in accordance with the what was once ???_idx.p's expectations.
 { prodict/user/uservar.i }
 
 DEFINE VARIABLE i        AS INTEGER                NO-UNDO.
-DEFINE VARIABLE max-key  AS INTEGER   INITIAL 10   NO-UNDO.
+DEFINE VARIABLE max-key  AS INTEGER   INITIAL 16   NO-UNDO.
 DEFINE VARIABLE p_count  AS INTEGER                NO-UNDO.
 DEFINE VARIABLE p_cursor AS INTEGER                NO-UNDO.
 DEFINE VARIABLE p_delid  AS INTEGER   INITIAL 2000 NO-UNDO.
@@ -56,6 +56,17 @@ DEFINE VARIABLE p_redraw AS LOGICAL   INITIAL TRUE NO-UNDO.
   /* frame line of first non indexed field */
 DEFINE VARIABLE p_top    AS INTEGER   INITIAL 2    NO-UNDO.
 DEFINE VARIABLE p_typed  AS CHARACTER              NO-UNDO.
+/* total number of fields in the table */
+DEFINE VARIABLE p_total  AS INTEGER                NO-UNDO.
+DEFINE VARIABLE p_current AS INTEGER  INITIAL 0    NO-UNDO.
+/*array with the fields chosen by the user*/ 
+DEFINE VARIABLE p_chosen AS CHARACTER EXTENT  16   NO-UNDO.
+/*max number of lines in the upper part of the list*/
+DEFINE VARIABLE p_maxl   AS INTEGER   INITIAL 10   NO-UNDO. 
+DEFINE VARIABLE j        AS INTEGER                NO-UNDO.
+/*flag keeps track if the last line in the uuper part of 
+  the list is the last field chosen*/
+DEF VAR flag AS INT INITIAL 0. 
 
 user_env[4] = "".
 
@@ -68,8 +79,8 @@ FOR EACH _Field
     p_count = p_count + 1
     p_name[p_count] = STRING(_Field-name,"x(33)") + STRING(_Data-type,"x(4)").
 END.
-
 IF p_count = 0 THEN RETURN.
+ASSIGN p_total = p_count.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 9 NO-UNDO INITIAL [
@@ -172,7 +183,7 @@ DO WHILE TRUE WITH FRAME pick:
     STATUS DEFAULT user_status.
   END.
   IF FRAME-LINE >= p_top THEN DISPLAY "   " + p_name[p_recid] @ p_mark.
-
+  
   COLOR DISPLAY MESSAGES p_mark.
   READKEY.
   COLOR DISPLAY NORMAL   p_mark.
@@ -216,26 +227,92 @@ DO WHILE TRUE WITH FRAME pick:
   ELSE
   IF CAN-DO("RETURN",KEYFUNCTION(LASTKEY)) THEN _return: DO:
     /* only one component allowed in word index */
-    IF p_count > 0 AND FRAME-LINE >= p_top AND
-      (p_top > max-key + 1 OR (user_env[2] matches "*w*" AND p_top > 2))
+   IF p_count > 0 AND FRAME-LINE >= p_top AND
+      ((p_total - p_count) = max-key  OR (user_env[2] matches "*w*" AND p_top > 2))
       THEN DO:
       MESSAGE new_lang[8]. /* too many parts */
       LEAVE _return.
     END.
     IF p_top > 2 AND FRAME-LINE < p_top THEN DO:    /* <-- delete component */
       ASSIGN
-        p_scrap = SUBSTRING(INPUT p_mark,4,37)
-        p_top   = p_top - 1.
-      DISPLAY "" @ p_mark.
-      SCROLL FROM-CURRENT UP.
-      DO WHILE FRAME-LINE < p_top - 1:
-        DISPLAY STRING(FRAME-LINE,"Z9") + SUBSTRING(INPUT p_mark,3) @ p_mark.
-        DOWN 1.
-      END.
-      DOWN 1. /* skip over ---- line */
+        p_scrap = SUBSTRING(INPUT p_mark,4,37).
+       /* check if user has chosen <p_maxl> field or less*/
+        IF (p_total - p_count) <= p_maxl THEN DO:
+            ASSIGN p_top   = p_top - 1.
+            DISPLAY "" @ p_mark.
+            SCROLL FROM-CURRENT UP.
+            DO WHILE FRAME-LINE < p_top - 1:
+                DISPLAY STRING(FRAME-LINE,"Z9") + SUBSTRING(INPUT p_mark,3) @ p_mark.
+                DOWN 1.
+            END.
+            DOWN 1. /* skip over ---- line */
+        END.
+        /*User has chosen more than <p_maxl> fields*/
+        ELSE DO:
+            /* Should never happen, but if there was a blank line left,
+                  remove it from top part of the list*/ 
+            IF p_scrap = "" THEN flag = 1.
+            /*if we don't need to scroll down */
+            IF flag = 0 THEN DO:
+                DO i = 1 TO max-key:
+                   IF TRIM(substring(p_chosen[i],1,37)) = TRIM(p_scrap)  THEN LEAVE.
+                END.
+
+                DO j = (i + 1) TO max-key:
+                   DISPLAY STRING(j - 1,"Z9") + " " + p_chosen [j] @ p_mark.
+                   DOWN 1.
+                   IF FRAME-LINE = (p_top - 1) THEN LEAVE.
+                END.
+            END.
+            ELSE DO:
+                /*we need to scroll down what's above p_top */
+                UP FRAME-LINE - 1.
+                p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).
+                IF p_current = 1 THEN p_current = p_current + 1.
+                IF (p_total - p_count) = (p_maxl + 1) THEN
+                    i = 1.
+                ELSE
+                    ASSIGN i = (p_current - 1 ).
+                DO j = i  TO max-key:
+                    IF  TRIM(substring(p_chosen[j],1,37)) <> TRIM(p_scrap) THEN DO:
+                       DISPLAY STRING(i ,"Z9") + " " + p_chosen [j] @ p_mark.
+                       DOWN 1.
+                    END.
+                    ELSE i = i - 1.  /* decrease i as we skipped the deleted field */
+                    IF FRAME-LINE = (p_top - 1) THEN LEAVE.
+                    ASSIGN    i = i + 1.
+                 END.
+            END.
+            /* DOWN 1.*/
+            UP 1.
+            IF FRAME-LINE = (p_top - 2) THEN DO:
+              p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).               
+              /*keep flaf if user is seeing the last field chosen. */
+              IF p_current = (p_total - p_count - 1) THEN flag = 1.
+              ELSE flag = 0. 
+            END.
+            DOWN 2.
+        END.
       /*SCROLL FROM-CURRENT DOWN.*/
 
-      /* now re-insert this field into the lower part of the list */
+       /*search through p_chosen to find the line and delete it. then re-arrange the array */
+        DO i = 1 TO max-key:
+            /*found the line*/
+            IF TRIM(substring(p_chosen[i],1,37)) = TRIM(p_scrap) THEN DO:
+               /* rearrange the array*/
+               DO j = i TO max-key:
+                   IF p_chosen[j] = "" THEN LEAVE.
+                   IF j = max-key THEN 
+                        p_chosen[max-key] = "". /* item maxkey is always blank when deleting */
+                   ELSE
+                   p_chosen[j] = p_chosen[ j + 1].
+               END.
+           END.
+        END.
+
+   /* to avoid including blank lines in the lower part of the list*/ 
+     IF p_scrap <> ""  THEN DO:
+     /* now re-insert this field into the lower part of the list */
       DO i = 2000 TO p_delid BY -1:
         IF p_name[i] = p_scrap THEN LEAVE.
       END.
@@ -254,7 +331,8 @@ DO WHILE TRUE WITH FRAME pick:
         p_redraw      = TRUE
         p_recid       = 1.
       /*DOWN p_top - FRAME-LINE.*/
-    END.
+     END. /* if p_scrap <> "" */
+    END. /* delete component */
     ELSE
     IF p_count > 0 AND FRAME-LINE >= p_top THEN DO:    /* <-- add component */
       /* don't ask about asc/dec on word index */
@@ -282,14 +360,42 @@ DO WHILE TRUE WITH FRAME pick:
       user_status = p_help.
       STATUS DEFAULT user_status.
       IF p_dir = ? OR KEYFUNCTION(LASTKEY) = "END-ERROR" THEN LEAVE _return.
-      p_top = p_top + 1.
-      UP FRAME-LINE - p_top + 2.
-      DISPLAY STRING(p_top - 2,"Z9") + " " + p_name[p_recid] + " "
-        + STRING(p_dir,"yes/no") @ p_mark.
-      DOWN.
-      DISPLAY FILL("-",80) @ p_mark.
-      DOWN.
+      flag = 1. /*it is always scrolled down to the last field chosen*/  
+      IF (p_total - p_count) < p_maxl THEN DO:
+         p_top = p_top + 1.
+         UP FRAME-LINE - p_top + 2.
+         DISPLAY STRING(p_top - 2,"Z9") + " " + p_name[p_recid] + " "
+         + STRING(p_dir,"yes/no") @ p_mark.
+         ASSIGN p_chosen [p_total - p_count + 1] = SUBSTRING(INPUT p_mark,4,50).
+            
+         DOWN.
+         DISPLAY FILL("-",80) @ p_mark.
+         DOWN.
+      END.
+      ELSE DO:
+         UP FRAME-LINE - p_top + 2.
+         /*if last line is the last field*/
+              
+         p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).
+         IF p_current = (p_total - p_count) THEN DO:
+             j = (p_total - p_count) - p_maxl + 2.
+         END.
+         ELSE DO :
+             p_current = (p_total - p_count).
+             j = (p_total - p_count) - p_maxl + 2.
+         END.
+         UP FRAME-LINE - 1.
+         DO i = j TO p_current:
+            DISPLAY STRING(i ,"Z9") + " " + p_chosen [i] @ p_mark.
+            DOWN 1.
+         END.
+         DISPLAY STRING(p_current + 1,"Z9") + " " + p_name[p_recid] + " "
+          + STRING(p_dir,"yes/no") @ p_mark.
+         ASSIGN p_chosen [p_total - p_count + 1] = SUBSTRING(INPUT p_mark,4,50).
 
+         DOWN 2. /* skip to p_top line*/
+      END.
+      
       /* now remove this field from the lower part of the list */
       ASSIGN
         p_name[p_delid]     = p_name[p_recid]
@@ -314,12 +420,39 @@ DO WHILE TRUE WITH FRAME pick:
       SCROLL FROM-CURRENT UP.
       DOWN FRAME-DOWN - FRAME-LINE.
     END.
-    ELSE
-    IF FRAME-LINE < p_top OR p_count > 0 THEN DOWN.
+    ELSE  DO:
+       /* when above the top line */
+       p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).
+       
+       IF FRAME-LINE = (p_top - 2) THEN DO:
+         /*keep flag if user is seeing the last field chosen. */
+         IF p_current = (p_total - p_count) THEN flag = 1.
+         ELSE flag = 0. 
+
+         IF p_current <> max-key AND p_chosen[p_current + 1] <> "" THEN DO:
+           UP FRAME-LINE - 1.
+           DO i = ( p_current - p_maxl + 2) TO max-key:
+               DISPLAY STRING(i,"Z9") + " " + p_chosen [i] @ p_mark.
+               IF FRAME-LINE = (p_top - 1) OR i = p_current + 1 THEN LEAVE.
+               DOWN 1.
+           END.
+         END.
+         ELSE   
+             IF (FRAME-LINE < p_top OR p_count > 0 )  THEN DOWN. 
+       END.
+       ELSE
+           IF (FRAME-LINE < p_top OR p_count > 0 )  THEN DOWN. 
+    END.
     IF FRAME-LINE = p_top - 1 THEN DOWN 1.
   END.
   ELSE
   IF CAN-DO("CURSOR-UP,BACK-TAB",KEYFUNCTION(LASTKEY)) THEN DO:
+    IF FRAME-LINE = (p_top - 2 ) THEN DO:
+        p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).
+        IF p_current = (p_total - p_count) THEN flag = 1.
+        ELSE flag = 0. 
+    END.
+
     IF p_recid > 1 THEN DO:
       p_recid = p_recid - 1.
       IF FRAME-LINE = p_top THEN
@@ -330,6 +463,21 @@ DO WHILE TRUE WITH FRAME pick:
     ELSE IF p_top > 2 THEN DO:
       IF FRAME-LINE > 1 THEN UP 1.
       IF FRAME-LINE = p_top - 1 THEN UP 1.
+      /*check if we need to scroll up*/
+      IF FRAME-LINE = 1 THEN 
+      DO:
+          p_current = INTEGER(SUBSTRING(INPUT p_mark,1,3)).
+          IF (p_total - p_count) > p_maxl AND ( p_current <> 1) THEN 
+          DO:
+            DO i = ( p_current - 1) TO max-key:
+                DISPLAY STRING(i,"Z9") + " " + p_chosen [i] @ p_mark.
+                DOWN 1.
+                IF FRAME-LINE = (p_top - 1) OR i = (i + 8) THEN LEAVE.
+            END.
+            UP FRAME-LINE - 1.
+            flag = 0 . /* the p_maxl line is not the last field chosen */
+          END.
+      END.
     END.
   END.
   ELSE
@@ -364,7 +512,7 @@ DO WHILE TRUE WITH FRAME pick:
   END.
   ELSE
   IF KEYFUNCTION(LASTKEY) = "GO" AND p_top > 2 THEN DO:
-    UP FRAME-LINE - 1.
+  /*UP FRAME-LINE - 1.
     DO WHILE FRAME-LINE < p_top - 1:
       ASSIGN
         p_mark = SUBSTRING(INPUT p_mark,4)
@@ -375,6 +523,21 @@ DO WHILE TRUE WITH FRAME pick:
     END.
     IF FRAME-LINE + 3 < 19 THEN
       user_env[FRAME-LINE + 3] = "". /* ???_idx.p end marker */
+    LEAVE.
+  END. /* up to 10 fields*/
+ */  
+    DO i = 1 TO max-key:
+      ASSIGN 
+        p_mark = p_chosen[i]
+        user_env[i + 3] 
+          = SUBSTRING(p_mark,1,INDEX(p_mark," ") - 1) + ","
+          + STRING(SUBSTRING(p_mark,39,1) = "y","+/-").
+        
+        IF p_mark = "" THEN DO: 
+           USER_env[i + 3] = "".
+           LEAVE.
+        END.
+    END.
     LEAVE.
   END.
   ELSE

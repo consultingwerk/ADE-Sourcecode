@@ -43,13 +43,14 @@ Modified: 1/98 SLK Added SmartData
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 
+{adeuib/sharvars.i}             /* Shared Appbuilder definitions            */
 {adeuib/uniwidg.i}              /* Universal widget definition              */
 {adeuib/triggers.i}             /* Trigger Temp-table definition            */
 {adeuib/brwscols.i}             /* Brwose column temp-table definitions     */
 
 /* Rather than include all of sharvars.i, I'll just define the share for
    _h_uib, which is used to call its internal procedure setstatus. */
-DEFINE SHARED VAR _h_uib        AS WIDGET-HANDLE                     NO-UNDO.
+/* DEFINE SHARED VAR _h_uib        AS WIDGET-HANDLE                     NO-UNDO. */
 
 DEFINE VAR ldummy AS LOGICAL NO-UNDO.
 
@@ -61,6 +62,27 @@ IF _U._TYPE = "QUERY":U THEN FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE
 
 /* This include performs browse column size adjustment */ 
 {adeuib/_adjcols.i}             
+
+/*  jep-icf: Open a dynamic repository object property sheet. */
+IF CAN-DO(_AB_Tools, "Enable-ICF":U) THEN
+DO:
+  FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE NO-ERROR.
+  IF NOT AVAILABLE _P THEN
+  DO:
+    MESSAGE "Unable to start Property sheet."
+      VIEW-AS ALERT-BOX ERROR.
+    RETURN.
+  END.
+
+  /* Must be a repository object and dynamic (logical_object is YES). */
+  IF _P.design_ryobject AND _P.logical_object THEN
+  DO:
+    RUN showRepositoryObjectPropSheet.
+    RETURN.
+  END.
+  
+END.  /* IF Enable-ICF */
+
 
 /* In a DESIGN-WINDOW, bypass the Window property sheet 
    and go to the first child of the "window", if available. */
@@ -77,8 +99,7 @@ IF _U._TYPE eq "WINDOW" AND _U._SUBTYPE eq "Design-Window":U THEN DO:
                    NO-ERROR.
              
   IF NOT AVAILABLE x_U   
-  THEN MESSAGE "Property sheet cannot be displayed.  There are no" {&SKP}
-            "objects in this design window."
+  THEN MESSAGE "Property sheet cannot be displayed. There are no objects in this design window."
              VIEW-AS ALERT-BOX INFORMATION.
   ELSE 
     /* Show this object instead. */
@@ -117,11 +138,8 @@ ELSE IF (_U._TYPE eq "SmartObject":U) THEN RUN adeuib/_prpsmar.p (_U._HANDLE).
 /* SmartData This is the property sheet with query/field buttons */
 ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U)
 THEN RUN adeuib/_prpsdo.p (_U._HANDLE).
-
-
 ELSE
 DO:
-  
   /* If this is a tree-view we just run the list-items/radio-set 
      property dialog */
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
@@ -132,3 +150,36 @@ DO:
   ELSE  
     RUN adeuib/_prpobj.p (INPUT _U._HANDLE).
 END.
+
+/*************** Internal Procedures  **********************/
+
+PROCEDURE showRepositoryObjectPropSheet :
+/*  jep-icf: Display a dynamic repository object's special property sheet. Each     */
+/*  object type defines a property sheet procedure that is started persistent here  */
+/*  or viewed if it's already been started.                                         */
+
+  DO ON ERROR UNDO, LEAVE:
+  
+    /*  jep-icf: Start Property Sheet if not already running. Otherwise just view it. */
+    IF NOT VALID-HANDLE(_P.design_hpropsheet) THEN
+    DO:
+      RUN VALUE(_P.design_propsheet_file) PERSISTENT SET _P.design_hpropsheet
+          (INPUT RECID(_P)).
+
+      /*  If the Property Sheet is running, initialize it. This supports 
+          SmartWindows. Otherwise if it's not running, then either it could be a 
+          dialog box that has deleted itself on close or possibly some error 
+          occurred when trying to run the prop sheet procedure. */
+      IF VALID-HANDLE(_P.design_hpropsheet) THEN
+        RUN initializeObject IN _P.design_hpropsheet NO-ERROR.
+    END.
+    ELSE  /* Prop Sheet is already running, so just view it. */
+    DO:
+      RUN viewObject IN _P.design_hpropsheet NO-ERROR.
+    END.
+
+    RETURN.
+    
+  END. /* DO ON ERROR */
+
+END PROCEDURE.

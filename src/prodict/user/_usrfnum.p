@@ -73,7 +73,7 @@ numfld = _File._numfld - 1.
 
 FIND xfile "_Field".
 IF NOT CAN-DO(xfile._Can-write,USERID("DICTDB")) THEN msg-num = 2.
-ELSE IF _File._Db-lang = 1                       THEN msg-num = 3.
+ELSE IF _File._Db-lang > 0                       THEN msg-num = 3.
 ELSE IF _File._Frozen                            THEN msg-num = 4.
 ELSE IF dict_rog                                 THEN msg-num = 1.
 ELSE IF numfld = 0                               THEN msg-num = 10.

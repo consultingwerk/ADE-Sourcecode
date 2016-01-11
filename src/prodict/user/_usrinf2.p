@@ -25,6 +25,7 @@
 
 /*
   Display some interesting session information.
+  Increased number of extents for propath so all .pl's will show 20010411-002
 */
 
 { prodict/dictvar.i }
@@ -46,7 +47,7 @@ DEFINE VARIABLE lname     AS CHARACTER   	NO-UNDO.
 DEFINE VARIABLE mdy	  AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE num       AS INTEGER            NO-UNDO.
 DEFINE VARIABLE pname     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE prpath	  AS CHARACTER EXTENT 6 NO-UNDO.
+DEFINE VARIABLE prpath	  AS CHARACTER EXTENT 20 NO-UNDO.
 DEFINE VARIABLE scharset  AS CHARACTER   	NO-UNDO.
 DEFINE VARIABLE sname     AS CHARACTER   	NO-UNDO.
 DEFINE VARIABLE sstream   AS CHARACTER   	NO-UNDO.
@@ -79,7 +80,7 @@ ASSIGN
   prpath   = PROPATH
   sstream  = SESSION:STREAM.
 
-{ prodict/dictsplt.i &src=PROPATH &dst=prpath &num=6 &len=60 &chr="," }
+{ prodict/dictsplt.i &src=PROPATH &dst=prpath &num=20 &len=60 &chr="," }
 
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 
@@ -144,6 +145,20 @@ DISPLAY STREAM rpt
       	      prpath[4] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
       	      prpath[5] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
       	      prpath[6] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+              prpath[7] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[8] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+              prpath[9] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[10] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+              prpath[11] FORMAT "x(60)" NO-LABEL        AT 12 SKIP
+      	      prpath[12] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[13] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[14] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[15] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[16] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+              prpath[17] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[18] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+              prpath[19] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+      	      prpath[20] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
   WITH FRAME env SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
   TITLE " Environment/Startup Parameters ".
 

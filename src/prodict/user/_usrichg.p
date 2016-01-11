@@ -373,7 +373,7 @@ ASSIGN
                    &direction = "itoe"
                    &from-type = "user_dbtype"
                    }
-  new_lang[11] = new_lang[11] + " " + (IF _File._Db-lang = 1
+  new_lang[11] = new_lang[11] + " " + (IF _File._Db-lang > 0
                  THEN "PROGRESS/SQL" ELSE edbtyp)
   new_lang[30] = substitute(new_lang[30],edbtyp)
   qbf_idx_max  = MINIMUM(INTEGER(ENTRY(6,c)),16) /* max index key comps    */
@@ -590,7 +590,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
 
     IF ENTRY(qbf#,qbf#list) BEGINS "-" THEN DO:   
       MESSAGE new_lang[- INTEGER(ENTRY(qbf#,qbf#list))] view-as alert-box.
-    IF _File._Db-lang <> 1 THEN .
+    IF _File._Db-lang = 0 THEN .
       ELSE IF qbf# = 6 THEN MESSAGE new_lang[24]. /* use CREATE INDEX */
       ELSE IF qbf# = 7 THEN MESSAGE new_lang[25]. /* use DROP INDEX */
       NEXT.

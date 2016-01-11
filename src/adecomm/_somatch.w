@@ -1,3 +1,6 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
@@ -119,7 +122,55 @@ DEFINE TEMP-TABLE ttMismatch
    FIELD visualFld              AS CHARACTER      LABEL "Visual Object Fields"
    FIELD queryCol               AS CHARACTER      LABEL "Query Object Columns"
 .
-/* ******************************************************************** */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
+
+
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Procedure
+   Allow: 
+   Frames: 0
+   Add Fields to: Neither
+   Other Settings: CODE-ONLY COMPILE
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW Procedure ASSIGN
+         HEIGHT             = 5.05
+         WIDTH              = 60.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
+
+
+/* ***************************  Main Block  *************************** */
 
 /* determine the type of object */
 ASSIGN
@@ -129,7 +180,6 @@ ASSIGN
    l_2ndObjIsQueryObject = DYNAMIC-FUNCTION("getQueryObject":U IN ph_2ndObject)
    pl_objectsMatch = ?
    NO-ERROR.
-
 
 /* 
  * querySmartBrowser = objectType = "smartDataBrowser" AND isQueryObject
@@ -157,7 +207,6 @@ IF (NOT CAN-DO("Data,Update,Filter":U,pc_link-type))
     (l_1stObjIsQueryObject OR
     l_2ndObjIsQueryObject))
 THEN RETURN.
-
 
 /* 
  * STRICT tt signature
@@ -288,7 +337,8 @@ DO:
       IF c_SVisualColumns <> "":U THEN
       DO cnt = 1 TO NUM-ENTRIES(c_SVisualColumns):
          cTemp = ENTRY(cnt,c_SVisualColumns).
-         IF NOT CAN-DO(c_SQueryColumns,cTemp) THEN
+         IF NOT CAN-DO(c_SQueryColumns,cTemp) AND 
+            NOT cTemp = "<Local>":U THEN    /* IZ 1611 Local field support */
          DO:
             ASSIGN pl_objectsMatch = NO.
             IF NOT pl_details THEN LEAVE.
@@ -365,8 +415,9 @@ DO:
          IF c_EnabledFlds <> "":U THEN
          DO cnt = 1 TO NUM-ENTRIES(c_EnabledFlds):
             cTemp = ENTRY(cnt,c_EnabledFlds).
-            IF NOT CAN-DO(c_updatableFlds,cTemp) THEN 
-            DO: 
+            IF NOT CAN-DO(c_updatableFlds,cTemp) AND 
+               NOT cTemp = "<Local>":U THEN    /* IZ 1611 Local field support */
+            DO:
                 ASSIGN pl_objectsMatch = NO.
                 IF NOT pl_details THEN LEAVE.
             END.
@@ -391,5 +442,9 @@ DO:
                + "which are not updatable in the SmartDataObject.":U.
          END.
   RETURN.
-END. /* Update Link */ 
+END. /* Update Link */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 

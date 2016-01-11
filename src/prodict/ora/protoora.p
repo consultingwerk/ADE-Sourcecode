@@ -32,6 +32,7 @@
                                main so values would not be lost if error
                                occurred 20000121012
             D. McMann 04/12/00 Added long Progress Database path name.
+            D. McMann 10/12/01 Added logic to dump defaults if user wants
 */            
 
 
@@ -50,6 +51,7 @@ DEFINE VARIABLE err-rtn       AS LOGICAL INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE old-dictdb    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL NO-UNDO.
+DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -58,7 +60,6 @@ ASSIGN redo = FALSE
 
 
 FORM
-  " "   SKIP 
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
     LABEL "Original PROGRESS Database" colon 38 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
@@ -79,17 +80,21 @@ FORM
      LABEL "ORACLE connect parameters" colon 38 SKIP({&VM_WID})
   ora_codepage FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Codepage for Schema Image" colon 38 SKIP({&VM_WID}) 
-  " Enter the name of the ORACLE tablespace for:" view-as text SKIP({&VM_WID})   
+  ora_collname FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
+     LABEL "Collation Name" COLON 38 SKIP({&VM_WID})  
+  " ORACLE tablespace name for:" view-as text SKIP({&VM_WID})   
   ora_tspace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Tables" colon 8
   ora_ispace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Indexes" colon 47 SKIP({&VM_WIDG})      
-  SPACE(9) compatible view-as toggle-box LABEL "Progress 4GL Compatible Objects  "  
+  SPACE(9) pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects  "  
   sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WID})
-  SPACE(9) loadsql view-as toggle-box    label "Load SQL  " SPACE(23) 
+  SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  &IF "{&WINDOW-SYSTEM}" = "TTY"
+  &THEN SPACE(24) &ELSE SPACE(23) &ENDIF
   movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
+   SPACE(9) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})
              {prodict/user/userbtns.i}
-  WITH FRAME x ROW 2 CENTERED SIDE-labels 
+  WITH FRAME x ROW &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 1 &ELSE 2 &ENDIF CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX &ENDIF
@@ -177,6 +182,8 @@ IF OS-GETENV("ORACLE_SID") <> ? THEN
   ora_sid = OS-GETENV("ORACLE_SID").
 IF OS-GETENV("ORACODEPAGE") <> ? THEN
   ora_codepage = OS-GETENV("ORACODEPAGE").
+IF OS-GETENV("ORACOLLNAME") <> ? THEN
+  ora_collname = OS-GETENV("ORACOLLNAME").
 IF OS-GETENV("TABLEAREA") <> ? THEN
   ora_tspace = OS-GETENV("TABLEAREA").
 IF OS-GETENV("INDEXAREA") <> ? THEN
@@ -188,11 +195,11 @@ IF tmp_str BEGINS "Y" THEN movedata = TRUE.
 
 IF OS-GETENV("COMPATIBLE") <> ? THEN DO:
   tmp_str      = OS-GETENV("COMPATIBLE").
-  IF tmp_str BEGINS "Y" then compatible = TRUE.
-  ELSE compatible = FALSE.
+  IF tmp_str BEGINS "Y" then pcompatible = TRUE.
+  ELSE pcompatible = FALSE.
 END. 
 ELSE
-  compatible = TRUE.
+  pcompatible = TRUE.
      
 IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
   tmp_str      = OS-GETENV("SQLWIDTH").
@@ -209,6 +216,30 @@ IF OS-GETENV("LOADSQL") <> ? THEN DO:
 END. 
 ELSE
  loadsql = TRUE.
+
+ IF OS-GETENV("ORACODEPAGE") <> ? THEN
+   ora_codepage = OS-GETENV("ORACODEPAGE").
+ ELSE
+   ASSIGN ora_codepage = session:cpinternal.
+
+ IF OS-GETENV("ORACOLLNAME") <> ? THEN
+   ora_collname = OS-GETENV("ORACOLLNAME").
+ ELSE
+   ASSIGN ora_collname = session:CPCOLL.
+
+IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("CRTDEFAULT").
+  IF tmp_str BEGINS "Y" then crtdefault = TRUE.
+  ELSE crtdefault = FALSE.
+END. 
+ELSE 
+  ASSIGN crtdefault = FALSE.
+
+IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
+  ASSIGN mvdta = FALSE.
+ELSE
+  ASSIGN mvdta = TRUE.
+
 
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" then 
   assign pro_conparms = "<current working database>".
@@ -236,12 +267,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_password
       ora_conparms
       ora_codepage
+      ora_collname
       ora_tspace
       ora_ispace
-      compatible
+      pcompatible
       sqlwidth
       loadsql
-      movedata
+      movedata WHEN mvdta
+      crtdefault
       btn_OK btn_Cancel 
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help

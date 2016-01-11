@@ -101,7 +101,6 @@
      be retrieved directly from the temp-table */
 
   &GLOBAL-DEFINE xpClientID
-  &GLOBAL-DEFINE xpDomain
   &GLOBAL-DEFINE xpJMSpartition
   &GLOBAL-DEFINE xpJMSuser
   &GLOBAL-DEFINE xpJMSpassword

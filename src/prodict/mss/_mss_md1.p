@@ -123,6 +123,9 @@ IF not stages[mss_create_objects] THEN RETURN.
 DISCONNECT VALUE (osh_dbname).
 CONNECT VALUE (osh_dbname) -1.
 RUN connect-schdb.
+IF PDBNAME("DICTDBG") = ? THEN
+  RETURN "undo".
+
 RUN prodict/mss/_mss_sdb.p.
 
 IF RETURN-VALUE = "wrg-ver" THEN DO:

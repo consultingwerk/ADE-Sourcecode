@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -51,6 +51,8 @@ Author: D. Ross Hunter,  Wm.T.Wood
 Date Created: 1992
 
 Modified    : 
+    10/10/01 jep-icf  IZ 2101 Run button enabled when editing dynamic objects.
+    08/15/01 jep      Added support for ICF development environment. jep-icf
     05/07/99 tsm      Added support for Most Recently Used FileList
     04/07/99 tsm      Added support for various Intl Numeric Formats (in addition
                       to American and European) by using session set-numeric-format
@@ -66,18 +68,27 @@ Modified    :
     6/15/94  tullmann Added profiler checkpoints and init
     12/7/93  RPR      Added combo box
 ----------------------------------------------------------------------------*/
-&Scoped-define start_draw_cursor "CROSS"
-&Scoped-define end_draw_cursor   "SIZE-SE"
-&Scoped-define dbgmsg_lvl        0
-&Scoped-define USE-3D            YES
+/* ===================================================================== */
+/*                      PREPROCESSOR DEFINITIONS                         */
+/* ===================================================================== */
+&SCOPED-DEFINE start_draw_cursor "CROSS"
+&SCOPED-DEFINE end_draw_cursor   "SIZE-SE"
+&SCOPED-DEFINE dbgmsg_lvl        0
+&SCOPED-DEFINE USE-3D            YES
 &GLOBAL-DEFINE WIN95-BTN         YES
 
 /* Define this variable because it is used in many places and we want to 
    check whether or not the hAttrED:FILE-NAME is valid. */
-&Scoped-define AttrEd adeuib/_attr-ed.w
+&SCOPED-DEFINE AttrEd adeuib/_attr-ed.w
 
 /* Define a SKIP for alert-boxes that only exists under Motif */
-&Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
+&GLOBAL-DEFINE SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
+
+/* jep-icf: These contain the location of the components of the status line. */
+&GLOBAL-DEFINE STAT-Main 1
+&GLOBAL-DEFINE STAT-Page 2
+&GLOBAL-DEFINE STAT-Tool 3
+&GLOBAL-DEFINE STAT-Lock 4
 
 /* ===================================================================== */
 /*                            INCLUDE FILES                              */
@@ -96,6 +107,18 @@ Modified    :
 {adeshar/mrudefs.i}        /* MRU Filelist temp table defs          */
 {adeuib/peditor.i}         /* Editor support procedures             */
 
+/* ===================================================================== */
+/*                    SHARED VARIABLES Definitions                       */
+/* ===================================================================== */
+/* jep-icf: Moved here from uibmdefs.i for icf support.                  */
+{adeuib/sharvars.i NEW}
+{adeuib/gridvars.i NEW}
+{adeuib/windvars.i NEW}
+{adeuib/dialvars.i NEW}    /* Dialog box border variables         */
+
+/* ===================================================================== */
+/*                          OTHER Definitions                            */
+/* ===================================================================== */
 /* Stores Visible state of OCX Property Editor window when running a procedure or
    for Tools menu calls. */
 DEFINE VARIABLE PropEditorVisible AS LOGICAL NO-UNDO.
@@ -104,8 +127,6 @@ DEFINE VARIABLE PropEditorVisible AS LOGICAL NO-UNDO.
  {adecomm/icondir.i}
 &ENDIF
 
-/* UIB Definitions         */
-{adeuib/uibmdefs.i}
 
 /* ==================================================================== */
 /*                         Function Prototypes                          */
@@ -133,6 +154,14 @@ DEF VAR setup_ok AS LOGICAL INITIAL FALSE NO-UNDO.
 */
 CREATE WIDGET-POOL.
 CREATE WIDGET-POOL "{&AB_Pool}".
+
+/* jep-icf: Establish license check right away, but don't show any messages. */
+RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT _AB_license, OUTPUT _AB_Tools). /* jep-icf */
+
+/* UIB Definitions         */
+{adeuib/uibmdefs.i}
+/* jep-icf: Moved uibmdefs.i to here from earlier in this code. It's
+   creating dynamic widgets that should be in the correct AB widget pool. */
 
 SETUP_BLOCK:
 DO ON STOP   UNDO SETUP_BLOCK, LEAVE SETUP_BLOCK
@@ -338,7 +367,7 @@ END.
      ON ERROR  UNDO, RETRY:
     IF RETRY AND NOT CAN-DO ("END-ERROR,END-KEY",LAST-EVENT:FUNCTION)
     THEN LEAVE.
-   
+
     WAIT-FOR "U9":U OF _h_menu_win FOCUS cur_widg_name.
   END.
 END. /* STOP-BLOCK */
@@ -522,7 +551,7 @@ PROCEDURE initialize_uib:
   ASSIGN _cur_win_x    = _h_menu_win:X.
   
   /* Create popup menu on the 'New' button */
-  RUN adeuib/_cr_npop.p (h_button_bar[1]).
+  RUN adeuib/_cr_npop.p (_h_button_bar[1]).
   
   /***** gfs: commented out so only inline xftrs are supported ******
   IF {&XFTR-FILE} NE ?  OR {&XFTR-FILE} NE "" THEN
@@ -531,10 +560,14 @@ PROCEDURE initialize_uib:
 
   /* Assign various handles and items on the screen for later reference:
      We assign the undo-menu-item to its handle value.                */
-  ASSIGN _undo-menu-item = MENU-ITEM mi_undo:HANDLE IN MENU m_edit
+  ASSIGN _undo-menu-item = m_hEdit:FIRST-CHILD /* jep-icf: remove static MENU-ITEM mi_undo:HANDLE */
          /* Add the UIB's name to the About menu item. */
          mi_About:LABEL = "About {&UIB_NAME}".
-         .
+  /* jep-icf Note on above _undo-menu-item assignment:
+     Because of ICF, the AB's menubar may be different than the static one defined for
+     it in uibmdefs.i. So assign _undo-menu-item handle to the first menu item on the
+     Edit menu. Undo should be that item regardless of what the menubar is. jep-icf */
+
   FIND _palette_item WHERE _palette_item._NAME = "POINTER".
     ASSIGN h_wp_pointer = _palette_item._h_up_image.
  

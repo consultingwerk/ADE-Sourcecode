@@ -533,7 +533,7 @@ DO FOR dfields TRANSACTION ON ERROR UNDO,RETRY:
           ELSE IF romode          THEN 17  /* sorry, r/o to you */
           ELSE IF qbf# = {&ADD} AND NOT can-add THEN 16 /* cant add flds  */
           ELSE IF qbf# = {&COPY} AND NOT can-copy THEN 7 /* cant copy flds */
-          ELSE IF qbf# = {&ADD} AND _File._Db-lang = 1 THEN 5 /* sql tbl */
+          ELSE IF qbf# = {&ADD} AND _File._Db-lang > 0 THEN 5 /* sql tbl */
           ELSE 0).
     IF i > 0 THEN DO:
       MESSAGE new_lang[i]. 
@@ -602,7 +602,7 @@ DO FOR dfields TRANSACTION ON ERROR UNDO,RETRY:
         inindex = AVAILABLE dfields
                   AND CAN-FIND(FIRST _Index-field WHERE
                   _Index-field._Field-recid = RECID(dfields)).
-      IF _File._Db-lang = 1 THEN MESSAGE new_lang[4]. /* sorry sql table */
+      IF _File._Db-lang > 0 THEN MESSAGE new_lang[4]. /* sorry sql table */
       ELSE IF inview  THEN MESSAGE new_lang[1]. /* in view  */
       ELSE IF inindex THEN MESSAGE new_lang[2]. /* in index */
       ELSE DO:

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -57,6 +57,8 @@ Modified:
   tsm  05/25/99 - Made MRU Filelist TRUE as default
   tsm  06/29/99 - Only put out printpagelength and printfont when they are
                   not equal to the defaults of 60 and 2
+  jep  09/25/01 - jep-icf: ICF custom files handling.
+  jep  11/14/01 - jep-icf: Added web.cst to ICF custom files default list. IZ 2845.
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER p_save_settings     AS LOGICAL                NO-UNDO.
 
@@ -84,6 +86,7 @@ DEFINE VARIABLE PropEdPos AS INTEGER EXTENT 4 NO-UNDO.
 &Scope DEFAULT-CUSTOM-FILES-CS-ONLY  src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}smart.cst,src{&SLSH}template{&SLSH}progress.cst
 &Scope DEFAULT-CUSTOM-FILES-WS-ONLY  src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}web.cst
 &Scope DEFAULT-CUSTOM-FILES-BOTH     src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}shared.cst,src{&SLSH}template{&SLSH}smart.cst,src{&SLSH}template{&SLSH}progress.cst,src{&SLSH}template{&SLSH}web.cst
+&Scope DEFAULT-CUSTOM-FILES-ICF-ONLY src{&SLSH}template{&SLSH}activex.cst,src{&SLSH}template{&SLSH}icfshared.cst,src{&SLSH}template{&SLSH}icfdyn.cst,src{&SLSH}template{&SLSH}icfsmart.cst,src{&SLSH}template{&SLSH}icfprogress.cst,src{&SLSH}template{&SLSH}web.cst
 
 /* Local Variables */
 DEFINE VAR v          AS CHAR      NO-UNDO.

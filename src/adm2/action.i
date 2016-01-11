@@ -26,12 +26,13 @@
 /*-------------------------------------------------------------------------
     File        : action.i
     Purpose     : Basic Method Library for the ADMClass action.
-  
+
     Syntax      : {src/adm2/action.i}
 
     Description :
-  
+
     Modified    : 05/25/1999
+                  26/07/2000 by A D Swindells
 -------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -87,7 +88,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/panel.i}
+{src/adm2/visual.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -100,9 +101,10 @@
 
 
 /* ***************************  Main Block  *************************** */
-  /* Starts super procedure */
-  RUN start-super-proc("adm2/action.p":U).
-  
+
+/* Starts super procedure */
+RUN start-super-proc("adm2/action.p":U).
+
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
 
   {src/adm2/custom/actioncustom.i}

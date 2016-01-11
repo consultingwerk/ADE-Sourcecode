@@ -61,6 +61,8 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
+&glob DATA-LOGIC-PROCEDURE .p
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

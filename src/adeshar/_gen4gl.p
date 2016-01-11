@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -51,6 +51,8 @@ Date Created: 1992
 
 Last Modified:
 
+    jep        09/28/01 IZ 1429 adm-create-objects is db-required.
+                        It now defaults to not db-required.
     jep        08/08/00 Assign _P recid to newly created _TRG records.
                         Also added _P recid check to the where clause of the
                         FIND FIRST _TRG when a compile error has occurred.
@@ -1377,6 +1379,7 @@ THEN DO:
            _TRG._wrecid   = RECID(_U) 
            _TRG._tSECTION = "_PROCEDURE" 
            _TRG._tEVENT   =  "adm-create-objects"
+           _TRG._DB-REQUIRED = NO     /* jep: IZ 1429 */
            _TRG._STATUS   = u_status
            .
   END.

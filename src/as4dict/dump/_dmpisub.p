@@ -24,6 +24,7 @@
 /* _dmpisub.p - subroutine of _dmpincr.p 
 
    Created 06/05/97 D. McMann
+           02/12/02 Fernando changed error return code
 
 */
 
@@ -192,6 +193,7 @@ IF which = "f" THEN _field: DO:
 END.
 
 IF which = "s" THEN _seq: DO:
+  
   FOR EACH seq-list WHERE seq-list.s2-name = ?:
     ASSIGN
       pik_count = pik_count + 1
@@ -208,7 +210,8 @@ IF which = "s" THEN _seq: DO:
       WITH FRAME s-help.
     RUN "as4dict/dump/_usrpick.p".
   &ELSE
-    pik_text = new_lang[4] + " " + missing.
+    /* Fernando: 20020205-009 needs to get new_lang[11] for sequences. */
+    pik_text = new_lang[11] + " " + missing.
     DO ix = 6 TO 10:
       pik_text = pik_text + "~n" + new_lang[ix].
     END.

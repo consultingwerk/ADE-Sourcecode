@@ -98,6 +98,7 @@ History:
                           progress recid index name = table name
     mcmann      03/20/01  Added decending index support for 8i Oracle
     mcmann      04/11/01  Added closed stored proc for send sql 
+    mcmann      07/05/01  Added DICTDBG on stored proc finds
    
 
 */
@@ -255,7 +256,6 @@ define       variable  err-msg as character extent 5 initial [
 /*------------------------------------------------------------------*/
 
 /*------------------------ INITIALIZATIONS -------------------------*/
-
 
 RUN adecomm/_setcurs.p ("WAIT").
 
@@ -876,9 +876,9 @@ for each gate-work
           if s_ttb_tbl.ds_recid = ds_idx-cols.{&colid} then next.  /* progress_recid */
          
           IF ds_idx-cols.{&colid} = 0 THEN DO: 
-            RUN STORED-PROC send-sql-statement h1 = PROC-HANDLE
+            RUN STORED-PROC DICTDBG.send-sql-statement h1 = PROC-HANDLE
                 ( "select pos#, intcol# from sys.icol$ where obj# = " + string(ds_indexes.{&objid}) ).
-            FOR EACH proc-text-buffer WHERE PROC-HANDLE = h1:
+            FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = h1:
               ASSIGN didx-pos =  INTEGER(SUBSTRING(proc-text, 1 ,25)) .
               IF didx-pos = ds_idx-cols.pos# THEN DO:
                 ASSIGN didx-col# = INTEGER(SUBSTRING(proc-text, 26 ,25)).
@@ -899,7 +899,7 @@ for each gate-work
                 LEAVE.
               END.
             END.
-            CLOSE STORED-PROC send-sql-statement.
+            CLOSE STORED-PROC DICTDBG.send-sql-statement.
           END.
           ELSE
             ASSIGN didx-col# = ds_idx-cols.{&colid}

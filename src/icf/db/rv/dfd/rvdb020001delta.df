@@ -1,0 +1,58 @@
+ADD FIELD "dataset_code" OF "rvc_configuration_type" AS character
+  DESCRIPTION "This field contains the code to a deployment dataset as defined in the gsc_deploy_dataset table that describes the relationships between the tables that need to be written to the .ado XML file that represents the data for this configuration type."
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Dataset code"
+  HELP-SA ""
+  LABEL "Dataset Code"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_code"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+ADD FIELD "root_directory" OF "rvm_workspace" AS character
+  DESCRIPTION "The root directory for files in the workspace. This should not end in a slash. Also, only forward slashes should be used for portability.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 7
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Root directory"
+  HELP-SA ""
+  LABEL "Root Directory"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 60
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000001319

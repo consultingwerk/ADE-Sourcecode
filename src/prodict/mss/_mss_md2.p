@@ -23,6 +23,7 @@
 
 /*
    History:  D. McMann 03/04/99 Added assignment of connect parameters
+             D. McMann 06/18/01 Added assignment of _Db-Misc1[1]
    
 */   
 
@@ -48,13 +49,19 @@ IF NOT AVAILABLE DICTDB._Db THEN DO TRANSACTION:
     DICTDB._Db._Db-name    = mss_pdbname 
     DICTDB._Db._Db-addr    = mss_dbname
     DICTDB._Db._Db-comm    = c
-    DICTDB._Db._Db-slave   = TRUE
+    DICTDB._Db._Db-slave   = TRUE    
     DICTDB._Db._Db-type    = {adecomm/ds_type.i
                         &direction = "etoi"
                         &from-type = "user_env[22]"
                         }.
     { prodict/gate/gat_cp1a.i
               &incpname = "mss_codepage" }
+              
+  ASSIGN DICTDB._Db._Db-coll-name = (IF mss_collname <> ? AND mss_collname <> "" THEN mss_collname
+                                     ELSE SESSION:CPCOLL)
+         DICTDB._Db._Db-Misc1[1] = (IF mss_incasesen = TRUE THEN 1 
+                                   ELSE 0).
+ 
 END.
 
 ASSIGN

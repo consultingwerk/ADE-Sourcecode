@@ -3,7 +3,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -288,10 +288,10 @@ PROCEDURE process-web-request :
         '  ILAYER ~{ position:absolute; font-family:sans-serif; font-size:9pt } ':U SKIP
         '  TD     ~{ font-family:sans-serif; font-size:8pt } ':U SKIP
         '</STYLE>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/common.js">':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js">':U SKIP
         '  document.write("Included common.js file not found.");':U SKIP
         '</SCRIPT>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/weblist.js">':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/weblist.js">':U SKIP
         '  document.write("Included weblist.js file not found.");':U SKIP
         '</SCRIPT>':U SKIP
         '</HEAD>':U SKIP

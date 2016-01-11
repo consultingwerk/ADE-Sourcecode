@@ -1,0 +1,969 @@
+ADD TABLE "gsc_entity_display_field"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the fields for a table that should be used when building generic objects for it, e.g. a dynamic browser.
+
+It identifies the fields that should be used, the sequence of the fields, plus allows the label and format of the fields to be overridden.
+
+This is actually used in the generic data security used by the framework. 
+
+If no entries exist in this table, then all the fields other than any object fields will be used, in the standard field order as defined in the database.
+
+This table should initially be populated automatically from the metaschema but may then be modified accordingly.
+
+This table does not support joined fields.
+"
+  DUMP-NAME "gsced"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscedtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscedtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gscedreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gscedrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gscedreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscedtrigw.p" CRC "?" 
+
+ADD FIELD "entity_display_field_obj" OF "gsc_entity_display_field" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Entity Display Field Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Entity display field obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "entity_mnemonic" OF "gsc_entity_display_field" AS character 
+  DESCRIPTION "The entity code for the table this field relates to."
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Entity Mnemonic"
+  POSITION 3
+  SQL-WIDTH 16
+  VALMSG "s_entity_mnemonic"
+  HELP "Entity mnemonic"
+  ORDER 20
+
+ADD FIELD "display_field_name" OF "gsc_entity_display_field" AS character 
+  DESCRIPTION "The name of a field to include in a dynamic object for this table, e.g. a dynamic browser object.
+The actual field name must be specified with no table prefix. The field must be a valid field in the table defined by the entity code.
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Display Field Name"
+  POSITION 4
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Display field name"
+  ORDER 30
+
+ADD FIELD "display_field_order" OF "gsc_entity_display_field" AS integer 
+  DESCRIPTION "The order that the fields should be displayed in the dynaic object. The order is an integer field. If left at 0, then the fields will be sorted alphabetically.
+This order field will initially be populated from the metaschema field order.
+"
+  FORMAT "->>>>>9"
+  INITIAL "0"
+  LABEL "Display Field Order"
+  POSITION 5
+  SQL-WIDTH 4
+  VALMSG "n_integer_6"
+  HELP "Display field order"
+  ORDER 40
+
+ADD FIELD "display_field_label" OF "gsc_entity_display_field" AS character 
+  DESCRIPTION "This is an override label for the specified display field. If left blank, then the standard label from the metaschema will be used.
+"
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Display Field Label"
+  POSITION 6
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Display field label"
+  ORDER 50
+
+ADD FIELD "display_field_format" OF "gsc_entity_display_field" AS character 
+  DESCRIPTION "This is an override format for the specified display field. If left blank, then the standard format from the metaschema will be used.
+This field will initially be populated from the metaschema field format.
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Display Field Format"
+  POSITION 7
+  SQL-WIDTH 70
+  VALMSG "s_format_string"
+  HELP "Display field format"
+  ORDER 70
+
+ADD FIELD "display_field_column_label" OF "gsc_entity_display_field" AS character 
+  DESCRIPTION "This is an override column label for the specified display field. If left blank, then the standard label from the metaschema will be used.
+"
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Display Field Column Label"
+  POSITION 8
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Display field column label"
+  ORDER 60
+
+ADD INDEX "XPKgsc_entity_display_field" ON "gsc_entity_display_field" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "entity_display_field_obj" ASCENDING 
+
+ADD INDEX "XAK1gsc_entity_display_field" ON "gsc_entity_display_field" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "entity_mnemonic" ASCENDING 
+  INDEX-FIELD "display_field_name" ASCENDING 
+
+ADD INDEX "XAK2gsc_entity_display_field" ON "gsc_entity_display_field" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "entity_mnemonic" ASCENDING 
+  INDEX-FIELD "display_field_order" ASCENDING 
+  INDEX-FIELD "display_field_name" ASCENDING 
+
+ADD TABLE "gsm_node"
+  AREA "Schema Area"
+  DESCRIPTION "This table contains a parent-child relationship of node behaviour for the TreeView controller."
+  DUMP-NAME "gsmnd"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmndtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmndtrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmndtrigw.p" CRC "?" 
+
+ADD FIELD "node_obj" OF "gsm_node" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Node Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Node obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "node_code" OF "gsm_node" AS character 
+  DESCRIPTION "Unique reference to the node. This node code will be referenced from another table (rym_wizard_tree) as the Root Node."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Node Code"
+  POSITION 3
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Node code"
+  ORDER 20
+
+ADD FIELD "node_description" OF "gsm_node" AS character 
+  DESCRIPTION "Brief description of what the function of this node is."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Node Description"
+  POSITION 4
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Node description"
+  ORDER 30
+
+ADD FIELD "parent_node_obj" OF "gsm_node" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Parent Node Obj"
+  POSITION 5
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Parent node obj"
+  DECIMALS 6
+  ORDER 40
+
+ADD FIELD "node_label" OF "gsm_node" AS character 
+  DESCRIPTION "A short description that describes the detail shown for this specific node. This description should always be the singular. E.g. Account and will be used too display details of the number of records in the information status bar found on the Dynamic Container Window e.g. '25 Account records listed'."
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Node Label"
+  POSITION 6
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Node label"
+  ORDER 50
+
+ADD FIELD "node_checked" OF "gsm_node" AS logical 
+  DESCRIPTION "Indicates whether the node's check-box is checked or not. Only relevant if the ShowCheckBoxes property of the SmartTreeView is set to true."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Node Checked"
+  POSITION 7
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Node checked"
+  ORDER 60
+
+ADD FIELD "data_source_type" OF "gsm_node" AS character 
+  DESCRIPTION "A code identifying the certain type of data source being used to populate this node level. This would be a pre-populated combo box containing the following options:
+PRG - Program;
+TXT - Text;
+SDO - SDO/SBO;
+MNU - Menu Structure."
+  FORMAT "X(3)"
+  INITIAL ""
+  LABEL "Data Source Type"
+  POSITION 8
+  SQL-WIDTH 6
+  VALMSG "s_tla"
+  HELP "Data source type"
+  ORDER 70
+
+ADD FIELD "data_source" OF "gsm_node" AS character 
+  DESCRIPTION "Depending on the value of the data_source_type field, this field will contain one of the following:
+
+PRG - The name of a program to run that will extract data to be used to populate the nodes. The code for extracting the data should always be in the MAIN-BLOCK of the procedure. This option is discussed in section 4.5 of this document.
+
+TXT - Any plain text e.g. 'Orders not Allowed'
+SDO - Any existing SDO/SBO name that must be relatively pathed  e.g. ry/obj/rymwtfullo.w
+MNU - An existing menu structure code as found in gsm_menu_structure e.g. 'ACT UIB'"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Data Source"
+  POSITION 9
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Data source"
+  ORDER 80
+
+ADD FIELD "logical_object" OF "gsm_node" AS character 
+  DESCRIPTION "Name of a logical object that must be launched when a data node is selected. This is usually a Dynamic folder window created using the Folder Window Wizard, but this may also be an object container window."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Logical Object"
+  POSITION 10
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Logical object"
+  ORDER 100
+
+ADD FIELD "primary_sdo" OF "gsm_node" AS character 
+  DESCRIPTION "The name of the primary SDO/SBO to be used when populating a node. 
+
+This field would always be the same as the data_source if it is of type SDO.
+
+The field is mostly used to determine the SDO/SBO to be used when the data source is something other than an SDO/SBO."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Primary Sdo"
+  POSITION 11
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Primary sdo"
+  ORDER 90
+
+ADD FIELD "run_attribute" OF "gsm_node" AS character 
+  DESCRIPTION "A run attribute that should be passed to the data source being run. This would be a free text field and will not be linking to the gsm_instance_attribute table."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Run Attribute"
+  POSITION 12
+  SQL-WIDTH 70
+  VALMSG "s_format_string"
+  HELP "Run attribute"
+  ORDER 110
+
+ADD FIELD "fields_to_store" OF "gsm_node" AS character 
+  DESCRIPTION "This field will contain a comma-separated list of field names found in a SDO/SBO or program that will extract node data. This is only valid when the data_source_type is of type SDO or PRG. This is mainly used to return values of fields required in subsequent child nodes.e.g. 'CustNum,Name'This field is not used in the Dynamic TreeView, but provision was made for other objects that might use the SmartTreeView object."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Fields to Store"
+  POSITION 13
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_tla_list"
+  HELP "Fields to store"
+  ORDER 120
+
+ADD FIELD "node_text_label_expression" OF "gsm_node" AS character 
+  DESCRIPTION "This will only ever contain an expression if the data_source_type is of type SDO or PRG. This expression will be substituted by the values of the fields specified in label_text_substitution_fields. E.g. &1 (&2) where &1 and &2 will be substituted by the values of the fields specified in label_text_substituion_fields."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Node Text Label Expression"
+  POSITION 14
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_big_description"
+  HELP "Node text label expression"
+  ORDER 130
+
+ADD FIELD "label_text_substitution_fields" OF "gsm_node" AS character 
+  DESCRIPTION "A comma-separated list of fields available in a SDO or temp table, sent from a program for substitution in the node_text_label_expression."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Label Text Substitution Fields"
+  POSITION 15
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_big_description"
+  HELP "Label text substitution fields"
+  ORDER 140
+
+ADD FIELD "foreign_fields" OF "gsm_node" AS character 
+  DESCRIPTION "A comma-separated list identifying the foreign fields to be used when initializing a new SDO or extracting data from a program. This fields will contain field pairs where the first field in a pair is a <table>.<field> found in the program or SDO specified in data_source and the second field in the pair is a field found in the Parent node (data source). The field should contain values that represents the following standard. <table>.<field>,<field>,<table>.<field>,<field>A sample of where this would be used is when a child node is orders for a customer and we would only want to see the orders for the parent (customer). The foreign fields in this scenario would be something like this: Order.CustNum,CustNum"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Foreign Fields"
+  POSITION 16
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_big_description"
+  HELP "Foreign fields"
+  ORDER 150
+
+ADD FIELD "image_file_name" OF "gsm_node" AS character 
+  DESCRIPTION "A physical file name of an image on disk that will be used in the SmartTreeView when displaying a node when unselected. This file name will be a file specified in the gsm_multi_media table that is available for selection as a node image. A multi media type of TVIMG (Tree View Images) will be used to group these types of images."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Image File Name"
+  POSITION 17
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_file_name"
+  HELP "Image file name"
+  ORDER 160
+
+ADD FIELD "selected_image_file_name" OF "gsm_node" AS character 
+  DESCRIPTION "A physical file name of an image on disk that will be used in the SmartTreeView when displaying a node when it is selected. This file name will be a file specified in the gsm_multi_media table that is available for selection as a node image. A multi media type of TVIMG (Tree View Images) will be used to group these types of images."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Selected Image File Name"
+  POSITION 18
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_file_name"
+  HELP "Selected image file name"
+  ORDER 170
+
+ADD INDEX "XPKgsm_node" ON "gsm_node" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "node_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_node" ON "gsm_node" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "node_code" ASCENDING 
+
+ADD INDEX "XIE1gsm_node" ON "gsm_node" 
+  AREA "Schema Area"
+  INDEX-FIELD "parent_node_obj" ASCENDING 
+
+ADD TABLE "ryc_ui_event"
+  AREA "Schema Area"
+  DESCRIPTION "This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
+
+Where the event is associated with an object type or a smartobject, then the event will reflect a default action. where the event is associated with an instance of a smartobject, then the action will reflect an actual action.
+
+When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Where events are defined for object types and smartobjects, these values will be cascaded down to actual smartobject instances for performance reasons. Any future modifications of these values will also be cascaded down to all instances where the inherrited_value is set to YES, therefore ensuring we do not overwrite manual changes made at an instance level.
+"
+  DUMP-NAME "rycue"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rycuetrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rycuetrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/rycuereplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/rycuerepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/rycuereplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rycuetrigw.p" CRC "?" 
+
+ADD FIELD "ui_event_obj" OF "ryc_ui_event" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "UI Event Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "User interface event obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "object_type_obj" OF "ryc_ui_event" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Object Type Obj"
+  POSITION 3
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Object type obj"
+  DECIMALS 6
+  ORDER 20
+
+ADD FIELD "container_smartobject_obj" OF "ryc_ui_event" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Container SmartObject Obj"
+  POSITION 4
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Container SmartObject obj"
+  DECIMALS 6
+  ORDER 30
+
+ADD FIELD "smartobject_obj" OF "ryc_ui_event" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "SmartObject Obj"
+  POSITION 5
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "SmartObject obj"
+  DECIMALS 6
+  ORDER 40
+
+ADD FIELD "object_instance_obj" OF "ryc_ui_event" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Object Instance Obj"
+  POSITION 6
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Object instance obj"
+  DECIMALS 6
+  ORDER 50
+
+ADD FIELD "event_name" OF "ryc_ui_event" AS character 
+  DESCRIPTION "The name of the event. This will correspond to the Progress event name, e.g. choose, value-changed, etc."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Event Name"
+  POSITION 7
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Event name"
+  ORDER 60
+
+ADD FIELD "inheritted_value" OF "ryc_ui_event" AS logical 
+  DESCRIPTION "If set to YES, then the event was inherited from its super class and has not been modified. Super class events are cascaded to their subclasses for performance reasons.
+
+If the specific event is modified then this flag will automatically be set to NO. If this flag is manually changed from NO to YES, then the event will be automatically changed to the value from its super class.
+
+"
+  FORMAT "YES/NO"
+  INITIAL "YES"
+  LABEL "Inheritted Value"
+  POSITION 8
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_yesno"
+  HELP "Inheritted value"
+  ORDER 70
+
+ADD FIELD "constant_value" OF "ryc_ui_event" AS logical 
+  DESCRIPTION "If set to YES, this value cannot be modified in any subclass. 
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Constant Value"
+  POSITION 9
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Constant value"
+  ORDER 80
+
+ADD FIELD "action_type" OF "ryc_ui_event" AS character 
+  DESCRIPTION "The type of action to perform. There are 2 possible types of action currently:
+
+PUB = Publish
+RUN = Run
+
+What to run/publish is identified by the action_target field value.
+"
+  FORMAT "X(3)"
+  INITIAL ""
+  LABEL "Action Type"
+  POSITION 10
+  SQL-WIDTH 6
+  VALMSG "s_type"
+  HELP "Action type"
+  ORDER 90
+
+ADD FIELD "event_action" OF "ryc_ui_event" AS character 
+  DESCRIPTION "The name of the procedure to run or the event to publish, depending on the action type. Any procedures which are to be run must be internal procedures, and must exist in the custom super procedure of the viewer, one of the existing viewer procedures, or the manager specified.
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Event Action"
+  POSITION 11
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Event action"
+  ORDER 110
+
+ADD FIELD "action_target" OF "ryc_ui_event" AS character 
+  DESCRIPTION "The action_type can be RUN or PUBLISH and this field then defines the target of the RUN or PUBLISH, i.e. what to run or publish in.
+
+The valid values for this field are:
+
+Self
+Container
+Anywhere
+
+Alternatively, the action target could specify a manager type code as defined in the gsc_manager_type table, in which case the action would be performed in the manager specified.
+
+These are the things that are generally known about a viewer at design time."
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Action Target"
+  POSITION 12
+  SQL-WIDTH 56
+  VALMSG "s_label"
+  HELP "Action target"
+  ORDER 100
+
+ADD FIELD "event_parameter" OF "ryc_ui_event" AS character 
+  DESCRIPTION "A parameter to be passed to the event action. This may be a constant value, or something else which is known at design time.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Event Parameter"
+  POSITION 13
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Event parameter"
+  ORDER 120
+
+ADD FIELD "event_disabled" OF "ryc_ui_event" AS logical 
+  DESCRIPTION "Whether or not the event is disabled for this insance, smartobject, etc. or not.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Event Disabled"
+  POSITION 14
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Event disabled"
+  ORDER 130
+
+ADD FIELD "primary_smartobject_obj" OF "ryc_ui_event" AS decimal 
+  DESCRIPTION "Events may be associated with object types, smartobjects and smartobject instances. If associated with an object type, the container smartobject and the smartobject will be 0. If associated with a smartobject, the container smartobject will be 0. If associated with an instance, the container smartobject will have a value.
+
+This field will contain the value of the container smartobject if not 0, otherwise the smartobject if that is not 0, otherwise 0. It is used as the replication key field when writing replication triggers to cascade changes to the version database, as the replication triggers could not handle the use of alternative fields (e.g. container smartobject_obj or smartobject_obj).
+
+The update of this field will be done in the write trigger.
+"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Primary SmartObject Obj"
+  POSITION 15
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Primary SmartObject obj"
+  DECIMALS 6
+  ORDER 140
+
+ADD INDEX "XPKryc_ui_event" ON "ryc_ui_event" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "ui_event_obj" ASCENDING 
+
+ADD INDEX "XAK1ryc_ui_event" ON "ryc_ui_event" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING 
+  INDEX-FIELD "smartobject_obj" ASCENDING 
+  INDEX-FIELD "object_instance_obj" ASCENDING 
+  INDEX-FIELD "event_name" ASCENDING 
+  INDEX-FIELD "container_smartobject_obj" ASCENDING 
+
+ADD INDEX "XIE1ryc_ui_event" ON "ryc_ui_event" 
+  AREA "Schema Area"
+  INDEX-FIELD "primary_smartobject_obj" ASCENDING 
+
+ADD TABLE "rym_wizard_tree"
+  AREA "Schema Area"
+  DESCRIPTION "This table captures wizard responses for the creation / modification of a standard ICF Dynamic TreeView Controller object.
+
+It is used to forward engineer the object into the full Repository, generating all appropriate smartobject instances and attributes. Many assumptions are made regarding the look and feel of a standard ICF TreeView Controller which significantly simplifies the data that must be captured.
+
+More complex specific modifications to an object may be made using the standard Repository Maintenance options.
+
+This table also facilitates generation of the object into different UI's, e.g. Java.
+"
+  DUMP-NAME "rymwt"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rymwttrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rymwttrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rymwttrigw.p" CRC "?" 
+
+ADD FIELD "wizard_tree_obj" OF "rym_wizard_tree" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999"
+  INITIAL "0"
+  LABEL "Wizard Tree Obj"
+  POSITION 2
+  SQL-WIDTH 21
+  VALMSG "o_obj"
+  HELP "Wizard tree obj"
+  DECIMALS 6
+  ORDER 10
+
+ADD FIELD "object_name" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The name of the logical object with no path or extension (as logical objects do not have these).
+
+The object does not have to exist anywhere at time of capture."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Object Name"
+  POSITION 3
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Object name"
+  ORDER 40
+
+ADD FIELD "product_code" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "A unique code to identify the product this dynamic object belongs to. This code should correspond to a code that exists in gsc_product in the ICFDB database.
+
+This code is used when forward engineering the object into the full Repository, at which time it must exist or optionally be created in the gsc_product table."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Product Code"
+  POSITION 4
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Product code"
+  ORDER 20
+
+ADD FIELD "object_description" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "A description of the object"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Object Description"
+  POSITION 5
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Object description"
+  ORDER 50
+
+ADD FIELD "product_module_code" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "A unique code to identify the product module this dynamic object belongs to. This code should correspond to a code that exists in gsc_product_module in the ICF database, plus should be a product module that exists in the SCM tool.
+
+This code is used when forward engineering the object into the full Repository, at which time it must exist or optionally be created in the gsc_product_module table."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Product Module Code"
+  POSITION 6
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Product module code"
+  ORDER 30
+
+ADD FIELD "window_title" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The window title for the container."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Window Title"
+  POSITION 7
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Window title"
+  ORDER 60
+
+ADD FIELD "generated_date" OF "rym_wizard_tree" AS date 
+  DESCRIPTION "The date this object was last generated."
+  FORMAT "99/99/9999"
+  INITIAL "?"
+  LABEL "Generated Date"
+  POSITION 8
+  SQL-WIDTH 4
+  VALMSG "d_date_empty"
+  HELP "Generated date"
+  ORDER 220
+
+ADD FIELD "generated_time" OF "rym_wizard_tree" AS integer 
+  DESCRIPTION "The time this object was last generated."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Generated Time"
+  POSITION 9
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Generated time"
+  ORDER 210
+
+ADD FIELD "root_node_code" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The code of an existing node record on the gsm_node table in the ICFDB.
+
+This code will be used as the Root Node when running the new logical object created."
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Root Node Code"
+  POSITION 10
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Root node code"
+  ORDER 80
+
+ADD FIELD "sdo_foreign_fields" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "If the SDO is the child of some other SDO and relies on parent key information from the parent SDO to resolve its query, then the fields to map between the SDOs should be specified in this property.
+
+This is a comma-separated paired list of database field names in the Data-Target and RowObject Temp-Table fields in the Data-Source that should be used for opening the Data-Target's database query using one or more key values from the Data-Source.
+
+A good example is joining a customer sdo with an order sdo and the foreign fields would be set to order.cust-num,cust-num.
+
+Note that for each Foreign Field pair, the first entry is the name of the field in the database query for the Data-Target (the child or detail SDO in the parent-child or master-detail relationship), which is Order.CustNum in our example. This first entry is expressed as the database field name (optionally with the table qualifier) because that fieldname will actually be inserted into a where clause used to open the database query for the Data-Target, resulting in FOR EACH Order WHERE Order.CustNum = <CustNum-value-from-Data-Source>. The second entry in the pair is the name of the key field in the Data-Source SDO which is to be compared to the database field in the Target, or CustNum in our case. This must be the name of the field as it occurs in the Data-Source SDO column list (no DB table qualification) because the Source SDO is providing that value from the SDO's temp-table, not straight out of the database. Each time the dataAvailable event is published by the Data-Source, indicating that its query on Customers has been re-positioned, the Data-Target (Order) SDO will request the value of the CustNum field from the Customer SDO and plug that into the Order query where clause as indicated above.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Sdo Foreign Fields"
+  POSITION 11
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_big_description"
+  HELP "Sdo foreign fields"
+  ORDER 100
+
+ADD FIELD "root_node_sdo_name" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The name of the SDO that will be used as the data source for the Root Node.
+
+This should be specified without a path and extension. At capture time it does not have to exist, but in order to forward engineer the object controller, the sdo must exist as a valid object in gsc_object in ICFDB.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Root Node Sdo Name"
+  POSITION 12
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_file_name"
+  HELP "Root node sdo name"
+  ORDER 90
+
+ADD FIELD "custom_super_procedure" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The name of a custom super procedure to attach to the TreeView when the it is instantiated onto the container.
+A relative path and file extension must be specified for the super procedure.
+This facilitates the coding of specific business logic for a dynamic object. Your super procedure could include an initializeObject procedure that does a RUN SUPER, and after that subscribes to events in the containers toolbar. User defined menu items can then be attached to the conrtainer that publish the event to action the specific business logic."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Custom Super Procedure"
+  POSITION 13
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Custom super procedure"
+  ORDER 110
+
+ADD FIELD "filter_viewer" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "This is the name of a Static SmartDataViewer that will be used as a Filter Viewer with a SmartDataField (lookup or combo) on it
+
+The data selected in the Filter Viewer will result in a smaller query returned in the Root Node of the TreeView."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Filter Viewer"
+  POSITION 14
+  SQL-WIDTH 140
+  VIEW-AS "VIEW-AS EDITOR SIZE 36 BY 2 SCROLLBAR-VERTICAL MAX-CHARS 70"
+  VALMSG "s_file_name"
+  HELP "Filter viewer"
+  ORDER 130
+
+ADD FIELD "window_title_field" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "This is the field name whose value should be appended to the window title. The fieldname without a table prefix must be specified and should match a field in the SDO serving as the data source within the window."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Window Title Field"
+  POSITION 15
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Window title field"
+  ORDER 70
+
+ADD FIELD "auto_sort" OF "rym_wizard_tree" AS logical 
+  DESCRIPTION "This is a property that will be set for the TreeView OCX that indicates if the data listed should Auto Sort."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Auto Sort"
+  POSITION 16
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Auto sort"
+  ORDER 140
+
+ADD FIELD "page_layout" OF "rym_wizard_tree" AS character 
+  DESCRIPTION "The layout code for the page, the default is TreeView if not specified.
+
+This is used by the layout manager when resizing the window.
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Page Layout"
+  POSITION 17
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Page layout"
+  ORDER 120
+
+ADD FIELD "hide_selection" OF "rym_wizard_tree" AS logical 
+  DESCRIPTION "This is a property that will be set for the TreeView OCX that indicates whether a node should appear as being selected when such an action was taken."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Hide Selection"
+  POSITION 18
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Hide selection"
+  ORDER 150
+
+ADD FIELD "image_height" OF "rym_wizard_tree" AS integer 
+  DESCRIPTION "This is the height in pixels of the image being displayed in the TreeView OCX.
+
+The default is 16 pixels."
+  FORMAT "->>>9"
+  INITIAL "0"
+  LABEL "Image Height"
+  POSITION 19
+  SQL-WIDTH 4
+  VALMSG "n_integer_4"
+  HELP "Image height"
+  ORDER 160
+
+ADD FIELD "image_width" OF "rym_wizard_tree" AS integer 
+  DESCRIPTION "This is the width in pixels of the image being displayed in the TreeView OCX.
+
+The default is 16 pixels."
+  FORMAT "->>>9"
+  INITIAL "0"
+  LABEL "Image Width"
+  POSITION 20
+  SQL-WIDTH 4
+  VALMSG "n_integer_4"
+  HELP "Image width"
+  ORDER 170
+
+ADD FIELD "show_check_boxes" OF "rym_wizard_tree" AS logical 
+  DESCRIPTION "This is a property that will be set for the TreeView OCX that indicates if a check box should be displayed with every node."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Show Check Boxes"
+  POSITION 21
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Show check boxes"
+  ORDER 180
+
+ADD FIELD "show_root_lines" OF "rym_wizard_tree" AS logical 
+  DESCRIPTION "This is a property that will be set for the TreeView OCX that indicates if a Root Node line should appear in the TreeView OCX."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Show Root Lines"
+  POSITION 22
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Show root lines"
+  ORDER 190
+
+ADD FIELD "tree_style" OF "rym_wizard_tree" AS integer 
+  DESCRIPTION "This is a property that will be set for the TreeView OCX that indicates the style of the TreeView.
+
+The following options are available:
+0 - Text only
+1 - Pictures & Text
+2 - Text only
+3 - Pictures & Text
+4 - Text only with tree lines
+5 - Pictures & Text with tree lines
+6 - Text only with tree lines & plus/minus
+7 - Pictures & text with tree lines & plus/minus"
+  FORMAT "->>9"
+  INITIAL "0"
+  LABEL "Tree Style"
+  POSITION 23
+  SQL-WIDTH 4
+  VALMSG "n_integer_3"
+  HELP "Tree style"
+  ORDER 200
+
+ADD INDEX "XPKrym_wizard_tree" ON "rym_wizard_tree" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "wizard_tree_obj" ASCENDING 
+
+ADD INDEX "XAK1rym_wizard_tree" ON "rym_wizard_tree" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_name" ASCENDING 
+
+ADD INDEX "XAK2rym_wizard_tree" ON "rym_wizard_tree" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "product_code" ASCENDING 
+  INDEX-FIELD "product_module_code" ASCENDING 
+  INDEX-FIELD "object_name" ASCENDING 
+
+ADD INDEX "XIE1rym_wizard_tree" ON "rym_wizard_tree" 
+  AREA "Schema Area"
+  INDEX-FIELD "object_description" ASCENDING 
+
+UPDATE FIELD "table_prefix_length" OF "gsc_entity_mnemonic"
+  POSITION 14
+  ORDER 130
+
+UPDATE FIELD "field_name_separator" OF "gsc_entity_mnemonic"
+  POSITION 15
+  ORDER 140
+
+UPDATE FIELD "auditing_enabled" OF "gsc_entity_mnemonic"
+  POSITION 16
+  ORDER 150
+
+UPDATE FIELD "version_data" OF "gsc_entity_mnemonic"
+  POSITION 17
+  ORDER 160
+
+UPDATE FIELD "deploy_data" OF "gsc_entity_mnemonic"
+  POSITION 18
+  ORDER 170
+
+UPDATE FIELD "entity_dbname" OF "gsc_entity_mnemonic"
+  POSITION 19
+  ORDER 180
+
+UPDATE FIELD "replicate_entity_mnemonic" OF "gsc_entity_mnemonic"
+  POSITION 20
+  ORDER 190
+
+UPDATE FIELD "replicate_key" OF "gsc_entity_mnemonic"
+  POSITION 21
+  ORDER 200
+
+UPDATE FIELD "scm_field_name" OF "gsc_entity_mnemonic"
+  POSITION 22
+  ORDER 210
+
+DROP FIELD "entity_display_fields" OF "gsc_entity_mnemonic"
+DROP FIELD "entity_display_labels" OF "gsc_entity_mnemonic"
+DROP FIELD "entity_display_formats" OF "gsc_entity_mnemonic"
+
+UPDATE TABLE "gsc_object_type"
+  DESCRIPTION "This table defines the types of programs supported. A record will need to exist for the various support templates, e.g. ""Object Controller"", ""Menu Controller"", ""SmartFolder"", smartbrowser, smartviewer, smartdataobject, etc.
+
+When objects are created, they must be assigned an object type.
+
+The object type is used as a grouping mechanism for security, to allow restrictions to be created for certain types of objects, rather than having to setup security for every object.
+
+A recursive join exists for the object type to facilitate definition of object type hierarchies (class hieararchies). This is then useful for attribute inheritance at multiple levels of object type.
+
+For example, an object type could be defined for a fill-in, then a child of this may be an integer fill-in, then a child of this may be an object id, etc."
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gst_audit"
+  NULL-ALLOWED
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000037026

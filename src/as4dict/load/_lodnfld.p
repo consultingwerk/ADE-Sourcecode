@@ -47,6 +47,7 @@
             06/18/98 Change DTYPE_RAW from 6 to 8 DLM
             01/12/99 Added allow-null switch D. McMann
             05/18/00 Added support for new keyword MAX-GLYPHS
+            03/14/02 Added logic to check that max-size = stlen.
          
                                                           
       */
@@ -333,11 +334,14 @@ FIND FIRST wfld.
 
   /* Tell the client that we have a variable length field  and reset number of
       allowed characters or digits equal to max size */
-  IF wtp__field._For-Maxsize <> 0 AND wtp__Field._For-Maxsize <> ? THEN
+  IF wtp__field._For-Maxsize <> 0 AND wtp__Field._For-Maxsize <> ? THEN DO:
+    IF (wtp__Field._Fld-stlen + 2) = wtp__Field._For-maxsize THEN
+        ASSIGN wtp__field._Fld-Misc1[6] = 1.
+    ELSE
      ASSIGN wtp__field._Fld-Misc1[6] = 1
             wtp__Field._Fld-stlen = wtp__Field._For-maxsize
             wtp__Field._For-maxsize = wtp__Field._For-maxsize + 2.                     
-       
+  END.
   IF wtp__Field._Data-type BEGINS "char" AND 
      wtp__Field._For-Type = "cstring" THEN
           SUBSTRING(wtp__File._Fil-Misc2[5],2,1) = "6".

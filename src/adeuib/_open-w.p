@@ -95,7 +95,9 @@ FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
 /* Save the broker URL that was used to open the file for existing files
    only, not for new files. If the file was opened from the MRU file list, 
    store that broker url rather than the current broker url. */
-IF AVAILABLE _P AND pTempFile NE "" AND _P._save-as-file <> ? THEN
+IF AVAILABLE _P AND pTempFile NE "" AND _P._save-as-file <> ?
+   AND NOT _P.design_ryobject THEN   /* jep-icf: No broker_url for repository objects. */
+DO:
   ASSIGN
     _P._Broker-URL = (IF _mru_broker_url NE "" THEN _mru_broker_url ELSE _BrokerURL)
     cHostName      = DYNAMIC-FUNCTION("get-url-host":U IN _h_func_lib, FALSE,
@@ -103,12 +105,13 @@ IF AVAILABLE _P AND pTempFile NE "" AND _P._save-as-file <> ? THEN
     _h_win:TITLE   = _h_win:TITLE + 
                      (IF INDEX(_h_win:TITLE, cHostName) EQ 0 
                       THEN cHostName ELSE "").
+END.
 
 /* In case of _qssuckr failure, reset the cursors */
 RUN adecomm/_setcurs.p ("":U).
 
 IF pMode ne "IMPORT" AND VALID-HANDLE(_h_win) THEN DO:
-  
+
   /* Add this window to the Window menu's active windows. The
      check for returnValue prevents the same window from appearing
      twice on the Window menu (fix to bug 95-08-07-057).
@@ -138,6 +141,7 @@ IF pMode ne "IMPORT" AND VALID-HANDLE(_h_win) THEN DO:
     ASSIGN hActiveWin = WIDGET-HANDLE(ENTRY(2, returnValue)) NO-ERROR.
     RUN WinMenuChoose IN _h_UIB (hActiveWin:TITLE).
   END.
+
 END.
 
 /* _open-w.p - end of file */

@@ -43,7 +43,7 @@
   
   /* Define and initialize variables for properties shared by all objects. */
  DEFINE VARIABLE scPassThroughLinks AS CHARACTER NO-UNDO 
-    INIT "Data;multiple,Update;single,Filter;single,OutMessage;single":U.
+    INIT "Data;multiple,Update;single,Filter;single,OutMessage;single,Navigation;single,Commit;single":U.
  DEFINE VARIABLE scCircularLinks    AS CHARACTER NO-UNDO
    INIT "Data":U.
    
@@ -95,11 +95,59 @@ FUNCTION assignLinkProperty RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-changeLinkState) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD changeLinkState Procedure 
+FUNCTION changeLinkState RETURNS LOGICAL
+  ( pcState  AS CHAR,
+    pcLink   AS CHAR, 
+    phObject AS HANDLE) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD deleteEntry Procedure 
+FUNCTION deleteEntry RETURNS CHARACTER
+  ( piEntry  AS INTEGER,
+    pcString AS CHARACTER,
+    pcDelim  AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-fetchMessages) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fetchMessages Procedure 
 FUNCTION fetchMessages RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fixQueryString Procedure 
+FUNCTION fixQueryString RETURNS CHARACTER
+  ( INPUT pcQueryString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getChildDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getChildDataKey Procedure 
+FUNCTION getChildDataKey RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -155,6 +203,17 @@ FUNCTION getContainerSourceEvents RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getContainerType Procedure 
 FUNCTION getContainerType RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataLinksEnabled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataLinksEnabled Procedure 
+FUNCTION getDataLinksEnabled RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -238,11 +297,66 @@ FUNCTION getDesignDataObject RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDynamicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDynamicObject Procedure 
+FUNCTION getDynamicObject RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getHideOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getHideOnInit Procedure 
+FUNCTION getHideOnInit RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getInactiveLinks) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInactiveLinks Procedure 
+FUNCTION getInactiveLinks RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceProperties Procedure 
 FUNCTION getInstanceProperties RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLogicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLogicalObjectName Procedure 
+FUNCTION getLogicalObjectName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLogicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLogicalVersion Procedure 
+FUNCTION getLogicalVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -315,11 +429,44 @@ FUNCTION getObjectVersion RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getParentDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getParentDataKey Procedure 
+FUNCTION getParentDataKey RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getPassThroughLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPassThroughLinks Procedure 
 FUNCTION getPassThroughLinks RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPhysicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPhysicalObjectName Procedure 
+FUNCTION getPhysicalObjectName RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPhysicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPhysicalVersion Procedure 
+FUNCTION getPhysicalVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -342,6 +489,17 @@ FUNCTION getPropertyDialog RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryObject Procedure 
 FUNCTION getQueryObject RETURNS LOGICAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRunAttribute) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRunAttribute Procedure 
+FUNCTION getRunAttribute RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -381,6 +539,17 @@ FUNCTION getUIBMode RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getUseRepository) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseRepository Procedure 
+FUNCTION getUseRepository RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getUserProperty) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUserProperty Procedure 
@@ -397,6 +566,18 @@ FUNCTION getUserProperty RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instancePropertyList Procedure 
 FUNCTION instancePropertyList RETURNS CHARACTER
   ( pcPropList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isObjQuoted Procedure 
+FUNCTION isObjQuoted RETURNS LOGICAL
+ (INPUT pcQueryString  AS CHARACTER,
+   INPUT piPosition     AS INTEGER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -472,6 +653,17 @@ FUNCTION reviewMessages RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setChildDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setChildDataKey Procedure 
+FUNCTION setChildDataKey RETURNS LOGICAL
+  ( cChildDataKey AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setContainerHidden) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setContainerHidden Procedure 
@@ -499,6 +691,17 @@ FUNCTION setContainerSource RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setContainerSourceEvents Procedure 
 FUNCTION setContainerSourceEvents RETURNS LOGICAL
   ( pcEvents AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLinksEnabled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataLinksEnabled Procedure 
+FUNCTION setDataLinksEnabled RETURNS LOGICAL
+  ( lDataLinksEnabled AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -582,11 +785,77 @@ FUNCTION setDesignDataObject RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDynamicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDynamicObject Procedure 
+FUNCTION setDynamicObject RETURNS LOGICAL
+  ( lTemp AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setHideOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setHideOnInit Procedure 
+FUNCTION setHideOnInit RETURNS LOGICAL
+  ( plHideOnInit AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setInactiveLinks) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setInactiveLinks Procedure 
+FUNCTION setInactiveLinks RETURNS LOGICAL
+  ( pcInactiveLinks AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setInstanceProperties Procedure 
 FUNCTION setInstanceProperties RETURNS LOGICAL
   ( pcPropList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLogicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLogicalObjectName Procedure 
+FUNCTION setLogicalObjectName RETURNS LOGICAL
+  ( c AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLogicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLogicalVersion Procedure 
+FUNCTION setLogicalVersion RETURNS LOGICAL
+  ( cVersion AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectHidden) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectHidden Procedure 
+FUNCTION setObjectHidden RETURNS LOGICAL
+  ( plHidden AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -615,11 +884,66 @@ FUNCTION setObjectParent RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setObjectVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectVersion Procedure 
+FUNCTION setObjectVersion RETURNS LOGICAL
+  ( cObjectVersion AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setParentDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setParentDataKey Procedure 
+FUNCTION setParentDataKey RETURNS LOGICAL
+  ( cParentDataKey AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setPassThroughLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPassThroughLinks Procedure 
 FUNCTION setPassThroughLinks RETURNS LOGICAL
   ( pcLinks AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPhysicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPhysicalObjectName Procedure 
+FUNCTION setPhysicalObjectName RETURNS LOGICAL
+  ( cTemp AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPhysicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPhysicalVersion Procedure 
+FUNCTION setPhysicalVersion RETURNS LOGICAL
+  ( cVersion AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRunAttribute) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRunAttribute Procedure 
+FUNCTION setRunAttribute RETURNS LOGICAL
+  ( cRunAttribute AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -711,7 +1035,7 @@ FUNCTION Signature RETURNS CHARACTER
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 12.05
-         WIDTH              = 50.2.
+         WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -753,11 +1077,10 @@ PROCEDURE addLink :
                then the link name will be treated as a single 
                subscription in the "Target" for an event in the "Source".
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER phSource     AS HANDLE    NO-UNDO.
   DEFINE INPUT PARAMETER pcLink       AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER phTarget     AS HANDLE    NO-UNDO.
-
+  
   DEFINE VARIABLE cEvents       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iEntry        AS INTEGER   NO-UNDO.
   DEFINE VARIABLE iEvent        AS INTEGER   NO-UNDO.
@@ -858,6 +1181,7 @@ PROCEDURE addLink :
        of the name. Do this only if neither side supports the link. */
     {get SupportedLinks cSources phSource}.
     {get SupportedLinks cTargets phTarget}.
+
     IF (pcLink NE "Container":U AND NOT pcLink BEGINS "Page":U) AND
        (LOOKUP(pcLink + "-Source":U, cSources) = 0 AND
         LOOKUP(pcLink + "-Target":U, cTargets) = 0) THEN
@@ -883,20 +1207,21 @@ PROCEDURE addLink :
        Target is stored as a handle, multiple Sources or Targets as a
        list in Character form. */
     IF dynamic-function('propertyType':U IN phTarget, pcLink + "Source":U) 
-     = "CHARACTER":U THEN
-      RUN modifyListProperty 
+     = "CHARACTER":U THEN 
+       RUN modifyListProperty 
         (phTarget, 'ADD':U, pcLink + "Source":U, STRING(phSource)).
+    
     ELSE DO:
       IF dynamic-function("get":U + pcLink + "Source":U IN phTarget) = ? THEN
-        dynamic-function("set":U + pcLink + "Source":U IN phTarget, 
-          phSource) NO-ERROR.    
+        dynamic-function("set":U + pcLink + "Source":U IN phTarget,phSource) 
+           NO-ERROR.    
       ELSE DO:
         showMessage("SmartObject ":U + phTarget:FILE-NAME +
            " does not support multiple ":U + pcLink + " Sources.":U).
         RETURN.
       END.   /* END DO IF Not Unknown */
     END.     /* END ELSE DO (if Not CHARACTER) */
-  
+    
     IF dynamic-function('propertyType':U IN phSource, pcLink + "Target":U) 
      = "CHARACTER":U THEN
       RUN modifyListProperty 
@@ -917,22 +1242,17 @@ PROCEDURE addLink :
   /* SUBSCRIBE to all the appropriate events on each side of the link. 
      First SUBSCRIBE the target to all the events it says it wants
      from its source. */
-  cEvents = dynamic-function("get":U + pcLink + "SourceEvents":U IN phTarget) 
-      NO-ERROR.
-  IF cEvents NE ? THEN
-  DO iEvent = 1 TO NUM-ENTRIES(cEvents):
-    SUBSCRIBE PROCEDURE phTarget TO ENTRY(iEvent, cEvents) IN phSource.
-  END.
+  RUN linkStateHandler IN phTarget ('Add':U,
+                                    phSource,
+                                    pcLink + "Source":U).
+                   
   /* Then SUBSCRIBE the source to all the events (if any) that it wants
      from its target. */
-  cEvents = dynamic-function("get":U + pcLink + "TargetEvents":U IN phSource) 
-      NO-ERROR.
-  IF cEvents NE ? THEN
-  DO iEvent = 1 TO NUM-ENTRIES(cEvents):
-    SUBSCRIBE PROCEDURE phSource TO ENTRY(iEvent, cEvents) IN phTarget.
-  END.
-
+  RUN linkStateHandler IN phSource ('Add':U,
+                                    phTarget,
+                                    pcLink + "Target":U).         
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1070,12 +1390,15 @@ PROCEDURE applyEntry :
   Parameters:  INPUT pcField AS CHARACTER -- optional fieldname; if specified,
                (if this parameter is not blank or unknown), then
                the frame field of that name will be positioned to. 
+             - sets focus into viewer properly when container launched and we 
+               do an apply entry.
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER pcField  AS CHARACTER NO-UNDO.
   
   DEFINE VARIABLE hContainer      AS HANDLE NO-UNDO.
   DEFINE VARIABLE hWidget         AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hWidget2        AS HANDLE NO-UNDO.  /* Astra2 */
+  DEFINE VARIABLE hWidget3        AS HANDLE NO-UNDO.  /* Astra2 */
 
     IF pcField = ? THEN pcField = "":U.
     
@@ -1088,8 +1411,12 @@ PROCEDURE applyEntry :
        ASSIGN hWidget = hContainer:CURRENT-ITERATION
               hWidget = hWidget:FIRST-TAB-ITEM.
           
-          DO WHILE VALID-HANDLE(hWidget) :          
-            IF hWidget:SENSITIVE AND hWidget:VISIBLE AND
+          /* Ensure focus is placed onto an actual field if possible and also to cope with 
+             initially focusing smartdatafields
+          */
+       DO WHILE VALID-HANDLE(hWidget) :          
+            IF NOT (hWidget:NAME BEGINS "Folder" OR hWidget:NAME BEGINS "Panel") AND 
+               hWidget:SENSITIVE AND hWidget:VISIBLE AND
               (pcField = "":U OR hWidget:NAME = pcField) THEN
             DO:
                /* In case the new widget with focus is not in the
@@ -1102,12 +1429,45 @@ PROCEDURE applyEntry :
                END.
                IF hContainer:TYPE = "WINDOW":U THEN
                  CURRENT-WINDOW = hContainer.
-                 
-               APPLY "ENTRY":U TO hWidget.                
-               RETURN.
+              
+              ASSIGN
+                hWidget2 = ?
+                hWidget3 = ?
+                .
+              IF hWidget:TYPE = "FRAME" THEN
+              DO:
+                hWidget2 = hWidget:FIRST-CHILD NO-ERROR.
+                IF VALID-HANDLE(hWidget2) AND CAN-QUERY(hWidget2, "type":U) AND hWidget2:TYPE = "FIELD-GROUP" THEN
+                  ASSIGN hWidget2 = hWidget2:FIRST-TAB-ITEM NO-ERROR.
+                IF VALID-HANDLE(hWidget2) AND CAN-QUERY(hWidget2, "type":U) AND hWidget2:TYPE = "FRAME":U
+                   AND hWidget2:SENSITIVE AND hWidget2:VISIBLE THEN
+                DO: /* SDF */
+                  hWidget3 = hWidget2:FIRST-CHILD NO-ERROR.
+                  IF VALID-HANDLE(hWidget3) AND CAN-QUERY(hWidget3, "type":U) AND hWidget3:TYPE = "FIELD-GROUP" THEN
+                    ASSIGN hWidget3 = hWidget3:FIRST-TAB-ITEM NO-ERROR.
+                END.
+
+                DO WHILE VALID-HANDLE(hWidget3) AND
+                   NOT (hWidget3:SENSITIVE AND hWidget3:VISIBLE): /* jump to 1st visible enabled widget */
+                  ASSIGN hWidget3 = hWidget3:NEXT-TAB-ITEM.
+                END.
+                
+                DO WHILE VALID-HANDLE(hWidget2) AND
+                   (NOT (hWidget2:SENSITIVE AND hWidget2:VISIBLE) OR hWidget2:TYPE = "frame":U): /* jump to 1st visible enabled widget */
+                  ASSIGN hWidget2 = hWidget2:NEXT-TAB-ITEM.
+                END.
+              END.
+              IF VALID-HANDLE(hwidget3) THEN  
+                APPLY "ENTRY":U TO hWidget3.
+              ELSE IF VALID-HANDLE(hwidget2) THEN
+                APPLY "ENTRY":U TO hWidget2.
+              ELSE
+                APPLY "ENTRY":U TO hWidget.              
+               
+              RETURN.
             END.
             ELSE ASSIGN hWidget = hWidget:NEXT-TAB-ITEM.            
-          END.          
+       END.          
     END.  
   
     RETURN.
@@ -1178,12 +1538,11 @@ PROCEDURE destroyObject :
   Parameters:  <none>
        Notes:  Checks first to see if any object is not prepared to be
                destroyed (e.g., if DataModified is set).
-------------------------------------------------------------------------------*/
-    
-  DEFINE VARIABLE hSource AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hParent AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lCancel AS LOGICAL NO-UNDO.
-   
+------------------------------------------------------------------------------*/    
+  DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hParent    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lCancel    AS LOGICAL    NO-UNDO.
+ 
   PUBLISH 'confirmExit':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
   IF lCancel THEN      /* Any message has already been displayed. */
   DO:                  /* Main window block will check ERROR-STATUS */
@@ -1392,9 +1751,9 @@ PROCEDURE hideObject :
       "Container-Target":U, "ContainerHidden":U, "yes":U).
       
   /* For those objects which want to "deactivate" a link when an object is
-     hidden, we tell them that this object is being hidden.  */
-  PUBLISH 'linkState':U FROM TARGET-PROCEDURE 
-    ('inactive':U).
+     hidden, we tell them that this object is 'inactive'. We also set the
+     ObjectActive property to hold onto the state for future inquiries. */
+  PUBLISH 'LinkState':U FROM TARGET-PROCEDURE ('inactive':U).
   
   RETURN.
   
@@ -1421,24 +1780,153 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hContainer       AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lInitialized     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cNewRecord       AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE lHideOnInit      AS LOGICAL   NO-UNDO.
+
   {get ObjectInitialized lInitialized}.
   IF lInitialized THEN 
     RETURN "ADM-ERROR":U.  /* Just get out if already initialized. */
 
-     /* Initialize any OCX's in the SmartObjects. */
-   RUN createControls IN TARGET-PROCEDURE NO-ERROR.
-   RUN control_load IN TARGET-PROCEDURE NO-ERROR.
+  /* Initialize any OCX's in the SmartObjects. */
+  RUN createControls IN TARGET-PROCEDURE NO-ERROR.
+  RUN control_load IN TARGET-PROCEDURE NO-ERROR.
 
-    /* If this object has no visualization, then we just set its Hidden property
-       off, because nobody will be invoking viewObject for it during initialization. 
-       But it must be logically "viewed". */
-    {get ContainerHandle hContainer}.
-    IF NOT VALID-HANDLE (hContainer) THEN {set ObjectHidden no}.
-    
-    {set ObjectInitialized yes}.
+  /* If this object has no visualization, we still need to run viewObject unless
+     the hideOninit is true. view and hide is a logical state that also is used
+     to indicate whether an object is active.
+     Visual objects does this in its initilizeObject override AFTER enable  */
+  {get ContainerHandle hContainer}.
   
+  {set ObjectInitialized yes}.
+
+  IF NOT VALID-HANDLE (hContainer) THEN 
+  DO:
+    {get HideOnInit lHideOnInit}.
+    IF NOT lHideOnInit THEN 
+      RUN viewObject IN TARGET-PROCEDURE.
+    ELSE 
+      PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).  
+  END.
+
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-linkStateHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE linkStateHandler Procedure 
+PROCEDURE linkStateHandler :
+/*------------------------------------------------------------------------------
+  Purpose: Handler for the LinkState event, also used by addlink and removeLink,           
+           Subscribes/unsubscribes to the <link>events in the object   
+Parameter: pcState  - 'Add'      - activate newly added links by subscribing to 
+                                   the <Link>Events of the passed object.
+                    - 'Active'   - activate links by subscribing to the
+                                   <Link>Events of the passed object.
+                    - 'Remove'   - deactivate newly removed links by 
+                                   unsubscribing to the <Link>Events of the 
+                                   passed object.                   
+                    - 'Inactive' - deactivate links by unsubscribing to the
+                                   <Link>Events of the passed object.                   
+           phObject - Object to subscribe/unsubscribe to.                         
+           pcLink   - Full link name pointing to the passed object.  
+                      DataSource or Data-source (both forms supported) 
+   Notes: The name -handler attempts to indicate that this is an event-handler 
+          that not should be called directly outside of the intended events, but
+          rather be actively used as an event to ensure that properties that
+          are link dependant are set/removed.  
+        - It's crucial that the subscribtion only happens once so we check 
+          ObjectActive to ensure that the inactive/active unsubscribe/subscribe
+          only is performed when the state is changed:
+           updateLinkState(State)  
+             publish linkState (state) --> receiver 
+             Here.. <---------------------- run linkStateHandler in source(target). 
+             {set ObjectActive ..}
+        - Since this may be called for several objects/links the ObjectActive 
+          property has to be managed outside of this.      
+------------------------------------------------------------------------------*/
+ DEFINE INPUT PARAMETER pcState       AS CHARACTER  NO-UNDO.
+ DEFINE INPUT PARAMETER phObject      AS HANDLE     NO-UNDO.
+ DEFINE INPUT PARAMETER pcLink        AS CHARACTER  NO-UNDO.
+ 
+ DEFINE VARIABLE cEvents        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iEvent         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE lActive        AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cLinkedObject  AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cInactiveLinks AS CHARACTER  NO-UNDO.
+
+ ASSIGN
+    pcLink  = REPLACE(pcLink,'-':U,'':U)
+    cEvents = DYNAMIC-FUNCTION("get":U + pcLink + "Events":U IN TARGET-PROCEDURE)    
+    cLinkedObject = DYNAMIC-FUNCTION("get":U + pcLink IN TARGET-PROCEDURE) 
+ NO-ERROR.
+
+ IF ERROR-STATUS:ERROR THEN
+   RETURN 'adm-error':U. /* ?? */
+
+ CASE pcState:
+   WHEN 'remove':U THEN
+   DO:
+     /* 'Remove' is only allowed if the get<link> is  pointing to the object */
+     IF NOT CAN-DO(cLinkedObject,STRING(phObject)) THEN
+       RETURN.
+   END.
+   /* 'Add' is only allowed if get<link> matches the passed object */
+   WHEN 'add':U THEN
+   DO:
+     IF NOT CAN-DO(cLinkedObject,STRING(phObject)) THEN
+       RETURN.
+   END.
+   /* 'Active' is only allowed if get<Link> matches the passed object
+      and the link is previously inactivated  */
+   WHEN 'active':U THEN
+   DO:
+     IF NOT CAN-DO(cLinkedObject,STRING(phObject)) THEN
+       RETURN. 
+     {get inactiveLinks cInactiveLinks}.
+     IF NOT CAN-DO(cInactiveLinks,pcLink) THEN 
+       RETURN. 
+     cInactiveLinks = TRIM(
+                       REPLACE(",":U + cInactiveLinks,",":U + pcLink,",":U),
+                       ",":U). 
+     {set inactiveLinks cInactiveLinks}.
+   END.
+   /* 'inactive' is only allowed if get<Link> matches the passed object 
+       is not previously inactivated:  ObjectActive=yes */
+   WHEN 'inactive':U THEN
+   DO:
+     IF NOT CAN-DO(cLinkedObject,STRING(phObject)) THEN
+       RETURN.     
+     
+     {get inactiveLinks cInactiveLinks}.     
+     IF CAN-DO(cInactiveLinks,pcLink) THEN 
+       RETURN.
+     cInactiveLinks = cInactiveLinks 
+                      + (IF cInactiveLinks = '':U THEN '':U ELSE ',':U) 
+                      + pcLink.
+     {set inactiveLinks cInactiveLinks}.
+   END.
+ END CASE.
+
+ IF VALID-HANDLE(phObject) THEN
+ DO:
+   DO iEvent = 1 TO NUM-ENTRIES(cEvents):
+     /* Never activate/deactivate linkstate */
+     IF ENTRY(iEvent, cEvents) <> 'LinkState':U OR CAN-DO('REMOVE,ADD':U, pcState) THEN
+     DO:
+       IF CAN-DO('ACTIVE,ADD':U, pcState) THEN
+         SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO ENTRY(iEvent, cEvents) IN phObject.
+       IF CAN-DO('INACTIVE,REMOVE':U, pcState)  THEN
+         UNSUBSCRIBE PROCEDURE TARGET-PROCEDURE TO ENTRY(iEvent, cEvents) IN phObject.
+     END.
+   END.
+ END.
+ 
+ RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1687,6 +2175,9 @@ PROCEDURE removeAllLinks :
       RUN removePageNTarget IN hObject (TARGET-PROCEDURE, iPage).
   END.  /* END DO IF not Page 0 */
 
+  /* remove user-defined links too */
+  RUN removeUserLinks IN TARGET-PROCEDURE.
+
   {get SupportedLinks cSupportedLinks}.
   /* Add standard links which aren't on SupportedLinks to the list. */
   cSupportedLinks = cSupportedLinks + 
@@ -1743,7 +2234,6 @@ PROCEDURE removeLink :
                INPUT pcLink   AS CHARACTER -- link type name, 
                INPUT phTarget AS HANDLE -- link target object handle
 -----------------------------------------------------------------------*/
-  
   DEFINE INPUT PARAMETER phSource      AS HANDLE    NO-UNDO.   
   DEFINE INPUT PARAMETER pcLink        AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER phTarget      AS HANDLE    NO-UNDO.   
@@ -1753,28 +2243,38 @@ PROCEDURE removeLink :
   DEFINE VARIABLE cSources     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTargets     AS CHARACTER NO-UNDO.
     
-    /* If this isn't a recognized link, just delete the single subscription 
-       of the name. Do this only if neither side supports the link. */
-    {get SupportedLinks cSources phSource}.
-    {get SupportedLinks cTargets phTarget}.
-    IF (pcLink NE "Container":U AND NOT pcLink BEGINS "Page":U) AND
-       (LOOKUP(pcLink + "-Source":U, cSources) = 0 AND
-        LOOKUP(pcLink + "-Target":U, cTargets) = 0) THEN
-    DO:
-         UNSUBSCRIBE PROCEDURE phTarget TO pcLink IN phSource.
+  /* If this isn't a recognized link, just delete the single subscription 
+     of the name. Do this only if neither side supports the link. */
+  {get SupportedLinks cSources phSource}.
+  {get SupportedLinks cTargets phTarget}.
+  IF (pcLink NE "Container":U AND NOT pcLink BEGINS "Page":U) AND
+     (LOOKUP(pcLink + "-Source":U, cSources) = 0 AND
+      LOOKUP(pcLink + "-Target":U, cTargets) = 0) THEN
+  DO:
+      UNSUBSCRIBE PROCEDURE phTarget TO pcLink IN phSource.
          /* Because there are no "Source" and "Target" properties for
             these "dynamic" links, we need to store the handles where
             the linkHandles function will be able to get at them later,
             if needed. */
-         RUN modifyUserLinks IN phSource ('REMOVE':U, pcLink + "-Target":U,
-           phTarget).
-         RUN modifyUserLinks IN phTarget ('REMOVE':U, pcLink + "-Source":U,
-           phSource).  
-         RETURN.
-    END.   /* END DO for non-Supported Link */
+      RUN modifyUserLinks IN phSource ('REMOVE':U, pcLink + "-Target":U,
+          phTarget).
+     RUN modifyUserLinks IN phTarget ('REMOVE':U, pcLink + "-Source":U,
+         phSource).  
+     RETURN.
+  END.   /* END DO for non-Supported Link */
     
-   /* The remaining code is for standard SupportedLinks. */
-   
+  /* The remaining code is for standard SupportedLinks. */
+  
+  /* UNSUBSCRIBE to all the appropriate events on each side of the old link. 
+     First UNSUBSCRIBE the target. */
+   RUN linkStateHandler IN phTarget ('Remove':U,
+                                    phSource,
+                                    pcLink + "Source":U).
+   /*  UNSUBSCRIBE the source. */
+   RUN linkStateHandler IN phSource ('Remove':U,
+                                    phTarget,
+                                    pcLink + "Target":U).
+
    /* We must be prepared for the Source or Target link to be a list 
      of more than one object. */
    IF dynamic-function('propertyType':U IN phTarget, pcLink + "Source":U) 
@@ -1791,25 +2291,84 @@ PROCEDURE removeLink :
    ELSE dynamic-function("set":U + pcLink + "Target":U IN phSource, ?)
       NO-ERROR. /* Remove the Target  -- don't complain if it's not there. */
   
-  /* UNSUBSCRIBE to all the appropriate events on each side of the old link. 
-     First UNSUBSCRIBE the target. */
-  cEvents = dynamic-function("get":U + pcLink + "SourceEvents":U IN phTarget) 
-     NO-ERROR.
-  IF cEvents NE ? THEN
-  DO iEvent = 1 TO NUM-ENTRIES(cEvents):
-     UNSUBSCRIBE PROCEDURE phTarget TO ENTRY(iEvent, cEvents) IN phSource.
-  END.
-  /* Then UNSUBSCRIBE the source to all the events (if any) that it wants
-     from its target. */
-  cEvents = dynamic-function("get":U + pcLink + "TargetEvents":U IN phSource) 
-    NO-ERROR.
-  IF cEvents NE ? THEN
-  DO iEvent = 1 TO NUM-ENTRIES(cEvents):
-    UNSUBSCRIBE PROCEDURE phSource TO ENTRY(iEvent, cEvents) IN phTarget.
-  END.
-
+  
   RETURN.
   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-removeUserLinks) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeUserLinks Procedure 
+PROCEDURE removeUserLinks :
+/*------------------------------------------------------------------------------
+  Purpose:  Remove all user-defined links. This routine will normally be called 
+            when an object is deleted. Not only do we want to delete it's links
+            but we need to delete the links to it that other objects have.
+            So, for instance, if user links for the deleted object has a link 
+            such as 
+            "Mylink-target,<handlex>"
+            then we need to delete a corresponding link "mylink-source,handley" 
+            in the object identified by 'handlex'. Note: in this example, 
+            'handley' is the object that is being deleted.
+            
+               
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE clinklist   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE ilink       AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iHandle     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE clinkentry  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE clinkname   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE chandles    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE hObj        AS HANDLE    NO-UNDO.
+
+ /* get the User-defined links list from adm-data */
+ cLinkList = ENTRY(3, TARGET-PROCEDURE:ADM-DATA, CHR(1)).
+
+ /* loop through all of the user-defined links for this object
+  * and find out what other objects have links to the current object.
+  * Then call a routine to remove those links in those objects.
+  */
+ DO iLink = 1 TO NUM-ENTRIES(cLinkList, CHR(3)):
+    ASSIGN cLinkEntry = ENTRY(iLink, cLinkList, CHR(3))
+           cLinkName  = ENTRY(1, cLinkEntry, CHR(4))
+           cHandles = ENTRY(2, cLinkEntry, CHR(4)).
+
+    /* if the link is "mylink-target" for the current object, then
+     * we need to delete "mylink-source" in the other object (and 
+     * vice-versa). So we make the substitution here.
+     */
+     IF R-INDEX(cLinkName,"-Target":U) NE 0 
+        THEN clinkname = REPLACE(cLinkName,"-Target":U, "-Source":U).
+     ELSE IF R-INDEX(clinkName,"-Source":U) NE 0
+          THEN clinkname = REPLACE(cLinkName,"-Source":U,"-Target":U).
+
+    /* remove the link on behalf of the other object */
+     DO iHandle = 1 TO NUM-ENTRIES(cHandles,",":U):
+        hObj = WIDGET-HANDLE(ENTRY(iHandle,cHandles,",":U)).
+        IF VALID-HANDLE(hobj) THEN
+          RUN modifyUserLinks IN hObj ('Remove':U, cLinkName, TARGET-PROCEDURE).
+     END.
+  END.
+
+/* When all done, set the target-procedure's user-defined link list to null. 
+ * Note: we could have deleted each handle one by one using modifyUserLinks
+ * for the target-procedure's list but setting the whole entry to NULL is easier 
+ * and cleaner. To do it the other way, we need to make sure
+ * we detect the case where there are no handles (just a link name) in the list.
+ */
+  ASSIGN
+    cLinkList = TARGET-PROCEDURE:ADM-DATA
+    ENTRY(3,cLinkList,CHR(1)) = "":U
+    TARGET-PROCEDURE:ADM-DATA = cLinkList.
+  
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1910,6 +2469,227 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-showMessageProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showMessageProcedure Procedure 
+PROCEDURE showMessageProcedure :
+/*------------------------------------------------------------------------------
+  Purpose:     Astra 2 override for showMessage function to use Astra 2 message
+               handling routines.
+               Displays (using a simple MESSAGE statement by default)
+               either a literal message string, or a message number which
+               is returned by the messageNumber function.
+  Parameters: INPUT pcMessage AS CHARACTER -- 
+              - Either a literal message string 
+              - Or a message number in character form. 
+               
+               A message number can be followed by a comma delimited list
+               with maximum 10 entries:
+               
+               The LAST entry (2 - 10) is:               
+               1) The word "Question" or "YesNo", in which case the message is 
+                  displayed with YES-NO buttons and the answer is returned.
+               
+               2) The word "YesNoCancel", in which case the message is displayed
+                  with YES-NO-CANCEL buttons and the answer is returned.
+                  
+               Optional entries from 2 to 10: 
+                  Each entry will be placed into the numeric message
+                  in place of the the string of form &n, where n is an integer 
+                  between 1 and 9, inclusive (Entry 2 will replace &1 etc)         
+                  
+    Returns:   LOGICAL: true/false if the Question option is used,
+                        true/false/unknown if the YesNoCancel option is used 
+                        else true.
+  Notes:       This function can be overridden to use a mechanism other than
+               the MESSAGE statement to display messages, and still use the
+               messageNumber function to map message numbers to translatable text.
+               Note that this is different from addMessage, fetchMessages, etc.,
+               which log messages in a temp-table for later retrieval.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcMessage AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER plAnswer AS LOGICAL NO-UNDO.
+  
+  DEFINE VARIABLE iMessage      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cMessage      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cMessageType  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cMsg          AS CHARACTER EXTENT 9 NO-UNDO.
+  DEFINE VARIABLE iNumParam     AS INT       NO-UNDO.
+  DEFINE VARIABLE lAnswer       AS LOGICAL   NO-UNDO.
+
+  DEFINE VARIABLE cAnswer AS CHARACTER.
+  DEFINE VARIABLE cButtonPressed AS CHARACTER.            
+  DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
+  
+  {get ContainerSource hContainerSource}.
+              
+  iMessage = INTEGER(ENTRY(1,pcMessage)) NO-ERROR.  /* was a number passed? */
+  IF ERROR-STATUS:ERROR THEN 
+    MESSAGE pcMessage VIEW-AS ALERT-BOX INFORMATION. /* No -- use the literal text */
+  ELSE DO:   /* A numeric message */
+    ASSIGN
+      cMessage     = DYNAMIC-FUNCTION("messageNumber" IN TARGET-PROCEDURE, INPUT iMessage)
+      iNumParam    = NUM-ENTRIES(pcMessage)
+      cMessageType = ENTRY(iNumParam,pcMessage)
+      cMsg[1]      = IF iNumParam > 1 THEN ENTRY(2,pcMessage) ELSE "":U
+      cMsg[2]      = IF iNumParam > 2 THEN ENTRY(3,pcMessage) ELSE "":U
+      cMsg[3]      = IF iNumParam > 3 THEN ENTRY(4,pcMessage) ELSE "":U
+      cMsg[4]      = IF iNumParam > 4 THEN ENTRY(5,pcMessage) ELSE "":U
+      cMsg[5]      = IF iNumParam > 5 THEN ENTRY(6,pcMessage) ELSE "":U
+      cMsg[6]      = IF iNumParam > 6 THEN ENTRY(7,pcMessage) ELSE "":U
+      cMsg[7]      = IF iNumParam > 7 THEN ENTRY(8,pcMessage) ELSE "":U
+      cMsg[8]      = IF iNumParam > 8 THEN ENTRY(9,pcMessage) ELSE "":U
+      cMsg[9]      = IF iNumParam > 9 THEN ENTRY(10,pcMessage) ELSE "":U      
+      cMessage     = SUBSTITUTE(cMessage,
+                                cMsg[1],cMsg[2],cMsg[3],cMsg[4],cMsg[5],
+                                cMsg[6],cMsg[7],cMsg[8],cMsg[9]).
+      
+    /* Yes -- get the msg */
+    CASE cMessageType:
+      WHEN 'Question':U OR WHEN 'YesNo':U THEN
+      DO:
+        IF VALID-HANDLE(gshSessionManager) THEN
+        DO:
+            RUN askQuestion IN gshSessionManager (    
+                INPUT cMessage,         /* pcMessageList     */
+                INPUT "Yes,No",         /* pcButtonList      */
+                INPUT "YES",            /* pcDefaultButton   */
+                INPUT "NO",             /* pcCancelButton    */
+                INPUT "ADM2 Message",   /* pcMessageTitle    */
+                INPUT "",               /* pcDataType        */
+                INPUT "",               /* pcFormat          */
+                INPUT-OUTPUT cAnswer,   /* pcAnswer          */
+                OUTPUT cButtonPressed   /* pcButtonPressed   */   
+                ) NO-ERROR.
+        
+            CASE cButtonPressed:
+                WHEN "YES" THEN lAnswer = TRUE.
+                WHEN "NO"  THEN lAnswer = FALSE.                
+            END CASE.             
+        END.
+        ELSE DO:
+            MESSAGE cMessage VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
+            UPDATE lAnswer.
+        END.
+        
+        plAnswer = lAnswer.              
+        RETURN.
+      END.
+      WHEN 'OkCancel':U THEN
+      DO:
+        IF VALID-HANDLE(gshSessionManager) THEN
+        DO:
+              RUN askQuestion IN gshSessionManager (    
+                  INPUT cMessage,         /* pcMessageList     */
+                  INPUT "Ok,Cancel",      /* pcButtonList      */
+                  INPUT "YES",            /* pcDefaultButton   */
+                  INPUT "NO",             /* pcCancelButton    */
+                  INPUT "ADM2 Message",   /* pcMessageTitle    */
+                  INPUT "",               /* pcDataType        */
+                  INPUT "",               /* pcFormat          */
+                  INPUT-OUTPUT cAnswer,   /* pcAnswer          */
+                  OUTPUT cButtonPressed   /* pcButtonPressed   */   
+                  ) NO-ERROR.
+
+              CASE cButtonPressed:
+                  WHEN "YES" THEN lAnswer = TRUE.
+                  WHEN "NO"  THEN lAnswer = FALSE.                
+              END CASE.             
+        END.
+        ELSE DO:
+            MESSAGE cMessage VIEW-AS ALERT-BOX QUESTION BUTTONS OK-CANCEL 
+            UPDATE lAnswer.
+        END.
+        planswer = lAnswer.
+        RETURN.
+      END.
+      WHEN 'YesNoCancel':U THEN
+      DO:
+          IF VALID-HANDLE(gshSessionManager) THEN
+          DO:   
+            
+            RUN askQuestion IN gshSessionManager (    
+                INPUT cMessage,                             /* pcMessageList     */
+                INPUT "Yes,No,Cancel",                      /* pcButtonList      */
+                INPUT "CANCEL",                             /* pcDefaultButton   */
+                INPUT "Cancel",                             /* pcCancelButton    */
+                INPUT "ADM2 Message",                       /* pcMessageTitle    */
+                INPUT "",                                   /* pcDataType        */
+                INPUT "",                                   /* pcFormat          */
+                INPUT-OUTPUT cAnswer,                       /* pcAnswer          */
+                OUTPUT cBUttonPressed                       /* pcButtonPressed   */   
+                ).
+                           
+            
+            CASE cButtonPressed:
+                WHEN "YES" THEN lAnswer = TRUE.
+                WHEN "NO"  THEN lAnswer = FALSE.                
+                WHEN "CANCEL" THEN lAnswer = ?.
+            END CASE.             
+                                  
+          END.         
+          ELSE DO:
+            MESSAGE cMessage VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO-CANCEL 
+            UPDATE lAnswer.
+          END.
+        
+          plAnswer = lAnswer.
+          RETURN.
+      END.
+      OTHERWISE 
+      DO:
+        IF VALID-HANDLE(gshSessionManager) THEN
+        DO:       
+            RUN showMessages IN gshSessionManager (
+                INPUT cMessage,         /* pcMessageList */
+                INPUT "INF",            /* pcMessageType   */
+                INPUT "OK",             /* pcButtonList    */
+                INPUT "OK",             /* pcDefaultButton */
+                INPUT "",               /* pcCancelButton  */
+                INPUT "ADM2 Message",   /* pcMessageTitle  */
+                INPUT TRUE,             /* plDisplayEmpty  */
+                INPUT hContainerSource, /* phContainer     */
+                OUTPUT cButtonPressed   /* pcButtonPressed */               
+                ).
+                
+        END.
+        ELSE DO:
+            MESSAGE cMessage VIEW-AS ALERT-BOX INFORMATION.      
+        END.
+      END.
+    END CASE.
+  END.  /* END ELSE IF numeric message */
+  
+  plAnswer = TRUE.        
+  RETURN.       /* Return value not meaningful in this case. */
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-toggleData) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE toggleData Procedure 
+PROCEDURE toggleData :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER plEnabled AS LOGICAL NO-UNDO.
+
+/*     MESSAGE "dataviscustom.p toggleData setting DLE to " plEnabled "for " TARGET-PROCEDURE:FILE-NAME. */
+    
+    {set DataLinksEnabled plEnabled}.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-viewObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE viewObject Procedure 
@@ -1936,9 +2716,16 @@ PROCEDURE viewObject :
        they will reappear when it is viewed - but we need to tell them that
        they are part of a viewed Container so that they can set links
        and other states dependent on HIDDEN accordingly. */
-    dynamic-function("assignLinkProperty":U In TARGET-PROCEDURE,
+    DYNAMIC-FUNCTION("assignLinkProperty":U In TARGET-PROCEDURE,
       "Container-Target":U, "ContainerHidden":U, "no":U).
     
+  {set ObjectHidden no}.
+    
+  /* For those objects which want to "activate" a link when an object is
+     viewed, we tell them that this object is 'active'. We also set the
+     ObjectActive property to hold onto the state for future inquiries. */
+  PUBLISH 'LinkState':U FROM TARGET-PROCEDURE ('active':U).
+  
   {get ContainerHandle hContainer}.
   
   IF VALID-HANDLE(hContainer) THEN
@@ -1952,15 +2739,8 @@ PROCEDURE viewObject :
     &ENDIF
          ASSIGN hContainer:HIDDEN = NO.      
     
-  {set ObjectHidden no}.
-    
-  /* For those objects which want to "deactivate" a link when an object is
-     hidden, we tell them that this object is being viewed. We also set a state
-     property tp hold onto the state for future inquiries. */
-  PUBLISH 'linkState':U FROM TARGET-PROCEDURE 
-    ('active':U).
-
   RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2060,6 +2840,99 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-changeLinkState) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION changeLinkState Procedure 
+FUNCTION changeLinkState RETURNS LOGICAL
+  ( pcState  AS CHAR,
+    pcLink   AS CHAR, 
+    phObject AS HANDLE):
+
+/*------------------------------------------------------------------------------
+  Purpose: Subscribe to the link events in the passed object  
+Parameter: pcState - 'Active'  - activate links by subscribing to the
+                                <Link>Events of the passed object
+                     'Inactive' - deactivate links by unsubscribing to the
+                                <Link>Events of the passed object
+           pcLink - full link name to a linked object.  
+                    DataSource or Data-source (both forms supported) 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cEvents AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iEvent  AS INTEGER    NO-UNDO.
+  
+  ASSIGN
+    pcLink  = REPLACE(pcLink,'-':U,'':U)
+    cEvents = DYNAMIC-FUNCTION("get":U + pcLink + "Events":U IN TARGET-PROCEDURE) 
+  NO-ERROR.
+  
+  IF ERROR-STATUS:ERROR = FALSE AND VALID-HANDLE(phObject) THEN
+  DO:
+    DO iEvent = 1 TO NUM-ENTRIES(cEvents):
+      IF pcState = 'ACTIVE':U THEN
+        SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO ENTRY(iEvent, cEvents) IN phObject.
+      IF pcState = 'INACTIVE':U THEN
+        UNSUBSCRIBE PROCEDURE TARGET-PROCEDURE TO ENTRY(iEvent, cEvents) IN phObject.
+    END.
+    RETURN TRUE.
+  END.
+  ELSE 
+    RETURN FALSE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteEntry) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION deleteEntry Procedure 
+FUNCTION deleteEntry RETURNS CHARACTER
+  ( piEntry  AS INTEGER,
+    pcString AS CHARACTER,
+    pcDelim  AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Delete entry piEntry from pcString.
+  Returns:  Returns the new string without the specified entry.
+    
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE iNumEnt  AS INT  NO-UNDO.
+DEFINE VARIABLE cUnique AS CHAR NO-UNDO INIT "@":U.
+ 
+/* if delimiter is not specified then use comma as default */
+IF pcDelim = "":U OR pcDelim = ? THEN pcDelim = ",":U.
+
+/* determine a unique string to replace the entry we want to delete then
+ * we can easily delete it and the appropriate delimiters from pcString.
+ * First, if the character used to build the unique string is the delimiter 
+ * then use another character altogether to build the unique string.
+ */
+IF pcDelim = cUnique THEN cUnique = "$":U.      /* use alternative char*/
+DO WHILE INDEX(pcString,cUnique) > 0:
+    cUnique = cUnique + SUBSTR(cUnique,1,1).    /* build unique string*/
+end.
+
+/* replace the entry-to-delete with unique string */
+/* then delete it and appropriate delimiters      */
+ENTRY(piEntry,pcString,pcDelim) = cUnique.
+iNumEnt = NUM-ENTRIES(pcString,pcDelim).                 
+IF iNumEnt = 1 AND piEntry = 1 THEN pcString = "":U.   /* only entry*/
+ELSE 
+   pcstring = REPLACE(pcString,
+                       IF piEntry = iNumEnt THEN pcDelim + cUnique /* last entry*/
+                       ELSE IF piEntry = 1 THEN cUnique + pcDelim  /* first entry*/
+                       ELSE cUnique + pcDelim,                     /* middle entry*/
+                       "":U).
+RETURN pcString.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-fetchMessages) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fetchMessages Procedure 
@@ -2083,6 +2956,83 @@ FUNCTION fetchMessages RETURNS CHARACTER
   
   RETURN cMessages.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fixQueryString Procedure 
+FUNCTION fixQueryString RETURNS CHARACTER
+  ( INPUT pcQueryString AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: To check for comma decimal places in query string and replace with
+           full stops to resolve issues when running with European numeric
+           formats selected.
+    Notes: Whereever a query prepare is being used, this procedure should first
+           be called to resolve any issues in the query string, such as decimal
+           formatting.
+           The main issues arise when the query string contains stringed decimal
+           values.
+------------------------------------------------------------------------------*/
+
+  IF SESSION:NUMERIC-DECIMAL-POINT EQ ".":U THEN
+      RETURN pcQueryString.
+
+  DEFINE VARIABLE iPosn                   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cBefore                 AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAfter                  AS CHARACTER  NO-UNDO.
+
+  ASSIGN iPosn = INDEX(pcQueryString, SESSION:NUMERIC-DECIMAL-POINT).
+
+  comma-loop:
+  REPEAT WHILE iPosn <> 0 AND iPosn <> ?:
+
+    ASSIGN
+      cBefore = "":U
+      cAfter = "":U
+      .
+
+    IF iPosn > 1 THEN
+      ASSIGN cBefore = SUBSTRING(pcQueryString, iPosn - 1,1).
+    IF iPosn < LENGTH(pcQueryString) THEN
+      ASSIGN cAfter = SUBSTRING(pcQueryString, iPosn + 1,1).
+
+    IF cBefore >= "0":U AND cBefore <= "9":U AND
+       cAfter  >= "0":U AND cAfter  <= "9":U THEN
+    DO:
+      /* See if it is not quoted and thus needs to be changed */
+      IF DYNAMIC-FUNCTION("isObjQuoted":U, pcQueryString, iPosn) = FALSE THEN
+        SUBSTRING(pcQueryString,iPosn,1) = ".":U.
+    END.
+
+    ASSIGN iPosn = INDEX(pcQueryString, SESSION:NUMERIC-DECIMAL-POINT, iPosn + 1).
+  END.  /* comma loop */
+
+  RETURN pcQueryString.   /* Function return value. */
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getChildDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getChildDataKey Procedure 
+FUNCTION getChildDataKey RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cChildDataKey AS CHARACTER NO-UNDO.
+    {get ChildDataKey cChildDataKey}.
+    RETURN cChildDataKey.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2205,6 +3155,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataLinksEnabled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataLinksEnabled Procedure 
+FUNCTION getDataLinksEnabled RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lDataLinksEnabled AS LOGICAL NO-UNDO.
+  {get DataLinksEnabled lDataLinksEnabled}.
+  RETURN lDataLinksEnabled.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataSource Procedure 
@@ -2214,7 +3184,7 @@ FUNCTION getDataSource RETURNS HANDLE
   Purpose:  Returns the object's data source, if any.
    Params:  <none>
   Returns:  HANDLE
-    Notes: There is no xp preprosessor in order to allow design-time override  
+    Notes: There si no xp preprosessor in order to allow design-time override  
 ------------------------------------------------------------------------------*/
   ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
          ghProp = ghProp:BUFFER-FIELD('DataSource':U).
@@ -2362,6 +3332,70 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDynamicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDynamicObject Procedure 
+FUNCTION getDynamicObject RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE lTemp AS LOGICAL NO-UNDO.
+    {get DynamicObject lTemp}.
+  RETURN lTemp.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getHideOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getHideOnInit Procedure 
+FUNCTION getHideOnInit RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the logical flag that indicates whether to visualize 
+           at initialization.
+    Notes: Also used for non visual object in order to publish LinkState 
+           correctly for activation and deactivation of links.   
+           Defaults to no, set to yes from the container when it runs initPages 
+           to initialize non visible pages 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lHideOnInit AS LOGICAL    NO-UNDO.
+  {get HideOnInit lHideOnInit}.
+  RETURN lHideOnInit.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getInactiveLinks) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInactiveLinks Procedure 
+FUNCTION getInactiveLinks RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cInactiveLinks AS CHARACTER  NO-UNDO.
+  
+  {get InactiveLinks cInactiveLinks}.
+  RETURN cInactiveLinks. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInstanceProperties Procedure 
@@ -2379,6 +3413,55 @@ FUNCTION getInstanceProperties RETURNS CHARACTER
   {get InstanceProperties cProps}.
   RETURN cProps.
 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLogicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLogicalObjectName Procedure 
+FUNCTION getLogicalObjectName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: REturn the logical object (Repository object name)  
+    Notes: Defaults to the physical object without extension
+           1. If queryObject then ServerFilename (set by container when constructing)
+           2  target-procedure:file-name - extension  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cLogicalObject AS CHARACTER  NO-UNDO.
+  
+  &SCOPED-DEFINE xpLogicalObjectName
+  {get LogicalObjectName cLogicalObject}.
+  &UNDEFINE xpLogicalObjectName
+  
+  RETURN cLogicalObject.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLogicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLogicalVersion Procedure 
+FUNCTION getLogicalVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cVersion AS CHARACTER NO-UNDO. 
+  
+  &SCOPED-DEFINE xpLogicalVersion
+  {get LogicalVersion cVersion}.
+  &UNDEFINE xpLogicalVersion
+  RETURN cVersion.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2412,7 +3495,9 @@ FUNCTION getObjectHidden RETURNS LOGICAL
     RETURN YES.
   ELSE
   DO:
+    &SCOPED-DEFINE xpObjectHidden
     {get ObjectHidden lHidden}.
+    &UNDEFINE xpObjectHidden
     RETURN lHidden.
   END.
   
@@ -2547,6 +3632,26 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getParentDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getParentDataKey Procedure 
+FUNCTION getParentDataKey RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cParentDataKey AS CHARACTER NO-UNDO.
+    {get ParentDataKey cParentDataKey}.
+    RETURN cParentDataKey.
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getPassThroughLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPassThroughLinks Procedure 
@@ -2561,6 +3666,46 @@ FUNCTION getPassThroughLinks RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
 
   RETURN scPassThroughLinks.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPhysicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPhysicalObjectName Procedure 
+FUNCTION getPhysicalObjectName RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTemp AS CHARACTER NO-UNDO.
+  {get PhysicalObjectName cTemp}.
+  RETURN cTemp.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPhysicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPhysicalVersion Procedure 
+FUNCTION getPhysicalVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cVersion AS CHARACTER NO-UNDO.          
+    {get PhysicalVersion cVersion}.
+  RETURN cVersion.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2601,15 +3746,33 @@ END FUNCTION.
 FUNCTION getQueryObject RETURNS LOGICAL
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns a flag indicating whether this object manages its own 
-            database query.
-   Params:  <none>
-  Returns:  LOGICAL
+  Purpose: Returns a flag indicating whether this object queries data.
+    Notes: The data class and sbo class are both considered to be a QueryObject. 
+Note date: 2002/02/14       
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE lQuery AS LOGICAL NO-UNDO.
   {get QueryObject lQuery}.
   RETURN lQuery.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRunAttribute) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRunAttribute Procedure 
+FUNCTION getRunAttribute RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cRunAttribute AS CHARACTER NO-UNDO.          
+    {get RunAttribute cRunAttribute}.
+  RETURN cRunAttribute.   /* Function return value. */
 
 END FUNCTION.
 
@@ -2696,13 +3859,37 @@ FUNCTION getUIBMode RETURNS CHARACTER
     {get ContainerSource hContainer}.
     IF VALID-HANDLE(hContainer) THEN
     DO:
-      {get UIBMode cMode hContainer}.
+      cMode = DYNAMIC-FUNCTION("getUIBmode":U IN hContainer) NO-ERROR.
       IF cMode <> "":U THEN 
          cMode = cMode + "-Child":U.  
     END. /* if valid-handle (hContainer) */
   END. /* if cMode = '' or ? */
   
   RETURN cMode.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUseRepository) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseRepository Procedure 
+FUNCTION getUseRepository RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lRepos AS LOGICAL    NO-UNDO.
+  /* icf session manager will have this in a super procedure of the session */
+  
+  lRepos = DYNAMIC-FUNCTION('isICFRunning':U IN THIS-PROCEDURE) NO-ERROR.
+   
+  /* Return no if unknown !*/ 
+  RETURN lRepos = TRUE.
 
 END FUNCTION.
 
@@ -2867,6 +4054,97 @@ FUNCTION instancePropertyList RETURNS CHARACTER
     
   RETURN cPropValues.
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isObjQuoted) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isObjQuoted Procedure 
+FUNCTION isObjQuoted RETURNS LOGICAL
+ (INPUT pcQueryString  AS CHARACTER,
+   INPUT piPosition     AS INTEGER):
+/*------------------------------------------------------------------------------
+  Purpose: Looks at the object number in the query string and determines whether
+           or not it is wrapped in quotes
+
+    Notes: This is needed when running the application in European format. If an
+           object number is in quotes and we are in European mode / format, the
+           object number must remain with a comma in the quotes, i.e. '12345678,02'
+           to convert properly to a decimal. If it is not quoted however, then
+           the comma must be replaced by a '.', i.e. ...obj = 12345678,02, FIRST ...
+           must be replaced with ...obj = 12345678.02, FIRST ... to ensure that
+           the query resolves properly. The replace will be done by 'fixQueryString',
+           which calls this function to establish whether or not to replace the object
+           number's decimal seperator based on whether it is quoted or not
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cAllowedCharacters  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCharacter          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQuotedInFront      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQuotedBehind       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lObjQuoted          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFinished           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iCounter            AS INTEGER    NO-UNDO.
+
+  ASSIGN
+      cAllowedCharacters = "1234567890 ":U + "'" + '"':U + CHR(10) + CHR(13)
+      lQuotedInFront     = FALSE
+      lQuotedBehind      = FALSE
+      lObjQuoted         = FALSE.
+
+  /* Read forward through the string */
+  IF LENGTH(pcQueryString) >= piPosition THEN
+  DO:
+    ASSIGN
+        lFinished = FALSE
+        iCounter  = piPosition.
+
+    DO WHILE lFinished = FALSE:
+      ASSIGN
+          iCounter   = iCounter + 1.
+          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
+
+      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
+         (cCharacter = "'":U OR cCharacter = '"':U) THEN
+        ASSIGN
+            lQuotedBehind = TRUE
+            lFinished     = TRUE.
+
+      IF iCounter >= LENGTH(pcQueryString) THEN lFinished = TRUE.
+    END.
+  END.
+
+  /* Read backward through the string */
+  IF piPosition > 1 THEN
+  DO:
+    ASSIGN
+        lFinished = FALSE
+        iCounter  = piPosition.
+
+    DO WHILE lFinished = FALSE:
+      ASSIGN
+          iCounter   = iCounter - 1.
+          cCharacter = SUBSTRING(pcQueryString, iCounter, 1).
+
+      IF INDEX(cAllowedCharacters, cCharacter) <> 0 AND
+         (cCharacter = "'":U OR cCharacter = '"':U) THEN
+        ASSIGN
+            lQuotedInFront = TRUE
+            lFinished      = TRUE.
+
+      IF iCounter <= 1 THEN lFinished = TRUE.
+    END.
+  END.
+
+  IF lQuotedInFront AND lQuotedBehind THEN
+    lObjQuoted = TRUE.
+
+  RETURN lObjQuoted.
+
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3065,7 +4343,10 @@ FUNCTION propertyType RETURNS CHARACTER
       hProc = TARGET-PROCEDURE.
   ELSE DO:
     cSupers = TARGET-PROCEDURE:SUPER-PROCEDURES.
-    DO i = 1 TO NUM-ENTRIES(cSupers):
+    /* Go in reverse so customizations is found first. The customization may have changed 
+       the data type. For example link functions like getUpdateSource mneed to be changed to 
+       support multiple objects. */
+    DO i = NUM-ENTRIES(cSupers) TO 1 BY -1: 
       hSuper = WIDGET-HANDLE(ENTRY(i, cSupers)).
       IF LOOKUP(cSetProp, hSuper:INTERNAL-ENTRIES) NE 0 THEN
       DO:
@@ -3117,6 +4398,26 @@ FUNCTION reviewMessages RETURNS CHARACTER
 
   RETURN gcDataMessages.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setChildDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setChildDataKey Procedure 
+FUNCTION setChildDataKey RETURNS LOGICAL
+  ( cChildDataKey AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+    {set ChildDataKey cChildDataKey}.
+    RETURN TRUE.                      
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3193,6 +4494,25 @@ FUNCTION setContainerSourceEvents RETURNS LOGICAL
   
   {set ContainerSourceEvents pcEvents}.
   
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataLinksEnabled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataLinksEnabled Procedure 
+FUNCTION setDataLinksEnabled RETURNS LOGICAL
+  ( lDataLinksEnabled AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ {set DataLinksEnabled lDataLinksEnabled}.
   RETURN TRUE.
 
 END FUNCTION.
@@ -3361,6 +4681,67 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setDynamicObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDynamicObject Procedure 
+FUNCTION setDynamicObject RETURNS LOGICAL
+  ( lTemp AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set DynamicObject lTemp}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setHideOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setHideOnInit Procedure 
+FUNCTION setHideOnInit RETURNS LOGICAL
+  ( plHideOnInit AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the flag that indicates whether to visualize 
+           at initialization.
+Parameters: plHideOnInit - logical           
+    Notes: Also used for non visual object in order to publish LinkState 
+           correctly for activation and deactivation of links.   
+           Defaults to no, set to yes from the container when it runs initPages 
+           to initialize non visible pages 
+------------------------------------------------------------------------------*/
+  {set HideOnInit plHideOnInit}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setInactiveLinks) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setInactiveLinks Procedure 
+FUNCTION setInactiveLinks RETURNS LOGICAL
+  ( pcInactiveLinks AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set InactiveLinks pcInactiveLinks}.
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setInstanceProperties) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setInstanceProperties Procedure 
@@ -3376,6 +4757,72 @@ FUNCTION setInstanceProperties RETURNS LOGICAL
 
   {set InstanceProperties pcPropList}.
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLogicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLogicalObjectName Procedure 
+FUNCTION setLogicalObjectName RETURNS LOGICAL
+  ( c AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set the LogicalObjectName and the AstraObjectName to the designated value
+    Notes:  
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpLogicalObjectName
+  {set LogicalObjectName c}.
+  &UNDEFINE xpLogicalObjectName
+
+  
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLogicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLogicalVersion Procedure 
+FUNCTION setLogicalVersion RETURNS LOGICAL
+  ( cVersion AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    &SCOPED-DEFINE xpLogicalVersion
+    {set LogicalVersion cVersion}.
+    &UNDEFINE xpLogicalVersion
+    {set ObjectVersion cVersion}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setObjectHidden) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectHidden Procedure 
+FUNCTION setObjectHidden RETURNS LOGICAL
+  ( plHidden AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  sets the Object Hidden property 
+   Params:  lHidden AS LOGICAL
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpObjectHidden
+  {set ObjectHidden plHidden}.
+  &UNDEFINE xpObjectHidden
+  RETURN TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3437,6 +4884,46 @@ FUNCTION setObjectParent RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setObjectVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectVersion Procedure 
+FUNCTION setObjectVersion RETURNS LOGICAL
+  ( cObjectVersion AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+    {set ObjectVersion cObjectVersion}.                               
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setParentDataKey) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setParentDataKey Procedure 
+FUNCTION setParentDataKey RETURNS LOGICAL
+  ( cParentDataKey AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+    {set ParentDataKey cParentDataKey}.
+    RETURN TRUE.                      
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setPassThroughLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPassThroughLinks Procedure 
@@ -3456,6 +4943,63 @@ FUNCTION setPassThroughLinks RETURNS LOGICAL
   scPassThroughLinks = pcLinks.
   
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPhysicalObjectName) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPhysicalObjectName Procedure 
+FUNCTION setPhysicalObjectName RETURNS LOGICAL
+  ( cTemp AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set PhysicalObjectName cTemp}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPhysicalVersion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPhysicalVersion Procedure 
+FUNCTION setPhysicalVersion RETURNS LOGICAL
+  ( cVersion AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set PhysicalVersion cVersion}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRunAttribute) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRunAttribute Procedure 
+FUNCTION setRunAttribute RETURNS LOGICAL
+  ( cRunAttribute AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set RunAttribute cRunAttribute}.
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -3570,7 +5114,7 @@ FUNCTION setUserProperty RETURNS LOGICAL
   IF pcPropValue = ? THEN           /* Don't allow unknown value. */
     pcPropValue = "":U.
   cOldProps = ENTRY(2, TARGET-PROCEDURE:ADM-DATA, CHR(1)).
-  iIndex = INDEX(cOldProps, pcPropName + CHR(4)).
+  iIndex = INDEX(CHR(3) + cOldProps, CHR(3) + pcPropName + CHR(4)).
   IF iIndex = 0 THEN    /* Property wasn't defined yet. */
     cNewProps = cOldProps + (IF cOldProps NE "":U THEN CHR(3) ELSE "":U) +
       pcPropName + CHR(4) + pcPropValue.
@@ -3714,7 +5258,6 @@ FUNCTION Signature RETURNS CHARACTER
   DEFINE VARIABLE cSuperProcs AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hSuper      AS HANDLE    NO-UNDO.
   
-   
   IF LOOKUP(pcName, TARGET-PROCEDURE:INTERNAL-ENTRIES) NE 0 THEN
     RETURN TARGET-PROCEDURE:GET-SIGNATURE(pcName).   /* It's defined "locally" */
   ELSE DO:
@@ -3722,7 +5265,6 @@ FUNCTION Signature RETURNS CHARACTER
     DO iEntry = 1 to NUM-ENTRIES(cSuperProcs):
 
       hSuper = WIDGET-HANDLE(ENTRY(iEntry, cSuperProcs)).
-     
       IF VALID-HANDLE(hSuper) AND LOOKUP(pcName, hSuper:INTERNAL-ENTRIES) NE 0 THEN
         RETURN hSuper:GET-SIGNATURE(pcName).   /* It's defined in this super proc */
     END.

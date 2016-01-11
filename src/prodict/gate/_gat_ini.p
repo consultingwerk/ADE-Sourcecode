@@ -107,6 +107,13 @@ ASSIGN
                   &from-type = "user_env[3]"
                   }.
 
+IF dict_rog THEN DO:
+  MESSAGE "The dictionary is in read-only mode - alterations not allowed." SKIP
+      VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+  ASSIGN user_path = "".  
+  RETURN.    
+END.
+
 RUN "prodict/_dctsget.p".
 DO i = 1 TO cache_db#:
   IF cache_db_t[i] = user_env[3] THEN ASSIGN po = i  lo = lo + 1.

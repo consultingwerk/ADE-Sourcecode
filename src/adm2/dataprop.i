@@ -46,7 +46,7 @@
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
 AppService,ASUsePrompt,ASInfo,ForeignFields,RowsToBatch,CheckCurrentChanged,~
 RebuildOnRepos,ServerOperatingMode,DestroyStateless,DisconnectAppServer,~
-ObjectName,UpdateFromSource
+ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -112,19 +112,17 @@ ObjectName,UpdateFromSource
     properties can be retrieved directly from the property temp-table. */
  &GLOB xpRowObject
  &GLOB xpRowObjUpd
- &GLOB xpRowObjUpdTable
  &GLOB xpFirstRowNum            
  &GLOB xpLastRowNum                    
- &GLOB xpAutoCommit             
  &GLOB xpDataHandle
  &GLOB xpDataQueryString
  &GLOB xpCurrentRowid                                                         
  &GLOB xpUpdateSource           
+ &GLOB xpCurrentUpdateSource         
  &GLOB xpCommitSource           
  &GLOB xpCommitSourceEvents     
  &GLOB xpCommitTarget           
  &GLOB xpCommitTargetEvents     
- &GLOB xpDataModified
  &GLOB xpRowsToBatch
  &GLOB xpCheckCurrentChanged
  &GLOB xpFirstResultRow
@@ -138,7 +136,13 @@ ObjectName,UpdateFromSource
  &GLOB xpQueryContext
  &GLOB xpFillBatchOnRepos
  &GLOB xpUpdateFromSource
- 
+ &GLOB xpAsynchronousSDO
+ &GLOB xpToggleDataTargets
+                                
+ &GLOB xpManualAddQueryWhere        
+ &GLOB xpManualAssignQuerySelection 
+ &GLOB xpManualSetQuerySort         
+
 {src/adm2/qryprop.i}
 
 &IF "{&ADMSuper}":U = "":U &THEN
@@ -153,8 +157,8 @@ ObjectName,UpdateFromSource
   ghADMProps:ADD-NEW-FIELD('DataQueryString':U, 'CHAR':U, 0, ?, 
     'FOR EACH RowObject':U).
   ghADMProps:ADD-NEW-FIELD('CurrentRowid':U, 'ROWID':U).
-  ghADMProps:ADD-NEW-FIELD('ASHandle':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('CurrentUpdateSource':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('CommitSource':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('CommitSourceEvents':U, 'CHAR':U, 0, ?, 
     'commitTransaction,undoTransaction':U).
@@ -175,13 +179,32 @@ ObjectName,UpdateFromSource
   ghADMProps:ADD-NEW-FIELD('ServerSubmitValidation':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('DataFieldDefs':U, 'CHARACTER':U, 0, ?, 
       '{&DATA-FIELD-DEFS}':U).
-                                             /* Key-fields not yet supported */
-  ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHAR':U, 0, ?, '{&KEY-FIELDS}':U).
   ghADMProps:ADD-NEW-FIELD('QueryContainer':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('IndexInformation':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('QueryContext':U, 'CHARACTER':U, 0, ?,?). 
   ghADMProps:ADD-NEW-FIELD('FillBatchOnRepos':U, 'LOGICAL':U, 0, ?, YES).
   ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('AsynchronousSDO', 'LOGICAL':U, ?, ?, TRUE).   
+  ghADMProps:ADD-NEW-FIELD('ToggleDataTargets', 'LOGICAL':U, ?, ?, TRUE).
+/* The following properties are used to store query manipluation strings made
+   manually. If you change the query manually in code, you should set these
+   properties. The filter window will retrieve these settings again when reapplying
+   the filter, thus ensuring the original query is not corrupted by the Astra
+   filter. Each property is chr(3) delimited to match the parameters that should
+   be passed to each of the routines when reapplying them.
+   
+   Note that multiple entries are supported, seperated by chr(4), but this must
+   be done manually - the set procedure does not do this automatically, but the
+   filter will handle it when retrieving the values.
+   To add multiple entries, be sure to do a get first and if a value exists, add
+   a chr(4) before adding in your value and setting the new value.*/
+
+  /* pcwhere + chr(3) + pcbuffer or empty or "?" + chr(3) + pcandor */
+  ghADMProps:ADD-NEW-FIELD('ManualAddQueryWhere', 'CHARACTER').   
+  /* pccolumns + chr(3) + pcvalues + chr(3) + pcoperators */
+  ghADMProps:ADD-NEW-FIELD('ManualAssignQuerySelection', 'CHARACTER').
+  ghADMProps:ADD-NEW-FIELD('ManualSetQuerySort', 'CHARACTER').
+
 &ENDIF
 
   {src/adm2/custom/datapropcustom.i}

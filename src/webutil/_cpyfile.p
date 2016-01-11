@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -293,7 +293,7 @@ IF lSave OR (lCompile AND p_action BEGINS "okToCompile":U) THEN DO:
        {&OUT} 
          '<HTML>':U SKIP
          '<HEAD>':U SKIP
-         '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/common.js"><!--':U SKIP
+         '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js"><!--':U SKIP
          '  document.write("Included common.js file not found.");':U SKIP
          '//--></SCRIPT>':U SKIP
          '<SCRIPT LANGUAGE="JavaScript1.2"><!--':U SKIP
@@ -578,7 +578,7 @@ PROCEDURE miscAction :
       {&OUT} 
         '<HTML>':U SKIP
         '<HEAD>':U SKIP
-        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/common.js"><!--':U SKIP
+        '<SCRIPT LANGUAGE="JavaScript1.2" SRC="' RootURL '/workshop/common.js"><!--':U SKIP
         '  document.write("Included common.js file not found.");':U SKIP
         '//--></SCRIPT>':U SKIP
         '<SCRIPT LANGUAGE="JavaScript1.2"><!--':U SKIP

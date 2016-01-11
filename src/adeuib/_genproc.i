@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -40,7 +40,7 @@ Author: D. Ross Hunter
 Date Created: 1992
 
 Date Modified:
-    2/94 by RPR (added attributes to 'OPEN QUERY')
+    02/01/94 by RPR (added attributes to 'OPEN QUERY')
     03/08/96 GFS added support for Win95 slider
     09/22/94 GFS added XFTR support
     12/02/94 GFS added ENABLED-FIELDS-IN-QUERY-<frame-name> PREPROCESSOR
@@ -63,6 +63,9 @@ Date Modified:
     06/10/99 TSM Added support for Auto-Completion for combo-boxes
     06/18/99 TSM Added support for Max-chars for combo-boxes
     02/01/01 JEP Added gentitle parameter to put_color_font_title. (Issue 273)
+    02/12/02 DMA Separated ENABLED-TABLES from DISPLAY-TABLES in Standard
+                 List Definitions section
+    02/27/02 GAG Supported # of tables in query was raised to 18 (core max)
 ---------------------------------------------------------------------------- */
 /* ************************************************************************* */
 /*                                                                           */
@@ -372,6 +375,8 @@ PROCEDURE put_query_preproc_vars:
   DEFINE VAR cPath            AS CHARACTER NO-UNDO.
   DEFINE VAR cRelName         AS CHARACTER NO-UNDO.
   DEFINE VAR cReturnValue     AS CHARACTER NO-UNDO.
+  DEFINE VAR cOpenQuery       AS CHARACTER NO-UNDO.
+  DEFINE VAR cQueryString     AS CHARACTER NO-UNDO.
   DEFINE VAR lSaveAs          AS LOGICAL   NO-UNDO.
   DEFINE VAR lSaveUntitled    AS LOGICAL   NO-UNDO.
   DEFINE VAR tables_in_query  AS CHARACTER NO-UNDO.
@@ -533,7 +538,7 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
         RUN put_tbllist (enabled-tables, FALSE,
                          "ENABLED-TABLES-IN-QUERY-":U + _U._NAME,
                          "&1-ENABLED-TABLE-IN-QUERY-":U + _U._NAME,
-                         10, " ":U).
+                         18, " ":U).
       END.
     END.
     ELSE DO:  /* Run through the _BC records */
@@ -584,7 +589,7 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
       RUN put_tbllist (enabled-tables, FALSE,
                        "ENABLED-TABLES-IN-QUERY-":U + _U._NAME,
                        "&1-ENABLED-TABLE-IN-QUERY-":U + _U._NAME,
-                       10, " ":U).
+                       18, " ":U).
     END.  /* Use the _BC records */
   END. /* IF...BROWSE... */
   ELSE DO: /* A frame or dialog-box */
@@ -711,7 +716,7 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
       RUN put_tbllist (enabled-tables, FALSE,
                        "ENABLED-TABLES-IN-QUERY-":U + _U._NAME,
                        "&1-ENABLED-TABLE-IN-QUERY-":U + _U._NAME,
-                       10, " ":U).
+                       18, " ":U).
     END.
     
     /* ### Here is my patch for the Bug number: 20000107-061. Alex */
@@ -1031,31 +1036,56 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
                                      ELSE "").
   END.      
   
-  /* Add a new-line between OPEN QUERY statements. */
   IF tmp_item NE "" THEN
   DO:
+    IF LEFT-TRIM(tmp_item) BEGINS "OPEN QUERY" THEN
+      ASSIGN 
+        cOpenQuery   = LEFT-TRIM(tmp_item)
+                       /* remove open query */
+        cQueryString = LEFT-TRIM(SUBSTR(cOpenQuery,11)) 
+                       /* Find first blank to remove query name */
+        cQueryString = SUBSTR(cQueryString,INDEX(cQueryString," ":U) + 1).
+    
+    ELSE IF (tmp_item BEGINS "FOR EACH":U OR
+             tmp_item BEGINS "FOR FIRST":U OR
+             tmp_item BEGINS "FOR LAST":U) THEN 
+      ASSIGN 
+        cQueryString = tmp_item
+        cOpenQuery   = "OPEN QUERY " + _U._name + cQueryString.
+
+    ELSE IF (tmp_item BEGINS "EACH":U OR
+             tmp_item BEGINS "FIRST":U OR
+             tmp_item BEGINS "LAST":U) THEN 
+      ASSIGN
+        cQueryString = (IF LOOKUP ("Preselect":U, _Q._OptionList, " ":U) eq 0
+                        THEN " FOR ":U ELSE " PRESELECT ":U )
+                        + tmp_item
+        cOpenQuery   = "OPEN QUERY " + _U._name + cQueryString.
+ 
+    ELSE  
+       /* If we don't understand the query we cannot generate the query string*/
+       cOpenQuery = tmp_item.
+    
+     /* From 9.1D we generate a query-string-query-main outside the db-required 
+        preporcessor. The fact that the open-query-query-main was put inside 
+        db-required made it difficult to use 'one-hit-appserver-requests' at 
+        initialization since any query manipulation then would require this info 
+        to be retrieved from the server.
+        We skip this if QueryString is blank, which would be the case when we 
+        could not extract this info (This may happen if we have a Free Form 
+        query with definitions or comments.). */ 
+    IF cQueryString <> '':U THEN
+      PUT STREAM P_4GL UNFORMATTED 
+       "&Scoped-define QUERY-STRING-" + _U._NAME + " " +
+           TRIM(cQueryString) SKIP.
+
     /* Db-Required Start Preprocessor block. */
     IF _P._DB-AWARE THEN
         PUT STREAM P_4GL UNFORMATTED '~{&DB-REQUIRED-START~}' SKIP.
 
     PUT STREAM P_4GL UNFORMATTED 
-       "&Scoped-define OPEN-QUERY-" + _U._NAME + " " +
-       (IF tmp_item BEGINS "OPEN QUERY" THEN
-             tmp_item
-        ELSE IF (tmp_item BEGINS "FOR EACH":U OR
-                 tmp_item BEGINS "FOR FIRST":U OR
-                 tmp_item BEGINS "FOR LAST":U) THEN 
-             "OPEN QUERY " + _U._NAME + " " + tmp_item
-        ELSE IF (tmp_item BEGINS "EACH":U OR
-                 tmp_item BEGINS "FIRST":U OR
-                 tmp_item BEGINS "LAST":U) THEN 
-             "OPEN QUERY " + _U._NAME
-             + (IF LOOKUP ("Preselect":U, _Q._OptionList, " ":U) eq 0
-                THEN " FOR ":U ELSE " PRESELECT ":U )
-             + tmp_item
-        ELSE tmp_item) + "." SKIP.
-
-
+       "&Scoped-define OPEN-QUERY-" +  _U._NAME + " " +
+            cOpenQuery + "." SKIP.
     /* Db-Required End Preprocessor block. */
     IF _P._DB-AWARE THEN
         PUT STREAM P_4GL UNFORMATTED '~{&DB-REQUIRED-END~}' SKIP.
@@ -1068,7 +1098,7 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
                      _U._SHARED AND _U._TYPE = "BROWSE":U,
                      "TABLES-IN-QUERY-" + _U._NAME,
                      "&1-TABLE-IN-QUERY-" + _U._NAME, 
-                     10,  /* Only put the first table. */
+                     18,  /* Only put the first table. */
                      " " /* Space delimited */
                      ).
   /* Skip a line before next section */
@@ -1106,8 +1136,8 @@ PROCEDURE put_tbllist:
   /* Do we need this section at all */
   cnt = NUM-ENTRIES(pc_TblList).
   IF cnt > 0 THEN DO:    
-    /* we only support up to 10 items so far. */
-    IF p_imax > 10 THEN p_imax = 10.                         
+    /* we support 18 items, (max supported tables in a join) */
+    IF p_imax > 18 THEN p_imax = 18.                         
     tmp_code = "&Scoped-define " + p_table_var + " ".
     DO i = 1 TO cnt:
       tmp_item = ENTRY (1, TRIM (ENTRY (i,pc_TblList)), " ").
@@ -1121,7 +1151,8 @@ PROCEDURE put_tbllist:
         more_code = more_code 
             + "&Scoped-define " 
             + SUBSTITUTE(p_ith_var, ENTRY(i,
-                "FIRST,SECOND,THIRD,FOURTH,FIFTH,SIXTH,SEVENTH,EIGHTH,NINTH,TENTH":U)) + " " 
+                "FIRST,SECOND,THIRD,FOURTH,FIFTH,SIXTH,SEVENTH,EIGHTH,NINTH,TENTH,":U + 
+                "ELEVENTH,TWELFTH,THIRTEENTH,FOURTEENTH,FIFTEENTH,SIXTEENTH,SEVENTEENTH,EIGHTEENTH":U)) + " " 
             + tmp_item
             + CHR(10).
       
@@ -1519,14 +1550,12 @@ PROCEDURE put_win_preproc_vars:
     DO i = {&MaxUserLists} + 1 TO {&MaxLists}:
       IF NOT emptyList[i] THEN DO:
         PUT STREAM P_4GL UNFORMATTED tmp_code[i] SKIP.
-        IF i = {&MaxUserLists} + 1 THEN DO:
-          IF enabled-tables NE "" THEN
-            RUN put_tbllist (enabled-tables, FALSE,
-                              "ENABLED-TABLES":U, "&1-ENABLED-TABLE", 10, " ":U).
-          IF displayed-tables NE "" THEN
-            RUN put_tbllist (displayed-tables, FALSE,
-                              "DISPLAYED-TABLES":U, "&1-DISPLAYED-TABLE", 10, " ":U).
-        END.  /* If enabled fields */
+        IF (i = {&MaxUserLists} + 1) AND enabled-tables NE "" THEN
+          RUN put_tbllist (enabled-tables, FALSE,
+                           "ENABLED-TABLES":U, "&1-ENABLED-TABLE", 18, " ":U).
+        IF (i = {&MaxUserLists} + 3) AND displayed-tables NE "" THEN
+          RUN put_tbllist (displayed-tables, FALSE,
+                           "DISPLAYED-TABLES":U, "&1-DISPLAYED-TABLE", 18, " ":U).
       END.  /* IF NOT emptylist */
     END.
     PUT STREAM P_4GL UNFORMATTED SKIP (1).
@@ -1578,7 +1607,7 @@ PROCEDURE put_contained_tables:
   END.
 END PROCEDURE. /* put_contained_tables */
 
-
+/* _genproc.i - end of file */
 
 
 

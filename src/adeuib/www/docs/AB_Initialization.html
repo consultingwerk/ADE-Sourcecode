@@ -1,0 +1,997 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Initialization</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The Original
+Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>	<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>	<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>	<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>	<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>	<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>	<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>	<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>	<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>	<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<P><A NAME="1"><B>1. Overview</B></a></p>
+
+
+<p>AppBuilder is a GUI tool for developing Progress GUI and
+character applications. <b style='mso-bidi-font-weight:normal'>This document
+describes AppBuilder’s Initialization Process only</b>. This process begins
+when AppBuilder is first invoked (for example, when the user presses the
+AppBuilder button on the ADE Desktop or double-clicks an AppBuilder-generated
+source file). The AppBuilder Initialization Process ends when AppBuilder has
+been fully realized and is waiting for user input. </p>
+
+<p><b>Note:</b>
+There are many references to ‘UIB’ throughout the AppBuilder source code. When
+AppBuilder was first developed, it was commonly referred to as the UIB (User
+Interface Builder). Although the product has developed into and been renamed
+AppBuilder, many of the source files and routines still contain references to
+‘UIB’ and sometimes contain ‘UIB’ in the source file name, for example
+_uibstrt.p.</p>
+
+<P><A NAME="2"><B>2 Architecture</B></A></P>
+
+<p>AppBuilder has many functions it must perform during the
+initialization process:</p>
+
+<ul>
+
+<li>Defining standard default colors and fonts</li>
+
+<li>Prompting for logins if necessaryChecking to see if the
+operating system supports AppBuilder</li>
+
+<li>Starting up a library of persistent procedures that can
+be called anywhere in AppBuilder</li>
+
+<li>Defining many internal procedures that will be used
+during the execution of AppBuilder</li>
+
+<li>License-checking (AppBuilder, WebSpeed Workshop etc…)</li>
+
+<li>Laying out, Creating and Realizing the appropriate
+window/menus/toolbars </li>
+
+<li>Generating the Most-Recently Used List (MRU)</li>
+
+</ul>
+
+<P><A NAME="3"><B>3. Primary Data Structures</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="4"><B>4. Primary Algorithms and Processes</B></A></P>
+
+<p>AppBuilder can be started in many different ways. Here are
+a few examples:</p>
+
+<ul>
+
+<li>Pressing the AppBuilder button from the Desktop</li>
+
+<li>Double-clicking on an AppBuilder-generated source file (.w)</li>
+
+<li>Running it from the command line or from an MS-Windows
+Icon:</li>
+
+</ul>
+
+
+
+<p>prowin32 –p _ab.p</p>
+
+
+<p>The following diagram
+illustrates the logical flow of the main initialization routines.</p>
+
+<p><img width=340 height=424 src="./AB_Initialization_files/image002.gif"></p>
+
+
+
+<p>The main entry point for
+AppBuilder is <b>src/_ab.p</b>. This
+program does the following:</p>
+
+<ul>
+
+<li>Loads standard default colors and fonts (<b>adecomm/_adeload.p</b>)</li>
+
+<li>Reads the default environment from the .ini file or
+registry</li>
+
+<li>Sets the MS-Windows ALT-TAB icon</li>
+
+<li>Handles logins if necessary (<b>src/_prostar.p</b>)</li>
+
+<li>Runs <b>adeuib/_uibmain.p</b>
+passing it a window list if there is one</li>
+
+</ul>
+
+<p><b>Adeuib/_uibmain.p </b>is
+the main routine for AppBuilder. It defines several temp-tables as well as many
+internal procedures that AppBuilder calls during regular processing (not just
+initialization). It calls internal and external procedures to do the following:</p>
+
+<ul>
+
+<li>Starts up a function library persistently for use all
+over AppBuilder (<b>adeuib/_abfuncs.p</b>)</li>
+
+<li>Creates a widget pool</li>
+
+<li>Defines UIB Internal procedures (<b>adeuib/uibmproa.i</b>, <b>adeuib/uibmproe.i</b>,
+<b>adeuib/uibmundo.i</b>)</li>
+
+<li>After the initial definitions, runs <b>adeuib/_uibstrt.p</b> which calls internal
+and external procedures to do the following:</li>
+
+<ul type="square">
+
+<li>Check for a valid license (<b>adeshar/_ablic.p</b>)</li>
+
+<li>Establish a db cache </li>
+
+<li>Create a window for the bar menu and icon palette</li>
+
+<li>Define the Advanced/Color editor support</li>
+
+</ul>
+
+<li>Based on the licensing (AppBuilder or WebSpeed
+Workshop), creates the AppBuilder window objects so that they have all of the
+proper icons, buttons, and functionality</li>
+
+<li>Creates COM objects to support the ActiveX controls
+palette</li>
+
+<li>Handles customizing</li>
+
+<li>Starts up the AppBuilder window in its initial form
+(either a new window open, or existing window open, or nothing special)</li>
+
+<li>Initializes the library manager and window manager</li>
+
+<li>Defines trigger code for the AppBuilder window</li>
+
+</ul>
+
+<P><A NAME="5"><B>5.  Advanced Topics</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="6"><B>6. Dependencies</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="7"><B>Source File</B></A></P>
+
+<p>This tool uses the following source files:</p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Source File</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+   <td width=372 valign=top style='width:279.0pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+  </tr>
+ </thead>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>src/_ab.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Main
+  entry point to AppBuilder </span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/adestds.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Defines
+  standard default colors and fonts for all ADE Tools</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/adefext.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Defines
+  the product names and file extensions for ADE</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>src/_prostar.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Prompts
+  for logins if required</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_uibmain.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Main
+  logic of AppBuilder</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/pre_proc.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Define
+  many of the preprocessors that are used in AB</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/adestds.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Standard
+  ADE PreProcessor Directives</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeub/uibhlp.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>AB
+  Help File PreProcessor Directives</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adm/support/admhlp.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>ADM
+  Help File Preprocessor Directives</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/property.i<span
+  style="mso-spacerun: yes">  </span></span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Property
+  Temp-table Definitions</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/custwidg.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Customer
+  User Widgets Temp-Table</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/links.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>ADM
+  links temp-table definitions</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeweb/htmwidg.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Web
+  temp-table definitions</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/vsookver.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>ADM
+  Versioning</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/mrudefs.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>MRU
+  Filelist temp-table definitions</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/uibmdefs.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Menu
+  and variable definitions for main AB </span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_abfuncs.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Library
+  of functions that can be called anywhere in AB</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/uibmproa.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Internal
+  procedures of AB (proc names beginning a – d)</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/uibmproe.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Internal
+  procedures of AB (proc names beginning e – z)</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/uibmundo.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Undo/Cut/Paste
+  procedures of AB</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_uibstrt.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>License
+  checking, initializing, creating windows for AB</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/_ablic.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>License
+  checking, db cache, creating menu ,palette, status bar</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/_adeobj.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Starts
+  up library manager, winmenu-mgr</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_initpal.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Initialize
+  palette temp table</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_cr_cust.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Reads
+  custom text file</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_cr_palw.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Creates
+  object palette</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_cr_pal.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Create
+  widget palette icons</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_cr_cmnu.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Create
+  customer menus</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_cr_npop.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Create
+  popup menu on New button</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/_adeevnt.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Customized
+  UI setup</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/uibmtrig.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>AB
+  main trigger code</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/mp.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Profile
+  Checkpoint</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/_dialbdr.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Computing
+  size of dialog box</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>prodict/_dctsget.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Building
+  db cache</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>prodict/_dctscnt.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Counts
+  the user-defined tables in db</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/_setcurs.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Set
+  cursor pointer</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adecomm/icondir.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Icon
+  directory definition</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/timectrl.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Controls
+  profiler</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/mpdecl.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Declare
+  timer for profiler</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeshar/uniwidg.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Universal
+  widgets</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/sharvars.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Most
+  common shared variables</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 style='width:130.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/windvars.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Window
+  creation variables</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+</table>
+
+<P><A NAME="8"><B>8. Process and Requirements</B></A></P>
+
+<p>The following tips will help you build your changes into
+the Progress ADE Tools.</p>
+
+<ul>
+
+<li>Set up your directory structure so that your working
+directory is at the <b>src</b> level.</li>
+
+<li>Have subdirectories such as <b style='mso-bidi-font-weight:
+normal'>adeuib</b> and <b>adecomm</b>
+underneath your working directory. Make your changes into these directories.</li>
+
+<li>Run Progress from your working directory.</li>
+
+<li>Run Progress using the –zn startup parameter so that
+you will be able to compile source code files that begin with _ (underscore).</li>
+
+<li>Be sure that the location of your <i style='mso-bidi-font-style:
+normal'>full</i> ADE source is placed at the end of your PROPATH so that you
+will be able to pick up include files that you have not moved to your working
+directory structure.</li>
+
+</ul>
+
+<p>See the training presentation, <i style='mso-bidi-font-style:
+normal'>How to Be a POSSE Programmer</i>, for examples of how to build your
+changes into the Progress ADE tools.</p>
+
+<P><A NAME="9"><B>9. Execution Methods</B></A></P>
+
+<p>AppBuilder can be
+started in many different ways. Here are a few examples:</p>
+
+<ul>
+
+<li>Pressing the AppBuilder button from the Desktop</li>
+
+<li>Double-clicking on an AppBuilder-generated source file
+(.w)</li>
+
+<li>Running it from the command line or from an MS-Windows
+Icon:</li>
+
+</ul>
+
+<p>Prowin32 –p _ab.p</p>
+
+<P><A NAME="10"><B>10. Test Requirements and Strategies</B></A></P>
+
+<p>Not Applicable </p>
+
+<P><A NAME="11"><B>11. Supplementary Information</B></A></P>
+
+<p>You might find it useful to compile <b>adeuib/_uibmain.p</b> using the PREPROCESSOR flag on the COMPILE
+statement when you are first looking at this code. It will create one large
+source file that has all the include files inserted and all the text
+substitutions performed. This might make it easier to familiarize yourself with
+the control flow before you actually begin changing components of the source
+code.</p>
+
+<P><A NAME="12"><B>12. Related Documentation</B></A></P>
+
+<p>The following documents provide additional information
+about the tool:</p>
+
+<ul>
+
+<li><i>AppBuilder
+Developers Guide</i></li>
+
+<li>AppBuilder<i> </i>Online
+Help<i></i></li>
+
+<li><i>AB Character Run
+Support</i></li>
+
+<li><i>AB Code
+References Window</i></li>
+
+<li><i>AB Custom Lists</i></li>
+
+<li><i>AB Multiple
+Layout</i></li>
+
+<li><i>AB New Object
+Dialog</i></li>
+
+<li><i>AB OCX Support</i></li>
+
+<li><i>AB Open and Save</i></li>
+
+<li><i>AB Palette</i></li>
+
+<li><i>AB Procedure
+Windows</i></li>
+
+<li><i>AB Property Sheet
+Generation</i></li>
+
+<li><i>AB Section Editor</i></li>
+
+<li><i>AB Temp-Tables</i></li>
+
+<li><i>AB Undo</i></li>
+
+</ul>
+
+</div>
+
+</span>

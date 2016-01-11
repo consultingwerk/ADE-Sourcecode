@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -221,16 +221,25 @@ Author: John Palazzo, Wm.T.Wood
 Date Created: December, 1994
 
 Modified:
-  8/10/95 gfs Added BEFORE-OPEN
+ 08/10/95 gfs Added BEFORE-OPEN
+ 07/21/01 bsg Added changes for ICF
+ 09/01/01 bsg Updated ICF changes to cater for new session management.
+ 09/15/01 ads Updated ICF changes to cater Roundtable and correct databases.
+ 10/02/01 jep IZ 1981 ICF Changes - don't do a repository save for UIB, it
+              does this itself now. Added repository save and save-as for
+              Editor and Procedure Editor.
+ 11/18/01 jep IZ 2513 ICF : Remove repository save and save-as check for
+              Procedure Editor and Procedure Windows.
 ----------------------------------------------------------------------------*/
 
-DEFINE INPUT        PARAMETER p_product  AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_event    AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_context  AS CHAR    NO-UNDO.
-DEFINE INPUT        PARAMETER p_other    AS CHAR    NO-UNDO.
-DEFINE       OUTPUT PARAMETER p_ok       AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE INPUT  PARAMETER p_product  AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_event    AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_context  AS CHAR    NO-UNDO.
+DEFINE INPUT  PARAMETER p_other    AS CHAR    NO-UNDO.
+DEFINE OUTPUT PARAMETER p_ok       AS LOGICAL NO-UNDO INITIAL TRUE.
 
-/* By default, we always return after doing nothing */
+DEFINE VARIABLE Mwindow-handle AS HANDLE NO-UNDO.
+DEFINE VARIABLE lICFIsRunning AS LOGICAL NO-UNDO.
 
 /* The following debugging code can be uncommented... */
 /*
@@ -243,3 +252,87 @@ MESSAGE "Product:" p_product SKIP
                    TITLE "adecomm/_adeevnt.p"
                    UPDATE p_ok.
 */
+
+/* --- Start Roundtable section ---
+ * We pass our parameters through to the Roundtable session, if
+ * it exists.  Note that it IS possible for Roundtable to send
+ * back NO for our p_ok.
+ * -------------------------------- */
+DEFINE NEW GLOBAL SHARED VARIABLE Grtb-proc-handle AS HANDLE NO-UNDO.
+
+IF VALID-HANDLE( Grtb-proc-handle ) 
+THEN RUN ade_event IN Grtb-proc-handle
+     ( INPUT p_product, INPUT p_event, INPUT p_context, INPUT p_other,
+       OUTPUT p_ok ).
+/* --- End Roundtable section --- */
+
+/* ICF compile hook to copy code to Appserver */
+IF p_event = "compile":U
+THEN DO:
+
+  &IF "{&scmTool}" = "RTB":U
+  &THEN
+
+    IF CONNECTED("RTB":U)
+    THEN DO:
+      DEFINE VARIABLE cErrorMessage AS CHARACTER NO-UNDO.
+      IF SEARCH("rtb/prc/afrtbappsp.p":U) <> ?
+      OR SEARCH("rtb/prc/afrtbappsp.r":U) <> ?
+      THEN
+        RUN rtb/prc/afrtbappsp.p (INPUT 0,                  /* RECID of rtb_object */
+                                  INPUT p_other,            /* object name */
+                                  OUTPUT cErrorMessage).
+    END.
+
+  &ENDIF
+
+END.
+
+/* Runs the automated backup feature. Will save up to n backups of the procedure
+   being saved. The second parameter controls the number of backups */
+IF  p_event = "Before-save"
+THEN DO:
+  IF SEARCH("v91tools.pl":U) <> ?
+  THEN
+    RUN se-tools/backup-uib.p (p_other,3).							  
+END.
+
+/* ICF hook to add ICF options to Roundtable or Appbuilder menu */
+IF p_event = "Startup"
+AND p_product = "UIB":U
+THEN DO:
+
+  /* Check if ICF is running. */
+  lICFIsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) NO-ERROR.
+  IF lICFIsRunning = ? THEN
+    lICFIsRunning = NO.
+  ERROR-STATUS:ERROR = NO.
+
+  /* Run protools pallette */
+  RUN protools/_protool.p PERSISTENT.
+
+END.  /* If connected */
+
+IF p_event = "Shutdown"
+  AND( p_product = "UIB":U
+   OR p_product = "Desktop":U)
+THEN DO:
+
+  /* Check if ICF is running. */
+  lICFIsRunning = DYNAMIC-FUNCTION("isICFRunning":U IN THIS-PROCEDURE) NO-ERROR.
+  IF   lICFIsRunning = ?
+  THEN lICFIsRunning = NO.
+  ERROR-STATUS:ERROR = NO.
+
+  IF lICFIsRunning
+  AND ( SEARCH("af/sup2/afshutdwnp.p") <> ?
+     OR SEARCH("af/sup2/afshutdwnp.r") <> ?)
+  THEN
+    RUN af/sup2/afshutdwnp.p NO-ERROR.
+
+END.
+
+/* --- bring active window to the top --- */
+ASSIGN
+  CURRENT-WINDOW = ACTIVE-WINDOW.
+

@@ -39,11 +39,16 @@ IF VALID-HANDLE({&WINDOW-NAME}) THEN DO:
        IF ERROR-STATUS:ERROR THEN
          RETURN NO-APPLY.
     END.
+    
+    /* By default, Make sure current-window is always the window with focus. */
+    /* To get the old behavior, simply define OldCurrentWindowFocus.    */
+    &IF DEFINED(OldCurrentWindowFocus) = 0 &THEN    /* if not defined */
+      ON ENTRY OF {&WINDOW-NAME} DO:
+        ASSIGN CURRENT-WINDOW = SELF NO-ERROR.
+      END.
+    &ENDIF 
 
     RUN createObjects. 
-    {get StartPage iStartPage}.
-    IF iStartPage NE ? AND iStartPage NE 0 THEN
-      RUN selectPage(iStartPage).
 
 /* Execute this code only if not being run PERSISTENT, i.e., if in test mode
    of one kind or another or if this is a Main Window. Otherwise postpone 
@@ -66,5 +71,4 @@ IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
 END.
 &ENDIF
 END.
-
 

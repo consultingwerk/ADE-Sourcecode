@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -51,6 +51,12 @@ Modified by gfs on 12/18/96 - Changed _h_Controls to COM-HANDLE
             tsm on 05/14/99 - Removed _numeric_format in support of 
                               various Intl Numeric formats
             tsm on 06/24/99 - Added _mru_broker_url
+            jep on 08/09/01 - jep-icf: Added _AB_Tools and _h_menubar_proc for icf.
+            jep on 09/25/01 - jep-icf: Added ICF custom files handling. Search on
+                              _custom_files_savekey and _custom_files_default.
+            jep on 10/10/01 - jep-icf IZ 2101 Run button enabled when editing
+                              dynamic objects. Var h_button_bar renamed to
+                              _h_button_bar and moved here from uibmdefs.i.
 ----------------------------------------------------------------------------*/
 {adeuib/pre_proc.i}
 
@@ -66,6 +72,11 @@ DEFINE {1} SHARED VAR _AB_license     AS INTEGER                    NO-UNDO.
        /* _AB_license      is 1 when only UIB is licensed, 2 when only   */
        /*                  WebSpeed is licensed and 3 when both are      */
        /*                  licensed.                                     */
+
+DEFINE {1} SHARED VAR _AB_Tools       AS CHARACTER                  NO-UNDO.  /* jep-icf */
+       /* _AB_Tools        Comma list of "UIB,Workshop,Enable-ICF"       */
+       /*                  Used in conjunction with _AB_license          */
+
 
 DEFINE {1} SHARED VAR _auto_check     AS LOGICAL INITIAL FALSE      NO-UNDO
                                VIEW-AS TOGGLE-BOX LABEL "Auto Syntax Check".
@@ -119,6 +130,15 @@ DEFINE {1} SHARED VAR _custom_draw   AS CHAR     INITIAL ?        NO-UNDO.
        /*                  next.  custom_draw is ? if no custom widget   */
        /*                  has been selected (NOTE: _next_draw is the    */
        /*                  TYPE of the next widget to draw).             */
+
+DEFINE {1} SHARED VAR _custom_files_default   AS CHAR     NO-UNDO.
+       /* _custom_files_default is the list of the session's default     */
+       /*                  custom files (.cst). Initialized in _getpref.p. */
+
+DEFINE {1} SHARED VAR _custom_files_savekey   AS CHAR     NO-UNDO.
+       /* _custom_files_savekey is the registry/ini save location for    */
+       /*                  the custom files list used to build the object*/
+       /*                  palette. Initialized in _getpref.p.           */
 
 DEFINE {1} SHARED VAR _db_name         AS CHARACTER                 NO-UNDO.
        /* _db_name         is the name of the schema picker  selected    */
@@ -187,6 +207,10 @@ DEFINE {1} SHARED VAR _frmy            AS INTEGER                   NO-UNDO.
        /* _frmy            is the y-position within the frame where      */
        /*                  the object will be drawn                      */
 
+DEFINE {1} SHARED VAR _h_button_bar    AS WIDGET-HANDLE EXTENT 20   NO-UNDO.  /* jep-icf */
+       /* _h_button_bar    is the toolbar button widget list array used   */
+       /* icf IZ 2101      to enable and disable AB toolbar buttons.      */
+
 DEFINE {1} SHARED VAR _h_func_lib      AS HANDLE                    NO-UNDO.
        /* _h_func_lib      is the handle of the persistent procedure     */
        /*                  holds all the functions to be used throughout */
@@ -203,6 +227,10 @@ DEFINE {1} SHARED VAR _h_frame         AS WIDGET-HANDLE             NO-UNDO.
 
 DEFINE {1} SHARED VAR _h_mlmgr         AS HANDLE                    NO-UNDO.
        /* _h_mlmgr         is the procedure handle of the Meth Lib Mgr.  */
+
+DEFINE {1} SHARED VAR _h_menubar_proc  AS HANDLE                    NO-UNDO.  /* jep-icf */
+       /* _h_menubar_proc  is the handle of the menubar procedure that   */
+       /*                  replaces the default AB menu bar with ICF one.*/
 
 DEFINE {1} SHARED VAR _h_menu_win      AS WIDGET-HANDLE             NO-UNDO.
        /* _h_menu_win      is the handle of the menu window containing   */

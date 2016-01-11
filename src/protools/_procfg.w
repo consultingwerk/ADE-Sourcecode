@@ -518,7 +518,7 @@ PROCEDURE Get_CFG :
     FOR EACH cfg:
         DELETE cfg.
     END.
-
+      
     /* Determine DLC path. */
     GET-KEY-VALUE SECTION "Startup" KEY "DLC" VALUE dlcvalue.
     IF dlcvalue = ? OR dlcvalue = "" THEN
@@ -555,12 +555,13 @@ PROCEDURE Get_CFG :
     OUTPUT TO VALUE(batchfile). /* cfg.bat */
     IF cfgfile NE ? OR cfgfile NE "" THEN 
         PUT UNFORMATTED "set PROCFG=" + '"' + cfgfile + '"' SKIP.
-    PUT UNFORMATTED '"' + showcfgloc + '"' + " " + '"' + cfgfile + '"' + " > " + outputfile SKIP.
+    PUT UNFORMATTED '"' + showcfgloc + '"' + " " + '"' + cfgfile + '"' + " > " + '"' + outputfile + '"' SKIP.
     OUTPUT CLOSE.
     
     /* Execute the batch file and read the cfg.out file. */
-    ASSIGN cmd = (IF OPSYS = "unix" THEN unixshell + " " ELSE "") + batchfile.
+    ASSIGN cmd = (IF OPSYS = "unix" THEN unixshell + " " ELSE "") + '"' + batchfile + '"'.
     OS-COMMAND SILENT VALUE(cmd).
+    
     IF SEARCH(outputfile) <> ? THEN DO:
         INPUT FROM VALUE(outputfile) NO-ECHO.
         DO i = 1 to 4:

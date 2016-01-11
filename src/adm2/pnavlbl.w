@@ -190,7 +190,7 @@ DEFINE FRAME Panel-Frame
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
 /* then cleanup and return.                                            */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
-  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT."
+  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN.
 END.
@@ -325,6 +325,21 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME Panel-Frame.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject P-Win 
+PROCEDURE initializeObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  RUN loadPanel. 
+  RUN SUPER.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

@@ -112,7 +112,8 @@
      means "no processing", just retrieve and store the value into the
      appropriate ADMProps field.                                            */
 
- 
+   /* Overrides query object setting */
+  {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending':U}. 
  
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/datacustom.i}
@@ -120,4 +121,5 @@
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
 

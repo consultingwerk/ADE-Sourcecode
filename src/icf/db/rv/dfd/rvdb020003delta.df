@@ -1,0 +1,30 @@
+UPDATE FIELD "scm_identifying_fieldname" OF "rvc_configuration_type"
+  DESCRIPTION "This field identifies the single field in the table referenced by this configuration type that maps to the object name in the SCM tool, e.g. for the table ryc_smartobject this would be object_filename.
+
+These fields therefore enable us to dynamically map a particular object in the SCM tool with a configuration item in the ICF Versioning System.
+"
+
+UPDATE FIELD "scm_primary_key_fields" OF "rvc_configuration_type"
+  DESCRIPTION "This is a comma seperated list of the primary key fields for this configuration type.
+
+Related tables will only refer to the primary key of the primary table. We need this information to first find the primary table, then work out what the identifying fieldname is to find the configuration item.
+
+For the table ryc_smartobject, the identifying_field would be the object_filename and the primary key fields would be the smartobject_obj.
+
+
+These fields therefore enable us to dynamically map a particular object in the SCM tool with a configuration item in the ICF Versioning System.
+
+"
+
+UPDATE FIELD "data_version_table" OF "rvm_workspace"
+  DESCRIPTION "This is the name of a table which will be used to record the current version stamp data at deployment time.  Thus the version numbers of all items will be available at runtime.  Note that these version numbers will not be updated if the data is changed after deployment (i.e. outside the context of the versioning system).
+
+As soon as data is chaned under a task the version information in this table will be updated.  This happens in advance of the item being checked back in.  Thus the version information always represents the current version existing in the workspace.
+
+In ICF, the data_version_table is ""rym_data_version""."
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000001830

@@ -65,6 +65,7 @@ History:
     D. McMann   03/28/00    Changed to put out ? when field is blanked and prime index
                             check 20000321015
     D. McMann   02/15/01    Removed workfile now using as4dict2 alias
+    D. mcmann   04/12/02 Added conversion of replication trigger names
         
 */
 
@@ -89,6 +90,7 @@ DEFINE VARIABLE l	AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE stopped AS LOGICAL   INITIAL TRUE  NO-UNDO.
 DEFINE VARIABLE inpri   AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE tmp_Field-name AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE prgevent AS CHARACTER              NO-UNDO.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 2 NO-UNDO INITIAL [
@@ -427,10 +429,16 @@ DO ON STOP UNDO, LEAVE:
       FIND as4dict.p__Trgfl WHERE as4dict.p__Trgfl._File-number =
                                      as4dict.p__File._File-number
 	                        AND as4dict.p__Trgfl._Event = as4dict2.p__Trgfl._Event NO-LOCK NO-ERROR.
-      IF NOT AVAILABLE as4dict.p__Trgfl THEN DO:
-	RUN dctquot (as4dict2.p__Trgfl._Event,'"',OUTPUT c).
-	j = j + 1.
-	ddl[j] = "  TABLE-TRIGGER " + c + " DELETE".
+      IF NOT AVAILABLE as4dict.p__Trgfl THEN DO:      
+        CASE as4dict2.p__Trgfl._Event:
+            WHEN "RCREAT" THEN ASSIGN prgevent = "REPLICATION-CREATE".
+            WHEN "RDELET" THEN ASSIGN prgevent = "REPLICATION-DELETE".
+            WHEN "RWRITE" THEN ASSIGN prgevent = "REPLICATION-WRITE".
+            OTHERWISE ASSIGN prgevent = as4dict2.p__Trgfl._Event.
+        END CASE.
+        RUN dctquot (prgevent,'"',OUTPUT c).
+	    j = j + 1.
+	    ddl[j] = "  TABLE-TRIGGER " + c + " DELETE".
       END.
     END.
     /* now record updated or new ones */
@@ -440,12 +448,17 @@ DO ON STOP UNDO, LEAVE:
                                                  as4dict2.p__file._File-number
 	                        AND as4dict2.p__Trgfl._Event = as4dict.p__Trgfl._Event NO-LOCK NO-ERROR.
       IF AVAILABLE as4dict2.p__Trgfl AND 
-   	  as4dict2.p__Trgfl._Override = as4dict.p__Trgfl._Override AND
-	  as4dict2.p__Trgfl._Proc-name = as4dict.p__Trgfl._Proc-name AND
-	  as4dict2.p__Trgfl._Trig-CRC = as4dict.p__Trgfl._Trig-CRC THEN
+   	    as4dict2.p__Trgfl._Override = as4dict.p__Trgfl._Override AND
+        as4dict2.p__Trgfl._Proc-name = as4dict.p__Trgfl._Proc-name AND
+	    as4dict2.p__Trgfl._Trig-CRC = as4dict.p__Trgfl._Trig-CRC THEN
 	  NEXT.
-	
-      RUN dctquot (as4dict.p__Trgfl._Event,'"',OUTPUT c).
+	  CASE as4dict.p__Trgfl._Event:
+        WHEN "RCREAT" THEN ASSIGN prgevent = "REPLICATION-CREATE".
+        WHEN "RDELET" THEN ASSIGN prgevent = "REPLICATION-DELETE".
+        WHEN "RWRITE" THEN ASSIGN prgevent = "REPLICATION-WRITE".
+        OTHERWISE ASSIGN prgevent = as4dict.p__Trgfl._Event.
+      END CASE.
+      RUN dctquot (prgevent,'"',OUTPUT c).
       j = j + 1.
       ddl[j] = "  TABLE-TRIGGER " + c +
 	       (IF as4dict.p__Trgfl._Override = "Y" THEN " OVERRIDE " 

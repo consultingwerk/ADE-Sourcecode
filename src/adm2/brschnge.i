@@ -27,6 +27,8 @@
   DEFINE VARIABLE hBuffer     AS HANDLE NO-UNDO.
   DEFINE VARIABLE cNewRecord  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lQuery      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cModFields  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayed AS CHARACTER  NO-UNDO.
 
   IF glReposition THEN  /* Don't generate an extra unwanted dataAvailable.*/
     glReposition = no.
@@ -51,6 +53,12 @@
     END.    /* END DO IF not NewRecord */
   END.      /* ELSE ELSE DO IF NOT glReposition */
 
-  {get NewRecord cNewRecord}.        
-  IF cNewRecord = 'No':U THEN        /* If this is not a new record */
-    BROWSE {&BROWSE-NAME}:REFRESH() NO-ERROR. /* Make sure that calc'd fields are refreshed */
+  {get ModifiedFields cModFields}.
+  {get DisplayedFields cDisplayed}.
+  {get NewRecord cNewRecord}.
+  IF cNewRecord = 'No':U AND
+      INDEX(cDisplayed, "<calc>") > 0 AND  /* local calculated fields present */
+      num-entries(cModFields) > 1          /* enabled fields were modified */
+  THEN DO:
+      BROWSE {&BROWSE-NAME}:REFRESH() NO-ERROR. /* Make sure that calc'd fields are refreshed */
+  END.

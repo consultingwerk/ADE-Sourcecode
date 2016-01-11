@@ -27,6 +27,7 @@
    Created 08/19/98 Initial procedure for the Oracle Incremental Df Utility
    History:  12/14/99 D. McMann Changed label for extended objects
              04/13/00 D. McMann Added support for long path names
+             06/20/01 D. McMann Added Foreign Owner
    
 */   
 
@@ -56,14 +57,18 @@ FORM
   ora_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
     LABEL "Connect parameters for Schema" colon 35 SKIP({&VM_WID})
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
-    LABEL "Logical name for ORACLE Database" colon 35 SKIP({&VM_WID})         
+    LABEL "Logical name for ORACLE Database" colon 35 SKIP({&VM_WID})   
+  ora_owner    FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
+    LABEL "Oracle Object Owner Name" COLON 35 SKIP({&VM_WID}) 
   ora_tspace FORMAT "x(30)" view-as fill-in size 32 by 1
      LABEL "ORACLE tablespace for Tables" colon 35 SKIP({&VM_WID})
   ora_ispace FORMAT "x(30)" view-as fill-in size 32  by 1
      LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WIDG})      
-  SPACE(3) compatible view-as toggle-box LABEL "Progress 4GL Compatible Objects"  
+  SPACE(3) pcompatible view-as toggle-box LABEL "Progress 4GL Compatible Objects"  
   create_df view-as toggle-box LABEL "Create schema holder delta df"
-   SKIP({&VM_WIDG})
+   SKIP({&VM_WID})
+  SPACE (3)  crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SPACE (18)
+  sqlwidth VIEW-AS TOGGLE-BOX LABEL "Use Sql Width" SKIP({&VM_WIDG}) 
              {prodict/user/userbtns.i}
   WITH FRAME read-df ROW 2 CENTERED SIDE-labels 
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -173,15 +178,20 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
   END.
 END.
 
+ASSIGN pcompatible = TRUE.
+
 UPDATE df-file 
        btn_file
        osh_dbname
        ora_conparms
        ora_dbname
+       ora_owner
        ora_tspace
        ora_ispace
-       compatible
+       pcompatible
        create_df
+       crtdefault
+       sqlwidth  
        btn_OK btn_Cancel
        &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -217,7 +227,7 @@ ASSIGN user_env[1]  = df-file
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
     
-IF compatible THEN 
+IF pcompatible THEN 
    ASSIGN user_env[27] = "y".
 ELSE
    ASSIGN user_env[27] = "no".

@@ -227,7 +227,6 @@ IF movedata THEN
     /* md0: creates SQL */
 RUN "prodict/mss/_mss_md0.p".
 
-
 /*
 IF not stages[mss_create_sh] THEN LEAVE.
 */
@@ -257,8 +256,12 @@ IF loadsql THEN DO:
    */
 
   RUN "prodict/mss/_mss_md1.p".
+
   IF RETURN-VALUE = "wrg-ver" THEN
     RETURN "wrg-ver".
+  
+  ELSE IF RETURN-VALUE = "undo" THEN
+    RETURN "undo".
 
   IF batch_mode and NOT logfile_open THEN DO:
     OUTPUT TO VALUE(output_file) APPEND UNBUFFERED NO-ECHO NO-MAP.

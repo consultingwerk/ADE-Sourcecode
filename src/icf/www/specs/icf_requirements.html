@@ -1,0 +1,163 @@
+<P CLASS="PageTitle">
+Internet Component Framework Requirements
+</P>
+
+<SPAN CLASS="Text1"> 
+<P>On the week of February 19, 2001, the Kick Start Team assembled for a comprehensive design session of the Internet Component Framework (ICF). The requirements outlined by the design session attendees are listed below:</P>
+
+<B>Basic</B>
+<UL>
+<LI TYPE="circle">Repository-driven development environment</LI>	
+<LI TYPE="circle">Define coding standards</LI>	
+<LI TYPE="circle">Define appl. design standards</LI>	
+<LI TYPE="circle">Stds-focused UI design</LI>
+<LI TYPE="circle">Define db design standards, boundaries</LI>	
+<LI TYPE="circle">Prescriptive but extensible</LI>	
+<LI TYPE="circle">Well-documented API with independent components</LI>	
+<LI TYPE="circle">High-performance (Web/LAN/WAN)</LI>	
+<LI TYPE="circle">n-tier design (separate UI and Logic)</LI>	
+<LI TYPE="circle">Scalability -- stateless design</LI>	
+<LI TYPE="circle">Database Independence (Progress, Oracle, SQLServer, DB2/400) based on standards</LI>
+</UL>
+
+<B>UI Generation</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Support design of UI in tools</LI>
+<LI TYPE="circle">Support 4GL UI (WebClient)</LI>
+<LI TYPE="circle">Support Internet UI (*ML/WebSpeed)</LI>
+<LI TYPE="circle">Browser independence, graceful degradation</LI>
+<LI TYPE="circle">UI for display / browse / maintenance</LI>
+<LI TYPE="circle">UI for appl. Navigation</LI>
+<LI TYPE="circle">Remote development/maintenance</LI>
+<LI TYPE="circle">Dynamic UI generation / thin client (little to no client-side code)</LI>
+<LI TYPE="circle">Competitive, standard Look and Feel</LI>
+<LI TYPE="circle">Extended UI controls (Treeview, Toolbar, Statusbar, FrameSet</LI>
+<LI TYPE="circle">Flexibility to support additional UIs (ActiveX, Handheld, etc.)</LI>
+</UL>
+
+<B>Session Mgmt</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Distributed Environment management (configuration)</LI>
+<LI TYPE="circle">Distributed Object Mgmt</LI>
+<LI TYPE="circle">Global data management</LI>
+<LI TYPE="circle">Error/Message handling and logging (no standard for this)</LI>
+<LI TYPE="circle">Context Management</LI>
+</UL>
+
+<B>Customization</B>
+<UL TYPE="circle">	
+<LI TYPE="circle">Customize UI (Only on function level not operational or navigation)</LI>
+<LI TYPE="circle">Customize BusinessLogic	</LI>
+<LI TYPE="circle">Customize Process flow</LI>	
+<LI TYPE="circle">Customization tool for consultants, ISVs (Uses the AppBuilder)</LI>
+<LI TYPE="circle">Customization tools for end-user</LI>s	
+</UL>
+
+<B>Security</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Authentication / Login</LI>
+<LI TYPE="circle">User/Group Maintenance</LI>
+<LI TYPE="circle">Privilege definition tool (Funcational not Data level)</LI>
+<LI TYPE="circle">Runtime enforcement at function, row, field level</LI>
+</UL>
+
+<B>Migration</B>
+<UL TYPE="circle">	
+<LI TYPE="circle">Facilitate rewrite/rework of existing business logic</LI>
+<LI TYPE="circle">Populate design repository</LI>
+<LI TYPE="circle">Migrate/Recreate User Interface</LI>
+<LI TYPE="circle">Provide smooth transition for V9 ADM applications (no rewrite of existing SmartObject procedure files)</LI>
+</UL>
+
+<B>Performance</B>
+<UL TYPE="circle">
+<LI TYPE="circle">High-performance (Web/LAN/WAN)</LI>
+<LI TYPE="circle">Stateless server/agent support</LI>
+<LI TYPE="circle">Highly scalable deployment</LI>
+<LI TYPE="circle">Minimize network traffic</LI>
+</UL>
+
+
+<B>Future-proof</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Abstract appl. Representation</LI>	
+<LI TYPE="circle">Standards-observant</LI>	
+<LI TYPE="circle">Multiple UIs including new ones in the future</LI>
+</UL>
+
+<B>Important Other</B>		
+<UL TYPE="circle">
+<LI TYPE="circle">Online Help (Limited but possible)</LI>
+<LI TYPE="circle">Version control of application</LI>
+<LI TYPE="circle">Multi-language, globalization</LI>
+<LI TYPE="circle">Multi-currency (Application based?)</LI>
+<LI TYPE="circle">Batch processing (print etc.)</LI>
+<LI TYPE="circle">Reporting integration (as per normal C/S)</LI>
+</UL>
+
+<B>Business Logic</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Generate Data Access from schema / repository	</LI>
+<LI TYPE="circle">Generate Referential Integrity and other basic business logic</LI>	
+<LI TYPE="circle">Support appl. Process flow definition</LI>	
+<LI TYPE="circle">Standard mechanism for accessing business logic on the server and getting data from server</LI>
+</UL>
+	
+<B>B2B support</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Application integration with XML	not standard but assumed as part of the application</LI>
+<LI TYPE="circle">Integration with SonicMQ	</LI>
+</UL>
+
+<B>ASP Support</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Auditing / Accounting (Also includes organizational and data management features)</LI>
+<LI TYPE="circle">Support entities as groups	</LI>
+<LI TYPE="circle">Support multi-entity data management</LI>	
+</UL>
+
+<B>Globalization</B>
+<UL TYPE="circle">	
+<LI TYPE="circle">Multi-language (translation of UI text)	</LI>
+<LI TYPE="circle">Multi-language (translation of translatable data)	</LI>
+<LI TYPE="circle">Multi-regional formatting (dates, decimals, currency)</LI>	
+<LI TYPE="circle">Double-byte support (UNICODE db)</LI>	
+<LI TYPE="circle">Facilitate migration of TranMan data and procedures</LI>	
+</UL>
+
+<B>Supportability</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Facilitate supportability / maintainability </LI>	
+<LI TYPE="circle">Remote application support</LI>	
+<LI TYPE="circle">Error tracking, debugging</LI>	
+</UL>
+
+<B>Deployment</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Customize object distribution & flexible deployment	</LI>
+<LI TYPE="circle">Configuration management, location transparency</LI>	
+<LI TYPE="circle">Release management	</LI>
+<LI TYPE="circle">Installation / Upgrade automation	</LI>
+</UL>
+
+<B>Versioning</B>
+<UL TYPE="circle">
+<LI TYPE="circle">Manage versions within the repository	</LI>
+<LI TYPE="circle">Support multiple customer versions of one base core version</LI>	
+</UL>
+
+<B>Standards</B>
+<UL TYPE="circle">
+<LI TYPE="circle">XML support for application integration</LI>	
+<LI TYPE="circle">Potential XML schema for repository	</LI>
+<LI TYPE="circle">XML as data delivery mechanism</LI>	
+<LI TYPE="circle">XML on the client</LI>	
+<LI TYPE="circle">Integration with modelling tools (UML/XMI)</LI>	
+</UL>
+
+<B>Doc/QA</B>
+<UL TYPE="circle">	
+<LI TYPE="circle">Facilitate auto-generation of Doc, Help, Tests</LI>	
+<LI TYPE="circle">Provide comprehensive documentation</LI>	
+<LI TYPE="circle">Provide online help for all major UIs (Web, WebClient)	</LI>
+</UL>

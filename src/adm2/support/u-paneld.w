@@ -81,9 +81,10 @@ DEFINE VARIABLE v-SPtype AS CHARACTER NO-UNDO.
 &Scoped-define FRAME-NAME SP-attr-dialog
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS v-show v-edge-pixels v-type v-add v-divider1 
+&Scoped-Define ENABLED-OBJECTS v-show v-edge-pixels v-type v-add ~
+lDeactivateTargetOnHide v-divider1 
 &Scoped-Define DISPLAYED-OBJECTS v-show v-edge-pixels v-type v-add ~
-v-divider1 v-divider2 v-divider-3 
+lDeactivateTargetOnHide v-divider1 v-divider2 v-divider-3 v-divider-4 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -100,17 +101,22 @@ v-divider1 v-divider2 v-divider-3
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE v-divider-3 AS CHARACTER FORMAT "X(25)":U INITIAL " Behavior of Add Button" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54.4 BY .57
+     BGCOLOR 1 FGCOLOR 15  NO-UNDO.
+
+DEFINE VARIABLE v-divider-4 AS CHARACTER FORMAT "X(50)":U INITIAL "Deactivation of link to hidden target" 
+      VIEW-AS TEXT 
+     SIZE 54.4 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-divider1 AS CHARACTER FORMAT "X(75)":U INITIAL " Border" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54.4 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-divider2 AS CHARACTER FORMAT "X(25)":U INITIAL " TableIO SmartPanel Type" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54.4 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-edge-pixels AS INTEGER FORMAT ">>9":U INITIAL 2 
@@ -118,19 +124,26 @@ DEFINE VARIABLE v-edge-pixels AS INTEGER FORMAT ">>9":U INITIAL 2
      VIEW-AS FILL-IN 
      SIZE 6 BY 1 NO-UNDO.
 
+DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL 
+     VIEW-AS RADIO-SET VERTICAL
+     RADIO-BUTTONS 
+          "When another target is viewed", no,
+"Immediately on hide of target", yes
+     SIZE 53 BY 1.62 NO-UNDO.
+
 DEFINE VARIABLE v-add AS CHARACTER INITIAL "One-Record" 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "Add &One Record", "One-Record":U,
 "Add &Multiple Records", "Multiple-Records":U
-     SIZE 26 BY 2.19 NO-UNDO.
+     SIZE 26 BY 1.62 NO-UNDO.
 
 DEFINE VARIABLE v-type AS CHARACTER INITIAL "Save" 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "&Save", "Save":U,
 "&Update", "Update":U
-     SIZE 12 BY 2.19 NO-UNDO.
+     SIZE 12 BY 1.62 NO-UNDO.
 
 DEFINE VARIABLE v-show AS LOGICAL INITIAL yes 
      LABEL "&Show Border" 
@@ -141,14 +154,16 @@ DEFINE VARIABLE v-show AS LOGICAL INITIAL yes
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME SP-attr-dialog
-     v-show AT ROW 2.67 COL 20
-     v-edge-pixels AT ROW 3.86 COL 29 COLON-ALIGNED
-     v-type AT ROW 6.48 COL 22 NO-LABEL
-     v-add AT ROW 10.05 COL 17 NO-LABEL
-     v-divider1 AT ROW 1.67 COL 2.6 NO-LABEL
-     v-divider2 AT ROW 5.57 COL 2 NO-LABEL
-     v-divider-3 AT ROW 9.14 COL 2 NO-LABEL
-     SPACE(0.60) SKIP(2.70)
+     v-show AT ROW 2.52 COL 3.6
+     v-edge-pixels AT ROW 3.76 COL 13.8 COLON-ALIGNED
+     v-type AT ROW 6.38 COL 3.6 NO-LABEL
+     v-add AT ROW 9.57 COL 3.6 NO-LABEL
+     lDeactivateTargetOnHide AT ROW 12.81 COL 3.6 NO-LABEL
+     v-divider1 AT ROW 1.67 COL 2 NO-LABEL
+     v-divider2 AT ROW 5.38 COL 2 NO-LABEL
+     v-divider-3 AT ROW 8.52 COL 2 NO-LABEL
+     v-divider-4 AT ROW 11.76 COL 2 NO-LABEL
+     SPACE(0.20) SKIP(2.10)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "TableIO SmartPanel Attributes".
@@ -175,6 +190,8 @@ ASSIGN
        FRAME SP-attr-dialog:HIDDEN           = TRUE.
 
 /* SETTINGS FOR FILL-IN v-divider-3 IN FRAME SP-attr-dialog
+   NO-ENABLE ALIGN-L                                                    */
+/* SETTINGS FOR FILL-IN v-divider-4 IN FRAME SP-attr-dialog
    NO-ENABLE ALIGN-L                                                    */
 /* SETTINGS FOR FILL-IN v-divider1 IN FRAME SP-attr-dialog
    ALIGN-L                                                              */
@@ -269,6 +286,8 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
            v-add = attr-value.
         WHEN "EdgePixels":U THEN
            v-edge-pixels = INTEGER (attr-value).
+        WHEN "DeactivateTargetOnHide":U THEN
+          lDeactivateTargetOnHide = can-do('yes,true':U,attr-value).
      END CASE.
    END.
 
@@ -283,19 +302,23 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 
   ASSIGN v-add v-type
          v-SPtype = v-type.
+  /* set-label does not exist in the current panel, 
+     but we call itr for backwards compatibility with local panels */
   IF v-SPtype = "UPDATE":U THEN
-    RUN set-label IN p-Parent-Hdl (INPUT '&Update':U).
+    RUN set-label IN p-Parent-Hdl (INPUT '&Update':U) NO-ERROR.
   ELSE
-    RUN set-label IN p-Parent-Hdl (INPUT '&Save':U).
+    RUN set-label IN p-Parent-Hdl (INPUT '&Save':U) NO-ERROR.
        
-  ASSIGN v-edge-pixels.
+  ASSIGN v-edge-pixels
+         lDeactivateTargetOnHide.
   
   /* Assign the attributes that are common across all panels. */
   
   {set PanelType v-SPtype p-Parent-Hdl}.
   {set EdgePixels v-edge-pixels p-Parent-Hdl}.
   {set AddFunction v-add p-Parent-Hdl}.
-  
+  {set DeactivateTargetOnHide lDeactivateTargetOnHide p-Parent-Hdl}.
+
 END.
 RUN disable_UI.
 
@@ -333,9 +356,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY v-show v-edge-pixels v-type v-add v-divider1 v-divider2 v-divider-3 
+  DISPLAY v-show v-edge-pixels v-type v-add lDeactivateTargetOnHide v-divider1 
+          v-divider2 v-divider-3 v-divider-4 
       WITH FRAME SP-attr-dialog.
-  ENABLE v-show v-edge-pixels v-type v-add v-divider1 
+  ENABLE v-show v-edge-pixels v-type v-add lDeactivateTargetOnHide v-divider1 
       WITH FRAME SP-attr-dialog.
   VIEW FRAME SP-attr-dialog.
   {&OPEN-BROWSERS-IN-QUERY-SP-attr-dialog}

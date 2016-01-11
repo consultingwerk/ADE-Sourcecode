@@ -103,7 +103,11 @@ CREATE WINDOW _h_object_win
                ON WINDOW-RESIZED PERSISTENT RUN adeuib/_rsz_wp.p (INPUT no).                  
              END TRIGGERS.
 
-ASSIGN ldummy = _h_object_win:LOAD-ICON( {&ADEICON-DIR} + "uib%" + "{&icon-ext}" ).
+_h_object_win:LOAD-ICON( {&ADEICON-DIR} + "uib%" + "{&icon-ext}" ) NO-ERROR.
+
+/* jep-icf: Override titlebar icon for ICF. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+    _h_object_win:LOAD-ICON("adeicon/icfdev.ico":U) NO-ERROR.
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
 IF _palette_top THEN _h_object_win:TOP-ONLY = TRUE.

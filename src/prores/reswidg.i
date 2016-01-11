@@ -35,6 +35,7 @@ DEFINE {1} SHARED TEMP-TABLE qbf-a
   INDEX cScrap cScrap.
   
 /* qbf-cfld (c-cache.i) */
+/* set to NO-Undo for IZ 202*/
 DEFINE {1} SHARED TEMP-TABLE qbf-cfld NO-UNDO
   FIELD iIndex AS INTEGER
   FIELD cValue AS CHARACTER

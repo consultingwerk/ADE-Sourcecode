@@ -347,7 +347,6 @@ END.
     RUN initializeObject.        
   &ENDIF
 
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -380,7 +379,7 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-
+  RUN loadPanel. 
   RUN SUPER.
 
   /* Init this flag which indicates whether we're in a right-to-left

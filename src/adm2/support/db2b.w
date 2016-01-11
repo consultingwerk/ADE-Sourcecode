@@ -5,11 +5,6 @@
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
-DEFINE VARIABLE h_asbroker1                AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_aslocal                  AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_jmsbroker                AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_jmsitem                  AS HANDLE          NO-UNDO.
-DEFINE VARIABLE h_sonicMQ1                 AS HANDLE          NO-UNDO.
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE mapping NO-UNDO LIKE mapping.
@@ -107,6 +102,7 @@ xmlschema dtdPublicId dtdSystemId
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "src/adm2/support/db2b.i"
+&Scoped-define QUERY-STRING-Query-Main FOR EACH mapping NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH mapping NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -321,7 +317,8 @@ PROCEDURE DestinationValidate :
   Notes:       
 ------------------------------------------------------------------------------*/
    DEFINE INPUT PARAMETER pcDest AS CHARACTER  NO-UNDO.
-   IF pcDest = "":U THEN 
+   
+   IF pcDest = "":U AND gcDirection = 'Producer':U THEN 
      RETURN "Destination Must be entered for a producing document.".
 END PROCEDURE.
 

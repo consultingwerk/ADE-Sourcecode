@@ -159,6 +159,7 @@ PROCEDURE compile-file :
   DEFINE VARIABLE l_w-save-msg AS LOGICAL NO-UNDO INITIAL yes.
   DEFINE VARIABLE l_run        AS LOGICAL NO-UNDO.
   
+  DEFINE VARIABLE cXCode       AS CHAR    NO-UNDO.
   DEFINE VARIABLE f_type       AS CHAR    NO-UNDO.
   DEFINE VARIABLE f_list       AS CHAR    NO-UNDO.
   DEFINE VARIABLE f_compfile   AS CHAR    NO-UNDO.
@@ -258,9 +259,19 @@ PROCEDURE compile-file :
     {&OUT} '~n':U.
 
     /* Compile the contents of the file. Save only if compiling. */
+    ASSIGN
+      cXCode = DYNAMIC-FUNCTION('getAgentSetting' IN web-utilities-hdl,'Compile','','xcode') NO-ERROR.  
     IF p_checkOnly 
-    THEN COMPILE VALUE( f_compfile )      NO-ERROR.  
-    ELSE COMPILE VALUE( f_compfile ) SAVE NO-ERROR.
+    THEN DO:
+      IF cXCode > "" 
+      THEN COMPILE VALUE( f_compfile ) XCODE cXCode NO-ERROR.
+      ELSE COMPILE VALUE( f_compfile ) NO-ERROR.
+    END.  
+    ELSE DO:
+      IF cXCode > "" 
+      THEN COMPILE VALUE( f_compfile ) SAVE XCODE cXCode NO-ERROR.
+      ELSE COMPILE VALUE( f_compfile ) SAVE NO-ERROR.
+    END.
     
     /* Report any errors neatly. */
     IF COMPILER:ERROR 

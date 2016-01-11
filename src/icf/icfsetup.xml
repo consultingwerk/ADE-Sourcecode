@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="ISO8859-1" ?>
+<sessions>
+  <session SessionType="ProgressSetup">
+    <properties>
+      <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
+      <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+      <physical_session_list>GUI,WBC</physical_session_list>
+      <root_directory>.</root_directory>
+      <expand_list>path_order|setupPaths</expand_list>
+      <session_date_format>mdy</session_date_format>
+      <session_year_offset>1950</session_year_offset>
+      <session_numeric_format>,.</session_numeric_format>
+      <valid_os_list>WIN32</valid_os_list>
+      <setup_start_page>Welcome</setup_start_page>
+      <image_low_res>install/img/imglores.bmp</image_low_res>
+      <image_hi_res>install/img/imghires.bmp</image_hi_res>
+      <icon_file>install/img/icfdcu.ico</icon_file>
+      <strip_end_path>\gui\icf</strip_end_path>
+      <registry_keys>reg_install_path,reg_work_path,reg_db_path</registry_keys>
+<reg_install_path>HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:1.1A:DLC</reg_install_path>      
+<reg_work_path>HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:1.1A:workingPath</reg_work_path>      
+<reg_db_path>HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:1.1A:DatabasesPath</reg_db_path>      
+      <path_progress>#HKEY_LOCAL_MACHINE\SOFTWARE\PSC\Progress Dynamics\1.1A\DLC#</path_progress>
+      <path_install>#path_progress#</path_install>
+      <path_work>#HKEY_LOCAL_MACHINE\SOFTWARE\PSC\Progress Dynamics\1.1A\workingPath#</path_work>
+      <path_db>#HKEY_LOCAL_MACHINE\SOFTWARE\PSC\Progress Dynamics\1.1A\DatabasesPath#</path_db>
+      <path_src>#path_install#\src</path_src>
+      <path_gui>#path_install#\gui</path_gui>
+      <path_tty>#path_install#\tty</path_tty>
+      <dbs_to_setup>icfdb,rvdb</dbs_to_setup>
+      <path_db_icfdb>#path_db#\icfdb\icfdb.db</path_db_icfdb>
+      <path_icfdb_dfd>#path_src#\icf\db\icf\dfd</path_icfdb_dfd>
+      <path_icfdb_dump>#path_src#\icf\db\icf\dump</path_icfdb_dump>
+      <path_icfdb_seq>#path_icfdb_dump#\_icfdb_seqvals.d</path_icfdb_seq>
+      <path_db_rvdb>#path_db#\rvdb\rvdb.db</path_db_rvdb>
+      <path_rvdb_dfd>#path_src#\icf\db\rv\dfd</path_rvdb_dfd>
+      <path_rvdb_dump>#path_src#\icf\db\rv\dump</path_rvdb_dump>
+      <path_rvdb_seq>#path_rvdb_dump#\_rvdb_seqvals.d</path_rvdb_seq>
+      <path_order>path_progress,path_install,path_work,path_src,path_gui,path_tty,path_db,path_db_icfdb,path_icfdb_dfd,path_icfdb_dump,path_icfdb_seq,path_db_rvdb,path_rvdb_dfd,path_rvdb_dump,path_rvdb_seq</path_order>
+      <window_title>Progress Dynamics Configuration Utility</window_title>
+      <page_groups>Path,ICFDB,RVDB,Database</page_groups>
+      <skip_buttons>Close,Cancel,Quit,Finish,Check</skip_buttons>
+      <default_ICFDB_params>-1</default_ICFDB_params> 		
+      <default_RVDB_params>-1</default_RVDB_params> 		
+      <MSG_blank_path>The %1 path may not be left blank.</MSG_blank_path>
+      <MSG_path_does_not_exist>The path %1 does not exist. Do you want to create it?</MSG_path_does_not_exist>
+      <MSG_cannot_create_path>The path %1 cannot be created. The operating sytem returned error %2.</MSG_cannot_create_path>
+      <MSG_confirm_quit>Are you sure you want to quit the install?</MSG_confirm_quit>
+      <MSG_DB_creation_failed>The following database could not be created because of the following errors:</MSG_DB_creation_failed>
+      <MSG_register_service>The following service could not be registered because of the following errors:</MSG_register_service>
+      <MSG_DB_connect_failed>The following database could not be connected because of the following errors:</MSG_DB_connect_failed> 
+      <MSG_site_number>The site number should be specified.</MSG_site_number> 
+    </properties>
+    <managers>
+      <manager>
+        <cManagerName>ConnectionManager</cManagerName>
+        <cFileName>af/app/afconmgrp.p</cFileName>
+        <cHandleName>NON</cHandleName>
+      </manager>
+      <manager>
+        <cManagerName>AppServerConnectionManager</cManagerName>
+        <cFileName>af/app/afasconmgrp.p</cFileName>
+        <cHandleName/>
+      </manager>
+      <manager>
+        <cManagerName>DatabaseConnectionManager</cManagerName>
+        <cFileName>af/app/afdbconmgrp.p</cFileName>
+        <cHandleName/>
+      </manager>
+    </managers>
+  </session>
+  <setup SetupType="ProgressSetup">
+    <page PageName="Welcome">
+      <PageTitle>Welcome</PageTitle>
+      <PageGroup>Info</PageGroup>
+      <PageProc>install/obj/inwelcome.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Cancel</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+        <Default>YES</Default>
+      </button>
+      <field>
+        <FieldName>edEditor</FieldName>
+        <FieldValue>Welcome to the Progress Dynamics Configuration Utility.
+ 
+This process will set up the databases that are required to run the current version of Dynamics.
+
+This utility is re-entrant so that if you cancel at any point you will be able to restart the utility and continue.
+
+Choose the Next button to start this process. Choose Quit to leave without modifying anything.</FieldValue>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetInstallPaths</ActionParam>
+      </action>
+    </page>
+
+
+    <page PageName="GetInstallPaths">
+      <PageTitle>Installation Paths</PageTitle>
+      <PageGroup>Path</PageGroup>
+      <PageProc>install/obj/inpath.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>For this utility to set up the environment, it needs to know the installation path that you chose during the first part of the installation. It has attempted to derive the path from the install. 
+
+Please confirm that the Dynamics Installation Path below is correct.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiPath1</FieldName>
+	<Hidden>YES</Hidden>
+      </field>
+      <field>
+        <FieldName>buPath1</FieldName>
+	<Hidden>YES</Hidden>
+      </field>
+      <field>
+        <FieldName>fiPath2</FieldName>
+	<Hidden>YES</Hidden>
+      </field>
+      <field>
+        <FieldName>buPath2</FieldName>
+	<Hidden>YES</Hidden>
+      </field>
+      <field>
+        <FieldName>fiPath3</FieldName>
+        <Hidden>YES</Hidden>
+      </field>
+      <field>
+        <FieldName>buPath3</FieldName>
+	<Hidden>YES</Hidden>
+      </field>  
+      <field>
+        <FieldName>fiPath4</FieldName>
+	<DefaultValue>#path_install#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_install</StoreTo>
+	<FieldLabel>Dynamics Install</FieldLabel>
+	<TableVariable>InstallPath</TableVariable>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath4</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetWorkPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>restoreProperties</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>Welcome</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="GetWorkPaths">
+      <PageTitle>Working Paths</PageTitle>
+      <PageGroup>Path</PageGroup>
+      <PageProc>install/obj/inpath.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <DataType>CHARACTER</DataType>
+        <FieldValue>Now the utility needs to determine your working paths.
+
+The Working Path is the directory that becomes the Start In directory in the shortcuts.
+
+The Source Path is the directory that contains the source code for Dynamics.
+
+The GUI Path is the directory that contains the GUI version of the compiled objects.
+
+The TTY Path is the directory that contains the Character version of the compiled objects, and is also used as the path to the AppServer version of the code.
+
+Please confirm that the paths below are correct.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiPath1</FieldName>
+	<DefaultValue>#path_work#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_work</StoreTo>
+	<FieldLabel>Working Path</FieldLabel>
+	<TableVariable>WorkPath</TableVariable>
+      </field>
+      <field>
+        <FieldName>fiPath2</FieldName>
+	<DefaultValue>#path_src#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_src</StoreTo>
+	<FieldLabel>Source Path</FieldLabel>
+	<TableVariable>SrcPath</TableVariable>
+      </field>
+      <field>
+        <FieldName>fiPath3</FieldName>
+	<DefaultValue>#path_gui#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_gui</StoreTo>
+	<FieldLabel>GUI Path</FieldLabel>
+	<TableVariable>GUIPath</TableVariable>
+      </field>
+      <field>
+        <FieldName>fiPath4</FieldName>
+	<DefaultValue>#path_tty#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_tty</StoreTo>
+	<FieldLabel>TTY Path</FieldLabel>
+	<TableVariable>TTYPath</TableVariable>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath1</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath1</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath2</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath2</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath3</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath3</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath4</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath1</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath2</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath3</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetDBPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetInstallPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="GetDBPaths">
+      <PageTitle>Database Information</PageTitle>
+      <PageGroup>Path</PageGroup>
+      <PageProc>install/obj/indbinfo.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>This screen allows you to select which databases will be created or updated during this process. 
+
+If you are not developing with RoundTable, RVDB is not required.
+        
+The Database Path is the root directory in which the Dynamics databases already exist or are to be created. This utility assumes that the database are created in sub-directories under this path. Thus, ICFDB would be created in a directory called ICFDB underneath the database path.
+
+Please confirm that the Database Path below is correct.</FieldValue>
+      </field>
+      <field>
+        <FieldName>lICFDB</FieldName>
+	<DefaultValue>YES</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Set up/Update ICFDB Database</FieldLabel>
+	<StoreTo>SetupICFDB</StoreTo>
+      </field>
+      <field>
+        <FieldName>lRVDB</FieldName>
+	<DefaultValue>YES</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Set up/Update RVDB Database</FieldLabel>
+	<StoreTo>SetupRVDB</StoreTo>
+      </field>
+      <field>
+        <FieldName>fiPath4</FieldName>
+	<DefaultValue>#path_db#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>path_db</StoreTo>
+	<FieldLabel>Database Path</FieldLabel>
+	<TableVariable>DBPath</TableVariable>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath4</Object>
+        <Action>getDirectory</Action>
+        <ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateDirectory</Action>
+	<ActionParam>fiPath4</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>checkForDBs</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?SetupICFDB=YES;GetICFDBParams;Status</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetWorkPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="GetICFDBParams">
+      <PageTitle>ICFDB Parameters</PageTitle>
+      <PageGroup>ICFDB</PageGroup>
+      <PageProc>install/obj/indbconn.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>The Dynamics Repository is stored in a database called ICFDB. To install Dynamics properly, this utility needs to know how to get access to the ICFDB database. 
+
+Checking the Create Database check box will result in a database being created in the path specified in the path setting.
+
+Please provide the information needed to connect the ICFDB Database.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiConnect</FieldName>
+        <FieldValue>Connection Parameters</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiPath1</FieldName>
+	<DefaultValue>#path_db_icfdb#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>#path_db_icfdb#</StoreTo>
+	<FieldLabel>ICFDB Path</FieldLabel>
+	<TableVariable>DBFile</TableVariable>
+      </field>
+      <field>
+        <FieldName>lCreate</FieldName>
+	<DefaultValue>#icfdb_does_not_exist#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Create ICFDB Database</FieldLabel>
+	<StoreTo>createICFDB</StoreTo>
+	<TableVariable>CreateDB</TableVariable>
+      </field>
+      <field>
+        <FieldName>edConnect</FieldName>
+	<DefaultValue>#default_ICFDB_params#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<TableVariable>ConnectParams</TableVariable>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath1</Object>
+        <Action>getDBFile</Action>
+        <ActionParam>fiPath1</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>processDB</Action>
+	<ActionParam>ICFDB,lCreate,fiPath1,edConnect</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?createICFDB=YES;GetICFSiteData;GetICFDBPatches</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetDBPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="GetICFDBPatches">
+      <PageTitle>ICFDB Patches</PageTitle>
+      <PageGroup>ICFDB</PageGroup>
+      <PageProc>install/obj/inselect.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>The following is a list of patches that appear not to have been installed in your ICFDB database. 
+
+Please select from this list all the patches that you wish to have installed.</FieldValue>
+      </field>
+      <field>
+        <FieldName>seList</FieldName>
+	<TableVariable>PatchList</TableVariable>
+      </field>
+      <action>
+        <Event>INITIALIZE</Event>
+        <Object>GetICFDBPatches</Object>
+        <Action>obtainPatchList</Action>
+	<ActionParam>ICFDB,seList</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?SetupRVDB=YES;GetRVDBParams;Status</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetICFDBParams</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+    <page PageName="GetICFSiteData">
+      <PageTitle>ICFDB Site Number and Sequences</PageTitle>
+      <PageGroup>ICFDB</PageGroup>
+      <PageProc>install/obj/insite.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>It is essential that all Dynamics repositories are uniquely identified by their site numbers. This ensures that data that is shared amongst repositories does not clash with each other.
+
+Please confirm your site number below and provide (if required) a file in Progress Export format that contains the sequence current values from your existing repository.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiNumber</FieldName>
+	<DefaultValue>0</DefaultValue>
+	<FieldLabel>Site Number</FieldLabel>
+	<TableVariable>SiteNo</TableVariable>
+      </field>
+      <field>
+        <FieldName>fiFile</FieldName>
+        <DefaultValue>#path_icfdb_seq#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Sequences</FieldLabel>
+	<StoreTo>#path_icfdb_seq#</StoreTo>
+	<TableVariable>SeqVal</TableVariable>
+      </field>
+      <action>
+        <Event>LEAVE</Event>
+        <Object>fiNumber</Object>
+        <Action>validateSiteNumber</Action>
+        <ActionParam>fiNumber</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateSiteNumber</Action>
+        <ActionParam>fiNumber</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?SetupRVDB=YES;GetRVDBParams;Status</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetICFDBParams</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+    
+
+    <page PageName="GetRVDBParams">
+      <PageTitle>RVDB Parameters</PageTitle>
+      <PageGroup>RVDB</PageGroup>
+      <PageProc>install/obj/indbconn.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>The Dynamics Repository data is versioned and controlled via a database called RVDB. This database is only required if RoundTable is being used.
+        
+The Dynamics Configuration Utility needs to know how to get access to the RVDB database. 
+
+Checking the Create Database check box will result in a database being created in the path specified in the path setting.
+
+Please provide the information needed to connect the RVDB Database.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiConnect</FieldName>
+        <FieldValue>Connection Parameters</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiPath1</FieldName>
+	<DefaultValue>#path_db_rvdb#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<StoreTo>#path_db_rvdb#</StoreTo>
+	<FieldLabel>RVDB Path</FieldLabel>
+	<TableVariable>DBFile</TableVariable>
+      </field>
+      <field>
+        <FieldName>lCreate</FieldName>
+	<DefaultValue>#rvdb_does_not_exist#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Create RVDB Database</FieldLabel>
+	<StoreTo>createRVDB</StoreTo>
+	<TableVariable>CreateDB</TableVariable>
+      </field>
+      <field>
+        <FieldName>edConnect</FieldName>
+	<DefaultValue>#default_rvdb_params#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<TableVariable>ConnectParams</TableVariable>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>buPath1</Object>
+        <Action>getDBFile</Action>
+        <ActionParam>fiPath1</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>processDB</Action>
+	<ActionParam>RVDB,lCreate,fiPath1,edConnect</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?createRVDB=YES;GetRVDBSiteData;GetRVDBPatches</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetDBPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="GetRVDBPatches">
+      <PageTitle>RVDB Patches</PageTitle>
+      <PageGroup>RVDB</PageGroup>
+      <PageProc>install/obj/inselect.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>The following is a list of patches that appear not to have been installed in your RVDB database. 
+
+Please select from this list all the patches that you wish to have installed.</FieldValue>
+      </field>
+      <field>
+        <FieldName>seList</FieldName>
+	<TableVariable>PatchList</TableVariable>
+      </field>
+      <action>
+        <Event>INITIALIZE</Event>
+        <Object>GetRVDBPatches</Object>
+        <Action>obtainPatchList</Action>
+	<ActionParam>RVDB,seList</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>Status</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetRVDBParams</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+    <page PageName="GetRVDBSiteData">
+      <PageTitle>RVDB Site Number and Sequences</PageTitle>
+      <PageGroup>RVDB</PageGroup>
+      <PageProc>install/obj/insite.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Next</ButtonLabel>
+        <ButtonName>Next</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>It is essential that all Dynamics repositories are uniquely identified by their site numbers. This ensures that data that is shared amongst repositories does not clash with each other.
+
+Please confirm your site number below and provide (if required) a file in Progress Export format that contains the sequence current values from your existing repository.</FieldValue>
+      </field>
+      <field>
+        <FieldName>fiNumber</FieldName>
+	<DefaultValue>0</DefaultValue>
+	<FieldLabel>Site Number</FieldLabel>
+	<TableVariable>SiteNo</TableVariable>
+      </field>
+      <field>
+        <FieldName>fiFile</FieldName>
+        <DefaultValue>#path_RVDB_seq#</DefaultValue>
+	<ExpandTokens>YES</ExpandTokens>
+	<FieldLabel>Sequences</FieldLabel>
+	<StoreTo>#path_RVDB_seq#</StoreTo>
+	<TableVariable>SeqVal</TableVariable>
+      </field>
+      <action>
+        <Event>LEAVE</Event>
+        <Object>fiNumber</Object>
+        <Action>validateSiteNumber</Action>
+        <ActionParam>fiNumber</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>screenScrape</Action>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>validateSiteNumber</Action>
+        <ActionParam>fiNumber</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Next</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>Status</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>GetRVDBParams</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="Status">
+      <PageTitle>Processing Status</PageTitle>
+      <PageGroup>Info</PageGroup>
+      <PageProc>install/obj/instatus.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Quit</ButtonLabel>
+        <ButtonName>Quit</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <button>
+        <ButtonLabel>&amp;Back</ButtonLabel>
+        <ButtonName>Back</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+        <button>
+        <ButtonLabel>&amp;Process</ButtonLabel>
+        <ButtonName>Process</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edComment</FieldName>
+        <FieldValue>The Dynamics Configuration Utility now has all the information that it needs to install and update your Dynamics installation.
+
+Choosing the Process button below will make changes to your Dynamics installation that are not reversible. It is strongly suggested that you make a backup of your existing Dynamics configuration before proceeding.
+
+This process could take a substantial amount of time. The status is updated into the log below.</FieldValue>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Process</Object>
+        <Action>processParams</Action>
+        <ActionParam>edStatus</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Process</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>Finish</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <Object>Back</Object>
+        <Action>gotoPage</Action>
+        <ActionParam>?SetupICFDB=YES;GetICFDBParams;GetDBPaths</ActionParam>
+      </action>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Quit</Object>
+        <Action>QUIT</Action>
+      </action>
+    </page>
+
+
+    <page PageName="Finish">
+      <PageTitle>Complete</PageTitle>
+      <PageGroup>Info</PageGroup>
+      <PageProc>install/obj/inwelcome.w</PageProc>
+      <button>
+        <ButtonLabel>&amp;Finish</ButtonLabel>
+        <ButtonName>Finish</ButtonName>
+        <ButtonJustify>Right</ButtonJustify>
+      </button>
+      <field>
+        <FieldName>edEditor</FieldName>
+        <FieldValue>Dynamics Configuration Utility Complete.
+ 
+The Dynamics Configuration Utility has completed processing.
+
+To complete the upgrade of an existing repository you will need to run the Dataset Import utility from the Deployment menu off the Dynamics Administration menu. Please see the release notes for thsi version for more information.
+
+It is also important that you run the fix program src/icf/db/icf/dfd/fixAttribValues.p after loading the ADO files using the Dataset Import Utility.</FieldValue>
+      </field>
+      <action>
+        <Event>CHOOSE</Event>
+        <ObjectType>Button</ObjectType>
+        <Object>Finish</Object>
+        <Action>FINISH</Action>
+      </action>
+    </page>
+  </setup>
+
+</sessions>

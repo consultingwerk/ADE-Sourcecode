@@ -35,7 +35,9 @@
              12/6/99  DLM Added assignment to rmvobj to know if this fails
                           if I can delete schema holder or need just to remove
                           database from existing schema holder. 
-             02/01/00 DLM Added handling of sqlwidth parameter.        
+             02/01/00 DLM Added handling of sqlwidth parameter.  
+             10/12/01 DLM Added logic to handle dumping DEFAULTs      
+                   
 */    
 
 { prodict/user/uservar.i }
@@ -71,7 +73,7 @@ IF batch_mode THEN DO:
        "Oracle Username:               " ora_username skip
        "Oracle Tablespace for tables:  " ora_tspace skip
        "Oracle Tablespace for indexes: " ora_ispace skip
-       "Compatible structure:          " compatible skip
+       "Compatible structure:          " pcompatible skip
        "Using Sql Width:               " sqlwidth SKIP
        "Create objects in Oracle:      " loadsql skip
        "Moved data to Oracle:          " movedata skip(2).
@@ -164,7 +166,7 @@ ASSIGN user_env[1]  = "ALL"
        user_env[4]  = "n"
        user_env[5]  = ";"
        user_env[6]  = "y"
-       user_env[7]  = "n"
+       user_env[7]  = (IF crtdefault THEN "y" ELSE "n")
        user_env[8]  = "y"
        user_env[9]  = "ALL"
        user_env[11] = "char" 
@@ -188,7 +190,7 @@ ASSIGN user_env[1]  = "ALL"
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
     
-IF compatible THEN 
+IF pcompatible THEN 
    ASSIGN user_env[27] = "y".
 ELSE
    ASSIGN user_env[27] = "no".

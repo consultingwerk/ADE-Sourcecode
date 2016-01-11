@@ -9,7 +9,7 @@ Use this template to create a new dialog-box. Alter this default template or cre
 &Scoped-define FRAME-NAME Connect
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Connect 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -71,6 +71,7 @@ Created: 04/14/95
          by Laura Stern.
 
 Modified:
+    jep       02/05/02  Issue 3656 : Not enough space for frames in XP
     mcmann    12/17/98  Removed other obsolete networks protocols
     mcmann    07/16/98  Removed AS400LFP from supported networks
     mcmann    05/04/98  Added check for length and spaces to logical name
@@ -221,6 +222,7 @@ DEFINE VARIABLE Network AS CHARACTER FORMAT "X(256)":U
      LABEL "Net&work" 
      VIEW-AS COMBO-BOX SORT 
      LIST-ITEMS "(None)","AS400SNA","TCP" 
+     DROP-DOWN-LIST
      SIZE 22 BY 1 NO-UNDO.
 
 DEFINE VARIABLE Unix_Parms AS CHARACTER 
@@ -252,7 +254,7 @@ DEFINE VARIABLE Pass_word AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 22 BY 1 NO-UNDO.
 
-DEFINE VARIABLE PName AS CHARACTER FORMAT "X({&PATH_WIDG})":U 
+DEFINE VARIABLE PName AS CHARACTER FORMAT "X(256)":U 
      LABEL "Physical &Name" 
      VIEW-AS FILL-IN 
      SIZE 34 BY 1 NO-UNDO.
@@ -262,7 +264,7 @@ DEFINE VARIABLE Service_Name AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 22 BY 1 NO-UNDO.
 
-DEFINE VARIABLE Trig_Loc AS CHARACTER FORMAT "X({&PATH_WIDG})":U 
+DEFINE VARIABLE Trig_Loc AS CHARACTER FORMAT "X(256)":U 
      LABEL "T&rigger Location" 
      VIEW-AS FILL-IN 
      SIZE 50 BY 1 NO-UNDO.
@@ -294,7 +296,7 @@ DEFINE FRAME Connect
      btn_Options AT ROW 4.29 COL 55
      Btn_Help AT ROW 4.29 COL 71
      DB_Type AT ROW 4.33 COL 18 COLON-ALIGNED
-     Network AT ROW 5.86 COL 10.2
+     Network AT ROW 5.86 COL 18 COLON-ALIGNED
      Multi_User AT ROW 5.86 COL 64
      Host_Name AT ROW 7.19 COL 18 COLON-ALIGNED
      Service_Name AT ROW 7.19 COL 62 COLON-ALIGNED
@@ -306,7 +308,7 @@ DEFINE FRAME Connect
      btn_filet AT ROW 11.24 COL 71
      Unix_Parms AT ROW 13.38 COL 4 NO-LABEL
      Unix_Label AT ROW 12.57 COL 2.6
-     SPACE(35.31) SKIP(3.49)
+     SPACE(33.60) SKIP(3.56)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Connect Database"
@@ -354,7 +356,7 @@ ASSIGN
        Multi_User:HIDDEN IN FRAME Connect           = TRUE.
 
 /* SETTINGS FOR COMBO-BOX Network IN FRAME Connect
-   NO-DISPLAY NO-ENABLE ALIGN-L 1 2                                     */
+   NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
        Network:HIDDEN IN FRAME Connect           = TRUE.
 
@@ -513,12 +515,11 @@ ON CHOOSE OF btn_Options IN FRAME Connect /* Options >> */
 DO:
   DO WITH FRAME {&FRAME-NAME} :
   
-    IF (FRAME {&FRAME-NAME}:HEIGHT <> Dlg_FullH) THEN
+    IF (FRAME {&FRAME-NAME}:HEIGHT-PIXELS <> Dlg_FullH) THEN
     DO:
       /* Display the full dialog. */
-      ASSIGN btn_Options:LABEL = REPLACE(btn_Options:LABEL , ">>":U , "<<":U )
-             FRAME {&FRAME-NAME}:HEIGHT = Dlg_FullH
-             . /* END ASSIGN */
+      ASSIGN btn_Options:LABEL = REPLACE(btn_Options:LABEL , ">>":U , "<<":U ).
+      ASSIGN FRAME {&FRAME-NAME}:HEIGHT-PIXELS = Dlg_FullH NO-ERROR.
       
       IF Full_First_Time THEN
       DO:
@@ -541,7 +542,7 @@ DO:
              . /* END ASSIGN */
       HIDE {&OPTIONAL-FIELDS}.
       DISABLE {&OPTIONAL-FIELDS}.
-      ASSIGN FRAME {&FRAME-NAME}:HEIGHT = Dlg_ShortH
+      ASSIGN FRAME {&FRAME-NAME}:HEIGHT-PIXELS = Dlg_ShortH NO-ERROR
              . /* END ASSIGN */
     END.
     
@@ -650,7 +651,7 @@ RUN disable_UI.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Connect _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Connect  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -687,7 +688,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Connect _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Connect  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -930,12 +931,15 @@ PROCEDURE Set_Init_Values :
   DO WITH FRAME {&FRAME-NAME}:
                         
     /* Set the dialog size values and shorten the dialog height. */
-    assign Dlg_ShortH = FRAME {&FRAME-NAME}:HEIGHT -
-                        (FRAME {&FRAME-NAME}:HEIGHT
-                         - Network:ROW IN FRAME {&FRAME-NAME})
-           Dlg_FullH  = FRAME {&FRAME-NAME}:HEIGHT
-           FRAME {&FRAME-NAME}:HEIGHT = Dlg_ShortH
+    /* IZ 3656 : Add a small margin {&VM_OKBOX} in pixels to short and full height to
+       ensure dialog is large enough for the widgets, particularly on Windows XP. */
+    assign Dlg_ShortH = FRAME {&FRAME-NAME}:HEIGHT-PIXELS -
+                        (FRAME {&FRAME-NAME}:HEIGHT-PIXELS
+                         - Host_Name:Y IN FRAME {&FRAME-NAME})
+           Dlg_ShortH = Dlg_ShortH + {&VM_OKBOX}
+           Dlg_FullH  = FRAME {&FRAME-NAME}:HEIGHT-PIXELS + {&VM_OKBOX}
            . /* END ASSIGN */
+    assign FRAME {&FRAME-NAME}:HEIGHT-PIXELS = Dlg_ShortH NO-ERROR.
     
     /* Change Unknown to Null if PName and LName are passed in that way. */
     assign  p_PName = (IF p_PName = ? THEN "" ELSE p_PName)

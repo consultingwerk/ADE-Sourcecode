@@ -48,7 +48,8 @@ Date Created: 02/05/92
                                    Bug 96-08-13-014   
                10/07/97 D. McMann Added assignment of _fld-misc1[5] and decimals
                                    bug 97-10-06-006   
-               08/16/00 D. McMann Added Raw Data Type Support                                                
+               08/16/00 D. McMann Added Raw Data Type Support     
+               08/24/01 D. McMann Removed variable length and extent from RAW                                           
 ----------------------------------------------------------------------------*/
 
 
@@ -360,16 +361,15 @@ do:
              "This data type will be mapped to an ALPHA/CHARACTER data type."   SKIP
        VIEW-AS ALERT-BOX INFORMATION BUTTON OK.
                                                                                
-   IF (s_Fld_TypeCode = {&DTYPE_CHARACTER} AND b_Field._Fld-stdtype < 79) 
-    then
-      enable s_fld_case s_fld_var_length b_Field._For-allocated with frame newfld.
-   ELSE IF s_Fld_TypeCode = {&DTYPE_RAW} THEN DO:
-       ENABLE s_Fld_var_length b_Field._For-allocated WITH FRAME newfld.
-       DISABLE s_Fld_case WITH FRAME newfld.
+   IF (s_Fld_TypeCode = {&DTYPE_CHARACTER} AND b_Field._Fld-stdtype < 79) THEN 
+      ENABLE s_fld_case s_Fld_Array s_fld_var_length b_Field._For-allocated with frame newfld.
+   ELSE IF s_Fld_TypeCode = {&DTYPE_RAW} THEN  
+     DISABLE  s_Fld_case s_Fld_var_length b_Field._For-allocated 
+              s_Fld_Array WITH FRAME newfld.     
+   ELSE DO:
+     DISABLE  s_fld_case s_fld_var_length b_Field._For-allocated with frame newfld.  
+     ENABLE s_fld_array WITH FRAME newfld.
    END.
-   ELSE
-      disable s_fld_case s_fld_var_length b_Field._For-allocated with frame newfld.  
-
 end.
 
 

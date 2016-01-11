@@ -1,8 +1,9 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER WDT_v2r1 WebTool
+&ANALYZE-SUSPEND _VERSION-NUMBER WDT_v2r12 WebTool
+/* Maps: HTML */
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -40,9 +41,11 @@
   Created: Oct 23, 1996
 
   Modifications:  
-   nhorn 1/8/97   Cleaned up HTML, add style, consistency changes.
-   nhorn 1/15/97  Multiple file selection
-   wood  4/20/97  Use "*" as the "All File" filter on NT               
+   01/08/97 nhorn Cleaned up HTML, add style, consistency changes.
+   01/15/97 nhorn Multiple file selection
+   04/20/97 wood  Use "*" as the "All File" filter on NT               
+   04/05/01 thm   Integrated WCIAT utilities
+   07/11/01 adams Rework page layout
 ------------------------------------------------------------------------*/
 /*           This .W file was created with WebSpeed WorkBench.          */
 /*----------------------------------------------------------------------*/
@@ -59,9 +62,13 @@
 
 /* ********************  Preprocessor Definitions  ******************** */
 
-&Scoped-define PROCEDURE-TYPE WebTool
+&SCOPED-DEFINE PROCEDURE-TYPE WebTool
 
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
 &ANALYZE-RESUME
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -75,7 +82,6 @@
 
 /* Standard WebTool Included Libraries --  */
 { webtools/webtool.i }
-
 &ANALYZE-RESUME _END-INCLUDED-LIBRARIES
 
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM "Main Code Block" 
@@ -99,10 +105,9 @@ PROCEDURE process-web-request :
   DEFINE VARIABLE filter        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE select-list   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE dft-filters   AS CHARACTER NO-UNDO
-    INITIAL "*.w~;*.p~;*.i,*.htm~;*.html,*.w~;*.p~;*.i~;*.htm~;*.html,*":U.
+    INITIAL "*.w~;*.p~;*.i,*.htm*,*.w~;*.p~;*.i~;*.htm*,*":U.
   DEFINE VARIABLE workshop-file AS CHARACTER NO-UNDO
     INITIAL "workshop/_main.*":U.
-  DEFINE VARIABLE search-file   AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ipos          AS INTEGER   NO-UNDO.
   DEFINE VARIABLE icount        AS INTEGER   NO-UNDO.
   DEFINE VARIABLE ix            AS INTEGER   NO-UNDO.
@@ -143,54 +148,59 @@ PROCEDURE process-web-request :
   ASSIGN 
     FILE-INFO:FILE-NAME = directory 
     dirpath             = FILE-INFO:FULL-PATHNAME.
-            
+  
+  /* Output page header */
   {&OUT}
     {webtools/html.i 
-      &SEGMENTS = "head,open-body,title-line"
-      &AUTHOR   = "Wm.T.Wood"
-      &TITLE    = "File Tools"
-      &FRAME    = "WS_main"
-      &CONTEXT  = "{&Webtools_Web_Objects_Help}" }.
+      &SEGMENTS  = "head,open-body,title-line"
+      &AUTHOR    = "Wm.T.Wood"
+      &TITLE     = "File Tools"
+      &TITLESPAN = TRUE
+      &FRAME     = "WS_main"
+      &CONTEXT   = "{&Webtools_Web_Objects_Help}" }.
 
   {&OUT}
-    '<CENTER>~n':U
-    '<FORM METHOD="POST" ACTION="dirlist.w">~n':U
+    '~n<CENTER>~n':U
     '<SCRIPT LANGUAGE="JavaScript">~n':U
     '<!--~n':U
     'function setFilter (index, target, opt) ~{ ~n':U
-    '  var filters = new Array ("*.w~;*.p~;*.i", "*.htm~;*.html", "*.w~;*.p~;*.i~;*.htm~;*.html","*");~n':U
+    '  var filters = new Array ("*.w~;*.p~;*.i", "*.htm*", "*.w~;*.p~;*.i~;*.htm*","*");~n':U
     '  if (index > 3) ~n':U
     '    target.value = opt.text; ~n':U
     '  else ~n':U
     '    target.value = filters[index];~n':U
     '~}~n':U
     '//-->~n':U
-    '</SCRIPT>~n':U
-    '<TABLE BORDER=0 CELLPADDING=2>~n':U
-    '<TR><TD>':U format-label ('File Filter', 'TOP':U, '') '<BR>~n':U
-    '<INPUT TYPE="TEXT" NAME="filter" SIZE="20" VALUE="':U html-encode(Filter) '">~n':U
-    '<INPUT TYPE="HIDDEN" NAME="directory" VALUE="':U html-encode(directory) '">~n':U
-    '<INPUT TYPE="SUBMIT" VALUE="List" NAME="ListF" ></TD>~n':U
-    '<TD>':U format-label ('Filter Options', 'TOP':U, '') '<BR>~n':U
-    '<SELECT NAME = FilterType SIZE = 1~n':U
-    '     onChange = "setFilter(this.selectedIndex, form.filter, this.options[this.selectedIndex]);form.ListF.click();"> ~n':U.
-    ASSIGN select-list = "Webspeed Files (*.w~;*.p~;*.i),Html Files (*.htm~;*.html),All Sources (*.w~;*.p~;*.i~;*.htm~;*.html),All Files (*)".
+    '</SCRIPT>~n':U.
 
-    IF LOOKUP(filter, dft-filters) = 0 THEN  
-       ASSIGN select-list = select-list + ",":U + filter.
-
-  DO ix = 1 to NUM-ENTRIES(select-list):
-    {&OUT} '<OPTION':U
-      (IF (ix eq LOOKUP(filter, select-list)) OR (ix eq LOOKUP(filter, dft-filters)) THEN ' SELECTED>':U ELSE ' > ':U)
-      html-encode(ENTRY(ix,select-list))
-      '~n':U.
-  END.
+  /* Output toolbar */
   {&OUT}
-    '</SELECT></TD></TR>~n':U
-    '</TABLE>~n':U
-    '</FORM>~n':U
-    .
-  
+    '<TABLE ID="tToolBar" BORDER="1" BGCOLOR="#DEB887" /*burlywood*/ CELLPADDING="1" WIDTH="100%">~n':U
+    '<TR><TD><NOBR>~n':U
+    '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'View~')~;"~n':U
+    '   onMouseOver="window.status=~'':U 'View source code for the selected file' '~'~; return true~;"~n':U
+    '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
+    '<IMG SRC="' RootURL '/images/u-view-n.gif" ALT="':U 'View' '" BORDER="0"></A>&nbsp~;~n':U
+    '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Run~')~;"~n':U 
+    '   onMouseOver="window.status=~'':U 'Run the selected file, if possible' '~'~; return true~;"~n':U
+    '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
+    '<IMG SRC="' RootURL '/images/u-run-n.gif" ALT="':U 'Run' '" BORDER="0"></A>&nbsp~;~n':U
+    '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Compile~')~;"~n':U
+    '   onMouseOver="window.status=~'':U 'Compile selected files' '~'~; return true~;"~n':U
+    '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
+    '<IMG SRC="' RootURL '/images/u-compil-n.gif" ALT="':U 'Compile' '" BORDER="0"></A>&nbsp~;~n':U 
+    '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'TagExtract~')~;"~n':U
+    '   onMouseOver="window.status=~'':U 'Create .off files for selected HTML files' '~'~; return true~;"~n':U
+    '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
+    '<IMG SRC="' RootURL '/images/u-tagext-n.gif" ALT="':U 'Extract offset file' '" BORDER="0"></A>&nbsp~;~n':U
+    '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Delete~')~;"~n':U
+    '   onMouseOver="window.status=~'':U 'Delete selected files' '~'~; return true~;"~n':U
+    '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
+    '<IMG SRC="' RootURL '/images/u-delete-n.gif" ALT="':U 'Delete' '" BORDER="0"></A>&nbsp~;~n':U
+    '</NOBR></TD>~n':U
+    '</TR>~n':U
+    '</TABLE>~n':U.
+
   /* Output a table containing the contents of the directory, and buttons
      to act on these files. */
   IF dirpath eq ? THEN
@@ -198,10 +208,12 @@ PROCEDURE process-web-request :
   ELSE DO:
     /* Output a list of directories. */ 
     {&OUT}
-      '<TABLE':U get-table-phrase('') ' CELLPADDING=6>~n':U
+      '<BR>~n':U
+      '<TABLE':U get-table-phrase('') ' CELLPADDING="4" WIDTH="100%">~n':U
       '<TR>~n':U
-      '   <TH>':U format-label('Directories':U, "COLUMN":U, "":U) '</TH>~n':U
-      '   <TH COLSPAN=2>':U format-filename (dirpath, 'Files in &1', '':U) '</TH>~n':U
+      '  <TH>':U format-label('Directories':U, "COLUMN":U, "":U) '</TH>~n':U
+      '  <TH>':U format-label('Files':U, "COLUMN":U, "":U) '</TH>~n':U
+      '  <TH>':U format-label('Filters':U, "COLUMN":U, "":U) '</TH>~n':U
       '</TR>~n':U
       '<TR VALIGN="TOP"><TD>~n':U
       .
@@ -226,10 +238,10 @@ PROCEDURE process-web-request :
        'no-dot':U,   /* Don't show '.' or '..'  */
        OUTPUT icount).
    
-    /* Output the files in the directory (in column 2). NOTE that this cell contains the FORM for
-       input.  This FORM can NOT be around the next cell with the links.  If it is, then the 
-       onMouseOver events will not work in IE3. */ 
-    {&OUT} '</TD>~n<TD ALIGN=CENTER>':U
+    /* Output the files in the directory (in column 2). NOTE that this cell contains 
+       the FORM for input.  This FORM can NOT be around the next cell with the links.  
+       If it is, then the onMouseOver events will not work in IE3. */ 
+    {&OUT} '</TD>~n<TD ALIGN="center">~n':U
       '<FORM NAME="FileList" METHOD="POST" ACTION="fileact.w"> ~n':U
       '<SCRIPT LANGUAGE="JavaScript">~n':U
       '  <!--// Submit the form. ~n':U
@@ -249,9 +261,11 @@ PROCEDURE process-web-request :
       '<INPUT TYPE="HIDDEN" NAME="Directory" VALUE="' dirpath '">~n':U
       '<INPUT TYPE="HIDDEN" NAME="FileAction" VALUE="">~n':U
       . 
+
+    /* Output a filelist */
     RUN webtools/util/_dirlist.w
       (directory, filter, false,
-       '<OPTION>&1~n':U,
+       '<OPTION>&1</OPTION>~n':U,
        '<SELECT NAME="Filename" SIZE="15" MULTIPLE>~n':U,
        '</SELECT>~n':U,
        '<I>No matching files</I>~n',    
@@ -259,53 +273,44 @@ PROCEDURE process-web-request :
        '':U,         /* No Options  */
        OUTPUT icount).
  
-    {&OUT} '</FORM></TD>~n':U
-      . 
-    /* Finish out the last column of the table.  Check for existence of 
-       workshop/_main before putting the edit. */                 
-    RUN adecomm/_rsearch.p (INPUT workshop-file, OUTPUT search-file).  
+    /* Output Filters objects */
+    {&OUT} 
+      '</FORM></TD>~n':U
+      '<TD ALIGN="left">~n':U
+      '<FORM METHOD="POST" ACTION="dirlist.w">~n':U
+      format-label ('File', 'TOP':U, '') '<BR>~n':U
+      '<INPUT TYPE="TEXT" NAME="filter" SIZE="20" VALUE="':U html-encode(Filter) '">~n':U
+      '<INPUT TYPE="HIDDEN" NAME="directory" VALUE="':U html-encode(directory) '">~n':U
+      '<INPUT TYPE="SUBMIT" VALUE="List" NAME="ListF" ><BR><BR>~n':U
+      format-label ('Files of Type', 'TOP':U, '') '<BR>~n':U
+      '<SELECT NAME="FilterType" SIZE="1"~n':U
+      '     onChange = "setFilter(this.selectedIndex, form.filter, this.options[this.selectedIndex]);form.ListF.click();"> ~n':U.
+
+    ASSIGN select-list = "Webspeed Files (*.w~;*.p~;*.i),Html Files (*.htm*),All Sources (*.w~;*.p~;*.i~;*.htm*),All Files (*)".
+    IF LOOKUP(filter, dft-filters) = 0 THEN  
+      ASSIGN select-list = select-list + ",":U + filter.
+
+    DO ix = 1 to NUM-ENTRIES(select-list):
+      {&OUT} '<OPTION':U
+        (IF (ix eq LOOKUP(filter, select-list)) OR (ix eq LOOKUP(filter, dft-filters)) THEN ' SELECTED>':U ELSE ' > ':U)
+        html-encode(ENTRY(ix,select-list))
+        '</OPTION>~n':U.
+    END.
     {&OUT}
-      '<TD ALIGN="CENTER">~n':U
-      '<BR>~n':U
-      format-label('Select a file to...', 'COLUMN':U, '':U) '<BR><BR>~n':U
-      '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'View~')~;"~n':U
-      '   onMouseOver="window.status=~'':U 'View source code for the selected file.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-view.gif" ALT="':U 'View' '" BORDER="0"></A>&nbsp~;~n':U.
-    IF search-file ne ? THEN {&OUT}
-      '<A HREF="Javascript:SubmitForm(~'Open~')~;"~n':U
-      '   onMouseOver="window.status=~'':U 'Open the selected file for editing in Workshop.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-shop.gif" ALT="':U 'Open' '" BORDER="0"></A>&nbsp~;~n':U.
-    {&OUT}
-      '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Run~')~;"~n':U 
-      '   onMouseOver="window.status=~'':U 'Run the selected file, if possible.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-run.gif" ALT="':U 'Run' '" BORDER="0"></A>&nbsp~;~n':U
-      '<BR><BR><BR>~n':U
-      format-label('Select files to...', 'COLUMN':U, '':U) '<BR><BR>':U
-      '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Compile~')~;"~n':U
-      '   onMouseOver="window.status=~'':U 'Compile all selected files.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-compil.gif" ALT="':U 'Compile' '" BORDER="0"></A>&nbsp~;~n':U 
-      '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'TagExtract~')~;"~n':U
-      '   onMouseOver="window.status=~'':U 'Create .off files for selected HTML files.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-tagext.gif" ALT="':U 'Extract Offset File' '" BORDER="0"></A>&nbsp~;~n':U
-      '<A HREF="Javascript:if (window.SubmitForm) SubmitForm(~'Delete~')~;"~n':U
-      '   onMouseOver="window.status=~'':U 'Delete all selected files.' '~'~; return true~;"~n':U
-      '   onMouseOut="window.status=~'~'~; return true~;">':U /* No ~n */
-      '<IMG SRC="' RootURL '/images/u-delete.gif" ALT="':U 'Delete' '" BORDER="0"></A>&nbsp~;~n':U
-      '</TD></TR></TABLE>~n':U
-      .
-    END. /* IF dirpath ne ? ... */
+      '</SELECT>~n':U
+      '</FORM>~n':U
+      '</TD>~n':U
+      '</TR></TABLE>~n':U.
+
+  END. /* IF dirpath ne ? ... */
     
   /* Finish out the HTML document. */      
-   {&OUT} 
+  {&OUT} 
     '</CENTER>~n':U
     '</BODY>~n':U
-    '</HTML>~n':U
-     .
+    '</HTML>~n':U.
   
 END PROCEDURE.
 &ANALYZE-RESUME
+ 
+

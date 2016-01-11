@@ -25,6 +25,7 @@
              D. McMann 04/12/00 Added long path name for Progress Database
              D. McMann 06/07/00 Changed frame layout for UNIX
              D. McMann 07/19/00 Added specific help topic for MSS
+             D. McMann 06/18/01 Added case and collation options
                   
                                 
 */            
@@ -46,14 +47,15 @@ DEFINE VARIABLE i             AS INTEGER                  NO-UNDO.
 DEFINE VARIABLE err-rtn       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
-
+DEFINE VARIABLE s_res         AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
+DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
 batch_mode = SESSION:BATCH-MODE.
 
 FORM
- /* " "   SKIP({&VM_WID}) */
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
     LABEL "Original PROGRESS Database" colon 36 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
@@ -71,16 +73,20 @@ FORM
         LABEL "User's Password" colon 36 SKIP({&VM_WID})
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
      LABEL "Connect parameters" colon 36 SKIP({&VM_WID})
-  mss_codepage FORMAT "x(32)"  view-as fill-in size 32 by 1
-     LABEL "Codepage for Schema Image" colon 36 SKIP({&VM_WID})
-  long-length LABEL "Maximun length for Varchar" COLON 36 SKIP({&VM_WIDG}) SPACE(2)
-pcompatible view-as toggle-box LABEL "Create RECID Field"   
+      long-length LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WIDG})
+  SPACE (2) mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
+     LABEL "Codepage" SPACE(2)  SPACE(2)
+  mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
+     LABEL "Collation"   SPACE(2) mss_incasesen  LABEL "Insensitive"  SKIP({&VM_WIDG}) 
+  SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field"   
   loadsql   view-as toggle-box label "Load SQL" AT 32
   movedata  view-as toggle-box label "Move Data" AT 55 SKIP({&VM_WID}) SPACE(2)
   shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
   descidx   VIEW-AS TOGGLE-BOX LABEL "Create Desc Index" AT 32 
   dflt      VIEW-AS TOGGLE-BOX LABEL "Include DEFAULTS"  AT 55 SKIP({&VM_WID}) SPACE(2)
-  sqlwidth   VIEW-AS TOGGLE-BOX LABEL "Use Field's SQL Width Column"  SKIP({&VM_WID})
+  sqlwidth   VIEW-AS TOGGLE-BOX LABEL "Use SQL Width Column"  SPACE(2)
+  
+    SKIP({&VM_WID})
              {prodict/user/userbtns.i}
   WITH FRAME x ROW 1 CENTERED SIDE-labels OVERLAY
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -121,6 +127,16 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
      movedata = false.
      movedata:sensitive in frame x = NO.
   END.   
+END. 
+
+ON VALUE-CHANGED of mss_incasesen IN FRAME x DO:
+  IF SELF:screen-value = "no" THEN
+    ASSIGN  
+           shadowcol:sensitive in frame x = YES
+           s_res = shadowcol:MOVE-BEFORE-TAB-ITEM(descidx:HANDLE).
+  ELSE 
+     ASSIGN shadowcol:screen-value in frame x = "no"
+            shadowcol:SENSITIVE IN FRAME X = NO.  
 END. 
 
 ON LEAVE OF long-length IN FRAME X DO:
@@ -172,10 +188,28 @@ IF OS-GETENV("MSSPASSWORD") <> ? THEN
   mss_password = OS-GETENV("MSSPASSWORD").
 IF OS-GETENV("MSSCONPARMS") <> ? THEN
   mss_conparms = OS-GETENV("MSSCONPARMS").
+
 IF OS-GETENV("MSSCODEPAGE") <> ? THEN
-  mss_codepage = OS-GETENV("MSSODEPAGE").
+  mss_codepage = OS-GETENV("MSSCODEPAGE").
 ELSE
   ASSIGN mss_codepage = session:cpinternal.
+
+IF OS-GETENV("MSSCOLLNAME") <> ? THEN
+  mss_collname = OS-GETENV("MSSCOLLNAME").
+ELSE
+  ASSIGN mss_collname = session:CPCOLL.
+
+IF OS-GETENV("MSSCASESEN") <> ? THEN DO:
+   ASSIGN tmp_str = OS-GETENV("MSSCASESEN").
+  IF  tmp_str BEGINS "Y" THEN
+    ASSIGN mss_incasesen = FALSE.
+  ELSE
+    ASSIGN mss_incasesen = TRUE.
+           
+END.
+ELSE
+    ASSIGN mss_incasesen = TRUE.
+
 IF OS-GETENV("VARLENGTH") <> ? THEN
   long-length = integer(OS-GETENV("VARLENGTH")).
 ELSE
@@ -218,6 +252,11 @@ ELSE
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" THEN
   assign pro_conparms = "<current working database>".
 
+IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
+    ASSIGN mvdta = FALSE.
+ELSE
+    ASSIGN mvdta = TRUE.
+
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF redo THEN
@@ -232,16 +271,20 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     RETURN.
   END.
     
-
+  IF redoblk THEN DO:
+      MESSAGE "You have received error messages from the client stating why" SKIP
+              "the process was stopped.  Correct the errors and try again." SKIP
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  END.
   
   /*
    * if this is not batch mode, allow override of environment variables.
    */
   
-  IF NOT batch_mode THEN 
+IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
-      UPDATE pro_dbname
+     UPDATE pro_dbname
         pro_conparms
         osh_dbname
         mss_pdbname
@@ -249,12 +292,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         mss_username
         mss_password
         mss_conparms
-        mss_codepage
         long-length
-        pcompatible 
+        mss_codepage
+        mss_collname
+        mss_incasesen
+        pcompatible
         loadsql
-        movedata
-        shadowcol
+        movedata WHEN mvdta = TRUE
+        shadowcol WHEN mss_incasesen = FALSE
         descidx
         dflt
         sqlwidth
@@ -263,9 +308,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             btn_Help
         &ENDIF
         WITH FRAME x.     
-    
+        
+
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
+
+    IF shadowcol:SCREEN-VALUE = "yes" THEN
+      ASSIGN shadowcol = TRUE.
 
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
@@ -352,6 +401,10 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END.
   ELSE IF RETURN-VALUE = "wrg-ver" THEN DO:
     ASSIGN wrg-ver = TRUE.
+    UNDO, RETRY.
+  END.
+  ELSE IF RETURN-VALUE = "undo" THEN DO:
+    ASSIGN redoblk = TRUE.
     UNDO, RETRY.
   END.
   /*

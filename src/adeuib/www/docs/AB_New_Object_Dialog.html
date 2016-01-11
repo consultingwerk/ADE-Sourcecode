@@ -1,0 +1,398 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder New Object Dialog</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+Copyright &copy; 2000 by Progress Software Corporation ("PSC"), 14 Oak Park, Bedford, MA 01730, 
+and other contributors as listed below. All Rights Reserved.
+</P>
+
+<P>
+The Initial Developer of the Original Code is PSC. The Original Code is Progress IDE code 
+released to open source December 1, 2000.
+</P>
+
+<P>
+The contents of this file are subject to the Possenet Public License Version 1.0 (the "License"); 
+you may not use this file except in compliance with the License. A copy of the License is available 
+as of the date of this notice at <A HREF="http://www.possenet.org/license.html">http://www.possenet.org/license.html</A>
+</P>
+
+<P>
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF 
+ANY KIND, either express or implied. You should refer to the License for the specific language 
+governing rights and limitations under the License. 
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+
+<P>
+1. <A HREF="#1">Overview</A><BR>
+2. <A HREF="#2">Architecture</A><BR>
+3. <A HREF="#3">Primary Data Structures</A><BR>
+4. <A HREF="#4">Primary Algorithms and Processes</A><BR>
+5. <A HREF="#5">Advanced Topics</A><BR>
+6. <A HREF="#6">Dependencies</A><BR>
+7. <A HREF="#7">Source Files</A><BR>
+8. <A HREF="#8">Build Process and Requirements</A><BR>
+9. <A HREF="#9">Execution Methods</A><BR>
+10. <A HREF="#10">Test Requirements and Strategies</A><BR>
+11. <A HREF="#11">Supplementary Information</A><BR>
+12. <A HREF="#12">Related Documentation</A>
+</P>
+
+
+<P>
+<A NAME="1"><B>1. Overview</B></A> 
+</P>
+
+<P>
+The AppBuilder’s New Object dialog box is available to
+create new design windows, procedures, SmartObject masters, and
+WebObjects. 
+</P>
+
+<P>
+<A NAME="2"><B>2. Architecture</B></A> 
+</P>
+
+<P>
+Choosing New from the AppBuilder File menu or choosing the
+AppBuilder New button invokes the New Object dialog box.
+</P>
+
+
+
+
+
+
+
+<P>
+The objects that can be created include one of the
+following categories:
+</P>
+
+<P>
+·
+Containers
+</P>
+
+<P>
+·
+SmartObjects
+</P>
+
+<P>
+·
+Procedures
+</P>
+
+<P>
+·
+WebObjects
+</P>
+
+<P>
+The categories available for object creation depend on the
+license of the product being used.
+</P>
+
+<P>
+A ProVision license (shared variable _AB_license = 1)
+displays:
+</P>
+
+<P>
+·
+Containers
+</P>
+
+<P>
+·
+SmartObjects
+</P>
+
+<P>
+·
+Procedures.
+</P>
+
+<P>
+A WebSpeed license (_AB_license = 2) displays:
+</P>
+
+<P>
+·
+Containers
+</P>
+
+<P>
+·
+SmartObjects (only SmartDataObject)
+</P>
+
+<P>
+·
+Procedures
+</P>
+
+<P>
+·
+WebObjects
+</P>
+
+<P>
+A Provision Plus license (_AB_license = 3) displays all
+object types.
+</P>
+
+<P>
+Choosing the Template button invokes the Choose Template
+dialog box that displays available templates and allows their code to be
+previewed.
+</P>
+
+<P>
+Selecting an object to create from the available object
+types in the dialog’s selection list returns the template name to the calling
+routine (choose_file_new internal procedure of adeuib/uibmproa.i). The
+choose_file_new procedure then invokes Open_Untitled (internal procedure of
+adeuib/uibmproe.i), passing it the name of the template that it uses to open
+the template with adeuib/_open-w.p. 
+</P>
+
+<P>
+<A NAME="3"><B>3. Primary Data Structures</B></A> 
+</P>
+
+<P>
+The _custom temp-table records store custom object file
+data used by the New Object dialog box.
+_custom records contain the following data pertinent to the New Object
+dialog:
+</P>
+
+<P>
+·
+Name
+</P>
+
+<P>
+·
+Base Type (Container, Procedure, SmartObject, or
+WebObject)
+</P>
+
+<P>
+·
+Attributes (contains template name)
+</P>
+
+<P>
+<A NAME="4"><B>4. Primary Algorithms and Processes</B></A> 
+</P>
+
+<P>
+When
+the AppBuilder initializes, the custom object files are processed (via
+adeuib/_cr_cust.p) and read into _custom temp-table records used by the New
+Object dialog box to display objects available for creation. Custom object files are also processed
+whenever the palette is updated. 
+</P>
+
+<P>
+<A NAME="5"><B>5. Advanced Topics</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="6"><B>6. Dependencies</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="7"><B>7. Source Files</B></A> 
+</P>
+
+<P>
+This tool uses
+the following source files:
+</P>
+
+
+ 
+  
+   
+<P>
+   Source File
+</P>
+   
+   
+   
+<P>
+   Description
+</P>
+   
+   
+  
+ 
+ 
+  
+<P>
+  adeuib/_newobj.w
+</P>
+  
+  
+  
+<P>
+  New
+  Object dialog box.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adecomm/_fndfile.p
+</P>
+  
+  
+  
+<P>
+  Choose
+  Template dialog box.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/uibmproa.i
+</P>
+  
+  
+  
+<P>
+  AppBuilder
+  a – d internal procedures, contains choose_file_new which invokes the New
+  Object dialog.
+</P>
+  
+  
+ 
+
+
+<P>
+<A NAME="8"><B>8. Build Process and Requirements</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="9"><B>9. Execution Methods</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="10"><B>10. Test Requirements and Strategies</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="11"><B>11. Supplementary Information</B></A> 
+</P>
+
+<P>
+N/A
+</P>
+
+<P>
+<A NAME="12"><B>12. Related Documentation</B></A> 
+</P>
+
+<P>
+The following documents provide additional information
+about the tool:
+</P>
+
+<P>
+·
+AppBuilder
+Developer’s Guide
+</P>
+
+<P>
+·
+Application
+Development Environment – Getting Started
+</P>
+
+<P>
+·
+ENV POSSE
+Programmer FAQs (Word document)
+</P>
+
+<P>
+·
+ENV How to Be a
+POSSE Programmer (PowerPoint presentation)
+</P>
+
+
+
+
+</SPAN>
+
+
+
+

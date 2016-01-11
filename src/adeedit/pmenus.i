@@ -169,7 +169,7 @@ DO WHILE VALID-HANDLE(hMenu):
   hItem = hMenu:FIRST-CHILD.
   DO WHILE VALID-HANDLE(hItem):
     /*-----------   File Menu Accelerators --------------*/
-    IF CAN-DO('_New,_Open,_Close,_New_PW,_Save,_Save_as,_Print,_Exit':u , hItem:NAME) THEN
+    IF CAN-DO('_New,_Open,_Close,_New_PW,_Save,_Save_as,_AddRepos,_Print,_Exit':u , hItem:NAME) THEN
       RUN MenuAccelSet (INPUT hItem, INPUT-OUTPUT p_Accels).
     /*-----------   Edit Menu Accelerators --------------*/
     ELSE IF CAN-DO('_Undo,_Cut,_Copy,_Paste,_Insert_File,_Field_Selector':u , hItem:NAME) THEN
@@ -380,3 +380,60 @@ DEFINE VARIABLE hFileMenu   AS HANDLE             NO-UNDO.
     TRIGGERS: ON CHOOSE PERSISTENT RUN ExitEditor. END TRIGGERS.
 
 END PROCEDURE.  /* mru_menu */
+
+
+PROCEDURE CreateFileMenuItems .
+/*---------------------------------------------------------------------------
+    Syntax     RUN CreateFileMenuItems . 
+
+    Purpose    Creates these File menu items after Save As menu item:
+    
+               Add to Repos (Dynamics only)
+               Rule
+               Print
+               Rule
+
+    Remarks    Needed these menu items to be dynamic so 'Add to Repository'
+               could be optionally added to the File menu if Dynamics is
+               running.
+               
+               Added to support IZ 2513 Error when trying to save structured
+               include in Dynamics framework.
+
+    Return Values  NONE.
+---------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hFileMenu     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lIsICFRunning AS LOGICAL    NO-UNDO.
+
+  /* Establish if Dynamics is running. */
+   ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+   ASSIGN lIsICFRunning = (lIsICFRunning = YES) NO-ERROR.
+
+  /* editor.i */
+  RUN GetFileMenu (OUTPUT hFileMenu).
+
+  IF lIsICFRunning THEN
+  DO:
+    CREATE MENU-ITEM mi_AddRepos
+      ASSIGN NAME        = "_AddRepos"
+             PARENT      = hFileMenu
+             LABEL       = "Add to &Repository..."
+      TRIGGERS: ON CHOOSE PERSISTENT RUN AddtoRepos. END TRIGGERS.
+  END.
+
+  CREATE MENU-ITEM mi_rule_pr1
+      ASSIGN SUBTYPE = "RULE"
+             PARENT  = hFileMenu.
+
+  CREATE MENU-ITEM mi_Print
+    ASSIGN NAME        = "_Print"
+           PARENT      = hFileMenu
+           LABEL       = "&Print..."
+    TRIGGERS: ON CHOOSE PERSISTENT RUN FilePrintCall. END TRIGGERS.
+
+  CREATE MENU-ITEM mi_rule_pr2
+      ASSIGN SUBTYPE = "RULE"
+             PARENT  = hFileMenu.
+
+END PROCEDURE.  /* CreateFileMenuItems */

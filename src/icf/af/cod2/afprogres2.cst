@@ -1,0 +1,563 @@
+/* afprogres2.cst - ICF customised objects file originally from
+                    progress.cst - Version 9.1C
+                    Anthony D Swindells - 22/03/2001
+*/
+
+*NEW-PROCEDURE  ICF Structured &PLIP 
+NEW-TEMPLATE    ry/app/rytemplipp.p
+
+
+*NEW-PROCEDURE  ICF Data Logic Procedure
+NEW-TEMPLATE    ry/obj/rytemlogic.p
+
+*NEW-PROCEDURE  ICF Structured &Procedure 
+NEW-TEMPLATE    ry/app/rytemprocp.p
+
+*NEW-PROCEDURE  ICF Structured &Include 
+NEW-TEMPLATE    ry/inc/ryteminclu.i
+
+*NEW-CONTAINER  &Window
+NEW-TEMPLATE    src/template/window.w
+
+*NEW-CONTAINER  &Dialog
+NEW-TEMPLATE    src/template/dialog.w
+
+*NEW-CONTAINER  TTY &Window
+NEW-TEMPLATE    src/template/tty-wind.w
+
+*NEW-CONTAINER  TTY &Dialog
+NEW-TEMPLATE    src/template/tty-dial.w
+
+*BROWSE         &Default
+DESCRIPTION     Default Browser
+NAME            BrBrowse
+
+*TOGGLE-BOX     &Default
+DESCRIPTION     Default Toggle
+NAME            ToBox
+
+*TEXT           &Default
+DESCRIPTION     Default Text
+
+*BUTTON         &Default
+DESCRIPTION     Default Button
+INHERIT         &ICF Standard Button
+NAME            buButton
+
+*BUTTON         &OK
+DESCRIPTION     Standard Dialog OK Button
+INHERIT         &ICF Standard Button
+AUTO-GO         YES
+AUTO-END-KEY    NO
+DEFAULT-BTN     YES
+DEFAULT-STYLE   YES
+LABEL           &OK
+NAME            buOK
+  
+*BUTTON         D&one
+DESCRIPTION     Standard Window Done Button
+INHERIT         &ICF Standard Button
+AUTO-GO         NO
+AUTO-END-KEY    NO
+DEFAULT-BTN     YES
+DEFAULT-STYLE   YES
+LABEL           &Done
+NAME            buDone
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN dispatch IN THIS-PROCEDURE ('exit').
+    &ELSE
+      RUN exitObject.
+    &ENDIF
+  &ELSE
+      APPLY "CLOSE":U TO THIS-PROCEDURE.
+  &ENDIF
+END.
+END TRIGGER
+
+*BUTTON         &Cancel
+DESCRIPTION     Standard Cancel Button
+INHERIT         &ICF Standard Button
+AUTO-GO         NO
+AUTO-END-KEY    YES
+CANCEL-BTN      YES
+DEFAULT-STYLE   YES
+LABEL           &Cancel
+NAME            buCancel
+
+*BUTTON         &Help 
+DESCRIPTION     Standard Help Button
+INHERIT         &ICF Standard Button
+DEFAULT-STYLE   YES
+LABEL           &Help
+NAME            buHelp
+TRIGGER CHOOSE
+OR HELP OF FRAME {&FRAME-NAME}
+DO: /* Call Help Function (or a simple message). */
+  {afconthelp.i}
+END.
+END TRIGGER
+
+*BUTTON         &First 
+DESCRIPTION     Simple Navigation Button
+INHERIT         &ICF Standard Button
+LABEL           &First
+NAME            buFirst
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-first") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchFirst":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple FIRST RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      DEFINE VARIABLE op-supported AS LOGICAL.
+      GET FIRST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+          {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+
+*BUTTON         Ne&xt 
+DESCRIPTION     Simple Navigation Button
+INHERIT         &ICF Standard Button
+LABEL           &Next
+NAME            buNext
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-next") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchNext":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple NEXT RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET NEXT {&FRAME-NAME}.
+      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
+          THEN GET LAST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+          DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+
+*BUTTON         &Prev 
+DESCRIPTION     Simple Navigation Button
+INHERIT         &ICF Standard Button
+LABEL           &Prev
+NAME            buPrev
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-prev") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchPrev":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple PREV RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET PREV {&FRAME-NAME}.
+      IF NOT AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}}
+      THEN GET FIRST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+	DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+        {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+
+*BUTTON         &Last 
+DESCRIPTION     Simple Navigation Button
+INHERIT         &ICF Standard Button
+LABEL           &Last
+NAME            buLast
+TRIGGER CHOOSE
+DO:
+  &IF "{&PROCEDURE-TYPE}" EQ "SmartPanel" &THEN
+    &IF "{&ADM-VERSION}" EQ "ADM1.1" &THEN
+      RUN notify IN THIS-PROCEDURE ("get-last") NO-ERROR.
+    &ELSE
+      PUBLISH "fetchLast":U.
+    &ENDIF
+  &ELSEIF "{&TABLES-IN-QUERY-{&FRAME-NAME}}" ne "" &THEN
+  /* This is a simple LAST RECORD navigation button, useful for building
+     test screens quickly.  NOTE: if there are no tables in the query, then 
+     this code will not compile; so use the preprocessor to skip it. */
+      GET LAST {&FRAME-NAME}.
+      IF AVAILABLE {&FIRST-TABLE-IN-QUERY-{&FRAME-NAME}} THEN DO:
+	  DISPLAY {&FIELDS-IN-QUERY-{&FRAME-NAME}} WITH FRAME {&FRAME-NAME}.
+	  {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+      END.
+  &ENDIF
+END.
+END TRIGGER
+
+*BUTTON        C&ustom Width/Color
+DESCRIPTION    Standard Defaults for other buttons
+WIDTH          15
+HEIGHT         1.125
+BGCOLOR        8       
+
+*BUTTON        &ICF Standard Button
+DESCRIPTION    Standard Defaults for other buttons
+WIDTH          15.00
+HEIGHT         1.125
+BGCOLOR        8
+NAME           buButton       
+
+*EDITOR        &Default
+DESCRIPTION    Default Editor
+NAME           EdEditor
+RETURN-INSERTED true
+SCROLLBAR-VERTICAL true
+SCROLLBAR-HORIZONTAL false
+WORD-WRAP true
+LARGE   true
+
+*EDITOR        &Read-Only
+DESCRIPTION    READ-ONLY Editor
+READ-ONLY      YES
+NAME           EdEditor
+
+*FILL-IN       &Default
+DESCRIPTION    Default Fill-in
+DATA-TYPE      Character
+NAME           fiChar
+
+*FILL-IN       &Character
+DESCRIPTION    Character Fill-in
+DATA-TYPE      Character
+NAME           fiChar
+
+*FILL-IN       &Character 1
+DESCRIPTION    1 Character Fill-in
+DATA-TYPE      Character
+WIDTH          4
+FORMAT         X(1)
+NAME           fiChar
+
+*FILL-IN       &Character 2
+DESCRIPTION    2 Character Fill-in
+DATA-TYPE      Character
+WIDTH          6
+FORMAT         X(2)
+NAME           fiChar
+
+*FILL-IN       &Character 3
+DESCRIPTION    3 Character Fill-in
+DATA-TYPE      Character
+WIDTH          8
+FORMAT         X(3)
+NAME           fiChar
+
+*FILL-IN       &Character 5
+DESCRIPTION    5 Character Fill-in
+DATA-TYPE      Character
+WIDTH          14
+FORMAT         X(5)
+NAME           fiChar
+
+*FILL-IN       &Character 10
+DESCRIPTION    10 Character Fill-in
+DATA-TYPE      Character
+WIDTH          20
+FORMAT         X(10)
+NAME           fiChar
+
+*FILL-IN       &Character 12
+DESCRIPTION    12 Character Fill-in
+DATA-TYPE      Character
+WIDTH          22
+FORMAT         X(12)
+NAME           fiChar
+
+*FILL-IN       &Character 15
+DESCRIPTION    15 Character Fill-in
+DATA-TYPE      Character
+WIDTH          24
+FORMAT         X(15)
+NAME           fiChar
+
+*FILL-IN       &Character 20
+DESCRIPTION    20 Character Fill-in
+DATA-TYPE      Character
+WIDTH          30
+FORMAT         X(20)
+NAME           fiChar
+
+*FILL-IN       &Character 28
+DESCRIPTION    28 Character Fill-in
+DATA-TYPE      Character
+WIDTH          40
+FORMAT         X(28)
+NAME           fiChar
+
+*FILL-IN       &Character 35
+DESCRIPTION    35 Character Fill-in
+DATA-TYPE      Character
+WIDTH          48
+FORMAT         X(35)
+NAME           fiChar
+
+*FILL-IN       &Character 70
+DESCRIPTION    70 Character Fill-in
+DATA-TYPE      Character
+WIDTH          65
+FORMAT         X(70)
+NAME           fiChar
+
+*FILL-IN       D&ate
+DESCRIPTION    Date Fill-in
+DATA-TYPE      Date
+WIDTH          18.4
+FORMAT         99/99/9999
+NAME           fiDate
+
+*FILL-IN       De&cimal
+DESCRIPTION    Decimal Fill-in
+DATA-TYPE      Decimal
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Large 2dp
+DESCRIPTION    2dp Large Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          27.2
+FORMAT         ->>>,>>>,>>>,>>9.99
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Medium 2dp
+DESCRIPTION    2dp Medium Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          23.2
+FORMAT         ->>>,>>>,>>9.99
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Small 2dp
+DESCRIPTION    2dp Small Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          18.2
+FORMAT         ->>>,>>9.99
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Large 3dp
+DESCRIPTION    3dp Large Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          28.2
+FORMAT         ->>>,>>>,>>>,>>9.999
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Medium 3dp
+DESCRIPTION    3dp Medium Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          25.2
+FORMAT         ->>>,>>>,>>9.999
+NAME           fiDecimal
+
+*FILL-IN       &De&cimal Small 3dp
+DESCRIPTION    3dp Small Decimal Fill-in
+DATA-TYPE      Decimal
+WIDTH          19.2
+FORMAT         ->>>,>>9.999
+NAME           fiDecimal
+
+*FILL-IN       &Integer
+DESCRIPTION    Integer Fill-in
+DATA-TYPE      Integer
+NAME           fiInteger
+
+*FILL-IN       &Integer 2
+DESCRIPTION    2 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          8.2
+FORMAT         ->9
+NAME           fiInteger
+
+*FILL-IN       &Integer 3
+DESCRIPTION    3 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          9.2
+FORMAT         ->>9
+NAME           fiInteger
+
+*FILL-IN       &Integer 4
+DESCRIPTION    4 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          11.2
+FORMAT         ->>>9
+NAME           fiInteger
+
+*FILL-IN       &Integer 5
+DESCRIPTION    5 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          12.2
+FORMAT         ->>>>9
+NAME           fiInteger
+
+*FILL-IN       &Integer 6
+DESCRIPTION    6 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          13.2
+FORMAT         ->>>>>9
+NAME           fiInteger
+
+*FILL-IN       &Integer 8
+DESCRIPTION    8 Integer Fill-in
+DATA-TYPE      Integer
+WIDTH          15.2
+FORMAT         ->>>>>>>9
+NAME           fiInteger
+
+*FILL-IN       &Logical
+DESCRIPTION    Logical Fill-in
+DATA-TYPE      Logical
+WIDTH          6
+NAME           fiLogical
+
+*FRAME         &Default
+DESCRIPTION    Default Frame
+NAME           frMain
+
+*FRAME         No-&Box
+DESCRIPTION    No-Box Frame
+NO-BOX         YES
+NAME           frMain
+
+*FRAME         Box, No &Title
+DESCRIPTION    Frame with BOX, but No Title-bar
+NO-BOX         NO
+TITLE-BAR      NO
+NAME           frMain
+
+*COMBO-BOX     &Default
+DESCRIPTION    Default Combo-Box
+DATA-TYPE      Character
+NAME           coCombo
+
+*COMBO-BOX     &Simple
+DESCRIPTION    Simple Combo-Box
+SUBTYPE        SIMPLE
+
+*COMBO-BOX     D&rop-Down
+DESCRIPTION    Drop-Down Combo-Box
+SUBTYPE        DROP-DOWN
+
+*COMBO-BOX     Dr&op-Down-List
+DESCRIPTION    Drop-Down-List Combo-Box
+SUBTYPE        DROP-DOWN-LIST
+
+*COMBO-BOX     &Character
+DESCRIPTION    Character Combo-Box
+DATA-TYPE      Character
+NAME           coCharacter
+
+*COMBO-BOX     D&ate
+DESCRIPTION    Date Combo-Box
+DATA-TYPE      Date
+NAME           coDate
+
+*COMBO-BOX     De&cimal
+DESCRIPTION    Decimal Combo-Box
+DATA-TYPE      Decimal
+NAME           coDecimal
+
+*COMBO-BOX     &Integer
+DESCRIPTION    Integer Combo-Box
+DATA-TYPE      Integer
+NAME           coInteger
+
+*COMBO-BOX     &Logical
+DESCRIPTION    Logical Combo-Box
+DATA-TYPE      Logical
+NAME           coLogical
+
+*RADIO-SET     &Default
+DESCRIPTION    Default Radio-Set
+DATA-TYPE      Character
+NAME           raSet
+
+*RADIO-SET     &Character
+DESCRIPTION    Character Radio-Set
+DATA-TYPE      Character
+NAME           raCharacter
+
+*RADIO-SET     D&ate
+DESCRIPTION    Date Radio-Set
+DATA-TYPE      Date
+NAME           raDate
+
+*RADIO-SET     De&cimal
+DESCRIPTION    Decimal Radio-Set
+DATA-TYPE      Decimal
+NAME           raDecimal
+
+*RADIO-SET     &Integer
+DESCRIPTION    Integer Radio-Set
+DATA-TYPE      Integer
+NAME           raInteger
+
+*RADIO-SET     &Logical
+DESCRIPTION    Logical Radio-Set
+DATA-TYPE      Logical
+NAME           raLogical
+
+*RECTANGLE     &Not Filled
+DESCRIPTION    Rectangle (No-Fill)
+FILLED      NO 
+EDGE-PIXELS 1
+NAME           reRect
+
+*RECTANGLE     &Filled
+DESCRIPTION    Rectangle (with Fill)
+FILLED      YES 
+EDGE-PIXELS 1
+NAME           reRect
+
+*RECTANGLE     &3D (2 pixel edge)
+DESCRIPTION    Thinnest 3-D Rectangle
+FILLED      NO
+EDGE-PIXELS 2
+NAME           reRect
+
+*RECTANGLE     3D (&4 pixel edge)
+DESCRIPTION    Four pixel wide 3-D Rectangle
+FILLED      NO
+EDGE-PIXELS 4
+NAME           reRect
+
+*SELECTION-LIST &Default
+DESCRIPTION     Default Selection List
+SCROLLBAR-V     NO
+HEIGHT          3
+FONT            3
+NAME            seList
+
+*SELECTION-LIST &Region
+DESCRIPTION     No Scrollbar - Editor
+SCROLLBAR-V     NO
+HEIGHT          3
+LIST-ITEMS      East,North,West,South
+NAME            seList
+
+*SELECTION-LIST &ICF Standard
+DESCRIPTION     No Scrollbar - Editor
+SCROLLBAR-V     NO
+HEIGHT          3
+FONT            3
+NAME            seList

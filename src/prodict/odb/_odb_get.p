@@ -38,6 +38,8 @@ History:  DLM 01/28/98 Added call for stored procedures.
           DLM 09/03/98 Added display as dialog box for gui
           DLM 07/14/99 Added check for _SEQP_ procedure to skip
           DLM 11/18/99 Added assignement of DBMS Type to Db_Misc2[8]
+          DLM 10/01/01 Added logic not to pull system tables or overloaded procedures
+                       for DB2.
                                                    
 */
 
@@ -438,6 +440,12 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
     AND NOT TRIM(DICTDBG.SQLTables_buffer.name)        MATCHES "_buffer_"
                                                              + s_name
     THEN NEXT.
+
+    ELSE IF TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSIBM" OR
+            TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSCAT" OR
+            TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSSTAT" OR
+            TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSFUN" THEN
+               NEXT.
     ELSE DO: 
         /* Check if there is a match with unknown value for
          * in SQLTables_buffer.  This can happen in PODBC. 
@@ -560,9 +568,18 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
             
     END. /* ELSE DO */    
 
-    IF DICTDBG.SQLProcs_Buffer.name BEGINS "_SEQP_" THEN
-        NEXT.
+    IF DICTDBG.SQLProcs_Buffer.name BEGINS "_SEQP_" THEN NEXT.
 
+    IF TRIM(DICTDBG.SQLProcs_buffer.owner) = "SYSIBM" OR
+       TRIM(DICTDBG.SQLProcs_buffer.owner) = "SYSCAT" OR
+       TRIM(DICTDBG.SQLProcs_buffer.owner) = "SYSSTAT" OR
+       TRIM(DICTDBG.SQLProcs_buffer.owner) = "SYSFUN" THEN NEXT.
+
+    /* DB2 allows overloading of procedures which the DataServer does not support */
+    FIND FIRST gate-work WHERE gate-work.gate-name = DICTDBG.SQLProcs_Buffer.name
+        NO-LOCK NO-ERROR.
+    IF AVAILABLE gate-work THEN NEXT.
+ 
     ASSIGN
       SQLProcedures-name = TRIM(DICTDBG.SQLProcs_Buffer.name)
       object-type    = "PROCEDURE".

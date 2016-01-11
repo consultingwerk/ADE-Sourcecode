@@ -32,6 +32,8 @@
     Description :
 
     Modified    : May 19, 1999 Version 9.1A
+    Modified    : 11/13/2001      Mark Davies (MIP)
+                  Check for valid handle of any gsh... variables
   ------------------------------------------------------------------------*/
 /*          This .i file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -87,7 +89,11 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Include 
 /* ************************* Included-Libraries *********************** */
 
-  {src/adm2/smart.i}
+  &IF DEFINED(APP-SERVER-VARS) = 0 &THEN   
+    {src/adm2/smart.i}
+  &ELSE  
+    {src/adm2/appserver.i}
+  &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -112,6 +118,22 @@
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/visualcustom.i}
   /* _ADM-CODE-BLOCK-END */
+
+&IF "{&FRAME-NAME}":U <> "":U &THEN
+  
+  ON HELP OF FRAME {&FRAME-NAME} ANYWHERE DO:
+    IF VALID-HANDLE(gshSessionManager) THEN
+      RUN contextHelp IN gshSessionManager (INPUT THIS-PROCEDURE, INPUT FOCUS).
+  END.
+  
+  ON CTRL-PAGE-UP OF FRAME {&FRAME-NAME} ANYWHERE DO:
+    RUN processAction IN TARGET-PROCEDURE (INPUT "CTRL-PAGE-UP":U).
+  END.
+  
+  ON CTRL-PAGE-DOWN OF FRAME {&FRAME-NAME} ANYWHERE DO:
+    RUN processAction IN TARGET-PROCEDURE (INPUT "CTRL-PAGE-DOWN":U).
+  END.
+&ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

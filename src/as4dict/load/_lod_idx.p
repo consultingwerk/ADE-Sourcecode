@@ -32,6 +32,8 @@
    11/30/98 Added loop for check of AS/400 name  98-09-11-038
    10/12/00 Changed where _fil-Res1[7] was being assigned 20001012-016
    11/22/00 Moved the check for index size higher in the code.
+   10/09/01 Added new funtion for changing primary index on existing table.
+   02/18/02 Added logic to handle WRONG FILE FORMAT when calculating AS4 names Fernando
    
 */
 
@@ -113,7 +115,7 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
 
 /* If we don't have an _As4-File Name, generate one.  Then, validate
    the As400 name and check or the object. */
-
+  
    IF widx._As4-File = "" OR widx._As4-File = ? THEN
       IF LENGTH(widx._Index-name) < 11 THEN
         ASSIGN nam = CAPS(widx._Index-name).
@@ -121,101 +123,106 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
         ASSIGN nam = CAPS(SUBSTRING(widx._Index-name,1,10)).
    ELSE
       assign nam = CAPS(widx._As4-File).
-
+  
    {as4dict/load/as4name.i}
    ASSIGN As4Name = CAPS(nam).
 
 /* Do a CHKF to see if the file exists already if not a word index */
   IF widx._Wordidx = 0 THEN DO:
-     dba_cmd = "CHKF".
-     RUN as4dict/_dbaocmd.p
+    dba_cmd = "CHKF".
+    RUN as4dict/_dbaocmd.p
        (INPUT "LF",
         INPUT As4Name,
         INPUT as4dict.p__File._AS4-Library,
         INPUT 0,
         INPUT 0).
-             
-     IF dba_return = 1 THEN 
-     DO pass = 1 TO 9999:
-       IF user_env[29] = "yes" THEN
+    /*Fernando: 20020207-034 If we are adding , we don't care if it's wrong file format. Also need
+      to make sure there is no other obejct out there with the same name */
+    IF dba_return = 1 OR dba_return = 11 OR 
+        CAN-FIND( FIRST as4dict.p__Index WHERE as4dict.p__Index._AS4-File = as4name
+                      AND as4dict.p__Index._AS4-Library = as4dict.p__File._AS4-Library) THEN 
+    DO pass = 1 TO 9999:
+      IF user_env[29] = "yes" THEN
          ASSIGN As4Name = SUBSTRING(As4Name,1,lngth - LENGTH(STRING(pass)))
                           + STRING(pass).
-       ELSE        
-         ASSIGN As4Name = SUBSTRING(As4Name + "_______",1,10 - LENGTH(STRING(pass)))
+      ELSE        
+        ASSIGN As4Name = SUBSTRING(As4Name + "_______",1,10 - LENGTH(STRING(pass)))
                       + STRING(pass)   
                       
-       dba_cmd = "CHKF".
-       RUN as4dict/_dbaocmd.p
+      dba_cmd = "CHKF".
+      RUN as4dict/_dbaocmd.p
          (INPUT "LF",
           INPUT As4Name,
           INPUT as4dict.p__File._AS4-Library,
           INPUT 0,
           INPUT 0).
-   
-       IF dba_return <> 1 THEN
-         assign pass = 10000.
-     END.    
+      /* fernando: 20020207-034 Again - don't care it it's wrong file format for adding */
+      IF dba_return <> 1 AND dba_return <> 11 AND
+          NOT CAN-FIND( FIRST as4dict.p__Index WHERE as4dict.p__Index._AS4-File = as4name
+                            AND as4dict.p__Index._AS4-Library = as4dict.p__File._AS4-Library) THEN 
+         ASSIGN pass = 10000.
+    END. 
     
-     IF dba_return = 1 THEN DO:
-        ierror = 7.  /* File already exists */
-        RETURN.
-     END.   
+    IF dba_return = 1 OR dba_return = 11 THEN DO:
+      ierror = 7.  /* File already exists */
+      RETURN.
+    END.   
 
-     ELSE If dba_return = 2 THEN DO:
-         dba_cmd = "RESERVE".
-         RUN as4dict/_dbaocmd.p 
+    ELSE If dba_return = 2 THEN DO:
+      dba_cmd = "RESERVE".
+      RUN as4dict/_dbaocmd.p 
            (INPUT "LF",
             INPUT As4Name,
             INPUT as4dict.p__File._AS4-Library,
             INPUT 0,
             INPUT 0).                     
 
-        If dba_return <> 12 THEN DO:
-            RUN as4dict/_dbamsgs.p.
-            ierror = 23.
-            RETURN.                 
-        END.
-     END.
+      If dba_return <> 12 THEN DO:
+        RUN as4dict/_dbamsgs.p.
+        ierror = 23.
+        RETURN.                 
+      END.
+    END.
 
-     ELSE IF dba_return > 2 THEN DO:
+    ELSE IF dba_return > 2 THEN DO:
         RUN as4dict/_dbamsgs.p.
         ierror = 23. /* default error to general table attr error */              
         RETURN.
-     END.
-   END.    
+    END.
+  END.    
    /* Now check if word index*/
-   ELSE DO:
-      dba_cmd = "VALWRDIDX".
-      RUN as4dict/_dbaocmd.p 
+  ELSE DO:
+    dba_cmd = "VALWRDIDX".
+    RUN as4dict/_dbaocmd.p 
        (INPUT "", 
-	 INPUT CAPS(as4dict.p__File._AS4-file),
-      	 INPUT  CAPS(as4dict.p__File._AS4-Library),
-	 INPUT 0,
+	    INPUT CAPS(as4dict.p__File._AS4-file),
+        INPUT  CAPS(as4dict.p__File._AS4-Library),
+	    INPUT 0,
         INPUT 0).
 
-      If dba_return <> 1 THEN DO:
-            RUN as4dict/_dbamsgs.p.
-            ierror = 26.
-            RETURN.                 
-      END.
-      ELSE DO:
-           dba_cmd = "CHKF".
-           RUN as4dict/_dbaocmd.p
+    If dba_return <> 1 THEN DO:
+      RUN as4dict/_dbamsgs.p.
+      ierror = 26.
+      RETURN.                 
+    END.
+    ELSE DO:
+      dba_cmd = "CHKF".
+      RUN as4dict/_dbaocmd.p
            (INPUT "*USRIDX",
             INPUT As4Name,
             INPUT as4dict.p__File._AS4-Library,
             INPUT 0,
             INPUT 0).
    
-       IF dba_return = 1 THEN DO:
-          ierror = 26.  /* File already exists */
-          RETURN.
-       END.   
-     END.
-   END.
+      IF dba_return = 1 THEN DO:
+        ierror = 26.  /* File already exists */
+        RETURN.
+      END.   
+    END.
+  END.
    
   /* Ok to add - continue */
-  
+
   FIND LAST as4dict.p__Index WHERE as4dict.p__Index._File-number = as4dict.p__File._File-number
               USE-INDEX   P__INDEXL1  NO-LOCK NO-ERROR.
 
@@ -262,31 +269,42 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
       as4dict.p__Idxfd._If-misc2[2] = SUBSTRING(as4dict.p__Field._For-name,1,10)
       as4dict.p__Index._Num-comp = as4dict.p__Index._Num-comp + 1.
 
-      IF as4dict.p__Idxfd._If-misc2[1] = "Y" THEN
-      	   ASSIGN as4dict.p__Index._I-Misc2[4] = "NNYYYYYNN".
-      ELSE    ASSIGN as4dict.p__Index._I-Misc2[4] = "NNNYYYYNN".     
+    IF as4dict.p__Idxfd._If-misc2[1] = "Y" THEN
+      ASSIGN as4dict.p__Index._I-Misc2[4] = "NNYYYYYNN".
+    ELSE    
+      ASSIGN as4dict.p__Index._I-Misc2[4] = "NNNYYYYNN".     
 
       /* Indicates cstring field within index */
-      IF as4dict.p__field._fld-stdtype = 41 THEN
-         ASSIGN as4dict.p__Field._Fld-Misc2[8] = "Y"
-                as4dict.p__idxfd._If-Misc2[7] = "Y".
+    IF as4dict.p__field._fld-stdtype = 41 THEN
+      ASSIGN as4dict.p__Field._Fld-Misc2[8] = "Y"
+             as4dict.p__idxfd._If-Misc2[7] = "Y".
 
       /* Indicate if Index has case sensitive field in it */
-      IF as4dict.p__Field._Fld-Misc2[6] = "A" AND as4dict.p__Field._Fld-case = "Y" THEN
-	ASSIGN as4dict.p__Index._I-Misc2[4] = SUBSTRING(as4dict.p__Index._I-Misc2[4],1,9) + "Y".
+    IF as4dict.p__Field._Fld-Misc2[6] = "A" AND as4dict.p__Field._Fld-case = "Y" THEN
+	  ASSIGN as4dict.p__Index._I-Misc2[4] = SUBSTRING(as4dict.p__Index._I-Misc2[4],1,9) + "Y".
 
-   END.                               
+  END.                               
 
-   IF iprimary  THEN 
-       ASSIGN as4dict.p__File._Prime-index = as4dict.p__Index._Idx-num
-              as4dict.p__File._Fil-misc1[7] = as4dict.p__Index._Idx-num
-              SUBSTRING(as4dict.p__Index._I-Misc2[4],9,1) = "Y".
- 
+  IF iprimary AND as4dict.p__File._Prime-index > 0 THEN DO:
+    IF as4dict.p__Index._Idx-num <> as4dict.p__File._Prime-index THEN DO:
+      ASSIGN as4dict.p__File._Fil-Res1[7] = as4dict.p__File._Prime-index
+             as4dict.p__File._Fil-Res1[8] = 1
+             as4dict.p__File._Fil-Misc1[1] = as4dict.p__File._Fil-Misc1[1] + 1.
+      RUN New_Prime.
+      ASSIGN as4dict.p__File._Prime-index = as4dict.p__Index._Idx-num
+             as4dict.p__File._Fil-misc1[7] = as4dict.p__Index._Idx-num
+             SUBSTRING(as4dict.p__Index._I-Misc2[4],9,1) = "Y".
+    END.
+  END.
+  ELSE IF iprimary THEN
+    ASSIGN as4dict.p__File._Prime-index = as4dict.p__Index._Idx-num
+           as4dict.p__File._Fil-misc1[7] = as4dict.p__Index._Idx-num
+           SUBSTRING(as4dict.p__Index._I-Misc2[4],9,1) = "Y".
         
-   ASSIGN as4dict.p__Index._For-type = as4dict.p__File._For-format.
-   ASSIGN as4dict.p__File._numkey = as4dict.p__File._Numkey + 1.                     
-   ASSIGN as4dict.p__File._Fil-Res1[2] = pidxnumber
-          as4dict.p__File._Fil-misc1[1] = as4dict.p__File._Fil-misc1[1] + 1.
+  ASSIGN as4dict.p__Index._For-type = as4dict.p__File._For-format
+         as4dict.p__File._numkey = as4dict.p__File._Numkey + 1                     
+         as4dict.p__File._Fil-Res1[2] = pidxnumber
+         as4dict.p__File._Fil-misc1[1] = as4dict.p__File._Fil-misc1[1] + 1.
 
 END. /*---------------------------------------------------------------------*/
 ELSE
@@ -381,14 +399,14 @@ ELSE
 IF imod = "d" THEN DO: /*---------------------------------------------------*/
   FIND as4dict.p__Index WHERE TRIM(as4dict.p__Index._Index-name) = TRIM(widx._Index-name) 
          AND as4dict.p__index._file-number = as4dict.p__file._file-number NO-ERROR.
-
+  
   /* if a field is deleted, then its index is deleted.  therefore, this
   index might be missing.  so don't complain if we don't find it. */
 
   IF NOT AVAILABLE as4dict.p__Index AND NOT CAN-DO(kindexcache,widx._Index-name) THEN
     ierror = 9. /* "Index already deleted" */
   IF ierror > 0 THEN RETURN.
-
+  
   IF AVAILABLE as4dict.p__Index THEN DO:
 
     /* ------------- If primary index delete ---------------------- */
@@ -400,6 +418,7 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
     END.  /* ------ If primary index delete -------------- */
 
     IF NOT new_Primary THEN DO:
+    
       IF as4dict.p__Index._Wordidx = 0 THEN DO:
        dba_cmd = "DLTOBJ".
        RUN as4dict/_dbaocmd.p 
@@ -423,7 +442,7 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
       	   INPUT as4dict.p__Index._AS4-Library,
 	   INPUT as4dict.p__File._File-number,
 	   INPUT as4dict.p__Index._Idx-Num).
-
+       
        IF dba_return <> 1 THEN DO:
            RUN as4dict/_dbamsgs.p.
            ierror = 23. /* default error to general table attr error */              
@@ -432,7 +451,7 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
      END.
   
    END.  /* If NOT new_primary */
-    
+
     FOR EACH as4dict.p__Idxfd WHERE as4dict.p__Idxfd._File-number = as4dict.p__Index._File-number
                            AND as4dict.p__Idxfd._Idx-num = as4dict.p__Index._Idx-num:
       DELETE as4dict.p__Idxfd.

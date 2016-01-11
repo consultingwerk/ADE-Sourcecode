@@ -1,0 +1,90 @@
+UPDATE FIELD "logical_service_code" OF "gsc_logical_service"
+  FORMAT "X(20)"
+  VALMSG "s_string_20"
+  SQL-WIDTH 40
+
+ADD FIELD "package_dataset_seq" OF "gsc_package_dataset" AS integer
+  DESCRIPTION "This field defines the order that datasets are dumped out into a packaged and therefore read in from the package. 
+
+In some cases it is necessary to load the datasets in a specific order. For example, if you don't load the gsc_deploy_dataset and gsc_entity_mnemonic datasets before you load a newly defined dataset, you will not have the appropriate dataset definitions in the database and this could cause the load to fail."
+  FORMAT "->>9"
+  FORMAT-SA ?
+  POSITION 6
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Package dataset seq."
+  HELP-SA ""
+  LABEL "Package Dataset Seq."
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_3"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 50
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD INDEX "XAK1gsc_package_dataset" ON "gsc_package_dataset"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "deploy_dataset_obj" ASCENDING
+  INDEX-FIELD "deploy_package_obj" ASCENDING
+
+ADD INDEX "XIE2gsc_package_dataset" ON "gsc_package_dataset"
+  AREA "Schema Area"
+  INDEX-FIELD "deploy_package_obj" ASCENDING
+  INDEX-FIELD "package_dataset_seq" ASCENDING
+
+UPDATE FIELD "service_type_code" OF "gsc_service_type"
+  FORMAT "X(20)"
+  VALMSG "s_string_20"
+  SQL-WIDTH 40
+
+UPDATE TABLE "gsm_multi_media"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmmmreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmmmrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmmmreplw.p" CRC "?"
+
+UPDATE TABLE "gsm_node"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmndreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmndrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmndreplw.p" CRC "?"
+
+UPDATE FIELD "physical_service_code" OF "gsm_physical_service"
+  FORMAT "X(20)"
+  VALMSG "s_string_20"
+  SQL-WIDTH 40
+
+UPDATE FIELD "session_type_code" OF "gsm_session_type"
+  FORMAT "X(20)"
+  VALMSG "s_string_20"
+  SQL-WIDTH 40
+
+ADD INDEX "XIE6gst_record_version" ON "gst_record_version"
+  AREA "Schema Area"
+  INDEX-FIELD "entity_mnemonic" ASCENDING
+  INDEX-FIELD "version_number_seq" ASCENDING
+  INDEX-FIELD "import_version_number_seq" ASCENDING
+
+UPDATE TABLE "rym_wizard_tree"
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/rymwtreplc.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/rymwtrepld.p" CRC "?"
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/rymwtreplw.p" CRC "?"
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20006
+  MIN-VAL 20006
+  MAX-VAL 20006
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000002961

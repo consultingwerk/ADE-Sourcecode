@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -43,8 +43,9 @@
 
   Created: Sept 8, 1994 
   
-  Modified by: GFS on 4/08/98 Changed default .dat file for Webspeed
-               GFS on 1/27/95 Added applet order
+  Modified by: JEP on 08/19/01 ICF support. Changed AB License call.
+               GFS on 04/08/98 Changed default .dat file for Webspeed
+               GFS on 01/27/95 Added applet order
 ------------------------------------------------------------------------*/
 { protools/_protool.i NEW } /* shared temp-table */    
 { protools/ptlshlp.i }      /* help definitions  */
@@ -61,7 +62,8 @@ DEFINE VARIABLE citems-per-row AS CHAR    NO-UNDO. /* i-p-r from INI */
 DEFINE VARIABLE items-per-row  AS INTEGER NO-UNDO.
 DEFINE VARIABLE lbl-or-btn     AS CHAR    NO-UNDO. /* setting in INI */
 DEFINE VARIABLE ptlabels       AS LOGICAL NO-UNDO. /* labels ? */
-DEFINE VARIABLE ABLic          AS INTEGER NO-UNDO. /* AB license */
+DEFINE VARIABLE ABLic          AS INTEGER NO-UNDO. /* AB license        */
+DEFINE VARIABLE ABTools        AS CHAR    NO-UNDO. /* AB Tools  jep-icf */
 
 /* Prevent this procedure from being called twice (by checking FILE-NAME) */
 IF THIS-PROCEDURE:PERSISTENT THEN DO:
@@ -83,7 +85,7 @@ END.
 GET-KEY-VALUE SECTION "ProTools" KEY "FunctionDefs" VALUE ptdat.
 IF SEARCH(ptdat) = ? OR ptdat = "" THEN DO:
     /* Check license. If Webspeed-only, change .dat file */
-    RUN adeshar/_ablic.p (INPUT NO /* Show Msgs */, OUTPUT ABLic).
+    RUN adeshar/_ablic.p (INPUT NO /* Show Msgs */, OUTPUT ABLic, OUTPUT ABTools). /* jep-icf */
     IF ABLic NE 2 THEN
       ASSIGN ptdat = SEARCH("protools/protools.dat").
     ELSE 

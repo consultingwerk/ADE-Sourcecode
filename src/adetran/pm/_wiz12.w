@@ -256,9 +256,9 @@ PROCEDURE GetDB:
            xlatedb.XL_CustomFilter.FILTER NE "X-INIT":U NO-LOCK:
            IF xlatedb.XL_CustomFilter.Filter = "X-INIT|CS":U THEN NEXT.
            PUT STREAM tmpStream UNFORMATTED
-              xlatedb.XL_CustomFilter.Filter.
-           IF NOT firstRec THEN PUT STREAM tmpStream UNFORMATTED CHR(10).
-           ELSE ASSIGN firstRec = FALSE.
+              IF firstRec THEN xlatedb.XL_CustomFilter.Filter
+                 ELSE CHR(10) + xlatedb.XL_CustomFilter.Filter.
+           ASSIGN firstRec = FALSE.
         END. /* each CustomFilter */
 
         OUTPUT STREAM tmpStream CLOSE.

@@ -243,10 +243,19 @@ ASSIGN
   security[1] = DICTDB._File._Can-create
   orig        = DICTDB._File._Can-create.
 DO j = 1 TO 3:
-  IF LENGTH(security[j]) > 63 THEN ASSIGN
-    i               = R-INDEX(SUBSTRING(security[j],63),",")
-    security[j + 1] = SUBSTRING(security[j],i + 1)
-    security[j    ] = SUBSTRING(security[j],1,i).
+  IF LENGTH(security[j]) > 63 THEN DO:
+    IF SUBSTRING(security[j],64,1) = "," THEN
+      ASSIGN security[j + 1 ] = SUBSTRING(security[j], 65)
+             security[j] = SUBSTRING(security[j], 1, 63).
+    ELSE
+      ASSIGN security[j + 1 ] = SUBSTRING(security[j], 64)
+             security[j] = SUBSTRING(security[j], 1, 63)
+             i = R-INDEX(security[j], ",")
+             security[j + 1] = SUBSTRING(security[j],i + 1) + security[j + 1]
+             security[j    ] = SUBSTRING(security[j],1,i - 1).
+  END.
+  ELSE
+    ASSIGN j = 3.
 END.
 
 /* Adjust the graphical rectangle and the ok and cancel buttons */

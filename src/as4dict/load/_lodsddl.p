@@ -71,6 +71,8 @@ History:
      mcmann    09/08/99 Added stored procedure support
      mcmann    05/18/00 Added support for new keyword MAX-GLYPHS
      mcmann    02/15/01 Added check for enhanced incremental df
+     mcmann    02/12/02 Changes message 50
+     mcmann    04/12/02 Added conversion of replication trigger names
           
 */                            
 
@@ -79,7 +81,7 @@ History:
 { as4dict/load/loaddefs.i NEW }
 
 
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 50 NO-UNDO.
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 51 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -123,8 +125,9 @@ ASSIGN
   error_text[46] = "Field without format can not calculate storage length.":t72
   error_text[47] = "Datatype not supported for AS/400, Field not loaded.":t72
   error_text[48] = "Cannot &1 Read-Only object &3":t72
-  error_text[49] = "Only format changed, field in index and max length would be exceeded":t67
-  error_text[50] = "Field length can not be made smaller, change not performed.":t67 
+  error_text[49] = "Only format changed, field in index and max length was exceeded":t67
+  error_text[50] = "Field length can not be made smaller, only format changed.":t67 
+  error_text[51] = "Extent Field, only format changed, do drop and add to change length.":t67
     .
   
 DEFINE VARIABLE scrap       AS CHARACTER NO-UNDO.
@@ -927,7 +930,12 @@ IF cerror = ?
 	  WHEN    "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER" THEN DO:
 	    FIND FIRST wfit WHERE wfit._Event = iarg NO-ERROR.
 	    IF NOT AVAILABLE wfit THEN CREATE wfit.
-	    wfit._Event = ilin[2].
+        CASE ilin[2]:
+            WHEN "REPLICATION-CREATE" THEN wfit._Event = "RCREAT".
+            WHEN "REPLICATION-DELETE" THEN wfit._Event = "RDELET".
+            WHEN "REPLICATION-WRITE" THEN wfit._Event = "RWRITE".
+            OTHERWISE wfit._Event = ilin[2].
+        END CASE.
 	    CASE ilin[3]:
 	      WHEN "DELETE" OR WHEN "DROP" OR WHEN "REMOVE" THEN
 				    wfit._Proc-Name = "!":u.

@@ -245,8 +245,8 @@ ON HELP OF FRAME {&FRAME-NAME}
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ApplyEntry sObject 
-PROCEDURE ApplyEntry :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ApplyEntryCodeRef sObject 
+PROCEDURE ApplyEntryCodeRef :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
@@ -375,7 +375,7 @@ PROCEDURE viewObject :
   /* Code placed here will execute AFTER standard behavior.    */
   
   /* Put focus in the insert window. Fixes 19990603-009 (jep). */ 
-  RUN ApplyEntry.
+  RUN ApplyEntryCodeRef.
 
 END PROCEDURE.
 

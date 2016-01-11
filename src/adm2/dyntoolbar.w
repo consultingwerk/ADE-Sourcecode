@@ -111,7 +111,7 @@ DEFINE FRAME Panel-Frame
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 10 BY 1.57.
+         SIZE 67.2 BY 1.57.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -228,6 +228,43 @@ PROCEDURE getWindowName :
   ASSIGN hwin =  DYNAMIC-FUNCTION('getContainerSource':U).
   
   RETURN hWin:file-name.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetLink P-Win 
+PROCEDURE resetLink :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER pcLink AS CHARACTER  NO-UNDO.
+ 
+ DEFINE VARIABLE cActionList AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hTarget     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE iAction     AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cAction     AS CHARACTER  NO-UNDO.
+
+ cActionList = {fnarg linkActions pcLink}.
+  
+ IF pcLink <> '':U THEN
+   hTarget     = {fnarg activeTarget ENTRY(1,pcLink,'-':U)}.
+ ELSE 
+   {get ContainerSource hTarget}.
+
+ IF NOT VALID-HANDLE(hTarget) THEN
+   RETURN.
+
+ DO iAction = 1 TO NUM-ENTRIES(cActionList):
+    cAction = ENTRY(iAction,cActionList).
+
+
+ END.
+
+ RETURN.
 
 END PROCEDURE.
 

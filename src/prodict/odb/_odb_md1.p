@@ -132,7 +132,21 @@ IF not stages[odb_create_objects] THEN RETURN.
 DISCONNECT VALUE (osh_dbname).
 CONNECT VALUE (osh_dbname) -1.
 RUN connect-schdb.
+
+
+IF PDBNAME("DICTDBG") = ? THEN
+  RETURN "undo".
+
 RUN prodict/odb/_odb_sdb.p.
+
+IF RETURN-VALUE = "wrg-ver" THEN DO:
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+    ASSIGN user_path = "*N,1=sys,_usrsget".
+  &ELSE
+    ASSIGN user_path = "*N,1=sys,_guisget".
+  &ENDIF   
+  RETURN "wrg-ver".
+END.
 
 /* Discconnect again so _db updates are available */
 DISCONNECT VALUE (osh_dbname).

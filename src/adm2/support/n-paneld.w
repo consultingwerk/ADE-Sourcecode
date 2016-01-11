@@ -84,9 +84,9 @@ DEFINE VARIABLE v-type AS CHARACTER NO-UNDO.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS v-show v-edge-pixels v-rtl c_SDOList ~
-v-divider1 
+lDeactivateTargetOnHide v-divider1 
 &Scoped-Define DISPLAYED-OBJECTS v-show v-edge-pixels v-rtl c_SDOList ~
-v-divider1 v-divider2 v-divider-3 
+lDeactivateTargetOnHide v-divider1 v-divider2 v-divider-3 v-divider-4 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -109,17 +109,22 @@ DEFINE VARIABLE c_SDOList AS CHARACTER FORMAT "X(256)":U
 
 DEFINE VARIABLE v-divider-3 AS CHARACTER FORMAT "X(35)":U INITIAL " Data Object Name (if multiple)" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54.6 BY .57
+     BGCOLOR 1 FGCOLOR 15  NO-UNDO.
+
+DEFINE VARIABLE v-divider-4 AS CHARACTER FORMAT "X(50)":U INITIAL "Deactivation of link to hidden target" 
+      VIEW-AS TEXT 
+     SIZE 54.4 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-divider1 AS CHARACTER FORMAT "X(75)":U INITIAL " Border" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-divider2 AS CHARACTER FORMAT "X(25)":U INITIAL " Internationalization" 
       VIEW-AS TEXT 
-     SIZE 51.4 BY .57
+     SIZE 54 BY .57
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE v-edge-pixels AS INTEGER FORMAT ">>9":U INITIAL 2 
@@ -127,30 +132,39 @@ DEFINE VARIABLE v-edge-pixels AS INTEGER FORMAT ">>9":U INITIAL 2
      VIEW-AS FILL-IN 
      SIZE 6 BY 1 NO-UNDO.
 
+DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL 
+     VIEW-AS RADIO-SET VERTICAL
+     RADIO-BUTTONS 
+          "When another target is viewed", no,
+"Immediately on hide of target", yes
+     SIZE 53 BY 1.62 NO-UNDO.
+
 DEFINE VARIABLE v-rtl AS CHARACTER 
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "'First' on &Left", "First-On-Left",
 "'First' on &Right", "First-On-Right"
-     SIZE 23 BY 2.33 NO-UNDO.
+     SIZE 23 BY 1.62 NO-UNDO.
 
 DEFINE VARIABLE v-show AS LOGICAL INITIAL yes 
      LABEL "&Show Border" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16 BY 1 NO-UNDO.
+     SIZE 17.8 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME SP-attr-dialog
-     v-show AT ROW 2.67 COL 20
-     v-edge-pixels AT ROW 3.86 COL 29 COLON-ALIGNED
-     v-rtl AT ROW 6.67 COL 18 NO-LABEL
-     c_SDOList AT ROW 10.29 COL 23 COLON-ALIGNED
+     v-show AT ROW 2.43 COL 3.8
+     v-edge-pixels AT ROW 3.67 COL 14 COLON-ALIGNED
+     v-rtl AT ROW 6.1 COL 3.6 NO-LABEL
+     c_SDOList AT ROW 9.19 COL 19 COLON-ALIGNED
+     lDeactivateTargetOnHide AT ROW 11.91 COL 3.6 NO-LABEL
      v-divider1 AT ROW 1.62 COL 2.6 NO-LABEL
-     v-divider2 AT ROW 5.81 COL 2.6 NO-LABEL
-     v-divider-3 AT ROW 9.1 COL 2 NO-LABEL
-     SPACE(0.60) SKIP(2.37)
+     v-divider2 AT ROW 5.19 COL 2.4 NO-LABEL
+     v-divider-3 AT ROW 8.05 COL 1.8 NO-LABEL
+     v-divider-4 AT ROW 10.81 COL 2 NO-LABEL
+     SPACE(0.39) SKIP(2.15)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Navigation SmartPanel Properties".
@@ -177,6 +191,8 @@ ASSIGN
        FRAME SP-attr-dialog:HIDDEN           = TRUE.
 
 /* SETTINGS FOR FILL-IN v-divider-3 IN FRAME SP-attr-dialog
+   NO-ENABLE ALIGN-L                                                    */
+/* SETTINGS FOR FILL-IN v-divider-4 IN FRAME SP-attr-dialog
    NO-ENABLE ALIGN-L                                                    */
 /* SETTINGS FOR FILL-IN v-divider1 IN FRAME SP-attr-dialog
    ALIGN-L                                                              */
@@ -285,11 +301,13 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
   
   ASSIGN v-rtl
-         v-edge-pixels.
+         v-edge-pixels
+         lDeactivateTargetOnHide.
   
   {set PanelType v-type p_hSMO}.
   {set EdgePixels v-edge-pixels p_hSMO}.
   {set RightToLeft v-rtl p_hSMO} NO-ERROR.
+  {set DeactivateTargetOnHide lDeactivateTargetOnHide p_hSMO}.
   IF c_SDOList NE "<none>":U THEN
       {set NavigationTargetName c_SDOList p_hSMO}.
 END.
@@ -329,9 +347,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY v-show v-edge-pixels v-rtl c_SDOList v-divider1 v-divider2 v-divider-3 
+  DISPLAY v-show v-edge-pixels v-rtl c_SDOList lDeactivateTargetOnHide 
+          v-divider1 v-divider2 v-divider-3 v-divider-4 
       WITH FRAME SP-attr-dialog.
-  ENABLE v-show v-edge-pixels v-rtl c_SDOList v-divider1 
+  ENABLE v-show v-edge-pixels v-rtl c_SDOList lDeactivateTargetOnHide 
+         v-divider1 
       WITH FRAME SP-attr-dialog.
   VIEW FRAME SP-attr-dialog.
   {&OPEN-BROWSERS-IN-QUERY-SP-attr-dialog}
@@ -361,6 +381,7 @@ PROCEDURE get-SmO-attributes :
       ASSIGN attr-entry = ENTRY (i, attr-list, CHR(3))
              attr-name  = TRIM (ENTRY(1, attr-entry, CHR(4)))
              attr-value = TRIM (ENTRY(2, attr-entry, CHR(4))).
+ 
       CASE attr-name:
         WHEN "PanelType":U THEN
            v-type = attr-value.
@@ -370,7 +391,9 @@ PROCEDURE get-SmO-attributes :
            v-edge-pixels = INTEGER (attr-value).
         WHEN "NavigationTargetName":U THEN
             c_SDOList = IF attr-value = "":U THEN "<none>":U ELSE attr-value.
-     END CASE.
+        WHEN "DeactivateTargetOnHide":U THEN
+           lDeactivateTargetOnHide = can-do('yes,true':U,attr-value).
+      END CASE.
    END.
 
     /* New code for 9.1B to support an SBO as a Naviogation-Target.
@@ -380,21 +403,24 @@ PROCEDURE get-SmO-attributes :
     /* Get the handle of the associated SmartDataObject, if any. */
     RUN adeuib/_uibinfo (?, "HANDLE ":U + STRING(p_hSMO), 
                          "LINK NAVIGATION-TARGET":U, 
-      OUTPUT cContext).      /* Returns the Context ID of our Data-Source */
+                          OUTPUT cContext). 
+                          /* Returns the Context ID of our Data-Source */
     /* If the user hasn't defined the Nav link yet, this will be unknown. */
-    IF cContext NE "":U AND cContext NE ? THEN
+    IF NUM-ENTRIES(cContext) < 2 AND cContext NE "":U AND cContext NE ? THEN
     DO:
-        RUN adeuib/_uibinfo (INT(cContext), ?, "PROCEDURE-HANDLE":U,
-          OUTPUT cSDO).
-        hNavTarget = WIDGET-HANDLE(cSDO).
+      RUN adeuib/_uibinfo (INT(cContext), ?, "PROCEDURE-HANDLE":U,
+         OUTPUT cSDO).
+      
+      hNavTarget = WIDGET-HANDLE(cSDO).
+      cObjectNames = DYNAMIC-FUNCTION('getDataObjectNames' IN hNavTarget)
+           NO-ERROR.     /* Fn won't exist if this isn't an SBO. */
+      IF cObjectNames = "":U THEN   /* Blank means the prop exists but isn't set.*/
+      DO:
+        RUN initializeObject IN hNavTarget.
         cObjectNames = DYNAMIC-FUNCTION('getDataObjectNames' IN hNavTarget)
-            NO-ERROR.     /* Fn won't exist if this isn't an SBO. */
-        IF cObjectNames = "":U THEN   /* Blank means the prop exists but isn't set.*/
-        DO:
-          RUN initializeObject IN hNavTarget.
-          cObjectNames = DYNAMIC-FUNCTION('getDataObjectNames' IN hNavTarget)
-            NO-ERROR.
-        END.    /* END DO IF NO Targets yet */
+          NO-ERROR.
+
+      END.    /* END DO IF NO Targets yet */
     END.        /* END DO IF cContext defined */
 
     /* This would be if the target has no such property (is not an SBO). */     
@@ -434,6 +460,9 @@ PROCEDURE set-state :
         
     IF c_SDOList:NUM-ITEMS = 1 THEN   /* "<none>" is the only entry */
        c_SDOList:SENSITIVE = NO.      /*  so don't enable it. */
+    ELSE 
+       /* we currently only support this for SDOs  */
+       lDeactivateTargetOnHide:SENSITIVE = NO. 
   END.
      
 END PROCEDURE.

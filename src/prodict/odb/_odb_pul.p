@@ -57,6 +57,9 @@ History:
     D. McMann  07/14/99 Added check for INFORMATION_SCHEMA as owner (HHHHH)
     D. McMann  08/29/00 Added check for Informix "__1" to get extents created properly
                         19991231-006
+    D. McMann 10/01/01 Added logic not to pull system tables or overloaded procedures
+                       for DB2.
+    D. McMann 10/16/01 Added logic for fields that begin with progress_                       
     
 
 */
@@ -427,7 +430,9 @@ for each gate-work
   
   /* Eliminate system tables for DB2 */
   IF gate-work.gate-user = "SYSIBM" OR
-     gate-work.gate-user = "SYSCAT" THEN NEXT.
+     gate-work.gate-user = "SYSCAT" OR
+     gate-work.gate-user = "SYSSTAT" OR
+     gate-work.gate-user = "SYSFUN" THEN NEXT.
 
   assign
     has_id_ix          = no
@@ -631,8 +636,10 @@ for each gate-work
     assign i = 1.
     _loop:
     for each DICTDBG.GetFieldIds_buffer:
-      IF DICTDBG.GetFieldIds_buffer.field-name BEGINS "_PROGRESS_" OR
-         DICTDBG.GetFieldIds_buffer.field-name BEGINS "PROGRESS_" THEN DO:                 
+      IF DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_RECID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_ROWID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID' OR
+         DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO:                 
         IF s_ttb_tbl.ds_recid = 0 THEN 
           ASSIGN s_ttb_tbl.ds_recid = i
                  s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name
@@ -640,7 +647,8 @@ for each gate-work
                
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 6)) = "_IDENT_"
-           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ",".
+           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ","
+                       i = i + 1.
                    
         NEXT _loop.
       END.  
@@ -652,9 +660,8 @@ for each gate-work
         i                  = i + 1.
 
         /* Shave the quotes off.                                          */
-      if (LENGTH(quote, "character") = 1)
-       then assign
-         column-id.col-name = SUBSTRING(column-id.col-name
+      if (LENGTH(quote, "character") = 1) AND SUBSTRING(column-id.col-name,1,1) = quote THEN
+        ASSIGN column-id.col-name = SUBSTRING(column-id.col-name
                                  ,2
                                  ,LENGTH(column-id.col-name, "character") - 2
                                  , "character"
@@ -807,8 +814,10 @@ for each gate-work
       /* Skip TBALE statistics.						*/
       if DICTDBG.SQLStatistics_buffer.type = 0 OR bug22 then NEXT. 
       
-      IF DICTDBG.SQLStatistics_buffer.Column-name BEGINS "_PROGRESS_" OR
-         DICTDBG.SQLStatistics_buffer.Column-name BEGINS "PROGRESS_" THEN NEXT.
+      IF DICTDBG.SQLStatistics_buffer.Column-name BEGINS '_PROGRESS_RECID' OR
+         DICTDBG.SQLStatistics_buffer.Column-name BEGINS '_PROGRESS_ROWID' OR
+         DICTDBG.SQLStatistics_buffer.Column-name BEGINS 'PROGRESS_RECID' OR
+         DICTDBG.SQLStatistics_buffer.Column-name BEGINS 'PROGRESS_ROWID' THEN NEXT.
          
       assign 
         comp-name   = DICTDBG.SQLStatistics_buffer.Column-name.

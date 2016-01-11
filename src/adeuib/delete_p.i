@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -38,6 +38,14 @@ DO:
     APPLY "CLOSE":U TO _P._tv-proc.
     IF VALID-HANDLE(_P._tv-proc) THEN
         DELETE PROCEDURE _P._tv-proc NO-ERROR.
+END.
+
+/* jep-icf: If the procedure has a property sheet object, delete it. */
+IF VALID-HANDLE(_P.design_hpropsheet) THEN
+DO:
+    APPLY "CLOSE":U TO _P.design_hpropsheet.
+    IF VALID-HANDLE(_P.design_hpropsheet) THEN
+        DELETE PROCEDURE _P.design_hpropsheet NO-ERROR.
 END.
 
 /* Now delete the procedure */

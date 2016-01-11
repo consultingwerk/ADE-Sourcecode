@@ -1,0 +1,566 @@
+
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Palette</B><BR>
+<B>CST File Processing and Initialization</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+Copyright &copy; 2000 by Progress Software Corporation ("PSC"), 14 Oak Park, Bedford, MA 01730, 
+and other contributors as listed below. All Rights Reserved.
+</P>
+
+<P>
+The Initial Developer of the Original Code is PSC. The Original Code is Progress IDE code 
+released to open source December 1, 2000.
+</P>
+
+<P>
+The contents of this file are subject to the Possenet Public License Version 1.0 (the "License"); 
+you may not use this file except in compliance with the License. A copy of the License is available 
+as of the date of this notice at <A HREF="http://www.possenet.org/license.html">http://www.possenet.org/license.html</A>
+</P>
+
+<P>
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF 
+ANY KIND, either express or implied. You should refer to the License for the specific language 
+governing rights and limitations under the License. 
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+1. <A HREF="#1">Overview</A><BR>
+2. <A HREF="#2">Architecture</A><BR>
+3. <A HREF="#3">Primary Data Structures</A><BR>
+4. <A HREF="#4">Primary Algorithms and Processes</A><BR>
+5. <A HREF="#5">Advanced Topics</A><BR>
+6. <A HREF="#6">Dependencies</A><BR>
+7. <A HREF="#7">Source Files</A><BR>
+8. <A HREF="#8">Build Process and Requirements</A><BR>
+9. <A HREF="#9">Execution Methods</A><BR>
+10. <A HREF="#10">Test Requirements and Strategies</A><BR> 
+11. <A HREF="#11">Supplementary Information</A><BR>
+12. <A HREF="#12">Related Documentation</A>
+</P>
+
+
+
+
+
+
+<P>
+<A NAME="1"><B>1. Overview</B></A> 
+</P>
+
+<P>
+The AppBuilder has been designed to allow for easy
+addition of options to its palette and menu structure. Certain palette and menu
+options are static, in that they represent components that have their
+definition in the underlying 4GL. Components such as fill-ins, combo-boxes,
+buttons and image controls fall into this category. For these controls, the
+palette definitions are built into the AppBuilder code.
+</P>
+
+<P>
+Most of the palette items in the later releases of the
+product are components that are not part of the underlying 4GL. As new features
+have been added to the ADM, new icons have been added to the palette with no
+alteration to the AppBuilder code. To achieve this, the AppBuilder makes use of
+files that contain the definition of the palette icons. These files are called
+CST (short for “customization”) files.
+</P>
+
+<P>
+The AppBuilder’s CST files are used to decide the contents
+of the palette, various menus and the “New” dialog box that is displayed when
+the user chooses to create a new object. These files are read at initialization
+of the AppBuilder to establish the buttons that get added to the palette and
+menus. This document describes how these files are processed and the building
+the palette from them.
+</P>
+
+<P>
+<A NAME="2"><B>2. Architecture</B></A> 
+</P>
+
+<P>
+During the AppBuilder’s initialization process, a
+temp-table is populated with a list of controls that are supported by the
+underlying 4GL language. The AppBuilder then opens a series of CST files and
+parses these to determine what extra items need to be added to the palette.
+Records are created for these and any specialized customizations that the user
+may have added to the customization files.
+</P>
+
+<P>
+The palette is then drawn based on the contents of the two
+temp-tables and its palette items are enabled to allow the user to select them
+at run time.
+</P>
+
+<P>
+<A NAME="3"><B>3. Primary Data Structures</B></A> 
+</P>
+
+<P>
+The palette uses two temp-tables – “_palette_item” and
+“_custom.” Their definitions are found in the include file “adeuib/custwidg.i.”
+</P>
+
+<P>
+The “_palette_item” temp-table contains the definitions of
+all the buttons that appear on the palette. 
+</P>
+
+<P>
+Each
+“_custom” temp-table record forms the basis for the items that get added to the
+menus that pop up over each palette icon.
+</P>
+
+<P>
+<A NAME="4"><B>4. Primary Algorithms and Processes</B></A> 
+</P>
+
+<P>
+The palette relies on data in the “_custom” temp-table and
+the “_palette_item” temp-table to define its content and layout. The
+definitions of these tables can be found in the file “adeuib/custwidg.i.”
+</P>
+
+<P>
+During the initialization of the AppBuilder in the
+“initialize_uib” internal procedure in “adeuib/_uibmain.p,” a call is made to
+“adeuib/_getpref.p” which is responsible for reading the registry for the paths
+to the CST files that define the structure of the palette. If there are no
+entries in the registry (which will be the case if the user has not added his
+own CST files), the default custom files set in one of the following
+pre-processor directives:
+</P>
+
+<P>
+·
+DEFAULT-CUSTOM-FILES-CS-ONLY
+</P>
+
+<P>
+·
+DEFAULT-CUSTOM-FILES-WS-ONLY
+</P>
+
+<P>
+·
+DEFAULT-CUSTOM-FILES-BOTH
+</P>
+
+<P>
+Once the preferences have been set, the AppBuilder does
+some other initializations and then makes a call to “adeuib/_initpal.p.” This
+procedure is responsible for creating the “_palette_item” records for all the
+4GL internal controls. Note that at this point, records are being created in
+the temp-table, not on the visible palette.
+</P>
+
+<P>
+After the initial items have been added to the palette, a
+call is made to “adeuib/_cr_cust.p” which is responsible for reading the CST
+files and creating “_palette_item” records for each of them. It also creates
+appropriate “_custom” records for custom items that need to appear in the
+menus. 
+</P>
+
+<P>
+At this point, a call is made to “adeuib/_cr_palw.p,”
+which is responsible for creating the palette window, associating default
+triggers with the window and laying it out according to settings that were
+saved to the registry. 
+</P>
+
+<P>
+The call to “adeuib/_cr_pal.p” that follows is what
+results in the drawing of the palette’s toolbar. Th procedure takes a logical
+input value, which decides whether the palette needs to be redrawn or drawn for
+the first time. The procedure then iterates through the _palette_item table and
+creates a frame, two images and a button for each _palette_item record. During
+the process of creating the frame, the order value of the _palette_item record
+is stored to the PRIVATE-DATA attribute of the frame so that the record can be
+cross-referenced to the frame. The trigger on the palette runs the
+“tool_choose” procedure in “adeuib/uibmproe.i,” which gets included into
+“adeuib/_uibmain.p.” The “tool_choose” procedure is responsible for reacting to
+the selection of the tool. 
+</P>
+
+<P>
+A call is now made to “adeuib/_cr_cmnu.p,” which sets up
+the palette’s menu and creates custom menus for each palette item. 
+</P>
+
+<P>
+The last call that is made to initialize the palette is to
+“adeuib/_cr_npop.p,” which creates the pop-up menu that appears when the user
+right-clicks on the “New” button in the AppBuilder main window.
+</P>
+
+<P>
+<A NAME="5"><B>5. Advanced Topics</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="6"><B>6. Dependencies</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="7"><B>7. Source Files</B></A> 
+</P>
+
+<P>
+This tool uses
+the following source files:
+</P>
+
+
+ 
+  
+   
+<P>
+   Source File
+</P>
+   
+   
+   
+<P>
+   Description
+</P>
+   
+   
+  
+ 
+ 
+  
+<P>
+  adecomm/adestds.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  a number of standard definitions.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adecomm/icondir.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  the algorithm that determines the adeicon directory path.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_cr_cmnu.p
+</P>
+  
+  
+  
+<P>
+  Creates
+  the palette’s menu items.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_cr_cust.p
+</P>
+  
+  
+  
+<P>
+  Populates
+  the _custom and _palette_item table records from the CST file.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_cr_npop.p
+</P>
+  
+  
+  
+<P>
+  Creates
+  the pop-up menu on the “New” button in the main window.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_cr_pal.p
+</P>
+  
+  
+  
+<P>
+  Creates
+  or reinitializes the palette toolbar.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_cr_palw.p
+</P>
+  
+  
+  
+<P>
+  Creates
+  the palette window.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_getpref.p
+</P>
+  
+  
+  
+<P>
+  Gets
+  registry/ini preferences for AppBuilder including CST locations
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_initpal.p
+</P>
+  
+  
+  
+<P>
+  Palette
+  table initialization routine for static controls
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_uibmain.p
+</P>
+  
+  
+  
+<P>
+  Startup
+  procedure of the AppBuilder
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/custwidg.i
+</P>
+  
+  
+  
+<P>
+  Temp-table
+  definitions and pre-processor definitions
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/grptrig.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  the standard AppBuilder triggers for the standard actions.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/pre_proc.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  AppBuilder pre-processor definitions
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/sharvars.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  definitions of AppBuilder shared variables
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/windvars.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  shared variable definitions of certain window parameters.
+</P>
+  
+  
+ 
+
+
+<P>
+Table 1: AppBuilder Palette
+Source Files
+</P>
+
+<P>
+<A NAME="8"><B>8. Build Process and Requirements</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="9"><B>9. Execution Methods</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="10"><B>10. Test Requirements and Strategies</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="11"><B>11. Supplementary Information</B></A> 
+</P>
+
+<P>
+Not Available
+</P>
+
+<P>
+<A NAME="12"><B>12. Related Documentation</B></A> 
+</P>
+
+<P>
+The following documents provide additional information
+about the tool:
+</P>
+
+<P>
+·
+Progress AppBuilder Developer’s Guide (Windows)
+</P>
+
+<P>
+·
+AppBuilder Online Help
+</P>
+
+
+
+
+
+
+</SPAN>

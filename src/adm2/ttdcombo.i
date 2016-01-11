@@ -1,0 +1,137 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/*---------------------------------------------------------------------------------
+  File: ttdcombo.i
+
+  Description:  Dynamic Combo Temp-Table Def Include
+
+  Purpose:      Dynamic Combo Temp-Table Def Include
+
+  Parameters:   <none>
+
+  History:
+  --------
+  (v:010000)    Task:   101000015   UserRef:    
+                Date:   08/14/2001  Author:     Mark Davies
+
+  Update Notes: Dynamic Combo Temp-Table Def Include
+
+  (v:010001)    Task:   101000025   UserRef:    
+                Date:   08/30/2001  Author:     Mark Davies
+
+  Update Notes: Added new field for KeyFormat
+
+-----------------------------------------------------------------------------*/
+/*                   This .W file was created with the Progress UIB.             */
+/*-------------------------------------------------------------------------------*/
+
+/* ***************************  Definitions  ************************** */
+/* MIP-GET-OBJECT-VERSION pre-processors
+   The following pre-processors are maintained automatically when the object is
+   saved. They pull the object and version from Roundtable if possible so that it
+   can be displayed in the about window of the container */
+
+&scop object-name       ttdcombo.i
+&scop object-version    010001
+
+
+/* MIP object identifying preprocessor */
+&glob   mip-structured-include  yes
+
+DEFINE TEMP-TABLE ttDCombo NO-UNDO
+FIELD hWidget               AS HANDLE           /* Handle of widget, e.g. coCompany:HANDLE */
+FIELD cWidgetName           AS CHARACTER        /* Name of widget, e.g. coCompany */
+FIELD cWidgetType           AS CHARACTER        /* Data Type of widget, e.g. DECIMAL, INTEGER, CHARACTER, DATE, etc. */
+FIELD cForEach              AS CHARACTER        /* FOR EACH statement used to retrieve the data, e.g. FOR EACH gsm_user NO-LOCK BY gsm_user.user_login_name */
+FIELD cBufferList           AS CHARACTER        /* comma delimited list of buffers used in FOR EACH, e.g. gsm_user */
+FIELD cKeyFieldName         AS CHARACTER        /* name of key field as table.fieldname, e.g. gsm_user.user_obj */
+FIELD cKeyFormat            AS CHARACTER        /* The Key Field's Format */
+FIELD cDescFieldNames       AS CHARACTER        /* comma delimited list of description fields as table.fieldname, e.g. gsm_user.user_login_name */
+FIELD cDescSubstitute       AS CHARACTER        /* Substitution string to use when description contains multiple fields, e.g. &1 / &2 */
+FIELD cFlag                 AS CHARACTER        /* Flag (N/A) N = <None>, A = <All> to include extra empty entry to indicate none or all */
+FIELD cFlagValue            AS CHARACTER        /* Default value for Optional Flags (N/A) */
+FIELD cCurrentKeyValue      AS CHARACTER        /* currently selected key field value */
+FIELD cListItemDelimiter    AS CHARACTER        /* Delimiter for list item pairs, e.g. , */
+FIELD cListItemPairs        AS CHARACTER        /* Found list item pairs */
+FIELD cCurrentDescValue     AS CHARACTER        /* If specified cCurrentKeyValue is valid, this field will contain corresponding list-item pair description */
+FIELD cKeyValues            AS CHARACTER        /* Contains a Delimited list of key field values in the combo list - the delimired used is that of field cListItemDelimiter */
+FIELD cDescriptionValues    AS CHARACTER        /* Contains a Delimited list of description field values (in substituted form) in the combo list - the delimired used is that of field cListItemDelimiter */
+FIELD cParentField          AS CHARACTER        /* Comma seperated list of parent dependancy fields */
+FIELD cParentFilterQuery    AS CHARACTER        /* A filter query to be applied to combo for parent dependancies */
+FIELD iBuildSequence        AS INTEGER          /* The sequence number in which the combo's data should be populated */
+INDEX keyIndex IS PRIMARY hWidget
+INDEX key2 cWidgetName.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Include
+   Allow: 
+   Frames: 0
+   Add Fields to: Neither
+   Other Settings: INCLUDE-ONLY
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW Include ASSIGN
+         HEIGHT             = 5.95
+         WIDTH              = 40.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
+
+
+/* ***************************  Main Block  *************************** */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+

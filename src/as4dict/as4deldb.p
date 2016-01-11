@@ -40,7 +40,7 @@ History:
 DEFINE VARIABLE undel AS LOGICAL INITIAL TRUE.  
 
 /*===========================  Main Line Code  ===========================*/
-
+{ prodict/dictvar.i }
 { prodict/user/uservar.i }
 
  
@@ -116,6 +116,9 @@ DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO,LEAVE _delloop
         END.  /* Sequence Delete Loop */
    
         DELETE _db.   
+        ASSIGN drec_db     = ?
+               user_dbname = ""
+               cache_dirty = TRUE.
     END.
 END.                    
 run adecomm/_setcurs.p ("").                    

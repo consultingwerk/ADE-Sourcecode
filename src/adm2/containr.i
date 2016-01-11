@@ -48,6 +48,13 @@
   &SCOP ADM-CONTAINER VIRTUAL
 &ENDIF
 
+/* make the window's max size the session size, but do it no-error 
+   as window-name may be current-window with no window (serverside sbo) */     
+&IF '{&WINDOW-NAME}' <> '':U &THEN
+  {&WINDOW-NAME}:MAX-WIDTH  = SESSION:WIDTH - 1 NO-ERROR.
+  {&WINDOW-NAME}:MAX-HEIGHT = SESSION:HEIGHT - 1 NO-ERROR.       
+&ENDIF
+
 &IF "{&ADMClass}":U = "containr":U &THEN
   {src/adm2/cntnprop.i}
 &ENDIF
@@ -122,17 +129,48 @@
 
 
 /* ***************************  Main Block  *************************** */
-
   RUN start-super-proc("adm2/containr.p":U).
+
+&IF "{&WINDOW-NAME}":U <> "":U AND "{&ADM-CONTAINER}":U = "WINDOW":U &THEN
+ ON HELP OF {&WINDOW-NAME} ANYWHERE DO:
+    IF VALID-HANDLE(gshSessionManager) THEN
+      RUN contextHelp IN gshSessionManager (INPUT THIS-PROCEDURE, INPUT FOCUS). 
+ END.      
+&ENDIF
 
 /* Best default for GUI applications - this will apply to the whole session: */
 PAUSE 0 BEFORE-HIDE.
+
+RUN modifyListProperty IN TARGET-PROCEDURE 
+                       (TARGET-PROCEDURE,
+                        'Add':U,
+                        'ContainerSourceEvents':U,
+                        'initializeDataObjects':U). 
+
 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/containrcustom.i}
   /* _ADM-CODE-BLOCK-END */
 
- 
+IF NOT CAN-DO({fn getSupportedLinks},'toolbar-target':U) THEN
+   RUN modifyListProperty IN TARGET-PROCEDURE 
+                        (TARGET-PROCEDURE,
+                         'Add':U,
+                         'SupportedLinks':U,
+                         'Toolbar-target':U).
+
+/* see explanation in setWindowFrameHandle */
+&IF '{&WINDOW-NAME}' <> ''  &THEN
+  &IF '{&FRAME-NAME}' <> '' &THEN  
+                      /* double quote allows spaces in preprocessor arg */
+ {set WindowFrameHandle "FRAME {&frame-name}:handle"}.
+  &ENDIF
+&ENDIF
+
+&IF DEFINED(APP-SERVER-VARS) <> 0 &THEN   
+ {set DataContainer TRUE}.
+&ENDIF
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

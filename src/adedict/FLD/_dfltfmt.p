@@ -87,7 +87,7 @@ do:
 
    if fmt = ? OR fmt = "?" then
       case s_Fld_Typecode:
-	 when {&DTYPE_CHARACTER} then
+	 when {&DTYPE_CHARACTER} OR WHEN {&DTYPE_RAW} then
 	    fmt = "X(8)".
 	 when {&DTYPE_DATE} then
 	    fmt = "99/99/99".

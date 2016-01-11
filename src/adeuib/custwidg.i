@@ -42,8 +42,9 @@ Author: D. Ross Hunter
 
 Date Created: 1994
 
-Modifed by GFS on 2/9/95 - Added _palette_item TT.
-	   SLK on 1/97 - Added _files for palette_item and _custom
+Modifed by GFS on 02/09/95 - Added _palette_item TT.
+           SLK on 01/01/97 - Added _files for palette_item and _custom
+           GFS on 08/31/01 - Added _design* and _logical_object to _custom for ICF.
 -----------------------------------------------------------------------------*/
 
 {adeuib/pre_proc.i}
@@ -62,16 +63,21 @@ Modifed by GFS on 2/9/95 - Added _palette_item TT.
 
 
 DEFINE {1} SHARED TEMP-TABLE _custom  NO-UNDO
-   FIELD _name           AS CHAR     LABEL "Name"         FORMAT "X(20)"
-   FIELD _type           AS CHAR     LABEL "Base Type"    FORMAT "X(20)"
-   FIELD _special        AS CHAR     LABEL "Special"      FORMAT "X(20)"
-   FIELD _order          AS INTEGER  
+   FIELD _name                      AS CHAR     LABEL "Name"                    FORMAT "X(20)"
+   FIELD _type                      AS CHAR     LABEL "Base Type"               FORMAT "X(20)"
+   FIELD _special                   AS CHAR     LABEL "Special"                 FORMAT "X(20)"
+   FIELD _order                     AS INTEGER  
    /* Even though used can enter a description, we ignore it in 7.3A, so
     *  this field is commented out 
     * FIELD _description    AS CHAR     LABEL "Description"  FORMAT "X(80)"
     */
-   FIELD _attr           AS CHAR     LABEL "Attributes"   FORMAT "X(80)"
-   FIELD _files          AS CHAR     LABEL "Cst Files"    FORMAT "X(256)"
+   FIELD _attr                      AS CHAR     LABEL "Attributes"              FORMAT "X(80)"
+   FIELD _files                     AS CHAR     LABEL "Cst Files"               FORMAT "X(20)"
+   FIELD _logical_object            AS LOGICAL  LABEL "Logical?"     
+   FIELD _design_propsheet_file     AS CHAR     LABEL "Design Property Sheet"   FORMAT "X(20)"
+   FIELD _design_image_file         AS CHAR     LABEL "Design Image File"       FORMAT "X(20)"
+   FIELD _object_type_code          AS CHAR     LABEL "Object Type Code"        FORMAT "X(20)"
+   FIELD _design_template_file      AS CHAR     LABEL "Template"                FORMAT "X(20)"
  INDEX _type-order IS PRIMARY _type _order
  INDEX _name _name.
  

@@ -456,7 +456,7 @@ DO ON STOP UNDO, LEAVE:
       errs = 1.
     END.
     ELSE DO:
-      IF user_env[35] = "ora" THEN DO:
+      IF caps(user_env[35]) = "ORA" THEN DO:
          IF irecs <> ? THEN
            ASSIGN load_size = irecs.  
          ELSE DO:

@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -21,38 +21,55 @@
 * Contributors:                                                      *
 *                                                                    *
 --------------------------------------------------------------------->
-<html>
-<head>
-<meta name="wsoptions" content="no-output">
-<title>##GetField('PageTitle')##</title>
-##HTMLTagLink('link rel=stylesheet','StyleSheet','type="text/css"')##
-</head>
+<HTML>
+<HEAD>
+<META NAME="wsoptions" CONTENT="no-output">
+<TITLE>##GetField('PageTitle')##</TITLE>
+##HTMLTagLink('LINK REL="stylesheet"','StyleSheet','TYPE="text/css"')##
+<SCRIPT LANGUAGE="SpeedScript">
+/* Create an unnamed pool to store all the widgets created
+     by this procedure. This is a good default which assures
+     that this procedure's triggers and internal procedures
+     will execute in this procedure's storage, and that proper
+     cleanup will occur on deletion of the procedure. */
+CREATE WIDGET-POOL.
+</SCRIPT>
+</HEAD>
 
-<body ##HTMLAttribute('bgcolor','pagebgcolor')## ##HTMLAttribute('background','PageBackground')##>
-<center>
+<BODY ##HTMLAttribute('BGCOLOR','pagebgcolor')## ##HTMLAttribute('BACKGROUND','PageBackground')##>
+<CENTER>
 
 <!-- Report Title -->
-<p><strong>##GetField('PageTitle')##</strong><br><br></p>
+<P><STRONG>##GetField('PageTitle')##</STRONG><BR><BR></P>
 
-<script language="SpeedScript">
-DEFINE VARIABLE SearchValue     AS CHAR NO-UNDO.
-DEFINE VARIABLE CurrentRowids   AS CHAR NO-UNDO.
-DEFINE VARIABLE BackRowids      AS CHAR NO-UNDO.
-DEFINE VARIABLE TmpUrl          AS CHAR NO-UNDO.
-DEFINE VARIABLE MaintOption     AS CHAR NO-UNDO.
-DEFINE VARIABLE DelimiterField  AS CHAR NO-UNDO. 
-DEFINE VARIABLE JoinParam      AS CHAR NO-UNDO. 
-DEFINE VARIABLE FieldName       AS CHAR NO-UNDO.
+<SCRIPT LANGUAGE="SpeedScript">
+DEFINE VARIABLE SearchValue     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE CurrentRowids   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE BackRowids      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE TmpUrl          AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE MaintOption     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE DelimiterField  AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE JoinParam       AS CHARACTER  NO-UNDO. 
+DEFINE VARIABLE FieldName       AS CHARACTER  NO-UNDO.
   
-DEFINE VARIABLE UseRowidsInLink AS LOG  INIT  ##getField('JoinLink')## NO-UNDO. 
-DEFINE VARIABLE UseNavigation   AS LOG  INIT  ##getField('UseNavigationPanel')## NO-UNDO.
-DEFINE VARIABLE UseSubmit       AS LOG  INIT  ##getField('UseSubMit')## NO-UNDO.
-DEFINE VARIABLE UseReset        AS LOG  INIT  ##getField('UseReset')## NO-UNDO.
-DEFINE VARIABLE UseAdd          AS LOG  INIT  ##getField('UseAdd')## NO-UNDO.
-DEFINE VARIABLE UseCancel       AS LOG  INIT  ##getField('UseCancel')## NO-UNDO.
-DEFINE VARIABLE UseDelete       AS LOG  INIT  ##getField('UseDelete')## NO-UNDO.
-DEFINE VARIABLE UseSearchForm   AS LOG  INIT  ##getField('UseSearchForm')## NO-UNDO.
-DEFINE VARIABLE DataObject      AS CHAR INIT  '##getField('DataObject')##' NO-UNDO.
+DEFINE VARIABLE UseRowidsInLink AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('JoinLink')##. 
+DEFINE VARIABLE UseNavigation   AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseNavigationPanel')##.
+DEFINE VARIABLE UseSubmit       AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseSubMit')##.
+DEFINE VARIABLE UseReset        AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseReset')##.
+DEFINE VARIABLE UseAdd          AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseAdd')##.
+DEFINE VARIABLE UseCancel       AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseCancel')##.
+DEFINE VARIABLE UseDelete       AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseDelete')##.
+DEFINE VARIABLE UseSearchForm   AS LOGICAL    NO-UNDO 
+  INITIAL ##getField('UseSearchForm')##.
+DEFINE VARIABLE DataObject      AS CHARACTER  NO-UNDO
+  INITIAL '##getField('DataObject')##'.
 DEFINE VARIABLE DataSourceHdl   AS HANDLE NO-UNDO.
 
 /** Defines properties and starts the super procedure web2/wbdata.p */ 
@@ -61,8 +78,7 @@ DEFINE VARIABLE DataSourceHdl   AS HANDLE NO-UNDO.
 setExternalTableList('##getField('ExternalTables')##').  
 setForeignFieldList('##getField('ForeignFields')##'). 
    
-IF DataObject <> '' THEN 
-DO:
+IF DataObject <> '' THEN DO:
   setAppService('##getField('AppService')##').
   startDataObject(DataObject).  
   ##instanceProperties('DataSourceHdl')##  
@@ -75,7 +91,6 @@ ELSE DO:
   setExternalJoinList('##getField('ExternalJoin'##').  
   setExternalWhereList('##getField('ExternalWhere')##').
 END.
-
 
 /* The ForeignFieldList is the only way to link WebObjects that uses SDOs.  
  * It overrides the use of ExternalJoinList and ExternalWhereList for queries.
@@ -97,7 +112,7 @@ END.
  * setForeignFieldList('order.custnum,order.salesrep|order.custnum|order.salesrep'). 
  */  
     
-/** You can use user variables instead of hardcoded values also for columns */       
+/* You can use user variables instead of hardcoded values also for columns */
 setColumns('##getField('Columnlist')##'). 
 
 ##overrideColumns('Label')##
@@ -105,8 +120,7 @@ setColumns('##getField('Columnlist')##').
 ##overrideColumns('Help')##
 ##genValidationFrame()##
                            
-IF UseSearchForm THEN 
-DO: 
+IF UseSearchForm THEN DO: 
   /* Set the field to use for search. 
    * Only one field supported 
    * The field used in the searchForm has (name=SearchValue)
@@ -114,139 +128,124 @@ DO:
    * criteria. 
    * The operator will be GE  */  
   setSearchColumns('##getField('SearchColumns')##'). 
-
-</script>
-
- <form action="`SelfURL`" method="POST" name="SearchForm">
-    <input type="hidden" name="Navigate" value="Search">
-    <p><strong>`columnLabel(ENTRY(1,getSearchColumns()))`
-    <input type="text" size="20" name="SearchValue" value="`html-encode(get-field('searchValue'))`">
-    <input type="submit" name="SubmitBtn" value="Search">
-    </strong></p>
-    <hr>
- </form>
-
-<script language="SpeedScript">
+</SCRIPT>
+<FORM ACTION="`SelfURL`" METHOD="POST" NAME="SearchForm">
+  <INPUT TYPE="hidden" NAME="Navigate" VALUE="Search">
+  <P><STRONG>`columnLabel(ENTRY(1,getSearchColumns()))`
+  <INPUT TYPE="text" SIZE="20" NAME="SearchValue" VALUE="`html-encode(get-field('searchValue'))`">
+  <INPUT TYPE="submit" NAME="SubmitBtn" VALUE="Search">
+  </STRONG></P>
+  <HR>
+</FORM>
+<SCRIPT LANGUAGE="SpeedScript">
 END. /* IF UseSearchForm THEN DO: */
 
-/** ProcessWebReqest gets the value for Navigate and SearchValue,  */
-/** opens the query and outputs the table. */          
-
+/* ProcessWebRequest gets the value for Navigate and SearchValue, opens the 
+   query and outputs the table. */          
 RUN ProcessWebRequest.
   
 ASSIGN
   TmpUrl         = url-format(?,getContextFields(),?)    
-  Delimiterfield = IF INDEX(TmpUrl,"?") > 0
-                   THEN ?
-                   ELSE "?"
+  Delimiterfield = IF INDEX(TmpUrl,"?") > 0 THEN ? ELSE "?"
   TmpUrl         = TmpUrl + url-field("CurrentRowids":U,getCurrentRowids(),DelimiterField)
-  DelimiterField = IF INDEX(TmpUrl,"?") > 0
-                   THEN ?
-                   ELSE "?".
+  DelimiterField = IF INDEX(TmpUrl,"?") > 0 THEN ? ELSE "?".
                  
 /* If we are using a SearchForm we must set the CurrentRowids value  */  
-IF UseSearchForm THEN 
-DO: 
-
-</script>
-
-<script language="JavaScript">
-   { document.SearchForm.href = "`TmpUrl`"; }
-</script>
-
-<script language="SpeedScript">
+IF UseSearchForm THEN DO: 
+</SCRIPT>
+<SCRIPT LANGUAGE="JavaScript">
+  { document.SearchForm.href = "`TmpUrl`"; }
+</SCRIPT>
+<SCRIPT LANGUAGE="SpeedScript">
 END. /* IF UseSearchForm THEN DO: */
-</script>
+</SCRIPT>
 
-<form action="`TmpURL`" method="POST" name="DetailForm">  
-
-<input type="hidden" name="Addmode" value="`getUpdateMode() = 'Add':U`">
-
-<table ##HTMLAttribute('bgcolor','TableBGColor')## ##HTMLAttribute('background','TableBackground')## ##HTMLAttribute('border','TableBorder')## >
+<FORM ACTION="`TmpURL`" METHOD="POST" NAME="DetailForm">  
+<INPUT TYPE="hidden" NAME="Addmode" VALUE="`getUpdateMode() = 'Add':U`">
+<TABLE ##HTMLAttribute('BGCOLOR','TableBGColor')## ##HTMLAttribute('BACKGROUND','TableBackground')## ##HTMLAttribute('BORDER','TableBorder')## >
 
 ##EachColumn
-  <tr>
-  <td><strong>`html-encode(columnLabel('##ColumnName##'))`</strong></td>  
-  <td><input text="submit" 
-             name="`columnHTMLName('##ColumnName##')`" 
-             value="`html-encode(columnStringValue('##ColumnName##'))`" 
-            `IF columnReadOnly('##ColumnName##') THEN ' disabled ' ELSE ''`    
-             onmouseover="window.status='`html-encode(columnHelp('##ColumnName##'))`';return true"
-             onmouseout="window.status='';return true">
-  </td>  
+  <TR>
+  <TD>
+    <STRONG>`html-encode(columnLabel('##ColumnName##'))`</STRONG>
+  </TD>  
+  <TD>
+    <INPUT TEXT="submit" NAME="`columnHTMLName('##ColumnName##')`" 
+      VALUE="`html-encode(columnStringValue('##ColumnName##'))`" 
+      `IF columnReadOnly('##ColumnName##') THEN ' DISABLED ' ELSE ''`    
+      onMouseover="window.status='`html-encode(columnHelp('##ColumnName##'))`';return true"
+      onMouseout="window.status='';return true">
+  </TD>  
   ##IfLinkColumn
-  <td>&nbsp;&nbsp;</td>
-  <td><input type="button" name="LinkButton" 
-       value="##StatusLine##"
-         onClick="window.open('`urlLink('##WebObject##','##JoinColumns##')`','##targetframe##')"></td>
+  <TD>&nbsp;&nbsp;</TD>
+  <TD>
+    <INPUT TYPE="button" NAME="LinkButton" VALUE="##StatusLine##"
+      onClick="window.open('`urlLink('##WebObject##','##JoinColumns##')`','##targetframe##')">
+  </TD>
   end## 
-  </tr>
+  </TR>
 end##
+</TABLE>
 
-</table>
-
-<table>
-
+<TABLE>
 <!--WSS IF getUpdateMode() <> "Add":U AND UseAdd THEN --> 
-       <td><input type="submit" name="MaintOption" value="Add"></td>
+  <TD><INPUT TYPE="submit" NAME="MaintOption" VALUE="Add"></TD>
 <!--WSS IF UseSubmit THEN --> 
-       <td><input type="submit" name="MaintOption" value="Submit"></td>
+  <TD><INPUT TYPE="submit" NAME="MaintOption" VALUE="Submit"></TD>
 <!--WSS IF getUpdateMode() = "Add":U AND UseCancel THEN --> 
-       <td><input type="submit" name="MaintOption" value="Cancel"></td>
+  <TD><INPUT TYPE="submit" NAME="MaintOption" VALUE="Cancel"></TD>
 <!--WSS IF UseReset THEN --> 
-       <td><input type="reset" name="MaintOption" value="Reset"></td>
+  <TD><INPUT TYPE="reset" NAME="MaintOption" VALUE="Reset"></TD>
 <!--WSS IF getUpdateMode() <> "Add":U AND UseDelete THEN DO: --> 
-       <td><input type="submit" name="MaintOption" value="Delete"
-         onClick="if (! confirm('Delete this `REPLACE(getDeleteTables(),',',' and ')`'))
-                    return false;"></td>
+  <TD><INPUT TYPE="submit" NAME="MaintOption" VALUE="Delete"
+        onClick="if (! confirm('Delete this `REPLACE(getDeleteTables(),',',' and ')`')) return false;"></TD>
 <!--WSS END. /* IF MaintOption <> "Add":U AND UseDelete THEN DO: */ --> 
+</TABLE>
+</FORM>
+</CENTER>
 
-</table>
-</form>
-</center>
-
-
-<script language="SpeedScript">
-IF UseNavigation AND MaintOption <> 'Add':U THEN 
-DO: 
-</script>    
- <div align="center"><center>
-
- <table border="2">
-   <tr>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','First',DelimiterField)`"
-        onmouseover="window.status='First';return true"
-        onmouseout="window.status='';return true"><img
-        src="`RootURL`/images/first-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Prev',DelimiterField)`"
-        onmouseover="window.status='Previous';return true"
-        onmouseout="window.status='';return true"><img
-        src="`RootURL`/images/prev-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Next',DelimiterField)`"
-        onmouseover="window.status='Next';return true"
-        onmouseout="window.status='';return true"><img
-        src="`RootURL`/images/next-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Last',DelimiterField)`"
-        onmouseover="window.status='Last';return true"
-        onmouseout="window.status='';return true"><img
-        src="`RootURL`/images/last-au.gif" border="0" width="16"
-        height="16"></a></td>
-    </tr>
- </table>
- </center></div>
-<script language="SpeedScript">
+<SCRIPT LANGUAGE="SpeedScript">
+IF UseNavigation AND MaintOption <> 'Add':U THEN DO: 
+</SCRIPT>    
+<DIV ALIGN="center"><CENTER>
+<TABLE BORDER="2">
+  <TR>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('Navigate','First',DelimiterField)`"
+        onMouseover="window.status='First';return true"
+        onMouseout="window.status='';return true">
+      <IMG SRC="`RootURL`/images/first-au.gif" BORDER="0" WIDTH="16"
+        HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('Navigate','Prev',DelimiterField)`"
+        onMouseover="window.status='Previous';return true"
+        onMouseout="window.status='';return true">
+      <IMG SRC="`RootURL`/images/prev-au.gif" BORDER="0" WIDTH="16"
+        HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('Navigate','Next',DelimiterField)`"
+        onMouseover="window.status='Next';return true"
+        onMouseout="window.status='';return true">
+      <IMG SRC="`RootURL`/images/next-au.gif" BORDER="0" WIDTH="16"
+        HEIGHT="16"></A>
+    </TD>
+    <TD>
+      <A HREF="`TmpUrl%20+%20url-field('Navigate','Last',DelimiterField)`"
+        onMouseover="window.status='Last';return true"
+        onMouseout="window.status='';return true">
+      <IMG SRC="`RootURL`/images/last-au.gif" BORDER="0" WIDTH="16"
+        HEIGHT="16"></A>
+    </TD>
+  </TR>
+</TABLE>
+</CENTER></DIV>
+<SCRIPT LANGUAGE="SpeedScript">
 END.  /* IF UseNavigation THEN DO: */
 
 /* Show error messages */
-IF AnyMessage() THEN 
-DO:
+IF AnyMessage() THEN DO:
   FieldName = ShowDataMessages().
   /* Set focus if error in a specific field */
   IF FieldName <> "":U THEN 
@@ -256,10 +255,9 @@ RUN destroyObject.
 
 ##genOverrideDelete()##
  
-</script>
-
-</body>
-</html>
+</SCRIPT>
+</BODY>
+</HTML>
 
 
 

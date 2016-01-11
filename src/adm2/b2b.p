@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -2818,15 +2818,22 @@ FUNCTION loadSchema RETURNS LOGICAL
   DEFINE VARIABLE cType       AS CHAR   NO-UNDO.
 
   {get SchemaManager hSchemaMngr}.
+  {get SchemaHandle hSchema}.    
+  {get NameSpaceHandle hNameSpace}.    
+  
+  DELETE OBJECT hSchema NO-ERROR.
+  DELETE OBJECT hNameSpace NO-ERROR.
 
   RUN loadSchema IN hSchemaMngr (pcSchema,
                                  YES, /* delete after load */
                                  OUTPUT TABLE-HANDLE hNode,
                                  OUTPUT TABLE-HANDLE hSchema,
                                  OUTPUT TABLE-HANDLE hNameSpace).
+  
   {set SchemaHandle hSchema}.    
   {set NameSpaceHandle hNameSpace}.    
- 
+  DELETE OBJECT hNode NO-ERROR.
+  
   RETURN VALID-HANDLE(hSchema). 
   
 END FUNCTION.

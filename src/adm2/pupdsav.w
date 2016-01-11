@@ -70,10 +70,6 @@ CREATE WIDGET-POOL.
   &SCOP ADM-PROPERTY-DLG adm2/support/u-paneld.w
 &ENDIF
 
-/* Local Variable Definitions ---                                       */
-
-  DEFINE VARIABLE glAddActive    AS LOGICAL   NO-UNDO INIT no.
-
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
@@ -96,8 +92,8 @@ CREATE WIDGET-POOL.
 &Scoped-define FRAME-NAME Panel-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS Btn-Save Btn-Reset Btn-Add Btn-Copy ~
-Btn-Delete Btn-Cancel 
+&Scoped-Define ENABLED-OBJECTS Btn-Save Btn-Update Btn-Reset Btn-Add ~
+Btn-Copy Btn-Delete Btn-Cancel 
 
 /* Custom List Definitions                                              */
 /* Box-Rectangle,List-2,List-3,List-4,List-5,List-6                     */
@@ -108,6 +104,13 @@ Btn-Delete Btn-Cancel
 
 
 /* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD actionHideRule C-WIn 
+FUNCTION actionHideRule RETURNS CHARACTER
+  ( pcAction AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAddFunction C-WIn 
 FUNCTION getAddFunction RETURNS CHARACTER
@@ -193,20 +196,26 @@ DEFINE BUTTON Btn-Save
      SIZE 9 BY 1.33
      FONT 4.
 
+DEFINE BUTTON Btn-Update 
+     LABEL "&Update" 
+     SIZE 9 BY 1.33
+     FONT 4.
+
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 56 BY 1.76.
+     SIZE 65.6 BY 1.76.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Panel-Frame
      Btn-Save AT ROW 1.33 COL 2
-     Btn-Reset AT ROW 1.33 COL 11
-     Btn-Add AT ROW 1.33 COL 20
-     Btn-Copy AT ROW 1.33 COL 29
-     Btn-Delete AT ROW 1.33 COL 38
-     Btn-Cancel AT ROW 1.33 COL 47
+     Btn-Update AT ROW 1.33 COL 11
+     Btn-Reset AT ROW 1.33 COL 20.2
+     Btn-Add AT ROW 1.33 COL 29.2
+     Btn-Copy AT ROW 1.33 COL 38.2
+     Btn-Delete AT ROW 1.33 COL 47.2
+     Btn-Cancel AT ROW 1.33 COL 56.2
      RECT-1 AT ROW 1 COL 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY NO-HELP 
          SIDE-LABELS NO-UNDERLINE THREE-D 
@@ -240,7 +249,7 @@ END.
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW C-WIn ASSIGN
          HEIGHT             = 3.67
-         WIDTH              = 59.8.
+         WIDTH              = 67.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -292,7 +301,6 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Add C-WIn
 ON CHOOSE OF Btn-Add IN FRAME Panel-Frame /* Add */
 DO:
-  glAddActive = yes.
   PUBLISH 'addRecord':U.
 END.
 
@@ -304,8 +312,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Cancel C-WIn
 ON CHOOSE OF Btn-Cancel IN FRAME Panel-Frame /* Cancel */
 DO:
-      glAddActive = no.
-      PUBLISH 'cancelRecord':U.
+  PUBLISH 'cancelRecord':U.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -316,7 +323,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Copy C-WIn
 ON CHOOSE OF Btn-Copy IN FRAME Panel-Frame /* Copy */
 DO:
-   PUBLISH 'copyRecord':U.
+   PUBLISH 'copyRecord':U.  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -327,7 +334,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Delete C-WIn
 ON CHOOSE OF Btn-Delete IN FRAME Panel-Frame /* Delete */
 DO:
-   PUBLISH 'deleteRecord':U.  
+  PUBLISH 'deleteRecord':U.  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -349,16 +356,21 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Save C-WIn
 ON CHOOSE OF Btn-Save IN FRAME Panel-Frame /* Save */
 DO:
-  DEFINE VARIABLE hTarget AS HANDLE  NO-UNDO.
+
+  DEFINE VARIABLE hTarget    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cNewRecord AS CHARACTER NO-UNDO.
+
 &IF LOOKUP("Btn-Add":U, "{&ENABLED-OBJECTS}":U," ":U) NE 0 &THEN
   /* If we're in a persistent add-mode then don't change any labels. Just make */
-  /* a call to update the last record and then add another record.             */
-  IF getAddFunction() = 'Multiple-Records':U AND glAddActive THEN 
+  /* a call to update the last record and then add another record.             */  
+  hTarget = {fnarg activeTarget 'tableio':U}.  
+  {get NewRecord cNewRecord hTarget} NO-ERROR.
+  IF getAddFunction() = 'Multiple-Records':U AND cNewRecord <> 'NO':U THEN 
   DO:
-     PUBLISH 'updateRecord':U.
-     /* if the tableio target is still in Addmode something was wrong */ 
-     IF DYNAMIC-FUNCTION('linkProperty':U,INPUT 'tableio-target':U,
-                                          INPUT 'NewRecord':U) = 'NO':U THEN
+     PUBLISH 'updateRecord':U.     
+     /* if the tableio target is still in NewMode something was wrong */ 
+     {get NewRecord cNewRecord hTarget} NO-ERROR.
+     IF cNewRecord = 'NO':U THEN
        PUBLISH 'addRecord':U.
   END.
   ELSE 
@@ -369,7 +381,6 @@ DO:
         IF Btn-Save:LABEL = '&Update' THEN 
         DO:
            PUBLISH 'updateMode':U ('UpdateBegin':U).
-           ASSIGN glAddActive = no.
         END.
         ELSE 
         DO: /* Save */
@@ -379,6 +390,18 @@ DO:
      ELSE /* Normal 'Save'-style SmartPanel */
         PUBLISH 'updateRecord':U.
   END.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME Btn-Update
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn-Update C-WIn
+ON CHOOSE OF Btn-Update IN FRAME Panel-Frame /* Update */
+DO:
+  PUBLISH 'updatemode' ('UpdateBegin').
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -410,6 +433,29 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addLink C-WIn 
+PROCEDURE addLink :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  DEFINE INPUT PARAMETER phSource AS HANDLE NO-UNDO.
+  DEFINE INPUT PARAMETER pcLink   AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER phTarget AS HANDLE NO-UNDO.
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  RUN SUPER( INPUT phSource, INPUT pcLink, INPUT phTarget).
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI C-WIn  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
@@ -428,21 +474,19 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-label C-WIn 
-PROCEDURE set-label :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject C-WIn 
+PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
-  Purpose: To change the label of the first button in the smartpanel when the
-           smartpaneltype is changed from save to update, or vice versa,
-           from outside the panel (e.g., from the Instance Attribute dialog. 
-  Parameters: label-string - either "Save" or "Update".
+  Purpose:     
+  Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cUIBMode     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTableioType AS CHARACTER NO-UNDO.
 
-DEFINE INPUT PARAMETER label-string as CHARACTER NO-UNDO.
+  RUN loadPanel.  
+  RUN SUPER.
 
-DO WITH FRAME panel-frame: 
-  Btn-Save:LABEL = label-string.
-END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -483,6 +527,8 @@ PROCEDURE setButtons :
              if 'action-chosen' is needed, override setPanelState to 
              call super with 'action-chosen' instead of the approproiate or
              for all three for that matter. 
+  Notes:  This procedure has been deprecated and is no longer part of the normal
+          resetting of the action's states.          
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcPanelState AS CHARACTER NO-UNDO.
 
@@ -553,6 +599,9 @@ PROCEDURE setButtons :
       /* happen only when there are no records in the query and the only  */
       /* thing that can be done to it is add-record.                      */
          &IF LOOKUP("Btn-Save":U, "{&ENABLED-OBJECTS}":U," ":U) NE 0 &THEN
+      IF cPanelType = 'UPDATE':U THEN
+         Btn-Save:LABEL = "&Update":U.
+      
       Btn-Save:SENSITIVE = Btn-Save:LABEL = "&Update" AND 
                            pcPanelState = 'update-only':U.
          &ENDIF
@@ -617,6 +666,31 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION actionHideRule C-WIn 
+FUNCTION actionHideRule RETURNS CHARACTER
+  ( pcAction AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override hide rule for update/save in order to support that only 
+           one of them is visible simultaneously.  
+    Notes: This is NOT stored in the Repository or updated in initAction since 
+           the rule only applies to the update panel and not to toolbars
+------------------------------------------------------------------------------*/
+
+ CASE pcAction:
+   WHEN 'Save':U THEN
+     RETURN 'ObjectMode=view and saveSource=no':U.
+   WHEN 'Update':U THEN
+     RETURN 'ObjectMode=modify,update or saveSource':U.
+   OTHERWISE 
+     RETURN SUPER(pcAction).
+
+ END CASE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAddFunction C-WIn 
 FUNCTION getAddFunction RETURNS CHARACTER

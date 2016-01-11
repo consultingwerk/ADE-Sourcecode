@@ -501,17 +501,17 @@ FUNCTION x-2-c RETURNS CHARACTER
   
   DEFINE VARIABLE cChar1  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cChar2  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cString AS CHARACTER NO-UNDO INITIAL "ABCDEF".
+  DEFINE VARIABLE cString AS CHARACTER NO-UNDO INITIAL "ABCDEF":U.
   DEFINE VARIABLE iDigit  AS INTEGER   NO-UNDO.  
 
   ASSIGN
     cChar1 = SUBSTRING(pHex, 1, 1, "CHARACTER":U)
     iDigit = (IF INDEX(cString, cChar1) = 0 THEN INTEGER(cChar1)
-              ELSE INDEX(cString, cChar1) + 10)
+              ELSE INDEX(cString, cChar1) + 9)
     iDigit = iDigit * 16
     cChar2 = SUBSTRING(pHex, 2, 1, "CHARACTER":U)
     iDigit = (IF INDEX(cString, cChar2) = 0 THEN INTEGER(cChar2)
-              ELSE INDEX(cString, cChar2) + 10) + iDigit.
+              ELSE INDEX(cString, cChar2) + 9) + iDigit.
 
   RETURN CHR(iDigit).
   

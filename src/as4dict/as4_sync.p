@@ -267,6 +267,7 @@ END.
      ASSIGN user_env[34] = "viewbut".
   END.
 HIDE FRAME working NO-PAUSE.
+ASSIGN user_env[1] = "".
 RETURN.
 
 

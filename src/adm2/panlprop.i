@@ -37,19 +37,18 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-
+ 
   {src/adm2/custom/paneldefscustom.i}
 
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
+&GLOB xcInstanceProperties {&xcInstanceProperties}~
+EdgePixels,PanelType,DeactivateTargetOnHide,DisabledActions
+  
 &IF  ('{&ADM-Panel-Type}':U BEGINS 'Nav':U) 
 OR   ('{&ADM-Panel-Type}' = 'Toolbar')     &THEN
-  &GLOB xcInstanceProperties {&xcInstanceProperties}~
-EdgePixels,PanelType,NavigationTargetName
-&ELSE
-  &GLOB xcInstanceProperties {&xcInstanceProperties}~
-EdgePixels,PanelType
+  &GLOB xcInstanceProperties {&xcInstanceProperties},NavigationTargetName
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
@@ -110,11 +109,14 @@ EdgePixels,PanelType
 
  &GLOB xpPanelType
  &GLOB xpButtonCount
+ &GLOB xpStaticPrefix
  &GLOB xpPanelFrame
  &GLOB xpMarginPixels
  &GLOB xpBoxRectangle
+ &GLOB xpBoxRectangle2
  &GLOB xpPanelLabel
-
+ &GLOB xpDeactivateTargetOnHide
+ 
 &IF  ('{&ADM-Panel-Type}':U BEGINS 'Nav':U) 
 OR   ('{&ADM-Panel-Type}' = 'Toolbar')     
 OR   ('{&ADM-Panel-Type}' = '')     &THEN
@@ -147,18 +149,22 @@ OR  ('{&ADM-Panel-Type}' = '') &THEN
  &GLOB xpCommitTargetEvents 
  &SCOP PanelDefined 
 &ENDIF
-    
-  {src/adm2/visprop.i}
+ 
+  {src/adm2/actiprop.i}
 
 &IF "{&ADMSuper}":U = "":U &THEN
+
+  ghADMProps:ADD-NEW-FIELD('DisabledActions':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('PanelType':U, 'CHAR':U, 0, ?, '{&ADM-Panel-Type}':U).
   ghADMProps:ADD-NEW-FIELD('ButtonCount':U, 'INT':U, 0, ?, 0).
+  ghADMProps:ADD-NEW-FIELD('StaticPrefix':U, 'CHAR':U, 0, ?, 'Btn-':U).          
   ghADMProps:ADD-NEW-FIELD('PanelFrame':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('MarginPixels':U, 'INT':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('BoxRectangle':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('BoxRectangle2':U , 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('PanelLabel':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('PanelState':U, 'CHAR':U, 0, ?, '':U).          
-
+  ghADMProps:ADD-NEW-FIELD('deactivateTargetOnHide':U, 'LOGICAL':U, 0, ?, FALSE).
     &IF ('{&ADM-Panel-Type}':U BEGINS 'Nav':U) 
     OR  ('{&ADM-Panel-Type}' = 'Toolbar') &THEN
   /* Navigation-Panel-specific properties */
@@ -173,8 +179,7 @@ OR  ('{&ADM-Panel-Type}' = '') &THEN
     OR  ('{&ADM-Panel-Type}' = 'Toolbar') &THEN
   /* Update/Save panel-specific properties */
   ghADMProps:ADD-NEW-FIELD('TableioTarget':U, 'CHAR':U, 0, ?, '':U).  
-  ghADMProps:ADD-NEW-FIELD('TableioTargetEvents':U, 'CHAR':U, 0, ?, 
-        'queryPosition,updateState,linkState,resetTableio':U).  
+  ghADMProps:ADD-NEW-FIELD('TableioTargetEvents':U, 'CHAR':U, 0, ?, 'queryPosition,updateState,linkState,resetTableio':U).   
   ghADMProps:ADD-NEW-FIELD('AddFunction':U, 'CHAR':U, 0, ?, 'One-Record':U).
   ghADMProps:ADD-NEW-FIELD('UpdatingRecord':U, 'LOGICAL':U, 0, ?, FALSE).
     &ENDIF

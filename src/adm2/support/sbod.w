@@ -78,8 +78,8 @@ DEFINE VARIABLE cDONs               AS CHARACTER                 NO-UNDO.
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS cObjectNames 
-&Scoped-Define DISPLAYED-OBJECTS cAppPartition lCascade cObjectNames 
+&Scoped-Define ENABLED-OBJECTS lOpenOnInit cObjectNames 
+&Scoped-Define DISPLAYED-OBJECTS cAppPartition lOpenOnInit cObjectNames 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -128,30 +128,30 @@ DEFINE VARIABLE cObjectNames AS CHARACTER
      VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
      SIZE 29 BY 5.24 NO-UNDO.
 
-DEFINE VARIABLE lCascade AS LOGICAL INITIAL no 
-     LABEL "&Cascade on Browse" 
+DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no 
+     LABEL "&Open query on initialization" 
      VIEW-AS TOGGLE-BOX
-     SIZE 28 BY .81 NO-UNDO.
+     SIZE 31 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
      cAppPartition AT ROW 2.19 COL 17 COLON-ALIGNED
-     lCascade AT ROW 4.57 COL 20
+     lOpenOnInit AT ROW 4.57 COL 19
      Btn-Up AT ROW 6.71 COL 19
      cObjectNames AT ROW 6.71 COL 35 NO-LABEL
      Btn-Down AT ROW 8.14 COL 19
      "  Select the AppServer partition on which to run:" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 1.24 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     "   Toggle on to always get detail for first master row:" VIEW-AS TEXT
+     "   Toggle off to avoid retrieveing data on initialization:" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 3.62 COL 2
           BGCOLOR 1 FGCOLOR 15 
      "   Place SDOs in proper data retrieval / update order:" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 5.76 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     SPACE(1.19) SKIP(5.66)
+     SPACE(1.19) SKIP(9.32)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartBusinessObject Properties":L.
@@ -186,8 +186,6 @@ ASSIGN
 ASSIGN 
        cObjectNames:AUTO-RESIZE IN FRAME Attribute-Dlg      = TRUE.
 
-/* SETTINGS FOR TOGGLE-BOX lCascade IN FRAME Attribute-Dlg
-   NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -212,7 +210,7 @@ ASSIGN
 ON GO OF FRAME Attribute-Dlg /* SmartBusinessObject Properties */
 DO:
   ASSIGN
-    lCascade
+    lOpenOnInit
     saveAppPartition = IF cAppPartition:SCREEN-VALUE = noPartition 
                        THEN "":U
                        ELSE cAppPartition:SCREEN-VALUE.
@@ -222,8 +220,10 @@ DO:
   /* Put the attributes back into the SmartObject. */
   DYNAMIC-FUNCTION("setAppService":U IN p_hSMO, 
                             saveAppPartition).
+  DYNAMIC-FUNCTION("setOpenOnInit":U IN p_hSMO, lOpenOnInit).
+  /*
   DYNAMIC-FUNCTION("setCascadeOnBrowse":U IN p_hSMO, lCascade).
-  
+  */
   DYNAMIC-FUNCTION("setDataObjectNames":U IN p_hSMO, cDONs).
 /*   DYNAMIC-FUNCTION("setServerOperatingMode":U IN p_hSMO,                   */
 /*                     IF ServerOperatingMode:CHECKED THEN "STATE-RESET"      */
@@ -402,9 +402,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY cAppPartition lCascade cObjectNames 
+  DISPLAY cAppPartition lOpenOnInit cObjectNames 
       WITH FRAME Attribute-Dlg.
-  ENABLE cObjectNames 
+  ENABLE lOpenOnInit cObjectNames 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -463,14 +463,14 @@ PROCEDURE get-SmO-attributes :
     ASSIGN cAppPartition:SCREEN-VALUE = PartitionChosen
            cAppPartition:SENSITIVE    = TRUE.
            
-    lCascade  = DYNAMIC-FUNCTION("getCascadeOnBrowse":U IN p_hSMO).
+    lOpenOnInit  = DYNAMIC-FUNCTION("getOpenOnInit":U IN p_hSMO).
     
     /* If the DataObjectNames property isn't defined, then the SBO
-       hasn't been initializedyet, so do it here. */
+       hasn't created it's dataobjects yet. */
     cDONs = DYNAMIC-FUNCTION("getDataObjectNames":U IN p_hSMO).
     IF cDONs = "":U OR cDONs = ? THEN
     DO:
-        RUN initializeObject IN p_hSMO.
+        RUN createObjects IN p_hSMO.
         cDONs = 
             DYNAMIC-FUNCTION("getDataObjectNames":U IN p_hSMO).
     END.    /* END DO IF NO Targets yet */

@@ -64,6 +64,17 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-getAsynchronousSDO) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAsynchronousSDO Procedure 
+FUNCTION getAsynchronousSDO RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAutoCommit) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAutoCommit Procedure 
@@ -135,6 +146,17 @@ FUNCTION getCommitTargetEvents RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentRowModified Procedure 
 FUNCTION getCurrentRowModified RETURNS LOGICAL
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentUpdateSource Procedure 
+FUNCTION getCurrentUpdateSource RETURNS HANDLE
+(  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -240,17 +262,6 @@ FUNCTION getDisconnectAppServer RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getEnabledTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEnabledTables Procedure 
-FUNCTION getEnabledTables RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getFillBatchOnRepos) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFillBatchOnRepos Procedure 
@@ -317,6 +328,17 @@ FUNCTION getForeignValues RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getHasNewRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getHasNewRow Procedure 
+FUNCTION getHasNewRow RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIndexInformation Procedure 
@@ -328,10 +350,21 @@ FUNCTION getIndexInformation RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+&IF DEFINED(EXCLUDE-getInternalEntries) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyFields Procedure 
-FUNCTION getKeyFields RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInternalEntries Procedure 
+FUNCTION getInternalEntries RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyTableId Procedure 
+FUNCTION getKeyTableId RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -355,6 +388,39 @@ FUNCTION getLastResultRow RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastRowNum Procedure 
 FUNCTION getLastRowNum RETURNS INTEGER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManualAddQueryWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManualAddQueryWhere Procedure 
+FUNCTION getManualAddQueryWhere RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManualAssignQuerySelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManualAssignQuerySelection Procedure 
+FUNCTION getManualAssignQuerySelection RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManualSetQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManualSetQuerySort Procedure 
+FUNCTION getManualSetQuerySort RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -408,7 +474,7 @@ FUNCTION getQueryContainer RETURNS LOGICAL
 &IF DEFINED(EXCLUDE-getQueryContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryContext Procedure 
-FUNCTION getQueryContext RETURNS LOGICAL
+FUNCTION getQueryContext RETURNS CHARACTER
   ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -537,6 +603,17 @@ FUNCTION getServerSubmitValidation RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getToggleDataTargets) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToggleDataTargets Procedure 
+FUNCTION getToggleDataTargets RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getUpdateFromSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateFromSource Procedure 
@@ -551,7 +628,7 @@ FUNCTION getUpdateFromSource RETURNS LOGICAL
 &IF DEFINED(EXCLUDE-getUpdateSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateSource Procedure 
-FUNCTION getUpdateSource RETURNS HANDLE
+FUNCTION getUpdateSource RETURNS CHARACTER
   ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -564,6 +641,17 @@ FUNCTION getUpdateSource RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWordIndexedFields Procedure 
 FUNCTION getWordIndexedFields RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setAsynchronousSDO) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAsynchronousSDO Procedure 
+FUNCTION setAsynchronousSDO RETURNS LOGICAL
+  ( lAsynchronousSDO AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -641,6 +729,17 @@ FUNCTION setCommitTarget RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCommitTargetEvents Procedure 
 FUNCTION setCommitTargetEvents RETURNS LOGICAL
   ( pcEvents AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentUpdateSource Procedure 
+FUNCTION setCurrentUpdateSource RETURNS LOGICAL
+( phSource AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -779,17 +878,6 @@ FUNCTION setIndexInformation RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyFields Procedure 
-FUNCTION setKeyFields RETURNS LOGICAL
-  ( pcKeyFields AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setLastDbRowIdent) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastDbRowIdent Procedure 
@@ -817,6 +905,39 @@ FUNCTION setLastResultRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastRowNum Procedure 
 FUNCTION setLastRowNum RETURNS LOGICAL
   ( piLastRowNum AS INTEGER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualAddQueryWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualAddQueryWhere Procedure 
+FUNCTION setManualAddQueryWhere RETURNS LOGICAL
+  ( cString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualAssignQuerySelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualAssignQuerySelection Procedure 
+FUNCTION setManualAssignQuerySelection RETURNS LOGICAL
+  ( cString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualSetQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualSetQuerySort Procedure 
+FUNCTION setManualSetQuerySort RETURNS LOGICAL
+  ( cString AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -867,6 +988,17 @@ FUNCTION setRebuildOnRepos RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setRowObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObject Procedure 
+FUNCTION setRowObject RETURNS LOGICAL
+  ( phRowObject AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setRowObjectState) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjectState Procedure 
@@ -883,6 +1015,17 @@ FUNCTION setRowObjectState RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjectTable Procedure 
 FUNCTION setRowObjectTable RETURNS LOGICAL
   ( phTable AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowObjUpdTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjUpdTable Procedure 
+FUNCTION setRowObjUpdTable RETURNS LOGICAL
+   ( phTable AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -911,11 +1054,22 @@ FUNCTION setServerSubmitValidation RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setToggleDataTargets) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setToggleDataTargets Procedure 
+FUNCTION setToggleDataTargets RETURNS LOGICAL
+  ( plToggleDataTargets AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setUpdateFromSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateFromSource Procedure 
 FUNCTION setUpdateFromSource RETURNS LOGICAL
-  ( plUpdateFromSource AS LOGICAL)  FORWARD.
+  ( plUpdateFromSource AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -926,7 +1080,7 @@ FUNCTION setUpdateFromSource RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateSource Procedure 
 FUNCTION setUpdateSource RETURNS LOGICAL
-  ( phObject AS HANDLE )  FORWARD.
+  ( pcObject AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -951,7 +1105,7 @@ FUNCTION setUpdateSource RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 13.43
+         HEIGHT             = 14.29
          WIDTH              = 55.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -980,6 +1134,26 @@ FUNCTION setUpdateSource RETURNS LOGICAL
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-getAsynchronousSDO) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAsynchronousSDO Procedure 
+FUNCTION getAsynchronousSDO RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE lAsynchronousSDO AS LOGICAL NO-UNDO.    
+    {get AsynchronousSDO lAsynchronousSDO}.    
+    RETURN lAsynchronousSDO.
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAutoCommit) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAutoCommit Procedure 
@@ -992,7 +1166,9 @@ FUNCTION getAutoCommit RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE lAuto AS LOGICAL NO-UNDO.
+  &SCOPED-DEFINE xpAutoCommit
   {get AutoCommit lAuto}.
+  &UNDEFINE xpAutoCommit
   RETURN lAuto.
 
 END FUNCTION.
@@ -1141,6 +1317,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentUpdateSource Procedure 
+FUNCTION getCurrentUpdateSource RETURNS HANDLE
+(  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the current updateSource 
+    Notes:  This is just set temporarily in updateState before re-publishing 
+            updateState, so that the updateSource/DataTarget can avoid a 
+            republish when it is the original publisher.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hSource AS HANDLE NO-UNDO.
+  {get CurrentUpdateSource hSource}.
+  RETURN hSource.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataFieldDefs) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataFieldDefs Procedure 
@@ -1193,22 +1391,36 @@ FUNCTION getDataModified RETURNS LOGICAL
   Purpose:     Returns TRUE if the current RowObject record is modified, 
                Returns no if there is no current RowObject.
   Parameters:  <none>  
-  Notes:       The difference from getNewRow is that it also returns 
-               true for saved and uncommitted new record and thus cannot be used
-               to check the object's state.
-               This uses the RowMod field in the Temp-Table to see if the 
-               row's new (just as getNewRow) and in addition checks to see
-               if the RowObjUpd is not avail, which indicates that this has 
-               not been committed. 
-               We do some double checking if a rowObjUpd is avail to ensure 
-               that this is the right one.                 
+  Notes:       We need to check updateTargets since this may be called from 
+               the toolbar as a result of the updateSource's  
+               setDataModifed -> publish updateState, BEFORE the updateState
+               reaches us...                       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lDataModified AS LOGICAL NO-UNDO.
-  
+  DEFINE VARIABLE lDataModified AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cUpdateSource AS CHAR      NO-UNDO.
+  DEFINE VARIABLE iSource       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hSource       AS HANDLE    NO-UNDO.
+
   &SCOPED-DEFINE xpDataModified
   {get DataModified lDataModified}.
   &UNDEFINE xpDataModified
-  RETURN  lDataModified.
+  
+  IF lDataModified = NO THEN
+  DO:
+    {get UpdateSource cUpdateSource}.
+    DO iSource = 1 TO NUM-ENTRIES(cUpdateSource):
+      hSource = WIDGET-HANDLE(ENTRY(iSource,cUpdateSource)).
+      IF VALID-HANDLE(hSource) THEN 
+      DO:
+        {get DataModified lDataModified hSource}.
+        IF lDataModified THEN
+          LEAVE.
+      END.
+    END.
+  END.
+
+  RETURN lDataModified.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1344,21 +1556,43 @@ Parameters:  <none>
      Notes: This override is just in case the property is referrenced before
             the sdo or sbo has copied the property from the server.           
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDBNames   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hAsHandle AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDBNames    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAsHandle   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContAsdiv  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
 
-  cDBNames = SUPER().
-  
+  cDBNames = SUPER().  
   IF cDBNames = ? THEN
   DO: 
-    {get ASHandle hAsHandle}.
-    IF VALID-HANDLE(hAsHandle) AND hAsHandle NE TARGET-PROCEDURE THEN 
+    {get ContainerSource hContainer}.
+    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    IF cContASDiv = 'Client':U THEN
+       RUN startServerObject IN hContainer.
+    ELSE DO:
+      {get ASDivision cASDivision}.  
+      IF cASDivision = 'Client':U THEN
+        {get ASHandle hAsHandle}.
+    END.
+    
+    IF cContAsdiv = 'client':U OR cASDivision = 'Client':U THEN
     DO:
-      cDBNames = DYNAMIC-FUNCTION("getDBNames":U IN hAsHandle).
-      {set DBNames cDBNames}.
-      /* unbind if this call did the bind (getASHandle) */
+      /* Check again as this is should be retrieved at start up fromthe calls 
+        above */
+      cDBNames = SUPER().  
+      /* Just in case something went wrong go and get it */
+      IF cDbNames = ? THEN
+      DO:
+        {get Ashandle hAsHandle}.
+        IF VALID-HANDLE(hAsHandle) AND hAsHandle NE TARGET-PROCEDURE THEN 
+        DO:
+          cDBNames = DYNAMIC-FUNCTION("getDBNames":U IN hAsHandle).
+          {set DBNames cDBNames}.
+        END.
+      END.
+      /* We may need to unbind if this call did the bind (getASHandle) */
       RUN unbindServer IN TARGET-PROCEDURE (?). 
-    END. /* IF Valid A/S handle */
+    END. /* client */
   END. /* IF DBNames not yet defined locally. */
 
   RETURN cDBNames. 
@@ -1403,43 +1637,6 @@ FUNCTION getDisconnectAppServer RETURNS LOGICAL
   {get DisconnectAppServer lDisconnect}.
   RETURN lDisconnect.
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getEnabledTables) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEnabledTables Procedure 
-FUNCTION getEnabledTables RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns a list of the database tables which have enabled fields.
-   Params:  <none>
-    Notes:    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cUpdColumns    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE i              AS INT    NO-UNDO.
-  
-  {get Tables cTables}.
-  
-  /* get the list of enabled fields that are separated per table and
-     use it to check which tables have enabled tables */
-  {get UpdatableColumnsByTable cUpdColumns}.
-  
-  DO i = 1 TO NUM-ENTRIES(cTables):
-    IF ENTRY(i,cUpdColumns,CHR(1)) <> "":U THEN
-      cEnabledTables = cEnabledTables 
-                      + (IF cEnabledTables = "":U THEN "":U ELSE ",":U)
-                      + ENTRY(1,cTables).
-  END.
-
-  RETURN cEnabledTables. 
-  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1578,6 +1775,45 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getHasNewRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getHasNewRow Procedure 
+FUNCTION getHasNewRow RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hTable      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hQuery      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hBuffer     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lHasNewRow  AS LOGICAL    NO-UNDO.
+
+  {get RowObjUpd hTable}.
+
+  IF NOT VALID-HANDLE(hTable) THEN
+    RETURN FALSE.
+
+  CREATE BUFFER hBuffer FOR TABLE hTable BUFFER-NAME "bufRowObjUpd".
+  CREATE QUERY hQuery. 
+  hQuery:SET-BUFFERS(hBuffer).
+  hQuery:QUERY-PREPARE("for each bufRowObjUpd where RowMod = 'A' or RowMod = 'C'").
+  hQuery:QUERY-OPEN().
+  hQuery:GET-FIRST().
+  
+  lHasNewRow = hBuffer:AVAILABLE.
+  DELETE OBJECT hQuery.
+  DELETE OBJECT hBuffer.
+
+  RETURN lHasNewRow.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIndexInformation Procedure 
@@ -1609,25 +1845,44 @@ FUNCTION getIndexInformation RETURNS CHARACTER
   DEFINE VARIABLE iTable        AS INT    NO-UNDO.
   DEFINE VARIABLE iField        AS INT    NO-UNDO.
   DEFINE VARIABLE cAsDivision   AS CHAR   NO-UNDO.
+  DEFINE VARIABLE cContAsDiv    AS CHAR   NO-UNDO.
   DEFINE VARIABLE hAppServer    AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hContainer    AS HANDLE NO-UNDO.
 
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('IndexInformation':U)
-         cInfo  = ghProp:BUFFER-VALUE NO-ERROR.
+  &SCOPED-DEFINE xpIndexInformation
+  {get IndexInformation cInfo}.
+  &UNDEFINE xpIndexInformation
   
   IF cInfo = ? THEN
   DO:
-    {get ASDivision cASDivision}.
-  
-    IF cASDivision = 'Client':U THEN
+    {get ContainerSource hContainer}.
+    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    IF cContASDiv = 'Client':U THEN
+       RUN startServerObject IN hContainer.
+    
+    ELSE DO:
+      {get ASDivision cASDivision}.  
+      IF cASDivision = 'Client':U THEN
+        {get ASHandle hAppServer}.
+    END.
+    
+    IF cContAsdiv = 'client':U OR cASDivision = 'Client':U THEN
     DO:
-      {get ASHandle hAppServer}.
-      IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
+      /* This property should be retrieved by the above logic */
+      &SCOPED-DEFINE xpIndexInformation
+      {get IndexInformation cInfo}.
+      &UNDEFINE xpIndexInformation
+      /* It should have been found above, but in case sometihn is wrong let's
+         go and get it */  
+      IF cInfo = ? THEN
       DO:
-        {get IndexInformation cInfo hAppServer}. 
-         /* unbind if this call did the bind (getASHandle) */
-        RUN unbindServer IN TARGET-PROCEDURE (?). 
+        {get ASHandle hAppServer}.
+        IF VALID-HANDLE(hAppServer) AND hAppserver <> TARGET-PROCEDURE THEN 
+           {get IndexInformation cInfo hAppServer}. 
       END.
+   
+      /* We may need to unbind if this call did the bind (getASHandle) */
+      RUN unbindServer IN TARGET-PROCEDURE (?). 
     END. /* do if client */
     ELSE DO: 
       
@@ -1674,117 +1929,82 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+&IF DEFINED(EXCLUDE-getInternalEntries) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFields Procedure 
-FUNCTION getKeyFields RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getInternalEntries Procedure 
+FUNCTION getInternalEntries RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: To pass back internal entries of SDO as internal-entries cannot be
+           accessed for remote proxy procedures.
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  RETURN THIS-PROCEDURE:INTERNAL-ENTRIES.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyTableId Procedure 
+FUNCTION getKeyTableId RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the comma-separated KeyFields property.
-   Params:  The indexInformation will be used to try to figure out the
-            default KeyFields list, but this is currently restricted to cases 
-            where: 
-            - The First Table in the join is the Only enabled table.
-            - All the fields of the index is present is the SDO.             
-            The following index may be selected.                 
-                     
-            1. Primary index if unique.
-            2. First Unique index. 
-            
-            There's currently no check whether the field is mandatory.                                      
+  Purpose:     Returns the tableid for the KeyFields.
+  Parameters:  <none>
+  Notes:       This is normally the first enabled table, and is usually only
+               used on the server side to join to comments/auditing etc
+               This is also the dump name of that table
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyFields     AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cIndexInfo     AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cUniqueList    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cPrimaryList   AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cColumnList    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cColumn        AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cIndex         AS CHAR  NO-UNDO.
-  DEFINE VARIABLE iIDx           AS INT   NO-UNDO.
-  DEFINE VARIABLE iFld           AS INT   NO-UNDO.
-  DEFINE VARIABLE lPrimaryFound  AS LOG   NO-UNDO.
-  DEFINE VARIABLE iOkIndex       AS INT   NO-UNDO.
+  DEFINE VARIABLE cKeyTableId   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAppServer    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cASDivision   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCOntAsDiv    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer    AS HANDLE     NO-UNDO.
   
-  /* temorary define the xp so we can go directly to the property buffer */
-  &SCOPED-DEFINE xpKeyFields 
-  {get KeyFields cKeyFields}.
-  &UNDEFINE xpKeyFields 
+  cKeyTableId = SUPER().
   
-  IF cKeyFields = "":U THEN
+  IF cKeyTableId = "":U THEN
   DO:
-    {get enabledTables cEnabledTables}.
-    {get Tables cTables}.
-   
-    /* Currently we only create a default KeyFields when 
-       ONE enbled table and it's the FIRST table */
-
-    IF NUM-ENTRIES(cEnabledTables) = 1 
-    AND cEnabledTables = ENTRY(1,cTables) THEN
+    {get ContainerSource hContainer}.
+    {get ASDivision cContASDiv hContainer} NO-ERROR.
+    IF cContASDiv = 'Client':U THEN
+      RUN startServerObject IN hContainer.
+    ELSE DO:
+      {get ASDivision cASDivision}.
+      /* If we're on the client then the AppServer haven't return this property 
+         value yet. */
+      IF cASDivision = 'Client':U THEN
+       /* This will retrieve all Server properties including KeyTable */
+        {get ASHandle hAppServer}.
+    END.
+    IF cContASDiv = 'Client':U OR cASDivision = 'Client':U THEN
     DO:
-      {get IndexInformation cIndexInfo}. 
-      IF cIndexInfo <> ? THEN
+      cKeyTableId = SUPER().
+      /* We should have got it now, but if something is wrong let's just go 
+         and get it ourselves */ 
+      IF cKeyTableId = '':U THEN 
       DO:
-      
-        /* Get the unique indexes from the IndexInformation function */
-        cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                        'unique':U, /* query  */
-                                        'yes':U,     /* table delimiter */
-                                        cIndexInfo).
-        /* only the first table's indexes*/ 
-        cUniqueList = ENTRY(1,cUniqueList,CHR(2)).
-        
-        /* Get the primary index(es) from the IndexInformation function */
-        cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                        'primary':U, /* query  */
-                                        'yes':U,     /* table delimiter */
-                                        cIndexInfo).
-                                  
-        /* only the first table's indexes*/ 
-        cPrimaryList = ENTRY(1,cPrimaryList,CHR(2)).
-        
-        IndexLoop:
-        DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
-          
-          cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)). 
-          /* This is the entry we use if it's ok */
-          iOkIndex = IF iOkindex = 0 
-                     THEN iIdx
-                     ELSE iOkIndex.
-          
-          /* We never set primaryFound to false, because we want to bail out 
-             on the first acceptable index AFTER the primary if the primary 
-             could not be used.*/
-          IF NOT lPrimaryFound THEN
-             lPrimaryFound = cColumnList = cPrimaryList.
-          /* check if all columns is in the SDO */
-          DO iFld = 1 TO NUM-ENTRIES(cColumnList):
-            cColumn = ENTRY(iFld,cColumnList).
-            
-            /* If the field is qualifed it's not used in the SDO,
-               so we don't use this index */
-            IF INDEX(cColumn,".":U) <> 0 THEN 
-              iOkIndex = 0.
-
-          END.
-          /* if this index is ok and the primary has been found now or earlier,
-             don't search anymore */
-          IF iOkIndex <> 0 AND lPrimaryFound THEN
-            LEAVE IndexLoop.
-        END. /* do i = 1 to num-entries cFieldList */
-        /* Did we find an index? */
-        IF iOkIndex <> 0 THEN
+        {get AsHandle hAppServer}.
+        IF VALID-HANDLE(hAppServer) AND hAppServer <> TARGET-PROCEDURE THEN 
         DO:
-          cKeyFields = ENTRY(iokindex,cUniqueList,CHR(1)).
-          {set KeyFields cKeyFields}.
-        END.
-      END. /* if indexinfo <> */
-    END. /* cinfo <> ? */
-  END.
-
-  RETURN cKeyFields.
-
+          cKeyTableId = DYNAMIC-FUNCTION("getKeyTableId":U IN hAppServer).
+          IF cKeyTableId <> '':U THEN
+            {set KeyTableId cKeyTableId}. 
+        END.     /* END DO IF Valid A/S handle */      
+      END.
+       /* We may need to unbind if this call did the bind (getASHandle) */
+      RUN unbindServer IN TARGET-PROCEDURE (?). 
+    END.
+  END.           /* END DO IF OpenQuery not yet defined locally. */
+  
+  RETURN cKeyTableId.
+      
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1835,6 +2055,72 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getManualAddQueryWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManualAddQueryWhere Procedure 
+FUNCTION getManualAddQueryWhere RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Retrieve manual calls to addquerywhere so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pcwhere + chr(3) + pcbuffer or empty or "?" + chr(3) + pcandor 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
+    {get ManualAddQueryWhere cString}.
+    RETURN cString.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManualAssignQuerySelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManualAssignQuerySelection Procedure 
+FUNCTION getManualAssignQuerySelection RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Retrieve manual calls to assignqueryselection so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pccolumns + chr(3) + pcvalues + chr(3) + pcoperators 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
+    {get ManualAssignQuerySelection cString}.
+    RETURN cString.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManualSetQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManualSetQuerySort Procedure 
+FUNCTION getManualSetQuerySort RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Retrieve manual calls to setquerysort so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pcsort 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
+    {get ManualSetQuerySort cString}.
+    RETURN cString.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewMode Procedure 
@@ -1866,6 +2152,9 @@ FUNCTION getNewMode RETURNS LOGICAL
   
   IF NOT VALID-HANDLE(hRowObject) OR NOT hRowObject:AVAILABLE THEN
     RETURN ?.   
+
+  IF NOT VALID-HANDLE(hRowObjUpd) THEN
+    RETURN FALSE.
 
   /* Just replace the handle with a buffer, 
     (prohibits messing around with the real one) */
@@ -1913,7 +2202,8 @@ FUNCTION getNewRow RETURNS LOGICAL
   
   {get RowObject hRowObject}.
   IF NOT VALID-HANDLE(hRowObject) OR NOT hRowObject:AVAILABLE THEN
-    RETURN ?.   
+    RETURN FALSE.
+
   ELSE DO:
     hColumn = hRowObject:BUFFER-FIELD('RowMod':U).
     IF hColumn:BUFFER-VALUE = "A":U OR
@@ -1944,29 +2234,43 @@ FUNCTION getOpenQuery RETURNS CHARACTER
   DEFINE VARIABLE cQuery      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hAppServer  AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cASDivision AS CHARACTER NO-UNDO.
-
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('OpenQuery':U)
-         cQuery = ghProp:BUFFER-VALUE NO-ERROR.
-  
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
+ 
+  cQuery = SUPER().
   IF cQuery = "":U THEN
   DO:
-      {get ASDivision cASDivision}.
-      IF cASDivision = 'Client':U THEN
-      DO: /* If we're just the client then tell the AppServer to return
-             this property value. */
-        {get ASHandle hAppServer}.
-        IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
-        DO:
-          cQuery = DYNAMIC-FUNCTION("getOpenQuery":U IN hAppServer).
-          ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-                 ghProp = ghProp:BUFFER-FIELD('OpenQuery':U)
-                 ghProp:BUFFER-VALUE = cQuery.
-          /* unbind if this call did the bind (getASHandle) */
-          RUN unbindServer IN TARGET-PROCEDURE (?). 
-        END.     /* END DO IF Valid A/S handle */
-        ELSE cQuery = "":U.         /* Signal error. */
-      END.       /* END DO IF 'Client' */
+     {get ContainerSource hContainer}.
+     {get ASDivision cASDivision hContainer} NO-ERROR.
+     /* If we're on the client inside of a container then the container 
+        haven't return this property from the appserver yet. */
+     IF cASDivision = 'Client':U THEN
+        RUN startServerObject IN hContainer.    
+     ELSE DO:
+       {get ASDivision cASDivision}.
+       /* If we're on the client then the AppServer haven't return this property 
+          value yet. */
+       IF cASDivision = 'Client':U THEN
+         /* This will retrieve all Server properties including openQuery */
+         {get ASHandle hAppServer}.
+     END.
+     /* The property should now be available, so try again */ 
+     cQuery = SUPER().
+
+     /* We should have got it now, but if something is wrong let's just go 
+        and get it ourselves */ 
+     IF cAsDivision = 'client':U AND cQuery = '':U THEN 
+     DO:
+       {get ASHandle hAppServer}.
+       IF VALID-HANDLE(hAppServer) AND hAppserver <> TARGET-PROCEDURE  THEN 
+       DO:         
+         cQuery = DYNAMIC-FUNCTION("getOpenQuery":U IN hAppServer).
+
+         {set BaseQuery cQuery}. 
+       END.     /* END DO IF Valid A/S handle */      
+     END.
+       
+     /* We may need to unbind if this call did the bind (getASHandle) */
+     RUN unbindServer IN TARGET-PROCEDURE (?). 
   END.           /* END DO IF OpenQuery not yet defined locally. */
   
   RETURN cQuery.
@@ -2004,7 +2308,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-getQueryContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryContext Procedure 
-FUNCTION getQueryContext RETURNS LOGICAL
+FUNCTION getQueryContext RETURNS CHARACTER
   ( ) :
 /*------------------------------------------------------------------------------
   Purpose: Returns the queryContext on the client 
@@ -2014,7 +2318,7 @@ Parameter:
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryContext AS CHARACTER  NO-UNDO.
   {get QueryContext cQueryContext}.
-  RETURN TRUE.
+  RETURN cQueryContext.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2063,33 +2367,55 @@ FUNCTION getQueryWhere RETURNS CHARACTER
   DEFINE VARIABLE hAppServer     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cASDivision    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOperatingMode AS CHARACTER  NO-UNDO.
-  
+  DEFINE VARIABLE lAsHasStarted  AS LOGICAL    NO-UNDO.
+
   {get ASDivision cASDivision}.
   IF cASDivision = 'Client':U THEN
   DO: 
     /* Check if the Query is stored locally 
-       (only for stateless SDOs or all client SDOs in SBOs) */
+      (only for stateless SDOs or all client SDOs in SBOs
+       or for unstarted stateaware SDOs)  */
     {get QueryContext cQuery}.
-    
+
     IF cQuery = ? THEN
     DO:
-      {get ASHandle hAppServer}.
-      IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
+      /* If not Appserver has not started return the default query */ 
+      {get AsHasStarted lAsHasStarted}.
+      
+      /* This code block has never been in use, but was almost added when the 
+         logic to avoid server hits if not AsHasStarted was added, so it's kept 
+         here for information and possible future considerations:
+          ---------------  
+          All code should currently handle queryWhere = ?, so this is probably
+          not necessary (maybe even wrong since the query is not opened and 
+         the querywhere is unknown )       
+      IF NOT lAsHasStarted THEN
       DO:
-        cQuery = DYNAMIC-FUNCTION("getQueryWhere":U IN hAppServer).
-        {get serverOperatingMode cOperatingMode}.
-        /* We store the query locally for next time for stateless SDOs */
-        IF cOperatingMode = 'STATELESS':U THEN
+        {get OpenQuery cQuery}. 
+      END.  */
+
+      /* This should never happen as this is part of the context, but 
+         just in case let's support a direct appserver call */
+      IF lAsHasStarted THEN
+      DO: 
+          
+        {get ASHandle hAppServer}.
+        IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
         DO:
-          {set QueryContext cQuery}.
-          /* unbind if this call did the bind (getASHandle) */
-          RUN unbindServer IN TARGET-PROCEDURE (?). 
-        END.
-      END. /* valid appServer */
+          cQuery = DYNAMIC-FUNCTION("getQueryWhere":U IN hAppServer).
+          {get serverOperatingMode cOperatingMode}.
+          /* We store the query locally for next time for stateless SDOs */
+          IF cOperatingMode = 'STATELESS':U THEN
+          DO:
+            {set QueryContext cQuery}.
+            /* unbind if this call did the bind (getASHandle) */
+            RUN unbindServer IN TARGET-PROCEDURE (?). 
+          END.
+        END. /* valid appServer */
+      END.
     END.  /* IF QueryWhere not yet defined locally. */
     
     RETURN cQuery.
-
   END. /* If 'Client' */
   
   ELSE RETURN SUPER().
@@ -2221,7 +2547,6 @@ FUNCTION getRowObjectTable RETURNS HANDLE
             does not use the {get} syntax because the setRowObjectTable
             function must also do other work.
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE hTable AS HANDLE NO-UNDO.
   ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
          ghProp = ghProp:BUFFER-FIELD('RowObjectTable':U)
@@ -2267,9 +2592,12 @@ FUNCTION getRowObjUpdTable RETURNS HANDLE
   Purpose:  Returns the handle to the RowObjUpd Temp-Table
    Params:  none
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE hTable AS HANDLE NO-UNDO.
+  
+  &SCOPED-DEFINE xpRowObjUpdTable 
   {get RowObjUpdTable hTable}.
+  &UNDEFINE xpRowObjUpdTable 
+  
   RETURN hTable.
 
 END FUNCTION.
@@ -2314,23 +2642,38 @@ FUNCTION getServerSubmitValidation RETURNS LOGICAL
             open client interface, then serverCommit will execute 
             SubmitValidation itself.
     Notes:  Because the set function verifies that the property is not
-            reset from *yes* to *no* (for security purposes),
-            the property value is always accessed through the
-            set and get functions.
+            reset from *yes* to *no* (for security purposes), the property 
+            value is always accessed through the set and get functions.
 ------------------------------------------------------------------------------*/
-  
-DEFINE VARIABLE lVal       AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lVal  AS LOGICAL NO-UNDO.
 
-  /* "No" in this include means don't do SUPER(). */
-  {src/adm2/cltorsvr.i getServerSubmitValidation LOG " " NO}
-  ELSE DO:
-    /* If there's no client/server division or this is the server,
-       then execute the function here. */
-    ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-           ghProp = ghProp:BUFFER-FIELD('ServerSubmitValidation':U)
-           lVal    = ghProp:BUFFER-VALUE NO-ERROR.
-    RETURN lVal.   /* Function return value. */
-  END.
+  &SCOPED-DEFINE xpServerSubmitValidation
+  {get ServerSubmitValidation lVal}.
+  &UNDEFINE xpServerSubmitValidation
+  RETURN lVal.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getToggleDataTargets) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToggleDataTargets Procedure 
+FUNCTION getToggleDataTargets RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if dataTargets should be toggled on/of in LinkState
+           based on the passed 'active' or 'inactive' parameter 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE ltoggle AS LOGICAL    NO-UNDO.
+  {get toggleDataTargets lToggle}.
+
+  RETURN lToggle. 
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2361,16 +2704,16 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-getUpdateSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateSource Procedure 
-FUNCTION getUpdateSource RETURNS HANDLE
+FUNCTION getUpdateSource RETURNS CHARACTER
   ( ) :
 /*------------------------------------------------------------------------------
   Purpose:  Returns the handle of the object's UpdateSource.
    Params:  <none>
 ------------------------------------------------------------------------------*/
 
-  DEFINE VARIABLE hSource AS HANDLE NO-UNDO.
-  {get UpdateSource hSource}.
-  RETURN hSource.
+  DEFINE VARIABLE cSource AS CHARACTER NO-UNDO.
+  {get UpdateSource cSource}.
+  RETURN cSource.
 
 END FUNCTION.
 
@@ -2426,6 +2769,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setAsynchronousSDO) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAsynchronousSDO Procedure 
+FUNCTION setAsynchronousSDO RETURNS LOGICAL
+  ( lAsynchronousSDO AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    {set AsynchronousSDO lAsynchronousSDO}.
+    RETURN TRUE.                               
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setAutoCommit) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setAutoCommit Procedure 
@@ -2447,7 +2809,9 @@ FUNCTION setAutoCommit RETURNS LOGICAL
     IF NOT lQuery THEN 
       RETURN FALSE.
   END.   /* END IF NOT plFlag */
+  &SCOPED-DEFINE xpAutoCommit
   {set AutoCommit plFlag}.
+  &UNDEFINE xpAutoCommit
   RETURN TRUE.
 END FUNCTION.
 
@@ -2573,6 +2937,26 @@ FUNCTION setCommitTargetEvents RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   {set CommitTargetEvents pcEvents}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentUpdateSource Procedure 
+FUNCTION setCurrentUpdateSource RETURNS LOGICAL
+( phSource AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set the current updateSource 
+    Notes:  This is just set temporarily in updateState before re-publishing 
+            updateState, so that the updateSource/DataTarget can avoid a 
+            republish when it is the original publisher.
+------------------------------------------------------------------------------*/
+  {set CurrentUpdateSource phSource}.
   RETURN TRUE.
 END FUNCTION.
 
@@ -2840,32 +3224,9 @@ FUNCTION setIndexInformation RETURNS LOGICAL
   Purpose: Store the IndexInformation  
     Notes: See getIndexInformation 
 ------------------------------------------------------------------------------*/
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('IndexInformation':U)
-         ghProp:BUFFER-VALUE = pcInfo NO-ERROR.
- 
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyFields Procedure 
-FUNCTION setKeyFields RETURNS LOGICAL
-  ( pcKeyFields AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the KeyFields property
-   Params:  pcKeyFields -- Comma separated list of fields 
-    Notes:  
-------------------------------------------------------------------------------*/
-  &SCOPED-DEFINE xpKeyFields
-  {set KeyFields pcKeyFields}.
-  &UNDEFINE xpKeyFields
+  &SCOPED-DEFINE xpIndexInformation
+  {set IndexInformation pcInfo}.
+  &UNDEFINE xpIndexInformation
  
   RETURN TRUE.
 
@@ -2931,12 +3292,127 @@ FUNCTION setLastRowNum RETURNS LOGICAL
            row has not been fetched, otherwise it is the rownum of the 
            last row
    Params: pcLastRowNum -- Rownum of the last row
-    Notes:   
-    Notes:  
+    Notes: LastRowNum is currently kept up to date on the server and passed
+           to and from as part of context management. (The server only changes
+           LastRowNum if the new one is higher). This is a problem on stateaware
+           connections since new records are sorted last on the client, but the 
+           context never is reset on the server after the last connection.  
+           So we do a check here on the client for stateaware connections to 
+           ensure that the lastrownum is not changed if already higher than the 
+           passed number and the actual record with the high number exists and 
+           is last. 
+           There is an xp definition so the function is normally only called 
+           from the context management both for sbos and sdos.             
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cOperatingMode AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDivision      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowNum        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iCurrentLast   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cQuery         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lKeepLast      AS LOGICAL    NO-UNDO.
+
+  {get LastRowNum iCurrentLast}.
+  IF iCurrentLast > piLastRowNum THEN
+  DO:
+    {get AsDivision cDivision}.
+    {get ServerOperatingMode cOperatingMode}.  
+    /* If we are on a stateaware client and the higher LastRowNum exists 
+       we keep it. (see notes above)  */  
+    IF cOperatingMode <> 'STATELESS':U AND cDivision = 'Client':U THEN
+    DO:
+      {get RowObject hRowObject}.    
+      CREATE BUFFER hRowObject FOR TABLE hRowObject.
+      CREATE QUERY  hQuery.
+      
+      hQuery:ADD-BUFFER(hRowObject).
+      /* Although this is not intended to be a sanity check and local sort and
+         queries also must setLastRowNum, they may do this with a function call 
+         so we cannot just check for existance of the record, but have to 
+         use the current query and get-last */          
+      {get DataQueryString cQuery}.      
+      hQuery:QUERY-PREPARE(cQuery).                           
+      hQuery:QUERY-OPEN(). 
+      hQuery:GET-LAST. 
+      hRowNum   = hRowObject:BUFFER-FIELD('RowNum':U).
+      lKeepLast = hRowObject:AVAILABLE AND hRowNum:BUFFER-VALUE = iCurrentLast.
+
+      DELETE OBJECT hQuery.
+      DELETE OBJECT hRowObject.
+
+      IF lKeepLast THEN
+        RETURN TRUE.
+    END.
+  END.
+  
   {set LastRowNum piLastRowNum}.
+
   RETURN TRUE.
                               
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualAddQueryWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManualAddQueryWhere Procedure 
+FUNCTION setManualAddQueryWhere RETURNS LOGICAL
+  ( cString AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Store manual calls to addquerywhere so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pcwhere + chr(3) + pcbuffer or empty or "?" + chr(3) + pcandor 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+  {set ManualAddQueryWhere cString}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualAssignQuerySelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManualAssignQuerySelection Procedure 
+FUNCTION setManualAssignQuerySelection RETURNS LOGICAL
+  ( cString AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Store manual calls to assignqueryselection so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pccolumns + chr(3) + pcvalues + chr(3) + pcoperators 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+  {set ManualAssignQuerySelection cString}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setManualSetQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManualSetQuerySort Procedure 
+FUNCTION setManualSetQuerySort RETURNS LOGICAL
+  ( cString AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Store manual calls to setquerysort so that filter can reapply this
+           when filter is changed, thus ensuring the original query stays intact. 
+    Notes: Value is pcsort 
+           Note that multiple entries are supported, seperated by chr(4).
+------------------------------------------------------------------------------*/
+  {set ManualSetQuerySort cString}.
+  RETURN TRUE.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3008,7 +3484,8 @@ FUNCTION setQueryWhere RETURNS LOGICAL
   DEFINE VARIABLE cAsDivision     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hContainer      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lOk             AS LOGICAL   NO-UNDO. 
-  DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQueryContainer AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lAsBound        AS LOGICAL   NO-UNDO.
 
   {get AsDivision cAsDivision}.
 
@@ -3024,9 +3501,18 @@ FUNCTION setQueryWhere RETURNS LOGICAL
          {get serverOperatingMode cOperatingMode hContainer}.
     END. /* valid container */
     
-   /* We store the query locally for stateless as restartServerObject will 
-      pass it, and we always store it locally for SBOs */
-    IF cOperatingMode = 'STATELESS':U OR lQueryContainer THEN
+    /* 
+    If 'client' and operatingmode is 'none' then we are most likely not 
+    bound yet and can use queryContext even for stateaware connections 
+    as the first connection have not yet happened and will be similar to 
+    a stateless one and pass queryContext as   */ 
+    lAsBound = ?. 
+    IF cOperatingMode = 'NONE':U OR cOperatingMode = '':U THEN
+      {get AsBound lAsBound}.
+
+    /* We store the query locally for stateless as restartServerObject will 
+       pass it, and we always store it locally for SBOs */
+    IF lAsBound = FALSE OR cOperatingMode = 'STATELESS':U OR lQueryContainer THEN
     DO:
       cQueryWhere = {fnarg newQueryWhere pcWhere}.
       
@@ -3034,7 +3520,6 @@ FUNCTION setQueryWhere RETURNS LOGICAL
         {set QueryContext cQueryWhere}.
       
       RETURN cQueryWhere <> ?.
-
     END. /* If Stateless */
   END. /* client */
   
@@ -3061,6 +3546,24 @@ FUNCTION setRebuildOnRepos RETURNS LOGICAL
   {set RebuildOnRepos plRebuild}.
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRowObject Procedure 
+FUNCTION setRowObject RETURNS LOGICAL
+  ( phRowObject AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set RowObject phRowObject}.
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3096,9 +3599,12 @@ FUNCTION setRowObjectState RETURNS LOGICAL
   DO:
     {get AutoCommit lCommit}.
     IF lCommit = NO THEN
-      PUBLISH 'updateState':U FROM TARGET-PROCEDURE 
-            ('UpdateComplete':U).
+      PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('UpdateComplete':U).
   END.
+
+  /* Tell container */ 
+  PUBLISH 'UpdateActive':U FROM TARGET-PROCEDURE (pcState <> 'NoUpdates':U).
+
 
   RETURN TRUE.
 
@@ -3119,7 +3625,7 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
    Params: phTable AS HANDLE -- temp-table handle
     Notes: This is the handle to the temp-table itself, not its buffer.
            Supports dynamic SDO (not valid RowObject) by also setting 
-           RowObject and DataHandle.
+           RowObject and DataHandle if it is unknown or different.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryString AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hRowobject   AS HANDLE NO-UNDO.
@@ -3127,34 +3633,67 @@ FUNCTION setRowObjectTable RETURNS LOGICAL
   
   {get RowObject hRowObject}.    /* Existing temp-table buffer. */
   
-  /* This is a dynamic SDO, so we set the query and buffer handles to 
-     properties also */
-  IF NOT VALID-HANDLE(hRowObject) THEN
+  /* We ensure that query and buffer handle properties is correct also */
+  IF NOT VALID-HANDLE(hRowObject) 
+  OR hRowObject <> phTable:DEFAULT-BUFFER-HANDLE THEN
   DO:
-    {set RowObject phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */
-    
+    {set RowObject phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */    
     {get DataHandle hDataHandle}.  /* Query handle */
     
-    IF NOT VALID-HANDLE(hDataHandle) THEN
-    DO:
-      CREATE QUERY hDataHandle.
-      {set DataHandle hDataHandle}.
-    END.  /* if not valid or  NAME Not Blank (static query) */
-  
-    /* Note: if it becomes necessary to fix this to work with static queries, 
-             it is insufficient to just create a dynamic one. Something must  
-             also be done with the ghDataQuery variable in data.i  */ 
+    DELETE OBJECT hDataHandle NO-ERROR.  
+    DELETE OBJECT hRowObject  NO-ERROR. 
+
+    CREATE QUERY hDataHandle.
+    {set DataHandle hDataHandle}.
+    
+    /* Something should be done with the ghDataQuery variable in data.i  */ 
     hDataHandle:SET-BUFFERS(phTable:DEFAULT-BUFFER-HANDLE).
     {get DataQueryString cQueryString}.
-    hDataHandle:QUERY-PREPARE(cQueryString).
+                              /* Fix european format issues */
+    hDataHandle:QUERY-PREPARE({fnarg fixQueryString cQueryString}).
   END. /* not valid hRowObject */
 
-  /* Finally, reset the property itself. */
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('RowObjectTable':U)
-         ghProp:BUFFER-VALUE = phTable NO-ERROR.
+  &SCOPED-DEFINE xpRowObjectTable
+  {set RowObjectTable phTable}.
+  &UNDEFINE xpRowObjectTable  
   
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setRowObjUpdTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRowObjUpdTable Procedure 
+FUNCTION setRowObjUpdTable RETURNS LOGICAL
+   ( phTable AS HANDLE ) :
+/*------------------------------------------------------------------------------
+    Purpose: Sets the property which stores the RowObject temp-table handle.
+     Params: phTable AS HANDLE -- temp-table handle
+      Notes: This is the handle to the temp-table itself, not its buffer.
+             Supports dynamic SDO (not valid RowObject) by also setting 
+             RowObject and DataHandle if it is unknown or different.
+------------------------------------------------------------------------------*/
+  
+ DEFINE VARIABLE hRowobjUpd   AS HANDLE NO-UNDO.
+ {get RowObjUpd hRowObjUpd}.    /* Existing temp-table buffer. */
+  
+ /* We ensure that query and buffer handle properties is correct also */
+ IF NOT VALID-HANDLE(hRowObjUpd) 
+ OR hRowObjUpd <> phTable:DEFAULT-BUFFER-HANDLE THEN
+ DO:
+   {set RowObjUpd phTable:DEFAULT-BUFFER-HANDLE}. /* Point to new buffer. */    
+   DELETE OBJECT hRowObjUpd  NO-ERROR. 
+ END.
+ &SCOPED-DEFINE xpRowObjUpdTable
+ {set RowObjUpdTable phTable}.
+ &UNDEFINE xpRowObjUpdTable  
+ 
+ RETURN TRUE.
 
 END FUNCTION.
 
@@ -3208,22 +3747,39 @@ FUNCTION setServerSubmitValidation RETURNS LOGICAL
    Notes:   As a security measure, if the property has been set to *yes*,
             it cannot be reset to *no*.
 ------------------------------------------------------------------------------*/
-  
   DEFINE VARIABLE lVal AS LOGICAL NO-UNDO.
   
-  /* "No" in this include means don't do SUPER(). */
-  {src/adm2/cltorsvr.i setServerSubmitValidation LOG plVal NO}
+  {get ServerSubmitValidation lVal}.
+  IF lVal = YES THEN
+    RETURN plVal.   /* Cannot be reset from yes value to no. */
   ELSE DO:
-    {get ServerSubmitValidation lVal}.
-    IF lVal = YES THEN
-      RETURN plVal.   /* Cannot be reset from yes value to no. */
-    ELSE DO:
-      ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-             ghProp = ghProp:BUFFER-FIELD('ServerSubmitValidation':U)
-             ghProp:BUFFER-VALUE = plVal NO-ERROR.
-      RETURN TRUE.      /* signal that the property was reset successfully. */
-    END.
+    &SCOPED-DEFINE xpServerSubmitValidation
+    {set ServerSubmitValidation lVal}.
+    &UNDEFINE xpServerSubmitValidation
+    RETURN TRUE.      /* signal that the property was reset successfully. */
   END.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setToggleDataTargets) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setToggleDataTargets Procedure 
+FUNCTION setToggleDataTargets RETURNS LOGICAL
+  ( plToggleDataTargets AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to false if dataTargets should not be toggled on/of in 
+           LinkStatebased based on the passed 'active' or 'inactive' parameter            
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE ltoggle AS LOGICAL    NO-UNDO.
+  {set ToggleDataTargets plToggleDataTargets}.
+
+  RETURN TRUE. 
 
 END FUNCTION.
 
@@ -3236,13 +3792,13 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateFromSource Procedure 
 FUNCTION setUpdateFromSource RETURNS LOGICAL
-  ( plUpdateFromSource AS LOGICAL) :
+  ( plUpdateFromSource AS LOGICAL ) :
 /*------------------------------------------------------------------------------
   Purpose: Set to true if this object should be updated as one-to-one 
-           with the datasource updates (one-to-one) 
+           of the datasource updates (one-to-one) 
     Notes:  
 ------------------------------------------------------------------------------*/
-  {set UpdateFromSource  plUpdateFromSource}.
+  {set UpdateFromSource plUpdateFromSource}.
   RETURN TRUE.
 END FUNCTION.
 
@@ -3255,13 +3811,14 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateSource Procedure 
 FUNCTION setUpdateSource RETURNS LOGICAL
-  ( phObject AS HANDLE ) :
+  ( pcObject AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose:  Sets the UpdateSource link value.
-   Params:  phObject AS HANDLE -- procedure handle of this object's UpdateSource 
+   Params:  phObject AS CHAR -- List of procedure handles of this object's 
+                                UpdateSources
+                                 
 ------------------------------------------------------------------------------*/
-
-  {set UpdateSource phObject}.
+  {set UpdateSource pcObject}.
   RETURN TRUE.
 END FUNCTION.
 

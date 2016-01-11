@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -34,6 +34,8 @@
            10/06/00 Updated for POSSE
            11/01/00 Updated to create .w's in $POSSE/e4gl for POSSE. (jep)
            11/10/00 Split out samples directory
+           09/05/01 Improve the checking for PSC's RDLADE environment. (jep)
+           09/27/01 Make e4gl targdir be posseDir for RDLADE and POSSE (jep)
 ----------------------------------------------------------------------------*/
 
 {src/web/method/cgidefs.i NEW}
@@ -55,33 +57,41 @@ DEFINE VARIABLE srcDir    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE subdir    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE targdir   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE webfile   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE adeEnv    AS LOGICAL    NO-UNDO.
 
-/* Define list of directories to process */
+/* Define list of directories to process. This is different depending on whether
+   processing is for PSC's RDLADE environment or for the POSSE environment. */
 ASSIGN
   adeDir    = OS-GETENV("RDLADE":U)
   posseDir  = OS-GETENV("POSSE":U).
+  
+/*  Determine if in PSC's RDLADE environment. Both RDLADE and POSSE may be set 
+    in such an environment, but RDLADE being set specifies that processing is for 
+    RDLADE and not for POSSE. */
+ASSIGN
+  adeEnv = (adeDir <> ?).
 
 /* Embedded 4GL file processing takes place in $POSSE/e4gl for POSSE and
    $DLC/e4gl for PSC builds. This ensures e4gl processing does not alter
    commerically installed product directories. (jep) */
-IF (posseDir <> ?) THEN
-  ASSIGN
-    dirlist   = "webedit,webtools,webutil,workshop":U
-    srcDir    = posseDir + "/src":U
-    targdir   = posseDir + "/e4gl":U.
-ELSE
+IF adeEnv THEN
   ASSIGN
     dirlist   = "webedit,webtools,webutil,workshop,samples/web,samples/web/intranet,samples/web/internet,samples/web/extranet":U
     sampleDir = OS-GETENV("RDLSRC":U) + "/pscade":U
     srcDir    = adeDir
-    targdir   = OS-GETENV("DLC":U) + "/e4gl":U.
+    targdir   = posseDir + "/e4gl":U.
+ELSE
+  ASSIGN
+    dirlist   = "webedit,webtools,webutil,workshop":U
+    srcDir    = posseDir + "/src":U
+    targdir   = posseDir + "/e4gl":U.
     
 OS-CREATE-DIR VALUE(targdir).
 
 DO ix = 1 TO NUM-ENTRIES(dirlist):
   ASSIGN
     diritem = ENTRY(ix,dirlist)
-    nextdir = (IF posseDir = ? AND dirItem BEGINS "samples":U
+    nextdir = (IF adeEnv AND dirItem BEGINS "samples":U
                THEN sampleDir ELSE srcDir) + "/":U + diritem.
   
   INPUT FROM OS-DIR(nextdir).

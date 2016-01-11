@@ -458,13 +458,13 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE processComment Procedure 
 PROCEDURE processComment :
-/*------------------------------------------------------------------------------
-  Purpose:    Process a Comment node.  
-  Parameters: This method does nothing and must be overridden if there is a 
-              need to process comments.  
-------------------------------------------------------------------------------*/
-    DEFINE INPUT PARAMETER phText AS HANDLE NO-UNDO.
-    DEFINE INPUT PARAMETER pcPath AS CHAR   NO-UNDO.
+/*------------------------------------------------------------------------------ 
+Purpose:    Process a Comment node.   
+Parameters: This method does nothing and must be overridden if there is a  
+            need to process comments.   
+   ------------------------------------------------------------------------------*/ 
+ DEFINE INPUT PARAMETER phText AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER pcPath AS CHAR   NO-UNDO. 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

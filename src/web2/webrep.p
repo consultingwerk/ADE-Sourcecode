@@ -208,6 +208,17 @@ FUNCTION columnFormat RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-columnHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnHandle Procedure 
+FUNCTION columnHandle RETURNS HANDLE
+  ( pcColumn AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnHelp) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnHelp Procedure 
@@ -1651,6 +1662,33 @@ Parameters: INPUT pcColumn - The Column's name in the data-source
   
     RETURN ColumnHdl:FORMAT.
   END.  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-columnHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnHandle Procedure 
+FUNCTION columnHandle RETURNS HANDLE
+  ( pcColumn AS CHAR ) :
+/*------------------------------------------------------------------------------
+   Purpose: Return the column handle   
+Parameters: INPUT pcColumn - The column's name in the data-source.  
+     Notes: Returns the SDO's columnHandle or the query's dbColumnHandle.  
+------------------------------------------------------------------------------*/  
+  DEFINE VARIABLE hDataSource AS HANDLE NO-UNDO.
+  
+  {get DataSource hDataSource}.
+  
+  IF VALID-HANDLE(hDataSource) THEN 
+    RETURN DYNAMIC-FUNCTION('columnHandle':U IN hDataSource, pcColumn).
+  
+  ELSE 
+    RETURN DYNAMIC-FUNCTION('dbColumnHandle':U IN TARGET-PROCEDURE, pcColumn).
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

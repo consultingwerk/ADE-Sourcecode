@@ -968,6 +968,15 @@ PROCEDURE CloseFile:
 END PROCEDURE.  /* CloseFile */
 
 
+PROCEDURE FilePrintCall:
+/* Internal Call to FilePrint. Added to keep backwards compatibility
+   for FilePrint. */
+
+  RUN FilePrint (INPUT ProEditor).
+
+END PROCEDURE.
+
+
 PROCEDURE FilePrint:
 
   DEFINE INPUT PARAMETER p_Buffer AS WIDGET-HANDLE NO-UNDO.
@@ -1109,6 +1118,61 @@ PROCEDURE ExitEditor:
   &ENDIF
   
 END PROCEDURE.  /* ExitEditor */
+
+
+PROCEDURE AddtoRepos:
+  /*--------------------------------------------------------------------------
+    Purpose:        Executes the Add to Repository command (Dynamics Only) on
+                    the current buffer. User can then add file to repository.
+
+    Run Syntax:     RUN AddtoRepos.
+    Parameters:
+    Description:
+    Notes:          Added to support IZ 2513 Error when trying to save
+                    structured include in Dynamics framework.
+  ---------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hWindow     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE Add_OK      AS LOGICAL   NO-UNDO. 
+  DEFINE VARIABLE FileExt     AS CHARACTER NO-UNDO.
+  
+  DO ON STOP UNDO, LEAVE:
+      /* Need window handle of this editor widget. */
+      hWindow = ProEditor:WINDOW.
+             
+      /* Cannot add untitled / unsaved files to repository. */
+      IF ProEditor:PRIVATE-DATA BEGINS Untitled THEN
+      DO:
+          MESSAGE "Cannot add to repository:" ProEditor:PRIVATE-DATA SKIP(1)
+                  "The file must be saved before it can be added to a repository."
+                  VIEW-AS ALERT-BOX INFORMATION IN WINDOW hWindow.
+          RETURN.
+      END.
+
+      /* IZ 2513 Cannot add include files to repository. We can only filter on .i extensions. */
+      RUN adecomm/_osfext.p
+          (INPUT  ProEditor:PRIVATE-DATA  /* OS File Name.   */ ,
+           OUTPUT FileExt                 /* File Extension. */ ).
+      IF (FileExt = ".i":U) THEN
+      DO:
+        MESSAGE "Cannot add to repository:" ProEditor:PRIVATE-DATA SKIP(1)
+                "Include file types cannot be added to a repository."
+                VIEW-AS ALERT-BOX INFORMATION IN WINDOW hWindow.
+        RETURN.
+      END.
+  
+      /* Call to run Add to Repository dialog and add file to repository. */
+      RUN adeuib/_reposaddfile.p
+          (INPUT hWindow,                /* Parent Window    */
+           INPUT ?,                      /* _P recid         */
+           INPUT "",                     /* Product Module   */
+           INPUT ProEditor:PRIVATE-DATA, /* File to add      */
+           INPUT "",                     /* File type        */
+           OUTPUT Add_OK).
+  END.
+  
+END.    /* AddtoRepos */
+
 
 /* pfile.i -  end of file */
 

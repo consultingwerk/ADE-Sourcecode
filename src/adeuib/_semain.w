@@ -1309,11 +1309,12 @@ ON CLOSE OF THIS-PROCEDURE
 PAUSE 0 BEFORE-HIDE.
 
 /* If Webspeed Workshop-only, then change UIB image to Workshop image */
-IF _AB_License = 2 THEN DO:
-  IF NOT h_sewin:LOAD-ICON("adeicon/workshp%":U) THEN
-    MESSAGE "Unable to load icon: adeicon/workshp%"
-            VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-END.
+IF _AB_License = 2 THEN
+    h_sewin:LOAD-ICON("adeicon/workshp%":U) NO-ERROR.
+
+/* jep-icf: Override titlebar icon for ICF. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+    h_sewin:LOAD-ICON("adeicon/icfdev.ico":U) NO-ERROR.
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */

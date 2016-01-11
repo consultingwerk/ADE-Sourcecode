@@ -44,7 +44,8 @@
 /* This variable is needed at least temporarily in 9.1B so that a called
    fn can tell who the actual source was.  */
 DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
-
+DEFINE VARIABLE gcLoadedPanels    AS CHARACTER  NO-UNDO.
+ 
 /* Used in resizeObject to avoid changing the order of NO-FOCUS buttons. */                        
 DEFINE TEMP-TABLE tButton
   FIELD hdl     AS HANDLE
@@ -82,6 +83,28 @@ FUNCTION activeTarget RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-disableActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD disableActions Procedure 
+FUNCTION disableActions RETURNS LOGICAL
+  (pcActions AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-enableActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD enableActions Procedure 
+FUNCTION enableActions RETURNS LOGICAL
+  (pcActions AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getBoxRectangle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBoxRectangle Procedure 
@@ -97,6 +120,28 @@ FUNCTION getBoxRectangle RETURNS HANDLE
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getButtonCount Procedure 
 FUNCTION getButtonCount RETURNS INTEGER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDeactivateTargetOnHide) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDeactivateTargetOnHide Procedure 
+FUNCTION getDeactivateTargetOnHide RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDisabledActions Procedure 
+FUNCTION getDisabledActions RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -181,6 +226,17 @@ FUNCTION getPanelType RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getStaticPrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getStaticPrefix Procedure 
+FUNCTION getStaticPrefix RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTableioType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTableioType Procedure 
@@ -208,6 +264,52 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD hasActiveGATarget Procedure 
 FUNCTION hasActiveGATarget RETURNS LOGICAL
   (phObject AS HANDLE)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-modifyDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD modifyDisabledActions Procedure 
+FUNCTION modifyDisabledActions RETURNS LOGICAL
+  ( pcMode    AS CHAR,
+    pcActions AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-sensitizeActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD sensitizeActions Procedure 
+FUNCTION sensitizeActions RETURNS LOGICAL
+  ( pcActions AS CHAR,
+    plSensitive AS LOG)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDeactivateTargetOnHide) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDeactivateTargetOnHide Procedure 
+FUNCTION setDeactivateTargetOnHide RETURNS LOGICAL
+  ( plDeactivateTargetOnHide AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDisabledActions Procedure 
+FUNCTION setDisabledActions RETURNS LOGICAL
+  ( pcActions AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -269,6 +371,28 @@ FUNCTION setPanelType RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setStaticPrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setStaticPrefix Procedure 
+FUNCTION setStaticPrefix RETURNS LOGICAL
+  ( pcStaticPrefix AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-targetActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD targetActions Procedure 
+FUNCTION targetActions RETURNS CHARACTER
+  ( pcLinkType AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -287,7 +411,7 @@ FUNCTION setPanelType RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 13.14
+         HEIGHT             = 14
          WIDTH              = 49.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -327,7 +451,7 @@ PROCEDURE countButtons :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hFrame       AS HANDLE  NO-UNDO.
   DEFINE VARIABLE iButtonCount AS INTEGER NO-UNDO.
-  
+ 
   /* Loop through all the button children and count them. */
   {get PanelFrame hFrame}.
   ASSIGN hFrame  = hFrame:CURRENT-ITERATION
@@ -343,6 +467,26 @@ PROCEDURE countButtons :
     hFrame = hFrame:NEXT-SIBLING.
   END.
   {set ButtonCount iButtonCount}.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure 
+PROCEDURE destroyObject :
+/*------------------------------------------------------------------------------
+  Purpose:  override to unregister from object Mapping in an sbo (if necessary)  
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  
+  PUBLISH 'unRegisterObject':U FROM TARGET-PROCEDURE.  /* iz 996*/
+  RUN SUPER.
 
 END PROCEDURE.
 
@@ -386,68 +530,58 @@ PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
   Purpose:  SmartPanel-specific initialization
    Params:  <none>
-    Notes:  A SmartPanel is set to the appropriate state
-            depending on its Navigation- or Update-Target. A Navigation
-            SmartPanel retrieves the QueryPosition property of its 
-            Navigation-Target to determine which buttons to enable.
-            These QueryPosition values map to the value of the PanelState
-            property which is set in the SmartPanel:
-            'FirstRecord'       -> 'first'.
-            'LastRecord'        -> 'last'.
-            'NotFirstOrLast'    -> 'enable-all'.
-            'NoRecordAvailable' -> 'disable-all'.
-            Likewise, an Update Panel retrieves the RecordState property
-            of its Update-Target to do the same thing. 
-            'NoRecordAvailable' -> 'add-only'.
-            'NoRecordAvailableExt' -> 'disable-all'.
-            'RecordAvailable'      -> 'initial'.
-            These changes to the PanelState property are interpreted by 
-            the setButtons procedure in the SmartPanels.
+    Notes:  A SmartPanel is set to the appropriate state depending on its Target. 
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hFrame      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cTarget     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hTarget     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lHidden     AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE iTarget     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cQueryPos   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cPanelState AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cPanelType  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cUIBMode    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hFrame       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cTarget      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hTarget      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lHidden      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iTarget      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cQueryPos    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cPanelState  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cPanelType   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cUIBMode     AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTableioType AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cHidden      AS CHARACTER  NO-UNDO.
   
   {get UIBMode cUIBMode}.
-  IF NOT cUIBMode BEGINS 'DESIGN':U THEN DO:
-   
-   /* The sbo subscribes to this event in order to update ObjectMapping */
-   PUBLISH 'registerObject':U FROM TARGET-PROCEDURE.
 
-   {get PanelType cPanelType}.
-   IF cPanelType BEGINS 'Nav':U OR cPanelType BEGINS 'Save':U OR
-     cPanelType BEGINS 'Update':U THEN
-   DO:
-     IF cPanelType BEGINS 'Nav':U THEN
-       {get NavigationTarget cTarget}.
-     ELSE {get TableIOTarget cTarget}.     
-     /* There may be more than one Target. Find the one which is not hidden.*/
-     hTarget = ?.
-     DO iTarget = 1 TO NUM-ENTRIES(cTarget) WHILE hTarget = ?:
-       hTarget = WIDGET-HANDLE(ENTRY(iTarget, cTarget)).
-       {get ObjectHidden lHidden hTarget} NO-ERROR.
-       IF NOT lHidden = no THEN
-         hTarget = ?.            /* keep looking for one not hidden. */
-     END. /* END DO iTarget */
-   END.   /* END DO IF Nav/Save/Update */
+  
    
-   IF cPanelType BEGINS 'Nav':U THEN
-     RUN resetNavigation IN TARGET-PROCEDURE.
-   ELSE IF cPanelType BEGINS "Save":U OR cPanelType BEGINS "Update":U THEN
-     RUN resetTableio IN TARGET-PROCEDURE.
-   ELSE IF cPanelType BEGINS "Commit":U THEN
-     {set PanelState 'disable-all':U}.
+  IF NOT cUIBMode BEGINS 'DESIGN':U THEN 
+  DO:
+      /* The sbo subscribes to this event in order to update ObjectMapping */
+    PUBLISH 'registerObject':U FROM TARGET-PROCEDURE.
+
+    {get PanelType cPanelType}.
+    IF cPanelType BEGINS 'Nav':U OR cPanelType BEGINS 'Save':U OR
+      cPanelType BEGINS 'Update':U THEN
+    DO:
+      IF cPanelType BEGINS 'Nav':U THEN
+       {get NavigationTarget cTarget}.
+      ELSE {get TableIOTarget cTarget}.     
+      /* There may be more than one Target. Find the one which is not hidden.*/
+      hTarget = ?.
+      DO iTarget = 1 TO NUM-ENTRIES(cTarget) WHILE hTarget = ?:
+        hTarget = WIDGET-HANDLE(ENTRY(iTarget, cTarget)).
+        {get ObjectHidden lHidden hTarget} NO-ERROR.
+        IF NOT lHidden = no THEN
+          hTarget = ?.            /* keep looking for one not hidden. */
+      END. /* END DO iTarget */
+    END.   /* END DO IF Nav/Save/Update */
+   
   END.    /* END UIBMode NE design */
   
   /* The PanelState is set before invoking the standard behavior, which will
      do an 'enable' based on that setting. */
   RUN SUPER.
+  IF cPanelType BEGINS 'Nav':U THEN
+    RUN resetNavigation IN TARGET-PROCEDURE.
+  ELSE IF cPanelType BEGINS "Save":U OR cPanelType BEGINS "Update":U THEN
+    RUN resetTableio IN TARGET-PROCEDURE.
+  ELSE IF cPanelType BEGINS "Commit":U THEN
+    {set PanelState 'disable-all':U}.
+
   IF RETURN-VALUE = "ADM-ERROR":U  THEN 
     RETURN "ADM-ERROR":U.
   ELSE RETURN.
@@ -465,56 +599,150 @@ END PROCEDURE.
 PROCEDURE linkState :
 /*------------------------------------------------------------------------------
   Purpose:     Receives messages when an object linked to this one becomes
-               "active" (normally when it's viewed) or "inactive" (Hidden).
-               resets panel buttons accordingly.
-  Parameters:  pcState AS CHARACTER -- 'active'/'inactive'
-   Notes:      See resetTableio and resetNavigation..
+               'active' or 'inactive'  
+               'activetarget' or 'inactivetarget' is also valid states 
+  Parameters:  pcState AS CHARACTER -- 'active*'/'inactive*'
+   Notes:      resetTableio and resetNavigation..
                Completely changed for 9.1C, copied from toolbar, but toolbar 
                still overrides because panelType logic is different and
                toolbar can have both nav and tableio source. 
-               Toolbar does not support 'inactive'.
+               See Linkstate in data.p also.                
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
   
-  DEFINE VARIABLE cPanelState    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cQueryPos      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cPanelType     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cTarget        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hNavTarget     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lCanNavigate   AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cPanelState             AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cPanelType              AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTargets                AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cLink                   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iTarget                 AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hTarget                 AS HANDLE    NO-UNDO.
 
   {get PanelType cPanelType}.
-    
-  CASE pcState:
-    WHEN 'active':U THEN
-    DO:
-      IF cPanelType BEGINS 'Nav':U THEN
-        RUN resetNavigation IN TARGET-PROCEDURE.
-      ELSE IF cPanelType BEGINS 'Save':U OR cPanelType BEGINS 'Update':U THEN
-        RUN resetTableio IN TARGET-PROCEDURE.
-    END.     /* END 'active' CASE */
-    WHEN 'inactive':U THEN         
-      /* When a Panel's Target is hidden, it must be disabled. Note that
-         the PanelState is not actually set to disable-all because we need
-         to restore the panel state when it becomes active again. 
-         Also, don't do this for Save/Update panels if the TableIO-Target
-         has GroupAssign-Targets, because that means that some other page
-         of the GroupAssign is presumably active. */
-    DO:
-      IF cPanelType BEGINS 'Save':U OR cPanelType BEGINS 'Update':U THEN
-      DO:
-        {get GroupAssignTarget cTarget SOURCE-PROCEDURE}.
-        IF cTarget NE "":U THEN
-          RETURN.
-      END.  /* END DO IF Save/Update */
-      {set PanelState 'disable-nav':U}. /* runs setButtons */ 
-    END.   /* END 'inactive' CASE */
-      
-    OTHERWISE RETURN "ADM-ERROR":U.
-  END CASE.
+  {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
+
+  IF cPanelType BEGINS 'Nav':U THEN
+    cLink = 'NavigationTarget':U.
+  ELSE IF cPanelType BEGINS 'Save':U OR cPanelType BEGINS 'Update':U THEN
+    cLink = 'TableioTarget':U.
+  ELSE IF cPanelType BEGINS 'Commit':U THEN
+    cLink = 'CommitTarget':U.
+  ELSE 
+    RETURN.
+
+  cTargets = DYNAMIC-FUNCTION('get':U + cLink IN TARGET-PROCEDURE). 
   
+  IF CAN-DO(cTargets,STRING(SOURCE-PROCEDURE)) THEN
+  DO:
+    IF pcState BEGINS 'active':U 
+    AND NOT lDeactivateTargetOnHide 
+    AND NUM-ENTRIES(cTargets) > 1  THEN
+    DO:
+      DO iTarget = 1 TO NUM-ENTRIES(cTargets):
+        hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)). 
+        IF hTarget <> SOURCE-PROCEDURE THEN
+        DO:
+          RUN linkStateHandler IN hTarget ('inactive':U,
+                                            TARGET-PROCEDURE,
+                                            REPLACE(cLink,'Target','Source':U)).
+        END.
+      END.
+    END.
+
+    IF (pcState BEGINS 'active':U OR lDeactivateTargetOnHide) THEN
+    DO:  
+      RUN linkStateHandler IN SOURCE-PROCEDURE (REPLACE(pcstate,'Target':U,'':U),
+                                                TARGET-PROCEDURE,
+                                                REPLACE(cLink,'Target','Source':U)).
+      CASE cLink: 
+        WHEN 'NavigationTarget':U THEN
+          RUN resetNavigation IN TARGET-PROCEDURE.
+        WHEN 'TableioTarget':U THEN
+          RUN resetTableio IN TARGET-PROCEDURE.
+        WHEN 'CommitTarget':U THEN
+          RUN resetCommit IN TARGET-PROCEDURE.
+      END CASE.
+    END.
+  END.
+
   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-loadPanel) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadPanel Procedure 
+PROCEDURE loadPanel :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cActions       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrefix        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectName    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
+
+  {get UseRepository lUseRepository}.
+  
+  IF NOT lUseRepository THEN 
+    RETURN.
+  
+  {get LogicalObjectName cObjectName}.
+  
+  IF cObjectName = '':U THEN
+    {get ObjectName cObjectName}.
+
+  IF NOT CAN-DO(gcLoadedPanels,cObjectName) THEN
+  DO:
+    {get EnabledObjFlds cActions}. 
+    {get StaticPrefix  cPrefix}.
+
+    cActions = TRIM(REPLACE(',':U + cActions,',' + cPrefix,',':U),',':U).
+    RUN loadActions IN TARGET-PROCEDURE (cActions).
+    gcLoadedPanels = gcLoadedPanels
+                   + (IF gcLoadedPanels <> '':U THEN ',':U ELSE '':U)
+                   + cObjectName.
+  END.
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-onChoose) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE onChoose Procedure 
+PROCEDURE onChoose :
+/*------------------------------------------------------------------------------
+  Purpose:  Read action and parameter from Action class (Repository)    
+  Parameters:  Action
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE INPUT  PARAMETER pcAction AS CHARACTER  NO-UNDO.
+  
+ DEFINE VARIABLE cCall          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cParam         AS CHARACTER  NO-UNDO.
+
+  cCall  =  {fnarg actionOnChoose pcAction}.
+  cParam =  {fnarg actionParameter pcAction}.
+  MESSAGE 
+      'call' cCall 
+      'param' cParam VIEW-AS ALERT-BOX.
+
+  IF cParam = "":U THEN
+    PUBLISH cCall FROM TARGET-PROCEDURE.  
+  ELSE
+    PUBLISH cCall FROM TARGET-PROCEDURE (cParam).  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -563,6 +791,23 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-resetCommit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetCommit Procedure 
+PROCEDURE resetCommit :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ RUN resetTargetActions IN TARGET-PROCEDURE ('commit':U).
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resetNavigation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetNavigation Procedure 
@@ -572,34 +817,8 @@ PROCEDURE resetNavigation :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE lCanNavigate          AS LOGICAL    NO-UNDO.
-   DEFINE VARIABLE cQueryPos             AS CHARACTER  NO-UNDO.
- 
-   hTarget = {fnarg activeTarget 'Navigation':U}. 
-   IF NOT VALID-HANDLE(hTarget) THEN RETURN.
-
-   /* We must always reset the gh- variable for each call, 
-      as a precaution as the list of events may come back to us in a place
-      where we set it back to ? */ 
-      
-   /* canNavigate returns false if updates prevents us from navigating  */
-   lCanNavigate = ?.    
-   ghTargetProcedure = TARGET-PROCEDURE.
-   lCanNavigate = {fn canNavigate hTarget} NO-ERROR.
-   ghTargetProcedure = ?.
+   RUN resetTargetActions IN TARGET-PROCEDURE ('Navigation':U).
    
-   /* Active denials only (unknown is yes) */
-   IF NOT (lCanNavigate = FALSE) THEN
-   DO:
-     ghTargetProcedure = TARGET-PROCEDURE.
-     {get QueryPosition cQueryPos hTarget}.
-     ghTargetProcedure = ?.
-     {fnarg setNavigationButtons cQueryPos}.
-   END.
-   ELSE 
-     {set PanelState 'disable-nav':U}.  /* runs setButtons */ 
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -619,84 +838,129 @@ PROCEDURE resetTableio :
               -  updateState('updateComplete) and Tableiomode = 'update' 
                  'backfire' of updateMode()  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cPanelState    AS CHAR       NO-UNDO. 
-  DEFINE VARIABLE hTarget        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cNew           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lSaveSource    AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lModified      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cEnabledFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lEnabled       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cTableioType   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQueryPos      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hUpdateTarget  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lCanNavigate   AS LOGICAL    NO-UNDO.
+  RUN resetTargetActions IN TARGET-PROCEDURE ('Tableio':U).
 
-  hTarget = {fnarg activeTarget 'Tableio':U}.  
-  
-  IF NOT VALID-HANDLE(hTarget) THEN RETURN.
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-resetTargetActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE resetTargetActions Procedure 
+PROCEDURE resetTargetActions :
+/*------------------------------------------------------------------------------
+  Purpose:  reset action sensitivivty and visiblilty    
+  Parameters:  <none>
+  Notes:    Overridden in toolbar.p with use of temp-tabls and additional
+            logic for alternate image   
+------------------------------------------------------------------------------*/
+ DEFINE INPUT PARAMETER pcLink  AS CHARACTER  NO-UNDO.
  
-  {get NewRecord cNew hTarget}.
-  /*{get SaveSource lSaveSource hTarget}. */
-  {get TableIOType cTableIOType}.
-  {get DataModified lModified hTarget}.
-  {get FieldsEnabled lEnabled hTarget}.
+ DEFINE VARIABLE cEnableActions    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cDisableActions   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cHideActions      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cViewActions      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cImage1Actions    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cImage2Actions    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cCheckedActions   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cUncheckedActions AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lInitialized      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cLinkActions      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hTarget           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cLinkName         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cAction           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hAction           AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cActionList       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iAction           AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cHandles          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cPrefix           AS CHARACTER  NO-UNDO.
 
-  IF cNew <> 'NO':U 
-  OR (cTableIOType BEGINS 'Update':U AND lEnabled) /*lSaveSource */ THEN
-    cPanelState = 'Modal-Update':U  
-                + IF lModified THEN '-Modified':U ELSE '':U.
-
-  ELSE IF lModified THEN
-     cPanelState = 'Update':U.
-  
-  ELSE DO: 
-    {get RecordState cQueryPos hTarget}.
-    CASE cQueryPos:        
-       WHEN 'FirstRecord':U OR /* All these amount to RecordAvailable update*/
-       WHEN 'LastRecord':U OR
-       WHEN 'NotFirstOrLast':U OR
-       WHEN 'OnlyRecord':U OR
-       WHEN 'RecordAvailable':U THEN
-             cPanelState = 'initial-tableio':U.
-       WHEN 'NoRecordAvailable':U THEN
-            cPanelState = 'add-only':U.
-       WHEN 'NoRecordAvailableExt':U THEN
-            cPanelState = 'disable-tableio':U.
-    END CASE.  /* pcState */
-    
-    IF cPanelState <> 'disable-tableio':U THEN
-    DO:
-      {get UpdateTarget hUpdateTarget hTarget}.
-      IF VALID-HANDLE(hUpdateTarget) THEN
-      DO:
-        lCanNavigate = ?.        
-        /* Set target to our tableiotarget in order to find the right 
-           SDO inside a potential SBO */
-        ghTargetProcedure = hTarget. 
-        lCanNavigate = {fn canNavigate hUpdateTarget} NO-ERROR.
-        ghTargetProcedure = ?.
-      END.
-     
-      /* Ignore unless active denials */
-      IF NOT (lCanNavigate = FALSE) THEN 
-      DO:
-        {get EnabledFields cEnabledFields hTarget}.
-        IF cEnabledFields = '':U THEN
-        DO:
-          /* if the tablioTarget has no enabled fields we can only allow delete */        
-          IF cPanelState = 'initial-tableio':U THEN 
-             cPanelState = 'delete-only':U.
-          ELSE IF cPanelState = 'add-only':U THEN 
-            cPanelState = 'disable-tableio':U.           
-        END. /* no enabled fields */
-      END.
-      ELSE cPanelState = 'update-only':U.
-    END.
-  END.
-  
-  IF cPanelstate <> '':U THEN
-    {set PanelState cPanelState}. /* runs setButtons */ 
+ {get ObjectInitialized lInitialized}.
+ IF NOT lInitialized THEN 
+   RETURN.
  
+ IF pcLink <> '':U THEN
+   hTarget = {fnarg activeTarget pcLink}.
+ ELSE 
+   {get ContainerSource hTarget}.
+
+ IF NOT VALID-HANDLE(hTarget) THEN
+ DO:
+   cLinkActions =  {fnarg targetActions pcLink}.
+   {fnarg disableActions cLinkActions}.  
+   RETURN.
+ END.
+  
+ {get EnabledObjFlds cActionList}. 
+ {get EnabledObjHdls cHandles}. 
+ {get StaticPrefix  cPrefix}.
+
+ DO iAction = 1 TO NUM-ENTRIES(cActionList):
+   ASSIGN 
+    cAction = REPLACE(ENTRY(iAction,cActionList),cPrefix,'':U)
+    hAction = WIDGET-HANDLE(ENTRY(iAction,cHandles)).
+   IF VALID-HANDLE(hAction) THEN
+   DO:
+     ASSIGN
+        cEnableActions = cEnableActions 
+                       + (IF hAction:SENSITIVE 
+                          THEN ',':U + cAction
+                          ELSE '':U)
+         cDisableActions = cDisableActions 
+                         + (IF NOT hAction:SENSITIVE 
+                            THEN ',':U + cAction
+                            ELSE '':U)
+         cViewActions = cViewActions 
+                        + (IF NOT hAction:HIDDEN 
+                           THEN ',':U + cAction
+                           ELSE '':U)
+         cHideActions = cHideActions 
+                         + (IF hAction:HIDDEN 
+                            THEN ',':U + cAction
+                            ELSE '':U).
+   END.
+ END.
+
+ ASSIGN 
+   cEnableActions    = TRIM(cEnableActions,',':U)
+   cDisableActions   = TRIM(cDisableActions,',':U)
+   cViewActions      = TRIM(cViewActions,',':U)
+   cHideActions      = TRIM(cHideActions,',':U)
+   cImage1Actions    = TRIM(cImage1Actions,',':U)
+   cImage2Actions    = TRIM(cImage2Actions,',':U)
+   cUncheckedActions = TRIM(cUncheckedActions,',':U)
+   cCheckedActions   = TRIM(cCheckedActions,',':U).
+
+ cLinkName = pcLink + '-target':U. 
+
+ RUN ruleStatechanges IN TARGET-PROCEDURE
+       (cLinkName,
+        hTarget,
+        INPUT-OUTPUT cEnableActions,
+        INPUT-OUTPUT cDisableActions,
+        INPUT-OUTPUT cViewActions,
+        INPUT-OUTPUT cHideActions,
+        INPUT-OUTPUT cImage1Actions,
+        INPUT-OUTPUT cImage2Actions,
+        INPUT-OUTPUT cUncheckedActions,
+        INPUT-OUTPUT cCheckedActions).
+ 
+ IF cEnableActions <> '':U THEN
+   {fnarg EnableActions cEnableActions}.
+ 
+ IF cDisableActions <> '':U THEN
+    {fnarg disableActions cDisableActions}.
+
+ IF cViewActions <> '':U OR cHideActions <> '' THEN
+   RUN viewHideActions IN TARGET-PROCEDURE (cViewActions,cHideactions).
+
+ RETURN.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -900,7 +1164,7 @@ PROCEDURE resizeObject :
     EMPTY TEMP-TABLE tButton NO-ERROR.
     
     DO WHILE VALID-HANDLE (h):
-      IF h:DYNAMIC eq no AND h:TYPE eq "BUTTON":U THEN DO:
+      IF h:HIDDEN = FALSE AND h:DYNAMIC eq no AND h:TYPE eq "BUTTON":U THEN DO:
          CREATE tButton.
          ASSIGN 
             tButton.hdl  = h
@@ -1033,6 +1297,66 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-viewHideActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE viewHideActions Procedure 
+PROCEDURE viewHideActions :
+/*------------------------------------------------------------------------------
+  Purpose: Views and hides static actions              
+    Notes: Dynamic version in toolbar.p  
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcViewActions AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER pcHideActions AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE iAction      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLookup      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hAction      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAction      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cActions     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrefix      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cHandles     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lResize      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iButtonCount AS INTEGER    NO-UNDO.
+  
+  DEFINE VARIABLE hFrame       AS HANDLE     NO-UNDO.
+
+  {get EnabledObjFlds cActions}. 
+  {get EnabledObjHdls cHandles}. 
+  {get StaticPrefix  cPrefix}.
+  {get ButtonCount iButtonCount}.
+  DO iAction = 1 TO NUM-ENTRIES(cActions):
+    ASSIGN 
+      hAction = WIDGET-HANDLE(ENTRY(iAction,cHandles))
+      cAction = ENTRY(iAction,cActions)
+      cAction = REPLACE(' ':U + cAction,' ' + cPrefix,'':U).
+    IF CAN-DO(pcViewActions,cAction) AND hAction:HIDDEN = TRUE THEN
+      ASSIGN
+         hAction:HIDDEN = FALSE
+         iButtonCount = iButtonCount + 1
+         lResize      = TRUE.    
+    IF CAN-DO(pcHideActions,cAction) AND hAction:HIDDEN = FALSE THEN
+      ASSIGN 
+        hAction:HIDDEN = TRUE
+        iButtonCount   = iButtonCount - 1
+        lResize        = TRUE.    
+  END.
+  {set ButtonCount iButtonCount}.
+  
+  IF lResize THEN
+  DO:
+    {get ContainerHandle hframe}.
+    RUN resizeObject IN TARGET-PROCEDURE (hFrame:HEIGHT, hFrame:WIDTH). 
+  END.
+
+  RETURN.  
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 /* ************************  Function Implementations ***************** */
 
 &IF DEFINED(EXCLUDE-activeTarget) = 0 &THEN
@@ -1044,24 +1368,32 @@ FUNCTION activeTarget RETURNS HANDLE
   Purpose: Return the active target linked object.   
    pcLink: pcLink - "Tableio", "Navigation" "Commit"  
     Notes: The toolbar only supports one active object in these, but it may 
-           be linked to inactivve objects on hidden pages. 
-           This procedure returns the active hidden object where 
-           ObjectHidden = false of a link type. 
+           be linked to inactive objects on hidden pages. 
+           If more than one target this procedure returns the active hidden 
+           object where ObjectHidden = false of a link type. 
    NB!!    NOT overidden by toolbar. 
            If ANY                     
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cLinkHandles AS CHAR   NO-UNDO.
-  DEFINE VARIABLE iLink        AS INT    NO-UNDO.
-  DEFINE VARIABLE lHidden      AS LOG    NO-UNDO.
-  DEFINE VARIABLE hObject      AS HANDLE NO-UNDO.
+  DEFINE VARIABLE cLinkHandles   AS CHAR      NO-UNDO.
+  DEFINE VARIABLE iLink          AS INT       NO-UNDO.
+  DEFINE VARIABLE lHidden        AS LOG       NO-UNDO.
+  DEFINE VARIABLE hObject        AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cDataTargets   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iDataTarget    AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE hDataTarget    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cInactiveLinks AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lQuery         AS LOGICAL    NO-UNDO.
 
   cLinkHandles = DYNAMIC-FUNCTION("get":U + pcLink + "Target":U
-                                   IN TARGET-PROCEDURE).
+                                   IN TARGET-PROCEDURE) NO-ERROR.
   
   IF NUM-ENTRIES(cLinkHandles) = 1 THEN
   DO:
     hObject = WIDGET-HANDLE(cLinkHandles).
-    RETURN hObject.
+    {get inactiveLinks cInactiveLinks hObject}.
+    IF NOT CAN-DO(cInactiveLinks,pcLink + "Source":U) THEN
+      RETURN hObject.
+    ELSE RETURN ?.
   END.
   ELSE 
   DO iLink = 1 TO NUM-ENTRIES(cLinkHandles):
@@ -1069,15 +1401,81 @@ FUNCTION activeTarget RETURNS HANDLE
      IF VALID-HANDLE(hObject) THEN
      DO:
        {get ObjectHidden lHidden hObject}.         
-       IF NOT lHidden THEN
+       {get inactiveLinks cInactiveLinks hObject}.
+       
+       IF NOT lHidden AND NOT CAN-DO(cInactiveLinks,pcLink + "Source":U) THEN
          RETURN hObject. 
        ELSE IF {fnarg hasActiveGATarget hObject} THEN
-         RETURN hObject. 
+         RETURN hObject.
+       ELSE DO: 
+          /* An SDO need to be active if any of its dataTargets also is 
+             an active groupAssignTarget */
+         {get DataTarget cDataTargets hObject}.
+         DO iDataTarget = 1 TO NUM-ENTRIES(cDataTargets):
+           hDataTarget = WIDGET-HANDLE(ENTRY(iDataTarget,cDataTargets)).
+           IF VALID-HANDLE(hDataTarget) THEN
+           DO:
+             {get QueryObject lQuery hDataTarget}.
+             IF lQuery THEN NEXT.
+
+             {get ObjectHidden lHidden hDataTarget}.         
+             IF NOT lHidden THEN
+               RETURN hObject.
+             ELSE IF {fnarg hasActiveGATarget hDataTarget} THEN
+               RETURN hObject.
+           END.
+         END.
+       END.
      END. /* valid(hObject) */
   END.
   
   RETURN ?.   
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-disableActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION disableActions Procedure 
+FUNCTION disableActions RETURNS LOGICAL
+  (pcActions AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Disable a list of actions 
+Parameters: INPUT pcActions - A comma separated list of actions to disable
+                              "*" - means disable all     
+    Notes:  This function is used internally to turn actions on/off depending
+            of the state.  
+            Use modifyDisabledActions or setDisabledActions to override 
+            enabling.             
+------------------------------------------------------------------------------*/
+  RETURN DYNAMIC-FUNC("sensitizeActions":U IN TARGET-PROCEDURE,
+                      pcActions,FALSE).
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-enableActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION enableActions Procedure 
+FUNCTION enableActions RETURNS LOGICAL
+  (pcActions AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Enable a list of actions 
+Parameters: INPUT pcActions - A comma separated list of actions to enable
+                              "*" - means enable all     
+    Notes:  This function is used internally to turn actions on/off depending
+            of the state.  
+            Use modifyDisabledActions or setDisabledActions to override 
+            enabling.             
+------------------------------------------------------------------------------*/
+  RETURN DYNAMIC-FUNC("sensitizeActions" IN TARGET-PROCEDURE,pcActions,TRUE).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1122,6 +1520,54 @@ FUNCTION getButtonCount RETURNS INTEGER
   {get ButtonCount iCount}.
   RETURN iCount.
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDeactivateTargetOnHide) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDeactivateTargetOnHide Procedure 
+FUNCTION getDeactivateTargetOnHide RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if a target should be deactivated immediately on hide  
+           If false the hidden targets are deactivated on view of another 
+           target 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lDeactivateTargetOnHide AS LOGICAL    NO-UNDO.
+  {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
+  RETURN lDeactivateTargetOnHide.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDisabledActions Procedure 
+FUNCTION getDisabledActions RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  RETURNS a comma separated list of disabled actions.
+   Params:  <NONE>
+    Notes: - The actions will be immediately disabled and subsequent calls 
+             to enableActions will not enable them again. This makes it 
+             possible to permanently disable actions independent of state 
+             changes.
+           - If you remove actions from the list they will be enabled the next
+             time enableActions is used on them.
+           - Use the modifyDisabledActions to add or remove actions. 
+-----------------------------------------------------------------------------*/
+ ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
+        ghProp = ghProp:BUFFER-FIELD('DisabledActions':U).
+
+ RETURN ghProp:BUFFER-VALUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1292,6 +1738,27 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getStaticPrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getStaticPrefix Procedure 
+FUNCTION getStaticPrefix RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the prefix used before the action name in static definitions
+    Notes: This allows static panels to use action/repository data. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cStaticPrefix AS CHARACTER  NO-UNDO.
+  {get StaticPrefix cStaticPrefix}.
+
+  RETURN cStaticPrefix.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTableioType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTableioType Procedure 
@@ -1299,7 +1766,7 @@ FUNCTION getTableioType RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
   Purpose: Return PanelType for tableio, so that resetTabelio can handle panel 
-           simialr to toolbar.      
+           similar to toolbar.      
   Parameters:  
     Notes:       
 ------------------------------------------------------------------------------*/
@@ -1377,6 +1844,162 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-modifyDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION modifyDisabledActions Procedure 
+FUNCTION modifyDisabledActions RETURNS LOGICAL
+  ( pcMode    AS CHAR,
+    pcActions AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Modify the DisabledActions property and make it possible to 
+           permanently disable actions independent of state changes. 
+Parameters: pcMode  
+               - "ADD"    - Adds the actions to the DisabledActions.
+               - "REMOVE" - Removes the actions from the DisabledActions.
+            pcActions - Comma separated list of actions          
+   Notes:  - ADD: The actions will be immediately disabled and subsequent calls 
+             to enableActions will not enable them again.
+             REMOVE: Actions that are removed from the list will be enabled 
+             the next time they are called with enableActions.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cDisabledActions AS CHAR NO-UNDO.
+  DEFINE VARIABLE cAction          AS CHAR NO-UNDO.
+  DEFINE VARIABLE iLoop            AS INT  NO-UNDO.
+  DEFINE VARIABLE iNum             AS INT  NO-UNDO.
+  DEFINE VARIABLE iAction          AS INT  NO-UNDO.
+
+  {get DisabledActions cDisabledActions}.  
+  DO iLoop = 1 TO NUM-ENTRIES(pcActions):
+    ASSIGN
+      cAction = ENTRY(iLoop,pcActions)
+      iNum    = LOOKUP(cAction,cDisabledActions).
+    
+    IF iNum = 0 AND pcMode = 'ADD':U THEN
+      cDisabledActions = cDisabledActions
+                         + (IF cDisabledActions = "":U THEN "":U ELSE ",":U)
+                         + cAction.
+
+    ELSE IF iNum <> 0 AND pcMode = 'REMOVE':U THEN
+                /* Add comma before and after entry to make sure we replace 
+                   a complete action.
+                   Add comma before and after the list to replace first,last.
+                   Trim any leading or trailing commas away  */
+                      
+      cDisabledActions = TRIM(REPLACE(",":U + cDisabledActions + ",":U,
+                                      ",":U + cAction + ",":U,","),
+                              ",":U). 
+  END. /* do iloop = 1 to num-entries */
+
+  RETURN {set DisabledActions cDisabledActions}.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-sensitizeActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION sensitizeActions Procedure 
+FUNCTION sensitizeActions RETURNS LOGICAL
+  ( pcActions AS CHAR,
+    plSensitive AS LOG) :
+/*------------------------------------------------------------------------------
+  Purpose:  Static version 
+    Notes:  Dynamic version in toolbar.p  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iAction AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLookup AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hAction AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAction AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cActions AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrefix AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cHandles AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisabledActions AS CHARACTER NO-UNDO.
+  
+  {get DisabledActions cDisabledActions}.
+  {get EnabledObjFlds cActions}.
+  {get EnabledObjHdls cHandles}. 
+  {get StaticPrefix  cPrefix}.
+
+  DO iAction = 1 TO NUM-ENTRIES(pcActions):
+    ASSIGN 
+      cAction = ENTRY(iAction,pcActions)
+      iLookup = LOOKUP(cPrefix + cAction,cActions).
+    IF iLookup > 0  THEN
+    DO:
+      IF LOOKUP(cAction, cDisabledActions) = 0 THEN /* if not in disabled list */
+      ASSIGN 
+        hAction = WIDGET-HANDLE(ENTRY(iLookup,cHandles))
+        hAction:SENSITIVE = plSensitive.
+    END.
+  END.
+  
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDeactivateTargetOnHide) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDeactivateTargetOnHide Procedure 
+FUNCTION setDeactivateTargetOnHide RETURNS LOGICAL
+  ( plDeactivateTargetOnHide AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true if a target should be deactivated immediately on hide  
+           False indicates that the hidden targets are deactivated on view of 
+           another target. 
+    Notes: True should be used to disable a toolbar when the object is hidden 
+           also when the object has only one target or to disable the toolbar 
+           when the current page is a page that does not have any target. 
+           False (default) ensures that the targets always are active if 
+           only one link even if they are hidden and avoids the disabling 
+           in a paged container when switching pages.  
+------------------------------------------------------------------------------*/
+  {set DeactivateTargetOnHide plDeactivateTargetOnHide}.
+  RETURN plDeactivateTargetOnHide.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDisabledActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDisabledActions Procedure 
+FUNCTION setDisabledActions RETURNS LOGICAL
+  ( pcActions AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Stores a comma separated list of disabled actions.
+   Params:  pcActions AS CHARACTER -- Comma separated list of actions
+    Notes: - The actions will be immediately disabled and subsequent calls 
+             to enableActions will not enable them again. This makes it 
+             possible to permanently disable actions independent of state 
+             changes.
+           - If you remove actions from the list they will be enabled the next
+             time enableActions is used on them.
+           - Use the modifyDisabledActions to add or remove actions. 
+------------------------------------------------------------------------------*/
+  /* Immediately disable the actions. */
+  {fnarg disableActions pcActions}.
+
+  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
+         ghProp = ghProp:BUFFER-FIELD('DisabledActions':U)
+         ghProp:BUFFER-VALUE = pcActions.
+
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setEdgePixels) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setEdgePixels Procedure 
@@ -1436,6 +2059,7 @@ FUNCTION setNavigationButtons RETURNS LOGICAL
       WHEN 'NoRecordAvailable':U OR
       WHEN 'NoRecordAvailableExt':U THEN
          cPanelState = 'disable-nav':U.
+  
   END CASE.
 
   IF cPanelState NE "":U THEN 
@@ -1534,6 +2158,55 @@ FUNCTION setPanelType RETURNS LOGICAL
 
   {set PanelType pcPanelType}.
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setStaticPrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setStaticPrefix Procedure 
+FUNCTION setStaticPrefix RETURNS LOGICAL
+  ( pcStaticPrefix AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the prefix used before the action name in static definitions.
+Parameter: Prefix -   
+    Notes: This allows static panels to use action/repository data. 
+------------------------------------------------------------------------------*/
+  {set StaticPrefix pcStaticPrefix}.
+
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-targetActions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION targetActions Procedure 
+FUNCTION targetActions RETURNS CHARACTER
+  ( pcLinkType AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return the actions of a target 
+parameter: Linktype     
+    Notes: This is the static version used for static buttons in panels. 
+           Overidden in toolbar  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hTarget  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cActions AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrefix  AS CHARACTER  NO-UNDO.
+
+  {get EnabledObjFlds cActions}. 
+  {get StaticPrefix  cPrefix}.
+  cActions = TRIM(REPLACE(",":U + cActions,",":U + cPrefix,",":U),',':U).  
+  
+  RETURN cActions.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

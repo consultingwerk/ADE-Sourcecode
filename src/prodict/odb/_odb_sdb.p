@@ -53,6 +53,10 @@ FOR EACH DICTDBG.GetInfo_buffer:
       THEN  quote_char = " ".
    ELSE  quote_char = DICTDBG.GetInfo_buffer.quote_char.
 
+   IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) >= 7 AND
+      DICTDBG.GetInfo_buffer.dbms_name BEGINS "Microsoft SQL" THEN
+       RETURN "wrg-ver".
+
    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name
           DICTDB._Db._Db-misc2[2] = DICTDBG.GetInfo_buffer.driver_version
           DICTDB._Db._Db-misc2[3] = escape_char + quote_char

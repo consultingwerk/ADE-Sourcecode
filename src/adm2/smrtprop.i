@@ -39,6 +39,9 @@
 /* ***************************  Definitions  ************************** */
 
  {src/adm2/custom/smartdefscustom.i}
+ 
+ /* Service Managers */
+ {src/adm2/globals.i NEW GLOBAL}
 
  /* define the ADM Version and broker handle for all SmartObjects */
  &GLOB ADM-VERSION ADM2.2
@@ -131,16 +134,16 @@ FUNCTION getObjectType RETURNS CHARACTER
 
  &GLOB xpObjectName
  &GLOB xpObjectVersion
- &GLOB xpObjectType 
+ &GLOB xpObjectType
+ &GLOB xpHideOnInit 
  &GLOB xpContainerType  
  &GLOB xpPropertyDialog  
  &GLOB xpQueryObject    
  &GLOB xpContainerHandle             
  &GLOB xpInstanceProperties          
  &GLOB xpSupportedLinks              
- &GLOB xpContainerHidden             
+ &GLOB xpContainerHidden          
  &GLOB xpObjectInitialized          
- &GLOB xpObjectHidden              
  &GLOB xpContainerSource           
  &GLOB xpContainerSourceEvents    
  &GLOB xpDataSourceEvents          
@@ -151,6 +154,18 @@ FUNCTION getObjectType RETURNS CHARACTER
  &GLOB xpDataSourceNames
  &GLOB xpDataTarget
  &GLOB xpDataTargetEvents
+ &GLOB xpInactiveLinks
+ /* for support of dynamic objects */
+ &GLOBAL-DEFINE xpPhysicalObjectName    /* physical name - no path */
+ &GLOBAL-DEFINE xpDynamicObject
+ &GLOBAL-DEFINE xpPhysicalVersion
+ 
+ 
+ &GLOBAL-DEFINE xpChildDataKey
+ &GLOBAL-DEFINE xpParentDataKey
+ &GLOBAL-DEFINE xpDataLinksEnabled
+  /* for support of runtime parameters passed from the menus */
+ &GLOBAL-DEFINE xpRunAttribute
  
  /* This temp-table defines all the propertt fields for an object.
     This include file contributes the DEFINE statement header and
@@ -183,12 +198,17 @@ FUNCTION getObjectType RETURNS CHARACTER
   ghADMProps:ADD-NEW-FIELD('ContainerHidden':U, 'LOGICAL':U, 0, ?, NO).
   ghADMProps:ADD-NEW-FIELD('ObjectInitialized':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('ObjectHidden':U, 'LOGICAL':U, 0, ?, yes).
+  ghADMProps:ADD-NEW-FIELD('HideOnInit':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('UIBMode':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ContainerSource':U, 'HANDLE':U). 
+  /* Note that datavis adds some events that are only required for updating objects */ 
+  /* isUpdateActive event is needed only for data, datavis and container classes,
+     but we currently define it here.. (this simplifies the logic for datavis, 
+     which may or may not inherit from container)
+     confirmOk and confirmCancel only for container ans datavis */  
   ghADMProps:ADD-NEW-FIELD('ContainerSourceEvents':U, 'CHAR':U, 0, ?,
-    'initializeObject,hideObject,viewObject,destroyObject,enableObject,confirmExit':U).
+    'initializeObject,hideObject,viewObject,destroyObject,enableObject,confirmExit,confirmCancel,confirmOk,isUpdateActive':U).
   ghADMProps:ADD-NEW-FIELD('DataSource':U, 'HANDLE':U).
-  
   /* Note that DataSourceEvents is overidden in data.i since some of these 
      events are intended for visual targets; queryPosition, fetchDataSet, 
      assignMaxdataguess and the most resent addition confirmUndo and 
@@ -200,18 +220,29 @@ FUNCTION getObjectType RETURNS CHARACTER
     '{&xcTranslatableProperties}':U).
   ghADMProps:ADD-NEW-FIELD('ObjectPage':U, 'INT':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('DBAware':U, 'LOGICAL':U, 0, ?,
-  &IF DEFINED (DB-AWARE) NE 0 &THEN
-    {&DB-AWARE}).
-  &ELSE
-    no).
-  &ENDIF
+                             &IF DEFINED (DB-AWARE) NE 0 &THEN
+                          {&DB-AWARE}).
+                             &ELSE
+                          no).
+                             &ENDIF
   ghADMProps:ADD-NEW-FIELD('DesignDataObject':U, 'CHAR':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('DataSourceNames':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('DataTarget':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DataTargetEvents':U, 'CHARACTER':U, 0, ?,
-      'updateState,rowObjectState,fetchBatch':U).
+     'updateState,rowObjectState,fetchBatch,LinkState':U).
 
+  ghADMProps:ADD-NEW-FIELD('LogicalObjectName', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('PhysicalObjectName', 'CHARACTER', ?, ?, "{&OBJECT-NAME}").  
 
+  ghADMProps:ADD-NEW-FIELD('LogicalVersion', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('PhysicalVersion', 'CHARACTER', ?, ?, "{&OBJECT-VERSION}").  
+
+  ghADMProps:ADD-NEW-FIELD('DynamicObject', 'LOGICAL').  
+  ghADMProps:ADD-NEW-FIELD('RunAttribute', 'CHARACTER').    
+  ghADMProps:ADD-NEW-FIELD('ChildDataKey', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('ParentDataKey', 'CHARACTER').  
+  ghADMProps:ADD-NEW-FIELD('DataLinksEnabled', 'LOGICAL', ?, ?, YES).
+  ghADMProps:ADD-NEW-FIELD('InactiveLinks', 'CHARACTER').  
 &ENDIF
 
   {src/adm2/custom/smrtpropcustom.i}

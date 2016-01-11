@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME Dlg_NewName
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dlg_NewName 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -60,10 +60,12 @@
 /* ***************************  Definitions  ************************** */
 &GLOBAL-DEFINE WIN95-BTN YES
 {adecomm/adestds.i}        /* Standared ADE Preprocessor Directives */
-IF NOT initialized_adestds
-THEN RUN adecomm/_adeload.p.
+IF NOT initialized_adestds THEN
+  RUN adecomm/_adeload.p.
 
 {adeuib/uibhlp.i}          /* Help File Preprocessor Directives     */
+
+DEFINE SHARED VARIABLE se_section AS CHARACTER  NO-UNDO.
 
 /* Parameters Definitions ---                                           */
 &IF DEFINED(UIB_is_Running) NE 0 &THEN
@@ -342,8 +344,13 @@ END.
 /* ***************************  Main Block  *************************** */
 
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
-IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
-THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT EQ ? THEN
+  FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+
+/* Make this dialog the current window. */
+ASSIGN
+  THIS-PROCEDURE:CURRENT-WINDOW = FRAME {&FRAME-NAME}:PARENT
+  CURRENT-WINDOW                = THIS-PROCEDURE:CURRENT-WINDOW.
 
 /* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
 {adecomm/okbar.i &TOOL = "AB"
@@ -360,7 +367,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN set-init-values.
   RUN enable_UI.
   RUN set-state ( INPUT Init_Type ).
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS Name.
 END.
 RUN disable_UI.
 
@@ -449,9 +456,7 @@ PROCEDURE set-state :
         ASSIGN Ret_Val = Type:DISABLE( "Override" ).
 
     CASE p_State :
-    
-        WHEN Type_Proc THEN
-        DO:
+        WHEN Type_Proc THEN DO:
             ASSIGN Name:SCREEN-VALUE    = Nul
                    Name:SENSITIVE       = TRUE
                    Smart_List:SENSITIVE = FALSE
@@ -459,22 +464,21 @@ PROCEDURE set-state :
                    Smart_List:SCREEN-VALUE = ?
                    Smart_List:VISIBLE   = NO
                    .
-            APPLY "ENTRY" TO Name .
+            APPLY "ENTRY" TO Name IN FRAME {&FRAME-NAME}.
         END.
         
         /* Process a Type_Proc again, but leave the current screen-value so
            the user can change it to be a correct entry. */
-        WHEN Type_Proc + Invalid_Entry THEN
-        DO:
-            ASSIGN Name:SENSITIVE       = TRUE
-/*                   Smart_List:SENSITIVE = FALSE */
-                   Smart_List:VISIBLE   = NO
-                   .
-            APPLY "ENTRY" TO Name .
+        WHEN Type_Proc + Invalid_Entry THEN DO:
+            ASSIGN 
+              Name:SENSITIVE       = TRUE
+              /* Smart_List:SENSITIVE = FALSE */
+              Smart_List:VISIBLE   = NO
+              .
+            APPLY "ENTRY" TO Name IN FRAME {&FRAME-NAME}.
         END.
 
-        WHEN Type_Local THEN
-        DO:
+        WHEN Type_Local THEN DO:
             ASSIGN Type:SCREEN-VALUE    = Type_Local.
             
             ASSIGN Smart_List:LIST-ITEMS = p_Smart_List
@@ -487,8 +491,7 @@ PROCEDURE set-state :
                    .
         END.
         
-        WHEN Type_Default THEN
-        DO:
+        WHEN Type_Default THEN DO:
             ASSIGN Type:SCREEN-VALUE    = Type_Default.
             
             ASSIGN Smart_List:LIST-ITEMS   = Default_List
@@ -499,10 +502,7 @@ PROCEDURE set-state :
                    Smart_List:VISIBLE      = YES
                    .
         END.
-
     END CASE.
-    
-    
   END.
 
 END PROCEDURE.
@@ -659,7 +659,6 @@ FUNCTION GetProcCode RETURNS CHARACTER
   
   &SCOPED-DEFINE EOL CHR(10)
   &SCOPED-DEFINE COMMENT-LINE ------------------------------------------------------------------------------
-
   
   DO nItem = 1 TO NUM-ENTRIES(p_ObjHandle):
     ASSIGN hSuper_Proc = WIDGET-HANDLE(ENTRY(nItem, p_ObjHandle)).

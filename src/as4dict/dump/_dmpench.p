@@ -56,7 +56,7 @@ in:       user_env[2] = Name of file to dump to.
     
 changes:  user_env[19]
 
-History:
+History:  02/12/02 Fernando Corrected sequence logic
     
         
 */
@@ -298,7 +298,7 @@ ASSIGN tseq = 1.
 
 DO ON STOP UNDO, LEAVE:
   /* build missing file list for rename/delete determination */
-  FOR EACH as4dict2.p__file NO-LOCK:
+  FOR EACH as4dict2.p__file WHERE as4dict2.p__File._For-flag = 0 NO-LOCK:
     FIND FIRST as4dict.p__File WHERE as4dict.p__File._File-name = as4dict2.p__file._File-name
 	                             NO-LOCK NO-ERROR.
     DISPLAY as4dict2.p__file._File-name @ fil WITH FRAME seeking.
@@ -308,7 +308,7 @@ DO ON STOP UNDO, LEAVE:
   END.
   
   /* build list of new or renamed files */
-  FOR EACH as4dict.p__File NO-LOCK:
+  FOR EACH as4dict.p__File WHERE as4dict.p__File._For-flag = 0  NO-LOCK:
     FIND FIRST as4dict2.p__file WHERE as4dict2.p__file._File-name = as4dict.p__File._File-name NO-LOCK NO-ERROR.
     DISPLAY as4dict.p__File._File-name @ fil WITH FRAME seeking.
     CREATE table-list.
@@ -650,6 +650,8 @@ DO ON STOP UNDO, LEAVE:
 	        OR  as4dict.p__Field._Extent <> as4dict2.p__field._Extent 
             OR  as4dict.p__field._Fld-stdtype <> as4dict2.p__field._Fld-stdtype
             OR as4dict.p__field._Fld-stlen < as4dict2.p__field._fld-stlen 
+            OR (as4dict.p__Field._Fld-stlen > as4dict2.p__Field._Fld-stlen 
+                   AND as4dict.p__Field._Extent > 0)
             OR as4dict.p__field._For-Allocated <> as4dict2.p__field._For-Allocated 
             OR as4dict.p__field._For-Maxsize <> as4dict2.p__field._For-Maxsize 
             OR as4dict.p__field._Fld-Misc2[2] <> as4dict2.p__field._Fld-Misc2[2]) THEN DO:
@@ -714,7 +716,10 @@ DO ON STOP UNDO, LEAVE:
       /* If l is true we're updating otherwise we're adding */
       ASSIGN ddl = ""
                j = 1.
-
+       /*fernando:  20020205-028 changed the if length(2) 
+       to output "" to keep consistent with the current schema". Not sure why this
+       condition was put in place, but we could simply add the value coming from c, 
+       and take the condition off. The ? is being put by ELSE condition */
 	    ddl[j] = (IF l THEN "UPDATE" ELSE "ADD")
 	             + ' FIELD "' + as4dict.p__Field._Field-name
 	             + '" OF "' + as4dict.p__File._File-name + '"'
@@ -724,128 +729,128 @@ DO ON STOP UNDO, LEAVE:
           ELSE DO:         
             RUN dctquot (as4dict.p__Field._Desc,'"',OUTPUT c). 
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  DESCRIPTION ?" ELSE "  DESCRIPTION " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  DESCRIPTION " + '""' ELSE "  DESCRIPTION " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Format <> as4dict2.p__field._Format THEN DO:          
           RUN dctquot (as4dict.p__Field._Format,'"',OUTPUT c).
           ASSIGN j = j + 1
-            ddl[j] = (IF length(c) = 2 THEN "  FORMAT ?" ELSE "  FORMAT " + c). 
+            ddl[j] = (IF length(c) = 2 THEN "  FORMAT " + '""' ELSE "  FORMAT " + c). 
         END. 
         IF NOT l OR as4dict.p__Field._Format-SA <> as4dict2.p__field._Format-SA THEN DO:
-          IF l AND (as4dict.p__Field._Format-SA = ? OR as4dict.p__Field._Format-SA = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Format-SA = ? OR as4dict.p__Field._Format-SA = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Format-SA,'"',OUTPUT c).              
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  FORMAT-SA ?" ELSE "  FORMAT-SA " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  FORMAT-SA " + '""' ELSE "  FORMAT-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Initial <> as4dict2.p__field._Initial THEN DO:
-          IF l AND (as4dict.p__Field._Initial = ? OR as4dict.p__Field._Initial = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Initial = ? OR as4dict.p__Field._Initial = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Initial,'"',OUTPUT c). 
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  INITIAL ?" ELSE "  INITIAL " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  INITIAL " + '""' ELSE "  INITIAL " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Initial-SA <> as4dict2.p__field._Initial-SA THEN DO:
-          IF l AND (as4dict.p__Field._Initial-SA = ? OR as4dict.p__Field._Initial-sa = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Initial-SA = ? OR as4dict.p__Field._Initial-sa = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Initial-SA,'"',OUTPUT c).
             ASSIGN j = j + 1
-	          ddl[j] = (IF length(c) = 2 THEN "  INITIAL-SA ?" ELSE "  INITIAL-SA " + c).
+	          ddl[j] = (IF length(c) = 2 THEN "  INITIAL-SA " + '""' ELSE "  INITIAL-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Help <> as4dict2.p__field._Help THEN DO:
-          IF l AND (as4dict.p__Field._Help = ? OR as4dict.p__Field._Help = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Help = ? OR as4dict.p__Field._Help = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Help,'"',OUTPUT c).    
             ASSIGN j = j + 1
-	           ddl[j] = (IF length(c) = 2 THEN "  HELP ?" ELSE "  HELP " + c).
+	           ddl[j] = (IF length(c) = 2 THEN "  HELP " + '""' ELSE "  HELP " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Help-SA <> as4dict2.p__field._Help-SA THEN DO: 
-          IF l AND (as4dict.p__Field._Help-SA = ? OR as4dict.p__Field._Help-SA = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Help-SA = ? OR as4dict.p__Field._Help-SA = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Help-SA,'"',OUTPUT c).
             ASSIGN j = j + 1
-	          ddl[j] = (IF length(c) = 2 THEN "  HELP-SA ?" ELSE "  HELP-SA " + c).
+	          ddl[j] = (IF length(c) = 2 THEN "  HELP-SA " + '""' ELSE "  HELP-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Label <> as4dict2.p__field._Label THEN DO:
-          IF l AND (as4dict.p__Field._Label = ? OR as4dict.p__Field._Label = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Label = ? OR as4dict.p__Field._Label = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Label,'"',OUTPUT c).    
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  LABEL ?" ELSE "  LABEL " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  LABEL " + '""' ELSE "  LABEL " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Label-SA <> as4dict2.p__field._Label-SA THEN DO:
-          IF l AND (as4dict.p__Field._Label-SA = ? OR as4dict.p__Field._Label-SA = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Label-SA = ? OR as4dict.p__Field._Label-SA = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Label-SA,'"',OUTPUT c).    
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  LABEL-SA ?" ELSE "  LABEL-SA " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  LABEL-SA " + '""' ELSE "  LABEL-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Col-label <> as4dict2.p__field._Col-label THEN DO:
-          IF l AND (as4dict.p__Field._Col-label = ? OR as4dict.p__Field._Col-label = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Col-label = ? OR as4dict.p__Field._Col-label = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Col-label,'"',OUTPUT c).    
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  COLUMN-LABEL ?" ELSE "  COLUMN-LABEL " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  COLUMN-LABEL " + '""' ELSE "  COLUMN-LABEL " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Col-label-SA <> as4dict2.p__field._Col-label-SA THEN DO:
-          IF l AND (as4dict.p__Field._Col-label-SA = ? OR as4dict.p__Field._Col-label-SA = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Col-label-SA = ? OR as4dict.p__Field._Col-label-SA = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Col-label-SA,'"',OUTPUT c).
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  COLUMN-LABEL-SA ?" ELSE "  COLUMN-LABEL-SA " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  COLUMN-LABEL-SA " + '""' ELSE "  COLUMN-LABEL-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Can-read <> as4dict2.p__field._Can-read THEN DO:
-          IF l AND (as4dict.p__Field._Can-read = ? OR as4dict.p__Field._Can-read = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Can-read = ? OR as4dict.p__Field._Can-read = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Can-Read,'"',OUTPUT c).      
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  CAN-READ ?" ELSE "  CAN-READ " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  CAN-READ " + '""' ELSE "  CAN-READ " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Can-write <> as4dict2.p__field._Can-write THEN DO:
-          IF l AND (as4dict.p__Field._Can-write = ? OR as4dict.p__Field._Can-write = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Can-write = ? OR as4dict.p__Field._Can-write = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Can-Write,'"',OUTPUT c).
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  CAN-WRITE ?" ELSE "  CAN-WRITE " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  CAN-WRITE " + '""' ELSE "  CAN-WRITE " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Valexp <> as4dict2.p__field._Valexp THEN DO:
-          IF l AND (as4dict.p__Field._Valexp = ? OR as4dict.p__Field._Valexp = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Valexp = ? OR as4dict.p__Field._Valexp = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Valexp,'"',OUTPUT c).      
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  VALEXP ?" ELSE "  VALEXP " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  VALEXP " + '""' ELSE "  VALEXP " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Valmsg <> as4dict2.p__field._Valmsg THEN DO:
-          IF l AND (as4dict.p__Field._Valmsg = ? OR as4dict.p__Field._valmsg = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Valmsg = ? OR as4dict.p__Field._valmsg = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Valmsg,'"',OUTPUT c).
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  VALMSG ?" ELSE "  VALMSG " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  VALMSG " + '""' ELSE "  VALMSG " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._Valmsg-SA <> as4dict2.p__field._Valmsg-SA THEN DO:
-          IF l AND (as4dict.p__Field._Valmsg-SA = ? OR as4dict.p__Field._Valmsg-SA = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Valmsg-SA = ? OR as4dict.p__Field._Valmsg-SA = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Valmsg-SA,'"',OUTPUT c).      
             ASSIGN j = j + 1
-              ddl[j] = (IF length(c) = 2 THEN "  VALMSG-SA ?" ELSE "  VALMSG-SA " + c).
+              ddl[j] = (IF length(c) = 2 THEN "  VALMSG-SA " + '""' ELSE "  VALMSG-SA " + c).
           END.
         END.
         IF NOT l OR as4dict.p__Field._View-as <> as4dict2.p__field._View-as THEN DO:
-          IF l AND (as4dict.p__Field._View-as = ? OR as4dict.p__Field._View-as = "") THEN.
+          IF NOT l AND (as4dict.p__Field._View-as = ? OR as4dict.p__Field._View-as = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._View-as,'"',OUTPUT c).          
             ASSIGN j = j + 1
@@ -893,7 +898,7 @@ DO ON STOP UNDO, LEAVE:
               ddl[j] = "  OUTPUT ".
         END.
         IF NOT l OR as4dict.p__Field._Fld-misc2[5] <> as4dict2.p__field._fld-misc2[5] THEN DO:
-          IF l AND (as4dict.p__Field._Fld-misc2[5] = ? OR as4dict.p__Field._Fld-misc2[5] = "") THEN.
+          IF NOT l AND (as4dict.p__Field._Fld-misc2[5] = ? OR as4dict.p__Field._Fld-misc2[5] = "") THEN.
           ELSE DO:
             RUN dctquot (as4dict.p__Field._Fld-misc2[5],'"',OUTPUT c).
             ASSIGN j = j + 1
@@ -928,7 +933,7 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN j = j + 1
             ddl[j] = "  AS400-TYPE "  + c.
         END.
-        IF NOT l OR as4dict.p__Field._Fld-misc1[5] <> as4dict.p__Field._Fld-misc1[5] THEN DO:
+        IF NOT l OR as4dict.p__Field._Fld-misc1[5] <> as4dict2.p__Field._Fld-misc1[5] THEN DO:
           IF as4dict.p__Field._Fld-misc1[5] = 0 THEN.
           ELSE
             ASSIGN j = j + 1
@@ -1386,14 +1391,13 @@ DO ON STOP UNDO, LEAVE:
   
   /* build list of new or renamed sequences */
   FOR EACH as4dict.p__Seq NO-LOCK:
-    FIND FIRST as4dict2.p__Seq
+    FIND FIRST as4dict2.p__Seq 
       WHERE as4dict2.p__Seq._Seq-name = as4dict.p__Seq._Seq-name NO-LOCK NO-ERROR.
-    IF NOT AVAILABLE as4dict2.p__Seq THEN NEXT.
     DISPLAY as4dict.p__Seq._Seq-name @ seq WITH FRAME seeking.
     CREATE seq-list.
     ASSIGN seq-list.s1-name = as4dict.p__Seq._Seq-name.
     IF AVAILABLE as4dict2.p__Seq THEN
-      seq-list.s2-name = as4dict.p__Seq._Seq-name.
+      seq-list.s2-name = as4dict2.p__Seq._Seq-name. /*fernando: 20020205-009 */
   END.
   
   /* look for matches for renamed sequences with user input.  A prompt 
@@ -1440,6 +1444,8 @@ DO ON STOP UNDO, LEAVE:
   ans = FALSE.
   FOR EACH seq-list WHERE seq-list.s1-name <> seq-list.s2-name
                       AND seq-list.s2-name <> ?:
+    /*fernando: 20020205-009 needs to find sequences in the database*/
+    FIND FIRST as4dict.p__seq WHERE as4dict.p__seq._seq-name = seq-list.s1-name NO-LOCK NO-ERROR.
     CREATE act-table.
     ASSIGN a-code = "r"
            atype = "S"
@@ -1463,10 +1469,10 @@ DO ON STOP UNDO, LEAVE:
 
   FOR EACH seq-list:
     DISPLAY seq-list.s1-name @ seq WITH FRAME seeking.
-  
+    
     FIND as4dict.p__Seq WHERE as4dict.p__Seq._Seq-name = seq-list.s1-name NO-LOCK.
     FIND as4dict2.p__Seq WHERE as4dict2.p__Seq._Seq-name = seq-list.s2-name NO-LOCK NO-ERROR.
-  
+    
     DISPLAY seq-list.s1-name @ seq WITH FRAME wrking.
   
     /* If l is true we're updateing otherwise we're adding */

@@ -50,7 +50,8 @@
   
   &IF "{&RESET}" ne "" &THEN
     /* Get a clean copy of the ws-style-hdl. */
-    IF valid-handle(ws-style-hdl) THEN RUN dispatch IN ws-style-hdl ('destroy':U).
+    IF VALID-HANDLE(ws-style-hdl) THEN 
+      RUN dispatch IN ws-style-hdl ('destroy':U).
   &ENDIF
   
   /* Make sure there is a style handle. */

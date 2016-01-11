@@ -71,6 +71,8 @@ History:
     mcmann      04/04/00 Added check for user_env[34] to see if s_1st-eror was set earlier.
     mcmann      05/26/00 Added check for MSS for nullable capable.
     mcmann      07/13/00 Added check for gate-work.gate-edit being empty
+    mcmann      06/12/01 Added assignment of Format and Initial values from w_field if available.
+    mcmann      06/18/01 Added check of _db-misc1[1] for case
 
 --------------------------------------------------------------------*/
 
@@ -449,6 +451,8 @@ procedure error_handling:
 
 /* Having problems with ds_upd.e being overwritten when set below this leverl */
 IF user_env[34] = "true" THEN ASSIGN s_1st-error = TRUE.
+
+FIND DICTDB._Db WHERE RECID(_Db) = drec_db NO-LOCK.
 
 assign
   batch_mode = SESSION:BATCH-MODE
@@ -830,58 +834,51 @@ for each gate-work
 
 /*---------------------------- FIELDS ------------------------------*/
     
-    find last w_field
-    where w_field.pro_order > 0
-    no-error.
+    find last w_field where w_field.pro_order > 0 no-error.
     if available w_field
      then assign l_order-max = w_field.pro_order + 10.
      else assign l_order-max = 0.
 
-    for each s_ttb_fld
-      where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
-
+    for each s_ttb_fld where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
       IF s_ttb_fld.ds_name BEGINS "SYS_NC" THEN NEXT.
+      
       /* if the main-part of date-field is of type character we don't
        * need the time-part, so we skip it...
        */
-      if   lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
-       and s_ttb_fld.pro_type  =  "integer"
-       and can-find( w_field
-               where w_field.ds_name  = s_ttb_fld.ds_name
-               and   w_field.pro_type = "character"  )
+      IF lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
+           and s_ttb_fld.pro_type  =  "integer"
+           and can-find( w_field where w_field.ds_name  = s_ttb_fld.ds_name
+                                   and w_field.pro_type = "character"  )
        then next.
       
       /* we need to find the w_field by name PLUS type because of
        * date-time fields....
        */
       if lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
-       then find first w_field
-        where w_field.ds_name = s_ttb_fld.ds_name
-        and   lookup(w_field.ds_type,"character,date") <> 0
-        no-error.
-       else find first w_field
-        where w_field.ds_name = s_ttb_fld.ds_name
-        and   w_field.ds_type = s_ttb_fld.ds_type
-        no-error.
-      if not available w_field
-       then find first w_field
-        where w_field.ds_name = s_ttb_fld.ds_name
-        no-error.
+       then find first w_field where w_field.ds_name = s_ttb_fld.ds_name
+                                 and lookup(w_field.ds_type,"character,date") <> 0 no-error.
+      else find first w_field where w_field.ds_name = s_ttb_fld.ds_name
+                                and w_field.ds_type = s_ttb_fld.ds_type no-error.
+      if not available w_field then 
+        find first w_field where w_field.ds_name = s_ttb_fld.ds_name no-error.
 
-      if   available w_field
-       and w_field.pro_type    =  "date"
-       and w_field.ds_type begins "date"
-       and s_ttb_fld.pro_type  =  "integer"
-       then release w_field.
-     
-    
-      create DICTDB._Field.
-      assign
-        DICTDB._Field._Desc         = ( if available w_field
+      if available w_field and w_field.pro_type = "date"
+                           and w_field.ds_type begins "date"
+                           and s_ttb_fld.pro_type = "integer"
+        then release w_field.
+
+      IF NOT AVAILABLE w_field AND s_ttb_fld.pro_type = "date" then
+          ASSIGN s_ttb_fld.pro_frmt = "99/99/99".
+
+      CREATE DICTDB._Field.
+      ASSIGN DICTDB._Field._Desc   = ( if available w_field
                                           and w_field.pro_desc <> ""
                                           and w_field.pro_desc <> ?
                                           then w_field.pro_desc
                                           else s_ttb_fld.pro_desc
+                                      )
+        DICTDB._Field._Data-type   = ( IF AVAILABLE w_field THEN w_field.pro_type
+                                        ELSE s_ttb_fld.pro_type
                                       )
         DICTDB._Field._Extent       = s_ttb_fld.pro_extnt
         DICTDB._Field._Field-Name   = ( if available w_field
@@ -910,28 +907,31 @@ for each gate-work
         DICTDB._Field._For-Itype    = s_ttb_fld.ds_Itype
         DICTDB._Field._For-Name     = s_ttb_fld.ds_name
         DICTDB._Field._For-type     = s_ttb_fld.ds_type
-        DICTDB._Field._Initial      = s_ttb_fld.pro_init
         DICTDB._Field._Mandatory    = s_ttb_fld.pro_mand
         DICTDB._Field._Decimals     = s_ttb_fld.pro_dcml
         DICTDB._Field._Order        = ( if available w_field
                                          then w_field.pro_order
                                          else l_order-max 
                                             + s_ttb_fld.pro_order
+                                      )       
+        DICTDB._Field._Format       = ( IF AVAILABLE w_field THEN w_field.pro_format 
+                                        ELSE s_ttb_fld.pro_frmt
                                       )
-        DICTDB._Field._Data-type    = s_ttb_fld.pro_type
-        DICTDB._Field._Initial      = s_ttb_fld.pro_init
-        DICTDB._Field._Format       = ( if s_ttb_fld.pro_frmt = ""
-                                          then DICTDB._Field._Format
-                                          else s_ttb_fld.pro_frmt
+        DICTDB._Field._Initial      = ( IF AVAILABLE w_field THEN w_field.pro_init
+                                        ELSE s_ttb_fld.pro_init
                                       )
         s_ttb_fld.fld_recid         = RECID(DICTDB._Field).
-      
+     
       IF user_dbtype = "ODBC" OR user_dbtype = "MSS" THEN DO:
         IF DICTDB._Field._Mandatory THEN
           ASSIGN DICTDB._Field._Fld-Misc2[2] = "N".
         ELSE
           ASSIGN DICTDB._Field._Fld-Misc2[2] = "Y".
       END.
+
+      IF user_dbtype = "MSS" AND DICTDB._Db._Db-misc1[1] = 1 
+                             AND DICTDB._Field._Data-type = "character" THEN
+        ASSIGN DICTDB._Field._Fld-Case  = FALSE.
 
       IF user_dbtype = "ORACLE" THEN DO:
         CASE DICTDB._Field._Data-type:
@@ -962,8 +962,7 @@ for each gate-work
         END CASE.      
       END.
 
-      if available w_field
-       then do:
+      if available w_field then do:
         if (
          (   can-do(l_char-types + "," + l_chda-types               ,s_ttb_fld.ds_type) 
          AND can-do("character"              ,w_field.pro_type) )
@@ -989,11 +988,8 @@ for each gate-work
          (   can-do(l_deil-types + "," + l_logi-types               ,s_ttb_fld.ds_type) 
          AND can-do("logical"                ,w_field.pro_type) )
             )
-         then assign
-           DICTDB._Field._Data-type = w_field.pro_type
-           DICTDB._Field._Decimals  = w_field.pro_decimals
-           DICTDB._Field._Initial   = w_field.pro_initial
-           DICTDB._Field._Format    = w_field.pro_Format.
+         then ASSIGN DICTDB._Field._Decimals  = w_field.pro_decimals.
+           
 
         assign
           DICTDB._Field._Can-Read  = w_field.pro_Can-Read

@@ -95,6 +95,10 @@ DEFINE VARIABLE gCancelOnfinish  AS LOG                               NO-UNDO.
 DEFINE VARIABLE gPreView         AS LOG                               NO-UNDO.
 DEFINE VARIABLE gPreViewName     AS CHAR                              NO-UNDO.
 
+/* Support SBO as DataSource */
+DEFINE VARIABLE gDataSourceNames   AS CHARACTER     INIT ?            NO-UNDO.
+DEFINE VARIABLE gUpdateTargetNames AS CHARACTER     INIT ?            NO-UNDO.
+
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE ptype            AS CHARACTER                         NO-UNDO.
 DEFINE VARIABLE br-recid         AS CHARACTER                         NO-UNDO.
@@ -161,6 +165,13 @@ END.
 
 /* ************************  Function Prototypes ********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataSourceNames d_wizard 
+FUNCTION getDataSourceNames RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFuncLibHandle d_wizard 
 FUNCTION getFuncLibHandle RETURNS HANDLE
   (  )  FORWARD.
@@ -196,6 +207,13 @@ FUNCTION getSupportHandle RETURNS HANDLE
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateTargetNames d_wizard 
+FUNCTION getUpdateTargetNames RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD IsFirstRun d_wizard 
 FUNCTION IsFirstRun RETURNS LOGICAL
   (pProgName As CHAR) FORWARD.
@@ -210,6 +228,13 @@ FUNCTION setCancelOnFinish RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataSourceNames d_wizard 
+FUNCTION setDataSourceNames RETURNS LOGICAL
+  ( pcNames AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPreview d_wizard 
 FUNCTION setPreview RETURNS LOGICAL
   (pOtherSave As CHAR)  FORWARD.
@@ -220,6 +245,13 @@ FUNCTION setPreview RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPreviewName d_wizard 
 FUNCTION setPreviewName RETURNS LOGICAL
   (pFileName AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateTargetNames d_wizard 
+FUNCTION setUpdateTargetNames RETURNS LOGICAL
+  ( pcNames AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -250,11 +282,11 @@ DEFINE BUTTON b_next
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME d_wizard
-     b_Cancel AT ROW 12.43 COL 32
-     b_back AT ROW 12.43 COL 45
-     b_next AT ROW 12.43 COL 58
-     b_finish AT ROW 12.43 COL 71
-     SPACE(2.39) SKIP(0.37)
+     b_Cancel AT ROW 12.76 COL 32
+     b_back AT ROW 12.76 COL 45
+     b_next AT ROW 12.76 COL 58
+     b_finish AT ROW 12.76 COL 71
+     SPACE(1.59) SKIP(0.04)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER NO-HELP 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          FONT 4
@@ -339,11 +371,20 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_finish d_wizard
 ON CHOOSE OF b_finish IN FRAME d_wizard /* Finish */
 DO:
+  DEFINE VARIABLE cUpdateTargets AS CHARACTER  NO-UNDO.
+
   gLastBtn = "FINISH":U.
   /* If this is a SmartViewer or SmartBrowser then create the Fields or Columns */
-  IF fld-list NE "" THEN
+  IF fld-list NE "":U THEN
+  DO:
+    /* if specified updateTargets then tell _crtsobj to enable these only */ 
+    cUpdateTargets = getUpdateTargetNames().    
+    IF cUpdateTargets <> ? THEN
+      fld-list = fld-list + ";":U + cUpdateTargets.
+    
     RUN adeuib/_crtsobj.w (ptype,fld-list).
   
+  END.
   PUBLISH "ab_WizardFinished":U. 
  
   APPLY "GO":U TO FRAME {&FRAME-NAME}.
@@ -631,6 +672,19 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataSourceNames d_wizard 
+FUNCTION getDataSourceNames RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns DataSourceNames picked from the SBO  
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN gDataSourceNames.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFuncLibHandle d_wizard 
 FUNCTION getFuncLibHandle RETURNS HANDLE
   (  ) :
@@ -734,6 +788,21 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdateTargetNames d_wizard 
+FUNCTION getUpdateTargetNames RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns UpdateTargetNames selected from the SBOs objects 
+    Notes:  
+------------------------------------------------------------------------------*/
+ 
+  RETURN gUpdateTargetNames.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION IsFirstRun d_wizard 
 FUNCTION IsFirstRun RETURNS LOGICAL
   (pProgName As CHAR):
@@ -766,6 +835,24 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataSourceNames d_wizard 
+FUNCTION setDataSourceNames RETURNS LOGICAL
+  ( pcNames AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Saves DataSourceNames selected from the SBOs objects 
+    Notes: These names are picked on the Data Source page and used to set 
+           fields to exclude from the filed picker.
+           The field list is used by the appbuilder to generate the 
+           Displayed-tables preprocessor that again will become
+           DataSourceNames in the viewer at run time.  
+------------------------------------------------------------------------------*/
+  gDataSourceNames = pcNames.   
+  RETURN TRUE.  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPreview d_wizard 
 FUNCTION setPreview RETURNS LOGICAL
   (pOtherSave As CHAR) :
@@ -792,6 +879,23 @@ FUNCTION setPreviewName RETURNS LOGICAL
   gPreViewName = pFileName. 
   RETURN TRUE.   
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUpdateTargetNames d_wizard 
+FUNCTION setUpdateTargetNames RETURNS LOGICAL
+  ( pcNames AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Saves UpdateTargetNames selected from the SBOs objects 
+    Notes: These names are picked on the Data Source page and used to disable 
+          the fields. The enabled field list is used by the appbuilder to 
+          generate the Enabled-tables preprocessor that again will become
+          UpdateTargetNames in the viewer at run time.  
+------------------------------------------------------------------------------*/
+  gUpdateTargetNames = pcNames.   
+  RETURN TRUE.  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

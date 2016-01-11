@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -30,6 +30,13 @@ Creates an HTML file that includes Embedded SpeedScript. The template provides H
 <HEAD>
 <META NAME="AUTHOR" CONTENT="Your Name">
 <TITLE>WebSpeed Script</TITLE>
+<SCRIPT LANGUAGE="SpeedScript">
+/* Create an unnamed pool to store all the widgets created by this procedure. 
+   This is a good default which assures that this procedure's triggers and 
+   internal procedures will execute in this procedure's storage, and that 
+   proper cleanup will occur on deletion of the procedure. */
+CREATE WIDGET-POOL.
+</SCRIPT>
 </HEAD>
 
 <BODY>

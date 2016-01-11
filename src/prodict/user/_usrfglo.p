@@ -28,6 +28,8 @@ History - 07/09/98 D. McMann Added AND (_File._Owner = "PUB" OR _File._Owner = "
           12/30/98 Mario B   Changed leave trigger on field new-name to GO
 	                     trigger so that GO/CANCEL could be accessed if
                              data in new-name was not valid.  Bug 98-06-29-011.
+          03/28/02 D. McMann Changed size of name fields to 32 SCC 20020218-023
+                             Issue 3977 
 */
 
 { prodict/dictvar.i }
@@ -72,8 +74,8 @@ FORM
   "tables.  In order for this to work, the 'target' name (the" SKIP
   "name you change to) must not be in use in any table in the" SKIP
   "database before the rename."                                SKIP(1)
-  old-name FORMAT "x(30)" LABEL "Old Field Name" SKIP(1)
-  new-name FORMAT "x(30)" LABEL "New Field Name" SKIP(1)
+  old-name FORMAT "x(32)" LABEL "Old Field Name" SKIP(1)
+  new-name FORMAT "x(32)" LABEL "New Field Name" SKIP(1)
   c        FORMAT "x(18)" LABEL "To list all fields, press this key" 
   {prodict/user/userbtns.i}
   WITH FRAME everything 
@@ -101,7 +103,8 @@ DO:
        pik_list[pik_count] = xfld._Field-name.
    END.
   IF pik_count > 0 THEN RUN "prodict/user/_usrpick.p".
-  IF pik_return > 0 THEN SELF:SCREEN-VALUE = pik_first.
+  IF pik_return > 0 THEN 
+      ASSIGN SELF:SCREEN-VALUE = pik_first.            
 END.
 
 /*----- LEAVE OF OLD NAME -----*/
@@ -209,7 +212,7 @@ FOR EACH _File WHERE _File._Db-recid = drec_db
       isview = CAN-FIND(FIRST _View-ref WHERE
                _View-ref._Ref-Table = _File._File-name
                AND _View-ref._Base-Col = _Field._Field-name)
-      issql  = _File._Db-lang = 1
+      issql  = _File._Db-lang > 0
       num    = num + 1.
 END.
 HIDE MESSAGE NO-PAUSE.

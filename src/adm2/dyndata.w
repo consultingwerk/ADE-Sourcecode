@@ -117,8 +117,30 @@ FUNCTION Commit RETURNS LOGICAL
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createRowObjUpdTable dTables  _DB-REQUIRED
+FUNCTION createRowObjUpdTable RETURNS LOGICAL
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumns dTables  _DB-REQUIRED
 FUNCTION getDataColumns RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumnsByTable dTables  _DB-REQUIRED
+FUNCTION getDataColumnsByTable RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -131,6 +153,28 @@ FUNCTION getDataColumns RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdatableColumns dTables  _DB-REQUIRED
 FUNCTION getUpdatableColumns RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataColumnsByTable dTables  _DB-REQUIRED
+FUNCTION setDataColumnsByTable RETURNS LOGICAL 
+  ( pcColumns AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setRowObjectTable dTables  _DB-REQUIRED
+FUNCTION setRowObjectTable RETURNS LOGICAL
+  ( phHandle AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -181,8 +225,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW dTables ASSIGN
-         HEIGHT             = 1.48
-         WIDTH              = 46.6.
+         HEIGHT             = 1.57
+         WIDTH              = 47.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -223,7 +267,7 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
-  
+   {set QueryObject yes}.             /* All DataObjects are query objects.*/
   &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
     RUN initializeObject.
   &ENDIF
@@ -233,6 +277,30 @@ END.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject dTables 
+PROCEDURE destroyObject :
+/*------------------------------------------------------------------------------
+  Purpose:   Override to get rid of the dynamic temp-tables.   
+  Parameters:  <none>
+  Notes:     Dynamic temp-tables are scoped to the session and must be 
+             explicitly deleted.     
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE hRowObjectTable AS HANDLE  NO-UNDO.
+   DEFINE VARIABLE hRowObjUpdTable AS HANDLE  NO-UNDO.
+
+   RUN SUPER.
+
+   {get RowObjectTable hRowObjectTable}.
+   {get RowObjUpdTable hRowObjUpdTable}.
+   
+   DELETE OBJECT hRowObjectTable NO-ERROR.
+   DELETE OBJECT hRowObjUpdTable NO-ERROR.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI dTables  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
@@ -766,96 +834,56 @@ PROCEDURE initializeObject :
   Purpose:     Dynamic SDO version of initializeObject
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE cColumns             AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cContainerType       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cServerOperatingMode AS CHARACTER  NO-UNDO.
-
- /* For now at least this object runs only on the client. */
- {set ASDivision 'Client':U}.
- {set ServerOperatingMode 'None':U}. /* This comes from data.i */
- {set QueryObject yes}.             /* All DataObjects are query objects.*/
-  
-  /* Overrides query object setting */
- {set DataSourceEvents 'dataAvailable,confirmContinue':U}.
-                                                 
- RUN SUPER.
-
- {get RowObject ghRowObject}.
- ghROQuery:SET-BUFFERS(ghRowObject).
-  
- ASSIGN ghRowNum = ghRowObject:BUFFER-FIELD('RowNum':U)
-        ghRowMod = ghRowObject:BUFFER-FIELD('RowMod':U).
-
- RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeServerObject dTables  _DB-REQUIRED
-PROCEDURE initializeServerObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Override that retrieves the rowObjUpdtable from the server 
-  Parameters:  
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hRowObject           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lQueryContainer      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hRowObjectTable      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpdTable      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hAppServer           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hROUTable            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lAsHasStarted        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cUpdColumns          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnsByTable      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTables              AS CHARACTER  NO-UNDO.
-  /* Code placed here will execute PRIOR to standard behavior. */
-  RUN SUPER.
-  /* If we're not inside an SBO or some other container which manages the
-     query for us, fetch initial property values from the static SDO on
-     the server, along with the RowObjUpdTable, whose structure needs to
-     be initialized here on the client. */
-  {get ASHasStarted lASHasStarted}.
-  IF NOT lAsHasStarted THEN
-  DO:
-    {get QueryContainer lQueryContainer}.
-    IF NOT lQueryContainer THEN
-    DO:
-      {get ASHandle hAppServer}. /* This will always be a 'client' object. */
-      RUN serverFetchRowObjUpdTable IN hAppServer 
-          (OUTPUT TABLE-HANDLE hROUTable).
-      cUpdcolumns = DYNAMIC-FUNCTION('getUpdatableColumns':U IN hAppserver).
-      DYNAMIC-FUNCTION('setUpdatableColumns':U IN TARGET-PROCEDURE,
-                       cUpdColumns).
-      cTables = DYNAMIC-FUNCTION('getTables':U IN hAppserver).
-      DYNAMIC-FUNCTION('setTables':U IN TARGET-PROCEDURE,
-                       cTables).
+  DEFINE VARIABLE hContainer           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lIsFetchPending      AS LOGICAL    NO-UNDO.
 
-      {set RowObjUpdTable hROUTable}.
-      {set RowObjUpd hROUTable:DEFAULT-BUFFER-HANDLE}.
+  /* This object runs only on the client. */
+  {set ASDivision 'Client':U}.
+  {set ServerOperatingMode 'None':U}.  
+  {set ServerSubmitValidation YES}.                        
+
+  {get Containersource hContainer}.
+  
+  /* We need to get the table and updatablecolumns props here unless
+     a data container manages the server request */
+  IF NOT VALID-HANDLE(hContainer)
+  OR (VALID-HANDLE(hContainer) AND NOT {fn IsFetchPending hContainer}) THEN
+  DO:
+    {get ASHandle hAppServer}. 
+    IF VALID-HANDLE(hAppServer) THEN
+    DO:
+      cUpdcolumns = DYNAMIC-FUNCTION('getUpdatableColumns':U IN hAppserver).
+      cTables     = DYNAMIC-FUNCTION('getTables':U IN hAppserver).
+      cColumnsByTable = DYNAMIC-FUNCTION('getDataColumnsByTable':U IN hAppserver).
+    END.
+    ELSE
+      RETURN 'adm-error':U.
+
+    RUN unbindServer IN TARGET-PROCEDURE ('unconditional':U). 
     
-      /* "Client" validation must be done on the server. */
-      {set ServerSubmitValidation YES}.   
-    END.       /* END DO IF Not lQueryContainer -- not in an SBO */
-  
-    /* Initialize the query to find the ROU record the first time through,
-     along with other variables we will need throughout the code. */
-    CREATE QUERY ghROUQuery.
-    CREATE QUERY ghROQuery.
-    {get RowObjUpd ghRowObjUpd}.
-    ghROUQuery:SET-BUFFERS(ghRowObjUpd).
-  
-    ASSIGN ghROURowMod = ghRowObjUpd:BUFFER-FIELD('RowMod':U)
-           ghROURowNum = ghRowObjUpd:BUFFER-FIELD('RowNum':U).
-  
+    DYNAMIC-FUNCTION('setTables':U IN TARGET-PROCEDURE,
+                      cTables).
+
+    DYNAMIC-FUNCTION('setUpdatableColumns':U IN TARGET-PROCEDURE,
+                     cUpdColumns).
+    
+    DYNAMIC-FUNCTION('setDataColumnsByTable':U IN TARGET-PROCEDURE,
+                     cColumnsByTable).
   END.
 
+  RUN SUPER.
 
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
 
 /* ************************  Function Implementations ***************** */
 
@@ -928,6 +956,46 @@ END FUNCTION.
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createRowObjUpdTable dTables  _DB-REQUIRED
+FUNCTION createRowObjUpdTable RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Creates the RowObjUpd table from the RowObject table. 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObjUpdTable  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
+
+  {get RowObject hRowObject}.
+  IF NOT VALID-HANDLE(hRowObject) THEN
+     RETURN FALSE.
+
+  CREATE TEMP-TABLE hRowObjUpdTable.
+  hRowObjUpdTable:CREATE-LIKE(hRowObject).
+  hRowObjUpdTable:ADD-NEW-FIELD('Changedfields', 'CHARACTER':U).
+  hRowObjUpdTable:TEMP-TABLE-PREPARE('RowObjUpd':U).
+
+  {set RowObjUpdTable hRowObjUpdTable}.
+  ghRowObjUpd = hRowObjUpdTable:DEFAULT-BUFFER-HANDLE.
+  {set RowObjUpd ghRowObjUpd}.
+
+  CREATE QUERY ghROUQuery.
+  ghROUQuery:SET-BUFFERS(ghRowObjUpd).
+
+  ASSIGN ghROURowMod = ghRowObjUpd:BUFFER-FIELD('RowMod':U)
+         ghROURowNum = ghRowObjUpd:BUFFER-FIELD('RowNum':U).
+
+  RETURN TRUE.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataColumns dTables  _DB-REQUIRED
 FUNCTION getDataColumns RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
@@ -965,6 +1033,26 @@ END FUNCTION.
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataColumnsByTable dTables  _DB-REQUIRED
+FUNCTION getDataColumnsByTable RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cColumns AS CHARACTER  NO-UNDO.
+  {get DataColumnsByTable cColumns}.
+  RETURN cColumns. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUpdatableColumns dTables  _DB-REQUIRED
 FUNCTION getUpdatableColumns RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
@@ -975,6 +1063,58 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
            only gives an error on the client if the field are updated.
 ------------------------------------------------------------------------------*/
   RETURN gcUpdatable.   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataColumnsByTable dTables  _DB-REQUIRED
+FUNCTION setDataColumnsByTable RETURNS LOGICAL 
+  ( pcColumns AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ 
+  {set DataColumnsByTable pcColumns}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setRowObjectTable dTables  _DB-REQUIRED
+FUNCTION setRowObjectTable RETURNS LOGICAL
+  ( phHandle AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: override to set global variables and create RowObjUpd dynamically  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lOk AS LOGICAL    NO-UNDO.
+  lOk =  SUPER(phHandle).
+  IF lOk THEN
+  DO:
+    {get RowObject ghRowObject}.  
+    CREATE QUERY ghROQuery.
+    ghROQuery:SET-BUFFERS(ghRowObject).
+     
+    ASSIGN ghRowNum = ghRowObject:BUFFER-FIELD('RowNum':U)
+           ghRowMod = ghRowObject:BUFFER-FIELD('RowMod':U).
+  
+    DYNAMIC-FUNCTION ('createRowObjUpdTable':U IN TARGET-PROCEDURE).
+  END.
+
+  RETURN lOk.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1000,3 +1140,4 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 {&DB-REQUIRED-END}
+

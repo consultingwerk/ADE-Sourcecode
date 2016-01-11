@@ -122,6 +122,7 @@ case s_Fld_Protype:
    when "Integer"   then s_Fld_Typecode = {&DTYPE_INTEGER}.
    when "Decimal"   then s_Fld_Typecode = {&DTYPE_DECIMAL}.
    when "RECID"	    then s_Fld_Typecode = {&DTYPE_RECID}.
+   when "RAW"	    then s_Fld_Typecode = {&DTYPE_RAW}.
 end.
 
 /* Set format default based on data type.  This will also set initial

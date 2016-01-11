@@ -32,6 +32,6 @@
    onMouseOver="window.status='Browse the contents of the on-line WebSpeed Library.'; return true;" 
    onMouseOut="window.status=''; return true;">Help</A>
 <BR> 
-<A HREF="/webspeed31C/workshop/copyright.html">Copyright&copy;</A>
+<A HREF="/webspeed31D/workshop/copyright.html">Copyright&copy;</A>
 <BR>
 

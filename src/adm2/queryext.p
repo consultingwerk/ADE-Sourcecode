@@ -34,6 +34,11 @@
     Syntax      : adm2/query.p
 
     Modified    : Jan 22, 2001 Version 9.1C
+    Modified    : 10/24/2001          Mark Davied (MIP)
+                  Added new property FilterAvailable and it's get and set
+                  functions.
+    Modified    : 02/27/2002          Gikas A. Gikas
+                  Incidental bug fixed while working on IZ 4050
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -74,6 +79,28 @@ FUNCTION getAssignList RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getBaseQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBaseQuery Procedure 
+FUNCTION getBaseQuery RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCalculatedColumns Procedure 
+FUNCTION getCalculatedColumns RETURNS CHARACTER
+  ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCheckLastOnOpen) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCheckLastOnOpen Procedure 
@@ -90,6 +117,17 @@ FUNCTION getCheckLastOnOpen RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumns Procedure 
 FUNCTION getDataColumns RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumnsByTable Procedure 
+FUNCTION getDataColumnsByTable RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -118,6 +156,50 @@ FUNCTION getDBNames RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getEnabledTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getEnabledTables Procedure 
+FUNCTION getEnabledTables RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFetchOnOpen Procedure 
+FUNCTION getFetchOnOpen RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterActive Procedure 
+FUNCTION getFilterActive RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterAvailable Procedure 
+FUNCTION getFilterAvailable RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFields Procedure 
@@ -140,10 +222,32 @@ FUNCTION getForeignValues RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyFields Procedure 
+FUNCTION getKeyFields RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyTableId Procedure 
+FUNCTION getKeyTableId RETURNS CHARACTER
+    ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHARACTER
+FUNCTION getNavigationSource RETURNS CHAR
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -178,6 +282,17 @@ FUNCTION getOpenOnInit RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenQuery Procedure 
 FUNCTION getOpenQuery RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getQueryColumns Procedure 
+FUNCTION getQueryColumns RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -305,6 +420,17 @@ FUNCTION setAutoCommit RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBaseQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBaseQuery Procedure 
+FUNCTION setBaseQuery RETURNS LOGICAL
+  ( pcBaseQuery AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCheckLastOnOpen) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCheckLastOnOpen Procedure 
@@ -338,11 +464,66 @@ FUNCTION setDBNames RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFetchOnOpen Procedure 
+FUNCTION setFetchOnOpen RETURNS LOGICAL
+  ( pcFetchOnOpen AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterActive Procedure 
+FUNCTION setFilterActive RETURNS LOGICAL
+  ( plFilterActive AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterAvailable Procedure 
+FUNCTION setFilterAvailable RETURNS LOGICAL
+  ( plFilterAvailable AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setForeignFields Procedure 
 FUNCTION setForeignFields RETURNS LOGICAL
   ( pcFields AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyFields Procedure 
+FUNCTION setKeyFields RETURNS LOGICAL
+  ( pcKeyFields AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyTableId Procedure 
+FUNCTION setKeyTableId RETURNS LOGICAL
+  ( pcKeyTableId AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -376,6 +557,17 @@ FUNCTION setOpenOnInit RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOpenQuery Procedure 
 FUNCTION setOpenQuery RETURNS LOGICAL
   (pcQuery AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setQueryColumns Procedure 
+FUNCTION setQueryColumns RETURNS LOGICAL
+  ( cQueryColumns AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -455,7 +647,7 @@ FUNCTION setTables RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 10.81
+         HEIGHT             = 16.38
          WIDTH              = 51.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -506,6 +698,60 @@ FUNCTION getAssignList RETURNS CHARACTER
   {get AssignList cList}.
   
   RETURN cList.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getBaseQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBaseQuery Procedure 
+FUNCTION getBaseQuery RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the base query property 
+    Notes: This is used internally by openQuery, and directly on client context 
+           management. Because setOpenQuery also setOpenQuery and wipes out 
+           all other query data it cannot be used when setting this when
+           received from server  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cBaseQuery AS CHARACTER  NO-UNDO.
+  {get BaseQuery cBaseQuery}.
+  RETURN cBaseQuery.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCalculatedColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCalculatedColumns Procedure 
+FUNCTION getCalculatedColumns RETURNS CHARACTER
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns a comma-delimited list of the calculated columns for the 
+               SmartDataObject. 
+  Parameters:  
+       Notes:  Uses the DataColumsByTable property that stores fields for 
+               different tables delimited by CHR(1) where the last entry may be 
+               calculated fields
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cColumns AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTables  AS CHARACTER  NO-UNDO.
+  
+  {get DataColumnsByTable cColumns}.
+  {get Tables cTables}.  
+
+  IF NUM-ENTRIES(cColumns,CHR(1)) > NUM-ENTRIES(cTables) THEN
+    cColumns = ENTRY(NUM-ENTRIES(cTables)+ 1,cColumns,CHR(1)).
+
+  RETURN cColumns. 
 
 END FUNCTION.
 
@@ -578,6 +824,29 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getDataColumnsByTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataColumnsByTable Procedure 
+FUNCTION getDataColumnsByTable RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns a comma-delimited list of the columnNames delimited 
+               by CHR(1) to identify which columns are from which table 
+  Parameters:  
+       Notes:  Use DataColums to get a comma separated list        
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cColumns AS CHARACTER NO-UNDO.
+  {get DataColumnsByTable cColumns}.
+    
+  RETURN cColumns.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataIsFetched) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataIsFetched Procedure 
@@ -589,7 +858,8 @@ FUNCTION getDataIsFetched RETURNS LOGICAL
             another server call to fetch the data it already has. 
             This is checked in query.p dataAvailable and openQuery is skipped
             if its true. It's immediately turned off after it is checked.    
-    Notes:  
+    Notes: Duplicated in sboext 
+Note Date: 2002/04/14     
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lFetched AS LOGICAL    NO-UNDO.
   {get DataIsFetched lFetched}.
@@ -619,6 +889,143 @@ Parameters:  <none>
          ghProp = ghProp:BUFFER-FIELD('DBNames':U).
 
   RETURN ghProp:BUFFER-VALUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getEnabledTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getEnabledTables Procedure 
+FUNCTION getEnabledTables RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns a list of the database tables which have enabled fields.
+   Params:  <none>
+    Notes:    
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cUpdColumns    AS CHAR  NO-UNDO.
+  DEFINE VARIABLE i              AS INT    NO-UNDO.
+  
+  {get Tables cTables}.
+  
+  /* get the list of enabled fields that are separated per table and
+     use it to check which tables have enabled tables */
+  {get UpdatableColumnsByTable cUpdColumns}.
+  
+  DO i = 1 TO NUM-ENTRIES(cTables):
+    IF ENTRY(i,cUpdColumns,CHR(1)) <> "":U THEN
+      cEnabledTables = cEnabledTables 
+                      + (IF cEnabledTables = "":U THEN "":U ELSE ",":U)
+                      + ENTRY(i, cTables).
+  END.
+
+  RETURN cEnabledTables. 
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFetchOnOpen Procedure 
+FUNCTION getFetchOnOpen RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return what/whether a fetch should occur when the db query is opened
+    Notes: A blank value means don't fetch on open, any other value is just 
+           being run as fetch + <property value>
+         - Unknown value indicates default which is blank on 'server' and
+           'first' otherwise.
+         - This is a replacement of the return that used to be in data.p 
+           fetchFirst. The blank gives the same effect as it prevents 
+           openQuery from calling fetchFirst.
+             
+Note Date: 2002/4/11             
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFetchOnOpen  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAsDivision   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQueryCont    AS LOGICAL    NO-UNDO.
+  
+  &SCOPED-DEFINE xpFetchOnOpen 
+  {get FetchOnOpen cFetchOnOpen}.
+  &UNDEFINE xpFetchOnOpen 
+  
+  IF cFetchOnOpen = ? THEN
+  DO:
+    /* If inside an sbo we want openQuery to fetchfirst (as always), 
+       so we do notneed ot chekc for the division */ 
+    {get QueryContainer lQueryCont} NO-ERROR.
+    IF NOT (lQueryCont EQ YES) THEN
+    DO:
+      {get AsDivision cAsDivision}.
+      IF cAsDivision = 'Server':U THEN
+         cFetchOnOpen = '':U.
+    END.
+    
+    IF cFetchOnOpen = ? THEN
+       cFetchOnOpen = 'First':U.
+  END.
+
+  RETURN cFetchOnOpen.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterActive Procedure 
+FUNCTION getFilterActive RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return whether a filter is active.  
+    Notes: It may be set to true explicitly or use the Querycolumns   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFilterActive  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cQueryColumns  AS CHARACTER  NO-UNDO.
+  
+  &SCOPED-DEFINE xpFilterActive 
+  {get FilterActive lFilterActive}.
+  &UNDEFINE xpFilterActive 
+  {get QueryColumns cQueryColumns}.
+ 
+  RETURN lfilterActive AND cQuerycolumns <> '':U.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterAvailable Procedure 
+FUNCTION getFilterAvailable RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return whether a filter is available. 
+    Notes: 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFilterAvailable  AS LOGICAL    NO-UNDO.
+  
+  &SCOPED-DEFINE xpFilterAvailable 
+  {get FilterAvailable lFilterAvailable}.
+  &UNDEFINE xpFilterAvailable 
+  
+  RETURN lFilterAvailable.
 
 END FUNCTION.
 
@@ -683,17 +1090,166 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFields Procedure 
+FUNCTION getKeyFields RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the comma-separated KeyFields property.
+   Params:  The indexInformation will be used to try to figure out the
+            default KeyFields list, but this is currently restricted to cases 
+            where: 
+            - The First Table in the join is the Only enabled table.
+            - All the fields of the index is present is the SDO.             
+            The following index may be selected.                 
+                     
+            1. Primary index if unique.
+            2. First Unique index. 
+            
+            There's currently no check whether the field is mandatory.                                      
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cKeyFields     AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cIndexInfo     AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cUniqueList    AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cPrimaryList   AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cColumnList    AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cColumn        AS CHAR  NO-UNDO.
+  DEFINE VARIABLE cIndex         AS CHAR  NO-UNDO.
+  DEFINE VARIABLE iIDx           AS INT   NO-UNDO.
+  DEFINE VARIABLE iFld           AS INT   NO-UNDO.
+  DEFINE VARIABLE lPrimaryFound  AS LOG   NO-UNDO.
+  DEFINE VARIABLE iOkIndex       AS INT   NO-UNDO.
+  
+  /* temorary define the xp so we can go directly to the property buffer */
+  &SCOPED-DEFINE xpKeyFields 
+  {get KeyFields cKeyFields}.
+  &UNDEFINE xpKeyFields 
+
+  IF cKeyFields = "":U THEN
+  DO:
+    {get EnabledTables cEnabledTables}.
+    {get Tables cTables}.
+    
+    /* Currently we only create a default KeyFields when 
+       ONE enabled table and it's the FIRST table */
+    IF NUM-ENTRIES(cEnabledTables) = 1 
+    AND cEnabledTables = ENTRY(1,cTables) THEN
+    DO:
+      {get IndexInformation cIndexInfo}.
+      
+      /* check again.. it may have been passed from the server together 
+         with IndexInformation  */
+      &SCOPED-DEFINE xpKeyFields 
+      {get KeyFields cKeyFields}.
+      &UNDEFINE xpKeyFields 
+
+      IF cIndexInfo <> ? AND cKeyFields = '':U THEN
+      DO:
+      
+        /* Get the unique indexes from the IndexInformation function */
+        cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                        'unique':U, /* query  */
+                                        'yes':U,     /* table delimiter */
+                                        cIndexInfo).
+        /* only the first table's indexes*/ 
+        cUniqueList = ENTRY(1,cUniqueList,CHR(2)).
+        
+        /* Get the primary index(es) from the IndexInformation function */
+        cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                        'primary':U, /* query  */
+                                        'yes':U,     /* table delimiter */
+                                        cIndexInfo).
+                                  
+        /* only the first table's indexes*/ 
+        cPrimaryList = ENTRY(1,cPrimaryList,CHR(2)).
+        
+        IndexLoop:
+        DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
+          
+          cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)). 
+          /* This is the entry we use if it's ok */
+          iOkIndex = IF iOkindex = 0 
+                     THEN iIdx
+                     ELSE iOkIndex.
+          
+          /* We never set primaryFound to false, because we want to bail out 
+             on the first acceptable index AFTER the primary if the primary 
+             could not be used.*/
+          IF NOT lPrimaryFound THEN
+             lPrimaryFound = cColumnList = cPrimaryList.
+          /* check if all columns is in the SDO */
+          DO iFld = 1 TO NUM-ENTRIES(cColumnList):
+            cColumn = ENTRY(iFld,cColumnList).
+            
+            /* If the field is qualifed it's not used in the SDO,
+               so we don't use this index */
+            IF INDEX(cColumn,".":U) <> 0 THEN 
+              iOkIndex = 0.
+
+          END.
+          /* if this index is ok and the primary has been found now or earlier,
+             don't search anymore */
+          IF iOkIndex <> 0 AND lPrimaryFound THEN
+            LEAVE IndexLoop.
+        END. /* do i = 1 to num-entries cFieldList */
+        /* Did we find an index? */
+        IF iOkIndex <> 0 THEN
+        DO:
+          cKeyFields = ENTRY(iokindex,cUniqueList,CHR(1)).
+          /* store it for the future */
+          {set KeyFields cKeyFields}.
+        END.
+      END. /* if indexinfo <> */
+     END. /* cinfo <> ? */
+  END.
+
+  RETURN cKeyFields.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyTableId Procedure 
+FUNCTION getKeyTableId RETURNS CHARACTER
+    ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Get the KeyTable identifier (Dynamics FiveLetterAcronym) property
+    Notes: This is a unique Table identifier across databases for all tables 
+           used by the framework  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cKeyTableID AS CHARACTER  NO-UNDO.
+  
+  &SCOPED-DEFINE xpKeyTableId
+  {get KeyTableId cKeyTableId}.
+  &UNDEFINE xpKeyTableId
+ 
+  RETURN cKeyTableID.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHARACTER
+FUNCTION getNavigationSource RETURNS CHAR
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:     Returns the char list of the query object's Navigation source handles..
+  Purpose:     Returns the handle of the query object's Navigation source.
   
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE cSource AS CHARACTER NO-UNDO.
   {get NavigationSource cSource}.
   RETURN cSource. 
@@ -763,12 +1319,38 @@ FUNCTION getOpenQuery RETURNS CHARACTER
               value in a QUERY-PREPARE method.
             - getOpenQuery is called from the client on AppServer, so we are not
               using the xp preprocessor.
+            - The actual value is stored in BaseQuery.. After the improvements
+              to make the Appserver use one hit perrequest setOpenQuery cannot
+              be used to store server context on the client, since it may be 
+              returned AFTER the query has been changed and wipe out all query 
+              data because it calls setQueryWhere('').    
 ------------------------------------------------------------------------------*/  
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('OpenQuery':U).
+  DEFINE VARIABLE cQuery AS CHARACTER  NO-UNDO.
   
-  RETURN ghProp:BUFFER-VALUE.
+  {get BaseQuery cQuery}.
+        
+  RETURN cQuery.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getQueryColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getQueryColumns Procedure 
+FUNCTION getQueryColumns RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cQueryColumns AS CHARACTER NO-UNDO.
+    {get QueryColumns cQueryColumns}.
+    RETURN cQueryColumns.
+    
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1117,6 +1699,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBaseQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBaseQuery Procedure 
+FUNCTION setBaseQuery RETURNS LOGICAL
+  ( pcBaseQuery AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: Set the base query property 
+    Notes: This is used internally by openQuery, and directly on client context 
+           management. Because setOpenQuery also setQueryWhere and wipes out 
+           all other query data it cannot be used when setting this when
+           received from server.  
+------------------------------------------------------------------------------*/
+  {set BaseQuery pcBaseQuery}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCheckLastOnOpen) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCheckLastOnOpen Procedure 
@@ -1153,7 +1757,8 @@ FUNCTION setDataIsFetched RETURNS LOGICAL
            does another server call to fetch the data it already has. 
            The SDO checks it in dataAvailable and avoids openQuery if its true.
            It's immediately turned off after it is checked.    
-    Notes:  
+    Notes: Duplicated in sboext 
+Note Date: 2002/04/14    
 ------------------------------------------------------------------------------*/
   {set DataIsFetched plFetched}.
   
@@ -1194,6 +1799,101 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setFetchOnOpen) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFetchOnOpen Procedure 
+FUNCTION setFetchOnOpen RETURNS LOGICAL
+  ( pcFetchOnOpen AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set whether a fetch should occur when the db query is opened.                
+Parameter: pcFetchOnOpen  -  
+            Blank - don't do any fetch  
+            First - run fetchFirst
+            Last  - run FethcLast 
+                    (not directly supported in the framework).       
+            ?     - default         
+    Notes: A stored value of undefined means use default (see getFetchOnOpen) 
+------------------------------------------------------------------------------*/
+  &SCOPED-DEFINE xpFetchOnOpen 
+  {set FetchOnOpen pcFetchOnOpen}.
+  &UNDEFINE xpFetchOnOpen 
+  
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterActive Procedure 
+FUNCTION setFilterActive RETURNS LOGICAL
+  ( plFilterActive AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set a flag to indicate that filter is active.  
+    Notes: the getFfilerActive also checks QueryColumns   
+------------------------------------------------------------------------------*/  
+  &SCOPED-DEFINE xpFilterActive 
+  {set FilterActive plFilterActive}.
+  &UNDEFINE xpFilterActive 
+     
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterAvailable Procedure 
+FUNCTION setFilterAvailable RETURNS LOGICAL
+  ( plFilterAvailable AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set a flag to indicate that filter is available.
+    Notes: ALso update the FilterWindow property for StartFilter. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hFilterSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFilterWindow     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hFilterContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hMyContainer      AS HANDLE     NO-UNDO.
+  
+  &SCOPED-DEFINE xpFilterAvailable 
+  {set FilterAvailable plFilterAvailable}.
+  &UNDEFINE xpFilterAvailable 
+
+  /* This info is used by startFilter */
+  {get FilterWindow cFilterWindow}.
+  IF cFilterWindow = '':U  OR cFilterWindow = ? THEN
+  DO:
+    {get FilterSource hFilterSource}.
+    IF VALID-HANDLE(hFilterSource) THEN
+    DO:
+      {get ContainerSource hFilterContainer hFilterSource}.
+      {get ContainerSource hMyContainer}.    
+      IF hMyContainer <> hFilterContainer AND VALID-HANDLE(hFilterContainer) THEN
+        {set FilterWindow hFilterContainer:FILE-NAME}.
+    END.
+  END.
+
+  /* The toolbar is subscribing to filteravailble from the navigation link*/
+  IF plFilterAvailable THEN 
+     PUBLISH "FilterState":U FROM TARGET-PROCEDURE ("FilterAvailable":U).
+   
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setForeignFields Procedure 
@@ -1223,6 +1923,57 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyFields Procedure 
+FUNCTION setKeyFields RETURNS LOGICAL
+  ( pcKeyFields AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the KeyFields property
+   Params:  pcKeyFields -- Comma separated list of fields 
+    Notes:  
+------------------------------------------------------------------------------*/
+   /* temorary define the xp so we can go directly to the property buffer */
+  &SCOPED-DEFINE xpKeyFields 
+  {set KeyFields pcKeyFields}.
+  &UNDEFINE xpKeyFields 
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setKeyTableId) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyTableId Procedure 
+FUNCTION setKeyTableId RETURNS LOGICAL
+  ( pcKeyTableId AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the KeyTableId property
+   Params:  TableId - Table identifier  
+    Notes:  Unique identifer of the table
+            (In Dynamics Aka FLA (Five Letter Acronym) )
+           This is also the dump name of the table 
+------------------------------------------------------------------------------*/
+  /* temporary define the xp so we can go directly to the property buffer */
+  
+  &SCOPED-DEFINE xpKeyTableId
+  {set KeyTableId pcKeyTableId}.
+  &UNDEFINE xpKeyTableId
+   
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setNavigationSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNavigationSource Procedure 
@@ -1232,8 +1983,8 @@ FUNCTION setNavigationSource RETURNS LOGICAL
   Purpose:     Sets the NavigationSource link value.
   
   Parameters:  
-    pcObject - char delim string of procedure handles of the object which 
-               should be made this object's Navigation-Source(s).
+    pcObject - comma delimited string of the objects which should be made this 
+               object's Navigation-Source.
 ------------------------------------------------------------------------------*/
 
   {set NavigationSource pcObject}.
@@ -1281,15 +2032,38 @@ FUNCTION setOpenQuery RETURNS LOGICAL
   Parameters: pcQuery - Query expression without open query <name>.
     Notes:    getOpenQuery is called from the client on AppServer, so we are not
               using the xp preprocessor.
+            - The actual value is stored in BaseQuery.. After the improvements
+              to make the Appserver use one hit per request setOpenQuery cannot
+              be used to store the server context on the client since it may 
+              be returned AFTER the query has been changed and wipe out all 
+              query data because it calls setQueryWhere('').    
 ------------------------------------------------------------------------------*/
-  ASSIGN ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-         ghProp = ghProp:BUFFER-FIELD('OpenQuery':U)
-         ghProp:BUFFER-VALUE = pcQuery.
-
+  
+  {set BaseQuery pcQuery}.
+        
   /* Just use the setQueryWhere to blank to apply this property to the query.
      setQueryWhere has all the required logic to prepare and set other  
      query props to blank. */ 
   RETURN {fnarg setQueryWhere '':U}.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setQueryColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setQueryColumns Procedure 
+FUNCTION setQueryColumns RETURNS LOGICAL
+  ( cQueryColumns AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set QueryColumns cQueryColumns}.
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

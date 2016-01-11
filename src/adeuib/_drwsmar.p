@@ -47,6 +47,7 @@ Modified by GFS on 03/13/95 - Added routine to construct new object name from
                               all fields. Added procedure Get_Field_Name to
                               determine if data field should get prefix of
                               source object. Example: "dorder.SalesRep"
+            JEP on 10/01/01 - IZ 1611 <Local> field support for SmartDataFields.
 ----------------------------------------------------------------------------*/
  
 {adeuib/uniwidg.i}
@@ -239,7 +240,7 @@ RUN adeuib/_undsmar.p (RECID(_U)).
 
 /* If dealing with a SmartDataField, store the field name in the property */
 IF VALID-HANDLE(_S._HANDLE) THEN DO:
-  cSignature = _S._HANDLE:GET-SIGNATURE("setFieldName").
+  cSignature = _S._HANDLE:GET-SIGNATURE("setFieldName":U).
   IF cSignature NE "" THEN DO:
     FIND x_U WHERE x_U._HANDLE = datafield.
     
@@ -356,6 +357,7 @@ PROCEDURE Get_Field_Name :
   Notes: The only condition currently where the parent object name is added
          is for SBO Data Fields.
   Fixes: jep    05/24/01 IZ 1318 SmartSelect on SDV built from SBO blanks all fields.
+  Fixes: jep    10/01/01 IZ 1611 <Local> field support for SmartDataFields.
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT        PARAMETER phField AS HANDLE     NO-UNDO.
@@ -372,6 +374,14 @@ DO ON ERROR UNDO, LEAVE
        ASSIGN lSboObj = NO.
        FIND DataField_U WHERE DataField_U._HANDLE = phField NO-LOCK NO-ERROR.
        IF NOT AVAILABLE DataField_U THEN RETURN.
+
+       /* IZ 1611 Provide local field support for SmartDataFields. Local fields
+          have no table associated with them. */
+       IF (DataField_U._TABLE = ?) THEN
+       DO:
+         ASSIGN pName = "<Local>":U.
+         RETURN.
+       END.
 
        /* Determine if our object is a Data Field (e.g., an SDO RowObject field or
           SBO field). Since Data Field objects are managed using the _P object's temp

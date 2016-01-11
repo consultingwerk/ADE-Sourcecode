@@ -1,0 +1,518 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Open and Save</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)    <BR>
+Revision: (rev-no)      <BR>
+Developer: (developer)  <BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The Original
+Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>    <TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>    <TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">2.1</TD>    <TD CLASS="Text1"><A HREF="#2.1">Basic File Structure</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.1</TD>    <TD CLASS="Text1"><A HREF="#2.1.1">Header Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.2</TD>    <TD CLASS="Text1"><A HREF="#2.1.2">Definitions Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.3</TD>    <TD CLASS="Text1"><A HREF="#2.1.3">Standard Preprocessors Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.4</TD>    <TD CLASS="Text1"><A HREF="#2.1.4">Control Definitions Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.5</TD>    <TD CLASS="Text1"><A HREF="#2.1.5">Included Libraries Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.6</TD>    <TD CLASS="Text1"><A HREF="#2.1.6">Runtime Attributes and Settings Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.7</TD>    <TD CLASS="Text1"><A HREF="#2.1.7">Control Triggers Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.8</TD>    <TD CLASS="Text1"><A HREF="#2.1.8">Main Block Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.9</TD>    <TD CLASS="Text1"><A HREF="#2.1.9">Internal Procedures Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.1.10</TD>    <TD CLASS="Text1"><A HREF="#2.1.10">Internal Functions Section</A></TD></TR>
+<TR><TD CLASS="Text1">2.2</TD>    <TD CLASS="Text1"><A HREF="#2.2">File Types</A></TD></TR>
+<TR><TD CLASS="Text1">2.3</TD>    <TD CLASS="Text1"><A HREF="#2.3">Save .w File</A></TD></TR>
+<TR><TD CLASS="Text1">2.4</TD>    <TD CLASS="Text1"><A HREF="#2.4">Open .w File</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>    <TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">3.1</TD>    <TD CLASS="Text1"><A HREF="#3.1">Save .w File</A></TD></TR>
+<TR><TD CLASS="Text1">3.2</TD>    <TD CLASS="Text1"><A HREF="#3.2">Open .w File</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>    <TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">4.1</TD>    <TD CLASS="Text1"><A HREF="#4.1">Save .w File</A></TD></TR>
+<TR><TD CLASS="Text1">4.1.1</TD>    <TD CLASS="Text1"><A HREF="#4.1.1">A Few Details About Customized Processing</A></TD></TR>
+<TR><TD CLASS="Text1">4.1.2</TD>    <TD CLASS="Text1"><A HREF="#4.1.2">Open File</A></TD></TR>
+<TR><TD CLASS="Text1">4.1</TD>  <TD CLASS="Text1"><A HREF="#4.1">Reading in the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.2</TD>  <TD CLASS="Text1"><A HREF="#4.2">Reading in the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">4.3</TD>  <TD CLASS="Text1"><A HREF="#4.3">Changing the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.4</TD>  <TD CLASS="Text1"><A HREF="#4.4">Changing the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">4.5</TD>  <TD CLASS="Text1"><A HREF="#4.5">Writing out the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.6</TD>  <TD CLASS="Text1"><A HREF="#4.6">Writing out the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>    <TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.1</TD>    <TD CLASS="Text1"><A HREF="#5.1">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.1.1</TD>    <TD CLASS="Text1"><A HREF="#5.1.1">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.2</TD>    <TD CLASS="Text1"><A HREF="#5.2">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.3</TD>    <TD CLASS="Text1"><A HREF="#5.3">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.4</TD>    <TD CLASS="Text1"><A HREF="#5.4">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">5.4.1</TD>    <TD CLASS="Text1"><A HREF="#5.4.1">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>    <TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>    <TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>    <TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>    <TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">9.1</TD>    <TD CLASS="Text1"><A HREF="#9.1">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">9.2</TD>    <TD CLASS="Text1"><A HREF="#9.2">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>   <TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>   <TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>   <TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<P><A NAME="1"><B>1. Overview</B></A></p>
+
+<P>The AppBuilder, formerly the User Interface Builder (UIB), is a rapid application development (RAD) tool for creating and maintaining PROGRESS 4GL-based graphical user interfaces (GUIs).  It provides a palette of widgets that may be dragged and dropped onto a design window, and then further customized and enhanced to meet the application designer's requirements.  The widgets on the palette are comprised of native widgets that are inherent in the PROGRESS 4GL, and custom widgets, consisting of native widgets or combinations of native widgets along with additional code, that serve as reusable interface design components.</P>
+
+<P>At the core of the AppBuilder's architecture is the notion of structured application code.  The AppBuilder is both a code generator and a code parser.  The application modules created with the AppBuilder are saved as ASCII text files on the operating system.  These text files are carefully structured into logical blocks of PROGRESS 4GL statements; they are formatted and ordered to support both of these activities:</P>
+
+<UL>
+
+<LI>Proper compilation and interpretation for execution by the PROGRESS client</LI>
+<LI>To allow the file to be read back into the AppBuilder for maintenance.</LI>
+
+</UL>
+
+<P>This document examines the structure of the AppBuilder generated code, and how the code is written to and read from the operating system.</P>
+
+<P><A NAME="2"><B>2.	Architecture</B></A></P>
+
+<P>The Open and Save procedures for the AppBuilder are primarily top-down, structured procedures with large "main" blocks and a few internal procedures.  The AppBuilder tool is the evolution of the User Interface Builder (UIB), which was originally designed before many of the more powerful PROGRESS 4GL capabilities, such as persistent procedures, dynamic temp-tables and queries, publish/subscribe and user-defined functions, existed.  The tool has undergone many changes and enhancements since its inception in 1992, but the file structure, and consequently the open and save routines, are still largely based on the original design philosophy.</P>
+
+<P><A NAME="2.1"><B>2.1  Basic File Structure</B></A></P>
+
+<P>All AppBuilder-generated files are comprised of a set of ordered code sections.  The number and nature of the sections is dependent on the file type. See section 2.2, "File Types". The remaining information in this section examines the complete set of AppBuilder code sections, and identifies the order in which they occur in a file.</P>
+
+<P><A NAME="2.1.1"><B>2.1.1	 Header Section</B></A></P>
+
+<P>The Header Section is also referred to as the "TopOfFile" section.  This is where the AppBuilder generates the main comment block and other comments for identifying the source of the file.  This section can contain the following information:</P>
+
+<UL>
+
+<LI>AppBuilder version information - indicates the revision level of the AppBuilder at the time the file was generated.  This information is examined when the AppBuilder opens a file and may determine how the file is parsed.</LI>
+
+<LI>WINDOW-NAME and/or FRAME-NAME preprocessors - if a window and/or frame widget is created and maintained by the AppBuilder, then a preprocessor will be generated for the object(s) so they can be referenced generically anywhere in the file.</LI>
+
+<LI>Comment for connected databases - if there are any database references in the file, a comment will be generated to indicate which databases will need to be connected when the file is opened in order for it to be viewed and compiled.</LI>
+
+<LI>Comment block containing file name, description, revision history, and so forth - this is the "header" block where the user can enter descriptive information about the nature of the program.</LI>
+
+<LI>Comment for identifying "This .W file was created with the Progress AB".</LI>
+
+<LI>AppServer partition handles</LI>
+
+</UL>
+
+<P><A NAME="2.1.2"><B>2.1.2	Definitions Section</B></A></P>
+
+<P>The Definitions Section generates temp-table, buffer, user field and custom definitions.</P>
+
+<UL>
+
+<LI>User Fields - used by WebSpeed to allow definitions for temp-tables, fields, variables, and so forth (includes or code) to be added to the design frame.  This is an old Version 1/Version 2 WebSpeed feature that extends the HTML mapping object to map to any object, not only those inserted with the field-picker.  </LI>
+<LI>Custom definitions - this is the section where the user can enter their own variable definitions, i.e., the "Definitions" section in the AppBuilder.</LI>
+
+</UL>
+
+<P><A NAME="2.1.3"><B>2.1.3	Standard Preprocessors Section</B></A></P>
+
+<P>The Standard Preprocessors section identifies the code section where most of the AppBuilder-maintained preprocessors are generated. The following list identifies some of the possible preprocessor values:</P>
+
+<UL>
+
+<LI>PROCEDURE-TYPE - Identifies the type of procedure file, for example, SmartWindow</LI>
+
+<LI>DB-AWARE -Logical value, indicating whether or not this procedure requires a database connection</LI>
+
+<LI>FRAME-NAME - For a dialog-box, this preprocessor would appear in the Header section</LI>
+
+<LI>ENABLED-OBJECTS - Delimited list of object names to be enabled.  Note that this list also determines the tab order</LI>
+
+<LI>DISPLAYED-OBJECTS - Objects that are to be displayed, for example, in enable_UI</LI>
+
+<LI>ADM-SUPPORTED-LINKS - For SmartObjects, a delimited list of possible link types, for example, Data-Source, Data-Target</LI>
+
+<LI>Include file for SDB/SDV rowObject temp-table definition - SmartDataBrowsers and SmartDataViewers share their field definitions with their associated SmartDataObject via an include file; the include file is referenced by both objects in order to maintain continuity</LI>
+
+<LI>External Table List</LI>
+
+<LI>Internal Tables</LI>
+
+<LI>Frame, Query, Browse - Related preprocessors, for example, FIELDS-IN-QUERY-queryname, OPEN-QUERY-queryname</LI>
+
+<LI>Window preprocessors, for example, LIST-1, LIST-2 - Maintained</LI>
+
+</UL>
+ 
+<P><A NAME="2.1.4"><B>2.1.4	Control Definitions Section</B></A></P>
+
+This section contains definitions that are maintained exclusively by the AppBuilder.  Some examples include:</P>
+
+<UL>
+
+<LI>Function prototypes</LI>
+<LI>Variable to hold active layout name (if multiple layout)</LI>
+<LI>Window handle definition</LI>
+<LI>Menu definitions</LI>
+<LI>SmartObject/OCX handle definitions</LI>
+<LI>Query/Browse/Frame definitions</LI>
+<LI>Procedure Settings</LI>
+<LI>If the file is meant to be run persistently only, generate the "IF NOT THIS-PROCEDURE:PERSISTENT THEN [WARNING MESSAGE]" statement.</LI>
+<LI>CREATE WINDOW statement</LI>
+<LI>Widget definitions </LI>
+
+</UL>
+
+<P>Note: The text widgets are not defined here, but rather they are defined as literals in the parent frame's definition.</P>
+
+<P><A NAME="2.1.5"><B>2.1.5	Included Libraries Section</B></A></P>
+
+<P>Here is where any included library (e.g., ADM standard include files) references are generated.</P>
+
+<P><A NAME="2.1.6"><B>2.1.6	Runtime Attributes and Settings Section</B></A></P>
+
+<P>This section identifies where various runtime values are assigned, to initialize widget properties such as HIDDEN, SENSITIVE, READ-ONLY, and so forth.  Here are some examples of the possible content of this section:</P>
+
+<UL>
+
+<LI>Frame-owning-frame parenting code</LI>
+<LI>If multi-layout is used, CASE statement for selecting current layout</LI>
+
+</UL>
+
+<P><A NAME="2.1.7"><B>2.1.7	Control Triggers Section</B></A></P>
+
+<P>The Control Triggers section generates the default trigger code for the AppBuilder-maintained widgets (for example, triggers to handle the WINDOW-CLOSE, END-ERROR and ENDKEY events for the default window).  Also, if an OCX container is included in the window, this section generates the definition for the containing CONTROL-FRAME.</P>
+
+<P><A NAME="2.1.8"><B>2.1.8	Main Block Section</B></A></P>
+
+<P>This section generates the main code block. This section is user-maintained, but there may be some default code generated here for certain file types. </P>
+
+<P>The following list identifies examples of the kind of code that might be generated in the Main Block:</P>
+
+<UL>
+
+<LI>Assign CURRENT-WINDOW and THIS-PROCEDURE:CURRENT-WINDOW for standard Window files.</LI>
+<LI>ON CLOSE OF THIS-PROCEDURE trigger for standard Window files.</LI>
+<LI>Include custom Main Block code for SmartWindows - {src/adm2/windowmn.i}</LI>
+
+</UL>
+
+<P><A NAME="2.1.9"><B>2.1.9	Internal Procedures Section</B></A></P>
+
+<P>This section generates all the internal procedures in alphabetical order.  This can include some AppBuilder-maintained procedures such as adm-create-objects( ), enable-all( ) and disable-all( ).</P>
+
+<P><A NAME="2.1.10"><B>2.1.10	Internal Functions Section</B></A></P>
+
+<P>This section generates all the internal functions in alphabetical order.  Note that the corresponding function prototypes are automatically generated above in the Control Definitions section.</P>
+
+<P><A NAME="2.2"><B>2.2	File Types</B></A></P>
+
+<P>The AppBuilder supports a number of different file types. Each file type can have a different composition, but all of the file types share the same overall structure. 
+The three major file categories, designated by the file extension, are:</P>
+
+<UL>
+
+<LI>Window (.w)</LI>
+<LI>Procedure (.p)</LI>
+<LI>Include (.i)</LI>
+
+</UL>
+
+<P>Most of the variations between different file types in the AppBuilder are in the content; it is the default values that are generated for each section that provide the unique characteristics of the corresponding file type. Some sections may be left out or contain no code in certain files.  For example, only SmartObjects have an Included Libraries section; some files do not have any widgets and therefore do not have any code in the Control Definitions and Control Triggers sections (the Control Triggers section may not even be generated).</P>
+
+<P><A NAME="2.3"><B>2.3	Save .w File</B></A></P>
+
+<P>The Save procedure is essentially a code generator.  The main routine is "_gen4gl.p".  It is designed to generate code into carefully structured and designated sections, to facilitate the parsing of the code back into the AppBuilder.
+The Save procedure collects the information stored in the AppBuilder's internal temp-tables that pertains to the specified object, and uses it to generate the appropriate Progress 4GL definitions and logic to a file on disk. Various decisions are made during the Save process to determine the correct composition and placement of information in the file. See section 4 "Primary Algorithms and Processes" later in this document for a high-level diagram of the typical Save process.</P>
+
+<P><A NAME="2.4"><B>2.4	Open .w File</B></A></P>
+
+<P>The Open procedure is basically a code parser comprised of two main modules:</P>
+
+<UL>
+
+<LI>"_qssuckr.p" (short for "quick save sucker") is the main routine that parses all but the internal procedure and functions in a file</LI>
+<LI>"_cdsucker.p" (short for "code sucker") is the routine that is designed to read in the internal procedure and function code sections.</LI>
+
+</UL>
+
+<P>The Open procedure first runs the input file through a utility called the Analyzer. The Analyzer is a form of compiler that scans the file for specific constructs and generates an output file that contains detailed information about the widgets and code blocks contained in the original input file. The Analyzer generates two output files. The Analyzer output files are then scanned by the AppBuilder and the information is transferred into the AppBuilder's internal temp-table structure to allow the procedure to be visualized and edited with the tool.</P>
+
+<P><A NAME="3"><B>3.	Primary Data Structures</B></A></P>
+
+<P>The AppBuilder's Open and Save procedures rely heavily on the AppBuilder internal temp-tables. The internal temp-tables provide the majority of the data used to generate a file, including all of the information supplied by the user during the creation and/or modification of the file in the AppBuilder tool.
+For more information about the AppBuilder internal temp-tables, see the AB Temp-Tables Open Source document.
+This section further identifies and describes some key variables associated with the Open and Save processes. </P>
+
+<P><A NAME="3.1"><B>3.1	Save .w File</B></A></P>
+
+<P>The following table identifies and briefly describes some of the key variables associated with the Save process:</P>
+
+<TABLE BORDER=1>
+<TR>
+<TD><B>Key Variable</B></TD>	
+<TD><B>Description</B></TD>
+</TR>
+<TR>
+<TD>_UIB_VERSION </TD>
+<TD>The version number of the AppBuilder (or User Interface Builder - UIB).</TD>
+</TR>
+<TR>
+<TD>Loc</TD>	
+<TD>Describes the locations of code sections of an AppBuilder file (see pre_proc.i for details).</TD>
+</TR>
+<TR>
+<TD>p_status</TD> 	
+<TD>Input parameter to _gen4gl.p.  Describes the mode in which the procedure is being used.  Possible values are Save,  SaveAs, Save:Check, Export, Run, Preview, Debug and Print.</TD>
+</TR>
+<TR>
+<TD>pre_proc.i</TD> 	
+<TD>Contains a number of preprocessors that are used by the AppBuilder. For example, section IDs for XFTR use.</TD>
+</TR>
+</TABLE>
+
+<P><A NAME="3.2"><B>3.2	Open .w File</B></A></P>
+
+<P>The following table identifies and briefly describes some of the key variables associated with the Open process:</P>
+
+<TABLE BORDER=1>
+<TR>
+<TD><B>Key Variable</B></TD>
+<TD><B>Description</B></TD>
+</TR>
+<TR>
+<TD>open_file </TD>
+<TD>File name to suck in.</TD>
+</TR>
+<TR>
+<TD>web_temp_file</TD> 	
+<TD>Web temp file to suck in.</TD>
+</TR>
+<TR>
+<TD>import_mode</TD> 	
+<TD>Mode of operation; possible values are:
+<UL>
+<LI>"WINDOW" - open a .w file (Window or Dialog Box)</LI>
+<LI>"WINDOW UNTITLED" - open a .w file but don't save the name (open as UNTITLED)</LI>
+<LI>"IMPORT" - import from an EXPORT (Copy to File) action</LI>
+</UL>
+</TD>
+</TR>
+<TR>
+<TD>from_schema </TD>	
+<TD>True if processing schema-picker output.</TD>
+</TR>
+<TR>
+<TD>_inp_line </TD>	
+<TD>Character array used to store lines of text read in from input file.</TD>
+</TR>
+<TR>
+<TD>cur_sect </TD>	
+<TD>Integer that corresponds to the section of the file that is currently being processed; see adeuib\pre_proc.i for possible values.</TD>
+</TR>
+</TABLE>
+
+<P><A NAME="4"><B>4	Primary Algorithms and Processes</B></A></P>
+
+<P>This section presents two separate graphics to describe the Save .w File and Open File processes, respectively.</P>
+
+<P><A NAME="4.1"><B>4.1	Save .w File</B></A></P>
+
+<P>Figure 1 in this section highlights the main steps in the Save process flow, and details how each file section is evaluated to determine if extended features must also be processed before the file is saved. 
+The ADE Event procedure (_adeevnt.p) is initially called to provide notification that the AppBuilder is about to save a file. At this point in the process, the user can customize the processing to occur to this file; specifically, the user can modify the unsaved file using extended feature capabilities. Then, once each of the code sections has been generated, the ADE Event procedure is again notified that the Save process is completed.</P>
+
+<P><A NAME="4.1.1"><B>4.1.1	A Few Details About Customized Processing</B></A></P>
+
+<P>As noted in Figure 1, after each section of the file is generated in the main Save process flow, the AppBuilder's internal storage is checked to determine if an extended feature (XFTR) is designated to be run; this process can be referred to as the iterative Extended Feature processing model. For example, if an extended feature is defined, the XFTR code is executed. If not, the next code section is evaluated and processed identically. After all the code sections are generated in this manner, the ADE Event procedure is notified that the Save process is done.</P>
+
+<P><img src="AB_Open_and_Save/picture1.gif" width=688 height=486 border=0 alt=""></P>
+
+ <P>Figure 1: Save Process - High-level Flow Diagram, including detailed steps of the Iterative Extended Feature Processing Model</P>
+ 
+<P><A NAME="4.1.2"><B>4.1.2	Open File</B></A></P>
+
+<P>Figure 2 highlights the main steps in the Open process flow. As noted in the first three processing boxes in the diagram, the file is first run through the Analyzer, and then the Analyzer output is processed and loaded into the AppBuilder's internal temp-table structure.  Then, the information in the temp-tables is used to visualize the procedure and allow its contents to be edited as identified in the fifth processing box in the diagram. Next, the Open process will cause any Extended Features (XFTRs) that are defined in the input file to be initiated before the Open process notifies the ADE Event procedure that it has finished opening the file.</P>
+
+<P><img src="AB_Open_and_Save/picture2.gif" width=129 height=758 border=0 alt=""></P>
+  
+<P>Figure 2: Open Process - High-level Flow Diagram</P>
+
+<P><A NAME="5"><B>5	Advanced Topics</B></A></P>
+
+<P>This section addresses the following advanced topics:</P>
+
+<UL>
+
+<LI>Analyze-Suspend/Resume</LI>
+<LI>ADE Events</LI>
+<LI>Extended Features (XFTRs)</LI>
+<LI>&EXCLUDE Preprocessors</LI>
+
+</UL>
+
+<P><A NAME="5.1"><B>5.1	Analyze-Suspend/Resume</B></A></P>
+
+<P>The Analyzer is a form of compiler, or preprocessor, that scans a Progress 4GL procedure file and produces two output files:</P>
+
+<UL>
+
+<LI>One file contains a list of widgets and their attributes</LI>
+<LI>A second file contains a list of all of the code sections from the input file. </LI>
+
+</UL>
+
+<P><A NAME="5.1.1"><B>5.1.1	Processing Details</B></A></P>
+
+<P>The code sections must be identified to the Analyzer by wrapping them in special preprocessor directives, namely &ANALYZE-SUSPEND and &ANALYZE-RESUME. </P>
+
+<P>The AppBuilder generates the appropriate &ANALYZE-SUSPEND/RESUME statements around each of its code sections when it saves a file.  When the AppBuilder opens a file, it first runs the file through the Analyzer to produce the output files.  The output files are then parsed separately to obtain the widget definitions and code sections needed to realize and maintain the procedure file.  The &ANALYZE-SUSPEND statement can also accept parameters that are used to provide more details about the code block that follows.</P>
+
+<P><A NAME="5.2"><B>5.2	ADE Events</B></A></P>
+
+<P>The AppBuilder, and other ADE tools, call the ADE Event Handler (adecomm\_adeevnt.p) to notify of certain significant points in application processing, such as before a file is opened and after a file has been saved. You can modify the ADE Event Handler to perform various customized tasks upon receiving these events.  See the appropriate AppBuilder- or ADE tools-related Online Help in the appropriate Progress product for more details and examples.</P>
+
+<P><A NAME="5.3"><B>5.3	Extended Features (XFTRs)</B></A></P>
+
+<P>Extended features, or XFTRs (pronounced "ex-features"), provide a mechanism to allow you to customize the behavior of the AppBuilder during the opening and saving of files.  An XFTR is a special code block that is manually inserted into an AppBuilder-generated file that contains directives for additional processing that is to occur at different points in the file.  The AppBuilder's "open file" routine is designed to recognize embedded XFTR code sections and perform the actions that they specify as "inline" customizations.  Typically, an XFTR code block will use the AppBuilder's API functions to access the internal representation of the procedure file they are contained in to either modify the internal information or to provide the information to an external program.</P>
+
+<P>For more information about XFTRs, refer to the AppBuilder Developer's Guide, a book in the Progress product documentation set.</P>
+
+<P><A NAME="5.4"><B>5.4	&EXCLUDE Preprocessors</B></A></P>
+
+<P>The Structured Procedure, Structured Include, and the Method Library files that are generated by the AppBuilder utilize a special mechanism for excluding the internal procedure and function blocks from the file at compile time.  This mechanism consists of a wrapper that is placed around each internal entry; it checks for the existence of a special preprocessor having the name EXCLUDE-internalEntryName.</P>
+
+<P>Note: internalEntryName is the name of the internal entry that is being wrapped.</P>
+
+<P>If the corresponding preprocessor has been defined, the code block for the internal entry that follows is "compiled out" of the .r file when it is compiled.  This mechanism is intended to provide an easy way to override the default behavior of a file by allowing an internal entry (or "method") with the same name to be defined elsewhere in the file.  This is particularly useful when the file is implemented as a Super Procedure.</P> 
+
+<P>Here is an example:</P>
+
+<P>&IF DEFINED(EXCLUDE-myIntProc) = 0 &THEN</P>
+
+  PROCEDURE myIntProc:<BR>
+    /* do some processing … */<BR>
+ END.  /* myIntProc */<BR><BR>
+
+&ENDIF<BR>
+
+
+<P><A NAME="5.4.1"><B>5.4.1	Conditions That Govern the Inclusion of Internal Procedure myIntProc</B></A></P>
+
+<P>If somewhere in the file there is a definition for the preprocessor EXCLUDE-myIntProc, then the internal procedure myIntProc will not be included in the .r file when the corresponding source file is compiled. However, if this preprocessor EXCLUDE-myIntProc is not defined, then the internal procedure will be included.</P>
+
+<P><A NAME="6"><B>6	Source Files</B></A></P>
+
+<P>The AppBuilder uses the following source files:</P>
+
+<TABLE>
+<TR>
+<TD><B>Source File Name</B></TD>
+<TD><B>Description</B></TD>
+</TR>
+<TR>
+<TD>Adeshar\_gen4gl.p</TD>	
+<TD>Performs "Save" of AppBuilder files; generates structured 4gl code that the AppBuilder can efficiently parse in order to reopen the file.</TD>
+</TR>
+<TR>
+<TD>Adeshar\_gendefs.p</TD>	
+<TD>Generates the Definitions section of a file.</TD>
+</TR>
+<TR>
+<TD>Adeuib\_qssuckr.p</TD>	
+<TD>Performs "Open" of AppBuilder files; runs source file through Analyzer and parses the resulting output files, loads the widgets and code sections into internal temp-tables; reads in and runs XFTR code blocks</TD>
+<TD>Adeuib\_cdsuckr.p</TD>	
+<TD>Performs the actual reading in of code sections and loads them into internal temp-tables to allow them to be maintained by the Section Editor.</TD>
+</TR>
+</TABLE>
+
+<P><A NAME="7"><B>7	Dependencies</B></A></P>
+
+<P>The Open and Save routines are integral parts of the AppBuilder tool. Other ADE tools also use the Save routine (i.e., _gen4gl.p). For example, the Section Editor uses it to check the syntax of its contents.</P>
+
+<P><A NAME="8"><B>8	Build Process and Requirements</B></A></P>
+
+<P>The Open and Save routines are integral parts of the AppBuilder tool; they cannot be built and run independently.</P>
+
+<P><A NAME="9"><B>9	Execution Methods</B></A></P>
+
+<P><A NAME="9.1"><B>9.1	Save .w File</B></A></P>
+
+<P>Select the File->Save menu option in the AppBuilder to invoke the Save routine.</P>
+
+<P><A NAME="9.2"><B>9.2	Open .w File</B></A></P>
+
+<P>Select the File->Open menu option in the AppBuilder to invoke the Open routine.</P>
+
+<P><A NAME="10"><B>10	Test Requirements and Strategies</B></A></P>
+
+<P>Not Applicable</P>
+
+<P><A NAME="11"><B>11	Supplementary Information</B></A></P>
+
+<P>Not Applicable</P>
+
+<P><A NAME="12"><B>12	Related Documentation</B></A></P>
+
+<P>Provide a list of documents that contain additional information about the tool. For example:
+The following documents provide additional information about the tool:</P>
+
+<UL>
+
+<LI>PROGRESS V9 Application Development Environment - Getting Started</LI>
+<LI>PROGRESS V9 AppBuilder Developer's Guide</LI>
+
+</UL>
+
+
+
+</SPAN>
+

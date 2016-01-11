@@ -36,7 +36,7 @@
 
   Created: 05/23/2000
 
-  Modified: 03/13/01 gfs Updated the name of the exe it calls
+  Modified: 03/13/01 gfs Updated the name of the exe called.
      
  *---------------------------------------------------------------------------*/
 IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" THEN DO:

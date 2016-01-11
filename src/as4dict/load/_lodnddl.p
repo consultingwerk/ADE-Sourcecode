@@ -49,6 +49,7 @@ History:
                01/27/99 Added code to recognize SQL-WIDTH
                09/09/99 Added stored procedure support.
                05/18/00 Added support for new keyword MAX-GLYPHS
+               04/12/02 Added conversion of replication trigger names
                                                             
 */                            
 
@@ -778,10 +779,15 @@ IF cerror = ?
 	  WHEN    "DB-LINK-NAME"    
 	       OR WHEN "FILE-MISC28"    THEN . /* wfil._Fil-misc2[8] = iarg */
 	  WHEN    "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER" THEN DO:
-	       FIND FIRST wfit WHERE wfit._Event = iarg NO-ERROR.
-	       IF NOT AVAILABLE wfit THEN CREATE wfit.
-	       wfit._Event = ilin[2].
-	      CASE ilin[3]:
+	    FIND FIRST wfit WHERE wfit._Event = iarg NO-ERROR.
+	    IF NOT AVAILABLE wfit THEN CREATE wfit.
+	    CASE ilin[2]:
+           WHEN "REPLICATION-CREATE" THEN wfit._Event = "RCREAT".
+           WHEN "REPLICATION-DELETE" THEN wfit._Event = "RDELET".
+           WHEN "REPLICATION-WRITE" THEN wfit._Event = "RWRITE".
+           OTHERWISE wfit._Event = ilin[2].
+         END CASE.
+	     CASE ilin[3]:
 	           WHEN "DELETE" OR WHEN "DROP" OR WHEN "REMOVE" THEN
 				    wfit._Proc-Name = "!":u.
 	           WHEN "OVERRIDE"    THEN wfit._Override = "Y".

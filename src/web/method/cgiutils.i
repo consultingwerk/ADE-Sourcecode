@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -24,18 +24,20 @@
 *                                                                    *
 *********************************************************************/
 /*--------------------------------------------------------------------------
-    Library     : cgiutils.i
-    Purpose     : Utility runtime functions and procedures
+  Library     : cgiutils.i
+  Purpose     : Utility runtime functions and procedures
+  Syntax      : { src/web/method/cgiutils.i }
+  Notes       : This file must be included after both cgidefs.i and
+                cgiarray.i which define a number of variables used
+                by these functions and procedures.
 
-    Syntax      : {src/web/method/cgiutils.i}
-    Author(s)   : B.Burton 
-    Created     : 01/07/97
-    Notes       : This file must be included after both cgidefs.i and
-                  cgiarray.i which define a number of variables used
-                  by these functions and procedures.
-
-                 This file is for internal use by WebSpeed runtime
-                 procedures ONLY. Applications should not include this file. 
+                This file is for internal use by WebSpeed runtime
+                procedures ONLY. Applications should not include this file. 
+                
+  Updated     : 01/07/1997 billb@progress.com
+                  Initial version
+                10/16/2001 adams@progress.com
+                  Added codepage support
   ------------------------------------------------------------------------*/
 /*           This .i file was created with WebSpeed WorkShop.             */
 /*------------------------------------------------------------------------*/
@@ -67,7 +69,7 @@ DEFINE VARIABLE HelpAddress  AS CHARACTER NO-UNDO FORMAT "x(40)":U.
 
 /* Unsafe characters that must be encoded in URL's.  See RFC 1738 Sect 2.2. */
 DEFINE VARIABLE url_unsafe   AS CHARACTER NO-UNDO 
-    INITIAL " <>~"#%{}|~\^~~[]`":U.
+    INITIAL " <>~"#%~{}|~\^~~[]`":U.
 
 /* Reserved characters that normally are not encoded in URL's */
 DEFINE VARIABLE url_reserved AS CHARACTER NO-UNDO 
@@ -122,9 +124,8 @@ Global Variables: utc-offset
     ASSIGN p_conversion = "NORMALIZE":U.
 
   /* If date is ? ... */
-  IF p_idate = ? THEN DO:
+  IF p_idate = ? THEN
     RETURN "".
-  END.
 
   IF p_itime = ? THEN
     ASSIGN p_itime = 0.
@@ -154,6 +155,7 @@ Global Variables: utc-offset
   ASSIGN
     p_odate = p_idate
     p_otime = p_itime.
+
   RETURN "".
 
 END FUNCTION. /* convert-datetime */
@@ -165,9 +167,9 @@ END FUNCTION. /* convert-datetime */
 
 &ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION format-datetime 
 FUNCTION format-datetime RETURNS CHARACTER
-  (INPUT p_format AS CHARACTER,
-   INPUT p_date   AS DATE,
-   INPUT p_time   AS INTEGER,
+  (INPUT p_format  AS CHARACTER,
+   INPUT p_date    AS DATE,
+   INPUT p_time    AS INTEGER,
    INPUT p_options AS CHARACTER) :
 
 /****************************************************************************
@@ -217,15 +219,11 @@ References:
   IF CAN-DO(p_options, "LOCAL":U) AND
     (p_format = "COOKIE":U OR p_format = "HTTP":U) THEN
     /* Convert date and time from Local to UTC */
-    convert-datetime(INPUT "UTC":U,
-                     INPUT p_date, INPUT p_time,
-                     OUTPUT p_date, OUTPUT p_time).
+    convert-datetime("UTC":U, p_date, p_time, OUTPUT p_date, OUTPUT p_time).
   /* Otherwise, just normalize */
   ELSE
     /* Normalize date and time */
-    convert-datetime(INPUT "NORMALIZE":U,
-                     INPUT p_date, INPUT p_time,
-                     OUTPUT p_date, OUTPUT p_time).
+    convert-datetime("NORMALIZE":U, p_date, p_time, OUTPUT p_date, OUTPUT p_time).
 
   /* Output the formatted date */
   CASE p_format:
@@ -251,7 +249,9 @@ References:
       queue-message("WebSpeed":U, "format-datetime: format '" + p_format +
                     "' is not supported").
   END CASE.
+
   RETURN p_rfcdate.
+
 END FUNCTION. /* format-datetime */
 &ANALYZE-RESUME
 
@@ -505,17 +505,32 @@ Input Parameter: MIME content type.  If the input value is "", then no
 Returns: If a Content-Type header was output, TRUE is returned, else FALSE.
 Global Variables: output-content-type
 ****************************************************************************/  
-  DEFINE VARIABLE c-new-wseu AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE rslt       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE c-new-wseu   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE rslt         AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE mime-charset AS CHARACTER NO-UNDO.
   
-  /* Set the content type. If parameter is blank, then no Content-Type
-     header will be output.  In this case the output-content-type variable
+  /* Set the content type. If previously set, then output-content-type will
+     be non-blank.  In that case we do nothing.  If p_type is blank, then no
+     Content-Type header will be output.  In this case output-content-type 
      will be set to ?. */
   IF output-content-type = "" THEN DO:
     ASSIGN 
       output-content-type = (IF p_type = "" THEN ? ELSE p_type)
-      c-new-wseu          = ENTRY(2,{&WEB-EXCLUSIVE-ID},"=":U).
+      c-new-wseu          = ENTRY(2, {&WEB-EXCLUSIVE-ID}, "=":U).
       
+    &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN  
+    /* Add MIME codepage, if available. */
+    IF output-content-type BEGINS TRIM("text/html":U) 
+      AND INDEX(output-content-type, "charset":U) = 0
+      AND WEB-CONTEXT:html-charset <> "" THEN DO:
+        RUN adecomm/convcp.p ( WEB-CONTEXT:html-charset, "toMime":U,
+                               OUTPUT mime-charset ) NO-ERROR.
+        IF mime-charset <> "" THEN
+          output-content-type = output-content-type + "; charset=":U + 
+                                mime-charset.
+    END.
+    &ENDIF
+    
     /* If there are any persistent Web objects, then reset the cookie used by 
      * the web broker to identify this Agent. (The wo temp-table is 
      * defined in web/objects/web-util.p.)

@@ -43,74 +43,94 @@
               12/18/00 Added check for existing file and new-obj for foreign-pos.
               03/14/01 Changed how format for decimals are done.
               04/10/01 Assignment of index name with new table and index corrected.
+              06/20/01 Added Foreign Owner
+              07/09/01 Changed how index name is created to match protoora 20010523-010
+              11/27/01 Added defaults and check for longs. 20011108-022 20010226-013
+              11/30/01 Added check for unique table and index names 20010116-014
+              12/06/01 Added support for sql-width 20010112-007
+              03/15/02 Added suport for descending indexes
                   
 */              
 
 { prodict/user/uservar.i }
 { prodict/ora/oravar.i }
 
-DEFINE VARIABLE iarg         AS CHARACTER             NO-UNDO. 
-DEFINE VARIABLE ikwd         AS CHARACTER             NO-UNDO. 
-DEFINE VARIABLE imod         AS CHARACTER             NO-UNDO. 
-DEFINE VARIABLE ipos         AS INTEGER               NO-UNDO. 
-DEFINE VARIABLE ilin         AS CHARACTER EXTENT 256  NO-UNDO.
-DEFINE VARIABLE i            AS INTEGER               NO-UNDO.
-DEFINE VARIABLE j            AS INTEGER               NO-UNDO.
-DEFINE VARIABLE z            AS INTEGER               NO-UNDO.
-DEFINE VARIABLE iobj         AS CHARACTER             NO-UNDO. /* d,t,f,i */
-DEFINE VARIABLE inot         AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE inum         AS INTEGER               NO-UNDO.
-DEFINE VARIABLE all_digits   AS INTEGER               NO-UNDO. 
-DEFINE VARIABLE dec_point    AS INTEGER               NO-UNDO. 
-DEFINE VARIABLE pos          AS INTEGER               NO-UNDO.
-DEFINE VARIABLE idx-number   AS INTEGER               NO-UNDO.
-DEFINE VARIABLE lvar         AS CHARACTER EXTENT 10   NO-UNDO.
-DEFINE VARIABLE lvar#        AS INTEGER               NO-UNDO.
-DEFINE VARIABLE sqlout       AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE dfout        AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE startdf      AS LOGICAL INITIAL TRUE  NO-UNDO.
-DEFINE VARIABLE addtable     AS LOGICAL INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE alt-table    AS LOGICAL INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE tablename    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE forname      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE fortype      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE dffortype    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE fieldname    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE fieldtype    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE idbtyp       AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE xlate        AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE nbrchar      AS INTEGER               NO-UNDO.
-DEFINE VARIABLE lngth        AS INTEGER               NO-UNDO.
-DEFINE VARIABLE left_paren   AS INTEGER               NO-UNDO.
-DEFINE VARIABLE right_paren  AS INTEGER               NO-UNDO.
-DEFINE VARIABLE lnum         AS INTEGER               NO-UNDO.
-DEFINE VARIABLE endline      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE idxline      AS CHARACTER  INITIAL ?  NO-UNDO.
-DEFINE VARIABLE idxname      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE wordidx      AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE wordfile     AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE shw-fld      AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE p-r-index    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE seqname      AS CHARACTER INITIAL ?   NO-UNDO.
-DEFINE VARIABLE seq-type     AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE seq-line     AS CHARACTER INITIAL ?   NO-UNDO.
-DEFINE VARIABLE init         AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE incre        AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE cyc          AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE minval       AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE maxval       AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE dbrecid      AS RECID                 NO-UNDO.
-DEFINE VARIABLE fldnum       AS INTEGER               NO-UNDO.
-DEFINE VARIABLE shw-col      AS INTEGER               NO-UNDO.
-DEFINE VARIABLE df-idx       AS CHARACTER EXTENT 6    NO-UNDO.
-DEFINE VARIABLE is-unique    AS LOGICAL INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE new-ord      AS INTEGER INITIAL 1     NO-UNDO.
-DEFINE VARIABLE view-created AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE transname    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE dupfield     AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE oq-string    AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE minwidth     AS INTEGER               NO-UNDO.
+DEFINE VARIABLE iarg          AS CHARACTER             NO-UNDO. 
+DEFINE VARIABLE ikwd          AS CHARACTER             NO-UNDO. 
+DEFINE VARIABLE imod          AS CHARACTER             NO-UNDO. 
+DEFINE VARIABLE ipos          AS INTEGER               NO-UNDO. 
+DEFINE VARIABLE ilin          AS CHARACTER EXTENT 256  NO-UNDO.
+DEFINE VARIABLE i             AS INTEGER               NO-UNDO.
+DEFINE VARIABLE j             AS INTEGER               NO-UNDO.
+DEFINE VARIABLE k             AS INTEGER               NO-UNDO.
+DEFINE VARIABLE z             AS INTEGER               NO-UNDO.
+DEFINE VARIABLE iobj          AS CHARACTER             NO-UNDO. /* d,t,f,i */
+DEFINE VARIABLE inot          AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE inum          AS INTEGER               NO-UNDO.
+DEFINE VARIABLE all_digits    AS INTEGER               NO-UNDO. 
+DEFINE VARIABLE dec_point     AS INTEGER               NO-UNDO. 
+DEFINE VARIABLE pos           AS INTEGER               NO-UNDO.
+DEFINE VARIABLE idx-number    AS INTEGER               NO-UNDO.
+DEFINE VARIABLE lvar          AS CHARACTER EXTENT 10   NO-UNDO.
+DEFINE VARIABLE lvar#         AS INTEGER               NO-UNDO.
+DEFINE VARIABLE sqlout        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE dfout         AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE startdf       AS LOGICAL INITIAL TRUE  NO-UNDO.
+DEFINE VARIABLE addtable      AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE alt-table     AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE tablename     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE forname       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE fortype       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE dffortype     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE fieldname     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE fieldtype     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE idbtyp        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE xlate         AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE nbrchar       AS INTEGER               NO-UNDO.
+DEFINE VARIABLE lngth         AS INTEGER               NO-UNDO.
+DEFINE VARIABLE left_paren    AS INTEGER               NO-UNDO.
+DEFINE VARIABLE right_paren   AS INTEGER               NO-UNDO.
+DEFINE VARIABLE lnum          AS INTEGER               NO-UNDO.
+DEFINE VARIABLE endline       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE idxline       AS CHARACTER  INITIAL ?  NO-UNDO.
+DEFINE VARIABLE idxname       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE wordidx       AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE wordfile      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE shw-fld       AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE p-r-index     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE seqname       AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE seq-type      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE seq-line      AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE init          AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE incre         AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE cyc           AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE minval        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE maxval        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE dbrecid       AS RECID                 NO-UNDO.
+DEFINE VARIABLE fldnum        AS INTEGER               NO-UNDO.
+DEFINE VARIABLE shw-col       AS INTEGER               NO-UNDO.
+DEFINE VARIABLE df-idx        AS CHARACTER EXTENT 6    NO-UNDO.
+DEFINE VARIABLE is-unique     AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE new-ord       AS INTEGER INITIAL 1     NO-UNDO.
+DEFINE VARIABLE view-created  AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE transname     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE dupfield      AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE oq-string     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE minwidth      AS INTEGER               NO-UNDO.
+DEFINE VARIABLE dfseq         AS INTEGER INITIAL 1     NO-UNDO.
+DEFINE VARIABLE for-init      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE comment_chars AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE col-long      AS INTEGER               NO-UNDO.
+DEFINE VARIABLE comment-out   AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE extline       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE extlinenum    AS INTEGER               NO-UNDO.
 
+DEFINE TEMP-TABLE df-info NO-UNDO
+    FIELD df-seq  AS INTEGER
+    FIELD df-line AS CHARACTER
+    FIELD df-tbl  AS CHARACTER
+    FIELD df-fld  AS CHARACTER
+    INDEX rt-line IS PRIMARY df-seq.
 
 DEFINE TEMP-TABLE sql-info NO-UNDO
   FIELD line-num AS INTEGER
@@ -167,6 +187,13 @@ DEFINE TEMP-TABLE shad-col NO-UNDO
   FIELD p-fld-name AS CHARACTER
   FIELD col-num    AS INTEGER.
     
+DEFINE TEMP-TABLE verify-table NO-UNDO
+  FIELD tnew-name LIKE _File._File-name
+  INDEX trun-name IS UNIQUE tnew-name.
+  
+DEFINE TEMP-TABLE verify-index NO-UNDO
+  FIELD inew-name LIKE _index._index-name
+  INDEX trun-name IS UNIQUE inew-name.  
 
 DEFINE BUFFER n-obj FOR new-obj.
     
@@ -190,17 +217,65 @@ PROCEDURE write-tbl-sql:
   DEFINE VARIABLE recidname   AS CHARACTER                   NO-UNDO.
   DEFINE VARIABLE recidpos    AS INTEGER                     NO-UNDO.
 
+  ASSIGN col-long = 0
+         comment_chars = "".
+
+  FIND DICTDB._File WHERE DICTDB._File._File-name = tablename
+                      AND DICTDB._File._Owner = "_FOREIGN"
+                      NO-ERROR.   
+
+  IF AVAILABLE DICTDB._File  THEN DO:
+    FOR EACH DICTDB._Field OF DICTDB._File:
+      IF DICTDB._Field._For-type = "LONG" THEN
+            ASSIGN col-long = col-long + 1.
+    END.  
+    FOR EACH new-obj WHERE add-type = "F"
+                       AND tbl-name = tablename:  
+      IF new-obj.for-type = " LONG" THEN
+        ASSIGN col-long = col-long + 1.
+    END.
+  END.
+  ELSE DO:
+
+    FIND FIRST new-obj WHERE add-type = "T"
+                         AND tbl-name = tablename
+                          NO-ERROR.
+
+    FOR EACH new-obj WHERE add-type = "F"
+                       AND tbl-name = tablename:  
+      IF new-obj.for-type = " LONG" THEN
+        ASSIGN col-long = col-long + 1.
+    END.
+  END.
+
+  IF col-long > 1 THEN DO:
+    ASSIGN comment_chars = "-- ** "
+           comment-out = TRUE.
+
+   /* Delete all df info for this table */
+    FOR EACH df-info WHERE df-tbl = tablename:
+      DELETE df-info.
+    END.
+  END.
+
   FOR EACH sql-info BREAK BY tblname BY line-num:  
     IF FIRST-OF(tblname) THEN DO:
-      IF compatible THEN DO:
+      IF pcompatible THEN DO:
         FIND FIRST new-obj WHERE add-type = "T"
                              AND tbl-name = tblname
                              NO-ERROR.
         IF AVAILABLE new-obj THEN DO:
           ASSIGN p-r-index = for-name.
-          PUT STREAM todf UNFORMATTED ' ' SKIP.
-          PUT STREAM todf UNFORMATTED 'UPDATE TABLE "' tblname '"' SKIP.
-          PUT STREAM todf UNFORMATTED "  PROGRESS-RECID " fldnum SKIP.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-tbl = tblname
+                 df-line = 'UPDATE TABLE "' + tblname + '"'.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-tbl = tblname
+                 df-line = "  PROGRESS-RECID " + string(fldnum).
         END.
       END.
       FIND DICTDB._File WHERE DICTDB._File._File-name = tblname
@@ -221,12 +296,9 @@ PROCEDURE write-tbl-sql:
           ASSIGN recidname = "progress_recid".             
                  
         ASSIGN forpos = 1
-               extnt = FALSE. 
-                                
-        FOR EACH DICTDB._Field OF DICTDB._File:        
-          IF DICTDB._Field._Fld-stoff > forpos THEN
-            ASSIGN forpos = DICTDB._Field._Fld-stoff.
-        END.
+               extnt = FALSE.
+               
+
         IF DICTDB._File._Fil-Misc1[1] > forpos THEN
             ASSIGN forpos = DICTDB._File._Fil-Misc1[1] + 1.
         FOR EACH new-obj WHERE add-type = "F"
@@ -234,9 +306,19 @@ PROCEDURE write-tbl-sql:
           IF INDEX(for-name , "##") <> 0 THEN DO: 
             IF for-name BEGINS "U##" THEN 
               ASSIGN extnt = FALSE.  
-            ELSE IF NOT extnt THEN DO:                            
-              PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' prg-name '" OF "' tbl-name '"' SKIP.
-              PUT STREAM todf UNFORMATTED '  FOREIGN-POS ' forpos SKIP(1).
+            ELSE IF NOT extnt THEN DO:   
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = 'UPDATE FIELD "' + prg-name  + '" OF "' + tbl-name + '"'.
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = '  FOREIGN-POS ' + string(forpos).
               IF for-name BEGINS "A##" THEN
                 ASSIGN extnt = false.
               ELSE 
@@ -244,8 +326,18 @@ PROCEDURE write-tbl-sql:
             END. 
           END.
           ELSE DO:
-            PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' prg-name '" OF "' tbl-name '"' SKIP.
-            PUT STREAM todf UNFORMATTED '  FOREIGN-POS ' forpos SKIP(1).
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = '  FOREIGN-POS ' + STRING(forpos).
             ASSIGN extnt = FALSE.   
           END.                  
           ASSIGN forpos = forpos + 1.
@@ -254,20 +346,41 @@ PROCEDURE write-tbl-sql:
       ELSE DO: /* Have a new file here */
         ASSIGN forpos = 1
                extnt = false.
+
         FOR EACH new-obj WHERE add-type = "F"
-                           AND tbl-name = tblname:                                                       
+                           AND tbl-name = tblname: 
           IF INDEX(for-name , "##") <> 0 THEN DO: 
             IF for-name BEGINS "U##" THEN 
               ASSIGN extnt = FALSE.  
-            ELSE IF NOT extnt THEN DO:                            
-              PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' prg-name '" OF "' tbl-name '"' SKIP.
-              PUT STREAM todf UNFORMATTED '  FOREIGN-POS ' forpos SKIP(1).
+            ELSE IF NOT extnt THEN DO:   
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = '  FOREIGN-POS ' + STRING(forpos).
               ASSIGN extnt = true.
             END. 
           END.
           ELSE DO:
-            PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' prg-name '" OF "' tbl-name '"' SKIP.
-            PUT STREAM todf UNFORMATTED '  FOREIGN-POS ' forpos SKIP(1).
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line =  'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = '  FOREIGN-POS ' + STRING(forpos).
             ASSIGN extnt = FALSE.   
           END.                  
           ASSIGN forpos = forpos + 1.
@@ -275,45 +388,47 @@ PROCEDURE write-tbl-sql:
       END.
     END.                                       
     IF line-num < 2 THEN
-      PUT STREAM tosql UNFORMATTED line SKIP.          
+      PUT STREAM tosql UNFORMATTED comment_chars line SKIP.          
     ELSE IF NOT LAST-OF(tblname) THEN 
-      PUT STREAM tosql UNFORMATTED line "," SKIP.
+      PUT STREAM tosql UNFORMATTED comment_chars line "," SKIP.
     ELSE DO:          
-      PUT STREAM tosql UNFORMATTED line ")" SKIP.
+      PUT STREAM tosql UNFORMATTED comment_chars line ")" SKIP.
       IF user_env[34] <> "" AND user_env[34] <> ? THEN
-        PUT STREAM tosql UNFORMATTED  "TABLESPACE " CAPS(user_env[34]) SKIP. 
-      PUT STREAM tosql UNFORMATTED ";" SKIP(1).
+        PUT STREAM tosql UNFORMATTED comment_chars "TABLESPACE " CAPS(user_env[34]) SKIP. 
+      PUT STREAM tosql UNFORMATTED comment_chars ";" SKIP(1).
     END.         
     DELETE sql-info.
   END.
 
   FOR EACH alt-info BREAK BY a-tblname BY a-line-num: 
     IF NOT LAST-OF(a-tblname) THEN 
-      PUT STREAM tosql UNFORMATTED a-line  SKIP.
+      PUT STREAM tosql UNFORMATTED comment_chars a-line  SKIP.
     ELSE DO:          
-      PUT STREAM tosql UNFORMATTED a-line   SKIP.       
-      PUT STREAM tosql UNFORMATTED ";" SKIP(1).
+      PUT STREAM tosql UNFORMATTED  comment_chars a-line   SKIP.       
+      PUT STREAM tosql UNFORMATTED comment_chars ";" SKIP(1).
     END.         
     DELETE alt-info.
   END.
     
-  IF compatible AND addtable THEN DO:
+  IF pcompatible AND addtable THEN DO:
     IF LENGTH(p-r-index) < 15 THEN
         ASSIGN p-r-index = CAPS(p-r-index) + "##PROGRESS_RECID ON " + CAPS(p-r-index).
-      ELSE
+    ELSE
         ASSIGN p-r-index = CAPS(p-r-index) + " ON " + CAPS(p-r-index).  
     
-    PUT STREAM tosql UNFORMATTED 
+    PUT STREAM tosql UNFORMATTED comment_chars
       "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID)" SKIP.
     IF user_env[35] <> "" AND user_env[35] <> ? THEN
-       PUT STREAM tosql UNFORMATTED "TABLESPACE " CAPS(user_env[35]) ";" SKIP(1).
+       PUT STREAM tosql UNFORMATTED comment_chars "TABLESPACE " CAPS(user_env[35]) ";" SKIP(1).
     ELSE
-       PUT STREAM tosql UNFORMATTED ";" SKIP(1).   
+       PUT STREAM tosql UNFORMATTED comment_chars ";" SKIP(1).   
   END.    
   
   ASSIGN addtable      = FALSE
          alt-table     = FALSE
-         lnum          = 0.        
+         lnum          = 0.
+           
+
 END PROCEDURE.
 
 PROCEDURE write-view:
@@ -338,7 +453,7 @@ PROCEDURE write-view:
  
   IF AVAILABLE view-table  THEN DO: 
     ASSIGN orig-name = SUBSTRING(v-line, 6). 
-    IF NOT compatible THEN DO:
+    IF NOT pcompatible THEN DO:
       FIND PREV view-table WHERE v-table = tablename USE-INDEX view-line.
       ASSIGN v-line = SUBSTRING(v-line,1, LENGTH(v-line) - 1). 
     END. 
@@ -351,47 +466,92 @@ PROCEDURE write-view:
     FOR EACH view-table USE-INDEX view-line BREAK BY v-table:
       IF v-order < 2 THEN NEXT.
       IF NOT v-shadow AND NOT v-ext AND v-progn <> "" AND v-prog <> ? THEN DO:
-        PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' v-progn '" OF "' v-table '"' SKIP.
-        PUT STREAM todf UNFORMATTED "  FOREIGN-POS "  forpos SKIP (1).
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = v-table
+               df-line = 'UPDATE FIELD "' + v-progn + '" OF "' + v-table + '"'.
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = v-table
+               df-line = "  FOREIGN-POS " + STRING(forpos).
       END.
       
       IF v-shadow THEN DO:      
-        PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' v-progn '" OF "' v-table '"' SKIP.
-        PUT STREAM todf UNFORMATTED "  SHADOW-COL "  forpos SKIP (1). 
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = v-table
+               df-line = 'UPDATE FIELD "' + v-progn + '" OF "' + v-table + '"'.
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = v-table
+               df-line = '  SHADOW-COL "' + STRING(forpos) + '"'. 
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = v-table
+               df-line = "  FIELD-MISC15 " + STRING(forpos).
       END. 
       IF recidname = v-progn THEN
         ASSIGN recidpos = forpos.
-      IF LAST-OF(v-table) AND compatible THEN
+      IF LAST-OF(v-table) AND pcompatible THEN
         ASSIGN recidpos = forpos.     
       ASSIGN forpos = forpos + 1.
     END. 
-    PUT STREAM todf UNFORMATTED " " SKIP.       
-    PUT STREAM todf UNFORMATTED 'UPDATE TABLE "' tablename '"' SKIP.
-    PUT STREAM todf UNFORMATTED '  FOREIGN-NAME "' dftblname '"' SKIP.
-    PUT STREAM todf UNFORMATTED '  FILE-MISC27 "' orig-name '"' SKIP.  
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = tablename
+           df-line = 'UPDATE TABLE "' + tablename + '"'.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = tablename
+           df-line = '  FOREIGN-NAME "' + dftblname + '"'.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = tablename
+           df-line = '  FILE-MISC27 "' + orig-name + '"'.      
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = tablename
+           df-line = '  FOREIGN-TYPE "VIEW"'. 
     IF recidpos <> 0 THEN DO:
-      IF compatible THEN
-        PUT STREAM todf UNFORMATTED '  PROGRESS-RECID ' recidpos SKIP(1). 
-      ELSE
-        PUT STREAM todf UNFORMATTED '  RECID-COL-NO ' recidpos SKIP(1).
-    END. 
-    ELSE
-      PUT STREAM todf UNFORMATTED " " SKIP.   
+      IF pcompatible THEN DO:
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = tablename
+               df-line = '  PROGRESS-RECID ' + STRING(recidpos).
+      END.
+      ELSE DO:
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = tablename
+               df-line = '  RECID-COL-NO ' + STRING(recidpos).
+      END.
+    END.
   END. 
                                 
   FOR EACH view-table USE-INDEX view-line BREAK BY v-table :    
     IF v-order < 2 THEN
-      PUT STREAM tosql UNFORMATTED v-line SKIP.      
+      PUT STREAM tosql UNFORMATTED comment_chars  v-line SKIP.           
     ELSE IF LAST-OF(v-table) THEN DO:
-      IF compatible THEN DO:
-        PUT STREAM tosql UNFORMATTED "PROGRESS_RECID" SKIP.
-        PUT STREAM tosql UNFORMATTED v-line ";" SKIP(1). 
+      IF pcompatible THEN DO:
+        PUT STREAM tosql UNFORMATTED comment_chars  "PROGRESS_RECID" SKIP.
+        PUT STREAM tosql UNFORMATTED comment_chars v-line ";" SKIP(1). 
       END.
       ELSE
-        PUT STREAM tosql UNFORMATTED v-line ";" SKIP(1). 
+        PUT STREAM tosql UNFORMATTED comment_chars v-line ";" SKIP(1). 
     END.  
     ELSE 
-      PUT STREAM tosql UNFORMATTED v-line SKIP.      
+      PUT STREAM tosql UNFORMATTED comment_chars v-line SKIP.      
 
     DELETE view-table.
   END. 
@@ -400,15 +560,15 @@ END PROCEDURE.
 PROCEDURE write-idx-sql:
   IF idxline = ? OR idxline = "" THEN LEAVE.
 
-  IF compatible AND is-unique = FALSE THEN 
+  IF pcompatible AND is-unique = FALSE THEN 
       ASSIGN idxline = idxline + ", PROGRESS_RECID".
   IF user_env[35] <> "" AND user_env[35] <> ? THEN DO:
-    PUT STREAM tosql UNFORMATTED idxline ")" SKIP.
-    PUT STREAM tosql UNFORMATTED "TABLESPACE " CAPS(user_env[35]) SKIP.
-    PUT STREAM tosql UNFORMATTED ";" SKIP(1).
+    PUT STREAM tosql UNFORMATTED comment_chars idxline ")" SKIP.
+    PUT STREAM tosql UNFORMATTED comment_chars "TABLESPACE " CAPS(user_env[35]) SKIP.
+    PUT STREAM tosql UNFORMATTED comment_chars ";" SKIP(1).
   END.
   ELSE      
-    PUT STREAM tosql UNFORMATTED idxline ");"  SKIP(1).
+    PUT STREAM tosql UNFORMATTED comment_chars idxline ");"  SKIP(1).
     
   ASSIGN idxline = ?
          idxname = ?
@@ -417,9 +577,21 @@ PROCEDURE write-idx-sql:
          wordfile = ?.  
   
   FOR EACH shad-col:
-    PUT STREAM todf UNFORMATTED " " SKIP.
-    PUT STREAM todf UNFORMATTED 'UPDATE FIELD "' p-fld-name '" OF "' s-tbl-name '"' SKIP.
-    PUT STREAM todf UNFORMATTED '  SHADOW-COL "' col-num '"' SKIP.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = s-tbl-name
+           df-line = 'UPDATE FIELD "' + p-fld-name + '" OF "' + s-tbl-name + '"'.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = s-tbl-name
+           df-line = '  SHADOW-COL "' + STRING(col-num) + '"'.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = s-tbl-name
+           df-line = "  FIELD-MISC15 " + STRING(col-num).
     DELETE shad-col.
   END.                                 
 END PROCEDURE.
@@ -448,17 +620,48 @@ PROCEDURE write-seq-sql:
     IF cyc <> ? AND cyc <> "" THEN       
         PUT STREAM tosql UNFORMATTED cyc SKIP.              
     PUT STREAM tosql UNFORMATTED ";" SKIP(1).
-    IF init <> ? AND init <> "" THEN
-      PUT STREAM todf UNFORMATTED "  INITIAL " init SKIP.
-    PUT STREAM todf UNFORMATTED "  INCREMENT " incre SKIP.
+    IF init <> ? AND init <> "" THEN DO:
+      CREATE df-info.
+      ASSIGN df-info.df-seq = dfseq
+             dfseq = dfseq + 1
+             df-line = "  INITIAL " + init.
+    END.
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-line = "  INCREMENT " + incre.
+
     IF cyc = "CYCLE" THEN 
       ASSIGN cyc = "yes".
     ELSE
       ASSIGN cyc = "no".  
-    PUT STREAM todf UNFORMATTED "  CYCLE-ON-LIMIT " cyc SKIP.
-    PUT STREAM todf UNFORMATTED "  MIN-VAL " minval SKIP.
-    PUT STREAM todf UNFORMATTED "  MAX-VAL " maxval SKIP(1).
+
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-line = "  CYCLE-ON-LIMIT " + cyc.
+  
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-line = "  MIN-VAL " + minval.
+
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1.
+    IF maxval = ? THEN
+      ASSIGN df-line = "  MAX-VAL ? ".
+    ELSE
+      ASSIGN df-line = "  MAX-VAL " + maxval.
+
+    IF ora_owner <> "" THEN DO:
+      CREATE df-info.
+      ASSIGN df-info.df-seq = dfseq
+             dfseq = dfseq + 1
+             df-line = '  FOREIGN-OWNER "' + CAPS(ora_owner) + '"'.
+    END.
   END.
+
   ASSIGN seq-type = ?
          seq-line = ?
          seqname = ?
@@ -526,7 +729,13 @@ PROCEDURE create-view:
   IF NOT AVAILABLE DICTDB._File THEN DO.
     ASSIGN view-created = FALSE.
     RETURN.
-  END.        
+  END.  
+  IF NOT rename THEN DO:
+    FIND FIRST rename-obj WHERE old-name = DICTDB._File._File-name NO-ERROR.
+    IF AVAILABLE rename-obj THEN
+      ASSIGN rename = TRUE
+             rename-table = new-name.
+  END.
   
   IF LENGTH(DICTDB._File._For-name) > 4 AND SUBSTRING(DICTDB._File._For-name, LENGTH(DICTDB._File._For-name) - 4 ) = "_V##" THEN DO:
     IF DICTDB._File._fil-misc2[7] <> ? AND DICTDB._File._fil-misc2[7] <> "" THEN
@@ -554,13 +763,13 @@ PROCEDURE create-view:
            v-table = (IF rename THEN rename-table ELSE DICTDB._File._File-name)
            v-line = "FROM " + forname.               
   END. 
+  
   _fld-loop:                                                
-  FOR EACH DICTDB._Field OF DICTDB._File NO-LOCK:           
+  FOR EACH DICTDB._Field OF DICTDB._File NO-LOCK:        
     IF DICTDB._Field._Field-name = ilin[3] THEN NEXT.
     FIND FIRST drop-field WHERE of-table = (IF rename THEN rename-table ELSE DICTDB._File._File-name)
                             AND drop-f-name = DICTDB._Field._Field-name
-                            NO-ERROR.
-   
+                            NO-ERROR.   
     IF AVAILABLE drop-field THEN  NEXT _fld-loop.                                       
                            
     IF DICTDB._Field._Extent = 0 THEN DO:             
@@ -625,13 +834,13 @@ PROCEDURE create-view:
   END. /* FOR EACH FIELD */            
   FOR EACH new-obj WHERE add-type = "F" 
                      AND tbl-name = (IF rename THEN rename-table ELSE DICTDB._File._File-name):                          
-     CREATE view-table.
-     ASSIGN lnum = lnum + 1
-            v-order = lnum
-            v-line = CAPS(for-name) + ","
-            v-table = (IF rename THEN rename-table ELSE DICTDB._File._File-name)
-            v-field = fieldname
-            v-progn = prg-name.
+    CREATE view-table.
+    ASSIGN lnum = lnum + 1
+           v-order = lnum
+           v-line = CAPS(for-name) + ","
+           v-table = (IF rename THEN rename-table ELSE DICTDB._File._File-name)
+           v-field = fieldname
+           v-progn = prg-name.
      
     IF for-name BEGINS "U##" THEN ASSIGN v-shadow = TRUE.       
   END.  
@@ -647,17 +856,17 @@ PROCEDURE new-obj-idx:
                  NO-ERROR.                                                                              
   
   IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */ 
-    FIND FIRST new-obj WHERE new-obj.add-type = "F"
+   /* FIND FIRST new-obj WHERE new-obj.add-type = "F"
                          AND new-obj.tbl-name = tablename
                          AND new-obj.prg-name = ilin[2].
-                                                                
+     */                                                           
     ASSIGN shw-col = 0.                               
                             
     FOR EACH new-Obj WHERE add-type = "F"
                        AND tbl-name = tablename:
       ASSIGN shw-col = shw-col + 1.
     END.
-    IF compatible AND NOT addtable THEN
+    IF pcompatible AND NOT addtable THEN
       ASSIGN shw-col = shw-col + 2.
     ELSE  
       ASSIGN shw-col = shw-col + 1.
@@ -681,8 +890,8 @@ PROCEDURE new-obj-idx:
     FIND n-obj WHERE n-obj.add-type = "t"
                  AND n-obj.tbl-name = tablename.
                               
-    PUT STREAM tosql UNFORMATTED "ALTER TABLE " + n-obj.for-name SKIP.
-    PUT STREAM tosql UNFORMATTED " ADD " + new-obj.for-name + " " + new-obj.for-type + ";" SKIP(1).                                                          
+    PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + n-obj.for-name SKIP.
+    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.for-name + " " + new-obj.for-type + ";" SKIP(1).                                                          
   END.                                 
 END PROCEDURE.
 
@@ -699,6 +908,8 @@ PROCEDURE get-position:
     FOR EACH DICTDB._Field OF DICTDB._File:
       IF DICTDB._Field._Fld-stoff > i THEN
        ASSIGN i = DICTDB._Field._Fld-stoff.
+      IF INTEGER(DICTDB._Field._Fld-misc2[2]) > i THEN
+        ASSIGN i = INTEGER(DICTDB._Field._Fld-misc2[2]).
     END.
     IF i < DICTDB._File._Fil-misc1[1] THEN
         ASSIGN i = DICTDB._File._Fil-misc1[1].
@@ -706,8 +917,11 @@ PROCEDURE get-position:
                        AND new-obj.tbl-name = tablename:                      
       ASSIGN i = i + 1.
     END.
-    
-    PUT STREAM todf UNFORMATTED '  FOREIGN-POS ' i SKIP.  
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-info.df-tbl = tablename
+           df-line = '  FOREIGN-POS ' + STRING(i).  
   END.   
 END PROCEDURE.  
 
@@ -746,20 +960,20 @@ END PROCEDURE.
 
 PROCEDURE dctquot:
 
-   DEFINE INPUT  PARAMETER inline  AS CHARACTER            NO-UNDO.
-   DEFINE INPUT  PARAMETER quotype AS CHARACTER            NO-UNDO.
-   DEFINE OUTPUT PARAMETER outline AS CHARACTER INITIAL "" NO-UNDO.
-   DEFINE        VARIABLE  i       AS INTEGER              NO-UNDO.
+  DEFINE INPUT  PARAMETER inline  AS CHARACTER            NO-UNDO.
+  DEFINE INPUT  PARAMETER quotype AS CHARACTER            NO-UNDO.
+  DEFINE OUTPUT PARAMETER outline AS CHARACTER INITIAL "" NO-UNDO.
+  DEFINE        VARIABLE  i       AS INTEGER              NO-UNDO.
 
-   IF INDEX(inline,quotype) > 0 THEN
-     DO i = 1 TO LENGTH(inline):
+  IF INDEX(inline,quotype) > 0 THEN
+    DO i = 1 TO LENGTH(inline):
        outline = outline + (IF SUBSTRING(inline,i,1) = quotype
                  THEN quotype + quotype ELSE SUBSTRING(inline,i,1)).
-     END.
-   ELSE
-     outline = inline.
+    END.
+  ELSE
+    outline = inline.
 
-   outline = (IF outline = ? THEN "?" ELSE quotype + outline + quotype).
+  outline = (IF outline = ? THEN "?" ELSE quotype + outline + quotype).
 
 END PROCEDURE.
 
@@ -772,19 +986,19 @@ PROCEDURE create-idx-field:
     IF AVAILABLE rename-obj THEN 
       FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR.            
   END.        
-  IF AVAILABLE DICTDB._File THEN DO:       
-  
+
+  IF AVAILABLE DICTDB._File THEN DO:        
     FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
     IF AVAILABLE DICTDB._Field THEN DO:
-      IF NOT compatible THEN DO:
+      IF NOT pcompatible THEN DO:
         IF INDEX(idxline, "(") = 0 THEN
            ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
         ELSE
            ASSIGN idxline = idxline + ", " + CAPS(DICTDB._Field._For-name).  
       END.      
       ELSE IF DICTDB._Field._Data-type <> "Character" THEN DO: 
-         IF INDEX(idxline, "(") = 0 THEN
-           ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
+        IF INDEX(idxline, "(") = 0 THEN
+          ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
         ELSE
            ASSIGN idxline = idxline + ", " + CAPS(DICTDB._Field._For-name).  
       END.     
@@ -794,122 +1008,124 @@ PROCEDURE create-idx-field:
                                AND new-obj.tbl-name = tablename
                                AND new-obj.fld-name = "U##" + ilin[2]) THEN DO: /* shawdow column exists in file */
 
-            IF INDEX(idxline, "(") = 0 THEN
-              ASSIGN idxline = idxline + "(U##" + CAPS(DICTDB._Field._For-name).
-            ELSE
-              ASSIGN idxline = idxline + ", U##" + CAPS(DICTDB._Field._For-name).  
+          IF INDEX(idxline, "(") = 0 THEN
+            ASSIGN idxline = idxline + "(U##" + CAPS(DICTDB._Field._For-name).
+          ELSE
+            ASSIGN idxline = idxline + ", U##" + CAPS(DICTDB._Field._For-name).  
 
-          END.                    
-          ELSE DO: /* shawdow not in original file see if already created */     
-            FIND FIRST new-obj where new-obj.add-type = "F"
-                                 AND new-obj.tbl-name = tablename
-                                 AND new-obj.prg-name = ilin[2]
-                                 AND new-obj.fld-name BEGINS "U##" 
-                                 NO-ERROR.
+        END.                    
+        ELSE DO: /* shawdow not in original file see if already created */     
+          FIND FIRST new-obj where new-obj.add-type = "F"
+                               AND new-obj.tbl-name = tablename
+                               AND new-obj.prg-name = ilin[2]
+                               AND new-obj.fld-name BEGINS "U##" 
+                               NO-ERROR.
                                         
-             IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */        
-               ASSIGN shw-col = 0.
+          IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */        
+            ASSIGN shw-col = 0.
                              
-               FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
-                 IF DICTDB._Field._Extent = 0 THEN DO:
-                   IF DICTDB._Field._Fld-stoff > shw-col THEN
-                     ASSIGN shw-col = DICTDB._Field._Fld-stoff.
-                 END.
-                 ELSE
-                   ASSIGN shw-col = shw-col + DICTDB._Field._Extent.                  
-               END.
-               IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
-                 ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
-
-               FOR EACH new-Obj WHERE new-obj.add-type = "F"
-                                  AND new-obj.tbl-name = tablename:
-                 ASSIGN shw-col = shw-col + 1.
-               END.               
-
-               ASSIGN shw-col = shw-col + 1.  
-
-               FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
-               CREATE shad-col.
-               ASSIGN p-fld-name = ilin[2]
-                      s-tbl-name = tablename
-                      col-num = shw-col
-                      s-fld-name = "U##" + DICTDB._Field._For-name
-                      j = DICTDB._Field._Fld-Misc1[3].
-                              
-               CREATE new-obj.
-               ASSIGN new-obj.add-type = "F"
-                      new-obj.tbl-name = tablename
-                      new-obj.n-order = new-ord
-                      new-ord = new-ord + 1
-                      new-obj.fld-name = "U##" + DICTDB._Field._For-name
-                      new-obj.prg-name = ilin[2]
-                      new-obj.for-name = "U##" + DICTDB._Field._For-name. 
-                          
-               IF ora_version = 8 THEN DO: 
-                 IF j < 4001 THEN DO:                    
-                   PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP.
-                   PUT STREAM tosql UNFORMATTED "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
-                               STRING(j) + ");" SKIP(1).
-                   ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".  
-                 END.      
-                 ELSE DO:
-                   PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name SKIP. 
-                   PUT STREAM tosql UNFORMATTED "  ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
-                   ASSIGN new-obj.for-type = "LONG".
-                 END.     
-               END.
-               ELSE DO: /* Oracle 7 */
-                 IF j < 2001 THEN DO:                    
-                   PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP. 
-                   PUT STREAM tosql UNFORMATTED "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
-                                     STRING(j) + ");" SKIP(1).
-                   ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".
-                 END.        
-                 ELSE DO:
-                   PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP. 
-                   PUT STREAM tosql UNFORMATTED " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
-                   ASSIGN new-obj.for-type = "LONG".
-                 END.
-               END.
-               IF INDEX(idxline, "(") = 0 THEN
-                 ASSIGN idxline = idxline + "(" + CAPS(new-obj.fld-name).
-               ELSE
-                 ASSIGN idxline = idxline + ", " + CAPS(new-obj.fld-name).                                                  
-             END.                                 
-             ELSE DO: /* Available new-obj for shawdow */
-               IF INDEX(idxline, "(") = 0 THEN
-                 ASSIGN idxline = idxline + "(" + CAPS(new-obj.fld-name).
-               ELSE
-                  ASSIGN idxline = idxline + ", " + CAPS(new-obj.fld-name).                                                                   
-            END.                    
-          END. /* shawdow not in existing file */
-        END.
-      END. /* end available field */                             
-      ELSE DO: /* Not available field see if renamed field */   
-
-        FIND rename-obj WHERE rename-type = "F" 
-                          AND t-name = tablename
-                          AND new-name = ilin[2] NO-ERROR.                                    
-        IF AVAILABLE rename-obj THEN DO:      
-          FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = old-name NO-ERROR.                   
-          IF AVAILABLE DICTDB._Field THEN DO:
-            IF NOT compatible THEN DO:
-              IF INDEX(idxline, "(") = 0 THEN
-                ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
-              ELSE
-                ASSIGN idxline = idxline + ", " + CAPS(DICTDB._Field._For-name).  
-            END.
-            ELSE IF DICTDB._Field._Data-type = "Character" THEN DO: 
-              IF (DICTDB._Field._Fld-misc2[2] <> ? and DICTDB._Field._Fld-misc2[2] <> "") OR
-                  CAN-FIND(new-obj where new-obj.add-type = "F"
-                                     AND new-obj.tbl-name = tablename
-                                     AND new-obj.fld-name = "U##" + DICTDB._Field._For-name) THEN DO:                     
-                IF INDEX(idxline, "(") = 0 THEN
-                  ASSIGN idxline = idxline + "(U##" + CAPS(dsv-name).
-                ELSE
-                  ASSIGN idxline = idxline + ", U##" + CAPS(dsv-name).                          
+            FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
+              IF DICTDB._Field._Extent = 0 THEN DO:
+                IF DICTDB._Field._Fld-stoff > shw-col THEN
+                  ASSIGN shw-col = DICTDB._Field._Fld-stoff.
               END.
-              ELSE DO: /* shawdow not in file see if already created */                      
+              ELSE
+                  ASSIGN shw-col = shw-col + DICTDB._Field._Extent.                  
+             END.
+             IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
+               ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
+
+             FOR EACH new-Obj WHERE new-obj.add-type = "F"
+                                AND new-obj.tbl-name = tablename:
+               ASSIGN shw-col = shw-col + 1.
+             END.               
+
+             ASSIGN shw-col = shw-col + 1.  
+
+             FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
+             CREATE shad-col.
+             ASSIGN p-fld-name = ilin[2]
+                    s-tbl-name = tablename
+                    col-num = shw-col
+                    s-fld-name = "U##" + DICTDB._Field._For-name
+                    j = DICTDB._Field._Fld-Misc1[3].
+                              
+             CREATE new-obj.
+             ASSIGN new-obj.add-type = "F"
+                    new-obj.tbl-name = tablename
+                    new-obj.n-order = new-ord
+                    new-ord = new-ord + 1
+                    new-obj.fld-name = "U##" + DICTDB._Field._For-name
+                    new-obj.prg-name = ilin[2]
+                    new-obj.for-name = "U##" + DICTDB._Field._For-name. 
+                         
+             IF DICTDB._File._Fil-Misc2[7] <> "" AND DICTDB._File._Fil-Misc2[7] <> ? THEN
+                 PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " +  DICTDB._File._Fil-Misc2[7] SKIP.
+             ELSE 
+                 PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-name SKIP.
+             IF ora_version = 8 THEN DO: 
+               IF j < 4001 THEN DO:                                   
+                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                               STRING(j) + ");" SKIP(1).
+                 ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".  
+               END.      
+               ELSE DO:
+                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
+                 ASSIGN new-obj.for-type = "LONG".
+               END.     
+             END.
+             ELSE DO: /* Oracle 7 */
+               IF j < 2001 THEN DO:                    
+                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                                     STRING(j) + ");" SKIP(1).
+                 ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".
+               END.        
+               ELSE DO: 
+                 PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
+                 ASSIGN new-obj.for-type = "LONG".
+               END.
+             END.
+             IF INDEX(idxline, "(") = 0 THEN
+               ASSIGN idxline = idxline + "(" + CAPS(new-obj.fld-name).
+             ELSE
+               ASSIGN idxline = idxline + ", " + CAPS(new-obj.fld-name).                                                  
+           END.                                 
+           ELSE DO: /* Available new-obj for shawdow */
+             IF INDEX(idxline, "(") = 0 THEN
+               ASSIGN idxline = idxline + "(" + CAPS(new-obj.fld-name).
+             ELSE
+                ASSIGN idxline = idxline + ", " + CAPS(new-obj.fld-name).                                                                   
+          END.                        
+        END. /* shawdow not in existing file */
+      END.
+      IF ilin[3] BEGINS "DESC"  THEN
+        ASSIGN idxline = idxline + " DESC ".
+    END. /* end available field */                             
+    ELSE DO: /* Not available field see if renamed field */   
+
+      FIND rename-obj WHERE rename-type = "F" 
+                        AND t-name = tablename
+                        AND new-name = ilin[2] NO-ERROR.                                    
+      IF AVAILABLE rename-obj THEN DO:      
+        FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = old-name NO-ERROR.                   
+        IF AVAILABLE DICTDB._Field THEN DO:
+          IF NOT pcompatible THEN DO:
+            IF INDEX(idxline, "(") = 0 THEN
+              ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
+            ELSE
+              ASSIGN idxline = idxline + ", " + CAPS(DICTDB._Field._For-name).  
+          END.
+          ELSE IF DICTDB._Field._Data-type = "Character" THEN DO: 
+            IF (DICTDB._Field._Fld-misc2[2] <> ? and DICTDB._Field._Fld-misc2[2] <> "") OR
+                CAN-FIND(new-obj where new-obj.add-type = "F"
+                                   AND new-obj.tbl-name = tablename
+                                   AND new-obj.fld-name = "U##" + DICTDB._Field._For-name) THEN DO:                     
+              IF INDEX(idxline, "(") = 0 THEN
+                ASSIGN idxline = idxline + "(U##" + CAPS(dsv-name).
+              ELSE
+                ASSIGN idxline = idxline + ", U##" + CAPS(dsv-name).                          
+            END.
+            ELSE DO: /* shawdow not in file see if already created */                      
               FIND new-obj where new-obj.add-type = "F"
                              AND new-obj.tbl-name = tablename
                              AND new-obj.fld-name = "U##" + DICTDB._Field._For-name
@@ -953,30 +1169,30 @@ PROCEDURE create-idx-field:
                        new-obj.fld-name = "U##" + DICTDB._Field._For-name
                        new-obj.prg-name = ilin[2]
                        new-obj.for-name = "U##" + DICTDB._Field._For-name. 
+                IF DICTDB._File._Fil-Misc2[7] <> "" AND DICTDB._File._Fil-Misc2[7] <> ? THEN
+                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " +  DICTDB._File._Fil-Misc2[7] SKIP.
+                ELSE 
+                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-name SKIP.
 
                 IF ora_version = 8 THEN DO: 
                   IF j < 4001 THEN DO:                    
-                    PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP.
-                    PUT STREAM tosql UNFORMATTED "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                    PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
                                    STRING(j) + ");" SKIP(1).
                     ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".  
                   END.      
                   ELSE DO:
-                    PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP.
-                    PUT STREAM tosql UNFORMATTED " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
+                    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
                     ASSIGN new-obj.for-type = "LONG".
                   END.     
                 END.
                 ELSE DO: /* Oracle 7 */
                   IF j < 2001 THEN DO:                    
-                    PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name  SKIP.
-                    PUT STREAM tosql UNFORMATTED " ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
+                    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + "VARCHAR2" + "(" +
                                        STRING(j) + ");" SKIP(1).
                     ASSIGN new-obj.for-type = "VARCHAR2" + "(" + STRING(j) + ")".
                   END.        
                   ELSE DO:
-                    PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name SKIP.
-                    PUT STREAM tosql UNFORMATTED " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
+                    PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.fld-name + " " + "LONG" + ";" SKIP(1).
                     ASSIGN new-obj.for-type = "LONG".
                   END.
                 END.
@@ -993,68 +1209,76 @@ PROCEDURE create-idx-field:
               END.                    
             END. /* shawdow not in existing file */
           END. /* End available field that is a character. */
+          ELSE DO:
+            IF INDEX(idxline, "(") = 0 THEN
+              ASSIGN idxline = idxline + "( " + CAPS(DICTDB._Field._For-name).
+            ELSE
+              ASSIGN idxline = idxline + ", " + CAPS(DICTDB._Field._For-name). 
+          END.      
+          IF ilin[3] BEGINS "DESC"  THEN
+            ASSIGN idxline = idxline + " DESC ".
         END.
       END. /* End of rename object */
-      ELSE DO:                                  
+      ELSE DO:
         FIND FIRST new-obj WHERE new-obj.add-type = "F"
                              AND new-obj.tbl-name = tablename
                              AND new-obj.prg-name = ilin[2]
                                         NO-ERROR.                                      
-        IF AVAILABLE new-obj THEN DO:       
-                                                                  
+        IF AVAILABLE new-obj THEN DO:                                                                        
           IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" THEN DO:                      
             ASSIGN fortype = new-obj.for-type
                    forname = new-obj.for-name.
                                
-            FIND new-obj where new-obj.add-type = "F"
-                           AND new-obj.tbl-name = tablename
-                           AND new-obj.fld-name = "U##" + ilin[2]
-                                       NO-ERROR.                                                                              
-            IF NOT AVAILABLE new-obj AND compatible THEN DO:  /* need to alter the table to create field */ 
-              FIND FIRST new-obj WHERE new-obj.add-type = "F"
-                                   AND new-obj.tbl-name = tablename
-                                   AND new-obj.prg-name = ilin[2].
-                                                                
-               ASSIGN shw-col = 0.                               
-                           
-                             
-               FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
-                 IF DICTDB._Field._Extent = 0 THEN DO:
-                   IF DICTDB._Field._Fld-stoff > shw-col THEN
-                     ASSIGN shw-col = DICTDB._Field._Fld-stoff.
-                 END.
-                 ELSE
-                   ASSIGN shw-col = shw-col + DICTDB._Field._Extent.                  
-               END.
-               IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
-                 ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
+            FIND n-obj where n-obj.add-type = "F"
+                           AND n-obj.tbl-name = tablename
+                           AND n-obj.fld-name = "U##" + ilin[2]
+                                       NO-ERROR.     
 
-               FOR EACH new-Obj WHERE new-obj.add-type = "F"
-                                  AND new-obj.tbl-name = tablename:
-                 ASSIGN shw-col = shw-col + 1.
-               END.               
+            IF NOT AVAILABLE n-obj AND pcompatible THEN DO:  /* need to alter the table to create field */ 
+                                                           
+              ASSIGN shw-col = 0.                               
+                                                
+              FOR EACH DICTDB._Field OF DICTDB._FILE NO-LOCK:
+                IF DICTDB._Field._Extent = 0 THEN DO:
+                  IF DICTDB._Field._Fld-stoff > shw-col THEN
+                    ASSIGN shw-col = DICTDB._Field._Fld-stoff.
+                END.
+                ELSE
+                  ASSIGN shw-col = shw-col + DICTDB._Field._Extent.                  
+              END.
+              IF shw-col < DICTDB._File._Fil-Misc1[1] THEN
+                ASSIGN shw-col = DICTDB._File._Fil-misc1[1].
 
-               ASSIGN shw-col = shw-col + 1.  
+              FOR EACH new-Obj WHERE new-obj.add-type = "F"
+                                 AND new-obj.tbl-name = tablename:
+                ASSIGN shw-col = shw-col + 1.
+              END.               
+
+              ASSIGN shw-col = shw-col + 1.  
                                                                                               
-               CREATE shad-col.
-               ASSIGN p-fld-name = ilin[2]
-                      s-fld-name = "U##" + forname
-                      s-tbl-name = tablename
-                      col-num = shw-col.                
+              CREATE shad-col.
+              ASSIGN p-fld-name = ilin[2]
+                     s-fld-name = "U##" + forname
+                     s-tbl-name = tablename
+                     col-num = shw-col.                
  
-               CREATE new-obj.
-               ASSIGN new-obj.add-type = "F"
-                      new-obj.tbl-name = tablename
-                      new-obj.n-order = new-ord
-                      new-ord = new-ord + 1
-                      new-obj.for-name = "U##" + forname
-                      new-obj.fld-name = "U##" + ilin[2]
-                      new-obj.prg-name = ilin[2]
-                      new-obj.for-type = (IF fortype BEGINS "CHAR" THEN "VARCHAR2"
+              CREATE new-obj.
+              ASSIGN new-obj.add-type = "F"
+                     new-obj.tbl-name = tablename
+                     new-obj.n-order = new-ord
+                     new-ord = new-ord + 1
+                     new-obj.for-name = "U##" + forname
+                     new-obj.fld-name = "U##" + ilin[2]
+                     new-obj.prg-name = ilin[2]
+                     new-obj.for-type = (IF fortype BEGINS "CHAR" THEN "VARCHAR2"
                                                        ELSE fortype). 
                               
-               PUT STREAM tosql UNFORMATTED "ALTER TABLE " + DICTDB._File._For-name SKIP.
-               PUT STREAM tosql UNFORMATTED " ADD " + new-obj.for-name + " " + new-obj.for-type + ";" SKIP(1).                                                          
+              IF DICTDB._File._Fil-Misc2[7] <> "" AND DICTDB._File._Fil-Misc2[7] <> ? THEN
+                 PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " +  DICTDB._File._Fil-Misc2[7] SKIP.
+             ELSE 
+                 PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-name SKIP.
+
+              PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.for-name + " " + new-obj.for-type + ";" SKIP(1).                                                          
             END.  
           END.     
 
@@ -1062,6 +1286,8 @@ PROCEDURE create-idx-field:
             ASSIGN idxline = idxline + "(" + CAPS(new-obj.for-name).
           ELSE
             ASSIGN idxline = idxline + ", " + CAPS(new-obj.for-name). 
+          IF ilin[3] BEGINS "DESC"  THEN
+              ASSIGN idxline = idxline + " DESC".
         END.  
       END.  /* end of new-obj */                           
     END. /* Not available field */
@@ -1072,22 +1298,26 @@ PROCEDURE create-idx-field:
                    AND new-obj.prg-name = ilin[2]
                                NO-ERROR.                     
     IF AVAILABLE new-obj THEN DO:
-      IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" and compatible THEN 
+      IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" and pcompatible THEN 
         RUN new-obj-idx.
       IF INDEX(idxline, "(") = 0 THEN
         ASSIGN idxline = idxline + "(" + CAPS(new-obj.for-name).
       ELSE
         ASSIGN idxline = idxline + ", " + CAPS(new-obj.for-name).  
+      IF ilin[3] BEGINS "DESC"  THEN
+              ASSIGN idxline = idxline + " DESC".
     END. 
   END.
-  PUT STREAM todf UNFORMATTED "  " ilin[1] ' "' ilin[2] '" '.
+  CREATE df-info.
+  ASSIGN df-info.df-seq = dfseq
+         dfseq = dfseq + 1
+         df-info.df-tbl = tablename
+         df-line = "  " + ilin[1] + ' "' + ilin[2] + '" '.  
   DO j = 3 TO 5:
-    IF ilin[j] <> ? THEN
-      PUT STREAM todf UNFORMATTED ilin[j] " ".
-    ELSE DO:
-      PUT STREAM todf UNFORMATTED " " SKIP.
-      ASSIGN j = 6.
-    END.  
+    IF ilin[j] <> ? THEN     
+      ASSIGN df-info.df-line = df-info.df-line + ilin[j] + " ".
+    ELSE 
+      ASSIGN j = 6. 
   END.                                                 
 END PROCEDURE.
 /*======================== Mainline =================================== */            
@@ -1173,43 +1403,53 @@ DO ON STOP UNDO, LEAVE:
   
                     
     IF iobj = "d"  or startdf THEN DO: 
-      PUT STREAM todf UNFORMATTED "UPDATE DATABASE " '"' ora_dbname '"' SKIP. 
+      CREATE df-info.
+      ASSIGN df-info.df-seq = dfseq
+             dfseq = dfseq + 1
+             df-line = "UPDATE DATABASE " + '"' + ora_dbname + '"'. 
       ASSIGN startdf = FALSE.
     END.  
           
     IF iobj = "t" THEN DO:
       IF imod = "d" THEN DO:
-        IF tablename <> ilin[3] THEN DO:
+        IF tablename <> ilin[3] THEN 
           RUN write-tbl-sql.            
-          ASSIGN tablename = ilin[3].
-                
-        END.
-        
-        IF idxline <> ? THEN 
+                         
+       IF idxline <> ? THEN 
           RUN write-idx-sql.
- 
-         IF tablename <> ? THEN                             
+
+       IF tablename <> ilin[3] THEN
+         ASSIGN tablename = ilin[3]
+                 comment_chars = "".
+
+        IF tablename <> ? THEN                             
           DISPLAY tablename WITH FRAME working.
     
         FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[3]
-                                 AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
+                                  AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
         IF AVAILABLE DICTDB._File THEN DO:
-          PUT STREAM tosql UNFORMATTED "DROP TABLE " DICTDB._File._For-name user_env[5] SKIP(1).
-          PUT STREAM todf UNFORMATTED " " SKIP.
-          PUT STREAM todf  UNFORMATTED "DROP TABLE "  '"' DICTDB._File._File-name '"' SKIP.
+          PUT STREAM tosql UNFORMATTED comment_chars "DROP TABLE " DICTDB._File._For-name user_env[5] SKIP(1).
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = DICTDB._File._File-name
+                 df-line = "DROP TABLE " + '"' + DICTDB._File._File-name + '"'.
         END.
         ASSIGN ilin = ?.
       END. /* End delete table */
 
       /* Rename table */
       ELSE IF imod = "r" THEN DO:
-        IF tablename <> ilin[5] THEN DO:
-          Run write-tbl-sql.
-          ASSIGN tablename = ilin[5].            
-        END.
+        IF tablename <> ilin[5] THEN 
+          Run write-tbl-sql.                      
+        
         IF idxline <> ? THEN 
           RUN write-idx-sql.
  
+        IF tablename <> ilin[5] THEN
+          ASSIGN tablename = ilin[5]
+                 comment_chars = "".
+
         IF tablename <> ? THEN                              
           DISPLAY tablename WITH FRAME working.
           
@@ -1223,8 +1463,11 @@ DO ON STOP UNDO, LEAVE:
               ASSIGN idx-number = DICTDB._Index._Idx-num.
           END.
           ASSIGN idx-number = idx-number + 1.
-          PUT STREAM todf UNFORMATTED " " SKIP.
-          PUT STREAM todf  UNFORMATTED "RENAME TABLE " '"' DICTDB._File._File-name '" TO "' ilin[5] '"' SKIP(1).          
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = ilin[5]
+                 df-line = "RENAME TABLE " + '"' + DICTDB._File._File-name + '" TO "' + ilin[5] + '"'.          
           
           CREATE rename-obj.
           ASSIGN rename-type = "T"
@@ -1248,14 +1491,16 @@ DO ON STOP UNDO, LEAVE:
       ELSE IF imod = "a" THEN DO:                               
         IF ilin[1] = "ADD" AND ilin[2] = "TABLE" THEN DO: 
           RUN write-tbl-sql.
+          
+          IF idxline <> ? THEN 
+             RUN write-idx-sql.
+
           ASSIGN addtable = TRUE
                  tablename = ilin[3]
                  fldnum = 0
-                 idx-number = 1.
-                                 
-          IF idxline <> ? THEN 
-             RUN write-idx-sql.
-                                             
+                 idx-number = 1
+                 comment_chars = "".
+                                                                                        
           IF xlate THEN DO:       
             ASSIGN forname = ilin[3] + "," + idbtyp + "," + user_env[29].
             RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT forname).
@@ -1266,17 +1511,30 @@ DO ON STOP UNDO, LEAVE:
           END.
           ELSE
             ASSIGN forname = ilin[3].
-  
+ 
+          _verify-table:
+          DO WHILE TRUE:
+            FIND FIRST verify-table WHERE verify-table.tnew-name = forname NO-ERROR.
+            FIND FIRST DICTDB._File WHERE DICTDB._File._For-name = forname NO-ERROR.
+            IF AVAILABLE verify-table OR AVAILABLE DICTDB._File THEN
+                ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - 1).
+            ELSE DO:
+              CREATE verify-table.
+              ASSIGN verify-table.tnew-name = forname.
+              LEAVE _verify-table.
+            END.
+          END.
+
           RUN create-new-obj (INPUT "T", INPUT ?).
           
           IF tablename <> ? THEN    
             DISPLAY tablename WITH FRAME working.   
 
-          IF compatible THEN DO: 
+          IF pcompatible THEN DO: 
             ASSIGN fldnum = fldnum + 1.             
             CREATE sql-info.
             ASSIGN line-num = -3
-                   line = "DROP SEQUENCE " + CAPS(forname) + "_SEQ" + user_env[5]
+                   line = comment_chars + "DROP SEQUENCE " + CAPS(forname) + "_SEQ" + user_env[5]
                    tblname = ilin[3].
         
             CREATE sql-info.
@@ -1302,35 +1560,90 @@ DO ON STOP UNDO, LEAVE:
                  line = 'CREATE TABLE ' + CAPS(forname) +  ' ('
                  tblname = ilin[3].
                 
-          PUT STREAM todf UNFORMATTED " " SKIP.        
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '"' SKIP.
-          PUT STREAM todf UNFORMATTED '  FOREIGN-NAME "' CAPS(forname) '"' SKIP.
-          PUT STREAM todf UNFORMATTED '  FOREIGN-TYPE "TABLE" ' SKIP.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = '  FOREIGN-NAME "' + CAPS(forname) + '"'.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = '  FOREIGN-TYPE "TABLE" '.
+          IF ora_owner <> "" THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line = '  FOREIGN-OWNER "' + CAPS(ora_owner) + '"'.
+          END.
         END.
         ELSE DO:          
           CASE ilin[1]:
             WHEN "AREA" THEN . /* Don't assign the Area it will default to 6 */
             WHEN "CAN-INSERT" OR WHEN "CAN-READ" OR WHEN "CAN-WRITE" OR
             WHEN "CAN-UPDATE" OR WHEN "CAN-DELETE" OR WHEN "CAN-DUMP" OR
-            WHEN "CAN-LOAD" OR WHEN "CAN-SELECT" THEN 
-              PUT STREAM todf UNFORMATTED "  " ilin[1] ' "' ilin[2] '"' SKIP.
-            
+            WHEN "CAN-LOAD" OR WHEN "CAN-SELECT" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
+            END.
             WHEN "LABEL" OR WHEN "LABEL-SA" OR WHEN "DESCRIPTION" OR WHEN "VALEXP" OR
             WHEN "VALMSG" OR WHEN "VALMSG-SA" THEN DO:
               RUN dctquot (ilin[2], '"',OUTPUT oq-string).
-              IF LENGTH(oq-string) > 0 THEN
-                PUT STREAM todf UNFORMATTED "  " ilin[1] + " " + oq-string SKIP.
+              IF LENGTH(oq-string) > 0 THEN DO:
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line = "  " + ilin[1] + " " + oq-string.
+              END.
             END.
  
-            WHEN "FROZEN" THEN
-              PUT STREAM todf UNFORMATTED "  " ilin[1] ' "' ilin[2] '"' SKIP.
-            WHEN "HIDDEN" THEN
-              PUT STREAM todf UNFORMATTED "  " ilin[1] ' "' ilin[2] '"' SKIP.
-            WHEN "DUMP-NAME" THEN
-              PUT STREAM todf UNFORMATTED "  " ilin[1] ' "' ilin[2] '"' SKIP.
-            WHEN "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER"  THEN              
-              PUT STREAM todf UNFORMATTED "  " ilin[1]  ' "' ilin[2] '" ' 
-                ilin[3] " " ilin[4] ' "' ilin[5] '" ' ilin[6] ' "' ilin[7] '"' SKIP.
+            WHEN "FROZEN" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
+            END.
+            WHEN "HIDDEN" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
+            END.
+            WHEN "DUMP-NAME" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
+            END.
+            WHEN "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER" THEN DO:             
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line =  "  " + ilin[1] +  ' "' + ilin[2] + '" ' + 
+                              ilin[3] + " ". 
+             IF ilin[4] <> ? THEN
+                 ASSIGN df-line = df-line + ilin[4].            
+             IF ilin[5] <> ? THEN 
+                 ASSIGN df-line = df-line + ' "' + ilin[5] + '" '.             
+             IF ilin[6] <> ? THEN 
+                 ASSIGN df-line = df-line + ilin[6].            
+             IF ilin[7] <> ? THEN
+                 ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
+            END.
           END CASE. 
         END.
         ASSIGN ilin = ?.
@@ -1339,10 +1652,9 @@ DO ON STOP UNDO, LEAVE:
       /* Update or modify table attributes are for df only */
       ELSE DO: 
         IF ilin[1] = "UPDATE" THEN DO: 
-          IF tablename <> ilin[3] THEN DO:
-            RUN write-tbl-sql.
-            ASSIGN tablename = ilin[3].          
-          END.
+          IF tablename <> ilin[3] THEN 
+            RUN write-tbl-sql.                     
+         
           FIND DICTDB._File where DICTDB._File._File-name = ilin[3] NO-ERROR.
           IF AVAILABLE DICTDB._File THEN DO:
             ASSIGN idx-number = 0.
@@ -1356,8 +1668,15 @@ DO ON STOP UNDO, LEAVE:
           IF idxline <> ? THEN 
             RUN write-idx-sql.
         
-          PUT STREAM todf UNFORMATTED " " SKIP.         
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '"' SKIP.
+          IF tablename <> ilin[3] THEN
+            ASSIGN tablename = ilin[3]
+                   comment_chars = "".
+
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
         END.  
                 
         IF tablename <> ? THEN                             
@@ -1368,17 +1687,44 @@ DO ON STOP UNDO, LEAVE:
           WHEN "VALEXP" OR WHEN "VALMSG"   OR WHEN "VALMSG-SA"   OR
           WHEN "DUMP-NAME" THEN DO:            
             RUN dctquot (ilin[2], '"',OUTPUT oq-string).
-            IF ilin[2] = ? THEN
-               PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2] SKIP.
-            ELSE IF LENGTH(oq-string) > 0 THEN
-               PUT STREAM todf UNFORMATTED "  " ilin[1] + " " + oq-string SKIP.
+            IF ilin[2] = ? THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + " ?".
+            END.               
+            ELSE IF LENGTH(oq-string) > 0 THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line = "  " + ilin[1] + " " + oq-string.
+            END.
           END.
-          WHEN "FROZEN"  OR WHEN "HIDDEN" THEN
-            PUT STREAM todf UNFORMATTED "  " ilin[1] SKIP.
-           
-          WHEN "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER"  THEN 
-              PUT STREAM todf UNFORMATTED "  " ilin[1]  ' "' ilin[2] '" ' 
-                ilin[3] " " ilin[4] ' "' ilin[5] '" ' ilin[6] ' "' ilin[7] '"' SKIP.
+          WHEN "FROZEN"  OR WHEN "HIDDEN" THEN DO:
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  df-info.df-tbl = tablename
+                  df-line = "  " + ilin[1].
+          END.
+          WHEN "FILE-TRIGGER" OR WHEN "TABLE-TRIGGER"  THEN DO:            
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line =  "  " + ilin[1] +  ' "' + ilin[2] + '" ' + 
+                              ilin[3] + " ". 
+             IF ilin[4] <> ? THEN
+                 ASSIGN df-line = df-line + ilin[4].             
+             IF ilin[5] <> ? THEN 
+                 ASSIGN df-line = df-line + ' "' + ilin[5] + '" '.             
+             IF ilin[6] <> ? THEN 
+                 ASSIGN df-line = df-line + ilin[6].             
+             IF ilin[7] <> ? THEN
+                 ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
+          END.
         END CASE. 
         ASSIGN ilin = ?.
       END.                                    
@@ -1387,19 +1733,26 @@ DO ON STOP UNDO, LEAVE:
     IF iobj = "f" THEN DO:               
        /* Drop field in schema holder only and create a view for Oracle */                   
       IF imod = "d" THEN DO:
-        IF tablename <> ilin[5] THEN DO:
+        IF tablename <> ilin[5] THEN 
           RUN write-tbl-sql.
-          ASSIGN tablename = ilin[5].          
-        END.
+                    
+        
         IF idxline <> ? THEN 
           RUN write-idx-sql.
  
+        IF tablename <> ilin[5] THEN
+          ASSIGN tablename = ilin[5]
+                 comment_chars = "".
+
         IF tablename <> ? THEN  
           DISPLAY tablename WITH FRAME working.
           
-        PUT STREAM todf UNFORMATTED " " SKIP.                      
-        PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" '
-                     ilin[4] ' "' ilin[5] '"' SKIP.
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = tablename
+               df-line =  ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                          ilin[4] + ' "' + ilin[5] + '"'.
        
         CREATE drop-field.
         ASSIGN f-name = ilin[3]
@@ -1422,7 +1775,7 @@ DO ON STOP UNDO, LEAVE:
                                   AND v-order = 1 NO-ERROR.
           IF  AVAILABLE view-table THEN DO:
             FOR EACH view-table WHERE v-table = ilin[5]
-                              AND v-progn = ilin[3]:          
+                              AND v-progn = drop-f-name /*ilin[3]*/:          
               DELETE view-table.
             END.
           END.                      
@@ -1447,20 +1800,26 @@ DO ON STOP UNDO, LEAVE:
                 
       /* Rename field in schema holder only */          
       ELSE IF imod = "r" THEN DO:
-        IF tablename <> ilin[5] THEN DO:
+        IF tablename <> ilin[5] THEN 
           RUN write-tbl-sql.
-          ASSIGN tablename = ilin[5].          
-        END.
+                            
         IF idxline <> ? THEN 
           RUN write-idx-sql.
- 
+        
+        IF tablename <> ilin[5] THEN
+          ASSIGN tablename = ilin[5]
+                 comment_chars = "".
+
         IF tablename <> ? THEN
           DISPLAY tablename WITH FRAME working.
 
         IF ilin[1] <> ? THEN do:
-          PUT STREAM todf UNFORMATTED " " SKIP.   
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" '
-                       ilin[4] ' "' ilin[5] '" ' ilin[6] ' "' ilin[7] '"' SKIP.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                           ilin[4] + ' "' + ilin[5] + '" ' + ilin[6] + ' "' + ilin[7] + '"'.
         END.  
         FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[5] NO-ERROR.       
         IF AVAILABLE DICTDB._File THEN DO:
@@ -1531,12 +1890,15 @@ DO ON STOP UNDO, LEAVE:
         IF ilin[1] = "ADD" AND ilin[2] = "FIELD" THEN DO:  
 
            /* Verify we are working the same table */
-          IF tablename <> ilin[5] THEN DO:
-            RUN write-tbl-sql.
-            ASSIGN tablename = ilin[5].            
-          END.
+          IF tablename <> ilin[5] THEN 
+            RUN write-tbl-sql.                        
+
           IF idxline <> ? THEN 
             RUN write-idx-sql.
+
+          IF tablename <> ilin[5] THEN
+            ASSIGN tablename = ilin[5]
+                   comment_chars = "".
 
           IF tablename <> ? THEN       
             DISPLAY tablename WITH FRAME WORKING.                       
@@ -1646,11 +2008,17 @@ DO ON STOP UNDO, LEAVE:
           END.          
           RUN create-new-obj (INPUT "F", INPUT ?).          
           ASSIGN fldnum = fldnum + 1.
-           
-          PUT STREAM todf UNFORMATTED " " SKIP.                                   
-          PUT STREAM todf UNFORMATTED  ilin[1] " " ilin[2] ' "' ilin[3] '" '
-                ilin[4] ' "' ilin[5] '" ' ilin[6] ' ' ilin[7] SKIP.
-          PUT STREAM todf UNFORMATTED '  FOREIGN-NAME "' CAPS(fieldname) '"' SKIP. 
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                           ilin[4] + ' "' + ilin[5] + '" ' + ilin[6] + ' ' + ilin[7].
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = '  FOREIGN-NAME "' + CAPS(fieldname) + '"'. 
         END. /* End first line of add field */                      
         ELSE DO:
           CASE ilin[1]:
@@ -1659,8 +2027,18 @@ DO ON STOP UNDO, LEAVE:
                              AND new-obj.tbl-name = tablename
                              AND new-obj.fld-name = fieldname
                              NO-LOCK NO-ERROR. 
-                               
-              PUT STREAM todf UNFORMATTED "  " ilin[1] '  "' ilin[2] '"' SKIP.
+                              
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname.
+
+              IF sqlwidth AND new-obj.for-type = " VARCHAR2" THEN
+                ASSIGN df-line = "  " + ilin[1] + ' "'.
+              ELSE
+                ASSIGN df-line = "  " + ilin[1] + ' "' + ilin[2] + '"'.
+
               IF available new-obj THEN DO:
                 IF alt-table THEN DO:
                   CREATE alt-info.
@@ -1729,9 +2107,9 @@ DO ON STOP UNDO, LEAVE:
               END. /* Character datatype */
               ELSE IF fieldtype = "integer" THEN DO: 
                 IF AVAILABLE new-obj THEN
-                      ASSIGN new-obj.for-type = " NUMBER"
-                             dffortype = "NUMBER"
-                             lngth = 22.                                                            
+                  ASSIGN new-obj.for-type = " NUMBER"
+                         dffortype = "NUMBER"
+                         lngth = 22.                                                            
               END.
               ELSE IF fieldtype = "decimal" THEN DO:                    
                 ASSIGN lngth = LENGTH(ilin[2], "character")
@@ -1767,13 +2145,13 @@ DO ON STOP UNDO, LEAVE:
                        dffortype = "DATE"
                        lngth     = 7. 
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
-                  ASSIGN new-obj.for-type = " NUMBER"
-                         dffortype = "NUMBER"
-                         lngth = 22.
+                ASSIGN new-obj.for-type = " NUMBER"
+                       dffortype = "NUMBER"
+                       lngth = 22.
               ELSE IF fieldtype = "Recid" AND AVAILABLE new-obj THEN
-                  ASSIGN new-obj.for-type = " NUMBER"
-                         dffortype = "NUMBER"
-                         lngth = 22. 
+                ASSIGN new-obj.for-type = " NUMBER"
+                       dffortype = "NUMBER"
+                       lngth = 22. 
                                              
               IF AVAILABLE sql-info THEN 
                 ASSIGN line = CAPS(fieldname) + new-obj.for-type.                        
@@ -1781,15 +2159,45 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN a-line = "ADD " + CAPS(fieldname) + new-obj.for-type. 
                 RUN get-position.
               END.    
-              PUT STREAM todf UNFORMATTED '  FOREIGN-TYPE "' dffortype '"' SKIP.
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname
+                     df-line = '  FOREIGN-TYPE "' + dffortype + '"'.
               
               IF all_digits <> 0 THEN DO:
-                PUT STREAM todf UNFORMATTED "  DSRVR-PRECISION " STRING(all_digits) SKIP.
-                PUT STREAM todf UNFORMATTED "  FIELD-MISC12 " STRING(dec_point) SKIP.
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line = "  DSRVR-PRECISION " + STRING(all_digits).
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-info.df-fld = fieldname
+                       df-line = "  FIELD-MISC12 " + STRING(dec_point).
               END.
                 
-              PUT STREAM todf UNFORMATTED "  FIELD-MISC13 " lngth SKIP.
-              PUT STREAM todf UNFORMATTED "  FIELD-MISC14 1" SKIP.   
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname
+                     df-line = "  FIELD-MISC13 " + STRING(lngth).
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname
+                     df-line = "  FIELD-MISC14 1".   
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname
+                     df-line = "  FOREIGN-MAXIMUM " + string(lngth).
 
               ASSIGN all_digits = 0
                      dec_point  = 0.            
@@ -1803,16 +2211,89 @@ DO ON STOP UNDO, LEAVE:
             WHEN "LABEL"           OR WHEN "LABEL-SA"      OR WHEN "COLUMN-LABEL"    OR 
             WHEN "COLUMN-LABEL-SA" OR WHEN "INITIAL-SA"    OR WHEN "VALEXP"          OR 
             WHEN "VALMSG"          OR WHEN "VALMSG-SA"     OR WHEN "VIEW-AS"         OR 
-            WHEN "HELP"            OR WHEN "HELP-SA"       OR WHEN "INITIAL"      THEN DO:                                                                
+            WHEN "HELP"            OR WHEN "HELP-SA"       THEN DO:                                                                
               IF ilin[2] <> "" AND ilin[2] <> ? THEN DO:
                 RUN dctquot (ilin[2], '"',OUTPUT oq-string).
-                IF LENGTH(oq-string) > 0 THEN
-                  PUT STREAM todf UNFORMATTED "  " ilin[1] + " " + oq-string SKIP.   
+                IF LENGTH(oq-string) > 0 THEN DO:
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line =  "  " + ilin[1] + " " + oq-string.
+                END.
+              END.
+            END.
+            WHEN "INITIAL" THEN DO:
+              FIND new-obj WHERE new-obj.add-type = "F"
+                             AND new-obj.tbl-name = tablename
+                             AND new-obj.fld-name = fieldname
+                             NO-LOCK NO-ERROR. 
+                               
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename.
+              IF ilin[2] <> ? THEN
+                ASSIGN df-line = "  " + ilin[1] + '  "' + ilin[2] + '"'.
+              ELSE
+                ASSIGN df-line = "  " + ilin[1] + " ?".
+              IF crtdefault THEN  DO:
+                IF available new-obj AND ilin[2] <> "" AND ilin[2] <> ? AND ilin[2] <> "?" THEN DO:
+                  IF alt-table THEN               
+                    FIND alt-info WHERE a-tblname = tablename
+                                    AND a-fldname = fieldname
+                                    NO-ERROR.
+                  ELSE          
+                    FIND sql-info WHERE tblname = tablename
+                                    AND fldname = fieldname
+                                    NO-ERROR.
+ 
+                  ASSIGN for-init = "".
+                   /* Character */ 
+                  IF new-obj.for-type BEGINS " VARCHAR2" THEN 
+                    ASSIGN for-init = " DEFAULT '" + ilin[2] + "'".                                
+                  ELSE IF new-obj.for-type BEGINS " NUMBER" THEN DO:  
+                    /* logical no or false */
+                    IF ilin[2] BEGINS "N" OR ilin[2] BEGINS "F" THEN
+                      ASSIGN for-init = " DEFAULT 0 ".
+                    /* logical yes or true */
+                    ELSE IF ilin[2] BEGINS "Y" OR ilin[2] BEGINS "T" THEN
+                      ASSIGN for-init = " DEFAULT 1 ".
+                    /* integer */
+                    ELSE IF INDEX(ilin[2], ",") = 0 AND LOOKUP(substring(ilin[2], 1,1), "1,2,3,4,5,6,7,8,9,0") <> 0 THEN
+                       ASSIGN for-init = " DEFAULT " + ilin[2].
+                    /* decimal, remove formatting */
+                    ELSE IF INDEX(ilin[2], ",") > 0 THEN DO:
+                      ASSIGN for-init = ilin[2].
+                      DO k = 1 TO LENGTH(ilin[2]):
+                        IF INDEX(for-init, ",") > 0 THEN
+                          ASSIGN for-init = SUBSTRING(for-init, 1, (INDEX(for-init, ",") - 1)) +  
+                                            SUBSTRING(for-init, (INDEX(for-init, ",") + 1)).
+                        ELSE
+                          ASSIGN k = LENGTH(ilin[2]).
+                      END.
+                      ASSIGN for-init = " DEFAULT " + for-init.
+                    END.                    
+                  END.
+                  /* date */
+                  ELSE IF new-obj.for-type BEGINS " DATE" THEN DO:
+                    IF UPPER(ilin[2]) = "TODAY" THEN 
+                      ASSIGN for-init = " DEFAULT SYSDATE".                   
+                  END.              
+                  IF AVAILABLE sql-info THEN 
+                    ASSIGN LINE = LINE + for-init.
+                  ELSE IF AVAILABLE alt-info THEN 
+                    ASSIGN a-line = a-line + for-init. 
+                END.
               END.
             END.
             WHEN "EXTENT"  THEN DO:
               IF ilin[2] <> "0" THEN DO:
-                PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2] SKIP.
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line =  "  " + ilin[1] + " "  + ilin[2].
              
                 FIND FIRST sql-info WHERE tblname = tablename
                                       AND fldname = fieldname 
@@ -1924,18 +2405,202 @@ DO ON STOP UNDO, LEAVE:
             WHEN "ORDER"           OR WHEN "FIELD-MISC11"  OR WHEN "FIELD-MISC12"      OR 
             WHEN "FIELD-MISC13"    OR WHEN "FIELD-MISC14"  OR WHEN "FIELD-MISC15"      OR
             WHEN "FIELD-MISC16"    OR WHEN "FIELD-MISC17"  OR WHEN "FIELD-MISC18"      OR
-            WHEN "DECIMALS"        OR WHEN "POSITION" THEN
-              IF ilin[2] <> ? THEN
-                 PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2] SKIP.
-            WHEN "LENGTH" THEN
-                IF ilin[2] <> "0" THEN
-                  PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2] SKIP.
+            WHEN "DECIMALS"        OR WHEN "POSITION" THEN DO:
+              IF ilin[2] <> ? THEN DO:
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line =  "  " + ilin[1] + " " + ilin[2].
+              END.
+            END.
+            WHEN "LENGTH" THEN DO:
+              IF ilin[2] <> "0" THEN DO:
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line =  "  " + ilin[1] + " " + ilin[2].
+              END.
+            END.
             WHEN "MANDATORY" OR WHEN "CASE-SENSITIVE" OR WHEN "NOT-CASE-SENSITIVE" OR
-            WHEN "NULL-ALLOWED" THEN
-               PUT STREAM todf UNFORMATTED "  " ilin[1] SKIP.                                          
-            WHEN "FIELD-TRIGGER"  THEN 
-                PUT STREAM todf UNFORMATTED "  " ilin[1]  ' "' ilin[2] '" ' 
-                ilin[3] " " ilin[4] ' "' ilin[5] '" ' ilin[6] ' "' ilin[7] '"' SKIP.
+            WHEN "NULL-ALLOWED" THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line =  "  " + ilin[1].
+            END.                                          
+            WHEN "FIELD-TRIGGER"  THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-line =  "  " + ilin[1] +  ' "' + ilin[2] + '" ' + 
+                               ilin[3] + " ". 
+              IF ilin[4] <> ? THEN
+                 ASSIGN df-line = df-line + ilin[4].             
+              IF ilin[5] <> ? THEN 
+                ASSIGN df-line = df-line + ' "' + ilin[5] + '" '.              
+              IF ilin[6] <> ? THEN 
+                ASSIGN df-line = df-line + ilin[6].             
+              IF ilin[7] <> ? THEN
+                ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
+            END.
+            WHEN "SQL-WIDTH" THEN DO:
+              IF sqlwidth THEN DO:
+                FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                               AND new-obj.tbl-name = tablename
+                               AND new-obj.fld-name = fieldname
+                               NO-LOCK NO-ERROR. 
+               
+                IF new-obj.for-type <> " NUMBER" AND
+                   new-obj.for-type <> " DATE" AND
+                   new-obj.for-type <> " LONG" THEN DO:
+                  
+                  FIND df-info WHERE df-info.df-tbl = tablename
+                                 AND df-info.df-fld = fieldname
+                                 AND df-info.df-line BEGINS "  FORMAT".
+                 
+                  IF alt-table THEN DO:               
+                    FIND FIRST alt-info WHERE a-tblname = tablename
+                                    AND a-fldname = fieldname 
+                                    AND a-line BEGINS "ADD" NO-ERROR.
+                    IF AVAILABLE alt-info THEN DO:
+                      IF new-obj.for-type BEGINS " VARCHAR2" THEN DO:  
+                        IF INDEX(a-line,"DEFAULT") <> 0 THEN
+                          ASSIGN extlinenum = INDEX(a-line,"DEFAULT")
+                                 extline = SUBSTRING(a-line, extlinenum).
+                        ELSE
+                          ASSIGN extline = "".
+
+                        IF ora_version = 8 THEN DO: 
+                          IF INTEGER(ilin[2]) < 4001 THEN
+                            ASSIGN new-obj.for-type = " VARCHAR2(" + ilin[2] + ")"
+                                   a-line = "ADD " + CAPS(fieldname) + " VARCHAR2(" + ilin[2] + ") " + extline
+                                   df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
+                                   extline = a-line
+                                   extlinenum = alt-info.a-line-num.
+                          ELSE DO: 
+                            ASSIGN new-obj.for-type = " LONG"
+                                   a-line = "ADD " + CAPS(fieldname) + " LONG"
+                                   extline = a-line
+                                   extlinenum = alt-info.a-line-num.
+                            DELETE df-info.
+                          END.
+                        END.
+                        ELSE DO:                          
+                          IF INTEGER(ilin[2]) < 2001 THEN
+                            ASSIGN new-obj.for-type = " VARCHAR2(" + ilin[2] + ") " 
+                                   a-line = "ADD " + CAPS(fieldname) + " VARCHAR2(" + ilin[2] + ") " + extline
+                                   df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
+                                   extline = a-line
+                                   extlinenum = alt-info.a-line-num.
+                          ELSE DO:
+                            ASSIGN new-obj.for-type = " LONG"
+                                   a-line = "ADD " + CAPS(fieldname) + " LONG"
+                                   extline = a-line
+                                   extlinenum = alt-info.a-line-num.
+                            DELETE df-info.
+                          END.
+                        END.
+                      END.
+                      ELSE DO:
+                        ASSIGN left_paren = INDEX(a-line, "(")
+                               right_paren = INDEX(a-line, ")")
+                               j = INDEX(a-line, ",").
+                        ASSIGN new-obj.for-type = " NUMBER (" + ilin[2] + ","
+                                                  + SUBSTRING(a-line, j + 1, right_paren - j)
+                               a-line = "ADD " + CAPS(fieldname) + " NUMBER (" + ilin[2] + ","
+                                        + SUBSTRING(a-line, j + 1, right_paren - j) + " " + extline
+                               extline = a-line
+                               extlinenum = alt-info.a-line-num.
+                      END.                    
+                    END.
+                    FOR EACH alt-info WHERE a-tblname = tablename
+                                        AND a-fldname = fieldname 
+                                        AND a-line BEGINS "ADD"
+                                        AND a-line-num > extlinenum:
+                        ASSIGN alt-info.a-line = extline.
+                    END.
+                  END.
+                  ELSE DO:
+                    FIND FIRST sql-info WHERE tblname = tablename
+                                    AND fldname = fieldname 
+                                    AND LINE BEGINS fieldname
+                                    NO-ERROR.
+                    IF AVAILABLE sql-info THEN DO:     
+                      IF INDEX(line,"DEFAULT") <> 0 THEN 
+                          ASSIGN extlinenum = INDEX(line,"DEFAULT")
+                                 extline = SUBSTRING(line, extlinenum).
+                        ELSE
+                          ASSIGN extline = "".
+
+                      IF new-obj.for-type BEGINS " VARCHAR2" THEN DO:    
+                        IF ora_version = 8 THEN DO: 
+                          IF INTEGER(ilin[2]) < 4001 THEN
+                            ASSIGN new-obj.for-type = " VARCHAR2(" + ilin[2] + ")"
+                                   line = CAPS(fieldname) + " VARCHAR2(" + ilin[2] + ") " + extline
+                                   df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
+                                   extline = sql-info.line
+                                   extlinenum = sql-info.line-num.
+                          ELSE DO:                      
+                            ASSIGN new-obj.for-type = " LONG"
+                                   line = CAPS(fieldname) + " LONG"
+                                   extline = sql-info.line
+                                   extlinenum = sql-info.line-num.
+                            /* There is no format statement for a long */
+                            DELETE df-info.
+                          END.
+                        END.
+                        ELSE DO:
+                          IF INTEGER(ilin[2]) < 2001 THEN
+                            ASSIGN new-obj.for-type = " VARCHAR2(" + ilin[2] + ")"
+                                   line = CAPS(fieldname) + " VARCHAR2(" + ilin[2] + ") " + extline
+                                   df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
+                                   extline = sql-info.line
+                                   extlinenum = sql-info.line-num.
+                          ELSE DO: 
+                            ASSIGN new-obj.for-type = " LONG"
+                                   line = CAPS(fieldname) + " LONG"
+                                   extline = sql-info.line
+                                   extlinenum = sql-info.line-num.
+                            DELETE df-info.
+                          END.
+                        END.
+                      END.                    
+                      ELSE DO:
+                        ASSIGN left_paren = INDEX(line, "(")
+                               right_paren = INDEX(line, ")")
+                               j = INDEX(line, ",").
+                        ASSIGN new-obj.for-type = " NUMBER (" + ilin[2] + ","
+                                                  + SUBSTRING(LINE, j + 1, right_paren - j)
+                               line = CAPS(fieldname) + " NUMBER (" + ilin[2] + ","
+                                      + SUBSTRING(LINE, j + 1, right_paren - j) + " " + extline
+                               extline = sql-info.line
+                               extlinenum = sql-info.line-num.
+                      END.
+                      FOR EACH sql-info WHERE tblname = tablename
+                                    AND fldname = fieldname 
+                                    AND LINE BEGINS fieldname
+                                    AND sql-info.line-num > extlinenum:
+                          ASSIGN sql-info.LINE = extline.
+                      END.
+                    END.
+                  END.
+                  FIND df-info WHERE df-info.df-tbl = tablename
+                                 AND df-info.df-fld = fieldname
+                                 AND df-info.df-line BEGINS "  FIELD-MISC13".
+                  ASSIGN df-info.df-line = "  FIELD-MISC13 " + ilin[2].
+                  FIND df-info WHERE df-info.df-tbl = tablename
+                                 AND df-info.df-fld = fieldname
+                                 AND df-info.df-line BEGINS "  FOREIGN-MAXIMUM".
+                  ASSIGN df-info.df-line = "  FOREIGN-MAXIMUM " + ilin[2].                  
+                END.                
+              END.
+              ASSIGN extlinenum = ?
+                     extline = "".
+            END.
           END CASE.
         END. /* End subsequent lines of add field */       
 
@@ -1943,15 +2608,23 @@ DO ON STOP UNDO, LEAVE:
       END.
       ELSE DO:  /* imod = m */
         IF ilin[1] = "UPDATE" THEN DO:       
-          IF tablename <> ilin[5] THEN DO:
-            RUN write-tbl-sql.
-            ASSIGN tablename = ilin[5].   
-          END.
+          IF tablename <> ilin[5] THEN 
+            RUN write-tbl-sql.               
+          
           IF idxline <> ? THEN 
             RUN write-idx-sql.
 
-          PUT STREAM todf UNFORMATTED " " SKIP.         
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '"' SKIP.
+          IF tablename <> ilin[5] THEN
+            ASSIGN tablename = ilin[5]
+                   comment_chars = "".
+
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  df-info.df-tbl = tablename
+                  df-info.df-fld = fieldname
+                  df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                            ilin[4] + ' "' + ilin[5] + '"'.
         END.
 
         CASE ilin[1]:
@@ -1967,12 +2640,24 @@ DO ON STOP UNDO, LEAVE:
           WHEN "FIELD-MISC24"    OR WHEN "FIELD-MISC25"     OR WHEN "FIELD-MISC26"    OR 
           WHEN "FIELD-MISC27"    OR WHEN "FIELD-MISC28"     OR WHEN "MISC-PROPERTIES" OR 
           WHEN "SHADOW-NAME"     OR WHEN "INITIAL" THEN DO:
-            IF ilin[2] = ? THEN                                                                 
-              PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2]  SKIP.
+            IF ilin[2] = ? THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tablename
+                     df-info.df-fld = fieldname
+                     df-line =  "  " + ilin[1] + " ?".
+            END.                                                                
             ELSE DO:
-               RUN dctquot (ilin[2], '"',OUTPUT oq-string).
-               IF LENGTH(oq-string) > 0 THEN
-                 PUT STREAM todf UNFORMATTED "  " ilin[1] + " " + oq-string SKIP.
+              RUN dctquot (ilin[2], '"',OUTPUT oq-string).
+              IF LENGTH(oq-string) > 0 THEN DO:
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-info.df-fld = fieldname
+                       df-line =  "  " + ilin[1] + " " + oq-string.
+              END.       
             END.              
           END.
           
@@ -1980,13 +2665,42 @@ DO ON STOP UNDO, LEAVE:
           WHEN "ORDER"        OR WHEN "FOREIGN-CODE" OR WHEN "FIELD-MISC11" OR 
           WHEN "FIELD-MISC12" OR WHEN "FIELD-MISC13" OR WHEN "FIELD-MISC14" OR 
           WHEN "FIELD-MISC15" OR WHEN "FIELD-MISC16" OR WHEN "FIELD-MISC17" OR 
-          WHEN "FIELD-MISC18" THEN
-              PUT STREAM todf UNFORMATTED "  " ilin[1] " " ilin[2] SKIP.
-          WHEN "MANDATORY" THEN
-              PUT STREAM todf UNFORMATTED "  " ilin[1] SKIP.    
-          WHEN "FIELD-TRIGGER"  THEN  
-              PUT STREAM todf UNFORMATTED "  " ilin[1]  ' "' ilin[2] '" ' 
-                ilin[3] " " ilin[4] ' "' ilin[5] '" ' ilin[6] ' "' ilin[7] '"' SKIP.
+          WHEN "FIELD-MISC18" THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-info.df-fld = fieldname
+                   df-line =  "  " + ilin[1] + " " + ilin[2].
+          END.
+          WHEN "MANDATORY" THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-info.df-fld = fieldname
+                   df-line =  "  " + ilin[1].
+          END.
+          WHEN "FIELD-TRIGGER"  THEN  DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-info.df-fld = fieldname
+                   df-line =  "  " + ilin[1] +  ' "' + ilin[2] + '" ' + 
+                              ilin[3] + " ". 
+             IF ilin[4] <> ? THEN
+                 ASSIGN df-line = df-line + ilin[4].
+             
+             IF ilin[5] <> ? THEN 
+                 ASSIGN df-line = df-line + ' "' + ilin[5] + '" '.
+             
+             IF ilin[6] <> ? THEN 
+                 ASSIGN df-line = df-line + ilin[6].
+             
+             IF ilin[7] <> ? THEN
+                 ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
+          END.
         END CASE.
         ASSIGN ilin = ?.
       END. /* end update */                    
@@ -1994,21 +2708,30 @@ DO ON STOP UNDO, LEAVE:
     ELSE IF iobj = "i" THEN DO:  
       /* Drop an index */
       IF imod = "d" THEN DO:
-    
-         RUN write-tbl-sql.
-         ASSIGN tablename = ilin[5].
-    
+        
+        RUN write-tbl-sql.
+       
         IF idxline <> ? THEN 
           RUN write-idx-sql.
+
+        IF tablename <> ilin[5] THEN 
+          ASSIGN tablename = ilin[5]
+                comment_chars = "".
+       
  
         FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[5]
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.                                  
         IF AVAILABLE DICTDB._File THEN DO:
           FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = ilin[3] NO-ERROR.
           IF AVAILABLE DICTDB._Index THEN DO:
-            PUT STREAM tosql UNFORMATTED "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.
-            PUT STREAM tosql UNFORMATTED " " SKIP.
-            PUT STREAM todf  UNFORMATTED "DROP INDEX "  '"' DICTDB._Index._Index-name '"' " ON " '"' ilin[5] '"'SKIP.           
+            PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.
+            PUT STREAM tosql UNFORMATTED comment_chars " " SKIP.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line =  "DROP INDEX " + '"' + DICTDB._Index._Index-name +
+                              '"' + " ON " + '"' + ilin[5] + '"'.           
           END.
           ELSE DO:
             FIND FIRST rename-obj WHERE rename-type = "I"
@@ -2016,23 +2739,33 @@ DO ON STOP UNDO, LEAVE:
                                     AND new-name = ilin[3]
                                     NO-ERROR.
             IF AVAILABLE rename-obj THEN DO:  
-              IF new-name BEGINS "temp-we" THEN 
-                PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '" ' SKIP. 
+              IF new-name BEGINS "temp-we" THEN DO:              
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line =  ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                                  ilin[4] + ' "' + ilin[5] + '" '.
+              END.
               ELSE DO:
                 FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.
                 IF AVAILABLE DICTDB._Index THEN DO:
                   /* Only put out the df info since if we renamed we have already dropped. */
-                  PUT STREAM todf UNFORMATTED "" SKIP.
-                  PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '" ' SKIP.
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' + ilin[4] +
+                                   ' "' + ilin[5] + '" '.
                 END.
               END.               
             END.             
           END.
         END.
         ELSE DO:
-           FIND FIRST rename-obj WHERE rename-type = "T"
-                                    AND new-name = ilin[5]
-                                    NO-ERROR.
+          FIND FIRST rename-obj WHERE rename-type = "T"
+                                  AND new-name = ilin[5]
+                                  NO-ERROR.
                                                                  
           IF AVAILABLE rename-obj THEN DO:
             FIND DICTDB._File WHERE DICTDB._File._File-name = old-name
@@ -2040,9 +2773,14 @@ DO ON STOP UNDO, LEAVE:
             IF AVAILABLE DICTDB._File THEN DO:
               FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = ilin[3] NO-ERROR.
               IF AVAILABLE DICTDB._Index THEN DO:
-                PUT STREAM tosql UNFORMATTED "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.
-                PUT STREAM tosql UNFORMATTED " " SKIP.
-                PUT STREAM todf  UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '" ' SKIP.
+                PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.
+                PUT STREAM tosql UNFORMATTED comment_chars " " SKIP.
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' + ilin[4] +
+                                 ' "' + ilin[5] + '" '.
               END.
               ELSE DO:
                 FIND FIRST rename-obj WHERE rename-type = "I"
@@ -2053,12 +2791,22 @@ DO ON STOP UNDO, LEAVE:
                   FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.
                   IF AVAILABLE DICTDB._Index THEN DO:
                     /* only put to df because if we renamed first, we have dropped and added already in sql */
-                    PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '" ' SKIP.
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-info.df-tbl = tablename
+                           df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                                     ilin[4] + ' "' + ilin[5] + '" '.
                   END.
                 END.
                 ELSE DO:
                   IF ilin[3] BEGINS "temp-we" THEN DO:
-                    PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" ' ilin[4] ' "' ilin[5] '" ' SKIP.
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-info.df-tbl = tablename
+                           df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                                     ilin[4] + ' "' + ilin[5] + '" '.
                   END.
                 END.                  
               END.              
@@ -2070,14 +2818,17 @@ DO ON STOP UNDO, LEAVE:
       IF imod = "a" THEN DO:
         IF ilin[1] = "ADD" and ilin[2] = "INDEX" THEN DO:          
           RUN write-tbl-sql.
-          ASSIGN tablename = ilin[5].
-                                                               
+                                 
           IF idxline <> ? THEN 
             RUN write-idx-sql.
           ELSE  
             ASSIGN wordidx = FALSE
                    wordfile = ?
                    is-unique = FALSE.
+          
+          IF tablename <> ilin[5] THEN
+            ASSIGN tablename = ilin[5]
+                   comment_chars = "".
 
           ASSIGN transname = ilin[3].
           IF xlate THEN DO:          
@@ -2085,6 +2836,7 @@ DO ON STOP UNDO, LEAVE:
             RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT transname).
           END. 
           ASSIGN transname = CAPS(transname).       
+         
           IF user_env[6] = "Y" THEN DO:
             FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[5] NO-ERROR.
             IF AVAILABLE DICTDB._File THEN DO:  
@@ -2094,18 +2846,18 @@ DO ON STOP UNDO, LEAVE:
                   ASSIGN idx-number = DICTDB._Index._Idx-num.
               END.
               ASSIGN idx-number = idx-number + 1.
-                     
+                  
               IF DICTDB._File._Fil-misc2[7] <> ? AND DICTDB._File._Fil-misc2[7] <> "" THEN DO:   
-
                 ASSIGN forname = DICTDB._File._Fil-misc2[7].
                 IF LENGTH(forname) + LENGTH(transname) + 2 > INTEGER(user_env[28]) THEN DO:
-                  IF LENGTH(transname) + 2 <= INTEGER(user_env[28]) THEN
-                    ASSIGN forname = "##" + transname.
+                  IF LENGTH(transname) + 2 < INTEGER(user_env[28]) THEN
+                    ASSIGN forname = SUBSTRING(forname,1,(INTEGER(user_env[28]) - length(transname) - 2)) + "##" + transname.
                   ELSE DO:
                     ASSIGN forname = transname.
+                    _iname:
                     REPEAT:
                       forname = SUBSTRING(transname,1, (LENGTH(forname) - 1)).
-                      IF LENGTH(forname) + 2 <= INTEGER(user_env[28]) THEN LEAVE.
+                      IF LENGTH(forname) + 2 <= INTEGER(user_env[28]) THEN LEAVE _iname.
                     END.
                     ASSIGN forname = "##" + forname.
                   END.
@@ -2116,8 +2868,8 @@ DO ON STOP UNDO, LEAVE:
               ELSE DO:
                 forname = DICTDB._File._For-name.
                 IF LENGTH(forname) + LENGTH(transname) + 2 > INTEGER(user_env[28]) THEN DO:
-                  IF LENGTH(transname) + 2 <= INTEGER(user_env[28]) THEN
-                    ASSIGN forname = "##" + transname.
+                  IF LENGTH(transname) + 2 < INTEGER(user_env[28]) THEN
+                    ASSIGN forname = SUBSTRING(forname,1,(INTEGER(user_env[28]) - length(transname) - 2)) + "##" + transname.
                   ELSE DO:
                     ASSIGN forname = transname.
                     REPEAT:
@@ -2131,6 +2883,20 @@ DO ON STOP UNDO, LEAVE:
                 ELSE 
                     ASSIGN forname = DICTDB._File._For-name + "##" + transname.
               END.
+
+               _verify-index:
+              DO WHILE TRUE:
+                FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
+                FIND FIRST DICTDB._Index WHERE DICTDB._Index._For-name = forname 
+                                           AND DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
+                IF AVAILABLE verify-Index OR AVAILABLE DICTDB._Index THEN
+                  ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - 1).
+                ELSE DO:
+                  CREATE verify-index.
+                  ASSIGN verify-index.inew-name = forname.
+                  LEAVE _verify-index.
+                END.
+              END.
             END. 
             ELSE DO:
               FIND FIRST new-obj WHERE new-obj.add-type = "T"
@@ -2139,8 +2905,8 @@ DO ON STOP UNDO, LEAVE:
               IF AVAILABLE new-obj THEN DO:
                 ASSIGN forname = CAPS(new-obj.for-name). 
                 IF LENGTH(forname) + LENGTH(transname) + 2 > INTEGER(user_env[28]) THEN DO:
-                  IF LENGTH(transname) + 2 <= INTEGER(user_env[28]) THEN
-                    ASSIGN forname = "##" + transname.
+                  IF LENGTH(transname) + 2 < INTEGER(user_env[28]) THEN
+                    ASSIGN forname = SUBSTRING(forname,1,(INTEGER(user_env[28]) - length(transname) - 2)) + "##" + transname.
                   ELSE DO:
                     ASSIGN forname = transname.
                     REPEAT:
@@ -2151,17 +2917,32 @@ DO ON STOP UNDO, LEAVE:
                   END.
                 END.
                 ELSE ASSIGN forname = forname + "##" + transname.
+                 
+                _verify-new-index:
+                DO WHILE TRUE:
+                  FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
+                  FIND FIRST n-obj WHERE n-obj.for-name = forname 
+                                       AND n-obj.tbl-name = ilin[5]
+                                       AND n-obj.add-type = "I" NO-ERROR.
+                  IF AVAILABLE verify-Index OR AVAILABLE n-obj THEN
+                    ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - 1).
+                  ELSE DO:
+                    CREATE verify-index.
+                    ASSIGN verify-index.inew-name = forname.
+                    LEAVE _verify-new-index.
+                  END.
+                END.
               END.
               ELSE DO:
                 FIND FIRST rename-obj WHERE rename-type = "T"
-                                        AND new-name = ilin[5]
+                                        AND rename-obj.new-name = ilin[5]
                                         NO-ERROR.
                 IF AVAILABLE rename-obj THEN DO: 
                   FIND DICTDB._File WHERE DICTDB._File._File-name = rename-obj.old-name.
                   ASSIGN forname = CAPS(dsv-name).                        
                   IF LENGTH(forname) + LENGTH(transname) + 2 > INTEGER(user_env[28]) THEN DO:
-                    IF LENGTH(transname) + 2 <= INTEGER(user_env[28]) THEN
-                      ASSIGN forname = "##" + transname.
+                    IF LENGTH(transname) + 2 < INTEGER(user_env[28]) THEN
+                      ASSIGN forname = SUBSTRING(forname,1,(INTEGER(user_env[28]) - length(transname) - 2)) + "##" + transname.
                     ELSE DO:
                       ASSIGN forname = transname.
                       REPEAT:
@@ -2178,8 +2959,12 @@ DO ON STOP UNDO, LEAVE:
           ELSE
             ASSIGN forname = transname.
         
-          IF AVAILABLE DICTDB._File THEN
-            ASSIGN idxline = "CREATE INDEX " + CAPS(forname) + " ON " + DICTDB._File._For-name.
+          IF AVAILABLE DICTDB._File THEN DO:
+            IF DICTDB._File._Fil-Misc2[7] <> "" AND DICTDB._File._Fil-Misc2[7] <> ? THEN
+              ASSIGN idxline = "CREATE INDEX " + CAPS(forname) + " ON " + DICTDB._File._Fil-Misc2[7].
+            ELSE
+              ASSIGN idxline = "CREATE INDEX " + CAPS(forname) + " ON " + DICTDB._File._For-name.
+          END.
           ELSE DO:
             FIND FIRST new-obj WHERE new-obj.add-type = "T"
                                  AND new-obj.tbl-name = ilin[5]
@@ -2188,7 +2973,7 @@ DO ON STOP UNDO, LEAVE:
                ASSIGN idxline = "CREATE INDEX " + CAPS(forname) + " ON " +  CAPS(new-obj.for-name). 
             ELSE DO:
               FIND FIRST rename-obj WHERE rename-type = "T"
-                                      AND new-name = ilin[5]
+                                      AND rename-obj.new-name = ilin[5]
                                       NO-ERROR.
               IF AVAILABLE rename-obj THEN 
                    ASSIGN idxline = "CREATE INDEX " + CAPS(forname) + " ON " + CAPS(dsv-name).                           
@@ -2199,13 +2984,13 @@ DO ON STOP UNDO, LEAVE:
                  idx-number = idx-number + 1.
 
           FIND FIRST rename-obj WHERE rename-type = "I"
-                                    and t-name = ilin[5]
-                                    AND old-name = ilin[3]
-                                    NO-ERROR.
+                                  and t-name = ilin[5]
+                                  AND old-name = ilin[3]
+                                  NO-ERROR.
           IF AVAILABLE rename-obj THEN DO:         
             FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.
             IF AVAILABLE DICTDB._Index THEN 
-              PUT STREAM tosql UNFORMATTED "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.           
+              PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._Index._For-name user_env[5] SKIP.           
           END.
           
           RUN create-new-obj (INPUT "I", INPUT ?). 
@@ -2221,24 +3006,32 @@ DO ON STOP UNDO, LEAVE:
             WHEN "PRIMARY"  THEN
               ASSIGN df-idx[5] = "  " + ilin[1]. 
             WHEN "DESC" OR WHEN "DESCRIPTION" THEN  DO:
-                RUN dctquot (ilin[2], '"',OUTPUT oq-string).  
-                IF LENGTH(oq-string) > 0 THEN
-                  ASSIGN df-idx[6] = "  " + ilin[1] + " " + oq-string.
+              RUN dctquot (ilin[2], '"',OUTPUT oq-string).  
+              IF LENGTH(oq-string) > 0 THEN
+                ASSIGN df-idx[6] = "  " + ilin[1] + " " + oq-string.
             END.
             WHEN "WORD" THEN  /* Skip, work indexes not supported */
-               ASSIGN idxline = ?
-                      wordidx = TRUE
-                      wordfile = idxname
-                      df-idx = ?.
-            WHEN "INDEX-FIELD" OR WHEN "KEY-FIELD" THEN DO:           
+              ASSIGN idxline = ?
+                     wordidx = TRUE
+                     wordfile = idxname
+                     df-idx = ?.
+            WHEN "INDEX-FIELD" OR WHEN "KEY-FIELD" THEN DO:   
               IF wordidx THEN NEXT.
               ELSE IF df-idx[1] <> ? THEN DO:
-                PUT STREAM todf UNFORMATTED ' ' SKIP.
                 DO i = 1 TO 6:
-                  IF df-idx[i] <> ? THEN
-                    PUT STREAM todf UNFORMATTED df-idx[i] SKIP.
+                  IF df-idx[i] <> ? THEN DO:
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-info.df-tbl = tablename
+                           df-line = df-idx[i].
+                  END.
                 END.
-                PUT STREAM todf UNFORMATTED "  FOREIGN-NAME " + '"' + forname + '"' SKIP.
+                CREATE df-info.
+                ASSIGN df-info.df-seq = dfseq
+                       dfseq = dfseq + 1
+                       df-info.df-tbl = tablename
+                       df-line = "  FOREIGN-NAME " + '"' + forname + '"'.
                 ASSIGN df-idx = ?.
               END.   
               RUN create-idx-field.
@@ -2251,17 +3044,19 @@ DO ON STOP UNDO, LEAVE:
       /* Rename Index */
       ELSE IF imod = "r" THEN DO:                              
         RUN write-tbl-sql.
-        ASSIGN tablename = ilin[7].
-                                   
+        
         IF idxline <> ? AND idxname <> ilin[3] THEN 
           RUN write-idx-sql.
+        
+        ASSIGN tablename = ilin[7]
+               comment_chars = "".
 
         IF ilin[1] <> ? THEN DO:
           FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[7] NO-ERROR.  
               
           IF NOT AVAILABLE DICTDB._File THEN DO:
             FIND rename-obj WHERE rename-type = "T"
-                              AND new-name = ilin[7]
+                              AND rename-obj.new-name = ilin[7]
                               NO-ERROR.
                              
             IF AVAILABLE rename-obj THEN
@@ -2276,12 +3071,15 @@ DO ON STOP UNDO, LEAVE:
             ASSIGN rename-type = "I"
                    t-name = ilin[7]
                    old-name = ilin[3]
-                   new-name = ilin[5].
+                   rename-obj.new-name = ilin[5].
 
-            PUT STREAM todf UNFORMATTED " " SKIP.      
-            PUT STREAM todf UNFORMATTED ilin[1] ' ' ilin[2] ' "' ilin[3] '" '
-                                        ilin[4] ' "' ilin[5] '" ' ilin[6] ' "'
-                                        ilin[7] '"' SKIP.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line = ilin[1] + ' ' + ilin[2] + ' "' + ilin[3] + '" ' +
+                             ilin[4] + ' "' + ilin[5] + '" ' + ilin[6] + ' "' +
+                             ilin[7] + '"'.
           END.
         END.                              
         ASSIGN ilin = ?.  
@@ -2291,23 +3089,31 @@ DO ON STOP UNDO, LEAVE:
         IF idxline <> ?  THEN 
           RUN write-idx-sql.
         /* only update if primary is changing since word indexes can't be primary */
-        IF ilin[2] = "PRIMARY" THEN DO:     
-          PUT STREAM todf UNFORMATTED " " SKIP.
+        IF ilin[2] = "PRIMARY" THEN DO:   
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tablename
+                 df-line = ?.
           DO i = 1 TO 9: 
-            IF ilin[i] <> "" AND ilin[i] <> ? THEN   
-                 PUT STREAM todf UNFORMATTED ilin[i] " ".                        
+            IF ilin[i] <> "" AND ilin[i] <> ? THEN DO:  
+              IF df-line = ? THEN 
+                ASSIGN df-line = ilin[i] + " ".                        
+              ELSE 
+                ASSIGN df-line = df-line + ilin[i] + " ".
+            END.
           END.
-          PUT STREAM todf UNFORMATTED " " SKIP.
         END.
       END.                  
     END. /* End of index processing */
     IF iobj = "s" THEN DO: 
-      IF tablename <> ? THEN DO:
+      IF tablename <> ? THEN 
         RUN write-tbl-sql.
-        tablename = ?.
-      END.   
+   
       RUN write-idx-sql.
 
+      ASSIGN tablename = ?
+               comment_chars = "".
       IF imod = "d" THEN DO:  
         IF ilin[3] <> seqname AND seqname <> ? THEN 
           RUN write-seq-sql.  
@@ -2334,11 +3140,15 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN seq-line = "DROP SEQUENCE " + CAPS(forname)
                  seq-type = "d"
                  seqname = ilin[3].
-          PUT STREAM todf UNFORMATTED " " SKIP.       
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '"' SKIP(1).
+       
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
         END.
       END.
       ELSE IF imod = "a"  OR imod = "m" THEN DO: 
+
         CASE ilin[1]:
           WHEN "ADD" THEN DO:
             DISPLAY ilin[3] @ tablename WITH FRAME WORKING.
@@ -2358,9 +3168,14 @@ DO ON STOP UNDO, LEAVE:
             ASSIGN seq-line = "CREATE SEQUENCE " + CAPS(forname)
                    seq-type = "a"
                    seqname = ilin[3].
-            PUT STREAM todf UNFORMATTED " " SKIP.       
-            PUT STREAM todf UNFORMATTED 'ADD SEQUENCE "' ilin[3] '"' SKIP.       
-            PUT STREAM todf UNFORMATTED '  FOREIGN-NAME "' CAPS(forname) '"' SKIP.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-line = 'ADD SEQUENCE "' + ilin[3] + '"'.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-line = '  FOREIGN-NAME "' + CAPS(forname) + '"'.
           END.
          
           WHEN "UPDATE" THEN DO:         
@@ -2374,8 +3189,10 @@ DO ON STOP UNDO, LEAVE:
               ASSIGN seq-line = "ALTER SEQUENCE " + CAPS(_Sequence._Seq-misc[1])
                      seq-type = "u"
                      seqname = ilin[3].
-              PUT STREAM todf UNFORMATTED " " SKIP.       
-              PUT STREAM todf UNFORMATTED 'UPDATE SEQUENCE "' ilin[3] '"' SKIP.                  
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-line = 'UPDATE SEQUENCE "' + ilin[3] + '"'.                  
             END.          
           END.
           WHEN "INITIAL" THEN
@@ -2390,8 +3207,9 @@ DO ON STOP UNDO, LEAVE:
           END.
           WHEN "MIN-VAL" THEN 
               ASSIGN minval = ilin[2].
-          WHEN "MAX-VAL" THEN 
+          WHEN "MAX-VAL" THEN DO:
               ASSIGN maxval = ilin[2].
+          END.
         END CASE.
       END.
       /* Rename sequence in schema holder only */          
@@ -2402,9 +3220,11 @@ DO ON STOP UNDO, LEAVE:
         DISPLAY ilin[3] @ tablename WITH FRAME WORKING.
         
         IF ilin[1] <> ? THEN do:
-          PUT STREAM todf UNFORMATTED " " SKIP.   
-          PUT STREAM todf UNFORMATTED ilin[1] " " ilin[2] ' "' ilin[3] '" '
-                       ilin[4] ' "' ilin[5] '"' SKIP.
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
+                           ilin[4] + ' "' + ilin[5] + '"'.
         END.  
       END.
     END.  
@@ -2420,10 +3240,14 @@ IF view-created THEN DO:
 END.
 RUN write-seq-sql.
 
-IF user_env[2] = "yes" THEN DO:
+IF user_env[2] = "yes" THEN DO:    
+  FOR EACH df-info:
+    IF SUBSTRING(df-line,1,1) <> " " THEN
+      PUT STREAM todf UNFORMATTED " " SKIP.
+    PUT STREAM todf UNFORMATTED df-line SKIP.
+  END.
+
   ASSIGN user_env[5] = SESSION:CPSTREAM.
-  
-  PUT STREAM todf UNFORMATTED " " SKIP(1).
   
  /* adds trailer with code-page-entry to end of file */ 
  {prodict/dump/dmptrail.i
@@ -2435,24 +3259,44 @@ IF user_env[2] = "yes" THEN DO:
   OUTPUT STREAM todf CLOSE.  
   OUTPUT STREAM tosql CLOSE. 
   HIDE FRAME working NO-PAUSE.
-  MESSAGE "The following files have been created:" SKIP(1)
+  IF comment-out THEN
+    MESSAGE "The following files have been created:" SKIP(1)
            "ORACLE SQL Script:  " sqlout  SKIP
            "PROGRESS DF File:  " dfout SKIP(1)
           "If the delta.df contained any drop table statements," SKIP
-          "data will be lost from the ORACLE Database." SKIP
-  VIEW-AS ALERT-BOX INFORMATION.      
-
+          "data will be lost from the ORACLE Database." SKIP (1)
+          "Table(s) have been found that contain too many long columns." SKIP
+          "The sql has been commented out and no information was" SKIP
+          "outputed to the Progress DF File." SKIP
+    VIEW-AS ALERT-BOX INFORMATION. 
+  ELSE
+    MESSAGE "The following files have been created:" SKIP(1)
+           "ORACLE SQL Script:  " sqlout  SKIP
+           "PROGRESS DF File:  " dfout SKIP(1)
+          "If the delta.df contained any drop table statements," SKIP
+          "data will be lost from the ORACLE Database." SKIP (1)          
+    VIEW-AS ALERT-BOX INFORMATION. 
 END.
 ELSE do:
   OUTPUT STREAM todf CLOSE.
   OUTPUT STREAM tosql CLOSE.
   OS-DELETE VALUE(dfout).
   HIDE FRAME working NO-PAUSE.
+  IF comment-out THEN
   MESSAGE "The following file has been created: " SKIP(1)
           "    ORACLE SQL Script: " sqlout SKIP(1)
           "If the delta.df contained any drop table statements," SKIP
-          "data will be lost from the ORACLE Database." SKIP          
+          "data will be lost from the ORACLE Database." SKIP(1)
+          "Table(s) have been found that contain too many long columns." SKIP
+          "The sql has been commented out and no information was" SKIP
+          "outputed to the Progress DF File." SKIP          
   VIEW-AS ALERT-BOX INFORMATION.
+  ELSE
+     MESSAGE "The following file has been created: " SKIP(1)
+          "    ORACLE SQL Script: " sqlout SKIP(1)
+          "If the delta.df contained any drop table statements," SKIP
+          "data will be lost from the ORACLE Database." SKIP(1)                   
+     VIEW-AS ALERT-BOX INFORMATION.
 END.
 RUN adecomm/_setcurs.p ("").
  

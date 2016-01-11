@@ -1,0 +1,860 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Undo Mechanism </B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+Copyright &copy; 2000 by Progress Software Corporation ("PSC"), 14 Oak Park, Bedford, MA 01730, 
+and other contributors as listed below. All Rights Reserved.
+</P>
+
+<P>
+The Initial Developer of the Original Code is PSC. The Original Code is Progress IDE code 
+released to open source December 1, 2000.
+</P>
+
+<P>
+The contents of this file are subject to the Possenet Public License Version 1.0 (the "License"); 
+you may not use this file except in compliance with the License. A copy of the License is available 
+as of the date of this notice at <A HREF="http://www.possenet.org/license.html">http://www.possenet.org/license.html</A>
+</P>
+
+<P>
+Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF 
+ANY KIND, either express or implied. You should refer to the License for the specific language 
+governing rights and limitations under the License. 
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+
+<P>
+1. <A HREF="#1">Overview</A><BR>
+2. <A HREF="#2">Architecture</A><BR>
+3. <A HREF="#3">Primary Data Structures</A><BR>
+4. <A HREF="#4">Primary Algorithms and Processes</A><BR>
+5. <A HREF="#5">Advanced Topics</A><BR>
+6. <A HREF="#6">Dependencies</A><BR>
+7. <A HREF="#7">Source Files</A><BR>
+8. <A HREF="#8">Build Process and Requirements</A><BR>
+9. <A HREF="#9">Execution Methods</A><BR>
+10. <A HREF="#10">Test Requirements and Strategies</A><BR>
+11. <A HREF="#11">Supplementary Information</A><BR>
+12. <A HREF="#12">Related Documentation</A>
+</P>
+
+
+
+
+<P>
+<A NAME="1"><B>1
+Overview</B></A>
+</P>
+
+<P>
+AppBuilder provides a mechanism to allow certain actions
+performed on a file to be undone, such as the deleting, moving, and resizing of
+objects. This document describes the
+undo mechanism and its implementation.
+</P>
+
+<P>
+<A NAME="2"><B>2 Architecture</B></A>
+</P>
+
+<P>
+The undo mechanism is achieved mainly through the ordered
+retrieval of “action” records.
+AppBuilder maintains an internal temp-table called _action that stores
+the sequences of actions that are performed on objects while working with them
+in AppBuilder. Whenever a recognized
+action occurs on an object, AppBuilder creates an _action record to denote the
+START of the action. This is followed
+by the addition of one or more _action records for each object to which the
+action is applicable. Finally, a new _action record that denotes the END of the
+action is created.
+</P>
+
+<P>
+When the user performs an undo, the _action records
+between the START record and the END record are deleted from the _action
+temp-table after the action is undone.
+Relevant information is stored in the _data field in character form for
+use when the undo occurs. When the END
+action record is created, the _data field of this record contains the _seq-num
+of the START action record. This is
+maintained for performance reasons.
+</P>
+
+<P>
+The following table lists
+the recognized actions:
+</P>
+
+
+ 
+  
+   
+<P>
+   Action
+</P>
+   
+   
+<P>
+   Description
+</P>
+   
+  
+ 
+ 
+  
+<P>
+  Delete
+</P>
+  
+  
+<P>
+  A widget or group of widgets is
+  selected and deleted using the DELETE key or the Edit&gt;Delete menu item.
+</P>
+  
+ 
+ 
+  
+<P>
+  Move
+</P>
+  
+  
+<P>
+  A widget or group of widgets is
+  selected and moved within the same window using the mouse.
+</P>
+  
+ 
+ 
+  
+<P>
+  Resize
+</P>
+  
+  
+<P>
+  A widget is selected and resized
+  using the mouse.
+</P>
+  
+ 
+ 
+  
+<P>
+  Align
+</P>
+  
+  
+<P>
+  A widget or group of widgets is
+  selected and aligned using one of the centering or spacing options on the
+  Layout menu, or any of the options on the Layout&gt;Align submenu.
+</P>
+  
+ 
+ 
+  
+<P>
+  TapIt
+</P>
+  
+  
+<P>
+  A widget or group of widgets is
+  adjusted (moved) using the keyboard directional (arrow) keys. 
+  NOTE: Once a TapIt
+  action is started for a particular widget or widget group, all adjustments
+  that are made are grouped into a single action until a new action is started.
+</P>
+  
+ 
+
+
+<P>
+When an “undoable” action is started, the Edit&gt;Undo
+menu item on AppBuilder’s main menu is enabled and the specified action name is
+appended to the menu item’s label. For
+example, if a widget is selected and then resized, the menu item would read
+“Edit&gt;Undo Resize” and it would be enabled.
+Choosing Edit&gt;Undo Resize would cause the most recent resizing of a
+widget to be undone using the mechanism described above.
+</P>
+
+<P>
+<A NAME="3"><B>3
+Primary Data Structures</B></A>
+</P>
+
+<P>
+The main data structure
+used by the undo mechanism is the _action temp-table. The _action temp-table is used by the undo mechanism to implement
+a stack that records the sequence of events (of recognized actions) as they
+occur in an AppBuilder session. The
+_action temp-table consists of the following fields:
+</P>
+
+
+ 
+  
+   
+<P>
+   Field
+</P>
+   
+   
+<P>
+   Data Type
+</P>
+   
+   
+<P>
+   Description
+</P>
+   
+  
+ 
+ 
+  
+<P>
+  _seq-num
+</P>
+  
+  
+<P>
+  Integer
+</P>
+  
+  
+<P>
+  Used to maintain the order in
+  which the actions occur.
+</P>
+  
+ 
+ 
+  
+<P>
+  _u-recid
+</P>
+  
+  
+<P>
+  Recid
+</P>
+  
+  
+<P>
+  The recid of the primary object
+  (_U) to which the action applies.
+</P>
+  
+ 
+ 
+  
+<P>
+  _window-handle
+</P>
+  
+  
+<P>
+  Widget-handle
+</P>
+  
+  
+<P>
+  The handle of the window to
+  which the object is parented.
+</P>
+  
+ 
+ 
+  
+<P>
+  _operation
+</P>
+  
+  
+<P>
+  Character
+</P>
+  
+  
+<P>
+  Identifies the action (e.g.,
+  “StartMove, Align, EndDelete”).
+</P>
+  
+ 
+ 
+  
+<P>
+  _data
+</P>
+  
+  
+<P>
+  Character
+</P>
+  
+  
+<P>
+  Information that is needed in
+  order to perform the associated action (e.g., an object’s coordinates before
+  it was moved).
+</P>
+  
+ 
+ 
+  
+<P>
+  _other_Ls
+</P>
+  
+  
+<P>
+  Character
+</P>
+  
+  
+<P>
+  If there are Alternate Layouts
+  defined for the object, this field will contain a comma-separated list of the
+  recids for the associated layout records (_L) so that the other layouts will
+  also reflect the change.
+</P>
+  
+ 
+
+
+<P>
+<A NAME="4"><B>4
+Primary Algorithms and Processes</B></A>
+</P>
+
+<P>
+See section 2
+“Architecture” for a description of the primary functions of the undo
+mechanism.
+</P>
+
+<P>
+<A NAME="5"><B>5
+Advanced Topics</B></A>
+</P>
+
+<P>
+Not
+applicable at this time.
+</P>
+
+<P>
+<A NAME="6"><B>6
+Dependencies</B></A>
+</P>
+
+<P>
+AppBuilder uses the undo mechanism exclusively.
+</P>
+
+<P>
+<A NAME="7"><B>7 Source
+Files</B></A>
+</P>
+
+<P>
+The following
+table lists the primary source files used to implement this feature:
+</P>
+
+
+ 
+  
+   
+<P>
+   Source File
+</P>
+   
+   
+   
+<P>
+   Description
+</P>
+   
+   
+  
+ 
+ 
+  
+<P>
+  adeuib/_undo.p
+</P>
+  
+  
+  
+<P>
+  Locate
+  the last undoable action in the _action temp-table and perform the associated
+  undo operation.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undo.i
+</P>
+  
+  
+  
+<P>
+  Definitions
+  for _action temp-table and other shared variables used to manage the undo
+  operations.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undmov.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  a move or tapit action (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undsiz.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  a resize action (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_align.p
+</P>
+  
+  
+  
+<P>
+  Performs
+  widget alignment tasks and creates the _action records necessary to undo the
+  operations.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_uibmproa.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  the code to perform widget deletion; creates the _action records necessary to
+  undo the operation.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_uibmproe.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  the code to perform widget move, resize, and tapit tasks; creates the _action
+  records necessary to undo the operations.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_uibmundo.i
+</P>
+  
+  
+  
+<P>
+  Contains
+  the code to purge the _action records when AppBuilder is shut down or when
+  there is an error.
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undbutt.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a button (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undcomb.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a combo-box (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undedit.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of an editor widget (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undrect.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a rectangle (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undimag.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of an image (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undqry.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a query (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undslid.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a slider (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undtext.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a text widget (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undsele.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a selection-list (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undfill.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a fill-in (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undtogg.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a toggle-box (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undradi.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a radio-set (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undfram.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a frame (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undbrow.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a browse (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undcont.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of an OCX control (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undsmar.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a SmartObject (called by _undo.p).
+</P>
+  
+  
+ 
+ 
+  
+<P>
+  adeuib/_undmenu.p
+</P>
+  
+  
+  
+<P>
+  Undo
+  the deletion of a menu (called by _undo.p).
+</P>
+  
+  
+ 
+
+
+<P>
+<A NAME="8"><B>8 Build Process and Requirements</B></A>
+</P>
+
+<P>
+The undo mechanism is not a stand-alone module; it is an
+integral part of the AppBuilder tool.
+</P>
+
+<P>
+<A NAME="9"><B>9
+Execution Methods</B></A>
+</P>
+
+<P>
+The undo
+mechanism is automatically invoked whenever the specific actions described
+above are performed.
+</P>
+
+<P>
+<A NAME="10"><B>10 Test Requirements and Strategies</B></A>
+</P>
+
+<P>
+Both individual widgets and groups of widgets should be
+tested to ensure that actions are undone accordingly on all selected widgets.
+</P>
+
+<P>
+<A NAME="11"><B>11
+Supplementary Information</B></A>
+</P>
+
+<P>
+Not
+applicable at this time.
+</P>
+
+<P>
+<A NAME="12"><B>12
+Related Documentation</B></A>
+</P>
+
+<P>
+Not applicable at this time.
+</P>
+
+
+
+
+
+
+</SPAN>

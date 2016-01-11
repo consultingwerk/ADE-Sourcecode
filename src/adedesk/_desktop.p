@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -34,6 +34,7 @@
 *       None
 *
 *   REVISION HISTORY:
+*   08/19/01 jep   Added output parameter to _ablic.p call. ICF support. jep-icf.
 *   10/15/99 gfs   Changed "Report Designer" to "e.Report Designer"
 *   05/07/99 gfs   Added Actuate WB and RD
 *   10/08/98 gfs   Removed red focus rectangle. It was obsolete.
@@ -106,7 +107,8 @@
 
 DEFINE VARIABLE ok             AS LOGICAL.
 DEFINE VARIABLE Desktop_Window AS WIDGET-HANDLE NO-UNDO.
-DEFINE VARIABLE Lic            AS INTEGER NO-UNDO.
+DEFINE VARIABLE Lic            AS INTEGER       NO-UNDO.
+DEFINE VARIABLE Tools          AS CHARACTER     NO-UNDO.
 
 &IF {&TOOL_STACKING} = 1 &THEN
 DEFINE VARIABLE Pref_Enable AS LOGICAL INIT NO.
@@ -217,7 +219,7 @@ ASSIGN btn_dict:TOOLTIP = "Data Dictionary"
        btn_ard:TOOLTIP  = "e.Report Designer"
 .
 /* Check AB license */
-RUN adeshar/_ablic.p (INPUT NO /* Show Msgs */, OUTPUT lic).
+RUN adeshar/_ablic.p (INPUT NO /* Show Msgs */, OUTPUT lic, OUTPUT Tools).
 /* If Webspeed Workshop-only, then change UIB image to Workshop image */
 IF Lic = 2 THEN DO:
   btn_uib:LOAD-IMAGE-UP({&ADEICON-DIR} + "workshp{&BMP-EXT}").

@@ -1,0 +1,614 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>Code References Window</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The
+Original Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>	<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">4.1</TD>	<TD CLASS="Text1"><A HREF="#4.1">Starting the Code References Window</A></TD></TR>
+<TR><TD CLASS="Text1">4.2</TD>	<TD CLASS="Text1"><A HREF="#4.2">Displaying a Code Reference Tab</A></TD></TR>
+<TR><TD CLASS="Text1">4.3</TD>	<TD CLASS="Text1"><A HREF="#4.3">Populating the Tab Selection Lists</A></TD></TR>
+<TR><TD CLASS="Text1">4.4</TD>	<TD CLASS="Text1"><A HREF="#4.4">Inserting an Item from the Selection Lists</A></TD></TR>
+<TR><TD CLASS="Text1">4.5</TD>	<TD CLASS="Text1"><A HREF="#4.5">Refreshing the Code References Window</A></TD></TR>
+<TR><TD CLASS="Text1">4.6</TD>	<TD CLASS="Text1"><A HREF="#4.6">Minimizing the Code References Window</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>	<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>	<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>	<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>	<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>	<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>	<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>	<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>	<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P><A NAME="1"><B>1. Overview</B></a></p>
+
+<p>The Code References window is used to insert preprocessor
+names and object names into code sections edited in the Section Editor. Because
+it is a modeless window, it can remain displayed and accessible while you
+perform other tasks in AppBuilder.</p>
+
+<P><A NAME="2"><B>2. Architecture</B></A></P>
+
+<p>The Code References window
+is the SmartWindow _coderefs.w. It contains a SmartFolder with two tabs:
+Objects and Preprocessor. The contents of the Objects and Preprocessor tabs are
+the Simple SmartObjects _coderef-objnames.w< and _coderef-preproc.w,
+each of which displays its own selection list and “Insert” button widgets.</p>
+
+<p>Figure 1 shows the Code References window architecture.</p>
+
+<p><img width=286 height=80 src="./AB_Code_References_Window_files/image001.gif"></p>
+
+
+
+<p><img width=63 height=3 src="./AB_Code_References_Window_files/image002.gif"></p>
+
+<p><img border=0 width=299 height=368 src="./AB_Code_References_Window_files/image004.jpg"></p>
+
+<p>Figure 1: Code References Window Displaying Objects
+Tab</p>
+
+<p>Displaying the Code References window starts instances of
+SmartObject super procedures, such as smart.p and visual.p. If you delete any
+of these super procedure instances (for example, using the PRO*Tools Procedure
+Object Viewer delete option), the Code References window might stop functioning
+properly.</p>
+
+<p>The SmartObjects that visualize the Code References window
+(the SmartWindow and the Simple SmartObjects) include the file adecomm/_adetool.i
+to indicate they are design-time ADE procedures. Because these SmartObjects
+include _adetool.i, the persistently running SmartObject
+procedures that comprise the Code References window display in the Procedure
+Object Viewer only when the &quot;Hide ADE Objects&quot; option is turned off.</p>
+
+<P><A NAME="3"><B>3 Primary Data Structures</B></A></P>
+
+<p>AppBuilder defines the shared handle variable _h_CodeRefs
+(in adeuib/sharvars.i)
+to store the persistent SmartWindow procedure handle of the Code References
+window (_coderefs.w). It is used by AppBuilder to check if
+the Code References window has already been created and to run internal
+procedures in the Code References window procedure.</p>
+
+<p>The SmartObjects that comprise the Code References window
+use the AppBuilder-defined, shared handle variable, _h_UIB
+to run internal AppBuilder procedures as needed.</p>
+
+<P><A NAME="4"><B>4 Primary Algorithms and Processes</B></A></P>
+
+<p>Algorithms and processes provided by this feature include:</p>
+
+<ul>
+
+<li>Starting the Code References window</li>
+
+<li>Displaying a Code Reference tab</li>
+
+<li>Populating tab selection lists</li>
+
+<li>Inserting an item from the selection lists</li>
+
+<li>Refreshing the Code References window</li>
+
+<li>Minimizing the Code References window</li>
+
+</ul>
+
+<P><A NAME="4.1"><B>4.1  Starting the Code References Window</B></A></P>
+
+<p>The Section Editor calls its own internal procedures
+InsertWidgetName and InsertPreProcName to invoke the Code References window
+when the user chooses Insert<span style='font-family:Symbol;mso-ascii-font-family:
+"Times New Roman";mso-hansi-font-family:"Times New Roman";mso-char-type:symbol;
+mso-symbol-font-family:Symbol'><span style='mso-char-type:symbol;mso-symbol-font-family:
+Symbol'>®</span></span>Object Name or Insert<span style='font-family:Symbol;
+mso-ascii-font-family:"Times New Roman";mso-hansi-font-family:"Times New Roman";
+mso-char-type:symbol;mso-symbol-font-family:Symbol'><span style='mso-char-type:
+symbol;mso-symbol-font-family:Symbol'>®</span></span>Preprocessor Names,
+respectively. The following code shows these insert procedures:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>/* adeuib/_seprocs.i */</p>
+
+<p class=CodeTextIndent>PROCEDURE InsertWidgetName.</p>
+
+<p class=CodeTextIndent style='text-indent:.5in'>RUN call_coderefs IN _h_uib
+(INPUT &quot;displayTab:Objects&quot;:u).</p>
+
+<p class=CodeTextIndent>END.</p>
+
+<p class=CodeTextIndent>.</p>
+
+<p class=CodeTextIndent>.</p>
+
+<p class=CodeTextIndent>PROCEDURE InsertPreProcName.</p>
+
+<p class=CodeTextIndent style='text-indent:.5in'>RUN call_coderefs IN _h_uib
+(INPUT &quot;displayTab:Preprocessor&quot;:u).</p>
+
+<p class=CodeTextIndent>END.</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p>The Section Editor insert procedures run an
+AppBuilder-defined internal procedure named call_coderefs (adeuib/uibmproa.i)
+to display the Code References window. Procedure call_coderefs has one input
+parameter—a colon-delimited character string comprised of a run command and its
+run parameters. In the code above, both insert procedures specify “displayTab”
+as the run command portion of the input character string and each specifies
+their own run parameters portion (the strings “Objects” and “Preprocessor”). </p>
+
+<p>When run, AppBuilder procedure call_coderefs uses
+_h_CodeRefs to see if the Code References window has already been created. If
+the handle is not valid, call_coderefs runs procedure adeuib/_coderefs.w
+persistently to create and display the Code References window. Otherwise,
+call_coderefs restores the Code References window by invoking the restoreWindow
+procedure in _h_CodeRefs.</p>
+
+
+<P><A NAME="4.2"><B>4.2 >Displaying a Code Reference Tab</B></A></P>
+
+<p>After creating or restoring the Code References window,
+the call_coderefs procedure final task is to display the appropriate tab in the
+Code References window.</p>
+
+<p>Call_coderefs uses the run command portion of its
+parameter as the name of an internal procedure to run in _h_CodeRefs procedure,
+using the run parameters portion as the input to that procedure. For example,
+if the Section Editor InsertWidgetName procedure had been invoked,
+call_coderefs would run procedure “displayTab” in _h_CodeRefs and pass in the
+“Objects” parameter string to specify the display of the Objects tab. This is
+the code for procedure call_coderefs:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>/* adeuib/uibmproa.i */</p>
+
+<p class=CodeTextIndent>PROCEDURE call_coderefs :</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>DEFINE INPUT
+PARAMETER pcCommand<span style="mso-spacerun: yes">  </span>AS CHARACTER
+NO-UNDO.</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>DEFINE
+VARIABLE runCommand<span style="mso-spacerun: yes">  </span>AS CHARACTER
+NO-UNDO.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>DEFINE VARIABLE
+runParams<span style="mso-spacerun: yes">   </span>AS CHARACTER NO-UNDO.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>DO ON STOP
+UNDO, LEAVE:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>IF NOT
+VALID-HANDLE(_h_CodeRefs) THEN</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>DO:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span>RUN
+adeuib/_coderefs.w PERSISTENT SET _h_CodeRefs.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span>RUN
+initializeObject IN _h_CodeRefs.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>END.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>ELSE</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>DO:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span>RUN
+restoreWindow IN _h_CodeRefs.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>END.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>IF
+NUM-ENTRIES(pcCommand , &quot;:&quot;:U) &gt; 1 THEN</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span>ASSIGN
+runCommand = ENTRY(1, pcCommand, &quot;:&quot;:U)</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">            
+</span>runParams<span style="mso-spacerun: yes">  </span>= ENTRY(2, pcCommand,
+&quot;:&quot;:U).</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>ELSE</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span>ASSIGN
+runCommand = pcCommand.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">   </span><span
+style="mso-spacerun: yes"> </span>RUN VALUE(runCommand) IN _h_CodeRefs (INPUT
+runParams).</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>END. /* DO ON
+STOP */</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">      </span></p>
+
+<p class=CodeTextIndent>END PROCEDURE.<span style="mso-spacerun: yes"> 
+</span>/* call_coderefs */</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<span style='font-size:10.0pt;font-family:"Times New Roman";mso-fareast-font-family:
+"Times New Roman";mso-ansi-language:EN-US;mso-fareast-language:EN-US;
+mso-bidi-language:AR-SA'><br clear=all style='page-break-before:always'>
+</span>
+
+<p>Call_coderefs uses the “displayTab” portion of the input
+parameter string as the name of an internal procedure to run in the Code
+References persistent procedure. Procedure displayTab activates the appropriate
+folder tab using a selectPage call and then places focus into the selection
+list of the displayed tab using an apply entry statement. This is the code for
+procedure displayTab:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>/* adeuib/_coderefs.w */</p>
+
+<p class=CodeTextIndent>PROCEDURE displayTab :</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>DEFINE INPUT
+PARAMETER pcTab AS CHARACTER NO-UNDO.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>CASE pcTab:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>WHEN
+&quot;Objects&quot;:U THEN</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>DO:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>RUN
+selectPage ( INPUT 1 ).</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>/* Put
+focus in the insert window. Fixes 19990603-009 (jep). */ </p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>RUN
+ApplyEntry IN h_coderef-objnames.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>END.</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>WHEN
+&quot;Preprocessor&quot;:U THEN</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>DO:</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>RUN
+selectPage ( INPUT 2 ).</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>/* Put
+focus in the insert window. Fixes 19990603-009 (jep). */ </p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">        </span>RUN
+ApplyEntry IN h_coderef-preproc.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">    </span>END.</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>END CASE.</p>
+
+<p class=CodeTextIndent>END PROCEDURE.</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<P><A NAME="4.3"><B>4.3 Populating the Tab Selection Lists</B></A></P>
+
+<p>To populate the selection lists of the tabs, the Simple
+SmartObjects override their viewObject procedures to run internal procedure
+refreshDisplay before running the viewObject super.</p>
+
+<p>For the “Objects” SmartObject, procedure refreshDisplay
+runs Section Editor procedure getInsertWidgetNameList and receives back the
+current design object’s widget or object name list. For the “Preprocessor”
+SmartObject, procedure refreshDisplay runs Section Editor procedure
+getPreProcNameList and receives back the current design object’s preprocessor
+list.</p>
+
+<P><A NAME="4.4"><B>4.4 Inserting an Item from the Selection Lists</B></A></P>
+
+<p>When an item is selected in the Objects or Preprocessor
+tab selection list and you choose the Insert button or double-click the list
+item, the item is inserted into the current Section Editor code section.</p>
+
+<p>To insert an Objects item from the selection list into the
+current Section Editor code section, the “Objects” tab SmartObject procedure
+run its internal procedure InsertObjName. That procedure calls Section Editor
+procedure doInsertWidgetName to appropriately insert the selected item. The
+following code shows this call:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>RUN doInsertWidgetName IN hSecEd (INPUT s_PickList).</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p>To insert a Preprocessor item from the selection list into
+the current Section Editor code section, the “Preprocessor” tab SmartObject
+procedure runs its internal procedure InsertPreProcName. That procedure calls
+Section Editor procedure doInsertPreProcName to appropriately insert the selected
+item. The following code shows this call:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>RUN doInsertPreProcName IN hSecEd (INPUT s_PickList).</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<P><A NAME="4.5"><B>4.5 Refreshing the Code References Window</B></A></P>
+
+<p>The Code References window displays information
+appropriate for the currently active Section Editor window. When you change
+from one Section Editor window to another, the Code References window refreshes
+its display to show the appropriate information for that Section Editor. The
+Code References window also refreshes when you change the design object for
+which a single Section Editor is open.</p>
+
+<p>To refresh the Code References window when changing the
+Section Editor window, each tab SmartObject procedure subscribes to the
+AppBuilder event message &quot;AB_call_sew_setHandle&quot; and runs procedure
+refreshDisplay to update the Code References window when the event occurs.</p>
+
+<p>To refresh the Code References window when changing the
+design object, the “Objects” tab SmartObject procedure subscribes to the
+AppBuilder event message &quot;SE_UPDATE_WIDGETS&quot; and runs procedure
+refreshDisplay to update the Code References window when the event occurs. The
+“Preprocessor” SmartObject procedure does not subscribe to this message. Its
+contents do not change when the design object changes.</p>
+
+<P><A NAME="4.6"><B>4.6 Minimizing the Code References Window</B></A></P>
+
+<p>The Code References window minimizes and restores when you
+minimize and restore AppBuilder's main window. This is accomplished in the _coderefs.w
+initializeObject override procedure with these lines:</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=CodeTextIndent>/* Parent the Code References window to AB main so when
+AB main is minimized,</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">     </span>this window
+minimizes. (jep) */</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">  </span>ASSIGN</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">   
+</span>{&amp;WINDOW-NAME}:PARENT<span style="mso-spacerun: yes">        
+</span>= _h_menu_win</p>
+
+<p class=CodeTextIndent><span style="mso-spacerun: yes">   
+</span>{&amp;WINDOW-NAME}:PRIVATE-DATA<span style="mso-spacerun: yes">  
+</span>= &quot;{&amp;UIB_SHORT_NAME}&quot;:u.</p>
+
+<p class=CodeTextIndent><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<P><A NAME="5"><B>5 Advanced Topics</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="6"><B>6 Dependencies</B></A></P>
+
+<p>The Code References window has
+dependencies/interdependencies with the AppBuilder tool and its code Section
+Editor, as described in other sections of this document.</p>
+
+<P><A NAME="7"><B>7 Source File</B></A></P>
+
+<p>This tool uses
+the following source files:</p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=186 valign=top style='width:139.5pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Source File</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+   <td width=360 valign=top style='width:3.75in;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+  </tr>
+ </thead>
+ <tr>
+  <td width=186 style='width:139.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_coderefs.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=360 valign=top style='width:3.75in;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>SmartWindow
+  procedure that is the Code References window.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=186 style='width:139.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_coderef-objnames.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=360 valign=top style='width:3.75in;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>“Objects”
+  tab Simple SmartObject procedure.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=186 style='width:139.5pt;border:solid black .75pt;border-top:none;
+  mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=CodeText style='margin-left:0in'><span style='mso-bookmark:_Toc492469809'>adeuib/_coderef-preproc.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=360 valign=top style='width:3.75in;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>“Preprocessor”
+  tab Simple SmartObject procedure.</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+</table>
+
+<P><A NAME="8"><B>8 Process and Requirements</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="9"><B>9 Execution Methods</B></A></P>
+
+<p>See Section 4.1 Starting the Code References
+Window for a description on invoking the tool.</p>
+
+<P><A NAME="10"><B>10 Requirements and Strategies</B></A></P>
+
+<p>Because the Code References window is comprised of
+SmartObjects, its procedure instances run persistently. If you want to test
+changes to any of the Code References source files, you must close the Code
+References window and be sure none of its source files are running
+persistently.</p>
+
+<P><A NAME="11"><B>11 Supplementary Information</B></A></P>
+
+<p>Not Applicable</p>
+
+<P><A NAME="12"><B>12 Related Documentation</B></A></P>
+
+<p>The following documents provide additional information
+about the tool:</p>
+
+<ul>
+
+<li><i style='mso-bidi-font-style:normal'>AppBuilder
+Developers Guide</li>
+
+<li>Builder<i style='mso-bidi-font-style:normal'> </i>Online
+Help<i style='mso-bidi-font-style:normal'></li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Character Run
+Support</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Custom Lists</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Initialization</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Multiple
+Layout</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB New Object
+Dialog</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB OCX Support</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Open and Save</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Palette</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Procedure
+Windows</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Property Sheet
+Generation</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Section Editor</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Temp-Tables</li>
+
+<li><i style='mso-bidi-font-style:normal'>AB Undo</li>
+
+<li><i style='mso-bidi-font-style:normal'>ADE MRU FileList</li>
+
+<li>Training presentation:<i style='mso-bidi-font-style:
+normal'> How to Be a POSSE Programmer</li>
+
+</div>
+
+</span>

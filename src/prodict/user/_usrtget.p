@@ -110,6 +110,7 @@ DEFINE VARIABLE point_flag AS LOGICAL   EXTENT  2048 NO-UNDO.
 DEFINE VARIABLE redraw     AS LOGICAL   INITIAL TRUE NO-UNDO.
 DEFINE VARIABLE small      AS INTEGER                NO-UNDO.
 
+
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 13 NO-UNDO INITIAL [
@@ -412,7 +413,7 @@ IF NOT p_option THEN DO:
 	 * that allows wildcards and the select/deselect of one or more files. 
 	 * Bug# 19991025-003.
 	 */
-        DO p_recid = 1 /* (IF p_all OR p_allw THEN 2 ELSE 1) */ TO cache_file#:
+       IF user_filename = "" THEN DO p_recid = 1 TO cache_file#:
           IF point_flag[p_recid] /* OR (p_all AND point_flag[1]) OR (p_allw
              AND point_flag[1]) */ THEN DO:	     
             count = count + 1.

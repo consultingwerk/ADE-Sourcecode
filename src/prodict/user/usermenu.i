@@ -1287,7 +1287,7 @@ on choose of menu-item mi_as4_loaddf in menu mnu_as4_tools
      /*----- Create Schema -----*/
      on choose of menu-item mi_MSSQL_Create    in menu mnu_MSSQL
         run Perform_Func
-           ("?MSS,1=add,3=MSS,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,_mss_pul,_gat_cro").
+           ("?MSS,1=add,3=MSS,_mssschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,_mss_pul,_gat_cro").
 
      /*----- Update File Def -----*/
      on choose of menu-item mi_MSSQL_UpdFile   in menu mnu_MSSQL
@@ -1301,7 +1301,7 @@ on choose of menu-item mi_as4_loaddf in menu mnu_as4_tools
 
      /*----- Edit Connect Info -----*/
      on choose of menu-item mi_MSSQL_ConnInfo  in menu mnu_MSSQL
-        run Perform_Func ("!MSS,1=chg,3=MSS,_usrschg").
+        run Perform_Func ("!MSS,1=chg,3=MSS,_mssschg").
 
      /*----- Change Code Page -----*/
      on choose of menu-item mi_MSSQL_ChgCP     in menu mnu_MSSQL   

@@ -50,8 +50,7 @@ ON CHOOSE OF MENU-ITEM _Save     IN MENU mnu_File
 ON CHOOSE OF MENU-ITEM _Save_as  IN MENU mnu_File
   RUN SaveAsFile ( INPUT ProEditor ) .
 
-ON CHOOSE OF MENU-ITEM _Print    IN MENU mnu_File
-  RUN FilePrint( ProEditor ) .
+/* IZ 2513 : Triggers for Add to Repos and Print are defined in pmenus.i. */
 
 /*-----------   Edit Menu Triggers  --------------*/
 ON MENU-DROP OF MENU mnu_Edit

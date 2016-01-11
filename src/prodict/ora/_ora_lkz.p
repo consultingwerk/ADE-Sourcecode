@@ -43,6 +43,8 @@ History:
     mcmann      97/11/12    Added view-as dialog-box for non tty clients
     mcmann      98/11/13    Added assignment of _Db-misc1[3] = Original _db-misc1[3]
                             or if ? then default to 7.
+    mcmann      07/03/01    Removed delete of files from z-ora db link record
+                            20010626-017                            
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -183,17 +185,6 @@ if available DICTDB._Db
       &output = "l_c"
       }
   end. /* create new z_ora_links _db */
-
-for each DICTDB._File of DICTDB._Db
-  where lookup(DICTDB._File._File-name
-              ,"send-sql-statement,proc-text-buffer,closeallprocs"
-              )  <> 0:
-  { prodict/dump/loadkill.i 
-     &alias = "DICTDB."
-     }
-  end.     /* for each DICTDB._File of DICTDB._Db */
-
-
 hide frame msg no-pause.
 
 /*------------------------------------------------------------------*/

@@ -1,0 +1,61 @@
+UPDATE FIELD "configuration_type" OF "rvc_configuration_type"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+UPDATE FIELD "scm_primary_key_fields" OF "rvc_configuration_type"
+  VIEW-AS ?
+
+UPDATE FIELD "configuration_type" OF "rvm_configuration_item"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+UPDATE FIELD "configuration_type" OF "rvm_workspace_item"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+UPDATE FIELD "primary_key_fields" OF "rvt_action"
+  VIEW-AS ?
+
+UPDATE FIELD "primary_key_values" OF "rvt_action"
+  VIEW-AS ?
+
+UPDATE FIELD "action_table_fla" OF "rvt_action_underway"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+UPDATE FIELD "action_primary_key" OF "rvt_action_underway"
+  VIEW-AS ?
+
+ADD INDEX "XIE1rvt_action_underway" ON "rvt_action_underway"
+  AREA "Schema Area"
+  INDEX-FIELD "action_underway_obj" ASCENDING
+
+UPDATE FIELD "configuration_type" OF "rvt_deleted_item"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+UPDATE FIELD "configuration_type" OF "rvt_item_version"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+ADD INDEX "XIE4rvt_item_version" ON "rvt_item_version"
+  AREA "Schema Area"
+  INDEX-FIELD "item_version_obj" ASCENDING
+
+UPDATE FIELD "configuration_type" OF "rvt_transaction"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+ADD INDEX "XIE2rvt_transaction" ON "rvt_transaction"
+  AREA "Schema Area"
+  INDEX-FIELD "transaction_obj" ASCENDING
+
+UPDATE FIELD "configuration_type" OF "rvt_workspace_checkout"
+  FORMAT "X(8)"
+  SQL-WIDTH 16
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000001426

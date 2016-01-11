@@ -7,7 +7,7 @@
 &Scoped-define FRAME-NAME d_newobj
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_newobj 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -49,16 +49,28 @@
             TSM 05/27/99 - Changed filters parameter in call to _fndfile.p
                            because it now needs list-item pairs rather
                            than list-items to support new image formats
+            GFS 08/27/01 - Added Product Module field for ICF
+            JEP 09/20/01 - Added "Create in Product Module" toggle
+            JEP 10/12/01 - IZ 2381 - Set object_type_code to be conditional
+                           on custom file data and container_object is set
+                           to yes/no based on custom file as well.
+            JEP 11/18/01 - IZ 2513 - Prevent Include file types from being
+                           created in a product module.
+            JEP 11/20/01 - IZ 3191 - Prevent creating an object if PM list is empty.
+            JEP 11/20/01 - IZ 3195 - Description missing from PM list.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
-{adeuib/custwidg.i} /* _custom & _palette_item temp-table defs */
-{adeuib/sharvars.i} /* UIB shared variables                    */
-{adeuib/uibhlp.i}   /* Help String Definitions                 */
+{adeuib/custwidg.i}   /* _custom & _palette_item temp-table defs */
+{adeuib/sharvars.i}   /* UIB shared variables                    */
+{adeuib/uibhlp.i}     /* Help String Definitions                 */
+{adeuib/ttobject.i}   /* _ryobject temp-table definition for icf */
+{src/adm2/globals.i}  /* Icf global vars                         */
 
 /* ***************************  Definitions  ************************** */
 
 /* Parameters Definitions ---                                           */
+/* DEFINE VAR SELECTED AS CHAR NO-UNDO. */
 DEFINE OUTPUT PARAMETER selected AS CHARACTER NO-UNDO. /* file to use   */
 
 DEFINE VAR Type_Container   AS CHARACTER INIT "Containers"      NO-UNDO.
@@ -67,16 +79,22 @@ DEFINE VAR Type_Procedure   AS CHARACTER INIT "Procedures"      NO-UNDO.
 DEFINE VAR Type_WebObject   AS CHARACTER INIT "WebObject"       NO-UNDO.
 DEFINE VAR Type_All         AS CHARACTER INIT "All"             NO-UNDO.
 
-DEFINE VAR c_lbl_list   AS CHARACTER NO-UNDO. /* container label list   */
-DEFINE VAR c_tmp_list   AS CHARACTER NO-UNDO. /* container template list */
+DEFINE VAR c_lbl_list   AS CHARACTER NO-UNDO. /* container label list       */
+DEFINE VAR c_tmp_list   AS CHARACTER NO-UNDO. /* container template list    */
 DEFINE VAR ext_tmp_list AS CHARACTER NO-UNDO. /* external template file list */
-DEFINE VAR p_lbl_list   AS CHARACTER NO-UNDO. /* Procedure label list   */
-DEFINE VAR p_tmp_list   AS CHARACTER NO-UNDO. /* Procedure template list */
-DEFINE VAR ret_value    AS LOGICAL   NO-UNDO.
-DEFINE VAR s_lbl_list   AS CHARACTER NO-UNDO. /* SO label list          */
-DEFINE VAR s_tmp_list   AS CHARACTER NO-UNDO. /* SO template list       */
-DEFINE VAR w_lbl_list   AS CHARACTER NO-UNDO. /* WebObject label list   */
-DEFINE VAR w_tmp_list   AS CHARACTER NO-UNDO. /* WebObject template list */
+DEFINE VAR p_lbl_list   AS CHARACTER NO-UNDO. /* Procedure label list       */
+DEFINE VAR p_tmp_list   AS CHARACTER NO-UNDO. /* Procedure template list    */
+DEFINE VAR ret_value    AS LOGICAL   NO-UNDO. /* Function assign logical    */
+DEFINE VAR s_lbl_list   AS CHARACTER NO-UNDO. /* SO label list              */
+DEFINE VAR s_tmp_list   AS CHARACTER NO-UNDO. /* SO template list           */
+DEFINE VAR w_lbl_list   AS CHARACTER NO-UNDO. /* WebObject label list       */
+DEFINE VAR w_tmp_list   AS CHARACTER NO-UNDO. /* WebObject template list    */
+DEFINE VAR licnum       AS INTEGER   NO-UNDO. /* ablic return value         */
+DEFINE VAR licstr       AS CHARACTER NO-UNDO. /* ablic return string        */
+DEFINE VAR enable-icf   AS LOGICAL   NO-UNDO. /* icf enabled logical        */
+
+DEFINE TEMP-TABLE ttPM NO-UNDO
+  FIELD PMCode          AS CHARACTER.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -93,9 +111,10 @@ DEFINE VAR w_tmp_list   AS CHARACTER NO-UNDO. /* WebObject template list */
 &Scoped-define FRAME-NAME d_newobj
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS b_Ok s_objects b_Cancel b_Template b_Help ~
-e_descr2 e_descr1 RECT-3 RECT-4 RECT-5 
-&Scoped-Define DISPLAYED-OBJECTS s_objects e_descr2 e_descr1 
+&Scoped-Define ENABLED-OBJECTS s_objects e_descr2 e_descr1 b_Ok b_Cancel ~
+b_Template b_Help Objects-text descr-text RECT-3 RECT-4 RECT-5 
+&Scoped-Define DISPLAYED-OBJECTS s_objects e_descr2 e_descr1 Objects-text ~
+descr-text Show-text 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -126,15 +145,29 @@ DEFINE BUTTON b_Template
      LABEL "&Template..." 
      SIZE 15 BY 1.14.
 
+DEFINE VARIABLE cb_productModule AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS COMBO-BOX SORT INNER-LINES 15
+     LIST-ITEMS "Prod Mods go here..." 
+     DROP-DOWN-LIST
+     SIZE 49.2 BY 1 TOOLTIP "Product module in which you want to create a new object." NO-UNDO.
+
 DEFINE VARIABLE e_descr1 AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL
-     SIZE 53 BY 4.52
+     SIZE 70 BY 4.52
      FONT 4 NO-UNDO.
 
 DEFINE VARIABLE e_descr2 AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
-     SIZE 54 BY 4.52
+     SIZE 70 BY 4.52
      FONT 4 NO-UNDO.
+
+DEFINE VARIABLE descr-text AS CHARACTER FORMAT "X(256)":U INITIAL " Description" 
+      VIEW-AS TEXT 
+     SIZE 12 BY .62 NO-UNDO.
+
+DEFINE VARIABLE Objects-text AS CHARACTER FORMAT "X(256)":U INITIAL " Objects" 
+      VIEW-AS TEXT 
+     SIZE 8 BY .76 NO-UNDO.
 
 DEFINE VARIABLE Show-text AS CHARACTER FORMAT "X(256)":U INITIAL " Show" 
       VIEW-AS TEXT 
@@ -142,7 +175,7 @@ DEFINE VARIABLE Show-text AS CHARACTER FORMAT "X(256)":U INITIAL " Show"
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 56 BY 5.29.
+     SIZE 72.2 BY 5.29.
 
 DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -150,12 +183,21 @@ DEFINE RECTANGLE RECT-4
 
 DEFINE RECTANGLE RECT-5
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 36 BY 10.
+     SIZE 51.4 BY 10.
+
+DEFINE RECTANGLE RECT-6
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 51.4 BY 2.86.
 
 DEFINE VARIABLE s_objects AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE 
      SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL 
-     SIZE 34 BY 9.38 NO-UNDO.
+     SIZE 49.2 BY 9.19 NO-UNDO.
+
+DEFINE VARIABLE productModule-Create AS LOGICAL INITIAL yes 
+     LABEL "&Create in Product Module:" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 31.6 BY .81 TOOLTIP "When selected, indicates the new object will be created in a product module." NO-UNDO.
 
 DEFINE VARIABLE togContainer AS LOGICAL INITIAL no 
      LABEL "&Containers" 
@@ -181,28 +223,29 @@ DEFINE VARIABLE togWO AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME d_newobj
-     b_Ok AT ROW 1.52 COL 41
-     s_objects AT ROW 1.86 COL 3 NO-LABEL
-     b_Cancel AT ROW 2.81 COL 41
-     b_Template AT ROW 4.1 COL 41
-     b_Help AT ROW 5.38 COL 41
-     togContainer AT ROW 7.57 COL 39.8
-     togSO AT ROW 8.52 COL 39.8
-     togProc AT ROW 9.48 COL 39.8
-     togWO AT ROW 10.43 COL 39.8
-     e_descr2 AT ROW 12.24 COL 3 HELP
+     productModule-Create AT ROW 1.76 COL 3.2
+     cb_productModule AT ROW 2.76 COL 3 NO-LABEL
+     s_objects AT ROW 1.76 COL 3 NO-LABEL
+     e_descr2 AT ROW 12.14 COL 3 HELP
           "Description of object" NO-LABEL
-     e_descr1 AT ROW 12.24 COL 3 HELP
+     e_descr1 AT ROW 12.14 COL 3 HELP
           "Description of object" NO-LABEL
-     Show-text AT ROW 6.76 COL 40 COLON-ALIGNED NO-LABEL
-     RECT-3 AT ROW 11.86 COL 2
-     RECT-4 AT ROW 7.1 COL 39
-     RECT-5 AT ROW 1.52 COL 2
-     " Objects" VIEW-AS TEXT
-          SIZE 8.8 BY .76 AT ROW 1.1 COL 2.8
-     " Description" VIEW-AS TEXT
-          SIZE 12 BY .62 AT ROW 11.52 COL 3
-     SPACE(43.85) SKIP(5.31)
+     togContainer AT ROW 7.43 COL 55.8
+     togSO AT ROW 8.38 COL 55.8
+     togProc AT ROW 9.33 COL 55.8
+     togWO AT ROW 10.29 COL 55.8
+     b_Ok AT ROW 1.48 COL 58.6
+     b_Cancel AT ROW 2.76 COL 58.6
+     b_Template AT ROW 4.05 COL 58.6
+     b_Help AT ROW 5.33 COL 58.6
+     Objects-text AT ROW 1 COL 1 COLON-ALIGNED NO-LABEL
+     descr-text AT ROW 11.48 COL 1 COLON-ALIGNED NO-LABEL
+     Show-text AT ROW 6.67 COL 54 COLON-ALIGNED NO-LABEL
+     RECT-6 AT ROW 1.48 COL 2
+     RECT-3 AT ROW 11.76 COL 2
+     RECT-4 AT ROW 6.95 COL 55
+     RECT-5 AT ROW 1.43 COL 2
+     SPACE(21.59) SKIP(5.85)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "New"
@@ -224,9 +267,14 @@ DEFINE FRAME d_newobj
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_newobj
-                                                                        */
+   Custom                                                               */
 ASSIGN 
        FRAME d_newobj:SCROLLABLE       = FALSE.
+
+/* SETTINGS FOR COMBO-BOX cb_productModule IN FRAME d_newobj
+   NO-DISPLAY NO-ENABLE ALIGN-L                                         */
+ASSIGN 
+       cb_productModule:HIDDEN IN FRAME d_newobj           = TRUE.
 
 ASSIGN 
        e_descr1:READ-ONLY IN FRAME d_newobj        = TRUE.
@@ -234,14 +282,21 @@ ASSIGN
 ASSIGN 
        e_descr2:READ-ONLY IN FRAME d_newobj        = TRUE.
 
+/* SETTINGS FOR TOGGLE-BOX productModule-Create IN FRAME d_newobj
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       productModule-Create:HIDDEN IN FRAME d_newobj           = TRUE.
+
 ASSIGN 
        RECT-4:HIDDEN IN FRAME d_newobj           = TRUE.
 
-/* SETTINGS FOR FILL-IN Show-text IN FRAME d_newobj
-   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR RECTANGLE RECT-6 IN FRAME d_newobj
+   NO-ENABLE                                                            */
 ASSIGN 
-       Show-text:HIDDEN IN FRAME d_newobj           = TRUE.
+       RECT-6:HIDDEN IN FRAME d_newobj           = TRUE.
 
+/* SETTINGS FOR FILL-IN Show-text IN FRAME d_newobj
+   NO-ENABLE                                                            */
 ASSIGN 
        s_objects:HIDDEN IN FRAME d_newobj           = TRUE.
 
@@ -299,21 +354,22 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_newobj d_newobj
 ON GO OF FRAME d_newobj /* New */
 DO:  
-  DEFINE VARIABLE l       AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE so-type AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE fixname AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE l          AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE i          AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE so-type    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE fixname    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE layoutID   AS DECIMAL   NO-UNDO.
+  DEFINE VARIABLE OK_Pressed AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cProductModuleCode AS CHARACTER NO-UNDO.
+
   FIND _palette_item WHERE _palette_item._name = s_objects:SCREEN-VALUE NO-ERROR.
   IF AVAILABLE (_palette_item) THEN DO:
     IF NUM-DBS = 0 AND _palette_item._dbconnect THEN DO:
       RUN adecomm/_dbcnnct.p (
         INPUT "You must have at least one connected database to create a " +
                _palette_item._name 
-              + (IF 
-               SUBSTRING(_palette_item._name,
-                         LENGTH(_palette_item._name) - LENGTH("Object":U) + 1) = "Object":U
-THEN ".":U ELSE " object.":U),
+              + (IF SUBSTRING(_palette_item._name, LENGTH(_palette_item._name) - LENGTH("Object":U) + 1) = "Object":U
+                 THEN ".":U ELSE " object.":U),
         OUTPUT l).
       IF l EQ NO THEN RETURN NO-APPLY.  
     END.
@@ -335,10 +391,8 @@ THEN ".":U ELSE " object.":U),
               RUN adecomm/_dbcnnct.p (                
                 INPUT "You must have at least one connected database to create a " +
                   _palette_item._name 
-              + (IF 
-               SUBSTRING(_palette_item._name,
-                         LENGTH(_palette_item._name) - LENGTH("Object":U) + 1) = "Object":U
-THEN ".":U ELSE " object.":U),
+              + (IF SUBSTRING(_palette_item._name, LENGTH(_palette_item._name) - LENGTH("Object":U) + 1) = "Object":U
+                 THEN ".":U ELSE " object.":U),
                 OUTPUT l).
               IF l EQ NO THEN RETURN NO-APPLY.  
             END.  /* If the selection requires a db and none is connected */
@@ -359,7 +413,66 @@ THEN ".":U ELSE " object.":U),
       INFORMATION BUTTONS OK.
     RETURN NO-APPLY.
   END.
-END.
+
+  IF enable-icf THEN DO:
+      /* jep-icf: Process when the user is creating an object in a product module. */
+      IF productModule-Create:CHECKED THEN
+      DO:
+        
+        /* jep-icf: IZ 2513 - Prevent Include file types from being created in PM. */
+        IF (s_objects:SCREEN-VALUE MATCHES "*Include*":U) THEN
+        DO:
+            MESSAGE "Cannot create the new object:" s_objects:SCREEN-VALUE SKIP(1)
+                    "Include file types cannot be created in a repository."
+                    "To create an Include file type, deselect the Create in Product Module option."
+              VIEW-AS ALERT-BOX INFORMATION.
+            RETURN NO-APPLY. /* Don't leave the dialog. */
+        END.
+        
+        FIND _custom WHERE _design_template_file = SELECTED NO-ERROR.
+        IF AVAILABLE (_custom) THEN
+        DO:
+          /* IZ 3195 Determine ProductModule Code from string "pmCode // pmDescription". */
+          ASSIGN cProductModuleCode = TRIM(ENTRY(1,cb_productModule:SCREEN-VALUE, '/':u)) NO-ERROR.
+
+          /* Fill in the _RyObject record for the AppBuilder. */
+          FIND _RyObject WHERE _RyObject.object_filename = SELECTED NO-ERROR.
+          IF NOT AVAILABLE _RyObject THEN
+            CREATE _RyObject.
+          ASSIGN _RyObject.object_filename        = SELECTED
+                 _RyObject.object_type_code       = IF _custom._object_type_code = ""
+                                                    THEN _custom._type ELSE _custom._object_type_code
+                 _RyObject.product_module_code    = cProductModuleCode
+                 _RyObject.logical_object         = _custom._logical_object
+                 _RyObject.container_object       = _custom._type = "Container":u
+                 _RyObject.design_action          = "NEW":u
+                 _RyObject.design_ryobject        = YES
+                 _RyObject.design_template_file   = SELECTED
+                 _RyObject.design_propsheet_file  = _custom._design_propsheet_file
+                 _RyObject.design_image_file      = _custom._design_image_file.
+        END. /* If AVAIL(_custom) */
+      END. /* IF create in PM */
+    
+      /* jep-icf: Can't allow creation of a dynamic object outside of repository PM. */
+      IF (NOT productModule-Create:CHECKED) THEN
+      DO:
+          FIND _custom WHERE _design_template_file = SELECTED NO-ERROR.
+          IF AVAILABLE (_custom) AND (_custom._logical_object) THEN
+          DO:
+              MESSAGE "Cannot create the new object:" s_objects:SCREEN-VALUE SKIP(1)
+                      "A dynamic object can only be created in a product module."
+                      "Select the Create in Product Module option to create a dynamic object."
+                VIEW-AS ALERT-BOX INFORMATION.
+              RETURN NO-APPLY. /* Don't leave the dialog. */
+          END.
+      END.
+        
+      /* set current prod module */
+      DYNAMIC-FUNC("setCurrentProductModule":U, cb_productModule:SCREEN-VALUE) NO-ERROR.
+
+  END. /* IF enable-icf  */
+
+END. /* ON GO */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -400,6 +513,17 @@ DO:
      ASSIGN s_objects:SCREEN-VALUE IN FRAME {&FRAME-NAME} = s_objects:ENTRY(1). 
      RUN Get_Descr.
   END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME productModule-Create
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL productModule-Create d_newobj
+ON VALUE-CHANGED OF productModule-Create IN FRAME d_newobj /* Create in Product Module: */
+DO:
+    RUN changeProductModuleState (INPUT SELF:CHECKED).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -507,8 +631,15 @@ DO ON STOP    UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   
   DYNAMIC-FUNCTION("center-frame":U IN _h_func_lib, FRAME {&FRAME-NAME}:HANDLE).
   
+  /* If we are RUNNING the ICF, show the ICF product module */
+  RUN adeshar/_ablic.p (INPUT NO, OUTPUT licnum, OUTPUT licstr).
+  ASSIGN enable-icf = CAN-DO(licstr,"ENABLE-ICF":U).
+  IF enable-icf THEN  
+      RUN showProductModule.  
+  
   RUN enable_UI.
   RUN Init.
+  
   RUN adecomm/_setcurs.p (INPUT "":U).
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
 END.
@@ -520,6 +651,37 @@ RUN disable_UI.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeProductModuleState d_newobj 
+PROCEDURE changeProductModuleState :
+/*------------------------------------------------------------------------------
+  Purpose:     Updates the UI to reflect changes in "Create in PM" toggle.
+  Parameters:  pChecked
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pChecked AS LOGICAL    NO-UNDO.
+
+DO WITH FRAME {&FRAME-NAME}:
+
+    /* IZ 3191 Helpful message if there are no PM's and the user is Checking on the 
+       Create in PM option. */
+    IF (pChecked = YES) AND (cb_productModule:NUM-ITEMS = 0) THEN
+    DO ON ERROR UNDO, RETRY:
+        MESSAGE "Cannot create an object in a product module." SKIP(1)
+                "There are no product modules defined in which to create an object."
+          VIEW-AS ALERT-BOX INFORMATION.
+        ASSIGN productModule-Create:CHECKED = FALSE.
+        RETURN.
+    END.
+
+    ASSIGN cb_productModule:SENSITIVE = pChecked.
+
+END. /* FRAME */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI d_newobj  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
@@ -549,10 +711,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY s_objects e_descr2 e_descr1 
+  DISPLAY s_objects e_descr2 e_descr1 Objects-text descr-text Show-text 
       WITH FRAME d_newobj.
-  ENABLE b_Ok s_objects b_Cancel b_Template b_Help e_descr2 e_descr1 RECT-3 
-         RECT-4 RECT-5 
+  ENABLE s_objects e_descr2 e_descr1 b_Ok b_Cancel b_Template b_Help 
+         Objects-text descr-text RECT-3 RECT-4 RECT-5 
       WITH FRAME d_newobj.
   {&OPEN-BROWSERS-IN-QUERY-d_newobj}
 END PROCEDURE.
@@ -672,11 +834,15 @@ PROCEDURE Init :
 -------------------------------------------------------------*/
 DEFINE VARIABLE custom_name AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE tmp_attr    AS CHARACTER NO-UNDO.
 
 DO WITH FRAME {&FRAME-NAME}:
   /* Load up Containers */
   FOR EACH _custom WHERE _custom._type = "Container":
-    FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(_attr),13,-1,"CHARACTER")).
+    ASSIGN tmp_attr = LEFT-TRIM(_attr,CHR(10)).
+    IF NUM-ENTRIES(tmp_attr,CHR(10)) > 0 THEN
+      ASSIGN tmp_attr = ENTRY(1,tmp_attr,CHR(10)).
+    FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(tmp_attr),13,-1,"CHARACTER")).
     IF FILE-INFO:FULL-PATHNAME NE ? THEN DO:
       RUN Fix_Custom_Name (INPUT _custom._name, OUTPUT custom_name).
       ASSIGN c_lbl_list = c_lbl_list + CHR(10) + custom_name
@@ -786,6 +952,64 @@ DO WITH FRAME {&FRAME-NAME}:
   /* Get the four values of the toggles from the registry here */  
   APPLY "VALUE-CHANGED" TO togContainer.
 END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showProductModule d_newobj 
+PROCEDURE showProductModule :
+/*------------------------------------------------------------------------------
+  Purpose:     Show the Product Module area
+  Parameters:  <none>
+  Notes:       Need to move most of the widgets down to make room.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE tmp-hdl AS HANDLE           NO-UNDO. /* a temporary handle */
+  DEFINE VARIABLE incr    AS DECIMAL INIT 3.5 NO-UNDO. /* amt to use to make room */
+  DEFINE VARIABLE pm-list AS CHARACTER        NO-UNDO. /* list of prod mod's */
+
+  /* Increase the size of the dialog, and move all but the buttons 
+   * and product module related fields down to uncover it 
+   */
+  ASSIGN 
+    tmp-hdl         = FRAME d_newobj:HANDLE
+    tmp-hdl:HEIGHT  = tmp-hdl:HEIGHT + incr
+    tmp-hdl         = tmp-hdl:FIRST-CHILD  /* FIELD-GROUP  */
+    tmp-hdl         = tmp-hdl:FIRST-CHILD. /* FIRST WIDGET */
+  DO WHILE tmp-hdl <> ?:
+    IF tmp-hdl:TYPE <> "BUTTON":U AND 
+        NOT CAN-DO("RECT-6,productModule-Create,cb_productModule":U,tmp-hdl:NAME) THEN
+      ASSIGN tmp-hdl:ROW = tmp-hdl:ROW + incr.
+    tmp-hdl = tmp-hdl:NEXT-SIBLING. /* get the next widget */
+  END.
+  
+  /* IZ 3195 POPULATE cb_productModule HERE...Calls function defined by Repository API
+     session super procedure started by adeuib/_abfuncs.w (ry/app/ryreposobp.p). */
+  ASSIGN pm-list = DYNAMIC-FUNCTION("productModuleList":U) NO-ERROR.
+  ASSIGN pm-list = TRIM(pm-list, ",").
+  
+  ASSIGN cb_productModule:LIST-ITEMS = pm-list.
+  ASSIGN cb_productModule = DYNAMIC-FUNC("getCurrentProductModule":U) NO-ERROR. /* current prod module */
+  /* If there isn't a current product module or the most recent one isn't among
+     the existing valid ones, then just use the first entry. */
+  IF (cb_productModule = "") OR (LOOKUP(cb_productModule, pm-list) = 0) THEN
+    ASSIGN cb_productModule = ENTRY(1,pm-list) NO-ERROR.
+
+  /* Make the product module section visible and enabled */
+  ASSIGN
+    productModule-Create:HIDDEN = FALSE
+    productModule-Create:SENSITIVE = TRUE
+    cb_productModule:HIDDEN     = FALSE
+    RECT-6:HIDDEN               = FALSE.
+  DISPLAY RECT-6 productModule-Create cb_productModule WITH FRAME d_newobj.
+
+  /* IZ 3191 Set the checked state of the Create in PM option based on the PM 
+     list being empty or not. */
+  ASSIGN productModule-Create:CHECKED = (cb_productModule:NUM-ITEMS > 0) NO-ERROR.
+
+  /* Change UI and PM enable state based on "Create in PM" check box. */
+  RUN changeProductModuleState (INPUT productModule-Create:CHECKED).
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

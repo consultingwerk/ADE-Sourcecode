@@ -33,6 +33,9 @@
             D. McMann 04/21/00 Added assignment of user_env 28 and 29 as well
                                as checking for _seq in sequence name.
             D. McMann 08/14/00 Added assignment of index numbers. 20000727013
+            D. McMann 07/05/01 Added assignment of _Order to be greater than original
+                             Progress database so conflict would not happen.
+                             20010703-019
 */  
 
 DEFINE INPUT PARAMETER p_edbtype AS CHARACTER NO-UNDO.
@@ -56,6 +59,7 @@ DEFINE VARIABLE l_idx-num       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_files          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_seqs           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE maxorder         AS INTEGER   NO-UNDO.
 
 DEFINE BUFFER   a_DICTDB         FOR DICTDB._Field.
 DEFINE BUFFER   i_DICTDB        FOR DICTDB._Index.
@@ -227,7 +231,7 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
 
   IF NOT AVAILABLE DICTDB._File THEN NEXT.
 
-  FOR EACH DICTDB._Field OF DICTDB._File WHERE	/* Do first to avoid _order collisions */
+  FOR EACH DICTDB._Field OF DICTDB._File WHERE	
     DICTDB._Field._For-Type = "TIME":
    
     IF TERMINAL <> "" and NOT SESSION:BATCH-MODE THEN
@@ -238,7 +242,14 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
     DELETE DICTDB._Field.
 
   END. /* each DICTDB._Field */
-
+  
+  /* Do first to avoid _order collisions */
+  FIND LAST DICTDB._Field OF DICTDB._FILE USE-INDEX _Field-position.
+  ASSIGN maxorder = DICTDB._Field._Order.
+  FOR EACH DICTDB._Field OF DICTDB._File:
+    ASSIGN DICTDB._Field._Order = maxorder + 5
+           maxorder = maxorder + 5.
+  END.
 
   FOR EACH DICTDB2._File-Trig OF DICTDB2._File:
     FIND DICTDB._File-Trig OF DICTDB._File WHERE   

@@ -102,13 +102,43 @@ user_env[10] = codepage.
 
 SESSION:APPL-ALERT-BOXES = NO.
 save_ab = SESSION:APPL-ALERT-BOXES.
+DEFINE VAR counter AS INT NO-UNDO INITIAL 1.
+
+/*Fernando: 20020129-017 check how many message the client issued before running the 
+  load process. Counter will be pointing to the next position in the message queue */
+REPEAT:
+ IF _msg(counter) > 0 THEN
+      ASSIGN counter = counter + 1.
+ ELSE
+     LEAVE.
+END.
 
 DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
   user_path = "*".
   RUN "prodict/dump/_lodv5df.p".
   IF user_path = "*" THEN RUN "prodict/dump/_lodsddl.p".
+  
   IF user_path = "*R" then UNDO, LEAVE.
 END.
+             
+/*Fernando: 20020129-017 if there was a message from the client after the load process started, 
+search for error number 151 (defined as ERROR_ROLLBACK)  and write to the error log file. The error
+would be the first entry in message queue ( _msg(1) ).
+Variable counter will be pointing to the next to what would be the last message we captured
+If _msg(counter) is 0, it means that no new messages were issued */
+IF  _msg(counter) > 0 AND _msg(1) = {&ERROR_ROLLBACK} THEN
+DO:
+        OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+        PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+           "Load of " user_env[2] " into database " 
+           LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
+           SKIP " Progress Recent Message(s): (" _msg(1) ") " .
+            IF _msg(2) > 0 THEN 
+                PUT UNFORMATTED "(" _msg(2) ")." SKIP(1).
+            
+        OUTPUT CLOSE.
+END.
+
 
 SESSION:APPL-ALERT-BOXES = save_ab.
 RETURN.
@@ -212,6 +242,5 @@ PROCEDURE read_bits:
 END PROCEDURE. 
 
 /*========================== END OF load_df.p ==========================*/
-
 
 

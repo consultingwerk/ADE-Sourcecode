@@ -113,6 +113,7 @@ DEFINE VARIABLE cr       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE do-screen AS LOGICAL NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-file AS LOGICAL NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-screen AS LOGICAL NO-UNDO INIT TRUE.
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
  INNER-CHARS 64 INNER-LINES 5.
@@ -535,11 +536,62 @@ ASSIGN
 
 IF dict_rog THEN msg-num = 3. /* look but don't touch */
 
+/*Fernando: 20020129-017 Capture what is the last message the client issued when starting 
+ the load process. 
+ user_msg_count holds the next to the last posiiton on the message queue*/
+IF class <> "h" AND user_msg_count = 0 THEN DO:
+  ASSIGN user_msg_count = 1.
+  REPEAT:
+    /* user_msg_count is always pointing to the next possible message */
+    IF _msg(user_msg_count) > 0 THEN
+        ASSIGN user_msg_count = user_msg_count + 1.
+    ELSE
+        LEAVE.
+  END.
+END.
+ELSE  IF class = "h":U THEN DO:
+     /*if there was a message from the client after the load process started, 
+     search for error number 151  (ERROR_ROLLBACK) and write to the error log file.
+     The error would be the first entry in message queue.
+     If _msg(user_msg_count) is 0, it means that no new messages were issued
+     since the load started */
+     IF  _msg(user_msg_count) > 0 AND _msg(1) = {&ERROR_ROLLBACK} THEN
+     DO:
+         ASSIGN user_env[4] = "error".
+         
+         IF (user_env[6] = "f" OR user_env[6] = "b") THEN
+         DO:
+         
+             OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+             PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+                "Load of " user_env[2] " into database " 
+                LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
+                SKIP " Progress error numbers (" _msg(1) ") " .
+                IF _msg(2) > 0 THEN 
+                     PUT UNFORMATTED "and (" _msg(2) ")." SKIP(1).
+                 ELSE PUT UNFORMATTED "."  SKIP(1) . 
+             OUTPUT CLOSE.
+         END.
+     END.
+END. /*ELSE IF CLASS = "h" */
+
 /*-------------------------------------------------*/ /* Hide message */
 IF class = "h" THEN DO:
-   HIDE MESSAGE NO-PAUSE.
-   if user_env[4] <> "error"
-    then MESSAGE "Load completed." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  /* Fernando: gives the user time to see the error message that the 
+     client issued instead of flashing the messages */
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+     HIDE MESSAGE NO-PAUSE.
+  &ENDIF
+  
+   /* Fernando: 20020129-017 Also, if there was an error that backed out the changes, 
+   do not display the message */
+   if user_env[4] <> "error" THEN
+      MESSAGE "Load completed." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+   ELSE
+      MESSAGE "Load aborted." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+     
+   /* Fernando: 20020129-017 make sure variable is set to sero */
+   ASSIGN user_msg_count = 0.
    RETURN.
 END.
 /*----------------------------------------*/ /* LOAD FILE DEFINITIONS */

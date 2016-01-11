@@ -32,6 +32,8 @@
     Description :
 
     Modified    : May 15, 2000 -- Version 9.1B
+    Modified    : 10/24/2001            Mark Davies (MIP0
+                  Added new property FilterAvailable.
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -103,7 +105,8 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  /* Preprocessors to define properties that can be retrieved
     directly from the property temp-table. */
 
- &GLOB xpDataColumnsByTable                
+ &GLOB xpBaseQuery                               
+ &GLOB xpDataColumnsByTable                               
  &GLOB xpNavigationSource       
  &GLOB xpNavigationSourceEvents          
  &GLOB xpBufferHandles          
@@ -119,9 +122,8 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpLastDBRowIdent
  &GLOB xpAssignList
  &GLOB xpUpdatableColumnsByTable                
- &GLOB xpFetchOnOpen
  &GLOB xpDataIsFetched
- 
+
   /* Include the property temp-table definition and then add query's
      properties to its fields. */
  &IF DEFINED(BrowserQueryObject) NE 0 &THEN
@@ -136,6 +138,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &ENDIF   
  
 &IF "{&ADMSuper}":U = "":U &THEN
+  ghADMProps:ADD-NEW-FIELD('BaseQuery':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DataColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHAR':U).
   ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
@@ -146,7 +149,6 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
   ghADMProps:ADD-NEW-FIELD('QueryPosition':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('BufferHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('QueryHandle':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('OpenQuery':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('QueryRowIdent':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('OpenOnInit':U, 'LOGICAL':U, 0, ?, yes).
   ghADMProps:ADD-NEW-FIELD('ForeignValues':U, 'CHAR':U, 0, ?, ?).
@@ -158,8 +160,13 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
   ghADMProps:ADD-NEW-FIELD('UpdatableColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('Tables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DBNames':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('FetchOnOpen':U, 'CHAR':U, 0, ?, 'First':U).
+  ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHARACTER':U, 0, ?, '{&KEY-FIELDS}':U). 
+  ghADMProps:ADD-NEW-FIELD('KeyTableId', 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('FetchOnOpen':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('FilterActive':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('FilterAvailable':U, 'LOGICAL':U, 0, ?, no).
+
 &ENDIF
 
   {src/adm2/custom/qrypropcustom.i}

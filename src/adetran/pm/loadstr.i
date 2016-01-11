@@ -549,6 +549,13 @@ DEFINE OUTPUT PARAMETER pFoundIt AS LOGICAL NO-UNDO.
   else if InputLine[8] = "TOOLTIP":U then
     pFoundIt = CAN-FIND(xlatedb.XL_SelectedFilter where
                         xlatedb.XL_SelectedFilter.Item  = InputLine[7]).
+  
+  /* 'Create' can have qualifiers, but don't let those prevent us from loading 
+   * the strings that are part of create statement. (taj iz 3808)
+   */
+  ELSE IF InputLine[6] = "Create":U THEN
+    pFoundIt = CAN-FIND(xlatedb.XL_SelectedFilter where
+                        xlatedb.XL_SelectedFilter.Statement  = InputLine[6]).
 
   else pFoundIt = CAN-FIND(FIRST xlatedb.XL_SelectedFilter where
                            xlatedb.XL_SelectedFilter.Statement  = InputLine[6] and

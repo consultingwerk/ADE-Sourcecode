@@ -105,9 +105,10 @@ IF AbortImport NE yes THEN DO:
       WHEN "_PWIN":U THEN DO:
          
           ASSIGN AbortImport = Yes.
-        IF IMPORT_mode = "WINDOW UNTITLED" THEN 
+        IF IMPORT_mode = "WINDOW UNTITLED" THEN DO:
           RUN StripPosseHdr (INPUT dot-w-file, OUTPUT tmpFileName).
           IF tmpFileName <> ? THEN dot-w-file = tmpFileName.
+        END.
         RUN adecomm/_pwmain.p (INPUT "_ab.p":U  /* PW Parent ID */,
                                INPUT (dot-w-file + /* Files to open */
                                      (IF NOT web_file THEN "" ELSE CHR(3) + 

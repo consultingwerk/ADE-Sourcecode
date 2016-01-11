@@ -1,7 +1,7 @@
 /* shared.cst - shared file - Version 9 - 03/98 
  ************************************************************************
- Separated from smart.cst so changes are not lost if webspeed and/or appbuilder
- upgraded to having both
+ Separated from smart.cst so changes are not lost if WebSpeed and/or 
+ AppBuilder upgraded to having both.
  ************************************************************************/
 
 #SmartDataObject &Default
@@ -26,4 +26,8 @@ NEW-TEMPLATE    src/template/include.i
 
 *NEW-PROCEDURE  Method &Library
 NEW-TEMPLATE    src/template/mli.i
+
+*NEW-PROCEDURE  SAX &Handler
+NEW-TEMPLATE    src/adm2/template/sax.w
+
 

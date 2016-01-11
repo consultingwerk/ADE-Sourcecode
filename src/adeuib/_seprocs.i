@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2002 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -46,7 +46,9 @@ Modified:
    06/17/99  tsm  Added section name to header that will print in abprint.
    08/08/00  jep  Assign _P recid to newly created _SEW_TRG records (= _TRG recs).
    02/05/00  jep  Issue 316: Clear _P._hSecEd handle when deleting a Sec Ed Window.
-
+   09/28/01  jep  IZ 1429 adm-create-objects is db-required. Now defaults
+                  to not db-required.
+   03/07/02  jep  IZ 4098 AppBuilder undoes code changes wrong.
 ----------------------------------------------------------------------------*/
 
 /* Function Prototypes. */
@@ -2430,6 +2432,7 @@ PROCEDURE NewBlock.
              _SEW_TRG._wRECID   = new_recid
              _SEW_TRG._tEVENT   = new_event
              _SEW_TRG._tCODE    = ?
+             _SEW_TRG._DB-REQUIRED = NO WHEN (proc_type = Type_Adm_Create_Obj) /* jep: IZ 1429 */
              a_ok               = yes.
     END.
     /* If we created a new one, or if it is ok to go to the old one, then go */
@@ -2633,6 +2636,8 @@ PROCEDURE check_store_trg.
   DEFINE VARIABLE v_h_win       AS WIDGET        NO-UNDO.
   DEFINE VARIABLE window-handle AS WIDGET-HANDLE NO-UNDO.
   DEFINE VARIABLE New_Trg       AS LOGICAL       /* MUST BE UNDO */.
+  DEFINE VARIABLE Temp_Code     AS CHARACTER     NO-UNDO.
+  DEFINE VARIABLE Temp_Restore  AS LOGICAL       NO-UNDO.
   
   DEFINE BUFFER b_U FOR _U.
   
@@ -2696,11 +2701,23 @@ PROCEDURE check_store_trg.
                _SEW_TRG._tEVENT   = editted_event  /* If value has changed */    
                . /* ASSIGN */
     /* Store the trigger code (except for a read-only special block) */
-    IF read_only AND _SEW_TRG._tSPECIAL ne ? THEN _SEW_TRG._tCODE = ?.
+    IF read_only AND _SEW_TRG._tSPECIAL ne ? THEN
+      _SEW_TRG._tCODE = ?.
     ELSE DO:
+        /* The editor widget's screen contents have to be written to the underlying
+           TRG temp-table so _qikcomp.p can process the "check_only" (check syntax or
+           print section). To support undoing any changes after a check syntax or a
+           print section, the original value of the code section is stored in temp_code
+           variable where it will be restored to the temp-table field after the check_only
+           request is completed. IZ 4098. */
+        IF check_only THEN
+        DO:
+            ASSIGN Temp_Restore = YES
+                   Temp_Code    = _SEW_TRG._tCODE.
+        END.
         ASSIGN _SEW_TRG._tCODE    = txt:SCREEN-VALUE.
         IF CAN-DO("_OPEN-QUERY,_DISPLAY-FIELDS":U, _SEW_TRG._tSPECIAL) 
-          AND NOT check_only THEN  /* 99-05-13-011 (dma) */
+          AND NOT check_only THEN  /* 19990513-011 (dma) */
           RUN freeform_update (INPUT RECID(_SEW_U)).
         ELSE 
         ASSIGN _SEW_TRG._tSPECIAL = ? WHEN _SEW_TRG._tSPECIAL = "".
@@ -2716,7 +2733,7 @@ PROCEDURE check_store_trg.
     IF _auto_check or check_only THEN DO:
       ASSIGN _err_recid = RECID(_SEW_TRG).
 
-      /* NOTE: Bug 94-06-30-025 Fix
+      /* NOTE: Bug 19940630-025 Fix
          Because _qikcomp.p checks the syntax of the current UIB window
          _h_win, we must temporarily repoint _h_win to the window the
          Section Editor is currently working with.  We use the ON STOP
@@ -2742,6 +2759,15 @@ PROCEDURE check_store_trg.
 
       SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
       _err_recid = ?.
+
+      /* There are cases when we need to restore the code in the temp-table to its original
+         value to support undo. Temp_Code does this. This is done as close after the
+         _qikcomp.p as possible so the original code is restored to the correct
+         _SEW_TRG record. IZ 4098. */
+      IF Temp_Restore THEN
+      DO:
+        ASSIGN _SEW_TRG._tCode = Temp_Code NO-ERROR.
+      END.
 
       IF NOT print_section THEN DO:
         IF COMPILER:STOPPED = FALSE THEN DO:

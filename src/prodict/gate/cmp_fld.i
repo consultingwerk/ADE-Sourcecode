@@ -44,6 +44,7 @@ Included in:
 
 History:
     hutegger    95/03   creation
+    mcmann    08/21/01  Removed check on ORDER
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -203,11 +204,10 @@ History:
      
 
      /* Differences in RETAINABLE info
-      *     Case, Mandatory, order, description, progress-name
-      *     plus eventually
+      *     Case, Mandatory, description, progress-name
       *     PROGRESS data-type, initial-value, decimals and format
       */
-      if s_ttb_fld.pro_case = TRUE
+     if s_ttb_fld.pro_case = TRUE
        then { prodict/gate/cmp_msg.i
               &attrbt = "Case-Sensitivity:"
               &msgidx = "l_fld-msg[2]"
@@ -215,7 +215,7 @@ History:
               &ns     = "s_ttb_fld.pro_case"
               &object = "FIELD"
               &o-name = "s_ttb_fld.ds_name"
-              &sh     = "DICTDB._Field._Fld-Case"
+              &sh     = "DICTDB._Field._Fld-Case" 
               }
       if s_ttb_fld.pro_mand = TRUE
        then { prodict/gate/cmp_msg.i
@@ -227,15 +227,7 @@ History:
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Mandatory"
               }
-      { prodict/gate/cmp_msg.i
-              &attrbt = "Order:"
-              &msgidx = "l_fld-msg[8]"
-              &msgvar = "ret"
-              &ns     = "s_ttb_fld.pro_order"
-              &object = "FIELD"
-              &o-name = "s_ttb_fld.ds_name"
-              &sh     = "DICTDB._Field._Order"
-              }
+ 
       { prodict/gate/cmp_msg.i
               &attrbt = "Name in PROGRESS:"
               &msgidx = "l_fld-msg[22]"
@@ -245,15 +237,15 @@ History:
               &o-name = "s_ttb_fld.ds_name"
               &sh     = "DICTDB._Field._Field-Name"
               }
-      { prodict/gate/cmp_msg.i
+     { prodict/gate/cmp_msg.i
               &attrbt = "Description:"
               &msgidx = "l_fld-msg[23]"
               &msgvar = "ret"
               &ns     = "s_ttb_fld.pro_desc"
               &object = "FIELD"
               &o-name = "s_ttb_fld.ds_name"
-              &sh     = "DICTDB._Field._Desc"
-              }
+              &sh     = "DICTDB._Field._Desc" 
+              } 
       if NOT (
        (   can-do(l_char-types + l_chda-types               ,s_ttb_fld.ds_type) 
        AND can-do("character"              ,DICTDB._Field._Data-type) )

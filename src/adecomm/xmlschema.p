@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -32,15 +32,23 @@
     Description :
 
     Updated     : 04/18/00 adams@progress.com
-                    initial version
-                  04/18/01 thomas.wurl@taste-consulting.de
-                    corrected node order to schema, not alpha, order
-    Notes       :
+                    Intial version
+                  02/10/02 adams@progress.com
+                    Repaired memory leak
+    Notes       : Namespaces are not fully supported.
   ----------------------------------------------------------------------*/
 /*          This .p file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
 
+/* Create an unnamed pool to store all the widgets created 
+     by this procedure. This is a good default which assures
+     that this procedure's triggers and internal procedures 
+     will execute in this procedure's storage, and that proper
+     cleanup will occur on deletion of the procedure. */
+CREATE WIDGET-POOL.
+
 /* ***************************  Definitions  ************************** */
+
 { adecomm/xmlwidg.i }
 
 DEFINE VARIABLE cPrefix     AS CHARACTER  NO-UNDO.
@@ -53,25 +61,23 @@ string,time,timeDuration,timeInstant,timePeriod,unsignedByte,unsignedInt,~
 unsignedLong,unsignedShort,uriReference,year":U.
 DEFINE VARIABLE gcSmartB2B  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hDoc        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hNodeRef    AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hRoot       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iCounter    AS INTEGER    NO-UNDO. /* child counter */
 DEFINE VARIABLE iLastNode   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iPCounter   AS INTEGER    NO-UNDO. /* parent counter */
 DEFINE VARIABLE ix          AS INTEGER    NO-UNDO.
-DEFINE VARIABLE iy          AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lReturn     AS LOGICAL    NO-UNDO.
 
 DEFINE BUFFER buf_tData FOR tData.
 DEFINE BUFFER buf_tNode FOR tNode.
 
+/* Keep track of XML Schema nodes that are mapped multiple times in an
+   instance document. (adams) */
 DEFINE TEMP-TABLE tMapping
   FIELD cField  AS CHARACTER CASE-SENSITIVE
   FIELD cParent AS CHARACTER CASE-SENSITIVE
   FIELD iHits   AS INTEGER
   INDEX cField cField cParent.
-
-&SCOPED-DEFINE DEBUG FALSE
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -91,6 +97,28 @@ DEFINE TEMP-TABLE tMapping
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-createNodeRef) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createNodeRef Procedure 
+FUNCTION createNodeRef RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD deleteObject Procedure 
+FUNCTION deleteObject RETURNS HANDLE
+  ( hObject AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-getContainer) = 0 &THEN
 
@@ -178,7 +206,7 @@ FUNCTION trimPrefix RETURNS CHARACTER
    Allow: 
    Frames: 0
    Add Fields to: Neither
-   Other Settings: CODE-ONLY COMPILE
+   Other Settings: CODE-ONLY
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -187,7 +215,7 @@ FUNCTION trimPrefix RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 17.33
+         HEIGHT             = 19.24
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -200,7 +228,6 @@ FUNCTION trimPrefix RETURNS CHARACTER
 
 
 /* ***************************  Main Block  *************************** */
-
 RUN initializeObject.
 
 /* _UIB-CODE-BLOCK-END */
@@ -307,38 +334,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-deleteAttribute) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deleteAttribute Procedure 
-PROCEDURE deleteAttribute :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER iNode AS INTEGER  NO-UNDO.
-  
-  DEFINE VARIABLE hChild  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lReturn AS LOGICAL    NO-UNDO.
-  
-  hChild = getNodeHandle(iNode).
-  IF hChild <> ? THEN DO:
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:file":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:link":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:name":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:object":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:parameter":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:type":U) NO-ERROR.
-    lReturn = hChild:REMOVE-ATTRIBUTE("psc:update":U) NO-ERROR.
-  END.
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-expandNodes) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE expandNodes Procedure 
@@ -346,8 +341,13 @@ PROCEDURE expandNodes :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       thomas.wurl@taste-consulting.de 04/18/01
-------------------------------------------------------------------------------*/
+  Updates:     04/18/01 thomas.wurl@taste-consulting.de
+               07/23/01 Meyer Nassim
+                 Sort nodes in schema, not alpha, order.
+                 To do this, we need to define a local buffer for tNode, scoped 
+                 to this internal procedure, and 'BY tNode.Node' to WHERE clause 
+                 of dynamic query.
+  ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pName  AS CHARACTER  NO-UNDO. /* parent nodeName  */
   DEFINE INPUT  PARAMETER pNode  AS INTEGER    NO-UNDO. /* parent node      */
   DEFINE INPUT  PARAMETER pNType AS CHARACTER  NO-UNDO. /* parent node type */ 
@@ -366,8 +366,9 @@ PROCEDURE expandNodes :
   
   /* Procedure is called recursively, so use a buffer that is scoped to this 
      procedure. (thomas.wurl@taste-consulting.de 04/18/01) */
-  DEFINE BUFFER tNode FOR tNode.
+  DEFINE BUFFER tNode for tNode.
 
+  hQuery = ?.
   CREATE QUERY hQuery.
   hQuery:SET-BUFFERS(BUFFER tNode:HANDLE).
 
@@ -375,14 +376,15 @@ PROCEDURE expandNodes :
   cWhere = "FOR EACH tNode WHERE tNode.parentName = '":U +
            (     IF pRef <> ""  THEN pRef   /*books.xsd*/
             ELSE IF pDType = "" THEN pName  /*report.xsd*/
-            ELSE                     pDType /*po.xsd*/) + "' BY tNode.node":U.
+            ELSE                     pDType /*po.xsd*/) +
+           "' BY tNode.Node":U.
   hQuery:QUERY-PREPARE(cWhere).
   hQuery:QUERY-OPEN.
 
   REPEAT:
     hQuery:GET-NEXT.
     IF hQuery:QUERY-OFF-END THEN LEAVE.
-
+    
     /* Update parent dataType */
     IF tNode.element = "simpleType":U THEN DO:
       FIND FIRST buf_tData WHERE buf_tData.node = pNode NO-ERROR.
@@ -400,7 +402,6 @@ PROCEDURE expandNodes :
       cType    = tNode.dataType
       iNode    = (IF CAN-DO("attributeGroup,group":U,tNode.element) THEN
                     pNode ELSE tNode.node).
-    /*IF CAN-FIND(FIRST tData WHERE tData.documentPath = cDocPath) THEN NEXT.*/
 
     IF NOT CAN-DO("attributeGroup,group":U,tNode.element) AND 
       (tNode.nodeName <> "" OR tNode.ref <> "") THEN DO:
@@ -425,6 +426,9 @@ PROCEDURE expandNodes :
         ASSIGN
           cName          = tData.ref
           tData.nodeName = cName.
+
+        /* TBD: Need better selection criteria, since nodeName is not 
+           unique. (adams) */
         FIND FIRST buf_tNode WHERE buf_tNode.nodeName = cName NO-ERROR.
         IF AVAILABLE buf_tNode AND buf_tNode.dataType <> "" THEN
           ASSIGN
@@ -455,8 +459,9 @@ PROCEDURE expandNodes :
                     /* docpath  */ cDocPath,
                     /* ref      */ tNode.ref).
   END. /* REPEAT */
+  
   hQuery:QUERY-CLOSE().
-  DELETE OBJECT hQuery.
+  hQuery = deleteObject(hQuery).
 
 END PROCEDURE.
 
@@ -472,37 +477,40 @@ PROCEDURE extractMapping :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       This code uses current tNode and tData rows
+  Notes:       This code uses current tData row
 ------------------------------------------------------------------------------*/
+  /* Commercial version uses tNode.  Chambers uses tData.  This is better,
+     since calling procedure is looping through tNode recs. */
+  
   FIND FIRST tMapping WHERE 
-    tMapping.cField  = tNode.nodeName AND
-    tMapping.cParent = tNode.parentName NO-ERROR.
+    tMapping.cField  = tData.nodeName AND
+    tMapping.cParent = tData.parentName NO-ERROR.
   IF NOT AVAILABLE tMapping THEN DO:
     CREATE tMapping.
     ASSIGN 
-      tMapping.cField  = tNode.nodeName
-      tMapping.cParent = tNode.parentName.
+      tMapping.cField  = tData.nodeName
+      tMapping.cParent = tData.parentName.
   END.
-    
+
   ASSIGN
     tMapping.iHits      = tMapping.iHits + 1
-    tData.mapFile       = ENTRY(tMapping.iHits, tNode.mapFile)
-    tData.mapName       = ENTRY(tMapping.iHits, tNode.mapName)
-    tData.objectName    = ENTRY(tMapping.iHits, tNode.objectName)
-    tData.mapType       = ENTRY(tMapping.iHits, tNode.mapType).
+    tData.mapFile       = ENTRY(tMapping.iHits, tData.mapFile)
+    tData.mapName       = ENTRY(tMapping.iHits, tData.mapName)
+    tData.objectName    = ENTRY(tMapping.iHits, tData.objectName)
+    tData.mapType       = ENTRY(tMapping.iHits, tData.mapType).
     
-  IF tNode.mapConversion <> "" THEN
-    tData.mapConversion = ENTRY(tMapping.iHits, tNode.mapConversion).
+  IF tData.mapConversion <> "" THEN
+    tData.mapConversion = ENTRY(tMapping.iHits, tData.mapConversion).
     
-  IF tNode.mapLink <> "" THEN
-    tData.mapLink       = ENTRY(tMapping.iHits, tNode.mapLink).
+  IF tData.mapLink <> "" THEN
+    tData.mapLink       = ENTRY(tMapping.iHits, tData.mapLink).
     
-  IF tNode.mapParameter <> 0 THEN
+  IF tData.mapParameter <> 0 THEN
     tData.mapParameter  = INTEGER(ENTRY(tMapping.iHits, 
-                            STRING(tNode.mapParameter))).
+                            STRING(tData.mapParameter))).
     
-  IF tNode.mapUpdate <> "" THEN
-    tData.mapUpdate     = ENTRY(tMapping.iHits, tNode.mapUpdate).
+  IF tData.mapUpdate <> "" THEN
+    tData.mapUpdate     = ENTRY(tMapping.iHits, tData.mapUpdate).
   
 END PROCEDURE.
 
@@ -511,210 +519,10 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getMSCChild) = 0 &THEN
+&IF DEFINED(EXCLUDE-getChild) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getMSCChild Procedure 
-PROCEDURE getMSCChild :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       Currently not supported.  This procedure is not complete and has
-               not been maintained.
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER hParent AS HANDLE    NO-UNDO. /* parent handle */
-  DEFINE INPUT  PARAMETER pParent AS INTEGER   NO-UNDO. /* Parent ID     */
-  DEFINE INPUT  PARAMETER cParent AS CHARACTER NO-UNDO. /* parent name   */
-  DEFINE INPUT  PARAMETER cXPath  AS CHARACTER NO-UNDO. /* parent xpath  */
-  
-  DEFINE VARIABLE cContent      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataType     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataValue    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDefaultValue AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cElement      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMaxOccurs    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMinOccurs    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cModel        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNodeName     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOrder        AS CHARACTER  NO-UNDO.
-  /*DEFINE VARIABLE cRequired     AS LOGICAL    NO-UNDO.*/
-  DEFINE VARIABLE ix            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iy            AS INTEGER    NO-UNDO.
-  
-  /* TBD: needs work (adams) */
-  IF hParent:SUBTYPE <> "element":U THEN NEXT.  
-    
-  REPEAT ix = 1 TO hParent:NUM-CHILDREN:
-    CREATE X-NODEREF hNodeRef.
-    lReturn = hParent:GET-CHILD(hNodeRef, ix) NO-ERROR.
-    IF NOT lReturn THEN LEAVE.  /* no child nodes */
-    IF hNodeRef:SUBTYPE <> "element":U THEN NEXT.
-    RELEASE tNode.
-    
-    ASSIGN
-      cContent      = ""
-      cDataType     = ""
-      cDataValue    = ""
-      cDefaultValue = ""
-      cElement      = hNodeRef:name
-      cMaxOccurs    = ""
-      cMinOccurs    = ""
-      cModel        = ""
-      cOrder        = ""
-      /*cRequired     = ?*/
-      .
-    
-    CASE cElement:
-      WHEN "attribute":U THEN DO:
-        ASSIGN
-          cNodeName     = hNodeRef:GET-ATTRIBUTE("type":U).
-      END.
-      WHEN "attributeType":U THEN DO:
-        ASSIGN
-          cDefaultValue = hNodeRef:GET-ATTRIBUTE("default":U)
-          cNodeName     = hNodeRef:GET-ATTRIBUTE("name":U)
-          /*cRequired     = (hNodeRef:GET-ATTRIBUTE("required":U) = "yes")*/
-          cDataValue    = hNodeRef:GET-ATTRIBUTE("values":U).
-          NEXT.
-      END.
-      WHEN "element":U THEN DO:
-        ASSIGN
-          cMaxOccurs    = hNodeRef:GET-ATTRIBUTE("maxOccurs":U)
-          cMinOccurs    = hNodeRef:GET-ATTRIBUTE("minOccurs":U)
-          cNodeName     = hNodeRef:GET-ATTRIBUTE("type":U).
-      END.
-      WHEN "elementType":U THEN DO:
-        ASSIGN
-          cContent      = hNodeRef:GET-ATTRIBUTE("content":U)
-          cModel        = hNodeRef:GET-ATTRIBUTE("model":U)
-          cNodeName     = hNodeRef:GET-ATTRIBUTE("name":U)
-          cDataType     = hNodeRef:GET-ATTRIBUTE("dt:type":U)
-          cOrder        = hNodeRef:GET-ATTRIBUTE("order":U).
-      END.
-      OTHERWISE NEXT.
-    END CASE.
-
-    IF cNodeName <> "" THEN
-      iCounter = iCounter + 1.
-    
-    FIND FIRST tNode WHERE tNode.nodeName = cNodeName AND
-                           tNode.element  = cElement NO-ERROR.
-    IF AVAILABLE tNode THEN 
-      ASSIGN
-        tNode.parentName = (IF (cElement = "element":U) THEN 
-                             cParent ELSE tNode.parentName)
-        iPCounter        = tNode.node.
-
-    IF NOT AVAILABLE tNode OR
-      CAN-DO("attribute,element", cElement) THEN DO:
-      iPCounter = iCounter.
-
-      RUN addNodesRec (/* abstract             */ "",
-                       /* attributeFormDefault */ "",
-                       /* base                 */ "",
-                       /* blockValue           */ "",
-                       /* content              */ cContent,
-                       /* dataForm             */ "",
-                       /* dataType             */ cDataType,
-                       /* dataValue            */ cDataValue,
-                       /* defaultValue         */ cDefaultValue,
-                       /* derivedBy            */ "",
-                       /* element              */ cElement,
-                       /* elementFormDefault   */ "",
-                       /* equivClass           */ "",
-                       /* final                */ "",
-                       /* mapConversion        */ "",
-                       /* mapFile              */ "",
-                       /* mapLink              */ "",
-                       /* mapName              */ "",
-                       /* mapObject            */ "",
-                       /* mapParameter         */ ?,
-                       /* mapType              */ "",
-                       /* mapUpdate            */ "",
-                       /* maxOccurs            */ cMaxOccurs,
-                       /* minOccurs            */ cMinOccurs,
-                       /* model                */ cModel,
-                       /* nameSpace            */ "",
-                       /* node                 */ iCounter,
-                       /* nodeName             */ cNodeName,
-                       /* nullable             */ "",
-                       /* order                */ cOrder,
-                       /* parentName           */ cParent,
-                       /* parentNode           */ pParent,
-                       /* processContents      */ "",
-                       /* ref                  */ "",
-                       /* schemaLocation       */ "",
-                       /* targetNamespace      */ "",
-                       /* useValue             */ "",
-                       /* xNodeRef             */ hNodeRef).
-    END.
-      
-    /* Create nodes where this child might have multiple parents */
-    FIND tNode WHERE tNode.nodeName = cParent NO-ERROR.
-    IF AMBIGUOUS tNode THEN DO:
-      FIND FIRST tNode WHERE tNode.nodeName = cParent NO-ERROR. /* skip */
-      REPEAT:
-        FIND NEXT tNode WHERE tNode.nodeName = cParent NO-ERROR.
-        IF NOT AVAILABLE tNode THEN LEAVE.
-        
-        iCounter  = iCounter + 1.
-
-        RUN addNodesRec (/* abstract             */ "",
-                         /* attributeFormDefault */ "",
-                         /* base                 */ "",
-                         /* blockValue           */ "",
-                         /* content              */ cContent,
-                         /* dataForm             */ "",
-                         /* dataType             */ cDataType,
-                         /* dataValue            */ cDataValue,
-                         /* defaultValue         */ cDefaultValue,
-                         /* derivedBy            */ "",
-                         /* element              */ cElement,
-                         /* elementFormDefault   */ "",
-                         /* equivClass           */ "",
-                         /* final                */ "",
-                         /* mapConversion        */ "",
-                         /* mapFile              */ "",
-                         /* mapLink              */ "",
-                         /* mapName              */ "",
-                         /* mapObject            */ "",
-                         /* mapParameter         */ ?,
-                         /* mapType              */ "",
-                         /* mapUpdate            */ "",
-                         /* maxOccurs            */ cMaxOccurs,
-                         /* minOccurs            */ cMinOccurs,
-                         /* model                */ cModel,
-                         /* nameSpace            */ "",
-                         /* node                 */ iCounter,
-                         /* nodeName             */ cNodeName,
-                         /* nullable             */ "",
-                         /* order                */ cOrder,
-                         /* parentName           */ cParent,
-                         /* parentNode           */ tNode.node,
-                         /* processContents      */ "",
-                         /* ref                  */ "",
-                         /* schemaLocation       */ "",
-                         /* targetNamespace      */ "",
-                         /* useValue             */ "",
-                         /* xNodeRef             */ hNodeRef).
-      END.
-    END.
-
-    /* Get child nodes */
-    RUN getMSCChild(hNodeRef, iPCounter, cNodeName, cXPath).    
-    
-  END. /* hParent:NUM-CHILDREN */
-  
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getW3CChild) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getW3CChild Procedure 
-PROCEDURE getW3CChild :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getChild Procedure 
+PROCEDURE getChild :
 /*------------------------------------------------------------------------------
   Purpose:     Parse XML Schema format elements and attribute nodes
   Parameters:  <none>
@@ -749,7 +557,6 @@ PROCEDURE getW3CChild :
   DEFINE VARIABLE cMapLink              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMapName              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMapObject            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iMapParameter         AS INTEGER    NO-UNDO INITIAL ?.
   DEFINE VARIABLE cMapType              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMapUpdate            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMaxOccurs            AS CHARACTER  NO-UNDO.
@@ -766,22 +573,25 @@ PROCEDURE getW3CChild :
   DEFINE VARIABLE cTargetNamespace      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cUseValue             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cVersion              AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hNodeRef              AS HANDLE     NO-UNDO.
   
+  DEFINE VARIABLE iMapParameter         AS INTEGER    NO-UNDO INITIAL ?.
   DEFINE VARIABLE ix                    AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iy                    AS INTEGER    NO-UNDO.
   DEFINE VARIABLE tmpcParent            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE tmpPath               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE tmppParent            AS INTEGER    NO-UNDO.
-  
-  IF hParent:SUBTYPE <> "element":U THEN RETURN.
-    
+
   child-loop:
   REPEAT ix = 1 TO hParent:NUM-CHILDREN:
-    CREATE X-NODEREF hNodeRef.
+    hNodeRef = createNodeRef().
     
     lReturn = hParent:GET-CHILD(hNodeRef, ix) NO-ERROR.
-    IF NOT lReturn THEN LEAVE.  /* no child nodes */
-    IF hNodeRef:SUBTYPE <> "element":U THEN NEXT.
+    IF NOT lReturn OR lReturn = ? OR 
+      (lReturn AND hNodeRef:SUBTYPE <> "element":U) THEN DO:
+      hNodeRef = deleteObject(hNodeRef).
+      NEXT child-loop.
+    END.
+  
     RELEASE tNode.
     
     ASSIGN
@@ -832,9 +642,13 @@ PROCEDURE getW3CChild :
           cMaxOccurs  = hNodeRef:GET-ATTRIBUTE("maxOccurs":U)
           cMinOccurs  = hNodeRef:GET-ATTRIBUTE("minOccurs":U).
       END.
-      WHEN "annotation":U THEN NEXT. /* TBD */
+      WHEN "annotation":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "any":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cID              = hNodeRef:GET-ATTRIBUTE("id":U)
           cMaxOccurs       = hNodeRef:GET-ATTRIBUTE("maxOccurs":U)
@@ -843,13 +657,17 @@ PROCEDURE getW3CChild :
           cProcessContents = hNodeRef:GET-ATTRIBUTE("processContents":U).
       END.
       WHEN "anyAttribute":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cID              = hNodeRef:GET-ATTRIBUTE("id":U)
           cProcessContents = hNodeRef:GET-ATTRIBUTE("processContents":U)
           cNamespace       = hNodeRef:GET-ATTRIBUTE("nameSpace":U).
       END.
-      WHEN "appInfo":U THEN NEXT. /* TBD */
+      WHEN "appInfo":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "attribute":U THEN DO:
         ASSIGN
           cDataForm          = hNodeRef:GET-ATTRIBUTE("form":U)
@@ -889,7 +707,10 @@ PROCEDURE getW3CChild :
           cID         = hNodeRef:GET-ATTRIBUTE("id":U)
           cNodeName   = hNodeRef:GET-ATTRIBUTE("name":U).
       END.
-      WHEN "documentation":U THEN NEXT. /* TBD */
+      WHEN "documentation":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "element":U THEN DO: /* child node */
         ASSIGN
           cAbstract     = hNodeRef:GET-ATTRIBUTE("abstract":U)
@@ -911,8 +732,14 @@ PROCEDURE getW3CChild :
           cNodeName = cRef.
         */
       END.
-      WHEN "enumeration":U THEN NEXT. /* TBD */
-      WHEN "field":U THEN NEXT. /* TBD */
+      WHEN "enumeration":U THEN  DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "field":U THEN  DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "group":U THEN DO:  
         ASSIGN
           cID        = hNodeRef:GET-ATTRIBUTE("id":U)
@@ -926,35 +753,57 @@ PROCEDURE getW3CChild :
         */
       END.
       WHEN "import":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U).
       END.
       WHEN "include":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cNameSpace      = hNodeRef:GET-ATTRIBUTE("nameSpace":U)
           cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U).
       END.
       WHEN "key":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cID       = hNodeRef:GET-ATTRIBUTE("id":U)
           cNodeName = hNodeRef:GET-ATTRIBUTE("name":U).
       END.
       WHEN "keyref":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cID       = hNodeRef:GET-ATTRIBUTE("id":U)
           cNodeName = hNodeRef:GET-ATTRIBUTE("name":U)
           cRefer    = hNodeRef:GET-ATTRIBUTE("refer":U).
       END.
-      WHEN "length":U THEN NEXT. /* TBD */
-      WHEN "maxInclusive":U THEN NEXT. /* TBD */
-      WHEN "maxLength":U THEN NEXT. /* TBD */
-      WHEN "minInclusive":U THEN NEXT. /* TBD */
-      WHEN "minLength":U THEN NEXT. /* TBD */
-      WHEN "pattern":U THEN NEXT. /* TBD */
+      WHEN "length":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "maxInclusive":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "maxLength":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "minInclusive":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "minLength":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
+      WHEN "pattern":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "schema":U THEN DO:
         ASSIGN 
           cAttributeFormDefault = hNodeRef:GET-ATTRIBUTE("attributeFormDefault":U)
@@ -965,7 +814,10 @@ PROCEDURE getW3CChild :
           cTargetNamespace      = hNodeRef:GET-ATTRIBUTE("targetNamespace":U)
           cVersion              = hNodeRef:GET-ATTRIBUTE("version":U).
       END.
-      WHEN "selector":U THEN NEXT. /* TBD */
+      WHEN "selector":U THEN DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
+      END.
       WHEN "sequence":U THEN DO: 
         ASSIGN
           cID        = hNodeRef:GET-ATTRIBUTE("id":U)
@@ -979,12 +831,16 @@ PROCEDURE getW3CChild :
           cNodeName  = hNodeRef:GET-ATTRIBUTE("name":U).
       END.
       WHEN "unique":U THEN DO:
-        NEXT. /* TBD */
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop. /* TBD */
         ASSIGN
           cID         = hNodeRef:GET-ATTRIBUTE("id":U)
           cNodeName   = hNodeRef:GET-ATTRIBUTE("name":U).
       END.
-      OTHERWISE NEXT.
+      OTHERWISE DO:
+        hNodeRef = deleteObject(hNodeRef).
+        NEXT child-loop.
+      END.
     END CASE.
     
     /* Read XML Schema mapping information. */
@@ -1049,15 +905,13 @@ PROCEDURE getW3CChild :
                      /* useValue             */ cUseValue,
                      /* xNodeRef             */ hNodeRef).
       
-    /*IF trimPrefix(cElement) = "attribute":U THEN NEXT.*/
-    
     ASSIGN
       tmpcParent = (IF cNodeName = "" THEN cParent ELSE cNodeName)
       tmppParent = (IF cNodeName = "" THEN pParent ELSE iPCounter).
 
-    RUN getW3CChild (hNodeRef, tmppParent, tmpcParent, tmpPath).
+    RUN getChild (hNodeRef, tmppParent, tmpcParent, tmpPath).
   END. /* child-loop */
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1089,7 +943,8 @@ PROCEDURE loadSchema :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:   
+  14-Aug-01 Fix LOAD method to search for .xmc or .xmp in the PROPATH.    
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pXMLFile     AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pDelete      AS LOGICAL    NO-UNDO. /* after load */
@@ -1101,139 +956,119 @@ PROCEDURE loadSchema :
   DEFINE VARIABLE cFormat AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lReturn AS LOGICAL    NO-UNDO.
 
-  RUN reset.
-  
-  CREATE X-DOCUMENT hDoc.
-  CREATE X-NODEREF hRoot.
-  
-  /* Read in XML schema file without validation. */
-  lReturn = hDoc:LOAD("file":U, pXMLFile, FALSE) NO-ERROR.
-  IF ERROR-STATUS:ERROR OR lReturn = ? OR lReturn = FALSE THEN DO:
-    RUN reset.
-    RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
-  END.
-  
-  /* Get root node. */
-  lReturn = hDoc:GET-DOCUMENT-ELEMENT(hRoot) NO-ERROR.
-  IF ERROR-STATUS:ERROR OR lReturn = ? OR lReturn = FALSE OR 
-    (VALID-HANDLE(hRoot) AND INDEX(hRoot:NAME, "SCHEMA":U) = 0) OR
-    (VALID-HANDLE(hRoot) AND hRoot:NUM-CHILDREN = 0) THEN DO:
-    RUN reset.
-    RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
-  END.
-
-  ASSIGN
-    cFormat   = getSchemaType() /* creates <SCHEMA> attribute records */
-    lReturn   = setPrefix() NO-ERROR.
-  IF cFormat = ? THEN DO:
-    RUN reset.
-    RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
-  END.
+    CREATE X-DOCUMENT hDoc.
+    CREATE X-NODEREF hRoot.
     
-  /* Create root temp-table record */
-  RUN addNodesRec (/* abstract             */ "",
-                   /* attributeFormDefault */ "",
-                   /* base                 */ "",
-                   /* blockValue           */ "",
-                   /* content              */ "",
-                   /* dataForm             */ "",
-                   /* dataType             */ "",
-                   /* dataValue            */ "",
-                   /* defaultValue         */ "",
-                   /* derivedBy            */ "",
-                   /* element              */ hRoot:name,
-                   /* elementFormDefault   */ "",
-                   /* equivClass           */ "",
-                   /* final                */ "",
-                   /* mapConversion        */ "",
-                   /* mapFile              */ "",
-                   /* mapLink              */ "",
-                   /* mapName              */ "",
-                   /* mapObject            */ "",
-                   /* mapParameter         */ "",
-                   /* mapType              */ "",
-                   /* mapUpdate            */ "",
-                   /* maxOccurs            */ "",
-                   /* minOccurs            */ "",
-                   /* model                */ "",
-                   /* nameSpace            */ "",
-                   /* node                 */ iCounter,
-                   /* nodeName             */ hRoot:GET-ATTRIBUTE("name":U),
-                   /* nullable             */ "",
-                   /* order                */ "",
-                   /* parentName           */ "",
-                   /* parentNode           */ iPCounter,
-                   /* processContents      */ "",
-                   /* ref                  */ "",
-                   /* schemaLocation       */ "",
-                   /* schemaPath           */ hRoot:GET-ATTRIBUTE("name":U),
-                   /* targetNamespace      */ "",
-                   /* useValue             */ "",
-                   /* xNodeRef             */ hRoot).
-
-  /* Find child nodes */
-  CASE cFormat:
-    WHEN "msc":U THEN
-      RUN getMSCChild(/* parent handle      */ hRoot, 
-                      /* parent node        */ iPCounter, 
-                      /* parent name        */ hRoot:GET-ATTRIBUTE("name":U),
-                      /* parent schema path */ hRoot:GET-ATTRIBUTE("name":U)).
-    
-    WHEN "w3c":U THEN 
-      RUN getW3CChild(/* parent handle      */ hRoot, 
-                      /* parent node        */ iPCounter, 
-                      /* parent name        */ hRoot:GET-ATTRIBUTE("name":U),
-                      /* parent schema path */ hRoot:GET-ATTRIBUTE("name":U)).
-  END CASE.
-
-  /* Find root node.  Multiple root nodes are not supported. */
-  FOR EACH tNode WHERE tNode.node > 0 AND tNode.parentNode = 0:
-    IF trimPrefix(tNode.element) = "element" AND
-      NOT CAN-DO(cSimpleType, trimPrefix(tNode.dataType)) THEN DO:
-      iRoot = tNode.node.
-      LEAVE.
+    /* Read in XML schema file without validation - look for the file anywhere in the PROPATH (MN 14/8/01) */
+    lReturn = hDoc:LOAD("file":U, SEARCH(pXMLFile), FALSE) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR lReturn = ? OR lReturn = FALSE THEN DO:
+      RUN reset.
+      RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
     END.
-  END.
+    
+    /* Get root node. */
+    lReturn = hDoc:GET-DOCUMENT-ELEMENT(hRoot) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR lReturn = ? OR lReturn = FALSE OR 
+      (VALID-HANDLE(hRoot) AND INDEX(hRoot:NAME, "SCHEMA":U) = 0) OR
+      (VALID-HANDLE(hRoot) AND hRoot:NUM-CHILDREN = 0) THEN DO:
+      RUN reset.
+      RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
+    END.
   
-  /* Seed tData, expand nodes, create data structure file from schema */
-  FIND tNode WHERE tNode.node = iRoot NO-ERROR.
-  IF NOT AVAILABLE tNode THEN DO:
-    RUN reset.
-    RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
-  END.
-  ELSE DO:
-    CREATE tData.
-    BUFFER-COPY tNode TO tData.
-    FIND LAST buf_tNode.
     ASSIGN
-      tData.documentPath = ("/":U + tData.nodeName)
-      iLastNode          = buf_tNode.node.
+      cFormat   = getSchemaType(). /* creates <SCHEMA> attribute records */
+    ASSIGN
+      lReturn   = setPrefix() NO-ERROR.
+    IF cFormat = ? THEN DO:
+      RUN reset.
+      RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
+    END.
+      
+    /* Create root temp-table record */
+    RUN addNodesRec (/* abstract             */ "",
+                     /* attributeFormDefault */ "",
+                     /* base                 */ "",
+                     /* blockValue           */ "",
+                     /* content              */ "",
+                     /* dataForm             */ "",
+                     /* dataType             */ "",
+                     /* dataValue            */ "",
+                     /* defaultValue         */ "",
+                     /* derivedBy            */ "",
+                     /* element              */ hRoot:name,
+                     /* elementFormDefault   */ "",
+                     /* equivClass           */ "",
+                     /* final                */ "",
+                     /* mapConversion        */ "",
+                     /* mapFile              */ "",
+                     /* mapLink              */ "",
+                     /* mapName              */ "",
+                     /* mapObject            */ "",
+                     /* mapParameter         */ "",
+                     /* mapType              */ "",
+                     /* mapUpdate            */ "",
+                     /* maxOccurs            */ "",
+                     /* minOccurs            */ "",
+                     /* model                */ "",
+                     /* nameSpace            */ "",
+                     /* node                 */ iCounter,
+                     /* nodeName             */ hRoot:GET-ATTRIBUTE("name":U),
+                     /* nullable             */ "",
+                     /* order                */ "",
+                     /* parentName           */ "",
+                     /* parentNode           */ iPCounter,
+                     /* processContents      */ "",
+                     /* ref                  */ "",
+                     /* schemaLocation       */ "",
+                     /* schemaPath           */ hRoot:GET-ATTRIBUTE("name":U),
+                     /* targetNamespace      */ "",
+                     /* useValue             */ "",
+                     /* xNodeRef             */ hRoot).
+    
+    /* Find child nodes */
+    RUN getChild(/* parent handle      */ hRoot, 
+                 /* parent node        */ iPCounter, 
+                 /* parent name        */ hRoot:GET-ATTRIBUTE("name":U),
+                 /* parent schema path */ hRoot:GET-ATTRIBUTE("name":U)).
   
-    RUN expandNodes(/* name     */ tNode.nodeName, 
-                    /* node     */ tNode.node, 
-                    /* element  */ tNode.element,
-                    /* datatype */ tNode.dataType,
-                    /* docpath  */ tData.documentPath,
-                    /* ref      */ tData.ref).
-  END. 
-  
+    /* Find root node.  Multiple root nodes are not supported. */
+    FOR EACH tNode WHERE tNode.node > 0 AND tNode.parentNode = 0:
+      IF trimPrefix(tNode.element) = "element" AND
+        NOT CAN-DO(cSimpleType, trimPrefix(tNode.dataType)) THEN DO:
+        iRoot = tNode.node.
+        LEAVE.
+      END.
+    END.
+    
+    /* Seed tData, expand nodes, create data structure file from schema */
+    FIND tNode WHERE tNode.node = iRoot NO-ERROR.
+    IF NOT AVAILABLE tNode THEN DO:
+      RUN reset.
+      RETURN ERROR ERROR-STATUS:GET-MESSAGE(1).
+    END.
+    ELSE DO:
+      CREATE tData.
+      BUFFER-COPY tNode TO tData.
+      FIND LAST buf_tNode.
+      ASSIGN
+        tData.documentPath = ("/":U + tData.nodeName)
+        iLastNode          = buf_tNode.node.
+    
+      RUN expandNodes(/* name     */ tNode.nodeName, 
+                      /* node     */ tNode.node, 
+                      /* element  */ tNode.element,
+                      /* datatype */ tNode.dataType,
+                      /* docpath  */ tData.documentPath,
+                      /* ref      */ tData.ref).
+    END. 
+    
   ASSIGN
-    hNode   = TEMP-TABLE tNode:HANDLE
-    hData   = TEMP-TABLE tData:HANDLE
-    hSchema = TEMP-TABLE tSchema:HANDLE.
-
-  /* Cleanup */
-  IF pDelete THEN DO:
-    DELETE OBJECT hDoc NO-ERROR.
-    DELETE OBJECT hRoot NO-ERROR.
-  
-    /* When the object is deleted the handle may/will be reused.
-       We set the 'globals' to unknown to ensure that reset doesn't
-       delete the wrong objects. */
-    ASSIGN
-      hDoc  = ?
-      hRoot = ?.
-  END.
+      hNode   = TEMP-TABLE tNode:HANDLE
+      hData   = TEMP-TABLE tData:HANDLE
+      hSchema = TEMP-TABLE tSchema:HANDLE.
+      
+  IF pDelete THEN
+    RUN reset.
   
 END PROCEDURE.
 
@@ -1252,8 +1087,13 @@ PROCEDURE reset :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  DELETE OBJECT    hDoc     NO-ERROR.
-  DELETE OBJECT    hRoot    NO-ERROR.
+  deleteObject(hDoc).
+  deleteObject(hRoot).
+
+  /* Delete X-NODEREF objects */
+  FOR EACH tNode:
+    deleteObject(tNode.xNodeRef).
+  END.
   
   EMPTY TEMP-TABLE tNode    NO-ERROR.
   EMPTY TEMP-TABLE tData    NO-ERROR.
@@ -1264,7 +1104,7 @@ PROCEDURE reset :
     hDoc      = ?
     hRoot     = ?
     iCounter  = 0
-    iPCounter = 0.
+    iPCounter = 0 NO-ERROR.
 
 END PROCEDURE.
 
@@ -1310,7 +1150,7 @@ PROCEDURE saveSchema :
   
   /* Create namespace */
   hRoot:SET-ATTRIBUTE("xmlns:psc":U, 
-    "urn:schemas-progress-com:data-mapping:91b").
+    "urn:schemas-progress-com:data-mapping:91D").
     
   /* Update root attributes */
   IF getContainer() <> "" THEN
@@ -1480,6 +1320,51 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-createNodeRef) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createNodeRef Procedure 
+FUNCTION createNodeRef RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hNodeRef AS HANDLE     NO-UNDO.
+
+  CREATE X-NODEREF hNodeRef.
+
+  RETURN hNodeRef.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-deleteObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION deleteObject Procedure 
+FUNCTION deleteObject RETURNS HANDLE
+  ( hObject AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  IF VALID-HANDLE(hObject) THEN
+    DELETE OBJECT hObject NO-ERROR.
+  hObject = ?.
+
+  RETURN hObject.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getContainer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getContainer Procedure 
@@ -1556,33 +1441,35 @@ FUNCTION getSchemaType RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cAttrList AS CHARACTER  NO-UNDO
+  DEFINE VARIABLE cAttrName AS CHARACTER  NO-UNDO
     INITIAL "xmlns,xmlns:xsd,targetNamespace":U.
-  DEFINE VARIABLE cTypeList AS CHARACTER  NO-UNDO
-    INITIAL "http://www.w3.org/1999/XMLSchema,w3c":U.
+    
+  /* One value now, but will expand in the future (adams) */
+  DEFINE VARIABLE cAttrValue AS CHARACTER  NO-UNDO
+    INITIAL "http://www.w3.org/1999/XMLSchema":U.
 
   DEFINE VARIABLE cReturn   AS CHARACTER  NO-UNDO INITIAL ?.
-  DEFINE VARIABLE lFound    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iPos      AS INTEGER    NO-UNDO.
   DEFINE VARIABLE ix        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iy        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lFound    AS LOGICAL    NO-UNDO.
   
   EMPTY TEMP-TABLE tSchema.
+  
   DO ix = 1 TO NUM-ENTRIES(hRoot:ATTRIBUTE-NAMES):
     CREATE tSchema.
     ASSIGN
-      attrName  = ENTRY(ix, hRoot:ATTRIBUTE-NAMES)
-      attrValue = hRoot:GET-ATTRIBUTE(attrName).
+      tSchema.attrName  = ENTRY(ix, hRoot:ATTRIBUTE-NAMES)
+      tSchema.attrValue = hRoot:GET-ATTRIBUTE(tSchema.attrName).
       
     /* Find the schema type. */
-    IF NOT lFound AND CAN-DO(cAttrList, tSchema.attrName) THEN
-    DO iy = 1 TO NUM-ENTRIES(cTypeList) BY 2:
-      /*IF INDEX(tSchema.attrValue, ENTRY(iy, cTypeList)) > 0 THEN DO:*/
-      IF tSchema.attrValue = ENTRY(iy, cTypeList) THEN DO:
+    IF NOT lFound AND      
+      CAN-DO(cAttrName, tSchema.attrName) AND
+      CAN-DO(cAttrValue, tSchema.attrValue) THEN DO:
         ASSIGN
-          cReturn = ENTRY(iy + 1, cTypeList)
+          iPos    = LOOKUP(cAttrValue, tSchema.attrValue)
+          cReturn = ENTRY(iPos, cAttrValue)
           lFound  = TRUE.
         LEAVE.
-      END.
     END.
   END.
     

@@ -48,14 +48,6 @@
 
 &SCOPED-DEFINE EXCLUDE-repositionObject
 
-/* constants */
-&GLOBAL-DEFINE xiHeightToolbar 30
-&GLOBAL-DEFINE xiSpacing       0
-&GLOBAL-DEFINE xiSeparator     10
-&GLOBAL-DEFINE xiToolWidth     24
-&GLOBAL-DEFINE xiToolHeight    24
-&GLOBAL-DEFINE xiMaxButtons    6
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -97,7 +89,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm2/action.i}
+{src/adm2/panel.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -112,7 +104,6 @@
 /* ***************************  Main Block  *************************** */
 
 
-  /* Starts super procedure */
   RUN start-super-proc("adm2/toolbar.p":U).
   
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */

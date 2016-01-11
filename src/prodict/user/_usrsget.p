@@ -90,7 +90,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
   /* 12*/ "",  /* reserved */
   /* 13*/ "is the only database connected - it is already selected.",
   /* 14*/ "You have been automatically switched to database",
-/*15,16*/ "The V9", "Dictionary can not be used with a PROGRESS",
+/*15,16*/ "The", "Dictionary can not be used with a PROGRESS",
   /* 17*/ "database.",
   /* 18*/ "There are no databases connected to select!",
   /* 19*/ "This copy of PROGRESS does not support database type",
@@ -322,7 +322,7 @@ DO WHILE choice = ?:
       /*CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[rpos])*/
       THEN DO:
       old_dbver = "V" + DBVERSION(cache_db#).
-      MESSAGE new_lang[15] new_lang[16] old_dbver new_lang[17] VIEW-AS ALERT-BOX. /* cannot use V5/V6/V7/V8 db and V9 dict together */
+      MESSAGE new_lang[15] PROVERSION new_lang[16] old_dbver new_lang[17] VIEW-AS ALERT-BOX. /* cannot use V5/V6/V7/V8 db and V9 dict together */
       NEXT.
     END.
     ELSE

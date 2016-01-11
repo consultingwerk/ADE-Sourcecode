@@ -48,6 +48,10 @@
             06/18/98 Change DTYPE_RAW from 6 to 8 DLM
             01/12/99 Added allow-null switch D. McMann
             05/18/00 Added support for new keyword MAX-GLYPHS
+            02/12/02 Added logic for changing stlen of fields when the format was increased.
+            03/14/02 Added logic to check max-size = stlen.
+            03/21/02 Added assignment to _fil-misc1[1] when only format is changed
+                     for extents
                          
                                
 */    
@@ -55,17 +59,22 @@
 { as4dict/dictvar.i shared }
 { as4dict/load/loaddefs.i }
 
-DEFINE VARIABLE scrap    AS CHARACTER                          NO-UNDO.
-DEFINE VARIABLE decimal_pos AS INTEGER                         NO-UNDO.
-DEFINE VARIABLE fldrecid AS RECID                              NO-UNDO.
-DEFINE VARIABLE fldrpos  AS INTEGER                            NO-UNDO.
-DEFINE VARIABLE pdpos AS INTEGER                               NO-UNDO.
-DEFINE VARIABLE j        AS INTEGER                            NO-UNDO.
-DEFINE VARIABLE type_idx AS INTEGER                            NO-UNDO.
+DEFINE VARIABLE scrap          AS CHARACTER                    NO-UNDO.
+DEFINE VARIABLE decimal_pos    AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE fldrecid       AS RECID                        NO-UNDO.
+DEFINE VARIABLE fldrpos        AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE pdpos          AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE j              AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE type_idx       AS INTEGER                      NO-UNDO.
 DEFINE VARIABLE s_Fld_Typecode AS INTEGER                      NO-UNDO.
-DEFINE VARIABLE dtype_ok AS LOGICAL                            NO-UNDO.  
-DEFINE VARIABLE chgsize  AS LOGICAL                            NO-UNDO.
-DEFINE VARIABLE ofldlen  AS INTEGER                            NO-UNDO.
+DEFINE VARIABLE dtype_ok       AS LOGICAL                      NO-UNDO.  
+DEFINE VARIABLE chgsize        AS LOGICAL                      NO-UNDO.
+DEFINE VARIABLE ofldlen        AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE ofldmisc15     AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE ofldstdtype    AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE odecimals      AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE ofortype       AS CHARACTER                    NO-UNDO.
+DEFINE VARIABLE oformax        AS INTEGER                      NO-UNDO.
 
 
 DEFINE BUFFER As4_Field FOR As4dict.p__field.
@@ -140,15 +149,26 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
   _for-loop:  
   DO:
     ASSIGN as4dict.p__Field._Format = wfld._Format.
+    IF wfld._fld-stlen = as4dict.p__Field._Fld-stlen AND as4dict.p__Field._Data-type = "CHARACTER" THEN 
+      RUN getcharlength.
+    ELSE
+      ASSIGN lngth = (IF wfld._Fld-stlen > 0 THEN wfld._Fld-stlen ELSE as4dict.p__Field._Fld-stlen).
+
     IF CAN-FIND(FIRST as4dict.p__Idxfd WHERE as4dict.p__Idxfd._fld-number = as4dict.p__Field._Fld-number 
                    AND as4dict.p__Idxfd._File-number = as4dict.p__Field._File-number) THEN DO:
-      ASSIGN lngth = (IF wfld._Fld-stlen > 0 THEN wfld._Fld-stlen ELSE as4dict.p__Field._Fld-stlen).
+      
       IF lngth > 200 THEN DO:
         ASSIGN chgsize = FALSE
                ierror = 49.
         LEAVE _for-loop.
       END.
-      ASSIGN chgsize = TRUE.
+      ASSIGN chgsize = TRUE
+             ofldlen = as4dict.p__field._fld-stlen
+             ofldmisc15 = as4dict.p__Field._Fld-misc1[5]
+             ofldstdtype = as4dict.p__Field._Fld-stdtype
+             ofortype = as4dict.p__Field._For-type
+             odecimals = as4dict.p__Field._Decimals
+             oformax   = as4dict.p__Field._For-maxsize.
 
       FOR EACH as4dict.p__Index WHERE as4dict.p__Index._File-number = as4dict.p__Field._File-number:
         FIND FIRST as4dict.p__Idxfd WHERE as4dict.p__idxfd._Idx-num = as4dict.p__Index._Idx-num
@@ -171,7 +191,20 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
           IF ierror > 0 THEN LEAVE _for-loop.
         END.
       END.
-    END.    
+    END.
+    ELSE IF as4dict.p__Field._Extent > 0 THEN DO:
+      ASSIGN chgsize = FALSE
+             ierror = 51
+             as4dict.p__File._Fil-misc1[1] = as4dict.p__File._Fil-misc1[1] + 1.
+    END.
+    ELSE
+        ASSIGN chgsize = TRUE
+               ofldlen = as4dict.p__field._fld-stlen
+               ofldmisc15 = as4dict.p__Field._Fld-misc1[5]
+               ofldstdtype = as4dict.p__Field._Fld-stdtype
+               ofortype = as4dict.p__Field._For-type
+               odecimals = as4dict.p__Field._Decimals
+               oformax   = as4dict.p__Field._For-maxsize.
   END. 
 
   IF imod = "a" AND CAN-FIND(as4dict.p__Field WHERE as4dict.p__Field._File-number = pfilenumber
@@ -206,8 +239,8 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
     RUN bump_sub (wfld._Order).
   
   IF imod = "a" THEN
-  ASSIGN pfldnumber = (IF as4dict.p__file._Fil-Res1[5] <> ? THEN
-               as4dict.p__file._Fil-Res1[5] + 1 ELSE 1).
+    ASSIGN pfldnumber = (IF as4dict.p__file._Fil-Res1[5] <> ? THEN
+                         as4dict.p__file._Fil-Res1[5] + 1 ELSE 1).
   ELSE
     ASSIGN pfldnumber = as4dict.p__Field._Fld-number.             
 
@@ -239,13 +272,18 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
      ASSIGN
       as4dict.p__Field._Field-name = wfld._Field-name
       as4dict.p__Field._Order      = wfld._Order     
-      as4dict.p__Field._Format     = wfld._Format
-      ofldlen                      = as4dict.p__Field._Fld-stlen .
+      as4dict.p__Field._Format     = wfld._Format.
      
   { as4dict/load/copy_fld.i &from=wfld &to=as4dict.p__Field &all=false}
   
   IF imod = "m" AND ofldlen > as4dict.p__Field._Fld-stlen THEN
-    ASSIGN as4dict.p__Field._Fld-stlen = ofldlen.
+    ASSIGN as4dict.p__Field._Fld-stlen = ofldlen
+           as4dict.p__Field._Fld-misc1[5] = ofldmisc15
+           as4dict.p__Field._Fld-stdtype = ofldstdtype
+           as4dict.p__Field._For-type = ofortype
+           as4dict.p__Field._Decimals = odecimals 
+           chgsize = FALSE
+           ierror = 50.
 
    /* Get rid of cr/lf and spaces in the description and valexp fields */
    ASSIGN as4dict.p__Field._Desc = TRIM(REPLACE (as4dict.p__Field._Desc, CHR(13), ""))
@@ -262,7 +300,7 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
           ASSIGN as4dict.p__Field._Fld-Misc2[5] = "B".      
       ELSE
           ASSIGN as4dict.p__Field._Fld-misc2[5] = "P".               
-    END.      
+   END.      
 
    ASSIGN as4dict.p__Field._Can-Read = (IF as4dict.p__field._Can-Read = "" THEN
               "*" ELSE as4dict.p__field._Can-Read)
@@ -305,7 +343,7 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
             as4dict.p__Field._Fld-misc2[6] = pddstype[pdpos]
             as4dict.p__Field._For-type     = fortype[pdpos]
             as4dict.p__Field._Fld-stdtype  = fldstdtype[pdpos].
-      END.
+  END.
 
   ELSE  /* Type AS400 */
     IF as4dict.p__Field._For-type <> "" AND as4dict.p__field._For-type <> ? THEN DO:
@@ -347,13 +385,25 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
          DO j = 1 to as4dict.p__field._Decimal:
            ASSIGN as4dict.p__field._format = as4dict.p__field._format + "9".
          END.
-      END.              
-          
+      END.                        
   END.
- 
-  IF imod = "a" THEN DO:
+
+  /* Now calculate the information for new fields or fields we are going to change
+     because the format changed */
+  IF imod = "a" OR chgsize THEN DO:
+   
    {as4dict/FLD/as4stlen.i &prefix = "as4dict.p__field" }
-   ASSIGN chgsize = TRUE. 
+   /* If the changed information is smaller than the old, we can't change the field so put
+      everything back except the format */
+
+   IF chgsize AND as4dict.p__field._fld-stlen < ofldlen  THEN
+     ASSIGN as4dict.p__field._fld-stlen = ofldlen
+            as4dict.p__Field._Fld-misc1[5] = ofldmisc15
+            as4dict.p__Field._Fld-stdtype = ofldstdtype
+            as4dict.p__Field._For-type = ofortype
+            as4dict.p__Field._Decimals = odecimals
+            ierror = 50
+            chgsize = FALSE. 
   END.
   
   /* Restore format to what the user wanted */
@@ -387,9 +437,7 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
       ELSE IF as4dict.p__Field._Fld-stdtype = 33 THEN
         ASSIGN as4dict.p__Field._Fld-misc1[5] = wFld._Fld-stlen.  
     END.
-    ELSE IF imod = "m" AND as4dict.p__Field._Fld-stlen > wfld._Fld-stlen  AND chgsize THEN
-      ierror = 50.
-
+    
     IF as4dict.p__Field._Fld-stdtype = 37 THEN
       ASSIGN as4dict.p__Field._Fld-misc1[5] = 9.    
     ELSE IF as4dict.p__Field._Fld-stdtype = 38 THEN
@@ -402,6 +450,9 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
      ASSIGN as4dict.p__field._For-type = "Sint"
             as4dict.p__field._Fld-stlen = 2
             as4dict.p__field._Fld-stdtype = 35.
+  ELSE IF as4dict.p__Field._For-type = "Lint" AND as4dict.p__Field._Fld-stlen <> 4 THEN
+     ASSIGN as4dict.p__Field._Fld-stlen = 4.
+
   
   /* DDS TYPE - FLD-MISC2[6] */
   IF (as4dict.p__Field._Fld-Misc2[6] = "" OR as4dict.p__Field._Fld-Misc2[6] = ?)
@@ -410,13 +461,19 @@ IF (imod = "a") OR (imod = "m" AND as4dict.p__Field._Format <> wfld._Format) THE
      assign as4dict.p__field._Fld-Misc2[6] = ddstype[dpos].
   END.
 
-  /* Tell the client that we have a variable length field  and change max number
+  /* Tell the client that we have a new variable length field  and change max number
        of digits allowed and length to equal max size. */
-  IF as4dict.p__field._For-Maxsize <> 0 AND as4dict.p__Field._For-Maxsize <> ? THEN
-     ASSIGN as4dict.p__field._Fld-Misc1[6] = 1
-            as4dict.p__Field._Fld-stlen = as4dict.p__Field._For-maxsize
-            as4dict.p__Field._For-maxsize = as4dict.p__Field._For-maxsize + 2.
-            
+
+  IF as4dict.p__field._For-Maxsize <> 0 AND 
+     as4dict.p__Field._For-Maxsize <> ? AND 
+     imod = "a" THEN DO:    
+    IF (as4dict.p__Field._Fld-stlen + 2) = as4dict.p__Field._For-maxsize THEN
+        as4dict.p__field._Fld-Misc1[6] = 1.
+    ELSE
+      ASSIGN as4dict.p__field._Fld-Misc1[6] = 1
+             as4dict.p__Field._Fld-stlen = as4dict.p__Field._For-maxsize
+             as4dict.p__Field._For-maxsize = as4dict.p__Field._For-maxsize + 2.
+  END.
   IF as4dict.p__Field._Data-type BEGINS "char" AND 
      as4dict.p__Field._For-Type = "cstring" THEN
           SUBSTRING(as4dict.p__File._Fil-Misc2[5],2,1) = "6".
@@ -687,7 +744,43 @@ PROCEDURE bump_sub.
 
 END PROCEDURE.
 
+PROCEDURE getcharlength.
+  define var left_paren as integer.
+  define var right_paren as integer.
+  define var i as integer.
+  define var nbrchar as integer. 
+          
+  ASSIGN lngth = LENGTH(wfld._Format, "character").  
+           
+  if index(wfld._Format, "(") > 1 THEN DO:
+    ASSIGN left_paren = INDEX(wfld._Format, "(")
+           right_paren = INDEX(wfld._Format, ")")
+           lngth = right_paren - (left_paren + 1).
+    ASSIGN lngth =  INTEGER(SUBSTRING(wfld._Format, left_paren + 1, lngth)).  
+  END.  
+  ELSE DO:           
+    DO i = 1 to lngth:        
+      IF SUBSTRING(wfld._Format,i,1) = "9" OR
+         SUBSTRING(wfld._Format,i,1) = "N" OR   
+         SUBSTRING(wfld._Format,i,1) = "A" OR    
+         SUBSTRING(wfld._Format,i,1) = "x" OR
+         SUBSTRING(wfld._Format,i,1) = "!"   THEN
+            ASSIGN nbrchar = nbrchar + 1.
+    END.         
+  END.
+  IF nbrchar > 0 THEN
+    ASSIGN lngth = nbrchar
+           wfld._fld-stlen = lngth.
+  ELSE
+      ASSIGN wfld._fld-stlen = lngth.    
+      
+  IF as4dict.p__Field._Fld-misc1[6] = 1 THEN
+    RUN setlength.
+END. /* When Dtype character */           
 
-
-
+PROCEDURE setlength.
+    
+  IF wfld._fld-stlen > as4dict.p__Field._Fld-stlen THEN 
+    ASSIGN wfld._For-maxsize = wfld._Fld-stlen + 2.
+END.
 

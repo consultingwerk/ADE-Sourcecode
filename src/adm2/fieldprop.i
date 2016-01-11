@@ -32,6 +32,9 @@
     Description :
 
     Modified    : June 23, 1999 Version 9.1A
+    Modified    : 10/25/2001         Mark Davies (MIP)
+                  1. Added ADM props fields for DataValue and DisplayedValue
+    
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -118,6 +121,8 @@
   {src/adm2/visprop.i}
 
 &IF "{&ADMSuper}":U = "":U &THEN
+  ghADMProps:ADD-NEW-FIELD('DataValue':U,      'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('DisplayValue':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldName':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('FieldEnabled':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('EnableField':U, 'LOGICAL':U, 0, ?, no).

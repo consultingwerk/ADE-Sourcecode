@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -42,6 +42,8 @@ Date Created: 2/10/95
 Modified:
   08/01/95 - remove widget-pool "_pal"
   10/18/96 - remove labels, will implement tooltips
+  09/28/01 - IZ 2008 Tooltips now use Label from .cst file (if defined)
+             instead of Name. Its more descriptive. (jep-icf)
 ---------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER reinit       AS LOGICAL NO-UNDO. 
 
@@ -100,6 +102,7 @@ PROCEDURE create_palette:
   DEFINE VAR nextX           AS INTEGER NO-UNDO INIT 0.
   DEFINE VAR nextY           AS INTEGER NO-UNDO INIT 0.
   DEFINE VAR image_file_lock AS CHAR    NO-UNDO.
+  DEFINE VAR tool_tip        AS CHAR    NO-UNDO.
 
   &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN 
     ASSIGN image_file_lock =  {&ADEICON-DIR} + "lock.ico".
@@ -128,6 +131,11 @@ PROCEDURE create_palette:
   
   /* Layout all the widgets in the palette in 1 column */
   FOR EACH _palette_item USE-INDEX _order:
+    /* jep-icf: Figure out what to use for tool tip. Label from the .cst file is preferable
+       to just the name - its more descriptive. */
+    ASSIGN tool_tip = _palette_item._NAME
+           tool_tip = _palette_item._LABEL2 WHEN (_palette_item._LABEL2 <> "").
+           
     /* Create a frame for each widget.  We need a seperate frame because
        we are going to attach a popup menu to each item, and we cannot
        attach popup-menus to images.  */
@@ -159,7 +167,7 @@ PROCEDURE create_palette:
       HEIGHT-P          = {&ImageSize}
       HIDDEN            = NO
       SENSITIVE         = YES
-      TOOLTIP           = _palette_item._NAME
+      TOOLTIP           = tool_tip
       CONVERT-3D-COLORS = YES
       TRIGGERS:
         /* Toggle the lock on the current selection, whatever that is. */
@@ -177,7 +185,7 @@ PROCEDURE create_palette:
       HEIGHT-P          = 16
       HIDDEN            = YES    /* Don't show it until we enter Lock State */
       SENSITIVE         = YES 
-      TOOLTIP           = _palette_item._NAME
+      TOOLTIP           = tool_tip
       CONVERT-3D-COLORS = YES
       TRIGGERS:
         /* Toggle the lock state on the current selection */
@@ -198,7 +206,7 @@ PROCEDURE create_palette:
       SENSITIVE         = YES
       PRIVATE-DATA      = _palette_item._NAME + "," + STRING(h_lock:HANDLE)
       HELP              = _palette_item._NAME
-      TOOLTIP           = _palette_item._NAME
+      TOOLTIP           = tool_tip
       TRIGGERS:
         ON MOUSE-SELECT-DOWN PERSISTENT RUN tool_choose IN _h_uib (0, _palette_item._NAME, ?).
         ON MOUSE-EXTEND-DOWN PERSISTENT RUN tool_choose IN _h_uib (0, _palette_item._NAME, ?).

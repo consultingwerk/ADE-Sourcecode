@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -62,9 +62,14 @@ DEFINE VARIABLE h_menu    AS WIDGET NO-UNDO.  /*... Menu-bar             */
 DEFINE VARIABLE h_submenu AS WIDGET NO-UNDO.  /*... Sub-Menu             */
 DEFINE VARIABLE h_subm    AS WIDGET NO-UNDO.  /*... Sub-Menu             */
 DEFINE VARIABLE h         AS WIDGET NO-UNDO.  /*... generic handle       */
+DEFINE VARIABLE lIsICFRunning AS LOGICAL   NO-UNDO.
 
 /* MAIN */
 DO ON STOP UNDO, LEAVE:
+
+/* Establish if Dynamics is running. */
+ASSIGN lIsICFRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
+ASSIGN lIsICFRunning = (lIsICFRunning = YES) NO-ERROR.
 
 /* Create a MENU-BAR */
 CREATE MENU h_menu IN WIDGET-POOL {&PW_Pool}
@@ -156,6 +161,18 @@ ASSIGN
   TRIGGERS:
     ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("SAVE-AS").
   END TRIGGERS.
+
+/* IZ 2513. Add the 'Add to Repository' option when Dynamics ICF is running. */
+IF lIsICFRunning THEN
+DO:
+  CREATE MENU-ITEM h IN WIDGET-POOL {&PW_Pool}
+  ASSIGN
+    LABEL  = "Add to &Repository..."
+    PARENT = h_submenu
+    TRIGGERS:
+      ON CHOOSE PERSISTENT RUN adecomm/_pwfile.p ("ADD-REPOS").
+    END TRIGGERS.
+END.
 
 RUN CreateRule.
 

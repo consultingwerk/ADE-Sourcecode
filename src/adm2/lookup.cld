@@ -1,0 +1,19 @@
+/* Class Definition for lookup - src\adm2\lookup.cld - 08/11/2000 
+   Class Type: User-Defined	
+   Class Name: lookup
+   Class DeriveFrom: src/adm2/field.cld
+   Class SourcePath: src/adm2
+   Class RcodePath: adm2
+   Class TemplatePath:    
+   Class Method: lookup.i
+   Class Property: lookprop.i
+   Class Super: lookup.p
+   Class Prototype: lookprto.i
+   Class Template: 
+   Custom Method: lookupcustom.i
+   Custom Property: lookpropcustom.i
+   Custom Super: lookupcustom.p
+   Custom Prototype: lookprtocustom.i
+   Custom Exclude: lookupexclcustom.i
+   Custom Instance: lookupdefscustom.i
+ */

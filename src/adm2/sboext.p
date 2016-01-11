@@ -91,10 +91,10 @@ FUNCTION getBlockDataAvailable RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getCascadeOnBrowse) = 0 &THEN
+&IF DEFINED(EXCLUDE-getBlockQueryPositiion) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCascadeOnBrowse Procedure 
-FUNCTION getCascadeOnBrowse RETURNS LOGICAL
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getBlockQueryPositiion Procedure 
+FUNCTION getBlockQueryPositiion RETURNS LOGICAL
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -102,22 +102,11 @@ FUNCTION getCascadeOnBrowse RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getCommitSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-getCascadeOnBrowse) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCommitSource Procedure 
-FUNCTION getCommitSource RETURNS HANDLE
-  (   )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCommitSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCommitSourceEvents Procedure 
-FUNCTION getCommitSourceEvents RETURNS CHARACTER
-  (   )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCascadeOnBrowse Procedure 
+FUNCTION getCascadeOnBrowse RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -146,6 +135,17 @@ FUNCTION getContainedDataObjects RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentUpdateSource Procedure 
+FUNCTION getCurrentUpdateSource RETURNS HANDLE
+(  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getDataColumns) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataColumns Procedure 
@@ -162,6 +162,17 @@ FUNCTION getDataColumns RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataHandle Procedure 
 FUNCTION getDataHandle RETURNS HANDLE
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataIsFetched) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataIsFetched Procedure 
+FUNCTION getDataIsFetched RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -212,6 +223,39 @@ FUNCTION getDataTargetEvents RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterActive Procedure 
+FUNCTION getFilterActive RETURNS LOGICAL
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterAvailable Procedure 
+FUNCTION getFilterAvailable RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterWindow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFilterWindow Procedure 
+FUNCTION getFilterWindow RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFields Procedure 
@@ -245,22 +289,11 @@ FUNCTION getMasterDataObject RETURNS HANDLE
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHARACTER
-  (   )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNavigationSourceEvents Procedure 
-FUNCTION getNavigationSourceEvents RETURNS CHARACTER
-  (   )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewMode Procedure 
+FUNCTION getNewMode RETURNS LOGICAL
+    () FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -283,6 +316,17 @@ FUNCTION getNewRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectMapping Procedure 
 FUNCTION getObjectMapping RETURNS CHARACTER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getOpenOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOpenOnInit Procedure 
+FUNCTION getOpenOnInit RETURNS LOGICAL
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -366,6 +410,17 @@ FUNCTION setBlockDataAvailable RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBlockQueryPosition) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBlockQueryPosition Procedure 
+FUNCTION setBlockQueryPosition RETURNS LOGICAL
+ ( plBlockQueryPosition AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCascadeOnBrowse) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCascadeOnBrowse Procedure 
@@ -399,6 +454,28 @@ FUNCTION setContainedDataColumns RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentUpdateSource Procedure 
+FUNCTION setCurrentUpdateSource RETURNS LOGICAL
+( phSource AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataIsFetched) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataIsFetched Procedure 
+FUNCTION setDataIsFetched RETURNS LOGICAL
+  ( plFetched AS LOG)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setDataObjectNames) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataObjectNames Procedure 
@@ -415,6 +492,39 @@ FUNCTION setDataObjectNames RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDataQueryBrowsed Procedure 
 FUNCTION setDataQueryBrowsed RETURNS LOGICAL
   ( plBrowsed AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterActive Procedure 
+FUNCTION setFilterActive RETURNS LOGICAL
+  ( plFilterActive AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterAvailable Procedure 
+FUNCTION setFilterAvailable RETURNS LOGICAL
+  ( plFilterAvailable AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterWindow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterWindow Procedure 
+FUNCTION setFilterWindow RETURNS LOGICAL
+  ( pcObject AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -443,22 +553,22 @@ FUNCTION setForeignValues RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setNavigationSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-setObjectMapping) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setNavigationSource Procedure 
-FUNCTION setNavigationSource RETURNS LOGICAL
-  ( pcSource AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectMapping Procedure 
+FUNCTION setObjectMapping RETURNS LOGICAL
+  ( pcMapping AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setObjectMapping) = 0 &THEN
+&IF DEFINED(EXCLUDE-setOpenOnInit) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectMapping Procedure 
-FUNCTION setObjectMapping RETURNS LOGICAL
-  ( pcMapping AS CHARACTER )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setOpenOnInit Procedure 
+FUNCTION setOpenOnInit RETURNS LOGICAL
+  ( plOpenOnInit AS LOGICAL  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -494,7 +604,7 @@ FUNCTION setRowObjectState RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 14.67
+         HEIGHT             = 12
          WIDTH              = 53.2.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -568,6 +678,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getBlockQueryPositiion) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getBlockQueryPositiion Procedure 
+FUNCTION getBlockQueryPositiion RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if queryPosition messages, published from contained SDOs 
+           are to be ignored.
+    Notes:  
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE lBlockQueryPosition AS LOGICAL    NO-UNDO.
+  {get BlockQueryPosition lBlockQueryPosition}.
+  RETURN lBlockQueryPosition.
+ 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCascadeOnBrowse) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCascadeOnBrowse Procedure 
@@ -584,47 +716,6 @@ FUNCTION getCascadeOnBrowse RETURNS LOGICAL
   DEFINE VARIABLE lCascade AS LOG    NO-UNDO.
   {get CascadeOnBrowse lCascade}.
   RETURN lCascade.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCommitSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCommitSource Procedure 
-FUNCTION getCommitSource RETURNS HANDLE
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the handle of the Commit Panel or other Commit-Source.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hCommitSource AS HANDLE NO-UNDO.
-  {get CommitSource hCommitSource}.
-  RETURN hCommitSource.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCommitSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCommitSourceEvents Procedure 
-FUNCTION getCommitSourceEvents RETURNS CHARACTER
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the list of events to be subscribed to in the
-            Commit Panel or other Commit-Source.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
-  {get CommitSourceEvents cEvents}.
-  RETURN cEvents.
 
 END FUNCTION.
 
@@ -674,6 +765,28 @@ FUNCTION getContainedDataObjects RETURNS CHARACTER
   DEFINE VARIABLE cObjects AS CHARACTER NO-UNDO.
   {get ContainedDataObjects cObjects}.
   RETURN cObjects.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCurrentUpdateSource Procedure 
+FUNCTION getCurrentUpdateSource RETURNS HANDLE
+(  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the current updateSource 
+    Notes:  This is just set temporarily in updateState before re-publishing 
+            updateState, so that the updateSource/DataTarget can avoid a 
+            republish when it is the original publisher.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hSource AS HANDLE NO-UNDO.
+  {get CurrentUpdateSource hSource}.
+  RETURN hSource.
 
 END FUNCTION.
 
@@ -764,6 +877,32 @@ FUNCTION getDataHandle RETURNS HANDLE
   
   {get DataHandle hDataHandle hSource} NO-ERROR.
   RETURN hDataHandle.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getDataIsFetched) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataIsFetched Procedure 
+FUNCTION getDataIsFetched RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+   Purpose: The SBO sets this to true in the SDO when it has fethed 
+            data on the SDOs behalf in order to prevent that the SDO does 
+            another server call to fetch the data it already has. 
+            This is checked in query.p dataAvailable and openQuery is skipped
+            if its true. It's immediately turned off after it is checked.    
+    Notes: Duplicated in queryext 
+Note Date: 2002/04/14     
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFetched AS LOGICAL    NO-UNDO.
+  {get DataIsFetched lFetched}.
+
+  RETURN lFetched.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -931,6 +1070,111 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterActive Procedure 
+FUNCTION getFilterActive RETURNS LOGICAL
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose:  SBO version of this property function, which turns around and
+            gets the QueryPosition from the SDO to which the caller is mapped.
+    Params: <none>
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cSDOs      AS CHAR    NO-UNDO.
+  DEFINE VARIABLE iObject    AS INT     NO-UNDO.
+  DEFINE VARIABLE hObject    AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE cObject    AS CHAR    NO-UNDO.
+  DEFINE VARIABLE hRequester AS HANDLE  NO-UNDO.
+  DEFINE VARIABLE lActive    AS LOGICAL NO-UNDO.
+
+  /* The property may have been set explicitly */
+  &SCOPED-DEFINE xpFilterActive
+  {get FilterActive lActive}.
+  &UNDEFINE xpFilterActive
+  
+  /* if the value has not been set check all the SDOs mapped to the caller */ 
+  IF lActive = ? THEN                                                       
+  DO:
+    {get TargetProcedure hRequester SOURCE-PROCEDURE} NO-ERROR.
+    IF NOT VALID-HANDLE(hRequester) THEN
+       hRequester = SOURCE-PROCEDURE.
+
+    {get DataSourceNames cSDOs hRequester} NO-ERROR.
+    
+    IF ERROR-STATUS:ERROR THEN
+      {get NavigationTargetName cSDOs hRequester} NO-ERROR.
+    
+    /* If requester does not have DataSourceNames or NavigationTargetName then 
+     * assume all SDOs */ 
+    IF ERROR-STATUS:ERROR THEN
+      {get DataObjectNames cSDOs}.
+
+    DO iObject = 1 TO NUM-ENTRIES(cSDOs):
+      ASSIGN
+        cObject = ENTRY(iObject,cSDOs)
+        hObject = {fnarg dataObjectHandle cObject}
+        lActive = {fn getFilterActive hObject}
+        .
+      /* If one SDO has an active Filter we will return true */ 
+      IF lActive THEN
+          LEAVE.
+    END.
+  END.
+
+  RETURN IF lActive = ? THEN FALSE ELSE lActive. 
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterAvailable Procedure 
+FUNCTION getFilterAvailable RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return whether a filter is available. 
+    Notes: No xp preprocessor because the set also does a publish to toolbar 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lFilterAvailable  AS LOGICAL  NO-UNDO.
+  
+  &SCOPED-DEFINE xpFilterAvailable 
+  {get FilterAvailable lFilterAvailable}.
+  &UNDEFINE xpFilterAvailable 
+  
+  RETURN lFilterAvailable.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getFilterWindow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFilterWindow Procedure 
+FUNCTION getFilterWindow RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose   Return the FilterWindow property which is the name of the filter 
+            container.
+   Params:  none  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cFilterWindow AS CHARACTER NO-UNDO.
+  {get FilterWindow cFilterWindow}.
+  RETURN cFilterWindow.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignFields Procedure 
@@ -995,40 +1239,69 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getNavigationSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNavigationSource Procedure 
-FUNCTION getNavigationSource RETURNS CHARACTER
-  (   ) :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewMode Procedure 
+FUNCTION getNewMode RETURNS LOGICAL
+    ():
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the handle of the Navigation Panel or other 
-            Navigation-Source. Multiple Sources are supported, unlike SDOs.
-   Params:  <none>
+  Purpose:     This SBO version of getNewMode.
+   Params:     <none>
+   Returns:    TRUE if matching SDO is in NewMode
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cNavSourceList AS CHARACTER NO-UNDO.
-  {get NavigationSource cNavSourceList}.
-  RETURN cNavSourceList.
+  DEFINE VARIABLE hRequester    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMapping      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSource       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargets      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hMaster       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iObject       AS INTEGER    NO-UNDO.
 
-END FUNCTION.
+  /* If the hRequester is a super procedure (e.g. browser.p) 
+     then we must ask it for its TARGET-PROCEDURE to identify the
+     actual object making the request. Otherwise just use the SOURCE */
+  {get TargetProcedure hRequester SOURCE-PROCEDURE} NO-ERROR.
+  
+  IF NOT VALID-HANDLE (hRequester) THEN
+     hRequester = SOURCE-PROCEDURE.
+  
+  {get DataSourceNames cSourceNames hRequester} NO-ERROR. /* design time */
+  
+  IF cSourceNames = '':U OR cSourceNames = ? THEN
+  DO:
+    {get DataTarget cTargets} NO-ERROR.  /* Avoid errors at design time */
+    /* If the requester is a linked DataTarget we addDataTarget. */
+    IF CAN-DO(cTargets,STRING(hRequester)) THEN
+    DO:
+      RUN addDataTarget IN TARGET-PROCEDURE (hRequester).
+      /* addDataTarget will set DataSourceNames in the requester, so let's get 
+         it for the logic further down */
+      {get DataSourceNames cSourceNames hRequester}.
+    END. /* can-do(cTargets, ) */
+    ELSE DO: /* NOT linked... return the master's DataHandle  */  
+      {get MasterDataObject hMaster} NO-ERROR.
+      {get NewMode lNew hMaster}.
+      RETURN lNew.
+    END.
+   
+  END. /* no cSourceName */
+  
+  /* The requester may potentially have more than one source.
+    (An SDO that are getting foreign fields from different SDOs for example)*/
+  DO iObject = 1 TO NUM-ENTRIES(cSourceNames):
+    ASSIGN
+      cSource  = ENTRY(iObject,cSourceNames) 
+      hSource  = {fnarg DataObjectHandle cSource}.
+    
+    {get NewMode lNew hSource}.
+    IF lNew THEN 
+      RETURN TRUE.
+  END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getNavigationSourceEvents) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNavigationSourceEvents Procedure 
-FUNCTION getNavigationSourceEvents RETURNS CHARACTER
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the list of events to be subscribed to in the
-            Navigation Panel or other Navigation-Source.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
-  {get NavigationSourceEvents cEvents}.
-  RETURN cEvents.
+  /* if we get here the requester has no new sources */
+  RETURN FALSE. 
 
 END FUNCTION.
 
@@ -1043,10 +1316,9 @@ END FUNCTION.
 FUNCTION getNewRow RETURNS LOGICAL
     ():
 /*------------------------------------------------------------------------------
-  Purpose:     This SBO version of getDataHandle is run from a browser
-               to get the query from the contained Data object.
-   Params:     <none>
-   Returns:    HANDLE of matching SDO's RowObject query
+  Purpose:     SBO version of getNewRow.
+     Params:   <none>
+   Returns:    TRUE if matching SDO is a NewRow
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hRequester    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
@@ -1131,6 +1403,28 @@ FUNCTION getObjectMapping RETURNS CHARACTER
   DEFINE VARIABLE cMapping AS CHAR   NO-UNDO.
   {get ObjectMapping cMapping}.
   RETURN cMapping.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getOpenOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOpenOnInit Procedure 
+FUNCTION getOpenOnInit RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: Decides if queries should be opened at initialization.    
+Parameter: <none> 
+    Notes: Yes - open query at initialization 
+           No  - Don;t open query at initialization 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lOpenOnInit AS LOGICAL  NO-UNDO.
+  {get OpenOnInit lOpenOnInit}.
+  RETURN lOpenOnInit.
 
 END FUNCTION.
 
@@ -1228,7 +1522,7 @@ FUNCTION getRowsToBatch RETURNS INTEGER
   {get ObjectMapping cMapping}.
 
   iEntry = LOOKUP(STRING(hRequester), cMapping).
-  IF iEntry NE 0 THEN
+  IF iEntry NE 0 AND iEntry NE ? THEN
   DO:
       hDataObject = WIDGET-HANDLE(ENTRY(iEntry + 1, cMapping)).
       {get RowsToBatch iRowsToBatch hDataObject}.
@@ -1373,6 +1667,24 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setBlockQueryPosition) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBlockQueryPosition Procedure 
+FUNCTION setBlockQueryPosition RETURNS LOGICAL
+ ( plBlockQueryPosition AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to true to block outgoing queryPosition  
+    Notes: 
+------------------------------------------------------------------------------*/
+ {set BlockQueryPosition plBlockQueryPosition}.
+ RETURN TRUE.  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setCascadeOnBrowse) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCascadeOnBrowse Procedure 
@@ -1402,12 +1714,18 @@ END FUNCTION.
 FUNCTION setCommitSource RETURNS LOGICAL
   ( phSource AS HANDLE ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Sets the CommitSource property to the handle of the Commit Panel
-   Params:  phSource AS HANDLE 
+  Purpose:  
+    Notes: Override in order to set AutoCommit    
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lOk AS LOGICAL    NO-UNDO.
+  
+  lOk = SUPER(phSource).
+  
+  /* turn off autocommit if a valid commitSource is set */
+  IF lOk THEN
+    {set AutoCommit NOT(VALID-HANDLE(phSource))}.
 
-  {set CommitSource phSource}.
-  RETURN TRUE.
+  RETURN lok.
 
 END FUNCTION.
 
@@ -1432,6 +1750,51 @@ FUNCTION setContainedDataColumns RETURNS LOGICAL
 
   {set ContainedDataColumns pcColumns}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setCurrentUpdateSource) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setCurrentUpdateSource Procedure 
+FUNCTION setCurrentUpdateSource RETURNS LOGICAL
+( phSource AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set the current updateSource 
+    Notes:  This is just set temporarily in updateState before re-publishing 
+            updateState, so that the updateSource/DataTarget can avoid a 
+            republish when it is the original publisher.
+------------------------------------------------------------------------------*/
+  {set CurrentUpdateSource phSource}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setDataIsFetched) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDataIsFetched Procedure 
+FUNCTION setDataIsFetched RETURNS LOGICAL
+  ( plFetched AS LOG) :
+/*------------------------------------------------------------------------------
+  Purpose: The SBO sets this to true in the SDO when it has fethed 
+           data on the SDOs behalf in order to prevent that the SDO 
+           does another server call to fetch the data it already has. 
+           The SDO checks it in dataAvailable and avoids openQuery if its true.
+           It's immediately turned off after it is checked.    
+    Notes: Duplicated in queryext 
+Note Date: 2002/04/14    
+------------------------------------------------------------------------------*/
+  {set DataIsFetched plFetched}.
+  
+  RETURN TRUE.   
 
 END FUNCTION.
 
@@ -1509,6 +1872,94 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setFilterActive) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterActive Procedure 
+FUNCTION setFilterActive RETURNS LOGICAL
+  ( plFilterActive AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set a flag to indicate that a filter is active.  
+    Notes: No xp preprocessor because the getFilterActive also checks the 
+           callers DataTargetNames.   
+------------------------------------------------------------------------------*/  
+  &SCOPED-DEFINE xpFilterActive 
+  {set FilterActive plFilterActive}.
+  &UNDEFINE xpFilterActive 
+      
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterAvailable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterAvailable Procedure 
+FUNCTION setFilterAvailable RETURNS LOGICAL
+  ( plFilterAvailable AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set a flag to indicate that filter is available.
+    Notes: ALso update the FilterWindow property for StartFilter. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hFilterSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFilterWindow     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hFilterContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hMyContainer      AS HANDLE     NO-UNDO.
+
+  &SCOPED-DEFINE xpFilterAvailable 
+  {set FilterAvailable plFilterAvailable}.
+  &UNDEFINE xpFilterAvailable 
+
+  /* This info is used by startFilter */
+  {get FilterWindow cFilterWindow}.
+  IF cFilterWindow = '':U OR cFilterWindow = ? THEN
+  DO:
+    {get FilterSource hFilterSource}.
+    IF VALID-HANDLE(hFilterSource) THEN
+    DO:
+      {get ContainerSource hFilterContainer hFilterSource}.
+      {get ContainerSource hMyContainer}.    
+      IF hMyContainer <> hFilterContainer AND VALID-HANDLE(hFilterContainer) THEN
+        {set FilterWindow hFilterContainer:FILE-NAME}.
+    END.
+  END.
+
+  /* The toolbar is subscribing to filteravailble from the navigation link*/
+  IF plFilterAvailable THEN 
+     PUBLISH "FilterState":U FROM TARGET-PROCEDURE ("FilterAvailable":U).
+   
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setFilterWindow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterWindow Procedure 
+FUNCTION setFilterWindow RETURNS LOGICAL
+  ( pcObject AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the FilterWindow property which is the name of the filter 
+            container.
+   Params:  pcObject -- Procedure name
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set FilterWindow pcObject}.
+  RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setForeignFields Procedure 
@@ -1549,28 +2000,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setNavigationSource) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setNavigationSource Procedure 
-FUNCTION setNavigationSource RETURNS LOGICAL
-  ( pcSource AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets the NavigationSource property to the handle of the Nav Panel.
-            Because multiple Navigation-Sources are supported, this is a 
-            comma-separated list of strings.
-   Params:  pcSource AS CHARACTER
-------------------------------------------------------------------------------*/
-
-  {set NavigationSource pcSource}.
-  RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setObjectMapping) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectMapping Procedure 
@@ -1592,6 +2021,27 @@ FUNCTION setObjectMapping RETURNS LOGICAL
 
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setOpenOnInit) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setOpenOnInit Procedure 
+FUNCTION setOpenOnInit RETURNS LOGICAL
+  ( plOpenOnInit AS LOGICAL  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set to false if queries should not be opened at initialization.    
+Parameter: plOpenOnInit 
+                 Yes - open query at initialization 
+                 No  - Don;t open query at initialization 
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set OpenOnInit plOpenOnInit}.
+  RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

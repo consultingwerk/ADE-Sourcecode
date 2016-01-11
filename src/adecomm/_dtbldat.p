@@ -391,7 +391,7 @@ FOR EACH bFile NO-LOCK
 
    /* Table info */      
    ASSIGN
-      flags = (IF bFile._Db-lang = 1 THEN "s" ELSE "")
+      flags = (IF bFile._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF bFile._Frozen THEN "f" ELSE "").
 
    DISPLAY STREAM rpt

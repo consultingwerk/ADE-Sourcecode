@@ -45,7 +45,10 @@
    &GLOB xcInstanceProperties {&xcInstanceProperties},
 &ENDIF
 &GLOB xcInstanceProperties {&xcInstanceProperties}~
-FlatButtons,Menu,ShowBorder,Toolbar,ActionGroups,SubModules,TableIOType,SupportedLinks
+FlatButtons,Menu,ShowBorder,Toolbar,ActionGroups,SubModules,TableIOType,SupportedLinks,~
+ToolbarBands,ToolbarParentMenu,ToolbarAutoSize,ToolbarDrawDirection,ToolbarInitialState,~
+LogicalObjectName,AutoResize,DisabledActions,HiddenActions,HiddenToolbarBands,~
+HiddenMenuBands,MenuMergeOrder
 
   /* Custom instance definition file */
 
@@ -83,7 +86,7 @@ FlatButtons,Menu,ShowBorder,Toolbar,ActionGroups,SubModules,TableIOType,Supporte
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 6.43
+         HEIGHT             = 12
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -117,20 +120,31 @@ FlatButtons,Menu,ShowBorder,Toolbar,ActionGroups,SubModules,TableIOType,Supporte
 &GLOB xpImagePath 
 &GLOB xpShowBorder 
 &GLOB xpAvailMenuActions 
-&GLOB xpAvailToolbarActions 
+&GLOB xpAvailToolbarActions
+&GLOB xpHiddenToolbarBands
+&GLOB xpHiddenMenuBands
 &GLOB xpSubModules 
 &GLOB xpTableioType 
-&GLOB xpToolbarMinWidth
-
-  {src/adm2/actiprop.i}
+&GLOBAL-DEFINE xpToolbarBands
+&GLOBAL-DEFINE xpToolbarParentMenu
+&GLOBAL-DEFINE xpMenuMergeOrder
+&GLOBAL-DEFINE xpToolbarDrawDirection
+&GLOBAL-DEFINE xpToolbarAutoSize
+&GLOBAL-DEFINE xpToolMaxWidthPxl
+&GLOBAL-DEFINE xpToolbarInitialState
+&GLOBAL-DEFINE xpEdgePixels
+&GLOBAL-DEFINE xpToolbarTarget
+&GLOBAL-DEFINE xpToolbarTargetEvents
+&GLOBAL-DEFINE xpLinkTargetNames
+  {src/adm2/panlprop.i}
   
 &IF "{&ADMSuper}":U = "":U &THEN
+  /* add new field takes 5 arguements - name,type,extent,format,default */
   ghADMProps:ADD-NEW-FIELD('Menu':U, 'LOGICAL':U, 0, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('Toolbar':U, 'LOGICAL':U, 0, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('MenubarHandle':U, 'HANDLE':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FlatButtons':U, 'LOGICAL':U, 0, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('ActionGroups':U, 'CHARACTER':U, 0, ?,'Tableio,Navigation':U).
-  ghADMProps:ADD-NEW-FIELD('ToolMarginPxl':U, 'INTEGER':U, 0, ?, 3).
   ghADMProps:ADD-NEW-FIELD('ToolSpacingPxl':U, 'INTEGER':U, 0, ?, 0).
   ghADMProps:ADD-NEW-FIELD('ToolSeparatorPxl':U, 'INTEGER':U, 0, ?, 3).
   ghADMProps:ADD-NEW-FIELD('ToolWidthPxl':U, 'INTEGER':U, 0, ?, 24).
@@ -141,8 +155,25 @@ FlatButtons,Menu,ShowBorder,Toolbar,ActionGroups,SubModules,TableIOType,Supporte
   ghADMProps:ADD-NEW-FIELD('AvailToolbarActions':U, 'CHARACTER':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('subModules':U, 'CHARACTER':U, 0, ?,'':U).
   ghADMProps:ADD-NEW-FIELD('TableIoType':U, 'CHARACTER':U, 0, ?,'Save':U).
-  ghADMProps:ADD-NEW-FIELD('ToolbarMinWidth':U, 'DECIMAL':U, 0, ?, 0 ).
   ghADMProps:ADD-NEW-FIELD('DisabledActions':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('HiddenActions':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('HiddenToolbarBands':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('HiddenMenuBands':U, 'CHARACTER':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ToolbarBands':U, 'CHAR':U, 0, ?, '':U).      
+  ghADMProps:ADD-NEW-FIELD('ToolbarParentMenu':U, 'CHAR':U, 0, ?, '':U).      
+  ghADMProps:ADD-NEW-FIELD('MenuMergeOrder':U, 'INTEGER':U, 0, ?).      
+  ghADMProps:ADD-NEW-FIELD('ToolbarDrawDirection':U, 'CHAR':U, 0, ?, 'horizontal':U).
+  ghADMProps:ADD-NEW-FIELD('ToolbarAutoSize':U, 'LOGICAL':U, 0, ?, FALSE).
+  ghADMProps:ADD-NEW-FIELD('ToolMaxWidthPxl':U, 'INTEGER':U, 0, ?, 24 ).
+  ghADMProps:ADD-NEW-FIELD('ToolbarInitialState':U, 'CHAR':U, 0, ?, '':U).      
+  ghADMProps:ADD-NEW-FIELD('EdgePixels':U, 'INTEGER':U, 0, ?, 2 ).   
+  ghADMProps:ADD-NEW-FIELD('ToolMarginPxl':U, 'INTEGER':U, 0, ?, 2 ).   
+  ghADMProps:ADD-NEW-FIELD('ToolbarTarget':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ToolbarTargetEvents':U, 'CHAR':U, 0, ?,'resetToolbar,linkState':U). 
+  ghADMProps:ADD-NEW-FIELD('SecuredTokens':U, 'CHAR':U, 0, ?,?). /*must defualt to unknown*/ 
+  ghADMProps:ADD-NEW-FIELD('deactivateTargetOnHide':U, 'LOGICAL':U, 0, ?, FALSE).
+  ghADMProps:ADD-NEW-FIELD('LinkTargetNames':U, 'CHAR':U, 0, ?, '':U).
+
 &ENDIF
 
   /*<<BEGIN-CUSTOM-PROPERTIES>>*/

@@ -348,6 +348,12 @@ IF loadsql THEN DO:
    */
   RUN "prodict/odb/_odb_md1.p".
 
+  IF RETURN-VALUE = "wrg-ver" THEN
+    RETURN "wrg-ver".
+
+  IF RETURN-VALUE = "undo" THEN
+    RETURN "undo".
+
   IF batch_mode and NOT logfile_open THEN DO:
     OUTPUT TO VALUE(output_file) APPEND UNBUFFERED NO-ECHO NO-MAP.
     logfile_open = true.

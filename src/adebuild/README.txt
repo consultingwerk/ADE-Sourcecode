@@ -12,13 +12,13 @@ against one or more specific components.
 
 MINIMUM RUNTIME REQUIREMENTS
 
-- Any supported Progress 9.1B platform (Windows or Unix).
-- Progress ProVision v9.1B (Windows)
-- Progress 4GL Development System v9.1B (Unix).
+- Any supported Progress 9.1C platform (Windows or Unix).
+- Progress ProVision v9.1C with latest patch (Windows).
+- Progress 4GL Development System v9.1C with latest patch (Unix).
 - On Windows, you must have a Unix shell environment such as
   Cygwin or MKS Toolkit installed.
 - The environment variable $DLC must be defined, and point to the
-  directory where Progress 9.1B is installed.
+  directory where Progress 9.1C is installed.
 - The environment variable $POSSE must be defined, and point to the
   POSSE root directory where the src subdirectory exists.
 

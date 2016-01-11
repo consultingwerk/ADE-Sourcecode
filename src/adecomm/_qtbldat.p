@@ -71,7 +71,7 @@ FOR EACH _File WHERE _File._Db-recid = p_DbId AND NOT _File._Hidden:
    IF INTEGER(DBVERSION("DICTDB")) > 8 AND
       (_File._Owner <> "PUB" AND _File._Owner <> "_FOREIGN") THEN NEXT.
    ASSIGN
-      flags = (IF _File._Db-lang = 1 THEN "s" ELSE "")
+      flags = (IF _File._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF _File._Frozen THEN "f" ELSE "").
     
    IF _Db._Db-type = "PROGRESS" AND INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:  

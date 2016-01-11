@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -69,7 +69,18 @@ Date Modified: 1/25/94 (RPR)
                                   were saved and not the current Broker URL
                08/08/00 JEP       Assign _P recid to newly created _TRG records.
                04/26/01 JEP       IZ 993 - Check Syntax support for WebSpeed V2 files.
-     
+               08/06/01 JEP       IZ 1508 : AppBuilder Memory Leak w/Section Editors
+               08/19/01 JEP       jep-icf Minor change to remove static menubar
+                                  reference in disable_widgets procedure for ICF.
+               09/18/01 JEP       jep-icf Added procedures choose_open and
+                                  choose_object_open to support File->Open Object
+                                  so objects outside of repository can be opened.
+               09/18/01 JEP       jep-icf disable OpenObject_Button in disable_widgets.
+               10/01/01 JEP       IZ 1611 <Local> field support for SmartDataFields.
+               10/10/01 JEP-ICF   IZ 2101 Run button enabled when editing dynamic objects.
+                                  Renamed h_button_bar to _h_button_bar (new shared).
+               11/07/01 JEP-ICF   IZ 2342 MRU List doesn't work with dynamics objects.
+                                  Fix : Update to procedure choose_mru_file.
 ----------------------------------------------------------------------------*/
 /*  =======================================================================  */
 /*                        INTERNAL PROCEDURE Definitions                     */
@@ -188,7 +199,7 @@ PROCEDURE call_run :
       /* SEW call to store current trigger code for specific window. */
       RUN call_sew ("SE_STORE_WIN").
   
-      APPLY "ENTRY":U TO h_button_bar[5].  /* Kludge to get consistent behavior.  */
+      APPLY "ENTRY":U TO _h_button_bar[5].  /* Kludge to get consistent behavior.  */
       /* Set the cursor in windows. */
       RUN setstatus ("WAIT":U, IF pc_mode eq "RUN":U THEN "Running file..."
                                ELSE "Debugging file..."). 
@@ -1238,6 +1249,12 @@ PROCEDURE choose_file_new :
   DEFINE VAR cChoice   AS CHAR NO-UNDO.
   DEFINE VAR cFileExt  AS CHAR NO-UNDO.
   DEFINE VAR lHtmlFile AS LOG  NO-UNDO.
+  DEFINE VAR h_curwin  AS HANDLE NO-UNDO.
+
+
+  /* Save off the current object design window handle. Use it to determine
+     if a new object was actually created (handle will change). */
+  ASSIGN h_curwin = _h_win.
 
   RUN adeuib/_newobj.w ( OUTPUT choice ).
   /* DESELECT everything that is selected if a choice was made. */ 
@@ -1251,7 +1268,7 @@ PROCEDURE choose_file_new :
       IF NOT ERROR-STATUS:ERROR THEN
         choice = cChoice.
     END.
-      
+
     RUN Open_Untitled (choice).
     
     /* Delete temp file. */
@@ -1259,51 +1276,102 @@ PROCEDURE choose_file_new :
       OS-DELETE VALUE(choice).
       
     RUN display_curwin.
+    
+    /* je-icf: Show the property sheet of new dynamic repository object. */
+    IF (_h_win <> ?) AND (_h_win <> h_curwin) THEN
+    DO:
+      FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
+      IF AVAILABLE(_P) AND _P.logical_object THEN
+          RUN choose_prop_sheet IN _h_UIB.
+    END.
+    
   END. /* If a valid choice */
 END PROCEDURE.
 
+
 /* choose_file_open - called by File/Open or Ctrl-O */
 PROCEDURE choose_file_open:
+
+  RUN choose_open (INPUT "FILE":u).
+
+END PROCEDURE.  /* choose_file_open */
+
+
+/* choose_object_open - called by File/Open Object to Open Repository Object */
+PROCEDURE choose_object_open:
+
+  RUN choose_open (INPUT "OBJECT":u).
+
+END PROCEDURE.  /* choose_object_open */
+
+
+/* choose_open - Displays Open File or Open Object dialog and performs the open. */
+PROCEDURE choose_open:
+
+  DEFINE INPUT PARAMETER pOpenMode AS CHARACTER NO-UNDO.
+
   DEFINE VARIABLE cTempFile    AS CHARACTER              NO-UNDO.
   DEFINE VARIABLE h_curwin     AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE h_active_win AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE lnth_sf      AS INTEGER                NO-UNDO.
   DEFINE VARIABLE pressed-ok   AS LOGICAL                NO-UNDO.
-
+  DEFINE VARIABLE cOpenMsg     AS CHARACTER              NO-UNDO.
+  
   ASSIGN h_curwin = _h_win.
 
   /* Deselect the currently selected widgets */
   RUN deselect_all (?, ?).
   
-  /* Get a file name to open. If WebSpeed is licensed, call web file dialog,
-     unless user has also licensed Enterprise and wants local file management. */
-  IF _AB_license > 1 AND _remote_file THEN
-    RUN adeweb/_webfile.w ("uib":U, "Open":U, "Open":U, "":U,
-      INPUT-OUTPUT open_file, OUTPUT cTempFile, OUTPUT pressed-ok).
+  CASE pOpenMode:
+    WHEN "FILE":u THEN
+    DO:
+      /* Get a file name to open. If WebSpeed is licensed, call web file dialog,
+         unless user has also licensed Enterprise and wants local file management. */
+      IF _AB_license > 1 AND _remote_file THEN
+        RUN adeweb/_webfile.w ("uib":U, "Open":U, "Open":U, "":U,
+          INPUT-OUTPUT open_file, OUTPUT cTempFile, OUTPUT pressed-ok).
+    
+      IF _AB_license = 1 OR NOT _remote_file OR RETURN-VALUE = "HTTPFailure":U THEN 
+        RUN adecomm/_getfile.p (CURRENT-WINDOW, "uib", "Open", "Open", "OPEN",
+                                INPUT-OUTPUT open_file, OUTPUT pressed-ok).
+      ASSIGN cOpenMsg = "Opening file...".
+    END.
 
-  IF _AB_license = 1 OR NOT _remote_file OR RETURN-VALUE = "HTTPFailure":U THEN 
-    RUN adecomm/_getfile.p (CURRENT-WINDOW, "uib", "Open", "Open", "OPEN",
-                            INPUT-OUTPUT open_file, OUTPUT pressed-ok).
-  
-  IF pressed-ok THEN DO:
-    RUN setstatus (?, "Opening file...").
-    RUN adeuib/_open-w.p (TRIM(open_file), TRIM(cTempFile), "WINDOW":U).
+    WHEN "OBJECT":U THEN
+    DO:
+      /* jep-icf: If ICF is running, get an object name to open using Open dialog. */
+      IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
+      DO:
+        RUN ry/obj/gopendialog.w
+            (INPUT _h_menu_win, INPUT "", OUTPUT open_file, OUTPUT pressed-ok).
+        ASSIGN cOpenMsg = "Opening object...".
+      END.
+    END.
+    
+  END CASE.
+
+  IF pressed-ok THEN
+  DO:
+    RUN setstatus (?, cOpenMsg).
+    RUN adeuib/_open-w.p (open_file, cTempFile, "WINDOW":U).
 
     /* In case of _qssuckr failure, reset the cursors . */
     RUN setstatus ("":U, "":U).
-
+  
     /* Return to pointer mode. */
     IF _next_draw NE ? THEN RUN choose-pointer.
   
     /* If no file was opened, leave now. */
     IF (_h_win = ?) OR (_h_win = h_curwin) THEN RETURN.
-
-  END.  /* IF pressed_OK... */
+  END.
   
   /* Special Sanity check -- sanitize our records.  Always do this (even if
-     the user cancelled the file open)  */
+   the user cancelled the file open)  */
   RUN adeuib/_sanitiz.p.
-END PROCEDURE. 
+    
+END PROCEDURE.    /* choose_open */
+
+
 
 /* choose_file_print - called by File/Print */
 PROCEDURE choose_file_print.
@@ -1544,6 +1612,7 @@ PROCEDURE choose_mru_file:
   DEFINE VARIABLE glScrap     AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE h_curwin    AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lFileError  AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lOpenObject AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lStayList   AS LOGICAL   NO-UNDO.  
   DEFINE VARIABLE relPathName AS CHARACTER NO-UNDO. 
 
@@ -1580,8 +1649,22 @@ PROCEDURE choose_mru_file:
                                                      the current broker url */  
     END.  /* if broker <> "" - remote file */
     ELSE DO:
-      ASSIGN FILE-INFO:FILE-NAME = _mru_files._file.
-      IF FILE-INFO:FILE-TYPE = ? THEN DO:
+      /* jep-icf IZ 2342 If ICF, look for the MRU file in the repository. Currently Works for dynamic object only. */
+      IF CAN-DO(_AB_Tools, "Enable-ICF":u) THEN
+      DO:
+          /* jep-icf IZ 2342 "Open" a repository object via session super procedure in ryreposobp.p.
+             This creates an "OPEN" _RyObject record the AppBuilder uses to open an object. */
+          ASSIGN lOpenObject  = DYNAMIC-FUNCTION("openRyObjectAB", INPUT _mru_files._file).
+          ASSIGN lFileError   = (lOpenObject = NO).
+      END.
+      /* IZ 2342 If not ICF or can't find the repository object, look for the MRU file in the file system. */
+      IF NOT CAN-DO(_AB_Tools, "Enable-ICF":u) OR lFileError THEN
+      DO:
+          ASSIGN FILE-INFO:FILE-NAME = _mru_files._file.
+          ASSIGN lFileError = (FILE-INFO:FILE-TYPE = ?).
+      END.
+      
+      IF lFileError THEN DO:
         MESSAGE _mru_files._file "cannot be found." VIEW-AS ALERT-BOX ERROR BUTTONS OK. 
         DELETE _mru_files.
         RUN adeshar/_mrulist.p("":U, "":U).
@@ -1590,7 +1673,10 @@ PROCEDURE choose_mru_file:
     END.  /* else - local file */
     
     IF NOT lFileError THEN DO:
-      RUN setstatus (?, "Opening file...").
+      IF lOpenObject THEN
+        RUN setstatus (?, "Opening object...").
+      ELSE
+        RUN setstatus (?, "Opening file...").
       RUN adeuib/_open-w.p (TRIM(_mru_files._file), TRIM(cTempFile), "WINDOW":U).
     END.  /* if not file error */
     
@@ -2015,8 +2101,12 @@ PROCEDURE del_cur_widg_check :
   /* Show the current window/widget (if there is one). */
   RUN display_current.
   
+  /* IZ 1508 This call can create a Section Editor window for
+     a procedure that's being closed. Only make the call if the
+     procedure already has a Section Editor window open for it. - jep */
   /* jep - SEW Update after delete event in UIB. */
-  RUN call_sew ("SE_DELETE":U).
+  IF VALID-HANDLE(hSecEd) THEN
+    RUN call_sew ("SE_DELETE":U).
   
 END PROCEDURE. /* del_cur_widg_check */
 
@@ -2119,6 +2209,7 @@ END PROCEDURE.
 procedure disable_widgets.
   DEFINE VAR h           AS WIDGET  NO-UNDO.
   DEFINE VAR ldummy      AS LOGICAL NO-UNDO.
+  DEFINE VAR h-menubar   AS WIDGET  NO-UNDO.
   
   /* DESELECTION everything (because if we don't we might run setdeselection
      when we click in the windows we are running */
@@ -2133,7 +2224,8 @@ procedure disable_widgets.
   ASSIGN 
     _h_menu_win:SENSITIVE      = no  
     _h_status_line:SENSITIVE   = no /* Status bar has some dbl-click actions */
-    MENU m_menubar:SENSITIVE   = no.
+    h-menubar                  = _h_menu_win:MENU-BAR   /* jep-icf avoids static m_menbar ref */
+    h-menubar:SENSITIVE        = no.                    /* jep-icf avoids static m_menbar ref */
   
   /* Hide all children of the UIB Main window.  This should include:
          Object Palette, Design Windows, Attribute Window, Section Editor
@@ -2154,8 +2246,8 @@ procedure disable_widgets.
   
   DO WITH FRAME action_icons:
     /* Desensitize the action bar. */
-    DO i = 1 TO {&bar_count}:
-      h_button_bar[i]:SENSITIVE = NO.
+    DO i = 1 TO bar_count:
+      _h_button_bar[i]:SENSITIVE = NO.
     END.
     ASSIGN
       /* Store the sensitivity of the fill-in fields */
@@ -2164,6 +2256,7 @@ procedure disable_widgets.
       cur_widg_name:PRIVATE-DATA = IF cur_widg_name:SENSITIVE THEN "y" ELSE "n"
       cur_widg_name:SENSITIVE    = NO.
     IF VALID-HANDLE(Mode_Button) THEN Mode_Button:SENSITIVE = NO.
+    IF VALID-HANDLE(OpenObject_Button) THEN OpenObject_Button:SENSITIVE = NO.
   END.
   
   /* Restore the users value for THREE-D. Ditto for DATE-FORMAT. */
@@ -2586,8 +2679,8 @@ PROCEDURE drawobj.
         END.
         
         WHEN "SmartDataField" THEN DO:
-          /* First make sure that _P is a SmartViewer */
-          IF _P._TYPE NE "SmartDataViewer" THEN DO:
+          /* First make sure that _P is a SmartViewer or simple SmartObject. IZ 1611 */
+          IF NOT CAN-DO("SmartDataViewer,SmartObject":U, _P._TYPE) THEN DO:
             BELL.
             RETURN.
           END.
@@ -2631,10 +2724,10 @@ PROCEDURE drawobj.
                  END. /* IF Temp-Table THEN */
 
                  /* User did click in a Data Source field. */
-                 IF lRowObj THEN
-                 DO:
+                 IF lRowObj OR (_U._TYPE = "FILL-IN":U AND _U._dbName = ? AND _U._TABLE = ?)
+                 THEN DO:
                    /* A field was clicked into and it is a Data Source
-                     (RowObject or SBO) field. */
+                     (RowObject or SBO) field or a local field. IZ 1611 */
                    ASSIGN lValid        = TRUE
                           _h_cur_widg   = hField
                           hField:HIDDEN = TRUE
@@ -2685,11 +2778,11 @@ PROCEDURE drawobj.
     END.
     IF VALID-HANDLE(mi_color) THEN DO:
       IF (NOT _cur_win_type) OR _next_draw = "IMAGE":U THEN
-        ASSIGN h_button_bar[9]:SENSITIVE = FALSE
-               mi_color:SENSITIVE        = FALSE.
+        ASSIGN _h_button_bar[9]:SENSITIVE = FALSE
+               mi_color:SENSITIVE         = FALSE.
       ELSE
-        ASSIGN h_button_bar[9]:SENSITIVE = TRUE
-               mi_color:SENSITIVE        = TRUE.
+        ASSIGN _h_button_bar[9]:SENSITIVE = TRUE
+               mi_color:SENSITIVE         = TRUE.
     END.
 
     

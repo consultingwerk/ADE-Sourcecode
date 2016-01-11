@@ -30,6 +30,9 @@
     Syntax      : RUN start-super-proc("adm2/filter.p":U).
 
     Modified    : 06/28/1999
+    Modified    : 10/24/2001        Mark Davies (MIP)
+                  Set new property FilterAvailable to TRUE. This will ensure
+                  that the Filter button is enabled on the toolbar.
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -1158,18 +1161,20 @@ PROCEDURE applyFilter :
     /* if coperator is set we have a value to add to the list */ 
     IF cOperator <> "":U THEN   
       ASSIGN                   
-         /*  We may gave blank entries so we cannot do 'if  = '' and 
-           this also is a problem when trying to trim, so we use a logical */ 
+         /*  We may have blank entries so we cannot do 'if  = '' and 
+            this also is a problem when trying to trim, so we use a logical */ 
          lFirst          = cFieldNames = "":U  
          cFieldNames     = (IF lFirst THEN cField 
                             ELSE           cFieldNames + ",":U + cField) 
          cFieldOperators = (IF lFirst THEN cOperator
                             ELSE cFieldOperators + "," + cOperator)
-         cFieldValues    = (IF lFirst THEN cValue 
-                            ELSE cFieldValues + CHR(1) + cValue).
+         cFieldValues    = (IF lFirst 
+                            THEN '':U 
+                            ELSE cFieldValues + CHR(1))
+                            + (IF cValue= ? THEN '?':U ELSE cValue).
     
     IF lRange THEN    
-     ASSIGN
+      ASSIGN
         /*  We may gave blank entries so we cannot do 'if  = '' and 
            this also is a problem when trying to trim, so we use a logical */ 
          lFirst          = cFieldNames = "":U  
@@ -1177,8 +1182,10 @@ PROCEDURE applyFilter :
                             ELSE           cFieldNames + ",":U + cField) 
          cFieldOperators = (IF lFirst THEN cOperator
                             ELSE cFieldOperators + ",":U + "<=":U)
-         cFieldValues    = (IF lFirst THEN hRangeField:SCREEN-VALUE 
-                            ELSE cFieldValues + CHR(1) + hRangeField:SCREEN-VALUE).
+         cFieldValues    = (IF lFirst 
+                            THEN '':U
+                            ELSE cFieldValues + CHR(1))
+                         + (IF hRangeField:SCREEN-VALUE = ? THEN '?':U ELSE hRangeField:SCREEN-VALUE).
     
   END. /*  do iField = 1 to .. */
   
@@ -1193,7 +1200,6 @@ PROCEDURE applyFilter :
       DYNAMIC-FUNC("removeQuerySelection":U IN hFilterTarget,
                       cRemoveFields,
                       cRemoveOperators).
-  
     IF cFieldNames <> "":U THEN                  
       DYNAMIC-FUNC("assignQuerySelection":U IN hFilterTarget,
                       cFieldNames,
@@ -1533,13 +1539,12 @@ PROCEDURE initializeObject :
         {set DisplayedFields cDataColumns}. /* Set the property. */
      
       {get ForeignFields cForeignfields hFilterTarget}.
+      {set FilterAvailable TRUE hFilterTarget}.
 
-      /* The toolbar is subscribing to filteravailble from the navigation link*/
-      PUBLISH "FilterState":U FROM hFilterTarget ("FilterAvailable":U).
     END. /* if valid hFiltertarget */
 
     {get ContainerHandle hContainerHandle}.
-     
+    
     /* Parse non-dynamic widgets to decide the minimumm size of the frame.
        The dynamic ones were deleted by the deleteObject call above */
     IF cUibMode BEGINS "DESIGN":U THEN

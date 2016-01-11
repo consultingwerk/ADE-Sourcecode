@@ -53,7 +53,7 @@ Modified: 06/17/99 SLK Added _U._PRIVATE-DATA-ATTR,
           4/20/98  GFS Added _ROW-RESIZABLE for browse
           1/06/98  GFS Removed _REFRESHABLE
           1/97     SLK Added _vbx2ocx temp table
-
+       11/13/2001  MAD Changed reference for ryobject.i to ttobject.i
 ----------------------------------------------------------------------------*/
 /* _U - Universal Widget
           Contains the attributes that are commonly found in most widgets */
@@ -293,6 +293,11 @@ DEFINE {1} SHARED TEMP-TABLE _M
    FIELD _SUB-MENU-HELP     AS LOGICAL  LABEL "SUB-MENU-HELP"  
    .
 
+
+/* jep-icf: This preprocessor instructs adeuib/ryobject.i to define its fields only. */
+/*          Doing this allows adeuib/ryobject.i to be used again to define _RyObject */
+/*          temp-table and share its field definitions with _P.                      */
+&SCOPED-DEFINE RYOBJECT-FEILDS-ONLY  YES
    
 /* _P - Procedure Record 
            Contains fields related to a the .w (procedure) file              */ 
@@ -336,10 +341,17 @@ DEFINE {1} SHARED TEMP-TABLE _P
    FIELD _WINDOW-HANDLE      AS WIDGET   LABEL "Window Handle"
    FIELD _vbx-file           AS CHAR     LABEL "Serialized OCX file" INITIAL ?
    FIELD _xTblList           AS CHAR     LABEL "External Tables"
+
+  /* jep-icf: Fields used for ICF repository object data. See adeuib/ryobject.i for details. */
+  {adeuib/ttobject.i}
+
  INDEX _u-recid        _u-recid   
  INDEX _WINDOW-HANDLE  _WINDOW-HANDLE
  .
  
+&UNDEFINE RYOBJECT-FEILDS-ONLY
+
+
 /* _Q - Query Record 
            Contains fields related to a Query                               */ 
 DEFINE {1} SHARED TEMP-TABLE _Q
@@ -429,6 +441,8 @@ DEFINE {1} SHARED TEMP-TABLE _PDP NO-UNDO
  INDEX _procFileName IS PRIMARY _procFileName.
 
 
+/* jep-icf: _RyObject - Temp-Table to track repository object information. */
+/* Definition is:                                                          */
+/* DEFINE {1} SHARED TEMP-TABLE _RyObject NO-UNDO, etc..                   */
 
-
-
+{adeuib/ttobject.i {1} }

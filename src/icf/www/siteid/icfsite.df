@@ -1,0 +1,262 @@
+UPDATE DATABASE "?"
+
+ADD TABLE "rsm_user"
+  AREA "Schema Area"
+  LABEL "User"
+  DESCRIPTION "User with authorization to help on site maintenance"
+  DUMP-NAME "rsmus"
+
+ADD FIELD "user_code" OF "rsm_user" AS character 
+  DESCRIPTION "The unique user code of a privilege user."
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "User Code"
+  POSITION 2
+  SQL-WIDTH 40
+  COLUMN-LABEL "Code"
+  ORDER 10
+
+ADD FIELD "user_email" OF "rsm_user" AS character 
+  DESCRIPTION "The user's contact e-mail address"
+  FORMAT "X(40)"
+  INITIAL ""
+  LABEL "E-mail address"
+  POSITION 3
+  SQL-WIDTH 80
+  COLUMN-LABEL "E-mail"
+  ORDER 20
+
+ADD FIELD "user_password" OF "rsm_user" AS character 
+  DESCRIPTION "The user's encoded password"
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Password"
+  POSITION 4
+  SQL-WIDTH 40
+  COLUMN-LABEL "Password"
+  ORDER 30
+
+ADD FIELD "maximum_authorize" OF "rsm_user" AS integer 
+  DESCRIPTION "The maximum site numbers the user are authorized to allocated"
+  FORMAT ">>>,>>>,>>9"
+  INITIAL "0"
+  LABEL "Maximum Authorized"
+  POSITION 5
+  SQL-WIDTH 4
+  COLUMN-LABEL "Maximum Authorized"
+  ORDER 40
+
+ADD FIELD "maintain_system_data" OF "rsm_user" AS logical 
+  DESCRIPTION "Can the user maintain system data"
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Maintain System Data"
+  POSITION 6
+  SQL-WIDTH 1
+  COLUMN-LABEL "Maintain System Data"
+  ORDER 50
+
+ADD INDEX "user_code" ON "rsm_user" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "user_code" ASCENDING 
+
+ADD INDEX "user_email" ON "rsm_user" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "user_email" ASCENDING 
+
+ADD TABLE "rsm_site"
+  AREA "Schema Area"
+  LABEL "Site"
+  DESCRIPTION "Table containing the owner information to which site numbers are allocated."
+  DUMP-NAME "rsmsi"
+
+ADD FIELD "site_code" OF "rsm_site" AS character 
+  DESCRIPTION "This is the unique site code for the site."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Site Code"
+  POSITION 2
+  SQL-WIDTH 40
+  COLUMN-LABEL "Site Code"
+  ORDER 10
+
+ADD FIELD "site_email" OF "rsm_site" AS character 
+  DESCRIPTION "This is the site contacting e-mail address."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "E-mail address"
+  POSITION 3
+  SQL-WIDTH 80
+  COLUMN-LABEL "E-mail"
+  ORDER 20
+
+ADD FIELD "site_password" OF "rsm_site" AS character 
+  DESCRIPTION "The site encoded password."
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Password"
+  POSITION 4
+  SQL-WIDTH 40
+  COLUMN-LABEL "Password"
+  ORDER 30
+
+ADD FIELD "site_description" OF "rsm_site" AS character 
+  DESCRIPTION "The site description"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Description"
+  POSITION 5
+  SQL-WIDTH 160
+  COLUMN-LABEL "Description"
+  ORDER 40
+
+ADD FIELD "create_date" OF "rsm_site" AS date 
+  DESCRIPTION "The date the site was created."
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Create Date"
+  POSITION 6
+  SQL-WIDTH 4
+  COLUMN-LABEL "Create Date"
+  ORDER 50
+
+ADD FIELD "external_reference" OF "rsm_site" AS character 
+  DESCRIPTION "A external reference to the site."
+  FORMAT "X(40)"
+  INITIAL ""
+  LABEL "External Reference"
+  POSITION 7
+  SQL-WIDTH 80
+  COLUMN-LABEL "External Reference"
+  ORDER 60
+
+ADD INDEX "site_code" ON "rsm_site" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "site_code" ASCENDING 
+
+ADD INDEX "site_email" ON "rsm_site" 
+  AREA "Schema Area"
+  INDEX-FIELD "site_email" ASCENDING 
+
+ADD INDEX "site_external_reference" ON "rsm_site" 
+  AREA "Schema Area"
+  INDEX-FIELD "external_reference" ASCENDING 
+
+ADD TABLE "rsm_site_number"
+  AREA "Schema Area"
+  LABEL "Site Number"
+  DESCRIPTION "The site number values allocated to owners."
+  DUMP-NAME "rsmsn"
+
+ADD FIELD "site_number" OF "rsm_site_number" AS integer 
+  FORMAT ">>>,>>>,>>9"
+  INITIAL "0"
+  LABEL "Site Number"
+  POSITION 2
+  SQL-WIDTH 4
+  COLUMN-LABEL "Site Number"
+  ORDER 10
+
+ADD FIELD "owning_site_code" OF "rsm_site_number" AS character 
+  DESCRIPTION "The owning site code value."
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Owning Site Code"
+  POSITION 3
+  SQL-WIDTH 40
+  COLUMN-LABEL "Owning Site Code"
+  ORDER 20
+
+ADD FIELD "allocated_site_code" OF "rsm_site_number" AS character 
+  DESCRIPTION "The allocated site code value."
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Allocated Site Code"
+  POSITION 4
+  SQL-WIDTH 40
+  COLUMN-LABEL "Allocated Site Code"
+  ORDER 30
+
+ADD FIELD "site_number_active" OF "rsm_site_number" AS logical 
+  DESCRIPTION "Is the site number active?"
+  FORMAT "yes/no"
+  INITIAL "yes"
+  LABEL "Site Number Active"
+  POSITION 5
+  SQL-WIDTH 1
+  COLUMN-LABEL "Active"
+  ORDER 40
+
+ADD INDEX "site_number" ON "rsm_site_number" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "site_number" ASCENDING 
+
+ADD INDEX "allocated_site_code" ON "rsm_site_number" 
+  AREA "Schema Area"
+  INDEX-FIELD "allocated_site_code" ASCENDING 
+
+ADD INDEX "owning_site_code" ON "rsm_site_number" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_site_code" ASCENDING 
+
+ADD TABLE "rsm_control"
+  AREA "Schema Area"
+  LABEL "Control"
+  DESCRIPTION "Control table for setting the default values for the current installed system"
+  DUMP-NAME "rsmco"
+
+ADD FIELD "minimum_number" OF "rsm_control" AS integer 
+  DESCRIPTION "This is the minimum number to be used for this site."
+  FORMAT ">>>,>>>,>>9"
+  INITIAL "0"
+  LABEL "Minimum Number"
+  POSITION 2
+  SQL-WIDTH 4
+  COLUMN-LABEL "Minimum Number"
+  ORDER 10
+
+ADD FIELD "maximum_number" OF "rsm_control" AS integer 
+  DESCRIPTION "This is the maximum value to be used by this site."
+  FORMAT ">>>,>>>,>>9"
+  INITIAL "0"
+  LABEL "Maximum Number"
+  POSITION 3
+  SQL-WIDTH 4
+  COLUMN-LABEL "Maximum Number"
+  ORDER 20
+
+ADD FIELD "last_number" OF "rsm_control" AS integer 
+  DESCRIPTION "This is the last number auto generated for this site."
+  FORMAT ">>>,>>>,>>9"
+  INITIAL "0"
+  LABEL "Last Number"
+  POSITION 4
+  SQL-WIDTH 4
+  COLUMN-LABEL "Last Number"
+  ORDER 30
+
+ADD INDEX "last_number" ON "rsm_control" 
+  AREA "Schema Area"
+  PRIMARY
+  INDEX-FIELD "last_number" ASCENDING 
+
+ADD INDEX "maximum_number" ON "rsm_control" 
+  AREA "Schema Area"
+  INDEX-FIELD "maximum_number" ASCENDING 
+
+ADD INDEX "minimum_number" ON "rsm_control" 
+  AREA "Schema Area"
+  INDEX-FIELD "minimum_number" ASCENDING 
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000006379

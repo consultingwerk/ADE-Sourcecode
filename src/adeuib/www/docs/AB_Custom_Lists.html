@@ -1,0 +1,536 @@
+<SPAN CLASS="Text1">
+
+<P>
+<B>AppBuilder Custom Lists</B><BR>
+<B>Beta Draft</B><BR>
+<B>Author:</B> (Author's Name)<BR>
+<B>Date Last Updated:</B> (Date)<BR>
+<B>Scheduled Release:</B> (Release Number)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Revision History</B>
+The following revisions have been made to this document:<BR>
+<BR>
+Date: (date)	<BR>
+Revision: (rev-no)	<BR>
+Developer: (developer)	<BR>
+Summary of Changes: (summary)
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<p>Copyright (C) 2000 by Progress Software Corporation
+(&quot;PSC&quot;), 14 Oak Park, Bedford, MA 01730, and other contributors as
+listed below. All Rights Reserved.</p>
+
+<p>The Initial Developer of the Original Code is PSC. The Original
+Code is Progress IDE code released to open source December 1, 2000.</p>
+
+<p>The contents of this file are subject to the Possenet
+Public License Version 1.0 (the &quot;License&quot;); you may not use this file
+except in compliance with the License. A copy of the License is available as of
+the date of this notice at:</p>
+
+<p><a href="http://www.possenet.org/license.html">http://www.possenet.org/license.html</a></p>
+
+<p>Software distributed under the License is distributed on
+an &quot;AS IS&quot; basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. You should refer to the License for the specific language governing
+rights and limitations under the License. </p>
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contributors</B>
+<BR>
+Jane Contributor, Joe Contributor
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+<P>
+<B>Contents</B>
+</P>
+
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="3">
+<TR><TD CLASS="Text1">1</TD>	<TD CLASS="Text1"><A HREF="#1">Overview</A></TD></TR>
+<TR><TD CLASS="Text1">2</TD>	<TD CLASS="Text1"><A HREF="#2">Architecture</A></TD></TR>
+<TR><TD CLASS="Text1">3</TD>	<TD CLASS="Text1"><A HREF="#3">Primary Data Structures</A></TD></TR>
+<TR><TD CLASS="Text1">4</TD>	<TD CLASS="Text1"><A HREF="#4">Primary Algorithms and Processes</A></TD></TR>
+<TR><TD CLASS="Text1">4.1</TD>	<TD CLASS="Text1"><A HREF="#4.1">Reading in the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.2</TD>	<TD CLASS="Text1"><A HREF="#4.2">Reading in the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">4.3</TD>	<TD CLASS="Text1"><A HREF="#4.3">Changing the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.4</TD>	<TD CLASS="Text1"><A HREF="#4.4">Changing the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">4.5</TD>	<TD CLASS="Text1"><A HREF="#4.5">Writing out the list names</A></TD></TR>
+<TR><TD CLASS="Text1">4.6</TD>	<TD CLASS="Text1"><A HREF="#4.6">Writing out the list membership</A></TD></TR>
+<TR><TD CLASS="Text1">5</TD>	<TD CLASS="Text1"><A HREF="#5">Advanced Topics</A></TD></TR>
+<TR><TD CLASS="Text1">6</TD>	<TD CLASS="Text1"><A HREF="#6">Dependencies</A></TD></TR>
+<TR><TD CLASS="Text1">7</TD>	<TD CLASS="Text1"><A HREF="#7">Source Files</A></TD></TR>
+<TR><TD CLASS="Text1">8</TD>	<TD CLASS="Text1"><A HREF="#8">Build Process and Requirements</A></TD></TR>
+<TR><TD CLASS="Text1">9</TD>	<TD CLASS="Text1"><A HREF="#9">Execution Methods</A></TD></TR>
+<TR><TD CLASS="Text1">10</TD>	<TD CLASS="Text1"><A HREF="#10">Test Requirements and Strategies</A></TD></TR>
+<TR><TD CLASS="Text1">11</TD>	<TD CLASS="Text1"><A HREF="#11">Supplementary Information</A></TD></TR>
+<TR><TD CLASS="Text1">12</TD>	<TD CLASS="Text1"><A HREF="#12">Related Documentation</A></TD></TR>
+</TABLE>
+</P>
+
+<HR SIZE="1" NOSHADE>
+
+
+<P><A NAME="1"><B>1. Overview</B></a></p>
+
+<p>The AppBuilder Custom Lists allow the user to define up to
+six pre-processor directives, each of which specifies a list of controls. To
+include a control in a list, the user can activate a toggle box in the Advanced
+Properties dialog associated with one of the defined pre-processor directives
+that specifies a list. Thus, by activating or clearing these toggle boxes, the
+user can include or exclude the control in one or more of the lists. These
+lists can then be used at run time by the user’s program to interact with the
+specified groups of controls, for example, to enable or disable a particular
+group of controls at one time.</p>
+
+<p>This document describes how the six custom lists are named
+and built, and how the data is then written to the 4GL program that the
+AppBuilder writes.</p>
+
+<P><A NAME="2"><B>2 Architecture</B></A></P>
+
+<p>At the time that an AppBuilder file is saved, the Custom
+Lists are written into the AppBuilder source code file. When the file is read
+back into the AppBuilder, the pre-processor section is parsed for the names of
+the pre-processor directives. The run-time attributes section is parsed for the
+controls that have their list flags switched on. </p>
+
+<p>The following code snippets are extracts from an
+AppBuilder generated file containing custom lists. The pre-processor block and
+the run-time attributes settings do not follow each other in a standard
+program, but are shown below each other to illustrate their relationship. </p>
+
+<p>The sections in bold italics in the following code
+snippets include the code that is parsed to produce the custom lists.</p>
+
+<p>&amp;ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK </p>
+
+<br><br>
+
+<p>/* ********************<span style="mso-spacerun: yes"> 
+</span>Preprocessor Definitions<span style="mso-spacerun: yes"> 
+</span>******************** */</p>
+
+<br>
+
+<p>&amp;Scoped-define PROCEDURE-TYPE Window</p>
+
+<p>&amp;Scoped-define DB-AWARE no</p>
+
+<br>
+
+<p>/* Name of first Frame and/or Browse and/or first Query<span
+style="mso-spacerun: yes">                 </span>*/</p>
+
+<p>&amp;Scoped-define FRAME-NAME DEFAULT-FRAME</p>
+
+<br>
+
+<p>/* Standard List Definitions<span style="mso-spacerun:
+yes">                                            </span>*/</p>
+
+<p>&amp;Scoped-Define ENABLED-OBJECTS FILL-IN-1 TOGGLE-1
+COMBO-BOX-1 </p>
+
+<p>&amp;Scoped-Define DISPLAYED-OBJECTS FILL-IN-1 TOGGLE-1
+COMBO-BOX-1 </p>
+
+<br>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* Custom List Definitions</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* Test,List-2,List-3,List-4,List-5,List-6<span style="mso-spacerun:
+yes">                              </span>*/<o:p></o:p></i></b></p>
+
+<p>&amp;Scoped-define Test FILL-IN-1 COMBO-BOX-1 </p>
+
+<p>&amp;Scoped-define List-2 TOGGLE-1 COMBO-BOX-1 </p>
+
+<br>
+
+<p>/* _UIB-PREPROCESSOR-BLOCK-END */</p>
+
+<p><img width=270 height=227 src="./AB_Custom_Lists_files/image002.gif">
+<br><br>
+&amp;ANALYZE-RESUME</p>
+
+<p>The settings in the above code snippet result in a custom
+attributes dialog that is set as above.</p>
+
+<p>The settings in the following code snippet result in an
+Advanced Properties dialog on COMBO-BOX-1 as follows:</p>
+
+<p>/* ***********<span style="mso-spacerun: yes"> 
+</span>Runtime Attributes and AppBuilder Settings<span style="mso-spacerun:
+yes">  </span>*********** */</p>
+
+<br>
+
+<p>&amp;ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES</p>
+
+<p>/* SETTINGS FOR WINDOW C-Win</p>
+
+<p><span style="mso-spacerun: yes"> 
+</span>VISIBLE,,RUN-PERSISTENT<span style="mso-spacerun:
+yes">                                               </span>*/</p>
+
+<p>/* SETTINGS FOR FRAME DEFAULT-FRAME</p>
+
+<p><span style="mso-spacerun:
+yes">                                           </span><span
+style="mso-spacerun: yes">                             </span>*/</p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* SETTINGS FOR COMBO-BOX COMBO-BOX-1 IN FRAME DEFAULT-FRAME</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'><span style="mso-spacerun: yes">   </span>1 2<span style="mso-spacerun:
+yes">                                                                 
+</span>*/<o:p></o:p></i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* SETTINGS FOR FILL-IN FILL-IN-1 IN FRAME DEFAULT-FRAME</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'><span style="mso-spacerun: yes">   </span>1<span style="mso-spacerun:
+yes">                           </span><span style="mso-spacerun:
+yes">                                         </span>*/</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* SETTINGS FOR TOGGLE-BOX TOGGLE-1 IN FRAME DEFAULT-FRAME</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'><span style="mso-spacerun: yes">   </span>2<span style="mso-spacerun:
+yes">                                                                   
+</span>*/</i></b></p>
+
+<p><img border=0 width=415 height=393 src="./AB_Custom_Lists_files/image004.jpg"></p>
+
+<p>Note the check marks in both of the first two custom
+lists.</p>
+
+<p>When the AppBuilder source file is later saved, the
+AppBuilder writes out all the appropriate information shown in the above code
+snippets along with preprocessor directives for any of the custom lists that
+have controls included in them.</p>
+
+<P><A NAME="3"><B>3 Primary Data Structures</B></A></P>
+
+<p>This component of the AppBuilder relies on two items of
+data contained in three of the AppBuilder temp-tables. </p>
+
+<p>In the _P record for each procedure the _LISTS field
+contains a comma-separated list of the names of the lists.</p>
+
+<p>In the _U record for each control contained in the
+procedure the _USER-LIST array of logical fields contains the settings that
+indicated which lists the control should be added to. The extent of the
+_USER-LIST array is determined by the global directive, &amp;MaxUserLists,
+which is defined at the top of the include file “adeuib/uniwidg.i.” </p>
+
+<p>In the _BC temp-table defined in “adeuib/brwscols.i” the
+_USER-LIST array is defined to make sure that the list is available for each
+column of a browse.</p>
+
+<P><A NAME="4"><B>4 Primary Algorithms and Processes</B></A></P>
+
+<p>When an AppBuilder source file is read into the
+AppBuilder, or a new procedure is created in the AppBuilder, the AppBuilder
+automatically creates a new _P record for that procedure file. The _P record
+stores all the procedure settings and groups the related controls that are
+stored in the _U table.</p>
+
+<P><A NAME="4.1"><B>4.1 Reading in the list names</B></A></P>
+
+<p>As a procedure is read into the AppBuilder (via
+“adeuib/_qssuckr.p”), the code is parsed for each section that it contains. In
+the internal procedure “analyze-suspend-reader” (about 1160 lines into
+“adeuib/_qssucker.p”) there is a section that is responsible for parsing the
+custom list names from the file. It is expected that the custom list names be
+defined in two lines as follows:</p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* Custom List Definitions</i></b></p>
+
+<p><b><i style='mso-bidi-font-style:
+normal'>/* Test,List-2,List-3,List-4,List-5,List-6 */</i></b></p>
+
+<p>The first line is a marker to the parser. The second line
+is stripped of comments and stored directly into the _LISTS field on the _P
+record for the file.</p>
+
+<p>Note that the following lines that contain the
+preprocessor definitions for the lists are ignored.</p>
+
+<P><A NAME="4.2"><B>4.2 Reading in the list membership</B></A></P>
+
+<p>After each control has been read in and _U records have
+been created for them in the AppBuilder, “adeuib/_qssuckr.p” runs the
+“read_run_time_attributes” internal procedure to read in all the run-time
+attributes for each control. Around line 1925 of “adeuib/_qssuckr.p” the
+procedure iterates through the list of settings in the string and checks for
+integer values. The integer values are used as a subscript to the _USER-LIST
+array of the _U record and each array item is set on.</p>
+
+<P><A NAME="4.3"><B>4.3 Changing the list names</B></A></P>
+
+<p>Changing the list item names is achieved in the Custom
+Lists dialog (“adeuib/_ppvars.w”). This procedure takes the _LISTS record from
+_P as an input-output parameter, allows the user to edit it and returns the
+edited values. </p>
+
+<P><A NAME="4.4"><B>4.4 Changing the list membership</B></A></P>
+
+<p>When the user chooses to edit the advanced properties of a
+control, the “adeuib/_advprop.w” procedure runs. This procedure accepts the
+RECID of the appropriate _U record as an input parameter and allows the user to
+edit the record, including the _USER-LIST flags. </p>
+
+<P><A NAME="4.5"><B>4.5 Writing out the list names</B></A></P>
+
+<p>During the process of writing out the source code file,
+the “put_win_preproc_vars” internal procedure in “adeuib/_genproc.i” builds up
+the preprocessor lines for the custom lists, writes out the list names, and
+writes out preprocessor lines that contain any items. Note that the
+preprocessor lines are only written out for compilation — they are not written
+to be parsed back in. </p>
+
+<P><A NAME="4.6"><B>4.6 Writing out the list membership</B></A></P>
+
+<p>When the run time attributes for the controls are written
+out, the AppBuilder also writes out the subscripts of any of the _USER-LIST
+array elements that are set on. The file “adeuib/_genrt.i” is responsible for
+ensuring that this data is properly written out.</p>
+
+<P><A NAME="5"><B>5. Advanced
+Topics</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="6"><B>6. Dependencies</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="7"><B>7. Source File</B></A></P>
+
+<p>This tool uses
+the following source files:</p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:23.4pt;
+ border-collapse:collapse;border:none;mso-border-alt:solid black .75pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <thead>
+  <tr>
+   <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+   padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Source File</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+   <td width=372 valign=top style='width:279.0pt;border:solid black .75pt;
+   border-left:none;mso-border-left-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+   <p><b>Description</b></p>
+   </td>
+   <span style='mso-bookmark:_Toc492469809'></span>
+  </tr>
+ </thead>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_advprop.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Advanced
+  Properties dialog</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_attr-ed.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Properties
+  Window allows editing of list membership</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_genproc.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Internal
+  procedures included into adeshar/_gen4gl.p and adeshar/_gendefs.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_genrt.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Included
+  into adeshar/_gen4gl.p to generate the runtime attributes section of an
+  AppBuilder source file</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_ppvars.w</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Startup
+  procedure of the AppBuilder</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_qssuckr.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Reads
+  a source code file into the AppBuilder</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/_uibinfo.p</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Returns
+  the values of the lists from “contains-info” internal procedure</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/brwscols.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Temp-table
+  definitions for _BC temp-table </span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/uniwidg.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>AppBuilder
+  Temp-Table definitions including _U and _P</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+ <tr>
+  <td width=174 valign=top style='width:130.5pt;border:solid black .75pt;
+  border-top:none;mso-border-top-alt:solid black .75pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>adeuib/usrlistl.i</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+  <td width=372 valign=top style='width:279.0pt;border-top:none;border-left:
+  none;border-bottom:solid black .75pt;border-right:solid black .75pt;
+  mso-border-top-alt:solid black .75pt;mso-border-left-alt:solid black .75pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p><span style='mso-bookmark:_Toc492469809'>Changes
+  the labels for the Custom Lists</span></p>
+  </td>
+  <span style='mso-bookmark:_Toc492469809'></span>
+ </tr>
+</table>
+
+<span style='mso-bookmark:_Toc492469809'></span>
+
+<P><A NAME="8"><B>8. Build Process and Requirements</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="9"><B>9. Execution Methods</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="10"><B>10. Requirements and Strategies</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="11"><B>11. Supplementary Information</B></A></P>
+
+<p>N/A</p>
+
+<P><A NAME="12"><B>12. Related Documentation</B></A></P>
+
+<p>The following documents provide additional information
+about the tool:</p>
+
+<ul>
+
+<li><i style='mso-bidi-font-style:normal'>Progress
+AppBuilder Developer’s Guide</i> (Windows)</li>
+
+<li>AppBuilder Online Help</li>
+
+<br>
+
+
+</div>
+
+</span>

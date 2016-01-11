@@ -559,7 +559,10 @@ FUNCTION getDomain RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cDomain AS CHARACTER NO-UNDO.
+  &SCOPED-DEFINE xpDomain
   {get Domain cDomain} NO-ERROR.
+  &UNDEFINE xpDomain
+
   RETURN cDomain.
 
 END FUNCTION.
@@ -766,7 +769,10 @@ DEFINE VARIABLE hSession AS HANDLE NO-UNDO.
   IF VALID-HANDLE(hSession) THEN RETURN FALSE.
 
   ELSE DO:
+    &SCOPED-DEFINE xpDomain
     {set Domain pcDomain}.
+    &UNDEFINE xpDomain
+
     RETURN TRUE.
   END.  /* else do - no session */
 

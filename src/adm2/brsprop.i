@@ -49,14 +49,15 @@
 &IF "{&xcInstanceProperties}":U NE "":U &THEN
   &GLOB xcInstanceProperties {&xcInstanceProperties},
 &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}ScrollRemote
+  &GLOB xcInstanceProperties {&xcInstanceProperties}ScrollRemote,~
+NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd  
 /* SearchField is added as a property for non-DB browsers.
    ForeignFields is added for DB Browsers. */
 &IF DEFINED(INTERNAL-TABLES) EQ 0 &THEN
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}SearchField,NumDown,CalcWidth,MaxWidth
+  &GLOB xcInstanceProperties {&xcInstanceProperties}SearchField
 &ELSEIF "{&INTERNAL-TABLES}":U NE "RowObject":U &THEN
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
@@ -134,6 +135,10 @@
   &GLOB xpQueryRowObject
   &GLOB xpVisibleRowids
   &GLOB xpVisibleRowReset
+  &GLOB xpFolderWindowToLaunch
+  &GLOB xpToolbarSource
+  &GLOB xpToolbarSourceEvents
+  &GLOB xpFetchOnReposToEnd
   
   {src/adm2/dvisprop.i}
 
@@ -153,6 +158,12 @@
   ghADMProps:ADD-NEW-FIELD('QueryRowObject':U, 'HANDLE':U).
   ghADMProps:ADD-NEW-FIELD('VisibleRowids':U, 'CHAR':U).
   ghADMProps:ADD-NEW-FIELD('VisibleRowReset':U, 'LOG':U).
+  ghADMProps:ADD-NEW-FIELD('FolderWindowToLaunch':U, 'CHAR':U, 0, ?, '':U). 
+  ghADMProps:ADD-NEW-FIELD('ToolbarSource':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('ToolbarSourceEvents':U, 'CHAR':U, 0, ?,
+    'toolbar,okObject,cancelObject':U).
+  ghADMProps:ADD-NEW-FIELD('PrintPreviewActive':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FetchOnReposToEnd':U, 'LOGICAL':U, 0, ?,YES).
 &ENDIF
 
   {src/adm2/custom/brspropcustom.i}

@@ -382,8 +382,13 @@ PROCEDURE read-structured-file :
               _a_line = SUBSTRING(_a_line, 10, -1, "character":U)
               _a_line = REPLACE(_a_line, _trg._tevent, "")
               txt     = txt + TRIM(_a_line) + CHR(10).
-          ELSE IF NOT TRIM(_a_line) BEGINS "PROCEDURE":U THEN
+          ELSE IF NOT TRIM(_a_line) BEGINS "PROCEDURE":U OR 
+            /* Accept PROCEDURE blocks inside the DEFINITIONS section.  These
+               might be EXTERNAL type and must be coded here. */
+            (TRIM(_a_line) BEGINS "PROCEDURE":U AND 
+             _TRG._tEVENT = "_DEFINITIONS":U) THEN DO:
             ASSIGN txt = txt + _a_line + CHR(10).
+          END.
         END.
       END. /* IF part eq "Code... */
     END. /* IF...<not>...ANALYZE-SUSPEND... */

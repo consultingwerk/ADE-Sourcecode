@@ -1471,14 +1471,44 @@ FUNCTION ReadFile RETURNS LOGICAL
   DEF VAR NumParam    AS INT  NO-UNDO.
   DEF VAR NumQuotes   AS INT  NO-UNDO.
   DEF VAR QuoteChar   AS CHAR NO-UNDO INIT '~''.
- 
+  DEFINE VARIABLE PosseLine1    AS CHARACTER NO-UNDO INITIAL "<!--------------------------------------------------------------------".
+  DEFINE VARIABLE PosseLine2    AS CHARACTER NO-UNDO INITIAL '* Copyright (C) * by Progress Software Corporation ("PSC")*'.
+  DEFINE VARIABLE PosseLastline AS CHARACTER NO-UNDO INITIAL "--------------------------------------------------------------------->".
+  DEFINE VARIABLE saveline      AS CHARACTER NO-UNDO INITIAL "".
+
   INPUT STREAM instream FROM VALUE(SEARCH(pName)) NO-ECHO.
   
   Inline:
   REPEAT ON ERROR UNDO,LEAVE: 
     IMPORT STREAM instream UNFORMATTED InLine.
 
-    DO WHILE TRUE:
+  DO WHILE TRUE:
+
+      /* check 2 lines to see if we have the posse copyright */
+      /* if so, then strip it out else just keep checking    */
+      IF TRIM(inline) = PosseLine1 THEN
+        HDR-STRIP-CHK: /* Check the first two lines */
+        DO:
+          ASSIGN saveline = TRIM(inline). /* Save off the first line. We will proceed to validate the next line */
+          IMPORT STREAM instream UNFORMATTED InLine. /* Read the next line from the file */
+          IF NOT (TRIM(inline) MATCHES PosseLine2) THEN
+            DO:
+              ASSIGN inline = saveline.
+              LEAVE HDR-STRIP-CHK. /* Return to normal processing */
+            END. /* end if not inline matches */
+          HDR-STRIP: /* This short loop in intended to remove the POSSENET header from newly created objects */
+          REPEAT ON END-KEY UNDO HDR-STRIP, RETRY HDR-STRIP:
+            IMPORT STREAM instream UNFORMATTED InLine. /* Read the next line from the file */
+            IF TRIM(inline) = PosseLastLine THEN
+              DO: /* If we have located the last line of the header, we'll read ahead the let the AB continue. */
+                IMPORT STREAM instream UNFORMATTED InLine.
+                LEAVE HDR-STRIP.
+              END. /* end if inline = posseLastLine */
+            END. /* end HDR-STRIP:REPEAT */
+        END.  /* end HDR-strip-CHK */
+
+
+
       ASSIGN
         ForEach = INDEX(InLine,'##EachColumn') > 0     
         Pos     = INDEX(InLine,Mark).

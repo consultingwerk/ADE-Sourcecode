@@ -135,7 +135,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW qTableWin ASSIGN
-         HEIGHT             = 4.1
+         HEIGHT             = 7.81
          WIDTH              = 78.6.
 /* END WINDOW DEFINITION */
                                                                         */

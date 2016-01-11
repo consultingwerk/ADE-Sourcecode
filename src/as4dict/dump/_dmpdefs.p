@@ -23,19 +23,20 @@
 
 
 /*-----------------------------------------------------------------*/
-/* as4dict/dump/_dmpdefs.p - Dump Data Definitions for the As/400  */
-/*                           Taken from prodict/dump/_dmpdefs      */
-/* history:                                                        */
-/*   Nhorn   5/01/95   Initial creation from prodict/dump/_dmpdefs */
-/*   D. McMann 11/25/97 Added dump of AREA for V9 new meta schema  */
-/*   D. McMann 11/09/98 Change Area from 6 to Schema Area          */
-/*   D. McMann 06/10/99 Added Stored Procedure Support             */
-/*   D. McMann 11/03/99 Decremented max-size so load will be       */
-/*                      correct 19991103-015                       */
-/*   D. McMann 02/02/00 Changed output of Cycle-OK  20000131-013   */
-/*   D. McMann 05/18/00 Added new key work MAX-GLYHPS              */
-/*   D. McMann 02/15/01 Added check for AS400 format               */
-/*-----------------------------------------------------------------*/       
+/* as4dict/dump/_dmpdefs.p - Dump Data Definitions for the As/400     */
+/*                           Taken from prodict/dump/_dmpdefs         */
+/* history:                                                           */
+/*   Nhorn   5/01/95   Initial creation from prodict/dump/_dmpdefs    */
+/*   D. McMann 11/25/97 Added dump of AREA for V9 new meta schema     */
+/*   D. McMann 11/09/98 Change Area from 6 to Schema Area             */
+/*   D. McMann 06/10/99 Added Stored Procedure Support                */
+/*   D. McMann 11/03/99 Decremented max-size so load will be          */
+/*                      correct 19991103-015                          */
+/*   D. McMann 02/02/00 Changed output of Cycle-OK  20000131-013      */
+/*   D. McMann 05/18/00 Added new key work MAX-GLYHPS                 */
+/*   D. McMann 02/15/01 Added check for AS400 format                  */
+/*   D. Mcmann 04/12/02 Added conversion of replication trigger names */
+/*--------------------------------------------------------------------*/       
 
 DEFINE INPUT  PARAMETER pi_method AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pi_filenum AS INTEGER NO-UNDO.
@@ -46,6 +47,7 @@ DEFINE VARIABLE v_ispro AS LOGICAL NO-UNDO.
 DEFINE VARIABLE byte1   AS INTEGER NO-UNDO.
 DEFINE VARIABLE byte2   AS INTEGER NO-UNDO.
 DEFINE VARIABLE vers    AS CHAR    NO-UNDO.
+DEFINE VARIABLE prgevent AS CHARACTER NO-UNDO.
 
 DEFINE SHARED STREAM ddl.
 DEFINE SHARED FRAME working.   
@@ -179,11 +181,25 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     END.  /* AS400 FORMAT */
     FOR EACH as4dict.p__trgfl where as4dict.p__trgfl._File-Number = as4dict.p__file._File-number
         NO-LOCK BY _Event:
-      PUT STREAM ddl UNFORMATTED
-        "  TABLE-TRIGGER """ as4dict.p__trgfl._Event """ "
-        (IF as4dict.p__Trgfl._Override = "Y" THEN 'OVERRIDE' ELSE 'NO-OVERRIDE') " "
-        "PROCEDURE """ as4dict.p__Trgfl._Proc-Name """ "
-        "CRC """ as4dict.p__Trgfl._Trig-CRC """ " SKIP.
+      IF dump_format = "AS400" THEN
+        PUT STREAM ddl UNFORMATTED
+          "  TABLE-TRIGGER """ as4dict.p__trgfl._Event """ "
+          (IF as4dict.p__Trgfl._Override = "Y" THEN 'OVERRIDE' ELSE 'NO-OVERRIDE') " "
+          "PROCEDURE """ as4dict.p__Trgfl._Proc-Name """ "
+          "CRC """ as4dict.p__Trgfl._Trig-CRC """ " SKIP.
+      ELSE DO:
+        CASE as4dict.p__trgfl._Event:
+            WHEN "RCREAT" THEN ASSIGN prgevent = "REPLICATION-CREATE".
+            WHEN "RDELET" THEN ASSIGN prgevent = "REPLICATION-DELETE".
+            WHEN "RWRITE" THEN ASSIGN prgevent = "REPLICATION-WRITE".
+            OTHERWISE ASSIGN prgevent = as4dict.p__trgfl._Event.
+        END CASE.
+        PUT STREAM ddl UNFORMATTED
+          "  TABLE-TRIGGER """ prgevent """ "
+          (IF as4dict.p__Trgfl._Override = "Y" THEN 'OVERRIDE' ELSE 'NO-OVERRIDE') " "
+          "PROCEDURE """ as4dict.p__Trgfl._Proc-Name """ "
+          "CRC """ as4dict.p__Trgfl._Trig-CRC """ " SKIP.
+      END.
     END.
     PUT STREAM ddl UNFORMATTED SKIP(1).
   END.
@@ -338,7 +354,8 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     PUT STREAM ddl UNFORMATTED
       "ADD INDEX """ as4dict.p__Index._Index-Name """ "
       "ON """ as4dict.p__File._File-name """ " SKIP.
-    PUT STREAM ddl UNFORMATTED '  AREA "Schema Area" ' SKIP.      
+    IF dump_format <> "AS400" THEN
+      PUT STREAM ddl UNFORMATTED '  AREA "Schema Area" ' SKIP.      
     IF as4dict.p__Index._Unique = "Y" THEN
       PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
     IF as4dict.p__Index._Active <> "Y" THEN

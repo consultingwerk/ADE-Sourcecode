@@ -1,0 +1,25 @@
+/* icfdyn.cst - Dynamics customized dynamic objects file - 10/04/2001 */
+
+*NEW-CONTAINER	Independent Window (DynObjc)
+NEW-TEMPLATE	src/adm2/template/dynobjc.w
+TYPE		DynObjc
+IMAGE-FILE      adeicon/smartwindow.bmp
+PROPERTY-SHEET  ry/uib/containerd.w
+
+*NEW-CONTAINER	Dynamic Menu Controller (DynMenc)
+NEW-TEMPLATE	src/adm2/template/dynmenc.w
+TYPE		DynMenc
+IMAGE-FILE      adeicon/smartwindow.bmp
+PROPERTY-SHEET  ry/uib/containerd.w
+
+*NEW-CONTAINER	Dependent Window (DynFold)
+NEW-TEMPLATE	src/adm2/template/dynfold.w
+TYPE		DynFold
+IMAGE-FILE      adeicon/smartwindow.bmp
+PROPERTY-SHEET  ry/uib/containerd.w
+
+*NEW-SMARTOBJECT Dynamic SmartData&Browser (DynBrow)
+NEW-TEMPLATE	src/adm2/template/dynbrow.w
+TYPE		DynBrow
+IMAGE-FILE	adeicon/smartdatabrowse.bmp
+PROPERTY-SHEET	adm2/support/dynbrwwin.w

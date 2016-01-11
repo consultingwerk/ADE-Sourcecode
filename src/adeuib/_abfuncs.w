@@ -423,7 +423,7 @@ FUNCTION x-2-c RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 25.05
+         HEIGHT             = 21.71
          WIDTH              = 55.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -442,6 +442,12 @@ FUNCTION x-2-c RETURNS CHARACTER
    CREATE _PDP.
    ASSIGN _PDP._procFileName = SEARCH(THIS-PROCEDURE:FILE-NAME)
           _PDP._hInstance    = THIS-PROCEDURE.
+          
+   /* jep-icf: Start the repository api procedure as a session super proc. */
+   DEFINE VARIABLE hReposProc AS HANDLE NO-UNDO.
+   hReposProc = DYNAMIC-FUNCTION("get-proc-hdl" IN THIS-PROCEDURE, INPUT "ry/app/ryreposobp.p":u).
+   IF VALID-HANDLE(hReposProc) THEN
+      SESSION:ADD-SUPER-PROCEDURE(hReposProc, SEARCH-TARGET).
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

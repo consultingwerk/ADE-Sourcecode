@@ -33,6 +33,8 @@ in:  user_env[2] = filename of .df file
 */
 /* 
   Created 02/01/01 D. McMann modified from as4dict/load/_lodsddl.p
+  History:  07/11/01 D. McMann Added format to dba_return when creating name
+                     of copied library
           
 */                            
 
@@ -41,7 +43,7 @@ in:  user_env[2] = filename of .df file
 { as4dict/load/loaddefs.i NEW }
 
 
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 50 NO-UNDO.
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 51 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -88,6 +90,7 @@ ASSIGN
   error_text[48] = "Cannot &1 Read-Only object &3":t72
   error_text[49] = "Only format changed, field in index and max length would be exceeded":t67
   error_text[50] = "Field length can not be made smaller, change not performed.":t67 
+  error_text[51] = "Extent Field, only format changed, do drop and add to change length.":t67
     .
   
 DEFINE VARIABLE scrap       AS CHARACTER NO-UNDO.
@@ -583,7 +586,7 @@ IF cerror = ? THEN DO:  /* conversion needed but NOT possible */
                   RUN adecomm/_setcurs.p ("").
                   RETURN.
                 END.
-                ASSIGN copy-lib = "PROC" + STRING(dba_return).
+                ASSIGN copy-lib = "PROC" + STRING(dba_return, "999999").
               END.
               ELSE IF ilin[2] = "SRTSAVE"  THEN DO:
                 ASSIGN dba_cmd = "E" + ilin[2].

@@ -33,6 +33,7 @@
     Syntax      : {src/adm2/query.i}
 
    Modified    : February 18, 2001 Version 9.1C 
+   Modified    : 02/27/02 Gikas A. Gikas - IZ 4050 Max query buffers
     
     Note: !!!   : Method Libraries are maintained manually for 
                   conditional inclusion.        
@@ -134,7 +135,7 @@ FUNCTION deleteRecordStatic RETURNS LOGICAL
      too big on AS400.  All of the functions in queryext.p are get and set 
      property functions.  */
 
-  RUN initProps.
+  RUN initProps IN TARGET-PROCEDURE.
 
   /* _ADM-CODE-BLOCK-START _CUSTOM _INCLUDED-LIB-CUSTOM CUSTOM */
   {src/adm2/custom/querycustom.i}
@@ -156,35 +157,48 @@ PROCEDURE initProps :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTable         AS CHARACTER  NO-UNDO. 
-  DEFINE VARIABLE iTable         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cDataCols      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cUpdCols       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCalcData      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCalcUpd       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iNumData       AS INT        NO-UNDO.
-  DEFINE VARIABLE iNumUpd        AS INT        NO-UNDO.
-  DEFINE VARIABLE cBuffers       AS CHARACTER  NO-UNDO INIT "":U.
-  DEFINE VARIABLE cKeyFields     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAssignList    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iAssigns       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iPos           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEntry         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cTables        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTableAssign   AS CHARACTER EXTENT 10 NO-UNDO INIT "":U.
-  DEFINE VARIABLE cDbEntry       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cField         AS CHAR       NO-UNDO.
+  DEFINE VARIABLE cTable          AS CHARACTER  NO-UNDO. 
+  DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cDataCols       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUpdCols        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalcData       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cCalcUpd        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNumData        AS INT        NO-UNDO.
+  DEFINE VARIABLE iNumUpd         AS INT        NO-UNDO.
+  DEFINE VARIABLE cBuffers        AS CHARACTER  NO-UNDO INIT "":U.
+  DEFINE VARIABLE cKeyFields      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAssignList     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iAssigns        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iPos            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEntry          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cTables         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTableAssign    AS CHARACTER EXTENT 19 NO-UNDO INIT "":U.
+  DEFINE VARIABLE cDbEntry        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cField          AS CHAR       NO-UNDO.
+  DEFINE VARIABLE cKeyTable       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryString    AS CHARACTER NO-UNDO.
 
+  /* New for 9.1D to allow storage of this in the client SDO so the one-hit 
+     appserver can be utilized also oat initialization */
+
+  cQueryString = '{&QUERY-STRING-{&QUERY-NAME}}':U.
+
+ /* Server side logic */ 
 &IF DEFINED(OPEN-QUERY-{&QUERY-NAME}) NE 0 &THEN
 
   DEFINE VARIABLE hQuery         AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hBuffer        AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cOpenQuery     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cDBNames       AS CHARACTER  NO-UNDO.
-
-  /* Note that a Browser which defines its own database query sets QUERY-NAME
-     to be equal to BROWSE-NAME, so this code can apply to both types. */
+  DEFINE VARIABLE cDBNames       AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE cKeyTableEntityFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyTableEntityValues   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyTableEntityMnemonic AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyTableEntityObjField AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lHasObjectField         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iLookup                 AS INTEGER    NO-UNDO.
+  
   ASSIGN hQuery = QUERY {&QUERY-NAME}:HANDLE.   /* Database query */
   
   /* Initialize the list of buffer handles for the tables in the db query,
@@ -201,25 +215,27 @@ PROCEDURE initProps :
   END. /* iTable = 1 to num-buffers */
 
   {set BufferHandles cBuffers}.
-  {set DBNames cDBNames}.
-
-  ASSIGN
-    hQuery = QUERY {&QUERY-NAME}:HANDLE
-    cOpenQuery = '{&OPEN-QUERY-{&QUERY-NAME}}':U  /* NOTE: ' vs " parsing?? */
-    /* Next eliminate the "OPEN QUERY Query-Main" text. */
-    iPos       = INDEX(cOpenQuery, " FOR ":U) 
-   /* No FOR keyword (reserved) found, check for PRESELECT (not reserved) */ 
-    iPos       = IF iPos = 0 THEN INDEX(cOpenQuery, " PRESELECT ":U) ELSE iPos  
-    cOpenQuery = SUBSTR(cOpenQuery,iPos + 1).
-  
+  {set DBNames cDBNames}.  
   {set QueryHandle hQuery}.
+  
+  IF cQueryString = '':U THEN
+    ASSIGN
+      cOpenQuery = '{&OPEN-QUERY-{&QUERY-NAME}}':U  /* NOTE: ' vs " parsing?? */
+      /* Next eliminate the "OPEN QUERY Query-Main" text. */
+      iPos       = INDEX(cOpenQuery, " FOR ":U) 
+      /* No FOR keyword (reserved) found, check for PRESELECT (not reserved) */ 
+      iPos       = IF iPos = 0 THEN INDEX(cOpenQuery, " PRESELECT ":U) ELSE iPos  
+      cQueryString = SUBSTR(cOpenQuery,iPos + 1).
+  
   /* Store the original query in the OpenQuery property and prepare the query 
      with it. 
      - setOpenQuery -> setQueryWhere -> prepareQuery */
-  IF NOT {fnarg setOpenQuery cOpenQuery} THEN
+  IF NOT {fnarg setOpenQuery cQueryString} THEN
     DYNAMIC-FUNCTION('showMessage':U IN TARGET-PROCEDURE, '5':U). 
-
-&ENDIF    /* if defined(open-query) */
+&ELSE  /* if defined(open-query) */
+  /* Store the original query in the BaseQuery client property */ 
+  {set BaseQuery cQueryString}.
+&ENDIF /* client */  
 
 &IF "{&TABLES-IN-QUERY-{&QUERY-NAME}}":U NE "":U &THEN
   /* Define the AssignList property. This takes the ASSIGN-LIST preprocessor,
@@ -267,9 +283,9 @@ PROCEDURE initProps :
       (IF iTable = 1 THEN "":U ELSE CHR(1)) +
         cTableAssign[iTable].
   END.    /* END DO iTable */
-  
+
   {set AssignList cAssignList}.
-    
+
 &ENDIF   /* If TABLES-IN-QUERY */
 
   /* Now set the UpdatableColumns and DataColumnsByTable property to be all 
@@ -280,7 +296,7 @@ PROCEDURE initProps :
  &SCOPED-DEFINE enabledvar      cUpdCols
  &SCOPED-DEFINE datacount       iNumData 
  &SCOPED-DEFINE enabledcount    iNumUpd
- 
+
   {src/adm2/tblprep.i &num=FIRST}
   {src/adm2/tblprep.i &num=SECOND}
   {src/adm2/tblprep.i &num=THIRD}
@@ -291,7 +307,15 @@ PROCEDURE initProps :
   {src/adm2/tblprep.i &num=EIGHTH}
   {src/adm2/tblprep.i &num=NINTH}
   {src/adm2/tblprep.i &num=TENTH} 
- 
+  {src/adm2/tblprep.i &num=ELEVENTH}
+  {src/adm2/tblprep.i &num=TWELFTH}
+  {src/adm2/tblprep.i &num=THIRTEENTH}
+  {src/adm2/tblprep.i &num=FOURTEENTH}
+  {src/adm2/tblprep.i &num=FIFTEENTH}
+  {src/adm2/tblprep.i &num=SIXTEENTH}
+  {src/adm2/tblprep.i &num=SEVENTEENTH}
+  {src/adm2/tblprep.i &num=EIGHTEENTH}
+
  &UNDEFINE enabledvar 
  &UNDEFINE datavar   
  &UNDEFINE datacount   
@@ -334,7 +358,55 @@ ASSIGN
   
 {set UpdatableColumnsByTable cUpdCols}.
 {set DataColumnsByTable cDataCols}.
+
+&IF DEFINED(OPEN-QUERY-{&QUERY-NAME}) NE 0 &THEN
+/* We do this after updatableColumnsBytable has been set as this 
+   will give us the Enabledtables 
+   (we still only do it on the server as the to as getEntityDetail is a server 
+    procedure) */
+  
+ {get EnabledTables cKeyTable}.
+ /* First enabled .. */
+ cKeyTable = ENTRY(1,cKeyTable).
+ /* if no enabled use the first table */
+ IF cKeyTable = '':U THEN
+   cKeyTable = "{&FIRST-TABLE-IN-QUERY-{&QUERY-NAME}}".
+  
+
+ IF cKeyTable <> "":U
+ AND VALID-HANDLE(gshGenManager) THEN  
+  /* AND LOOKUP("getEntityDetail":U, gshGenManager:INTERNAL-ENTRIES) > 0 */
+ DO:
+
+    RUN getEntityDetail IN gshGenManager
+                       (INPUT  cKeyTable,
+                        OUTPUT cKeyTableEntityFields,
+                        OUTPUT cKeyTableEntityValues) NO-ERROR.
+
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
+    DO:
+      {checkerr.i &display-error = "YES"}
+    END.
+    IF cKeyTableEntityFields <> "":U THEN 
+    DO:
+      IF LOOKUP("entity_mnemonic",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
+         ASSIGN cKeyTableEntityMnemonic = ENTRY( LOOKUP("entity_mnemonic",cKeyTableEntityFields,CHR(1))    ,cKeyTableEntityValues,CHR(1) ).
  
+      IF LOOKUP("table_has_object_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
+        ASSIGN lHasObjectField = CAN-DO("TRUE,YES",ENTRY( LOOKUP("table_has_object_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) )).
+       
+      IF lHasObjectField THEN
+         IF LOOKUP("entity_object_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
+           ASSIGN cKeyTableEntityObjField = ENTRY( LOOKUP("entity_object_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) ).
+      ELSE
+        IF LOOKUP("entity_key_field",cKeyTableEntityFields,CHR(1)) <> 0 THEN 
+           ASSIGN cKeyTableEntityObjField = ENTRY( LOOKUP("entity_key_field",cKeyTableEntityFields,CHR(1)) ,cKeyTableEntityValues,CHR(1) ).
+      {set KeyTableId cKeyTableEntityMnemonic}.
+      {set KeyFields  cKeyTableEntityObjField}.
+    END.
+ END.
+&ENDIF
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

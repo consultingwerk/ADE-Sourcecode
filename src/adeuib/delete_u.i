@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000-2001 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -75,6 +75,8 @@ Updated: 12/9/97 adams added WebSpeed support
                       may change when unmappng a query.      
          08/09/00 JEP Do not delete treeview object when its an HTML Field
                       and its a non-TRASH (temporary) delete.
+         09/30/01 JEP IZ 1520 _U record error when adding activex to window.
+                      Fix: Clear stale com-handle (_COM-HANDLE = ?).
   
   Notes:
 ----------------------------------------------------------------------------*/
@@ -187,7 +189,8 @@ IF CAN-DO("FRAME,WINDOW,DIALOG-BOX,QUERY", _U._TYPE) THEN DO:
           ASSIGN x_U._STATUS        = "DELETED"
                  x_U._SELECTEDib    = FALSE
                  x_U._HANDLE        = ?
-                 x_U._WINDOW-HANDLE = ?.
+                 x_U._WINDOW-HANDLE = ?
+                 x_U._COM-HANDLE    = ?.
           VALIDATE x_U.
         END.
       END. /* If not a menu (not available _F or _C) */
@@ -425,7 +428,8 @@ DO:
   ASSIGN _U._STATUS        = "DELETED"
          _U._SELECTEDib    = FALSE
          _U._HANDLE        = ?
-         _U._WINDOW-HANDLE = ?.
+         _U._WINDOW-HANDLE = ?
+         _U._COM-HANDLE    = ?.
   
   /* Tell the tree view that a _U has been deleted. 
      Do this AFTER _selectedib is set to false, to avoid errors when
@@ -447,7 +451,8 @@ DO:
    ASSIGN _U._STATUS        = "DELETED"
           _U._SELECTEDib    = FALSE
           _U._HANDLE        = ?
-          _U._WINDOW-HANDLE = ?.
+          _U._WINDOW-HANDLE = ?
+          _U._COM-HANDLE    = ?.
    VALIDATE _U.
   
   /* Tell the tree view that a _U has been deleted. 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -17,239 +17,141 @@
 * should refer to the License for the specific language governing    *
 * rights and limitations under the License.                          *
 *                                                                    *
-* Contributors:                                                      *
+* Contributors:  Per Digre/PSC, Chad Thompson/Bravepoint             *
 *                                                                    *
 *********************************************************************/
-/*-------------------------------------------------------------------------
+/*------------------------------------------------------------------------
 
-File: web-disp.p
+  File: web/objects/web-disp.p
 
-Description:                Main PROGRESS entry dispatch procedure  
+  Description: 
 
-Input Parameters:   <none>
+  Input Parameters:
+      <none>
 
-Output Parameters:  <none>
+  Output Parameters:
+      <none>
 
-Author: D.Adams, B.Burton, L.Laferriere, Wm.T.Wood
-
-Created: May 1996
-
----------------------------------------------------------------------------*/
-
-{ src/web/method/cgidefs.i NEW }      /* Basic CGI variables */
-{ src/web/method/cgiarray.i NEW }     /* Extended CGI array variables */
-{ src/web/method/tagmap.i NEW }       /* HTML/PSC type mapping */
+------------------------------------------------------------------------*/
+{ src/web/method/cgidefs.i  NEW } /* standard WS cgidefs.i: functions,vars */
+{ src/web/method/cgiarray.i NEW } /* standard WS cgiarray.i: vars          */ 
+{ src/web/method/tagmap.i   NEW } /* standard WS tagmap.i: TT tagmap       */
+{ src/web/method/webutils.i NEW }
 
 /* Dummy variable for logical assign. */
-DEFINE VARIABLE l_dummy AS LOGICAL NO-UNDO.
+DEFINE VARIABLE lDummy AS LOGICAL NO-UNDO.
+
+&SCOPED-DEFINE EXCLUSIVE-WEB-USER EXCLUSIVE-WEB-USER
+&SCOPED-DEFINE MANUAL-WSEU-INCREMENT lDummy = WEB-CONTEXT:INCREMENT-EXCLUSIVE-ID (1).
 
 /* Also defined in web/objects/web-util.p and adeuib/_semain.w.  This needs to
    be centralized. */
 DEFINE NEW SHARED VARIABLE server-connection AS CHARACTER NO-UNDO.
 DEFINE NEW SHARED VARIABLE transaction-state AS CHARACTER NO-UNDO.
 
-&Scoped-define MANUAL-WSEU-INCREMENT l_dummy = WEB-CONTEXT:INCREMENT-EXCLUSIVE-ID (1).
-&Scoped-define WEB-NOTIFY WEB-NOTIFY
-&Scoped-define EXCLUSIVE-WEB-USER EXCLUSIVE-WEB-USER
+DEFINE VARIABLE cfg-eval-mode      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cMimeCharset       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cProCharset        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cStateAware        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE dPausePeriod       AS DECIMAL    NO-UNDO.  
+DEFINE VARIABLE hWebStart          AS HANDLE     NO-UNDO.
+DEFINE VARIABLE iBatchInterval     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iTest              AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ix                 AS INTEGER    NO-UNDO.
+DEFINE VARIABLE lStateAware        AS LOGICAL    NO-UNDO.
 
-DEFINE VARIABLE cfg-eval-mode       AS LOGICAL NO-UNDO.
-DEFINE VARIABLE ix                  AS INTEGER NO-UNDO.
-DEFINE VARIABLE pause-period        AS INTEGER NO-UNDO.
-
-/* Trigger for handling all web requests */   
-ON "{&WEB-NOTIFY}":U ANYWHERE DO:
-  DEFINE VARIABLE c-value AS CHARACTER NO-UNDO.
-
+/* Set the web-request trigger. */
+ON "WEB-NOTIFY":U ANYWHERE DO:
   OUTPUT {&WEBSTREAM} TO "WEB":U.
- 
+
   /* Parse the request from the web server. */
   RUN init-request IN web-utilities-hdl.
 
-  /* Check for specific requests: 
-       PING               - respond that web-disp.p is running
-       DEBUG              - call up debugging administration form
-       RESET              - reset the web-utilities.
-       WEB-UTILITY:<name> - Run <name> in the utilities procedure. */
-  IF AppProgram EQ "PING":U THEN DO:
-    output-http-header("Content-Type":U, "text/html":U).
-    output-http-header("","").
-    {&OUT}
-      '<HTML>':U SKIP
-      '<HEAD><TITLE>':U "WebSpeed Agent successfully accessed"
-        '</TITLE></HEAD>':U SKIP
-      '<BODY BGCOLOR="#FFFFCC" TEXT="#000000">':U SKIP
-      '<H1>':U "WebSpeed Agent successfully accessed" '</H1>':U SKIP
-    {&END}
-    IF debugging-enabled THEN DO:
-      ASSIGN FILE-INFO:FILE-NAME = ".":U.  /* current directory */
-      {&OUT}
-        '<DL>':U SKIP
-        '  <DT><B>':U "Default Directory:" '</B>':U SKIP
-        '    <DD><FONT SIZE="-1">':U FILE-INFO:FULL-PATHNAME 
-        '</FONT><BR><BR>':U SKIP
-        '  <DT><B>':U "Web Object Path (PROPATH):" '</B>':U SKIP
-        '    <DD><FONT SIZE="-1">':U REPLACE(PROPATH, ",":U, "<BR>~n":U) 
-        '</FONT><BR><BR>':U SKIP
-        '  <DT><B>':U "Connected Databases:" '</B>':U SKIP.
-
-      DO ix = 1 TO NUM-DBS:
-        {&OUT}
-          '    <DD><FONT SIZE="-1">':U LDBNAME(ix) ' (':U DBTYPE(ix)
-          ')</FONT>':U SKIP.
-      END.        
-      {&OUT} '</DL>':U SKIP.
+  &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN  
+  ASSIGN
+    cMimeCharset = get-value("wscharset":U)
+    cProCharset  = ""
+    iTest        = 0.
+    
+  IF cMimeCharset <> ? AND cMimeCharset <> "" THEN DO:
+    /* Confirm receipt of valid MIME character set */
+    RUN adecomm/convcp.p (cMimeCharset, "toProg":U, OUTPUT cProCharset) NO-ERROR.
+    IF cProCharset = "" THEN
+      MESSAGE SUBSTITUTE("The &1 character set has no Progress equivalent.",
+                         cMimeCharset).
+    ELSE DO:
+      ASSIGN iTest = ASC("A":U, SESSION:CPINTERNAL, cProCharset) NO-ERROR.
+      IF iTest > 0 THEN
+        WEB-CONTEXT:HTML-CHARSET = cProCharset.
     END.
-    {&OUT} '</BODY></HTML>':U SKIP.
+
+    IF iTest >= 0 AND WEB-CONTEXT:HTML-CHARSET <> "" 
+      AND WEB-CONTEXT:HTML-CHARSET <> SESSION:CPSTREAM THEN
+      OUTPUT {&WEBSTREAM} TO "WEB":U CONVERT TARGET WEB-CONTEXT:HTML-CHARSET.
   END.
-
-  /* If debugging is enabled (probably Environment = Development mode) */
-  ELSE IF AppProgram EQ "DEBUG":U AND debugging-enabled THEN 
-    RUN web/support/printval.p ("admin":U).
-
-  /* Reset all web utilities including web-util.p */
-  ELSE IF AppProgram EQ "RESET":U AND debugging-enabled THEN DO:
-    RUN reset-utilities.
-    output-http-header("Content-Type":U, "text/plain":U).
-    output-http-header("","").
-    {&OUT}
-      "Reset " (IF VALID-HANDLE(web-utilities-hdl)
-        THEN "succeeded" ELSE "failed") " for this Agent." SKIP
-    {&END}
-  END.
-
-  ELSE IF AppProgram BEGINS "WEB-UTILITY:":U AND debugging-enabled THEN DO:
-    RUN dispatch IN web-utilities-hdl (ENTRY (2, AppProgram, ":":U)) NO-ERROR.
-    output-http-header("Content-Type":U, "text/plain":U).
-    output-http-header("","").
-    {&OUT}
-      AppProgram (IF ERROR-STATUS:ERROR THEN " failed" ELSE " succeeded")
-      " on this Agent." SKIP
-    {&END}
-  END.
-
-  /* Try to run whatever was specified in the URL */
-  ELSE DO:
-    /* If debugging is disabled, don't allow running any files starting
-       with the path "src/web/". */
-    IF NOT debugging-enabled AND AppProgram BEGINS "src/web/":U THEN
-      RUN HtmlError IN web-utilities-hdl
-          (SUBSTITUTE ("Unable to run Web object '&1'", AppProgram )).
-    ELSE
-      /* Try to run the Web object application program. */
-      RUN run-web-object IN web-utilities-hdl (AppProgram).
+  &ENDIF
   
-    /* If any debugging options are set except "top" ... */
-    IF debugging-enabled AND debug-options <> "" AND
-        LOOKUP("top":U,debug-options) = 0 THEN
-      RUN web/support/printval.p (debug-options).
-  END.
+  /* Run the web object */
+  RUN run-web-object IN web-utilities-hdl (AppProgram) NO-ERROR.
 
+  /* Run clean up and maintenance code */
+  RUN end-request IN web-utilities-hdl NO-ERROR.
+  
   /* Output any pending messages queued up by queue-message() */
   IF available-messages(?) THEN
     output-messages("all", ?, "Messages:").
-
+    
   OUTPUT {&WEBSTREAM} CLOSE.
+END. /* ON "WEB-NOTIFY" */
 
-END. /* ON "{&WEB-NOTIFY}"... */
+/* Load standard and user-defined super procedures.  web/objects/web-util.p and 
+   init-session runs within.  This program is set as web-utilities-hdl. */
+RUN webutil/webstart.p PERSISTENT SET hWebStart.
 
-/* Initialize the utilities. */
-RUN reset-utilities.  
+/* Initialize the tagmap file. */
+RUN reset-tagmap-utilities IN web-utilities-hdl.
 
-/* Initialize any session-specific information */
-RUN init-session IN web-utilities-hdl.
+ASSIGN
+  iBatchInterval = INTEGER(DYNAMIC-FUNCTION("getAgentSetting":U IN web-utilities-hdl,
+                                            "Misc":U, "", "BatchInterval":U)) 
+  cStateAware    = DYNAMIC-FUNCTION("getAgentSetting":U IN web-utilities-hdl,
+                                    "Session":U, "", "StateAware":U)
+  lStateAware    = (cStateAware = "yes":U)
+  cfg-eval-mode  = check-agent-mode("EVALUATION":U)
+  NO-ERROR.
+  
+/* Turn on manual WSEU incrementing if state-aware support is active. */
+IF lStateAware THEN
+  {&MANUAL-WSEU-INCREMENT}
 
-/* Turn on manual WSEU incrementing. */
-{&MANUAL-WSEU-INCREMENT}
-
-/* Determine if Evaluation mode or not. */
-ASSIGN cfg-eval-mode = check-agent-mode("EVALUATION":U).
-
-WAIT-FOR-BLOCK:
+/* Wait for a web-request to come in */
+WAIT-FOR-BLOCK: 
 REPEAT ON ERROR UNDO WAIT-FOR-BLOCK, LEAVE WAIT-FOR-BLOCK 
        ON QUIT  UNDO WAIT-FOR-BLOCK, LEAVE WAIT-FOR-BLOCK
-       ON STOP  UNDO WAIT-FOR-BLOCK, NEXT WAIT-FOR-BLOCK:  /* Why is NEXT here? (wood)  */
-  
-  /* Usually return to the "None" state, except in a RETRY which is
-     treated like a start. */
-  IF transaction-state eq "RETRY-PENDING":U THEN
-    transaction-state = "START-PENDING":U.
-  ELSE 
-    transaction-state = "NONE":U .
-       
-  RUN check-exclusive-pause IN web-utilities-hdl (OUTPUT pause-period).
-  /* OUTPUT {&WEBSTREAM} TO "WEB":U UNBUFFERED.
-   * {&OUT} "pause-period = " pause-period. */
-  IF transaction-state eq "NONE" THEN DO:
-    /* If in evaluation mode, don't lock the Agent */
-    IF cfg-eval-mode THEN
-      WAIT-FOR "{&WEB-NOTIFY}":U OF DEFAULT-WINDOW.
-    ELSE IF pause-period > 0 THEN 
-      WAIT-FOR "{&WEB-NOTIFY}":U OF DEFAULT-WINDOW
-               PAUSE pause-period {&EXCLUSIVE-WEB-USER}.
+       ON STOP  UNDO WAIT-FOR-BLOCK, NEXT  WAIT-FOR-BLOCK: 
+  IF lStateAware THEN DO:
+    RUN check-exclusive-pause IN web-utilities-hdl (OUTPUT dPausePeriod).
+    IF dPausePeriod > 0 AND NOT cfg-eval-mode THEN 
+      WAIT-FOR "WEB-NOTIFY":U OF DEFAULT-WINDOW
+        PAUSE dPausePeriod EXCLUSIVE-WEB-USER.
     ELSE DO:
-      /* Increment the exclusive user id manually every time we are in a
-         non-locking state. */
       {&MANUAL-WSEU-INCREMENT}
-      WAIT-FOR "{&WEB-NOTIFY}":U OF DEFAULT-WINDOW. 
-    END. /* IF pause-period [eq] 0... */
-  END. /* IF transaction-state eq "NONE"... */
-  /* Check to see if the user wants to start a transaction. */
-  IF transaction-state eq "START-PENDING":U THEN DO:
-    Transaction-Block: 
-    DO TRANSACTION:
-      REPEAT ON ERROR UNDO Transaction-Block, LEAVE Transaction-Block
-             ON QUIT  UNDO Transaction-Block, LEAVE Transaction-Block
-             ON STOP  UNDO Transaction-Block, LEAVE Transaction-Block:
-        CASE transaction-state:
-          WHEN "UNDO-PENDING":U    THEN UNDO  Transaction-Block.
-          WHEN "RETRY-PENDING":U   THEN UNDO  Transaction-Block.
-          WHEN "COMMIT-PENDING":U  THEN LEAVE Transaction-Block.
-          WHEN "START-PENDING":U OR 
-          WHEN "ACTIVE":U THEN DO:
-            RUN check-exclusive-pause IN web-utilities-hdl (OUTPUT pause-period).  
-            /* If all state-aware objects have timed out, then leave the
-               block.  NOTE the user should have set Transaction-State =
-               "COMMIT" if they had wanted to commit the changes. */          
-            IF pause-period eq 0 THEN
-              UNDO Transaction-Block.
-            ELSE DO:
-              /* Continue everything that we have started. */
-              transaction-state = "ACTIVE". 
-              /* If in evaluation mode, don't lock the Agent */
-              IF cfg-eval-mode THEN
-                WAIT-FOR "{&WEB-NOTIFY}":U OF DEFAULT-WINDOW.
-              ELSE
-                WAIT-FOR "{&WEB-NOTIFY}":U OF DEFAULT-WINDOW
-                         PAUSE pause-period {&EXCLUSIVE-WEB-USER}.     
-            END. /* IF pause-period ne 0... */
-          END. /* WHEN "Start-Pending" OR..."Active"... */
-        END CASE.
-      END. /* REPEAT... */ 
-    END. /* Transaction-Block: DO TRANSACTION... */
-  END. /* IF...<transaction>... */ 
+      WAIT-FOR "WEB-NOTIFY":U OF DEFAULT-WINDOW. 
+    END.
+  END.
+  ELSE DO:
+    IF iBatchInterval > 14 THEN DO:
+      WAIT-FOR "WEB-NOTIFY":U OF DEFAULT-WINDOW PAUSE iBatchInterval.
+      /* If there is a batch program that needs to be run, then run it now. */
+      RUN init-batch       IN web-utilities-hdl NO-ERROR. 
+      RUN run-batch-object IN web-utilities-hdl NO-ERROR. 
+      RUN end-batch        IN web-utilities-hdl NO-ERROR. 
+    END.
+    ELSE 
+      WAIT-FOR "WEB-NOTIFY":U OF DEFAULT-WINDOW. 
+  END.
 END. /* WAIT-FOR-BLOCK: REPEAT... */
 
-  
-/* -------------------------------------------------------------------
-   Procedure: reset-utilities
-   Purpose:   Restarts the web-utilities-hdl, and initializes is.
- --------------------------------------------------------------------*/   
-PROCEDURE reset-utilities :      
-  /* Clean up the existing utilities procedure. */
-  IF VALID-HANDLE(web-utilities-hdl) THEN DO: 
-    RUN dispatch IN web-utilities-hdl ('destroy') NO-ERROR.
-    /* Make sure it worked. */
-    IF VALID-HANDLE(web-utilities-hdl) 
-    THEN DELETE PROCEDURE web-utilities-hdl.
-  END.
-  /* Create the utilities handle as a persistent procedure. */
-  RUN web/objects/web-util.p PERSISTENT SET web-utilities-hdl.
+APPLY "close":U TO hWebStart.
 
-  /* If this didn't work, there are big problems. */
-  IF NOT VALID-HANDLE(web-utilities-hdl) THEN QUIT.
-
-  /* Initialize the tagmap file. */
-  RUN dispatch IN web-utilities-hdl ('reset-tagmap-utilities':U).
-END PROCEDURE.
-             
 /* web-disp.p - end of file */

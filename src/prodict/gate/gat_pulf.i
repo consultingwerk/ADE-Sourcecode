@@ -45,6 +45,10 @@ Included in:
 History:
     hutegger    95/03   abstracted from prodict/ora/ora_mak.i
     mcmann    03/20/01  Added assignment of default$ on fields
+    mcmann    06/19/01  Check for ending quote in Oracle V8 for defaults
+    mcmann    07/03/01  Verify that initial value starts with '"' or "'"
+                        20010531-003
+    mcmann    08/21/01  Added check for initial value length being > 1.
 
 --------------------------------------------------------------------*/
 
@@ -102,18 +106,25 @@ assign
   s_ttb_fld.pro_order   = l_fld-pos * 10 + 1000 
                               + {&order-offset}
   s_ttb_fld.pro_mand    = {&mand}
-  l_init                = {&init}.
+  l_init                = TRIM({&init}).
 
-  IF l_init <> ? AND l_init BEGINS '"U##' THEN 
+IF l_init <> ? AND LENGTH(l_init) >= 3 THEN DO:
+  IF l_init BEGINS '"U##' THEN 
       ASSIGN l_init = SUBSTRING(l_init, 5, (LENGTH(l_init) - 5)).
-  ELSE IF l_init <> ? AND l_init BEGINS 'UPPER(' THEN
+  ELSE IF l_init BEGINS 'UPPER(' THEN
       ASSIGN l_init = SUBSTRING(l_init,8, (LENGTH(l_init) - 9)).
-  ELSE 
+  ELSE IF l_init BEGINS '"' OR l_init BEGINS "'"  THEN
       ASSIGN l_init = SUBSTRING(l_init, 2, (LENGTH(l_init) - 2)).
+END.
+ 
+IF LENGTH(l_init) > 1 AND (SUBSTRING(l_init, (LENGTH(l_init) - 1), 1) = '"' OR
+   SUBSTRING(l_init, (LENGTH(l_init) - 1), 1) = "'")  THEN
+  ASSIGN l_init = SUBSTRING(l_init, 1,(LENGTH(l_init) - 1) ).
 
-  IF s_ttb_Fld.ds_name BEGINS "SYS_NC" THEN 
-      ASSIGN s_ttb_Fld.defaultname = l_init
-             l_init = ?.
+
+IF s_ttb_Fld.ds_name BEGINS "SYS_NC" THEN 
+  ASSIGN s_ttb_Fld.defaultname = l_init
+         l_init = ?.
 
 /* ODBC:                                                      */
 /*   If the field is not updatable (l_fld-msc24 contains "N") */ 

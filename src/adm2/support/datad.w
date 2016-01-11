@@ -77,9 +77,9 @@ DEFINE VARIABLE Web                 AS LOGICAL                   NO-UNDO.
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fRowsToBatch lBatch RebuildOnRepos ~
-fObjectname 
-&Scoped-Define DISPLAYED-OBJECTS c_AppPartition fRowsToBatch fObjectname 
+&Scoped-Define ENABLED-OBJECTS fObjectname fRowsToBatch RebuildOnRepos ~
+lToggleDataTargets 
+&Scoped-Define DISPLAYED-OBJECTS fObjectname c_AppPartition fRowsToBatch 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -134,32 +134,47 @@ DEFINE VARIABLE fRowsToBatch AS INTEGER FORMAT ">,>>>,>>9":U INITIAL 0
      SIZE 11 BY .95 NO-UNDO.
 
 DEFINE VARIABLE ckCurChanged AS LOGICAL INITIAL no 
-     LABEL "&Check Current Changed" 
+     LABEL "&Check current changed" 
      VIEW-AS TOGGLE-BOX
      SIZE 31 BY .81 NO-UNDO.
 
 DEFINE VARIABLE DestroyStateless AS LOGICAL INITIAL no 
-     LABEL "&Destroy on each stateless Web Request" 
+     LABEL "&Destroy on each stateless Web request" 
      VIEW-AS TOGGLE-BOX
      SIZE 43.6 BY .81 NO-UNDO.
 
 DEFINE VARIABLE DisconnectAppServer AS LOGICAL INITIAL no 
-     LABEL "Disconnect &AppServer on each Web Request" 
+     LABEL "Disconnect &AppServer on each Web request" 
      VIEW-AS TOGGLE-BOX
      SIZE 49 BY .81 NO-UNDO.
 
 DEFINE VARIABLE lBatch AS LOGICAL INITIAL no 
-     LABEL "Read Data in &Batches of:" 
+     LABEL "Read data in &batches of:" 
      VIEW-AS TOGGLE-BOX
-     SIZE 28.6 BY .81 NO-UNDO.
+     SIZE 28.6 BY .81 TOOLTIP "Check to read data in batches" NO-UNDO.
+
+DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no 
+     LABEL "Open &query on initialization" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 36.4 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lToggleDataTargets AS LOGICAL INITIAL no 
+     LABEL "Activate/deactivate Data&Targets on view/hide" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 54.4 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lUpdateFromSource AS LOGICAL INITIAL no 
+     LABEL "&Update from DataSource (one-to-one)" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 49.6 BY .81 NO-UNDO.
 
 DEFINE VARIABLE RebuildOnRepos AS LOGICAL INITIAL no 
-     LABEL "Rebuild Dataset &on Reposition" 
+     LABEL "Rebuild dataset &on reposition" 
      VIEW-AS TOGGLE-BOX
      SIZE 33 BY .81 NO-UNDO.
 
 DEFINE VARIABLE ServerOperatingMode AS LOGICAL INITIAL no 
-     LABEL "&Force to Stateful Operating Mode" 
+     LABEL "&Force to stateful operating mode" 
      VIEW-AS TOGGLE-BOX
      SIZE 36 BY .81 NO-UNDO.
 
@@ -167,16 +182,19 @@ DEFINE VARIABLE ServerOperatingMode AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
-     c_AppPartition AT ROW 2.67 COL 17.4 COLON-ALIGNED
-     fRowsToBatch AT ROW 3.95 COL 46.2 COLON-ALIGNED
-     lBatch AT ROW 4.1 COL 19.4
-     ckCurChanged AT ROW 5.24 COL 19.4
-     RebuildOnRepos AT ROW 6.43 COL 19.4
-     ServerOperatingMode AT ROW 7.57 COL 19.4
-     DestroyStateless AT ROW 8.71 COL 19.4
-     DisconnectAppServer AT ROW 9.91 COL 19.4
      fObjectname AT ROW 1.38 COL 17.4 COLON-ALIGNED
-     SPACE(40.59) SKIP(8.61)
+     c_AppPartition AT ROW 2.67 COL 17.4 COLON-ALIGNED
+     lBatch AT ROW 4.1 COL 19.4
+     fRowsToBatch AT ROW 3.95 COL 46.2 COLON-ALIGNED
+     ckCurChanged AT ROW 5.19 COL 19.4
+     RebuildOnRepos AT ROW 6.29 COL 19.4
+     lOpenOnInit AT ROW 7.38 COL 19.4
+     lUpdateFromSource AT ROW 8.43 COL 19.4
+     ServerOperatingMode AT ROW 9.52 COL 19.4
+     DestroyStateless AT ROW 10.62 COL 19.4
+     DisconnectAppServer AT ROW 11.76 COL 19.4
+     lToggleDataTargets AT ROW 12.81 COL 19.4
+     SPACE(0.19) SKIP(0.00)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartDataObject Properties":L.
@@ -211,7 +229,13 @@ ASSIGN
 /* SETTINGS FOR TOGGLE-BOX DisconnectAppServer IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX lBatch IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lOpenOnInit IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lToggleDataTargets IN FRAME Attribute-Dlg
    NO-DISPLAY                                                           */
+/* SETTINGS FOR TOGGLE-BOX lUpdateFromSource IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX RebuildOnRepos IN FRAME Attribute-Dlg
    NO-DISPLAY                                                           */
 /* SETTINGS FOR TOGGLE-BOX ServerOperatingMode IN FRAME Attribute-Dlg
@@ -256,6 +280,8 @@ DO:
                     ckCurChanged:CHECKED).
   DYNAMIC-FUNCTION("setRebuildOnRepos":U IN p_hSMO,
                     RebuildOnRepos:CHECKED).
+  DYNAMIC-FUNCTION("setOpenOnInit":U IN p_hSMO,
+                    lOpenOnInit:CHECKED).
   DYNAMIC-FUNCTION("setServerOperatingMode":U IN p_hSMO,
                     IF ServerOperatingMode:CHECKED THEN "STATE-RESET"
                                                    ELSE "NONE").
@@ -264,7 +290,10 @@ DO:
   DYNAMIC-FUNCTION("setDisconnectAppServer":U IN p_hSMO,
                     DisconnectAppServer:CHECKED).
   DYNAMIC-FUNCTION("setObjectname":U IN p_hSMO, fObjectName:SCREEN-VALUE).
-                      
+  DYNAMIC-FUNCTION("setUpdateFromSource":U IN p_hSMO, lUpdateFromSource:SCREEN-VALUE).
+  DYNAMIC-FUNCTION("setToggleDataTargets":U IN p_hSMO,
+                    lToggleDataTargets:CHECKED).
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -295,7 +324,7 @@ END.
 
 &Scoped-define SELF-NAME DestroyStateless
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL DestroyStateless Attribute-Dlg
-ON VALUE-CHANGED OF DestroyStateless IN FRAME Attribute-Dlg /* Destroy on each stateless Web Request */
+ON VALUE-CHANGED OF DestroyStateless IN FRAME Attribute-Dlg /* Destroy on each stateless Web request */
 DO:
   initObjects().       
 END.
@@ -304,14 +333,46 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME fRowsToBatch
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fRowsToBatch Attribute-Dlg
+ON LEAVE OF fRowsToBatch IN FRAME Attribute-Dlg /* Rows */
+DO:
+  ASSIGN fRowsTobatch.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME lBatch
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lBatch Attribute-Dlg
-ON VALUE-CHANGED OF lBatch IN FRAME Attribute-Dlg /* Read Data in Batches of: */
+ON VALUE-CHANGED OF lBatch IN FRAME Attribute-Dlg /* Read data in batches of: */
 DO:
   /* we store the currentvalue if unchecking */
+  ASSIGN lBatch. /* for use when update FromSource turns on and off */
   IF NOT SELF:CHECKED THEN 
     ASSIGN fRowsToBatch.   
   initRowsToBatch().
+  initObjects().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lUpdateFromSource
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUpdateFromSource Attribute-Dlg
+ON VALUE-CHANGED OF lUpdateFromSource IN FRAME Attribute-Dlg /* Update from DataSource (one-to-one) */
+DO:
+  IF SELF:CHECKED THEN
+    lBatch:CHECKED = FALSE.
+  ELSE
+    lBatch:CHECKED = lbatch.
+  
+  lBatch:SENSITIVE = NOT SELF:CHECKED.
+
+  initRowsToBatch().
+   
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -357,7 +418,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   /* Set the cursor */
   RUN adecomm/_setcurs.p ("":U).
  
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.  
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS c_appPartition.  
 
 END.
 RUN disable_UI.
@@ -396,9 +457,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY c_AppPartition fRowsToBatch fObjectname 
+  DISPLAY fObjectname c_AppPartition fRowsToBatch 
       WITH FRAME Attribute-Dlg.
-  ENABLE fRowsToBatch lBatch RebuildOnRepos fObjectname 
+  ENABLE fObjectname fRowsToBatch RebuildOnRepos lToggleDataTargets 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -424,7 +485,7 @@ PROCEDURE get-SmO-attributes :
     
     /* Get desing window procedure type */
     RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT cobjtype).
-
+    
     /********* Application Partition *********/
     /* 
      * Get the application Partition from the object, if none defined, set to (None)
@@ -479,22 +540,34 @@ PROCEDURE get-SmO-attributes :
     /* RebuildOnRepos *******************/
     RebuildOnRepos:SCREEN-VALUE = DYNAMIC-FUNCTION("getRebuildOnRepos":U IN p_hSMO).
     ASSIGN RebuildOnRepos:SENSITIVE = TRUE.
-
+    
+    /* OpenOnInit *******************/
+    lOpenOnInit:SCREEN-VALUE = DYNAMIC-FUNCTION("getOpenOnInit":U IN p_hSMO).
+    ASSIGN lOpenOnInit:SENSITIVE = NOT (cObjType BEGINS "SmartBusinessObject":U).
+ 
+    /* UpdateFromSource *******************/
+    lUpdateFromSource:SCREEN-VALUE = DYNAMIC-FUNCTION("getUpdateFromSource":U IN p_hSMO).
+    ASSIGN lUpdateFromSource:SENSITIVE = cObjType BEGINS "SmartBusinessObject":U .
+          
     /* Server Operating Mode  *******************/
     cOpMode = DYNAMIC-FUNCTION("getServerOperatingMode":U IN p_hSMO). 
     ASSIGN ServerOperatingMode:CHECKED   = cOpMode EQ "STATE-RESET":U
            ServerOperatingMode:SENSITIVE = TRUE.
-       
     /* Destroy Stateless */
     ASSIGN DestroyStateless:CHECKED = DYNAMIC-FUNCTION("getDestroyStateless":U IN p_hSMO).
     
-    /* Disconnect AppServer */
-    ASSIGN DisconnectAppServer:CHECKED = DYNAMIC-FUNCTION("getDisconnectAppServer":U IN p_hSMO).
+    /* ToggleDataTargets */
+    ASSIGN lToggleDataTargets:CHECKED = DYNAMIC-FUNCTION("getToggleDataTargets":U IN p_hSMO).
    
+    /* UpdateFromSource *******************/
+    lUpdateFromSource:SCREEN-VALUE = DYNAMIC-FUNCTION("getUpdateFromSource":U IN p_hSMO).
+    ASSIGN lUpdateFromSource:SENSITIVE = cObjType BEGINS "SmartBusinessObject":U .
+
     /* ObjectNeme */
     ASSIGN fObjectName = DYNAMIC-FUNCTION('getObjectName':U IN p_hSMO).
-    initRowsToBatch(). 
+    initRowsToBatch().
     initObjects().    
+    ASSIGN lBatch = lBatch:CHECKED.
   END. /* DO WITH FRAME */
 END PROCEDURE. /* get-SmO-attributes */
 
@@ -530,7 +603,9 @@ FUNCTION initObjects RETURNS LOGICAL
       destroyStateless:SENSITIVE    = web
       disconnectAppServer:SENSITIVE = web AND NOT destroyStateless:CHECKED   
                                       AND 
-                                      c_AppPartition:SCREEN-VALUE <> noPartition.
+                                      c_AppPartition:SCREEN-VALUE <> noPartition
+      lBatch:SENSITIVE              = lUpdateFromSource:CHECKED = FALSE
+      .
 
   END.
   RETURN TRUE.
@@ -554,18 +629,21 @@ FUNCTION initRowsToBatch RETURNS LOGICAL
      ASSIGN 
        fRowsToBatch:READ-ONLY    = FALSE
        fRowsToBatch:TAB-STOP     = TRUE  
-       fRowsTOBatch:FORMAT       = ">>>>>>>9".
+       fRowsTOBatch:FORMAT       = ">>>>>>>9"
        fRowsToBatch:SCREEN-VALUE = IF fRowsToBatch <> 0 
                                    THEN STRING(fRowsTOBatch)
-                                   ELSE STRING(200). /* ?? */
+                                   ELSE STRING(200) /* ?? */
+       .
+         
      fRowsToBatch:MOVE-AFTER(lBatch:HANDLE).
    END. /* checked*/
    ELSE DO:
      ASSIGN 
        fRowsToBatch:READ-ONLY    = TRUE
        fRowsToBatch:TAB-STOP     = FALSE 
-       fRowsToBatch:SCREEN-VALUE = STRING(0).
-       fRowsTOBatch:FORMAT       = "ZZZZZZZ".
+       fRowsToBatch:SCREEN-VALUE = STRING(0)
+       fRowsTOBatch:FORMAT       = "ZZZZZZZ"
+       .
    END. /* unchecked */
  END.
  RETURN TRUE.

@@ -1,6 +1,6 @@
 &IF FALSE &THEN
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2001 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -56,12 +56,21 @@
 &IF LOOKUP ('head', '{&SEGMENTS}') > 0 &THEN
   '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">~n'
   '<HTML>~n'
-  '<HEAD>~n'  &IF "{&TITLE}" eq "" &THEN    
+  '<HEAD>~n'  &IF "{&TITLE}" EQ "" &THEN    
   '  <TITLE>WebSpeed Webtools</TITLE>~n' &ELSE   
   '  <TITLE>WebSpeed {&TITLE}</TITLE>~n' &ENDIF
-  '  <META NAME = "Generator" CONTENT = "WebSpeed [' THIS-PROCEDURE:FILE-NAME ']">~n' &IF "{&AUTHOR}" ne "" &THEN
-  '  <META NAME = "Author"    CONTENT = "{&AUTHOR}">~n' &ENDIF &IF "{&TARGET}" ne "" &THEN
-  '  <BASE TARGET = "{&TARGET}">~n' &ENDIF
+  '  <META NAME="Generator" CONTENT="WebSpeed [' THIS-PROCEDURE:FILE-NAME ']">~n' 
+  &IF "{&AUTHOR}" NE "" &THEN
+  '  <META NAME="Author"    CONTENT="{&AUTHOR}">~n' 
+  &ENDIF 
+  /*
+  &IF "{&CHARSET}" NE "" &THEN
+  '  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset={&CHARSET}">~n' 
+  &ENDIF 
+  */
+  &IF "{&TARGET}" NE "" &THEN
+  '  <BASE TARGET = "{&TARGET}">~n' 
+  &ENDIF
   '</HEAD>~n'
 &ENDIF
 
@@ -95,10 +104,20 @@
     '<NOBR><B><FONT SIZE="+2" COLOR="' get-color ("H1Color":U) '">{&TITLE}</FONT></B>' /* NO NL */
     &IF FALSE AND "{&LOGO}" ne "" &THEN '<IMG SRC="{&LOGO}" ALIGN="CENTER">~n' &ENDIF
     '</NOBR>' 
- &ELSE
+  &ELSE
     '<TABLE BORDER=0 WIDTH="100%"><TR>~n'
     '<TD ALIGN="LEFT">~n' 
-      format-titlebar ("{&TITLE}", &IF defined(LOGO) ne 0 &THEN {&LOGO} &ELSE get-location ('Tools-Logo':U) &ENDIF, "":U)
+    /* Customization for webtools/dirlist.w */
+    &IF DEFINED(TITLESPAN) NE 0 &THEN
+      format-titlebar ('{&TITLE}' + ' - ' + LC(dirpath), 
+                       &IF DEFINED(LOGO) NE 0 &THEN {&LOGO} &ELSE get-location ('Tools-Logo':U) &ENDIF, "":U)
+    /* Customization for wc/wcEvent.p */
+    &ELSEIF DEFINED(TITLEDATA) NE 0 &THEN
+      format-titlebar ('{&TITLE}' + ' - ' + gcTitleData, 
+                       &IF DEFINED(LOGO) NE 0 &THEN {&LOGO} &ELSE get-location ('Tools-Logo':U) &ENDIF, "":U)
+    &ELSE
+      format-titlebar ('{&TITLE}', &IF DEFINED(LOGO) NE 0 &THEN {&LOGO} &ELSE get-location ('Tools-Logo':U) &ENDIF, "":U)
+    &ENDIF
     '</TD>~n'
     '<TD ALIGN= "RIGHT">~n'
     '<A HREF="' RootURL '/doc/wshelp/{&CONTEXT}" ~n'
@@ -106,7 +125,7 @@
     '   onClick="window.open(~'~',~'helpWindow~',~'' get-window-settings ("helpWindow":U, "":U) '~')~;"~n'
     '>'
     '<IMG SRC="' RootURL '/images/help.gif" BORDER=0 ALT="Help"></A></TD>~n'
-    '</TR></TABLE>~n' &IF LOOKUP ('no-rule', '{&SEGMENTS}') eq 0 &THEN
+    '</TR></TABLE>~n' &IF LOOKUP ('no-rule', '{&SEGMENTS}') EQ 0 &THEN
     get-rule-tag ('100%', '') &ENDIF
   &ENDIF
 &ENDIF

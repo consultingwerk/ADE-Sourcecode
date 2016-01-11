@@ -157,6 +157,8 @@ prevent future-bugs resulting out of default behaviour <hutegger>
     mcmann  12/05/00   Recognized MS SQL Server 7 and Oracle limitation of decimal size for using _Width.
     mcmann  02/09/01   syslogins column suid has been removed for ms sql server 7 changed to sid                       
     mcmann  04/09.01   Removed the "use dbname" from script for Sybase and SQL Server 6.5
+    mcmann  11/13/01   Added DEFAULT values for all data types except RECID and RAW. 20011127-002
+                       20011026-013, 20011108-022
     
 */
 
@@ -924,12 +926,12 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         END.
       END.
 
-      /* Put default value on Character, Date and Logical only */
-      IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " ")THEN DO:
-         c = DICTDB._Field._Initial.  
+      /* Put default values */
+      IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )THEN DO:      
+          c = DICTDB._Field._Initial.  
          IF UPPER(c) = "TODAY" THEN DO:        
             IF dbtyp = "ORACLE" THEN
-              ASSIGN c = "sysdate".      
+              ASSIGN c = "SYSDATE".      
             ELSE IF dbtyp = "MSSQLSRV7" THEN
               ASSIGN c = "GETDATE()".
          END.
@@ -943,8 +945,21 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                   ASSIGN c = "0".
             ELSE
               ASSIGN c = "".               
-          END.
-
+         END.
+         ELSE IF DICTDB._Field._dtype = 4 THEN
+           ASSIGN c = DICTDB._Field._Initial.
+         ELSE IF DICTDB._Field._dtype = 5 THEN DO:
+           ASSIGN c = DICTDB._Field._Initial.
+           IF INDEX(c, ",") > 0 THEN DO:           
+             DO k = 1 TO LENGTH(c):
+               IF INDEX(c, ",") > 0 THEN
+                 ASSIGN c = SUBSTRING(c, 1, (INDEX(c, ",") - 1)) +  
+                            SUBSTRING(c, (INDEX(c, ",") + 1)).
+               ELSE
+                 ASSIGN k = LENGTH(c).
+             END.
+           END.           
+         END.
          IF DICTDB._Field._Data-type = "character" THEN DO:
            RUN "prodict/_dctquot.p" (_Initial,"'",OUTPUT c).        
            IF c <> " "  AND c <> "0" THEN         
@@ -954,7 +969,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
               PUT STREAM code UNFORMATTED " DEFAULT " c. 
          ELSE IF DICTDB._Field._Data-type = "date" and c <> " " THEN
               PUT STREAM code UNFORMATTED " DEFAULT " c.  
-         ELSE IF dbtyp = "MSSQLSRV7" AND c <> " " THEN
+         ELSE IF  c <> " " AND c <> ? THEN
              PUT STREAM code UNFORMATTED " DEFAULT " c.               
       END.
       
@@ -1077,10 +1092,11 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     PUT STREAM code UNFORMATTED
       " "  skip    
       comment_chars "create trigger " n2 " ON " n1 " for insert as" SKIP
-      comment_chars "    if  ( select max(inserted." prowid_col ") from inserted) is NULL" SKIP
+      comment_chars "    if  ( select " prowid_col " from inserted) is NULL" SKIP
       comment_chars "    begin" SKIP
-      comment_chars "        update " n1 " set " prowid_col " = @@identity " SKIP
-      comment_chars "               where " prowid_col " is NULL" skip
+      comment_chars "        update t set " prowid_col " = i.IDENTITYCOL " SKIP
+      comment_chars "         from " n1 " t  JOIN inserted i ON " skip
+      comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
       comment_chars "        select convert (int, @@identity)" SKIP
       comment_chars "    end" SKIP.    
 
@@ -1113,8 +1129,19 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT n2).
       END.
     END.
-   
-    PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
+    IF dbtyp = "MSSQLSRV7" THEN DO:
+
+       PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
+              n2 " ON " n1 " (" prowid_col ")".
+       
+       ASSIGN n2 = n2 + "_ident_".
+       PUT STREAM code UNFORMATTED SKIP comment_chars.
+       PUT STREAM code UNFORMATTED user_env[5] SKIP.
+       PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
+              n2 " ON " n1 " (" prowid_col "_IDENT_ )".
+    END.
+    ELSE 
+       PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
               n2 " ON " n1 " (" prowid_col ")".
   
     IF skptrm THEN

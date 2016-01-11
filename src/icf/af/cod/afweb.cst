@@ -1,0 +1,40 @@
+/* afweb.cst -  MIP customised SmartObject file originally from
+                web.cst - WebSpeed 3.0, Version 9.1
+                Anthony D Swindells  24/01/2000
+*/
+
+/* web.cst - WebSpeed 3.0 custom objects file - Version 9 - 04/01/98 */
+
+
+/*  This was removed because it DNW 
+    *NEW-WEBOBJECT  Astra Basic CGI Wrapper
+     NEW-TEMPLATE    af/wcod/aftembcgiw.w
+  */
+  
+
+*NEW-WEBOBJECT  HTML Mapping  
+NEW-TEMPLATE    src/web2/template/html-map.w
+
+*NEW-WEBOBJECT  Report 
+NEW-TEMPLATE    src/web2/template/wreport.w
+
+*NEW-WEBOBJECT  Detail
+NEW-TEMPLATE    src/web2/template/wdetail.w
+
+*NEW-WEBOBJECT  Blank
+NEW-TEMPLATE    src/web/template/script.html
+
+*NEW-WEBOBJECT  CGI Wrapper
+NEW-TEMPLATE    src/web2/template/wrap-cgi.w
+
+*NEW-WEBOBJECT  Frameset
+NEW-TEMPLATE    src/web/template/frameset.html
+
+*NEW-WEBOBJECT  Main
+NEW-TEMPLATE    src/web/template/main.html
+
+*NEW-WEBOBJECT  Report Template
+NEW-TEMPLATE    src/web2/template/browse.html
+
+*NEW-WEBOBJECT  Table
+NEW-TEMPLATE    src/web/template/table.html

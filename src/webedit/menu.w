@@ -23,10 +23,10 @@
 /*E4GL-W*/ {src/web/method/e4gl.i} {&OUT} '<HTML>~n'.
 {&OUT} '<HEAD>~n'.
 {&OUT} '<META NAME="wsoptions" CONTENT="compile">~n'.
-{&OUT} '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/common.js"><!--~n'.
+{&OUT} '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/workshop/common.js"><!--~n'.
 {&OUT} '  document.write("Included common.js file not found.")~;~n'.
 {&OUT} '//--></SCRIPT>~n'.
-{&OUT} '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31C/workshop/editor.js"><!--~n'.
+{&OUT} '<SCRIPT LANGUAGE="JavaScript1.2" SRC="/webspeed31D/workshop/editor.js"><!--~n'.
 {&OUT} '  document.write("Included editor.js file not found.")~;~n'.
 {&OUT} '//--></SCRIPT>~n'.
 {&OUT} '</HEAD>~n'.

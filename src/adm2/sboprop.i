@@ -31,6 +31,8 @@
     Description :
 
     Modified    : October 25, 2000 -- Version 9.1C
+    Modified    : 16/11/2001    Mark Davies (MIP)
+                  Added new property FilterAvailable
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -46,7 +48,7 @@
     GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
   &GLOB xcInstanceProperties {&xcInstanceProperties}~
-AppService,DataObjectNames,CascadeOnBrowse
+AppService,DataObjectNames,CascadeOnBrowse,OpenOnInit
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -109,14 +111,9 @@ AppService,DataObjectNames,CascadeOnBrowse
 &IF "{&ADMSuper}":U EQ "":U &THEN
   {src/adm2/sboprto.i}
 &ENDIF
- 
-&GLOBAL-DEFINE xpCommitSource
-&GLOBAL-DEFINE xpCommitSourceEvents
-&GLOBAL-DEFINE xpNavigationSource
-&GLOBAL-DEFINE xpNavigationSourceEvents
+
 &GLOBAL-DEFINE xpMasterDataObject
 &GLOBAL-DEFINE xpContainedDataColumns
-&GLOBAL-DEFINE xpContainedDataObjects
 &GLOBAL-DEFINE xpDataColumns
 &GLOBAL-DEFINE xpOpenOnInit
 &GLOBAL-DEFINE xpAutoCommit
@@ -127,19 +124,16 @@ AppService,DataObjectNames,CascadeOnBrowse
 &GLOBAL-DEFINE xpDataObjectOrdering
 &GLOBAL-DEFINE xpUpdateStateInProcess
 &GLOBAL-DEFINE xpBlockDataAvailable
+&GLOBAL-DEFINE xpBlockQueryPosition
+&GLOBAL-DEFINE xpFilterWindow
+&GLOBAL-DEFINE xpCurrentUpdateSource
+&GLOBAL-DEFINE xpDataIsFetched
 
 {src/adm2/cntnprop.i}
 
 &IF "{&ADMSuper}":U = "":U &THEN
-   ghADMProps:ADD-NEW-FIELD('CommitSource':U, 'HANDLE':U, 0, ?, ?).
-   ghADMProps:ADD-NEW-FIELD('CommitSourceEvents':U, 'CHAR':U, 0, ?, 
-          'commitTransaction,undoTransaction':U).
-   ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHARACTER':U, 0, ?, '':U).
-   ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
-          'fetchFirst,fetchNext,fetchPrev,fetchLast,registerObject':U).
    ghADMProps:ADD-NEW-FIELD('MasterDataObject':U, 'HANDLE':U, 0, ?, ?).
    ghADMProps:ADD-NEW-FIELD('ContainedDataColumns':U, 'CHARACTER':U, 0, ?,'':U).
-   ghADMProps:ADD-NEW-FIELD('ContainedDataObjects':U, 'CHARACTER':U, 0, ?,'':U).
    ghADMProps:ADD-NEW-FIELD('RowObjectState':U, 'CHARACTER':U, 0, ?, 
       'NoUpdates':U).
    ghADMProps:ADD-NEW-FIELD('DataObjectNames':U, 'CHARACTER':U, 0, ?, 
@@ -148,14 +142,18 @@ AppService,DataObjectNames,CascadeOnBrowse
    ghADMProps:ADD-NEW-FIELD('OpenOnInit':U, 'LOGICAL':U, 0, ?, yes). 
    ghADMProps:ADD-NEW-FIELD('AutoCommit':U, 'LOGICAL':U, 0, ?, no). 
    ghADMProps:ADD-NEW-FIELD('CascadeOnBrowse':U, 'LOGICAL':U, 0, ?, yes).
-   ghADMProps:ADD-NEW-FIELD('ASHandle':U, 'HANDLE':U, 0, ?, ?). 
    ghADMProps:ADD-NEW-FIELD('ObjectMapping':U, 'CHARACTER':U, 0, ?, '':U). 
    ghADMProps:ADD-NEW-FIELD('ForeignFields':U, 'CHARACTER':U, 0, ?, '':U). 
    ghADMProps:ADD-NEW-FIELD('ForeignValues':U, 'CHARACTER':U, 0, ?, '':U). 
    ghADMProps:ADD-NEW-FIELD('DataObjectOrdering':U, 'CHARACTER':U, 0, ?, '':U). 
    ghADMProps:ADD-NEW-FIELD('UpdateStateInProcess':U, 'LOGICAL':U, 0, ?, no). 
    ghADMProps:ADD-NEW-FIELD('BlockDataAvailable':U, 'LOGICAL':U, 0, ?, NO). 
-
+   ghADMProps:ADD-NEW-FIELD('FilterAvailable':U, 'LOGICAL':U, 0, ?, no).
+   ghADMProps:ADD-NEW-FIELD('BlockQueryPosition':U, 'LOGICAL':U, 0, ?, NO). 
+   ghADMProps:ADD-NEW-FIELD('FilterActive':U, 'LOGICAL':U, 0, ?, ?).
+   ghADMProps:ADD-NEW-FIELD('FilterWindow':U, 'CHARACTER':U).
+   ghADMProps:ADD-NEW-FIELD('CurrentUpdateSource':U, 'HANDLE':U).
+   ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, no).
 &ENDIF
 
   {src/adm2/custom/sbopropcustom.i}

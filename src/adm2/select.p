@@ -297,6 +297,17 @@ FUNCTION getLabel RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getLabelHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLabelHandle Procedure 
+FUNCTION getLabelHandle RETURNS HANDLE
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getNumRows) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNumRows Procedure 
@@ -517,17 +528,6 @@ FUNCTION setDisplayedField RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setDisplayValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDisplayValue Procedure 
-FUNCTION setDisplayValue RETURNS LOGICAL
-  (pcValue AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setEnableOnAdd) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setEnableOnAdd Procedure 
@@ -588,6 +588,17 @@ FUNCTION setKeyField RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLabel Procedure 
 FUNCTION setLabel RETURNS LOGICAL
   (pcLabel AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLabelHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLabelHandle Procedure 
+FUNCTION setLabelHandle RETURNS LOGICAL
+  ( phValue AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -757,7 +768,8 @@ PROCEDURE anyKey :
             if last-event:key-function = 'cursor-down' then 
                run fetchNext in getDataSource().
  ----------------------------------------------------------------------------- */
-    DEFINE VARIABLE cBrowseKeys AS CHAR  NO-UNDO.
+    DEFINE VARIABLE cBrowseKeys AS CHAR   NO-UNDO.
+    DEFINE VARIABLE hButton     AS HANDLE NO-UNDO.
 
     {get StartBrowseKeys cBrowseKeys}.
     
@@ -766,8 +778,14 @@ PROCEDURE anyKey :
     IF CAN-DO(cBrowseKeys,LAST-EVENT:FUNCTION) 
     OR CAN-DO(cBrowseKeys,LAST-EVENT:LABEL) THEN
     DO:
-      RUN initializeBrowse IN TARGET-PROCEDURE.
-      RETURN NO-APPLY.
+    /* If the SmartSelect Lookup button is disabled, we assume that we should
+       not perform a lookup as this probably hads been set by disableButton */
+      {get ButtonHandle hButton}.
+      IF hButton:SENSITIVE = TRUE THEN
+      DO:
+        RUN initializeBrowse IN TARGET-PROCEDURE.
+        RETURN NO-APPLY.
+      END.
     END.
 END PROCEDURE.
 
@@ -967,6 +985,48 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-disableButton) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableButton Procedure 
+PROCEDURE disableButton :
+/*------------------------------------------------------------------------------
+  Purpose:     In certain instances, i.e. when we modify a specific record,
+               we don't want a user to use a specific SmartSelect to find
+               another record and potentially modify another record. For this
+               reason we would just disable the specific SmartSelect's button
+               and Browser to prevent the use of the lookup.
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hSelection       AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hButton          AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hBrowseContainer AS HANDLE    NO-UNDO.
+  
+  {get SelectionHandle hSelection}.
+   
+  IF VALID-HANDLE(hSelection) THEN
+  DO:
+    IF hSelection:TYPE <> "FILL-IN":U THEN
+      hSelection:SENSITIVE = FALSE.
+    ELSE
+    DO:
+      {get BrowseContainer hBrowseContainer}.
+      {get ButtonHandle hButton}.
+       
+      IF VALID-HANDLE(hBrowsecontainer) THEN
+        RUN disableObject IN hBrowseContainer.
+     
+      ASSIGN hButton:SENSITIVE = FALSE.
+    END. 
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-disableField) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disableField Procedure 
@@ -1035,6 +1095,42 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-enableButton) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableButton Procedure 
+PROCEDURE enableButton :
+/*------------------------------------------------------------------------------
+  Purpose:    If the SmartSelect button was disabled because the programmer did
+              not want the user to do a lookup, this procedure will enable the
+              button again
+  Parameters: <NONE>
+  Notes:      
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hSelection      AS HANDLE NO-UNDO.
+ DEFINE VARIABLE cDisplayedField AS CHAR   NO-UNDO.
+ DEFINE VARIABLE cKeyField       AS CHAR   NO-UNDO.
+ DEFINE VARIABLE hButton         AS HANDLE NO-UNDO.
+
+ {get SelectionHandle hSelection}.
+ 
+ IF VALID-HANDLE(hSelection) THEN
+ DO:
+   IF hSelection:TYPE <> "FILL-IN":U THEN
+     hSelection:SENSITIVE = TRUE.
+   ELSE DO:
+     {get ButtonHandle hButton}.
+    
+     ASSIGN hButton:SENSITIVE = TRUE.
+   END.
+ END.
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-enableField) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enableField Procedure 
@@ -1065,8 +1161,8 @@ PROCEDURE enableField :
      {get ButtonHandle hButton}.
     
      /* Currently we don't enable the displayfield */
-     IF cKeyField = cDisplayedField THEN 
-       hSelection:READ-ONLY = FALSE.
+     /* IF cKeyField = cDisplayedField THEN */
+     hSelection:READ-ONLY = FALSE.
    
      ASSIGN
        hButton:SENSITIVE   = TRUE 
@@ -1098,6 +1194,44 @@ PROCEDURE endMove :
    /* Because we override endmove we must apply it in order to make the
       AppBuilder notify the change */
    APPLY "END-RESIZE":U TO SELF. /* runs setPosition */
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-enterSelect) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enterSelect Procedure 
+PROCEDURE enterSelect :
+/*------------------------------------------------------------------------------
+  Purpose:     Trigger fired on entry of smartselect field
+  Parameters:  <none>
+  Notes:       The purpose of this trigger is to store the current screen value
+               of the displayed field in the smartselect so that where the 
+               displayedfield is not equal to the keyfield (usually the case) then
+               we can fire logic when the displayed field is changed in the leave
+               trigger to see if the new value keyed in actually exists as a unique
+               record, and if so, avoid having to use the lookup.
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hSelection            AS HANDLE       NO-UNDO.
+  DEFINE VARIABLE cKeyField             AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cDisplayedField       AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cKeyFieldValue        AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE hContainer            AS HANDLE       NO-UNDO.
+  
+
+  {get KeyField cKeyField}.
+  {get DisplayedField cDisplayedField}.
+  {get SelectionHandle hSelection}.
+  {get containerSource hContainer}.
+  {set SavedScreenValue hSelection:SCREEN-VALUE}.
+
+  PUBLISH "lookupEntry":U FROM hContainer (INPUT hSelection:SCREEN-VALUE,   /* current selection value */
+                                           INPUT TARGET-PROCEDURE           /* handle of lookup */
+                                          ).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1208,9 +1342,9 @@ PROCEDURE initializeBrowse :
     RUN addLink IN hBrowseContainer ( hToolbar, 'navigation':U , hDataSource).
   
     {get Rowident cRowident hdatasource}.
-
+  /*
     RUN removeLink IN hContainer (hDataSource, 'Data':U , TARGET-PROCEDURE).
-    
+    */
     /* We set HideOnInit to TRUE in the browse container and view it explicitly 
       after resizing. Otherwise the browse gets visualized before the window
       is resized and we get flashing. */
@@ -1234,9 +1368,9 @@ PROCEDURE initializeBrowse :
                             except setting it back to false */
     IF cRowident <> ? THEN
       DYNAMIC-FUNC("fetchrowident":U IN hDataSource,cRowident,"").
-    
+    /*
     RUN addLink IN hContainer (hDataSource, 'Data':U , TARGET-PROCEDURE).
-    
+    */
     {get FieldEnabled lEnabled}.
     
     IF NOT lEnabled THEN 
@@ -1325,12 +1459,12 @@ Parameters:  <none>
   DEFINE VARIABLE cSelectionImg AS CHAR      NO-UNDO.
   DEFINE VARIABLE hBtn          AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lSort         AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE lSDOinit      AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE iNumRows      AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cList         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cUIBMode      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cFilter       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lAnyKey       AS LOG       NO-UNDO.
+  DEFINE VARIABLE cFieldName    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lSDOInit      AS LOGICAL   NO-UNDO.
 
   {get ContainerHandle hFrame}.
     
@@ -1357,8 +1491,8 @@ Parameters:  <none>
      (This will give errors further down if the field does not exist) */
   IF cKeyField = "":U THEN
   DO:
-     {get FieldName cKeyfield}.
-     {set KeyField  cKeyfield}.
+    {get FieldName cKeyfield}.
+    {set KeyField  cKeyfield}.
   END.
   
   /* default to the keyfield if no displayedfield */
@@ -1374,6 +1508,7 @@ Parameters:  <none>
   DO:
     cDataType = {fnarg columnDataType cDisplayedField hDataSource}.    
     
+    {get ObjectInitialized  lSDOInit hDataSource}.
     IF NOT (cUIBMode BEGINS "Design":U)  THEN
     DO:
       /* Unknown means that the field probably was not defined in the source */
@@ -1390,22 +1525,6 @@ Parameters:  <none>
         RETURN "ADM-ERROR":U.      
         
       END. /* cDataType = ? */
-      
-      {get ObjectInitialized lSDOinit hDataSource}.
-      {get DataSourceFilter cFilter}.
-      
-      /* Make sure last record is not displayed twice */
-      {set CheckLastOnOpen TRUE hDataSource}.
-      IF lSdoInit THEN
-      DO:
-         IF cFilter NE "":U THEN
-           DYNAMIC-FUNCTION("addQueryWhere" IN hDataSource,cFilter,?,'':U). 
-        
-         /* Currently we need to reopen the query for sdos that already 
-            are intialized to ensure that the last record is not displayed
-            twice and also for the filter above. */
-        {fn openQuery hDataSource}.
-      END. /* SDO init */
     END. /* not uibmode begins design */     
     
     cKeyFormat = IF cKeyFormat = '?':U OR cKeyFormat = ? OR cKeyFormat = '':U
@@ -1476,11 +1595,10 @@ Parameters:  <none>
     END. /* keyfield <> displayedfield and valid data-source */ 
     ELSE cKeyDataType = cDataType.
     
-    /* If the SDO was initialized we build the list now, otherwise the 
+    /* If the SDO is initialized we build the list now, otherwise  
        refreshObject will take care of this when the SDO openQuery
        publishes "queryOpened" 
       (unknown datatype indicates invalid keyfield) */
-
     IF lSDOInit AND cKeyDataType <> ? THEN 
       ASSIGN     
          cList = {fn buildList}. 
@@ -1567,6 +1685,7 @@ Parameters:  <none>
 
        CREATE FILL-IN hSelection
           ASSIGN FRAME            = hFrame
+                 NAME             = "fiLookup":U /* name so can refocus field */
                  SUBTYPE          = IF cUIBMode BEGINS "DESIGN":U
                                     THEN "NATIVE":U
                                     ELSE "PROGRESS":U 
@@ -1603,7 +1722,14 @@ Parameters:  <none>
          ON ANY-KEY OF hSelection 
            PERSISTENT RUN anyKey IN TARGET-PROCEDURE.
     
-       {set ButtonHandle hBtn}.       
+       {set ButtonHandle hBtn}.
+       /* create entry/leave trigger */
+       
+       ON ENTRY OF hSelection 
+         PERSISTENT RUN enterSelect IN TARGET-PROCEDURE.
+       
+       ON LEAVE OF hSelection 
+         PERSISTENT RUN leaveSelect IN TARGET-PROCEDURE.
     END. /* when "browser" */
   END CASE. /* cViewAsType */
   
@@ -1613,12 +1739,163 @@ Parameters:  <none>
     hSelection:TOOLTIP = cToolTIP.
     IF iHelpId <> ? THEN 
      hSelection:CONTEXT-HELP-ID = iHelpId.
-  
-    ON VALUE-CHANGED OF hSelection PERSISTENT RUN valueChanged  IN TARGET-PROCEDURE.
+    
+    {get FieldName cFieldName}.
+    IF cFieldName NE "<Local>":U THEN
+      ON VALUE-CHANGED OF hSelection PERSISTENT RUN valueChanged  IN TARGET-PROCEDURE.
     ON {&refreshKey} OF hSelection PERSISTENT RUN refreshObject IN TARGET-PROCEDURE.
     ON END-MOVE      OF hFrame     PERSISTENT RUN endMove       IN TARGET-PROCEDURE. 
   END.
   {set SelectionHandle hSelection}.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-leaveSelect) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE leaveSelect Procedure 
+PROCEDURE leaveSelect :
+/*------------------------------------------------------------------------------
+  Purpose:     This procedure is fired on leave of a smartselect field.
+  Parameters:  <none>
+  Notes:       The purpose of this procedure is to cope with the situation where
+               a value is manually entered rather than using the lookup key.
+               In this case, we need to see if the screen value has been changed,
+               and if so, see if the changed screen value is a valid record.
+               If it is, reset the keyvalue thereby avoiding having to use the
+               lookup.
+               NOTE: this only works if the displayed field is in the 1st buffer
+                     of the linked SDO.
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE hDataSource           AS HANDLE                         NO-UNDO.
+  DEFINE VARIABLE hSelection            AS HANDLE                         NO-UNDO.
+  DEFINE VARIABLE cKeyField             AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cKeyFieldValue        AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cDisplayedField       AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields      AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cScreenValue          AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cSavedScreenValue     AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cFunc                 AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cRowIdent             AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cColumnValues         AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE cColumnNames          AS CHARACTER                      NO-UNDO.
+  DEFINE VARIABLE hContainer            AS HANDLE                         NO-UNDO.
+  DEFINE VARIABLE cFilter               AS CHARACTER                      NO-UNDO.
+  
+  
+  {get KeyField cKeyField}.
+  {get DisplayedField cDisplayedField}.
+  {get KeyFieldValue cKeyFieldValue}.
+  {get DataSourceFilter cFilter}.
+
+  {get DataSource hDataSource}.
+  {get SelectionHandle hSelection}.
+  {get SavedScreenValue cSavedScreenValue}.
+
+  ASSIGN
+    cScreenValue = hSelection:SCREEN-VALUE.
+
+  {get containerSource hContainer}.
+
+  /* If user has manually changed description field - try and lookup new value user has entered
+  */
+  IF  cScreenValue <> cSavedScreenValue THEN
+  DO:
+    ASSIGN cRowident = ?.
+    IF cScreenValue <> "" THEN 
+      ASSIGN cRowIdent = DYNAMIC-FUNCTION("rowidWhere":U IN hDataSource,
+                                        INPUT (cDisplayedField + " BEGINS '":U + cScreenValue + "'":U)).
+    IF cRowIdent <> ? THEN
+    DO:
+      ASSIGN cColumnNames  = DYNAMIC-FUNCTION("getDataColumns":U IN hDataSource)
+             cColumnValues = DYNAMIC-FUNCTION("fetchRowident":U IN hDataSource, 
+                                              INPUT cRowIdent,
+                                              INPUT (cDisplayedField + ",":U + cKeyField)
+                                             ).
+      /* Entry 1 of cColumnValues is the rowid of the selected table. */
+      ASSIGN hSelection:SCREEN-VALUE = ENTRY(2, cColumnValues, CHR(1))
+             cKeyFieldValue          = ENTRY(3, cColumnValues, CHR(1))
+             cScreenValue            = hSelection:SCREEN-VALUE
+             .        
+      {set keyFieldValue cKeyFieldValue}.
+
+      ASSIGN
+          cColumnValues = "":U.
+      ASSIGN
+          cColumnValues = DYNAMIC-FUNCTION("colValues":U      IN hDataSource, INPUT cColumnNames).
+      
+    END.    /* valid RowIdent */
+    ELSE
+    DO:
+      ASSIGN cKeyFieldValue          = "":U
+             cColumnNames            = "":U
+             cColumnValues           = "":U
+             cScreenValue            = hSelection:SCREEN-VALUE
+             .        
+      {set keyFieldValue cKeyFieldValue}.
+    END.
+    
+    PUBLISH "lookupComplete":U FROM hContainer (INPUT cColumnNames,        /* CSV of all the columns in the SDO */
+                                                INPUT cColumnValues,       /* CHR(1) delim list of all the values of the above columns */
+                                                INPUT cKeyFieldValue,      /* the key field value of the selected record */
+                                                INPUT cScreenValue,        /* the value displayed on screen (may be the same as the key field value ) */
+                                                INPUT cSavedScreenValue,   /* the old value displayed on screen (may be the same as the key field value ) */
+                                                INPUT NO,                  /* YES = lookup browser used, NO = manual value entered */
+                                                INPUT TARGET-PROCEDURE     /* Handle to lookup - use to determine which lookup has been left */
+                                               ). 
+  END.
+  
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-linkStateHandler) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE linkStateHandler Procedure 
+PROCEDURE linkStateHandler :
+/*------------------------------------------------------------------------------
+   Purpose: Override in order to set the Select filter 
+Parameters: See smart.p   
+     Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcState   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER phObject  AS HANDLE     NO-UNDO.
+  DEFINE INPUT PARAMETER pcLink    AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE cViewAs         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFilter         AS CHARACTER  NO-UNDO.
+
+  IF pcstate = 'add':U AND pcLink = 'DataSource':U  THEN
+  DO:
+    {get DataSourceFilter cFilter}.     
+    IF cFilter NE "":U THEN
+    DO:
+      DYNAMIC-FUNCTION("addQueryWhere":U IN phObject,cFilter,?,'':U). 
+    END.
+    {get ViewAs cViewAs}.
+
+    /* If this is a Microsoft widget then rowValues will call sendRows to get 
+       remaining data, so set properties here to avoid this extra Appserver hit
+       in the case where the query is opened before buildList ->rowValues
+       (openoninit = true etc..) */
+    IF cViewAs <> 'Browser':U THEN
+    DO:
+      {set RebuildOnRepos FALSE phObject}.
+      {set RowsToBatch 0 phObject}.
+    END.
+  END.
+    
+  RUN SUPER(pcState,phObject,pcLink).
 
 END PROCEDURE.
 
@@ -1777,7 +2054,85 @@ PROCEDURE rowSelected :
             and exit (if CancelrowObExit = false)
             The subscribtion is done in browseHandler 
 ------------------------------------------------------------------------------*/
+  
+  /*------------------------------------------------------------------------------
+  Purpose:     Override for rowselected event from select.p for Astra2 to
+               publish a lookupcomplete event in the container allowing deveopers
+               to perform some action when a row is selected from the browser.
+  Parameters:  <none>
+  Notes:       This will not fire if the field is changed manually in the fill-in,
+               so you will need to use lookupleave as well to trap for this.
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE hDataSource         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDisplayedField     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyField           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSelection          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFunc               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldDisplayValue    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewDisplayValue    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewKeyValue        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRowIdent           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnValues       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnNames        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRealContainer      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hWindow             AS HANDLE     NO-UNDO.
+
+  {get containerSource hContainer}.
+  {get containerSource hRealContainer hContainer}.
+  {get SelectionHandle hSelection}.
+  
+  IF VALID-HANDLE(hSelection) AND hSelection:TYPE = "FILL-IN":U THEN
+  DO:
+    {get DisplayedField cDisplayedField}.
+    {get KeyField cKeyField}.
+    {get DataSource hDataSource}.
+    
+    ASSIGN
+      cOldDisplayValue = hSelection:SCREEN-VALUE
+      cFunc = IF {fn getQueryPosition hDataSource} = "NoRecordAvailable":U
+              THEN "columnInitial":U
+              ELSE "columnStringValue":U
+      cNewDisplayValue = 
+        DYNAMIC-FUNCTION(cFunc IN hDataSource,cDisplayedField) NO-ERROR.  
+      cNewKeyValue = 
+        DYNAMIC-FUNCTION(cFunc IN hDataSource,cKeyField) NO-ERROR.  
+
+    ASSIGN cColumnNames  = DYNAMIC-FUNCTION("getDataColumns":U IN hDataSource)
+           cColumnValues = DYNAMIC-FUNCTION("colValues":U      IN hDataSource, INPUT cColumnNames)
+           .
+  
+  END. /* valid hSelection and fill-in */
+
   RUN dataAvailable IN TARGET-PROCEDURE('':U).
+
+  IF VALID-HANDLE(hSelection) AND hSelection:TYPE = "FILL-IN":U THEN
+  DO:
+    /* Reset saved screen value to prevent code in leave trigger trying to find a new keyvalue */
+    {set SavedScreenValue hSelection:SCREEN-VALUE}.
+    
+    /* Focus back in fill-in */
+    RUN applyEntry IN TARGET-PROCEDURE (hSelection:NAME).
+    /* get focus back in correct window */
+   
+    {get ContainerHandle hWindow hRealContainer}.
+     DO WHILE (VALID-HANDLE(hWindow) AND 
+       hWindow:TYPE NE "WINDOW":U):
+         hWindow = hWindow:PARENT.
+     END.
+    IF hWindow:TYPE = "WINDOW":U THEN
+      CURRENT-WINDOW = hWindow.
+    
+    PUBLISH "lookupComplete":U FROM hContainer (INPUT cColumnNames,        /* CSV of all the columns in the SDO */
+                                                INPUT cColumnValues,       /* CHR(1) delim list of all the values of the above columns */
+                                                INPUT cNewKeyValue,        /* the key field value of the selected record */
+                                                INPUT cNewDisplayValue,    /* the value displayed on screen (may be the same as the key field value ) */
+                                                INPUT cOldDisplayValue,    /* the old value displayed on screen (may be the same as the key field value ) */
+                                                INPUT YES,                 /* YES = lookup browser used, NO = manual value entered */
+                                                INPUT TARGET-PROCEDURE     /* Handle to lookup - use to determine which lookup has been left */
+                                               ). 
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1808,22 +2163,6 @@ PROCEDURE valueChanged :
   DEFINE VARIABLE lResult     AS LOGICAL NO-UNDO.
   DEFINE VARIABLE lRepos      AS LOG     NO-UNDO.
 
-  {get ContainerSource hContainer}.
-  
-  /* We should actually apply U10 to the container (SmartDataViewer) because 
-    the viewer.i has this logic on U10, but it does not handle browsers */  
-  IF VALID-HANDLE(hContainer) THEN
-  DO:
-    {get FieldsEnabled lResult hContainer}.
-     /* Only if the object's enable for input.*/
-    IF lResult THEN 
-    DO:
-        {get DataModified lResult hContainer}.
-        IF NOT lResult THEN   /* Don't send the event more than once. */
-          {set DataModified YES hContainer}.
-     END.
-  END. /* valid container */
-  
   /* We must logg this as modifed to make the viewer save the value */
   {set DataModified YES}.
 
@@ -2136,7 +2475,7 @@ Parameter: pcValue - The value that need to be formatted.
   DO:
     CASE hSelection:DATA-TYPE:
       WHEN 'character':U THEN
-        pcValue = STRING(pcValue,hSelection:FORMAT).
+        pcValue = RIGHT-TRIM(STRING(pcValue,hSelection:FORMAT)).
       WHEN 'date':U THEN
         pcValue = STRING(DATE(pcValue),hSelection:FORMAT).
       WHEN 'decimal':U THEN
@@ -2458,14 +2797,8 @@ FUNCTION getDisplayValue RETURNS CHARACTER
      as this may not be correct if the user has not chosen the record with 
     'default-action' */
   IF cViewAs = "browser":U THEN
-  DO:
-    ASSIGN 
-      ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-      ghProp = ghProp:BUFFER-FIELD('DisplayValue':U).
-
-    RETURN ghProp:BUFFER-VALUE.
-  END. /* if ViewAs = 'browser' */
-
+    RETURN SUPER().
+  
   {get DataValue cDatavalue}.
 
   /* If we are not using a paired list (editable combo-boxes) OR
@@ -2623,8 +2956,9 @@ FUNCTION getLabel RETURNS CHARACTER
            - Blank specifies NO-LABEL   
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cLabel AS CHARACTER NO-UNDO.
+  &SCOPED-DEFINE xpLabel
   {get Label cLabel}.
-  
+  &UNDEFINE xpLabel
   /* Unknown means use data-source, 
      but because it will be changed to blank in smart.p function 
      we must make it to a string */
@@ -2632,6 +2966,26 @@ FUNCTION getLabel RETURNS CHARACTER
   IF cLabel = ? THEN 
     cLabel = "?":U.
   RETURN cLabel.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLabelHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLabelHandle Procedure 
+FUNCTION getLabelHandle RETURNS HANDLE
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+    Notes:   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hValue AS HANDLE NO-UNDO.
+  {get LabelHandle hValue}.
+  RETURN hValue.
 
 END FUNCTION.
 
@@ -2867,9 +3221,10 @@ FUNCTION repositionDataSource RETURNS LOGICAL
   Purpose: Reposition the current dataSource according to the keyfield 
     Notes: Conditionally called from setDataValue and valueChanged.     
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyField         AS CHAR    NO-UNDO.
-  DEFINE VARIABLE hDataSource       AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lFound            AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE cKeyField         AS CHAR       NO-UNDO.
+  DEFINE VARIABLE hDataSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lFound            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFilter           AS CHARACTER  NO-UNDO.
 
   {get KeyField cKeyField}.
   {get DataSource hDataSource}.
@@ -2888,7 +3243,24 @@ FUNCTION repositionDataSource RETURNS LOGICAL
                          cKeyField,
                          pcValue,
                         '':U).
-
+  /* Clear out filter values and try to find the record again without the 
+     filter active - in case we have a saved filter that is corrupting the 
+     current value */
+  IF NOT lFound AND pcValue <> "":U AND pcValue <> "0":U THEN
+  DO:
+    {set QueryWhere '':U hDataSource}.
+    {get DataSourceFilter cFilter}.     
+    IF cFilter NE "":U THEN
+    DO:
+      DYNAMIC-FUNCTION("addQueryWhere":U IN hDataSource,cFilter,?,'':U). 
+    END.
+    
+    DYNAMIC-FUNCTION('openQuery' IN hDataSource).
+    lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
+                           cKeyField,
+                           pcValue,
+                          '':U).
+  END.
   {set Modify TRUE}. 
 
   RETURN lFound.
@@ -3105,9 +3477,17 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
     END. /* not lAvailable  */
   END. /* cviewAs = 'Browser' */
   ELSE DO:
-   
+
     IF hSelection:TYPE = "COMBO-BOX":U THEN 
     DO:
+      /* iz3633: if pcValue is "" (no spaces-- as in the case when Add is pressed) 
+       * then we should process it the same as ? for combo-boxes.
+       * It is not the same case as when a string of spaces is passed in since
+       * those could be valid data values.
+       */
+       IF pcvalue = "":U AND LENGTH(pcvalue) = 0 THEN
+           pcValue = ?.
+
       /* We allow 'bogus' data in editable combo-box, but this only works when 
          screen-value is unknown, so set list-items = list-items just in case */
       IF hSelection:SUBTYPE <> "drop-down-list":U THEN
@@ -3119,10 +3499,10 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
         pcValue = {fnarg formattedValue pcValue}.
 
     END. /* if combo-box */
-
-    hSelection:SCREEN-VALUE = pcValue NO-ERROR.
     
-    /* In case the assign of screen-value failed we blank the widget so it 
+    hSelection:SCREEN-VALUE = pcvalue NO-ERROR.
+
+      /* In case the assign of screen-value failed we blank the widget so it 
        doesn't show the previous value. Error-staus:error is no, so we check 
        for the specific error message. Note that there are cases where the 9.1B
        check that compared screen-value and pcValue failed also when data was 
@@ -3134,7 +3514,7 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
        (support for unknown in data will be handled with '?' when the 
         list-item-pairs supports it) */
  
-    IF ERROR-STATUS:GET-NUMBER(1) = 4058 OR pcValue = ? THEN
+    IF ERROR-STATUS:GET-NUMBER(1) = 4058 OR pcValue = ? THEN   
     DO:
       IF hSelection:TYPE = "COMBO-BOX":U 
       OR hSelection:TYPE = "SELECTION-LIST":U THEN 
@@ -3153,7 +3533,6 @@ Parameters: INPUT pcValue - Value that corresponds to the KeyField property
         END. /* num-items > 0 */
       END. /* hSelection:TYPE = "COMBO-BOX":U */
     END. /* error-status:get-number */  
-    
   END. /* else (not fill-in or editable combo) */
 
   RETURN TRUE.
@@ -3212,33 +3591,6 @@ Parameters: INPUT picDisplayedField - fieldname
     Notes:   
 ------------------------------------------------------------------------------*/
   {set DisplayedField picDisplayedField}.
-  RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setDisplayValue) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDisplayValue Procedure 
-FUNCTION setDisplayValue RETURNS LOGICAL
-  (pcValue AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose: Store the DisplayValue 
-Parameter: Value to store      
-    Notes: Exists as function because getDataValue has additional logic.
-           Used internally for viewas 'browser' to store the value when   
-           retrieved from the SDO. getDataValue cannot retrieve this  from the 
-           SDO because the user may have have repositioned the browser to 
-           another row without actually selecting it.
-------------------------------------------------------------------------------*/
-   ASSIGN 
-      ghProp = WIDGET-HANDLE(ENTRY(1, TARGET-PROCEDURE:ADM-DATA, CHR(1)))
-      ghProp = ghProp:BUFFER-FIELD('DisplayValue':U).
-      ghProp:BUFFER-VALUE = pcValue.
-  
   RETURN TRUE.
 END FUNCTION.
 
@@ -3353,9 +3705,30 @@ Parameters: INPUT pcLabel - char
     Notes: - "?" specifies that the data-source label is to be used
            - Blank specifies NO-LABEL   
 ------------------------------------------------------------------------------*/
-  
+  &SCOPED-DEFINE xpLabel
   {set Label pcLabel}.
+  &UNDEFINE xpLabel
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLabelHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLabelHandle Procedure 
+FUNCTION setLabelHandle RETURNS LOGICAL
+  ( phValue AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: 
+Parameters:     
+    Notes:   
+------------------------------------------------------------------------------*/
+  {set LabelHandle phValue}.
+  RETURN TRUE.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

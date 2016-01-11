@@ -41,7 +41,12 @@
 &IF DEFINED(WEB-UTIL_P) = 0 &THEN
 &SCOPED-DEFINE FORWARD IN web-utilities-hdl
 &ELSE
-&SCOPED-DEFINE FORWARD FORWARD
+  &IF "{&WEB-UTIL_P}" = "SUPER" 
+  &THEN
+    &SCOPED-DEFINE FORWARD IN SUPER
+  &ELSE
+    &SCOPED-DEFINE FORWARD FORWARD
+  &ENDIF
 &ENDIF
 
 /*
@@ -142,6 +147,13 @@ FUNCTION check-agent-mode       RETURNS LOGICAL
   (INPUT p_mode                 AS CHARACTER) {&FORWARD}.
 FUNCTION get-config             RETURNS CHARACTER
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.
+
+
+/*
+** Webspeed Open Source Integration 
+** (weblib.p --> stdfunctions.p, webconfig.p, session.p, dbtools.p )
+*/
+ {src/web/method/session.i} 
 
 &ENDIF  /* DEFINED(PROTO_I) = 0 */
 

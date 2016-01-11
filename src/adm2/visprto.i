@@ -21,28 +21,32 @@
 *                                                                    *
 *********************************************************************/
 /*
- * Prototype include file: C:\adm90\src\adm2\visprto.i
- * Created from procedure: C:\adm90\src\adm2\visual.p at 09:49 on 10/27/98
+ * Prototype include file: S:\astra\object\admenh\dev\src\adm2\visprto.i
+ * Created from procedure: S:\astra\object\admenh\dev\src\adm2\visual.p at 14:26 on 22/03/01
  * by the PROGRESS PRO*Tools Prototype Include File Generator
  */
 
-/***** Start excluded prototypes 
-
-PROCEDURE initializeObject IN SUPER:
-END PROCEDURE.
-
-PROCEDURE enableObject IN SUPER:
+PROCEDURE applyLayout IN SUPER:
 END PROCEDURE.
 
 PROCEDURE disableObject IN SUPER:
 END PROCEDURE.
 
-PROCEDURE applyLayout IN SUPER:
+PROCEDURE enableObject IN SUPER:
 END PROCEDURE.
 
-PROCEDURE start-super-proc IN SUPER:
-  DEFINE INPUT PARAMETER pcProcName AS CHARACTER.
+PROCEDURE initializeObject IN SUPER:
 END PROCEDURE.
+
+PROCEDURE processAction IN SUPER:
+  DEFINE INPUT PARAMETER pcAction AS CHARACTER.
+END PROCEDURE.
+
+FUNCTION getAllFieldHandles RETURNS CHARACTER IN SUPER.
+
+FUNCTION getAllFieldNames RETURNS CHARACTER IN SUPER.
+
+FUNCTION getCol RETURNS DECIMAL IN SUPER.
 
 FUNCTION getDefaultLayout RETURNS CHARACTER IN SUPER.
 
@@ -51,6 +55,8 @@ FUNCTION getDisableOnInit RETURNS LOGICAL IN SUPER.
 FUNCTION getEnabledObjFlds RETURNS CHARACTER IN SUPER.
 
 FUNCTION getEnabledObjHdls RETURNS CHARACTER IN SUPER.
+
+FUNCTION getHeight RETURNS DECIMAL IN SUPER.
 
 FUNCTION getHideOnInit RETURNS LOGICAL IN SUPER.
 
@@ -61,6 +67,20 @@ FUNCTION getLayoutVariable RETURNS CHARACTER IN SUPER.
 FUNCTION getObjectEnabled RETURNS LOGICAL IN SUPER.
 
 FUNCTION getObjectLayout RETURNS CHARACTER IN SUPER.
+
+FUNCTION getRow RETURNS DECIMAL IN SUPER.
+
+FUNCTION getWidth RETURNS DECIMAL IN SUPER.
+
+FUNCTION getResizeHorizontal RETURNS LOGICAL IN SUPER.
+
+FUNCTION getResizeVertical RETURNS LOGICAL IN SUPER.
+
+FUNCTION setAllFieldHandles RETURNS LOGICAL
+  (INPUT pcValue AS CHARACTER) IN SUPER.
+
+FUNCTION setAllFieldNames RETURNS LOGICAL
+  (INPUT pcValue AS CHARACTER) IN SUPER.
 
 FUNCTION setDefaultLayout RETURNS LOGICAL
   (INPUT pcDefault AS CHARACTER) IN SUPER.
@@ -77,4 +97,11 @@ FUNCTION setLayoutOptions RETURNS LOGICAL
 FUNCTION setObjectLayout RETURNS LOGICAL
   (INPUT pcLayout AS CHARACTER) IN SUPER.
 
-END excluded prototypes ******/
+FUNCTION setResizeHorizontal RETURNS LOGICAL
+  (INPUT plResizeHorizontal AS LOGICAL) IN SUPER.
+
+FUNCTION setResizeVertical RETURNS LOGICAL
+  (INPUT plResizeVertical AS LOGICAL) IN SUPER.
+
+FUNCTION getObjectType RETURNS CHARACTER IN SUPER.
+

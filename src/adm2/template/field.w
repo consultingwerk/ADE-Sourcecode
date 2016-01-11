@@ -176,7 +176,7 @@ ASSIGN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartObjectCues" sObject _INLINE
 /* Actions: adecomm/_so-cue.w ? adecomm/_so-cued.p ? adecomm/_so-cuew.p */
-/* SmartObject,ab,666
+/* SmartObject,ab,247
 Create a SmartDataField Object to represent a SmartDataObject field in a non-standard visualization.
 
 * Creating a SmartDataField Object

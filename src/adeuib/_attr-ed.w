@@ -717,6 +717,10 @@ IF VALID-HANDLE(_h_menu_win) THEN DO:
                                &ELSE SESSION:PIXELS-PER-ROW * 2 &ENDIF
             .
 END.
+
+/* jep-icf: Override titlebar icon for ICF. */
+IF CAN-DO(_AB_Tools,"Enable-ICF") THEN
+    {&WINDOW-NAME}:LOAD-ICON("adeicon/icfdev.ico":U) NO-ERROR.
                       
 /* Do not set CURRENT-WINDOW: this should not parent dialog-boxes and frames. */
 THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
