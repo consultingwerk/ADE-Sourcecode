@@ -19,13 +19,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wiWin 
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: afmessagew
 
@@ -1286,8 +1285,6 @@ PROCEDURE initializeObject :
     edMessageSummary:SCREEN-VALUE = "~n" + REPLACE(pcMessageSummaryList,CHR(3),"~n~n").
     edMessageDetail:SCREEN-VALUE = "~n" + REPLACE(pcMessageDetailList,CHR(3),"~n~n").    
     edMessageSummary:HEIGHT = edMessageSummary:NUM-LINES * FONT-TABLE:GET-TEXT-HEIGHT(edMessageSummary:FONT) + 1 NO-ERROR.
-
-    {set HideOnInit YES}.
 
   IF glQuestion OR glInformation THEN
     DYNAMIC-FUNCTION("setUserProperty":U IN h_afspfoldrw, "DoNotShow":U, "yes":U).

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,9 @@ DEFINE VARIABLE pname    AS CHARACTER NO-UNDO INITIAL ?. /* physical db name */
 DEFINE VARIABLE qbf-i    AS INTEGER   NO-UNDO.
 DEFINE VARIABLE savePath AS CHARACTER NO-UNDO.
 DEFINE VARIABLE type     AS CHARACTER NO-UNDO INITIAL ?. /* db type */
+
+/* If this is WebSpeed, exit */
+IF SESSION:CLIENT-TYPE = "WEBSPEED" THEN RETURN ERROR.
 
 SESSION:THREE-D = TRUE.
 

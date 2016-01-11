@@ -36,6 +36,7 @@ assign
              OR ds_columns.type# = 29  THEN "NUMBER"         
         ELSE IF ds_columns.type# =  9  THEN "VARCHAR"
         ELSE IF ds_columns.type# = 11
+             OR ds_columns.type# = 104 /*20070112-004*/ 
              OR ds_columns.type# = 69  THEN "ROWID"
         ELSE IF ds_columns.type# = 12  THEN "DATE"
         ELSE IF ds_columns.type# =  8  THEN "LONG"

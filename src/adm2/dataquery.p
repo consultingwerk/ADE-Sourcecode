@@ -1800,7 +1800,7 @@ PROCEDURE processLinkState :
   DEFINE VARIABLE hContainer       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hGASource        AS HANDLE     NO-UNDO.  
   DEFINE VARIABLE lHidden          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lVisualSource    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lVisualTarget    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lToggleTargets   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lActiveTarget    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
@@ -1808,15 +1808,20 @@ PROCEDURE processLinkState :
   {get ObjectInitialized lInitialized}.
   IF NOT linitialized THEN
      RETURN.
-
-  /* Ignore 'activeTarget' and 'inactiveTarget' published from child SDOs/SBOs 
-     to only reach the navigationSource */
-  IF NOT CAN-DO('active,inactive':U,pcState ) THEN
+     
+  /* Convert message from data-target (to be ignored by nav-source) 
+     (See how the child did this at the end of this procedure)  */
+  if pcState = 'ActiveData':U then 
+    pcState = 'Active':U.  
+    
+  /* Else ignore 'activeTarget' and 'inactiveTarget' published from child SDOs/SBOs 
+     to only reach the navigationSource */     
+  else IF NOT CAN-DO('active,inactive':U,pcState ) THEN
     RETURN.
 
   {get ContainerHandle hContainer phDataTarget}.
-  lVisualSource = VALID-HANDLE(hContainer).
-  IF lVisualSource THEN
+  lVisualTarget = VALID-HANDLE(hContainer).
+  IF lVisualTarget THEN
   DO:
     /* Ignore this if it's from a GA Target. 
       (it is published up through the GA-link and will reach us from the source)*/ 
@@ -1833,6 +1838,7 @@ PROCEDURE processLinkState :
         RETURN.
     END.
   END.
+  
   /* Check if we are supposed to toggle DataTarget links active/inactive */ 
   {get ToggleDataTargets lToggleTargets}.
   
@@ -1845,6 +1851,7 @@ PROCEDURE processLinkState :
       lToggleTargets = TRUE.
   END.
   
+  /* Turn on/off link to publisher */
   IF lToggleTargets THEN
   DO:
     /* We keep the SDB active since it is to be disabled on changes
@@ -1890,29 +1897,40 @@ PROCEDURE processLinkState :
       DO:
         /* If an active target and the message is from a non-visual object 
            just get out as there is no need to republish */
-        IF NOT lVisualSource THEN
+        IF NOT lVisualTarget THEN
           RETURN.
 
         lActiveTarget = TRUE.
         LEAVE.
       END.
-    END. /* DataTarget loop */
+    END. /* DataTarget loop */      
   END. /* state = 'inactive' ans lToggleSource  */
   /* active */
-  ELSE IF pcState = 'active':U AND NOT lVisualSource THEN
+  ELSE IF pcState = 'active':U AND NOT lVisualTarget THEN
   DO:
     /* No need to republish an active message from a non-visual target if the 
-       link already is active */
+       link already is active */       
     IF NOT DYNAMIC-FUNCTION('isLinkInactive':U IN TARGET-PROCEDURE,
                             'DataSource':U,?) THEN
       RETURN.
+                   
   END.
-
-  /* If not toggleDataTargets or any active target found for an 'inactive' 
-     state then append 'target' so the DataSource ignores it, but the 
-     Navigationsource reacts to it */ 
-  IF NOT lToggleTargets OR lActiveTarget THEN
-    pcState = pcstate + 'Target':U.
+  
+  if lVisualTarget then 
+  do:  
+    /* If not ToggleTargets or if any active target found for an 'inactive' 
+       state then append 'target' so the DataSource ignores it, but the 
+       Navigationsource reacts to it */     
+    IF NOT lToggleTargets OR lActiveTarget THEN
+      pcState = pcstate + 'Target':U.
+  end.
+  else do:
+    /* append 'data' (from data object) in order to not activate the 
+       navigationsource  (it's probably uneccesary to deactivate also...) */
+    if pcState = 'active':U then
+      pcState = pcState + "Data":U.   
+    
+  end.
   
   PUBLISH 'linkState':U FROM TARGET-PROCEDURE (pcState). 
 
@@ -1934,7 +1952,6 @@ PROCEDURE startFilter :
 ------------------------------------------------------------------------------*/
    DEFINE VARIABLE hFilterSource    AS HANDLE    NO-UNDO.
    DEFINE VARIABLE hWindow          AS HANDLE    NO-UNDO.
-   DEFINE VARIABLE lHide            AS LOGICAL   NO-UNDO.
    DEFINE VARIABLE lEnable          AS LOGICAL   NO-UNDO.
    DEFINE VARIABLE hFilterContainer AS HANDLE    NO-UNDO.
    DEFINE VARIABLE hMyContainer     AS HANDLE    NO-UNDO.
@@ -1949,14 +1966,7 @@ PROCEDURE startFilter :
      IF hMyContainer <> hFilterContainer THEN
      DO:
        {set FilterWindow hFilterContainer:FILE-NAME}.
-       {get HideOnInit lHide hFilterContainer}. 
        {get DisableOnInit lEnable hFilterContainer}. 
-       /* Make the filter visible if hideoninit */
-       IF lHide THEN 
-       DO:
-         {set HideOnInit FALSE hFilterContainer}. 
-         RUN viewObject IN hFilterSource.
-       END.
        IF lEnable THEN 
        DO:
          {set DisableOnInit FALSE hFilterContainer}. 
@@ -4433,7 +4443,8 @@ FUNCTION getQueryPosition RETURNS CHARACTER
     if valid-handle(hDataSource) then
     do: 
       {get QueryPosition cParentPos hDataSource}.
-      if cParentPos begins "NoRecordAvailable":U then        cPosition = "NoRecordAvailableExt":U.
+      if cParentPos begins "NoRecordAvailable":U then
+        cPosition = "NoRecordAvailableExt":U.
     end.  
     if cPosition = '' then  
       cPosition = "NoRecordAvailable":U.  

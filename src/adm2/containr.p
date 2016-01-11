@@ -4346,7 +4346,7 @@ PROCEDURE initializeObject :
     PUBLISH 'initializeObject':U FROM TARGET-PROCEDURE.
 
   {set ObjectMapping cObjectMapping} NO-ERROR.
-   
+  {set PendingPage ?}.   
     /* Set StartPage to 0 so selectPage() will do the right thing. */
   IF iStartPage = ? THEN
     {set StartPage 0}.
@@ -4446,7 +4446,7 @@ PROCEDURE initializeObject :
     IF NOT lHideOnInit THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
-      PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
+      run hideObject in target-procedure.
   END.
 
   IF RETURN-VALUE = "ADM-ERROR":U THEN 
@@ -4489,8 +4489,8 @@ PROCEDURE initializeVisualContainer :
   /* Code to enable Dynamics / ADM2 windows to run docked in the IDE */
   IF OEIDEIsRunning AND VALID-HANDLE(hOEIDEService) THEN
   DO:
-    DEFINE VARIABLE cViewId                 AS CHARACTER   NO-UNDO.
-    DEFINE VARIABLE cSecondId               AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cViewId                   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cSecondId                 AS CHARACTER   NO-UNDO.
     DEFINE VARIABLE hWindow                 AS HANDLE      NO-UNDO.
     ASSIGN
       cViewId = "com.openedge.pdt.oestudio.views.OEAppBuilderView" /* use existing Appbuilder view */
@@ -4522,39 +4522,39 @@ PROCEDURE initializeVisualContainer :
      * cases where only one of these values is set. We need to cater for this.  
      PGEN has the ability to generate security and translations independently. */
     IF lObjectSecured AND lObjectTranslated THEN
-        RETURN.
-
+      RETURN.
+    
     if not lObjectTranslated then
-    do:
-        /* If no logicalObjectname i.e inside static container then derive the 
+    do:        
+      /* If no logicalObjectname i.e inside static container then derive the 
 	       master name from the file-name. (remove path and extension)  */
-        IF cContainername = '' THEN
-          ASSIGN
-            cContainerName = TARGET-PROCEDURE:FILE-NAME
+      IF cContainername = '' THEN
+        ASSIGN
+          cContainerName = TARGET-PROCEDURE:FILE-NAME
             cContainerName = LC(TRIM(REPLACE(cContainerName,"~\":U,"/":U)))
-            cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1)
-            cContainerName = IF R-INDEX(cContainerName,'.':U) > 0 
-                             THEN SUBSTR(cContainerName,1,R-INDEX(cContainerName,'.':U) - 1)
-                             ELSE cContainerName.
+          cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1)
+          cContainerName = IF R-INDEX(cContainerName,'.':U) > 0 
+                           THEN SUBSTR(cContainerName,1,R-INDEX(cContainerName,'.':U) - 1)
+                           ELSE cContainerName.
         /* 1st empty current temp-table contents */
-        EMPTY TEMP-TABLE ttTranslate.
+      EMPTY TEMP-TABLE ttTranslate.
      
         /* Add entry for window title */
-        CREATE ttTranslate.
-        ASSIGN
-          ttTranslate.dLanguageObj = 0
-          ttTranslate.cObjectName = cContainerName
-          ttTranslate.lGlobal = NO
-          ttTranslate.lDelete = NO
-          ttTranslate.cWidgetType = "TITLE":U
-          ttTranslate.cWidgetName = "TITLE":U
-          ttTranslate.hWidgetHandle = hContainer
-          ttTranslate.iWidgetEntry = 0
-          ttTranslate.cOriginalLabel = hContainer:TITLE    
-          ttTranslate.cTranslatedLabel = "":U  
-          ttTranslate.cOriginalTooltip = "":U  
-          ttTranslate.cTranslatedTooltip = "":U.
-        RELEASE ttTranslate.
+      CREATE ttTranslate.
+      ASSIGN
+        ttTranslate.dLanguageObj = 0
+        ttTranslate.cObjectName = cContainerName
+        ttTranslate.lGlobal = NO
+        ttTranslate.lDelete = NO
+        ttTranslate.cWidgetType = "TITLE":U
+        ttTranslate.cWidgetName = "TITLE":U
+        ttTranslate.hWidgetHandle = hContainer
+        ttTranslate.iWidgetEntry = 0
+        ttTranslate.cOriginalLabel = hContainer:TITLE    
+        ttTranslate.cTranslatedLabel = "":U  
+        ttTranslate.cOriginalTooltip = "":U  
+        ttTranslate.cTranslatedTooltip = "":U.
+      RELEASE ttTranslate.
     end.    /* object not translated */
     
     /* We use the folder labels in both cases: security and translation */
@@ -4564,29 +4564,29 @@ PROCEDURE initializeVisualContainer :
     IF VALID-HANDLE(hObject) THEN
       {get FolderLabels cFolderLabels hObject}.
 
-    /* check security for folder labels */
-    if not lObjectSecured then
-    do:
-        &scoped-define xp-assign
-        {get SecuredTokens cSecuredTokens}
-        {get PageTokens cPageTokens}.
-        &undefine xp-assign
-        cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
-    end.    /* object not secured */
+      /* check security for folder labels */
+      if not lObjectSecured then
+      do:
+          &scoped-define xp-assign
+          {get SecuredTokens cSecuredTokens}
+          {get PageTokens cPageTokens}.
+          &undefine xp-assign
+          cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
+      end.    /* object not secured */
 
-    label-loop:
-    DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):    
-      ASSIGN cLabel = ENTRY(iLoop, cFolderLabels, "|":U)
-             cToken = entry(iLoop, cPageTokens, '|':u)
-             no-error.
-      
+      label-loop:
+      DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):    
+        ASSIGN cLabel = ENTRY(iLoop, cFolderLabels, "|":U)
+               cToken = entry(iLoop, cPageTokens, '|':u)
+               no-error.
+        
       IF not lObjectSecured and cSecuredTokens gt '':u AND 
          can-do(cSecuredTokens, cToken) THEN
-        ASSIGN cDisabledPages = cDisabledPages
-                              + (IF cDisabledPages <> "":U THEN ",":U ELSE "":U)
-                              +  STRING(iLoop).
+          ASSIGN cDisabledPages = cDisabledPages
+                                + (IF cDisabledPages <> "":U THEN ",":U ELSE "":U)
+                                +  STRING(iLoop).
       if not lObjectTranslated then
-      do:
+        do:
           CREATE ttTranslate.
           ASSIGN
             ttTranslate.dLanguageObj = 0
@@ -4604,19 +4604,19 @@ PROCEDURE initializeVisualContainer :
             .
           RELEASE ttTranslate.
       end.    /* not translated */
-    END.  /* label-loop */
+      END.  /* label-loop */
 
     /* Now got all translation widgets - get translations */
     IF lObjectTranslated NE YES THEN
     DO:
         IF VALID-HANDLE(gshTranslationManager) THEN
-            RUN multiTranslation IN gshTranslationManager 
+      RUN multiTranslation IN gshTranslationManager 
                                               (INPUT NO,
                                                INPUT-OUTPUT TABLE ttTranslate).
 
         /* now action the translations */  
-        translate-loop:
-        FOR EACH ttTranslate:
+      translate-loop:
+      FOR EACH ttTranslate:         
           
           IF  ttTranslate.cTranslatedLabel = "":U 
           AND ttTranslate.cTranslatedTooltip = "":U THEN 
@@ -4634,7 +4634,7 @@ PROCEDURE initializeVisualContainer :
           END.
         END.
 
-        /* translate pages */
+      /* translate pages */
         IF cFolderLabels <> "":U THEN
           {set FolderLabels cFolderLabels hObject}.
     END.    /* object translated */
@@ -4670,45 +4670,46 @@ PROCEDURE initPages :
   DEFINE VARIABLE iCurrentPage AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cPageObjects AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iCnt         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE lInitted     AS LOGICAL   NO-UNDO.
+  define variable lInitialized as logical   no-undo. 
     
-    &SCOPED-DEFINE xp-assign
-    {get CurrentPage iCurrentPage}
-    {get ObjectInitialized lInitted}.
-    &UNDEFINE xp-assign
-    
-    DO iCnt = 1 TO NUM-ENTRIES(pcPageList): 
-      iPage = INT(ENTRY(iCnt,pcPageList)).     
-      IF iPage NE 0 THEN 
-      DO:                     /* Shouldn't be called for page 0 */
-        cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
-        IF cPageObjects = "":U THEN
-        DO:
-          /* Page hasn't been created yet:
-             Set currentpage to get all objects on page created */
-          {set CurrentPage iPage}.
-          RUN createObjects IN TARGET-PROCEDURE.
-          
-          IF lInitted then
-          do:
-          /* If the current container object has been initialized already,
-             then initialize the new objects. Otherwise wait to let it 
-             happen when the container is init'ed.              
-             PendingPage is used as "visiblePage" to ensure that 
-             getHideOnInit returns true, without depending on a setHideOnInit, 
-             which would interfere with users setting of HideOnInit.
-             (This use of PendingPage is not that far of a stretch 
-             - its original use was while notifying hide in selectPage. 
-              Incidentally GroupAssignHidden, which depended on this is 
-              now also ok if called from here...) */
-            {set PendingPage iCurrentPage}.
-            RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
-            {set PendingPage ?}.
-          end.
-          {set CurrentPage iCurrentPage}.           
-        END.
+  {get CurrentPage iCurrentPage}.
+  DO iCnt = 1 TO NUM-ENTRIES(pcPageList): 
+    iPage = INT(ENTRY(iCnt,pcPageList)).     
+    IF iPage NE 0 THEN 
+    DO:                     /* Shouldn't be called for page 0 */
+      cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
+      IF cPageObjects = "":U THEN
+      DO:
+        /* Page hasn't been created yet:
+         Set currentpage to create all objects on the initted page */
+        {set CurrentPage iPage}.
+        RUN createObjects IN TARGET-PROCEDURE.
+        /* PendingPage is the Page that will is visible and is set to 
+           ensure that getHideOnInit returns true, without depending on a 
+           setHideOnInit, which would interfere with users setting of 
+           HideOnInit.
+          (This use of PendingPage is not too much of a stretch 
+           - its original use was while notifying hide in selectPage.
+           It is now the page that will become or remain visible.    
+           Incidentally GroupAssignHidden, which was the only logic that 
+           depended on this previously now also is correct if called from here) 
+           */
+        &SCOPED-DEFINE xp-assign
+        {get ObjectInitialized lInitialized}
+        {set PendingPage iCurrentPage}.
+        &UNDEFINE xp-assign
+        /* if not initialized then this is to soon - wait for publish ()
+           We keep pendingPage so objects on not pending page remains hidden
+           (getHideOnInit) */
+        if lInitialized then
+        do: 
+          RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
+          {set PendingPage ?}.
+        end.  
+        {set CurrentPage iCurrentPage}.            
       END.
     END.
+  END.
   RETURN.
 END PROCEDURE. /* initPages */
 
@@ -4874,20 +4875,20 @@ PROCEDURE notifyPage :
           - This method has special logic for "initializeObject" to ensure 
             that data objects are initialized first  
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcProc AS CHARACTER NO-UNDO.
-  
+  DEFINE INPUT PARAMETER pcProc  AS CHARACTER NO-UNDO.
+
   DEFINE VARIABLE iPage        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iVar         AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cObjects     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hObject      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lQuery       AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE iVar         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cObjects     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQuery       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lInitted     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lHide        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
   
   {get CurrentPage iPage}. 
   cObjects = pageNTargets(TARGET-PROCEDURE,iPage).
-  
+ 
   /* If intitializing ensure that SDOs are initialized first. This is important 
      since dynamic SDOs create the TT during initialization and visual objects 
      traditionally assume that their datasource's rowobject is valid */ 
@@ -4932,8 +4933,8 @@ PROCEDURE notifyPage :
         IF lHide THEN                      
           lOk = FALSE.                     
       END.                                 
-      IF lOk THEN
-        RUN VALUE(pcProc) IN WIDGET-HANDLE(ENTRY(iVar, cObjects)) NO-ERROR.      
+      IF lOk then
+        RUN VALUE(pcProc) IN hObject NO-ERROR.
     END.
   END.
 
@@ -5478,7 +5479,7 @@ PROCEDURE resizeWindow :
       /* Intentionally separate statments with no-error to always shrink if 
          possible. We could have used max(frame,window) to ensure that the 
          frames only were increased, but we want to shrink unless some widget 
-         inside the frame prevents it.  */ 
+         inside the frame prevents it.  */
       hFrame:WIDTH  = hContainerHandle:WIDTH NO-ERROR.
       hFrame:HEIGHT = hContainerHandle:HEIGHT NO-ERROR.
     END.
@@ -5514,8 +5515,9 @@ PROCEDURE selectPage :
   DEFINE VARIABLE iCurrentPage    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cPageList       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER   NO-UNDO.
-  
+  define variable iPendingPage    as integer   no-undo.
   &SCOPED-DEFINE xp-assign
+  {get PendingPage iPendingPage}
   {get StartPage iStartPage}
   {get CurrentPage iCurrentPage}. 
   &UNDEFINE xp-assign
@@ -5541,14 +5543,15 @@ PROCEDURE selectPage :
   /* Objects use this to avoid disabling links during hideObject - linkState 
      if they are about to become active/visible */
   {set PendingPage piPageNum}.
-  IF iCurrentPage NE 0 THEN
-      RUN notifyPage IN TARGET-PROCEDURE ("hideObject":U).
+  IF iCurrentPage NE 0 then
+  do:
+    RUN notifyPage IN TARGET-PROCEDURE ("hideObject":U).
+    if iPendingPage = ? then
+      {set PendingPage ?}.
+  end.
   /* Save old page for TTY change-page */
   giPrevPage = iCurrentPage. 
-  &SCOPED-DEFINE xp-assign
-  {set CurrentPage piPageNum}
-  {set PendingPage ?}.
-  &UNDEFINE xp-assign
+  {set CurrentPage piPageNum}.
   RUN changePage IN TARGET-PROCEDURE.
 
   RETURN.
@@ -5945,6 +5948,15 @@ PROCEDURE viewObject :
          INPUT 'no':U ).
       END.   /* END DO IF UIBMODE = "" */
 
+      /* Ensure that child object is parented to this window */
+      IF valid-handle(hContainer) then 
+      do:
+        if hContainer:TYPE = "WINDOW":U THEN
+          current-window = hContainer.
+        else if valid-handle(hContainer:window) then 
+          current-window = hContainer:window.              
+      end.  
+        
       /* if the object has paged targets avoid viewing hidden pages */ 
       {get PageNTarget cPageTargets}.
       IF cPageTargets > '' THEN
@@ -7632,8 +7644,8 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
     Notes:  
 ------------------------------------------------------------------------------*/
   IF NOT VALID-HANDLE(ghDataContainer) THEN
-     ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
-
+        ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
+  
   RETURN ghDataContainer.
 
 END FUNCTION.
@@ -10009,7 +10021,7 @@ FUNCTION setPendingPage RETURNS LOGICAL
             This was specifically implemented so that hideObject -> linkState 
             could avoid disabling links for objects that are going to become 
             viewed. 
-    Notes:  Should only be set by selectPage. 
+    Notes:  Should only be set by containr. 
 ------------------------------------------------------------------------------*/
   {set PendingPage piPendingPage}.
   RETURN TRUE.

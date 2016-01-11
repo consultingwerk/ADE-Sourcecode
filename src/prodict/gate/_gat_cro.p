@@ -929,7 +929,10 @@ for each gate-work
         CASE DICTDB._Field._Data-type:
           WHEN "CHARACTER" THEN DO:
             IF DICTDB._Field._For-type = "ROWID" THEN
-                 ASSIGN DICTDB._Field._For-Maxsize = 18.
+               DO:
+                 ASSIGN DICTDB._Field._Can-Write = ""
+                        DICTDB._Field._For-Maxsize = 18.
+               END.
             IF DICTDB._Field._For-type = "Char" OR
                DICTDB._Field._For-type = "VarChar" OR
                DICTDB._Field._For-type = "VarChar2" 

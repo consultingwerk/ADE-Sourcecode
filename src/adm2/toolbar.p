@@ -3631,6 +3631,10 @@ PROCEDURE linkState :
   DEFINE VARIABLE hTargetContainer        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cContainerType          AS CHARACTER  NO-UNDO.
 
+  /* Data objects that receive 'active' message from child data objects
+     appends 'data' as a signal to not activate the navigation toolbar */ 
+  if pcState = 'ActiveData':U then 
+    return.
   &SCOPED-DEFINE xp-assign
   {get LinkTargetNames cLinkTargetNames}
   {get DeactivateTargetOnHide lDeactivateTargetOnHide}.
@@ -5947,7 +5951,7 @@ Parameters: <none>
   */
   /* If the toolbar is not used, just move the frame to bottom
    (keeping it hidden, caused overlapping frames to remain hidden??) */
-  hFrame:HIDDEN = FALSE NO-ERROR.
+    hFrame:HIDDEN = FALSE NO-ERROR.
   IF NOT lToolbar THEN
     hFrame:MOVE-TO-BOTTOM().
   

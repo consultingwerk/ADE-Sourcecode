@@ -1,6 +1,9 @@
-/* Copyright © 1984 -2006 by Progress Software Corporation.  All rights 
-   reserved.  Prior versions of this work may contain portions 
-   contributed by participants of Possenet.  */   
+/***********************************************************************
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
          File: afsestranw.i
   
@@ -32,6 +35,7 @@
   DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.  
   DEFINE VARIABLE cRadioButtons             AS CHARACTER  NO-UNDO.  
   DEFINE VARIABLE dNewLabelLength           AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dOldLabelLength           AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dLabelWidth               AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dFirstCol                 AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dAddCol                   AS DECIMAL    NO-UNDO.
@@ -201,7 +205,7 @@
 	               */
                   ASSIGN hLabelHandle = ?.
                   {get LabelHandle hLabelHandle hWidget} NO-ERROR.
-    
+
                   IF VALID-HANDLE(hLabelHandle) THEN
                   DO:
                       /* Dynlookups/combos have their labels translated already */
@@ -219,19 +223,20 @@
                          dNewLabelLength = 0.
                   LEAVE else-blk.
               END.  /* radio-set */
-    
+
               ASSIGN cLabelText = hWidget:LABEL.
-              
+
               FIND FIRST ttTranslate
                    WHERE ttTranslate.cWidgetName = cWidgetName 
                      AND ttTranslate.cTranslatedLabel <> "":U
                    NO-ERROR.
-              
+
               IF AVAILABLE ttTranslate THEN
               DO:
                   /* Always assume we're going to have to take the colon into account as well */
-                  ASSIGN cLabelText = ttTranslate.cTranslatedLabel .
-                  
+                  ASSIGN cLabelText      = ttTranslate.cTranslatedLabel 
+                         dOldLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(ttTranslate.cOriginalLabel, iFont).
+
                   /* Let the 4gl handle adding of colons, except for PGEN where we need 
 	                 to do it ourselves. */
                   if can-query(ttTranslate.hWidgetHandle, 'Side-Label-Handle':U) and
@@ -239,24 +244,24 @@
                      ttTranslate.hWidgetHandle:SIDE-LABEL-HANDLE:DYNAMIC and
                      INDEX(cLabelText, ":":U) = 0 THEN
                      cLabelText = cLabelText + ":":u.
-                  
+
                   dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont)
                                   /* Pad the width by 3 pixels, as done when actually writing the translated label.
 	                                 Convert this into column PPUs because that's what we're working with here.     */
                                   + (3 / session:pixels-per-column).
               END.  /* there is a translation. */
-              else
+              ELSE
                   ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont).
           END.  /* ELSE-BLK: there is a LABEL attribute */
-          
+
           /* We need to make space for the label at least */
           ASSIGN dMinCol = MAXIMUM(dminCol, dNewLabelLength).
-      
+
           /* Get the first column (the one most to the left) */
           IF VALID-HANDLE(hWidget) AND CAN-QUERY(hWidget, "column":U) 
              AND (hWidget:COLUMN < dFirstCol OR dFirstCol = 0) THEN
               ASSIGN dFirstCol = hWidget:COLUMN.
-      
+
           /* Get the widget column */
           IF CAN-QUERY(hWidget,"COLUMN":U) THEN
               ASSIGN dColumn = hWidget:COLUMN.
@@ -266,7 +271,7 @@
               DO:
                   ASSIGN hLabelHandle = ?.
                   {get LabelHandle hLabelHandle hWidget} NO-ERROR.
-    
+
                   IF VALID-HANDLE(hLabelHandle) THEN
                   DO:
                       ASSIGN dColumn = ?
@@ -279,12 +284,12 @@
                              dColumn = {fn getColonPosition hWidget}
                              NO-ERROR.
                   END.
-                  
+
                   IF dColumn = ? OR dColumn < 0 THEN
                       ASSIGN dColumn = 1.
               END.  /* any SDF */
           END.  /* there is no 4GL column attribute */
-    
+
           /* Get the widget width */
           IF CAN-QUERY(hWidget,"WIDTH":U) THEN 
           DO:
@@ -299,7 +304,7 @@
                       ASSIGN cRadioButtons = hWidget:RADIO-BUTTONS
                              dWidth        = 0
                              dOptionWidth  = 0.
-    
+
                       FOR EACH ttTranslate
                          WHERE ttTranslate.cWidgetName = hWidget:NAME 
                            AND ttTranslate.cTranslatedLabel <> "":U
@@ -308,7 +313,7 @@
                           ASSIGN iEntry = (ttTranslate.iWidgetEntry * 2) - 1
                                  ENTRY(iEntry, cRadioButtons) = ttTranslate.cTranslatedLabel.
                       END.  /* loop through individual radio button translations */
-                      
+
                       /* Calc the width */
                       IF NOT hWidget:HORIZONTAL THEN 
                       DO:
@@ -340,17 +345,17 @@
                   ASSIGN dWidth = ?
                          dWidth = DYNAMIC-FUNCTION("getWidth":U IN hWidget) 
                          NO-ERROR.
-    
+
                   IF dWidth = ? OR dWidth < 0 THEN
                       ASSIGN dWidth = 10.
               END.  /* any SDF */
           END.  /* no 4GL width attribute */
-            
+
           /* Assign the column width and space needed for the label to the column temp-table */
           FIND FIRST ttViewerCol
                WHERE ttViewerCol.dColumn = dColumn
                NO-ERROR.
-    
+
           IF NOT AVAILABLE ttViewerCol 
           THEN DO:
               CREATE ttViewerCol.
@@ -360,15 +365,15 @@
                  ttViewerCol.dMaxLabel = MAXIMUM(ttViewerCol.dMaxLabel, dNewLabelLength).
         END.    /* FIELD-LOOP: loop through all field handles */
       END.  /* there are valid values in the field handles */
-    
+
       /* Check if we need to shift columns to the right to make space for translated widgets */
       FOR EACH ttViewerCol:   
         IF CAN-FIND(LAST btViewerCol
                    WHERE btViewerCol.dColumn < ttViewerCol.dColumn) THEN
-            ASSIGN ttViewerCol.dNewCol = MAXIMUM(ttViewerCol.dNewCol,(ttViewerCol.dColumn + ttViewerCol.dMaxLabel)).
+            ASSIGN ttViewerCol.dNewCol = MAXIMUM(ttViewerCol.dNewCol,(ttViewerCol.dColumn + (ttViewerCol.dMaxLabel - dOldLabelLength))).
         ELSE
-            ASSIGN ttViewerCol.dNewCol = MAXIMUM(ttViewerCol.dColumn,ttViewerCol.dMaxLabel).
-        
+            ASSIGN ttViewerCol.dNewCol = MAXIMUM(ttViewerCol.dColumn,ttViewerCol.dMaxLabel) + 2.4.
+ 
         /* Are we going to have to shift widgets to the right? */
         IF ttViewerCol.dColumn < ttViewerCol.dNewCol THEN 
         DO:

@@ -1122,7 +1122,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          ELSE IF  c <> " " AND c <> ? THEN
              PUT STREAM code UNFORMATTED " DEFAULT " c.               
       END.
-      
+     
       IF dbtyp = "ORACLE" OR dbtyp = "PROGRESS" THEN DO:
         IF DICTDB._Field._Mandatory 
            THEN PUT STREAM code UNFORMATTED " NOT NULL".
@@ -1150,6 +1150,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         PUT STREAM code UNFORMATTED
           (if DICTDB._Field._Mandatory OR (i NE 41 /*int64 */ AND user_env[i + 10] = "bit") 
            then " not null" else " null").
+      ELSE IF (db2type <> ? AND db2type <> "")  AND DICTDB._Field._Mandatory THEN
+          PUT STREAM code UNFORMATTED " NOT NULL".
     END.     
   END. /* FOR EACH DICTDB._Field OF DICTDB._File BREAK BY DICTDB._Field._Order */
 

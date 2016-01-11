@@ -104,7 +104,7 @@ FUNCTION assignTableExceptionBuffer RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableFetchTree Procedure 
 FUNCTION assignTableFetchTree RETURNS LOGICAL
          ( pcTable     AS CHAR,
-           pcFetchedBy AS CHAR ) FORWARD.
+           pcFetchTree AS CHAR ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -533,10 +533,10 @@ FUNCTION tableContext RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-TableExceptionBuffer) = 0 &THEN
+&IF DEFINED(EXCLUDE-tableExceptionBuffer) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD TableExceptionBuffer Procedure 
-FUNCTION TableExceptionBuffer RETURNS HANDLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableExceptionBuffer Procedure 
+FUNCTION tableExceptionBuffer RETURNS HANDLE
   ( pcTable AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -594,6 +594,19 @@ FUNCTION tableNumRecords RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tablePrevContext Procedure 
 FUNCTION tablePrevContext RETURNS CHARACTER
   ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcTable     AS CHAR,
+    pcKeyWhere  AS CHAR,
+    plUndoCreate as logical)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1962,7 +1975,7 @@ FUNCTION isChild RETURNS LOGICAL
   DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRelation      AS HANDLE     NO-UNDO.
 
-  hBuffer = {fnarg dataTableHandle pcTable}. 
+  hBuffer = {fnarg dataTableHandle pcTable}.
   IF VALID-HANDLE(hBuffer) THEN
   DO:
     hRelation = hBuffer:PARENT-RELATION.
@@ -2280,7 +2293,7 @@ FUNCTION mergeChangeDataset RETURNS LOGICAL
   /**/
   ELSE
   DO iBuffer = 1 TO phChangeDataset:NUM-BUFFERS:
-    hChangeBuffer = phChangeDataset:GET-BUFFER-HANDLE(iBuffer).
+    hChangeBuffer = phChangeDataset:GET-BUFFER-HANDLE(iBuffer).    
     IF hChangeBuffer:TABLE-HANDLE:HAS-RECORDS THEN 
     DO:   
       ASSIGN 
@@ -2301,9 +2314,9 @@ FUNCTION mergeChangeDataset RETURNS LOGICAL
           
           hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
         END. /* transaction */
-              /* if any error store the buffer to be processed by the dataview
-                 (we do not trust table:error since it is not propagated if 
-                  buffer:error is set true in code and no error is thrown ) */
+        /* if any error store the buffer to be processed by the dataview
+          (we do not trust table:error since it is not propagated if 
+           buffer:error is set true in code and no error is thrown ) */
         ELSE
           DYNAMIC-FUNCTION('assignTableExceptionBuffer':U IN TARGET-PROCEDURE,
                             cBuffer, hChangeBuffer).
@@ -2318,7 +2331,7 @@ FUNCTION mergeChangeDataset RETURNS LOGICAL
       dynamic-function('assignTableExceptionBuffer':U in target-procedure ,
                         cBuffer, hChangeBuffer).
     end.
-  END. /* else ibuffer = 1 to dataset:num-buffers */
+  end. /* else ibuffer = 1 to dataset:num-buffers */
   
   RETURN lComplete.
 
@@ -2758,9 +2771,9 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-TableExceptionBuffer) = 0 &THEN
+&IF DEFINED(EXCLUDE-tableExceptionBuffer) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION TableExceptionBuffer Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableExceptionBuffer Procedure 
 FUNCTION tableExceptionBuffer RETURNS HANDLE
   ( pcTable AS CHAR ) :
 /*------------------------------------------------------------------------------
@@ -2953,6 +2966,69 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcTable     AS CHAR,
+    pcKeyWhere  AS CHAR,
+    plUndoCreate as LOG) :
+/*------------------------------------------------------------------------------
+   Purpose:  undo a datatable row    
+Parameters:  pcTable      - DataTable 
+             pcKeyWhere   - expression uniquely identifying the record 
+             plUndoCreate - Yes - undo create
+                            No  - undo changes in new  
+    Notes:   Called from undoRow of the dataview   
+------------------------------------------------------------------------------*/
+  define variable hBuffer as handle no-undo.
+  define variable hbefore as handle no-undo.
+  define variable rRowid  as rowid  no-undo.
+   
+  hBuffer = {fnarg dataTableHandle pcTable}.
+  if valid-handle(hBuffer) then 
+  do:
+    hBuffer:find-unique('WHERE ':U + pcKeyWhere) no-error.
+    if hBuffer:available and hBuffer:before-rowid <> ? then 
+    do:
+      hBuffer:before-buffer:find-by-rowid(hBuffer:before-rowid).
+      /* a normal ADM2 undo will pass NO to this and only roll back changes 
+         in a new record */
+      if not plUndoCreate and hBuffer:row-state = row-created then 
+        hBuffer:buffer-copy(hBuffer:before-buffer). 
+      else do:
+        rRowid = hBuffer:ROWID.
+        hBefore = hBuffer:before-buffer.
+        hBefore:find-by-rowid(hBuffer:before-rowid).   
+        /* NOTE : if we add this property then we need set tracking changes 
+                  false in updatewRow's call to this 
+        if getFireTriggerOnUndo then
+        DO TRANSACTION:
+          hBuffer:buffer-copy(hBefore).
+        END.
+        */    
+        hBuffer:table-handle:tracking-changes = false.
+        /* the transaction here is probably not necessary, but core issues used 
+           to cause row level trigger to fire at weird places unless wrapped in
+           transaction  */ 
+        do transaction:
+          hBuffer:before-buffer:reject-row-changes().
+        end.
+        hBuffer:table-handle:tracking-changes = true.
+        hBuffer:find-by-rowid(rRowid) no-error. 
+      end.
+      return true.
+    end.   
+  end. /* if valid-handle(hBuffer)*/  
+  RETURN false.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-updateRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION updateRow Procedure 
@@ -3027,8 +3103,8 @@ Parameters:  pcTable     - DataTable
               lSuccess = FALSE.
               RUN addMessage IN TARGET-PROCEDURE 
                    (SUBSTITUTE({fnarg messageNumber 93}, hCol:LABEL, cErrorReason), 
-                               hCol:NAME, 
-                                ?).
+                               hCol:name, 
+                               hBuffer:name).
     
             END.
           END. /* large column  */
@@ -3060,27 +3136,47 @@ Parameters:  pcTable     - DataTable
       IF lSuccess THEN
       DO:
         DO ON ERROR UNDO,LEAVE:
-          lSuccess = FALSE.
-          /* the method returns true on already exists error, but does throw 
-             error....  so set it false before and true after if success. */ 
-          hBuffer:BUFFER-VALIDATE() NO-ERROR.
-          lSuccess = TRUE. 
+          lSuccess = false.
+          hBuffer:BUFFER-validate() NO-ERROR.
+          lSuccess = true.
         END.
         
         /* Add the error */
         IF NOT lSuccess THEN
         DO:
+          /* Add the update cancelled message */
+      
+          RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 15},?,?).
           RUN addMessage IN TARGET-PROCEDURE 
                          (?,
                           ?,
-                          ?).
-          UNDO. /* undo all changes (or we'll get the error again when 
+                          hBuffer:name).
+          UNDO. /* undo all changes (or we'll get the ABL error again when 
                    the transaction ends) */
         END.
       END. /* success */
-    END. /* transaction if record found */ 
-  END.  /* valid buffer */
-  
+    END. /* transaction if record found */
+    /* Add row-updated trigger error */
+    IF lsuccess and hBuffer:error or error-status:error THEN
+    do: 
+      /* Add the update cancelled message, unless messages already present  */
+      IF NOT {fn anyMessage} THEN 
+        RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 15},?,?). 
+      
+      RUN addMessage IN target-procedure(if hBuffer:error-string = '' 
+                                         then ? 
+                                         else hBuffer:error-string,
+                                         ?,hBuffer:name).
+                                         
+      /* if we add support to call row level triggers from undo then we need 
+         to disable it from here as follows:  
+         hBuffer:table-handle:tracking-changes =false.*/
+      dynamic-function('undoRow':U in target-procedure,
+                       pcTable,pcKeyWhere,NO /* only undo changes in create*/).
+      /* hBuffer:table-handle:tracking-changes =true. */
+      lSuccess = false.
+    end.
+  end. /* if valid-hanlde(hBuffer)*/  
   RETURN lSuccess.
 
 END FUNCTION.

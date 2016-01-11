@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -627,14 +627,14 @@ PROCEDURE init-session :
       cfg-development-mode = cfg-environment BEGINS "Dev"
       cfg-compile-options  = getAgentSetting("Compile":U, "":U, "Options":U)
       cfg-compile-xcode    = getAgentSetting("Compile":U, "":U, "xcode":U)
-      cfg-web-run-path     = getAgentSetting("Path":U, "":U,"WebRunPath":U)
       cfg-no-save-rcode    = CAN-DO(cfg-compile-options,"NoSave")
       cfg-checktime        = CAN-DO(cfg-compile-options,"CheckTime")
       cfg-compile-on-fly   = cfg-compile-options > "" AND cfg-development-mode
       .
       
   ASSIGN
-    glStateAware = (getAgentSetting("Session":U, "":U, "StateAware":U) = "yes":U).
+    glStateAware = (getAgentSetting("Session":U, "":U, "StateAware":U) = "yes":U)
+    cfg-web-run-path     = getAgentSetting("Path":U, "":U,"WebRunPath":U).
 
 END PROCEDURE.
 

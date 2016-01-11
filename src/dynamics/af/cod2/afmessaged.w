@@ -3,9 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
-/* Copyright © 2005,2006 by Progress Software Corporation.  All rights 
-   reserved.  Prior versions of this work may contain portions 
-   contributed by participants of Possenet.  */   
+/***********************************************************************
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/  
 /*------------------------------------------------------------------------
 
   File: afmessaged.w
@@ -1279,13 +1282,11 @@ PROCEDURE initializeObject :
       edMessageSummary:SCREEN-VALUE  = "~n" + REPLACE(pcMessageSummaryList, CHR(3), "~n~n")
       edMessageDetail:SCREEN-VALUE   = "~n" + REPLACE(pcMessageDetailList,  CHR(3), "~n~n").    
 
-  {set HideOnInit YES}.
-
   RUN postCreateObjects.
 
   IF glQuestion OR glInformation THEN
     DYNAMIC-FUNCTION("setUserProperty":U IN h_afspfoldrw, "DoNotShow":U, "yes":U).
-  
+
   RUN initializeObject IN h_afspfoldrw.
 
   /* We want the background color to be message-style (color3dface) 
@@ -1318,7 +1319,7 @@ PROCEDURE initializeObject :
         btFullScreen:ROW            = btMail:ROW.
 
     edMessageSummary:MOVE-TO-EOF().
-    
+
     ASSIGN
         edMessageSummary:HEIGHT     = MIN(edMessageSummary:HEIGHT, edMessageSummary:CURSOR-LINE * FONT-TABLE:GET-TEXT-HEIGHT(edMessageSummary:FONT))
         edMessageDetail:HEIGHT      = edMessageSummary:HEIGHT

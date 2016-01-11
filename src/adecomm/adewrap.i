@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2007 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,6 +24,9 @@
 
 /* ADE Standards Include. */
 { adecomm/adestds.i}
+
+/* If this is WebSpeed, exit */
+IF SESSION:CLIENT-TYPE = "WEBSPEED" THEN RETURN ERROR.
 
 /* This is done only once at startup of the ade.  This code runs and  
    loads up the colors and fonts

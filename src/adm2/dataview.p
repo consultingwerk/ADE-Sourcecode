@@ -3685,7 +3685,7 @@ PROCEDURE startObject :
     IF VALID-HANDLE(hDataSource) THEN
     DO:
       &scoped-define xp-assign  
-      {get ObjectInitialized lParentInitialized hDataSource}.
+      {get ObjectInitialized lParentInitialized hDataSource}
       {get DataTable cParent hDataSource}.
       &undefine xp-assign
       
@@ -3700,7 +3700,7 @@ PROCEDURE startObject :
       /* If parent is not initted then just wait for its publish dataAvailable */
       
       IF lParentInitialized THEN
-        RUN dataAvailable IN TARGET-PROCEDURE ('different':U).
+        RUN dataAvailable IN TARGET-PROCEDURE ('reset':U).
     END.
     ELSE DO: 
       {get Scrollable lScrollable}.
@@ -4592,7 +4592,7 @@ FUNCTION closeQuery RETURNS LOGICAL
     &UNDEFINE xp-assign
 
     hDataQuery:QUERY-CLOSE().
-     
+    hDataQuery:get-buffer-handle(1):buffer-release.
     RUN rowChanged IN TARGET-PROCEDURE('DIFFERENT':U). 
     
     RETURN TRUE.  
@@ -5787,7 +5787,7 @@ FUNCTION destroyView RETURNS LOGICAL
 
   DO iTable = 1 TO num-entries(cBufferHandles):
     hBuffer = widget-handle(entry(iTable,cBufferHandles)).
-    {fnarg destroyBuffer hBuffer hDatasetSource}.
+    {fnarg destroyBuffer hBuffer hDatasetSource} no-error.
   END.
 
   DELETE OBJECT hQuery NO-ERROR.
@@ -6304,8 +6304,8 @@ FUNCTION getDataContainerHandle RETURNS HANDLE
     Notes:  
 ------------------------------------------------------------------------------*/
   IF NOT VALID-HANDLE(ghDataContainer) THEN
-     ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
-
+        ghDataContainer = {fnarg getManagerHandle 'DataContainer':U}.
+  
   RETURN ghDataContainer.
 
 END FUNCTION.
@@ -7775,15 +7775,17 @@ Parameters: pcPosition -
  DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.         
  DEFINE VARIABLE lok              AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE lWhere           AS LOGICAL    NO-UNDO.
+ define variable lBrowsed         as logical    no-undo.
 
  &SCOPED-DEFINE xp-assign
  {get DataHandle hDataQuery}
  {get QueryString cQuery}  
  {get HasFirst lHasFirst}
  {get HasLast lHasLast}
+ {get DataQueryBrowsed lBrowsed}
  /* we turn this on allways as it is used as a flag to prevent dataAvailable 
     untill an explicit open or find  */ 
- {set OpenOnInit TRUE}.
+ {set OpenOnInit TRUE}
   .
  &UNDEFINE xp-assign
  
@@ -7852,21 +7854,26 @@ Parameters: pcPosition -
 
          IF lWhere THEN
          DO:
-           hRowObject:FIND-FIRST(pcPosition) NO-ERROR.
+           lOk = hRowObject:FIND-FIRST(pcPosition) NO-ERROR.
            /* show progress message for syntax error */
            IF ERROR-STATUS:GET-NUMBER(3) = 10041 THEN 
              MESSAGE 
                ERROR-STATUS:GET-MESSAGE(3) VIEW-AS ALERT-BOX ERROR.
            /* Synch the browse here (this is somewhat inconsistent since
-              next,last request currently relies on this being done elsewhere)*/
+              next,prev request currently relies on this being done elsewhere)*/
            IF hRowObject:AVAIL THEN   
-             lOk = hDataQuery:REPOSITION-TO-ROWID(hRowObject:ROWID) NO-ERROR.
+             lOk = hDataQuery:REPOSITION-TO-ROWID(hRowObject:rowid) NO-ERROR.
          END.
          ELSE 
            lOk = hDataQuery:REPOSITION-TO-ROWID(TO-ROWID(pcPosition)) NO-ERROR.
-         
-         /* if not browsed reposition will make record not avail */
-         IF lOk AND NOT hRowObject:avail THEN 
+         /* find and/or reposition  
+            Problem: the record is avail after repos if browsed 
+                     we need to get-next to position after repos otherwise
+            Solution: only get-next if not avail            
+            Problem 2: The record is avail but not positioned if join query
+            Solution: check DataQueryBrowsed (not avail )*/
+  
+         IF lOk AND NOT lBrowsed THEN 
            hDataQuery:GET-NEXT(). 
              
          LEAVE.
@@ -9436,35 +9443,31 @@ Parameter: pcRowident
   DEFINE VARIABLE lAutoCommit      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
   DEFINE VARIABLE rRowid           AS ROWID      NO-UNDO.
-  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lDataModified    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lResortOnSave    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lNew             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lRebuild         AS LOGICAL    NO-UNDO.
+  define variable cKeyWhere        as character  no-undo.
+  define variable hDatasetSource   as handle     no-undo.
+  define variable cDataTable       as character  no-undo.
   
   /* don't assume rowid as param, call matching function */ 
   IF {fnarg repositionRowobject pcRowident} THEN
-  DO:
-    {get RowObject hRowObject}.
+  DO:  
+    &scop xp-assign
+    {get DatasetSource hDatasetSource}
+    {get DataTable cDataTable}
+    {get KeyWhere cKeyWhere}.
+    &undefine xp-assign
     
-    IF hRowObject:AVAILABLE AND hRowObject:BEFORE-ROWID <> ? THEN
-    DO:
-      hRowObject:BEFORE-BUFFER:FIND-BY-ROWID(hRowObject:BEFORE-ROWID).
-      IF hRowObject:ROW-STATE = ROW-CREATED THEN
-        hRowObject:BUFFER-COPY(hRowObject:BEFORE-BUFFER). 
-      ELSE DO:
-        /* avoid row-updated from firing unnecessarily (core behavior/bug?) */  
-        rRowid = hRowObject:ROWID.
-        DO TRANSACTION:
-          hRowObject:BEFORE-BUFFER:REJECT-ROW-CHANGES().
-        END.
-        hRowObject:FIND-BY-ROWID(rRowid) NO-ERROR. 
-      END.
-    END.  
+    if valid-handle(hDatasetSource) then 
+      dynamic-function('undoRow':U in hDatasetSource,
+                        cDataTable,cKeyWhere,NO /* don't undo create */).
+       
   END.
   ELSE 
     RETURN FALSE.
-        
+
   /*  ..what we really mean is; if not hasChanges then publish */
   IF {fn getRowObjectState} = 'NoUpdates':U THEN
     {set RowObjectState 'NoUpdates':U}.
@@ -9489,7 +9492,7 @@ Parameter: pcRowident
          so even if the undone change caused a resort the data 
          satisfying the old sort will be on the client,
          so just reopen */  
-      {fnarg openDataQuery STRING(hRowObject:ROWID)}. 
+      {fnarg openDataQuery pcRowident}. 
   
   END. /* ResortOnSave or NewRow */  
   

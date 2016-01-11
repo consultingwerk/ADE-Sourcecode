@@ -4008,7 +4008,6 @@ FUNCTION getHideOnInit RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lHideOnInit      AS LOGICAL   NO-UNDO.
   define variable hContainerSource as handle    no-undo.
-  define variable iCurrentPage     as integer   no-undo.
   define variable iPendingPage     as integer   no-undo.
   define variable iObjectPage      as integer   no-undo.
   define variable lQueryObject     as logical   no-undo.
@@ -4023,7 +4022,7 @@ FUNCTION getHideOnInit RETURNS LOGICAL
   &undefine xp-assign
   &undefine xpHideOnInit
   
-  /* if we're on a page than can be hidden and we're not a Query 
+  /* if we're on a page that can be hidden and we're not a Query 
     (data-source) and not already defined to be hidden then check 
      PendingPage */ 
   if iObjectPage <> 0 
@@ -4031,16 +4030,9 @@ FUNCTION getHideOnInit RETURNS LOGICAL
   and not lHideOnInit 
   and valid-handle(hContainerSource) then
   do:
-    &scop xp-assign
-    {get PendingPage iPendingPage hContainerSource}    
-    {get CurrentPage iCurrentPage hContainerSource}
-    .    
-    &undefine xp-assign
-    /* if pendingpage is set and not current then keep the object hidden 
-       (no need to check if CurrentPage is 0 - as it is never hidden) */
-    if  iCurrentPage <> 0 
-    and iPendingPage <> ? 
-    and iCurrentPage <> iPendingPage then
+    {get PendingPage iPendingPage hContainerSource}.    
+    /* if pendingpage is set and not current then keep the object hidden  */
+    if iPendingPage <> ? and iObjectPage <> iPendingPage then
       lHideOnInit  = true.
   end.
     

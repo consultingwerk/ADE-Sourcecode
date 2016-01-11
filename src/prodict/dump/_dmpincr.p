@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -77,6 +77,7 @@ History:
                                dump/_dmputil.p) 20040402-004.
     fernando    06/12/06    Support for int64 - allow int->int64 type change
     fernando    08/16/06    raw comparison when checking if char values are different - 20060301-002
+    fernando    02/27/2007  Added case for critical field change - OE00147106   
 */
 /*h-*/
 
@@ -467,6 +468,7 @@ DO ON STOP UNDO, LEAVE:
     FOR EACH index-list:
       DELETE index-list.
     END.
+
   
     /* write out appropriate file definition changes */
     ASSIGN
@@ -589,7 +591,31 @@ DO ON STOP UNDO, LEAVE:
         WHERE DICTDB._Field._Field-name = DICTDB2._Field._Field-name NO-ERROR.
       IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
         DISPLAY DICTDB2._Field._Field-name @ fld WITH FRAME seeking.
-      IF AVAILABLE DICTDB._Field THEN NEXT.
+      IF AVAILABLE DICTDB._Field THEN DO: 
+          /* OE00147106
+             If the type or extent changed we need to give the user
+             the option of selecting another field in case the original
+             one still exists with a different name.
+          */
+          IF DICTDB._Field._Data-type EQ DICTDB2._Field._Data-type AND
+             DICTDB._Field._Extent EQ DICTDB2._Field._Extent THEN NEXT.
+          ELSE DO:
+              /* SQL timestamp/datetime is not a difference. int -> int64
+                 is not a change that require a field to be recreated,
+                 so don't need to check in those cases.
+              */
+              IF NOT(DICTDB._Field._Dtype = 41 AND DICTDB2._Field._Dtype = 4) 
+                  AND NOT (DICTDB._Field._Dtype = DICTDB2._Field._Dtype AND
+                  DICTDB._Field._Dtype = 34) THEN DO:
+                  /* create a missing record with crit = yes - special case */
+                  CREATE missing.
+                  ASSIGN missing.name = DICTDB2._Field._Field-name
+                         missing.crit = YES.
+              END.
+
+              NEXT. /* go to the next record */
+          END.
+      END.
       CREATE missing.
       missing.name = DICTDB2._Field._Field-name.
     END.
@@ -628,9 +654,15 @@ DO ON STOP UNDO, LEAVE:
       /* 02/01/29 vap (IZ# 1525) */
       IF NOT p-batchmode THEN DO:
         DISPLAY missing.name @ fld WITH FRAME seeking.
-        RUN "prodict/dump/_dmpisub.p"
-          (INPUT "f",INPUT-OUTPUT missing.name,OUTPUT ans).
-        IF missing.name = ? THEN DELETE missing.
+        /* OE00147106 If crit = yes, this is a special case. See above */
+        IF missing.crit = YES THEN
+            RUN "prodict/dump/_dmpisub.p"
+              (INPUT "fc",INPUT-OUTPUT missing.name,OUTPUT ans).
+        ELSE
+            RUN "prodict/dump/_dmpisub.p"
+              (INPUT "f",INPUT-OUTPUT missing.name,OUTPUT ans).
+        /* we always delete the missing record if crit = yes */
+        IF missing.name = ? OR missing.crit THEN DELETE missing.
         IF ans = ? THEN DO:    
           HIDE FRAME seeking NO-PAUSE.
           user_path = "".
@@ -645,10 +677,22 @@ DO ON STOP UNDO, LEAVE:
                       field-list.f1-name = p-foo AND
                       field-list.f2-name = ?
                       NO-ERROR.
-           IF AVAILABLE(field-list) THEN          
+           IF AVAILABLE(field-list) THEN DO:
              ASSIGN field-list.f2-name = missing.name.
+
+             IF missing.crit = YES THEN DO: /* OE00147106 special case */
+                 /* fix the original field-list record so that we consider
+                    it a new field .
+                 */
+                 FIND FIRST field-list WHERE field-list.f1-name = missing.name.
+                 ASSIGN field-list.f2-name = ?.
+             END.
+           END.
            DELETE missing.
         END.  /* p-foo NE ? */
+        ELSE IF missing.crit = YES THEN
+            DELETE missing. /* always delete missing if crit = yes */
+
       END.  /* p-batchmode */
     END.
     IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
