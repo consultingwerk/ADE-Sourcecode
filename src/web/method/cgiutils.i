@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2005,2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2009-2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -576,8 +576,9 @@ Global Variables: UserFieldList, UserFieldVar, FieldList, FieldVar
     IF usetttWebFieldList THEN
        ASSIGN found = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
                                 /*AND (field-type = "F":U OR field-type = "Q":U)*/).
-    ELSE
-       ASSIGN found = LOOKUP(p_name, get-field(?)) > 0.
+    ELSE DO:
+       RUN find_web_form_field (p_name, OUTPUT found).
+    END.
     
     IF found THEN
        RETURN get-field(p_name).
@@ -1286,5 +1287,97 @@ END PROCEDURE.  /* UrlEncode */
 
 &ENDIF
 
- 
+ &IF DEFINED(EXCLUDE-find_web_form_field) = 0 &THEN
 
+&ANALYZE-SUSPEND _CODE-BLOCK _PROCEDURE find_web_form_field 
+/****************************************************************************
+Description: Find if a given field name exists in the form or query string
+             This does what get-field(?) does but handle the case where
+             there are too many fields to be placed in the FieldList global.
+Input Parameter: Name of item 
+Output: found returns TRUE if it finds a field, otherwise it returns false.
+****************************************************************************/
+
+PROCEDURE find_web_form_field.
+    DEFINE INPUT  PARAMETER p_name AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAMETER found  AS LOGICAL   NO-UNDO.
+
+    DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE i       AS int       NO-UNDO.
+    DEFINE VARIABLE j       AS int       NO-UNDO.
+
+    DEFINE VARIABLE v-form  AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE v-query AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE v-name  AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cTmp    AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE lChForm AS LONGCHAR  NO-UNDO.
+    DEFINE VARIABLE lChQry  AS LONGCHAR  NO-UNDO.
+    
+    IF FieldList = "" THEN DO:
+
+        ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM":U) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN
+            lChForm = WEB-CONTEXT:GET-CGI-LIST("FORM":U).
+
+        ASSIGN v-query = WEB-CONTEXT:GET-CGI-LIST("QUERY":U) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN
+            lChQry = WEB-CONTEXT:GET-CGI-LIST("QUERY":U).
+
+        /* if either one of the strings is too big, 
+           just handle it w/ longchars */
+        IF lChForm NE "" OR lChQry NE "" THEN DO:
+            IF lChForm NE "" THEN
+               found = LOOKUP(p_name, lChForm) > 0.
+            ELSE
+               found = LOOKUP(p_name, v-form) > 0.
+
+            IF NOT found THEN DO:
+               IF lChQry NE "" THEN
+                  found = LOOKUP(p_name, lChQry) > 0.
+               ELSE
+                  found = LOOKUP(p_name, v-query) > 0.
+            END.
+
+            RETURN.
+        END.
+
+        /* Combine form input and query string */
+        ASSIGN v-value = v-form +
+                 (IF v-form <> "" AND v-query <> "" THEN ",":U ELSE "") +
+                 v-query NO-ERROR.
+
+        IF ERROR-STATUS:ERROR THEN DO:
+            /* can't put the 2 strings together, just lookup the field name */
+            found = LOOKUP(p_name, v-form) > 0.
+            IF NOT found THEN
+               found = LOOKUP(p_name, v-query) > 0.
+
+            RETURN.
+        END.
+
+        ASSIGN j = NUM-ENTRIES(v-value).
+    
+        /* eliminate dupes */
+        DO i = 1 TO j:
+          ASSIGN v-name = ENTRY(i, v-value).
+          IF LOOKUP(v-name, cTmp) = 0 THEN
+            ASSIGN cTmp = cTmp +
+                   (IF cTmp = "" THEN "" ELSE ",":U) + v-name.
+        END.
+    
+        ASSIGN FieldList = cTmp NO-ERROR. /* save it away */
+        IF ERROR-STATUS:ERROR THEN DO:
+            /* if we got this far, just lookup using cTmp and don't
+               assign FieldList - the form must have too many fields.
+            */
+            found = (LOOKUP(p_name, cTmp) > 0).
+            RETURN.
+        END.
+    END.
+
+    found = (LOOKUP(p_name, FieldList) > 0).
+
+END PROCEDURE. /* find_web_form_field */
+&ANALYZE-RESUME
+
+&ENDIF

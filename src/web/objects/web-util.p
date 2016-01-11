@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005-2007,2009 by Progress Software Corporation. All rights*
+* Copyright (C) 2005-2007,2009-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -671,7 +671,11 @@ Output:      Sets global variables defined in src/web/method/cgidefs.i
     FieldList           = ""
     FieldVar            = "".
 
-  RUN populateWebFieldListTable.
+  /*  OE00199198 - turn off optimization that uses temp-tables.
+      It prevents get-field() from being used in WHERE clauses
+      of FIND, etc
+  */
+  /*RUN populateWebFieldListTable.*/
 
   /* Read in the CGI environment variable pairs which are delimited by 
      ASCII 255 characters.  Any literal ASCII 255 values have been encoded

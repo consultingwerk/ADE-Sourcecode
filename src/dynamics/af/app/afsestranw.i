@@ -93,10 +93,7 @@
   
   /* outside the xp-assign because of the no-error */
   {get KeepChildPositions lKeepChildPositions phObject} NO-ERROR.
-  IF lKeepChildPositions eq ? THEN 
-     /* Default behaviour is to resize */
-     lKeepChildPositions = No.
-  
+ 
     /* Find all the DataField translations, and apply them to
        the widgets that don't have actual translations. We do this here 
        because the next look ignores any untranslated records, and we need
@@ -122,10 +119,31 @@
     ASSIGN cAllFieldHandles = STRING(phObject).
     {get ContainerSource hSDFParentFrame phObject}.
     IF VALID-HANDLE(hSDFParentFrame) THEN
-       DYNAMIC-FUNCTION("setUserProperty":U IN hSDFParentFrame, INPUT "ResizeForTranslation", INPUT "YES":U). 
+    do:
+       DYNAMIC-FUNCTION("setUserProperty":U IN hSDFParentFrame, INPUT "ResizeForTranslation", INPUT "YES":U).
+       /* Follow the 5th commandment (honour thy parents) */
+       {get KeepChildPositions lKeepChildPositions hSDFParentFrame} NO-ERROR.
+    end.
   END.  /* this is a single SDF */
   
-    /* BUG 20040312-024 describes a core bug which results in the 
+  /* only want this logic once. */
+  if lKeepChildPositions eq ? then
+      /* Default behaviour is to resize */
+      lKeepChildPositions = No.
+
+  /* [PJ] moved the logic outside of the KeepChildPositions check since we always
+     need this information. */
+  assign lHasFieldLabel    = false
+         lIsSmartDataField = false.
+  
+  lHasFieldLabel = {fnarg InstanceOf 'LookupField' phObject}.
+  if not lHasFieldLabel then
+    lHasFieldLabel = {fnarg InstanceOf 'Select' phObject}.
+        
+  if {fn getObjectType phObject} eq 'SmartDataField':U then
+    lIsSmartDataField = true.
+
+  /* BUG 20040312-024 describes a core bug which results in the 
        translated label of a static SDF not showing until the viewer
        has been hidden and then re-viewed. If the SDF's frame is not hidden, 
        then we hide the viewer first, then perform the translations and
@@ -136,7 +154,7 @@
   ASSIGN lFrameVisible = NOT phFrame:HIDDEN.
   IF lFrameVisible THEN
     ASSIGN phFrame:HIDDEN = YES.
-        
+            
    /* Calculate column offsets. We don't want to do this if KeepChildPositions
       is true, since no moving and shaking will take place. */
     if not lKeepChildPositions eq true then
@@ -159,7 +177,7 @@
               NEXT field-loop.
               
           /* All procedures in here are either SmartDataFields or SmartLOBField 
-             (per viewer.p:updateFieldProperties) */                       
+             (per viewer.p:updateFieldProperties) */
           lSdf = hWidget:Type eq 'procedure':u.
           if lSdf then
           do:
@@ -170,7 +188,7 @@
           
           /* Determine what font we're using for this widget */
           ASSIGN iFont = ?.
-          if lSdf then
+          if lSDf and lLookupField then
           DO:
               {get LabelHandle hLabelHandle hWidget}.
               IF VALID-HANDLE(hLabelHandle) AND CAN-QUERY(hLabelHandle,"FONT":U) THEN
@@ -367,16 +385,6 @@
             ASSIGN phFrame:HIDDEN = NO.
         RETURN.
       END.  /* frame too big for monitor. */
-      
-      ASSIGN lHasFieldLabel    = FALSE
-             lIsSmartDataField = FALSE.
-      
-      lHasFieldLabel = {fnarg InstanceOf 'LookupField' phObject}.
-      if not lHasFieldLabel then
-        lHasFieldLabel = {fnarg InstanceOf 'Select' phObject}.
-      
-      IF {fn getObjectType phObject} = 'SmartDataField':U THEN
-        lIsSmartDataField = TRUE.
       
       /* Need to resize frame to fit new labels */
       IF CAN-FIND(FIRST ttViewerCol WHERE ttViewerCol.dColumn <> ttViewerCol.dNewCol) THEN 
@@ -661,7 +669,7 @@
                 IF CAN-SET(hSideLabel, "FORMAT":U) THEN
                     ASSIGN hSideLabel:FORMAT = "x(" + STRING(LENGTH(ttTranslate.cTranslatedLabel, "Column":U)) + ")":U.
                 
-                /* The length of the newly transalted label, in pixels. 
+                /* The length of the newly translated label, in pixels. 
                    We shold not assume that labels have the same fonts as the widget. This is
                    especially important for decimal or data combos, that we want to align
                    using a fixed font. */

@@ -62,6 +62,7 @@ History:
     09/23/09 Nagaraju  Computed column implementation for RECID support
     10/29/09 Nagaraju  To update new format for version string
     02/23/10 Nagaraju  to avoid computed_column check if MSS vers 2000 or earlier
+    09/16/10 knavneet  CR - OE00198360
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -200,6 +201,7 @@ DEFINE VARIABLE change-dict-ver  AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE ds_srvr_vers     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ds_clnt_vers     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE rowid_idx_name   AS CHARACTER  NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -233,10 +235,17 @@ FORM
 FUNCTION isComputed RETURNS LOGICAL (INPUT t1 AS CHAR, INPUT c1 AS CHAR):
 DEFINE VARIABLE isComputeCol     AS LOGICAL   NO-UNDO.
 
-    IF (foreign_dbms_version < 9) THEN
-        RETURN FALSE.
+/* OE00198360  - For MSS 7 and below, computed column is not supported
+    For MSS 2000 - computed column info is got from 'syscolumns' table
+    For MSS 2005 and above - computed column info is got from 'sys.columns' table */
 
-assign sqlstate = "SELECT is_computed FROM sys.columns where name = '" + c1 +
+          IF (foreign_dbms_version < 8) THEN  
+              RETURN FALSE. 
+          ELSE IF (foreign_dbms_version = 8) THEN
+              assign sqlstate = "SELECT iscomputed FROM syscolumns where name = '" + c1 +
+                            "' and id = (OBJECT_ID('" + t1 + "'))".
+          ELSE
+              assign sqlstate = "SELECT is_computed FROM sys.columns where name = '" + c1 +
                             "' and object_id = (OBJECT_ID('" + t1 + "'))".
 
           RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
@@ -965,15 +974,21 @@ for each gate-work
     assign
       indn         = 1
       unique-prime = NO
-      has_recid_idx = NO.
+      has_recid_idx = NO
+      rowid_idx_name = ?.
 
     for each DICTDBG.SQLStatistics_buffer:
       /* Eliminate recid index and recid field */
       IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' OR
          DICTDBG.SQLStatistics_buffer.Column-name MATCHES '*progress_recid*'  THEN DO:
           /* just remember if we've found the index for the recid field */
-          IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' THEN
-             has_recid_idx = YES.
+          IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' THEN DO:
+             ASSIGN has_recid_idx = YES.
+             IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid' 
+                AND DICTDBG.SQLStatistics_buffer.non-unique = 1 THEN 
+                    rowid_idx_name = DICTDBG.SQLStatistics_buffer.index-name. 
+          END.
+
           NEXT.
       END.
 .
@@ -1282,6 +1297,33 @@ for each gate-work
     for each column-id:
       delete column-id.
     end.
+
+    /* FORCESEEK Implementation- Passing non-unique ROWID name in _Fil-misc2[5] */
+   IF foreign_dbms_version GE 10 THEN DO:
+   
+   /* In case _Fil-misc1[1] contains a value greater than 0, we can safely assume 
+   PROGRESS_RECID index is being used for ROWID- assign "progress_recid"  to
+   _Fil-misc2[5] since we do not have any index# information for PROGRESS_RECID.
+   In case _Fil-misc1[1] contains ? and_Fil-misc1[2] contains a value greater 
+   than 0, we can be sure that _Fil-misc1[2] contains the Index number found 
+   by dictionary that is unique which is used as RECID when PROGRESS_RECID
+   is not generated- We will store this index name in _Fil-misc2[5]      */
+
+   IF s_ttb_tbl.ds_recid NE ? and s_ttb_tbl.ds_recid GT 0 and has_recid_idx and rowid_idx_name NE ? THEN
+        assign s_ttb_tbl.ds_msc25 =  rowid_idx_name. 
+   ELSE
+        assign s_ttb_tbl.ds_msc25 = ?.
+
+   IF s_ttb_tbl.ds_rowid GT 0 and s_ttb_tbl.ds_rowid NE ? and s_ttb_tbl.ds_msc25 NE ? THEN DO:
+       for each s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl): 
+          if s_ttb_idx.pro_idx# = s_ttb_tbl.ds_rowid and s_ttb_idx.pro_uniq EQ FALSE THEN
+             assign s_ttb_tbl.ds_msc25 = s_ttb_idx.ds_name.
+          else 
+             assign s_ttb_tbl.ds_msc25 = ?.
+       END.
+    END. /* if s_ttb_tbl.ds_rowid GT 0 and s_ttb_tbl.ds_rowid NE ? and s_ttb_tbl.ds_recid EQ 0 */
+   END. /* End of IF foreign_dbms_version GE 10*/
+
   end. /* if <> procedure */
   ELSE DO:
   /******************************  Stored Procedure Records ****************/

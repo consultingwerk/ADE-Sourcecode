@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006,2008-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions               *
 * contributed by participants of Possenet.                                  *
 *****************************************************************************/
@@ -168,6 +168,11 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
           field ds_msc24         as character initial ?
                                               /*    misc2[4]           */
                                               /* ODB: proc-param-names */
+                                              /* ORA: ?                */
+                                              /* SYB: ?                */
+          field ds_msc25         as character initial ?
+                                              /*    misc2[5]           */
+                                              /* ODB: ROWID index name */
                                               /* ORA: ?                */
                                               /* SYB: ?                */
           field ds_msc15         as integer   initial ?

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -830,6 +830,7 @@ for each gate-work
       DICTDB._File._Fil-misc2[2] = s_ttb_tbl.ds_msc22
       DICTDB._File._Fil-misc2[3] = s_ttb_tbl.ds_msc23 /* might change */
       DICTDB._File._Fil-misc2[4] = s_ttb_tbl.ds_msc24
+      DICTDB._File._Fil-misc2[5] = s_ttb_tbl.ds_msc25 /* FORCESEEK */
       DICTDB._File._Fil-misc2[8] = ( if can-do("ORACLE",user_dbtype)
                                       then s_ttb_tbl.ds_spcl /* db-link */
                                       else DICTDB._File._Fil-misc2[8]
