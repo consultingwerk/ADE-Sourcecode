@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     Purpose     : Wraps info about a row for interobject messages/events
     Syntax      : 
@@ -30,6 +30,12 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
     define public property SerializeName as character no-undo 
         get.
         private set. 
+    
+    /** is  - true means that values are not refrehsed 
+            - use for message only don't store  */
+    define public property IsSnapShot as logical no-undo 
+        init false
+        get. 
         
   	define public property Created as logical no-undo 
 	    get():

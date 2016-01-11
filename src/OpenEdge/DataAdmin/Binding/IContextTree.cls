@@ -20,7 +20,7 @@ interface OpenEdge.DataAdmin.Binding.IContextTree:
     method public void SetName(name as char).
     method public void SetList(name as char,cList as char).
     method public void SetJoin(cParent as char,name as char,cFieldPairs as char). 
-    method public void SetFilter(name as char,cFilter as char). 
+    method public void SetRepositionJoin(cParent as char,name as char,cFieldPairs as char).     method public void SetFilter(name as char,cFilter as char). 
     method public void SetHandle(name as char,h as handle).
     method public void SetHandle(name as char, h as handle,filter as char).
     method public void SetHandle(name as char, h as handle, rid as rowid). 

@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2012 by progress Software Corporation.*/
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -17,9 +17,8 @@
 
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.Message.IDataAdminMessage from propath.
+using OpenEdge.DataAdmin.Message.ITableResponse from propath.
  
 interface OpenEdge.DataAdmin.Message.IUtilityRequest inherits IDataAdminMessage:  
- 	 
- 
   	      
 end interface.

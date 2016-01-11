@@ -22,6 +22,7 @@ using OpenEdge.DataAdmin.Binding.TablePermissionContext  from propath.
 using OpenEdge.DataAdmin.Binding.UserPermissionContext  from propath.
 using OpenEdge.DataAdmin.Binding.DataSecurityContext  from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext  from propath.
+using OpenEdge.DataAdmin.Binding.SecurityOptionsContext  from propath.
 using OpenEdge.DataAdmin.Binding.ServiceAdapter  from propath.
 using OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
@@ -106,7 +107,17 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
             return PartitionContext.
         end.
         set.
-     
+        
+        define public property SecurityOptionsContext as SecurityOptionsContext no-undo 
+        get():
+            if not valid-object(SecurityOptionsContext) then 
+            do:
+                SecurityOptionsContext = new SecurityOptionsContext(this-object).                   
+            end.
+            return SecurityOptionsContext. 
+        end. 
+        set.
+        
      /* override to be false... */
      define public override property IsLocal as logical  no-undo 
          get .

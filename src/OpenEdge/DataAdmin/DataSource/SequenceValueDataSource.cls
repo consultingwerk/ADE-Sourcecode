@@ -60,7 +60,7 @@ class OpenEdge.DataAdmin.DataSource.SequenceValueDataSource inherits TenantDataS
         field ObjectState as char.
      
     define protected property mMap as char no-undo
-        init "TenantName,_Tenant-name,SequenceName,_Seq-name,SchemaName,_Seq-owner"
+        init "TenantName,_Tenant-name,TenantId,_Tenantid,SequenceName,_Seq-name,SchemaName,_Seq-owner"
         get.
    
     constructor public SequenceValueDataSource () :
@@ -160,14 +160,24 @@ class OpenEdge.DataAdmin.DataSource.SequenceValueDataSource inherits TenantDataS
                 hquery:get-next.          
                 if not hBeforebuff:avail then 
                     leave.
-                find btenant where btenant._tenant-name = hBeforebuff::Tenantname no-lock. 
-                find bsequence where bsequence._seq-owner = hBeforebuff::SchemaName 
-                                     and bsequence._seq-name = hBeforebuff::SequenceName 
+                phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
+                find btenant where btenant._tenantid = phBuffer::TenantId no-lock. 
+                /* create is not supported - just in case the UI does create for new  
+                (@ todo  remove and give error ) - 
+                commenting below code for create- cannot identify create since piState is always ? 
+                else if piState = row-created then 
+                do:
+                    find btenant where btenant._tenant-name = phBuffer::TenantName no-lock. 
+                end. */
                 
-                no-lock. 
+                find bsequence where bsequence._seq-owner = phBuffer::SchemaName 
+                                 and bsequence._seq-name = phBuffer::SequenceName 
+                no-lock.
+               
                 phBuffer:find-by-rowid(hBeforebuff:after-rowid).
                 if btenant._Tenant-type NE 2 THEN
                    dynamic-current-value(hBeforebuff::SequenceName, "DICTDB",btenant._tenantid) = phbuffer::CurrentValue.  
+                
                 hdataset = phBuffer:dataset. 
                  
                 AfterRow(dataset-handle hdataset  by-reference).

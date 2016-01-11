@@ -24,5 +24,7 @@ interface OpenEdge.DataAdmin.Binding.Factory.ISecurityScope /*inherits IContextS
    
     define public property TablePermissionContext as TablePermissionContext no-undo get.  
     define public property UserPermissionContext as UserPermissionContext no-undo get.  
+
+    define public property SecurityOptionsContext as SecurityOptionsContext no-undo get. set.  
       
 end interface.

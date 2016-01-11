@@ -133,13 +133,13 @@ class  OpenEdge.DataAdmin.Support.SchemaPartitionMap inherits PartitionCollectio
         Does not allocate partitions belonging to a TenantGroup  
         @return true if any partition was allocated  */
     method public logical AllocateTenants() :
-        SchemaPartitionQuery:Allocate().
+        return SchemaPartitionQuery:Allocate().
     end method.
     
     /** Allocate all delayed partitions for all groups
         @return true if any partition was allocated  */
     method public logical AllocateGroups() :
-        SchemaPartitionQuery:AllocateGroups("Delayed").
+        return SchemaPartitionQuery:AllocateGroups("Delayed").
     end method.
     
     /** Allocate tenant partitions for the parent schema elelement    
@@ -148,7 +148,7 @@ class  OpenEdge.DataAdmin.Support.SchemaPartitionMap inherits PartitionCollectio
         @return true if any partition was allocated 
         @throw IllegalArgumentError if not valid AllocationState */     
     method public logical AllocateTenants(pcAllocationState as char): 
-        SchemaPartitionQuery:AllocateTenants(pcAllocationState).
+        return SchemaPartitionQuery:AllocateTenants(pcAllocationState).
     end method.
     
     /** Allocate TenantGroup partitions for the parent schema elelement    
@@ -157,7 +157,7 @@ class  OpenEdge.DataAdmin.Support.SchemaPartitionMap inherits PartitionCollectio
         @return true if any partition was allocated 
         @throw IllegalArgumentError if not valid AllocationState */     
     method public logical AllocateGroups(pcAllocationState as char): 
-        SchemaPartitionQuery:AllocateGroups(pcAllocationState).
+        return SchemaPartitionQuery:AllocateGroups(pcAllocationState).
     end method.
     
 end class.

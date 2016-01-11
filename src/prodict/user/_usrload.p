@@ -137,6 +137,7 @@ define variable isAnyMultiTenant as logical no-undo.
 define variable lLobsub as logical no-undo.
 define variable gLobFolderName as character no-undo init "lobs".
 define variable gFileName      as character no-undo.
+define variable gUseDefaultOut   as character no-undo init "<default>".
 define variable UseDefaultDirs as logical no-undo  
     label "Use default location" .
     
@@ -812,6 +813,9 @@ function validDirectory returns logical ( cValue as char):
   
     IF cValue <> "" THEN 
     DO:
+        if not (cValue begins "/" or cvalue begins "~\" or index(cValue,":") <> 0) then
+            cValue = "./" + cValue.  
+        
         ASSIGN FILE-INFO:FILE-NAME = cValue. 
         return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
     END.
@@ -2659,7 +2663,16 @@ ELSE IF io-frame = "d" THEN DO:
             
             RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
             RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[30]).
-            RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[33]).
+            if UseDefaultDirs then
+            do:
+                 user_env[33] = gUseDefaultOut.
+                 user_env[40] = gLobfolderName.
+            end.
+            else
+            do:
+                 user_env[40] = "".     
+                 RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[33]).
+            end.
             RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[34]).
             
             DISPLAY user_env[2] user_env[30] user_env[33] user_env[34].
@@ -2802,7 +2815,13 @@ ELSE IF io-frame = "d" THEN DO:
                    frame read-d-file-mt err% 
                    user_env[4] = STRING(err%) 
                    user_env[6] = (IF do-screen THEN "s" ELSE "f").
-           
+           if UseDefaultDirs then
+           do:
+               user_env[33] = gUseDefaultOut.
+               user_env[40] = gLobfolderName.
+           end.
+           else 
+              user_env[40] = "".
            { prodict/dictnext.i trash }
           canned = FALSE.
     

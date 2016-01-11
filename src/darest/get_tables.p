@@ -19,47 +19,45 @@
 routine-level on error undo, throw.
 
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.DataAdminService from propath.
+using OpenEdge.DataAdmin.Rest.RestService from propath.
 using OpenEdge.DataAdmin.ITableSet from propath.
 using OpenEdge.DataAdmin.ITable    from propath.
-using OpenEdge.DataAdmin.Rest.RestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
  
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "tables" no-undo.
+ /* old behavior - to be deprecated */
+{darest/restbase.i get tables}  
 
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_tables.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.      
+procedure Execute:
+    define input  parameter restRequest as IRestRequest  no-undo.     
     /* ***************************  Definitions  ************************** */
    
     define variable tables       as ITableSet no-undo.
     define variable tableimpl    as ITable    no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable pageRequest  as IPageRequest no-undo.
-    define variable service      as DataAdminService no-undo.
+    define variable service      as RestService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
+    define variable cAllTables as character no-undo.
+    define variable lAllTables as logical no-undo.
     /* ***************************  Main Block  *************************** */
     
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
-    
     restRequest:Validate().
-    service = new DataAdminService(restRequest:ConnectionName).
+    
+    cAllTables = restRequest:GetQueryValue("AllTables").
+    if cAllTables > "" then
+        lAllTables = logical(cAllTables).
+    service = new RestService(restRequest:ConnectionName).
    
     service:URL = restRequest:ConnectionUrl.
     
     if restRequest:KeyValue[1] > "" then 
     do:
+        if lAllTables then  
+             undo, throw new UnsupportedOperationError("URL with key for tables with all option.").
+             
         tableimpl = service:GetTable(restRequest:KeyValue[1]).
         if not valid-object(tableimpl) then
             undo, throw new NotFoundError("Table '"  + restRequest:KeyValue[1]  + "' not found").
@@ -68,14 +66,28 @@ procedure executeRequest:
     end.    
     else do:
         pageRequest = restRequest:GetPageRequest().
-        if valid-object(pageRequest) then 
-            tables = service:GetTables(pageRequest).
+        if lAllTables =  false then  
+        do:
+            if valid-object(pageRequest) then 
+                tables = service:GetTables(pageRequest).
+            else
+            if restRequest:Query > "" then 
+                tables = service:GetTables(restRequest:Query).
+            else 
+                tables = service:GetTables().
+        end.
         else
-        if restRequest:Query > "" then 
-            tables = service:GetTables(restRequest:Query).
-        else 
-            tables = service:GetTables().
+        do:
+            if valid-object(pageRequest) then 
+                tables = service:GetAllTables(pageRequest).
+            else
+            if restRequest:Query > "" then 
+                tables = service:GetAllTables(restRequest:Query).
+            else 
+                tables = service:GetAllTables().
+        end.
         tables:Export(restRequest:OutFileName).    
+            
     end. 
   
     catch e as Progress.Lang.Error :

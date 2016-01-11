@@ -25,26 +25,14 @@ using OpenEdge.DataAdmin.Rest.*.
 using OpenEdge.DataAdmin.Util.*.
 using OpenEdge.DataAdmin.Error.*.
 
+{darest/restbase.i get domains}
  
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "domains" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_domains.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.      
+procedure Execute :
+    define input  parameter restRequest as IRestRequest  no-undo.     
     /* ***************************  Definitions  ************************** */
     define variable domain       as IDomain no-undo.
     define variable domains      as IDomainSet no-undo.
     define variable userSet      as IUserSet no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable pageRequest  as IPageRequest no-undo.
     define variable domainreq    as IRequestInfo no-undo.
     define variable childreq     as IRequestInfo no-undo.
@@ -52,8 +40,6 @@ procedure executeRequest:
     define variable errorHandler as DataAdminErrorHandler no-undo.
     
     /* ***************************  Main Block  *************************** */
-    
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
     
     restRequest:Validate().
     service = new DataAdminService(restRequest:ConnectionName).

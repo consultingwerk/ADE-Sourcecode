@@ -16,18 +16,24 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.* from propath. 
+using OpenEdge.DataAdmin.IRequestInfo from propath. 
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath. 
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
+using OpenEdge.DataAdmin.Binding.Query.PartitionQuery from propath.
 
 using OpenEdge.DataAdmin.Binding.IPartitionContext from propath. 
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath. 
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
-class OpenEdge.DataAdmin.Binding.PartitionFilteredContext inherits FilteredContext implements IPartitionContext: 
+class OpenEdge.DataAdmin.Binding.PartitionFilteredContext inherits PartitionQuery implements IPartitionContext: 
     
     constructor public PartitionFilteredContext ( pparent as IDataAdminContext,filter as char ):
         super (pparent,filter).
     end constructor.
+    
+    constructor public PartitionFilteredContext ( pparent as IDataAdminContext,pReq as IRequestInfo):
+        super (pparent,pReq).
+    end constructor.
+    
     
     method public logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return cast(parent,PartitionContext):FindGroup(pcGroup,pctable,pcField,pcIndex,pcCollection).

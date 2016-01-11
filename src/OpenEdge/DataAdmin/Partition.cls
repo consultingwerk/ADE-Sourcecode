@@ -1,9 +1,9 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2012 by Progress Software Corporation  */
 /*                                                           */
-/* all rights reserved.  no part of this program or document */
+/* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
+/* permission in writing from Progress Software Corporation. */
 /*************************************************************/ 
  /*------------------------------------------------------------------------
     File        : Partition
@@ -29,7 +29,19 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     define private variable mDefaultBuffer as handle no-undo.
     define private variable mBuffer as handle no-undo. 
     define private variable mchild as logical no-undo.
+	
 	define public property Error     as error no-undo           get.           
+    
+    define public property IsMultiTenant  as logical no-undo    
+        get():
+            if valid-handle(mBuffer) then
+               return  (mBuffer::TenantName <> "" and mBuffer::TenantName <> ?) 
+                        or 
+                       (mBuffer::TenantGroupName <> "" and mBuffer::TenantGroupName <> ?). 
+                      
+            return true. /* non case.. partitions should always have mbuffer. */
+        end.           
+    
     /** defines the context (or scope?) for the instance.
         Used in Equals() to check entities with the same keys not 
         are equals if different context */
@@ -120,13 +132,17 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
              return Area.
         end.
         set(parea as IArea).
+            if IsMultiTenant = false then    
+                undo, throw new ReadOnlyPropertyError(GetName(),"","Area","The " + ObjectType +  " is not multi-tenant enabled").         
             if not valid-object(parea) then
             do:
                undo, throw new UnknownValueError("Partition Area").
 /*                   undo, throw new InvalidPropertyValueError("Partition","","Area","unknown").*/
             end.    
+            
             if valid-handle(mBuffer) then
             do:
+               
                 mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
                 mdefaultbuffer::AreaName = parea:Name.
             end.
@@ -144,6 +160,10 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             
             if ObjectType <> "Table" then
                 undo, throw new ReadOnlyPropertyError(lc(ObjectType) + " " + lc(Context:name),"","AllocationState","Allocation state can only be changed in table partitions").
+            
+            if IsMultiTenant = false then    
+                undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The " + ObjectType +  " is not multi-tenant enabled").         
+            
             SetProperty("AllocationState",pAllocationState).
 
             /*  
@@ -329,7 +349,10 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     end method.     
     */
     method public logical Allocate():
-        
+       
+        if IsMultiTenant = false then    
+            undo, throw new IllegalOperationError("Allocate non multi-tenant partition.").         
+       
         if ObjectType = "Table" then
         do:
             if AllocationState <> "Allocated" then
@@ -480,7 +503,8 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
         
          cName = "Partition for " + phbuffer::ObjectType + " " + quoter(cKey) 
               + if cTenant > "" then " Tenant " + quoter(cTenant)
-                else " Group " + quoter(cGroup).
+                else if cGroup > "" then " Group " + quoter(cGroup)
+                else "".
          
          return if cName = ? then "<unknown>" else cName.    
     end method.    

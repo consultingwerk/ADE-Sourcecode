@@ -118,7 +118,7 @@ DEFINE VARIABLE txtSecurity AS CHARACTER FORMAT "X(256)":U
      FONT 6 NO-UNDO.
 
 DEFINE VARIABLE tbAppUser AS LOGICAL INITIAL no 
-     LABEL "Use Application User Id for Auditing" 
+         LABEL "Use Application User Id for Auditing" 
      VIEW-AS TOGGLE-BOX
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 44 BY 1
      &ELSE SIZE 44 BY .81 &ENDIF NO-UNDO.
@@ -148,7 +148,7 @@ DEFINE VARIABLE tbRuntime AS LOGICAL INITIAL no
      &ELSE SIZE 41 BY .81 &ENDIF NO-UNDO.
 
 DEFINE VARIABLE tbTrustDomain AS LOGICAL INITIAL no 
-     LABEL "Use Application Domain Registry" 
+    LABEL "Use Application Domain Registry"
      VIEW-AS TOGGLE-BOX
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 41 BY 1
      &ELSE SIZE 40.8 BY .81 &ENDIF NO-UNDO.

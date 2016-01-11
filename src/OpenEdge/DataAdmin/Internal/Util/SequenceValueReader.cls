@@ -16,18 +16,15 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Internal.Util.DataUtility.
-
+using OpenEdge.DataAdmin.Internal.Util.SequenceUtility.
+using OpenEdge.DataAdmin.Internal.Util.ISequenceImportUtility.
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Internal.Util.SequenceValueReader inherits DataUtility: 
-	/*------------------------------------------------------------------------------
-			Purpose:  																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
-	
+class OpenEdge.DataAdmin.Internal.Util.SequenceValueReader inherits SequenceUtility
+                                                           implements ISequenceImportUtility: 
+	 
 	constructor public SequenceValueReader ():
         super ("SequenceValueReader").
 	end constructor.
-  
+    
 end class.

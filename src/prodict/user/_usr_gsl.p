@@ -98,15 +98,14 @@ form
   p_clobtype LABEL " CLOBs" VIEW-AS TOGGLE-BOX at col 35  row-of p_vrfy + 1 
   p_blobtype LABEL " BLOBs" VIEW-AS TOGGLE-BOX at col 48  row-of p_vrfy + 1 skip({&VM_WIDG})
   p_primary LABEL "Designate Primary/Clustered index as ROWID" view-as TOGGLE-BOX 
-    at column-of p_vrfy  row 8  skip({&VM_WIDG})
+    at column-of p_vrfy  row-of p_vrfy + 2  skip({&VM_WIDG})
   cBestRowid view-as Text no-label
-    at row 9  column 6 /* skip({&VM_WIDG}) */
-  "Using" VIEW-AS TEXT AT ROW 10 COL 10
-  p_best VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS
+    at column-of p_vrfy + 4 row-of p_vrfy + 2.9 skip({&VM_WIDG})
+  p_best  LABEL "Using" VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS
      "OE Schema", 1,
      "Foreign schema", 2
-      AT ROW 10 COL 18 NO-LABEL 
-
+      AT column-of p_vrfy + 4 row-of p_vrfy + 3.7 skip({&VM_WID})
+      
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
   with frame frm_ntoq
@@ -308,6 +307,9 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
       ASSIGN p_clobtype:hidden in frame frm_ntoq = TRUE.
       ASSIGN p_blobtype:hidden in frame frm_ntoq = TRUE.
       ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE.
+      ASSIGN p_primary:hidden in frame frm_ntoq = TRUE.
+      ASSIGN cBestRowid:hidden in frame frm_ntoq = TRUE.
+      ASSIGN p_best:hidden in frame frm_ntoq = TRUE.
    END.
     ELSE DO:
         /* move it one row below - the frame definitions has it on the same
@@ -388,15 +390,15 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
       p_name
       p_owner
       p_qual
-      p_primary
-      cBestRowid
-      p_best
       p_vrfy when l_verify
       p_outf WHEN l_verify
       p_datetime WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_lob WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_clobtype WHEN p_lob and not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_blobtype WHEN p_lob and not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_primary  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      cBestRowid  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_best  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"      
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

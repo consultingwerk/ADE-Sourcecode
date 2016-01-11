@@ -16,7 +16,9 @@
 
 using Progress.Lang.* from propath. 
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
-
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 interface OpenEdge.DataAdmin.ServerCommand.IServerCommand:  
     method public void Execute(prequest as IUtilityRequest).
+    method public IUtilityResponse GetResponse().
+    
 end interface.

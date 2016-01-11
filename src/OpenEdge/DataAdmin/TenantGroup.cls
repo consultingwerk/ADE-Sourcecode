@@ -330,12 +330,14 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
                when "partitions" then 
                do:
                    tree:SetJoin(SerializeName,"partitions","Name,TenantGroupName").
-                   Partitions:WriteTree(tree,"").
+                   if valid-object(Partitions) then 
+                        Partitions:WriteTree(tree,"").
                end.  
                when "tenantGroupMembers"  then 
                do:
                    tree:SetJoin(SerializeName,"tenantGroupMembers","Name,TenantGroupName").
-                   TenantGroupMembers:WriteTree(tree,"").
+                   if valid-object(TenantGroupMembers) then 
+                        TenantGroupMembers:WriteTree(tree,"").
                end.
                when "tenants" then 
                do:

@@ -50,7 +50,7 @@ FORM
 
  
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
   /*  1*/ "This function only works on {&PRO_DISPLAY_NAME} databases.",
   /*  2*/ "You may not use this function with a blank userid.",
   /*  3*/ "You must be a Security Administrator to execute this function.",
@@ -70,7 +70,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
   /* 17*/ "You have removed all security administrators, leaving none of",
   /* 18*/ "the remaining users with security administrator privileges.",
   /* 19*/ "There must be at least one user with security administrator",
-  /* 20*/ "privileges." 
+  /* 20*/ "privileges.",
+  /* 21 */ " Invalid domain name entered."
 ].
 new_lang[13] = "You are about to end the transaction in which you have "
              + "deleted the last User record.!When you do this, you force "
@@ -377,6 +378,16 @@ DO FOR _User TRANSACTION ON ERROR UNDO,RETRY:
           END.
           passwd = ENCODE(INPUT _Password).
           IF KEYFUNCTION(LASTKEY) = "END-ERROR" THEN LEAVE _qbf5.
+          IF fi-domain-name:screen-value <> "" then
+          DO:
+              IF NOT can-find(FIRST DICTDB._sec-authentication-domain 
+                               WHERE DICTDB._sec-authentication-domain._Domain-name = fi-domain-name:screen-value) then
+              DO:
+                  MESSAGE new_lang[21]
+                  VIEW-AS ALERT-BOX.
+                  RETURN NO-APPLY.
+              END.                     
+          END.
           IF INPUT _Password <> "" THEN DO:
             RUN "prodict/user/_usrpwd2.p" (INPUT passwd, OUTPUT answer).
             IF answer = NO THEN DO:

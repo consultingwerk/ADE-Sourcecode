@@ -23,7 +23,8 @@
      field AreaName        as character serialize-name "areaName"
      field AreaUrl         as character serialize-name "area_url"
      field PartitionsUrl   as character serialize-name "partitions_url"
-  
+     field Hidden          as logical   serialize-hidden 
+    
 /*    field DumpName      as character*/
 /*    field DisplayName   as character*/
 /*    field Description   as character*/

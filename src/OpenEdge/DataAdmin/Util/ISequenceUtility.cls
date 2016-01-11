@@ -15,9 +15,10 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Internal.Util.IExportUtility.
-interface OpenEdge.DataAdmin.Internal.Util.ISequenceExportUtility inherits IExportUtility :  
-   
+using OpenEdge.DataAdmin.Util.IDataUtility.
+interface OpenEdge.DataAdmin.Util.ISequenceUtility inherits IDataUtility :  
+    define public property FileName       as char no-undo get. set.
      /* all,multitenant,shared,one (?) or list*/
-    define public property SequenceSelection     as char      no-undo get. set.  
+    define public property SequenceSelection     as char no-undo get. set.  
+
 end interface.

@@ -6,8 +6,7 @@
  /* permission in writing from progress Software Corporation. */
  /*************************************************************/
 /*------------------------------------------------------------------------
-    File        : ITableExportUtility
-    Purpose     : Wrapper for data admin .d export of tenant table data  
+    Purpose     : Wrapper for data admin .d export of sequence values
     Syntax      : 
     Description : 
     Author(s)   : hdaniels
@@ -16,11 +15,9 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Internal.Util.ITableDataUtility.
-using OpenEdge.DataAdmin.Internal.Util.IExportUtility.
-interface OpenEdge.DataAdmin.Internal.Util.ITableExportUtility inherits ITableDataUtility,IExportUtility :          
-    /* all,multitenant,shared,one or list*/
-    define public property TableSelection     as char      no-undo get. set.  
-    define public property NoMap              as logical   no-undo get. set.  
-    define public property CharacterMap       as char      no-undo get. set.  
+using OpenEdge.DataAdmin.Util.ISequenceUtility .
+using OpenEdge.DataAdmin.Util.IExportUtility .
+
+interface OpenEdge.DataAdmin.Util.ISequenceExportUtility inherits ISequenceUtility,IExportUtility :  
+     
 end interface.

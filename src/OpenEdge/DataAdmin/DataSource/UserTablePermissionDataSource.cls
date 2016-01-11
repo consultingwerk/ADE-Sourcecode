@@ -27,7 +27,7 @@ routine-level on error undo, throw.
 class OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource inherits TablePermissionDataSource: 
     
     define private variable mMapping as char
-	   init "SchemaName,_Owner,Name,_File-name,Hidden,_File._Hidden" no-undo. 
+	   init "SchemaName,_Owner,Name,_File-name,Hidden,_File._Hidden,Frozen,_File._Frozen" no-undo. 
  
     constructor public UserTablePermissionDataSource (hUser as handle ):     
         super (hUser, mMapping).
@@ -52,15 +52,13 @@ class OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource inherits Table
         define variable hUserPerm     as handle no-undo.
         define variable hTableBuf     as handle no-undo.
         define variable cid           as character no-undo.
-        define variable cidNoAt       as character no-undo.
-        define variable cidNoDomain   as character no-undo.
         define variable cList         as character no-undo.        
         hbuffer = hds:get-buffer-handle("ttUserTablePermission").
         assign 
             iParentSource = lookup("ttUserPermission",Tables)
             iTableSource = lookup("_File",Tables).
             hTableBuf    = DataSourceHandle:get-source-buffer(iTableSource). 
-        find dictdb._file where recid(dictdb._file) = hTableBuf:recid no-lock.  
+/*        find dictdb._file where recid(dictdb._file) = hTableBuf:recid no-lock.*/  
         
         if iParentSource > 0 then
         do:
@@ -73,7 +71,7 @@ class OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource inherits Table
            hbuffer::UserRef = cid.
         end. 
        
-               
+        /* this is not needed- commenting this out        
         /* fred@ and fred need to be treated similar */
         if index(cid,"@") = 0 then 
         do:
@@ -92,7 +90,7 @@ class OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource inherits Table
         end. 
         else /* OE00206538 temporary set cidNOat since this is the only we chack
                worksaround for user@domain*/
-           cidNOat  = cid. 
+           cidNOat  = cid. */ 
         
      
      /* core bug OE00206538  need to be fixed before this 
@@ -102,27 +100,27 @@ class OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource inherits Table
         
         assign        
            clist = hTableBuf::_can-read 
-           hbuffer::CanRead   =  can-do(clist,cidNoAt) 
+           hbuffer::CanRead   =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hTableBuf::_can-write 
-           hbuffer::CanWrite =  can-do(clist,cidNoAt) 
+           hbuffer::CanWrite =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hTableBuf::_can-create 
-           hbuffer::CanCreate   =  can-do(clist,cidNoAt) 
+           hbuffer::CanCreate   =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hTableBuf::_can-delete 
-           hbuffer::CanDelete    =  can-do(clist,cidNoAt) 
+           hbuffer::CanDelete    =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hTableBuf::_can-dump 
-           hbuffer::CanDump      =  can-do(clist,cidNoAt) 
+           hbuffer::CanDump      =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hTableBuf::_can-load 
-           hbuffer::CanLoad      =  can-do(clist,cidNoAt) 
+           hbuffer::CanLoad      =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
             .  

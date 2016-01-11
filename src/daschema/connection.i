@@ -28,6 +28,7 @@ define temp-table ttConnection no-undo  serialize-name "connections" {1} before-
     field TablesUrl       as character               serialize-name "tables_url" format "x(40)" label "Tables url"
     field TenantsUrl      as character               serialize-name "tenants_url" format "x(40)" label "Tenants url"
     field UsersUrl        as character               serialize-name "users_url" format "x(40)" label "Users url"
+    field SecurityOptionsUrl as character            serialize-name "securityoptions_url" format "x(40)" label "Security Options url"
     field NumAreas        as int                     serialize-name "numAreas" format "zzzzzzzzz" label "Num areas"
     field NumDomains      as int                     serialize-name "numDomains" format "zzzzzzzzz" label "Num domains"
     field NumGroups       as int                     serialize-name "numGroups" format "zzzzzzzzz" label "Num groups"

@@ -25,19 +25,21 @@ using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IRowChange from propath.
 using OpenEdge.DataAdmin.Binding.IIterable from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
 using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
+using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
 
-interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable: 
+interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQueryMap: 
      define public event RowCreated signature void (). 
      define public event RowDeleted signature void (). 
      define public event AddedToContext signature void (newContext as IDataAdminContext). 
      define public event ContextDeleted signature void (). 
      define public event ContextRefreshed signature void (tblResponse as ITableResponse). 
-       
+    
      /**  
         unique entity identifier, exposed as contextid in collections and entities
         and used in Equals for comparison. This is tied to the physical running TT. 
@@ -63,9 +65,9 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable:
         Is the same as the Id for the Model itself 
         See collection SourceId
      */ 
-     define public property ContentId       as character no-undo  get.
+     define public property ContentId as character no-undo  get.
      
-     define public property KeyFields as character  no-undo  get. 
+     define public property KeyFields       as character  no-undo  get. 
     
 /*     define public property IsShared      as logical no-undo  get.*/
      define public property IsLocal         as logical no-undo  get.
@@ -110,8 +112,7 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable:
      method public void CreateRow(entity as IDataAdminElement).
      
      method public void Copy(cntxt as IDataAdminContext).
-     method public void CopyForParent(pParent as char, pValue as char,cntxt as IDataAdminContext):
-     
+       
      method public void MoveQueries(cntxt as IDataAdminContext).
      
      method public character TransformQuery(pQuery as char).
@@ -159,6 +160,8 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable:
      method public character GetJoinFields(parentid as char).
      
      method public character extent GetKeyValues(pBuffer as handle).
+     
+     method public void ForeignKeyChanged(parentChange as IRowChange).
      
      /** need a place to use this -- AddTreeTo(parent...) is the right place, but
          it does not distunguish between client and server requests
@@ -274,24 +277,24 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable:
          in local context (in a service). */
      method public void CreateRootRow(pReq as IRequestInfo).
    
-     /** single table import of the entity (flat - no tree)
-        &param mode for json 
-               replace - standard import new and changes 
-               append  - new only
-               merge - only new added - exisitng ignored
-               empty - not supported
-     */
-     method public void ReadChild(parent as char, key as char extent,json as JSONObject).
+ 
+     method public void ReadChild(parentRow as IRow,json as JSONObject).
     
      /** import single table for a single parent (used by FilteredContext) */
      method public void ImportForParent(pcparent as char, pckey as char,pcfile as char).
      /** import single new table for a single parent (used by FilteredContext) */
      method public void ImportNewForParent(pcparent as char, pckey as char,pcfile as char).
-      
-     /** single row import of the entity (flat no tree) */     
+     
+     /** import of the entity (flat no tree) */     
+     method public void Import(pcfile as char,pcMode as char).
+     /** import of the entity as tree with root node */     
+     method public void ImportTree(pcfile as char,pcMode as char).
+     
+     /** single row import of the entity (flat no tree) */
+     method public void ImportRow(pcfile as char, cKeyValues as char extent).           
      method public void ImportRow(pcfile as char, i as int).
      method public void ImportRow(pcfile as char, c as char).
-     method public void Import(pcfile as char,pcMode as char).
+     method public void ImportRowTree(pcfile as char, cKeyValues as char extent).           
      method public void ImportRowTree(pcfile as char, i as int).
      method public void ImportRowTree(pcfile as char, c as char).
     

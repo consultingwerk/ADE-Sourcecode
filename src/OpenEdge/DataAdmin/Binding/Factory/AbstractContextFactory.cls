@@ -123,6 +123,16 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
             return TableContext.   
         end. 
         set.   
+    
+    define public property AllTableContext as AllTableContext no-undo 
+        get():
+            if not valid-object(AllTableContext) then 
+            do:
+                AllTableContext = new AllTableContext(this-object).       
+            end.
+            return AllTableContext.   
+        end. 
+        set.       
         
     define public property SequenceContext as SequenceContext no-undo 
         get():
@@ -248,6 +258,8 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return SequenceValueContext.
             when "Table" then
                 return TableContext.
+            when "AllTable" then
+                return AllTableContext.
             when "Tenant" then
                 return TenantContext.
             when "User" then

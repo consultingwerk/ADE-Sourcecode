@@ -1,13 +1,12 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */  
 /*                                                           */
-/* all rights reserved.  no part of this program or document */
+/* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
+/* permission in writing from Progress Software Corporation. */
 /*************************************************************/
 
 /*------------------------------------------------------------------------
-    File        : area.i
     Purpose     : 
 
     Syntax      :
@@ -25,10 +24,11 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
     field Description   as character      serialize-name "description"
     field IsSqlOnly     as logical        serialize-name "isSqlOnly"  
     field DomainName    as character      serialize-name "domainName" format "x(25)"
+    field DomainId      as integer        serialize-hidden 
     field DomainUrl     as character      serialize-name "domain_url"  
     field TenantName    as character      serialize-name "tenantName" format "x(20)"
     /* currently used for query mapping */
-    field TenantId      as integer        serialize-hidden
+    field TenantId      as integer        serialize-hidden init ?
     field TenantUrl     as character      serialize-name "tenant_url"
     field UserPermissionUrl as character  serialize-name "userPermission_url"
     field GivenName     as character      serialize-name "givenName"
@@ -40,5 +40,6 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
     {daschema/entity.i} 
     index idxDomain   as primary unique DomainName Name  
     index idxTenant TenantName   
+    index idxTenantId TenantId    
     index idxuser  Name. 
     

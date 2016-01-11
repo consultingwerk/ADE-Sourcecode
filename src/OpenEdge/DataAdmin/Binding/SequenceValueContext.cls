@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : SequenceValueContext
     Purpose     : 
@@ -32,7 +32,7 @@ using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
+using OpenEdge.DataAdmin.Binding.IRow from propath. 
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.SequenceTenantQuery from propath. 
 using OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery from propath. 
@@ -53,12 +53,9 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
     define private dataset dsSequenceValue serialize-name "root" for ttSequenceValue.
     define buffer bSequence for ttSequenceValue.
     define temp-table copySequenceValue reference-only like ttSequenceValue .  
-    
+    define private variable mRefresh as logical no-undo.
     define private variable ContextFactory as IContextFactory no-undo.
     
-    define private variable mSequenceTable as character no-undo.
-    define private variable mTenantTable as character no-undo.
-   
     define public property SchemaName as character  no-undo  
         get. 
         private set.   
@@ -102,8 +99,6 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         SchemaName = pschema.     
     end constructor.
     
-  
-	
 	/* called with tracking-changes */
    method protected override void ReadRowForParent(pcParent as char, pcValue as char extent,json as JSONObject).      
         case pcParent:
@@ -138,7 +133,7 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
             undo, throw new IllegalArgumentError(NotFoundError(cSchema,cSequence,pcTenant)).
         
         h = buffer ttSequenceValue:buffer-field("CurrentValue").
-        ttSequenceValue.CurrentValue = json:GetInteger(h:serialize-name) .    
+        ttSequenceValue.CurrentValue = json:GetInt64(h:serialize-name) .    
         
     end method. 
     
@@ -157,7 +152,7 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
             undo, throw new IllegalArgumentError(NotFoundError(SchemaName,pcVal,cTenant)).
         
         h = buffer ttSequenceValue:buffer-field("CurrentValue").
-        ttSequenceValue.CurrentValue = json:GetInteger(h:serialize-name) .                 
+        ttSequenceValue.CurrentValue = json:GetInt64(h:serialize-name) .                 
     
     end method. 
     
@@ -196,7 +191,8 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
             when "tenants" then
             do:
                 cQuery = cQuery 
-                       + ", each ttSequence  where ttSequence.Name = ttSequenceValue.SequenceName".
+                       + ", "
+                       +  GetJoinQuery("Sequence").
             end.    
          end. 
          return cQuery.
@@ -206,13 +202,14 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         define variable cQuery as character no-undo.
        
         cQuery = super:GetChildQuery(parentid,pcKeyValues).
-         
+               
         case parentid:
             /* no join on server -  */
             when "sequences" then
             do:
                 cQuery = cQuery 
-                       + ", each ttTenant where ttTenant.Name = ttSequenceValue.TenantName".
+                       + ", "
+                       +  GetJoinQuery("tenant").
             end.    
          end. 
          return cQuery.
@@ -281,18 +278,18 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         super:WriteTo(input writer).
     end method.
      
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
-        case pparent:
+    method override protected FilteredContext CreateFilteredContext(pParentRow as IRow,pReq as IRequestInfo):     
+        case pParentRow:SerializeName:
             when "tenants" then
             do:
-                return new TenantSequenceQuery (this-object,pkey,pReq).            
+                return new TenantSequenceQuery (this-object,pParentRow,pReq).            
             end.                 
             when "sequences" then
             do:
-                return new SequenceTenantQuery (this-object,SchemaName,pkey,pReq).                          
+                return new SequenceTenantQuery (this-object,pParentRow,pReq).                          
             end.         
             otherwise
-                return new FilteredContext(this-object,pparent,pkey,pReq).        
+                return new FilteredContext(this-object,pParentRow,pReq).        
         end case.    
         
     end method.
@@ -332,27 +329,6 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         
     end.    
      
-    /* this table is many-to-many between sequence and tenants
-       subclasses that are children of one will need the other as child  */    
-    method public override IDataAdminContext GetChild(pname as char):
-        define variable i as integer no-undo.
-        define variable cntxt as IDataAdminContext no-undo.
-        if pName = "sequences" then
-        do:
-            cntxt = ContextFactory:SequenceContext.
-            mSequenceTable = cntxt:TableHandle:name.
-            return cntxt.
-        end.
-        else if pName = "tenants" then
-        do:
-            cntxt = ContextFactory:TenantContext.
-            mTenantTable = cntxt:TableHandle:name.
-            return cntxt.  
-        end.
-        return super:GetChild(pname).
-     
-    end method.    
-    
     method public override logical Find(name as character):
         undo, throw new UnsupportedOperationError("Find in SequenceValueContext. Use FilteredContext subclass to narrow down key" ).  
     end.    
@@ -403,34 +379,32 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         define variable i as integer no-undo.
         define variable hBuffer  as handle no-undo.
         define variable ldone as logical no-undo.   
-         
-        /* redirect refresh to parent  */
-        if mSequenceTable > "" then
-        do:
-            hBuffer = pResponse:DataHandle:get-buffer-handle (mSequenceTable).
-            mSequenceTable = "". /* this will fire back here - avoid endless loop, 
-                                    but ensure call to super below when it happens */
-            if valid-handle(hBuffer) then
-            do:
-                ContextFactory:SequenceContext:DataRefreshed(pResponse). 
-            end.
-            ldone = true.
-                      
-        end.
-         /* redirect refresh to parent */
-        if mTenantTable > "" then
-        do:
-            hBuffer = pResponse:DataHandle:get-buffer-handle (mTenantTable).
-            mTenantTable = "". /* this will fire back here - avoid endless loop */
-            if valid-handle(hBuffer) then
-            do:
-                ContextFactory:TenantContext:DataRefreshed(pResponse).       
-            end.
-            ldone = true.
         
+        if not mRefresh and pResponse:Entityname = "SequenceValue" then
+        do:
+            hBuffer = pResponse:DataHandle:get-buffer-handle ("ttSequence").
+            if valid-handle(hBuffer) then
+            do:    
+                mRefresh = true. /* this will fire back here - avoid endless loop, 
+                                    but ensure call to super below when it happens */
+                ContextFactory:SequenceContext:DataRefreshed(pResponse). 
+                ldone = true.
+            end.
+            else do:
+                 /* redirect refresh to parent */
+                hBuffer = pResponse:DataHandle:get-buffer-handle ("ttTenant").
+                if valid-handle(hBuffer) then
+                do:
+                    mRefresh = true. /* this will fire back here - avoid endless loop */
+                    ContextFactory:TenantContext:DataRefreshed(pResponse).       
+                    ldone = true.
+                end.
+            end.
         end.
-        if not ldone then        
+        if not ldone then 
+        do:       
             super:DataRefreshed(pResponse).       
-         
+            mRefresh = false.
+        end. 
      end method. 
 end class.

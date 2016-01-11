@@ -24,6 +24,7 @@ using OpenEdge.DataAdmin.Error.* from propath.
 class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminElement,IDataAdminSerializable: 
     define private variable mChild as logical no-undo.
     define private variable myContext as IDataAdminContext no-undo.
+    
     define public property IsBuiltin as logical no-undo                 
          get():
             if valid-handle(mBuffer) then
@@ -31,7 +32,15 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
             else
                 return IsBuiltin. 
         end.
-           
+    
+    define public property Id as integer no-undo                 
+         get():
+            if valid-handle(mBuffer) then
+                return mBuffer::Id.
+            else
+                return Id. 
+    end.      
+    
     define public property Comments as char no-undo  
         get():
             if valid-handle(mBuffer) then
@@ -151,7 +160,7 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
     	     do:
     	         if valid-handle(mBuffer) and mBuffer::TenantName > "" 
                  and valid-object(Service) then
-                     Tenant = Service:GetTenant(mBuffer::TenantName).            
+                     return Service:GetTenant(mBuffer::TenantName).   
              end.
              return Tenant.
         end.     
@@ -162,7 +171,8 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
     	    */
     	    if valid-handle(mBuffer) then
             do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).
+                mdefaultbuffer::TenantId = pTenant:Id.  
                 mdefaultbuffer::TenantName = pTenant:name.
             end.
             Tenant = pTenant.    
@@ -172,7 +182,7 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
         get():
             if not valid-object(Users) then
             do:
-                Users = cast(GetChildCollection(name,"users"),IUserSet).
+                Users = cast(GetChildCollection("users"),IUserSet).
 /*                Users:Domain = this-object.*/
                              
             end.         
@@ -224,15 +234,4 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
 		Export("domain.json").
 	end method.
 	
-    method public override void Import(cFile as char):
-        if not valid-handle(mDefaultBuffer) then
-        do:
-            undo, throw new UnsupportedOperationError("Import to new Domain that is not in a collection or service").
-        end.
-        Context:ImportRow(cfile,Name).    
-                              
-    end method.
-    
-    
-    
 end class.

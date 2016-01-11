@@ -216,8 +216,9 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
             BatchSize = iPageSize.
             cQuery = QueryHandle:prepare-string.
             entry(1,cQuery," ") = "preselect".
+            
             QueryHandle:query-prepare(cQuery).         
-            QueryHandle:query-open().         
+            QueryHandle:query-open().    
             NumRecords = QueryHandle:num-results.
             if iStart > 1 then
                 PositionToRow(istart).
@@ -243,21 +244,21 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         if pcTargetQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
         do:
             oQueryString = new QueryString(pcTargetQuery,this-object).
-            if pcJoin > '' then do:
+            if pcJoin > '' then 
                 oQueryString:addExpression(pcJoin).
-            end.
+            
             /* Data-Sources are defined with queries in the constructor in the event that
                there is a join involved. Add and transform the fill-where-string for the dependent 
                tables so that Progress can identify the related when filling the temp-tables.
               (columnValue ensures parent reference is NOT transformed) */
             else if valid-handle(hParentRel) and hParentRel:active and not hParentRel:reposition then
                 oQueryString:addExpression(DataSourceHandle:fill-where-string).
-       
+            
             lOk = PrepareQueryString(oQueryString).
         end.
         else
             lok = Prepare().
-            
+       
         return lOk.
         catch e1 as IllegalArgumentError :
         	undo, throw e1.	
@@ -319,7 +320,6 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         define variable queryString as QueryString no-undo.
         define variable lok as logical      no-undo. 
         define variable cFind as character no-undo.
-        
         queryString = new QueryString(pcQuery,"for each " + pctable + " no-lock").
         cFind = queryString:BuildFindString(pcTable).
         return FindTableJoinValues(pcTable,cFind).
@@ -365,7 +365,9 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     */
     method protected logical AddUniqueOrNone(pcTable as char,pQueryStr as QueryString):
         define variable cParentquery as character   no-undo .
+        
         cParentQuery = pQueryStr:BuildParsedQueryString(pcTable).
+        
         if index(cParentQuery," where ") <> 0 then
         do:
             cParentQuery = FindUniqueOrNoneQuery(pcTable,cParentQuery).
@@ -380,10 +382,13 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     
     method private logical PositionToRow(piRow as integer):
         define variable lok as logical no-undo.
+        define variable i as integer no-undo.
         lok = QueryHandle:reposition-to-row (piRow) no-error.
         if lok and QueryHandle:get-next then
         do: 
-           DataSourceHandle:restart-rowid = QueryHandle:get-buffer-handle(1):rowid.
+           do i = 1 to QueryHandle:num-buffers: 
+              DataSourceHandle:restart-rowid(i) = QueryHandle:get-buffer-handle(i):rowid.
+           end.
            return true. 
         end.
         return false.

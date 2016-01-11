@@ -19,6 +19,7 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataSource.DataSource from propath.
 using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath. 
 using OpenEdge.DataAdmin.DataAccess.DataMapper from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.AuthenticationSystemDataSource inherits DataSource: 
@@ -30,9 +31,14 @@ class OpenEdge.DataAdmin.DataSource.AuthenticationSystemDataSource inherits Data
        init     
 "Name,_Domain-type,~
 Description,_Domain-type-description,~
+IsEnabled,_PAM-plug-in,~
+Callback,_PAM-callback-procedure,~
 Comments,_Custom-detail"     
      no-undo.
-    
+/* Names decided in discussions for the 11.1 changes   
+ModuleName,_PAM-module-name,~     
+ModuleChecksum,_PAM-library-checksum"     
+*/    
     constructor public AuthenticationSystemDataSource (pcurl as char):        
         this-object ( ).   
         url = pcURL. 
@@ -71,7 +77,7 @@ Comments,_Custom-detail"
          
             if hBeforeBuff:row-state = row-deleted then 
             do:
-                find b_authenticationsystem where b_authenticationsystem._domain-type = hBeforeBuff::Name exclusive.
+                find b_authenticationsystem where b_authenticationsystem._domain-type = hBeforeBuff::Name exclusive no-wait.
                 delete  b_authenticationsystem.
             end.
             else do:
@@ -81,20 +87,42 @@ Comments,_Custom-detail"
                 do:
                     create dictdb._sec-authentication-system.
                     assign 
-                       dictdb._sec-authentication-system._Domain-type = phBuffer::Name
+                       dictdb._sec-authentication-system._Domain-type = phBuffer::Name.
+                      
                        /* PAM plug in is currrenty not exposed in any tools or APIs, but 
-                          shopuld default to NO for now (as in DataAdmin tool ) */  
-                       dictdb._sec-authentication-system._PAM-plug-in = no.
+                          shopuld default to NO for now (as in DataAdmin tool ) */
+                       /* 11.1- adding new isEnabled flag and callback procedure  */     
+                       if phBuffer::IsEnabled and (phBuffer::Callback NE ? or phBuffer::Callback NE "") then 
+                            assign  dictdb._sec-authentication-system._PAM-plug-in = phBuffer::IsEnabled
+                                    dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                       else if phBuffer::IsEnabled = false or (phBuffer::Callback EQ ? or phBuffer::Callback EQ "") then
+                            assign  dictdb._sec-authentication-system._PAM-plug-in = false
+                                    dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                       else 
+                            undo, throw new UnsupportedOperationError("Cannot have blank or unknown callback procedure if authentication enabled.").        
                 end. 
                 else do:
                   find dictdb._sec-authentication-system
-                       where dictdb._sec-authentication-system._Domain-type = phbuffer::Name exclusive no-error.
+                       where dictdb._sec-authentication-system._Domain-type = phbuffer::Name exclusive no-wait.
                 end.    
             
+                if dictdb._sec-authentication-system._Domain-type begins "_" then do: /* in-built types */
+                   if phBuffer::Callback NE dictdb._sec-authentication-system._PAM-callback-procedure then 
+                        assign dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.                 
+                end.
+                else do:
                 assign 
                    dictdb._sec-authentication-system._Domain-type-description = phBuffer::Description
                    dictdb._sec-authentication-system._Custom-detail = phBuffer::Comments. 
-                 
+                   if phBuffer::IsEnabled and (phBuffer::Callback NE ? or phBuffer::Callback NE "") then 
+                        assign  dictdb._sec-authentication-system._PAM-plug-in = phBuffer::IsEnabled
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                   else if phBuffer::IsEnabled = false or (phBuffer::Callback EQ ? or phBuffer::Callback EQ "") then
+                        assign  dictdb._sec-authentication-system._PAM-plug-in = false
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                   else
+                        undo, throw new UnsupportedOperationError("Cannot have blank or unknown callback procedure if authentication enabled.").        
+                end.  
                  
                 hdataset = phBuffer:dataset.
                 msave = true.

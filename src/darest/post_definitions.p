@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation.      */
+/* Copyright (c) 2011-2012 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -27,13 +27,13 @@ using OpenEdge.DataAdmin.IPartition from propath.
 using OpenEdge.DataAdmin.Schema from propath.
 using OpenEdge.DataAdmin.Core.FileLogger from propath. 
 using OpenEdge.DataAdmin.Lang.Collections.IIterator from propath.
-using OpenEdge.DataAdmin.Rest.RestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
  
 /* ***************************  Definitions  ************************** */
 define variable definitions  as ISchema no-undo.
 define variable defSchema as Schema no-undo.
-define variable restRequest  as RestRequest no-undo.
+define variable restRequest  as IRestRequest no-undo.
 define variable service      as DataAdminService no-undo.
 define variable errorHandler as DataAdminErrorHandler no-undo.
 define variable fileLogger   as FileLogger no-undo.
@@ -45,28 +45,14 @@ define variable iter as IIterator no-undo.
 /* ***************************  Main Block  *************************** */
 define stream acceptstream.
 
-define variable mMode       as char init "post" no-undo.
-define variable mCollection as char init "definitions" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("post_definitions.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
  
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.   
-
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
-    
-    
+/* to be deprecated */
+{darest/restbase.i post definitions} 
+  
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.   
     service = new DataAdminService(restRequest:ConnectionName).
-    
     restRequest:Validate().
-    
     fileLogger = new FileLogger(restRequest:LogFileName). 
     fileLogger:TaskName = restRequest:GetQueryValue("TaskName").
     service:TransactionLogger = fileLogger.

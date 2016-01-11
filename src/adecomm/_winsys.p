@@ -31,8 +31,8 @@ IF OPSYS EQ "WIN32" THEN DO:
   DEFINE VARIABLE proctype       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE PctMemInUse    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE SwapFree       AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE TotPhysMem     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE FreePhysMem    AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE TotPhysMem     AS INT64     NO-UNDO.
+  DEFINE VARIABLE FreePhysMem    AS INT64   NO-UNDO.
   DEFINE VARIABLE lpVersionInfo  AS MEMPTR.
   DEFINE VARIABLE MajorVersion   AS INTEGER   NO-UNDO.
   DEFINE VARIABLE MinorVersion   AS INTEGER   NO-UNDO.
@@ -45,22 +45,22 @@ IF OPSYS EQ "WIN32" THEN DO:
 &SCOPED-DEFINE VER_PLATFORM_WIN32_NT      2
 
   /* set up pointers */
-  SET-SIZE(lpmemorystatus)   = 32.
-  PUT-LONG(lpmemorystatus,1) = 32.
+  SET-SIZE(lpmemorystatus)   = 64.
+  PUT-LONG(lpmemorystatus,1) = 64.
   SET-SIZE(lpsysteminfo)     = 40.  
   SET-SIZE(lpVersionInfo)    = 148.
   PUT-LONG(lpVersionInfo,1)  = 148.
   
   /* Call Windows API */
-  RUN GlobalMemoryStatus (INPUT-OUTPUT lpmemorystatus).
+  RUN GlobalMemoryStatusEx (INPUT-OUTPUT lpmemorystatus).
   RUN GetSystemInfo (INPUT-OUTPUT lpsysteminfo).
   RUN GetVersionExA (INPUT-OUTPUT lpVersionInfo).
-
+ 
   /* Extract data from pointers */
   ASSIGN
     PctMemInUse  = GET-LONG(lpmemorystatus,5)
-    TotPhysMem   = GET-LONG(lpmemorystatus,9)  / 1024
-    FreePhysMem  = GET-LONG(lpmemorystatus,13) / 1024
+    TotPhysMem   = GET-INT64(lpmemorystatus,9)  / 1024
+    FreePhysMem  = GET-INT64(lpmemorystatus,17) / 1024
     ProcNum      = GET-SHORT(lpsysteminfo,1)
     ProcType     = STRING(GET-LONG(lpsysteminfo,25))
     SwapFree     = GET-LONG(lpmemorystatus,21) / 1024.
@@ -102,7 +102,7 @@ IF OPSYS EQ "WIN32" THEN DO:
   ASSIGN pLabel1 = OSstr + ")":U + " on ":U + ProcType NO-ERROR.
   ASSIGN pLabel2 = "Phys. memory: " + TRIM(STRING(TotPhysMem, ">>>,>>>,>>9K")) + " with "
                    + TRIM(STRING(FreePhysMem, ">>>,>>>,>>9K free")) NO-ERROR.
-
+ 
   /* free pointers */
   SET-SIZE(lpmemorystatus) = 0.
   SET-SIZE(lpsysteminfo)   = 0.
@@ -189,7 +189,7 @@ PROCEDURE GetVersionExA EXTERNAL "kernel32.dll":
 END.
 
 /* Win32 API calls */
-procedure GlobalMemoryStatus external "kernel32.dll":
+procedure GlobalMemoryStatusEx external "kernel32.dll":
   define input-output parameter lpmemorystatus as memptr.
 end.
 

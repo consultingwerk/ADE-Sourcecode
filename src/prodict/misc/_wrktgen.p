@@ -353,6 +353,7 @@ DEFINE TEMP-TABLE verify-field NO-UNDO
 DEFINE TEMP-TABLE verify-table NO-UNDO
   FIELD new-name LIKE _File._File-name
   FIELD rec-fld  AS   RECID 
+  FIELD has-unsprtdt AS CHARACTER 
   INDEX trun-name IS UNIQUE new-name
   INDEX rec_tab   IS UNIQUE rec-fld.
   
@@ -581,15 +582,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   ASSIGN unique_idx_flag = FALSE. /* OE00177721 */
   IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop.
 
-  /* Clear temp table for new file */                            
-  FOR EACH verify-name: 
-    CREATE verify-field.
-    ASSIGN verify-field.new-name  = verify-name.new-name
-           verify-field.prog-name = verify-name.prog-name
-           verify-field.rec-fld   = verify-name.rec-fld.
-     DELETE verify-name.
-  END. 
-
   /* If Progress database, clear index names */
   IF dbtyp = "PROGRESS"  THEN DO:
       FOR EACH verify-index:
@@ -640,7 +632,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF DICTDB._Field._Extent = 0 THEN 
           ASSIGN z = DICTDB._Field._Width.
         ELSE DO:
-          ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width 
+          ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? OR DICTDB._Field._Fld-Misc3[1] EQ ?
+                            THEN DICTDB._Field._Width 
                             ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
           ASSIGN z = (( wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
           /* OE00172253 - check if value is negative, then assign it the width value unless it's too
@@ -767,7 +760,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            tables_not_created = true
            warnings_issued = true.        
   END. /* DB2 check */
-
   IF unsprtdt THEN DO:
     PUT STREAM logfile UNFORMATTED
         "WARNING: TABLE " DICTDB._File._File-name " will not be created." skip
@@ -824,7 +816,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     IF NOT AVAILABLE verify-table THEN DO:
       CREATE verify-table.
       ASSIGN verify-table.new-name = n1
-             verify-table.rec-fld  = RECID (DICTDB._File).
+             verify-table.rec-fld  = RECID (DICTDB._File)
+             verify-table.has-unsprtdt = comment_chars.
       LEAVE _verify-table.
     END.
     ELSE DO:
@@ -1007,7 +1000,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           IF DICTDB._Field._Extent = 0 THEN 
             ASSIGN j = DICTDB._Field._Width.
           ELSE DO:
-            ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width
+            ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? OR DICTDB._Field._Fld-Misc3[1] EQ ?
+                            THEN DICTDB._Field._Width
                             ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
             ASSIGN j = ((wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
            END.
@@ -1086,18 +1080,23 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                   ASSIGN j = 28.
                 ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Width > 38 THEN
                   ASSIGN j = 38.
-                ELSE
+                ELSE 
                   ASSIGN j = DICTDB._Field._Width.
+                  IF j < DICTDB._Field._Decimals THEN ASSIGN j = DICTDB._Field._Decimals.  
               END.              
               ELSE DO:              
-                ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width
+                ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? OR DICTDB._Field._Fld-Misc3[1] EQ ?
+                               THEN DICTDB._Field._Width
                                ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
 
-                ASSIGN j = ((wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent). 
+                ASSIGN j = ((wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).            
                 IF dbtyp = "MSSQLSRV7" AND j > 28 THEN 
                   ASSIGN j = 28.
                 ELSE IF dbtyp = "ORACLE" AND j > 38 THEN
-                  ASSIGN j = 38.                
+                  ASSIGN j = 38.
+
+                IF j < DICTDB._Field._Decimals THEN ASSIGN j = DICTDB._Field._Width.
+                IF j < DICTDB._Field._Decimals THEN ASSIGN j = DICTDB._Field._Decimals.                                        
               END.
             END.
             ELSE DO:
@@ -1125,7 +1124,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
               /* use the datatype only and not the default type and size */
             ASSIGN  i = 6. 
               /* format the string that will follow the datatype   */
-            IF DICTDB._Field._Decimals <> ? THEN
+            IF DICTDB._Field._Decimals <> ? THEN  
               c = "(" + STRING(j) + "," + STRING(DICTDB._Field._Decimals) + ")".
             ELSE
                c = " ".
@@ -2310,6 +2309,16 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 	END.
 	
 /* 195067 ends */
+
+  /* Clear temp table for new file */                            
+  FOR EACH verify-name: 
+    CREATE verify-field.
+    ASSIGN verify-field.new-name  = verify-name.new-name
+           verify-field.prog-name = verify-name.prog-name
+           verify-field.rec-fld   = verify-name.rec-fld.
+     DELETE verify-name.
+  END. 
+  
 END. /* for each DICTDB._File */
 
 /************************************************/
@@ -2427,14 +2436,14 @@ IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop2.
 	 IF AllCons <> "" AND AllCons <> ? THEN
      DO:
        FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
-	   PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name +  " ADD " +  replace(AllCons,"-","_") skip.
-       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+	   PUT STREAM code UNFORMATTED verify-table.has-unsprtdt "ALTER TABLE " +  user_library dot verify-table.new-name +  " ADD " +  replace(AllCons,"-","_") skip.
+       PUT STREAM code UNFORMATTED verify-table.has-unsprtdt user_env[5] SKIP.
      END. 
      
      IF mvdata AND dbtyp = "ORACLE" THEN DO:
        FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
-       PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name +  " DISABLE CONSTRAINT " + ConName SKIP.
-       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+       PUT STREAM code UNFORMATTED verify-table.has-unsprtdt "ALTER TABLE " +  user_library dot verify-table.new-name +  " DISABLE CONSTRAINT " + ConName SKIP.
+       PUT STREAM code UNFORMATTED verify-table.has-unsprtdt user_env[5] SKIP.
      END.
     END. /* IF ConType = "F" */
     
@@ -2443,8 +2452,8 @@ IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop2.
  
   IF mvdata AND dbtyp = "MSSQLSRV7" THEN DO:
        FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
-       PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name + " NOCHECK CONSTRAINT ALL " SKIP.
-       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.          
+       PUT STREAM code UNFORMATTED verify-table.has-unsprtdt "ALTER TABLE " +  user_library dot verify-table.new-name + " NOCHECK CONSTRAINT ALL " SKIP.
+       PUT STREAM code UNFORMATTED verify-table.has-unsprtdt user_env[5] SKIP.          
   END.
 
 END.   /*  FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db  */

@@ -43,6 +43,7 @@
             09/22/09 Computed column implementation - Nagaraju
             11/12/09 Remove numbers for radio-set options in MSSDS - Nagaraju
             06/21/11 Added screen variable for constraint migration - kmayur
+            04/03/12 Fixed issue with DLC not getting set- rkumar 
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -312,7 +313,10 @@ IF loadsql THEN DO:
     END.
 
     IF unicodeTypes OR TRIM(mss_codepage) = "utf-8" THEN DO:
-        dlc_utf_edb = OS-GETENV("DLC").
+        if OPSYS = "Win32":U then 
+           GET-KEY-VALUE SECTION "Startup":U KEY "DLC":U VALUE dlc_utf_edb. 
+        if (dlc_utf_edb = ? or dlc_utf_edb EQ "") then
+           dlc_utf_edb = OS-GETENV("DLC").
         dlc_utf_edb = dlc_utf_edb + "/prolang/utf/empty".
         CREATE DATABASE osh_dbname FROM dlc_utf_edb. 
     END.

@@ -25,7 +25,14 @@ using OpenEdge.DataAdmin.Core.JSONLoader from propath.
 using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath.
 class OpenEdge.DataAdmin.TableSet inherits DataAdminCollection implements ITableSet : 
       
-    define public property Schema as ISchema no-undo get.     
+   /** currently only PUB supported */
+    define public property Schema as ISchema no-undo 
+        get():
+            if valid-object(Service) then 
+                return Service:GetSchema().       
+            return this-object:Schema.          
+        end.    
+            
     define public property ForceAllocation as char no-undo 
         get. 
         private set(force as char):

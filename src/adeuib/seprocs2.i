@@ -35,8 +35,11 @@ Notes :
 
 Author: Edsel Garcia
 
-*****************************************************************************/
+History: 
+    rkamboj 03/21/2012  Override button disabled in OEA AppBuilder for ADM1 objects (OE00217457)
 
+*****************************************************************************/
+DEFINE NEW SHARED STREAM WebStream.
 
 PROCEDURE ADEPersistent:
     MESSAGE 'DEBUG ADEPersistent'
@@ -357,6 +360,7 @@ PROCEDURE SecEdWindow:
     DEFINE VARIABLE hWindowHandle AS HANDLE     NO-UNDO.
     
     DEFINE VARIABLE lActivateEditor AS LOGICAL    NO-UNDO INITIAL TRUE.
+
     
     IF p_command = "SE_OEOPEN" THEN
         ASSIGN p_command = "" lActivateEditor = FALSE.
@@ -508,10 +512,34 @@ END PROCEDURE.
 
 
 PROCEDURE build_proc_list:
+    /* romiller remove begin
     DEFINE INPUT PARAMETER phList AS HANDLE NO-UNDO.
     MESSAGE 'DEBUG build_proc_list'
       VIEW-AS ALERT-BOX INFO BUTTONS OK.
     RUN build_proc_list IN hProc ( INPUT phList ) NO-ERROR.
+    romiller remove end add begin */
+    /*--------------------------------------------------------------------------
+      Purpose:       Sets the se_event  COMBO-BOX to a value appropriate for the
+                     current window's procedures.
+      Run Syntax:    RUN build_proc_list.
+      Parameters:     phList - the handle of the selection list to populate.
+      Notes:         Require a current win_recid.
+    ---------------------------------------------------------------------------*/
+    def input parameter  phList     as widget  no-undo.
+
+    def var l_ok     as logical no-undo.
+    def var procname as char    no-undo.
+
+    /* Empty the current list. */
+    ASSIGN phList:SCREEN-VALUE = ?
+           phList:LIST-ITEMS = "".        
+    /* Get all the procedures for the current UIB Design Object. */
+    FOR EACH _SEW_TRG WHERE _SEW_TRG._wRECID = b_P._u-recid /* win_recid */
+                      AND   _SEW_TRG._tSECTION = Type_Procedure :
+      ASSIGN procname = _SEW_TRG._tEVENT
+             l_ok     =  phList:ADD-LAST(procname).
+    END.
+    /* romiller add end */
 END PROCEDURE.
 
 
@@ -734,9 +762,9 @@ PROCEDURE NewTriggerBlock.
       /* For controls in a dialog-box, the _WINDOW-HANDLE field corresponds to the FRAME */
       IF NOT AVAILABLE b_P THEN
           FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:FRAME NO-LOCK NO-ERROR.
-	  /* When the dialog-box is selected, the handle is the actual widget */
+      /* When the dialog-box is selected, the handle is the actual widget */
       IF NOT AVAILABLE b_P THEN
-          FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg NO-LOCK NO-ERROR.	   
+          FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg NO-LOCK NO-ERROR.    
       IF NOT AVAILABLE b_P THEN RETURN.
 
   ASSIGN se_section = "_CONTROL":U /* Type_Trigger */
@@ -823,8 +851,8 @@ PROCEDURE NewTriggerBlock.
       DO:
               DO:
                 /* For all special events (e.g., OCX.event), store it in _tSPECIAL. */
-              	IF NUM-ENTRIES(p_new_event, ".":u) > 1 THEN
-              	DO:
+                IF NUM-ENTRIES(p_new_event, ".":u) > 1 THEN
+                DO:
                     ASSIGN _SEW_TRG._tSPECIAL = p_new_event
                            _SEW_TRG._tTYPE    = "_CONTROL-PROCEDURE" NO-ERROR.
                 END.
@@ -920,7 +948,7 @@ PROCEDURE NewCodeBlock.
   ---------------------------------------------------------------------------*/
   
   DEFINE INPUT PARAMETER p_se_section AS CHARACTER NO-UNDO.
-    
+     
   DEFINE VARIABLE proc_type         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE new_event         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE new_name          AS CHARACTER NO-UNDO.
@@ -954,6 +982,7 @@ PROCEDURE NewCodeBlock.
       IF NOT VALID-HANDLE(_h_win) THEN RETURN.
       FIND b_P WHERE b_P._WINDOW-HANDLE = _h_win NO-LOCK NO-ERROR.
       IF NOT AVAILABLE b_P THEN RETURN.
+
       new_recid = b_P._u-recid.
       se_section = p_se_section.
       
@@ -1063,7 +1092,18 @@ PROCEDURE NewCodeBlock.
     IF a_ok THEN DO:
       /* Fill the new trigger unless 1) it is special or 2) we are
          viewing an existing code block. */
-      IF new_spcl = ? THEN
+    IF new_spcl = ? THEN
+    DO:
+      /* romiller add begin */
+      IF Type = Type_Local AND VALID-HANDLE( _h_mlmgr ) AND Code_Block = "" THEN 
+      /* romiller add begin */
+      DO:
+        /* romiller add end */
+        RUN get-local-template IN _h_mlmgr ( INPUT  new_name ,
+                                             OUTPUT _SEW_TRG._tCODE ).
+      END.
+      ELSE
+        /* romiller add end */
       DO:
       
           CASE se_section:
@@ -1083,6 +1123,7 @@ PROCEDURE NewCodeBlock.
           END CASE.
           RUN adecomm/_adeevnt.p ("UIB":U, "New":U, INTEGER(RECID(_SEW_TRG)),
                                         se_section, OUTPUT lOK).
+      END.
       END.
 
       RELEASE _SEW_TRG. /* Releases _TRG record */
@@ -1233,7 +1274,95 @@ PROCEDURE Get_Proc_Lists.
   DEFINE INPUT  PARAMETER p_Incl_UserDef AS LOGICAL   NO-UNDO.
   DEFINE OUTPUT PARAMETER p_All_List     AS CHARACTER NO-UNDO.
   DEFINE OUTPUT PARAMETER p_Smart_List   AS CHARACTER NO-UNDO.
-              
+
+  /* romiller add begin */
+
+  DEFINE /*{&NEW} SHARED*/ VARIABLE se_event AS CHARACTER FORMAT "X(256)":U INITIAL ? 
+       LABEL "ON"
+       VIEW-AS COMBO-BOX INNER-LINES 8
+       DROP-DOWN-LIST
+       SIZE 31 BY 1
+       FONT 2 NO-UNDO.
+
+  DEFINE FRAME f_edit
+       se_event
+      .
+
+  DEFINE VARIABLE proc_entry    AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE proc_list     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE window-handle AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE adm-version   AS CHARACTER NO-UNDO.
+  
+  DEFINE BUFFER b_U FOR _U.
+
+  DEFINE VAR Smart_Prefix         AS CHARACTER INIT "adm-"                NO-UNDO.
+
+  IF se_section = Type_Procedure THEN
+      RUN build_proc_list (INPUT se_event:HANDLE in FRAME f_edit).
+    
+  DO WITH FRAME f_edit:
+    /* Get names of all Procedures defined in all the Included Libraries
+       and get the subset of SmartMethod procedures in the Included Libraries.
+    */
+    IF VALID-HANDLE( _h_mlmgr ) THEN
+    DO ON STOP UNDO, LEAVE:
+        RUN get-saved-methods IN _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
+                                            INPUT STRING(b_P._WINDOW-HANDLE) ,
+                                            INPUT-OUTPUT p_All_List   ,
+                                            INPUT-OUTPUT p_Smart_List ).
+        /* Get names of all Functions defined in all the Included Libraries
+           and get the subset of SmartFunctions in the Included Libraries.
+        */
+        RUN get-saved-funcs   IN _h_mlmgr ( /* INPUT STRING(_SEW._hwin) , */
+                                            INPUT STRING(b_P._WINDOW-HANDLE) ,
+                                            INPUT-OUTPUT p_All_List   ,
+                                            INPUT-OUTPUT p_Smart_List ).
+    END.
+
+    /* Add to the All List any user defined procedures and add to the
+       Smart List any user defined ADM Methods for the current design
+       window. Smart List of "adm-" procs is for ADM1 objects only. - jep
+    */
+    /*
+    FIND _P WHERE _P._u-recid =  win_recid NO-ERROR.
+    IF AVAILABLE _P THEN
+        ASSIGN adm-version = _P._ADM-Version.
+    */
+    adm-version = b_P._ADM-Version.
+        
+    ASSIGN proc_list = se_event:HANDLE IN FRAME f_edit.
+    DO proc_entry = 1 TO proc_list:NUM-ITEMS :
+        IF proc_list:ENTRY( proc_entry ) BEGINS Smart_Prefix 
+           AND adm-version BEGINS "ADM1":U THEN
+            ASSIGN p_Smart_List = p_Smart_List + "," +
+                                proc_list:ENTRY( proc_entry ) .
+        IF p_Incl_UserDef THEN
+            ASSIGN p_All_List = p_All_List + "," + proc_list:ENTRY( proc_entry ) .
+    END.
+    /* Ensure there are no leading or trailing commas. */
+    ASSIGN p_Smart_List = TRIM(p_Smart_List, ",":U).
+    
+    /* Add to the p_All_List the names of the Procedure Object's Reserved
+       Procedure Names (see Procedure Settings dialog).
+    */                                                               
+    IF AVAILABLE _SEW_U THEN
+      ASSIGN window-handle = _SEW_U._WINDOW-HANDLE.
+    /*
+    ELSE DO:
+      FIND b_U WHERE RECID(b_U) = _SEW_BC._x-recid.
+      ASSIGN window-handle = b_U._WINDOW-HANDLE.
+    END.
+    */
+    FIND _P WHERE _P._WINDOW-HANDLE = window-handle NO-ERROR .
+    IF AVAILABLE _P AND _P._RESERVED-PROCS <> "" THEN
+        ASSIGN p_All_List = p_All_List + "," + _P._RESERVED-PROCS.
+
+    /* Ensure there are no leading or trailing commas. */
+    ASSIGN p_All_List = TRIM(p_All_List, ",":U).
+            
+  END. /* DO WITH FRAME */
+  
+  /* romiller add end */             
 END PROCEDURE.
 
 PROCEDURE paste_txt:
@@ -1408,4 +1537,3 @@ FUNCTION GetProcFuncSection RETURNS character (
       VIEW-AS ALERT-BOX INFO BUTTONS OK.
     DYNAMIC-FUNCTION ( 'GetProcFuncSection' IN hProc , INPUT p_name ) NO-ERROR.
 END FUNCTION.
-

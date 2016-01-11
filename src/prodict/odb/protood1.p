@@ -240,6 +240,7 @@ CASE odb_type:
   WHEN "DB2/6000"   OR 
   WHEN "DB2/NT"     OR 
   WHEN "DB2/400"    OR 
+  WHEN "DB2" 		OR 
   WHEN "DB2(Other)" THEN
     ASSIGN user_env[5]  = ";"
            user_env[11] = "varchar" 

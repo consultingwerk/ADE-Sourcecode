@@ -15,7 +15,8 @@ define                   variable aOk              as logical   no-undo.
 define                   variable fLoggerHandle    as handle    no-undo.
 
 /* servers */
-define                   variable fDefaultHandle   as handle    no-undo.
+/*define                   variable fDefaultHandle   as handle    no-undo.*/
+DEFINE                   VARIABLE fAPIhandle       AS HANDLE NO-UNDO. 
 
 /* this temp-table only contains a single record and its buffer is used
    like an object to hold onto the options read from the command message.
@@ -81,6 +82,8 @@ end.
    When we receive data, pass it to the read handler and then
    start looping again. 
 */
+RUN darest/rest.p      PERSISTENT SET fAPIhandle.
+run SetUseLongChar in fAPIhandle(true).
 
 DONTQUIT:
 do on error     undo, retry DONTQUIT
@@ -158,6 +161,10 @@ procedure WriteToSocket:
     define variable packetLength   as integer   no-undo.
     define variable ok             as logical   no-undo.
     define variable msg            as character no-undo.
+    
+    set-byte-order(messageHeader) = 3.
+    set-byte-order(packetBuffer) = 3.
+    set-byte-order(messageTrailer) = 3.
   
     if packet = ? then
         packet = "?".
@@ -193,6 +200,7 @@ procedure WriteToSocket:
                 
                 if string(SESSION:CPINTERNAL) <> "utf-8" then do:
                     define variable mpacket as memptr no-undo.
+                    set-byte-order(mpacket) = 3.
                     COPY-LOB packet TO mpacket CONVERT TARGET CODEPAGE "utf-8".
                     packetLength = GET-SIZE(mpacket).
                     SET-SIZE(packetBuffer) = packetLength + {&PACKET_HEADER_SIZE} + 1.
@@ -252,7 +260,11 @@ procedure ReceiveCommand:
     define variable theData     as memptr    no-undo.
     define variable cError      as character no-undo.
     define variable ok          as logical   no-undo.
-
+    
+    set-byte-order(oneByte) = 3.
+    set-byte-order(fourBytes) = 3.
+    set-byte-order(theData) = 3.
+    
     if not self:CONNECTED() then
     do:
         run QUIT ("Lost connection").
@@ -369,29 +381,12 @@ procedure executeCmd:
         if Command.Scope <> "EXTERNAL" then 
         do:
             case Command.Scope:
-                when "DEFAULT" or 
+                when "MTAPI" or 
                 when "UNDEFINED" then 
-                    hTarget = fDefaultHandle.
+                    hTarget = fAPIHandle.
                 when "INTERNAL" then 
                     hTarget = this-procedure.
             end.
-           
-            /*
-            if not valid-handle(hTarget) then  
-            do:
-                hTarget = getServerHandle(if Command.Scope = "UNDEFINED" or Command.Scope = "DEFAULT" then "default" else Command.Scope).
-                if not valid-handle(hTarget) then 
-                do:
-                    commandResult = "ERROR:" + Command.Scope  + "ServerFailed".
-                    undo, leave.
-                end.
-                case Command.Scope:
-                    when "DEFAULT" or 
-                    when "UNDEFINED" then 
-                        fDefaultHandle = hTarget.
-                end.      
-            end.
-            */
         
             /* backward compatibility with internal entry check  */ 
             if Command.Scope = "UNDEFINED"  
@@ -414,15 +409,9 @@ procedure executeCmd:
         if valid-handle(hTarget) then 
         do: 
             do on error  undo,leave on stop undo,leave on endkey undo,leave on quit undo,leave:
-                if Command.ResultIsLongChar then do:
-                    run value(Command.Name) in hTarget (Command.Parameters, output commandResult).
-                end.
-                else do:
-                    run value(Command.Name) in hTarget (Command.Parameters).
-                end.
+              run value(Command.Name) in hTarget (Command.Parameters).
+              run getOutput in hTarget(output commandResult).
             end.
-            if not Command.ResultIsLongChar then            
-                commandResult = return-value.      
         end.
         else if Command.Scope = "EXTERNAL" and Command.Name > "" then 
             do:
@@ -467,7 +456,8 @@ procedure extractCommand:
     define variable iPos    as integer no-undo init 1.
     define variable tlvEntry as integer no-undo.
 
-
+    set-byte-order(requestData) = 3.
+    
     run ClearReturnValue no-error.
 
     do on error undo, leave
@@ -545,6 +535,7 @@ procedure QUIT:
     log("Quitting.").
     run CloseLogFile (input "").
   
+    delete procedure fAPiHandle no-error. 
     apply "CLOSE" to this-procedure.
     return "TERMINATED.".
     
@@ -597,45 +588,4 @@ procedure CloseLogFile.
     end.
 end procedure.
 
-procedure runAPI:
-    define input parameter cPrm as character no-undo.
-    
-    define variable cSeparator        as character no-undo.
-    define variable cProgramName      as character no-undo.
-    define variable cConnectionString as character no-undo.
-    define variable cURL              as character no-undo.
-    define variable h                 as handle    no-undo.
-    
-    cSeparator = substring(cPrm, 1, 1).
-    if num-entries(cPrm, cSeparator) = 4 then
-        assign cConnectionString = entry(2, cPrm, cSeparator)
-               cProgramName      = entry(3, cPrm, cSeparator)           
-               cURL              = entry(4, cPrm, cSeparator).
-    else
-    do:
-        log( "ERROR:Unexpected number of parameters in call to runAPI" ).
-        return.
-    end.    
-    
-    connect value(cConnectionString) no-error.
-    if error-status:error then    
-        log( error-status:get-message(1)).
-        
-    run value(cProgramName) persistent set h no-error.
-    if error-status:error then
-        log( error-status:get-message(1)).
-        
-    if valid-handle(h) then
-    do:
-        run executeRequest in h (cURL) no-error.
-    if error-status:error then
-        log( error-status:get-message(1)).        
-    end. 
-           
-    delete object h.
-    do while ldbname(1) <> ? :
-        disconnect value(ldbname(1)).
-    end.
-    
-    return "".    
-end.    
+ 

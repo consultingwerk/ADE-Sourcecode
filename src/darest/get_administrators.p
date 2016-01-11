@@ -23,33 +23,22 @@ using Progress.Lang.* from propath.
 using Progress.Json.ObjectModel.JSONObject from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Rest.RestRequest from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
  
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "administrators" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_administrators.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.      
+/* to be deprecated */
+{darest/restbase.i get administrators} 
+  
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.
     define variable admin     as IAdministrator no-undo. 
  
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
        
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
-    
     restRequest:Validate().
-    service = new DataAdminService().
+    service = new DataAdminService(restRequest:ConnectionName).
     service:URL = restRequest:ConnectionUrl.
     admin = service:GetAdministrator().
     admin:Export(restRequest:OutFileName).

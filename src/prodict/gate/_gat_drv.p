@@ -62,7 +62,7 @@ IF NOT CONNECTED(user_dbname) THEN DO:
   ASSIGN user_env[35] = "wrg-ver".
 
   IF user_dbtype = "MSS" THEN 
-    ASSIGN user_path = "_usrsdel,*C,1=add,3=MSS,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,_mss_pul,_gat_cro".
+    ASSIGN user_path = "_usrsdel,*C,1=add,3=MSS,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,mss/procbfrpul,_mss_pul,_gat_cro".
  
   ELSE /* ODBC */
     ASSIGN user_path = "_usrsdel,*C,1=add,3=ODBC,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_odb_get,_odb_pul,_gat_cro".
@@ -84,7 +84,7 @@ IF RETURN-VALUE = "wrg-ver" THEN DO:
             "The DataServer for ODBC supports that version and must be used to perform " SKIP
             "this function. " SKIP(1)
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    ASSIGN user_path = "35=wrg-ver,_usrsdel,*C,1=add,3=MSS,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,_mss_pul,_gat_cro".
+    ASSIGN user_path = "35=wrg-ver,_usrsdel,*C,1=add,3=MSS,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,mss/procbfrpul,_mss_pul,_gat_cro".
     RETURN.
   END.
   ELSE IF user_dbtype = "ODBC" THEN DO:

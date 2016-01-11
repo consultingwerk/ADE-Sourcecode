@@ -20,6 +20,7 @@
   
 define  temp-table ttDomain no-undo  serialize-name "domains" {1} before-table ttDomainCopy
          field Name as char                               serialize-name "name"        format "x(25)"
+         field Id              as integer  init ?         serialize-hidden
          field AuthenticationSystemName  as character     serialize-name "type"        format "x(10)"
          field TenantName      as character               serialize-name "tenantName"  format "x(20)" label "Tenant"
          field IsBuiltin       as logical                 serialize-name "isBuiltin" label "Built-in"
@@ -33,7 +34,9 @@ define  temp-table ttDomain no-undo  serialize-name "domains" {1} before-table t
          field RuntimeOptions  as character               serialize-name "runtimeOptions"  format "x(13)" label "Runtime options"
          field UsersUrl        as character               serialize-name "users_url" format "x(20)" label "Users url"
          field URL             as character               serialize-name "url" format "x(30)" label "Url"
-
+         field TenantId        as integer                 serialize-hidden
+         
          {daschema/entity.i}
          index idxName as primary unique Name  
-         index idxTenant TenantName .
+         index idxTenant TenantName
+         index idxId Id .

@@ -124,10 +124,10 @@ trowid,rowid(_Field)"
                 else if hBeforeBuff:row-state = row-created then 
                     undo, throw new UnsupportedOperationError("Create of FieldPermission.").
                 phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
-                find dictdb._field where rowid(dictdb._field) = phBuffer::trowid exclusive.
+                find dictdb._field where rowid(dictdb._field) = phBuffer::trowid exclusive no-wait.
                
                 find dictdb._file where dictdb._file._File-name = phBuffer::TableName 
-                                    and dictdb._file._owner = phBuffer::SchemaName exclusive.
+                                    and dictdb._file._owner = phBuffer::SchemaName exclusive no-wait.
                 
                IF phBuffer::CanRead <> _Field._Can-read THEN DO:
                    mod = yes.

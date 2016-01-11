@@ -20,12 +20,13 @@ text-parameters:
 included in:
   prodict/dump/_loddata.p    
   prodict/dump/_lodsddl.p    
-  prodict/dump/_lodseqs.p    
-  prodict/dump/_loduser.p    
-  prodict/dump/_lodview.p    
+  prodict/dump/_lodseqs.p  commented out   
+  prodict/dump/_loduser.p  commented out   
+  prodict/dump/_lodview.p  commented out    
     
 Needs:
   DEF VAR codepage AS CHAR.
+  DEF VAR cerror   AS CHAR.
   DEF VAR lvar     AS CHAR EXTENT 10.
   DEF VAR lvar#    AS INT.
   

@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : DomainContext
     Purpose     : 
@@ -30,6 +30,7 @@ using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery from propath. 
 using OpenEdge.DataAdmin.Binding.UserContext from propath. 
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
+using OpenEdge.DataAdmin.Binding.IRow from propath. 
 using OpenEdge.DataAdmin.Error.DataContextError from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope from propath. 
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
@@ -72,10 +73,10 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         protected set.
     
     constructor public DomainContext (users as UserContext):
-        super ("Domain"). 
+        super ("Domain").
         AddChild(users).
     end constructor.
-    
+
     constructor public DomainContext ():
         super ("Domain"). 
         AddChild(new UserContext()).
@@ -84,6 +85,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
     constructor public DomainContext (pscope as IIdentityScope):
         super ("Domain",pscope). 
         AddChild(pscope:UserContext).
+        CanEditKey = true.
     end constructor.
         
 	method public override character GetJoinFields(parentid as char):
@@ -92,20 +94,34 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
                 return "Name,TenantName".
         end.
     end.
+ 	/*
+ 	method public override character GetClientJoinFields(parentid as char):
+        case parentid:
+            when "tenants" then
+                return "Name,TenantName".
+        end.
+        return super:GetClientJoinFields(parentid).
+    end.
+ 	 
+ 	/* override to use Name in JSON import  */
+    method protected override character GetClientKeyFields():
+        return "Name". 
+    end method.
+ 	*/
  	
 	method public override void CreateRow(entity as IDataAdminElement):
 	    /* the default syserror has all info */
 	    CreateRow(cast(entity,IDomain)).    
 	end method.
 
-    method protected override void CopyTableForParent(pcparent as char, pcValue as char,cntxt as IDataAdminContext):
+    method protected override void CopyTableForParent(pRow as IRow,cntxt as IDataAdminContext):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
-        case pcparent:          
-           when "tenants" then
-              CopyTable(table-handle hTbl by-reference,pcValue). 
-           otherwise 
-               undo, throw new IllegalArgumentError("DomainContext:CopyTableForParent called with parent " + quoter(pcparent)).        
+        case pRow:SerializeName:          
+            when "tenants" then
+                CopyTable(table-handle hTbl by-reference,pRow:KeyIntValue,pRow:FieldValue("Name")). 
+            otherwise 
+                undo, throw new IllegalArgumentError("DomainContext:CopyTableForParent called with IRow " + quoter(prow:SerializeName)).        
         end.
         
         Loaded = false.
@@ -118,20 +134,20 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         Loaded = false.
     end method.    
     
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
-         case pparent:          
-             when "tenants" then
-                  return new TenantDomainQuery(this-object,pkey,pReq).
-             otherwise
-                 return super:CreateFilteredContext(pparent,pkey,pReq).              
-         end.        
+    method override protected FilteredContext CreateFilteredContext(pRow as IRow,pReq as IRequestInfo):     
+        case pRow:SerializeName :          
+            when "tenants" then
+                return new TenantDomainQuery(this-object,pRow,pReq).
+            otherwise
+                return super:CreateFilteredContext(pRow,pReq).              
+        end.        
     end method.
     
     method private void CopyTable(input table copytable):
-        CopyTable(input table copytable by-reference,"").  
+        CopyTable(input table copytable by-reference,?,"").  
     end method.
    
-	method private void CopyTable(input table copytable,pcTenantname as char):
+	method private void CopyTable(input table copytable,pcTenantId as int,pcTenantName as char):
         define variable dataerror as DataContextError no-undo.      
         for each copytable on error undo, throw:  
             if valid-object(Service) and valid-object(copytable.Entity) then 
@@ -153,7 +169,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
                     if not valid-object(DataError) then 
                         dataError = new DataContextError("Domain",e).
                     else 
-                       dataError:AddMessage(e).             		
+                        dataError:AddMessage(e).             		
                 end catch. 
             end.             
         end.    
@@ -165,7 +181,12 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
             create ttdomain.    
             Count = Count + 1.
             buffer-copy copytable to ttdomain.    
-            if pcTenantname > "" then ttdomain.TenantName = pcTenantName.
+            if pcTenantname > "" then  
+            do:
+                assign
+                    ttdomain.TenantId = pcTenantId
+                    ttdomain.TenantName= pcTenantName.
+            end.
             OnRowCreated().
         end.
         temp-table ttDomain:tracking-changes = false.
@@ -176,7 +197,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         return this-object:GetCreateError(cast(domain,IDataAdminElement),domain:Name). 
     end method.
     
-    method protected override void ValidateBuffer(phDomain as handle):
+   /* method protected override void ValidateBuffer(phDomain as handle):
         define variable hBefore as handle no-undo.
 /*        ValidateGroup(phTenant::Name,phTenant::Type).*/
     
@@ -188,7 +209,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
                undo, throw new ReadOnlyPropertyError(Name,phDomain::Name,"Name").
         end.    
         
-    end method.      
+    end method. */     
     
          
 	method private void ValidateDomain(domain as IDomain):
@@ -273,7 +294,19 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
                       and   ttdomain.name = name no-error.
         return avail ttdomain.            
     end.     
+    /*
     
+    method public logical CanFindTenantDomain(ptenantid as int,pname as character):
+        return can-find(ttDomain where ttdomain.TenantId = ptenantid
+                                 and   ttdomain.name = pname).            
+    end.     
+     
+    method public logical FindTenantDomain(ptenantid as int,pname as character):
+        find ttDomain where ttdomain.TenantId = ptenantid
+                      and   ttdomain.name = pname no-error.
+        return avail ttdomain.            
+    end.     
+    */
     
     /* called with tracking-changes */
     method protected override void ReadNewForParent(pcParent as char, pcValue as char,phTbl as handle):       

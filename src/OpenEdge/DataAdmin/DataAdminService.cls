@@ -15,6 +15,7 @@
    Created     : Sat Jul 10 23:27:42 EDT 2010
    Notes       :  
    */
+ 
 routine-level on error undo, throw.
 using Progress.Lang.* from propath.
 
@@ -23,6 +24,7 @@ using OpenEdge.DataAdmin.IDataAdminService from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
+using OpenEdge.DataAdmin.ISecurityOptions from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 
 using OpenEdge.DataAdmin.IDataSecurity from propath.
@@ -69,9 +71,11 @@ using OpenEdge.DataAdmin.IRequestInfo from propath.
 
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
  
 using OpenEdge.DataAdmin.Binding.CreateContext from propath.
 using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
+using OpenEdge.DataAdmin.Binding.RowImpl from propath.
  
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
@@ -81,6 +85,7 @@ using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Message.FetchDefinitions from propath.
 using OpenEdge.DataAdmin.Message.LoadDefinitions from propath.
 
@@ -99,7 +104,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
 	define public event ServiceDeleted     signature void ().
 	
     define private variable ServiceAdapter as ServiceAdapter no-undo.
-    define private variable ContextFactory as IServiceContextFactory no-undo.
+    define protected variable ContextFactory as IServiceContextFactory no-undo.
    
     define public property URL as char no-undo get. set.
     define public property ThrowDataErrors as logical no-undo init yes 
@@ -223,11 +228,19 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method protected logical CreateElement(elem as IDataAdminElement,cntxt as IDataAdminContext):
+        define variable rowinfo as IRow no-undo.
         define variable response as ISaveRequest no-undo.
         AssertCreate(elem,cntxt).
         do on error undo, throw:
             elem:Attach(cntxt).
-            response = cast(cntxt,IDataAdminModel):GetCreateRowRequest().
+            if num-entries(cntxt:KeyFields) > 1 then
+            do:
+                rowinfo = GetRowInfo(elem,cntxt).
+                response = cast(cntxt,IDataAdminModel):GetCreateRowRequest(rowinfo).
+            end.
+            else
+                response = cast(cntxt,IDataAdminModel):GetCreateRowRequest().
+            
             if not valid-object(response) then
                 return false. 
             response = SaveData(response).
@@ -335,6 +348,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     method public IAdministrator GetAdministrator():
         return cast(ContextFactory:AdministratorContext:GetEntity(""),IAdministrator). 
+    end method.
+    
+    method public ISecurityOptions GetSecurityOptions():
+        return cast(ContextFactory:SecurityOptionsContext:GetEntity(""),ISecurityOptions). 
     end method.
     
     method public IArea GetArea(areaName as char):
@@ -722,13 +739,22 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method protected logical DeleteElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminContext):
         define variable saverequest as ISaveRequest no-undo.
         define variable requestinfo as IRequestinfo no-undo.
+        define variable rowinfo as IRow no-undo.
+        define variable lok as logical no-undo.
         AssertUpdate(inst,cntxt).
-        
         requestinfo = inst:Requestinfo.
-        if cntxt:Delete(pkey) then
+        rowinfo = GetRowInfo(inst,cntxt).
+        /** @todo use keyvalues always - 
+            added late must check if there are Delete(char) overrides before removal.
+            of single key
+        */ 
+        if num-entries(rowinfo:KeyFields) = 1 then
+            lok = cntxt:Delete(rowinfo:KeyValues[1]).
+        else
+            lok = cntxt:Delete(rowinfo:KeyValues). 
+        if lok then
         do:
-            saverequest = cast(cntxt,IDataAdminModel):GetDeleteRowRequest(pKey,requestinfo).
-            
+            saverequest = cast(cntxt,IDataAdminModel):GetDeleteRowRequest(rowinfo,requestinfo).
             if not valid-object(saverequest) then 
                 return false.
             saverequest = SaveData(saverequest).
@@ -772,6 +798,31 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         end catch.
         
     end method.    
+    
+     /* base update method (not used by all) */
+    method protected logical UpdateElement(inst as IDataAdminElement,cntxt as IDataAdminContext):
+        define variable req as IRequestInfo no-undo.
+        define variable rowinfo as IRow no-undo.
+        define variable response as ISaveRequest no-undo.
+        
+        define variable i          as integer no-undo.
+        define variable cfield as character no-undo.
+        AssertUpdate(inst,cntxt).
+        req = inst:RequestInfo.
+        rowinfo = GetRowInfo(inst,cntxt).
+        response = cast(cntxt,IDataAdminModel):GetSaveRowRequest(rowinfo,req).
+        if not valid-object(response) then 
+            return false.
+        response = SaveData(response).
+        cntxt:MergeChanges(response).
+        return true.
+        catch e as Progress.Lang.Error:
+            ErrorHandler(e).          
+            return false.
+        end catch.
+        
+    end method.    
+       
       
     /* base update method  */
     method protected logical UpdateCollection(inst as IDataAdminCollection,cntxt as IDataAdminContext):
@@ -831,7 +882,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public logical UpdateSequence(seq as ISequence):
-        return UpdateElement(seq:name,seq,ContextFactory:SequenceContext).
+        return UpdateElement(seq,ContextFactory:SequenceContext).
     end method.
     
     method public logical UpdateSequences(sequences as ISequenceSet):
@@ -844,6 +895,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     method public logical UpdateAdministrator(admin as IAdministrator):
         return UpdateElement("",admin,ContextFactory:AdministratorContext).        
+    end method.
+   
+    method public logical UpdateSecurityOptions(secopt as ISecurityOptions):
+        return UpdateElement("",secopt,ContextFactory:SecurityOptionsContext).        
     end method.
    
     method public logical UpdateTables(Tables as ITableSet):
@@ -969,13 +1024,20 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public void ExecuteUtility(putility as IDataAdminUtility):
-        define variable msg as IUtilityRequest no-undo.
+        define variable msg as IUtilityRequest  no-undo.
+        define variable response as IUtilityResponse no-undo.
+       
         msg = putility:GetRequest().
+        
+        msg:Url = URL.
         if valid-object(TransactionLogger) then
             TransactionLogger:Log("Execute " + msg:EntityName + " start").
-        ServiceAdapter:ExecuteUtility(msg).
+        response = ServiceAdapter:ExecuteUtility(msg).
         if valid-object(TransactionLogger) then
             TransactionLogger:Log("Execute " + msg:EntityName + " complete").
+        if valid-object(response) then    
+            response:Service = this-object.   
+        putility:SetResponse(response). 
     end method.
       
     method protected void ErrorHandler(e as Error):    
@@ -1049,7 +1111,34 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
 /*        RequestCompleted:Publish(msg:SerializeName,msg:ContextId).*/
         return msg.
     end method.
- 
+    
+    method protected IRow GetRowInfo(inst as IDataAdminElement,cntxt as IDataAdminContext):
+        define variable cKeyValues as character extent no-undo .
+        cKeyValues = GetPropertyValues(inst,cntxt:KeyFields).
+        return new RowImpl(cntxt:SerializeName,?,cntxt:KeyFields,cKeyValues).
+    end method.
+        
+    method protected char extent GetPropertyValues(inst as IDataAdminElement,pcKeyFields as char):
+        define variable cKeyValues as character extent no-undo.  
+        define variable i          as integer no-undo.
+        define variable cField     as character no-undo.
+        define variable obj        as Object no-undo.
+        extent(cKeyValues) = num-entries(pcKeyFields).
+        do i = 1 to num-entries(pcKeyFields):
+            cfield = entry(i,pcKeyFields).
+            if cfield = "schemaname" then
+            do: 
+                cfield = "schema".
+                obj  = inst:GetClass():GetPropertyValue (inst,cfield).
+                cKeyValues[i] = obj:GetClass():GetPropertyValue (obj,"name").
+            end.
+            else
+                cKeyValues[i] = inst:GetClass():GetPropertyValue (inst,cfield). 
+        end.
+        return cKeyValues.
+    end method.     
+    
+    
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  
 			Notes:  																	  

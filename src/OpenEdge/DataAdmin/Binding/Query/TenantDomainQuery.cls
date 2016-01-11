@@ -28,6 +28,7 @@ using OpenEdge.DataAdmin.Binding.DomainContext from propath.
   
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
+using OpenEdge.DataAdmin.Binding.IRow  from propath.
 
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
@@ -43,10 +44,11 @@ class OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery inherits FilteredContex
             return cast(Parent,DomainContext).   
         end.
       
-	constructor public TenantDomainQuery (pparent as DomainContext, pTenantName as char,pReq as IRequestInfo):
-		super (pparent,"tenants",pTenantName,pReq).	    
-	end constructor.
-      
+    constructor public TenantDomainQuery (pparent as DomainContext, pRow as IRow,pReq as IRequestInfo):
+        super (pparent,pRow,pReq).     
+        
+    end constructor.
+        
     method public override logical CanFind(pid as character):
         if DomainContext:FindTenantDomain(ParentValue,pid) then
              return CanFindCurrentModel().
@@ -63,12 +65,11 @@ class OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery inherits FilteredContex
         define variable tree   as IContextTree no-undo.
         define variable hds    as handle no-undo.
        
-         tree = new ContextTree().
-         AddTableTo(tree).
-        
-         hds = tree:GetReadHandle().
+        tree = new ContextTree().
+        AddTableTo(tree).
+        hds = tree:GetReadHandle().
        
-         return new FetchRequest(Name,Id,hds). 
+        return new FetchRequest(Name,Id,hds). 
     end method.
     
     method public override void ExportLastSaved(pcfile as char). 
@@ -85,8 +86,5 @@ class OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery inherits FilteredContex
                 hBuffer:write-json ("File",pcFile,yes).    
         end.
     end method.  
-     
     
-    
-       
 end class.

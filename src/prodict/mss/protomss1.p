@@ -184,6 +184,7 @@ DO:
    ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").
    ASSIGN lUniExpand = (lUniExpand:SCREEN-VALUE ="yes").
    ASSIGN iFmtOption = INTEGER(iFmtOption:SCREEN-VALUE).
+   ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
    
    IF iFmtOption = 1 THEN
       ASSIGN lFormat = ?
@@ -273,8 +274,6 @@ ON VALUE-CHANGED OF tryPimaryForRowid IN FRAME DEFAULT-FRAME DO:
     ELSE IF choiceRowid:SCREEN-VALUE <> "2" THEN 
             ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
                    mkClusteredExplict:SCREEN-VALUE = "no".
-    ASSIGN selBestRowidIdx:SENSITIVE   = TRUE
-           ForRow:SENSITIVE   = TRUE.
   END.
   ELSE DO:
        ASSIGN mkClusteredExplict:SENSITIVE   = TRUE.
@@ -283,6 +282,12 @@ ON VALUE-CHANGED OF tryPimaryForRowid IN FRAME DEFAULT-FRAME DO:
        IF ForRowidUniq:screen-value   = "no"  THEN 
           ASSIGN forRow:SENSITIVE   = TRUE.
   END.
+  IF ForRow:SCREEN-VALUE = "yes" THEN
+     ASSIGN ForRow:SENSITIVE   = TRUE.
+  ELSE ASSIGN ForRow:SENSITIVE   = FALSE.
+  IF selBestRowidIdx:SCREEN-VALUE = "yes" THEN
+     ASSIGN selBestRowidIdx:SENSITIVE   = TRUE.
+  ELSE ASSIGN selBestRowidIdx:SENSITIVE   = FALSE.
 END.
 
 ON VALUE-CHANGED OF migConstraint IN FRAME DEFAULT-FRAME DO:
@@ -375,13 +380,8 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
  END.
 END.
 
-ON VALUE-CHANGED OF iRecidOption IN FRAME DEFAULT-FRAME DO:
-    ASSIGN iRecidOption = INTEGER(SELF:SCREEN-VALUE).
-END.
-
 ON VALUE-CHANGED OF choiceRowid IN FRAME DEFAULT-FRAME DO:
-    ASSIGN choiceRowid = INTEGER(SELF:SCREEN-VALUE).
-    IF choiceRowid = 2 THEN
+    IF SELF:SCREEN-VALUE = "2" THEN
        ASSIGN mkClusteredExplict:SENSITIVE   = TRUE.
     ELSE  DO:
        IF tryPimaryForRowid:SCREEN-VALUE = "no" THEN

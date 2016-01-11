@@ -30,6 +30,8 @@ interface OpenEdge.DataAdmin.IDomain inherits IDataAdminElement:
         the user's id using a "@" delimiter (ex: fred@ldap).  */ 
     define public property Name            as character no-undo get. set.
     
+    define public property Id              as integer no-undo get.
+        
     /** The Authentication System of the domain  _oeusertable, LDAP, RSA, KERBOS, KEON, internal etc*/
     define public property AuthenticationSystem      as IAuthenticationSystem no-undo get. set.
     

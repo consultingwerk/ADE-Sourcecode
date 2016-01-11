@@ -38,12 +38,20 @@ Description,_Domain-description,~
 IsEnabled,_Domain-enabled,~
 AuditingContext,~_Auditing-Context,~
 TenantName,_tenant-name,~
+Id,_Domain-Id,~
 AccessCode,_Domain-access-code,~
 SystemOptions,_PAM-options,~
 RuntimeOptions,_Domain-runtime-options,~
+TenantId,_Tenant._tenantId,~
 Comments,_Domain-custom-detail"     
      no-undo.
-    
+/* Names decided in discussions for 11.1 changes       
+Note: Consider removing Domain from the name. 
+Seems a bit weird to have IDomain:DomainActions. 
+DomainActions,_PAM-actions~  
+DomainControl,_PAM-control~     
+SystemPath,_PAM-library-path"
+*/        
     constructor public DomainDataSource (pcurl as char):        
         this-object ( ).   
         url = pcURL. 
@@ -105,7 +113,7 @@ Comments,_Domain-custom-detail"
         
             if hBeforeBuff:row-state = row-deleted then 
             do:
-                find b_domain where b_domain._domain-name = hBeforeBuff::Name exclusive.
+                find b_domain where b_domain._domain-name = hBeforeBuff::Name exclusive no-wait.
                 delete  b_domain.
             end.
             else do:
@@ -113,8 +121,14 @@ Comments,_Domain-custom-detail"
             
                 if DatabaseInfo:IsMultiTenant then
                 do: 
-                    /* validate */
-                    find b_tenant where b_tenant._tenant-name = phBuffer::Tenantname no-lock no-error. 
+                    /* if mod then use Id since parent may be renamed in same transaction 
+                       but the parent is updated after the this child 
+                       (We know the id is set in this case, whihc is not the case with create) */
+                    if pistate = row-modified then
+                        find b_tenant where b_tenant._tenantid = phBuffer::TenantId no-lock no-error. 
+                    else 
+                        find b_tenant where b_tenant._tenant-name = phBuffer::TenantName no-lock no-error. 
+                    
                     if not avail b_tenant then
                     do:
                         undo, throw new DataAccessError("Tenant " + quoter(phBuffer::Tenantname) + " does not exist").
@@ -138,7 +152,7 @@ Comments,_Domain-custom-detail"
                     
                     find b_domain /* find using beforebuff::Name rather than Name */
                        where b_domain._domain-name = /*phbuffer::Name*/
-                             hBeforeBuff::Name exclusive no-error.
+                             hBeforeBuff::Name exclusive no-wait .
                     
                     if phBuffer::AccessCode <> mAccessDisp then
                     do:

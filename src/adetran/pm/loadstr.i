@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2011 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -256,7 +256,7 @@ DO TRANSACTION:
           if NOT FoundIt then do:  /* Add it: check to see if the record exists  */
             ASSIGN IncludedStrings = IncludedStrings + 1
                    /* 20050624-034 - right-trim only spaces*/
-                   subst-line      = SUBSTRING(RIGHT-TRIM(InputLine[3], " "),1,63,"RAW":U).
+                   subst-line      = SUBSTRING(RIGHT-TRIM(InputLine[3], " "),1,63,"COLUMN":U).
 
             FIND FIRST xlatedb.XL_String_Info WHERE
                  xlatedb.XL_String_Info.KeyOfString BEGINS subst-line AND

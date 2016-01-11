@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010-2012 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -118,6 +118,7 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
         ContextFactory = pScope.
         AddChild(pScope:TenantGroupMemberContext).
         AddChild(pScope:PartitionContext).
+        CanEditKey = true.
     end method.
     
     constructor public TenantGroupContext ():
@@ -144,7 +145,14 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
-
+    
+    /*
+    /* override to use Name in JSON import  */
+    method protected override character GetClientKeyFields():
+        return "Name". 
+    end method.
+    */
+    
     /* support many-to-many to tenants (tenants as child) */    
     method public override IDataAdminContext GetChild(pname as char):
         define variable i as integer no-undo.
@@ -291,7 +299,8 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
      
 	method protected override void ValueChanged(pFieldName as char,pcOldValue as char,pNewValue as char).        
         define variable cntxt as IDataAdminContext no-undo. 
-      
+        
+        super:ValueChanged(pfieldname,pcoldvalue,pNewValue).
         /* if new context then the partitions must be updated with default values */
         if pFieldName begins "Default" 
         and (   buffer ttTenantGroup:row-state = row-created 
@@ -370,20 +379,6 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
             temp-table ttTenantGroup:tracking-changes = false.        		
         end finally.
     end method.
-    
-    method protected override void ValidateBuffer(phGroup as handle):
-        define variable hBefore as handle no-undo.
-/*        ValidateGroup(phTenant::Name,phTenant::Type).*/
-    
-        if phGroup:row-state = row-modified then
-        do:
-            hBefore = phGroup:before-buffer.
-            hbefore:find-by-rowid(phGroup:before-rowid).
-            if phGroup::Name <> hBefore::Name then
-               undo, throw new ReadOnlyPropertyError(Name,phGroup::Name,"Name").
-        end.    
-        
-    end method.      
     
     method private void ValidateGroup(newgroup as ITenantGroup):
         define variable validateError as DataContextError no-undo.
@@ -701,15 +696,15 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
    
     end method.    
     
+    
     method override public void DataRefreshed(presponse as IFetchResponse):
-        if presponse:Entityname = "partition" then
-        do:
+        
+        if presponse:Entityname = "partition" 
+        and not valid-handle(pResponse:DataHandle:get-buffer-handle(TableHandle:name)) then
             GetChild("partitions"):DataRefreshed(presponse).
-          
-        end.    
         else
            super:DataRefreshed(presponse).
-    end method.    
+    end method.   
     
     /** override to refresh partitions for create  */
     method override public void MergeChanges( pResponse as ISaveRequest ):

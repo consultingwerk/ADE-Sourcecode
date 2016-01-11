@@ -174,15 +174,12 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
            ASSIGN DICTDB._File._Can-create = mass
                   DICTDB._File._Can-write  = mass
                   DICTDB._File._Can-delete = mass.
-
         /* domain */
         FIND DICTDB._File  "_sec-authentication-domain" NO-ERROR.
         IF AVAIL(DICTDB._File) THEN
            ASSIGN DICTDB._File._Can-create = mass
                   DICTDB._File._Can-write  = mass
                   DICTDB._File._Can-delete = mass.
-		
-		
         /* thrown above - rethrow */
         catch e as AppError  :
             undo, throw  e.		

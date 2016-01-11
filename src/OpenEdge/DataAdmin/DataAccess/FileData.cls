@@ -30,6 +30,7 @@ using OpenEdge.DataAdmin.DataSource.FieldPartitionDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.IndexPartitionDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.TablePermissionDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.FieldPermissionDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.SecurityOptionsSource from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
@@ -67,7 +68,8 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess  :
         define variable partitionDataSource as IDataSource no-undo.
         define variable sequenceValueDataSource as IDataSource no-undo.
         define variable adminSource as AdministratorSource  no-undo.
-            
+        define variable secOptionsSource as SecurityOptionsSource  no-undo.
+                    
         hDs = pChanges:DataHandle.
         DatasetHandle = hDs.
         SetUrl(pChanges:url). 
@@ -78,7 +80,12 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess  :
             hBuffer = pChanges:DataHandle:get-buffer-handle ("ttAdministrator").
             adminSource:Save(hBuffer).              
         end.              
-         
+        else if pChanges:EntityName = "SecurityOptions" then
+        do:
+            secOptionsSource = new SecurityOptionsSource().
+            hBuffer = pChanges:DataHandle:get-buffer-handle ("ttSecurityOptions").
+            secOptionsSource:Save(hBuffer).              
+        end.     
         else do transaction on error undo, throw:
             
             do i = 1 to hDs:num-buffers:
@@ -133,11 +140,11 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess  :
         define variable i as integer no-undo.
       
         define variable adminSource as AdministratorSource  no-undo.
+        define variable secoptionsSource as SecurityOptionsSource  no-undo.
         define variable tableDataSource as IDataSource no-undo.
         define variable tablePermissionDataSource as IDataSource no-undo.
         define variable fieldPermissionDataSource as IDataSource no-undo.
         define variable sequenceDataSource as IDataSource no-undo.
-        define variable partitionDataSource as IDataSource no-undo.
         define variable sequenceValueDataSource as IDataSource no-undo.
         define variable fieldDataSource as IDataSource no-undo.
         define variable indexDataSource as IDataSource no-undo.     
@@ -150,7 +157,13 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess  :
             adminSource = new AdministratorSource().
             hBuffer = msg:DataHandle:get-buffer-handle ("ttAdministrator").
             adminSource:Fill(hBuffer).              
-        end.            
+        end.
+        else if msg:EntityName = "SecurityOptions" then
+        do:
+            secoptionsSource = new SecurityOptionsSource().
+            hBuffer = msg:DataHandle:get-buffer-handle ("ttSecurityOptions").
+            secoptionsSource:Fill(hBuffer).              
+        end.                        
         else do: 
             hBuffer = msg:DataHandle:get-buffer-handle ("ttTablechange").
             SetUrl(msg:url). 
@@ -300,7 +313,6 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess  :
             delete object tablePermissionDataSource no-error.
             delete object fieldPermissionDataSource no-error.
             delete object sequenceDataSource no-error.
-            delete object partitionDataSource no-error.
             delete object sequenceValueDataSource no-error.
             delete object fieldDataSource no-error.
             delete object indexDataSource no-error.         

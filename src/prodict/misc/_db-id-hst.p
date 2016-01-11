@@ -2,7 +2,7 @@
 &Scoped-define FRAME-NAME history-frame
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2012 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -32,6 +32,7 @@
                            appbuilder friendly code.
     kmcintos Oct 28, 2005  Changed context sensitive help id.
     fernando 11/30/07      Check if read-only mode.
+    rkmaboj  05/02/2012    fixed unknown record creation, when creating record first time.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -320,7 +321,8 @@ PROCEDURE initializeUI :
 
   OPEN QUERY qDetail FOR EACH ttDetail NO-LOCK BY tiSequence.
   ENABLE bDetail WITH FRAME {&FRAME-NAME}.
-  
+  IF NOT CAN-FIND(FIRST ttDetail) then
+     DISABLE fiDescription edCustDtl lblHasMac WITH FRAME history-frame. 
   APPLY "ENTRY" TO BROWSE bDetail.
   APPLY "VALUE-CHANGED" TO BROWSE bDetail.
 END PROCEDURE.
@@ -355,19 +357,23 @@ PROCEDURE loadDetailTT :
            ttDetail.tlModified     = FALSE NO-ERROR.
   END.
   ELSE DO TRANSACTION:
-    hDbDetail:BUFFER-CREATE().
-    ASSIGN hDbDetail::_db-guid          = hDb::_db-guid
-           hDbDetail::_db-description   = hDbDetail:DBNAME
-           hDbDetail::_db-custom-detail = "".
-
-    iSequence = iSequence + 1.
-    CREATE ttDetail.
-    ASSIGN ttDetail.tiSequence     = iSequence
-           ttDetail.tcDBGuid       = hDbDetail::_db-guid + "  **"
-           ttDetail.tcDescription  = hDbDetail::_db-description 
-           ttDetail.tcCustomDetail = hDbDetail::_db-custom-detail
-           ttDetail.tlHasMacKey    = (STRING(hDbDetail::_db-mac-key) NE "020000")
-           ttDetail.tlModified     = FALSE NO-ERROR.
+    IF hDb::_db-guid <> ? THEN
+    DO:
+        
+        hDbDetail:BUFFER-CREATE().
+        ASSIGN hDbDetail::_db-guid          = hDb::_db-guid
+               hDbDetail::_db-description   = hDbDetail:DBNAME
+               hDbDetail::_db-custom-detail = "".
+    
+        iSequence = iSequence + 1.
+        CREATE ttDetail.
+        ASSIGN ttDetail.tiSequence     = iSequence
+               ttDetail.tcDBGuid       = hDbDetail::_db-guid + "  **"
+               ttDetail.tcDescription  = hDbDetail::_db-description 
+               ttDetail.tcCustomDetail = hDbDetail::_db-custom-detail
+               ttDetail.tlHasMacKey    = (STRING(hDbDetail::_db-mac-key) NE "020000")
+               ttDetail.tlModified     = FALSE NO-ERROR.
+    END.
   END.
   IF hDb::_db-guid <> ? THEN DO:
   CREATE QUERY hQuery.

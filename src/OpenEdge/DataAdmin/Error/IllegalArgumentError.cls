@@ -1,13 +1,16 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010,2012 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from progress Software Corporation. */
 /*************************************************************/ 
  /*------------------------------------------------------------------------
-    File        : IllegalArgumentError
-    Purpose     : 
+    Purpose     : Illegal argument should be thrown when there is something
+                  wrong with the arguments/parameters passed to a method. 
+                  This is different than IllegalOperationError, which should be 
+                  thrown when a method cannot be called, for example due to the 
+                  state of the object
     Syntax      : 
     Description : 
     Author(s)   : hdaniels

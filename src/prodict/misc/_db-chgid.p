@@ -2,7 +2,7 @@
 &Scoped-define FRAME-NAME chgid-frame
 /*------------------------------------------------------------------------
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2012 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -38,6 +38,7 @@
                            into RAW 20050620-031.
     kmcintos Oct  26, 2005 Assigning hex-decode output to temp var before 
                            comparison 20050928-003.
+    rkmaboj  05/02/2012    fixed unknown record creation, when creating record first time.                       
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -269,7 +270,7 @@ ON END-ERROR OF FRAME {&FRAME-NAME}
 ON GO OF FRAME {&FRAME-NAME} DO:
   DEFINE VARIABLE tmpRaw AS RAW.
   DEFINE VARIABLE rawBI  AS RAW.
-
+  
   IF NOT tbBlank:CHECKED AND
      glMacMod AND
      COMPARE(fiMacKey:SCREEN-VALUE,"NE",
@@ -285,6 +286,14 @@ ON GO OF FRAME {&FRAME-NAME} DO:
   
   phDbDetail:EMPTY-TEMP-TABLE().
   phDbDetail:BUFFER-CREATE().
+  IF NOT phOldBuff:AVAILABLE THEN
+  DO:
+      tmpRaw = HEX-DECODE(AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY("_db-id-mnt_initial_")).
+      ASSIGN phDbDetail::_db-mac-key = tmpRaw
+             phDbDetail::_db-description = "PROGRESSST"
+             phDbDetail::_db-custom-detail = "".
+  END.      
+  ELSE 
   phDbDetail:BUFFER-COPY(phOldBuff,"_db-guid").
       
   phDbDetail::_db-guid      = fiGuid:SCREEN-VALUE.
@@ -302,7 +311,8 @@ ON GO OF FRAME {&FRAME-NAME} DO:
     END.
     ELSE DO:
       tmpRaw = HEX-DECODE(AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(fiMacKey:SCREEN-VALUE)).
-      IF tmpRaw NE phOldBuff::_db-mac-key THEN
+      
+      IF phOldBuff:AVAILABLE AND tmpRaw NE phOldBuff::_db-mac-key THEN
         phDbDetail::_db-mac-key = tmpRaw.
     END.
   END.
@@ -395,17 +405,18 @@ PROCEDURE initializeUI :
   &ENDIF
   
   DO WITH FRAME chgid-frame:
-    ASSIGN glHasMac                = 
-                            (STRING(phOldBuff::_db-mac-key) NE "020000")
-           gcInitial               = (IF glHasMac THEN "_db-chgid_initial_" 
+      IF phOldBuff:AVAILABLE THEN 
+         ASSIGN glHasMac           = (STRING(phOldBuff::_db-mac-key) NE "020000").
+    
+        ASSIGN gcInitial               = (IF glHasMac THEN "_db-chgid_initial_" 
                                       ELSE "")
-           fiGuid:SCREEN-VALUE     = cGuid
-           fiMacKey:SCREEN-VALUE   = gcInitial 
-           fiVerifMac:SCREEN-VALUE = gcInitial
-           tbBlank:CHECKED         = NOT glHasMac
-           fiMacKey:SENSITIVE      = FALSE
-           fiVerifMac:SENSITIVE    = FALSE
-           tbBlank:SENSITIVE       = FALSE.
+               fiGuid:SCREEN-VALUE     = cGuid
+               fiMacKey:SCREEN-VALUE   = gcInitial 
+               fiVerifMac:SCREEN-VALUE = gcInitial
+               tbBlank:CHECKED         = NOT glHasMac
+               fiMacKey:SENSITIVE      = FALSE
+               fiVerifMac:SENSITIVE    = FALSE
+               tbBlank:SENSITIVE       = FALSE.
   END.
 END PROCEDURE.
 

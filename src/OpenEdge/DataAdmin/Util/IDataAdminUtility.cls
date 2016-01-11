@@ -16,9 +16,23 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityRequest  from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 
 interface OpenEdge.DataAdmin.Util.IDataAdminUtility:  
+    /** set to true to export status */
+    define public property Name           as char   no-undo get. set.
+    define public property LogStatus      as logical no-undo get. set.
+    /** optional status log type */
+/*    define public property LogType        as char no-undo get. set.*/
+    define public property StatusFileName as character  no-undo get. set.
+    define public property StatusInterval as integer  no-undo get. set.
+    define public property TaskName       as char  no-undo get. set.
+    
     method public IUtilityRequest GetRequest().
+    method public void SetResponse(response as IUtilityResponse).
+    
     method public void ImportOptions(pcFile as char). 
+    
+    
 end interface.

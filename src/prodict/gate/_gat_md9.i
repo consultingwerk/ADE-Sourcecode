@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007,2012 by Progress Software Corporation. All *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -44,6 +44,7 @@ DEFINE NEW SHARED VARIABLE errs   AS INTEGER INITIAL 0 NO-UNDO.
 DEFINE NEW SHARED VARIABLE recs   AS INT64 INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER INITIAL ? NO-UNDO.
+DEFINE NEW SHARED VARIABLE fil-d  AS CHARACTER NO-UNDO.
 DEFINE            VARIABLE noload AS CHARACTER NO-UNDO.
 DEFINE            VARIABLE wtype  AS CHARACTER NO-UNDO.
 DEFINE            VARIABLE l_debug      AS logical   NO-UNDO INIT FALSE.

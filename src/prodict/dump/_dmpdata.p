@@ -42,19 +42,25 @@ History:
 */
 /*h-*/
 
+using Progress.Lang.*.
+
+/* ensure that errors from directory functions are thrown   
+   this also allows us to use errorHandler 
+   this does not affect _runload.i whihc does not throw, bit handles all error   
+*/ 
+routine-level on error undo, throw.
+
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
 DEFINE NEW SHARED STREAM   dump.
 DEFINE NEW SHARED VARIABLE recs AS DECIMAL FORMAT ">>>>>>>>>>>>9" NO-UNDO.
-DEFINE NEW SHARED VARIABLE xpos AS INTEGER NO-UNDO.
-DEFINE NEW SHARED VARIABLE ypos AS INTEGER NO-UNDO.
-
+ 
 DEFINE VARIABLE cerr        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE cntr        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE fil         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE loop        AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE lots        AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE addfilename AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE mdy         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE msg         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE stamp       AS CHARACTER NO-UNDO.
@@ -78,8 +84,13 @@ DEFINE VARIABLE isCpUndefined AS LOGICAL  NO-UNDO.
 DEFINE VARIABLE cRecords  AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE dis_trig     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE old_dis_trig AS LOGICAL   NO-UNDO.
-
 define variable isSuperTenant as logical no-undo. 
+define variable cGroupName     as char     no-undo.
+define variable lSkipCodePageValidation  as logical no-undo.
+define variable xUseDefault    as character no-undo init "<default>".
+DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
+define variable lImmediatedisp as logical no-undo.
+define variable xDumpTerminatedMsg as character no-undo init "Dump terminated.".
 
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
@@ -92,6 +103,39 @@ FORM
   SCREEN-LINES - 8 DOWN ROW 2 CENTERED &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN THREE-D &ENDIF.
 
+
+/*--------------------------- FUNCTIONS  --------------------------*/
+function validDirectory returns logical ( cValue as char):
+  
+    IF cValue <> "" THEN 
+    DO:
+        /* not a propath search - use logic blank is default 
+          - the directory is currently used as-is in output to and os-create
+          
+           */ 
+        if not (cValue begins "/" or cvalue begins "~\" or index(cValue,":") <> 0) then
+            cValue = "./" + cValue.  
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
+    END.
+        
+    return true.
+ 
+end function. /* validDirectory */
+
+function createDirectoryIf returns logical ( cdirname as char):
+    define variable iStat as integer no-undo.
+    if not validdirectory(cdirname) then
+    do:
+        OS-CREATE-DIR VALUE(cdirname). 
+        iStat = OS-ERROR. 
+        if iStat <> 0 then
+            undo, throw new AppError(xDumpTerminatedMsg + " Cannot create directory " + cdirname + ". System error:" + string(iStat),?).
+    end.
+    return true.
+end function. /* createDirectoryIf */
+
+
 IF SESSION:CPINTERNAL EQ "undefined":U THEN
     isCpUndefined = YES.
 
@@ -101,8 +145,8 @@ IF SESSION:CPINTERNAL EQ "undefined":U THEN
   cSlash = "~\".
 &ENDIF
  
-  
-IF NOT isCpUndefined THEN DO:
+IF NOT isCpUndefined THEN 
+DO:
 
   IF user_longchar <> "" AND user_longchar <> ? THEN
      ASSIGN has_lchar = TRUE.
@@ -116,11 +160,15 @@ IF NOT isCpUndefined THEN DO:
 */
 
    IF NOT has_lchar THEN
+   do:
       user_longchar = user_env[1].
+      has_lchar = true.
+   end.   
 END.
 
 IF (isCpUndefined AND user_env[1] NE "" AND user_env[1] NE ?)
-   OR ((NOT isCpUndefined) AND (user_longchar NE "" AND user_longchar NE ?)) THEN DO:
+   OR ((NOT isCpUndefined) AND (user_longchar NE "" AND user_longchar NE ?)) THEN 
+DO:
 
    ASSIGN ix = (IF isCpUndefined 
                 THEN INDEX(user_env[1],",_aud")
@@ -153,38 +201,75 @@ IF NOT isCpUndefined AND NOT has_lchar THEN
    user_longchar = ?.
 
 IF has_aud = TRUE THEN DO:
-  MESSAGE "Dump Failed!" SKIP(1)
-          "You cannot dump Audit Policies or Data through this utility!"
-      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    cMsg =  "Dump Failed!" + "~n" +
+        "You cannot dump Audit Policies or Data through this utility!" . 
+    
+    if user_env[6] NE "dump-silent" then
+        MESSAGE cMsg
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+     else 
+          undo, throw new AppError(cMsg).
   RETURN.
 END.
 
-IF NOT CONNECTED(user_dbname) THEN DO:
-    MESSAGE "Database" user_dbname "is not connected!"
+IF NOT CONNECTED(user_dbname) THEN 
+DO:
+   cMsg =  "Database " + user_dbname +
+        "is not connected!" . 
+   if user_env[6] NE "dump-silent" then
+      MESSAGE cMsg
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   else 
+      undo, throw new AppError(cMsg).     
     RETURN.
-END.
+END.     
 
-PAUSE 0.
-SESSION:IMMEDIATE-DISPLAY = yes.
-VIEW FRAME dumpdata.
-run adecomm/_setcurs.p ("WAIT").
+/* don't display frame */
+if user_env[6] NE "dump-silent" then 
+do:
+  PAUSE 0.
+  lImmediatedisp = SESSION:IMMEDIATE-DISPLAY.
+  SESSION:IMMEDIATE-DISPLAY = yes.
+  VIEW FRAME dumpdata.
+  run adecomm/_setcurs.p ("WAIT").
+end.
 
-IF  user_env[5] = " "  
- OR user_env[5] = ?  THEN assign user_env[5] = "<internal defaults apply>".
+/* check if we are supposed to skip the code page vaidation. 
+   this is signaled by adding a skip in front of the actual code page.. 
+   hacky, but what can you do with this code.   
+   When silent we cannot have the message box appearing, so the code page check 
+   throws an error instead of continuing. This setting allows us to bypass the 
+   check. Typically set from UI after the error has occured first time . */  
+if user_env[5] begins "skip-" then
+do:
+    lSkipCodePageValidation = true.
+    user_env[5] =  substr(user_env[5],6).
+    if user_env[5] = '?' then  user_env[5] = ?.
+end.    
+
+IF user_env[5] = " " OR user_env[5] = ?  THEN 
+    assign user_env[5] = "<internal defaults apply>".
 
 /* Used in numformat output */
-CodeOut = IF user_env[5] = "<internal defaults apply>" THEN
-             SESSION:CPINTERNAL
-	  ELSE
-	     user_env[5].
+CodeOut = IF user_env[5] = "<internal defaults apply>" 
+          THEN SESSION:CPINTERNAL
+	      ELSE user_env[5].
 
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 
 ASSIGN
   phDbName = PDBNAME("DICTDB") /* for logging audit event */
   cntr = 0
-  lots = (IF has_lchar THEN INDEX(user_longchar,",") > 0 ELSE INDEX(user_env[1],",") > 0)
+  addfilename = (IF has_lchar THEN INDEX(user_longchar,",") > 0 ELSE INDEX(user_env[1],",") > 0)
+                or
+                user_env[2] = ""
+                or
+                user_env[2] = "."
+                or
+                user_env[2] matches "*/" 
+                or 
+                user_env[2] matches "*~~~\". 
+  
   loop = TRUE. /* use this to mark initial entry into loop */
 
 PAUSE 5 BEFORE-HIDE.
@@ -201,315 +286,488 @@ IF ENTRY(1, user_env[4]) = "y" OR ENTRY(1, user_env[4]) = "n" THEN
 
 if int(dbversion("dictdb")) > 10 then
 do:
-   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+    isSuperTenant = can-find(first dictdb._tenant) and tenant-id("dictdb") < 0.
    
-   /* if tenant was explicitly set by the tool then verify that it still matches
-      the effective tenant also set there.
-      The UI sets this and dump_d.p sets this when setEffectiveTenant is used 
-      It is allowed to set-effective-tenant before running dump_d though (user_env[32]).
+    /* if tenant was explicitly set by the tool then verify that it still matches
+       the effective tenant also set there.
+       The UI sets this and dump_d.p sets this when setEffectiveTenant is used 
+       It is allowed to set-effective-tenant before running dump_d though (user_env[32]).
       */
-   if isSuperTenant
-   and user_env[32] <> ""
-   and user_env[32] <> get-effective-tenant-name("dictdb") then
+    if isSuperTenant
+    and user_env[32] <> ""
+    and user_env[32] <> get-effective-tenant-name("dictdb") then
+    do:
+        cMsg =  "Dump Aborted!" + "~n" +
+        "The ABL get-effective-tenant-name returns"  + quoter(get-effective-tenant-name("dictdb")) + 
+        "while the effective tenant that was last selected in the Data Administration dump dialog or utility is" + quoter(user_env[32]).
+        if user_env[6] NE "dump-silent" then   
+            MESSAGE cMsg
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        else
+            undo, throw new AppError(cMsg).
+        RETURN.
+    end.
+    
+end.
+
+if addfilename then
+do: 
+   if not validDirectory(user_env[2]) then 
    do:
-      MESSAGE "Dump Aborted!" SKIP(1)
-       "The ABL get-effective-tenant-name returns" quoter(get-effective-tenant-name("dictdb")) 
-       "while the effective tenant that was last selected in the Data Administration dump dialog or utility is" quoter(user_env[32])
-      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-      
-      RETURN.
+       cMsg = xDumpTerminatedMsg + " Directory " + user_env[2] + " does not exist.".
+       if user_env[6] NE "dump-silent" then   
+           message cMsg
+               view-as alert-box error buttons ok.
+       else
+           undo, throw new AppError(cMsg).
    end.
 end.
  
 DO ON STOP UNDO, LEAVE:
-  /* if not the no-convert case, check utf-8 case */
-  IF  user_env[5] NE "<internal defaults apply>" THEN DO:
-      
-      FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
-      IF DICTDB._Db._db-xl-name = "UTF-8" AND
-         (SESSION:CHARSET NE "UTF-8" OR TRIM(user_env[5]) NE "utf-8") THEN DO:
+    /* if not specifically skippng this check and not the no-convert case, 
+       check utf-8 case  */
+    IF not lSkipCodePageValidation 
+    and user_env[5] NE "<internal defaults apply>" THEN 
+    DO:
+        FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
+        IF DICTDB._Db._db-xl-name = "UTF-8" 
+        AND (SESSION:CHARSET NE "UTF-8" OR TRIM(user_env[5]) NE "utf-8") THEN 
+        DO:
 
-          if user_env[6] = "no-alert-boxes"
-          then do:  /* output WITHOUT alert-box */
-              MESSAGE "The database codepage is 'UTF-8' but -cpinternal and/or the codepage" SKIP
-                      "for output is not, which can cause some data not to be dumped properly" SKIP
-                      "if it cannot be represented in that codepage." SKIP(1)
-                      "It's recommended that you dump the data from a session with the 'UTF-8'" SKIP
-                      "codepage to avoid possible data corruption.".
-          END.
-          ELSE DO:
-              MESSAGE "The database codepage is 'UTF-8' but -cpinternal and/or the codepage" SKIP
-                      "for output is not, which can cause some data not to be dumped properly" SKIP
-                      "if it cannot be represented in that codepage." SKIP(1)
-                      "It's recommended that you dump the data from a session with the 'UTF-8'" SKIP
-                      "codepage to avoid possible data corruption."
-                  VIEW-AS ALERT-BOX WARNING.
-          END.
-      END.
-  END.
+            cMsg = "The database codepage is 'UTF-8' but -cpinternal and/or the codepage" + "~n" +
+                   "for output is not, which can cause some data not to be dumped properly" + "~n" +
+                   "if it cannot be represented in that codepage." + "~n" +
+                   "It's recommended that you dump the data from a session with the 'UTF-8'" + "~n" +
+                   "codepage to avoid possible data corruption.".
+            if user_env[6] = "dump-silent" then 
+            do:    
+                undo, throw new AppError(cMsg).
+            END.
+            else if user_env[6] = "no-alert-boxes" then 
+            do:  /* output WITHOUT alert-box */
+                MESSAGE cMsg.
+            END.
+            ELSE DO:
+                MESSAGE cMsg
+                    VIEW-AS ALERT-BOX WARNING.
+            END.
+        END.
+    END.
   
-  DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
+    DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
 
-    ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
+        ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
     
-    IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
-       FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
-                  DICTDB._File._File-name = cTemp AND
-                 (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
-    ELSE
-       FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
-                  DICTDB._File._File-name = cTemp.
-            
-    IF loop THEN .
-    ELSE IF FRAME-LINE(dumpdata) = FRAME-DOWN(dumpdata) THEN
-      UP FRAME-LINE(dumpdata) - 1 WITH FRAME dumpdata.
-    ELSE
-      DOWN 1 WITH FRAME dumpdata.
-  
-    /* if super tenant dumps multiple tables the tenant dir is in user_env[33]
-       and tenant lob dir in user_env[34] */ 
-    if user_env[32] > "" 
-    and issupertenant 
-    and int(dbversion("dictdb")) > 10 
-    and dictdb._file._file-attributes[1] and lots then
-    do:  
-        
-        fil = (IF user_env[33] EQ "" OR user_env[33] EQ "." THEN ""
-               ELSE RIGHT-TRIM(user_env[33],cSlash) + cSlash) 
-            + ( IF DICTDB._File._Dump-name = ?
-                THEN DICTDB._File._File-name
-                ELSE DICTDB._File._Dump-name
-              ) + ".d".         
-        
-        IF user_env[34] = "" OR user_env[34]= ? THEN
-           ASSIGN lobdir = "".
+        IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
+            FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db 
+             AND DICTDB._File._File-name = cTemp 
+             AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
         ELSE
-           ASSIGN lobdir = user_env[34].
-        
-        
-    end.
-    else do:
-      ASSIGN
- 
-         fil  = ( IF lots
-                      /* Don't count on a slash being at the end of the 
-                         directory.  Always trim it off and add one. */
-                  THEN (IF user_env[2] EQ "" OR 
-                          user_env[2] EQ "." THEN ""
-                       ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash) +
-                      ( IF DICTDB._File._Dump-name = ?
-                          THEN DICTDB._File._File-name
-                          ELSE DICTDB._File._Dump-name
-                      ) + ".d"
-                 ELSE user_env[2]
-             ).
-      IF user_env[30] = "" OR user_env[30]= ? THEN
-         ASSIGN lobdir = "".
-      ELSE
-         ASSIGN lobdir = user_env[30].
+            FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db 
+             AND DICTDB._File._File-name = cTemp.
+            
+        IF loop THEN .
+        ELSE if user_env[6] NE "dump-silent"  then 
+        do:
+            if FRAME-LINE(dumpdata) = FRAME-DOWN(dumpdata) THEN
+                UP FRAME-LINE(dumpdata) - 1 WITH FRAME dumpdata.
+            ELSE
+                DOWN 1 WITH FRAME dumpdata.
+        end.
     
-    
-    end.        
-    assign
-         loop = FALSE
-         recs = 0.
+        /* if super tenant or use default    */ 
+        if user_env[32] > "" 
+        and (issupertenant or user_env[33] = xUseDefault) 
+        and int(dbversion("dictdb")) > 10 
+        and dictdb._file._file-attributes[1] 
+        and addfilename then
+        do:  
+            cgroupName = "".
+            if user_env[37] > "" then
+                run GetGroupName(user_env[32],dictdb._file._file-number,OUTPUT cgroupname).
+            
+            if cgroupName > "" then
+            do:
+                /* use default then [37] is a subdir name to append to root */
+                if user_env[33] = xUseDefault then
+                do:
+                    if index(user_env[2],"/") > 0 then
+                        cSlash = "/". 
+                    fil = (IF user_env[2] EQ "" OR user_env[2] EQ "." 
+                           THEN ""
+                           ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash) 
+                        +  user_env[37]. 
+                    /* create the groups directory if necessary */    
+                    createDirectoryIf(fil). 
+                    /* add group name */
+                    fil = fil 
+                        + cSlash
+                        + cGroupName 
+                        + cSlash.
+                    /* create the group name directory if necessary */    
+                    createDirectoryIf(fil). 
+                end.
+                else do:
+                    if index(user_env[37],"/") > 0 then
+                        cSlash = "/". 
+                    /* add group name to groupdir */
+                    fil = (IF user_env[37] EQ "." THEN ""
+                           ELSE RIGHT-TRIM(user_env[37],cSlash) + cSlash)
+                        + cgroupName 
+                        + cSlash. 
+                end.
+                /* deal with lob dir */
+                if user_env[33] = xUseDefault then
+                do:
+                    if user_env[40] > "" then
+                    do:
+                        lobdir = user_env[40].
+                        /* create the group name lob directory if necessary */    
+                        createDirectoryIf(fil + lobdir). 
+                    end.
+                    else 
+                        lobdir = "".
+                end.
+                /** somewhat questionable -
+                   use tenant lob dir to check 
+                   currently no var for group lob dir 
+                   unless usedefault */
+                else if user_env[34] > "" then 
+                    lobdir = "lobs".
+                else
+                    lobdir = "".
+            end. /* cgroupName */
+            else do: /* no group = tenant dump */   
+                /* if use default use dir named from tenant create if necessary */ 
+                if user_env[33] = xUseDefault then
+                do:
+                    if index(user_env[2],"/") > 0 then
+                        cSlash = "/". 
+                    fil = (IF user_env[2] EQ "" OR user_env[2] EQ "." 
+                           THEN ""
+                           ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash) 
+                        +  user_env[32] + cslash. 
+                    /* create tenant directory if necessary */
+                    createDirectoryIf(fil). 
+                end. 
+                else do:   
+                    if index(user_env[33],"/") > 0 then
+                        cSlash = "/". 
+                     
+                    fil = (IF user_env[33] EQ "" OR user_env[33] EQ "." THEN ""
+                           ELSE RIGHT-TRIM(user_env[33],cSlash) + cSlash).
+                end.
+                
+                /* deal with lob dir */
+                if user_env[33] = xUseDefault then
+                do:
+                    if user_env[40] > "" then
+                    do:
+                        lobdir = user_env[40].
+                        /* create tenant lob directory if necessary */
+                        createDirectoryIf(fil + lobdir). 
+                    end.
+                    else 
+                        lobdir = "".
+                end.
+                else if user_env[34] > "" THEN
+                    lobdir = user_env[34].
+                ELSE
+                    lobdir = "".
+            end.
+            if addfilename then
+               fil = fil             
+                   + ( IF DICTDB._File._Dump-name = ?
+                       THEN DICTDB._File._File-name
+                       ELSE DICTDB._File._Dump-name
+                      ) + ".d".         
+             if valid-object(dictMonitor) then
+             do: 
+                 if cGroupName > "" then         
+                    dictMonitor:StartTable(dictdb._file._file-name,"Group",cGroupName,fil).          
+                 else 
+                    dictMonitor:StartTable(dictdb._file._file-name,"Tenant",user_env[32],fil).          
+             end. 
+        end.
+        else do:
+            if index(user_env[2],"/") > 0 then
+                cSlash = "/". 
+            /* don't add file yet as we need the path to 
+               add lob directory */    
+            if addfilename then
+                fil = (IF user_env[2] EQ "" OR user_env[2] EQ "." 
+                       THEN ""
+                       ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash). 
+            else
+                fil = user_env[2].
+            
+            if user_env[33] = xUseDefault then
+            do:
+                if user_env[40] > "" then
+                do:
+                    if not addfilename then
+                    do:
+                        /* this should not happen.. 
+                        _usrdump passes root-only also for single table 
+                        in this case, but it is conceivable that 
+                        we could get here with some combination of dump_d params  */
+                        undo, throw new apperror("Cannot dump lobs using default location if directory is specified with file-name").
+                    end.    
+                    lobdir = user_env[40].
+                    /* create lob directory if necessary */
+                    createDirectoryIf(fil + lobdir). 
+                end.
+                else 
+                    lobdir = "".
+            end.
+            else if user_env[30] > "" then 
+                lobdir = user_env[30].
+            else 
+                lobdir = "".  
+            
+            IF addfilename then
+                fil = fil 
+                    + (IF DICTDB._File._Dump-name = ?
+                       THEN DICTDB._File._File-name
+                       ELSE DICTDB._File._Dump-name) + ".d".
+        
+            if valid-object(dictMonitor) then
+                dictMonitor:StartTable(dictdb._file._file-name,"Shared","",fil).          
+      
+        end.        
+        assign
+            loop = FALSE
+            recs = 0.
    
-    DISPLAY DICTDB._File._File-name fil "Dumping" @ msg WITH FRAME dumpdata.
-    COLOR DISPLAY MESSAGES DICTDB._File._File-name fil msg
-      WITH FRAME dumpdata.
-
-    ASSIGN
-      xpos  = FRAME-COL(dumpdata) + 69
-      ypos  = FRAME-ROW(dumpdata) + FRAME-LINE(dumpdata) + 5
-      stamp = STRING(YEAR( TODAY),"9999") + "/"
-            + STRING(MONTH(TODAY),"99"  ) + "/"
-            + STRING(DAY(  TODAY),"99"  ) + "-"
-            + STRING(TIME,"HH:MM:SS")
-      cerr  = TRUE
-      exceptfields = ""
-      tableexpression = " NO-LOCK".
-  
-    IF DICTDB._File._Prime-Index <> ? AND user_dbtype = "PROGRESS" THEN DO:
-      FIND DICTDB._Index WHERE RECID(DICTDB._Index) = DICTDB._File._Prime-Index.
-      IF NOT DICTDB._Index._Active THEN DO:
-        FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Active NO-ERROR.
-        IF NOT AVAILABLE DICTDB._Index THEN DO:
-          DISPLAY "Error!" @ msg WITH FRAME dumpdata.
-          COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
-          MESSAGE
-            "Cannot dump {&PRO_DISPLAY_NAME} data when all indexes for a table are inactive.".
-          NEXT.
+        if user_env[6] NE "dump-silent" then 
+        do: 
+            DISPLAY DICTDB._File._File-name fil "Dumping" @ msg WITH FRAME dumpdata.
+            COLOR DISPLAY MESSAGES DICTDB._File._File-name fil msg WITH FRAME dumpdata.
+        end.
+        ASSIGN
+            stamp = STRING(YEAR( TODAY),"9999") + "/"
+                  + STRING(MONTH(TODAY),"99"  ) + "/"
+                  + STRING(DAY(  TODAY),"99"  ) + "-"
+                  + STRING(TIME,"HH:MM:SS")
+            cerr  = TRUE
+            exceptfields = ""
+            tableexpression = " NO-LOCK".
+        
+        IF DICTDB._File._Prime-Index <> ? AND user_dbtype = "PROGRESS" THEN 
+        DO:
+            FIND DICTDB._Index WHERE RECID(DICTDB._Index) = DICTDB._File._Prime-Index.
+            IF NOT DICTDB._Index._Active THEN 
+            DO:
+                FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Active NO-ERROR.
+                IF NOT AVAILABLE DICTDB._Index THEN 
+                DO:
+                    cMsg = "Cannot dump {&PRO_DISPLAY_NAME} data when all indexes for a table are inactive.".
+                    if user_env[6] NE "dump-silent" then 
+                    do:
+                        DISPLAY "Error!" @ msg WITH FRAME dumpdata.
+                        COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
+                        MESSAGE cMsg.
+                    end.
+                    else
+                        undo, throw new AppError(cMsg).
+                    NEXT.
+                END.
+                tableexpression = "USE-INDEX " + DICTDB._Index._Index-name + tableexpression.
+            END.
         END.
-        tableexpression = "USE-INDEX " + DICTDB._Index._Index-name + tableexpression.
-      END.
-    END.
-    if dictdb._file._file-name = "_user" then
-    do:
-      exceptfields = "EXCEPT _Tenantid".  
-    end.    
-    else if dictdb._file._file-name = "_sec-authentication-domain" then
-    do:
-      tableexpression = "WHERE DICTDB2._sec-authentication-domain._Domain-category = 0 " + tableexpression.
-      exceptfields = "EXCEPT _Domain-id".  
-    end.    
-    else if dictdb._file._file-name = "_sec-authentication-system" then
-    do:
-      tableexpression = "WHERE (DICTDB2._sec-authentication-system._domain-type begins '_') = false "  + tableexpression.
-    end.    
-    RUN CheckLobDirpath.
-    DO ON ERROR UNDO,LEAVE:      /* code-page-stuf <hutegger> 94/02 */
-      IF  user_env[3] = "" OR user_env[3] = "NO-MAP" THEN DO:
-        IF  user_env[5] = "<internal defaults apply>" THEN DO:
-          IF lobdir <> "" THEN
-              OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir)
-              NO-ECHO NO-MAP NO-CONVERT.
-          ELSE
-              OUTPUT STREAM dump TO VALUE(fil) 
-              NO-ECHO NO-MAP NO-CONVERT.
-        END.
-        ELSE DO:
-          IF lobdir <> "" THEN
-            OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO NO-MAP
-            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
-          ELSE 
-            OUTPUT STREAM dump TO VALUE(fil) NO-ECHO NO-MAP
-            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
-        END.
-      END.
-      ELSE DO:
-        IF  user_env[5] = "<internal defaults apply>" THEN DO:
-          IF lobdir <> "" THEN 
-            OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO 
-            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
-            NO-CONVERT.
-          ELSE
-            OUTPUT STREAM dump TO VALUE(fil) NO-ECHO 
-            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
-            NO-CONVERT.
-        END.
-        ELSE DO:
-          IF lobdir <> "" THEN
-            OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO 
-            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
-            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
-          ELSE 
-            OUTPUT STREAM dump TO VALUE(fil)  NO-ECHO 
-            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
-            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
-        END.
-      END.
-      cerr = FALSE.
-    END.
-  
-    IF cerr THEN DO:
-      DISPLAY "Error!" @ msg WITH FRAME dumpdata.
-      COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
-      NEXT.
-    END.
-  
-    CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname).
-
-    /* check if we can disable triggers. List now contains just the
-      table numbers for tables that we should not disable triggers for.
-    */
-    ASSIGN dis_trig = ENTRY(1, user_env[4]).
-    IF NOT old_dis_trig THEN DO:
-        IF dis_trig NE "" AND dis_trig = STRING(_File._File-number) THEN
-           ASSIGN dis_trig = "n".
-        ELSE 
-           ASSIGN dis_trig = "y".
-    END.
-    
-    RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
-                VALUE(_File._File-name) 
-                VALUE(tableexpression) 
-                VALUE(user_env[31])
-                VALUE(exceptfields).
-                                       
-    /* move on to the next one in the list */
-    IF old_dis_trig OR (dis_trig = "n") THEN
-       user_env[4] = SUBSTRING(user_env[4]
-                               ,LENGTH(ENTRY(1,user_env[4]),"character") + 2
-                               ,-1
-                               ,"character"
-                               ).
-
-/*------------------ Trailer-INFO ------------------*/
-
-  /* if value is too large to fit in format, write it as it is */
-  ASSIGN cRecords = STRING(recs,"9999999999999") NO-ERROR.
-  IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
-     ASSIGN cRecords = STRING(recs).
-
-  {prodict/dump/dmptrail.i
-    &entries      = "PUT STREAM dump UNFORMATTED
-                      ""filename=""   DICTDB._File._File-name SKIP
-                      ""records=""    cRecords SKIP
-                      ""ldbname=""    LDBNAME(user_dbname) SKIP
-                      ""timestamp=""  stamp SKIP
-                      ""numformat=""
-                   STRING(ASC(
-		   SESSION:NUMERIC-SEPARATOR,CodeOut,SESSION:CPINTERNAL))     +
-                   "",""                                                      +                   STRING(ASC(
-		   SESSION:NUMERIC-DECIMAL-POINT,CodeOut,SESSION:CPINTERNAL))
-                        SKIP
-                        ""dateformat="" mdy STRING(- yy) SKIP.
-                    IF user_env[3] = ""NO-MAP"" THEN
-                      PUT STREAM dump UNFORMATTED ""map=NO-MAP"" SKIP.
+        if dictdb._file._file-name = "_user" then
+        do:
+            exceptfields = "EXCEPT _Tenantid".  
+        end.    
+        else if dictdb._file._file-name = "_sec-authentication-domain" then
+        do:
+/*             tableexpression = "WHERE DICTDB2._sec-authentication-domain._Domain-category = 0 " + tableexpression.*/
+               exceptfields = "EXCEPT _Domain-id".
+        end.
+/*        else if dictdb._file._file-name = "_sec-authentication-system" then                                                     */
+/*        do:                                                                                                                     */
+/*             tableexpression = "WHERE (DICTDB2._sec-authentication-system._domain-type begins '_') = false "  + tableexpression.*/
+/*        end.                                                                                                                    */
+               
+        DO ON ERROR UNDO,LEAVE:      /* code-page-stuf <hutegger> 94/02 */
+            IF user_env[3] = "" OR user_env[3] = "NO-MAP" THEN 
+            DO:
+                IF user_env[5] = "<internal defaults apply>" THEN 
+                DO:
+                    IF lobdir <> "" THEN
+                        OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir)
+                            NO-ECHO NO-MAP NO-CONVERT.
                     ELSE
-                    IF user_env[3] <> """" THEN
-                      PUT STREAM dump UNFORMATTED ""map=MAP:"" 
-                        SUBSTRING(user_env[3],4,-1,""character"") SKIP.
-                    "  
-    &seek-stream  = "dump"
-    &stream       = "STREAM dump"
-    }  /* adds trailer with code-page-entrie to end of file */
+                        OUTPUT STREAM dump TO VALUE(fil) 
+                            NO-ECHO NO-MAP NO-CONVERT.
+                END.
+                ELSE DO:
+                    IF lobdir <> "" THEN
+                        OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO NO-MAP
+                            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
+                    ELSE 
+                        OUTPUT STREAM dump TO VALUE(fil) NO-ECHO NO-MAP
+                            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
+                END.
+            END.
+            ELSE DO:
+                IF user_env[5] = "<internal defaults apply>" THEN 
+                DO:
+                    IF lobdir <> "" THEN 
+                        OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO 
+                            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
+                            NO-CONVERT.
+                    ELSE
+                        OUTPUT STREAM dump TO VALUE(fil) NO-ECHO 
+                            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
+                            NO-CONVERT.
+                END.
+                ELSE DO:
+                    IF lobdir <> "" THEN
+                        OUTPUT STREAM dump TO VALUE(fil) LOB-DIR VALUE(lobdir) NO-ECHO 
+                            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
+                            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
+                    ELSE 
+                        OUTPUT STREAM dump TO VALUE(fil)  NO-ECHO 
+                            MAP VALUE(SUBSTRING(user_env[3],5,-1,"character"))
+                            CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
+                END.
+            END.
+            cerr = FALSE.
+        END. 
+        IF cerr THEN 
+        DO:
+            if user_env[6] NE "dump-silent" then 
+            do:
+                DISPLAY "Error!" @ msg WITH FRAME dumpdata.
+                COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
+            end.
+            else 
+                undo, throw new AppError ("Error!").
+            NEXT.
+        END.
+      
+        CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname).
     
-/*------------------ Trailer-INFO ------------------*/
+        /* check if we can disable triggers. List now contains just the
+          table numbers for tables that we should not disable triggers for.
+        */
+        ASSIGN dis_trig = ENTRY(1, user_env[4]).
+        IF NOT old_dis_trig THEN 
+        DO:
+            IF dis_trig NE "" AND dis_trig = STRING(_File._File-number) THEN
+               ASSIGN dis_trig = "n".
+            ELSE 
+               ASSIGN dis_trig = "y".
+        END.
+        
+        RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
+                    VALUE(_File._File-name) 
+                    VALUE(tableexpression) 
+                    VALUE(user_env[31])
+                    VALUE(exceptfields).
+                                           
+        /* move on to the next one in the list */
+        IF old_dis_trig OR (dis_trig = "n") THEN
+           user_env[4] = SUBSTRING(user_env[4]
+                                   ,LENGTH(ENTRY(1,user_env[4]),"character") + 2
+                                   ,-1
+                                   ,"character"
+                                   ).
+        if valid-object(dictMonitor) then
+            dictMonitor:EndTable(fil,int64(recs)).                
+         
+        /*------------------ Trailer-INFO ------------------*/
+    
+        /* if value is too large to fit in format, write it as it is */
+        ASSIGN cRecords = STRING(recs,"9999999999999") NO-ERROR.
+        IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+            ASSIGN cRecords = STRING(recs).
+        
+        {prodict/dump/dmptrail.i
+            &entries      = "PUT STREAM dump UNFORMATTED
+                          ""filename=""   DICTDB._File._File-name SKIP
+                          ""records=""    cRecords SKIP
+                          ""ldbname=""    LDBNAME(user_dbname) SKIP
+                          ""timestamp=""  stamp SKIP
+                          ""numformat=""
+                       STRING(ASC(
+    		   SESSION:NUMERIC-SEPARATOR,CodeOut,SESSION:CPINTERNAL))     +
+                       "",""                                                      +                   STRING(ASC(
+    		   SESSION:NUMERIC-DECIMAL-POINT,CodeOut,SESSION:CPINTERNAL))
+                            SKIP
+                            ""dateformat="" mdy STRING(- yy) SKIP.
+                        IF user_env[3] = ""NO-MAP"" THEN
+                          PUT STREAM dump UNFORMATTED ""map=NO-MAP"" SKIP.
+                        ELSE
+                        IF user_env[3] <> """" THEN
+                          PUT STREAM dump UNFORMATTED ""map=MAP:"" 
+                            SUBSTRING(user_env[3],4,-1,""character"") SKIP.
+                        "  
+            &seek-stream  = "dump"
+            &stream       = "STREAM dump"
+        }  /* adds trailer with code-page-entrie to end of file */
+        
+        /*------------------ Trailer-INFO ------------------*/
+    
+        OUTPUT STREAM dump CLOSE.
+        
+        if user_env[6] NE "dump-silent" then 
+        do:  
+            COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
+            DISPLAY DICTDB._File._File-name fil WITH FRAME dumpdata.
+            /* make sure value can fit in format */
+            msg = STRING(recs,">>>>>>>>>>>>9") NO-ERROR.
+            IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+                msg = "**********". /* too big to fit on the screen */
+    
+            DISPLAY msg WITH FRAME dumpdata.
+        end.
+        
+        cntr = cntr + 1.
+      
+        /* audit dump of tables */
+        AUDIT-CONTROL:LOG-AUDIT-EVENT(10213, 
+                                      phDbName + "." +  DICTDB._File._File-name /* db-name.table-name */, 
+                                      "" /* detail */).
+        /* this block has on error, undo next, so handle error so we can throw in case we are running silent */
+        catch e as Progress.Lang.Error :
+        	run handleError(e).	
+        end catch.      
+    END. /* DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:*/
 
-    OUTPUT STREAM dump CLOSE.
-  
-    COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
-    DISPLAY DICTDB._File._File-name fil WITH FRAME dumpdata.
-
-    /* make sure value can fit in format */
-    msg = STRING(recs,">>>>>>>>>>>>9") NO-ERROR.
-    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
-        msg = "**********". /* too big to fit on the screen */
-
-    DISPLAY msg WITH FRAME dumpdata.
-
-    cntr = cntr + 1.
-  
-    /* audit dump of tables */
-    AUDIT-CONTROL:LOG-AUDIT-EVENT(10213, 
-                                  phDbName + "." +  DICTDB._File._File-name /* db-name.table-name */, 
-                                  "" /* detail */).
-  END. /* for each DICTDB._File */
-
-  stopped = false.
+    stopped = false.
 END.  /* on stop */
 
-DO WHILE FRAME-LINE(dumpdata) < FRAME-DOWN(dumpdata):
-  DOWN 1 WITH FRAME dumpdata.
-  CLEAR FRAME dumpdata NO-PAUSE.
-END.
-run adecomm/_setcurs.p ("").
+if user_env[6] NE "dump-silent" then 
+do:
+    DO WHILE FRAME-LINE(dumpdata) < FRAME-DOWN(dumpdata):
+        DOWN 1 WITH FRAME dumpdata.
+        CLEAR FRAME dumpdata NO-PAUSE.
+    END.
+end.
 
-if user_env[6] = "no-alert-boxes"
-then do:  /* output WITHOUT alert-box */
+run adecomm/_setcurs.p ("").
+ 
+if user_env[6] = "dump-silent" then 
+do:  /* output WITHOUT alert-box */
+  IF stopped THEN
+      undo, throw new AppError(xDumpTerminatedMsg).
+end.      /* output WITHOUT alert-box */
+
+else if user_env[6] = "no-alert-boxes" then 
+do:  /* output WITHOUT alert-box */
 
   IF stopped THEN
-    MESSAGE "Dump terminated.".
+    MESSAGE xDumpTerminatedMsg.
   ELSE
     MESSAGE "Dump of database contents completed:" 
                     cntr "table(s) dumped successfully.".
 end.      /* output WITHOUT alert-box */
-
 else do:  /* output WITH alert-box */
 
   IF stopped THEN
-   MESSAGE "Dump terminated."
+      MESSAGE xDumpTerminatedMsg
                  VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
   ELSE
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -524,29 +782,62 @@ else do:  /* output WITH alert-box */
   
 end.     /* output WITH alert-box */
 
-IF NOT isCpUndefined THEN
-   ASSIGN user_longchar = "".
-
-HIDE FRAME dumpdata NO-PAUSE.
-SESSION:IMMEDIATE-DISPLAY = no.
 RETURN.
-PROCEDURE CheckLobDirpath:
-  DEFINE VARIABLE WrkDir As character    no-undo.
-  DEFINE VARIABLE LocLobDir As character no-undo.
-  DEFINE VARIABLE LobDirN   As character no-undo.
-  DEFINE VARIABLE LocSlash  AS CHARACTER no-undo.
-  if lobdir <> "" then
-  do:
-     if index(lobdir,"/") <> 0 then LocSlash = "/".
-     else if index(lobdir,"~\") <> 0 then LocSlash = "~\".
-     else LocSlash = "".
-     Assign LocLobDir = lobdir
-            File-info:file-name = "." 
-            WrkDir = File-info:FULL-PATHNAME
-            LobDirN = wrkdir + if lobdir <> "" then LocSlash else "" 
-            LobDirN = LobDirN + LocLobDir.
-     FILE-INFO:FILE-NAME = LobDirN. 
-     IF SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D" Then 
-     Assign lobdir = LobDirN.
-  end.
+
+catch e as Progress.Lang.Error :
+	run handleError(e).	
+end catch.
+
+finally:
+   IF NOT isCpUndefined THEN
+       ASSIGN user_longchar = "".
+   if user_env[6] = "dump-silent" then 
+   do:
+      HIDE FRAME dumpdata NO-PAUSE.
+      SESSION:IMMEDIATE-DISPLAY = if lImmediatedisp <> ? then lImmediatedisp else no.
+   end.
+end finally.
+
+procedure handleError:
+    define input parameter pError as Progress.Lang.Error no-undo.
+    define variable i as integer no-undo.
+    define variable cMsg as character no-undo.
+    if pError:NumMessages = 0 and type-of(pError,AppError)then 
+        cmsg = cast(perror,AppError):ReturnValue.
+    else  
+    do i = 1 to pError:NumMessages:
+        cmsg = cmsg + pError:GetMessage(i) + "~n".
+    end.  
+    
+    if user_env[6] NE "dump-silent" then
+        message cmsg
+            view-as alert-box error.      
+    else do:
+        undo, throw new AppError(cmsg).
+    end.
 end.
+
+procedure GetGroupName  :
+    define input parameter pcTenant as character no-undo. 
+    define input parameter piFileNumber as int no-undo. 
+    define output parameter pcName as character no-undo. 
+      
+    find dictdb._tenant where dictdb._tenant._tenant-name = user_env[32] no-lock.   
+             
+    find dictdb._Partition-Set-Detail 
+               where dictdb._Partition-Set-Detail._object-type = 1         
+                 and dictdb._Partition-Set-Detail._object-number = piFileNumber        
+                 and dictdb._Partition-Set-Detail._Tenantid = dictdb._tenant._tenantid 
+                 no-lock no-error.
+    if avail dictdb._Partition-Set-Detail then 
+    do: 
+        find dictdb._Partition-Set 
+           where dictdb._Partition-Set._object-type = dictdb._Partition-Set-Detail._object-type        
+             and dictdb._Partition-Set._object-number = dictdb._Partition-Set-Detail._object-number
+             and dictdb._Partition-Set._PSetId = dictdb._Partition-Set-Detail._PSetId
+             and dictdb._Partition-Set._PSet-Type = 1 no-lock.
+          pcname = dictdb._Partition-Set._Pset-name.
+    end.
+end procedure.
+
+ 

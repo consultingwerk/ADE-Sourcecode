@@ -41,6 +41,8 @@ History:
    knavneet   02/17/10 OE00131234 
    Nagaraju   05/04/10 change metadata sql to refer INFORMATION_SCHEMA.columns  - OE00197280
    sgarg      06/03/10 _Fld-Misc1[7] to store flag for TEXTPTR_LOB_TYPES
+   musingh    03/30/11 Added logic to set the flag TEXTPTR_LOB_TYPES only for 
+                       actual Legacy Server LOB types(text, ntext and image).
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -281,11 +283,23 @@ END CASE.
    ASSIGN s_ttb_fld.ds_msc24 = "timestamp".
  ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"datetime2") > 0 THEN
    ASSIGN s_ttb_fld.ds_msc24 = "datetime2".
+
  ELSE IF (INDEX(DICTDBG.SQLColumns_buffer.Type-name,"text")  > 0 OR 
           INDEX(DICTDBG.SQLColumns_buffer.Type-name,"image") > 0 OR
-          INDEX(DICTDBG.SQLColumns_buffer.Type-name,"ntext") > 0) THEN
+          INDEX(DICTDBG.SQLColumns_buffer.Type-name,"ntext") > 0 ) THEN
  DO:
-    ASSIGN s_ttb_fld.ds_msc17 = 1.
+ /* OE00218653
+   SQLColumns ODBC API for SQL Server non-native drivers returns return "text"
+   for varchar(max) and "image" for varbinary(max). Which makes it difficult to 
+   distinguish between actual text and varchar(max) server types. So here check 
+   the SS_DATA_TYPE returned by SQL Columns (for non-native driver) which is actual
+   SQL Server data type and based on this set "ds_msc17" flag which will in turn
+   set TEXTPTR_LOB_TYPES flag.
+*/
+     IF INDEX(DICTDB._Db._Db-misc2[4], "38") = 0 OR
+        DICTDBG.SQLColumns_buffer.ss-data-type = 34 OR
+        DICTDBG.SQLColumns_buffer.ss-data-type = 35 THEN
+           ASSIGN s_ttb_fld.ds_msc17 = 1.
  END.
  ELSE IF isFileStream = '1' THEN
    ASSIGN s_ttb_fld.ds_msc24 = "filestream".

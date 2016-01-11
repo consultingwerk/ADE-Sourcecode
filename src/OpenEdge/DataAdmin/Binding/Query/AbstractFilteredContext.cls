@@ -1,10 +1,11 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
 /*                                                           */
-/* all rights reserved.  no part of this program or document */
+/* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
+/* permission in writing from Progress Software Corporation. */
 /*************************************************************/
+
 /*------------------------------------------------------------------------
    File        : AbstractFilteredContext
    Purpose     : Provide filtered access to another context
@@ -34,6 +35,7 @@ using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.Binding.IRowChange from propath.
 using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
@@ -45,10 +47,9 @@ using OpenEdge.DataAdmin.Binding.IFilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.DataAdminQuery from propath. 
 
 using OpenEdge.DataAdmin.Lang.BeforeQuery from propath.
-using OpenEdge.DataAdmin.Lang.IQueryMap from propath. 
 using OpenEdge.DataAdmin.Lang.QueryString from propath. 
  
-class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-widget-pool  inherits DataAdminQuery implements IQueryMap, IFilteredContext,IDataAdminContext: 
+class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-widget-pool  inherits DataAdminQuery implements IFilteredContext,IDataAdminContext: 
     /*** events ****************************************/ 
     define public event RowCreated signature void (). 
     define public event RowDeleted signature void ().
@@ -58,6 +59,24 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
               
     /*** properties ****************************************/
 	
+	define public override property Tables         as character no-undo 
+      get():
+          define variable hBufs as handle extent no-undo.
+          define variable i  as integer no-undo. 
+          define variable cTables as character no-undo.
+          hBufs = GetBufferHandles().
+          /** Tables could possibly be referenced early in construction
+              before all query handles are decided 
+              so refresh each time (this is not called often)
+              This is consistent with the fact that CreateQuery also can be called 
+              again if the buffers are changed */
+          do i = 1 to extent(hBufs):
+              cTables = (if i > 1 then cTables + "," else "")
+                 + hBufs[i]:name.
+          end.   
+          return cTables.  
+      end. 
+ 
     define public property Filter as character  no-undo  get. 
         protected set.
 	
@@ -80,6 +99,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     define protected property Parent as IDataAdminContext no-undo 
         get.
         set(pParent as IDataAdminContext):
+            define variable pModel as IDataAdminModel no-undo.
             if valid-object(Parent) then 
             do:
                 Parent:ContextRefreshed:unsubscribe(TableRefreshed).
@@ -89,8 +109,10 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
                 Parent:ContextDeleted:unsubscribe(Destroy).
                 if type-of(Parent,IDataAdminModel) then
                 do:
-                    cast(Parent,IDataAdminModel):SearchQuery:unsubscribe(SearchContent). 
-                    cast(Parent,IDataAdminModel):SearchRequest:unsubscribe(SearchRequest). 
+                    pModel = cast(Parent,IDataAdminModel).
+                    pModel:SearchQuery:unsubscribe(SearchContent). 
+                    pModel:SearchRequest:unsubscribe(SearchRequest). 
+                    pModel:KeyChanged:unsubscribe(ForeignKeyChanged).
                 end.
             end.
             this-object:Parent = pParent.
@@ -102,8 +124,10 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
             Parent:ContextDeleted:subscribe(Destroy).
             if type-of(Parent,IDataAdminModel) then
             do:
-                cast(Parent,IDataAdminModel):SearchQuery:subscribe(SearchContent). 
-                cast(Parent,IDataAdminModel):SearchRequest:subscribe(SearchRequest). 
+                pModel = cast(Parent,IDataAdminModel).
+                pModel:SearchQuery:subscribe(SearchContent). 
+                pModel:SearchRequest:subscribe(SearchRequest). 
+                pModel:KeyChanged:subscribe(ForeignKeyChanged).
             end.
             this-object:KeyFields = parent:KeyFields.
         end.
@@ -295,10 +319,24 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
      
     /* single row import of the entity (flat no tree) */     
     method public abstract void ImportRow(pcfile as char, c as char).
+   
+   /* single row import of the entity (flat no tree) */     
+    method public void ImportRow(pcfile as char, c as char extent).
+        parent:ImportRow(pcFile,c).
+    end method.
+   
+    method public void ImportTree(pcfile as char, c as char):
+        parent:ImportTree(pcFile,c).
+    end method.
     
     /**  */
     method public void ImportRowTree(pcfile as char, c as char):
         parent:ImportRowTree(pcFile,c).
+        /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
+    end method.
+    
+    method public void ImportRowTree(pcfile as char, pc as char extent):
+        parent:ImportRowTree(pcFile,pc).
         /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
     end method.
     
@@ -307,8 +345,8 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         parent:ImportRowTree(pcFile,i).
         /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
     end method.
-    
-    method public abstract void ReadChild(pcparent as char, pckey as char extent, json as JSONObject).
+ 
+    method public abstract void ReadChild(parentRow as IRow, json as JSONObject).
        
     method public void ImportForParent(pcParent as char, pcValue as char,pcfile as char):
         undo, throw new UnsupportedOperationError("ImportForParent in filtered context").
@@ -362,6 +400,19 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     
     method public character GetJoinFields(parenturl as char):
         return Parent:GetJoinFields(parenturl).
+    end method.
+    
+    method protected character GetJoinFieldsReversed(parenturl as char):
+        define variable i as integer   no-undo.
+        define variable cJoin as character no-undo.
+        define variable cJoinReversed as character no-undo.
+        cJoin = GetJoinFields(parenturl).
+        do i = 1 to num-entries(cJoin) by 2:
+            cJoinReversed = cJoinReversed 
+                          + (if cJoinReversed = "" then "" else ",")
+                          + entry(i + 1,cJoin) + "," + entry(i,cJoin).
+        end.    
+        return cJoinReversed.
     end method.
     
     method public character extent GetKeyValues(pBuffer as handle): 
@@ -430,16 +481,9 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     end method.
     
     method public logical CanFind(i as int):
-        define variable lok as logical no-undo.
-        define variable rid as rowid   no-undo.   
         if parent:Find(i) then 
-        do:
-            rid = QueryHandle:get-buffer-handle (1):rowid.     
-            lok = QueryHandle:reposition-to-rowid(TableHandle:default-buffer-handle:rowid) no-error. 
-            if rid <> ? then
-                QueryHandle:reposition-to-rowid(rid).
-        end.       
-        return lok.
+            return CanFindCurrentModel().
+        return false.
     end method. 
     
     method public logical Find(i as int):
@@ -525,13 +569,15 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         lok = (hModelBuffer:rowid = hBuf:rowid).
         if not lok then 
         do:
+            /** release - to ensure get-next 
+               (if query has multiple tables all tables must be in synch)  */
+            hBuf:buffer-release.
             lok = QueryHandle:reposition-to-rowid(hModelBuffer:rowid) no-error. 
             if lok and not hBuf:avail then 
                 QueryHandle:get-next.
         end.
         return lok. 
     end.
-    
     
     method public void Reopen():
         
@@ -543,9 +589,9 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         do:
             rids = GetQueryRowids(QueryHandle).
         end.
-        QueryHandle:query-open().         
+        QueryHandle:query-open().    
         if extent(rids) <> ? then
-            SetPosition(rids).                
+            SetPosition(rids). 
     end method.  
     
     /** set a property  
@@ -590,7 +636,9 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
 /*        Parent:CopyTable(cntxt).                             */
 /*    end method.                                              */
      
-    
+    method public void ForeignKeyChanged(pparentChange as IRowChange):
+       
+    end method.
 
     /* @TODO implement logic for query */    
     method public logical HasChanges().
@@ -911,9 +959,49 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     end method.
     
     method public char TransformQuery(pKeyWhere as char): 
-        return Model:TransformQuery(Tables,pKeyWhere,this-object).
+        define variable QueryString as QueryString no-undo.       
+        define variable cq as character no-undo.
+        QueryString = new QueryString(pKeyWhere,this-object). 
+        
+        cq = QueryString:BuildQueryString(Tables).
+        
+        return cq.
+        catch e as Progress.Lang.Error :
+            HandleParseError(e,pKeyWhere). 
+        end catch.
+        
     end method. 
-   
+    
+    method protected character GetJoinExpression(parentid as char).
+        define variable cjoinFields as character no-undo.
+        define variable i as integer no-undo.
+        define variable cExpression as character no-undo.
+        cJoinFields = GetJoinFields(parentid).
+        if cJoinfields = "" then
+             undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(parentid)).
+           
+        do i = 1 to extent(cJoinFields):
+            cExpression = cExpression
+                        + (if i = 1 then "" else " and ")
+                        +  TableHandle:name + "." + entry(i * 2,cJoinFields)
+                        + " = "    
+                        +  parentid + "." + entry((i * 2) - 1,cJoinFields)
+                        . 
+        end. 
+        return cExpression.
+    end method.
+    
+    method private void HandleParseError(e as Error, filter as char):
+         define variable cmsg as character no-undo.
+         if type-of(e,IllegalArgumentError) then
+            undo, throw e.
+        
+         cMsg = "Parsing of filter " + quoter(filter)  + " causes error "
+              + "~n"
+              +  e:GetMessage(1).
+         undo, throw new IllegalArgumentError(cMsg,e).
+    end method.    
+    
     /** query rowids (may not be ordered by tables)   */ 
     method protected rowid extent GetQueryRowids (hquery as handle):
         define variable iBuffer as integer    no-undo.
@@ -1175,18 +1263,17 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     
      /** convert expression for QueryString - unknown = keep as is */
     method public character ColumnExpression(pcColumn as char,pcOperator as char,pcValue as char):
-        return cast(Parent,IQueryMap):ColumnExpression(pcColumn,pcoperator,pcValue).
+        return Parent:ColumnExpression(pcColumn,pcoperator,pcValue).
     end. 
     
     method public character ColumnSortSource(pcColumn as char).
-        return cast(Parent,IQueryMap):ColumnSortSource(pcColumn).
+        return Parent:ColumnSortSource(pcColumn).
     end method.   
        
     /* qualify columns for QueryString parsing */
     method public character ColumnSource(pcColumn as char):
-        return cast(Parent,IQueryMap):ColumnSource(pccolumn).
+        return Parent:ColumnSource(pccolumn).
     end method.
-   
     
     method private void SearchContent (pid as char,input-output pqueryContext as IDataAdminContext): 
         if pid = ContentId then 

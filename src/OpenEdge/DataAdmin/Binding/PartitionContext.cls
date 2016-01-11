@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2011,2012 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : PartitionContext
     Purpose     : 
@@ -24,6 +24,7 @@ using OpenEdge.DataAdmin.Partition  from propath.
 using OpenEdge.DataAdmin.PartitionCollection  from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath. 
 using OpenEdge.DataAdmin.Binding.IRow from propath. 
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath. 
 using OpenEdge.DataAdmin.Support.PartitionMap from propath.
 using OpenEdge.DataAdmin.Support.SchemaPartitionMap from propath. 
 using OpenEdge.DataAdmin.Support.TenantPartitionMap from propath. 
@@ -53,7 +54,19 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     define private dataset dsPartition serialize-name "root" for ttPartition.
     define buffer bpartition for ttPartition.
     
+    define private property xMissingAllocateKeyMessage  as char no-undo
+        init "No &1 specified for allocate operation."
+        get.
+        
     define temp-table copytable reference-only like ttPartition .  
+    
+    define private variable mRefresh as logical no-undo.
+    
+    define protected property ContextFactory as IContextFactory  no-undo 
+        get():
+            return cast(ContextScope,IContextFactory) .
+        end get.
+    
     define private variable ValidAllocationStateList as char no-undo
         init   "Allocated,Delayed,None".
     define public override property DatasetHandle as handle no-undo 
@@ -118,12 +131,42 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         end.
     end.
 	
+	/* uncomment if id is used in GetJoinfields  
+	method public override character GetClientJoinFields(parentid as char):
+        case parentid:
+            when "tenants" then
+                return "Name,TenantName".
+            when "tenantGroups" then
+                return "Name,TenantGroupName".    
+        end.
+        return super:GetClientJoinFields(parentid).
+    end.
+	*/
+	
+	method public override character GetServerJoinFields(parentid as char):
+        case parentid:
+            when "tenants" then
+                return "Id,ParentId".
+            when "tenantGroups" then
+                return "Id,ParentId".
+             when "areas" then /* AreaNumber is not mapped - handled by PartitionDataSource:ColumnSource*/
+                return "Number,AreaNumber".        
+        end.
+        return super:GetServerJoinFields(parentid).
+    end.
+	
     method public override character GetChildQuery(pcParent as char,pcKeys as char extent):
-        return GetChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+        if lookup(pcParent,"tables,fields,indexes") <> 0 then 
+            return GetChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+        else 
+            return super:GetChildQuery(pcParent,pcKeys).
     end method.
 	
 	method public override character GetServerChildQuery(pcParent as char,pcKeys as char extent):
-        return GetServerChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+        if lookup(pcParent,"tables,fields,indexes") <> 0 then 
+            return GetServerChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+        else 
+            return super:GetServerChildQuery(pcParent,pcKeys).
     end method.
   
     method private character GetChildQuery(pcParent as char,pcTable as char,pcfield as char, pcIndex as char, pcCollation as char):
@@ -155,10 +198,13 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     
     method protected override void ValueChanged(pcfield as char, pcOld as char, pcnew as char):
         define variable i as integer no-undo.
+        
+        super:ValueChanged(pcfield,pcold,pcNew).
         if pcfield = "AllocationState" and ttPartition.ObjectType = "Table" then
         do: 
             i = lookup(pcnew,ValidAllocationStateList).
-            if i > 0 then do: /* just to case it , validation is done elsewhere  */
+            if i > 0 then 
+            do: /* just to case it , validation is done elsewhere  */
                 ttPartition.AllocationState = entry(i,ValidAllocationStateList).
                 pcNew = ttPartition.AllocationState.
             end.
@@ -173,6 +219,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     end method.    
     
     method protected override void ValidateProperty(pcfield as char,poldvalue as char,pnewvalue as char).  
+        super:ValidateProperty(pcfield,poldvalue,pnewvalue).
         case pcField:
             when "AllocationState" then
             do:
@@ -186,6 +233,24 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
             undo, throw new InvalidPropertyValueError ("Partition", "","AllocationState", pcValue, "Allocated,Delayed,None").                      
     
     end method.
+    
+    method public void ValidateAllocationKey(pcKeyValue as char,pcName as char):
+        if pcKeyValue = "" or pcKeyValue = ? then
+           undo, throw new IllegalArgumentError(substitute(xMissingAllocateKeyMessage,pcName)).         
+    end method.
+    
+    method public void ValidateAllocationRequest(pcRequest as char):
+        /* error is duplicated in TableImpl */
+        if lookup(pcRequest,"All,Delayed,None") = 0 then
+              undo, throw new IllegalArgumentError (
+                               "Parameter value " + quoter(pcRequest) + " passed to allocate method. " 
+                              + "Valid values are " 
+                              + quoter("Delayed") 
+                              + "," + quoter("All")
+                              + " or " + quoter("None") + ".").                      
+   
+    end method.
+    
     
     method protected override void ValidateBuffer(phPart as handle):
         define variable hBefore as handle no-undo.
@@ -388,6 +453,9 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
          
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
+        
+        ValidateAllocationRequest(pcMode).
+        ValidateAllocationKey(pcTable,"Table").    
         lTrack =  temp-table ttPartition:tracking-changes .
         temp-table ttPartition:tracking-changes = true.
        
@@ -409,6 +477,9 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     method public logical AllocateTableGroups(pcTable as char,pcMode as char):
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
+        
+        ValidateAllocationRequest(pcMode).
+        ValidateAllocationKey(pcTable,"Table").    
         lTrack =  temp-table ttPartition:tracking-changes .
         temp-table ttPartition:tracking-changes = true.
         define variable i as integer no-undo.
@@ -463,6 +534,10 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     method public logical AllocateTenantTablePartition(pcTenant as char,pcTable as char):
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
+        
+        ValidateAllocationKey(pcTenant,"Tenant").    
+        ValidateAllocationKey(pcTable,"Table").    
+          
         lTrack =  temp-table ttPartition:tracking-changes .
         temp-table ttPartition:tracking-changes = true.
         
@@ -558,6 +633,10 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     method public logical AllocateGroup (pcGroup as char,pcMode as char):
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
+        
+        ValidateAllocationRequest(pcMode).
+        ValidateAllocationKey(pcGroup,"TenantGroup").    
+       
         lTrack = temp-table ttPartition:tracking-changes .
         temp-table ttPartition:tracking-changes = true.
         
@@ -693,6 +772,11 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         return new PartitionFilteredContext(this-object,pfilter).
     end method.
     
+    /** create default filteredcontext with requestinfo  */
+    method override protected FilteredContext CreateFilteredContext(pReq as IRequestInfo):
+        return new PartitionFilteredContext(this-object,pReq).
+    end method.
+    
     method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
         return new Partition(cntxt).
     end method. 
@@ -711,6 +795,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         define variable hNewBuffer as handle no-undo.
         define variable LAFTER as logical no-undo.
         define variable hTable as handle no-undo.
+        
         TblResponse = pResponse:GetTableResponse(TableHandle:name).
         if valid-object(TblResponse) 
         and TblResponse:RequestType = "NEW" then
@@ -721,8 +806,38 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
             hTable = hNewBuffer:table-handle.
             CopyTable(input table-handle hTable by-reference).
         end.
-        else 
-            super:DataRefreshed(pResponse).
+        else do: 
+            if mRefresh or pResponse:Entityname <> "partition"  then
+            do: 
+                super:DataRefreshed(pResponse).
+            end.
+            else do:         
+                tblResponse = pResponse:GetTableResponse("ttArea").
+                if valid-object(tblResponse) then   
+                do:
+                    ContextFactory:AreaContext:DataRefreshed(pResponse) .
+                end.
+                
+                tblResponse = pResponse:GetTableResponse("ttTenant").
+                if valid-object(tblResponse) then   
+                do:
+                    mRefresh = true.          
+                    ContextFactory:TenantContext:DataRefreshed(pResponse) .
+                    mRefresh = false.
+                end.
+                else do:
+                    tblResponse = pResponse:GetTableResponse("ttTenantGroup").
+                    if valid-object(tblResponse) then  
+                    do: 
+                        mRefresh = true. 
+                        ContextFactory:TenantGroupContext:DataRefreshed(pResponse) .
+                        mRefresh = false.
+                    end.
+                    else 
+                        super:DataRefreshed(pResponse).
+                end.
+            end.       
+        end.
     end method.
 /*                                                                           */
 /*    method protected void ShowPartitionData():                             */

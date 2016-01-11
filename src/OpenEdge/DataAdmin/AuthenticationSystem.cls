@@ -50,10 +50,24 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
             end.
             Description = pDescription.
         end. 
-    
-    /** This is an additional field to record custom specific information about this 
-        authentication system. */    
-    define public property Comments as char no-undo  
+       
+       define public property isEnabled as logical no-undo  
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::isEnabled.
+            else
+                return isEnabled. 
+        end.
+        set(isEnabledValue as logical):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::isEnabled = isEnabledValue.
+            end.
+            isEnabled = isEnabledValue.
+        end. 
+        
+        define public property Comments as char no-undo  
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::Comments.
@@ -67,6 +81,24 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
                 mdefaultbuffer::Comments = pComments.
             end.
             Comments = pComments.
+        end. 
+        
+    /** This is an additional field to record custom specific information about this 
+        authentication system. */    
+    define public property Callback as char no-undo  
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::Callback.
+            else
+                return Callback. 
+        end.
+        set(pCallback as char):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::Callback = pCallback.
+            end.
+            Callback = pCallback.
         end. 
     
     define public property Domains as IDomainSet no-undo  

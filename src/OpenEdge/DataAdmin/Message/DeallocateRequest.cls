@@ -16,15 +16,19 @@
 routine-level on error undo, throw.
 
 using Progress.Lang.* from propath.
+using OpenEdge.DataAdmin.IDataAdminService from propath.
 using OpenEdge.DataAdmin.Message.IDataAdminMessage from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 
-class OpenEdge.DataAdmin.Message.DeallocateRequest implements IUtilityRequest,IDataAdminMessage: 
+using OpenEdge.DataAdmin.Message.ITableResponse from propath.
+
+class OpenEdge.DataAdmin.Message.DeallocateRequest implements IUtilityRequest,IUtilityResponse,IDataAdminMessage: 
     define property Name as character no-undo get. set.
     define property Type as character no-undo get. set.
     define property TableName as character no-undo get. set.
     define property DatabaseName as character no-undo get. set.
-    
+    define property Service as IDataAdminService no-undo get. set.
     define public property DataHandle as handle no-undo 
         get.
   
@@ -46,7 +50,9 @@ class OpenEdge.DataAdmin.Message.DeallocateRequest implements IUtilityRequest,ID
         get.
         set.
     
-    
+    method public ITableResponse GetTableResponse(pcName as char):
+        return ?.
+    end method.
         
     method public handle SerializeMessage():     
     

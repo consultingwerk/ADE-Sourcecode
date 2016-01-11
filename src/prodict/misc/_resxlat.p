@@ -46,6 +46,7 @@ History:
                         all keywords for supported database types. 
     dmcmann  11/18/02   Added freetext for MSS
     dmcmann  03/12/03   Added SYS_ logic in names.
+    kmayur   16/01/12	Added check for Progress Keyword
 
 --------------------------------------------------------------------*/
 /*-h*/
@@ -243,6 +244,9 @@ if l_maxlen <> 0 then do:
     l_word = substring(l_word, 1, l_maxlen).
   end.
 end.
+
+IF KEYWORD(l_word) <> ? then
+assign SUBSTRING(l_word,MINIMUM(l_maxlen,LENGTH(l_word,"character") + 1),-1,"character") = "_". 
 
 assign p_param = l_word.
 

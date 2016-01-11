@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /** ------------------------------------------------------------------------
     Purpose     : Default implementation of IDataAdminContext    
     Syntax      : 
@@ -35,13 +35,16 @@ using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
+using OpenEdge.DataAdmin.Binding.IRowChange from propath.
 using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
-
+using OpenEdge.DataAdmin.Binding.RowBuffer from propath.
+using OpenEdge.DataAdmin.Binding.RowChange  from propath.
  
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 
 using OpenEdge.DataAdmin.Error.DataError from propath.
 
@@ -60,7 +63,7 @@ using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
 using OpenEdge.DataAdmin.Core.IElement from propath.
 
 /** default implementation IDataAdminContextData implements IDataAdminModel */ 
-class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool implements IDataAdminContext,IDataAdminModel,IQueryMap: 
+class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool implements IDataAdminContext,IDataAdminModel: 
     
     define public event RowCreated signature void (). 
     
@@ -74,7 +77,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     define public event AddedToContext signature void (newContext as IDataAdminContext). 
     define public event SearchQuery signature void (id as char,input-output queryContext as IDataAdminContext). 
     define public event SearchRequest signature void (Req as IRequestInfo,pcParent as char,pcKeys as char extent,input-output queryContext as IDataAdminContext). 
-
+    define public event KeyChanged signature void (keyChange as IRowChange). 
+       
     /** KeppInstacne decides whther to keep a reference to the entity in the tt.
         Set to true since as of current entities are not garbage collected due to the subscribtion
         to events here. There are probably no benefits from not keeping the reference here
@@ -122,8 +126,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         
     define protected property Loaded as logical  no-undo get. set. 
     
-    define protected property ContextScope as IContextScope no-undo
-        protected get.
+    define public property ContextScope as IContextScope no-undo
+        get.
         private set.
     
     define protected property ServiceAdapter as ServiceAdapter no-undo
@@ -136,7 +140,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     
     define public property TargetService as IDataAdminService no-undo
           get.
-        private set.
+          protected set.
        
 	define abstract public property DatasetHandle as handle no-undo 
 	    get.
@@ -144,13 +148,16 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
 	define abstract public property TableHandle as handle no-undo 
 	    get.
 	
+	define  public property CanEditKey as logical no-undo 
+        get.
+	    protected set.
+	    
 	/* IIterable */
 	define  public property Table as char no-undo 
         get():
             return TableHandle:Name.
         end.
     
-	
 	define public property BaseQuery as char no-undo 
         get():
             return "for each " + TableHandle:name.
@@ -161,8 +168,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         get.      
         private set.
     
-	
-	 /* set to false if retrieved with parent on intstantiation */
+	 /* set to false if retrieved with parent on instantiation */
     define public property ReadOnly as logical  no-undo  
         get():
             return not valid-handle(TableHandle:before-table).
@@ -203,7 +209,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         
 	define public property Service as IDataAdminService no-undo  
         get.
-        private set.
+        protected set.
    
 	 /* unique identifier, exposed as contextid for comparison
         of collections and entities */ 
@@ -282,7 +288,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         RowCreated:Publish().
     end method.    
     
-     method protected void OnBeforeDelete():
+    method protected void OnBeforeDelete():
         BeforeDelete:Publish(TableHandle:default-buffer-handle:rowid).
     end method.    
     
@@ -290,10 +296,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         RowDeleted:Publish().
     end method.    
     
-     /** returns a new querystring with passed criteria added to current */
-    method public char NewQueryString(pcQuery as char,pcSort as char).
-    
-    end method.
+    method protected void FireContextRefreshed(pTbl as ITableResponse):
+        ContextRefreshed:Publish(pTbl).
+    end method.    
     
     method protected character GetCreateError(entity as IDataAdminElement, fldvalue as char):
         return GetCreateError(fldvalue). 
@@ -307,18 +312,26 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
                + ".". 
     end method.
     
+    /* Client key - external key - for import 
+       now this should really be a property... 
+       method is used since it is rarely overridden */
+    method protected character GetClientKeyFields():
+        return KeyFields. 
+    end method.
     
     method public abstract character GetJoinFields(parenturl as char).
- 
- /** future... currently handled by GetRequest overrides 
-      see also commented definition in IDataAdminContext
-    /* default to use GetJoinFields
-       override if server join is using different fields than client join */
-    method public character GetServerJoinFields(parenturl as char):
-        return GetJoinFields(parenturl).
-    end.    
-  **/  
     
+    /* override for external join - for example json import  */  
+    method protected character GetClientJoinFields(parenturl as char).
+        return GetJoinFields(parenturl).
+    end method.
+    
+    /* override if server join is different - */  
+    method protected character GetServerJoinFields(parenturl as char).
+        return GetJoinFields(parenturl).
+    end method.
+    
+   
 /*    method public handle GetIteratorHandle():*/
 /*        return TableHandle.                  */
 /*    end method.                              */
@@ -522,10 +535,35 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         CopyTable(cntxt).
     end method.   
     
+    /** @TODO Make abstract -    
+      - override to set from FilteredContext:ParentRow*/
+    method protected void CopyTableForParent(pRow as IRow,cntxt as IDataAdminContext):
+        undo, throw new UnsupportedOperationError("CopyTableForParent with IRow."). 
+    end method.   
+    
     /** add foreign key for parent (called from filteredContext:copy with parentvalue) 
        NOTE: the copy wil copy all records from the passed context assuming all records 
              belongs to the passed parent value (only local context should be passed) */
-    method public void CopyForParent(pparent as char, pValue as char,cntxt as IDataAdminContext):
+    method final public void CopyForParent(pRow as IRow,cntxt as IDataAdminContext):
+        if cntxt = this-object then 
+             undo, throw new UnsupportedOperationError("Cannot copy to itself"). 
+        
+        CopyTableForParent(pRow,cntxt).
+        CopyChildren(cntxt).
+        /** hack for Newcontext call back to GetKeywhere */
+        mParent = pRow:SerializeName.
+        mParentKey = pRow:KeyValue.
+        cntxt:MoveQueries(this-object).
+        finally:
+            mParent = "".
+            mParentKey = "".
+        end finally.        
+    end method.
+    
+    /** add foreign key for parent (called from filteredContext:copy with parentvalue) 
+       NOTE: the copy wil copy all records from the passed context assuming all records 
+             belongs to the passed parent value (only local context should be passed) */
+    method public final void CopyForParent(pparent as char, pValue as char,cntxt as IDataAdminContext):
         if cntxt = this-object then 
              undo, throw new UnsupportedOperationError("Cannot copy to itself"). 
         
@@ -575,6 +613,62 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         Loaded = false. 
     end method.    
     
+    method public void ForeignKeyChanged(pparentChange as IRowChange):
+        define variable hQuery as handle no-undo.
+        define variable hBuffer as handle no-undo.
+        define variable cQuery as character no-undo.
+        define variable cChildJoinFields as character no-undo.
+        define variable lTrack as logical no-undo init ?.
+        define variable i as integer no-undo. 
+        
+        create query hquery.
+        create buffer hBuffer for table TableHandle.
+        lTrack = TableHandle:tracking-changes.
+        TableHandle:tracking-changes = false.
+        hQuery:add-buffer(hBuffer).
+        cQuery = GetChildQuery(pparentChange:SerializeName,pparentChange:OldKeyValues).
+        cQuery = "for " + TrimQuery(cQuery).
+        cChildJoinFields = GetChildJoinFields(pparentChange:SerializeName).
+        hQuery:query-prepare(cQuery).
+        hQuery:query-open().
+        hQuery:get-first().
+        
+        do while hBuffer:avail:
+            /* @todo if keyfields in THIS changed as part of this
+               Keychanged:publish -  */
+            SetValues(hBuffer,cChildJoinFields,pparentChange:KeyValues).                   
+            hQuery:get-next().
+            
+        end.    
+
+        finally:
+            if lTrack <> ? then
+                TableHandle:tracking-changes = lTrack.
+            delete object hQuery.
+            delete object hBuffer.
+        end finally.
+    end method.
+    
+    /* trim off for or preselect */
+    method private char TrimQuery(pcQuery as char):
+        pcQuery = left-trim(pcQuery).
+        entry(1,pcQuery," ") = "".
+        return left-trim(pcQuery).
+    end.
+    
+    method public character GetChildJoinFields(parentid as char):
+        define variable cJoinFields as character no-undo.
+        define variable cChildFields as character no-undo.
+        define variable cChildField as character no-undo.
+        define variable i as integer no-undo.
+        cJoinfields = GetJoinFields(parentid).
+        do i = 1 to num-entries(cJoinfields) by 2:
+            cChildField = entry(i + 1,cJoinFields).
+            cChildFields = cChildFields + "," + cChildField.
+        end.   
+        return left-trim(cChildFields,",").
+    end method.
+    
     method public logical CanFind(i as int):
         undo, throw new UnsupportedOperationError("CanFind with integer key").
     end method. 
@@ -589,12 +683,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         if preq:KeyFields = ""  or preq:KeyFields = ? then
             undo, throw new IllegalArgumentError("RequestInfo with no key expression passed to find."). 
         cWhere = GetWhere(preq:KeyFields,preq:GetKeyValues()). 
-        /* @todo - consider add protected override capability to check for valid keyfields  
-                   - ambiguous check before server hit? 
-                   - ensure not exposing hidden internal fields (?) 
-        */
+      
+        /* @todo  - ensure not exposing hidden internal fields (?) */
         lok = Tablehandle:default-buffer-handle:find-unique("where " + cWhere) no-error. 
-        
         if error-status:error and error-status:get-number (1) <> 138 then
         do: 
             undo, throw CreateFindError(error-status:get-message(1),error-status:get-number (1),preq).
@@ -790,14 +881,33 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         
     end method.   
     
-    method public ISaveRequest GetCreateRowRequest( ):
+    method public ISaveRequest GetSaveRowRequest(pRow as IRow,pReq as IRequestInfo):
+        define variable hchanges as handle no-undo.
+        define variable savemsg as ISaveRequest no-undo.
+        hchanges = GetSaveRowChanges(pRow,pReq,row-modified). 
+        if valid-handle(hChanges) then 
+            savemsg = new SaveRequest(Name,Id,hchanges).
+        return savemsg.  
+    end method.   
+    
+    method public ISaveRequest GetCreateRowRequest(pRow as IRow):
+        define variable hchanges as handle no-undo.
+        define variable savemsg  as ISaveRequest no-undo.
+        hchanges = GetSaveRowChanges(pRow,?,row-created).
+        if valid-handle(hChanges) then 
+           savemsg = new SaveRequest(Name,Id,hchanges).
+        return savemsg.  
+    end method.   
+    
+    method public ISaveRequest GetCreateRowRequest():
         define variable hchanges as handle no-undo.
         define variable savemsg  as ISaveRequest no-undo.
         define variable cKey     as character no-undo.
         define variable hField    as handle no-undo.
+        
         if num-entries(KeyFields) > 1 then 
         do:
-            undo, throw new IllegalArgumentError("GetCreateRowRequest with multiple keys.").
+            undo, throw new IllegalArgumentError("GetCreateRowRequest() with multiple keys. ").
         end.    
         if TableHandle:default-buffer-handle:row-state <> row-created then
             undo, throw new IllegalArgumentError("GetCreateRowRequest with new row in context not available.").
@@ -809,11 +919,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         return savemsg.  
     end method.   
     
-    method public ISaveRequest GetDeleteRowRequest(pcKey as char,pReq as IRequestInfo):
+    method public ISaveRequest GetDeleteRowRequest(pRow as IRow,pReq as IRequestInfo):
         define variable hchanges as handle no-undo.
         define variable savemsg as ISaveRequest no-undo.
        
-        hchanges = GetDeleteRowChanges(pcKey,pReq).
+        hchanges = GetDeleteRowChanges(pRow,pReq).
         if valid-handle(hChanges) then 
             savemsg = new SaveRequest(Name,Id,hchanges).
         return savemsg.  
@@ -839,7 +949,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         return hChanges.
     end method.
     
-    method protected handle GetDeleteRowChanges(pcKey as char,pReq as IRequestInfo):
+    method protected handle GetDeleteRowChanges(pRow as IRow,pReq as IRequestInfo):
         define variable hchanges   as handle    no-undo.
         define variable hTopNavQuery as handle no-undo.
         define variable hAfter as handle no-undo.
@@ -855,9 +965,54 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         hAfter = hTopNavQuery:get-buffer-handle(1).
         
         if valid-handle(hAfter:before-buffer) then 
-           RemoveDeletes(hAfter:before-buffer,pcKey). 
+           RemoveDeletes(hAfter:before-buffer,prow). 
         
         return hchanges.
+    end method.
+    
+    method protected handle GetSaveRowChanges(pRow as IRow,pReq as IRequestInfo,pstate as int):
+        define variable hchanges   as handle    no-undo.
+        define variable hTopNavQuery as handle no-undo.
+        define variable hAfter as handle no-undo.
+        define variable hBuffer as handle no-undo.
+        define variable rBefOrig as rowid no-undo.
+        define variable rAfter     as rowid no-undo.
+        define variable lok as logical no-undo.
+        if this-object:Find(pRow:KeyValues) then
+        do:
+            hBuffer = TableHandle:default-buffer-handle.
+            
+            if pstate <> hBuffer:row-state then
+            do:
+                if pstate = row-created then
+                    undo, throw new IllegalArgumentError("GetSaveRowChanges for create called with new row in context not available.").
+            end.     
+            
+            delete object SaveDataset no-error.
+            SaveDataset = CreateSaveDataset().       
+            hchanges = GetChanges(SaveDataset).
+            hTopNavQuery = hchanges:top-nav-query(TableHandle:name).
+             
+            if hBuffer:row-state = 0 then 
+            do: 
+                 rAfter = FindRidAndRemoveOtherAfterBuffers(hTopNavQuery,prow).
+            end.
+            else do:     
+                 rBefOrig = hBuffer:before-rowid.
+                 rAfter = FindRidAndRemoveOtherAfterBuffers(hTopNavQuery,rBefOrig).
+            end.
+            hAfter = hTopNavQuery:get-buffer-handle(1).
+            
+            if valid-handle(hAfter:before-buffer) then
+                RemoveDeletes(hAfter:before-buffer,?). 
+            lok = hAfter:find-by-rowid(rAfter) no-error.
+            if lok then 
+            do:
+                ValidateRowChanges(hAfter,pReq).   
+            end.
+            return hChanges.
+        end.
+            
     end method.
     
     method protected handle GetSaveRowChanges(pcKey as char,pReq as IRequestInfo):
@@ -893,7 +1048,6 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
             lok = hAfter:find-by-rowid(rAfter) no-error.
             if lok then 
             do:
-              
                 ValidateRowChanges(hAfter,pReq).   
             end.
             return hChanges.
@@ -926,11 +1080,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         define variable hAfter as handle no-undo.
         define variable rAfter as rowid no-undo. 
         define variable hField as handle no-undo.
- 
         if pKey > "" and num-entries(KeyFields) > 1 then 
         do:
             undo, throw new IllegalArgumentError("Single row update with multiple keys and child changes only.").
-        
         end.    
       
         phTopNavQuery:query-open(). 
@@ -943,16 +1095,58 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         do while hAfter:avail:
            if not valid-handle(hField) or hField:buffer-value <> pKey then
            do:
-              RemoveRow(hAfter).
+               RemoveRow(hAfter).
            end.
            else  
-              rAfter = hAfter:rowid.
+               rAfter = hAfter:rowid.
            
            phTopNavQuery:get-next.
         end. 
         return rAfter. 
     end method.        
     
+    method protected final rowid FindRidAndRemoveOtherAfterBuffers(phTopNavQuery as handle,pRow as IRow):
+        define variable hAfter as handle no-undo.
+        define variable rAfter as rowid no-undo. 
+        define variable hField as handle extent no-undo.
+        define variable cField as character no-undo.
+        define variable i       as integer no-undo.
+        define variable lRemove as logical no-undo.
+        define variable cValues as character no-undo.
+        phTopNavQuery:query-open(). 
+        phTopNavQuery:get-first.        
+        hAfter = phTopNavQuery:get-buffer-handle(1).
+        if valid-object(pRow)  then
+        do:
+            extent(hField) = extent(pRow:KeyValues).
+            do i = 1 to num-entries(pRow:KeyFields).
+                cField = entry(i,pRow:KeyFields).
+                hField[i] = hAfter:buffer-field (cField ).
+            end.
+        end.
+        do while hAfter:avail:
+           lRemove = false.
+           if extent(hField) = ? then 
+               lRemove = true.
+           else 
+           do: 
+               do i = 1 to num-entries(pRow:KeyFields):
+                   if hField[i]:buffer-value <> pRow:KeyValues[i] then
+                   do:
+                       lRemove = true.
+                       leave.              
+                   end.
+               end. 
+           end.
+           if lRemove then  
+               RemoveRow(hAfter).
+           else  
+               rAfter = hAfter:rowid.
+           
+           phTopNavQuery:get-next.
+        end. 
+        return rAfter. 
+    end method.        
     
     method protected final void RemoveAfterBuffers(phTopNavQuery as handle):
         define variable hAfter as handle no-undo.
@@ -965,25 +1159,21 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
            phTopNavQuery:get-next.
         end. 
     end method.        
-        
-    method protected final void RemoveDeletes(phBefore as handle,pkey as char):
+    
+    method protected final void RemoveDeletes(phBefore as handle,pRow as IRow):
         define variable lok as logical no-undo.
         define variable hBuffer as handle no-undo.
         define variable hNavQuery as handle no-undo.
         define variable cField as char no-undo.
-        define variable hField as handle no-undo.
-
+        define variable hField as handle extent no-undo.
+        define variable i      as integer no-undo.
+        define variable lDelete as logical no-undo. 
+        
         if not valid-handle(phBefore) then 
         do:
             undo, throw new IllegalArgumentError("Cannot delete row for invalid handle.").        
         end.    
                 
-        if pKey > "" and num-entries(KeyFields) > 1 then 
-        do:
-            undo, throw new IllegalArgumentError("Remove delete with multiple keys.").
-        
-        end.    
-        
         create query hNavQuery.
         hNavQuery:add-buffer(phBefore).
         hNavQuery:query-prepare ("for each " + phBefore:name).
@@ -991,15 +1181,34 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         hNavQuery:query-open(). 
         hNavQuery:get-first.   
         hBuffer = hNavQuery:get-buffer-handle(1).    
-        if pKey > "" then
-            hField = hBuffer:buffer-field (KeyFields).
+        
+        if valid-object(pRow) then
+        do:
+            extent(hField) = num-entries(pRow:KeyFields).
+            do i = 1 to num-entries(pRow:KeyFields).
+                cField = entry(i,pRow:KeyFields).
+                hField[i] = hBuffer:buffer-field (cField ).
+            end.
+        end.
+        
         do while hBuffer:avail:
+            lDelete = false.
             if hBuffer:row-state = row-deleted then
             do:
-                if not valid-handle(hField) or hField:buffer-value <> pKey then
-                do:
+                if not valid-object(pRow) then
+                    lDelete = true.
+                else do:
+                    lDelete = false.
+                    do i = 1 to extent(pRow:KeyValues):
+                        if hfield[i]:buffer-value <> pRow:KeyValues[i] then
+                        do:
+                            lDelete = true.
+                            leave.
+                        end.       
+                    end.
+                end.    
+                if lDelete then
                     hbuffer:reject-row-changes.
-                end.
             end.
             hNavQuery:get-next.
         end.    
@@ -1072,7 +1281,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         if valid-object(pReq) then
         do:
             cParent = hRelation:parent-buffer:serialize-name.
-            cValues = GetBufferValues(hRelation:parent-buffer,GetParentKey(hRelation)).
+            cValues = GetValues(hRelation:parent-buffer,GetParentKey(hRelation)).
             SearchRequest:publish(pReq,cParent, cValues, input-output cntxt).
             /* no child no updates */
             if valid-object(cntxt) then         
@@ -1318,7 +1527,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         define variable i as integer no-undo.
         define variable TblResponse as ITableResponse no-undo.
         define variable hNewBuffer  as handle no-undo.
-        /*            hds:copy-dataset(hCopy,yes,yes).*/
+        
         TblResponse = pResponse:GetTableResponse(TableHandle:Name).
 /*        message "datarefreshed in " this-object skip "response" pResponse skip*/
 /*          "valid table response " valid-object(TblResponse)                   */
@@ -1349,7 +1558,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
             ContextRefreshed:Publish(TblResponse).
             
             if valid-handle(TableHandle:before-table) then
-                 TableHandle:tracking-changes = true.                    
+                TableHandle:tracking-changes = true.                    
                     
         end.            
     end method.   
@@ -1361,10 +1570,25 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     end method. 
     
     method public character extent GetKeyValues(pBuffer as handle):
-        return GetBufferValues(pBuffer,KeyFields).
+        return GetValues(pBuffer,KeyFields).
     end method. 
     
-     method private character extent GetBufferValues(pBuffer as handle,pcFields as char):
+    method private void SetValues(pBuffer as handle,pcFields as char,pcValues as char extent):
+        define variable cKey as character no-undo.
+        define variable hFld as handle no-undo. 
+        define variable i as integer no-undo.
+        do i = 1 to num-entries(pcFields):
+            /** @todo = callsetproperty for each value if  */
+            hFld = pBuffer:buffer-field (entry(i,pcFields)).
+            hfld:buffer-value = pcValues[i].
+        end.     
+        catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("Fields " + pcfields +  " does not match buffer: " + e:GetMessage(1)).  
+        end catch. 
+    end method. 
+    
+    
+    method private character extent GetValues(pBuffer as handle,pcFields as char):
         define variable cKey as character no-undo.
         define variable hFld as handle no-undo. 
         define variable i as integer no-undo.
@@ -1570,10 +1794,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     
     /** Override in context to handle extent key (more than one KeyFields) and filter  to 
        return FilteredContext (Query) subclasses for a speciiic parent */
+ 
     method protected FilteredContext CreateFilteredContext(pparent as char,pkeys as char extent,pReq as IRequestInfo):
         return new FilteredContext(this-object,pparent,pkeys,pReq).        
     end method. 
-    
+ 
     /** create default filteredcontext that also handles parent/keyvalue as filter. */
     method protected FilteredContext CreateFilteredContext(filter as char):
         return new FilteredContext(this-object,filter).
@@ -1590,22 +1815,19 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     end method.
     
     method protected void FetchFilteredData(cntxt as FilteredContext):
-        if valid-object(ServiceAdapter) then
+        if valid-object(ServiceAdapter) and Lazy then
         do:   
-            /**   @todo this needs to be improved
+            /**   @todo this (Lazy) needs to be improved
              useful for cases that can only have one parent, but is turned off for most cases
              deja vu - this is resolved in adm2 dataview using dataisfetched and 
              other logic to decide if data is fetched by parent or in dataavailable
              (this is equivalent of dataavailable for the cases where filter 
               has single row parent...foreignkey is already added though )  */ 
-            if Lazy then
-            do:
-                FetchData(cntxt:GetRequest()).
-            end.
-            else do:
-                ContextRefreshed:Publish(new TableResponse(Name)).
-            end.    
-        end. 
+            FetchData(cntxt:GetRequest()).
+        end.
+        else  
+            ContextRefreshed:Publish(new TableResponse(Name)).
+         
     end method.
     
     method public /*final*/ IDataAdminCollection NewCollection().
@@ -2033,7 +2255,6 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         return ?.
     end method.
     
-    
     method public final IDataAdminElement CreateRootEntity().
         /* default unsupported */
         CreateRootRow().
@@ -2073,6 +2294,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         do i = 1 to extent(oldcntxt):
             mChildContextList[i] = oldcntxt[i].
         end.
+        KeyChanged:Subscribe(cntxt:ForeignKeyChanged).
         mChildContextList[i] = cntxt.        
     end method.    
    
@@ -2105,11 +2327,12 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
 /*            skip "has changes" this-object:HasChanges()*/
 /*        view-as alert-box.                             */
         ServiceAdapter:FetchData(msg).
-        
-        ServiceAdapter:RequestComplete:Unsubscribe(DataRefreshed).        
         Count = ?.
         TrackTables(hTbl,true).    
-   
+        finally:
+            ServiceAdapter:RequestComplete:Unsubscribe(DataRefreshed).        
+        end finally.
+        
     end method.
     
     method public void ExportLastSavedTree(pcfile as char):
@@ -2159,6 +2382,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         end.
         return hflds.
     end method.
+    
     method public void ViewHiddenColumns(phdls as handle extent):
         define variable i as integer no-undo.
         do i = 1 to extent(phdls):
@@ -2277,42 +2501,97 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     */
      /* override to add foreign value for ImportForParent */
     method protected void ReadRowForParent(pcParent as char, pcValue as char extent,json as JSONObject).
-        ReadRow(json,KeyFields).
+        ReadRow(json,GetClientKeyFields()).
     end method. 
        
     method protected void ReadRow(json as JSONObject).
         ReadRow(json,"").
     end method.
     
-    method protected logical FindOrCreateFromJSON(parent as char, pcKey as char extent,json as JSONObject):
+    method protected logical FindOrCreateFromJson(pcKeyFields as char, json as JSONObject):
         define variable cKeyValues as character extent no-undo.
         define variable i as integer no-undo.
-        define variable cJoin as character no-undo.
+        define variable cField as character no-undo.
+        define variable hFld as handle no-undo.
+        define variable hbuffer as handle no-undo.
+        
+        if pcKeyFields = "" or pcKeyFields = ? then 
+            undo, throw new IllegalArgumentError("KeyFields not passed to FindOrCreateFromJson"). 
+        
+        /*
+        if extent(pcKey) <> num-entries(KeyFields) then
+            undo, throw new IllegalArgumentError("The keys passed to FindOrCreateFromJson has" 
+                                                  + string(extent(pcKey)) + "extents while the "
+                                                  + this-object:GetClass():TypeName 
+                                                  + " KeyFields property has  " 
+                                                  + string(num-entries(KeyFields)) 
+                                                 + " entries. Cannot load JSON file."). 
+    
+        */
+        hBuffer = TableHandle:default-buffer-handle.
+        extent(cKeyValues) = num-entries(pcKeyFields).
+        
+        do i = 1 to num-entries(pcKeyFields):
+            cField = entry(i,pcKeyFields).
+            hFld = TableHandle:default-buffer-handle:buffer-field(cField).
+            
+            /* case sensitive  */
+            if json:Has(hFld:serialize-name) then
+                cKeyValues[i] = ReadJsonCharValue(cField,json).
+            else do:
+                cKeyValues[i] = hFld:default-value.
+            end.
+        end.
+       
+        TableHandle:default-buffer-handle:find-unique("where " + GetWhere(pcKeyFields,cKeyValues)) no-error.
+       
+        if not TableHandle:default-buffer-handle:avail then
+        do:
+            TableHandle:default-buffer-handle:buffer-create().
+            do i = 1 to num-entries(pcKeyFields):
+                cField = entry(i,pcKeyFields).
+                hFld = TableHandle:default-buffer-handle:buffer-field(cField).
+                hfld:buffer-value = cKeyValues[i].        
+            end.     
+        end.
+        return TableHandle:default-buffer-handle:AVAIL.  
+    end method.     
+    
+    method protected logical FindOrCreateFromJson(pcParentJoin as char,pcParentValues as char extent,pcKeyFields as char,pjson as JSONObject):
+        define variable cKeyValues as character extent no-undo.
+        define variable i as integer no-undo.
         define variable cField as character no-undo.
         define variable cFieldList as character no-undo.
         define variable iKey as integer no-undo.
         define variable iParent as integer no-undo.
         define variable hFld as handle no-undo.
         
-        if KeyFields = "" then 
-            undo, throw new AppError("The " + this-object:GetClass():TypeName + " has no KeyFields. Cannot load JSON file."). 
-         extent(cKeyValues) = num-entries(KeyFields).
-        cJoin = GetJoinFields(parent).
-        cFieldList = KeyFields.
+        if pcKeyFields = "" or pcKeyFields = ? then 
+            undo, throw new IllegalArgumentError("No KeyFields passed to FindOrCreateFromJson. Cannot load JSON file."). 
         
-        /* add parent values to key values in KeyFields order 
+        if pcParentJoin = "" or pcParentJoin = ? then 
+            undo, throw new IllegalArgumentError("No Parent join passed to FindOrCreateFromJson. Cannot load JSON file."). 
+        
+        if extent(pcParentValues) * 2 <> num-entries(pcParentJoin) then
+            undo, throw new IllegalArgumentError("Parent join and ParentValues passed to FindOrCreateFromJson does not match. Cannot load JSON file."). 
+        
+        
+        extent(cKeyValues) = num-entries(pcKeyFields).
+        cFieldList = pcKeyFields.
+        
+        /* add parent values to key values
            Remove each entry from cFieldList, the fields that remain in cFieldList will have to be found in JSON  */
-        do i = 2 to num-entries(cJoin) by 2:
+        do i = 2 to num-entries(pcParentJoin) by 2:
             iParent = iParent + 1.
-            cField = entry(i,cJoin).
-            iKey = lookup(cField,KeyFields). 
+            cField = entry(i,pcParentJoin).
+            iKey = lookup(cField,pcKeyFields). 
             /* if the passed values is part one of the keyfields then use the value from the parameter */
             if iKey > 0 then 
             do:
-               if extent(pcKey) lt iparent then 
-                   undo, throw new AppError("The " + this-object:GetClass():TypeName + " join does not match parent KeyFields. Cannot load JSON file."). 
+               if extent(pcParentValues) lt iparent then 
+                   undo, throw new IllegalArgumentError("The " + this-object:GetClass():TypeName + " join does not match the passed parent values. Cannot load JSON file."). 
                 
-                cKeyValues[iKey] = pcKey[iParent].
+                cKeyValues[iKey] = pcParentValues[iParent].
                 entry(iKey,cFieldList) = "".
             end.
         end.
@@ -2324,20 +2603,21 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
             do:
                hFld = TableHandle:default-buffer-handle:buffer-field(cField).
                /* case sensitive  */
-               if json:Has(hFld:serialize-name) then
-                   cKeyValues[i] = ReadJsonCharValue(cField,json).
+               if pjson:Has(hFld:serialize-name) then
+                   cKeyValues[i] = ReadJsonCharValue(cField,pjson).
                else do:
                    cKeyValues[i] = hFld:default-value.
                end.
             end.
         end.  
+        
         TableHandle:default-buffer-handle:find-unique("where " + GetKeyWhere(cKeyValues)) no-error.
        
         if not TableHandle:default-buffer-handle:avail then
         do:
             TableHandle:default-buffer-handle:buffer-create().
-            do i = 1 to num-entries(KeyFields):
-                cField = entry(i,KeyFields).
+            do i = 1 to num-entries(pcKeyFields):
+                cField  = entry(i,pcKeyFields).
                 hFld = TableHandle:default-buffer-handle:buffer-field(cField).
                 hfld:buffer-value = cKeyValues[i].        
             end.     
@@ -2383,22 +2663,28 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
          do i = 1 to hbuf:num-fields on error undo, throw:
              hFld = hbuf:buffer-field (i).
              if hFld:serialize-hidden = false 
-             and lookup(hFld:name,pcExceptColumns) = 0
+             and lookup(hFld:name,pcExceptColumns) = 0 
              and json:Has(hFld:serialize-name) then
              do:
-                 
                  case hFld:data-type:
                      when "int64" then
                          hFld:buffer-value = json:GetInt64(hFld:serialize-name).
                      when "integer" then
                          hFld:buffer-value = json:GetInteger(hFld:serialize-name).
+                     when "decimal" then
+                         hFld:buffer-value = json:GetDecimal(hFld:serialize-name).
                      when "character" then
                          hFld:buffer-value = json:GetCharacter(hFld:serialize-name).
                      when "logical" then
                          hFld:buffer-value = json:GetLogical(hFld:serialize-name).    
+                     when "date" then
+                         hFld:buffer-value = json:GetDate(hFld:serialize-name).    
+                     when "datetime" then
+                         hFld:buffer-value = json:GetDatetime(hFld:serialize-name).    
+                     when "datetime-tz" then
+                         hFld:buffer-value = json:GetDatetimeTZ(hFld:serialize-name).    
                  end case.            
-             end.
-                                 
+            end. 
               /*      
              catch e as Progress.Lang.Error :
              	 if e:GetMessageNum(1) = 7351 then
@@ -2406,26 +2692,23 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
                  undo, throw e.
              end catch.*/
          end.
-         
          ReadChildren(json).
-         
     end method.    
     
     method protected void ReadChildren(json as JSONObject).
         define variable i as integer no-undo. 
-        define variable cName as character no-undo.
         define variable childcntxt as IDataAdminContext no-undo.
-        define variable cKey as character extent no-undo.
+        define variable rowInfo as IRow no-undo.    
         
-        cKey = GetCurrentKeyValues().
-        
+        rowInfo = new RowBuffer(TableHandle:default-buffer-handle,KeyFields).
+  
         /* loop through children and call ReadChild */
         do i = 1 to extent(mChildContextList):       
             if valid-object(mChildContextList[i]) then 
             do:
                 if json:Has(mChildContextList[i]:SerializeName) then
                 do:
-                    mChildContextList[i]:ReadChild(SerializeName,cKey, json).
+                    mChildContextList[i]:ReadChild(rowInfo, json).
                 end.
             end.   
         end.
@@ -2439,7 +2722,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         TableHandle:tracking-changes = true.        
         
         htbl = CloneTable().
-        ReadTable(htbl,pcfile,"Append").
+        ReadTable(htbl,pcfile,"Append", no).
+
         ReadNewForParent(pcparent,pcValue,htbl).
         
         finally:
@@ -2448,23 +2732,53 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         end.      
     end method.
     
-    /* returns json object from the json file*/
-    method /*protected*/ public JsonArray ReadJsonArray (pcFile as char):
+    /** ReadJsonRow returns the single object from the JSON file.
+        The object can be in an array (prodataset style) or be a true 
+        object in the file. 
+        Throws an error if there is an array with more than one element */  
+    method protected JsonObject ReadJsonRow(pcFile as char):
+        define variable json       as JsonObject no-undo.
+        define variable jsonOwner  as JsonObject no-undo.
+        define variable array      as JsonArray no-undo.
+        define variable parser     as ObjectModelParser no-undo.
+        jsonOwner = ReadJsonFile(pcfile).
+        do on error undo, throw: 
+           json = jsonOwner:GetJsonObject(SerializeName).
+           catch e as Progress.Lang.Error :
+              /* Ignore 16060, which is thrown if the object is an array */
+              if e:GetMessageNum(1) <> 16060 then 
+                  undo, throw e. 	    	
+           end catch. 
+        end.
+        if not valid-object(json) then
+        do:      
+            array = jsonOwner:GetJsonArray(SerializeName).  
+            if array:Length > 1 then 
+                undo, throw new IllegalArgumentError("More than one row encountered in import to " + Name + " row " ).
+            json = array:GetJsonObject(1). 
+        end.
+        return json.
+    end method.   
+    
+    method protected JsonObject ReadJsonFile (pcFile as char):
         define variable parser as ObjectModelParser no-undo.
         define variable json as JsonObject no-undo.
         
         parser = new ObjectModelParser().
-        json = cast(parser:ParseFile(pcfile),JsonObject).
+        return cast(parser:ParseFile(pcfile),JsonObject).
+    end method.
+    
+    /* returns json object from the json file*/
+    method /*protected*/ public JsonArray ReadJsonArray (pcFile as char):
+        define variable json as JsonObject no-undo.
+        json = ReadJsonFile(pcfile).
         return json:GetJsonArray(SerializeName).           
     end method.
     
     method  protected  JsonArray ReadJsonArrayFromRoot (pcFile as char):
-        define variable parser as ObjectModelParser no-undo.
         define variable json as JsonObject no-undo.
         define variable jsonRoot as JsonObject no-undo.
-        
-        parser = new ObjectModelParser().
-        json = cast(parser:ParseFile(pcfile),JsonObject).
+        json = ReadJsonFile(pcfile).
         jsonRoot = json:GetJsonObject("root").
         return jsonRoot:GetJsonArray(SerializeName).           
     end method.
@@ -2473,6 +2787,22 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     method protected void ReadNewForParent(pcParent as char, pcValue as char,hTbl as handle):
          undo, throw new UnsupportedOperationError("ReadNewForParent  in " + Name + " context").
     end method.
+    
+    /* import of JSON tree with root */
+    method public void ImportTree(pcfile as char,pcMode as char):
+        define variable ltrack as logical no-undo init true.
+     
+        if not TableHandle:tracking-changes then
+        do:
+           ltrack = false.
+           TableHandle:tracking-changes = true.
+        end.       
+        ReadTable(TableHandle,pcfile,pcmode,yes). 
+        finally:
+            TableHandle:tracking-changes = ltrack.           
+        end finally.       
+    end method.
+    
      
     /* single table import of the entity (flat - no tree)*/
     method public void Import(pcfile as char,pcMode as char):
@@ -2483,67 +2813,92 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
            ltrack = false.
            TableHandle:tracking-changes = true.
         end.       
-        ReadTable(TableHandle,pcfile,pcmode). 
+        ReadTable(TableHandle,pcfile,pcmode,no). 
         finally:
             TableHandle:tracking-changes = ltrack.           
         end finally.       
     end method.
     
-    method private void ReadTable(phTbl as handle,pcfile as char,pcMode as char):
-        define variable cMsg as character no-undo.
+    method private void ReadTable(phTbl as handle,pcfile as char,pcMode as char,plHasRoot as log):
+        define variable cMsg        as character no-undo.
+        define variable array       as JsonArray no-undo.      
+        define variable jsonRow     as JsonObject no-undo.      
+        define variable i           as integer no-undo.
+        define variable lCreateOnly as logical no-undo.
+        define variable cKeyFields  as character no-undo. 
         
-        phTbl:read-json ("File",pcFile,pcMode).      
-        catch e as Progress.Lang.Error :
-            cMsg = e:GetMessage(1).
-            if e:GetMessageNum(1) = 15376 then
-                cMsg = replace(cMsg,"temp-table","Collection").
-           /* replace temp-table name 
-              workaround core bug - returns blank and gived illegal runtime conversion 
-              when referencing   e:GetMessageNum(1) = 132 then*/
-            else if cMsg matches "*(132)" then 
+        if pcMode = "Append" then
+           lCreateOnly = true. 
+        else if pcMode <> "Replace" then
+           undo, throw new IllegalArgumentError("Read mode " + quoter(pcMode) +  "passed to ReadTable. Valid values are ""Replace"" or ""Append"" "). 
+        
+        if plHasRoot then 
+            array = ReadJSONArrayFromRoot(pcfile). 
+        else      
+            array = ReadJSONArray(pcfile).        
+        
+        do i = 1 to array:length :        
+            jsonRow = array:GetJsonObject(i).
+            if lCreateOnly then
             do:
-                 
-               entry(2,cMsg," ") = Name. 
+                TableHandle:default-buffer-handle:buffer-create().
+                ReadRow(jsonRow).
             end.
-            undo, throw new IllegalArgumentError(cMsg).       
-            
-        end catch.    
+            else do:
+                cKeyFields = GetClientKeyFields().
+                
+                if FindOrCreateFromJSON(cKeyFields,jsonRow) then
+                    ReadRow(jsonrow,cKeyFields).
+            end.
+        end. /* do i = 1 to array:length */   
     end method.   
     
-    /* import single row */
+    /* import single row  */
     method private void ReadRow(pcFile as char):        
         define variable lTrack as logical no-undo.
         define variable array      as JsonArray no-undo.
+        define variable cValues    as character extent no-undo.
+        define variable jsonObj    as JsonObject no-undo.
         
         lTrack = TableHandle:tracking-changes.
-        TableHandle:tracking-changes = true.        
-                
-        array = ReadJSONArray(pcfile).  
-        if array:Length > 1 then 
-            undo, throw new IllegalArgumentError("More than one row encountered in import to " + Name + " " ).
+        TableHandle:tracking-changes = true.  
         
-        ReadRow(array:GetJsonObject(1),pcFile).
+        jsonObj = ReadJsonRow(pcFile).
+        this-object:ReadKey(jsonObj,KeyFields).
+        ReadRow(jsonObj,KeyFields).
+      
         finally:
             TableHandle:tracking-changes = lTrack.      
         end finally.
     end method.
     
-    method public void ReadChild(pcparent as char,pckey as char extent,pjson as JSONObject):
+    method public void ReadChild(pParentRow as IRow,pjson as JSONObject):
         define variable array as JsonArray no-undo.
         define variable lTrack as logical no-undo.
         define variable i as integer no-undo.
+        define variable cJoinfields as character no-undo.
+        define variable cJoinValues as character extent no-undo.
         define variable jsonRow as JSONObject no-undo.
         
         lTrack = TableHandle:tracking-changes.
         TableHandle:tracking-changes = true.
-       
+        
         array = pjson:GetJsonArray(SerializeName).
-      
+        
+        cJoinFields = GetClientJoinFields(pParentRow:SerializeName).
+        extent(cJoinValues) = int(num-entries(cJoinFields) / 2).
+        do i = 1 to extent(cJoinValues):
+            cJoinValues[(i * 2) - 1] = pParentRow:FieldValue((entry((i * 2) - 1,cJoinFields))). 
+        end.            
         do i = 1 to array:length :        
             jsonRow = array:GetJsonObject(i).
-            if FindOrCreateFromJSON(pcparent,pcKey,jsonRow) then
-            do: 
-                ReadRowForParent(pcParent,pcKey,jsonRow).
+            if FindOrCreateFromJSON(cJoinFields,cJoinValues,GetClientKeyFields(),jsonRow) then
+            do:   
+                /* default ReadRowForParent = ReadRow(pjson,GetClientKeyFields()).
+                   @todo deprecate - make generic 
+                   (currently needed/used for User to allow id or name/domain 
+                    and sequenceValueContext   ) */                
+                ReadRowForParent(pParentRow:SerializeName,pParentRow:KeyValues,jsonRow).
             end.
         end.
         finally:
@@ -2551,12 +2906,70 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         end finally.
     end method.  
     
-    /*
-    /** separated from ReadChild to allow using variation of KeyFiewlds */   
-    method protected void ReadChildRow(pjson as JSONObject):
-        ReadRow(pjson,KeyFields).
+    method private char ShowValues(pcValues as char extent):
+        define variable i       as integer no-undo.
+        define variable cValue as character no-undo.
+        do i = 1 to extent(pcValues):
+            cValue = cValue 
+                    + if pcValues[i]= ? then "?"  
+                      else quoter(pcValues[i])
+                    + " ".     
+        end.
+        return right-trim(cValue).    
     end method.
-      */ 
+    
+    method private logical CompareValues(pcValues1 as char extent,pcValues2 as char extent,pcStrength as char):
+        define variable i       as integer no-undo.
+        do i = 1 to extent(pcValues1):
+            if pcValues2[i] <> ?   
+            and not compare(pcValues1[i],"eq",pcValues2[i],pcStrength) then
+                return false.  
+        end.
+        return true.    
+    end method.
+    
+    /** Read key will check if the key in json matches current row
+        The action for a non matching key depends on the CanEditKey property
+        - Throws error if CanEditKey = false 
+        - Change key and publish to children if CanEditKey = true */
+         
+    method private void ReadKey(pjson as JsonObject,pcKeyFields as char):
+        define variable cValues as character extent no-undo.
+        define variable cJsonValues as character extent no-undo.
+        define variable pRowChange as IRowChange   no-undo.
+       
+        cValues =  GetValues(TableHandle:default-buffer-handle,pcKeyFields).
+        cJsonValues = ReadValuesFromJson(pjson,pcKeyFields).       
+        if not CompareValues(cJsonValues,cValues,"case-insensitive") then
+        do:
+            /** @todo call validateproperty on each value - catch */
+            if CanEditKey = false then
+                undo, throw new IllegalArgumentError(
+                     "Cannot import json file with " 
+                     + ShowValues(cJsonValues)
+                     + " to " + name + " " + ShowValues(cValues) 
+                     + ".").
+            else do:
+                SetValues(TableHandle:default-buffer-handle,pcKeyFields,cJsonValues).
+                KeyChanged:Publish(new RowChange(SerializeName,pcKeyFields,cValues,cJsonValues)).
+            end.
+        end.
+/*  allow case correction of key?? possibly use validateproperty  see above comment */    
+/*   else if not CompareValues(cJsonValues,cValues,"case-sensitive") then     */
+/*            SetValues(TableHandle:default-buffer-handle,pcKeyFields,cJsonValues).*/
+/*                                                                                 */
+    end method.
+    
+    method private character extent ReadValuesFromJson(pjson as JsonObject,pcFields as char):
+        define variable cValues as character no-undo extent.
+        define variable i       as integer no-undo.
+        extent(cValues) = num-entries(pcFields).
+        do i = 1 to extent(cValues):
+            cValues[i] = ReadJsonCharValue(entry(i,KeyFields),pjson).
+        end.    
+        return cValues.
+    end method.
+       
     /* single row import of the entity (flat no tree) */     
     method public void ImportRow(pcfile as char, i as int).
         define variable hbuf as handle no-undo.
@@ -2565,9 +2978,16 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
               
     end method.
     
+    
     /* single row import of the entity (flat no tree) */     
     method public void ImportRow(pcfile as char, c as char).      
         if this-object:Find(c) then
+            ReadRow(pcfile).      
+    end method.
+    
+    /* single row import of the entity (flat no tree) */     
+    method public void ImportRow(pcfile as char, cKeys as char extent).      
+        if this-object:Find(cKeys) then
             ReadRow(pcfile).      
     end method.
     
@@ -2576,17 +2996,34 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
             ReadRowTree(pcfile).
     end method.
     
+    method public void ImportRowTree(pcfile as char, c as char extent).
+        if this-object:Find(c) then
+            ReadRowTree(pcfile).
+    end method.
+    
     method public void ImportRowTree(pcfile as char, c as char).
         if this-object:Find(c) then
             ReadRowTree(pcfile).
     end method.
     
+    /** read current row from json file with children   */
     method public void ReadRowTree(pcfile as char).
        define variable array      as JsonArray no-undo.
        define variable json       as JsonObject no-undo.
-       define variable lTrack as logical no-undo init ?.
+       define variable lTrack     as logical no-undo init ?.
+       
        array = ReadJSONArrayFromRoot(pcfile).  
+       if array:Length > 1 then 
+           undo, throw new IllegalArgumentError("More than one row encountered in import to " + Name + " row " ).
+        
        json = array:GetJsonObject(1).
+       
+       if not ReadOnly then 
+       do:
+           lTrack = TableHandle:tracking-changes.
+           TableHandle:tracking-changes = true.
+       end.       
+       this-object:ReadKey(json,KeyFields).
        if ReadOnly then 
            ReadChildren(json).
        else do:    
@@ -2617,7 +3054,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         hFld = hBuff:buffer-field(pname).
         if hbuff:rowid <> prid then 
             hBuff:find-by-rowid (prid).
-        
+       
         cold = hfld:buffer-value.
         ValidateProperty(pName,cold,pValue).
         hfld:buffer-value = pValue.
@@ -2641,10 +3078,31 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     
     /** override to manage change - not intended fro validation - validation should have been done */
     method protected void ValueChanged(pcfield as char,poldvalue as char,pnewvalue as char).  
+        define variable cOldValues as character extent no-undo.
+        define variable cNewValues as character extent no-undo.
+        define variable iKey as integer no-undo.
+        iKey = lookup(pcfield,KeyFields).
+        if iKey > 0 then 
+        do:
+            /*publish changes (only case-insensitive - no need to update children for 
+              case change - no case sensitive keys) */
+            if not Compare(poldValue,"eq",pnewvalue,"case-insensitive") then
+            do:
+                cNewValues = GetValues(TableHandle:default-buffer-handle,KeyFields).
+                cOldValues = cNewValues.
+                coldValues[iKey] = poldvalue.
+                KeyChanged:Publish(new RowChange(SerializeName,KeyFields,cOldValues,cNewValues)).
+            end.
+        end.    
     end method.
     
-    /** override to validate */
+    /** override to validate other fields - make sure to call super */
     method protected void ValidateProperty(pcfield as char,poldvalue as char,pnewvalue as char).  
+        if lookup(pcfield,KeyFields) > 0 and not CanEditKey then 
+        do:
+            if not Compare(poldValue,"eq",pnewvalue,"case-sensitive") then
+                undo, throw new ReadOnlyPropertyError(this-object:Name,poldvalue,pcfield).
+        end.
     end method.
      
     method protected void ValidateBuffer(hBuffer as handle):
@@ -2753,6 +3211,10 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
     end method.
     
     method public character ColumnSortSource(pcColumn as char).
+/*        if num-entries(pcColumn,".") > 1 then                                                             */
+/*        do:                                                                                               */
+/*            undo, throw new IllegalArgumentError("Reference " + quoter(pcColumn) + " in sort expression").*/
+/*        end.                                                                                              */
         return pcColumn.
     end method.
     
@@ -2840,16 +3302,60 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
                + GetChildJoinExpression(parentid,pcKeyValues).   
     end method.
     
+    method public character GetJoinQuery(parentname as character).
+        define variable cExpression as character no-undo.
+        define variable cjoinFields as character no-undo.
+        define variable i as integer no-undo.
+        define variable joincntxt as IDataAdminContext no-undo.
+        joincntxt = ContextScope:GetContext(parentname).
+        if not valid-object(joincntxt) then
+            undo, throw new IllegalArgumentError("Context not found for join with " + quoter(parentname)).
+        cJoinFields = GetJoinFields(joincntxt:TableHandle:serialize-name).
+        if cJoinfields = "" or cJoinfields = ? then
+            undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(joincntxt:TableHandle:serialize-name)).
+        cExpression = GetJoinExpression(joincntxt:TableHandle:name,cJoinfields).
+        return cExpression.
+    end method.
+    
+    method public character GetServerJoinQuery(parentname as character).
+        define variable cExpression as character no-undo.
+        define variable cjoinFields as character no-undo.
+        define variable i as integer no-undo.
+        define variable joincntxt as IDataAdminContext no-undo.
+        joincntxt = ContextScope:GetContext(parentname).
+        if not valid-object(joincntxt) then
+            undo, throw new IllegalArgumentError("Context not found for join with " + quoter(parentname)).
+        cJoinFields = GetServerJoinFields(joincntxt:TableHandle:serialize-name).
+        if cJoinfields = "" or cJoinfields = ? then
+            undo, throw new IllegalArgumentError("ServerJoinFields not defined for parent " + quoter(joincntxt:TableHandle:serialize-name)).
+        cExpression = GetJoinExpression(joincntxt:TableHandle:name,cJoinfields).
+        return cExpression.
+    end method. 
+    
+    method public character GetJoinExpression(pcJoinTable as char,pcJoinfields as char).
+        define variable cExpression as character no-undo.
+        define variable i as integer no-undo.
+        cExpression = "each " + pcJoinTable.
+        do i = 1 to num-entries(pcJoinfields) by 2:
+            cExpression = cExpression
+                        + (if i = 1 then " where " else " and ")
+                        +  pcJoinTable + "." + entry(i,pcJoinFields)
+                        + " = "    
+                        +  TableHandle:name + "." + entry(i + 1,pcJoinFields) . 
+        end. 
+        return cExpression.
+    end method.
+    
     method protected character GetChildJoinExpression(parentid as char,pcKeyValue as char).
-            define variable cjoinFields as character no-undo.
-            cJoinFields = GetJoinFields(parentid).
-            if cJoinfields = "" then
-                undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(parentid)).
-            if num-entries(cJoinfields) <> 2 then
-                undo, throw new IllegalArgumentError("JoinFields have the wrong number of entries for parent " + quoter(parentid)).
-            return TableHandle:name + "." + entry(2,cJoinFields)
-                   + " = "    
-                   + quoter(pcKeyValue).
+        define variable cjoinFields as character no-undo.
+        cJoinFields = GetJoinFields(parentid).
+        if cJoinfields = "" then
+            undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(parentid)).
+        if num-entries(cJoinfields) <> 2 then
+            undo, throw new IllegalArgumentError("JoinFields have the wrong number of entries for parent " + quoter(parentid)).
+        return TableHandle:name + "." + entry(2,cJoinFields)
+               + " = "    
+               + quoter(pcKeyValue).
     end method.
     
     method protected character GetChildJoinExpression(parentid as char,pcKeyValues as char extent).
@@ -2857,8 +3363,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         define variable i as integer no-undo.
         define variable cExpression as character no-undo.
         cJoinFields = GetJoinFields(parentid).
-        if cJoinfields = "" then
-                undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(parentid)).
+        if cJoinfields = "" or cJoinfields = ? then
+            undo, throw new IllegalArgumentError("JoinFields not defined for parent " + quoter(parentid)).
            
         if num-entries(cJoinfields) <> extent(pcKeyValues) * 2 then
             undo, throw new IllegalArgumentError("JoinFields and KeyValues do not match for parent " + quoter(parentid)).
@@ -2871,6 +3377,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract use-widget-pool imple
         end. 
         return cExpression.
     end method.
+    
      
      /**  Get default buffer handles 
           to use in child query for parent  

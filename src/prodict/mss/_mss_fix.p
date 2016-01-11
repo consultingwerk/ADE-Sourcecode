@@ -45,6 +45,7 @@ DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE maxorder         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE a                AS INTEGER   NO-UNDO.
 DEFINE VARIABLE cType            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE migCon           AS LOGICAL   NO-UNDO.
 
 DEFINE BUFFER   a_DICTDB         FOR DICTDB._Field.
 DEFINE BUFFER   i_DICTDB        FOR DICTDB._Index.
@@ -90,6 +91,10 @@ FORM
 IF NOT SESSION:BATCH-MODE  
  then assign SESSION:IMMEDIATE-DISPLAY = yes.
 
+IF ENTRY(1,user_env[36]) = "y" 
+THEN migCon = YES.
+ELSE migCon = NO. 
+  
 if  user_env[25] = "**all**"
  or user_env[25] = ""
  then assign
@@ -646,7 +651,7 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
  /*-----------------------  CONSTRAINTS     ------------------------*/
 /*-----------------------------------------------------------------*/
 
-
+IF migCon THEN DO: /* constraints only fixed if migrate constraints set intitially */
   ASSIGN l_con-num = 0.
   FOR EACH DICTDB._Constraint:
     IF l_con-num < DICTDB._Constraint._con-num THEN
@@ -737,13 +742,17 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
    
       END. 
   END.
-  
+END. /* Migrate constraint */  
   _rmcon:
   FOR EACH DICTDB._constraint OF DICTDB._File:
      FIND FIRST DICTDB2._Constraint WHERE DICTDB2._Constraint._Con-Name = DICTDB._Constraint._Con-Name NO-LOCK NO-ERROR.
      IF NOT AVAILABLE (DICTDB2._Constraint)
-     THEN 
-          DELETE DICTDB._Constraint.
+     THEN DO: 
+         FOR EACH DICTDB._Constraint-Keys WHERE recid(DICTDB._Constraint) = DICTDB._Constraint-Keys._con-recid:
+             DELETE DICTDB._Constraint-Keys.
+         END.
+         DELETE DICTDB._Constraint.
+     END.
   END.
   
   IF con_recid <> 0 THEN DO:

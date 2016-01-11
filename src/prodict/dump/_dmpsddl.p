@@ -79,7 +79,7 @@ DEFINE VARIABLE dumpAltBuf AS LOGICAL     NO-UNDO.
 DEFINE VARIABLE cMsg AS CHARACTER NO-UNDO.
 DEFINE VARIABLE myEPolicy  AS prodict.sec._sec-pol-util    NO-UNDO.
 DEFINE VARIABLE myObjAttrs AS prodict.pro._obj-attrib-util NO-UNDO.
-
+DEFINE VARIABLE brk        AS LOGICAL INITIAL NO NO-UNDO.
 DEFINE NEW SHARED STREAM ddl.
 DEFINE NEW SHARED VARIABLE df-con  AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
@@ -223,18 +223,24 @@ DO ON STOP UNDO, LEAVE:
          c = "".
 
          DO ix = iLast + 1 TO numCount:
+            brk = NO.     
             IF c = "" THEN
                 c = entry(ix,user_longchar) NO-ERROR.
             ELSE
-            ASSIGN c = c + "," + 
+            DO:
+               IF LENGTH(c + "," + entry(ix,user_longchar)) > 2400 THEN 
+                  ASSIGN brk = YES.
+               ELSE    
+                  ASSIGN c = c + "," + 
                                  entry(ix,user_longchar) no-error.
-            IF ERROR-STATUS:ERROR THEN DO:
+            END.                    
+            IF ERROR-STATUS:ERROR OR brk THEN DO:
                 ASSIGN ix = ix - 1.
                 LEAVE. /* process what we'got so far */
             END.
            
          end.
-
+         
          /* remember the last one we processed, so we continue from where we left off */
          ASSIGN ilast = ix.
 

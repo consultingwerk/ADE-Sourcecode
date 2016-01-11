@@ -192,16 +192,4 @@ class OpenEdge.DataAdmin.TablePermission final inherits Entity  implements ITabl
         htbl:default-buffer-handle:write-json ("File",cFile,yes).   
     end method.
     
-    method public override void Import(cFile as char):
-        if not valid-handle(mDefaultBuffer) then
-        do:
-            undo, throw new UnsupportedOperationError("Import to new TablePermission that is not in a collection or service").
-        end.
-            
-        mDefaultBuffer:serialize-name = "tablePermissions". 
-        mDefaultBuffer:table-handle:tracking-changes = true.
-        if not mDefaultBuffer:read-json ("File",cFile,"replace") then 
-            undo, throw new IllegalArgumentError(error-status:get-message(1)).
-                           
-    end method. 
  end class.

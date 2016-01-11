@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2012 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -28,27 +28,18 @@ using OpenEdge.DataAdmin.Error.*.
 
 define stream acceptstream.
 
-define variable mMode       as char init "put" no-undo.
-define variable mCollection as char init "schemas" no-undo.
 define variable fileLogger  as FileLogger no-undo.
 
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value(mMode + "_" + mCollection + ".log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.     
+ /* to be deprecated */
+{darest/restbase.i put schemas} 
+  
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.      
     /* ***************************  Definitions  ************************** */
     define variable schemaInst     as ISchema no-undo.
     define variable tableSet       as ITableSet no-undo.
     define variable seq            as ISequence no-undo.
     define variable seqMap         as ISequenceValueMap no-undo.
-    define variable restRequest    as RestRequest no-undo.
     define variable service        as DataAdminService no-undo.
     define variable errorHandler   as DataAdminErrorHandler no-undo.
     define variable cFile          as character no-undo.
@@ -56,7 +47,6 @@ procedure executeRequest:
     define variable clong as longchar no-undo.
     /* ***************************  Main Block  *************************** */
     do on stop undo, leave:       
-        restRequest = new RestRequest(mMode,mCollection,pcParam).  
         service = new DataAdminService(restRequest:ConnectionName).
         restRequest:Validate().
         

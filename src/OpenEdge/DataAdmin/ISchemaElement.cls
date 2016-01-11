@@ -17,10 +17,14 @@
  
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IArea from propath.
+using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISchemaPartitionMap from propath.
 
 using OpenEdge.DataAdmin.Binding.* from propath.  
 interface OpenEdge.DataAdmin.ISchemaElement inherits IDataAdminElement:  
+    
+    define public property Schema as ISchema no-undo get. 
+     
     /** Name of the element (tablename, indexname or fieldname) */ 
     define public property Name        as char      no-undo get.
  

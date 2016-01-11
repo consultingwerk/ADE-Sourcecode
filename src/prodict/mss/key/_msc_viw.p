@@ -29,12 +29,12 @@ Define {1} var Show_Hidden_Tbls as logical init no  NO-UNDO.
 
 
 DEFINE BUTTON btnCreate 
-     LABEL "C&reate Constraint" 
+     LABEL "C&reate Constraint..." 
      SIZE 22 BY 1.3.
 
 DEFINE BUTTON btnProps  
-     LABEL "Constraint &Properties" 
-     SIZE 22 BY 1.3.
+     LABEL "Constraint &Properties..." 
+     SIZE 24 BY 1.3.
 
 DEFINE BUTTON s_btnDelete  
      LABEL "De&lete Constraint" 
@@ -55,8 +55,8 @@ DEFINE FRAME frame_const
      c_lst_Cnsts AT ROW 3.86 COL 46 NO-LABEL VIEW-AS SELECTION-LIST SINGLE 
                                    SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL SIZE 28 BY 6
      btnCreate AT ROW 12 COL 4 
-     btnProps AT ROW 12 COL 29 
-     s_btnDelete AT ROW 12 COL 54 
+     btnProps AT ROW 12 COL 28.5 
+     s_btnDelete AT ROW 12 COL 55 
      
     WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
@@ -71,7 +71,13 @@ ON CHOOSE OF btnCreate IN FRAME frame_const
    DO:
       IF NOT is_error THEN DO:
           IF c_table_name = "" OR c_table_name = "?" THEN MESSAGE "No table selected, please select a table" VIEW-AS ALERT-BOX ERROR.
-          ELSE RUN prodict/mss/key/constraint.p.
+          ELSE DO:
+              FIND FIRST DICTDB._index OF DICTDB._file WHERE DICTDB._file._file-name = c_table_name 
+                                                            AND DICTDB._File._Db-Recid = DbRecid NO-LOCK NO-ERROR. 
+              IF DICTDB._Index._Index-name = "default" THEN 
+                          MESSAGE " An index is required before creating a constraint, create an index before proceeding" VIEW-AS ALERT-BOX ERROR.
+              ELSE RUN prodict/mss/key/constraint.p.    
+          END.
           RUN fill_constraint.
        END.   
        ELSE MESSAGE "Please select a valid table" VIEW-AS ALERT-BOX ERROR.  
@@ -198,11 +204,12 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    IF AVAILABLE (DICTDB._Db)
    THEN DO:
       ASSIGN DbRecId = RECID(DICTDB._Db)
-             cDbType  = user_dbtype.
+             cDbType = user_dbtype.
    END.
    ELSE DO:
-      FIND FIRST DICTDB._Db.
-         ASSIGN DbRecId = RECID(DICTDB._Db).
+      FIND LAST DICTDB._Db.
+         ASSIGN DbRecId = RECID(DICTDB._Db)
+                cDbType  = user_dbtype.
    END.
    run adecomm/_tbllist.p 
       	    (INPUT  c_lstTbls:HANDLE IN FRAME frame_const,

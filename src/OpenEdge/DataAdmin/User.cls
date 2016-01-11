@@ -29,7 +29,7 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
         get():
              if not valid-object(Domain) then
              do:
-                 if valid-handle(mBuffer) and mBuffer::DomainName > "" 
+                 if valid-handle(mBuffer)  
                  and valid-object(Service) then
                      Domain = Service:GetDomain(mBuffer::DomainName).            
              end.
@@ -68,12 +68,15 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
      /** The unique identifier of the user  (name@domainname) */
      define public property Id as character no-undo     
         get():
-                  
-            return name 
-                   + if valid-object(Domain) then "@" + Domain:Name 
-                     else if valid-handle(mbuffer) and mBuffer::DomainName > "" then "@" + mBuffer::DomainName
+            define variable cDomain as character no-undo.
+             cDomain = if valid-object(Domain) then Domain:Name
+                       else if valid-handle(mbuffer) then mBuffer::DomainName 
+                       else "". 
+             return name 
+                   + if cDomain > "" 
+                     then "@" + cDomain
                      else "".
-        end.
+         end.
    
      /** An optional description of the user. */
     define public property Description as character no-undo     
@@ -163,8 +166,8 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
             Password = pPassword.
         end. 
         
-        /** Set to true if the user is an SQL only user. (ignored by ABL runtime)*/
-        define public property IsSqlOnly     as logical no-undo  
+    /** Set to true if the user is an SQL only user. (ignored by ABL runtime)*/
+    define public property IsSqlOnly     as logical no-undo  
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::IsSqlOnly.
@@ -180,8 +183,8 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
             IsSqlOnly = pIsSqlOnly.
         end. 
  
-        /** A telephone number for the user (optional) */
-        define public property Telephone as character no-undo     
+    /** A telephone number for the user (optional) */
+    define public property Telephone as character no-undo     
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::Telephone.
@@ -197,8 +200,8 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
             Telephone = pTelephone.
         end. 
         
-        /** An email address for the user (optional) */
-        define public property Email as character no-undo     
+    /** An email address for the user (optional) */
+    define public property Email as character no-undo     
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::Email.
@@ -234,36 +237,16 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
 		this-object:Export("users.json").  
 	end method.
 	 
-	/* write the object with urls to children */
-/*    method public void WriteObjectTo(writer as IDataAdminWriter):                  */
-/*        writer:WriteContext(Context).                                              */
-/*    end method.                                                                    */
-/*                                                                                   */
-/*    /* All expand collections */                                                   */
-/*    method public void WriteAllTo(writer as IDataAdminWriter):                     */
-/*        writer:WriteContext(Context).                                              */
-/*    end method.                                                                    */
-/*                                                                                   */
-/*    /* write a short list of the data with url to details */                       */
-/*    method public void WriteListTo(writer as IDataAdminWriter):                    */
-/*        writer:WriteContextList(Context,"Name,IsType2").                           */
-/*    end method.                                                                    */
-/*	 /* write specified collections (default all) */                                  */
-/*    method public void WriteTree(writer as IDataAdminWriter,pcCollections as char):*/
-/*        WriteAllTo(writer).                                                        */
-/*    end method.                                                                    */
-    
-      /** workaround due to inconsistent key definition (and property reflection) 
+    /** workaround due to inconsistent key definition (and property reflection) 
          override in classes that does not use name */
+    method protected override char extent GetKeyValues():
+        define variable c as character extent 1 no-undo.
+        c[1] = GetKeyValue().
+        return c.
+    end method.
+
     method protected override char GetKeyValue():
         return this-object:Id.
     end method.
-    
-    /** @todo fix Entity to pass GetKeyValue to these as for ImportTreeRow and remove override */
-    method public override void  Import(cFile as char):
-      
-        Context:ImportRow(cfile,Id).    
-    
-    end method. 
-                  
+                   
 end class.

@@ -2957,6 +2957,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cEntityFields   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lFoundInCache   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hParentSource   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lParentIsQuery  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lParentAvail    AS LOGICAL    NO-UNDO.
 
   DEFINE VARIABLE lShareData      AS LOGICAL    NO-UNDO.
@@ -3014,7 +3015,17 @@ PROCEDURE initializeObject :
         {get DataSource hParentSource hParentSource}
          .
         &UNDEFINE xp-assign
-        lOpenOnInit  = lOpenOnInit OR lParentAvail.
+        lOpenOnInit = lOpenOnInit OR lParentAvail.
+        /* check if the new found parent is query object to avoid calling 
+           non exixisting dtuff in non query objects at the end of an unresolved 
+           pass-thru link  */
+        if valid-handle(hParentSource) then 
+        do:  
+           {get QueryObject lParentIsQuery hParentSource}.
+           /* bad source.. get out */
+           if not lParentIsQuery then 
+              leave.
+        end.      
       END.
     END.
 

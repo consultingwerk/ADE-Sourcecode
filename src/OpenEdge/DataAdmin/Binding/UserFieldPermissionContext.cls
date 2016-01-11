@@ -49,7 +49,7 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
     
     define public override property KeyFields as character  no-undo  
         get():
-            return "TableName,Name". 
+            return "UserRef,TableName,Name". 
         end.   
     
     define public override property Count as integer init ? no-undo  
@@ -81,7 +81,7 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
     method public override character GetJoinFields(parentid as char):
         case parentid:
             when "userTablePermissions" then 
-                 return "name,TableName,UserRef,UserRef".
+                 return "UserRef,UserRef,name,TableName".
         end.
         return "".
     end.
@@ -104,8 +104,9 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
       undo, throw new UnsupportedOperationError("Find of UserFieldPermission with single key.").
     end.   
     
-    method public logical Find(ptable as char,pname as character):
-        find ttUserFieldPermission where ttUserFieldPermission.Tablename = pTable
+    method public logical Find(puserref as char,ptable as char,pname as character):
+        find ttUserFieldPermission where ttUserFieldPermission.UserRef = pUserRef
+                                   and   ttUserFieldPermission.Tablename = pTable
                                    and   ttUserFieldPermission.name = pname no-error.
         return avail ttUserFieldPermission.            
     end.

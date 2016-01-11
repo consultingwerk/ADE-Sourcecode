@@ -23,24 +23,12 @@ using OpenEdge.DataAdmin.Error.* from propath.
  
 class OpenEdge.DataAdmin.UserPermission inherits Entity implements IUserPermission, IDataAdminElement,IDataAdminSerializable: 
     
-    define public property UserTablePermissions as IUserTablePermissionSet     no-undo 
-        get():
-            define variable h as handle no-undo.
-            if not valid-object(UserTablePermissions) then
-            do:
-                UserTablePermissions = cast(Context:GetChildCollection(name,"userTablePermissions"),IUserTablePermissionSet).
-            end.
-/*            if not mTablesLoaded then*/
-/*                FetchTables().       */
-            return UserTablePermissions.     
-        end.
-        protected set.
     
     define public property Domain as IDomain no-undo     
         get():
             if not valid-object(Domain) then
             do:
-                if valid-handle(mBuffer) and mBuffer::DomainName > "" 
+                if valid-handle(mBuffer)  
                 and valid-object(Service) then
                     return Service:GetDomain(mBuffer::DomainName).             
             end.
@@ -49,11 +37,30 @@ class OpenEdge.DataAdmin.UserPermission inherits Entity implements IUserPermissi
     
     define public property Id as character no-undo     
         get():
-             return name + "@" 
-                    + if valid-object(Domain) then Domain:Name else "".
+             define variable cDomain as character no-undo.
+             cDomain = if valid-object(Domain) then Domain:Name
+                       else if valid-handle(mbuffer) then mBuffer::DomainName 
+                       else "". 
+             return name 
+                   + if cDomain > "" 
+                     then "@" + cDomain
+                     else "".
         end.
    
-  
+    define public property UserTablePermissions as IUserTablePermissionSet     no-undo 
+        get():
+            define variable h as handle no-undo.
+            if not valid-object(UserTablePermissions) then
+            do:
+                UserTablePermissions = cast(Context:GetChildCollection(Id,"userTablePermissions"),IUserTablePermissionSet).
+            end.
+/*            if not mTablesLoaded then*/
+/*                FetchTables().       */
+            return UserTablePermissions.     
+        end.
+        protected set.
+    
+   
 	constructor public UserPermission(cntxt as IDataAdminContext):
         super (cntxt).
     end constructor.

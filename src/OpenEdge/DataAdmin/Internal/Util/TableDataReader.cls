@@ -16,18 +16,42 @@
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Util.ITableImportUtility.
 using OpenEdge.DataAdmin.Internal.Util.TableDataUtility.
-
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Internal.Util.TableDataReader inherits TableDataUtility: 
-	/*------------------------------------------------------------------------------
-			Purpose:  																	  
-			Notes:  																	  
-	------------------------------------------------------------------------------*/
+class OpenEdge.DataAdmin.Internal.Util.TableDataReader inherits TableDataUtility implements ITableImportUtility: 
+    define public property AcceptableErrorPercentage as int no-undo get. set.
+    define public property IgnoreMissingFiles        as log no-undo get. set.
+    define public property IgnoreMissingDirectories  as log no-undo get. set.
 	
 	constructor public TableDataReader ( ):
         super ("TableDataReader").
 	end constructor.
- 
+    
+    method protected override void Serialize():
+        /* assigns tt fields for super class */
+        super:Serialize().
+        assign 
+            ttUtilityOptions.AcceptableErrorPercentage = this-object:AcceptableErrorPercentage
+            ttUtilityOptions.IgnoreMissingFiles = this-object:IgnoreMissingFiles
+            ttUtilityOptions.IgnoreMissingDirectories = this-object:IgnoreMissingDirectories
+            .
+    end method.     
+    
+    method protected override void Deserialize():
+        /* assigns properties  for super class */
+        super:Deserialize().
+        assign 
+            this-object:AcceptableErrorPercentage = ttUtilityOptions.AcceptableErrorPercentage
+            this-object:IgnoreMissingFiles        = ttUtilityOptions.IgnoreMissingFiles
+            this-object:IgnoreMissingDirectories  = ttUtilityOptions.IgnoreMissingDirectories
+            .
+             
+    end method.     
+    
+    method protected override char GetValidateQuery():
+        return "IsAvailable = 'false' or CanImport = 'false'".
+    end method.
+          
 end class.

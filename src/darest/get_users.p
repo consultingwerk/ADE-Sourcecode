@@ -22,38 +22,26 @@ routine-level on error undo, throw.
 
 using Progress.Lang.Error.
 using OpenEdge.DataAdmin.DataAdminService.
-using OpenEdge.DataAdmin.Rest.RestRequest.
+using OpenEdge.DataAdmin.Rest.IRestRequest.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler.
 using OpenEdge.DataAdmin.IUser.
 using OpenEdge.DataAdmin.IUserSet.
 using OpenEdge.DataAdmin.Error.NotFoundError.
 using OpenEdge.DataAdmin.Rest.IPageRequest.
 
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "users" no-undo.
+ 
+ /* old behavior - to be deprecated */
+{darest/restbase.i get users}  
 
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_users.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
-
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.    
+procedure Execute:
+    define input  parameter restRequest as IRestRequest  no-undo.      
     /* ***************************  Definitions  ************************** */
     define variable tuser        as IUser no-undo.
     define variable userset      as IUserSet no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable pageRequest  as IPageRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     /* ***************************  Main Block  *************************** */
-    
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
-    
     restRequest:Validate().
     service = new DataAdminService(restRequest:ConnectionName).
    

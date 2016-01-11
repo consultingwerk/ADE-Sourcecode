@@ -22,46 +22,32 @@ routine-level on error undo, throw.
 
 using Progress.Lang.Error.
 using OpenEdge.DataAdmin.DataAdminService.
-using OpenEdge.DataAdmin.Rest.RestRequest.
+using OpenEdge.DataAdmin.Rest.IRestRequest.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler.
 using OpenEdge.DataAdmin.ITenant.
 using OpenEdge.DataAdmin.ITenantSet.
 using OpenEdge.DataAdmin.Error.NotFoundError.
 
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "tenantcounts" no-undo.
-
+ 
 define temp-table ttTenantCounts serialize-name "tenantCounts" 
     field Name                as character  serialize-name "name"
     field NumDomains          as int  serialize-name "numDomains"
     field NumUsers            as int  serialize-name "numUsers"
  .
-    
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_tenantcounts.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
+ 
+ /* old behavior - to be deprecated */
+{darest/restbase.i get tenantcounts}  
 
-procedure executeRequest:
-    define input  parameter pcURL as character no-undo.
+procedure Execute:
+    define input  parameter restRequest as IRestRequest  no-undo.   
      
     /* ***************************  Definitions  ************************** */
     
     define variable tenant       as ITenant no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     
-    
-     
     /* ***************************  Main Block  *************************** */
-    
-    restRequest = new RestRequest(mMode,mCollection,pcUrl).  
-    
     service = new DataAdminService(restRequest:ConnectionName). 
     restRequest:Validate().   
     service:URL = restRequest:ConnectionUrl.

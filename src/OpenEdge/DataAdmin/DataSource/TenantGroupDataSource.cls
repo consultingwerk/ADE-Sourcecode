@@ -1,11 +1,11 @@
- /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
-  /*************************************************************/
- /*------------------------------------------------------------------------
+/*************************************************************/
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
+/*------------------------------------------------------------------------
     File        : TenantGroupDataSource
     Purpose     : 
     Syntax      : 
@@ -78,7 +78,7 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                also check if exclusive and validate is needed 
               (this was done late before ship) */ 
             find dictdb._Partition-Set
-                         where dictdb._Partition-Set._PSet-Name = phbuffer::Name exclusive
+                         where dictdb._Partition-Set._PSet-Name = phbuffer::Name exclusive no-wait
                          no-error.
             if avail dictdb._Partition-Set then
             do:            
@@ -116,7 +116,7 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
         hquery:add-buffer(hBeforeBuff).
         hQuery:query-prepare("for each ttTenantGroupCopy where row-state(ttTenantGroupCopy) = " + string(pistate)).   
         hquery:query-open().
-         
+        
         do transaction on error undo, throw:
             do while true:
                 
@@ -127,9 +127,11 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                 if hBeforeBuff:row-state = row-deleted then 
                 do:
                     find dictdb._Partition-Set
-                         where dictdb._Partition-Set._PSet-Name = hBEforeBuff::Name exclusive.
+                         where dictdb._Partition-Set._PSet-Name = hBEforeBuff::Name exclusive no-wait.
                     
-                    for each bdetail of dictdb._Partition-Set exclusive:
+                    for each dictdb._Partition-Set-Detail of dictdb._Partition-Set no-lock:
+                        
+                        find bDetail where rowid(bDetail) = rowid(dictdb._Partition-Set-Detail) exclusive no-wait.
                         delete bDetail.
                     end.    
                      
@@ -153,7 +155,7 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                     end. 
                     else do:
                         find dictdb._Partition-Set
-                             where dictdb._Partition-Set._PSet-Name = hBEforeBuff::Name exclusive.
+                             where dictdb._Partition-Set._PSet-Name = hBeforeBuff::Name exclusive no-wait.
                       
                         /* allocated only makes sense when not new */
                         if dictdb._Partition-Set._Pset-attributes[1] <> phBuffer::isAllocated 

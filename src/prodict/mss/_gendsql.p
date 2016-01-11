@@ -551,6 +551,7 @@ PROCEDURE write-tbl-sql:
             */
             IF new-obj.mand = YES THEN
                ASSIGN sql-info.line = sql-info.line + " NOT NULL".
+            ELSE  ASSIGN sql-info.line = sql-info.line + " NULL".
         END.
 
         IF NOT LAST-OF(tblname) THEN DO:      
@@ -2070,11 +2071,11 @@ PROCEDURE process-sql-width.
   IF new-obj.iMaxWidth = 0 THEN
      new-obj.iMaxWidth = pValue.
 
-  IF new-obj.for-type <> " INTEGER" AND
-     new-obj.for-type <> " TINYINT" AND
-     new-obj.for-type <> " DATETIME" AND
-     new-obj.for-type <> " TEXT" AND 
-     new-obj.for-type <> " NVARCHAR(MAX)" THEN DO:
+  IF (new-obj.for-type BEGINS " VARCHAR" OR
+      new-obj.for-type BEGINS " NVARCHAR" OR
+      new-obj.for-type BEGINS " DECIMAL") AND
+     (new-obj.for-type <> " VARCHAR(MAX)" AND
+      new-obj.for-type <> " NVARCHAR(MAX)") THEN DO:
 
     /* this is the width value for the column size */
     ASSIGN iValue = pValue.
@@ -2614,7 +2615,7 @@ DO ON STOP UNDO, LEAVE:
 
               CREATE sql-info.
               ASSIGN line-num = 5003
-                   line = " CONSTRAINT " + tablename + "#_#progress_recid UNIQUE (PROGRESS_RECID) " 
+                   line = " CONSTRAINT " + forname + "#_#progress_recid UNIQUE (PROGRESS_RECID) " 
                    tblname = ilin[3].
 /*                   fldname = "PROGRESS_RECID_".*/
             END.
@@ -3596,6 +3597,36 @@ DO ON STOP UNDO, LEAVE:
                          df-line = "  FIELD-MISC24 " + QUOTER("datetime2").
               END.
 
+			  /* OE00217757 Fix:
+			  While generating SQL for 'CLOB' fiels, the information for CLOB-CODEPAGE, CLOB-COLLATION and
+			  CLOB-TYPE are to be added to the definitions. */
+              IF fieldtype = "Clob" THEN DO: /* TEMPORARY */
+                  FIND FIRST DICTDB._Db WHERE DICTDB._Db._Db-type = "MSS".
+				  
+				  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = '  CLOB-CODEPAGE "' + DICTDB._Db._Db-xl-name + '"'. 
+
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = '  CLOB-COLLATION "' 
+                                + (IF DICTDB._Db._Db-coll-name = ? 
+                                      THEN "basic" ELSE DICTDB._Db._Db-coll-name) + '"'.
+
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = "  CLOB-TYPE 1". /* using db codepage */
+              END.
+
               ASSIGN all_digits = 0
                      dec_point  = 0
                      lngth = 0.            
@@ -3842,6 +3873,7 @@ DO ON STOP UNDO, LEAVE:
                        RUN process-sql-width(INPUT tablename, INPUT fieldname, INPUT new-obj.iMaxWidth).
                 END.
               END.               
+            ASSIGN fortype = "".
             END. /* WHEN EXTENT */
                  
             WHEN "ORDER"           OR WHEN "FIELD-MISC11"  OR WHEN "FIELD-MISC12"      OR 
@@ -4153,7 +4185,8 @@ DO ON STOP UNDO, LEAVE:
                 it means that the INITIAL may have also changed, in which case we will
                 generate a bad .df - we will fail to load it if INITIAL has changed, but
                 FORMAT hasn't changed.
-             */
+             */        
+            
              IF fieldtype = "logical" THEN DO:
                   CREATE df-info.
                   ASSIGN df-info.df-seq = dfseq

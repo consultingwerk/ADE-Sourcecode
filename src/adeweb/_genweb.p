@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2012 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -66,6 +66,7 @@ Updated: 2/13/98 adams Modified to write WS 2.x files for Skywalker
 	               made additional changes to support the two cases of Check Syntax
 	               for local WebSpeed V2 files.
 	               
+    02/24/12 rkumar Fixed OE00208930.	               
            - - - - - - - - - - - - - - - - - - - - - - - - 
 Historical Notes for UIB developers:
 - the UIB supports three extra modes:
@@ -457,8 +458,13 @@ PROCEDURE put-internal :
           "PROCEDURE ":U put_TRG._tEVENT " :":U SKIP.
     END CASE.
     
-    /* Generate default code on the fly, otherwise use the user input code */   
-    IF put_TRG._tSPECIAL ne "":U AND put_TRG._tSPECIAL ne ? THEN DO:
+    /* Generate default code on the fly, otherwise use the user input code */  
+    /* OE00208930- Instead of checking tSPECIAL not having a blank or unknown 
+       value, check for a valid token (those beginning with '_') . 
+       This will take care of saving code text for files with tokens other
+       those beginning with underscore (eg wWin). */
+     
+    IF put_TRG._tSPECIAL BEGINS "_":U  THEN DO:
       &if {&debug} &then
       message "[_genweb.p] #5 pre _coddflt.p #1" skip
         "_tspecial" put_trg._tspecial skip

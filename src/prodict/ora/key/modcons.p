@@ -71,10 +71,10 @@ PROCEDURE enable_UI :
      IF  const_type ="FOREIGN KEY" THEN RUN foreign.
 
    IF cDbType = "MSS" OR cDbType = "ORACLE" THEN DO:
-       DISABLE  OK_BUT CREATE_BUT WITH FRAME frame_primary.
-       DISABLE  OK_BUT CREATE_BUT WITH FRAME frame_unique.
-       DISABLE  OK_BUT CREATE_BUT WITH FRAME frame_foreign.
-       DISABLE  OK_BUT CREATE_BUT WITH FRAME frame_check.
+       DISABLE  OK_BUT CREATE_BUT DESC_EDIT2 WITH FRAME frame_primary.
+       DISABLE  OK_BUT CREATE_BUT DESC_EDIT2 WITH FRAME frame_unique.
+       DISABLE  OK_BUT CREATE_BUT DESC_EDIT WITH FRAME frame_foreign.
+       DISABLE  OK_BUT CREATE_BUT DESC_EDIT WITH FRAME frame_check.
    END.  
 
 END PROCEDURE.

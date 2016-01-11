@@ -31,15 +31,16 @@
      field TenantUrl           as character serialize-name "tenant_url"
      field Url                 as character serialize-name "url"    
    /* needed for replace fill   */
-     field ObjectType      as int serialize-hidden init?
+     field ObjectType      as int serialize-hidden init ?
      field ObjectNumber    as int serialize-hidden  init ?          
      field TenantGroupId    as int serialize-hidden init ?  
      field TenantId    as int serialize-hidden init  ?    
 /*     field TableName       as character serialize-name "tableName"*/
     {daschema/entity.i}  
     index idxintId as unique ObjectType ObjectNumber TenantGroupId TenantId
-    index idxId as primary  unique TenantGroupName TenantName
-    index idxTenant  TenantName.
-/*    index idxName  TableName.*/
+    index idxId as primary unique TenantGroupName TenantName
+    index idxTenant TenantName
+    index idxTenantId TenantId
+    index idxGroupId TenantGroupId.
     
     

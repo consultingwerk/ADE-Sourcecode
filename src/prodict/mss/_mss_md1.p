@@ -40,6 +40,7 @@ DEFINE VARIABLE user_env_save29 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save5 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save26 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save31 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save36 AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE connection_string as CHARACTER NO-UNDO.
 
@@ -108,7 +109,8 @@ ASSIGN
     user_env_save29 = user_env[29]
     user_env_save5  = user_env[5]
     user_env_save26 = user_env[26]
-    user_env_save31 = user_env[31].
+    user_env_save31 = user_env[31]
+    user_env_save36 = user_env[36].
         
 IF not stages[mss_create_objects] THEN RETURN.
 
@@ -221,7 +223,8 @@ ASSIGN
     user_env[25]    = "**all**"
     user_env[5]     = user_env_save5  
     user_env[26]    = user_env_save26 
-    user_env[31]    = user_env_save31.
+    user_env[31]    = user_env_save31
+    user_env[36]    = user_env_save36.
     
     
 IF movedata THEN DO:

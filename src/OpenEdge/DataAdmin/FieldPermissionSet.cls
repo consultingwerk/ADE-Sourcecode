@@ -33,8 +33,6 @@ using OpenEdge.DataAdmin.Binding.IContextTree from propath.
  
 class OpenEdge.DataAdmin.FieldPermissionSet inherits DataAdminCollection implements IFieldPermissionSet : 
       
-    define public property Schema as ISchema no-undo get.     
-   
     constructor FieldPermissionSet(cntx as IDataAdminContext):
         super(cntx).     
     end constructor.   

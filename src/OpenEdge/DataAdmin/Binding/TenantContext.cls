@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
+ /* Copyright (c) 2011,2012 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -108,7 +108,6 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     define private variable ContextFactory as IMultiTenantScope no-undo.
     define private variable TenantGroupContext as TenantGroupContext no-undo.
     
-    
     constructor public TenantContext ():
         define variable users as UserContext no-undo.
         define variable partitioncntxt as PartitionContext no-undo.
@@ -151,6 +150,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
              /* users is not part of default tree (users on domain is) */
             SkipList = "users".
         ContextFactory = pScope.
+        CanEditKey = true.
     end method.
  
 	method public override void CreateRow(entity as IDataAdminElement):
@@ -161,7 +161,13 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
-                                                        
+    
+    /* override to use Name in JSON import 
+    method protected override character GetClientKeyFields():
+        return "Name". 
+    end method.
+      */
+                                                         
     method protected override handle CreateSaveDataset():
         define variable tree as IContextTree no-undo.    
         tree = new ContextTree().                        
@@ -239,7 +245,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
 	/** fires after change - validation should have been done */
 	method protected override void ValueChanged(pFieldName as char,pcOldValue as char,pNewValue as char).        
         define variable cntxt as IDataAdminContext no-undo. 
-        
+        super:ValueChanged(pfieldname,pcoldvalue,pNewValue).
         /* if new tenant then the partitions must be updated with default values */
         if pFieldName begins "Default" 
         and (buffer ttTenant:row-state = row-created 
@@ -264,8 +270,9 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
             hbefore:find-by-rowid(phTenant:before-rowid).
             if phTenant::Type <> hBefore::Type then
                undo, throw new CreateOnlyPropertyError(Name,phTenant::Name,"Type").
-            if phTenant::Name <> hBefore::Name then
-               undo, throw new ReadOnlyPropertyError(Name,phTenant::Name,"Name").
+            /* OEM 449- allow rename of tenants */
+            /*if phTenant::Name <> hBefore::Name then
+               undo, throw new ReadOnlyPropertyError(Name,phTenant::Name,"Name").*/
         end. 
         else if phTenant:row-state = row-created then
             ValidateType(phTenant::Name,phTenant::Type).
@@ -799,11 +806,10 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     end method.    
     
     method override public void DataRefreshed(presponse as IFetchResponse):
-        if presponse:Entityname = "partition" then
-        do:
+        
+        if presponse:Entityname = "partition" 
+        and not valid-handle(pResponse:DataHandle:get-buffer-handle(TableHandle:name)) then
             GetChild("partitions"):DataRefreshed(presponse).
-          
-        end.    
         else
            super:DataRefreshed(presponse).
     end method.   

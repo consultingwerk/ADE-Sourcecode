@@ -16,5 +16,5 @@
    onMouseOver="window.status='Browse the contents of the on-line WebSpeed Library.'; return true;" 
    onMouseOut="window.status=''; return true;">Help</A>
 <BR> 
-* Copyright ©1984-2011 Progress Software Corporation and/or its      *
+* Copyright ©1984-2012 Progress Software Corporation and/or its      *
 * subsidiaries or affiliates. All rights reserved.                   *

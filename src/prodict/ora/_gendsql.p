@@ -3960,7 +3960,8 @@ DO ON STOP UNDO, LEAVE:
                     END.
                   END.
                 END.
-              END.               
+              END. 
+            ASSIGN fortype = "".                
             END. /* WHEN EXTENT */
                  
             WHEN "ORDER"           OR WHEN "FIELD-MISC11"  OR WHEN "FIELD-MISC12"      OR 

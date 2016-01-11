@@ -17,6 +17,7 @@
 using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.Entity from propath.
 using OpenEdge.DataAdmin.IArea from propath.
+using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISchemaElement from propath.
 using OpenEdge.DataAdmin.ISchemaPartitionMap from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
@@ -27,6 +28,15 @@ routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract implements ISchemaElement: 
     
+    /** currently only PUB */
+    define public property Schema as ISchema no-undo 
+        get():
+            if valid-handle(mBuffer) and valid-object(Service) 
+            and mBuffer::SchemaName = "PUB" then 
+                return Service:GetSchema().       
+            return ?.          
+        end.    
+        
     define public property Area as IArea no-undo 
         get():
             if not valid-object(Area) then
@@ -34,7 +44,7 @@ class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract impleme
                 if valid-handle(mBuffer) and mBuffer::AreaName > "" 
                 and valid-object(Service) then do:
                    if mbuffer::AreaName > "" then 
-                        Area = Service:GetArea(mBuffer::AreeaName).            
+                        Area = Service:GetArea(mBuffer::AreaName).            
                 end. 
             end. 
             return Area.

@@ -1,9 +1,9 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010-2012 by Progress Software Corporation  */
  /*                                                           */
- /* all rights reserved.  no part of this program or document */
+ /* All rights reserved.  No part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
+ /* permission in writing from Progress Software Corporation. */
  /*************************************************************/
  /*------------------------------------------------------------------------
     File        : UserData 
@@ -24,6 +24,8 @@ using OpenEdge.DataAdmin.DataAccess.DataAccess from propath.
 
 using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.UserDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.TenantDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.DomainDataSource from propath.
  
 using OpenEdge.DataAdmin.DataSource.UserTablePermissionDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.UserFieldPermissionDataSource from propath.
@@ -60,35 +62,84 @@ class OpenEdge.DataAdmin.DataAccess.UserData inherits DataAccess implements IDat
         define variable hBuffer as handle no-undo.
         define variable userDataSource as UserDataSource no-undo.
         define variable tableRequest as ITableRequest no-undo.     
-        
+        define variable hTenant as handle no-undo.
+        define variable hDomain as handle no-undo.
+        define variable tntSource as TenantDataSource no-undo. 
+        define variable dmnSource as DomainDataSource no-undo.
+        define variable cJoinTables as character no-undo. 
+        define variable cJoinPhysicalTables as character no-undo. 
+        define variable cJoinQueries as character no-undo. 
+        define variable cBaseQuery   as character no-undo. 
+        define variable cQMode as character no-undo.
+        define variable lJoin as logical no-undo.
         case msg:EntityName:
             when "User" then
             do:
                 hBuffer = msg:DataHandle:get-buffer-handle ("ttUser").
                 if valid-handle(hBuffer) then
                 do:
-                    userDataSource = new UserDataSource( ).    
+                    hTenant = msg:DataHandle:get-buffer-handle ("ttTenant").
+                    if valid-handle(hTenant) then
+                    do:
+                        tntSource = new TenantDataSource().
+                        tntSource:FillMode = "Replace".
+                        /* the user source will query on the tenant  */
+                        tntSource:Prepare(hTenant,"","").
+                        assign
+                            cJoinTables = tntSource:tables
+                            cJoinPhysicalTables = tntSource:PhysicalTables
+                            cJoinQueries = trim(tntSource:BaseQuery) 
+                            /* remove for or preselect */
+                            cQmode = entry(1,cJoinQueries," ")      
+                            cJoinQueries = left-trim(substr(cJoinQueries,length(cQmode) + 1))
+                            lJoin = true. 
+                            
+                    end.
+                    hDomain = msg:DataHandle:get-buffer-handle ("ttDomain").
+                    if valid-handle(hDomain) then
+                    do:
+                        dmnSource = new DomainDataSource().
+                        dmnSource:FillMode = "Replace".
+                        /* the user source will query on the domain  */
+                        dmnSource:Prepare(hDomain,"","").
+                        
+                        assign
+                            cJoinTables = (if lJoin then cJoinTables + "," else "") 
+                                          + entry(1,dmnSource:tables)
+                            cJoinPhysicalTables = (if lJoin then cJoinPhysicalTables + "," else "") 
+                                                   + entry(1,dmnSource:PhysicalTables)
+                            cBaseQuery = trim(dmnSource:BaseQuery) 
+                            /* remove for or preselect */
+                            cQmode = entry(1,cBaseQuery," ")      
+                            cJoinQueries = (if lJoin then cJoinQueries + ", " else "") 
+                                         +  left-trim(entry(1,(substr(cBaseQuery,length(cQmode) + 1)))). 
+                            lJoin = true.
+                    end.
+                    if lJoin then 
+                        userDataSource = new UserDataSource(cJoinTables,cJoinPhysicalTables, cJoinQueries).    
+                    else                 
+                        userDataSource = new UserDataSource( ).    
                     userDataSource:FillMode = "Replace".
                     userDataSource:Url = Url.
                     tableRequest = msg:GetTableRequest("ttUser").
                     if valid-object(tableRequest) then 
                         userDataSource:Prepare(hBuffer,tableRequest).         
                     else
-                        userDataSource:Prepare(hBuffer).     
-                
+                        userDataSource:Prepare(hBuffer).                     
                 end.     
                 msg:DataHandle:Fill().
                 if valid-object(userDataSource) and userDataSource:NumRecords <> ? then 
                     msg:SetTableTotal("ttUser",userDataSource:NumRecords).
-       
             end.
             when "UserPermission" then
             do:
-                 FillPermisssion(msg).
+                FillPermisssion(msg).
             end.
         end case.
         finally: /* is not garbage collected if set-callback is used */       
-            delete object userDatasource no-error.		
+            delete object userDatasource no-error.	
+            delete object dmnSource no-error.
+            delete object tntSource no-error.	
         end finally.               
     end method.    
     

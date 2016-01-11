@@ -26,7 +26,7 @@
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 26 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 27 NO-UNDO INITIAL [
   /*  1*/ "This function only works on {&PRO_DISPLAY_NAME} databases.",
   /*  2*/ "You may not use this function with a blank userid.",
   /*  3*/ "You must be a Security Administrator to execute this function.",
@@ -54,7 +54,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 26 NO-UNDO INITIAL [
   /* 23*/ "out or add back a security administrator.)",
   /* 24*/ "This User ID already exists.",
   /* 25*/ "User IDs must be unique within each database.",
-  /* 26*/ "The User ID cannot be the unknown value."
+  /* 26*/ "The User ID cannot be the unknown value.",
+  /* 27 */ " Invalid domain name entered."
 ].
 
 /* Form variables */
@@ -389,6 +390,17 @@ DO:
       passwd = INPUT FRAME usr_mod _User._Password.
       IF passwd = ? THEN passwd = "".
       encpwd = ENCODE(passwd).
+      
+      IF _User._Domain-Name:screen-value <> "" then
+      DO:
+         IF NOT can-find(FIRST DICTDB._sec-authentication-domain 
+                           WHERE DICTDB._sec-authentication-domain._Domain-name = _User._Domain-Name:screen-value) then
+         DO:
+             MESSAGE new_lang[27]
+                  VIEW-AS ALERT-BOX.
+             RETURN NO-APPLY.
+         END.                     
+      END.
       IF passwd <> "" THEN DO:
 	 RUN "prodict/user/_usrpwd2.p" (INPUT encpwd, OUTPUT answer).
 	 IF answer = NO THEN DO:

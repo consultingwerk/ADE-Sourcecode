@@ -225,6 +225,7 @@ DEFINE VARIABLE hasBufPool    AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE showedCommitMsg AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE got-error     AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE main_trans_success  AS LOGICAL            /*UNDO*/.
+/*DEFINE VARIABLE okay          AS LOGICAL            NO-UNDO.*/
 
 define variable oAppError    as Progress.Lang.AppError no-undo. 
 define variable cStopMessage as character no-undo.
@@ -1506,7 +1507,12 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         END.
             
         IF AVAILABLE wfil AND imod <> ? THEN DO:
+	  /*run adecomm/_valname.p (wfil._File-name, INPUT true, OUTPUT okay).
+          if NOT okay then
+             LEAVE.*/
+
           IF wfil._For-type = ? AND user_dbtype <> "Progress" THEN DO:
+
             ASSIGN error_text[30] = substitute(error_text[30],_Db._Db-type)
                    ierror         = 30
                    user_env[4]    = "yes". /* to prevent 2. error-message at end */ 
@@ -1529,21 +1535,34 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         END.
          
 
-        IF AVAILABLE wfld AND imod <> ? THEN 
+        IF AVAILABLE wfld AND imod <> ? THEN do:
+	    /*run adecomm/_valname.p (wfld._Field-name, INPUT true, OUTPUT okay).
+            if NOT okay then
+               LEAVE.*/
             RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
-         
+        end.
+	
         IF AVAILABLE widx AND imod <> ? THEN 
         DO:
+            /*run adecomm/_valname.p (widx._Index-name, INPUT true, OUTPUT okay).
+            if NOT okay then
+               LEAVE.*/
             RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
         END.
 
         IF AVAILABLE wseq AND imod <> ? THEN
         DO:
+            /*run adecomm/_valname.p (wseq._Seq-name, INPUT true, OUTPUT okay).
+            if NOT okay then
+               LEAVE.*/
             RUN "prodict/dump/_lod_seq.p".
         END. 
         
         IF AVAILABLE wcon AND imod <> ? THEN
         DO:
+	    /*run adecomm/_valname.p (wcon._Con-name, INPUT true, OUTPUT okay).
+            if NOT okay then
+               LEAVE.*/
             RUN "prodict/dump/_lod_con.p"(INPUT-OUTPUT minimum-index).
         END.
 
@@ -2806,22 +2825,40 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             FIND _Db WHERE RECID(_Db) = drec_db.
       END.
 
-      IF AVAILABLE wfil AND imod <> ? THEN
-   
+      IF AVAILABLE wfil AND imod <> ? THEN do:
+   	 /* run adecomm/_valname.p (wfil._File-name, INPUT true, OUTPUT okay).
+          if NOT okay then
+             LEAVE.*/
+
           RUN "prodict/dump/_lod_fil.p".
-    
-      IF AVAILABLE wfld AND imod <> ? THEN
+      end.
+
+      IF AVAILABLE wfld AND imod <> ? THEN do:
+      	  /*run adecomm/_valname.p (wfld._Field-name, INPUT true, OUTPUT okay).
+          if NOT okay then
+             LEAVE.*/
           RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
-      
-      IF AVAILABLE widx AND imod <> ? THEN 
+      end.
+
+      IF AVAILABLE widx AND imod <> ? THEN do:
+      	  /*run adecomm/_valname.p (widx._Index-name, INPUT true, OUTPUT okay).
+          if NOT okay then
+             LEAVE.*/
           RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
+      end.
 
       IF AVAILABLE wseq AND imod <> ? THEN
       do: 
+    	 /*run adecomm/_valname.p (wseq._Seq-name, INPUT true, OUTPUT okay).
+         if NOT okay then
+            LEAVE.*/
           RUN "prodict/dump/_lod_seq.p".
       end.      
       IF AVAILABLE wcon AND imod <> ? THEN
       DO:
+      	    /*run adecomm/_valname.p (wcon._Con-name, INPUT true, OUTPUT okay).
+            if NOT okay then
+               LEAVE.*/
             RUN "prodict/dump/_lod_con.p"(INPUT-OUTPUT minimum-index).
       END.     
       /* make sure we found both encryption and cipher settings (unless it was

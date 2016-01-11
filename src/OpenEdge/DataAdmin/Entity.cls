@@ -32,6 +32,7 @@ using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.RowBuffer from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
 using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
@@ -346,7 +347,7 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         define variable tree as IContextTree no-undo.
         tree = new ContextTree(). 
         WriteTree(tree).
-        Context:ImportRowTree(pcfile,GetKeyValue()).
+        Context:ImportRowTree(pcfile,GetKeyValues()).
     end method. 
     
     /* @TODO - call context:ImportRow with GetKeyValue() and remove all override  */
@@ -355,15 +356,21 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         do:
             undo, throw new UnsupportedOperationError("Import to  " + this-object:GetClass():TypeName).
         end.
-        mDefaultBuffer:table-handle:tracking-changes = true.
-        if not mDefaultBuffer:read-json ("File",cFile,"Replace") then 
-            undo, throw new IllegalArgumentError(error-status:get-message(1)).
-                           
+        Context:ImportRow(cFile,GetKeyValues()).
     end method. 
     
-    /** workaround due to inconsistent key definition (and property reflection) 
+    /** @todo - deprecate - use GetKeyValues 
+         workaround due to inconsistent key definition (and property reflection) 
          override in classes that does not use name */
     method protected char GetKeyValue():
+        define variable hFld as handle no-undo.
+        if valid-object(Context) and valid-handle(mBuffer) then
+        do:
+            if num-entries(Context:KeyFields) > 1 then
+                undo, throw new IllegalOperationError("GetKeyValue called in " + this-object:GetClass():ToString() + " with Keyfields " + Context:KeyFields).
+            hFld = mBuffer:buffer-field (Context:KeyFields).
+            return string(hfld:buffer-value).
+        end.   
         return this-object:Name.
     end method.
     
@@ -386,7 +393,7 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         
         /* the assumption is that only single key objects will need this without 
            context */
-        if (valid-object(Context) = false or num-entries(Context:KeyFields) = 1) then
+        if valid-object(Context) = false then
         do:
             extent(cValues) = 1.
             cValues[1] = GetKeyValue().

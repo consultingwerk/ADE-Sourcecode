@@ -26,10 +26,10 @@ using OpenEdge.DataAdmin.Binding.SequenceContext from propath.
 using OpenEdge.DataAdmin.Binding.TenantContext from propath.
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath. 
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
-
 
 routine-level on error undo, throw.
 
@@ -44,11 +44,15 @@ class OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery inherits FilteredCont
     /** Parent context (Model) may change so don't store this */     
     define private property SequenceContext as SequenceContext no-undo
          get():
-             return cast(Parent:GetChild("sequences"),SequenceContext).
+/*             SequenceContext = cast(Parent:GetChild("sequences"),SequenceContext).*/
+ 
+              SequenceContext  = cast(Model:ContextScope:GetContext("Sequence"),SequenceContext).
+             return SequenceContext.
          end.
+         private set.
      
-    constructor public TenantSequenceQuery (pparent as  SequenceValueContext,tenantName as char,pReq as IRequestInfo):
-		super (pparent,"tenants",tenantName,pReq).	
+    constructor public TenantSequenceQuery (pparent as  SequenceValueContext,pParentRow as IRow,pReq as IRequestInfo):
+		super (pparent,pParentRow,pReq).	
 	end constructor.
                                                           
     method public override logical CanFind(pname as character):

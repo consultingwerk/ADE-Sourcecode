@@ -65,7 +65,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
    * ? to use the PROGRESS default format  
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 40 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 41 NO-UNDO INITIAL [
   /*description     datatyp  sz code pro type fm format*/
   /*--------------- -------  - ----- -------- -- ------*/ 
   "Character string,Char      ,0, 4096,character,0,|c", 
@@ -77,6 +77,7 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 40 NO-UNDO INITIAL [
   "Number          ,Number    ,0, 8192,integer  ,1,|i",
   "Number          ,Number    ,0, 8192,int64    ,1,|i",
   "Number          ,Number    ,0, 8192,logical  ,1,|?",
+  "Number          ,Number    ,0, 8192,recid    ,1,|i",
   "Cursor          ,Cursor    ,0, 8192,integer  ,1,|i",
   "Float           ,Float     ,0, 8192,decimal  ,0,|#",
   "CLOB            ,CLOB      ,0,    0,CLOB     ,0,|c",

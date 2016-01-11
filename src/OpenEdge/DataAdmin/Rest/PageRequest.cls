@@ -26,6 +26,15 @@ class OpenEdge.DataAdmin.Rest.PageRequest inherits RequestInfo implements IPageR
     /** The default FillMode for this request. */
 /*    define public property FillMode as char no-undo get. set.*/
     
+		
+	constructor public PageRequest (  ):
+		super ().
+	end constructor.
+
+	constructor public PageRequest ( input pName as character ):
+		super (pName).
+	end constructor.
+
     /** Retrieve full page when page position is at beginning or end of result-set */
 /*    define public property FullPage as logical no-undo get. set.*/
 

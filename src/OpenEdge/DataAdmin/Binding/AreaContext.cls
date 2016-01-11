@@ -1,9 +1,9 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2011 by Progress Software Corporation  */
 /*                                                           */
-/* all rights reserved.  no part of this program or document */
+/* All rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
+/* permission in writing from Progress Software Corporation. */
 /*************************************************************/
 /*------------------------------------------------------------------------
    File        : AreaContext
@@ -197,7 +197,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
     /** fires after change - validation should have been done */
     method protected override void ValueChanged(pFieldName as char,pcOldValue as char,pNewValue as char).        
         define variable cntxt as IDataAdminContext no-undo. 
-        
+        super:ValueChanged(pFieldName,pcOldValue,pnewvalue).
         /* name change (new area) need to update extents (new) */
         if pFieldName = "Name" then
         do:    
@@ -205,7 +205,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
             cast(cntxt,ExtentContext):UpdateAreaName(pcOldValue,pNewValue).
         end.
     end method.
-     
+    
     method protected override void ValidateBuffer(phArea as handle):
         ValidateAreaName(phArea::Name).
         ValidateClusterSize(phArea::Name,string(phArea::ClusterSize)).
@@ -259,6 +259,9 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
    
     /** override to validate clustersize and records pr block */
     method protected override void ValidateProperty(pcfield as char,poldvalue as char,pnewvalue as char).  
+        /** allow name change if new (no service)  (shipped in v11.0)  */
+        if valid-object(Service) or pcfield <> "name" then 
+            super:ValidateProperty(pcfield,pOldValue,pnewvalue).
         case pcfield:
             when "ClusterSize" then 
                 ValidateClusterSize(ttArea.Name,pnewvalue).

@@ -92,15 +92,21 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         super ("Table").
     end constructor.
         
- 
-	
-	constructor public TableContext ( pScope as ISchemaScope):
-        super ("Table",pScope).
+    constructor protected TableContext (pname as char):
+        super (pname).
+    end constructor.
+   
+    constructor protected TableContext (pname as char,pScope as ISchemaScope):
+        super (pname,pScope).
 /*      idx:lazy = false.*/
 /*      fld:lazy = false.*/
         mPartitions = pScope:PartitionContext.
         AddChild(pScope:IndexContext).
         AddChild(pScope:FieldContext).
+   end constructor.
+        
+	constructor public TableContext ( pScope as ISchemaScope):
+        this-object("Table",pScope).
     end constructor.
 	
 	method public override void CopyTable(cntxt as IDataAdminContext).
@@ -211,6 +217,14 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         empty temp-table ttTablePartitionRequest.        
     end method.     
     
+    method protected override handle CreateSaveDataset():
+        define variable tree as IContextTree no-undo.    
+        tree = new ContextTree().                        
+        tree:Parse = true.                               
+        AddTreeTo(tree).                                
+        mpartitions:AddTableTo(tree).
+        return tree:GetReadHandle().                     
+    end method.                                         
     
     
      /* used by UpdateTable(s) to perform a second transaction */
@@ -328,5 +342,26 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
        return new TableImpl(this-object,pReq).
     end method.
     
+     method public override character ColumnSource(pcColumn as char):
+        define variable cField  as character no-undo.
+        define variable cBuffer as character no-undo.
+        
+        define variable cMsg as character no-undo. 
+        
+        if num-entries(pcColumn,".") > 1 then
+        do:
+            cBuffer = entry(1,pcColumn,".").
+            cField  = entry(2,pcColumn,".").
+            if cBuffer = "Area" and cField = "name" then
+            do:
+                return "ttTable.AreaName". 
+            end. 
+            if cBuffer = "Schema" and cField = "name" then
+            do:
+                return "ttTable.SchemaName". 
+            end.          
+        end.
+        return super:ColumnSource(pcColumn).
+    end method.
      
 end class.

@@ -25,7 +25,7 @@ using OpenEdge.DataAdmin.Binding.SequenceValueContext from propath.
 using OpenEdge.DataAdmin.Binding.TenantContext from propath.
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-
+using OpenEdge.DataAdmin.Binding.IRow from propath. 
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
@@ -44,23 +44,16 @@ class OpenEdge.DataAdmin.Binding.Query.SequenceTenantQuery inherits FilteredCont
 	/** Parent context (Model) may change so don't store this */
 	define private property TenantContext as TenantContext no-undo
 	     get():
-	          return cast(Parent:GetChild("tenants"),TenantContext).
+	          return cast(Model:ContextScope:GetContext("tenant"),TenantContext).
          end.
 	
 	define private variable mSchemaname as character no-undo.  
     
-	constructor public SequenceTenantQuery (pparent as  SequenceValueContext,pcSchemaName as char, pcSequenceName as char,pReq as IRequestInfo):
-		super (pparent,"sequences",KeyValueArray(pcSchemaname,pcSequenceName),pReq).	    
-	    ParentValue = pcSequenceName.
-	    mSchemaname  = pcSchemaName.
+	constructor public SequenceTenantQuery (pparent as  SequenceValueContext,pRow as IRow,pReq as IRequestInfo):
+		super (pparent,pRow,pReq).	    
+	    ParentValue = pRow:KeyValues[2].
+	    mSchemaname  = pRow:KeyValues[1].
 	end constructor.
-    
-    method private char extent 2 KeyValueArray(pcSchemaname as char,pcSeqname as char): 
-        define variable cvals as character  extent 2 no-undo.
-        cvals[1] = pcSchemaname.
-        cvals[2] =  pcSeqname.
-        return cVals.
-    end.
     
     method public override logical CanFind(pname as character):
         if SequenceValueContext:Find(ParentValue,pName) then

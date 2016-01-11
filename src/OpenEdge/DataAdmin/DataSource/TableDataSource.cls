@@ -35,6 +35,7 @@ class OpenEdge.DataAdmin.DataSource.TableDataSource inherits DataSource:
 Name,_File-name,~
 trowid,rowid(_File),~
 Description,_desc,~
+Hidden,_hidden,~
 IsMultiTenant,_File-attributes[1],~
 KeepDefaultArea,_File-attributes[2]"
 /*Description,_Desc,~  */
@@ -86,16 +87,20 @@ ValidationMessage,_Valmsg"  no-undo.
     
     constructor public TableDataSource (hchanges as handle ):     
         super (hchanges,"_File","dictdb._File", mMapping).
-        find first dictdb._db where _db._db-local = true no-lock.
-        mDBRecid = recid(dictdb._db).
-        BaseQuery = "for each ttTablechange, each _file where _file._file-name = ttTableChange.Tablename and _file._db-recid = " + quoter(mDBRecid) + " and  _file._owner = 'PUB' and _file._hidden = 'false' no-lock".
+        BaseQuery = "for each ttTablechange, each _file where _file._file-name = ttTableChange.Tablename and " + DatabaseInfo:FileExpression + " no-lock".
+    end constructor.
+    
+    constructor protected TableDataSource ( alltables as log):     
+        super ("_File","dictdb._File", mMapping).   
+/*      BaseQuery = "for each _file  no-lock".*/
+        BaseQuery = "for each _file" 
+                   + (if alltables then "" 
+                      else " where " + DatabaseInfo:FileExpression) + " no-lock".
+        
     end constructor.
     
 	constructor public TableDataSource ( ):	    
-		super ("_File","dictdb._File", mMapping).	
-		find first dictdb._db where _db._db-local = true no-lock.
-		mDBRecid = recid(dictdb._db).
-		BaseQuery = "for each _file where _file._db-recid = " + quoter(mDBRecid) + " and  _file._owner = 'PUB' and _file._hidden = 'false' no-lock".
+		this-object (no).	
     end constructor.
      
     method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
@@ -137,20 +142,29 @@ ValidationMessage,_Valmsg"  no-undo.
     end method.
     
     method private void DeleteTable(rid as rowid):
-        find dictdb._File where rowid(dictdb._File) = rid exclusive-lock.
-        for each dictdb._Index of dictdb._File exclusive-lock:
-            for each dictdb._Index-field of dictdb._Index exclusive-lock:
-                delete dictdb._Index-field.
-            end.  
+        /* this is not used in 11.0.0. We might need this in future.
+           NOT TESTED */
+           
+        define buffer b_IndexField for dictdb._Index-field.   
+        define buffer b_FileTrig   for dictdb._File-trig.   
+        define buffer b_FieldTrig  for dictdb._Field-trig.
+           
+        find dictdb._File where rowid(dictdb._File) = rid exclusive-lock no-wait.
+        
+        for each dictdb._Index of dictdb._File no-lock:
+            find b_IndexField of dictdb._Index exclusive-lock no-wait.
+            delete b_IndexField.
+ 
             delete dictdb._Index.
         end.
-        for each dictdb._File-trig of dictdb._File exclusive-lock:
-            delete dictdb._File-trig.
-        end.
-        for each dictdb._Field of dictdb._File exclusive-lock:
-            for each dictdb._Field-trig of dictdb._Field exclusive-lock:
-                delete dictdb._Field-trig.
-            end.
+        
+        find b_FileTrig of dictdb._File exclusive-lock no-wait.
+        delete b_FileTrig.
+        
+        for each dictdb._Field of dictdb._File no-lock:
+            find b_FieldTrig of dictdb._Field exclusive-lock no-wait.
+            delete b_FieldTrig.
+            
             delete dictdb._Field.
         end.
         delete dictdb._File.
@@ -180,7 +194,7 @@ ValidationMessage,_Valmsg"  no-undo.
                 if hBeforeBuff:row-state = row-created then 
                     undo, throw new UnsupportedOperationError("Create of Table.").
                 else 
-                    find dictdb._File where dictdb._File._File-name = phBuffer::Name exclusive no-error.
+                    find dictdb._File where dictdb._File._File-name = phBuffer::Name exclusive no-wait.
                 
                 if phBuffer::KeepDefaultArea = no then
                      undo, throw new DataAccessError("Cannot set KeepDefaultArea to false.").    

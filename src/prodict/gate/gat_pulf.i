@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2012 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -36,6 +36,7 @@ History:
     fernando  04/19/06  Unicode support
     fernando  09/29/06  Handle default values surrounded by parenthesis.
                         20060928-048
+    sgarg     04/13/12  Handle indexed datetime-tz field
 
 --------------------------------------------------------------------*/
 
@@ -107,7 +108,17 @@ IF l_init <> ? AND LENGTH(l_init) >= 3 THEN DO:
       /*
   ELSE IF l_init BEGINS 'NLS_UPPER(' THEN
       ASSIGN l_init = ENTRY(1,l_init).
-      */ 
+      */
+   /* OE00216717: Oracle creates a function based index on "timestamp with 
+    * timezone" column. Internally it uses SYS_EXTRACT_UTC function to create
+    * function based index, that normarlizes the key value to UTC. 
+    * A unique index on this coulmn would raise a unique index violation if two 
+    * datetime-tz values in different time zone but at the same instance 
+    * are inserted in the table.
+    */
+  ELSE IF l_init BEGINS 'SYS_EXTRACT_UTC(' THEN
+      ASSIGN l_init = SUBSTRING(l_init,18, (LENGTH(l_init) - 19)).
+ 
   ELSE IF l_init BEGINS '(' THEN
       ASSIGN l_init = SUBSTRING(l_init, 2, (LENGTH(l_init) - 2)).
 

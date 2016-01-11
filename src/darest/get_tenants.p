@@ -25,28 +25,16 @@ using OpenEdge.DataAdmin.Rest.*.
 using OpenEdge.DataAdmin.Util.*.
 using OpenEdge.DataAdmin.Error.*.
 
+ /* old behavior - to be deprecated */
+{darest/restbase.i get tenants}  
 
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "tenants" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_tenants.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
- 
-procedure executeRequest: 
-    define input  parameter pcParam as character no-undo.
+procedure Execute:
+    define input  parameter restRequest as IRestRequest  no-undo.   
     /* ***************************  Definitions  ************************** */
     define variable tenant       as ITenant no-undo.
     define variable tenants      as ITenantSet no-undo.
     define variable domains      as IDomainSet no-undo.
     define variable domain       as IDomain    no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable pageRequest  as IPageRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
@@ -54,21 +42,27 @@ procedure executeRequest:
     define variable valuereq     as IRequestInfo no-undo.
     
     /* ***************************  Main Block  *************************** */
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
      
-    service = new DataAdminService(). 
+    service = new DataAdminService(restRequest:ConnectionName). 
     service:URL = restRequest:ConnectionUrl.
       
     if restRequest:KeyValue[1] > "" then
     do:
         
         tntreq = new RequestInfo("Name",restRequest:KeyValue[1]).
-        if restRequest:NumLevels = 2 and restRequest:CollectionName[2] > "" and restRequest:Query > "" then
+        if restRequest:NumLevels = 2 and restRequest:CollectionName[2] > "" then
         do:
-            valuereq = new RequestInfo(restRequest:CollectionName[2]).
-            valueReq:QueryString = restRequest:Query.
-            tntreq:Add(valueReq).
+            pageRequest = restRequest:GetPageRequest().
+            if valid-object(pageRequest) then
+               tntreq:Add(pageRequest).
+            else if restRequest:Query > "" then
+            do:
+                valuereq = new RequestInfo(restRequest:CollectionName[2]).
+                valueReq:QueryString = restRequest:Query.
+                tntreq:Add(valueReq).
+            end.
         end.     
+        
         tenant = service:GetTenant(tntreq).
         if tenant = ? then
              undo, throw new NotFoundError("Tenant "  + restRequest:KeyValue[1]  + " not found").

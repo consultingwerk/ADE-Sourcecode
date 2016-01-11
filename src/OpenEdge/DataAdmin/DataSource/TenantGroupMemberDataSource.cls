@@ -1,4 +1,10 @@
- 
+/*************************************************************/
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/ 
  /*------------------------------------------------------------------------
     File        : TenantGroupDataSource
     Purpose     : 
@@ -226,7 +232,7 @@ TenantGroupDescription,_Partition-Set._Pset-Description".
             
             catch e as Progress.Lang.Error :
                 undo, throw new DataAccessError(
-                    new DataMapper("Partition Group,_Partition-Set",FieldMapping),
+                    new DataMapper("Partition Group,_Partition-Set,Tenant,_Tenant",FieldMapping),
                     e). 
             end catch.
         end.

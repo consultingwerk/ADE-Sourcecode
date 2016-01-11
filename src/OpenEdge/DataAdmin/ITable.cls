@@ -22,8 +22,6 @@ using OpenEdge.DataAdmin.IIndexSet from propath.
 using OpenEdge.DataAdmin.IFieldSet from propath.
  
 interface OpenEdge.DataAdmin.ITable  inherits ISchemaElement  :  
- 
-    define public property Schema as ISchema no-undo get. 
     /** is the table multi-tenant. Only updatable before create  */
     define public property IsMultitenant as logical no-undo get. set.
     /** keep area for default tenant. Only updatable before create  */

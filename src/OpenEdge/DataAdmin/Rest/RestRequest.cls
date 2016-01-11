@@ -23,34 +23,77 @@ using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Lang.WebUtil from propath.
 using OpenEdge.DataAdmin.Rest.IPageRequest from propath. 
 using OpenEdge.DataAdmin.Rest.PageRequest from propath. 
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequestInfo from propath.
 
-class OpenEdge.DataAdmin.Rest.RestRequest: 
+class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest: 
+    
+    define protected property RequestInfo as IRestRequestInfo no-undo get. set.
+    
+    define public property StatusFileName as char no-undo 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:StatusFileName.
+            return StatusFileName.
+        end.      
+    
+    define public property DownloadFileName as char no-undo 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:DownloadFileName.
+            return DownloadFileName.
+        end.      
+    
+    define public property UploadFileName as char no-undo 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:UploadFileName.
+            return UploadFileName.
+        end.      
+        
+    define public property CaptureFileName as char no-undo 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:CaptureFileName.
+            return CaptureFileName.
+        end.      
+   
+     
     define public property ConnectionUrl as char no-undo  
         get. 
         private set.
    
     define public property StartEntry as int no-undo  
        init 5
-       get. 
+       get(): 
+           if valid-object(RequestInfo) then
+               return RequestInfo:ConnectionsPos + 2.
+           return StartEntry.    
+       end.
        set.
     
     define public property ConnectionName as char no-undo  
         get():
-            if session:batch-mode then 
-                ldbname(1).
-            else do:
-                return ?.
-                
-/*                entry(StartEntry - 1,ConnectionUrl,"/").*/
-            end.       
+            if ConnectionName = "" then
+            do:
+               if valid-object(RequestInfo) then
+                   return RequestInfo:Connection. 
+               if Num-dbs = 1 then 
+                   return ldbname(1).
+               return ?. 
+            end.
+            return ConnectionName.
         end. 
-        private set.
+        set.
     
     define public property RequestUrl as char no-undo  
-        get. 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:Url.
+            return RequestUrl.
+        end.
         private set.
-
-   
+        
     define public property Name as char no-undo  
         get. 
         private set.
@@ -64,24 +107,49 @@ class OpenEdge.DataAdmin.Rest.RestRequest:
         private set.
            
     define public property FileName as char no-undo  
-        get. 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:FileName.
+            return FileName.
+        end.      
         private set.
     
     define public property OutFileName as char no-undo  
-        get. 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:OutFileName.
+            return OutFileName.
+        end.  
         private set.
         
     define public property FileName2 as char no-undo  
-        get. 
+        get():
+            if valid-object(RequestInfo) then
+            do:
+                FileName2 = RequestInfo:UploadFileName.
+                if FileName2 = "" then
+                    FileName2 = RequestInfo:DownloadFileName.
+            end.    
+                
+            return FileName2. 
+        end.  
         private set.
     
     define public property ErrorFileName as char no-undo  
         get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:ErrorFileName.
+                
             return OutFileName. 
         end. 
     
     define public property LogFileName as char no-undo  
-        get. 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:LogFileName.
+                
+            return OutFileName. 
+        end. 
         private set.
      
     define public property NumLevels as int no-undo  
@@ -103,6 +171,13 @@ class OpenEdge.DataAdmin.Rest.RestRequest:
     define public property KeyValue as char no-undo extent 
         get. 
         private set.
+
+    define public property StatusInterval as int no-undo 
+        get():
+            if valid-object(RequestInfo) then
+                return RequestInfo:StatusInterval.
+            return StatusInterval.
+        end.     
     
     define private variable mProps  as char no-undo. 
     define private variable mValues as char no-undo. 
@@ -114,6 +189,11 @@ class OpenEdge.DataAdmin.Rest.RestRequest:
             return WebUtil.     
         end. 
         set.
+    
+    constructor RestRequest(info as IRestRequestInfo):
+        RequestInfo = info.
+        InitRequest(info:Method,info:Collection,info:Url). 
+    end method.
       
     constructor RestRequest(cMode as char, cName as char, cUrl as char):
         ParseParams(cName,cUrl).
@@ -121,7 +201,6 @@ class OpenEdge.DataAdmin.Rest.RestRequest:
     end method.
 
     constructor RestRequest(pMode as char, pName as char):
-         
          if session:batch-mode then   
          do:
              /* TODO - comma is unsafe as delimiter - both url and filenames might have them */
@@ -334,13 +413,22 @@ class OpenEdge.DataAdmin.Rest.RestRequest:
         define variable iStart      as integer no-undo. 
         define variable iLimit      as integer no-undo.  
         define variable pageRequest as IPageRequest no-undo.
-        
+        define variable cCollection as character no-undo.
         cLimit = GetQueryValue("limit").
         
         if cLimit <> ? then 
         do:
+            
             iLimit = int(cLimit).  
-            pageRequest = new PageRequest().
+            /* could probably use collection name numlevels in all cases */
+            if NumLevels > 1 then 
+            do:
+                cCollection = CollectionName[NumLevels].     
+                pageRequest = new PageRequest(cCollection).
+            end.
+            else
+                pageRequest = new PageRequest().
+            
             pageRequest:PageSize = iLimit.  
             cStart = GetQueryValue("start").
             if cStart <> ? then

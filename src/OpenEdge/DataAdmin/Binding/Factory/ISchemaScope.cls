@@ -25,5 +25,5 @@ interface OpenEdge.DataAdmin.Binding.Factory.ISchemaScope inherits IContextScope
     define public property SequenceContext as SequenceContext no-undo get.  
     define public property SequenceValueContext as SequenceValueContext no-undo get.  
     define public property SchemaContext as SchemaContext no-undo get.  
-     
+    define public property AllTableContext as AllTableContext no-undo get.   
 end interface.

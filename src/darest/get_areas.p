@@ -1,4 +1,10 @@
-
+/*************************************************************/
+/* Copyright (c) 2012 by Progress Software Corporation.      */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
 /*------------------------------------------------------------------------
     File        : get_areas.p
     Purpose     : 
@@ -17,30 +23,21 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
-using OpenEdge.DataAdmin.Rest.RestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
+using OpenEdge.DataAdmin.Rest.RestRequest from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
 
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "areas" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_areas.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
-
-procedure executeRequest:
-    define input  parameter pcURL as character no-undo.
+/* to be deprecated */
+{darest/restbase.i get areas}
+ 
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.
      
     /* ***************************  Definitions  ************************** */
     define variable area         as IArea no-undo.
     define variable areas        as IAreaSet no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable pageRequest  as IPageRequest no-undo.
     
     define variable service      as DataAdminService no-undo.
@@ -48,11 +45,7 @@ procedure executeRequest:
     define variable cFile        as character no-undo.
     define variable cFileOut        as character no-undo.     
     /* ***************************  Main Block  *************************** */
-    
-    restRequest = new RestRequest(mMode,mCollection,pcUrl).  
-     
-    service = new DataAdminService(restRequest:ConnectionName).
-      
+    service = new DataAdminService(restRequest:ConnectionName).  
     restRequest:Validate().
     service:URL = restRequest:ConnectionUrl. 
     cFile = restRequest:FileName.
@@ -86,7 +79,7 @@ procedure executeRequest:
         errorHandler:Error(e).      
     end catch.
     finally:
-        delete object service no-error.     
+        delete object service no-error. 
     end finally.
     
 end.

@@ -44,6 +44,7 @@
     rkamboj  08/16/11      Added new terminology for security items and windows.  
     rkamboj  09/14/11      Added support for allowing edit of all fields 
                            except Domain name, Tenant Name and System Type.
+    rkmaboj  05/04/2012    Fixed default domain save problem.                       
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -88,7 +89,7 @@ DEFINE VARIABLE gcSort        AS CHARACTER   NO-UNDO INITIAL "dName".
 DEFINE VARIABLE gcSystemList  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE gcMods        AS CHARACTER   NO-UNDO.
 define variable gcDoneLabel   as character   no-undo.
-
+DEFINE VARIABLE inbuild       AS LOGICAL     NO-UNDO.
 define variable gcOkLabel   as character   no-undo init "&OK".
 
 define variable glInSelect      as logical no-undo.
@@ -523,6 +524,57 @@ ON CHOOSE OF btnPrev IN FRAME {&frame-name} DO:
 END.
 
 /* overrides sec-trgs.i */
+ON CHOOSE OF btnSave DO :
+    DEFINE VARIABLE err AS LOGICAL NO-UNDO.
+  IF inbuild THEN 
+  DO:
+      
+      RUN localSave ( INPUT "Before" ).
+      IF RETURN-VALUE NE "" THEN
+         RETURN RETURN-VALUE.  
+      FIND FIRST DICTDB._sec-authentication-domain 
+           WHERE DICTDB._sec-authentication-domain._Domain-name = TRIM(fiName:SCREEN-VALUE) NO-ERROR.
+      IF AVAILABLE (DICTDB._sec-authentication-domain) THEN 
+      DO:
+          ASSIGN DICTDB._sec-authentication-domain._Domain-enabled = LOGICAL(tbEnabled:SCREEN-VALUE)
+                 err = no.
+          FIND FIRST saDom WHERE saDom.dName = TRIM(fiName:SCREEN-VALUE) NO-ERROR.
+          IF AVAILABLE (saDom) THEN 
+          DO:
+              
+             ASSIGN saDom.dEnabled =  DICTDB._sec-authentication-domain._Domain-enabled.
+          END.              
+          IF cbType:SCREEN-VALUE <>  DICTDB._sec-authentication-domain._Domain-type THEN 
+          DO:
+             err = YES. 
+             RUN saveRecord.
+             ASSIGN saDom.dType = DICTDB._sec-authentication-domain._Domain-type.
+          END.   
+      END.
+      IF NOT err THEN 
+      DO:
+          RUN localSave ( INPUT "After" ).
+          RUN setButtonState ( INPUT "ResetMode" ).
+          RUN setFieldState  ( INPUT "ResetMode" ).
+      END.    
+              
+  END.
+  else    
+     RUN saveRecord.
+  
+  IF RETURN-VALUE = "Retry" THEN
+    RETURN NO-APPLY.
+  IF RETURN-VALUE = "Fatal" THEN DO:
+    RUN cancelRecord.
+    RETURN NO-APPLY.
+  END.
+                 
+  IF CAN-DO(THIS-PROCEDURE:INTERNAL-ENTRIES,"localTrig") THEN
+    RUN localTrig ( INPUT "Save" ).
+
+  APPLY "ENTRY" TO btnDone IN FRAME {&FRAME-NAME}.
+END.
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 ON CHOOSE OF btnHelp IN FRAME BROWSE-Frame OR
 CHOOSE OF btnHelp IN FRAME BROWSE-Frame 
@@ -952,6 +1004,7 @@ PROCEDURE OpenDialog:
     define input  parameter pcMode as character no-undo.
     if not glInit then
     do: 
+        
         run initializeUI.
         run enable_UI.
         glInit = true.
@@ -1106,7 +1159,7 @@ PROCEDURE initializeUI:
       /* we handle fields in localFieldState 
          editors 6 7 are set to sensitive here and read-only is used in localFieldState */  
        setResetModeValues("iab,no,no,no,no,yes,yes,iab,no,no"). 
-	        setDisableModeValues("no,no,no,no,no,no,no,no,no,no").
+            setDisableModeValues("no,no,no,no,no,no,no,no,no,no").
       assign
            gcDBFields          = "_domain-type,_domain-name," +
                                  "_domain-access-code,_auditing-context," +
@@ -1220,8 +1273,8 @@ END PROCEDURE.
 
 procedure localFieldState:
 /*------------------------------------------------------------------------------
-		Purpose:  																	  
-		Notes:  																	  
+        Purpose:                                                                      
+        Notes:                                                                        
 ------------------------------------------------------------------------------*/
   define input  parameter pcMode as character no-undo.
   define variable lok as logical no-undo.
@@ -1255,7 +1308,8 @@ procedure localFieldState:
               fiAContext:sensitive = true
               /* use read-only for editors */
               edDescription:read-only = false
-              edComments:read-only = false.
+              edComments:read-only = false
+              inbuild              = no.
            
       end.
       else do:
@@ -1263,10 +1317,12 @@ procedure localFieldState:
               /* use read-only for editors otherwise it cannot be scrolled and copied  */
              edDescription:read-only = true
              edComments:read-only = true
-             btnTenant:sensitive = false.
+             btnTenant:sensitive = false
+             inbuild             = yes.
       end. 
      
   end.
+  
 end procedure.
 
 procedure localButtonState:
@@ -1378,7 +1434,7 @@ PROCEDURE localSave :
     WHEN "Before" THEN DO WITH FRAME {&FRAME-NAME}:
       IF cbType:SCREEN-VALUE EQ ""  OR
          cbType:SCREEN-VALUE EQ "?" OR
-	   cbType:SCREEN-VALUE EQ ? THEN DO:
+       cbType:SCREEN-VALUE EQ ? THEN DO:
         MESSAGE "You must select a domain type for this domain."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         APPLY "ENTRY" TO cbType.

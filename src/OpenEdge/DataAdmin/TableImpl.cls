@@ -30,21 +30,12 @@ using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
 using OpenEdge.DataAdmin.Binding.TableContext from propath.
  
 
 class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implements ITable: 
   
-     define public property Schema as ISchema no-undo 
-        get():
-            if valid-handle(mBuffer) and mBuffer::AreaName > "" 
-            and valid-object(Service) then do:
-                this-object:Schema = Service:GetSchema().            
-            end. 
-            return this-object:Schema.
-        end.    
-        protected set.
-   
     define public override property ObjectType as character no-undo 
         get():
             return "Table". 
@@ -157,10 +148,17 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
     method public logical Allocate(pcMode as char).
        
         define variable lok as logical no-undo.
-       
-        if lookup(pcMode,"All,Delayed,None") = 0 then 
-             undo, throw new IllegalArgumentError("Invalid parameter passed to Allocate. Use ""Delayed"",""None"" or ""All""").
+        if IsMultiTenant = false then
+            undo, throw new IllegalOperationError("Table is not multi-tenant enabled.").          
         
+        if lookup(pcMode,"All,Delayed,None") = 0 then 
+            undo, throw new IllegalArgumentError (
+                               "Parameter value " + quoter(pcMode) + " passed to allocate method. " 
+                              + "Valid values are " 
+                              + quoter("Delayed") 
+                              + "," + quoter("All")
+                              + " or " + quoter("None") + ".").                      
+       
          
         return Partitions:AllocateTenants(pcMode).
             

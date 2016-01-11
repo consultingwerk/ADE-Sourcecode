@@ -17,6 +17,8 @@ HISTORY
 Author: Kumar Mayur
 
 Date Created: 06/21/2011
+
+          kmayur  22/2/2012   OE00217787- compatibility for MSS 2000
 ----------------------------------------------------------------------------*/
 Define var sql1 as char.
 define var h1 as int.
@@ -65,12 +67,12 @@ sql2 = sql2 + "INSERT INTO #tmp
         on usage.CONSTRAINT_NAME = checks.CONSTRAINT_NAME  ".
 
 sql2 = sql2 + "INSERT INTO #tmp
-        select  tt.name,c.name  ,i.name , i.type_desc ,NULL,NULL ,NULL ,NULL ,NULL ,NULL from
-        sys.indexes i 
-        inner join sys.index_columns ic on i.index_id = ic.index_id
-        and i.object_id = ic.object_id and i.type_desc = 'CLUSTERED'
-        inner join sys.all_columns c on c.column_id = ic.column_id and c.object_id = ic.object_id 
-        inner join  sys.tables tt on tt.object_id = c.object_id where tt.name = @table_name  ".
+        select  tt.name,c.name  ,i.name , 'CLUSTERED' ,NULL,NULL ,NULL ,NULL ,NULL ,NULL from
+        sysindexes i 
+        inner join sysindexkeys ic on i.indid = 1
+        and ic.indid = i.indid and i.id = ic.id 
+        inner join syscolumns c on c.colorder = ic.colid and c.id = ic.id 
+        inner join  sysobjects tt on tt.id = c.id where tt.name = @table_name  ".
 
 sql2 = sql2 + "INSERT INTO #tmp
         select  c.TABLE_NAME  , c.COLUMN_NAME, pk.CONSTRAINT_NAME , pk.CONSTRAINT_TYPE ,NULL,NULL ,NULL ,NULL ,NULL ,NULL
@@ -86,12 +88,12 @@ sql2 = sql2 + "create table _prgrstmptable(Parent_tab varchar(80),Unique_key var
  
 sql2 = sql2 + "INSERT INTO _prgrstmptable   
         select tt.name,rc.UNIQUE_CONSTRAINT_NAME    , c.name, rc.CONSTRAINT_NAME from
-        sys.indexes i 
-        inner join sys.index_columns ic on i.index_id = ic.index_id
-        and i.object_id = ic.object_id 
+        sysindexes i 
+        inner join sysindexkeys ic on i.indid = ic.indid
+        and i.id = ic.id 
         inner join INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc on rc.UNIQUE_CONSTRAINT_NAME = i.name 
-        inner join sys.all_columns c on c.column_id = ic.column_id and c.object_id = ic.object_id 
-        inner join  sys.tables tt on tt.object_id = c.object_id   ".
+        inner join syscolumns c on c.colorder = ic.colid and c.id = ic.id 
+        inner join  sysobjects tt on tt.id = c.id ".
 
 sql2 =  sql2 + " INSERT INTO #tmp
         select distinct c.TABLE_NAME  , c.COLUMN_NAME  ,pk.CONSTRAINT_NAME ,

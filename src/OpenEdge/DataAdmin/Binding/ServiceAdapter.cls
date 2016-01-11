@@ -21,6 +21,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Message.IDataAdminMessage from propath.
 using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
 using OpenEdge.DataAdmin.Message.FetchResponse from propath.
@@ -48,7 +49,8 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
 		/* Note - this will give connection error  on new dataadminservice. 
 		  remove from here will move connection error to first request 
 		  (this will likely be necessary if the service is split to run on a client) */
-		GetDataService(ConnectionName).
+		GetDataService("").
+		ServiceName = DataService:ServiceName.       
 	end constructor.
     
     constructor public ServiceAdapter (name as char):
@@ -168,7 +170,7 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
 /*        RequestCompleted:Publish(name).*/
     end method. 
     */
-    method public IUtilityRequest ExecuteUtility(msg as IUtilityRequest):
+    method public IUtilityResponse ExecuteUtility(msg as IUtilityRequest):
         define variable daservice as  DataService.
         daservice = GetDataService(ConnectionPath,ConnectionName).             
         ServiceName = daservice:ServiceName.
@@ -176,8 +178,7 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
  
          /*        RequestCompleted:Publish(name).*/
     end method. 
-     
-     
+      
     /*  */
     method private void FetchOnServer (input-output pcDbName as char,
                                        pcPath as char,

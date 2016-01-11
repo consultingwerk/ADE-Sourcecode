@@ -331,24 +331,15 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
     end method.
         
     method public void ImportTree(pcFile as char). 
-        define variable reader as JSONLoader no-undo.        
-        reader = new JSONLoader().
-        reader:LoadFromFile(this-object,pcfile,"Replace").  
+        undo, throw new UnsupportedOperationError("ImportTree for Extent.").
     end method. 
  
     method public void Import(cFile as char):
-        
         if not valid-handle(mDefaultBuffer) then
         do:
-            undo, throw new UnsupportedOperationError("Import to new Tenant that is not in a collection or service").
+            undo, throw new UnsupportedOperationError("Import to new Extent that is not in a collection or service").
         end.
-            
-        mDefaultBuffer:serialize-name = "tenant". 
-        
-        mDefaultBuffer:table-handle:tracking-changes = true.
-        if not mDefaultBuffer:read-json ("File",cFile,"replace") then 
-            undo, throw new IllegalArgumentError(error-status:get-message(1)).
-                           
+        Context:ImportRow(cFile,GetKeyValues()).
     end method.  
     
     method protected character extent GetKeyValues():

@@ -113,16 +113,23 @@ FORM
 
 ON CHOOSE OF OK_BUT IN FRAME frame_default
   DO:          
-       ASSIGN is-saved = FALSE.
+     ASSIGN is-saved = FALSE.
+
+     IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_default = ?
+     THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+     ELSE DO:
 	   RUN default_save.
-     IF is-saved THEN
-       APPLY "CLOSE":U TO THIS-PROCEDURE.
-       RETURN NO-APPLY.         
+       IF is-saved THEN
+        APPLY "CLOSE":U TO THIS-PROCEDURE.
+        RETURN NO-APPLY.         
+     END.
   END.
 
 ON CHOOSE OF CREATE_BUT IN FRAME frame_default
  DO:
-       RUN default_save.
+     IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_default = ?
+     THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+     ELSE RUN default_save.
  END. 
  
  

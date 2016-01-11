@@ -130,7 +130,7 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
             /** @todo - remove no-error and throw something 
              also check if exclusive and validate is needed 
              (this was done late before ship) */ 
-            find dictdb._tenant where dictdb._tenant._tenantid = phBuffer::id exclusive-lock no-error.
+            find dictdb._tenant where dictdb._tenant._tenantid = phBuffer::id exclusive-lock no-wait no-error.
             if avail dictdb._tenant then
             do:
                 validate dictdb._tenant.
@@ -178,10 +178,9 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                 /* now this is silly... */         
                 if hBeforeBuff:row-state <> 0 then 
                 do:
-                                       
                     if hBeforeBuff:row-state = row-deleted then 
                     do:
-                        find dictdb._tenant where dictdb._tenant._tenantid = hBeforeBuff::id exclusive no-wait.
+                        find dictdb._tenant where dictdb._tenant._tenant-Name = hBeforeBuff::Name exclusive no-wait.
                         /* @TODO: add  permission checks */
                          
                         for each dictdb._User where dictdb._User._tenantid = dictdb._tenant._tenantid 
@@ -242,9 +241,13 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                         else do: 
                             if hBeforeBuff::Type <> phBuffer::Type then
                                 undo, throw new DataAccessError("Cannot change the Type of an existing Tenant.").
-                            find dictdb._tenant where dictdb._tenant._tenantid = phBuffer::id 
+
+                            find dictdb._tenant where dictdb._tenant._tenant-name = hBeforeBuff::name 
                             exclusive no-wait. 
-                                
+                        
+                            if dictdb._tenant._Tenant-name <> phBuffer::Name then 
+                                dictdb._tenant._Tenant-name = phBuffer::Name. 
+                       
                             /* allocated only makes sense when not new */
                             if dictdb._tenant._Tenant-attributes[2] <> phBuffer::isAllocated 
                             and phBuffer::isAllocated = true then 
@@ -263,9 +266,6 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                         */
                             
                         /* source ? and blank ui means nothing changed */
-                        if  dictdb._tenant._Tenant-name <> phBuffer::Name then 
-                            dictdb._tenant._Tenant-name = phBuffer::Name. 
-                            
                         if  dictdb._tenant._Tenant-description <> phBuffer::Description 
                         and (dictdb._tenant._Tenant-description <> ? or phBuffer::Description > "") then
                             dictdb._tenant._Tenant-description = phBuffer::Description. 

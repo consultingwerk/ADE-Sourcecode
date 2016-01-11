@@ -26,12 +26,17 @@ History:
     D. McMann    03/31/00   abstracted from prodict/odb/odb_pulp.i
     sgarg        06/03/10   BLOB/CLOB support in Stored Proc
     musingh      07/01/11   Map varchar(n) to char, where 1<=n<=8000
+    sgarg        03/07/12   Error handling for unsupported LOBs
 
 --------------------------------------------------------------------*/
 
- 
 /* this code gets executed only for the first element of array-field   */
 /* so extent-code of field is always ##1 (even with real extent >= 10) */
+
+err_sp = "WARNING: You have used unsupported OUTPUT parameters in stored " +
+         "procedure definition &1 that might result in run-time errors. " +
+         "Please review your stored procedure definition or use error " +
+         "handling in your application on the RUN STORED-PROCEDURE statement.".
 
 assign
   pnam = TRIM(DICTDBG.SQLProcCols_buffer.Column-name)
@@ -66,25 +71,13 @@ assign
   l_dcml  = 0
   isOutput = ?.
 
-IF LOOKUP({&data-type}, "VARCHAR,LONGVARCHAR,NVARCHAR,NLONGVARCHAR") > 0 THEN DO:
-     IF (ntyp = "CLOB") AND 
+  /* BLOB and CLOB can be handled together */
+  IF LOOKUP({&data-type}, "VARBINARY,LONGVARBINARY,VARCHAR,LONGVARCHAR,NVARCHAR,NLONGVARCHAR") > 0 THEN DO:
+     IF (ntyp = "BLOB" OR ntyp = "CLOB") AND 
          DICTDBG.SQLProcCols_buffer.PRECISION >= 1 AND 
          DICTDBG.SQLProcCols_buffer.PRECISION <= 8000 THEN DO:
-         /* default mapping is clob, but this is a varchar (n) in which 
-            case we don't support the clob mapping, so must change it to
-            character (which is the next mapping).
-         */
-         dtyp = dtyp + 1.
-         ntyp = ENTRY(dtyp,user_env[15]).
-     END.
-  END.
-
-  IF LOOKUP({&data-type}, "VARBINARY,LONGVARBINARY") > 0 THEN DO:
-     IF (ntyp = "BLOB") AND 
-         DICTDBG.SQLProcCols_buffer.PRECISION >= 1 AND 
-         DICTDBG.SQLProcCols_buffer.PRECISION <= 8000 THEN DO:
-         /* default mapping is blob , but this is a varbinary(n) in which 
-            case we don't support the blob mapping, so must change it to
+         /* default mapping is blob or clob, but this is a varbinary(n) or varchar (n) in which 
+            case we don't support the blob or clob mapping, so must change it to
             character (which is the next mapping).
          */
          dtyp = dtyp + 1.
@@ -94,23 +87,57 @@ IF LOOKUP({&data-type}, "VARCHAR,LONGVARCHAR,NVARCHAR,NLONGVARCHAR") > 0 THEN DO
 
 
 /* OE00193877 - get 'is_output' value from sys.parameters catalog view. 
-   If BLOB or CLOB and output parameter, we want to mark _fld-misc17.
+ * If BLOB or CLOB and output parameter, we want to mark _fld-misc17.
+ * Get the output type for CHAR also, because the server LOB types can
+ * also be pulled as CHAR and mapping can be changed to CLOB 
+ * from field properties dialog.
  */
-IF ntyp = "BLOB" OR ntyp = "CLOB" THEN DO:
-  assign
-    sqlstate = "SELECT is_output FROM sys.parameters where name =  '" + 
+
+IF ntyp = "BLOB" OR ntyp = "CLOB" OR ntyp = "CHARACTER" THEN DO:
+   IF LOOKUP({&data-type}, "LONGVARCHAR,LONGVARBINARY,NLONGVARCHAR") > 0 OR
+      (LOOKUP({&data-type}, "VARCHAR,VARBINARY,NVARCHAR") > 0 AND 
+       DICTDBG.SQLProcCols_buffer.Precision = 0  AND 
+       DICTDBG.SQLProcCols_buffer.Length = 0) THEN DO:
+      assign
+      sqlstate = "SELECT is_output FROM sys.parameters where name =  '" + 
               DICTDBG.SQLProcCols_buffer.column-name + "' and object_id = (OBJECT_ID('" +
               DICTDBG.SQLProcCols_buffer.OWNER + "." + SUBSTRING(TRIM(DICTDBG.SQLProcCols_buffer.name),1,LENGTH(trim(namevar-1))) + "'))".
-
-  RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
-
-  IF NOT ERROR-STATUS:ERROR THEN DO:
-    FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
-        ASSIGN isOutput = proc-text. 
-    END.
-  CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
-  END.
+   
+      RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
+   
+      IF NOT ERROR-STATUS:ERROR THEN DO:
+        FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
+         ASSIGN isOutput = proc-text. 
+        END.
+        CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+      END.
+   END.
 END.
+
+  /* OE00203930: TEXT, IMAGE and NTEXT are not supported as Stored Procedure
+   * output parameters. Could not find a way to put the error message 
+   * concatenated using "+" operator  in err-msg array, so storing the
+   * concatenated string in a variable and using that variable to write
+   * the message in ds_upd.e, instead of call to error_handling.
+   */
+  IF NOT err_sp_flag AND LOOKUP({&data-type}, "LONGVARCHAR,LONGVARBINARY,NLONGVARCHAR") > 0 THEN DO:
+     IF isOutput = "1" AND (ntyp = "CHARACTER" OR ntyp = "CLOB" or ntyp = "BLOB") THEN DO:
+         IF (DICTDBG.SQLProcCols_buffer.type-name = "text" OR
+             DICTDBG.SQLProcCols_buffer.type-name = "image" OR
+             DICTDBG.SQLProcCols_buffer.type-name = "ntext") THEN DO:
+               output stream s_stm_errors to ds_upd.e append.
+               PUT stream s_stm_errors unformatted
+                   SUBSTITUTE(err_sp, table_name)  skip.
+               PUT STREAM s_stm_errors UNFORMATTED "" SKIP.
+               output stream s_stm_errors close.
+
+               /* Log the error message at procedure level, instead of 
+                * parameter level.
+                */ 
+               assign err_sp_flag = TRUE.
+         END.
+     END.
+  END.
 
 CREATE s_ttb_fld.
 

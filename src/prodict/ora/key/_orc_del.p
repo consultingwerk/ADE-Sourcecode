@@ -123,7 +123,7 @@ OUTPUT STREAM constlog TO VALUE(cnstrpt_name) UNBUFFERED APPEND NO-ECHO NO-MAP.
     MESSAGE "Are you sure you want to delete all constraints from database ?"
       VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO  update ans.
       IF ans = YES THEN
-        FOR EACH DICTDB._constraint EXCLUSIVE-LOCK :
+        FOR EACH DICTDB._constraint WHERE (DICTDB._constraint._con-type <> "D" AND DICTDB._constraint._con-type <> "M") EXCLUSIVE-LOCK :
             DELETE DICTDB._constraint.
 	    END.
   END.

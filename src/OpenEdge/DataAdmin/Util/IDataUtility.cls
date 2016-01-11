@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2012 by progress Software Corporation.*/
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -17,16 +17,22 @@
 
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.ITenantSet.
+using OpenEdge.DataAdmin.IDataAdminService.
+
 using OpenEdge.DataAdmin.Message.IUtilityRequest.
 using OpenEdge.DataAdmin.Util.IDataAdminUtility.
  
-interface OpenEdge.DataAdmin.Internal.Util.IDataUtility inherits IDataAdminUtility:  
-    define public property Name        as char   no-undo get. set.
-    define public property FileName    as char no-undo get. set.
-    define public property Directory   as char no-undo get. set.
-    define public property UseDefaultLocation as logical no-undo get. set.
-    define public property AllTenants  as logical   no-undo get. set.   
-    define public property Tenants     as IDataAdminCollection   no-undo get. set.   
-  
-    method public void ExportOptions(pcFile as char).  
+interface OpenEdge.DataAdmin.Util.IDataUtility inherits IDataAdminUtility:  
+    /** Directory for dump or load, must exist also on dump - blank = current */
+    define public property Directory      as char no-undo get. set.
+    define public property Service        as IDataAdminService  no-undo get.
+    /** Specifies the tenants to include in the request when UseGroupSelection = false 
+      'all, 'list'  - 'list' requires list of Tenants  - default = 'all' */
+    define public property TenantSelection      as char   no-undo get. set.   
+    
+    /** List of Tenants when UseGroupSelection = false and TenantSelection = 'list' */
+    define public property Tenants              as ITenantSet   no-undo get.   
+
+   
 end interface.

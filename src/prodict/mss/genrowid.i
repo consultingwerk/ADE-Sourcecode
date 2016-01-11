@@ -74,7 +74,13 @@ form
                  	     	     INPUT {&Adjust_Schema_dialog_box},
         	       	     	     INPUT ?).
 &ENDIF
- 
+
+
+ON WINDOW-CLOSE OF FRAME l_frm_beauty
+DO:
+    APPLY "END-ERROR" TO FRAME l_frm_beauty.
+END.
+  
 /*------------------------  INT.-PROCEDURES  -----------------------*/
 
 /*------------------------  INITIALIZATIONS  -----------------------*/

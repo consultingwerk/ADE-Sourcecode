@@ -1,11 +1,11 @@
- /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
- /*------------------------------------------------------------------------
+/*************************************************************/
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
+/*------------------------------------------------------------------------
     File        : FilteredContext
     Purpose     : Provide filtered access to another context
     Syntax      : 
@@ -29,24 +29,28 @@ using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.RequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext from propath.
+using OpenEdge.DataAdmin.Binding.ContextTree from propath.
+using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
+using OpenEdge.DataAdmin.Binding.IRowChange from propath.
+using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext from propath.
 
 using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
 
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 using OpenEdge.DataAdmin.Lang.QueryString from propath. 
+using OpenEdge.DataAdmin.Lang.QueryUtil  from propath. 
 using OpenEdge.DataAdmin.Lang.BeforeQuery from propath. 
 using OpenEdge.DataAdmin.Rest.IPageRequest from propath. 
 
 class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFilteredContext:
                                                           
-            
-	      
     /* NOTE: the public ParentUrl and ParentSerializeName for join 
        is NOT related to the protected Parent context, which is the unfiltered data    */    
     define public property ParentSerializeName    as character  no-undo  
@@ -72,26 +76,44 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
 	define public property ParentValues         as character extent no-undo  
         get.  
         protected set.
-	
-                	    
+    
+    define protected property ParentRow          as iRow  no-undo  
+        get.  
+        protected set.
+        
+	define private variable mBufferHandles     as handle extent no-undo.  
+    
+    define private variable mBaseQueries       as char extent no-undo.  
+         
     /*** constructors ****************************************/ 
     constructor protected FilteredContext (sourcecntxt as IDataAdminContext):
         super(sourcecntxt).  
         CreateQuery().    
     end constructor.
    
-   
-    /** The filter is an expression of properties and values and operators on 
-        a child collection . 
-        Note that this context have no information about the parent and CANNOT transform 
-        an external key to an internal key. The context must be able to use the value as is 
-    **/
+    constructor public FilteredContext (sourcecntxt as IDataAdminContext,pParentRow as IRow,pReq as IRequestInfo):
+        super(sourcecntxt,pReq). 
+        if pParentRow:KeyValue <> ? then
+            InitParent(pParentRow:Serializename,pParentRow:KeyValue). 
+        else if pParentRow:KeyIntValue <> ? then
+            InitParent(pParentRow:Serializename,string(pParentRow:KeyIntValue)).        
+        else
+            InitParent(pParentRow:Serializename,pParentRow:KeyValues).    
+        if not pParentRow:IsSnapShot then
+            ParentRow = pParentRow.
+        InitRequest(pReq).
+        CreateQuery(). 
+        QueryHandle:query-prepare (LocalFilter).
+        catch e as Progress.Lang.Error :
+            undo, throw e.  
+        end catch. 
+    end method.
      
     constructor public FilteredContext (sourcecntxt as IDataAdminContext,pcparent as char,pcKeyValue as char,pReq as IRequestInfo):
         super(sourcecntxt,pReq).          
         InitParent(pcparent,pcKeyvalue). 
-        CreateQuery(). 
         InitRequest(pReq).
+        CreateQuery(). 
         QueryHandle:query-prepare (LocalFilter).
         catch e as Progress.Lang.Error :
         	undo, throw e.	
@@ -103,15 +125,16 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
         /* ParentValue and ParentURLis not set 
            subclasses need to override all use with use of muliple keys */
         InitParent(pcparent,pcKeyvalues). 
-        CreateQuery().
         InitRequest(pReq).
+        CreateQuery().
         QueryHandle:query-prepare (LocalFilter). 
+        
     end constructor.
     
     constructor public FilteredContext (sourcecntxt as IDataAdminContext,pReq as IRequestInfo):
         super(sourcecntxt,pReq).
-        CreateQuery().    
         InitRequest(pReq).
+        CreateQuery().    
         QueryHandle:query-prepare (LocalFilter).
     end constructor.
     
@@ -157,13 +180,13 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
             */     
         end.
         
-        CreateQuery().
-          
         if not lTransformed then
         do:       
             InitFilter(pfilter).
         end.
+        CreateQuery().
         QueryHandle:query-prepare (LocalFilter).
+       
         catch e1 as IllegalArgumentError:
             undo, throw e1.
         end catch.
@@ -182,17 +205,65 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
            InitFilter(preq:QueryString).
         end.
     end.    
-         
     
+    method private logical CompareValues(pcValues1 as char extent,pcValues2 as char extent):
+        define variable i       as integer no-undo.
+        do i = 1 to extent(pcValues1):
+            if pcValues2[i] <> ?   
+            and pcValues1[i] <> pcValues2[i] then 
+                return false.  
+        end.
+        return true.    
+    end method.
+      
+    method public override void ForeignKeyChanged(pParentChange as IRowChange):
+        define variable lFound as logical no-undo.
+        define variable cValues as character extent no-undo.
+        define variable cForeignKeyFields as character no-undo.
+        define variable qutil  as QueryUtil  no-undo.
+        define variable cNewQuery as character no-undo.
+        if pParentChange:SerializeName = ParentSerializeName then
+        do:
+            /** @todo - simplify this */  
+            if extent(ParentValues) = ? then
+            do:
+                if ParentValue = pParentChange:OldKeyValues[1] then
+                do:
+                    assign 
+                        lFound = true
+                        ParentValue = pParentChange:KeyValues[1].
+                end.
+            end.
+            else do:
+                if CompareValues(ParentValues,pParentChange:OldKeyValues) then
+                do:
+                    assign 
+                        lFound = true 
+                        ParentValues = pParentChange:KeyValues.
+                end.
+            end.        
+            if lFound then
+            do:
+                /** prepare the query with new foreignfields */ 
+                cForeignKeyFields = Model:GetChildJoinFields(ParentSerializeName).
+                qutil = new QueryUtil(Tables). 
+                cNewQuery = qutil:ReplaceQueryValues(QueryHandle:prepare-string,cForeignKeyFields,pParentChange:KeyValues).
+                QueryHandle:query-prepare(cNewQuery).
+                
+                if QueryHandle:is-open then 
+                    Reopen().
+            end.
+        end.
+    end method.
+      
     /**
      sets ParentSerializeName, ParentUrl, ParentValue, Joinfields, Filter and LocalFilter 
      uses TableHandle Parent
     */
-    method private void InitParent(pcparent as char,pckeyValue as char):
-        define variable cWhere as character no-undo.
+    method private void InitParent(pcParent as char,pckeyValue as char):
         assign
             ParentValue         = pcKeyValue  
-            ParentSerializeName = pcparent
+            ParentSerializeName = pcParent
             ParentUrl           = ParentSerializeName + "/" + pcKeyValue.
          
         InitJoinFields(pcparent).
@@ -207,12 +278,9 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     end method.
     
     method private void InitParent(pcparent as char,pckeyValues as char extent):
-        define variable cWhere as character no-undo.
         assign
-            ParentValues         = pcKeyValues  
-            ParentSerializeName = pcparent
-         .
-         
+            ParentValues        = pcKeyValues  
+            ParentSerializeName = pcparent.
         InitJoinFields(pcparent).
         InitParentFilter(pcparent,pckeyValues).
         
@@ -234,7 +302,7 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
                                                              + quoter(pcparent) 
                                                              + " to " + quoter(Parent:Serializename)+ ".").
         end.
-   end.                    
+    end.                    
         
     
     /** set Filter and LocalFilter from single keyvalue using JoinFields */ 
@@ -264,34 +332,74 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
         define variable cQuery as character no-undo.
         define variable  QueryString as QueryString no-undo.       
         define variable lBoth as logical no-undo.
-     
-        lBoth = TrimQuery(Filter) <> TrimQuery(LocalFilter).    
+        
+        if Filter = "" then Filter = BaseQuery.    
+        QueryString = new QueryString(pFilter,this-object). 
+    
+        lBoth = TrimQuery(Filter) <> TrimQuery(LocalFilter).   
         
         /* BaseQuery is set in AbstractFilterConstructor to avoid the QueryString class 
-          default no-lock, so don't set it blank */ 
+           default no-lock, so don't set it blank */ 
         if Filter > "" then
-           BaseQuery =  Filter.
-       
-        Filter = TransformQuery(pfilter).
-        
+            BaseQuery = Filter.
+        Filter = QueryString:BuildQueryString(Tables).
+    
         if lBoth then
         do:
             If LocalFilter > "" then
                 BaseQuery =  LocalFilter.
-            LocalFilter = TransformQuery(pfilter).
+            
+            LocalFilter = 'preselect ' + TrimQuery(QueryString:BuildQueryString(Tables)).
             BaseQuery = LocalFilter.
         end.
         else
-           LocalFilter = 'preselect ' + TrimQuery(Filter).
+            LocalFilter = 'preselect ' + TrimQuery(Filter).
     end method.
     
     method private char TrimQuery(pcQuery as char):
-         pcQuery = left-trim(pcQuery).
-         entry(1,pcQuery," ") = "".
-         return left-trim(pcQuery).
+        pcQuery = left-trim(pcQuery).
+        entry(1,pcQuery," ") = "".
+        return left-trim(pcQuery).
     end.
     
+    /** add join buffer - called from columnSource overrides when parent columns
+                          are added to query 
+        not very robust - assumes BaseQuery and Tables is set                   
+    */ 
+    method protected logical AddJoinTable(pcntxt as IDataAdminContext):
+        define variable hCurrentHandles as handle extent no-undo.
+        define variable i               as integer no-undo.
+        define variable hBuffer         as handle  no-undo.
+        hBuffer = pCntxt:TableHandle:default-buffer-handle.
+        /* admit to our lack of robustness */
+        if Filter = "" or Filter = ? then 
+            undo, throw new IllegalOperationError("AddJoinTable cannot be called when the Filter is not defined.").
+        if LocalFilter = "" or LocalFilter = ? then
+        do:
+            LocalFilter = "preselect " + TrimQuery(Filter).
+        end.    
+        if lookup(hBuffer:name,Tables) = 0 then
+        do:
+            hCurrentHandles = GetBufferHandles(). 
+            extent(mBufferHandles) = ?.
+            extent(mBufferHandles) = extent(hCurrentHandles) + 1.
+            do i = 1 to extent(hCurrentHandles):
+                mBufferHandles[i] = hCurrentHandles[i]. 
+            end. 
+            mBufferHandles[extent(mBufferHandles)] = hBuffer.
+            Filter = Filter  
+                      + ", " + Model:GetServerJoinQuery(pcntxt:name).
+            LocalFilter = LocalFilter  
+                      + ", " + Model:GetJoinQuery(pcntxt:name).
+            return true.
+        end. 
+        return false. 
+    end method.
+    
     method protected override handle extent GetBufferHandles():
+        if extent(mBufferHandles) <> ? then
+            return mBufferHandles.
+        else    
         if ParentSerializeName > "" then
             return Model:GetQueryHandles(ParentSerializeName).
         else
@@ -319,23 +427,7 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     end method.
     */
     
-    method private character JoinExpression(pckeys as char extent, pcValues as char extent):
-        define variable i as integer no-undo.
-        define variable cwhere as character no-undo.       
-        cWhere = "for each " + TableHandle:name. 
-  
-        do i = 1 to extent(pcValues):
-             cWhere = cWhere
-                    + (if i = 1 then " where " else " or ") 
-                    + TableHandle:name + "." + pcKeys[i] 
-                    + " = " 
-                    + quoter(pcValues[i]).   
-        end. 
-                     
-        return cWhere.
-        
-    end method.
-    
+   
     /*** protected methods ****************************************/ 
     method protected override void RowCreated().       
         Reopen().
@@ -350,13 +442,12 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     /*** methods ****************************************/  
        
     method public override void Copy(cntxt as IDataAdminContext):
-        
-        if ParentSerializeName > "" then
-        do:
-            parent:CopyForParent(ParentSerializeName,ParentValue,cntxt).
-        end.    
+        if valid-object(ParentRow) then
+            Model:CopyForParent(ParentRow,cntxt).
+        else if ParentSerializeName > "" then
+            Model:CopyForParent(ParentSerializeName,ParentValue,cntxt).
         else 
-           super:Copy(cntxt).
+            super:Copy(cntxt).
         
         QueryHandle:query-open().
     end method.    
@@ -401,22 +492,54 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     
     method public override logical CanFind(c as char):
         define variable lok as logical no-undo. 
-        define variable hBuf as handle no-undo.
         if num-entries(KeyFields) > 1 then
             lok = InvokeInParent("Find",c).
-        else
+        else 
             lok = Parent:Find(c).
         if lok then
-        do:
-            hBuf = QueryHandle:get-buffer-handle(1).
-            lok = hBuf:avail and TableHandle:default-buffer-handle:rowid = hBuf:rowid.                          
-            if not lok then
-            do:
-                lok = QueryHandle:reposition-to-rowid(TableHandle:default-buffer-handle:rowid) no-error.
-            end.
-        end.  
-        return lok.     
+            return CanFindCurrentModel().
+        return false.     
     end method.
+    
+        /* qualify columns for QueryString parsing */
+    method public override character ColumnSource(pcColumn as char):
+        define variable cBuffer as character no-undo. 
+        define variable cField as character no-undo. 
+        define variable hCntxt as IDataAdmincontext no-undo.
+        if num-entries(pcColumn,".") > 1 then
+        do:
+            cBuffer = entry(1,pcColumn,".").
+            cField  = entry(2,pcColumn,".").
+            hCntxt = Model:ContextScope:GetContext(cBuffer).
+            if valid-object(hCntxt) then
+            do:
+                AddJoinTable(hcntxt).
+                return hCntxt:ColumnSource(cField).
+            end.
+        end.    
+        return super:ColumnSource(pccolumn).
+    end method.
+   
+    method public override character ColumnSortSource(pcColumn as char).
+        define variable cBuffer as character no-undo. 
+        define variable cField as character no-undo. 
+        define variable hCntxt as IDataAdmincontext no-undo.
+        /*
+        if num-entries(pcColumn,".") > 1 then
+        do:
+            cBuffer = entry(1,pcColumn,".").
+            cField  = entry(2,pcColumn,".").
+            
+            hCntxt = Model:ContextScope:GetContext(cBuffer).
+            if valid-object(hCntxt) then
+            do:
+                AddJoinTable(hcntxt).
+                return hCntxt:ColumnSortSource(cField).
+            end.
+        end.    
+        */
+        return Parent:ColumnSortSource(pcColumn).
+    end method.   
     
     method public override IDataAdminCollection GetChildCollection(ckey as char, child as char).
         if this-object:Find(ckey) then
@@ -455,10 +578,16 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
             KeyLoop:
             do i = 1 to iNumKeys :
                 cField = entry(i,KeyFields).
-                do j = 2 to num-entries(JoinFields):
+                /* this is a bit misleading and can be simplified... 
+                   keyfields and joinfields need to match */
+                do j = 2 to num-entries(JoinFields) by 2:
                    if cField = entry(j,JoinFields) then 
                    do:
-                       cVal[i] = entry(2,ParentURL,"/"). 
+                       if ParentUrl > "" then
+                          cVal[i] = entry(2,ParentURL,"/"). 
+                       else if extent(ParentValues) >= i then
+                          cVal[i] = ParentValues[i] .
+                        
                        next Keyloop.
                    end.    
                 end.     
@@ -475,6 +604,7 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
         define variable lok as logical no-undo.
         define variable c1 as character no-undo.
         define variable c2 as character no-undo.
+        define variable c3 as character no-undo.
         define variable cKeyArray as character extent no-undo.
         cKeyArray = GetKeyValues(pKey).
         case extent(cKeyArray):
@@ -485,6 +615,13 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
                 c2 = cKeyArray[2].
                 lok = dynamic-invoke (Parent,pcCall,c1,c2).
             end.
+            when 3 then 
+            do:
+                c1 = cKeyArray[1].
+                c2 = cKeyArray[2].
+                c3 = cKeyArray[3].
+                lok = dynamic-invoke (Parent,pcCall,c1,c2,c3).
+            end.    
             otherwise
                 undo, throw new UnsupportedOperationError("FilterContext InvokeInParent " + quoter(pcCall) + " with many keys").      
         end.
@@ -494,7 +631,32 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     
     /* override if message needs to override to add additional/different tables for join */
     method protected IFetchRequest GetQueryRequest():
-        return Parent:GetRequest().
+        define variable tree as IContextTree no-undo.
+        define variable msg as IFetchRequest no-undo.
+        define variable cJoinFields as character no-undo.
+        define variable hds as handle no-undo.
+        define variable i as integer no-undo.
+        /* mbufferhandles is set from AddJoin which is called when other 
+           table references are found in the query 
+           BaseQuery and Filter will already reflect the join(s) */ 
+        if extent(mBufferHandles) <> ? then 
+        do:
+            tree = new ContextTree().
+            AddTableTo(tree).
+            /* we add reposition requests for the joins, but no query. 
+               The actual queries are kept as comma separated joins to the main 
+               table (MBufferHandles[1]) query  */
+            do i = 2 to extent(mBufferHandles):
+                tree:SetHandle(mBufferHandles[i]:serialize-name,mBufferHandles[i]).
+                cJoinFields = GetJoinFieldsReversed(mBufferHandles[i]:serialize-name).              
+                tree:SetJoin(mBufferHandles[1]:serialize-name,mBufferHandles[i]:serialize-name,cJoinFields).
+            end.
+            hds = tree:GetReadHandle().
+            msg = new FetchRequest(Name,Id,hds). 
+            return msg.
+        end.
+        else         
+            return Parent:GetRequest().
     end.
     
     method public final override IFetchRequest GetRequest():
@@ -507,11 +669,9 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
         do:
             qstr = new QueryString(Filter,cWhere).
             cWhere = qstr:BuildQueryString(TableHandle:Name).
-            
         end.   
         else 
             cwhere  = Filter.
-        
         msg:SetTableQuery(TableHandle:name,cWhere).
      
         if valid-object(RequestInfo) then
@@ -525,10 +685,7 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
             end. 
             Parent:TransferMatchingRequests(RequestInfo:GetChildren(),msg).
         end.
-        
-        
         return msg.
-        
     end method.    
     
     /* single table import of the entity (flat - no tree)
@@ -536,7 +693,7 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
        blank foreign key and seen as new records. We cannot copy these
        as-is when to the existing since all values may not be present  */     
     method public override void Import(pcfile as char,pcMode as char):         
-        
+       
         if ParentSerializeName > "" then
         do:
             if pcMode = "replace" then
@@ -563,8 +720,8 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
         Parent:ImportTree(pcfile).
     end method.
     */
-    method public override void ReadChild(pcparent as char,pckey as char extent, pjson as JSONObject).
-        Parent:ReadChild(pcparent, pckey, pjson).
+    method public override void ReadChild(parentRow as IRow,  pjson as JSONObject).
+        Parent:ReadChild(parentRow, pjson).
     end method.
     
     /*

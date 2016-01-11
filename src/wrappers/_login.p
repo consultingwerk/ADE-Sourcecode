@@ -51,7 +51,7 @@ do:
         end catch.                  
     end.
     if not lFound then 
-    do:
+    do on error undo, throw:
         for each dictdb._sec-authentication-domain 
                  where (dictdb._sec-authentication-domain._Domain-enabled = yes 
                    and  dictdb._sec-authentication-domain._Domain-type <> "_oeusertable" 
@@ -70,8 +70,13 @@ do:
                 end.                		
             end catch.                  
         end.
+        catch e as Progress.Lang.Error : 
+            /* 138 means no ABL user record found.  
+               Otherwise we assume readpermission error due to disallow blank user access in which 
+               case we assume a prompt is needed (disallow blank user access cannot be set by blank uer) */
+            lFound = e:GetMessageNum(1) <> 138.
+        end catch.                  
     end.
-    
     if lFound = false then 
         return.
 end.

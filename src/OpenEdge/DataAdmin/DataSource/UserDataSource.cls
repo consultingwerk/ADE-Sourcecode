@@ -1,9 +1,9 @@
- /*************************************************************/
-  /* Copyright (c) 2010 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
+/*************************************************************/
+/* Copyright (c) 2011,2012 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
   /*************************************************************/
  /*------------------------------------------------------------------------
     File        : UserDataSource
@@ -27,6 +27,7 @@ routine-level on error undo, throw.
 class OpenEdge.DataAdmin.DataSource.UserDataSource inherits DataSource : 
    
     define variable msave as logical no-undo.
+    define buffer b_domain for dictdb._Sec-Authentication-Domain.
     define private property TenantURL  as character no-undo get. set.
     define protected variable mBuffer as handle no-undo.
 	define private variable mMapping as char
@@ -41,6 +42,7 @@ SurName,_surname,~
 DomainName,_domain-name,~
 Telephone,_Telephone,~
 Email,_Email"
+/*DomainId,_sec-authentication-domain._domain-id,~*/
      no-undo.
     
     constructor public UserDataSource (cParent as char,cWhere as char):      
@@ -58,6 +60,17 @@ Email,_Email"
         BaseQuery = "for each _user no-lock".
     end constructor.
     
+    constructor public UserDataSource (pcJoinTables as char,pcPhysicalJoinTables as char, pcQuery as char):      
+        super ("_user," + pcJoinTables,
+               "dictdb._user," + pcPhysicalJoinTables, 
+               mMapping 
+               + if lookup("_Domain",pcJoinTables) > 0 
+                 then ",DomainId,_Domain._Domain-id"
+                 else ""). 
+        BaseQuery = "for each _user no-lock, " + pcQuery.
+    end constructor.
+    
+    
         /* allow subclasses to override to not set call back even if we  have call back here */
     method protected logical SetCallBack(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterUserRow").
@@ -65,18 +78,22 @@ Email,_Email"
     end method.
     
     method public final override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+        define variable lok as logical no-undo.
         SetCallBack(phBuffer).
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
+        lok  = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
+      
+        return lok.
     end method.
     
     method protected override logical PrepareQueryString (poQueryString as QueryString):         
         define variable isOk as logical no-undo.
         define variable cQuery as character no-undo.
-        
+        /*
         isOk = AddUniqueOrNone("_tenant",poQueryString).
         if isOk = ? then 
             undo, throw new IllegalArgumentError("UserDataSource prepare with non unique tenant reference. Use the tenant constructor.").
+        */
         cQuery = poQueryString:BuildQueryString(Tables).
         isOk = QueryHandle:query-prepare(cQuery).       
         return isOk.
@@ -137,7 +154,7 @@ Email,_Email"
             if hBeforeBuff:row-state = row-deleted then 
             do:
                 find dictdb._user where dictdb._user._domain-name = hBeforeBuff::DomainName 
-                                  and   dictdb._user._userid = hBeforeBuff::name exclusive.
+                                  and   dictdb._user._userid = hBeforeBuff::name exclusive no-wait.
                    
                  delete dictdb._user.
             end.    
@@ -153,11 +170,17 @@ Email,_Email"
                     lnew = true. /* use NEW buffer ? */
                 end. 
                 else do:
-                    find dictdb._user where dictdb._user._domain-name = hBeforeBuff::DomainName 
-                                      and   dictdb._user._userid = hBeforeBuff::name exclusive.
+                    find dictdb._user where dictdb._user._domain-name = phBuffer::DomainName 
+                                      and   dictdb._user._userid = phBuffer::name exclusive no-wait.
                 end.                                 
                 
-                find dictdb._sec-authentication-domain where _sec-authentication-domain._domain-name = phBuffer::Domainname no-lock. 
+                /* use DomainId if modified since a parent rename in same transaction 
+                   is doen after the child for modifify - 
+                   (we know the Dominid is ok imn thia case ) */
+                if pistate = row-modified then
+                    find dictdb._sec-authentication-domain where _sec-authentication-domain._domain-id = phBuffer::DomainId no-lock. 
+                else
+                    find dictdb._sec-authentication-domain where _sec-authentication-domain._domain-name = phBuffer::Domainname no-lock. 
                 
                 assign        
                     dictdb._user._domain = phBuffer::DomainName  
@@ -174,9 +197,9 @@ Email,_Email"
                 
                 if isMultiTenant then 
                 do:   
-                   find dictdb._tenant where dictdb._tenant._tenantid = dictdb._user._tenantId no-lock . 
-                   assign phBuffer::TenantName = dictdb._tenant._tenant-name     
-                          phBuffer::TenantId   = dictdb._user._tenantid.  
+                    find dictdb._tenant where dictdb._tenant._tenantid = dictdb._user._tenantId no-lock . 
+                    assign phBuffer::TenantName = dictdb._tenant._tenant-name     
+                           phBuffer::TenantId   = dictdb._user._tenantid.  
                 end.
                        
                 hdataset = phBuffer:dataset.
@@ -201,11 +224,19 @@ Email,_Email"
         define variable userurl as character no-undo. 
         define variable iusersrc   as integer no-undo.
         define variable husersrc as handle no-undo. 
-        
+        define buffer b_domain for dictdb._sec-authentication-domain.
         hBuffer = hds:get-buffer-handle("ttUser").
              /* TODO join in query faster? */
         if mSave = false then 
         do:
+            if hBuffer::DomainId = 0 or hBuffer::DomainId = ? then 
+            do:
+                find b_domain where b_domain._domain-name = hBuffer::DomainName no-lock no-error. 
+                /* there should always be a tenant... but */ 
+                if avail b_domain then
+                    hBuffer::DomainId = b_domain._domain-id.         
+            end.    
+                       
             if hBuffer::TenantId <> ? then 
             do:           
                 find dictdb._tenant where dictdb._tenant._tenantid = hBuffer::TenantId no-lock no-error. 
@@ -247,17 +278,21 @@ Email,_Email"
     */
    
      method public override character ColumnSource(pcColumn as char):
+        /* input to columnexpression */
         if pcColumn = "ttUser.TenantName" then 
         do:
             return "_tenant._tenant-name".    
         end.
-        /* input to columnexpression */
-        else if pcColumn = "ttUserPermission.id" or pcColumn = "ttUser.id"  then 
+        if pcColumn = "ttUserPermission.id" or pcColumn = "ttUser.id"  then 
              return "_user.id".
         else return super:ColumnSource(pcColumn).    
     end method.
     
     method public override character ColumnSortSource(pcColumn as char):
+        if pcColumn = "ttUser.TenantName" then 
+        do:
+            return "_tenant._tenant-name".    
+        end.
         if pcColumn = "_User.id" then 
         do:
             return "( _user._userid + '@' + _user._domain-name)".
@@ -265,34 +300,24 @@ Email,_Email"
         return super:ColumnSortSource(pccolumn). 
     end method.
      
-       
     method public override character ColumnExpression (pcColumn as char, pcOperator as char, pcValue as char):
-        define variable cname   as character no-undo.
-        define variable cDomain as character no-undo.
         define variable cExpress as character no-undo.
-        
         if pcColumn = "_User.id" then 
         do: 
-            
-           if index(pcValue,"@") > 0 then
-           do:      
-             if lookup(pcoperator,"EQ,=") > 0 then
-                 return   "(_user._userid " + pcOperator + " " + quoter(entry(1,pcValue,"@"))
-                       +  " and _user._domain-name " + pcOperator + " " + quoter(entry(2,pcValue,"@"))
-                       + ")".  
+            if index(pcValue,"@") > 0 
+            and lookup(pcoperator,"EQ,=") > 0 then
+                cExpress =  "(_user._userid " + pcOperator + " " + quoter(entry(1,pcValue,"@"))
+                      +  " and _user._domain-name " + pcOperator + " " + quoter(entry(2,pcValue,"@"))
+                      + ")".  
                             
-             else
-                 return "(( _user._userid + '@' + _user._domain-name) "
+            else
+                cExpress = "( _user._userid + " 
+                   +  "(if _user._domain-name = '' then '' else '@' + _user._domain-name) "
                         + pcOperator
                         + " "
                         + quoter(pcValue) + ")".
-           end.
-           else 
-             return "(_user._userid "
-                    + pcOperator
-                    + " "
-                    + quoter(pcValue) + ")".
-          
+         
+            return cExpress.
         end.
         
         return super:ColumnExpression(pccolumn,pcOperator,pcValue).     
@@ -312,7 +337,5 @@ Email,_Email"
         buffer dictdb._tenant:find-unique(pFind).
         return "_User._Tenantid = " + quoter(_Tenant._Tenantid).
     end method. 
-    
-    
     
 end class.

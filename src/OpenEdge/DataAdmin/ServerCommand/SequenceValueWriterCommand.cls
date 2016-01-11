@@ -17,11 +17,14 @@
 
 using Progress.Lang.* from propath.
  
-using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityRequest  from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath. 
 using OpenEdge.DataAdmin.ServerCommand.IServerCommand from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Error.ForbiddenOperationError from propath.
 using OpenEdge.DataAdmin.Error.DataAdminError from propath.
+using OpenEdge.DataAdmin.Core.FileUtil from propath.
 
 routine-level on error undo, throw.
 
@@ -33,15 +36,43 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
 	{daschema/utilityoptions.i REFERENCE-ONLY}
     {daschema/tenantdata.i REFERENCE-ONLY}
 	
+	define private property LIST_SELECTION   as char init "list"   no-undo get. 
+    define private property ALL_SELECTION    as char init "all"    no-undo get. 
+    define private property ONE_SELECTION    as char init "one"    no-undo get. 
+    define private property TENANT_SELECTION as char init "tenant" no-undo get. 
+    define private property SHARED_SELECTION as char init "shared" no-undo get. 
+	
 	define property ProcedureHandle as handle no-undo get. set.
-		
+	define private variable mresponse as IUtilityResponse no-undo. 	
+	
+	define private property FileUtil as FileUtil no-undo 
+        get():
+            if not valid-object(FileUtil) then
+                FileUtil = new FileUtil().
+            return FileUtil.     
+        end. 
+        set.
+	
 	constructor public SequenceValueWriterCommand (databasename as char):
 		super ().	
 	end constructor.
-   
-    method private void ValidateRequest():
-       
-    end method.    
+  
+    method private void ValidateOptions():
+        define variable cPassedMsg as character no-undo
+          init "passed to sequence value write command.".
+        
+        ttUtilityOptions.Directory = FileUtil:GetValidDirectory(ttUtilityOptions.Directory,true). 
+    
+        if ttUtilityOptions.FileName = "" or ttUtilityOptions.FileName = ? then
+            undo, throw new IllegalArgumentError("FileName is not specified.").
+             
+        if lookup(ttUtilityOptions.SequenceSelection,ALL_SELECTION + "," + SHARED_SELECTION + "," + TENANT_SELECTION) EQ 0 then
+            undo, throw new IllegalArgumentError("SequenceSelection " + quoter(ttUtilityOptions.SequenceSelection) + " " + cpassedmsg).
+        
+        if lookup(ttUtilityOptions.TenantSelection,ALL_SELECTION + "," + LIST_SELECTION + "," + ONE_SELECTION) EQ 0 then
+            undo, throw new IllegalArgumentError("TenantSelection " + quoter(ttUtilityOptions.TenantSelection) + " " + cpassedmsg).
+        
+    end method.     
      
     method public void Execute(prequest as IUtilityRequest):
         define variable hUtil as handle no-undo.
@@ -65,69 +96,53 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
             undo, throw new IllegalArgumentError("More than one option record passed to Utility Command"). 
         if not avail ttUtilityOptions then 
             undo, throw new IllegalArgumentError("No option record passed to Utility Command"). 
-        
-        if lookup(ttUtilityOptions.SequenceSelection,"all,shared,tenant") EQ 0 then
-            undo, throw new IllegalArgumentError("SequenceSelection " + quoter(ttUtilityOptions.SequenceSelection) + " passed to Utility Command.").
-             
+        ValidateOptions().
         run SetSilent in ProcedureHandle(true).
         
         run setCodePage in Procedurehandle(ttUtilityOptions.CodePage). 
-        
-        if not validdirectory(ttUtilityOptions.Directory) then
-        do:
-            os-create-dir VALUE(ttUtilityOptions.Directory). 
-            iStat = os-error. 
-        
-            if not session:batch-mode then
-            do:        
-                if iStat <> 0 then
-                    message "Cannot create directory " + ttUtilityOptions.Directory + ". System error:" iStat
-                        view-as alert-box error buttons ok.
-            end.                        
-        end.  /* end of validdirectory */
         
         cFullName = ttUtilityOptions.Directory 
                   + (if ttUtilityOptions.Directory = "" then "" else "/")
                   + ttUtilityOptions.FileName.
                   
         /* if shared or all - then dump the shared data */
-        if ttUtilityOptions.SequenceSelection = "shared"
+        if ttUtilityOptions.SequenceSelection = SHARED_SELECTION
         /* Avoid this if "all" sequencee, but not use Default (tenant dir) in 
            which case we have to dump all sequences in the same file   */
-        or (ttUtilityOptions.SequenceSelection = "all" 
+        or (ttUtilityOptions.SequenceSelection = ALL_SELECTION 
             and 
-            (ttUtilityOptions.TenantSelection <> "one"
+            (ttUtilityOptions.TenantSelection <> ONE_SELECTION
              or
              ttUtilityOptions.UseDefaultLocation
              ) 
             ) then
         do:
-            run SetSequenceSelection in Procedurehandle ("shared").
+            run SetSequenceSelection in Procedurehandle (SHARED_SELECTION).
             DoShared(cFullName).
         end.
         /*else*/ /* the below code is required for export functionality */    
-        if lookup(ttUtilityOptions.SequenceSelection,"all,tenant") > 0 then
+        if lookup(ttUtilityOptions.SequenceSelection,ALL_SELECTION + "," + TENANT_SELECTION) > 0 then
         do:
             
             /* all tenants */
-            if ttUtilityOptions.TenantSelection = "all" then
+            if ttUtilityOptions.TenantSelection = ALL_SELECTION then
             do:
-                run SetSequenceSelection in Procedurehandle ("tenant").
+                run SetSequenceSelection in Procedurehandle (TENANT_SELECTION).
                 ForAllTenants(ttUtilityOptions.Directory,ttUtilityOptions.FileName).
             end.
             
             /* list of tenants or one tenant with UseDefault */
-            else if ttUtilityOptions.TenantSelection = "list"
-                 or (ttUtilityOptions.TenantSelection = "one" 
+            else if ttUtilityOptions.TenantSelection = LIST_SELECTION
+                 or (ttUtilityOptions.TenantSelection = ONE_SELECTION 
                      and 
                      ttUtilityOptions.UseDefaultLocation) then
             do:
-                run setSequenceSelection in Procedurehandle ("tenant").
+                run setSequenceSelection in Procedurehandle (TENANT_SELECTION).
                 ForEachTenant(ttUtilityOptions.Directory,ttUtilityOptions.FileName).
             end. 
             /* TenantSelection = "one" and UseDefaultLocation - false then
                dump the tenant in the fullname directory (no tenant name) */
-            else if ttUtilityOptions.TenantSelection = "one" then
+            else if ttUtilityOptions.TenantSelection = ONE_SELECTION then
             do:                
                 find first ttTenantData no-error. 
                 if not avail ttTenantdata then
@@ -136,11 +151,8 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
                 run setSequenceSelection in Procedurehandle (ttUtilityOptions.SequenceSelection).
                 DoTenantNotDefault(ttTenantData.Name,cFullName).                    
             end.
-            else do:
-                undo, throw new IllegalArgumentError("TenantSelection " + quoter(ttUtilityOptions.TenantSelection) + " passed to Utility Command"). 
-            end.      
+            mResponse = cast(pRequest,IUtilityResponse). 
         end.
-
     
         catch e as Progress.Lang.Error :
             if valid-object(e) then 
@@ -152,6 +164,9 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
             undo,throw e.
                 
         end catch.
+        finally:
+            delete procedure ProcedureHandle no-error.
+        end.    
     end method.    
     
     method private void BindUtility(table ttUtilityOptions bind):
@@ -160,26 +175,17 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
     method private void BindTenant(table ttTenantData bind):
     end method.
     
-    method public logical validDirectory ( cValue as char):
-        if cValue <> "" then 
-        do:
-            assign file-info:file-name = cValue. 
-            return substring(file-info:file-type,1,1) = "D".
-        end.
-        return true.
- 
-    end method. /* validateDirectory */
-
-    
     method private void ForAllTenants(pcdir as char, pcFilename as char):
         /* skip super tenants */
-        for each dictdb._tenant where dictdb._tenant._tenantid >=0 no-lock:
+        for each dictdb._tenant where dictdb._tenant._tenantid >=0 no-lock
+        on error undo, throw:
             DoTenant(pcdir,dictdb._tenant._tenant-name,pcFilename).               
         end.    
     end method.
     
     method private void ForEachTenant(pcDir as char, pcFilename as char):
-        for each ttTenantData:
+        for each ttTenantData 
+        on error undo, throw:
             DoTenant(pcDir,ttTenantData.Name,pcFilename).               
         end.    
     end method.
@@ -204,16 +210,9 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
         
         if pcRoot ne "" then 
             cDir = pcRoot + "/" + pcTenant.
-        /* add logic to create directory if not exist */
-       
-        if not validdirectory(cDir) then
-        do:
-          os-create-dir VALUE(cDir). 
-          iStat = os-error. 
-        
-          if iStat <> 0 then
-                 undo, throw new AppError("Cannot create directory " + quoter(cDir) + ". System error: " + string(iStat)).
-        end. /* end of validdirectory */
+            
+        /* create directory if not exist */
+        FileUtil:CreateDirectoryIf(cDir).
         
         cFullFileName = cDir 
                         + (if cDir = "" then "" else "/")
@@ -222,16 +221,17 @@ class OpenEdge.DataAdmin.ServerCommand.SequenceValueWriterCommand implements ISe
        
         run setEffectiveTenant in Procedurehandle(pcTenant).
         run doDump in Procedurehandle.
+        
         catch e as Progress.Lang.Error :
-            if valid-object(e) then 
-            do:
-                if e:GetMessageNum(1) = 15984 then 
-                     undo, throw new UnsupportedOperationError("SequenceValues for other tenants can only be accessed by a super-tenant.", e).
-           
-            end.    
+            if e:GetMessageNum(1) = 15984 then 
+                undo, throw new ForbiddenOperationError("SequenceValues for other tenants can only be accessed by a super-tenant.", e).
             undo,throw e.
-                
         end catch.
+        
+    end method.
+    
+    method public IUtilityResponse GetResponse():
+        return mResponse.
     end method.
      
 end class.

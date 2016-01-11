@@ -45,6 +45,8 @@ DEFINE SHARED VARIABLE errs    AS INTEGER NO-UNDO.
 DEFINE SHARED VARIABLE recs    AS INT64. /*UNDO*/
 DEFINE SHARED VARIABLE xpos    AS INTEGER NO-UNDO.
 DEFINE SHARED VARIABLE ypos    AS INTEGER NO-UNDO.
+define shared variable fil-d as character no-undo.
+DEFINE SHARED VARIABLE dictMonitor    AS OpenEdge.DataAdmin.Binding.ITableDataMonitor NO-UNDO.
 
 DEFINE        VARIABLE errbyte AS INT64   NO-UNDO.
 DEFINE        VARIABLE errline AS INTEGER NO-UNDO.
@@ -109,6 +111,10 @@ DO WHILE TRUE TRANSACTION:
 
       IF (err% = 0) OR
          (err% <> 100 AND errs > ({5} * {2}) / 100) THEN DO:
+      	 
+      	 if valid-object(dictMonitor) then
+             dictMonitor:SetTableBailed(fil-d).
+          
       	 PUT STREAM loaderr UNFORMATTED
       	    "** Tolerable load error rate is: {2}%." SKIP
       	    "** Loading table {1} is stopped after " errs " error(s)." SKIP.
@@ -121,7 +127,10 @@ DO WHILE TRUE TRANSACTION:
       errbyte = SEEK(INPUT)
       errline = errline + 1
       recs    = recs + 1.
-
+    
+    if valid-object(dictMonitor) then
+        dictMonitor:CountRow(fil-d).
+ 
     &IF "{1}" = "_db-detail" &THEN
       IF recs = 1 THEN DO:
         /* the first record was the current one when the records were loaded */
@@ -161,12 +170,73 @@ DO WHILE TRUE TRANSACTION:
                 ASSIGN DICTDB2._db-option._Db-option-value = cDbDetail[4] NO-ERROR.
             END.
         END.
-    
+    &ELSEIF "{1}" = "_sec-authentication-domain" &THEN
+      define temp-table ttdom like {1}. 
+      
+      create ttdom.
+      IMPORT ttdom {7} {6} NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN 
+      DO:
+          if ttdom._Domain-category <> 0 then
+          do:
+              find DICTDB2._sec-authentication-domain 
+                     where DICTDB2._sec-authentication-domain._Domain-name = ttdom._Domain-name exclusive-lock no-wait no-error.
+              if locked DICTDB2._sec-authentication-domain then
+              do:
+                 delete ttDom.         
+                 undo, retry.
+              end.         
+              if not avail DICTDB2._sec-authentication-domain then
+              do:
+                 delete ttDom.         
+                 undo, retry.
+              end.         
+              assign DICTDB2._sec-authentication-domain._Domain-enabled   = ttdom._Domain-enabled NO-ERROR.
+              IF  ttdom._Domain-category = 1 THEN 
+                  ASSIGN DICTDB2._sec-authentication-domain._Domain-type = ttdom._Domain-type NO-ERROR.
+          end.
+          else do:
+              create {1}.
+              buffer-copy ttdom {7} to {1} NO-ERROR.
+          end.
+      END.
+      delete ttDom.         
+    &ELSEIF "{1}" = "_sec-authentication-system" &THEN
+      define temp-table ttSec like {1}. 
+      
+      create ttSec.
+      IMPORT ttSec {7} {6} NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN
+      DO: 
+          if ttSec._domain-type begins '_' then
+          do:
+              find DICTDB2._sec-authentication-system 
+                     where DICTDB2._sec-authentication-system._Domain-type = ttSec._Domain-type exclusive-lock no-wait no-error.
+              if locked DICTDB2._sec-authentication-system then
+              do:
+                 delete ttSec.
+                 undo, retry.
+              end.         
+              if not avail DICTDB2._sec-authentication-system then
+              do:
+                 delete ttSec.
+                 undo, retry.
+              end.         
+              assign DICTDB2._sec-authentication-system._PAM-callback-procedure   = ttSec._PAM-callback-procedure NO-ERROR.
+          end.
+          else do:
+              create {1}.
+              buffer-copy ttSec {7} to {1} NO-ERROR.
+          end.
+      END.
+      delete ttSec.
+      
     &ELSE
       CREATE {1}.
       IMPORT {4} {7} {6} NO-ERROR.
     &ENDIF
-
+     
+    
     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
       IF SUBSTRING(ERROR-STATUS:GET-MESSAGE(1), 1, 7) = "WARNING" THEN DO:
         errs = errs + 1.      

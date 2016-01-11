@@ -19,6 +19,7 @@ routine-level on error undo, throw.
 using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.ServerCommand.IServerCommand from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
       
 class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCommand: 
@@ -35,7 +36,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
     define protected property PromptValue as char no-undo get. set.
     define protected property UseBatFile as logical no-undo init true get. set.
     define protected property ProgressHeaderStart as char init "OpenEdge Release " no-undo get.
-    
+    define private variable mresponse as IUtilityResponse no-undo. 
     define protected property Slash as char no-undo 
        get():
            return if opsys = "win32" then "~\" else "/".
@@ -43,7 +44,14 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
        
     define protected property CommandFullName  as char no-undo 
         get():
-            return quoter(GetDLC() + Slash + "bin" + Slash + CommandName).       
+            define variable cDlc as character no-undo.
+            
+            cDlc = GetDLC(). 
+            
+            if opsys = "Win32":U then 
+              cDlc = replace(cDLC,"/",Slash).
+            
+            return quoter(cDLC + Slash + "bin" + Slash + CommandName).       
         end.
        
 	constructor public ProCommand (pcdbname as char  ):
@@ -53,6 +61,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
 
     method public void Execute(prequest as IUtilityRequest):
         RunCommand(GetCommandParameters(pRequest)).  
+        mResponse = cast(pRequest,IUtilityResponse).
     end method.
     
     method protected abstract char GetCommandParameters(pRequest as IUtilityRequest).
@@ -65,7 +74,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         do:
             cDLC = os-getenv("DLC":U). /* Get DLC from environment */
         end.
-        return cDLC.
+        return cDlc.
     end method.
     
     method protected void RunCommand(pcCommand as char):
@@ -76,6 +85,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         define variable cCommand   as character no-undo.
         define variable cLine      as character no-undo.
         define variable cMessage   as character no-undo.
+        
         cCommand = CommandFullName + " " + pcCommand.
         
         if PromptValue > "" then 
@@ -128,19 +138,23 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         end.
         else   
             os-command silent value(cCommand + " > " + cLogfile).
-        
+       
         /* this could save us from output log, but cannot be done silenty on windows it seems (?)
            input-output through value(lTmpFile).*/
         input from value(cLogFile). 
-
+        
         i = 0.
         repeat:
             import unformatted cLine.
             cMessage = cMessage + cLine + chr(10).
             i = i + 1.
         end.
-        os-delete value(cLogFile). 
         
+        os-delete value(cLogFile). 
+        /* deallocate does not have output ?
+        if i = 0 then 
+            undo, throw new AppError("OS command: " + CommandFullName + " failed to execute.").  
+        */
         cMessage = trim(cMessage,chr(10)).
         CheckStatus(cMessage).
     end method.
@@ -174,7 +188,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         define variable iStart       as integer no-undo.
         define variable cMsg         as character no-undo.
         define variable lAnyMsgAdded    as logical no-undo.
-       
+        
         if entry(1,pcMessage,chr(10)) begins ProgressHeaderStart then
            iStart = 3.
         else 
@@ -250,4 +264,7 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         return false.
     end method.
     
+    method public IUtilityResponse GetResponse():
+        return mResponse.
+    end method.
 end class.

@@ -2,7 +2,7 @@
 &Scoped-define FRAME-NAME controls-frame
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2012 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -30,7 +30,8 @@
                            20050525-017.
     kmcintos June 7, 2005  Added context sensitive help to dialog and removed
                            appbuilder friendly code.
-    fernando 11/30/07      Check if read-only mode.                           
+    fernando 11/30/07      Check if read-only mode.
+    rkmaboj  05/02/2012    fixed unknown record creation, when creating record first time.                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -53,7 +54,6 @@ DEFINE        VARIABLE glNew       AS LOGICAL     NO-UNDO.
 DEFINE        VARIABLE ghDb        AS HANDLE      NO-UNDO.
 DEFINE        VARIABLE ghDbDetail  AS HANDLE      NO-UNDO.
 DEFINE        VARIABLE ghTTDetail  AS HANDLE      NO-UNDO.
-
 DEFINE        VARIABLE cMessage    AS CHARACTER   NO-UNDO.
 DEFINE        VARIABLE gcInitial   AS CHARACTER   NO-UNDO.
 
@@ -89,7 +89,6 @@ END.
 CREATE TEMP-TABLE ghTTDetail.
 ghTTDetail:CREATE-LIKE(ghDbDetail).
 ghTTDetail:TEMP-TABLE-PREPARE("dbDetail").
-
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE Dialog-Box
@@ -244,7 +243,7 @@ ON CHOOSE OF btnMacId IN FRAME controls-frame DO:
   END.
 END.
 
-ON CHOOSE OF Btn_Cancel IN FRAME controls-frame 
+ON CHOOSE OF Btn_Cancel IN FRAME controls-frame
   APPLY "WINDOW-CLOSE" TO FRAME {&FRAME-NAME}.
 
 ON CHOOSE OF Btn_OK IN FRAME controls-frame 
@@ -260,13 +259,16 @@ ON GO OF FRAME controls-frame DO:
       ghDbDetail:BUFFER-COPY(ghTTDetail:DEFAULT-BUFFER-HANDLE).
       ghDb::_db-guid = ghDbDetail::_db-guid.
     END.
-    IF glDescMod OR
-       ghDbDetail::_db-description NE fiDescription:SCREEN-VALUE THEN
-      ghDbDetail::_db-description = fiDescription:SCREEN-VALUE.
-      
-    IF glCustMod OR
-       ghDbDetail::_db-custom-detail NE edCustomDetail:SCREEN-VALUE THEN
-      ghDbDetail::_db-custom-detail = edCustomDetail:SCREEN-VALUE.
+    IF ghDbDetail:AVAILABLE THEN 
+    DO:
+        IF glDescMod OR
+           ghDbDetail::_db-description NE fiDescription:SCREEN-VALUE THEN
+          ghDbDetail::_db-description = fiDescription:SCREEN-VALUE.
+          
+        IF glCustMod OR
+           ghDbDetail::_db-custom-detail NE edCustomDetail:SCREEN-VALUE THEN
+          ghDbDetail::_db-custom-detail = edCustomDetail:SCREEN-VALUE.
+    END.      
   END. /* DO TRANSACTION */
 END.
 
@@ -338,27 +340,40 @@ PROCEDURE displayDbDetail :
   Notes:       If no _db-detail record exists, we create one.
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER phDbDetail AS HANDLE      NO-UNDO.
-
-  IF NOT phDbDetail:AVAILABLE THEN DO TRANSACTION:
-    phDbDetail:BUFFER-CREATE().
-    RUN assignDbDetail ( INPUT phDbDetail,
-                         INPUT ghDb::_db-guid,
-                         INPUT ?,
-                         INPUT phDbDetail:DBNAME,
-                         INPUT "" ).
+  DEFINE VARIABLE locGuide        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE locMacKey       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE locDesc         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE locCustomDetail AS CHARACTER NO-UNDO.
+  IF NOT phDbDetail:AVAILABLE THEN DO:
+/*    phDbDetail:BUFFER-CREATE().*/
+/*    RUN assignDbDetail ( INPUT phDbDetail,       */
+/*                         INPUT ghDb::_db-guid,   */
+/*                         INPUT ?,                */
+/*                         INPUT phDbDetail:DBNAME,*/
+/*                         INPUT "" ).             */
+     ASSIGN locGuide = "?"
+            locMacKey = "_db-id-mnt_initial_"
+            locDesc   = "PROGRESSST"
+            locCustomDetail = "".
   END.
-
+  else
   DO WITH FRAME controls-frame:
-    ASSIGN fiGuid:SCREEN-VALUE         = phDbDetail::_db-guid
-           fiMacKey:SCREEN-VALUE       = (IF STRING(phDbDetail::_db-mac-key) 
-                                                EQ "020000" THEN ""
-                                          ELSE "_db-id-mnt_initial_")    
-           fiDescription:SCREEN-VALUE  = (IF NOT glDescMod THEN 
-                                            phDbDetail::_db-description
-                                          ELSE fiDescription:SCREEN-VALUE)
-           edCustomDetail:SCREEN-VALUE = (IF NOT glCustMod THEN 
-                                            phDbDetail::_db-custom-detail
-                                          ELSE edCustomDetail:SCREEN-VALUE).
+      ASSIGN locGuide = phDbDetail::_db-guid
+            locMacKey = (IF STRING(phDbDetail::_db-mac-key) 
+                                                    EQ "020000" THEN ""
+                                              ELSE "_db-id-mnt_initial_") 
+            locDesc   = (IF NOT glDescMod THEN 
+                                                phDbDetail::_db-description
+                                              ELSE fiDescription:SCREEN-VALUE)
+            locCustomDetail = (IF NOT glCustMod THEN 
+                                                phDbDetail::_db-custom-detail
+                                              ELSE edCustomDetail:SCREEN-VALUE).
+  END.
+  DO WITH FRAME controls-frame:
+    ASSIGN fiGuid:SCREEN-VALUE         = locGuide
+           fiMacKey:SCREEN-VALUE       =  locMacKey  
+           fiDescription:SCREEN-VALUE  = locDesc
+           edCustomDetail:SCREEN-VALUE = locCustomDetail.
   END.
 END PROCEDURE.
 

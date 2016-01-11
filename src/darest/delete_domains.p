@@ -25,26 +25,16 @@ using OpenEdge.DataAdmin.ITenant from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
-using OpenEdge.DataAdmin.Rest.RestRequest  from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest  from propath.
 
-define variable mMode       as char init "delete" no-undo.
-define variable mCollection as char init "domains" no-undo.
-define stream acceptstream. 
-if session:batch-mode and not this-procedure:persistent then 
-do:
-    output to value("delete_domains.log"). 
-    run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
+ define stream acceptstream. 
+/* to be deprecated */
+{darest/restbase.i delete domains}
  
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.   
- 
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.
+
     /* ***************************  Definitions  ************************** */
-/*    define variable groupinst    as ITenant no-undo.*/
-    define variable restRequest          as RestRequest no-undo.
     define variable service              as DataAdminService no-undo.
     define variable errorHandler         as DataAdminErrorHandler no-undo.
     define variable cFile                as character no-undo.
@@ -53,7 +43,6 @@ procedure executeRequest:
     define variable cLong as longchar no-undo.
      
     /* ***************************  Main Block  *************************** */
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
     
     service = new DataAdminService(restRequest:ConnectionName).
    

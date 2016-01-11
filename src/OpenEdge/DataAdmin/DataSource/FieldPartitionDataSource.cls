@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010,2011 by progress Software Corporation. */
+/* Copyright (c) 2010-2012 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -23,37 +23,41 @@ class OpenEdge.DataAdmin.DataSource.FieldPartitionDataSource inherits PartitionD
     define protected property StorageFieldMap as char no-undo
         init "ttPartition.FieldName,_Field._Field-name"
         get. 
+    
+    define protected property FieldBaseQuery as char no-undo
+        get():
+            return "for each _file where " + DatabaseInfo:FileExpression + " no-lock,"
+                  + " each _field of _file where _field._data-type = 'clob' or _field._data-type = 'blob' no-lock," 
+                  + " each _StorageObject where " + DatabaseInfo:StorageFieldJoin + " no-lock".
+        end.    
           
     constructor public FieldPartitionDataSource (hchanges as handle ):     
         this-object(hchanges,"_file._file-name = ttFieldChange.Tablename").
-        /*
-        super (hchanges,"_File,_Field","dictdb._File,dictdb._Field", StorageFileMap + "," + StorageFieldMap).
-        BaseQuery = "for each ttFieldChange," 
-                  + " each _file where _file._file-name = ttFieldChange.Tablename and " + DatabaseInfo:FileExpression + " no-lock,"
-                  + " each _field of _file  where _Field._Field-Name = ttFieldChange.FieldName no-lock," 
-                  + " each _StorageObject where " + DatabaseInfo:StorageFieldJoin + " no-lock".
-        */
     end constructor.
     
     constructor public FieldPartitionDataSource (hParentBuffer as handle,pfilejoin as char,pStoragejoin as char ):     
-         super (hParentBuffer,"_File,_Field","dictdb._File,dictdb._Field", StorageFileMap + "," + StorageFieldMap).
-         BaseQuery = "for each " +  hParentBuffer:name + "," 
+        super (hParentBuffer,"_File,_Field","dictdb._File,dictdb._Field", StorageFileMap + "," + StorageFieldMap).
+        BaseQuery = "for each " +  hParentBuffer:name + "," 
                   + " each _file where " + pFilejoin + " and " + DatabaseInfo:FileExpression + " no-lock,"
                   + " each _field of _file no-lock," 
                   + " each _StorageObject where " + DatabaseInfo:StorageFieldJoin + " and " + pStoragejoin + " no-lock".
     end constructor.
     
     constructor public FieldPartitionDataSource (hchanges as handle,pfilejoin as char):     
-         this-object(hchanges,pfilejoin,DatabaseInfo:StorageFieldJoin).
+        this-object(hchanges,pfilejoin,DatabaseInfo:StorageFieldJoin).
     end constructor.
-    
     
 	constructor public FieldPartitionDataSource ( ):	    
 		super ("_File,_Field","dictdb._File,dictdb._Field",StorageFileMap + "," + StorageFieldMap).
-		BaseQuery = "for each _file where " + DatabaseInfo:FileExpression + " no-lock,"
-		          + " each _field of _file where _field._data-type = 'clob' or _field._data-type = 'blob' no-lock," 
-                  + " each _StorageObject where " + DatabaseInfo:StorageFieldJoin + " no-lock".
+		BaseQuery = FieldBaseQuery.
     end constructor.
     
+    constructor public FieldPartitionDataSource (pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):        
+        super ("_File,_Field,_StorageObject," + pcJoinTables,
+               "dictdb._File,dictdb._Field,dictdb._StorageObject," + pcJoinPhysTables,
+               StorageMap + "," + StorageFileMap + "," + StorageFieldMap + "," + GetMappingForJoin(pcJoinTables),
+               FieldBaseQuery + ", " + pcJoinQueries).
+    end constructor.
+        
              
 end class.

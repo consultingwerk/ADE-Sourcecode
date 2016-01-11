@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2012 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -28,28 +28,19 @@ using OpenEdge.DataAdmin.Rest.*.
 using OpenEdge.DataAdmin.Error.*.
 using OpenEdge.DataAdmin.Util.*.
 
-define variable mMode       as char init "post" no-undo.
-define variable mCollection as char init "tenants" no-undo.
 define stream acceptstream.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("post_tenants.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
  
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.   
+/* to be deprecated */
+{darest/restbase.i post tenants} 
+  
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.
  
     /* ***************************  Definitions  ************************** */
     define variable tenant       as ITenant no-undo.
     define variable tenants      as ITenantSet no-undo.
     define variable newusers     as IUserSet no-undo.
     define variable newdomains   as IDomainSet no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     define variable cFile        as character no-undo.
@@ -59,8 +50,6 @@ procedure executeRequest:
     define variable cLong        as longchar no-undo.
      
     /* ***************************  Main Block  *************************** */
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
-    
     service = new DataAdminService(restRequest:ConnectionName).
    
     restRequest:Validate().

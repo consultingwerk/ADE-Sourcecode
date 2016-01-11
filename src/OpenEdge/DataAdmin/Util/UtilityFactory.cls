@@ -22,13 +22,23 @@ using Progress.Lang.*.
 /*using OpenEdge.DataAdmin.Internal.Util.TableDataReader.    */
 /*using OpenEdge.DataAdmin.Internal.Util.TableDataWriter.    */
 using OpenEdge.DataAdmin.Util.IDataAdminUtility.
+using OpenEdge.DataAdmin.Util.IDataUtility.
+using OpenEdge.DataAdmin.Util.IExportUtility.
 using OpenEdge.DataAdmin.Error.NotFoundError.
 
-class OpenEdge.DataAdmin.Internal.Util.UtilityFactory: 
+class OpenEdge.DataAdmin.Util.UtilityFactory: 
      
+    
     method public IDataAdminUtility GetUtility(pcUtil as char):
         define variable util as IDataAdminUtility no-undo.
         define variable cmsg as character no-undo.
+        
+        /* allow use of interface name (without I)  */
+        if pcUtil = "TableImportUtility" then 
+            pcUtil = "TableDataReader".
+        else if pcUtil = "TableExportUtility" then 
+            pcUtil = "TableDataWriter".
+        
         util = dynamic-new "OpenEdge.DataAdmin.Internal.Util." + pcUtil + "" ( ).
         return util.
         catch e as Progress.Lang.Error :
@@ -36,7 +46,11 @@ class OpenEdge.DataAdmin.Internal.Util.UtilityFactory:
 /*                cmsg = " does not have a public constructor with name parameter.".*/
 /*            else                                                                  */
 /*                cmsg = " not found." .                                            */
-        	undo, throw new NotFoundError("Utility " + quoter(pcUtil) + " not found.").	
+        	 
+            if e:GetMessageNum(1) = 14284  then
+        	   undo, throw new NotFoundError("Utility " + quoter(pcUtil) + " not found.").
+        	else
+        	   undo, throw e. 
         end catch.
     end method.     
      

@@ -32,8 +32,6 @@ using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 
 class OpenEdge.DataAdmin.UserFieldPermissionSet inherits DataAdminCollection implements IUserFieldPermissionSet: 
       
-    define public property Schema as ISchema no-undo get.     
-   
     constructor UserFieldPermissionSet(cntx as IDataAdminContext):
         super(cntx).     
     end constructor.   
@@ -46,8 +44,8 @@ class OpenEdge.DataAdmin.UserFieldPermissionSet inherits DataAdminCollection imp
         return Context:CanFind(fieldname).
     end method.
     
-    method public IUserFieldPermission Find(tablename as char):
-        return cast(Context:FindEntity(tablename),IUserFieldPermission). 
+    method public IUserFieldPermission Find(fieldname as char):
+        return cast(Context:FindEntity(fieldname),IUserFieldPermission). 
     end method.
         
     method public override void ImportTree(pcFile as char). 

@@ -9,6 +9,7 @@
 
   History:  DLM 01/28/98 Added files to handle procedures
             DLM 10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
+            musingh 03/30/11 Added additional _Fields to the SQLColumns_buffer.
   
 */
 
@@ -445,6 +446,107 @@ ASSIGN
   _Field._Fld-misc1[1] = 500
   _Field._For-type     = "char".
 
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "column-def"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 130 
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 13 
+  _Field._For-name     = "column-def"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "char".
+
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "sql-data-type"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 140
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 14
+  _Field._For-name     = "sql-data-type"
+  _Field._For-type     = "smallint".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "sql-datetime-sub"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 150
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 15
+  _Field._For-name     = "sql-datetime-sub"
+  _Field._For-type     = "smallint".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "char-octet-length"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 160
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 16
+  _Field._For-name     = "char-octet-length"
+  _Field._For-type     = "integer".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "ordinal-pos"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 170
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 17
+  _Field._For-name     = "ordinal-pos"
+  _Field._For-type     = "integer".
+CREATE _Field. /* file: col$ */
+
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "is-nullable"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""   
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 180   
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 18
+  _Field._For-name     = "is-nullable"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "char".  
+
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "ss-data-type"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 190
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 19
+  _Field._For-name     = "ss-data-type"
+  _Field._For-type     = "integer".
 
 /* Stored procedure for SQLStatistics ODBC call. */
 CREATE _File.

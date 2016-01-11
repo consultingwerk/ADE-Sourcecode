@@ -65,6 +65,7 @@ OUTPUT STREAM code TO VALUE("enable.sql") NO-ECHO NO-MAP.
 DEFINE VARIABLE user_env_save5 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save26 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save31 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save36 AS CHARACTER NO-UNDO.
 /*------------------------------------------------------------------*/
 
 /* connect up the database to work with ------------------------------------*/
@@ -127,7 +128,8 @@ CREATE ALIAS "DICTDBG" FOR DATABASE VALUE(ora_dbname) NO-ERROR.
 ASSIGN
     user_env_save5  = user_env[5]
     user_env_save26 = user_env[26]
-    user_env_save31 = user_env[31].
+    user_env_save31 = user_env[31]
+    user_env_save36 = user_env[36].
     
 /* Verify tablespaces for tables and indexes */
 RUN prodict/ora/_ora_vts.p.
@@ -250,11 +252,12 @@ if available gate-work
             "-- Fixing schema to resemble original {&PRO_DISPLAY_NAME} database." skip
             "-- -- " skip(2).
 
-
+ 
     ASSIGN     
     user_env[5]     = user_env_save5  
     user_env[26]    = user_env_save26 
     user_env[31]    = user_env_save31
+    user_env[36]    = user_env_save36
     user_env[25]    = "**all**".
 
 IF movedata THEN DO:

@@ -1,5 +1,5 @@
 /**************************************************************/
- /* Copyright (c) 2010,2011 by progress Software Corporation. */
+ /* Copyright (c) 2010-2012 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -19,7 +19,13 @@ routine-level on error undo, throw.
 using OpenEdge.DataAdmin.DataSource.PartitionDataSource from propath.
  
 class OpenEdge.DataAdmin.DataSource.TablePartitionDataSource inherits PartitionDataSource: 
-          
+    
+    define property TableBaseQuery as char no-undo
+        get():
+           return "for each _file where " + DatabaseInfo:FileExpression + " no-lock,"
+                  + " each _StorageObject where " + DatabaseInfo:StorageFileJoin + " no-lock".
+        end.  
+        
     constructor public TablePartitionDataSource (hchanges as handle ):     
         super (hchanges,"_File","dictdb._File", StorageFileMap).
         BaseQuery = "for each ttTablechange," 
@@ -36,9 +42,15 @@ class OpenEdge.DataAdmin.DataSource.TablePartitionDataSource inherits PartitionD
         
 	constructor public TablePartitionDataSource ( ):	    
 		super ("_File","dictdb._File",StorageFileMap).
-		BaseQuery = "for each _file where " + DatabaseInfo:FileExpression + " no-lock,"
-		          + " each _StorageObject where " + DatabaseInfo:StorageFileJoin + " no-lock".
+		BaseQuery = TableBaseQuery. 
     end constructor.
     
-             
+    constructor public TablePartitionDataSource (pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):        
+        super ("_File,_StorageObject," + pcJoinTables,
+               "dictdb._File,dictdb._StorageObject," + pcJoinPhysTables,
+               StorageMap + "," + StorageFileMap + "," + GetMappingForJoin(pcJoinTables),
+               TableBaseQuery + ", " + pcJoinQueries).
+    end constructor.
+    
+     
 end class.

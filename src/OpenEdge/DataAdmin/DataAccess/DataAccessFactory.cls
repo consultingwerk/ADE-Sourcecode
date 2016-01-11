@@ -56,13 +56,16 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
             else if name = "TenantGroupMember" then
                 da = new TenantGroupMemberData().              
             else if name = "TenantGroup" then
-                da = new TenantGroupData().              
+                da = new TenantGroupData().    
+            else if name = "AllTable" then
+                da = new AllFileData().              
             else if name = "Schema" 
                  or name = "Table" 
                  or name = "Index" 
                  or name = "Field" 
                  or name = "DataSecurity"
-                 or name = "Administrator"  
+                 or name = "Administrator"
+                 or name = "SecurityOptions"    
                  or name = "TablePermission" then 
                 da = new FileData().    
             else if name = "UserPermission" 
@@ -95,6 +98,7 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
         end. 
         else 
             da = cast(ttDA.Dao,IDataAccess).
+     
         return da.  
     end method.    
     

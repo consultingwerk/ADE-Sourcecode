@@ -124,4 +124,5 @@ class OpenEdge.DataAdmin.Binding.Query.TenantTenantGroupQuery inherits ManyToMan
             return super:GetJoinFields(pcparent).
     end method.
     
+    
 end class.

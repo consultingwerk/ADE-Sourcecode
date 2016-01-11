@@ -103,17 +103,26 @@ FORM
 
 ON CHOOSE OF OK_BUT IN FRAME frame_check
   DO:          
-       RUN check_save.
-       APPLY "CLOSE":U TO THIS-PROCEDURE.
-       RETURN NO-APPLY.                   
+      IF EXPRESSION:SCREEN-VALUE IN FRAME frame_check = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_check = ?
+      THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+      ELSE DO:
+        RUN check_save.
+        APPLY "CLOSE":U TO THIS-PROCEDURE.
+        RETURN NO-APPLY.                   
+      END.
   END.
+
 ON CHOOSE OF CREATE_BUT IN FRAME frame_check
  DO:
+     IF EXPRESSION:SCREEN-VALUE IN FRAME frame_check = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_check = ?
+     THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+     ELSE DO:
        RUN check_save.
        RUN FILL_TEMP2.
        RUN check.
        &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN
        ASSIGN msg:SCREEN-VALUE ="Constraint Modified".  &ENDIF 
+     END.  
  END. 
  
 ON ENTRY OF EXPRESSION IN FRAME frame_check

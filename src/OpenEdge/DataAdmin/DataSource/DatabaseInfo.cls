@@ -22,7 +22,11 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
     define public property DatabaseRecid as recid no-undo 
         get.
         private set.
-    
+   
+    define public property CodePage as char no-undo 
+        get.
+        private set.
+        
     define public property IsMultiTenant as logical no-undo 
         get.
         private set.
@@ -78,9 +82,10 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
         
 		super ().
 	    find first bdb where bdb._db-local = true no-lock.  
-        DatabaseRecid = recid(bdb).      
-	    IsMultiTenant = can-find(first btnt).
-       
+        this-object:DatabaseRecid = recid(bdb).      
+	    this-object:IsMultiTenant = can-find(first btnt).
+        this-object:CodePage = bdb._db-xl-name.
+  
 	end constructor.
 
                

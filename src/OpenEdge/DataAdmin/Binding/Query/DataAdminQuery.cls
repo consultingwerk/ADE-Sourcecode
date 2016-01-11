@@ -22,17 +22,16 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
  
 class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
-  /* Pretend properties (must be controlled) */ 
-  define public property Tables         as character no-undo get. set.
-  define public property BaseQuery      as character no-undo get. set.
-  define public property KeyFields      as character no-undo 
-      get.  
-      set.    
-  define public property UseRowid       as logical   no-undo get. set.
-  define public property PhysicalTables as character no-undo  get. set.
-  define protected property QueryHandle as handle    no-undo  get. set.
-  define private property BufferHandles as handle  extent  no-undo  get. set.
-  define public property Table  as char      no-undo get. set.
+   
+  define public abstract property Tables   as character no-undo get.   
+  
+  define public    property Table          as char      no-undo get. set.
+  define public    property BaseQuery      as character no-undo get. set.
+  define public    property KeyFields      as character no-undo get. set.    
+  define public    property UseRowid       as logical   no-undo get. set.
+  define public    property PhysicalTables as character no-undo  get. set.
+  define protected property QueryHandle    as handle    no-undo  get. set.
+  define private   property BufferHandles  as handle  extent  no-undo  get. set.
   
   define protected property QueryMode      as char no-undo 
       init "PRESELECT"
@@ -40,7 +39,6 @@ class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
       set.
   
   define protected property QueryLock      as char no-undo 
-      init ""
       get. 
       set.
   
@@ -52,22 +50,13 @@ class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
        this-object(hBuffer:name,SingleExtent(hBuffer)).
   end constructor.
   */
+ 
   constructor public DataAdminQuery(pcTable as char): 
        define variable i as integer no-undo.
        super().
-       this-object:Table = pcTable.
-    
+       this-object:Table = pcTable.    
   end constructor.
-  /**  
-  constructor public DataAdminQuery(pcTables as char,pcPhysicalTables as char,pcKeyFields as char):    
-      if pcPhysicalTables = '' then
-          pcPhysicalTables = pcTables.
-       assign
-           PhysicalTables = pcPhysicalTables
-           Tables         = pcTables  
-           KeyFields      = pcKeyFields .
-  end constructor.
-  **/
+ 
   method protected abstract handle extent GetBufferHandles():
    
   method protected handle extent SingleExtent(ph as handle):
@@ -83,11 +72,7 @@ class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
       define variable cPhysTable as character no-undo.
       
       BufferHandles = GetBufferHandles().
-      do i = 1 to extent(BufferHandles):
-          Tables = (if i > 1 then Tables + "," else "")
-                 + BufferHandles[i]:name.
-      end.    
- 
+      
       DeleteQuery().
       create query QueryHandle.
       do iBuffer = 1 to extent(BufferHandles):

@@ -133,6 +133,8 @@ define variable isAllMultiTenant as logical no-undo.
 define variable isAnyMultiTenant as logical no-undo.
 
 define variable gLobFolderName as character no-undo init "lobs".
+define variable gGroupFolderName as character no-undo init "groups".
+define variable gUseDefaultOut   as character no-undo init "<default>".
 define variable gFileName      as character no-undo.
 define variable labelDir as character no-undo.
 
@@ -1088,6 +1090,8 @@ function validDirectory returns logical ( cValue as char):
   
     IF cValue <> "" THEN 
     DO:
+        if not (cValue begins "/" or cvalue begins "~\" or index(cValue,":") <> 0) then
+            cValue = "./" + cValue.  
         ASSIGN FILE-INFO:FILE-NAME = cValue. 
         return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
     END.
@@ -1334,6 +1338,16 @@ function validateTenantName returns logical(ctenant as char):
         return false.
     end.
     return true.
+end function. 
+
+function saveDefaultLOB returns logical(useLob as log,lobdirname as char):
+     IF useLob = false THEN
+         ASSIGN user_env[31] = " NO-LOBS"
+                user_env[40] = "".
+     ELSE
+         ASSIGN user_env[31] = ""
+                user_env[40] = lobdirname.
+     
 end function. 
 
 function saveLOB returns logical(useLob as log,lobdir as char):
@@ -1746,8 +1760,7 @@ DO:
         APPLY "ENTRY" TO user_env[2].
         RETURN NO-APPLY.
     END.
-     
-    saveLob(inclob:checked,user_env[30]:screen-value).
+    saveLob(inclob:checked in frame write-dump-file,user_env[30]:screen-value in frame write-dump-file).
   end.
 END. /* ON "GO" OF write-dump-file */
 
@@ -1832,8 +1845,12 @@ DO:
         apply "entry" to user_env[32].
         return no-apply.    
     end.
-    saveLob(inclob:checked,user_env[30]:screen-value).
-    
+    if UseDefaultDirs then
+    do:
+        saveDefaultLob(inclob:checked in frame write-dump-file-mt,gLobFolderName).
+    end.
+    else  
+        saveLob(inclob:checked in frame write-dump-file-mt,user_env[30]:screen-value in frame write-dump-file-mt).
   end.
 END. /* ON "GO" OF write-dump-file-mt */
 
@@ -2072,7 +2089,13 @@ do:
          apply "entry" to user_env[32].
          return no-apply.    
       end.
-      saveLobMt(inclob:checked,user_env[30],user_env[34]).
+      if UseDefaultDirs then
+      do:
+          user_env[37] = gGroupFolderName.
+          saveDefaultLob(inclob:checked in frame write-dump-dir-mt,gLobFolderName).
+      end.
+      else  
+          saveLobMt(inclob:checked in frame write-dump-dir-mt,user_env[30],user_env[34]).
     end.
 end. /* ON "GO" OF write-dump-dir-mt */
 
@@ -2749,11 +2772,15 @@ ELSE
  
 ASSIGN
       is-all   = (user_env[1] = "ALL")
-      is-one   = NOT is-all AND NOT is-some.
+      is-one   = NOT is-all AND NOT is-some 
+      user_env[37] = ""  
+      user_env[40] = ""  
+      .
 
 if int(dbversion("dictdb")) > 10 then
 do:
    isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   
 end.
 
 /* Set default value for codepage gfs:94-04-28-043 */
@@ -3613,25 +3640,30 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
           
           assign
               frame write-dump-file-mt user_env[32]
+              frame write-dump-file-mt RootDirectory 
               frame write-dump-file-mt UseDefaultDirs
               frame write-dump-file-mt user_env[2]
               frame write-dump-file-mt inclob
               frame write-dump-file-mt user_env[30] 
               frame write-dump-file-mt user_env[5]
-           
            &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN  
               frame write-dump-file-mt io-mapl
           &ELSE
-           
               frame write-dump-file-mt io-mapc
-          
           &ENDIF
-           
            .  
-        
+           if UseDefaultDirs then
+           do:
+             /* don't pass file name 
+                it makes it difficult to create lob dir 
+                the file name will be added by _dmpdefs if 
+                use default */  
+               user_env[2]  = RootDirectory.
+               user_env[33] = gUseDefaultOut.
+           end.
         end.
         else 
-          UPDATE user_env[2]  
+           UPDATE user_env[2]  
               btn_File   
               inclob
               user_env[30]
@@ -3720,9 +3752,9 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
             wait-for "go" of frame  write-dump-dir-mt.
             assign frame write-dump-dir-mt user_env[2] 
                    frame write-dump-dir-mt user_env[32] 
-                   frame write-dump-dir-mt user_env[33] 
+                   frame write-dump-dir-mt user_env[33] when not UseDefaultDirs
                    frame write-dump-dir-mt inclob
-                   frame write-dump-dir-mt user_env[30]
+                   frame write-dump-dir-mt user_env[30] 
                    frame write-dump-dir-mt user_env[34]
                &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN      
                
@@ -3735,7 +3767,8 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
                
                &ENDIF    
                    frame write-dump-dir-mt user_env[5]. 
-              
+             if UseDefaultDirs then
+                 user_env[33] = gUseDefaultOut.
         end. /* do WITH FRAME write-dump-dir-mt*/
         else  /* not isMultiTenant */
             UPDATE 
@@ -3768,11 +3801,12 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     &ENDIF
   END.
   IF NOT io-file THEN
-  do: 
+  do:   
     RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
     if isANyMultiTenant then
     do:
-       RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[33]).
+       if user_env[33] <> gUseDefaultOut then
+           RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[33]).
     end.
   end.    
   { prodict/dictnext.i trash }

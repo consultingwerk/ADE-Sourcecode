@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2006,2012 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -209,6 +209,8 @@ DEFINE VARIABLE rowid_idx_name   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ClustAsROWID     AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE mssselBestRowidIdx  AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE found            AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE err_sp           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE err_sp_flag      AS LOGICAL    NO-UNDO.
 
 
 define TEMP-TABLE column-id
@@ -747,12 +749,36 @@ for each gate-work
         END.
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 4)) = "_ALT_"
+            /* OE00211239 : The logic to identify the PROGRES_RECID as 
+            * "computed column" is based on the SQL function COLUMNPROPERTY 
+            * which returns false for a computed column in SQL view, hence 
+            * we end up not putting RPOGRESS_RECID  column in the comma 
+            * separated list of FILMISC2,2. Since function isComputed(..) 
+            * always return false for computed column in case of VIEW  
+            * and there is no other mechanism/interface to determine if a 
+            * column is computed in a SQL view, The idea is that if column 
+            * PROGRESS_RECID_ALT is present in a view due to virtue of 
+            * computed column PROGRESS_RECID functionality then we would 
+            * refresh the comma separated list of PROGRESS_RECID columns 
+            * by appending the PROGRESS_RECID field position in the existing 
+            * list. 
+	    */  
            THEN do:
-             IF s_ttb_tbl.ds_msc22 = ? THEN 
-               ASSIGN s_ttb_tbl.ds_msc22 = "".
-             ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ","
-                    i = i + 1.
-         END.
+           IF s_ttb_tbl.ds_type NE "VIEW"
+              THEN DO:   
+                IF s_ttb_tbl.ds_msc22 = ? THEN 
+                ASSIGN s_ttb_tbl.ds_msc22 = "".
+                ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ","
+                i = i + 1.
+              END.
+              ELSE DO:
+                IF s_ttb_tbl.ds_msc22 = ? THEN 
+                ASSIGN s_ttb_tbl.ds_msc22 = "".
+                ASSIGN s_ttb_tbl.ds_msc22 = string(s_ttb_tbl.ds_recid) + "," 
+                       + s_ttb_tbl.ds_msc22 + string(i) + ","
+                i = i + 1.
+              END.
+          END.
         NEXT _loop.
       END.  
       CREATE column-id.
@@ -1267,7 +1293,8 @@ for each gate-work
         RUN  prodict/mss/mss_fix.p (table_name, OUTPUT namevar-1, ?, no).
         RUN STORED-PROC DICTDBG._Constraint_Info LOAD-RESULT-INTO tt-handle1 ( namevar-1).
 
-        FOR EACH s_ttb_con:
+        FOR EACH s_ttb_con WHERE tab_name = namevar-1:
+          IF const_name MATCHES "*DF__*" THEN NEXT. 
            IF INDEX(const_name,"##") > 0 
            THEN ASSIGN i = INDEX(const_name, "##") + 2.
            ELSE i = 1.       
@@ -1541,7 +1568,8 @@ for each gate-work
      RUN STORED-PROC DICTDBG.SQLProcColumns (spclvar-1, uservar-1, namevar-1, ?).
 
      assign field-position = 0.
-     
+     assign err_sp_flag = FALSE.
+
      _col-loop:
      for each DICTDBG.SQLProcCols_buffer:
 

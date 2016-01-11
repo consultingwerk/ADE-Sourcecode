@@ -16,13 +16,17 @@
 
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.Internal.Util.DataUtility.
- 
+using OpenEdge.DataAdmin.Util.ISequenceUtility.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Internal.Util.SequenceUtility abstract inherits DataUtility : 
+class OpenEdge.DataAdmin.Internal.Util.SequenceUtility  abstract inherits DataUtility 
+                                                                 implements ISequenceUtility : 
  
-        
+    define public property FileName       as char no-undo get. set.
+     
+     /* all,multitenant,shared,one (?) or list*/
+    define public property SequenceSelection   as char  init "all"  no-undo get. set.     
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  
 			Notes:  																	  
@@ -32,5 +36,23 @@ class OpenEdge.DataAdmin.Internal.Util.SequenceUtility abstract inherits DataUti
         super (pname).
 		FileName = "_seqvals.d". 
 	end constructor.
+    
+     method protected override void Serialize():
+        /* assigns tt fields for super class */
+        super:Serialize().
+        assign 
+            ttUtilityOptions.FileName = FileName   
+            ttUtilityOptions.SequenceSelection = SequenceSelection.
+             
+    end.     
+    
+    method protected override void Deserialize():
+        /* assigns properties  for super class */
+        super:Deserialize().
+        assign 
+            FileName    = ttUtilityOptions.FileName
+            SequenceSelection = ttUtilityOptions.SequenceSelection. 
+    end.     
+    
         
 end class.

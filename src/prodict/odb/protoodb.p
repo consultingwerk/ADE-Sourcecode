@@ -64,7 +64,7 @@ DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE odbctypes     AS CHARACTER 
-  INITIAL "Sybase,DB2/400,DB2(Other),Other(MS Access),Other(Generic),DB2,Other(MSAcce~ ss)" NO-UNDO.
+  INITIAL "Sybase,DB2/400,DB2(Other),Other(MS Access),Other(Generic),Other(MSAcce~ ss)" NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand             AS LOGICAL                  NO-UNDO.
@@ -171,7 +171,7 @@ END PROCEDURE.
    IF codb_type BEGINS "SQL" THEN codb_type = "Sql Server 6".
    IF LOOKUP(input codb_type, odbctypes) = 0 THEN DO:
      MESSAGE "THE DBMS types that are supported are: " SKIP  
-       "  Sybase, DB2, Other(MS Access), Other(Generic)" SKIP (1)
+       "  Sybase, DB2/400, DB2(Other), Other(MS Access), Other(Generic)" SKIP (1)
         VIEW-AS ALERT-BOX ERROR.
      RETURN NO-APPLY.
    END.

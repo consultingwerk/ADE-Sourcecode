@@ -31,6 +31,7 @@ using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 
 routine-level on error undo, throw.
@@ -198,7 +199,7 @@ class OpenEdge.DataAdmin.Binding.CreateContext inherits AbstractFilteredContext 
         undo, throw new UnsupportedOperationError("Import to CreateContext").
     end method.
     */
-    method public override void ReadChild(pcparent as char,pckey as char extent, json as JSONObject).
+    method public override void ReadChild(pParentrow as IRow, json as JSONObject).
         undo, throw new UnsupportedOperationError("ReadChild to CreateContext").
     end method.  
     

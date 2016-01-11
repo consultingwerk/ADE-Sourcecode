@@ -19,6 +19,7 @@ using Progress.Lang.* from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
  
@@ -180,8 +181,8 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
 /*        Parent:ImportTree(pcfile).                         */
 /*    end method.                                            */
     
-    method public override void ReadChild(pcparent as char, pckey as char extent, pjson as JSONObject).
-        Parent:ReadChild(pcparent, pckey, pjson).
+    method public override void ReadChild(pParentrow as IRow, pjson as JSONObject).
+        Parent:ReadChild(pParentrow, pjson).
     end method.
     
     method public override void TableRefreshed(msg as ITableResponse):

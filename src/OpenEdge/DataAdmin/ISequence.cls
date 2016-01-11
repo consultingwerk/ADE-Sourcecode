@@ -17,10 +17,14 @@
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
  
 using OpenEdge.DataAdmin.ISequenceValueMap from propath.
+using OpenEdge.DataAdmin.ISchema from propath.
  
 interface OpenEdge.DataAdmin.ISequence inherits IDataAdminElement :  
     /** Name and unique identifier */
     define public property Name           as char no-undo get. 
+    
+    /** Schema  */
+    define public property Schema         as ISchema no-undo get. 
     
     /** Returns true if the sequence is multi-tenant enabled.
         Can only be edited before the sequence is created.  */

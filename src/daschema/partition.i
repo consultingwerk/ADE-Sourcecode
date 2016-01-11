@@ -34,8 +34,10 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
           /* we can use different name since this will never be updated from client */
          field AreaUrl            as character serialize-name "area_url"  format "x(32)" label "Area url"
          field TenantName         as character serialize-name "tenantName" format "x(32)" label "Tenant"  init ? 
+         field TenantId           as integer  init ? serialize-hidden   
          field TenantUrl          as character serialize-name "tenant_url" format "x(20)" label "Tenant url"
-         field TenantGroupName as character serialize-name "tenantGroupName" format "x(20)" label "TenantGroup" init ?  
+         field TenantGroupName as character serialize-name "tenantGroupName" format "x(20)" label "TenantGroup" init ?
+         field TenantGroupId   as integer   init ? serialize-hidden    
          field TenantGroupUrl  as character serialize-name "tenantGroup_url" format "x(20)" label "TenantGroup url"  
          field DeallocateUrl      as character serialize-name "deallocate_url" format "x(20)" label "TenantGroup url"  
          field AllocationState    as character serialize-name "allocationState" format "x(9)"
@@ -62,6 +64,8 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
 /*         index idxtenant  TenantName TableName*/
          index idxarea    AreaName TenantName TenantGroupName
          index idxtable   TableName
+         index idxTenantId   TenantId
+         index idxTenantGroupId   TenantGroupId
        
          .
           

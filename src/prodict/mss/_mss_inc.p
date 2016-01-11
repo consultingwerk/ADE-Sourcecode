@@ -275,8 +275,6 @@ UPDATE df-file
        lUniExpand WHEN unicodeTypes
        mapMSSDatetime WHEN has2008Support
        newseq
-       tryPimaryForRowid
-       mkClusteredExplict
        iFmtOption
        lFormat WHEN iFmtOption = 2
        iRecidOption WHEN hasCompColSupport

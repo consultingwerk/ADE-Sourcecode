@@ -841,11 +841,17 @@ PROCEDURE Pressed_OK :
      if p_Network    <> None then assign args = args + " -N "  + p_Network.
      if p_Host_Name    <> "" then assign args = args + " -H "  + p_Host_Name.
      if p_Service_Name <> "" then assign args = args + " -S "  + p_Service_Name.
-     if DB_Type <> "PROGRESS" then
-     do:
-        if p_UserId       <> "" then assign args = args + " -U "  + p_UserId.
-        if p_Password     <> "" then assign args = args + " -P "  + p_Password.
-     end.    
+     if p_UserId       <> "" then assign args = args + " -U "  + p_UserId.
+     IF p_Password <> "" then 
+     DO:
+         ASSIGN args = args + " -P ".
+         IF INDEX(p_Password,'~"') > 0 THEN
+              ASSIGN args = args + QUOTER(trim(p_Password),"'").
+         ELSE 
+            ASSIGN args = args + QUOTER(trim(p_Password)).
+         
+     END.
+
      if p_Multi_User    = no then assign args = args + ' -1 '.
    end.
    
@@ -853,6 +859,7 @@ PROCEDURE Pressed_OK :
    if p_Parm_File    <> "" then assign args = args + " -pf "   + p_Parm_File.
    
    assign p_args = args.
+ 
  
    /* If the caller did not want the database connected now, we're done */
    if (p_Connect = NO) then return.

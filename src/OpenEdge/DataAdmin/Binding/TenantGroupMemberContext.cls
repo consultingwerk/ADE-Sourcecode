@@ -135,7 +135,6 @@ class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminCont
         define variable dataerror as DataContextError no-undo.      
        
         temp-table ttTenantGroupMember:tracking-changes = true.
-       
         for each bTenantGroupMember on error undo, throw: 
             find copytable where copytable.Tenantname = bTenantGroupMember.Tenantname  
                             and  copytable.TenantGroupname  = bTenantGroupMember.TenantGroupname no-error.

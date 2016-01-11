@@ -71,6 +71,7 @@ DEFINE VARIABLE ri              AS INTEGER   NO-UNDO.
 DEFINE VARIABLE msg                AS CHARACTER   EXTENT 4 NO-UNDO.
 DEFINE VARIABLE batch_mode      AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE dbtype-l         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE migCon           AS LOGICAL   NO-UNDO.
 
 DEFINE VARIABLE l_files          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_seqs           AS CHARACTER NO-UNDO.
@@ -142,6 +143,10 @@ ASSIGN
   
 IF NOT batch_mode
   then assign SESSION:IMMEDIATE-DISPLAY = yes.
+
+IF ENTRY(1,user_env[36]) = "y" 
+THEN migCon = YES.
+ELSE migCon = NO. 
  
 if  user_env[25] = "**all**"
  or user_env[25] = ""
@@ -503,9 +508,13 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
         DICTDB._Field._Extent        = DICTDB2._Field._Extent
         l_max-order                  = MAX(l_max-order
                                           ,DICTDB._Field._Order).
-
+      
+     /*
+      * OE00218270 : Commented out to remove RECID mapping to Oracle integer.
+      * RECID now mapped directly to NUMBER from _ora_typ.p map list.
       IF DICTDB._Field._Data-type = "RECID"
        THEN DICTDB._Field._Data-type = "INTEGER".
+      */
 
       DO cext = 1 TO DICTDB._Field._Extent:
         aofldn = ofldn + "#" + STRING (cext).
@@ -576,9 +585,12 @@ FOR EACH DICTDB2._File WHERE ( l_files = "**all**" or
       DICTDB._Field._Help          = DICTDB2._Field._Help
       l_max-order                  = MAX(l_max-order,DICTDB._Field._Order).
 
-    IF DICTDB._Field._Data-type = "RECID"
-     THEN DICTDB._Field._Data-type = "INTEGER".
-
+     /*
+      * OE00218270 : Commented out to remove RECID mapping to Oracle integer.
+      * RECID now mapped directly to NUMBER from _ora_typ.p map list.
+      IF DICTDB._Field._Data-type = "RECID"
+       THEN DICTDB._Field._Data-type = "INTEGER".
+      */
 
 /*------------------------------------------------------------------*/
 /*------------------------  FIELD-TRIGGERS  ------------------------*/
@@ -836,6 +848,7 @@ end.
 /*------------------------  CONSTRAINTS    -------------------------*/
 /*------------------------------------------------------------------*/
 
+IF migCon THEN DO: /* constraints only fixed if migrate constraints set intitially */
   ASSIGN l_con-num = 0.
   FOR EACH DICTDB._Constraint:
     IF l_con-num < DICTDB._Constraint._con-num THEN
@@ -937,7 +950,7 @@ end.
       DELETE DICTDB._Constraint.
    END.
   END.
-  
+END. /* migrate constraints*/  
 
 
 /*----------------------  Adjust File itself  ----------------------*/

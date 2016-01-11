@@ -65,7 +65,7 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
     
     define public override property KeyFields as character  no-undo  
         get():
-            return "Name". 
+            return "SchemaName,Name". 
         end.   
     
     define public override property Count as integer init ? no-undo  
@@ -217,7 +217,6 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
         end.
     end.
     
-   
 	method public override logical CanFind(name as character):
         return can-find(ttSequence where ttSequence.name = name).            
     end.    
@@ -228,7 +227,7 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
     end.    
  
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
-        return new  SequenceSet(cntxt). 
+        return new SequenceSet(cntxt). 
     end method.
     
     method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):

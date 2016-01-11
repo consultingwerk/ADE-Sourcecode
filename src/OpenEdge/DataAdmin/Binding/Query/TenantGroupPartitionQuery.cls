@@ -19,7 +19,7 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.IRequestInfo  from propath.
  
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
+ 
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
 using OpenEdge.DataAdmin.Binding.IPartitionContext from propath.
@@ -28,6 +28,7 @@ using OpenEdge.DataAdmin.Binding.ContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
+using OpenEdge.DataAdmin.Binding.Query.PartitionQuery from propath.
 
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
@@ -35,7 +36,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits FilteredContext implements IPartitionQuery,IPartitionContext: 
+class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits PartitionQuery implements IPartitionQuery,IPartitionContext: 
 	/*------------------------------------------------------------------------------
 			Purpose: Used for a collection of sequence values under a sequence
 			 		 indexed/mapped by tenant															  
@@ -62,7 +63,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Filter
 /*	end constructor.                                                                                                    */
 /*                                                                                                                     */
     constructor public TenantGroupPartitionQuery (pModel as PartitionContext, pParent as IRow,pReq as IRequestInfo):
-        super (pModel,"tenantGroups",pParent:KeyValue,pReq).     
+        super (pModel,pParent,pReq).     
         if pparent:Created then
         do:
           

@@ -113,7 +113,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupTenantQuery inherits ManyToMan
     
     method public override character GetJoinFields(pcparent as char):
         if pcParent = "TenantGroups" then
-              return "Name,TenantGroupName".
+            return "Name,TenantGroupName".
         else return super:GetJoinFields(pcparent).
     end method.
    

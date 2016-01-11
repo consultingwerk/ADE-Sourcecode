@@ -89,6 +89,7 @@ History:
     rkamboj     07/19/2011  Fixed problem of multi-tenant problem of shared table during dump.
                             Also fixed no _area found problem.
     Rkamboj     09/30/11    Added CATEGORY field support for incremental dump.
+    rkamboj     03/30/2012  Added check for sql-92 tables with unsupported ABL prop - OE00208080
 */
 
 using Progress.Lang.*.
@@ -206,9 +207,9 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 52 NO-UNDO INITIAL [
   /*37*/ "The target database does not support buffer pool settings.",
   /*38*/ "The .df file will not contain any buffer pool settings.",
   /*39*/ " is multi-tenant database and ",
-  /*40*/ " is non multi-tenant database. As a result some of multi-tenant features has been ignored and will not work in non multi-tenant database.",
-  /*41*/ " is multi-tenant database and ",
-  /*42*/ " is non multi-tenant database. As a result some of features has been ignored while generating incremental df.",
+  /*40*/ " is non multi-tenant database. As a result some multi-tenant features have been ignored while generating incremental df.",
+  /*41*/ " is non multi-tenant database and ",
+  /*42*/ " is multi-tenant database. As a result some multi-tenant features have been ignored while generating incremental df.",
   /*43*/ " table is defined as multi-tenant table in ",
   /*44*/ " multi-tenant database but ",
   /*45*/ " database is non multi-tenant. The generated incremental df will not be uploaded in the non multi-tenant database.",
@@ -759,6 +760,22 @@ DO ON STOP UNDO, LEAVE
     FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND
          DICTDB._File._File-name = table-list.t1-name AND
        (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
+    /* OE00208080 
+       Now due to the unified schema for sql92, we will get through
+       for PUB tables but we can't dump tables with constraints 
+       or non-ABL data types.
+    */
+    IF DICTDB._File._Has-Ccnstrs = "Y" 
+       OR DICTDB._File._Has-Fcnstrs = "Y"
+       OR DICTDB._File._Has-Pcnstrs = "Y" 
+       OR DICTDB._File._Has-Ucnstrs = "Y"  THEN
+       NEXT.
+    /* check if any of the non-ABL data types are used in any of the columns */
+    FIND FIRST DICTDB._Field OF DICTDB._File WHERE
+         CAN-DO("short,byte,fixchar,fixraw,time,double,float":U,
+                 DICTDB._Field._Data-type) NO-LOCK NO-ERROR.
+    IF AVAILABLE DICTDB._Field THEN
+       NEXT.   
     IF NOT p-batchmode and not p-silentincrd THEN  /* 02/01/29 vap (IZ# 1525) */
       DISPLAY DICTDB._File._File-name @ fil WITH FRAME seeking.
     FIND DICTDB._StorageObject

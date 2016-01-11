@@ -59,15 +59,13 @@ class OpenEdge.DataAdmin.DataSource.UserFieldPermissionDataSource inherits Field
         define variable hUserPerm     as handle no-undo.
         define variable hFieldbuf     as handle no-undo.
         define variable cid           as character no-undo.        
-        define variable cIdNoAt       as character no-undo.
-        define variable cIdNoDomain   as character no-undo.
         define variable cList         as character no-undo.
         hbuffer = hds:get-buffer-handle("ttUserFieldPermission").
         assign 
             iParentSource = lookup("ttUserPermission",Tables)
             iFieldSource = lookup("_Field",Tables)
             hFieldbuf    = DataSourceHandle:get-source-buffer(iFieldSource).
-        find dictdb._field where recid(dictdb._field) = hFieldBuf:recid no-lock.  
+        /*find dictdb._field where recid(dictdb._field) = hFieldBuf:recid no-lock.*/  
         if iParentSource > 0 then
         do:
             hUserPerm = DataSourceHandle:get-source-buffer(iParentSource).
@@ -80,6 +78,7 @@ class OpenEdge.DataAdmin.DataSource.UserFieldPermissionDataSource inherits Field
            hbuffer::UserRef = cid.
         end. 
         
+        /* this is not needed- commenting this out
         /* fred@ and fred need to be treated similar */
         if index(cid,"@") = 0 then 
         do:
@@ -98,7 +97,7 @@ class OpenEdge.DataAdmin.DataSource.UserFieldPermissionDataSource inherits Field
         end.      
         else /* OE00206538 temporary set cidNOat since this is the only we chack
                worksaround for user@domain*/
-            cidNOat  = cid. 
+            cidNOat  = cid. */ 
        
         /* core bug OE00206538  need to be fixed before this 
           can be fully implemented /resolved
@@ -106,11 +105,11 @@ class OpenEdge.DataAdmin.DataSource.UserFieldPermissionDataSource inherits Field
         */         
         assign        
            clist = hFieldbuf::_can-read 
-           hbuffer::CanRead   =  can-do(clist,cidNoAt) 
+           hbuffer::CanRead   =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
            clist = hFieldbuf::_can-write 
-           hbuffer::CanWrite =  can-do(clist,cidNoAt) 
+           hbuffer::CanWrite =  can-do(clist,cid) 
 /*                                 or (if cidNoat = "" then false else can-do(clist,cidNoat))*/
 /*                                 or (if cidNoDomain = "" then false else can-do(clist,cidNoDomain))*/
             .  

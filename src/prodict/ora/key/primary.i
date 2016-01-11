@@ -234,7 +234,7 @@ PROCEDURE check_primary_save:
           FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._File-Recid = file_rec
                                AND (DICTDB._Constraint._Con-Type = "P"  OR
                                            DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
-                               AND Dictdb._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status = "O" NO-LOCK NO-ERROR.
+                               AND Dictdb._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O" NO-LOCK NO-ERROR.
            IF AVAILABLE (DICTDB._Constraint)THEN 
            DO:
                 MESSAGE "Primary constraint already exists in this table" VIEW-AS ALERT-BOX ERROR.

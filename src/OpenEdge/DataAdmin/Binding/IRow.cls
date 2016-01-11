@@ -26,6 +26,10 @@ interface OpenEdge.DataAdmin.Binding.IRow inherits IElement:
     /** serializename is used in child and parent defintitions  */
     define public property SerializeName as character no-undo get. 
     
+    /** is  - true means that values are not refrehsed 
+            - use for message only don't store  */
+    define public property IsSnapShot as logical no-undo get. 
+    
     /** comma separated list of keyfields */
     define public property KeyFields as character no-undo get. 
     

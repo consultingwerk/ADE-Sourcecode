@@ -23,35 +23,23 @@ using Progress.Lang.*  from propath.
 using OpenEdge.DataAdmin.IDataAdminService from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.ISchema from propath. 
-using OpenEdge.DataAdmin.Rest.RestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
  
-
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "definitions" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_definitions.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
+  
  
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.   
+{darest/restbase.i get definitions}
+ 
+procedure Execute :
+    define input  parameter restRequest as IRestRequest  no-undo.
 
-    
     /* ***************************  Definitions  ************************** */
     define variable definitions  as ISchema no-undo.
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as IDataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     define variable cFile        as character no-undo.
     define variable cFileOut     as character no-undo.
     /* ***************************  Main Block  *************************** */
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
      
     service = new DataAdminService(restRequest:ConnectionName). 
     restRequest:Validate().

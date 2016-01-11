@@ -1,11 +1,11 @@
- /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
- /*------------------------------------------------------------------------
+/*************************************************************/
+/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/ 
+/*------------------------------------------------------------------------
     Purpose     : 
     Syntax      : 
     Description : 
@@ -27,12 +27,15 @@ using OpenEdge.DataAdmin.IDomain from propath.
 
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.DataAdminContext from propath. 
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath. 
+using OpenEdge.DataAdmin.Binding.Query.UserQuery from propath. 
 using OpenEdge.DataAdmin.Binding.Query.DomainUserQuery from propath. 
 using OpenEdge.DataAdmin.Binding.UserContext from propath. 
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
 using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope from propath. 
-
+using OpenEdge.DataAdmin.Message.IFetchResponse  from propath. 
+using OpenEdge.DataAdmin.Message.ITableResponse  from propath. 
 using OpenEdge.DataAdmin.Error.DataContextError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError  from propath.
@@ -44,9 +47,16 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
     define buffer buser for ttUser.
     define temp-table copytable reference-only like ttUser .  
     
+    define private variable mRefresh as logical no-undo.
+    
     define public override property DatasetHandle as handle no-undo 
         get():
             return dataset dsUser:handle.
+        end get.
+     
+    define public property ContextFactory as IContextFactory  no-undo 
+        get():
+            return cast(ContextScope,IContextFactory) .
         end get.
     
 	define public override property TableHandle as handle no-undo 
@@ -85,6 +95,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
      
     constructor public UserContext ( pscope as IIdentityScope):
         super ("User",pScope). 
+        
     end constructor.
     
 	method public override character GetJoinFields(parentid as char):
@@ -97,7 +108,30 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
                 return "Name,DomainName".
         end.
     end.
-
+    
+    method public override character GetServerJoinFields(parentid as char):
+        case parentid:
+            when "tenants" then
+                return "Id,TenantId".
+        end.
+        return super:GetServerJoinFields(parentid).
+    end.
+    
+    
+    /* override to use Name in JSON import  
+    method protected override character GetClientKeyFields():
+        return "Name,DomainName". 
+    end method.
+    */
+    /*
+    method public override character GetServerJoinFields(parentid as char):
+        case parentid:
+            when "tenants" then
+                return "Id,TenantId".
+        end.
+        return super:GetServerJoinFields(parentid).
+    end.
+    */
 	method public override void CreateRow(entity as IDataAdminElement):
 	    /* the default syserror has all info */
 	    CreateRow(cast(entity,IUser)).    
@@ -145,7 +179,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
             if pcType = "T" then
             do:
                 if copytable.tenantname > "" and copytable.tenantname <> pcValue then 
-                    undo, throw new IllegalArgumentError(
+                       undo, throw new IllegalArgumentError(
                               "User " + copytable.name + " belongs to another Tenant." ).
                 
                 if copytable.DomainName = "" and copytable.tenantname <> "Default" then 
@@ -165,7 +199,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
                            new IllegalArgumentError(
                               "User " + copytable.name + " Domain " +  copytable.DomainName  + " does not exist.").
                      
-                    if dmn:Tenant:name <> pcValue then
+                     if dmn:Tenant:name <> pcValue then
                         undo, throw 
                            new IllegalArgumentError(
                               "User " + copytable.name + " Domain " +  copytable.DomainName  + " belongs to another Tenant.").
@@ -393,6 +427,16 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
              
     end method.
    
+    /** create default filteredcontext that also handles parent/keyvalue as filter. */
+    method override protected FilteredContext CreateFilteredContext(filter as char):
+        return new UserQuery(this-object,filter).
+    end method.
+  
+    /** create default filteredcontext with requestinfo  */
+    method override protected FilteredContext CreateFilteredContext(pReq as IRequestInfo):
+        return new UserQuery(this-object,pReq).
+    end method.
+  
     method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
          case pparent:          
              when "domains" then
@@ -475,7 +519,38 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
               + " and "
               + "ttUser.Name = " + quoter(cUserid) .
     end method.
-   
     
-   
+    method public override void DataRefreshed(pResponse as IFetchResponse):
+        define variable i as integer no-undo.
+        define variable tblResponse as ITableResponse no-undo.
+        define variable hBuffer  as handle no-undo.
+        /*            hds:copy-dataset(hCopy,yes,yes).*/
+        if mRefresh or pResponse:Entityname <> "user" 
+        then
+        do: 
+            super:DataRefreshed(pResponse).
+        end.
+        else do:   
+            /* user context refresh any joined parents retrieved */       
+            tblResponse = pResponse:GetTableResponse("ttTenant").
+            if valid-object(tblResponse) then   
+            do:
+                mRefresh = true.          
+                ContextFactory:TenantContext:DataRefreshed(pResponse) .
+                mRefresh = false.
+            end.
+            else do:
+                tblResponse = pResponse:GetTableResponse("ttDomain").
+                if valid-object(tblResponse) then  
+                do: 
+                    mRefresh = true. 
+                    ContextFactory:DomainContext:DataRefreshed(pResponse) .
+                    mRefresh = false.
+                end.
+                else 
+                    super:DataRefreshed(pResponse).
+            end.
+        end.       
+    end method.   
+    
 end class.

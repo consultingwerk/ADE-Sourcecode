@@ -18,13 +18,13 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.*  from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext  from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree  from propath. 
+using OpenEdge.DataAdmin.Binding.ContextTree  from propath. 
 using OpenEdge.DataAdmin.Binding.IFilteredContext  from propath. 
 using OpenEdge.DataAdmin.Binding.IDataAdminModel  from propath. 
 using OpenEdge.DataAdmin.Binding.CreateContext  from propath. 
 using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext  from propath. 
 using OpenEdge.DataAdmin.Error.*  from propath.
 using OpenEdge.DataAdmin.Core.JSONWriter from propath. 
-using OpenEdge.DataAdmin.Core.JSONLoader from propath. 
 using OpenEdge.DataAdmin.Core.CodeWriter from propath.
 using OpenEdge.DataAdmin.Core.DataAdminIterator from propath.
 using OpenEdge.DataAdmin.Lang.Collections.IIterator from propath.
@@ -270,7 +270,6 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
     
     method public void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
-        define variable codewriter as CodeWriter no-undo.
         writer = GetExporter(pcfile).
         writer:WriteToFile(this-object,pcfile, pcCollectionlist).
     end method.
@@ -318,21 +317,18 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
     end method.
     
     method public void ImportTree(pcFile as char). 
-        /* @todo ? this will not use dataset and allow control of parent child relations 
-            already used for entity - row ImportTree(pcfile, key)
-        Context:ImportTree(pcFile).
-        */
-        define variable reader as JSONLoader no-undo.        
-        reader = new JSONLoader().
-        reader:LoadFromFile(this-object,pcfile,"Replace").  
+        define variable tree as IContextTree no-undo.
+        tree = new ContextTree(). 
+        WriteTree(tree).
+        Context:ImportTree(pcFile,"Replace").
     end method. 
     
     method public void ExportLastSavedTree(pcFile as char). 
-         Context:ExportLastSavedTree(pcFile).
+        Context:ExportLastSavedTree(pcFile).
     end method. 
     
     method public void ExportLastSaved(pcFile as char). 
-         Context:ExportLastSaved(pcFile).
+        Context:ExportLastSaved(pcFile).
     end method. 
     
     method protected IDataAdminExporter GetExporter(pcFile as char):

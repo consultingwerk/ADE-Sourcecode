@@ -24,7 +24,7 @@ using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IUser from propath.
  
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
+using OpenEdge.DataAdmin.Binding.Query.UserQuery from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.UserContext from propath.
   
@@ -38,14 +38,8 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Binding.Query.DomainUserQuery inherits FilteredContext: 
+class OpenEdge.DataAdmin.Binding.Query.DomainUserQuery inherits UserQuery: 
 	
-	/** Parent context (Model) may change so don't store this */
-	define private property UserContext as UserContext no-undo
-	  get():
-	      return cast(Parent,UserContext).
-	  end.
-  
 	constructor public DomainUserQuery (pSource as UserContext, pDomainName as char,pReq as IRequestInfo ):
 		super (pSource,"domains",pDomainName,pReq).	    
 	     
@@ -74,19 +68,6 @@ class OpenEdge.DataAdmin.Binding.Query.DomainUserQuery inherits FilteredContext:
         /* the default syserror has all info */
        
         UserContext:CreateRow(cast(entity,IUser),ParentValue).    
-    end method.
-        
-    method public override IFetchRequest GetQueryRequest():
-        define variable tree   as IContextTree no-undo.
-        define variable hds    as handle no-undo.
-        define variable cQuery as character no-undo.
-       
-        tree = new ContextTree().
-        AddTableTo(tree).
-       
-        hds = tree:GetReadHandle().
-      
-        return new FetchRequest(Name,Id,hds). 
     end method.
     
     method public override void ExportLastSaved(pcfile as char). 

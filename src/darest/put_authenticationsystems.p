@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2012 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -24,29 +24,19 @@ using Progress.Lang.*.
 using OpenEdge.DataAdmin.DataAdminService.
 using OpenEdge.DataAdmin.IAuthenticationSystem.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet.
-using OpenEdge.DataAdmin.Rest.RestRequest.
+using OpenEdge.DataAdmin.Rest.IRestRequest.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler.
 using OpenEdge.DataAdmin.Error.NotFoundError.
 
-define variable mMode       as char init "put" no-undo.
-define variable mCollection as char init "authenticationsystems" no-undo.
-
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value(mMode + "_" + mCollection + ".log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
- 
-procedure executeRequest:
-    define input  parameter pcParam as character no-undo.    
+/* to be deprecated */
+{darest/restbase.i put authenticationsystems} 
+  
+procedure Execute :
+    define input parameter restRequest as IRestRequest  no-undo.      
     /* ***************************  Definitions  ************************** */
     define variable authenticationsystem       as IAuthenticationSystem no-undo.
     define variable authenticationSystemSet    as IAuthenticationSystemSet no-undo.
   
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     define variable cFile        as character no-undo.
@@ -54,7 +44,6 @@ procedure executeRequest:
     define variable cLong        as longchar no-undo.
     /* ***************************  Main Block  *************************** */
     
-    restRequest = new RestRequest(mMode,mCollection,pcParam).  
     restRequest:Validate().
     service = new DataAdminService(restRequest:ConnectionName).
     service:URL = restRequest:ConnectionUrl.

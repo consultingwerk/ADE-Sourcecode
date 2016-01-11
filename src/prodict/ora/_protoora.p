@@ -149,6 +149,7 @@ DO:
     ASSIGN lCharSemantics = (lCharSemantics:SCREEN-VALUE = "yes").
     ASSIGN crtdefault = (crtdefault:SCREEN-VALUE = "YES").
     Assign nls_up = (nls_up:SCREEN-VALUE = "yes").
+	ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
 
     oralang = IF oralang:screen-value = "" THEN "" ELSE oralang:screen-value.    
     IF unicodeTypes = TRUE 
@@ -234,12 +235,18 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME DEFAULT-FRAME DO:
 END.        
 
 ON VALUE-CHANGED OF iShadow IN FRAME DEFAULT-FRAME DO:
-   IF SELF:SCREEN-VALUE = "1" THEN
-    ASSIGN nls_up:SENSITIVE  = TRUE
-           oralang:SENSITIVE = TRUE.
-  ELSE
-    ASSIGN nls_up:SENSITIVE  = FALSE
+  IF SELF:SCREEN-VALUE = "1" THEN DO:
+    ASSIGN nls_up:SENSITIVE  = TRUE.
+    IF oralang:SCREEN-VALUE = "BINARY" THEN oralang:SENSITIVE = FALSE.
+    ELSE oralang:SENSITIVE = TRUE.
+  
+  END.
+  ELSE DO:
+    ASSIGN nls_up:SCREEN-VALUE = "no"
+    	   nls_up:SENSITIVE  = FALSE
+           oralang:SCREEN-VALUE = "BINARY"
            oralang:SENSITIVE = FALSE.
+  END.         
 END.   
 
 ON VALUE-CHANGED OF nls_up IN FRAME DEFAULT-FRAME DO:

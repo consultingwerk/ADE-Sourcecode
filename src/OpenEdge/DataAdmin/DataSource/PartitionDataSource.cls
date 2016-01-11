@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011,2012 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -81,30 +81,45 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         get. 
    
     define protected property StorageTenantMap as char no-undo
-        init "ttPartition.TenantName,_Tenant._Tenant-Name" 
+        init "ttPartition.TenantName,_Tenant._Tenant-Name,ttPartition.TenantId,_Tenant._TenantId" 
         get. 
     
     define protected property StorageGroupMap as char no-undo
-        init "TenantGroupName,_PSet-Name" 
+        init "TenantGroupName,_Partition-Set._PSet-Name,TenantGroupId,_Partition-Set._PSetid" 
         get. 
         
     define protected property StorageAreaMap as char no-undo
         init "ttPartition.AreaName,_Area._Area-Name" 
         get. 
    
-    define protected property FindFirstTenantAndArea as char no-undo
+    define protected property FindFirstTenant as char no-undo
         get():
-            return  "first _tenant where _tenant._tenantid = _StorageObject._partitionid no-lock,"
-                  + " first _area where _area._area-number =  _StorageObject._area-number no-lock".
+            return  "first _tenant where _tenant._tenantid = _StorageObject._partitionid no-lock".
         end.
     
-    define protected property FindFirstGroupAndArea as char no-undo
+    define protected property FindFirstArea as char no-undo
+        get():
+            return "first _area where _area._area-number = _StorageObject._area-number no-lock".
+        end.
+        
+    define protected property FindFirstTenantAndArea as char no-undo
+        get():
+            return FindFirstTenant + ", " 
+                +  FindFirstArea.       
+        end.
+    
+    define protected property FindFirstGroup as char no-undo
         get():
             return   "first _Partition-Set"  
                      + " where _Partition-Set._object-type = _StorageObject._Object-type"
                      + " and _Partition-Set._object-number = _StorageObject._Object-Number"
-                     + " and _Partition-Set._PSetid = _StorageObject._PartitionId no-lock,"  
-                     + " first _area where _area._area-number =  _StorageObject._area-number outer-join no-lock".
+                     + " and _Partition-Set._PSetid = _StorageObject._PartitionId no-lock".   
+       end.
+    
+    define protected property FindFirstGroupAndArea as char no-undo
+        get():
+            return FindFirstGroup + ", " 
+                +  FindFirstArea.       
         end.
     
     constructor public PartitionDataSource () :
@@ -117,9 +132,9 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         BaseQuery = cQuery.    
     end constructor.
     
-    constructor public PartitionDataSource (pcTables  as char,
-                                   pcPhysicalTables as char,
-                                   pcMapping     as char) :
+    constructor protected PartitionDataSource (pcTables  as char,
+                                               pcPhysicalTables as char,
+                                               pcMapping     as char) :
         super(pcTables + ",_StorageObject",pcPhysicalTables + ",dictdb._StorageObject",pcMapping + "," + StorageMap). 
     end constructor.
     
@@ -132,6 +147,14 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         do:    
              mSimulation = true.
         end.                                           
+    end constructor.
+    
+    constructor protected PartitionDataSource (pcTables  as char,
+                                               pcPhysicalTables as char,
+                                               pcMapping     as char,
+                                               pcBaseQuery   as char) :
+        super(pcTables,pcPhysicalTables,pcMapping).
+        BaseQuery = pcBaseQuery. 
     end constructor.
     
     
@@ -159,6 +182,8 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         define variable lOk          as logical    no-undo.
         define variable hParentRel   as handle     no-undo.
         define variable cQuery       as character no-undo.
+        define variable cMap         as character no-undo.
+        define variable lAddTables   as logical no-undo.
         
         DataBuffer = phBuffer.    
         
@@ -166,7 +191,6 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         
         CreateQuery().    
         hParentRel = ParentRelation.
-        
         /* fieldmapping is set from constructor */
         DataBuffer:attach-data-source(DataSourceHandle:handle,FieldMapping) .
        
@@ -175,21 +199,47 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         if pcTargetQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
         do:
             oQueryString = new QueryString(pcTargetQuery,this-object).
-
-            lok = AddValuesFromFind(oQueryString).
+            /* fieldmapping is set from constructor */
+            cMap = FieldMapping.
+            lOk  = AddUniqueOrNone("_tenant",oQueryString). 
             if lok = false then
-               return false.
-            else if lok = ? then
+                return false. 
+            if lok = ? and lookup("_Tenant",Tables) = 0 then
             do:
-                Tables = Tables + ",_Tenant,_Area".
-                PhysicalTables = PhysicalTables + ",dictdb._Tenant,dictdb._Area".
-                BaseQuery = BaseQuery + "," + FindFirstTenantAndArea.
+                lAddTables = true.
+                Tables = Tables + ",_Tenant".
+                PhysicalTables = PhysicalTables + ",dictdb._Tenant".
+                BaseQuery = BaseQuery + ", " + FindFirstTenant.
+                cMap = cMap + "," + StorageTenantMap.
+            end.
+            lOk = AddUniqueOrNone("_Partition-Set",oQueryString).
+            if lok = false then
+                return false. 
+            if lok = ? and lookup("_Partition-Set",Tables) = 0 then
+            do:
+                lAddTables  = true.
+                Tables = Tables + ",_Partition-Set".
+                PhysicalTables = PhysicalTables + ",dictdb._Partition-Set".
+                BaseQuery = BaseQuery + ", " + FindFirstGroup.
+                cMap = cMap + "," + StorageGroupMap.
+            end.
+            lOk  = AddUniqueOrNone("_Area",oQueryString). 
+            if lok = false then
+                return false. 
+            if lok = ? and lookup("_Area",Tables) = 0 then
+            do:
+                lAddTables  = true.
+                Tables = Tables + ",_Area".
+                PhysicalTables = PhysicalTables + ",dictdb._Area".
+                BaseQuery = BaseQuery + ", " + FindFirstArea.
+                cMap = cMap + "," + StorageAreaMap.
+            end.
+            if lAddTables then
+            do:
                 CreateQuery().    
-                /* fieldmapping is set from constructor */
-                DataBuffer:attach-data-source(DataSourceHandle ,
-                   FieldMapping + "," + StorageTenantMap + "," + StorageAreaMap) .
-           
-            end.    
+                DataBuffer:attach-data-source(DataSourceHandle,cMap) .
+            end.
+                
 /*            AddObjectStateExpression(oQueryString).*/
             if pcJoin > '' then
             do:
@@ -200,11 +250,8 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                 /* fieldmapping is set from constructor */
                 DataBuffer:attach-data-source(DataSourceHandle ,
                    FieldMapping + "," + StorageGroupMap + "," + StorageAreaMap) .
-            
-               
                
                 hParentRel:Active = true.
-                
                 
                 oQueryString:addExpression(pcJoin).
                 
@@ -218,11 +265,10 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
        
             cQuery = oQueryString:BuildQueryString(Tables).
             
-/*           message           */
-/*                             */
-/*            cQuery skip      */
-/*                             */
-/*           view-as alert-box.*/
+/*           message            */
+/*            pcTargetQuery skip*/
+/*            cQuery skip       */
+/*           view-as alert-box. */
 /*              oQueryString:showdata() .*/
 
             lok = QueryHandle:query-prepare (cQuery).
@@ -259,6 +305,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         define variable iObjectid   as integer no-undo.
         define variable iTypeId     as integer no-undo.
         define variable partition   as Storage no-undo.
+      
         define buffer btenant for dictdb._tenant.
         define buffer barea for dictdb._area.
         define buffer bfile for dictdb._file.
@@ -267,7 +314,6 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
-        
         mSaving = true. 
         /** create query to refresh index and fields to be returned to client when 
             allocationstate of the table changes  
@@ -291,7 +337,8 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                                     once the table is allocated */
                               + " by ttPartitionCopy.TableName by ttPartitionCopy.ObjectType").    
         hquery:query-open().
-        
+        DBConfig:LockWait = FALSE.
+       
         /* This is not likely to be the transacton at runtime. 
            The DataAccess will typically define the transaction for all sources */
         do transaction on error undo, throw:
@@ -305,16 +352,76 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                 if phBuffer:row-state = row-deleted then 
                     undo, throw new IllegalArgumentError("Partitions with state 'deleted' passed to data source.").
                 
-                if phBuffer::Tenantname > "" then
-                do:  
-                   find btenant where btenant._tenant-name = phBuffer::Tenantname no-lock. 
-                   assign cType = "T"
-                          cName = btenant._tenant-name. 
+                /* Note we do not really support create, but as of current 
+                   partitions may be marked as created in some cases on client
+                   (when the parent tenant or group is new). 
+                   In which case we use Name to find group or tenant - 
+                   since create is called after parent rename has taken place 
+                   (piState = ? potentially saved from some other object than 
+                    tenant or tenantgroup? in whihc case parent rename is not 
+                    applicable) */   
+                if piState = row-created or piState = ? then 
+                do: 
+                    if phBuffer::Tenantname > "" then
+                    do:  
+                       find btenant where btenant._tenant-name = phBuffer::Tenantname no-lock. 
+                       assign cType = "T"
+                              cName = btenant._tenant-name. 
+                    end.
+                    else if phBuffer::TenantGroupName > "" then
+                    do:
+                       find  dictdb._Partition-Set where dictdb._Partition-Set._Pset-Name = phBuffer::TenantGroupName no-lock. 
+                       assign cType = "G"
+                              cName = dictdb._Partition-Set._PSet-name. 
+                    end.
+                    else 
+                        undo, throw new IllegalArgumentError("Non multi-tenant partitions cannot be modified.").
                 end.
-                else do:
-                   find  dictdb._Partition-Set where dictdb._Partition-Set._Pset-Name = phBuffer::TenantGroupName no-lock. 
-                   assign cType = "G"
-                          cName = dictdb._Partition-Set._PSet-name. 
+                /* if modified use the id - If the tenant name is modified 
+                   it is already corrected in the partition TT, but the parent is 
+                   updated after its children so it is not reflected in the DB  */
+                else if piState = row-modified then
+                do:
+                    if phBuffer::Tenantname > "" then
+                    do:  
+                       find btenant where btenant._tenantid = phBuffer::ParentId no-lock. 
+                       assign cType = "T"
+                              cName = btenant._tenant-name. 
+                    end.
+                    else if phBuffer::TenantGroupName > "" then
+                    do:                       
+                      /* The first call to DatabaseInfo may call the constructor which
+                         has a find that will give error 7254 */
+                       dbRecid = DatabaseInfo:DatabaseRecid. 
+                       find dictdb._file where dictdb._file._db-recid = dbRecid
+                                         and   dictdb._file._file-name = phBuffer::TableName 
+                                         and   dictdb._file._owner = phBuffer::SchemaName no-lock. 
+                  
+                  
+                       find dictdb._Partition-Set where dictdb._Partition-Set._PsetId = phBuffer::ParentId 
+                                                    and dictdb._Partition-Set._Object-type = 1
+                                                    and dictdb._Partition-Set._Object-number = dictdb._file._file-number   
+                                                      no-lock. 
+                       assign cType = "G"
+                              cName = dictdb._Partition-Set._PSet-name. 
+                    end.
+                end. 
+                
+                /* @TODO replace with check on returned Storage when OE00221047 is fixed  */    
+                if cType = "T" then 
+                do:
+                    dbRecid = DatabaseInfo:DatabaseRecid. 
+                    find dictdb._file where dictdb._file._db-recid = dbRecid
+                                        and   dictdb._file._file-name = phBuffer::TableName 
+                                        and   dictdb._file._owner = phBuffer::SchemaName no-lock. 
+                     
+                    if can-find(dictdb._Partition-Set-Detail 
+                                 where dictdb._Partition-Set-Detail._tenantid = btenant._tenantid
+                                   and dictdb._Partition-Set-Detail._Object-type = 1
+                                   and dictdb._Partition-Set-Detail._Object-number = dictdb._file._file-number) then
+                    do: 
+                        undo, throw new DataAccessError(GetName(phBuffer) + " does not exist. The " + quoter(phBuffer::TableName) + " table is in a group for this tenant.").
+                    end.
                 end.
                       
                 if phBuffer::ObjectType = "table" then 
@@ -323,7 +430,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                     partition = DBConfig:GetIndex(phBuffer::TableName,phBuffer::IndexName,cName,cType) .
                 else if phBuffer::ObjectType = "field" then 
                     partition = DBConfig:GetLob(phBuffer::TableName,phBuffer::FieldName,cName,cType) .
-                 
+    
                 if phBuffer::Areaname <> hBeforeBuff::Areaname then 
                 do:
                     if phBuffer::Areaname > "" then
@@ -454,10 +561,11 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         define variable partition   as Storage no-undo.
         define variable cType as character no-undo.
         define variable cName as character no-undo.
-        define variable rid as recid no-undo.
         define variable lNotMT as logical no-undo.             
         define variable iState as integer no-undo.
+        define variable dbRecid as recid no-undo.
         hBuffer = hds:get-buffer-handle("ttPartition") .
+        DBConfig:LockWait = FALSE.
          
         if not mSaving then
         do:
@@ -508,35 +616,47 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
             
             if hStorage::_partitionid >= 0  then
             do:
-                if (hBuffer::TenantName = "" or hBuffer::TenantName = ?) then
+                if hStorage::_partitionid = 0 then
                 do:
-                    find btenant where btenant._tenantid = hStorage::_partitionid no-lock . 
-                    hBuffer::TenantName = btenant._tenant-name.
-                    hBuffer::TenantGroupName = ?.  /* avoid unique index error */
-                end.
-                rid = DatabaseInfo:DatabaseRecid.
-                if hBuffer::TenantName = "Default" then
-                do:
-                    find dictdb._file where dictdb._file._db-recid = rid 
+                    /* The first call to DatabaseInfo may call the constructor which
+                       has a find that will give error 7254 */
+                    dbRecid = DatabaseInfo:DatabaseRecid.
+                    find dictdb._file where dictdb._file._db-recid = dbRecid
                                       and   dictdb._file._file-name = hBuffer::TableName 
                                       and   dictdb._file._owner = hBuffer::SchemaName no-lock. 
                     lNotMT = dictdb._file._file-attributes[1] = false.
-                end.                
-                cType = "T".
-                cName = hBuffer::TenantName.             
+                end.
+                /* if the table is shared we do not consider it belonging to the default tenant. */
+                if lNotMt = false then
+                do:
+                    if (hBuffer::TenantName = "" or hBuffer::TenantName = ?) then
+                    do:
+                        find btenant where btenant._tenantid = hStorage::_partitionid no-lock. 
+                        hBuffer::TenantName = btenant._tenant-name.
+                        hBuffer::TenantId   = btenant._tenantid.
+                        hBuffer::TenantGroupName = ?.  /* avoid unique index error */
+                    end.
+                    cType = "T".
+                    cName = hBuffer::TenantName.
+                end.             
             end. 
             else if hStorage::_partitionid < 0 then
             do:
                 if (hBuffer::TenantGroupName = "" or hBuffer::TenantGroupName = ?) and hStorage::_partitionid < 0 then
                 do:
-                    rid = DatabaseInfo:DatabaseRecid.
-                    find dictdb._file where dictdb._file._db-recid = rid 
+                    /* The first call to DatabaseInfo may call the constructor which
+                       has a find that will give error 7254 */
+                    dbRecid = DatabaseInfo:DatabaseRecid.
+                    find dictdb._file where dictdb._file._db-recid = dbRecid 
                                       and   dictdb._file._file-name = hBuffer::TableName 
                                       and   dictdb._file._owner = hBuffer::SchemaName no-lock. 
+                     
                     find dictdb._Partition-Set where dictdb._Partition-Set._Object-type = 1 
                                                and   dictdb._Partition-Set._Object-Number = dictdb._file._File-number 
                                                and   dictdb._Partition-Set._PSetId = hStorage::_partitionid no-lock. 
                     hBuffer::TenantGroupName = dictdb._Partition-Set._PSet-name. 
+                    hBuffer::TenantGroupId  = dictdb._Partition-Set._PSetid. 
+                    
                     hBuffer::TenantName = ?.  /* avoid unique index error */
                 end.
                 cType = "G".
@@ -552,18 +672,28 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                     partition = DBConfig:GetIndex(hBuffer::TableName,hBuffer::IndexName).
                 else if hBuffer::ObjectType = "field" then 
                     partition = DBConfig:GetLob(hBuffer::TableName,hBuffer::FieldName).
-                find dictdb._StorageObject where rowid(dictdb._StorageObject) = hBuffer::trowid.
-                find dictdb._area where dictdb._area._area-number = dictdb._StorageObject._area-number.
-                iState = get-bits(_StorageObject._Object-State,2,2).    
-                hBuffer::Areaname = dictdb._area._area-name.
-                hBuffer::AllocationState = if istate = 0 then "Allocated"
-                                           else if iState = 1 then "None" 
-                                           else "Delayed".
+                
+                /*
+                hBuffer::AllocationState = partition:AllocationState.
+                hBuffer::AreaName = partition:AllocationArea.
+                */
+                
+                if hStorage::_area-number <> 0 then
+                do:
+                    find barea where barea._area-number = hStorage::_area-number no-lock.
+                    hBuffer::Areaname = barea._Area-name.
+                    hBuffer::AllocationState = "Allocated".                             
+                end.   
+                else /* this is not possible - all non MT tables have an area */
+                    hBuffer::AllocationState = "None".                             
+                
                 hBuffer::BufferPool = partition:ObjectLevelBufferPool.  
-                hBuffer::CanAssignAlternateBufferPool = partition:CanAssignAlternateBufferPool.  
+                hBuffer::CanAssignAlternateBufferPool = partition:CanAssignAlternateBufferPool.
+                
                 delete object partition no-error.
             end.
-            else do:
+            else  
+            do:
                 
                 if hBuffer::ObjectType = "table" then 
                     partition = DBConfig:GetTable(hBuffer::TableName,cName,cType) .
@@ -571,6 +701,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                     partition = DBConfig:GetIndex(hBuffer::TableName,hBuffer::IndexName,cName,cType) .
                 else if hBuffer::ObjectType = "field" then 
                     partition = DBConfig:GetLob(hBuffer::TableName,hBuffer::FieldName,cName,cType) .
+                 
                 hBuffer::AllocationState = partition:AllocationState.
                 hBuffer::BufferPool = partition:ObjectLevelBufferPool.  
                 hBuffer::AreaName = partition:AllocationArea.
@@ -594,23 +725,12 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         /* NOTE - this needs to be deprecated, rowids are reused when partions are moved to 
            group - but carefully as runtime fill in theory could depend on it */          
         hBuffer::trowid = ? .
+   
+        catch e as Progress.Lang.Error :
+            undo, throw new DataAccessError(e:getmessage(1),?). 
+        end catch.
+       
     end method. 
-    
-    /*  
-       Return  true means find where added or not needed  
-               false means that one of the finds failed 
-               ? means one of them is ambiguius- 
-    */
-    method protected logical AddValuesFromFind(pQueryStr as QueryString):
-        define variable lok as logical no-undo.      
-        define variable lok2 as logical no-undo.      
-        lOk = AddUniqueOrNone("_tenant",pQueryStr).
-         
-        lOk2 = AddUniqueOrNone("_Partition-Set",pQueryStr).
-        if lok  or lok2 then
-            lOk = AddUniqueOrNone("_area",pQueryStr).
-        return lok. 
-    end method.
     
     method protected override character FindTableJoinValues(pTable as char,pFind as char):
         case pTable:
@@ -665,21 +785,19 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                     undo, throw new IllegalArgumentError("Invalid AllocationState in query: " + quoter(pcValue)).
             end.            
             return "(" + cfield + " " + pcOperator + " " + pcValue + ")".
-        end. 
-        
+        end.        
         return ?.   
     end. 
     
-       /* convert allocation to bitmap in the db */
+    /* convert allocation to bitmap in the db */
     method public override character ColumnSortSource(pcColumn as char):
         if pcColumn = "_StorageObject.AllocationState" then
         do:
             return   "(if get-bits(_StorageObject._Object-State,2,2) = 0 then 'Allocated'" 
                    + " else if get-bits(_StorageObject._Object-State,2,2) = 1 then 'None'"
                    + " else 'Delayed')". 
-       
-                 
-        end.    
+        end.  
+        return super:ColumnSortSource(pcColumn).  
     end method. 
     
     /* This is the call back for the QueryString parsing. There is currently no mapping, but we override it in 
@@ -690,39 +808,41 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
    
     */
     method public override character ColumnSource (pcColumn as char):
+        if pcColumn = "ttPartition.AreaNumber" then
+            return "_StorageObject._Area-Number".
+       
         /* assign the table - deal with state expression in ColumnExpression */
         if pcColumn = "ttPartition.AllocationState" then 
         do:
             return "_StorageObject.AllocationState".
         end.
-   
+  
         if pcColumn = "ttPartition.TenantName" then 
         do:
-            return "_tenant._tenant-name".    
+            return "_Tenant._Tenant-name".    
         end.
-        else
+        
         if pcColumn = "ttPartition.TenantGroupName" then 
         do:
             return "_Partition-Set._PSet-name".    
         end.
-        else if pcColumn = "ttPartition.AreaName" then 
-        do:
-            return "_area._area-name".    
-        end.
-        else if pcColumn = "ttPartition.TableName" then 
+        
+        if pcColumn = "ttPartition.TableName" then 
         do:
             return "_File._file-name".    
         end.
-        else if pcColumn = "ttPartition.IndexName" then 
+        
+        if pcColumn = "ttPartition.IndexName" then 
         do:
-    
             return "_Index._index-name".    
         end.
-        else if pcColumn = "ttPartition.FieldName" then 
+        
+        if pcColumn = "ttPartition.FieldName" then 
         do:
             return "_Field._Field-name".    
         end.
-        return pccolumn.
+  
+        return super:ColumnSource(pcColumn).
    
     end method.  
     
@@ -754,6 +874,20 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
          
          return if cName = ? then "<unknown>" else cName.    
     end method.    
+    
+    method protected char GetMappingForJoin(pcTables as char):
+        return right-trim(
+               (if lookup("_tenant",pcTables) <> 0
+                then StorageTenantMap + "," 
+                else "")
+             + (if lookup("_Partition-set",pcTables) <> 0
+                then StorageGroupMap + "," 
+                else "")
+             + (if lookup("_Area",pcTables) <> 0
+                then StorageAreaMap + "," 
+                else ""),",").         
+    end.    
+    
     
         
 end class.

@@ -381,8 +381,9 @@ do:
            if   CAN-DO(pattern, cache_file[ix]) 
        	   AND NOT LOOKUP(cache_file[ix], choice) > 0 then 
        	   do:
-             FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix].
-
+             FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix]
+                                 and (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
+             
              if  tblslcn:SCREEN-VALUE in frame tbl_get = "A"  THEN DO:
                 /* the assign below used to be one statement, but I separated it
                    in two to handle selecting lots of tables so we don't run
@@ -473,9 +474,9 @@ do:
          do ix = 1 to NUM-ENTRIES(chosen):
       	     item = ENTRY(ix, chosen).
       	     if NOT CAN-DO(pattern, item) then
-      	        choice = choice + (if choice = "" then "" else ",") + item.
+      	        choice = choice + "," + item.
          end.
-
+         choice = LEFT-TRIM(choice,",").
       /* Must clear choose and then reset to the ones we still want on. */
       tlist:screen-value in frame tbl_get = "". 
       tlist:screen-value in frame tbl_get = choice.

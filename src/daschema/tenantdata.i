@@ -13,8 +13,8 @@
   ----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
- define protected temp-table ttTenantData no-undo serialize-name "tenants"  {1} before-table ttSequenceValueCopy
+ define protected temp-table ttTenantData no-undo serialize-name "tenants"  {1}  
      field Name       as character serialize-name "Name"   
-/*     {daschema/entity.i}*/
+     {daschema/entity.i}
      index idxName as unique primary Name.
     

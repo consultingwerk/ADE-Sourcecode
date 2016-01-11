@@ -23,12 +23,10 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
-using OpenEdge.DataAdmin.Rest.RestRequest from propath.
+using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
-
-define variable mMode       as char init "get" no-undo.
-define variable mCollection as char init "securitysummary" no-undo.
+ 
 
 define temp-table ttSummary serialize-name "securitySummary" 
     field AllowBlankUserid          as log  serialize-name "allowBlankUserId"
@@ -40,24 +38,15 @@ define temp-table ttSummary serialize-name "securitySummary"
     field NumDomains                as int  serialize-name "numDomains"
     field NumEnabledDomains         as int  serialize-name "numEnabledDomains"
     field NumDisabledDomains        as int  serialize-name "numDisabledDomains"
- .
-    
+. 
+{darest/restbase.i get securitysummary}  
 
-if session:batch-mode and not this-procedure:persistent then 
-do:
-   output to value("get_securitysummary.log"). 
-   run executeRequest(session:parameter).  
-end.
-finally:
-    if session:batch-mode then output close.            
-end finally.  
-
-procedure executeRequest:
-    define input  parameter pcURL as character no-undo.
+procedure Execute:
+    define input  parameter restRequest as IRestRequest  no-undo.      
+ 
      
     /* ***************************  Definitions  ************************** */
    
-    define variable restRequest  as RestRequest no-undo.
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
     
@@ -65,7 +54,6 @@ procedure executeRequest:
      
     /* ***************************  Main Block  *************************** */
     
-    restRequest = new RestRequest(mMode,mCollection,pcUrl).  
     
     /*service = new DataAdminService(restRequest:ConnectionName).*/ 
     restRequest:Validate().
@@ -98,7 +86,7 @@ procedure FillSummary:
   define variable  NumRegularTenants  as integer  no-undo.
   define variable  NumSuperTenants    as integer  no-undo.
   define variable  HasSecurityAdministrator as logical initial true no-undo.
-  define variable  AllowBlankUserid   as logical  no-undo.
+  define variable  AllowBlankUserid   as logical  initial true no-undo.
        
    for each DICTDB._Tenant no-lock:
      NumTenants = NumTenants + 1.
@@ -124,12 +112,21 @@ procedure FillSummary:
    if  _File._Can-create EQ "*" and _File._Can-delete EQ "*" then 
      HasSecurityAdministrator = false.
 
+   /* changes which do the reverse of disallow blank userid access- _usrblnk.p */ 
    find first DICTDB._db where DICTDB._db._db-local = true no-lock.
-   find DICTDB._db-option where DICTDB._db-option._db-recid = RECID(DICTDB._db) 
-        and   DICTDB._db-option._db-option-code =  "_pvm.noBlankUser"
-        and   DICTDB._db-option._db-option-type =  2 no-lock.
-   assign AllowBlankUserid = NOT logical(DICTDB._db-option._db-option-value). 
-  
+   FOR EACH DICTDB._File
+     WHERE DICTDB._File._Db-recid = RECID(DICTDB._db)
+     AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN" )
+     AND NOT _File-Name BEGINS "_aud" :
+
+      IF _Can-read = "!,*" and _Can-write = "!,*" and 
+         _Can-create = "!,*" and _Can-delete = "!,*" then
+             AllowBlankUserid = FALSE.
+      else do:
+             AllowBlankUserid = TRUE.
+             LEAVE.
+      end.   
+   END.
   
    create ttSummary.
    assign 

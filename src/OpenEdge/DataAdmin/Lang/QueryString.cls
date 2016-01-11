@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation.             * 
+* Copyright (C) 2006-2012 by Progress Software Corporation.             * 
 * All rights reserved.                                                  *
 *                                                                       *
 ************************************************************************/
@@ -118,6 +118,7 @@ class OpenEdge.DataAdmin.Lang.QueryString :
                                   pQueryMap as IQueryMap ) :
        this-object(pQueryMap).
        mcUnparsedQuery = pcQueryWhere.  
+   
        parseQuery(pcQueryWhere).
   end constructor.
   
@@ -156,7 +157,6 @@ class OpenEdge.DataAdmin.Lang.QueryString :
   
   method public character  GetTableExpression(pcTable as char):
       return getTableEvaluation(1,1,pcTable).
-   
   end method.
       
   method public void ClearFilter():
@@ -222,7 +222,7 @@ class OpenEdge.DataAdmin.Lang.QueryString :
       if MergeQuery  then                       
           return MergeQueryString(pcTables,?).
       else
-          return BuildParsedQueryString(pcTables).                
+          return BuildParsedQueryString(pcTables). 
   end method.
   
   method public character BuildQueryString(phQuery as handle):  
@@ -333,13 +333,9 @@ class OpenEdge.DataAdmin.Lang.QueryString :
       assign 
           cNewWhere    = tableEvaluation(1,pcTable)
           cBufferWhere = bufferWhereClause(pcTable,pcQuery,output ifound).
-      
-      if cBufferWhere = "" then 
-             undo, throw new AppError("Cannot build find string for table "  
-                                       + quoter(pcTable) 
-                                       + " not present in query "
-                                       + quoter(pcQuery),?) .
-
+      if cBufferWhere = ""  and cNewWhere > "" then
+          return "where " + cNewWhere. 
+   
        /* get rid of for each and options  (this is just a quick solution ) */
       if cNewWhere > '' then
           assign /* Find the buffer's 'expression-entry' in the query */
@@ -1327,8 +1323,6 @@ method private character NewQuerySort ( pcQuery       as char,
            or canAddRefTables(mcExpTables[iRef],piTableEntry,pcTables) then
            do:
              cExpression = mcExpression[iRef]. 
-/*              MESSAGE iRef  cExpression            */
-/*                VIEW-AS ALERT-BOX INFO BUTTONS OK. */
            end.
          end.
          else if iRef > 0 then 
@@ -1413,31 +1407,34 @@ method private character NewQuerySort ( pcQuery       as char,
     define variable cCurrentTable as character  no-undo.
     define variable iTablePos     as integer    no-undo.
     define variable iCurrent      as integer    no-undo.
+    
     cCurrentTable = entry(piTableLevel,pcTables).
+    
     iNumRefTables = num-entries(pcRefTables).  
     
     /* expression with no ref goes to first */ 
     if iNumRefTables = 0 then
-      return piTableLevel = 1 .
+        return piTableLevel = 1 .
     
     if iNumRefTables = 1 then
-      return cCurrentTable = pcRefTables.
-
+        return cCurrentTable = pcRefTables.
+    
     /* if current is in ref include if the others are higher or external  */
-    if lookup(cCurrentTable,pcTables) > 0 then
+    if lookup(cCurrentTable,pcRefTables) > 0 then
     do:
-      do iTable = 1 to num-entries(pcRefTables) :
-        cTable = entry(iTable,pcRefTables).
-        if cTable <> cCurrentTable then
-        do:
-          iTablePos = lookup(cTable,pcTables).
-          if iTablePos > piTableLevel then
-            return false.
+        do iTable = 1 to num-entries(pcRefTables) :
+            cTable = entry(iTable,pcRefTables).
+            if cTable <> cCurrentTable then
+            do:
+                iTablePos = lookup(cTable,pcTables).
+                if iTablePos > piTableLevel then
+                do:
+                    return false.
+                end.    
+            end.
         end.
-      end.
-      return true.
+        return true.
     end.
-
     return false.
 
   end method.

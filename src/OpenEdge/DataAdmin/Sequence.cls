@@ -26,16 +26,23 @@ using OpenEdge.DataAdmin.ISequenceValueMap from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
 using OpenEdge.DataAdmin.IRequestInfo from propath.
-
+using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
- 
+using OpenEdge.DataAdmin.Error.ForbiddenOperationError from propath.
 using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.DataAdminError from propath.
   
 class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdminElement, IDataAdminSerializable:  
-    
+    /** currently only PUB */
+     define public property Schema as ISchema no-undo 
+        get():
+            if valid-handle(mBuffer) and valid-object(Service) 
+            and mBuffer::SchemaName = "PUB" then 
+                return Service:GetSchema().       
+            return ?.          
+        end.    
     /** Returns true if the sequence is multi-tenant enabled.
         Can only be edited before the sequence is created.  */
     define public property IsMultiTenant as logical no-undo  
@@ -169,7 +176,7 @@ class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdm
             end.    
             if not valid-object(SequenceValues) then
             do:
-                SequenceValues = cast(GetChildCollection(Name,"SequenceValues"),ISequenceValueMap).
+                SequenceValues = cast(GetChildCollection("SequenceValues"),ISequenceValueMap).
             end.
             return SequenceValues.
             catch e as DataAdminError :
@@ -177,7 +184,7 @@ class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdm
                 if valid-object(err) then 
                 do:
                     if err:GetMessageNum(1) = 15956 then 
-                         undo, throw new UnsupportedOperationError("SequenceValues with data for many tenants can only be accessed by a super-tenant.", e).
+                        undo, throw new ForbiddenOperationError("SequenceValues with data for many tenants can only be accessed by a super-tenant.", e).
               
                 end.    
                 undo,throw e.

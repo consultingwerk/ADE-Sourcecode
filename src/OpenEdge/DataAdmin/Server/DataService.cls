@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
+ /* Copyright (c) 2011,2012 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -30,7 +30,7 @@ using OpenEdge.DataAdmin.Binding.IConnection from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
-
+using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.ConnectionError from propath.
@@ -69,11 +69,12 @@ class OpenEdge.DataAdmin.Server.DataService:
         this-object("").         
     end method.
     
-    constructor public DataService (name as char):
+    constructor public DataService (pname as char):
     
         define variable cpath as character no-undo.
         super ().
-        if name = "" or name = ? then
+        
+        if pname = "" or pname = ? then
         do:
             if num-dbs = 1 then 
                 Connection = new Connection(ldbname(1)).      
@@ -82,20 +83,19 @@ class OpenEdge.DataAdmin.Server.DataService:
             else
                 undo, throw new ConnectionError("No database is connected. One database needs to be connected to start the service without specifying a name.").
  
-            ValidateConnection(  ).
-   
+        ValidateConnection(  ).   
         end.
         else do:
-            if index(name,"~\") > 0 then 
-                name = replace(name,"~\","/").
+            if index(pname,"~\") > 0 then 
+                pname = replace(pname,"~\","/").
                 
-            if num-entries(name,"/") > 1 then
+            if num-entries(pname,"/") > 1 then
             do:
-                cpath = name.
+                cpath = pname.
                 entry(num-entries(cpath,"/"),cpath,"/")  = "". 
                 cpath = right-trim(cPath,"/").
-                name = entry(num-entries(name,"/"),name,"/"). 
-                Connection = new OpenEdge.DataAdmin.Binding.Connection(cpath,name).
+                pname = entry(num-entries(pname,"/"),pname,"/"). 
+                Connection = new OpenEdge.DataAdmin.Binding.Connection(cpath,pname).
                 Connection:Connect().
                 
                 ValidateConnection(  ).
@@ -104,7 +104,7 @@ class OpenEdge.DataAdmin.Server.DataService:
             else 
             do:
                  
-                Connection = new OpenEdge.DataAdmin.Binding.Connection(name).
+                Connection = new OpenEdge.DataAdmin.Binding.Connection(pname).
                    
                 ValidateConnection(  ).
                         
@@ -134,14 +134,16 @@ class OpenEdge.DataAdmin.Server.DataService:
         RequestComplete:Publish(msg:SerializeName,msg:ContextId).  
     end method.
  
-    method public IUtilityRequest ExecuteUtility(msg as IUtilityRequest):
+    method public IUtilityResponse ExecuteUtility(msg as IUtilityRequest):
         define variable util as IServerCommand no-undo.
-        
+        define variable response as IUtilityResponse no-undo.
         util = ServerCommandFactory:GetCommand(msg:EntityName).
         
         util:Execute(msg).
+        response = util:GetResponse().
         /* currently no response */
-        return msg. 
+         
+        return response. 
 /*        this-object:GetDataAccess(msg:EntityName):FetchData(msg).*/
     end method. 
  
@@ -203,8 +205,10 @@ class OpenEdge.DataAdmin.Server.DataService:
              do:
                 if Connection:Error:GetMessageNum(1) = 1012 then 
                     undo, throw new ConnectionError("Cannot connect to " + Connection:FullName + " when already connected to " + pdbname(Connection:Name)).
-                 
-                undo, throw new ConnectionError(Connection:Error).
+                /*else if Connection:Error:GetMessageNum(1) = 710 then 
+                    undo, throw new ConnectionError("UserId/Password is incorrect. " ). 
+                else */
+                    undo, throw new ConnectionError(Connection:Error).
              end. 
              /* Errors when path is specified should have Connection:Error so the following 
                 code block is likely unnecessary */    
@@ -229,14 +233,14 @@ class OpenEdge.DataAdmin.Server.DataService:
              end.
              
              /* constructor handles blank name  
-               - does not create a Connection if more or less than 1 db                
+               - does not create a Connection if more or less than 1 db               
              else do: 
                  if num-dbs > 1 then
                     undo, throw new ConnectionError("The service needs a database name when more than one database is connected.").
                  
                  undo, throw new ConnectionError("No database is connected. There need to be one database connected to start the service without specifying a name.").
-             end.        
-              */
+             end.        */
+              
        
          end.
          

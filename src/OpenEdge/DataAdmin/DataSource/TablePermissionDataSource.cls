@@ -117,7 +117,7 @@ Hidden,_Hidden"
             /*  Dont use Create and Attach data Source. Instead do it the way its done for fields.
                 phBuffer:attach-data-source(DataSourceHandle,FieldMapping). 
                 hBeforeBuff:save-row-changes ().*/
-                find dictdb._file where rowid(dictdb._file) = phBuffer::trowid exclusive.
+                find dictdb._file where rowid(dictdb._file) = phBuffer::trowid exclusive no-wait.
                 
                 IF phBuffer::CanRead <> _File._Can-read THEN DO:
                    mod = yes.

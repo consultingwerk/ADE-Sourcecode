@@ -63,6 +63,12 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
     
     constructor public RequestInfo (pName as char):
         super ().
+        if pName = "" or pname = ? then
+            undo, throw new IllegalArgumentError("No collection name passed to constructor.") .
+        if index(pName," ") <> 0 then
+        do:
+            undo, throw new IllegalArgumentError(pname + " is not a valid collection name.") .
+        end.
         Name = pName.
     end constructor.
     
@@ -85,7 +91,7 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
         KeyFields = pKey.
         KeyIntValue = pValue.
         extent(mKeyValues) = 1.
-        mKeyValues[1] = string(pkey).
+        mKeyValues[1] = string(pValue).
     end constructor.
      
     method public logical Add(child as IRequestInfo):

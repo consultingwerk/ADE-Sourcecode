@@ -10,7 +10,11 @@ using OpenEdge.DataAdmin.Binding.Query.DataAdminQuery from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.DataSource.DBQuery  inherits DataAdminQuery    :
-  /* Pretend properties (must be controlled) */ 
+  
+  define public override property Tables as char no-undo
+      get.
+      protected set.
+  
   define protected property TempSourceBuffer as handle no-undo
       get.
       private set.

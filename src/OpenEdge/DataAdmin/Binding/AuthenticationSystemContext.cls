@@ -197,7 +197,9 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
             assign 
                 ttAuthenticationSystem.Name            = authenticationSystem:name
                 ttAuthenticationSystem.Entity          = authenticationSystem
-                ttAuthenticationSystem.Description     = authenticationSystem:Description  
+                ttAuthenticationSystem.Description     = authenticationSystem:Description
+                ttAuthenticationSystem.IsEnabled       = authenticationSystem:IsEnabled
+                ttAuthenticationSystem.Callback        = authenticationSystem:Callback  
                 ttAuthenticationSystem.Comments        = authenticationSystem:Comments    
                 .   
             OnRowCreated().      

@@ -46,6 +46,7 @@ DEFINE VARIABLE l_files          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_seqs           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE maxorder         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE prgmaxorder      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE a                AS INTEGER   NO-UNDO.
 
 DEFINE BUFFER   a_DICTDB         FOR DICTDB._Field.
@@ -263,6 +264,14 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
   /* Do first to avoid _order collisions */
   FIND LAST DICTDB._Field OF DICTDB._FILE USE-INDEX _Field-position.
   ASSIGN maxorder = DICTDB._Field._Order.
+
+  /*  OE00218059 */
+  FIND LAST DICTDB2._Field OF DICTDB2._FILE USE-INDEX _Field-position.
+  ASSIGN prgmaxorder = DICTDB2._Field._Order.
+
+  if maxorder < prgmaxorder then
+  assign maxorder = prgmaxorder.
+
   FOR EACH DICTDB._Field OF DICTDB._File:
     ASSIGN DICTDB._Field._Order = maxorder + 5
            maxorder = maxorder + 5.

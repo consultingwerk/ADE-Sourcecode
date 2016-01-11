@@ -104,7 +104,7 @@ no-undo.
             do:
                  find dictdb._Sequence where dictdb._Sequence._Seq-Owner = hBeforebuff::SchemaName
                                        and   dictdb._Sequence._Db-recid = DatabaseInfo:DatabaseRecid     
-                                       and   dictdb._Sequence._Seq-name = hBeforebuff::Name exclusive.
+                                       and   dictdb._Sequence._Seq-name = hBeforebuff::Name exclusive no-wait.
                  delete dictdb._Sequence.  
             end.
             else do:    
@@ -125,7 +125,7 @@ no-undo.
                 else do:
                     find dictdb._Sequence where dictdb._Sequence._Seq-Owner = hBeforeBuff::SchemaName
                                             and   dictdb._Sequence._Db-recid = DatabaseInfo:DatabaseRecid     
-                                            and dictdb._Sequence._Seq-name = hBeforeBuff::Name exclusive.
+                                            and dictdb._Sequence._Seq-name = hBeforeBuff::Name exclusive no-wait.
                     
                     if dictdb._Sequence._Seq-Attributes[1] <> phBuffer::IsMultitenant then 
                         undo, throw new DataAccessError("Cannot change multi-tenancy for a sequence.").                

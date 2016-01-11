@@ -26,6 +26,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
         field rid        as rowid
         field parent     as char
         field joinfields  as char
+        field reposJoin   as logical 
         field newhandle   as handle
         field filter as char
       index num num  
@@ -49,11 +50,12 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
                num = counter.
     end method.    
     
-    method private void UpdateJoin(cparent as char,cname as char,cfields as char):      
+    method private void UpdateJoin(cparent as char,cname as char,cfields as char,plRepos as log):      
         find ttTable where ttTable.name = cname no-error.
         if not avail ttTable then this-object:add(cname).
         assign ttTable.parent = cparent 
-               ttTable.joinfields = cfields.
+               ttTable.joinfields = cfields
+               ttTable.reposJoin = plRepos.
     end method.    
    
     method private void UpdateFilter(cname as char,cfilter as char):      
@@ -73,7 +75,11 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
     end method.
     
     method public void SetJoin(cParent as char,name as char,cFieldPairs as char):
-        UpdateJoin(cparent,name,cfieldpairs).
+        UpdateJoin(cparent,name,cfieldpairs,false).
+    end method. 
+   
+    method public void SetRepositionJoin(cParent as char,name as char,cFieldPairs as char):
+        UpdateJoin(cparent,name,cfieldpairs,true).
     end method. 
    
     method public void SetFilter(name as char,cFilter as char):
@@ -202,7 +208,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
 /*                   message ttTable.parent GetNewHandle(ttTable.parent) ttTable.name hbuffer ttTable.joinfields*/
 /*                   view-as alert-box.                                                                         */
                  /* to do change to parent name */
-                   ttTable.newhandle = AddChild(GetNewHandle(ttTable.parent),ttTable.name,hbuffer,ttTable.joinfields).     
+                   ttTable.newhandle = AddChild(GetNewHandle(ttTable.parent),ttTable.name,hbuffer,ttTable.joinfields,ttTable.reposJoin).     
                end.
                else 
                   ttTable.newhandle = Addbuffer(ttTable.name,hbuffer).          
@@ -233,7 +239,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
         return hBuffer.
     end.
      
-    method public handle AddChild(hParent as handle,name as char,hchild as handle,link as char):
+    method public handle AddChild(hParent as handle,name as char,hchild as handle,link as char,plRepos as log):
         define variable h as handle no-undo.
         
         create buffer hchild for table hChild.
@@ -253,7 +259,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree implements IContextTree:
 /*         skip                                                        */
 /*         view-as alert-box.                                          */
          
-        mDataset:add-relation(hparent,hchild,link,no,yes,yes,no,yes).
+        mDataset:add-relation(hparent,hchild,link,plRepos,yes,yes,no,yes).
      
           /*
         ADD-RELATION ( parent-buffer-handle, child-buffer-handle,  

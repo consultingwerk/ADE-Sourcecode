@@ -5828,7 +5828,7 @@ PROCEDURE resizeWindow :
   DEFINE VARIABLE hContainerHandle AS HANDLE NO-UNDO.
   DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
   DEFINE VARIABLE hFrame           AS HANDLE NO-UNDO.  
-  DEFINE VARIABLE lScrollable      AS LOGICAL    NO-UNDO.
+  /*DEFINE VARIABLE lScrollable      AS LOGICAL    NO-UNDO.*/
   
   {get ContainerHandle hContainerHandle}.
   IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:TYPE = 'Window':U THEN
@@ -5841,9 +5841,9 @@ PROCEDURE resizeWindow :
       /* We set scrollable false since we do not want scrollbars if all 
          contents of the frame fits in the window.  
          We log the actual value for reassign after resize */ 
-      assign 
+      /*assign 
         lScrollable = hFrame:scrollable
-        hFrame:scrollable = false.
+        hFrame:scrollable = false.*/
       /* Intentionally separate statements with no-error to always shrink if 
          possible. We could have used max(frame,window) to ensure that the 
          frames only were increased, but we want to shrink unless some widget 
@@ -5851,7 +5851,7 @@ PROCEDURE resizeWindow :
       hFrame:WIDTH  = hContainerHandle:WIDTH NO-ERROR.
       hFrame:HEIGHT = hContainerHandle:HEIGHT NO-ERROR.
       /* if the frame was scrollable set it back */
-      if lScrollable then
+      /*if lScrollable then
       do:
         hFrame:scrollable = true.    
         /* if the size did not fit force scrollbars 
@@ -5867,7 +5867,7 @@ PROCEDURE resizeWindow :
           assign
            hFrame:height-p = hFrame:height-p + 1 
            hFrame:height-p = hFrame:height-p - 1.           
-      end.
+      end.*/
     END.
   END.
   ELSE DO: /* No window here so pass up to the next contanier*/

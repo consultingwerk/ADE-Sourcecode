@@ -32,7 +32,12 @@ using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 
 class OpenEdge.DataAdmin.UserTablePermissionSet inherits DataAdminCollection implements IUserTablePermissionSet : 
       
-    define public property Schema as ISchema no-undo get.     
+    define public property Schema as ISchema no-undo 
+       get():
+           if valid-object(Service) then
+               return Service:GetSchema().
+           return this-object:Schema.
+       end.           
    
     constructor UserTablePermissionSet(cntx as IDataAdminContext):
         super(cntx).     
@@ -49,12 +54,6 @@ class OpenEdge.DataAdmin.UserTablePermissionSet inherits DataAdminCollection imp
     method public IUserTablePermission Find(tablename as char):
         return cast(Context:FindEntity(tablename),IUserTablePermission). 
     end method.
-    
-    method public override void ImportTree(pcFile as char). 
-        define variable reader as JSONLoader no-undo.        
-        reader = new JSONLoader().
-        reader:LoadFromFile(this-object,pcfile,"Replace").  
-    end method. 
     
     method public override logical Contains(obj as Object):
         define variable perm as IUserTablePermission no-undo. 

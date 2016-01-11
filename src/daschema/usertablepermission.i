@@ -26,6 +26,7 @@
      field SchemaName      as character serialize-name "schemaName"
      field Name            as character serialize-name "name"
      field Hidden          as logical   serialize-name "hidden"
+     field Frozen          as logical   serialize-name "frozen"
    
      field CanRead         as logical serialize-name "canRead"
      field CanWrite        as logical serialize-name "canWrite"

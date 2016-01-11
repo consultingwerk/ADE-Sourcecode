@@ -98,18 +98,24 @@ FORM
 
 ON CHOOSE OF OK_BUT IN FRAME frame_default
   DO:          
-		  RUN default_save.
+     IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_default = ?
+     THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+     ELSE DO:
+          RUN default_save.
           APPLY "CLOSE":U TO THIS-PROCEDURE.
           RETURN NO-APPLY.         
+     END.     
   END.
 
 ON CHOOSE OF CREATE_BUT IN FRAME frame_default
  DO:
+     IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default = "" OR EXPRESSION:SCREEN-VALUE IN FRAME frame_default = ?
+     THEN MESSAGE " The constraint expression cannot be left blank" VIEW-AS ALERT-BOX ERROR.
+     ELSE DO:
           RUN default_save.
           RUN FILL_TEMP2.
           RUN default.
-          &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN
-          ASSIGN msg:SCREEN-VALUE ="Constraint Modified".  &ENDIF  
+     END.      
  END. 
  
  
@@ -167,13 +173,19 @@ END PROCEDURE.
 
 PROCEDURE default_save:
      FOR EACH DICTDB._constraint where _con-name = constr_name AND DICTDB._constraint._Db-Recid =DbRecid:
-         IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default <> "" THEN 
-         MESSAGE "Default Constraint Expression Chnaged" VIEW-AS ALERT-BOX INFORMATION.
-         IF ACTIVE:SCREEN-VALUE IN FRAME frame_default= "yes" THEN
-         ASSIGN _Con-Active = TRUE.
-         ELSE ASSIGN _Con-Active = FALSE.
-         ASSIGN _Con-Desc = DESC_EDIT:SCREEN-VALUE IN FRAME frame_default. 
-         ASSIGN _Con-Status = "C"
-                _Con-Expr = EXPRESSION:SCREEN-VALUE IN FRAME frame_default.                     
+         IF EXPRESSION:SCREEN-VALUE IN FRAME frame_default <> DICTDB._constraint._Con-Expr AND
+            EXPRESSION:SCREEN-VALUE IN FRAME frame_default <> ""
+         THEN DO:
+          MESSAGE "Default constraint expression changed" VIEW-AS ALERT-BOX INFORMATION.
+          IF ACTIVE:SCREEN-VALUE IN FRAME frame_default= "yes" THEN
+          ASSIGN _Con-Active = TRUE.
+          ELSE ASSIGN _Con-Active = FALSE.
+          ASSIGN _Con-Desc = DESC_EDIT:SCREEN-VALUE IN FRAME frame_default. 
+          ASSIGN _Con-Status = "C"
+                 _Con-Expr = EXPRESSION:SCREEN-VALUE IN FRAME frame_default.   
+                 
+          &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN
+          ASSIGN msg:SCREEN-VALUE ="Constraint Modified".  &ENDIF                                    
+         END.
      END.  
 END.   

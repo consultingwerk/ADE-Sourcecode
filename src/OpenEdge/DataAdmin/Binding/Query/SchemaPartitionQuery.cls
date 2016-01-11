@@ -24,7 +24,7 @@ using OpenEdge.DataAdmin.Binding.IPartitionContext from propath.
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
+using OpenEdge.DataAdmin.Binding.Query.PartitionQuery from propath.
 
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
@@ -33,7 +33,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits FilteredContext implements IPartitionContext: 
+class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits PartitionQuery implements IPartitionContext: 
 	/*------------------------------------------------------------------------------
 			Purpose: Used for a collection of partitions of a schema element
 			 		 mapped by tenant or group															  
@@ -44,20 +44,19 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Fi
 	    get():
 	        return cast(Parent,PartitionContext).   
 	    end.
+	    
     define protected variable TableName as character no-undo.
 	define protected variable FieldName as character no-undo.
     define protected variable IndexName as character no-undo.
     define protected variable Collation as character no-undo.
     
     constructor protected SchemaPartitionQuery (pdatacontext as PartitionContext,pcparent as char,pcTable as char,pcfield as char, pcIndex as char,pccollation as char,preq as IRequestInfo):
-		 
  	    super (pdatacontext,pcParent,GetValues(pcTable,pcfield,pcIndex,pccollation),pReq).    
  	    assign
  	        TableName = pcTable
  	        FieldName = pcfield
  	        IndexName = pcIndex
  	        Collation = pccollation.
- 	          
 	end constructor.
     
     method private char extent 4 GetValues(pcTable as char,pcfield as char, pcIndex as char,pccollation as char):
@@ -79,17 +78,17 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Fi
         undo, throw new UnsupportedOperationError("SchemaPartitionQuery Find with single key").
     end.    
     
-    method public override IFetchRequest GetQueryRequest():
-        define variable tree   as IContextTree no-undo.
-        define variable hds    as handle no-undo.
-        
-        tree = new ContextTree().
-        AddTableTo(tree).
-        hds = tree:GetReadHandle().
-        return new FetchRequest(Name,Id,hds). 
- 
-    end method.
-    
+/*    method public override IFetchRequest GetQueryRequest():*/
+/*        define variable tree   as IContextTree no-undo.    */
+/*        define variable hds    as handle no-undo.          */
+/*                                                           */
+/*        tree = new ContextTree().                          */
+/*        AddTableTo(tree).                                  */
+/*        hds = tree:GetReadHandle().                        */
+/*        return new FetchRequest(Name,Id,hds).              */
+/*                                                           */
+/*    end method.                                            */
+/*                                                           */
     method public override void ExportLastSaved(pcfile as char). 
         define variable hBuffer as handle no-undo.
         if valid-handle(LastSavedDataset) then
@@ -167,7 +166,7 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Fi
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
         define variable hBuf as handle no-undo.
-        
+        PartitionContext:ValidateAllocationRequest(pcAllocationState).
         lTrack = TableHandle:tracking-changes.
         TableHandle:tracking-changes = true. 
         hBuf = QueryHandle:get-buffer-handle(this-object:Table).
@@ -203,8 +202,11 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Fi
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
         define variable hBuf as handle no-undo.
-        lTrack = TableHandle:tracking-changes.
        
+        PartitionContext:ValidateAllocationRequest(pcAllocationState).
+        
+        lTrack = TableHandle:tracking-changes.
+         
         TableHandle:tracking-changes = true. 
         hBuf = QueryHandle:get-buffer-handle (this-object:Table).
         rid = hBuf:rowid.

@@ -1,12 +1,11 @@
  /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
+ /* Copyright (c) 2011-2012 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
  /* permission in writing from progress Software Corporation. */
  /*************************************************************/
  /*------------------------------------------------------------------------
-    File        : DomainData
     Purpose     : 
     Syntax      : 
     Description : 
@@ -27,10 +26,12 @@ using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.UserDataSource from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
+using OpenEdge.DataAdmin.Message.ITableRequest from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
 using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+
 class OpenEdge.DataAdmin.DataAccess.SequenceValueData inherits DataAccess implements IDataAccess,IQueryMap: 
     
  
@@ -71,6 +72,7 @@ class OpenEdge.DataAdmin.DataAccess.SequenceValueData inherits DataAccess implem
         define variable seqvalDatasource as IDataSource no-undo.
         define variable seqDatasource as SequenceDataSource no-undo.
         define variable tntDatasource as TenantDataSource no-undo.
+        define variable tableRequest as ITableRequest no-undo.
         hBuffer = msg:DataHandle:get-buffer-handle ("ttSequenceValue") no-error.
       
         if valid-handle(hBuffer) then
@@ -88,22 +90,39 @@ class OpenEdge.DataAdmin.DataAccess.SequenceValueData inherits DataAccess implem
                 hSequenceBuffer = msg:DataHandle:get-buffer-handle ("ttSequence") no-error.
                 seqDatasource = new SequenceDataSource().
                 seqDatasource:FillMode = "Append".
-                cquery = msg:GetTableQuery("ttSequence"). 
-                seqDatasource:Prepare(hSequenceBuffer, cquery,"").
+                tableRequest = msg:GetTableRequest("ttSequence").
+                if valid-object(tableRequest) then 
+                    seqDatasource:Prepare(hSequenceBuffer,tableRequest).         
+                else
+                    seqDatasource:Prepare(hSequenceBuffer).      
+                
                 seqvalDatasource = new SequenceValueDataSource("sequence",seqDatasource:QueryString).
             end.
-            cquery = msg:GetTableQuery("ttSequenceValue").
             seqvalDatasource:Url = msg:Url.
             seqvalDatasource:FillMode = "Append".
-            seqvalDatasource:Prepare(hBuffer, cquery,"").
+            tableRequest = msg:GetTableRequest("ttSequenceValue").            
+            if valid-object(tableRequest) then 
+                seqvalDatasource:Prepare(hBuffer,tableRequest).         
+            else
+                seqvalDatasource:Prepare(hBuffer).      
+            
         end.     
         msg:DataHandle:Fill() no-error.
         if error-status:error then 
         do:
            undo, throw new IllegalArgumentError(error-status:get-message(1)). 
         end.
+        
         if valid-object(seqvalDatasource:FillError) then    
-            undo, throw seqvalDatasource:FillError.                                              
+            undo, throw seqvalDatasource:FillError.   
+                                                       
+        if seqvalDatasource:NumRecords <> ? then 
+            msg:SetTableTotal("ttSequenceValue",seqvalDatasource:NumRecords).
+        if valid-object(tntDatasource) and tntDatasource:NumRecords <> ? then 
+            msg:SetTableTotal("ttTenant",tntDatasource:NumRecords).
+        if valid-object(seqDatasource) and seqDatasource:NumRecords <> ? then 
+            msg:SetTableTotal("ttSequence",seqDatasource:NumRecords).
+        
         /* is not garbage collected if set-callback is used */
         finally:
             delete object seqDatasource no-error.

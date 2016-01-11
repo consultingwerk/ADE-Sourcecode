@@ -243,6 +243,7 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
     method protected override void ValidateProperty(pcfield as char,poldvalue as char,pnewvalue as char).  
         if valid-object(Service) then 
             undo, throw new CreateOnlyPropertyError("Extent",string(ttExtent.number),pnewValue). 
+        super:ValidateProperty(pcField,poldvalue,pnewvalue).
         case pcfield:
 /*            when "Path" then                            */
 /*                ValidatePath(ttExtent.Number,pnewvalue).*/

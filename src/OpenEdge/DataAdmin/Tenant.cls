@@ -1,10 +1,10 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010,2012 by Progress Software Corporation. */
 /*                                                           */
-/* all rights reserved.  no part of this program or document */
+/* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/ 
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : Tenant
     Purpose     : 
@@ -45,6 +45,7 @@ using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
 using OpenEdge.DataAdmin.Error.DataAdminError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Error.ForbiddenOperationError from propath.
 using OpenEdge.DataAdmin.Error.UnknownValueError from propath. 
 using OpenEdge.DataAdmin.Error.DataError from propath. 
 using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath. 
@@ -306,18 +307,19 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
                 if valid-object(err) then 
                 do:
                     if err:GetMessageNum(1) = 15956 then 
-                         undo, throw new UnsupportedOperationError("SequenceValues for other tenants can only be accessed by a super-tenant.", e).
+                         undo, throw new ForbiddenOperationError("SequenceValues for other tenants can only be accessed by a super-tenant.", e).
                 end. 
                 undo, throw e.   
             end catch.
         end.     
         private set.
+     /* ROhit- change name to use ID instead */
      
     define public property TenantGroups as ITenantGroupSet no-undo                 
         get():
             if not valid-object(TenantGroups) then
             do:
-                TenantGroups = cast(GetChildCollection(name,"tenantGroups"),ITenantGroupSet).
+                TenantGroups = cast(GetChildCollection("tenantGroups"),ITenantGroupSet).
                 
             end.
             return TenantGroups.
@@ -328,7 +330,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
         get():
             if not valid-object(TenantGroupMembers) then
             do:
-                TenantGroupMembers = cast(GetChildCollection(name,"tenantGroupMembers"),ITenantGroupMemberSet).
+                TenantGroupMembers = cast(GetChildCollection("tenantGroupMembers"),ITenantGroupMemberSet).
 /*                TenantGroupMembers:Tenant = this-object.*/
             end.
             return TenantGroupMembers.
@@ -391,23 +393,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
     
     method public void RemoveData():
     end method.   
-     
-/*    method override logical Equals(obj as Object):   */
-/*        define variable tnt as Tenant no-undo.       */
-/*        if super:Equals(obj) then                    */
-/*            return true.                             */
-/*        else do:                                     */
-/*            tnt = cast(obj,Tenant).                  */
-/*            if  this-object:ContextId = tnt:ContextId*/
-/*            and this-object:Name = tnt:Name then     */
-/*                return true.                         */
-/*        end.                                         */
-/*        return false.                                */
-/*        catch e as Error :                           */
-/*            return false.                            */
-/*        end catch.                                   */
-/*    end method.                                      */
-    
+        
     method public override void Export():
         Export("area.json").
     end method.          
@@ -420,36 +406,6 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
                + ".". 
     end method.
     
-  
-
-/*                                                                                                   */
-/*    /* write the object with urls to children */                                                   */
-/*    method public void WriteObjectTo(writer as IDataAdminWriter):                                  */
-/*        writer:WriteContextRow(Context,Name).                                                      */
-/*    end method.                                                                                    */
-/*                                                                                                   */
-/*    /* All - expand collections */                                                                 */
-/*    method public void WriteAllTo(writer as IDataAdminWriter):                                     */
-/*        define variable cntxt as TenantContext no-undo.                                            */
-/*                                                                                                   */
-/*        if not valid-object(Context) then                                                          */
-/*        do:                                                                                        */
-/*            cntxt = new TenantContext().                                                           */
-/*            Attach(cntxt).                                                                         */
-/*        end.                                                                                       */
-/*        writer:WriteContextRow(Context,Name).                                                      */
-/*       /* if mode = ...                                                                            */
-/*        /* the domains will write users, so we don't call that from here  */                       */
-/*        writer:WriteChild(cast(Domains,IDataAdminSerializable),SerializeName,"Name,TenantName").   */
-/*        */                                                                                         */
-/*        writer:WriteChild(cast(Partitions,IDataAdminSerializable),SerializeName,"Name,TenantName").*/
-/*    end method.                                                                                    */
-/*                                                                                                   */
-/*    /* write a short list of the data with url to details */                                       */
-/*    method public void WriteListTo(writer as IDataAdminWriter):                                    */
-/*        undo, throw new UnsupportedOperationError("Tenant WriteListTo IDataAdminWriter").          */
-/*    end method.                                                                                    */
-        
     method public override void WriteTree(tree as IContextTree):
         WriteTree(tree,"domains,partitions,tenantGroupMembers").        
     end method.
@@ -490,10 +446,6 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
                do:
                    tree:SetJoin(SerializeName,"tenantGroupMembers","Name,TenantName").
                    TenantGroupMembers:WriteTree(tree,"").
-               end.    
-               when "tenantGroups" then 
-               do:
-                   undo, throw new UnsupportedOperationError("Export or import of TenantGroups collection. Use TenantGroupMembers instead.").
                end.    
                otherwise 
                    undo, throw new IllegalArgumentError("WriteTree collection " + quoter(ccoll)). 
