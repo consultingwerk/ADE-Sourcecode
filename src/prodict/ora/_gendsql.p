@@ -804,15 +804,17 @@ PROCEDURE write-seq-sql:
              df-line = "  CYCLE-ON-LIMIT " + cyc.
     END.
     IF seq-type <> "u" THEN DO:
-     CREATE df-info.
-      ASSIGN df-info.df-seq = dfseq
-             dfseq = dfseq + 1
-             df-line = "  MIN-VAL " + minval.
+      IF minval NE "" AND minval NE ? THEN DO:
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-line = "  MIN-VAL " + minval.
+      END.
 
       CREATE df-info.
       ASSIGN df-info.df-seq = dfseq
              dfseq = dfseq + 1.
-      IF maxval = ? THEN
+      IF maxval = ? OR maxval = "" THEN
         ASSIGN df-line = "  MAX-VAL ? ".
       ELSE
         ASSIGN df-line = "  MAX-VAL " + maxval.
@@ -3010,7 +3012,6 @@ DO ON STOP UNDO, LEAVE:
                      RETURN.
                  END.
               END.
-
             END.
           END.
         
@@ -3321,6 +3322,11 @@ DO ON STOP UNDO, LEAVE:
                        dffortype = "TIMESTAMP"
                        dfforitype = "180"
                        lngth     = 11.
+              ELSE if fieldtype = "datetime-tz" AND AVAILABLE new-obj THEN
+                ASSIGN new-obj.for-type = " TIMESTAMP WITH TIME ZONE"
+                       dffortype = "TIMESTAMP_TZ"
+                       dfforitype = "181"
+                       lngth     = 13.
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
                 ASSIGN new-obj.for-type = " NUMBER"
                        dffortype = "NUMBER"
@@ -3801,7 +3807,7 @@ DO ON STOP UNDO, LEAVE:
 
                   IF fieldtype = "decimal" OR (NOT new-obj.for-type BEGINS " NUMBER" AND
                      new-obj.for-type <> " DATE" AND
-                     new-obj.for-type <> " TIMESTAMP" AND
+                     NOT (new-obj.for-type BEGINS " TIMESTAMP") AND
                      new-obj.for-type <> " LONG" AND
                      new-obj.for-type <> " CLOB" AND
                      new-obj.for-type <> " NCLOB" ) THEN DO:

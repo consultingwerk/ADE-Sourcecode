@@ -125,7 +125,7 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
-
+ 
 &IF "{&ADMSuper}":U = "":U &THEN
   /* Keep these in alphabetical order */
   ghADMProps:ADD-NEW-FIELD('AssignList':U, 'CHAR':U, 0, ?, '':U).
@@ -155,6 +155,8 @@ DO:
   ghADMProps:ADD-NEW-FIELD('TempTables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('UpdatableColumnsByTable':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('UpdateFromSource':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('WordIndexedFields':U, 'CHAR':U, 0, ?,?).
+  
 &ENDIF
 
   {src/adm2/custom/qrypropcustom.i}

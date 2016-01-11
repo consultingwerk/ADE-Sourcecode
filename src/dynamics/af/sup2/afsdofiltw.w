@@ -932,18 +932,6 @@ PROCEDURE assignFilter :
                 LEAVE.
         END.    /* each data object */
     END.    /* not manual */
-  
-    /* Evaluate OUTER-JOINs in the query */
-    IF lSuccess THEN
-    DO:
-        FOR EACH ttDataObject BY ttDataObject.tSdoOrder DESCENDING:
-            ASSIGN lSuccess = DYNAMIC-FUNCTION("evaluateQueryString":U, 
-                                               INPUT ttDataObject.tSdoHandle, 
-                                               INPUT ttDataObject.tFieldNames).
-            IF NOT lSuccess THEN
-                LEAVE.
-        END.    /* each dataobject */
-    END.    /* success */
 
     IF lSuccess THEN
     DO:
@@ -2267,9 +2255,15 @@ FUNCTION evaluateOuterJoins RETURNS CHARACTER
   Purpose:  Replace OUTER-JOINs in a query with '' if filter criteria is specified
             on fields of the OUTER-JOINed buffers
 
-    Notes:  This function now simply passes the request on to the session manager.
-            We needed to centralise the functionality, as this function is invoked
-            from afsdofiltw.w, rylookupbv.w and data.p.
+    Notes: DEPRECATED - only called from evaluateQueryString, which is not in use here, but
+           replaced by logic in adm2.
+           Will still work as before, but this removes all outer-joins for subsequent tables
+           after removing one. This is wrong if a lower table in the query has a parent 
+           higher in the query.
+           adm2 will only remove it from the table that has an expression
+           adm2 will also add it back when the expression is removed        
+           
+        -  This function passes the request on to the session manager.
 ------------------------------------------------------------------------------*/
 
 IF VALID-HANDLE(gshSessionManager) THEN
@@ -2290,8 +2284,13 @@ FUNCTION evaluateQueryString RETURNS LOGICAL
   Purpose:  See if a query has OUTER-JOINed buffers. If it has and criteria
             was specified on these OUTER-JOINed buffers, ammend the query string
             to make the reference to the buffer INNER-JOINed
-    Notes:  
-------------------------------------------------------------------------------*/
+    Notes: DEPRECATED - not in use here. replaced by logic in adm2.     
+           Will still work as before, but this removes all outer-joins for subsequent tables
+           after removing one. This is wrong if a lower table in the query has a parent 
+           higher in the query.
+           adm2 will only remove it from the table that has an expression
+           adm2 will also add it back when the expression is removed        
+  ------------------------------------------------------------------------------*/
     DEFINE VARIABLE cQueryString  AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cFieldNames   AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE iCounter      AS INTEGER    NO-UNDO.

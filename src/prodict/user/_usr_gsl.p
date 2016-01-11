@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All           *
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -58,7 +58,7 @@ define input        parameter p_master   as   character.
 define variable               canned     as   logical init yes.
 define variable               l_link     as   character format "x(30)".
 define variable               l_verify   as   logical.
-DEFINE VARIABLE               l_dt_hide  AS   LOGICAL NO-UNDO.
+
 form
                                                           skip({&VM_WIDG})
   l_link    label "Link-Path  "  format "x(30)" colon 18  skip({&VM_WIDG})
@@ -207,8 +207,12 @@ IF INDEX(USERID("DICTDBG"), "/") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "/") - 1)).
 ELSE IF INDEX(USERID("DICTDBG"), "@") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "@") - 1)).
-ELSE IF p_frame NE "frm_as400" OR (p_frame = "frm_as400" AND p_owner = "*") THEN
+ELSE IF (p_frame NE "frm_as400" AND USERID("DICTDBG") NE "") 
+        OR (p_frame = "frm_as400" AND p_owner = "*") THEN
     ASSIGN p_owner = USERID("DICTDBG").
+
+IF DBTYPE("DICTDBG") EQ "ORACLE" AND p_owner = "" THEN
+   RUN prodict/ora/_get_orauser.p (OUTPUT p_owner).
 
 do on ENDKEY undo,leave:
 
@@ -223,9 +227,8 @@ do on ENDKEY undo,leave:
              p_vrfy:hidden in frame frm_link = TRUE.
     
     /* for verify, or db-link, don't display date/datetime overrride option */
-    IF l_verify OR p_link <> "" OR OS-GETENV("OE_101C_DATETIME") = ? THEN
-      ASSIGN p_datetime:hidden in frame frm_link = TRUE
-             l_dt_hide = YES.
+    IF l_verify OR p_link <> ""  THEN
+      ASSIGN p_datetime:hidden in frame frm_link = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_link" 
@@ -252,7 +255,7 @@ do on ENDKEY undo,leave:
       p_owner 
       p_vrfy when l_verify
       p_outf WHEN l_verify
-      p_datetime WHEN not l_dt_hide 
+      p_datetime WHEN not l_verify AND p_link = "" 
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -269,9 +272,8 @@ do on ENDKEY undo,leave:
       ASSIGN p_outf:HIDDEN IN FRAME frm_ntoq = TRUE
              p_vrfy:hidden in frame frm_ntoq = TRUE.
 
-    IF l_verify OR DBTYPE("DICTDBG") NE "MSS" OR OS-GETENV("OE_101C_DATETIME") = ? THEN
-      ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE
-             l_dt_hide = YES.
+    IF NOT CAN-DO("MSS",DBTYPE("DICTDBG")) or l_verify THEN
+      ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
@@ -287,7 +289,7 @@ do on ENDKEY undo,leave:
       p_qual
       p_vrfy when l_verify
       p_outf WHEN l_verify
-      p_datetime WHEN not l_dt_hide
+      p_datetime WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

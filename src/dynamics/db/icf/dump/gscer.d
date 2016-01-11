@@ -119,9 +119,7 @@ Progress returned the following errors from the TEMP-TABLE-PREPARE method:
 "AF" 129 426 "The Physical Database Name is required." "The Physical Database Name is required." 1004956064.09 no "INF" yes
 "AF" 130 426 "The Network Type, Host, and Service are all required." "The Network Type, Host, and Service are all required if any one of them is specified.
 " 1004956065.09 no "INF" yes
-"AF" 131 426 "Changes have been made to &1.
-
-Save these changes now?" "Changes have been made to the current record (which could include the addition of a new record) and have not been saved. Please indicate if the changes should be saved." 17439.5053 no "INF" yes
+"AF" 131 426 "Changes have been made to &1. Save these changes now?" "Changes have been made to the current record (which could include the addition of a new record) and have not been saved. Please indicate if the changes should be saved." 17439.5053 no "INF" yes
 "AF" 132 426 "Cannot change from a '&1' to a '&2'. See details for more information." "You are in the process of creating a '&1' which currently contains elements not allowed by the class.
 
 If you are creating Dynamic Frames, you cannot have any menu structures on the specified object. If you are creating Dynamic SBOs, you cannot have visual object instances, menu structures, pages or links other than 'Data' or user-defined links on the specified object.
@@ -298,7 +296,7 @@ The product module is determined by either
 (b) using the default value contained in the product_module_obj field of the Configuration Type.
 
 The error arose because both of these fields (product_module_fieldname and product_module_obj) are empty." 1003032020 no "INF" yes
-"RV" 15 426 "Attempt to check out an item with an SCM SubType of &1." "Attempt to check out an item with an SCM SubType of &1.  However no Configuration Type record exists with an scm_code of &1. &2." 1003032105 no "INF" yes
+"RV" 15 426 "Attempt to check out an item with an SCM SubType of &1." "Attempt to check out an item with an SCM SubType of &1. However no Configuration Type record exists with an scm_code of &1. &2." 1003032105 no "INF" yes
 "RV" 16 426 "Attempt to check out an item in workspace with scm_code &1." "Attempt to check out an item in workspace with scm_code &1 which does not exist." 1003032126 no "INF" yes
 "RV" 17 426 "Attempt to checkout from workspace &2 item with object name &1." "Attempt to checkout from workspace &2 item with object name &1, which does not exist." 1003032128 no "INF" yes
 "RV" 18 426 "Attempt to checkout from workspace &3 item of subtype &1." "Attempt to checkout from workspace &3 item of subtype &1 with object name &2 which does not exist." 1003032130 no "INF" yes
@@ -364,10 +362,10 @@ PSC
 filename=gsc_error
 records=0000000000227
 ldbname=ICFDB
-timestamp=2007/12/03-15:38:39
+timestamp=2008/09/16-15:54:27
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000044455
+0000044451

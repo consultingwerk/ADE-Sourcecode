@@ -256,8 +256,7 @@ PROCEDURE deleteRecord :
     IF CAN-DO(THIS-PROCEDURE:INTERNAL-ENTRIES,"localDelete") THEN DO:
       RUN localDelete ( INPUT "End" ).
       IF RETURN-VALUE NE "" THEN DO:
-        UNDO DEL-BLK.
-        RETURN "Failed".
+        UNDO DEL-BLK, RETURN "Failed".
       END.
     END.
   END.
@@ -434,8 +433,7 @@ PROCEDURE saveRecord :
       IF NOT lOk THEN DO:
         MESSAGE "Create failed! Cannot create record in table " hDBBuff:NAME "."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-        UNDO SAVE-BLK.
-        RETURN "Failed".
+        UNDO SAVE-BLK, RETURN "Failed".
       END.
       /* If the key is an abstract, or a GUID, the routine should have it's 
          own routine for generating it.  Call this now, if it indeed exists. */
@@ -448,8 +446,7 @@ PROCEDURE saveRecord :
           MESSAGE "Create failed! " SKIP(1) 
                   "Could not generate key for" hDBBuff:NAME "record."
               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-          UNDO SAVE-BLK.
-          RETURN "Failed".
+          UNDO SAVE-BLK, RETURN "Failed".
         END.
 
         ASSIGN hDBField:BUFFER-VALUE = TRIM(cDBKeyValue)
@@ -470,8 +467,7 @@ PROCEDURE saveRecord :
         glCreateMode = FALSE.
         MESSAGE "Save failed!  Couldn't locate record in database."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-        UNDO SAVE-BLK.
-        RETURN "Failed".
+        UNDO SAVE-BLK, RETURN "Failed".
       END.
     END.
     
@@ -514,9 +510,8 @@ PROCEDURE saveRecord :
         
       END. /* Additional assign fields initial values. */
       ELSE IF RETURN-VALUE NE "" THEN DO:
-        UNDO SAVE-BLK.
         glCreateMode = FALSE.
-        RETURN RETURN-VALUE.
+        UNDO SAVE-BLK, RETURN RETURN-VALUE.
       END.
     END.
   END. /* Transaction block */

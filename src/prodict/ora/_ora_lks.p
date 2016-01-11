@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,08 by Progress Software Corporation. All rights *
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -43,7 +43,7 @@ define variable canned          as logical   no-undo.
 define variable edbtyp          as character no-undo.
 define variable i               as integer   no-undo. 
 define variable l_rep-presel    as logical   no-undo init TRUE. 
-DEFINE NEW SHARED VARIABLE s_is_as400 as LOGICAL NO-UNDO INIT NO.
+
 /*---------------------------  TRIGGERS  ---------------------------*/
 
 /*------------------------  INT.-PROCEDURES  -----------------------*/

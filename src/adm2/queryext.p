@@ -430,17 +430,6 @@ FUNCTION getUseDBQualifier RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getWordIndexedFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWordIndexedFields Procedure 
-FUNCTION getWordIndexedFields RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setAssignList) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAssignList Procedure 
@@ -1743,32 +1732,6 @@ FUNCTION getUseDBQualifier RETURNS LOGICAL
   {get Tables cTables}.
   
   RETURN NUM-ENTRIES(ENTRY(1,cTables),".":U) > 1.   
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getWordIndexedFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWordIndexedFields Procedure 
-FUNCTION getWordIndexedFields RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose: Return a comma separated list of word indexed fields 
-    Notes: Qualified with database and table name.
-           We return database name from dynamic methods as all column* 
-           methods are able to respond to that.
-           This dbname is returned also if qualify with db name is false.
-------------------------------------------------------------------------------*/
-  RETURN 
-     REPLACE(DYNAMIC-FUNCTION("indexInformation":U IN TARGET-PROCEDURE,
-                              "WORD":U,
-                              NO,
-                              ?),
-             CHR(1),",":U).
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="232" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="0" key_field_value="3000000377.09" record_version_obj="13953.49" secondary_key_value="" version_date="12/03/2007" version_number_seq="1.49" version_time="54635" version_user="admin"><dataset_header DatasetCode="GSCER" DatasetObj="1007600214.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="94" SCMManaged="no" YearOffset="1950"/>
+<dataset Transactions="232" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="1.49" key_field_value="3000000377.09" record_version_obj="13953.49" secondary_key_value="" version_date="12/03/2007" version_number_seq="1.49" version_time="54635" version_user="admin"><dataset_header DatasetCode="GSCER" DatasetObj="1007600214.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="95" SCMManaged="no" YearOffset="1950"/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="gscer" import_version_number_seq="2.09" key_field_value="2656.1713" record_version_obj="2657.1713" secondary_key_value="HTM#CHR(1)#12#CHR(1)#426" version_date="03/21/2003" version_number_seq="2.09" version_time="51254" version_user="admin"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="gscer" import_version_number_seq="2.09" key_field_value="2660.1713" record_version_obj="2661.1713" secondary_key_value="HTM#CHR(1)#14#CHR(1)#426" version_date="03/21/2003" version_number_seq="2.09" version_time="51254" version_user="admin"/>
@@ -891,12 +891,10 @@ Progress returned the following errors from the TEMP-TABLE-PREPARE method:
 <source_language>yes</source_language>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="82" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_error" deletion_flag="no" entity_mnemonic="gscer" import_version_number_seq="2.5053" key_field_value="17439.5053" record_version_obj="17440.5053" secondary_key_value="AF#CHR(1)#131#CHR(1)#426" version_date="09/09/2004" version_number_seq="2.5053" version_time="58544" version_user="admin"><error_group>AF</error_group>
+<dataset_transaction TransactionNo="82" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_error" deletion_flag="no" entity_mnemonic="gscer" import_version_number_seq="2.94251" key_field_value="17439.5053" record_version_obj="17440.5053" secondary_key_value="AF#CHR(1)#131#CHR(1)#426" version_date="09/16/2008" version_number_seq="2.94251" version_time="43430" version_user="admin"><error_group>AF</error_group>
 <error_number>131</error_number>
 <language_obj>426</language_obj>
-<error_summary_description>Changes have been made to &amp;1.
-
-Save these changes now?</error_summary_description>
+<error_summary_description>Changes have been made to &amp;1. Save these changes now?</error_summary_description>
 <error_full_description>Changes have been made to the current record (which could include the addition of a new record) and have not been saved. Please indicate if the changes should be saved.</error_full_description>
 <error_obj>17439.5053</error_obj>
 <update_error_log>no</update_error_log>
@@ -2200,11 +2198,11 @@ The error arose because both of these fields (product_module_fieldname and produ
 <source_language>yes</source_language>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="195" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_error" deletion_flag="no" entity_mnemonic="gscer" import_version_number_seq="5.09" key_field_value="1003032105" record_version_obj="3000058969.09" secondary_key_value="RV#CHR(1)#15#CHR(1)#426" version_date="09/09/2004" version_number_seq="5.09" version_time="58548" version_user="admin"><error_group>RV</error_group>
+<dataset_transaction TransactionNo="195" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_error" deletion_flag="no" entity_mnemonic="gscer" import_version_number_seq="3.94251" key_field_value="1003032105" record_version_obj="3000058969.09" secondary_key_value="RV#CHR(1)#15#CHR(1)#426" version_date="09/16/2008" version_number_seq="3.94251" version_time="43430" version_user="admin"><error_group>RV</error_group>
 <error_number>15</error_number>
 <language_obj>426</language_obj>
 <error_summary_description>Attempt to check out an item with an SCM SubType of &amp;1.</error_summary_description>
-<error_full_description>Attempt to check out an item with an SCM SubType of &amp;1.  However no Configuration Type record exists with an scm_code of &amp;1. &amp;2.</error_full_description>
+<error_full_description>Attempt to check out an item with an SCM SubType of &amp;1. However no Configuration Type record exists with an scm_code of &amp;1. &amp;2.</error_full_description>
 <error_obj>1003032105</error_obj>
 <update_error_log>no</update_error_log>
 <error_type>INF</error_type>

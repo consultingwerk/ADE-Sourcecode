@@ -1,10 +1,10 @@
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/*****************************************************************/  
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation */
+/*                                                               */
+/* All rights reserved.  No part of this program or document     */
+/* may be  reproduced in  any form  or by  any means without     */
+/* permission in writing from PROGRESS Software Corporation.     */
+/*****************************************************************/
 /*---------------------------------------------------------------------------------
   File: rygenogtji.i
 
@@ -272,11 +272,12 @@
             LEAVE.
         ASSIGN cQuery = "FIRST ":U
                       + DYNAMIC-FUNCTION("getQualifiedTableName":U IN ghDesignManager, INPUT ttRelate.cDataBaseName, INPUT ttRelate.cRelatedTable)
-                      + " NO-LOCK WHERE " 
+                      + " WHERE " 
                       + DYNAMIC-FUNCTION("getQualifiedTableName":U IN ghDesignManager, INPUT ttRelate.cDataBaseName, INPUT ttRelate.cRelatedTable)
                       + ".":U + ENTRY(1,ttRelate.cLinkFieldName) + " = ":U
                       + DYNAMIC-FUNCTION("getQualifiedTableName":U IN ghDesignManager, INPUT pcDataBaseName, INPUT pcTableName) 
-                      + ".":U + ENTRY(1,ttRelate.cLinkFieldName).
+                      + ".":U + ENTRY(1,ttRelate.cLinkFieldName)
+                      + " NO-LOCK ".
 
         ASSIGN pcAddedTables  = IF pcAddedTables = "":U THEN DYNAMIC-FUNCTION("getQualifiedTableName":U IN ghDesignManager, INPUT ttRelate.cDataBaseName, INPUT ttRelate.cRelatedTable)
                                 ELSE pcAddedTables + ",":U

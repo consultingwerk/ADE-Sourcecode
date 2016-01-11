@@ -571,12 +571,13 @@ PROCEDURE serverCreateDataObjects :
    DO:
      IF cLogicalName > '' THEN
         cStartProps = "LaunchLogicalName":U + CHR(4) + cLogicalName.
-
      RUN constructObject (cPhysicalObject /*cPhysicalObject*/,
                           ?,
                           cStartProps,
-                          OUTPUT hObject).     
-    
+                          OUTPUT hObject) no-error.
+     if error-status:error then 
+         return error return-value.  
+ 
      ASSIGN
        cQueryFields    = ENTRY(iProc,pcQueryFields,CHR(1))
        cForeignFields  = ENTRY(1,cQueryFields,CHR(2))

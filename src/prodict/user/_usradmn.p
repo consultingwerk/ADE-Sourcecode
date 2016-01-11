@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -182,20 +182,27 @@ DO:
     FIND DICTDB._Field "_Can-write"  OF DICTDB._File.
     DICTDB._Field._Can-write = mass.
     
-    /* protect security tables */
-    FIND DICTDB._File "_Db-Option".
-    DICTDB._File._Can-create = mass.
-    DICTDB._File._Can-write = mass.
-    DICTDB._File._Can-delete = mass.
+    /* OE00170630 - protect security tables. Note that they will not be 
+       available in pre-10.1A databases that have not had their schemas updated.
+    */
+    FIND DICTDB._File "_Db-Option" NO-ERROR.
+    IF AVAILABLE DICTDB._File THEN DO:
+       ASSIGN DICTDB._File._Can-create = mass
+              DICTDB._File._Can-write = mass
+              DICTDB._File._Can-delete = mass.
+    END.
 
-    FIND DICTDB._File "_Db-Detail".
-    DICTDB._File._Can-create = mass.
-    DICTDB._File._Can-write = mass.
-    DICTDB._File._Can-delete = mass.
+    FIND DICTDB._File "_Db-Detail" NO-ERROR.
+    IF AVAILABLE DICTDB._File THEN DO:
+       ASSIGN DICTDB._File._Can-create = mass
+              DICTDB._File._Can-write = mass
+              DICTDB._File._Can-delete = mass.
+    END.
 
     FIND DICTDB._File "_Db".
-    FIND DICTDB._Field "_Db-guid" OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
+    FIND DICTDB._Field "_Db-guid" OF DICTDB._File NO-ERROR.
+    IF AVAILABLE DICTDB._Field THEN
+       DICTDB._Field._Can-write = mass.
 
     /* user record */
     FIND DICTDB._File  "_User".

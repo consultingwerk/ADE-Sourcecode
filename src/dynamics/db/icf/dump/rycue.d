@@ -1,3 +1,5 @@
+5.94251 5540.409 95914.48 6318.409 96012.48 "VALUE-CHANGED" no "RUN" "SELF" "changeOverrideType" "" no 95914.48 0
+6.94251 5540.409 95914.48 6318.409 96019.48 "VALUE-CHANGED" no "RUN" "SELF" "changeOverrideType" "" no 95914.48 0
 7.7692 1005091923.09 0 0 0 "ENTRY" no "RUN" "SELF" "" "" no 0 0
 8.7692 1005091923.09 0 0 0 "ANY-KEY" no "RUN" "SELF" "" "" no 0 0
 9.7692 1005091923.09 0 0 0 "ANY-PRINTABLE" no "RUN" "SELF" "" "" no 0 0
@@ -185,12 +187,12 @@
 .
 PSC
 filename=ryc_ui_event
-records=0000000000184
+records=0000000000186
 ldbname=ICFDB
-timestamp=2007/11/09-16:14:15
+timestamp=2008/09/16-15:54:34
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000020318
+0000020548

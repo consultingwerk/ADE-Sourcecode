@@ -10,14 +10,13 @@
 /*--------------------------------------------------------------------------
     File        : smart.p
     Purpose     : General Super Procedure for New ADM applications
-
     Syntax      : adm2/smart.p
 
     Modified    : July 31, 2000 Version 9.1B
 ------------------------------------------------------------------------*/
 /*          This .p file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
-
+ 
 /* ***************************  Definitions  ************************** */
 
 /* Tell smrtattr.i that this is the Super Procedure */
@@ -27,11 +26,13 @@
   
   /* Define and initialize variables for properties shared by all objects. */
  DEFINE VARIABLE scPassThroughLinks AS CHARACTER NO-UNDO 
-    INIT "Data;multiple,Update;single,Filter;single,OutMessage;single,Navigation;single,Commit;single":U.
+   INIT "Data;multiple,Update;single,Filter;single,OutMessage;single,Navigation;single,Commit;single":U.
  DEFINE VARIABLE scCircularLinks    AS CHARACTER NO-UNDO
    INIT "Data":U.
    
   DEFINE VARIABLE gcDataMessages  AS CHARACTER NO-UNDO INIT "":U.
+  DEFINE VARIABLE glManageReadErrors  AS LOGICAL NO-UNDO.
+
 
 DEFINE TEMP-TABLE ADMLink NO-UNDO
   FIELD LinkSource AS HANDLE
@@ -483,6 +484,17 @@ FUNCTION getLogicalVersion RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getManageReadErrors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManageReadErrors Procedure 
+FUNCTION getManageReadErrors RETURNS LOGICAL
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getManagerHandle) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManagerHandle Procedure 
@@ -784,7 +796,7 @@ FUNCTION getUserProperty RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
 FUNCTION instanceOf RETURNS LOGICAL
-    ( INPUT pcObjectType        AS CHARACTER )  FORWARD.
+    ( INPUT pcClass        AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1175,6 +1187,17 @@ FUNCTION setLogicalVersion RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setManageReadErrors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManageReadErrors Procedure 
+FUNCTION setManageReadErrors RETURNS LOGICAL
+  (plManageReadErrors AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setMessageBoxType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setMessageBoxType Procedure 
@@ -1223,7 +1246,7 @@ FUNCTION setObjectParent RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectsCreated Procedure 
 FUNCTION setObjectsCreated RETURNS LOGICAL
-   ( plCreated AS LOGICAL )  FORWARD.
+  ( plCreated AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1389,6 +1412,17 @@ FUNCTION setUIBMode RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUserProperty Procedure 
 FUNCTION setUserProperty RETURNS LOGICAL
   ( pcPropName AS CHARACTER, pcPropValue AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-showDataMessages) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showDataMessages Procedure 
+FUNCTION showDataMessages RETURNS CHARACTER
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1756,8 +1790,9 @@ PROCEDURE addServerError :
                         - 'SUBMIT' 
                 pcMessage - error message (service adapterreturn-value)  
                           - ? or blank use error-status
-                pcEntities - requested entities/objects                  
-    Notes:
+                pcEntities - requested entities/objects/tables                  
+    Notes: This is only used for applications that uses datasviews and 
+           service adpaters to manage all data requests
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcEvent   AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcMessage AS CHARACTER  NO-UNDO.  
@@ -1786,6 +1821,35 @@ PROCEDURE addServerError :
     RUN addMessage IN TARGET-PROCEDURE(cHeader,?,?).
   END.    
   RUN addMessage IN TARGET-PROCEDURE(pcMessage,?,?).  
+  RETURN.   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-addServerReadError) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addServerReadError Procedure 
+PROCEDURE addServerReadError :
+/*------------------------------------------------------------------------------
+    Purpose: Adds server ERROR to the message stack on the client. 
+             This is used by the container for unexpected ERRORs returned from
+             the Appserver. (record not found )              
+    Parameters:  pcMessage - error message (service adapterreturn-value)  
+                           - 'ERROR', ? or blank use default message
+                           
+    Notes: This is used for applications that uses SDOs.           
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcMessage AS CHARACTER  NO-UNDO.  
+  
+  RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 102},?,?).
+
+  IF pcMessage = ? OR pcMessage = "" THEN 
+    RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 103},?,?).
+  ELSE 
+    RUN addMessage IN TARGET-PROCEDURE(pcMessage,?,?).  
   RETURN.   
 END PROCEDURE.
 
@@ -2886,6 +2950,171 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-returnNothing) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE returnNothing Procedure 
+PROCEDURE returnNothing :
+/*------------------------------------------------------------------------------
+  Purpose:  Clean return value...        
+  Parameters:  <none>
+  Notes:   The use of return-value for error is a problem as there now is no 
+           safe place to reset it. 
+         - commitTransaction is calling this if necessary to ensure that 
+           old return-values does not cause issues for customer code.       
+------------------------------------------------------------------------------*/
+  RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-showDataMessagesProcedure) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showDataMessagesProcedure Procedure 
+PROCEDURE showDataMessagesProcedure :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns the name of the field (if any) from the first
+               error message, to allow the caller to use it to position the 
+               cursor.
+  Parameters:  <none>
+  Notes:       Invokes fetchMessages() to retrieve all messages stored in the
+               class property gcMessages.
+               (normally database update-related error messages), and
+               displays them in an alert-box of type error.
+               This function expects to receive back a single string 
+               from fetchMessages with one or more messages delimited by CHR(3),
+               and within each message the message text, Fieldname (or blank) +
+               a Tablename (or blank), delimited by CHR(4) if present.
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER pcReturn AS CHARACTER.
+
+  DEFINE VARIABLE cMessages   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iMsg        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE iMsgCnt     AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cMessage    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cFirstField AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cField      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
+  DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
+  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cIgnore     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lIgnore     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cSummary    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentType AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFocusType  AS CHARACTER  NO-UNDO.
+
+  ASSIGN cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
+
+  /* Issue 6945 - we need to detect if a browse cell is involved */
+  IF VALID-HANDLE(FOCUS) THEN
+      ASSIGN cParentType = FOCUS:PARENT:TYPE
+             cFocusType  = FOCUS:TYPE.
+  {get ContainerHandle hContainer}.
+
+  /* If we're running Dynamics, and a dialog is not involved, and there is
+     no function in the call stack, and we're not in an updatable field in a 
+     browser we can just send the message to the session manager to display.
+     We want to avoid calling afmessagep in the session manager in this scenario,
+     as each call to it will result in an Appserver hit, and showMessages is
+     going to run afmessagep anyway. */
+  IF  cMessages <> "":U
+  AND NOT {fnarg IsDialogBoxParent hContainer}
+  AND NOT {fn IsFunctionInCallStack}
+  AND NOT (cFocusType = 'FILL-IN' AND cParentType BEGINS 'BROWSE':U) /* 6945 */
+  AND VALID-HANDLE(gshSessionManager) THEN
+  DO:
+      DEFINE VARIABLE cButtonPressed AS CHARACTER NO-UNDO.
+      {get ContainerSource hContainerSource}.
+
+      /* Dynamics showMessages handles message list in raw form */
+      RUN showMessages IN gshSessionManager (
+          INPUT cMessages,        /* pcMessageList   */
+          INPUT "ERR",            /* pcMessageType   */
+          INPUT "OK",             /* pcButtonList    */
+          INPUT "OK",             /* pcDefaultButton */
+          INPUT "",               /* pcCancelButton  */
+          INPUT "ADM2Message",    /* pcMessageTitle  */
+          INPUT TRUE,             /* plDisplayEmpty  */
+          INPUT hContainerSource, /* phContainer     */
+          OUTPUT cButtonPressed   /* pcButtonPressed */
+          ).
+      /* Return the field name from the first error message so the caller can
+         use it to position the cursor. */
+      ASSIGN cMessage    = ENTRY(1, cMessages, CHR(3))
+             cFirstField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 
+                           THEN ENTRY(2, cMessage, CHR(4)) 
+                           ELSE "":U.
+  END.
+  ELSE
+  DO:
+      iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
+      msgCnt_blk:
+      DO iMsg = 1 TO iMsgCnt:
+        /* Format a string of messages; each has a first line of
+           "Field:  <field>    "Table:  <table>"
+           (if either of these is defined) plus the error message on a
+            separate line. */
+        ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
+               cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 
+                        THEN ENTRY(2, cMessage, CHR(4)) 
+                        ELSE "":U
+               cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 
+                        THEN ENTRY(3, cMessage, CHR(4)) 
+                        ELSE "":U
+               .
+        /* Is Dynamics running? If so then run the messages through the standard message routine.
+           This will ensure that the messages are translated and correctly formatted.           */
+        IF VALID-HANDLE(gshSessionManager) THEN
+           /* We are only interested in getting the summary message here. 
+              Ignore all other parameters.  */
+           RUN afmessagep IN gshSessionManager ( INPUT  cMessage,
+                                                 INPUT  "":U,
+                                                    INPUT  "":U,
+                                                   OUTPUT cSummary,
+                                                   OUTPUT cIgnore,
+                                                   OUTPUT cIgnore,
+                                                   OUTPUT cIgnore,
+                                                   OUTPUT lIgnore,
+                                                   OUTPUT lIgnore  ).
+        else 
+          cSummary = entry(1,cMessage,chr(4)).
+            
+        ASSIGN cText = cText 
+                       + (IF cField NE "":U 
+                          THEN DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 10) + cField + "   ":U 
+                          ELSE "":U)                                    
+                       + (IF cTable NE "":U 
+                          THEN DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 11) + cTable 
+                          ELSE "":U) 
+                       + (IF cField NE "":U OR cTable NE "":U THEN "~n":U + "  ":U ELSE "":U)
+                       + cSummary + "~n":U. 
+        /* since we are displaying in a resizable dialog we can afford a blank line between fields */
+        IF TRIM(cText) <> "" THEN ASSIGN cText = cText + "~n".
+    
+        /* Return the field name from the first error message so the caller can
+           use it to position the cursor. */
+        IF iMsg = 1 THEN cFirstField = cField.
+      END.   /* END DO iMsg */
+      
+      /* Either Dynamics is not connected, or we couldn't use the standard Dynamics message window.
+         Either way, display the message using the standard 4GL MESSAGE statement. */
+      IF cText NE "":U AND cMessages <> "":U THEN
+          MESSAGE cText VIEW-AS ALERT-BOX ERROR TITLE "Data Error".
+  END.
+
+  pcReturn = cFirstField.
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-showMessageProcedure) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showMessageProcedure Procedure 
@@ -3866,6 +4095,7 @@ FUNCTION fetchMessages RETURNS CHARACTER
   
   cMessages = gcDataMessages.  
   gcDataMessages = "":U.
+  glManageReadErrors = false. 
   
   RETURN cMessages.
 
@@ -4501,6 +4731,31 @@ DEFINE VARIABLE cVersion AS CHARACTER NO-UNDO.
   {get LogicalVersion cVersion}.
   &UNDEFINE xpLogicalVersion
   RETURN cVersion.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getManageReadErrors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManageReadErrors Procedure 
+FUNCTION getManageReadErrors RETURNS LOGICAL
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Session property that tells if adm error mechanism is used on data 
+           retrieval.
+    Notes: This should only be set to true if one is absolutley sure that the 
+           messages are emptied from the message queue when the request is 
+           completed.   
+           (which is stored in a variable in smart)   
+         - Used on server by some adm2 data request procedures - fetch*   
+         - Set to false in fetchMessages
+------------------------------------------------------------------------------*/
+
+  RETURN glManageReadErrors.
 
 END FUNCTION.
 
@@ -6436,6 +6691,32 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setManageReadErrors) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManageReadErrors Procedure 
+FUNCTION setManageReadErrors RETURNS LOGICAL
+  (plManageReadErrors AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose: Session property that tells if adm error mechanism is used on data 
+           retrieval.
+    Notes: This should only be set to true if one is absolutely sure that the 
+           messages are emptied from the message queue when the request is 
+           completed. ( stored in a variable in smart - see fetchMessages,
+           addMessage and anyMessage)   
+         - Used on server by some adm2 data request procedures - fetch*  
+         - Set to false in fetchMessages 
+------------------------------------------------------------------------------*/
+
+  glManageReadErrors = plManageReadErrors.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setMessageBoxType) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setMessageBoxType Procedure 
@@ -6926,6 +7207,70 @@ FUNCTION setUserProperty RETURNS LOGICAL
   
   RETURN TRUE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-showDataMessages) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showDataMessages Procedure 
+FUNCTION showDataMessages RETURNS CHARACTER
+  ( ) : 
+/*------------------------------------------------------------------------------
+  Purpose:   Returns the name of the field (if any) from the first
+             error message, to allow the caller to use it to position the 
+             cursor.
+   Params:   <none>.   
+   Notes:     Invokes fetchMessages() to retrieve all messages stored in the
+              class property gcMessages.
+             (normally database update-related error messages), and
+             displays them in a alert-box of type error.
+             This function expects to receive back a single string 
+             from fetchMessages with one or more messages delimited by CHR(3),
+             and within each message the message text, Fieldname (or blank) +
+             a Tablename (or blank), delimited by CHR(4) if present.
+           NOT IN USE BY standard ADM2, still used by WEB2 
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cMessages   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE iMsg        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE iMsgCnt     AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cMessage    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cFirstField AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cField      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
+
+  cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
+  iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
+  DO iMsg = 1 TO iMsgCnt:
+    /* Format a string of messages; each has a first line of
+       "Field:  <field>    "Table:  <table>"
+       (if either of these is defined) plus the error message on a
+        separate line. */
+    ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
+           cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 THEN
+             ENTRY(2, cMessage, CHR(4)) ELSE "":U
+           cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 THEN
+             ENTRY(3, cMessage, CHR(4)) ELSE "":U
+           cText = cText + (IF cField NE "":U THEN
+             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 10) ELSE "":U)              
+             + cField + "   ":U +       
+             (IF cTable NE "":U THEN 
+             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U) + cTable + 
+             (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
+                 + "  ":U + ENTRY(1, cMessage, CHR(4)) + "~n":U.
+    /* Return the field name from the first error message so the caller can
+       use it to position the cursor. */
+    IF iMsg = 1 THEN cFirstField = cField.
+  END.   /* END DO iMsg */
+  IF cText NE "":U THEN
+    MESSAGE cText VIEW-AS ALERT-BOX ERROR.
+
+  RETURN cFirstField.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

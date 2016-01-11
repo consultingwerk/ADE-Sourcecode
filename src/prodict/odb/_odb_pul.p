@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-08 by Progress Software Corporation. All rights *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -741,7 +741,8 @@ for each gate-work
      */
      IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
         NEXT.
-     IF DICTDBG.SQLColumns_buffer.column-name begins "PROGRESS_RECID" OR
+
+      IF DICTDBG.SQLColumns_buffer.column-name begins "PROGRESS_RECID" OR
          DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_RECID" OR
          DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_ROWID"
        THEN DO:
@@ -1158,9 +1159,9 @@ for each gate-work
           /* OE00164266 - set the PROGRESS_RECID size if it is an integer */
           find first s_ttb_fld
            where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl)
-             and   ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
-              no-lock no-error.
-          IF available s_ttb_fld then do:
+             and  ABSOLUTE(s_ttb_fld.ds_stoff) = ABSOLUTE(s_ttb_tbl.ds_recid)
+    	      no-lock no-error.
+          IF available s_ttb_fld then do: 
             if s_ttb_fld.ds_type = "INTEGER"
              then
                s_ttb_tbl.ds_msc15 = 1. /* RECID is 4 byte */

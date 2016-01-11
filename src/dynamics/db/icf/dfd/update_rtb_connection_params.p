@@ -24,7 +24,7 @@ define variable iLoop2        as integer no-undo.
 
 define buffer gsmpy for gsm_physical_service.
 
-&scoped-define RTB-SERVICE-CODES asb_093dyndep,asb_094dyndep,asb_094dyndev,asb_094dyntst 
+&scoped-define RTB-SERVICE-CODES asb_094dyndep,asb_095dyndep,asb_095dyndev,asb_095dyntst 
 &scoped-define RTB-CONNECTION-PARAMS R-H localhost -S NS1 -AppService asb_090dyndep
 
 publish 'DCU_WriteLog' ('Start update of RoundTable physical session connection parameters ...').

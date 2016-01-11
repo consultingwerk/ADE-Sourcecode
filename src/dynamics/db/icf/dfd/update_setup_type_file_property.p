@@ -33,8 +33,8 @@ define buffer gsmsy        for gsm_session_type_property.
 define buffer gsmsy_parent for gsm_session_type_property.
 
 &scoped-define PROPERTY-NAME setup_type_file
-&scoped-define PROPERTY-VALUE db/icf/dfd/setup101C.xml
-&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup,Migrate101ASetup,Migrate101BSetup
+&scoped-define PROPERTY-VALUE db/icf/dfd/setup102A.xml
+&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup,Migrate101ASetup,Migrate101BSetup,Migrate101CSetup
 
 publish 'DCU_WriteLog' ('Start update of {&PROPERTY-NAME} session property ...').
 

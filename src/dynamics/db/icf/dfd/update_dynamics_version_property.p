@@ -30,7 +30,7 @@ define variable lError        as logical            no-undo.
 define buffer gscsp    for gsc_session_property.
 define buffer gsmsy    for gsm_session_type_property.
 
-&scoped-define DYNAMICS-VERSION 10.1C
+&scoped-define DYNAMICS-VERSION 10.2A
 
 publish 'DCU_WriteLog' ('Start update of DynamicsVersion session property ...').
 

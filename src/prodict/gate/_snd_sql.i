@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2008 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights  *
+* reserved. Prior versions of this work may contain portions            *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -98,8 +98,7 @@ History:
     03/13/00     DLM      Added change for Oracle to determine what version so the
                           proper field name is used type or type# 20000320022
     11/19/01     DLM      Changed check for sqlnet connection string parsing
-
-    07/08/08    ashukla   LDAP support (CR#OE00170689)
+    08/11/08     ashukla  LDAP support (CR#OE00172458)
 
 /* 
  * TODO: Add error handling to deal w/ errors returned 
@@ -150,7 +149,7 @@ define variable sql_stream      as character.
 define variable title_string    as character no-undo format "x(60)".
 define variable tmp_line        as character format "x(320)".
 define variable word            as character extent 4 no-undo.
-DEFINE VARIABLE ldaph1          AS INTEGER   NO-UNDO. /*ldap cn#OE00170689 */
+DEFINE VARIABLE ldaph1          AS INTEGER   NO-UNDO. /*ldap cn#OE00172458 */
 
 
 define stream sql_lines.
@@ -375,7 +374,7 @@ if l_edbtyp = "ORACLE" then do:
 
 /* In case l_owner is null, we are using external authentication 
  * Get user name from database 
-   CR#OE00170689.Begin 
+   CR#OE00172458.Begin 
  */
 IF  owner_name EQ "" OR owner_name EQ ? THEN
 DO:
@@ -390,7 +389,7 @@ DO:
      CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = ldaph1.
    END.
 END.
-/*   CR#OE00170689.End */ 
+/*   CR#OE00172458.End */ 
 end.
 
 if change_chained_mode then do:

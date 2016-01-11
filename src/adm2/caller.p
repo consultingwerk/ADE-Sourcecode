@@ -3,9 +3,9 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
 * Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions           *
-* contributed by participants of Possenet.                             *
-*                                                                      *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+*                                                                    *
 ***********************************************************************/
 /*---------------------------------------------------------------------------------
   File:         caller.p
@@ -490,7 +490,7 @@ PROCEDURE invokeCall :
 
   /* Now invoke the call */
   DO ON STOP UNDO, LEAVE:
-      hCall:INVOKE NO-ERROR.
+  hCall:INVOKE NO-ERROR.
   END.
 
   /* If there is an error, build up a string containing the error and

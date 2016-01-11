@@ -29,7 +29,14 @@
               01/28/08 fernando  Fix foreign attributes for logical field. Made foreign-owner and
                                  foreign-name lowercase - OE00164229
               02/22/08 fernando  Support for datetime
-              05/12/08 fernando  Handle duplicate field names being added - OE00166402              
+              04/21/08 fernando  Support for new sequence generator
+              04/22/08 fernando  Handle foreign-name of TEXT/NVARCHAR(MAX) properly in .df 
+                                 and update of sequence - OE00167691 
+              05/12/08 fernando  Handle duplicate field names being added - OE00166402
+              05/21/08 rohit     Added code for delta sql changes for new seq generator for MSS
+              06/09/08 rohit     Fixed bugs OE00169475/169635/169699 related to new sequence generator for MSS
+              08/25/08 fernando  Keep progres_recid index name consistent with migration code - OE00133695
+              09/28/08 knavneet  Added error handling code to the sequence generator - OE00172741
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -82,10 +89,10 @@ DEFINE VARIABLE p-r-index     AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE seqname       AS CHARACTER INITIAL ?   NO-UNDO.
 DEFINE VARIABLE seq-type      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE seq-line      AS CHARACTER INITIAL ?   NO-UNDO.
-DEFINE VARIABLE init          AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE incre         AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE cyc           AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE minval        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE init          AS CHARACTER             NO-UNDO INIT ?.
+DEFINE VARIABLE incre         AS CHARACTER             NO-UNDO INIT ?.
+DEFINE VARIABLE cyc           AS CHARACTER             NO-UNDO INIT ?.
+DEFINE VARIABLE minval        AS CHARACTER             NO-UNDO INIT ?.
 DEFINE VARIABLE maxval        AS CHARACTER             NO-UNDO INIT ?.
 DEFINE VARIABLE dbrecid       AS RECID                 NO-UNDO.
 DEFINE VARIABLE fldnum        AS INTEGER               NO-UNDO.
@@ -116,6 +123,17 @@ DEFINE VARIABLE dftname       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE unsptdt       AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE qualname      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE large_seq     AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE lnewSeq       AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE dfLongType    AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE seqt_prefix   AS CHARACTER             NO-UNDO INITIAL "_SEQT_". /* new sequence generator for MSS */
+DEFINE VARIABLE seqp_prefix   AS CHARACTER             NO-UNDO INITIAL "_SEQP_". /* new sequence generator for MSS */
+DEFINE VARIABLE foreign_seq_name     AS CHARACTER      NO-UNDO.                  /* new sequence generator for MSS */
+DEFINE VARIABLE check_seqtmgr AS LOGICAL INITIAL FALSE NO-UNDO.                  /* new sequence generator for MSS */
+DEFINE VARIABLE old_incr_val  AS INTEGER               NO-UNDO.			 /* new sequence generator for MSS */
+DEFINE VARIABLE old_init_val  AS INTEGER               NO-UNDO.			 /* new sequence generator for MSS */
+DEFINE VARIABLE newseq_upd    AS LOGICAL               NO-UNDO INITIAL FALSE.	 /* new sequence generator for MSS */
+DEFINE VARIABLE other-seq-tab        AS CHARACTER      NO-UNDO. /* OE00170189 */
+DEFINE VARIABLE other-seq-proc       AS CHARACTER      NO-UNDO. /* OE00170189 */
 
 DEFINE TEMP-TABLE df-info NO-UNDO
     FIELD df-seq  AS INTEGER
@@ -484,7 +502,8 @@ PROCEDURE write-tbl-sql:
   IF pcompatible AND addtable THEN DO:
     ASSIGN recididx = p-r-index
            trigname = "_TI_" + recididx
-           p-r-index = p-r-index + "##progress_recid ON " + mss_username + "." + p-r-index.
+           /* OE00133695 - use #_# for recid index */
+           p-r-index = p-r-index + "#_#progress_recid ON " + mss_username + "." + p-r-index.
  
     trigname = "_TI_" + recididx.
     
@@ -504,7 +523,8 @@ PROCEDURE write-tbl-sql:
     PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
 
     ASSIGN p-r-index = recididx
-           p-r-index = p-r-index + "##progress_recid_ident_ ON " + mss_username + "." + p-r-index.
+           /* OE00133695 - use #_# for recid index */
+           p-r-index = p-r-index + "#_#progress_recid_ident_ ON " + mss_username + "." + p-r-index.
     PUT STREAM tosql UNFORMATTED comment_chars
       "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID_IDENT_)" SKIP.
     PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).          
@@ -560,57 +580,135 @@ PROCEDURE write-idx-sql:
 END PROCEDURE.
 
 PROCEDURE write-seq-sql:
+
+  DEFINE VARIABLE isAppend AS LOGICAL.
+
   IF seq-line = ? OR seq-line = "" THEN LEAVE.
   /* Delete sequence */
   IF seq-type = "d"  THEN 
-    PUT STREAM tosql UNFORMATTED seq-line "go" SKIP(1).
+    PUT STREAM tosql UNFORMATTED seq-line SKIP(1) "go" SKIP(1).
   /* add sequence */
   ELSE IF seq-type = "a" THEN DO:
     PUT STREAM tosql UNFORMATTED 
-           "if (select name from sysobjects where name = '_SEQT_" forname "' and" skip
+           "if (select name from sysobjects where name = '"seqt_prefix forname "' and" skip
            "    uid = (select uid from sysusers " SKIP
            "           where sid = (select sid from master.dbo.syslogins" skip 
            "                        where UPPER(name) = UPPER('"mss_username "'))))" skip
            "is not NULL" skip
-           "drop table _SEQT_" forname skip. 
-        
+           "drop table " seqt_prefix forname skip. 
+    
+    IF seqt_prefix = "_SEQT_REV_" THEN 
+       ASSIGN other-seq-tab = "_SEQT_".
+    ELSE 
+       ASSIGN other-seq-tab = "_SEQT_REV_".
+	
+    IF seqt_prefix = "_SEQT_" THEN 
+     PUT STREAM tosql UNFORMATTED 
+         "if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" forname "') " skip
+	 " is not NULL" skip
+	 "    delete from _SEQT_REV_SEQTMGR where seq_name = '" forname "' " skip
+	 " if (select seq_name from _SEQT_REV_SEQTMGR) is NULL " skip
+	 "    drop table _SEQT_REV_SEQTMGR " skip. /* processing SEQTMGR table */
+	     
+     PUT STREAM tosql UNFORMATTED 
+           "if (select name from sysobjects where name = '"other-seq-tab forname "' and" skip
+           "    uid = (select uid from sysusers " SKIP
+           "           where sid = (select sid from master.dbo.syslogins" skip 
+           "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "is not NULL" skip
+           "drop table " other-seq-tab forname skip. 
+	
      PUT STREAM tosql UNFORMATTED "go" SKIP(1).
 
      PUT STREAM tosql UNFORMATTED 
-           "if (select name from sysobjects where name = '_SEQP_" forname "' and" skip
+           "if (select name from sysobjects where name = '"seqp_prefix forname "' and" skip
            "           uid = (select uid from sysusers " SKIP
            "                  where sid = (select sid from master.dbo.syslogins" skip 
            "                               where UPPER(name) = UPPER('" mss_username "'))))" skip
            " is not NULL" skip
-           " drop procedure _SEQP_" forname SKIP. 
+           " drop procedure " seqp_prefix forname SKIP. 
+    
+    IF seqp_prefix = "_SEQP_REV_" THEN 
+       ASSIGN other-seq-proc = "_SEQP_".
+    ELSE 
+       ASSIGN other-seq-proc = "_SEQP_REV_".
+        
+     PUT STREAM tosql UNFORMATTED 
+           "if (select name from sysobjects where name = '"other-seq-proc forname "' and" skip
+           "           uid = (select uid from sysusers " SKIP
+           "                  where sid = (select sid from master.dbo.syslogins" skip 
+           "                               where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           " is not NULL" skip
+           "    drop procedure " other-seq-proc forname skip. 
+
     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
 
-    PUT STREAM tosql UNFORMATTED seq-line "(" SKIP.
-    PUT STREAM tosql UNFORMATTED "  initial_value   bigint NULL," SKIP.
-    PUT STREAM tosql UNFORMATTED "  increment_value bigint NULL," SKIP.
-    PUT STREAM tosql UNFORMATTED "  upper_limit     bigint NULL," SKIP.
-    PUT STREAM tosql UNFORMATTED "  current_value   bigint NULL," SKIP.
-    PUT STREAM tosql UNFORMATTED "  cycle           BIT NOT NULL)" SKIP(1).
-    PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname SKIP.
-    PUT STREAM tosql UNFORMATTED "(initial_value, increment_value, upper_limit, current_value, cycle)" SKIP.
-    PUT STREAM tosql UNFORMATTED "values(" init "," incre ",".
-    IF maxval = ? THEN
-      PUT STREAM tosql UNFORMATTED (IF large_seq THEN "9223372036854775807," ELSE "2147483647,") init "," cyc ")" SKIP.
-    ELSE
-      PUT STREAM tosql UNFORMATTED  maxval "," init "," cyc ")" SKIP. 
+    /* creating SEQT_REV_SEQTMGR table for revised sequence generator for MSS if one does not exist. */
+     IF lnewSeq AND NOT check_seqtmgr THEN DO:
+       put stream tosql unformatted 
+	  " if not exists (select * from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
+	  "    and OBJECTPROPERTY(id, N'IsTable') = 1)" skip
+          "create table _SEQT_REV_SEQTMGR (" skip
+          "        seq_name varchar(30) not null, " skip
+	  "        initial_value bigint, " skip
+	  "        increment_value bigint, " skip
+	  "        upper_limit bigint, " skip
+	  "        cycle bit not null )" skip 
+          " " skip.
+	ASSIGN check_seqtmgr = TRUE.
+     END. /* end of SEQTMGR */
+
+     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
+
+  IF NOT lnewSeq THEN DO:
+     PUT STREAM tosql UNFORMATTED seq-line "(" SKIP.
+     PUT STREAM tosql UNFORMATTED "  initial_value   bigint NULL," SKIP.
+     PUT STREAM tosql UNFORMATTED "  increment_value bigint NULL," SKIP.
+     PUT STREAM tosql UNFORMATTED "  upper_limit     bigint NULL," SKIP.
+     PUT STREAM tosql UNFORMATTED "  current_value   bigint NULL," SKIP.
+     PUT STREAM tosql UNFORMATTED "  cycle           BIT NOT NULL)" SKIP(1).
+     PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname SKIP.
+     PUT STREAM tosql UNFORMATTED "(initial_value, increment_value, upper_limit, current_value, cycle)" SKIP.
+     PUT STREAM tosql UNFORMATTED "values(" init "," incre ",".
+     IF maxval = ? THEN
+       PUT STREAM tosql UNFORMATTED (IF large_seq THEN "9223372036854775807," ELSE "2147483647,") init "," cyc ")" SKIP.
+     ELSE
+       PUT STREAM tosql UNFORMATTED  maxval "," init "," cyc ")" SKIP. 
+  END.
+  ELSE DO:
+        PUT STREAM tosql UNFORMATTED seq-line "(" SKIP.
+        PUT STREAM tosql UNFORMATTED "  current_value bigint identity(" init "," incre ") primary key," SKIP.
+        PUT STREAM tosql UNFORMATTED "  seq_val int)" SKIP.
+        PUT STREAM tosql UNFORMATTED "insert into _SEQT_REV_SEQTMGR " SKIP.
+        PUT STREAM tosql UNFORMATTED "(seq_name, initial_value, increment_value, upper_limit, cycle)" SKIP.
+        PUT STREAM tosql UNFORMATTED "values('" forname "'," init "," incre ",".
+        IF maxval = ? THEN
+           PUT STREAM tosql UNFORMATTED (IF large_seq THEN "9223372036854775807," ELSE "2147483647,") cyc ")" SKIP.
+	ELSE
+           PUT STREAM tosql UNFORMATTED  maxval "," cyc ")" SKIP. 
+    END.
 
     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
     
     /* Create the procedure to keep sequence numbers */
-    PUT STREAM tosql unformatted 
+    IF NOT lnewSeq THEN DO:
+       /* this is the default version of the sequence generator */
+
+       PUT STREAM tosql unformatted 
            "create procedure _SEQP_" forname " (@op int, @val bigint output) as " skip
-           "begin" skip 
+           "begin"  skip 
            "    /* " skip 
            "     * Current-Value function " skip 
            "     */" skip
+           "    SET XACT_ABORT ON " skip
+           "    declare @err int " skip
            "    if @op = 0 " skip 
            "    begin" skip 
+           "        begin transaction" skip 
            "        select @val = (select current_value from _SEQT_" forname ")" skip 
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
+           "        commit transaction" skip
            "        return 0" skip
            "    end" skip 
            "    " skip 
@@ -627,10 +725,18 @@ PROCEDURE write-seq-sql:
            " " skip 
            "        /* perform a 'no-op' update to ensure exclusive lock */" skip 
            "        update _SEQT_" forname " set initial_value = initial_value" skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            " " skip 
-           "        select @cur_val = (select current_value from _SEQT_" forname ")" skip 
+           "        select @cur_val = (select current_value from _SEQT_" forname ")" skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            "        select @last_val = (select upper_limit from _SEQT_" forname ")" skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            "        select @inc_val  = (select increment_value from _SEQT_" forname ")" skip 
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            " " skip 
            "        /*" skip 
            "         * if the next value will pass the upper limit, then either" skip
@@ -640,18 +746,26 @@ PROCEDURE write-seq-sql:
            "        begin" skip 
            "            if (select cycle from _SEQT_" forname ") = 0 /* non-cycling sequence */" skip 
            "            begin " skip 
+           "                SET @err = @@error " skip
+           "                if @err <> 0 goto Err " skip
            "                select @val = @cur_val" skip
            "                commit transaction" skip 
            "                return -1" skip 
            "            end" skip 
-           "            else " skip 
+           "            else " skip
+           "            BEGIN " skip
            "                 select @val = (select initial_value from _SEQT_" forname ")" skip
+           "                 SET @err = @@error " skip
+           "                 if @err <> 0 goto Err " skip
+           "            END " skip
            "        end" skip 
            "        else " skip 
            "             select @val = @cur_val + @inc_val" skip 
            " " skip 
            " " skip 
-           "        update _SEQT_" forname " set current_value = @val" skip 
+           "        update _SEQT_" forname " set current_value = @val" skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            " " skip 
            " " skip 
            "        commit transaction" skip 
@@ -665,13 +779,119 @@ PROCEDURE write-seq-sql:
            "    begin " SKIP
            "      begin transaction " SKIP
            "      update _SEQT_" forname " set current_value = @val" SKIP
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
            "      commit transaction " SKIP
            "      return 0 " SKIP
            "   end " SKIP           
            "    else " skip 
            "        return -2" skip 
-           "end" skip 
+           "   Err: " skip
+           "       rollback " skip
+           "       return @err " skip
+           "end " skip 
            " "   skip. 
+     END.
+     ELSE DO:
+         /* here we will create the revised version of the sequence generator procedure */
+      put stream tosql unformatted 
+           "create procedure _SEQP_REV_" forname " (@op int, @val bigint output) as " skip
+           " begin " skip 
+           "    DECLARE @err int " skip
+           "    /* " skip 
+           "     * Current-Value function " skip 
+           "     */" skip
+           "    if @op = 0 " skip 
+           "    begin" skip
+           "     BEGIN TRAN " skip
+           "       set @val = ident_current('_SEQT_REV_" forname "')" skip 
+           "       SET @err = @err " skip
+           "       if @err <> 0 goto Err " skip
+           "     commit transaction " skip
+           "     return " skip
+           "    end" skip
+           "    " skip  
+           "    /*" skip  
+           "     * Next-Value function " skip 
+           "     */" skip 
+           "    else if @op = 1" skip 
+           "    begin" skip 
+           "     BEGIN TRAN " skip
+           "        declare @ini_val  bigint" skip 
+           "        declare @inc_val  bigint" skip 
+           "        declare @upper_limit  bigint" skip 
+           "        declare @cycle  bit" skip
+           "        /* get upper limit and cycle info from _seqt_rev_seqtmgr */" skip 
+           " " skip 
+           "   select @upper_limit = upper_limit, " skip
+           "          @inc_val = increment_value, " skip 
+           "          @cycle = cycle, " skip
+           "          @ini_val = initial_value " skip 
+           "          from _seqt_rev_seqtmgr where seq_name = '" forname "'" skip
+           "    SET @err = @err " skip
+           "    if @err <> 0 goto Err " skip
+           " " skip 
+           "        /*" skip 
+           "         * get current value from sequence table " skip
+           "         */" skip 
+           " " skip
+           "       set @val = ident_current('_SEQT_REV_" forname "')" skip 
+           "       SET @err = @err " skip
+           "       if @err <> 0 goto Err " skip
+           "        if (@inc_val > 0 and @upper_limit - @val < @inc_val) or (@inc_val < 0 and @upper_limit + @val > @inc_val) " skip  
+           "     begin " skip 
+           "         if @cycle != 0 " skip 
+           "           begin " skip 
+           "             DBCC CHECKIDENT ('_SEQT_REV_" forname "', RESEED, @ini_val) " SKIP
+           "             SET @err = @err " skip
+           "             if @err <> 0 goto Err " skip
+           "             set @val = ident_current('_SEQT_REV_" forname "')" skip 
+           "             SET @err = @err " skip
+           "             if @err <> 0 goto Err " skip
+           "           end" skip 
+           "         else " skip 
+           "          BEGIN  " skip
+           "           commit transaction " skip
+           "           return -1 " skip
+           "          END " skip
+           "     end" skip 
+           "        else " skip 
+           "     begin" skip
+           "        insert into _SEQT_REV_" forname " (seq_val) values (@val) " skip
+           "        SET @err = @err " skip
+           "        if @err <> 0 goto Err " skip
+           "        set @val = scope_identity() " skip
+           "        SET @err = @err " skip
+           "        if @err <> 0 goto Err " skip
+           "        delete from _SEQT_REV_" forname skip 
+           "        SET @err = @err " skip
+           "        if @err <> 0 goto Err " skip
+           "     end" skip 
+           "   commit transaction " skip
+           "   return " skip
+           "   end" skip
+           "    else " skip
+           "    /*" skip  
+           "     * Set Current-Value function: Reseed the identity with passed value " skip 
+           "     */" skip
+           "    if @op = 2 " skip
+           "    begin " skip
+           "     BEGIN TRAN " skip
+           "      DBCC CHECKIDENT ('_SEQT_REV_" forname "', RESEED, @val) " skip
+           "      SET @err = @err " skip
+           "      if @err <> 0 goto Err " skip
+           "     COMMIT TRAN " skip
+           "     return " skip
+           "    end " skip           
+           "    else " skip 
+           "        return -2" skip 
+           " Err: " skip
+           "   rollback " skip
+           "   return @err "
+           " end " skip          
+           " "   skip. 
+      END.
+
      PUT STREAM tosql UNFORMATTED "go" SKIP(1).
 
     IF init <> ? AND init <> "" THEN DO:
@@ -699,10 +919,12 @@ PROCEDURE write-seq-sql:
              df-line = "  CYCLE-ON-LIMIT " + cyc.
     END.
     
-    CREATE df-info.
-    ASSIGN df-info.df-seq = dfseq
-           dfseq = dfseq + 1
-           df-line = "  MIN-VAL " + minval.
+    IF minval <> ? AND minval <> "" THEN DO:
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-line = "  MIN-VAL " + minval.
+    END.
 
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
@@ -720,21 +942,92 @@ PROCEDURE write-seq-sql:
   END.
   /* update sequence table */
   ELSE DO:
-    IF init <> ? THEN DO:
-      PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname "(initial_value)" SKIP.
-      PUT STREAM tosql UNFORMATTED "values(" init ")" SKIP(1).
-    END.
-    IF incre <> ? THEN DO:
-      PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname "(increment_value)" SKIP.
-      PUT STREAM tosql UNFORMATTED "values(" incre ")" SKIP(1).
-    END.
-    IF maxval <> ? THEN DO:
-      PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname "(upper_limit)" SKIP.
-      PUT STREAM tosql UNFORMATTED "values(" maxval ")" SKIP.
-    END.
-    IF cyc <> ? THEN DO:
-      PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname "(cycle)" SKIP.
-      PUT STREAM tosql UNFORMATTED "values(" cyc ")" SKIP.
+    /* OE00167691 - handle update of sequence properly. seq-line already has the
+       start of the command. Here we will just add the fields to be changed in the
+       table created to support sequences.
+    */
+   IF INIT <> ? OR incre <> ? OR maxval <> ? OR cyc <> ? THEN DO:
+
+       IF init <> ? THEN DO:
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  df-line = "  INITIAL " + init
+                  seq-line = seq-line + "initial_value = " + init
+                  isAppend = YES. /* remember that we need to append to the list */
+       END.
+
+       IF incre <> ? THEN DO:
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  df-line = "  INCREMENT " + incre
+                  seq-line = seq-line + (IF isAppend THEN ", " ELSE "") +
+                            "increment_value = " + incre
+                  isAppend = YES. /* remember that we need to append to the list */
+
+       END.
+
+       IF maxval <> ? THEN DO:
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  seq-line = seq-line + (IF isAppend THEN ", " ELSE "") +
+                            "upper_limit = " + maxval
+                  isAppend = YES. /* remember that we need to append to the list */
+
+           IF maxval = "?" THEN
+             ASSIGN df-line = "  MAX-VAL ? ".            
+           ELSE
+             ASSIGN df-line = "  MAX-VAL " + maxval.
+
+       END.
+
+       IF cyc <> ? THEN DO:
+           CREATE df-info.
+           ASSIGN df-info.df-seq = dfseq
+                  dfseq = dfseq + 1
+                  seq-line = seq-line + (IF isAppend THEN ", " ELSE "") +
+                             "cycle = " + cyc
+                  isAppend = YES. /* remember that we need to append to the list */
+
+
+          /* OE00170190 - wait until here to change cyc to yes/no */
+          IF cyc = "1" THEN 
+             ASSIGN cyc = "yes".
+          ELSE
+             ASSIGN cyc = "no".  
+
+          ASSIGN  df-line = "  CYCLE-ON-LIMIT " + cyc.
+       END.
+
+       IF maxval NE ? AND init NE ? THEN DO:
+           /* if changing max and init alert user about change current_value too */
+           ASSIGN efile = seqname + ".e".
+           OUTPUT TO value(efile) APPEND.
+           PUT UNFORMATTED seqname " had a change to Initial and/or Upper value " SKIP
+                          "so you may need to manually change the current_value if the current" skip
+                          "value is out of bounds." SKIP(1).
+           OUTPUT CLOSE.
+       END.
+       
+       PUT STREAM tosql UNFORMATTED seq-line SKIP.
+       
+        IF (newseq_upd  AND (init NE ? OR incre NE ? )) THEN DO:
+       	    PUT STREAM tosql UNFORMATTED "DROP TABLE _SEQT_REV_" seqname SKIP(1)
+					 "CREATE TABLE _SEQT_REV_" seqname "(" SKIP
+				         "  current_value bigint identity(" .
+	    IF (init NE ? AND incre NE ? ) THEN 
+		    PUT STREAM tosql UNFORMATTED init "," incre.
+	    ELSE IF incre NE ? THEN 
+		    PUT STREAM tosql UNFORMATTED old_init_val "," incre.
+	    ELSE IF init NE ? THEN 
+		    PUT STREAM tosql UNFORMATTED init "," old_incr_val.
+	    PUT STREAM tosql UNFORMATTED ") primary key, seq_val int)" skip.
+	    ASSIGN newseq_upd = FALSE.
+	END.
+
+       PUT STREAM tosql UNFORMATTED "go" SKIP(1).
     END.
   END.
 
@@ -1180,7 +1473,7 @@ PROCEDURE create-idx-field:
               ELSE DO:
                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " new-obj.fld-name /*" TEXT"*/ " " user_env[18] SKIP.
                 PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
-                ASSIGN new-obj.for-type =  user_env[18] /*"TEXT"*/.
+                ASSIGN new-obj.for-type =  dfLongType /*"TEXT"*/.
               END.     
              
               IF INDEX(idxline, "(") = 0 THEN
@@ -1282,7 +1575,7 @@ PROCEDURE create-idx-field:
                   ELSE DO:
                     PUT STREAM tosql UNFORMATTED comment_chars " ADD " new-obj.fld-name /*" TEXT"*/ " "  user_env[18] SKIP.
                     PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
-                    ASSIGN new-obj.for-type = user_env[18] /*"TEXT"*/.
+                    ASSIGN new-obj.for-type = dfLongType /*"TEXT"*/.
                   END.     
                 END.
                 ELSE DO: /* Available new-obj for shawdow */
@@ -1441,9 +1734,19 @@ ASSIGN ilin = ?
        idbtyp = (IF user_env[32] = ? THEN user_env[22] ELSE user_env[32])
        xlate  = (user_env[8] BEGINS "y")
        minwidth = 30
-       varlngth = INTEGER(user_env[10]) + 1.  
-   
+       varlngth = INTEGER(user_env[10]) + 1
+       /* OE00167691 - the foreign type in the df for TEXT is not TEXT */
+       dfLongType = (IF user_env[18] = "TEXT" THEN "LONGVARCHAR" ELSE "NLONGVARCHAR").  
 
+/* for new sequence generator support. If it's set, it will be the
+   second entry
+*/
+IF NUM-ENTRIES(user_env[25]) > 1 AND 
+   ENTRY(2,user_env[25]) BEGINS "Y" THEN
+   ASSIGN lnewSeq = TRUE
+          seqt_prefix = "_SEQT_REV_"
+          seqp_prefix = "_SEQP_REV_".  
+	  
 OUTPUT STREAM todf TO VALUE(dfout) NO-ECHO NO-MAP.
 OUTPUT STREAM tosql TO VALUE(sqlout) NO-ECHO NO-MAP.
 
@@ -2288,7 +2591,6 @@ DO ON STOP UNDO, LEAVE:
                    RETURN.
                END.
             END.
-
           END.
           
           IF xlate THEN DO:           
@@ -2503,7 +2805,7 @@ DO ON STOP UNDO, LEAVE:
                 ELSE  /* >  */                     
                   IF AVAILABLE new-obj THEN
                     ASSIGN new-obj.for-type = " " + user_env[18] /*" TEXT"*/
-                           dffortype = /*"TEXT"*/ user_env[18].                       
+                           dffortype = /*"TEXT"*/ dfLongType.                       
                 
                 ASSIGN lngth = j.   
               END. /* Character datatype */
@@ -3892,18 +4194,35 @@ DO ON STOP UNDO, LEAVE:
         END.
         ELSE
           ASSIGN forname = ilin[3].
-        
+       
+	/* For update and delete - decision is based on foreign name , not lnewSeq */
+	      
         FIND DICTDB._Sequence WHERE DICTDB._Sequence._Db-recid = dbrecid
                                 AND DICTDB._Sequence._Seq-name = ilin[3]
                                 NO-ERROR.
-        IF AVAILABLE _Sequence THEN DO:        
-          /* first drop the table and write out the line */
-          ASSIGN seq-line = "DROP TABLE _SEQT_ " + forname
-                 seq-type = "d"
-                 seqname = ilin[3].
+	IF AVAILABLE _Sequence THEN DO:        
+           /* new sequences in MSS- drop row from SEQTMGR table and write out the line */
+	   IF _Sequence._Seq-misc[1] BEGINS "_SEQT_REV_" THEN 
+              /* Remove row from _SEQT_REV_SEQTMGR table */  
+	        ASSIGN seq-line = "delete from _SEQT_REV_SEQTMGR where seq_name = '" + forname + "' "
+				    + "                      " 
+				    + " DROP TABLE _SEQT_REV_" + forname 
+	               seq-type = "d"
+		       seqname = ilin[3].
+	  ELSE 
+	  /* first drop the table and write out the line */
+                ASSIGN seq-line = "DROP TABLE _SEQT_" + forname  
+                       seq-type = "d"
+                       seqname = ilin[3].
           RUN write-seq-sql. 
+
           /* Now drop the associated procedure */
-          ASSIGN seq-line = "DROP PROCEDURE _SEQP_" + forname
+          IF _Sequence._Seq-misc[1] BEGINS "_SEQT_REV_" then 
+	     ASSIGN seq-line = "DROP PROCEDURE _SEQP_REV_" + forname 
+                    seq-type = "d"
+                    seqname = ilin[3].
+          else 
+	  ASSIGN seq-line = "DROP PROCEDURE _SEQP_" + forname 
                  seq-type = "d"
                  seqname = ilin[3].
 
@@ -3913,7 +4232,7 @@ DO ON STOP UNDO, LEAVE:
                  df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '"'.
         END.
         ELSE DO:
-          MESSAGE "The Delta DF File contains DROP SEQUENXE" ilin[3] SKIP
+          MESSAGE "The Delta DF File contains DROP SEQUENCE" ilin[3] SKIP
                     "and sequence does not exist in the schema holder." SKIP
                     "This process is being aborted."  SKIP (1)
                     VIEW-AS ALERT-BOX ERROR.
@@ -3938,10 +4257,17 @@ DO ON STOP UNDO, LEAVE:
             ELSE
               ASSIGN forname = ilin[3].
             
-            ASSIGN seq-line = "CREATE TABLE " + mss_username + "." + "_SEQT_" + forname
-                   seq-type = "a"
-                   seqname = ilin[3].
-            CREATE df-info.
+	    /* new sequence generator for MSS */
+            IF lnewSeq THEN
+                 ASSIGN seq-line = "CREATE TABLE " + mss_username + "." + "_SEQT_REV_" + forname
+                        seq-type = "a"
+                        seqname = ilin[3].
+            ELSE 
+		ASSIGN seq-line = "CREATE TABLE " + mss_username + "." + "_SEQT_" + forname
+                       seq-type = "a"
+                       seqname = ilin[3].
+
+	    CREATE df-info.
             ASSIGN df-info.df-seq = dfseq
                    dfseq = dfseq + 1
                    df-line = 'ADD SEQUENCE "' + ilin[3] + '"'.
@@ -3966,10 +4292,21 @@ DO ON STOP UNDO, LEAVE:
                     VIEW-AS ALERT-BOX ERROR.
               RETURN.
             END.
-            IF AVAILABLE _Sequence THEN DO:            
-              ASSIGN seq-line = "insert into " + _Sequence._Seq-misc[1]
-                     seq-type = "u"
-                     seqname = ilin[3].
+            ELSE DO: 
+	      IF _Sequence._Seq-misc[1] BEGINS "_SEQT_REV_" THEN DO:
+		  /* new sequence generator- On update, drop old _SEQT_REV table and create again with new values */
+		 ASSIGN seq-line = "update _SEQT_REV_SEQTMGR set "
+                        seq-type = "u"
+                        seqname = ilin[3]
+		 	old_incr_val = _Sequence._Seq-Incr
+			old_init_val = _Sequence._Seq-Init
+			newseq_upd   = TRUE.
+	      END.
+              ELSE 
+                 ASSIGN seq-line = "update " + _Sequence._Seq-misc[2] + "." + _Sequence._Seq-misc[1] + " set  "
+                        seq-type = "u".
+                        seqname = ilin[3].
+
               CREATE df-info.
               ASSIGN df-info.df-seq = dfseq
                      dfseq = dfseq + 1

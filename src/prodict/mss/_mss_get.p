@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,08 by Progress Software Corporation. All rights *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,7 +22,8 @@ History: Copied _odb_get.p for MS Sql Server 7 DataServer
          04/24/00 Added logic not to support older versions D. McMann
          02/28/06 Always skip table valued functions and skip system objects
                   when running proto utility - 20060120-003 - fernando
-                                                   
+         05/20/08 Adding code for revised sequence genrator in MSS DataServers                                          
+         05/27/08 Fixing code that looks for existing stored-proc - OE00130417
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -62,7 +63,7 @@ DEFINE VARIABLE l_rep-presel     AS logical   NO-UNDO.
 DEFINE VARIABLE escape_char      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE quote_char       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE fromProto        AS LOGICAL   NO-UNDO INIT NO.
-DEFINE NEW SHARED VARIABLE s_is_as400 as LOGICAL NO-UNDO INIT NO.
+DEFINE VARIABLE sqltables-seqpre AS CHARACTER NO-UNDO. /* sequence prefix- new sequence generator */
 
 DEFINE BUFFER gate-buff FOR gate-work.
 DEFINE stream s_stm_errors.
@@ -409,7 +410,11 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
    /* if from migration utility, don't need to pull system objects */
    IF fromProto AND UPPER(TRIM(DICTDBG.SQLTables_buffer.owner)) = "SYS" THEN
       NEXT.
-   
+
+   /* if object is _SEQT_REV_SEQTMGR (management table for new MSS sequences)
+      we dont pull it into the schema, so ignoring it- OE157473 */
+   IF DICTDBG.SQLTables_buffer.name BEGINS "_SEQT_REV_SEQTMGR" THEN NEXT.
+
    /* selection to be done on the client-side */
    /* This IF catches all matches except where one or both  
     * operands have the unknown value. These are caught in the
@@ -464,6 +469,14 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                           ELSE "SEQUENCE"
                        ).
 
+    /* new sequence generator implementation for MSS DataServers */ 
+	    IF (sqltables-type = "TABLE") THEN DO:
+		IF (sqltables-name BEGINS "_SEQT_REV_")
+		   THEN sqltables-seqpre = "_SEQT_REV_".
+	        ELSE IF (sqltables-name BEGINS "_SEQT_") 
+		   THEN sqltables-seqpre = "_SEQT_". 
+	    END.
+
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid     = drec_db
       AND   UPPER(DICTDB._File._For-name)  = UPPER(sqltables-name)
@@ -498,9 +511,11 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
       gate-work.gate-name = ( IF object-type = "BUFFER"
                                THEN SUBSTRING(sqltables-name,9,-1,"character")
-                              ELSE IF object-type = "SEQUENCE"
-                               THEN SUBSTRING(sqltables-name,7,-1,"character")
-                               ELSE sqltables-name
+                              ELSE IF (object-type = "SEQUENCE" AND sqltables-seqpre = "_SEQT_") 
+			        THEN SUBSTRING(sqltables-name,7,-1,"character")
+			      ELSE IF (object-type = "SEQUENCE" AND sqltables-seqpre = "_SEQT_REV_")
+                                THEN SUBSTRING(sqltables-name,11,-1,"character")
+			      ELSE sqltables-name
                             )
 
       gate-work.gate-qual = ( IF DICTDBG.SQLTables_buffer.qualifier = ?
@@ -512,7 +527,14 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                                THEN DICTDB._File._File-name 
                                ELSE ?
                             ).
-     
+     /* assigning gate-work.gate-seqpre value to either "_SEQT_REV_" or "_SEQT_" )- OE157473 */
+	IF (object-type = "SEQUENCE") THEN DO:
+	  IF (sqltables-seqpre = "_SEQT_REV_")
+		THEN gate-work.gate-seqpre  = "_SEQT_REV_".
+	  IF (sqltables-seqpre = "_SEQT_")
+		THEN gate-work.gate-seqpre  = "_SEQT_". 
+	END.
+
     END.   /* FOR EACH DICTDBG.SQLTables_buffer */
 
   CLOSE STORED-PROC DICTDBG.SQLTables.
@@ -569,6 +591,12 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
       SQLProcedures-name = TRIM(DICTDBG.SQLProcs_Buffer.name)
       object-type    = "PROCEDURE".
 
+    /* OE00130417 - remove this now so we can lool for the correct name in the schema,
+       when checking if it already exists
+    */
+    IF substring(SQLProcedures-name,(length(SQLProcedures-name) - 1)) = ";1" THEN
+       ASSIGN SQLProcedures-name = substring(SQLProcedures-name,1,(length(SQLProcedures-name) - 2)).
+
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid     = drec_db
       AND   DICTDB._File._For-name     = SQLProcedures-name
@@ -611,8 +639,6 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                                THEN DICTDB._File._File-name 
                                ELSE ?
                             ).
-      IF substring(gate-work.gate-name,(length(gate-work.gate-name) - 1)) = ";1" THEN
-        ASSIGN gate-work.gate-name = substring(gate-work.gate-name,1,(length(gate-work.gate-name) - 2)).
     END.   /* FOR EACH DICTDBG.SQLProcs_Buffer */
 
   CLOSE STORED-PROC DICTDBG.SQLProcedures.

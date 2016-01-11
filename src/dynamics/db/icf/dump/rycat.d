@@ -1200,17 +1200,18 @@ stores the frame handle also for a SmartContainer.
 "WindowTitleField" 1003183341 1 "" "" no no "" no "" "" no no 1003591184
 "WindowTitleViewer" 347.7063 1 "" "" yes no "" no "" "" no yes 410.7063
 "WORD-WRAP" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099290.101
+"WordIndexedFields" 152.7063 1 "WordIndexedFields is derived from index information, but stored as a property on the client, since it cannot be derived from the client IndexInformation, which typically only has info for the primary table." "GET" no no "" no "" "" no yes 108105.66
 "X" 1005078412.09 4 "A widget's X coordinate" "" no no "" no "" "" no no 1005078417.09
 "Y" 1005078412.09 4 "A widget's Y coordinate" "" no no "" no "" "" no no 1005078419.09
 .
 PSC
 filename=ryc_attribute
-records=0000000000853
+records=0000000000854
 ldbname=ICFDB
-timestamp=2007/12/03-15:38:42
+timestamp=2008/09/16-15:54:31
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000147887
+0000148169

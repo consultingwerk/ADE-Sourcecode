@@ -59,7 +59,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Astra object identifying preprocessor */
 &glob   AstraPlip    yes
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 /* Replace control character function call */
 {af/sup2/afxmlreplctrl.i}

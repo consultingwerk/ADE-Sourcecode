@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="864" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="11.39" key_field_value="3000000455.09" record_version_obj="100000000026.39" secondary_key_value="" version_date="12/03/2007" version_number_seq="12.39" version_time="54505" version_user="admin"><dataset_header DatasetCode="RYCAT" DatasetObj="1007600083.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="94" SCMManaged="no" YearOffset="1950"/>
+<dataset Transactions="865" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="12.39" key_field_value="3000000455.09" record_version_obj="100000000026.39" secondary_key_value="" version_date="12/03/2007" version_number_seq="12.39" version_time="54505" version_user="admin"><dataset_header DatasetCode="RYCAT" DatasetObj="1007600083.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="95" SCMManaged="no" YearOffset="1950"/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="rycat" import_version_number_seq="1.09" key_field_value="1195.7063" record_version_obj="3000051472.09" secondary_key_value="ModRowIdentTable" version_date="07/31/2003" version_number_seq="1.09" version_time="44483" version_user="admin"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="rycat" import_version_number_seq="1.09" key_field_value="1197.7063" record_version_obj="3000051471.09" secondary_key_value="ModRowIdent" version_date="07/31/2003" version_number_seq="1.09" version_time="44480" version_user="admin"/>
@@ -473,7 +473,7 @@ and CHR(1) between the lists of pairs.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1004959733.09</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -715,7 +715,7 @@ FALSE for the contained SDOs because they never initiate their own Commit when c
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>168.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -1810,7 +1810,7 @@ n (no):  The column is a combo-box and its unique-match attribute is set to FALS
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>68842.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -1870,7 +1870,7 @@ n (no):  The column is a combo-box and its unique-match attribute is set to FALS
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>55429.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -2137,7 +2137,7 @@ determined by the SizeUnits attribute value.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003183466</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -2760,7 +2760,7 @@ This is required in the dynamic server container, which constructs server side o
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>180.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -2780,7 +2780,7 @@ This is required in the dynamic server container, which constructs server side o
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>186.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -2800,7 +2800,7 @@ This is required in the dynamic server container, which constructs server side o
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>182.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -2820,7 +2820,7 @@ This is required in the dynamic server container, which constructs server side o
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>184.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3338,7 +3338,7 @@ with ReplyRequired.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>174.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3359,7 +3359,7 @@ This is just set temporarily in updateState before re-publishing updateState, so
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>178.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3561,7 +3561,7 @@ by CHR(1) to identify groups of columns that belong to the same table. If groupi
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>90725.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3581,7 +3581,7 @@ by CHR(1) to identify groups of columns that belong to the same table. If groupi
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>200000003010.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3601,7 +3601,7 @@ by CHR(1) to identify groups of columns that belong to the same table. If groupi
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>204.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3621,7 +3621,7 @@ by CHR(1) to identify groups of columns that belong to the same table. If groupi
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>170.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3683,7 +3683,7 @@ This is checked in query.p dataAvailable and openQuery is skipped if its true. I
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>200000003004.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3703,7 +3703,7 @@ This is checked in query.p dataAvailable and openQuery is skipped if its true. I
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>200000003002.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3807,7 +3807,7 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>190.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3827,7 +3827,7 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>172.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3847,7 +3847,7 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>116</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3867,7 +3867,7 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>200000003008.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3892,7 +3892,7 @@ This is used to prevent two SmartDataBrowsers from attempting to browse the same
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>114</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3913,7 +3913,7 @@ output from the object.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>200000003006.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3933,7 +3933,7 @@ output from the object.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>68844.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -3953,7 +3953,7 @@ output from the object.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>68847.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -4076,7 +4076,7 @@ See the SBOs addDataTarget for more details on how this is set.</attribute_narra
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>68810.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -4629,7 +4629,7 @@ receive messages from.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003183472</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -4777,7 +4777,7 @@ This is only used for stateless WebSpeed SDO&apos;s that are never destroyed</at
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003183474</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -5151,7 +5151,7 @@ If this or DTDPublicId is defined, a DTD reference will be produced instead of a
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>40001.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -6333,7 +6333,7 @@ will fetch enough rows to fill a batch when repositioning to (or near) the end o
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>213.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -6515,7 +6515,7 @@ Use columnFilterTarget for a column.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>192.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -6535,7 +6535,7 @@ Use columnFilterTarget for a column.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>164.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -7547,7 +7547,7 @@ Defaults to &apos;NO&apos;, set to &apos;YES&apos; from the container when it ru
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1000096124.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -7848,7 +7848,7 @@ separator and chr(2) as table separator.  See &apos;getIndexInformation&apos; ov
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>208.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8134,7 +8134,7 @@ It is used to enforce unique instance names in the container and is updated in c
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>3228.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8154,7 +8154,7 @@ It is used to enforce unique instance names in the container and is updated in c
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>4275.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8582,7 +8582,7 @@ used by the framework (Dynamics FiveLetterAcronym).</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>53085.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8602,7 +8602,7 @@ used by the framework (Dynamics FiveLetterAcronym).</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>49813.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8626,7 +8626,7 @@ Currently supported values
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>18288.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8666,7 +8666,7 @@ Currently supported values
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>194.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -8686,7 +8686,7 @@ Currently supported values
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>166.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -9254,7 +9254,7 @@ See &apos;setManualAddQueryWhere&apos; for more info.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>219.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -10085,7 +10085,7 @@ or other Container with DataObjects.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>no</system_owned>
 <attribute_obj>20001.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -10165,7 +10165,7 @@ or other Container with DataObjects.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>101793.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -11721,7 +11721,7 @@ It is set to ? when CurrentPage is set. This should ONLY be set by selectPage.</
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>3000031111.09</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -11964,7 +11964,7 @@ Popup-menu items of disabledPages will be disabled.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>3781.5498</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -12105,7 +12105,7 @@ The &apos;get&apos; function for this property starts an OLE object (Crystal).</
 <design_only>no</design_only>
 <system_owned>no</system_owned>
 <attribute_obj>200000003021.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -12145,7 +12145,7 @@ The &apos;get&apos; function for this property starts an OLE object (Crystal).</
 <design_only>no</design_only>
 <system_owned>no</system_owned>
 <attribute_obj>200000003019.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -12487,7 +12487,7 @@ from the AppBuilder to determine whether to enable the InstanceProperties menu i
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>206.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -12507,7 +12507,7 @@ from the AppBuilder to determine whether to enable the InstanceProperties menu i
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>211.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -12732,7 +12732,7 @@ The openQuery will call prepareQuery with the value.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003183468</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13082,7 +13082,7 @@ No - Do not resort on save of row.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>90686.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13364,7 +13364,7 @@ When connected to an SBO the rowids returned are a semi-colon separated list cor
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>156.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13385,7 +13385,7 @@ The two possible return values are: &apos;NoUpdates&apos; and &apos;RowUpdated&a
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>197.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13406,7 +13406,7 @@ Supports dynamic SDO (not valid RowObject) by also setting RowObject and DataHan
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>162.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13426,7 +13426,7 @@ Supports dynamic SDO (not valid RowObject) by also setting RowObject and DataHan
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>158.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13447,7 +13447,7 @@ Supports dynamic SDO (not valid RowObject) by also setting RowObject and DataHan
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>160.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13468,7 +13468,7 @@ Setting RowsToBatch to 0 indicates that ALL records should be  read.</attribute_
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003183464</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13508,7 +13508,7 @@ Setting RowsToBatch to 0 indicates that ALL records should be  read.</attribute_
 <design_only>no</design_only>
 <system_owned>no</system_owned>
 <attribute_obj>35001.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -13941,7 +13941,7 @@ Setting it to &apos;DLP&apos; or &apos;BUF&apos;, (no difference) for static wil
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>47326.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -14588,7 +14588,7 @@ If it is *no* when serverCommit executes, it will execute &apos;submitValidation
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>1003586096</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -14608,7 +14608,7 @@ If it is *no* when serverCommit executes, it will execute &apos;submitValidation
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>55427.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -14928,7 +14928,7 @@ If it is *no* when serverCommit executes, it will execute &apos;submitValidation
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>199.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -15073,7 +15073,7 @@ No - Only submit this object&apos;s changes to the service.</attribute_narrative
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>84535.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -15909,7 +15909,7 @@ Values:
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>3000031113.09</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16009,7 +16009,7 @@ Values:
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>217.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16391,7 +16391,7 @@ delimited list of handles.</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>124</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16542,7 +16542,7 @@ document producers</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>90720.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16584,7 +16584,7 @@ The option applies to objects where SaveSource is TRUE (TableioSource&apos;s Tab
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>90718.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16664,7 +16664,7 @@ The option applies to objects where SaveSource is TRUE (TableioSource&apos;s Tab
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>100670.66</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -16749,7 +16749,7 @@ supports multiple update sources</attribute_narrative>
 <design_only>no</design_only>
 <system_owned>yes</system_owned>
 <attribute_obj>176.7063</attribute_obj>
-<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="12/03/2007" version_number_seq="1.09" version_time="54478" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
@@ -17393,7 +17393,27 @@ stores the frame handle also for a SmartContainer.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="863" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute" deletion_flag="no" entity_mnemonic="RYCAT" import_version_number_seq="1.09" key_field_value="1005078417.09" record_version_obj="3000058471.09" secondary_key_value="X" version_date="09/18/2006" version_number_seq="1.09" version_time="52396" version_user="admin"><attribute_label>X</attribute_label>
+<dataset_transaction TransactionNo="863" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute" deletion_flag="no" entity_mnemonic="rycat" import_version_number_seq="3.66" key_field_value="108105.66" record_version_obj="108106.66" secondary_key_value="WordIndexedFields" version_date="09/16/2008" version_number_seq="3.66" version_time="44529" version_user="admin"><attribute_label>WordIndexedFields</attribute_label>
+<attribute_group_obj>152.7063</attribute_group_obj>
+<data_type>1</data_type>
+<attribute_narrative>WordIndexedFields is derived from index information, but stored as a property on the client, since it cannot be derived from the client IndexInformation, which typically only has info for the primary table.</attribute_narrative>
+<override_type>GET</override_type>
+<runtime_only>no</runtime_only>
+<is_private>no</is_private>
+<constant_level></constant_level>
+<derived_value>no</derived_value>
+<lookup_type></lookup_type>
+<lookup_value></lookup_value>
+<design_only>no</design_only>
+<system_owned>yes</system_owned>
+<attribute_obj>108105.66</attribute_obj>
+<contained_record DB="icfdb" Table="ryc_attribute_group" deletion_flag="no" entity_mnemonic="RYCAP" import_version_number_seq="1.09" key_field_value="152.7063" record_version_obj="3000058999.09" secondary_key_value="Data" version_date="09/16/2008" version_number_seq="1.09" version_time="44529" version_user="admin"><attribute_group_obj>152.7063</attribute_group_obj>
+<attribute_group_name>Data</attribute_group_name>
+<attribute_group_narrative>SDO Attributes</attribute_group_narrative>
+</contained_record>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="864" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute" deletion_flag="no" entity_mnemonic="RYCAT" import_version_number_seq="1.09" key_field_value="1005078417.09" record_version_obj="3000058471.09" secondary_key_value="X" version_date="09/18/2006" version_number_seq="1.09" version_time="52396" version_user="admin"><attribute_label>X</attribute_label>
 <attribute_group_obj>1005078412.09</attribute_group_obj>
 <data_type>4</data_type>
 <attribute_narrative>A widget&apos;s X coordinate</attribute_narrative>
@@ -17413,7 +17433,7 @@ stores the frame handle also for a SmartContainer.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="864" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute" deletion_flag="no" entity_mnemonic="RYCAT" import_version_number_seq="1.09" key_field_value="1005078419.09" record_version_obj="3000058472.09" secondary_key_value="Y" version_date="09/18/2006" version_number_seq="1.09" version_time="52396" version_user="admin"><attribute_label>Y</attribute_label>
+<dataset_transaction TransactionNo="865" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute" deletion_flag="no" entity_mnemonic="RYCAT" import_version_number_seq="1.09" key_field_value="1005078419.09" record_version_obj="3000058472.09" secondary_key_value="Y" version_date="09/18/2006" version_number_seq="1.09" version_time="52396" version_user="admin"><attribute_label>Y</attribute_label>
 <attribute_group_obj>1005078412.09</attribute_group_obj>
 <data_type>4</data_type>
 <attribute_narrative>A widget&apos;s Y coordinate</attribute_narrative>

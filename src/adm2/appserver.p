@@ -581,15 +581,14 @@ PROCEDURE connectServer :
   DO:
     RUN appServerConnect IN appSrvUtils
         (cAppService, lASUsePrompt, cASInfo, OUTPUT phAppService).
-
-    IF RETURN-VALUE = "ERROR":U THEN   /* or phAppService = SESSION:HANDLE*/     
+    IF RETURN-VALUE = "ERROR":U THEN    
     DO:
       RUN addMessage IN TARGET-PROCEDURE 
           (cAppService +
           ' partition is running locally without the proper database connection(s).',
            ?,?).
       RETURN ERROR 'ADM-ERROR':U.
-    END. /* hAppService = session or return-value = 'error' */
+    END. /* hAppService not defined  or return-value = 'error' */
   END.
 
   IF NOT lAsHasConnected THEN
@@ -823,11 +822,7 @@ Parameters: <none>
           - This is an internal 'event' that is called from runServerObject 
             after a successful run on server. It assumes that the server is 
             bound and silently ignores any calls when not bound.                  
-          - It is expected that context management will be moved up to this 
-            class (from data.p and sbo.p) sometime in the future, but as of 
-            current this method calls APIs that only exists in 'query objects' 
-            if NeedContext is true. The NeedContext defaults to true if 
-            QueryObject is true.
+
 Note date:  2002/02/05               
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lHasStarted    AS LOGICAL   NO-UNDO.

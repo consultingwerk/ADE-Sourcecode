@@ -1253,7 +1253,7 @@ FUNCTION stripCalcs RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
 &IF DEFINED(EXCLUDE-addRecord) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addRecord Procedure 
@@ -2546,11 +2546,13 @@ PROCEDURE disableFields :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcFieldType  AS CHARACTER NO-UNDO. 
 
-  DEFINE VARIABLE hBrowse         AS HANDLE      NO-UNDO.
+  DEFINE VARIABLE hBrowse         AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lEnabled        AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cFields         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hFrame          AS HANDLE    NO-UNDO.
-
+  DEFINE VARIABLE hFocus          AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hFocusParent    AS HANDLE    NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get FieldsEnabled lEnabled}
   {get BrowseHandle hBrowse}
@@ -2563,16 +2565,25 @@ PROCEDURE disableFields :
   DO:
     IF cFields NE "":U AND pcFieldType = 'All':U then
     DO:
-      APPLY "ENTRY":U TO hFrame.
+      hFocus = Focus.
+      if valid-handle(hFocus) then 
+      do:
+        hFocusParent = hFocus:parent.      
+        /* workaround for problem where the selection is lost, but the browser dosn't know
+           update mode - cursor down - disable - the workaround causes the browse to remain on 
+           current row, but it;s better than loosing the highlight bar.              
+          (note: the apply entry was done unconditionsally and caused "focus confusion" and 
+                 panel buttons to get focus on enabling later)
+        */
+   
+        if hFocusParent = hBrowse and last-event:EVENT-TYPe <> "mouse" then  
+          APPLY "ENTRY":U TO hFrame.
+      end.
       /* Setting each column to read-only avoids problems with the column 
          remaining visually enabled when this procedure is called without  
          row-leave/leave been fired (for example the toolbar which has no focus). */
       hBrowse:READ-ONLY = TRUE NO-ERROR.
       RUN disableFieldList IN TARGET-PROCEDURE(cFields).
-      /* The APPLY LEAVE is necessary to overcome a problem with the browse whereby any triggers on the 
-         browse cannot be programtically fired until the user executes a keyboard or mouse event. The APPLY
-         HOME,CTRL-HOME,END,CTR-END in dataAvailable were not firing because of this.     */
-      APPLY "LEAVE" TO hBrowse.         
     END.
     {set FieldsEnabled NO}.
   END.
@@ -2693,7 +2704,7 @@ PROCEDURE enableFields :
   DEFINE VARIABLE iEnableCol        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cNewRecord        AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE lCreateFieldsOnly AS LOGICAL   NO-UNDO.
- 
+     
   {get BrowseHandle hBrowse}.
   IF VALID-HANDLE(hBrowse) THEN
   DO:
@@ -2727,9 +2738,7 @@ PROCEDURE enableFields :
         cColumnList = cEnabledWhenNew.
       else 
         cColumnList = cEnabledFields.
-             
-      APPLY "ENTRY":U TO hFrame.
-         
+        
       /* Turn off read-only for each column 
          See comments in disable fields why read-only is true */
       hColumn = hBrowse:FIRST-COLUMN.
@@ -2774,8 +2783,10 @@ PROCEDURE enableFields :
     IF cState = 'NoRecordAvailable':U THEN 
     DO:
       {get ContainerHandle hFrame}.
-      APPLY "ENTRY":U TO hFrame.
+       APPLY "ENTRY":U TO hFrame.  
     END.  /* if no record available */    
+
+
   END.
   
   RUN SUPER.
@@ -3189,7 +3200,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lDynamic          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cWidgetIDFileName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cEnabledWhenNew   AS CHARACTER  NO-UNDO.
-
+  
   ASSIGN ghTargetProcedure = TARGET-PROCEDURE. /* store TARGET-PROCEDURE so the source can identify it if it's an SBO */
 
   &SCOPED-DEFINE xp-assign
@@ -4988,7 +4999,8 @@ PROCEDURE rowLeave :
           if lSaveSource = false then
             RUN cancelRecord IN TARGET-PROCEDURE.
         end.
-    END.    /* attempt the update */        
+    END.    /* attempt the update */ 
+                       
 END PROCEDURE.    /* rowLeave */
 
 /* _UIB-CODE-BLOCK-END */

@@ -7,7 +7,7 @@
 /* admmsgs.i -- include file with translatable ADM messages (and others
    which need to be modifiable without changing ADM source procedures). */
 
-  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 101
+  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 106
     INIT [
      "You must select a single row for deletion.",                                        /*  1 */
      "Current values must be saved or cancelled before Add or Copy.",                     /*  2 */
@@ -20,8 +20,8 @@
      "Current record has been changed. Do you wish to save those changes?",               /*  7 */
      "Field(s) &1 have been changed by another user. Your change has been rejected.",     /*  8 */
      "Unable to locate the r-code for &1. Executing its source file.",                    /*  9 */
-     "Field:  ",  /* used in showDataMessages */                                          /* 10 */
-     "Table:  ",  /* used in showDataMessages */                                          /* 11 */
+     "Field: ",  /* used in showDataMessages */                                          /* 10 */
+     "Table: ",  /* used in showDataMessages */                                          /* 11 */
      "You must complete the current update operation.",                                   /* 12 */
      "You must complete the current add operation.",                                      /* 13 */
      "You must complete the current copy operation.",                                     /* 14 */
@@ -187,9 +187,17 @@
     cADMMessages[98] = "Fetch of '&1' definitions failed due to an unexpected error."
     cADMMessages[99] = "Fetch of '&1' data failed due to an unexpected error."
     cADMMessages[100] = "Save of '&1' data failed due to an unexpexted error." 
+    .
+    ASSIGN
     cADMMessages[101] = "Column &1 can only be updated when the record is new."
-    .         
-    /* Assigns to cADMMessages are separated in multiple groups to avoid 
+    cADMMessages[102] = "Server data request returned with error from server:"
+    cADMMessages[103] = "No message was returned from the server, check agent server log file for actual errors."
+    cADMMessages[104] = "Could not create buffer for table ~"&1~". This indicates that the table doesn't exist in a connected database or that the database is not connected."
+    cADMMessages[105] = "Could not create buffer for table ~"&1~". This indicates that the table doesn't exist in a connected database or that it exists in more than one database or that the database is not connected."
+    cADMMessages[106] = "The query prepare returned the following error:" + chr(10) +  "&1" 
+                       
+    .                  
+    /* Assigns to cADMMessages are separated in multiple groups of 50 to avoid 
        exceeding the default number of input characters: -inp 4096
        when compiling.
      */

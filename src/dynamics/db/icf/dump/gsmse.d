@@ -1,4 +1,5 @@
 6046.49 "Migrate101BSetup" "Migrate101BSetup" "WBC,GUI" "WIN32" 0 yes 910749.24
+23465.59 "Migrate101CSetup" "Migrate101CSetup" "WBC,GUI" "WIN32" 0 yes 910749.24
 113310.48 "Migrate21Setup" "Migrate21Setup" "WBC,GUI" "WIN32" 0 yes 910749.24
 910719.24 "Basic" "Basic Session Type" "" "" 0 yes 0
 910722.24 "ProgressSetup" "ProgressSetup" "GUI,WBC" "WIN32" 0 yes 910749.24
@@ -29,12 +30,12 @@
 .
 PSC
 filename=gsm_session_type
-records=0000000000028
+records=0000000000029
 ldbname=ICFDB
-timestamp=2007/05/03-15:28:21
+timestamp=2008/09/16-15:54:28
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=utf-8
+cpstream=UTF-8
 .
-0000002280
+0000002362

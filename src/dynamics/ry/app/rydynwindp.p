@@ -855,7 +855,8 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
     DEFINE VARIABLE dFrameMinWidth              AS DECIMAL              NO-UNDO.
     DEFINE VARIABLE hContainerSource            AS HANDLE               NO-UNDO.
     DEFINE VARIABLE cObjectName                 AS CHARACTER            NO-UNDO.
-
+    DEFINE VARIABLE lMaximized                  AS LOGICAL              NO-UNDO.
+    
     ASSIGN lMenuController = {fnarg InstanceOf 'DynMenc'}.
     
     &SCOPED-DEFINE xp-assign
@@ -917,7 +918,7 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
            
            hWindow:WIDTH-CHARS      = dMinimumWindowWidth
            hWindow:HEIGHT-CHARS     = dMinimumWindowHeight.
-           
+ 
     /* Only get the saved sizes when necessary. */
     IF lSaveWindowPos THEN
     DO:
@@ -931,9 +932,10 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
                                                   INPUT-OUTPUT rProfileRid,             /* Rowid of profile data                        */
                                                         OUTPUT cProfileData       ).    /* Found profile data. Positions as follows:    */
                                                                                         /* 1 = col,         2 = row,                    */
-        IF NUM-ENTRIES(cProfileData, CHR(3)) EQ 4 THEN
+        IF NUM-ENTRIES(cProfileData, CHR(3)) GE 4 THEN
             ASSIGN lFoundSavedSize = YES
-
+                   lMaximized      = NUM-ENTRIES(cProfileData, CHR(3)) GE 5 
+                                     and ENTRY(5, cProfileData, CHR(3)) = "WINDOW-MAXIMIZED":U                                          
                    /* Ensure that the values have the correct decimal points. 
                     * These values are always stored using the American numeric format
                     * ie. using a "." as decimal point.                               */
@@ -956,11 +958,7 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
                    NO-ERROR.
         ELSE
         IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
-            ASSIGN lFoundSavedSize = YES
-                   dSavedWidth     = dSessionMaxAvailWidth
-                   dSavedHeight    = dSessionMaxAvailHeight
-                   dSavedColumn    = 1.0
-                   dSavedRow       = 1.0.                       
+            ASSIGN lMaximized      = true.
         ELSE
             ASSIGN dSavedWidth  = ?
                    dSavedHeight = ?
@@ -970,6 +968,7 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
     
     IF lFoundSavedSize THEN
     DO:
+       
         ASSIGN hWindow:WIDTH-CHARS         = MIN(MAX(dSavedWidth, hWindow:MIN-WIDTH-CHARS),
                                                  dSessionMaxAvailWidth)
                hWindow:HEIGHT-CHARS        = MIN(MAX(dSavedHeight, (hWindow:MIN-HEIGHT-CHARS)),
@@ -987,7 +986,9 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
                                              IF dSavedRow LT 0 THEN
                                                  1
                                              ELSE
+        
                                                  dSavedRow.
+      
     END.
 
     ELSE
@@ -998,6 +999,8 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
                hWindow:MAX-WIDTH-CHARS      = dMaximumWindowWidth
                hWindow:MIN-HEIGHT-CHARS     = dMinimumWindowHeight
                hWindow:MAX-HEIGHT-CHARS     = dMaximumWindowHeight.
+ 
+ 
  
     /* Check if container source has cascade rules that requires new position*/
     &SCOPED-DEFINE xp-assign
@@ -1018,11 +1021,9 @@ FUNCTION prepareInitialWindowSize RETURNS LOGICAL
      ASSIGN     
       hWindow:ROW    = dSavedRow    WHEN dSavedRow >= 1 
       hWindow:COLUMN = dSavedColumn WHEN dSavedColumn >= 1.  
-    /* Although the window has been sized to a maximum, make it truly
-       maximised.*/
-    IF cProfileData EQ "WINDOW-MAXIMIZED":U THEN
-      ASSIGN hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
     
+    if lMaximized then
+       hWindow:WINDOW-STATE = WINDOW-MAXIMIZED.
     RETURN TRUE.
 END FUNCTION.    /* prepareInitialWindowSize */
 

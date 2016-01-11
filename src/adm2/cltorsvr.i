@@ -43,12 +43,12 @@
         cRetVal = ( DYNAMIC-FUNCTION("{1}":U IN hAppServer)) .
       &ENDIF 
        /* unbind if this call did the bind (getASHandle) */
-      RUN unbindServer IN TARGET-PROCEDURE (?). 
+      RUN unbindServer IN TARGET-PROCEDURE (?).
       
       return cRetVal. 
     END. /* If we have a valid hAppServer handle */
     ELSE RETURN &IF "{2}":U = "Log":U &THEN FALSE &ELSE ? &ENDIF.
   END.    /* END DO IF Client */
-  &IF "{4}":U NE "No":U &THEN 
+  &IF "{4}":U NE "No":U &THEN
   ELSE RETURN SUPER({3}). /* Get query.p's version of this function. */
   &ENDIF

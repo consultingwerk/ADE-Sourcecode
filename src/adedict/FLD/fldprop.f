@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@ Author: Laura Stern
 Date Created: 02/04/92 
     Modified: 04/01/98 Added display of _field-rpos
               06/08/06 Support for int64
+              08/25/08 Changing format for _Initial - OE00168292
 
 ----------------------------------------------------------------------------*/
 
@@ -68,7 +69,8 @@ form
    SKIP({&VM_WID}) 
 
    b_Field._Initial     label "&Initial Value"  colon 18 {&STDPH_FILL}
-                        format "x(48)"
+                        format "x(100)" 
+                        view-as fill-in size 48 by 1
    SKIP({&VM_WID}) 
    
    b_Field._Order	label "&Order #"        colon 18 {&STDPH_FILL}
@@ -131,6 +133,7 @@ form
    
    with {&frame_phrase} SIDE-LABELS SCROLLABLE.
 
-
+   /* OE00168292 -adjusting Initial width */
+   b_Field._Initial:width-chars = b_Field._Col-label:width-chars.
 
 

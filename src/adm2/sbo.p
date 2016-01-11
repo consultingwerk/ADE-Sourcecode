@@ -2366,8 +2366,9 @@ PROCEDURE commitTransaction :
       /* don't send message from one-to-one SDOs to outside while refreshing */
       IF lOneToOne THEN
         {set BlockDataAvailable TRUE}.
-      
-      PUBLISH 'DataAvailable':U FROM hTopDO ('RESET':U).  
+
+      PUBLISH 'DataAvailable':U FROM hTopDO  
+                        (IF lAutoCommit THEN 'SAME':U ELSE 'RESET':U).  
 
       /* Reset external data-targets if one-to-one */
       IF lOneToOne THEN
@@ -9173,7 +9174,7 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
   DEFINE VARIABLE iCount               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hEntry               AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cEntry               AS CHARACTER  NO-UNDO.
- 
+
   IF NOT CAN-DO('Add,Copy':U,pcMode)  THEN
   DO:
     MESSAGE  SUBSTITUTE({fnarg messageNumber 58}, 'newDataObjectRow()', pcMode) 
@@ -9767,7 +9768,7 @@ FUNCTION submitRow RETURNS LOGICAL
 
   IF NOT lSuccess THEN
     RETURN FALSE.
-   
+
   IF lOneToOne AND NOT lAutoCommit THEN
   DO:
     {set BlockDataAvailable FALSE}.
@@ -9784,6 +9785,7 @@ FUNCTION submitRow RETURNS LOGICAL
   ELSE 
      {set RowObjectState 'RowUpdated':U}.  
   
+ 
   RETURN lSuccess.
 
 END FUNCTION.

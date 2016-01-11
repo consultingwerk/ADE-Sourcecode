@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,7 +21,7 @@
                [19] = logical*** -> logical, tinyint              
        user_env[20] = character to use for unique name creation
        user_env[21] = create shawdow columns
-       user_env[25] = create sequences
+       user_env[25] = create sequences,new sequence generator
        user_env[30] = write exit at end of SQL.
        user_env[33] = Use _Field._Width for size of field.
        user_env[34] = Create descending indices
@@ -37,8 +37,8 @@
             04/14/06 Unicode support
             07/19/06 Unicode support - support only MSS 2005
             08/24/06 Add warning about non utf-8 codepage and unicode columns - 20060802-024
-            03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
-            
+            03/21/07 Unicode requirements for schema holder database - added for CR#OE00147991
+            04/11/08 Support for new seq generator
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -79,7 +79,7 @@ IF batch_mode THEN DO:
        "ODBC Data Source Name:                 " mss_dbname SKIP
        "{&PRO_DISPLAY_NAME} Schema Holder name:           " osh_dbname skip
        "MSS Username:                         " mss_username skip
-       "Compatible structure:                  " pcompatible skip
+       "Create RECID Field :                  " pcompatible skip
        "Field width calculation based on:      " (IF iFmtOption = 1 THEN
                                                     "_Field._Width field"
                                                   ELSE IF (lFormat = FALSE) THEN
@@ -87,7 +87,8 @@ IF batch_mode THEN DO:
                                                   ELSE "_Field._Format field")
                                                   SKIP
        "Create objects in MSS:                " loadsql skip
-       "Moved data to MSS:                    " movedata SKIP.
+       "Moved data to MSS:                    " movedata SKIP
+       "Use revised sequence generator:       " newseq SKIP.
 
         IF OS-GETENV("UNICODETYPES") NE ? THEN
             PUT STREAM logfile UNFORMATTED
@@ -208,7 +209,9 @@ ASSIGN user_dbname  = mss_dbname
        user_env[22] = "MSS"
        user_env[23] = "30"
        user_env[24] = "15"
-       user_env[25] = "y" 
+       /* first y is for sequence support.
+          second entry is for new sequence generator */
+       user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n")
        user_env[26] = mss_username
        user_env[28] = "128"
        user_env[29] = "128"            

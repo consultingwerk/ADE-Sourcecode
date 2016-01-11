@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-08 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,6 +35,8 @@ History:  DLM 01/28/98 Added call for stored procedures.
      knavneet 02/21/07 For AS400, defining another frame frm_as400 & uppercasing s_owner 
      knavneet 07/24/07 While checking the driver name we read the 1st ENTRY from _Db-misc2[1] as it may have Library name appended to it for DB2/400 
      knavneet 08/22/07 For DB2/400, if Db-misc2[1] has no 2nd entry, s_owner is assigned the default Collection specified in DSN reading from registry 
+     fernando 05/27/08 Fixing code that looks for existing stored-proc - OE00130417
+     fernando 09/24/08 Allow synonyms to be pulled - OE00175227     
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -586,11 +588,11 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
       IF fromproto AND is_db2 AND user_library NE "" THEN
           l_owner_f = user_library. /* library name from DB2/400 */
   
-      RUN STORED-PROC DICTDBG.SQLTables (?, l_owner_f, ?, "TABLE,VIEW").
+      RUN STORED-PROC DICTDBG.SQLTables (?, l_owner_f, ?, "TABLE,VIEW,SYNONYM").
   END.
   ELSE 
       RUN STORED-PROC DICTDBG.SQLTables 
-                  (l_qual_f, l_owner_f, l_name_f, "TABLE,VIEW").
+                  (l_qual_f, l_owner_f, l_name_f, "TABLE,VIEW,SYNONYM").
 
   FOR EACH DICTDBG.SQLTables_buffer:
    /* If fromproto then only pull in what we pushed */ 
@@ -822,6 +824,12 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
       SQLProcedures-name = TRIM(DICTDBG.SQLProcs_Buffer.name)
       object-type    = "PROCEDURE".
 
+    /* OE00130417 - remove this now so we can lool for the correct name in the schema,
+       when checking if it already exists
+    */
+    IF substring(SQLProcedures-name,(length(SQLProcedures-name) - 1)) = ";1" THEN
+       ASSIGN SQLProcedures-name = substring(SQLProcedures-name,1,(length(SQLProcedures-name) - 2)).
+
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid     = drec_db
       AND   DICTDB._File._For-name     = SQLProcedures-name
@@ -864,8 +872,6 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                                THEN DICTDB._File._File-name 
                                ELSE ?
                             ).
-      IF substring(gate-work.gate-name,(length(gate-work.gate-name) - 1)) = ";1" THEN
-        ASSIGN gate-work.gate-name = substring(gate-work.gate-name,1,(length(gate-work.gate-name) - 2)).
     END.   /* FOR EACH DICTDBG.SQLProcs_Buffer */
 
   CLOSE STORED-PROC DICTDBG.SQLProcedures.

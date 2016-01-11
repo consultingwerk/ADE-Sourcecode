@@ -756,7 +756,7 @@ PROCEDURE resizeObject :
   {get PanelLabel hLabel}
   {get ButtonCount iButtons}.
   &UNDEFINE xp-assign
-  
+ 
     /* The margin is based on the standard column width, unless specified
        as an attribute. The margin is 0 for character mode SmartObjects. */
     &IF "{&WINDOW-SYSTEM}" eq "TTY" &THEN
@@ -817,14 +817,18 @@ PROCEDURE resizeObject :
      &ELSE
        &Scoped-define min-p 22
      &ENDIF
-     ASSIGN 
-         min-height = (MAX ({&min-p}, num-rows + 
-           (2 * i_margin) + i_box-Y, i_lbl-hgt-p) / SESSION:PIXELS-PER-ROW) +
-                       hFrame:BORDER-TOP + hFrame:BORDER-BOTTOM  
-         min-width  = (MAX ({&min-p}, num-cols + 2 * i_margin) / 
-                         SESSION:PIXELS-PER-COLUMN) + 
-                       hFrame:BORDER-LEFT + hFrame:BORDER-RIGHT.   
-    
+ 
+      assign
+        min-height = (MAX ({&min-p}, 
+                             num-rows 
+                             + (2 * i_margin) + i_box-Y, i_lbl-hgt-p) / SESSION:PIXELS-PER-ROW) 
+                             + (if hFrame:box then hFrame:BORDER-TOP + hFrame:BORDER-BOTTOM else 0)  
+        min-width  = (MAX ({&min-p}, 
+                             num-cols + 2 * i_margin) 
+                             / 
+                             SESSION:PIXELS-PER-COLUMN) 
+                             + (if hFrame:box then hFrame:BORDER-LEFT + hFrame:BORDER-RIGHT else 0).   
+ 
     /* Hide the frame to reduce "flashing". Remember if it was already
        hidden, so we don't view it unnecessarily at the end of this
        procedure. (Note: Hiding a SELECTED frame turns off the Selection, 
@@ -835,32 +839,34 @@ PROCEDURE resizeObject :
            NO-ERROR.
            
     /* Do we need to adjust the size (and position). */
-    IF min-height > pd_height OR min-width > pd_width THEN DO:
+    IF min-height > pd_height OR min-width > pd_width THEN 
+    DO:
       /* Get the parent to insure that the frame will still fit inside it. */ 
       h = hFrame:PARENT.
       IF h:TYPE ne "WINDOW":U THEN h = hFrame:FRAME.
       /* Test width. */  
-      IF min-width > pd_width THEN DO:
+      IF min-width > pd_width THEN 
+      DO:
         ASSIGN pd_width  = min-width
                i_width-p = 1 + (pd_width * SESSION:PIXELS-PER-COLUMN)
                i_test    = IF h:TYPE eq "WINDOW":U OR h:SCROLLABLE
                            THEN h:VIRTUAL-WIDTH-P
                            ELSE h:WIDTH-P - h:BORDER-LEFT-P - h:BORDER-RIGHT-P.
-        IF i_test < hFrame:X + i_width-p 
-        THEN ASSIGN hFrame:X = MAX(0, i_test - i_width-p) NO-ERROR.
+        IF i_test < hFrame:X + i_width-p THEN 
+          ASSIGN hFrame:X = MAX(0, i_test - i_width-p) NO-ERROR.
       END.
       /* Test height. */
-      IF min-height > pd_height THEN DO:
+      IF min-height > pd_height THEN 
+      DO:
         ASSIGN pd_height  = min-height 
                i_height-p = 1 + (pd_height * SESSION:PIXELS-PER-ROW)
                i_test     = IF h:TYPE eq "WINDOW":U OR h:SCROLLABLE
                             THEN h:VIRTUAL-HEIGHT-P
                             ELSE h:HEIGHT-P - h:BORDER-TOP-P - h:BORDER-BOTTOM-P.
-        IF i_test < hFrame:Y + i_height-p 
-        THEN ASSIGN hFrame:Y = MAX(0, i_test - i_height-p) NO-ERROR.
+        IF i_test < hFrame:Y + i_height-p THEN 
+          ASSIGN hFrame:Y = MAX(0, i_test - i_height-p) NO-ERROR.
       END.
     END.
- 
     /* Resize the frame and determine values based on the desired size. */
     ASSIGN 
         hFrame:SCROLLABLE = yes
@@ -868,20 +874,25 @@ PROCEDURE resizeObject :
         hFrame:HEIGHT     = pd_height
         /* Convert from Decimal width and height be reading from the 
            FRAME itself. */
-        i_width-p    = hFrame:WIDTH-P
-        i_height-p   = hFrame:HEIGHT-P
+        i_width-p    = pd_width * session:pixels-per-column /*hFrame:WIDTH-P*/
+        i_height-p   = pd_height * session:pixels-per-row /*hFrame:HEIGHT-P*/
+        .
+    
+    if hFrame:box then 
+      assign
         /* Save the calculation of frame borders. */
         i_border-v   = hFrame:BORDER-TOP-P +
                        hFrame:BORDER-BOTTOM-P
         i_border-h   = hFrame:BORDER-LEFT-P +
                        hFrame:BORDER-RIGHT-P
+       .
+     assign
         /* Compute the total width/height of the buttons in the panel. 
            That is, subtract all the margins, decoration, and borders 
            from the frame size. */
         p-width-p    = i_width-p - i_border-h - (2 * i_margin)
-        p-height-p   = i_height-p - i_border-v - i_box-Y - (2 * i_margin)
-      NO-ERROR.
-       
+        p-height-p   = i_height-p - i_border-v - i_box-Y - (2 * i_margin).
+   
     /* Loop through all the button children and move them. */
     ASSIGN h     = hFrame:CURRENT-ITERATION
            h     = h:FIRST-CHILD
@@ -926,8 +937,8 @@ PROCEDURE resizeObject :
            total (35 = 7 * 5). The algorithm below will have 5 buttons 6 pixels
            high and two buttons only 5 pixels high. */
       ASSIGN ic = ic + 1.
-      IF ic > num-cols 
-      THEN ASSIGN 
+      IF ic > num-cols THEN
+         ASSIGN 
                ic    = 1
                ir    = ir + 1
                btn-X = i_margin
@@ -980,10 +991,10 @@ PROCEDURE resizeObject :
     /* Frame must be SCROLLABLE if it is to be resized smaller than its
        contained buttons and rectangles. */    
     ASSIGN hFrame:SCROLLABLE = YES.
-            
     /* View, and select, the frame, if necessary. */
     IF NOT l_hidden THEN hFrame:HIDDEN   = no NO-ERROR.
     IF l_selected   THEN hFrame:SELECTED = yes.
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

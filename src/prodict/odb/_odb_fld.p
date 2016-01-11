@@ -51,6 +51,7 @@ HISTORY:
     96/04   hutegger    restricted update of _fld-stoff to only BUFFERs 
                         that got created on the PROGRES side
     02/14/08 fernando Support for datetime
+    08/25/08 fernando Adjusting format of _Initial - OE00168292
 !!!!!!!NOTE: this program is not yet suitable for adding fields!!!!!!!!
 
 */
@@ -124,7 +125,8 @@ FORM
   /* dfields._For-retrieve  * /
   retriev              LABEL     "Retrieve ?" FORMAT "y/n"*/ SKIP
 
-  dfields._Initial      LABEL "     Initial" FORMAT "x(30)" SPACE(4)
+  dfields._Initial      LABEL "     Initial" FORMAT "x(100)" 
+                        VIEW-AS FILL-IN SIZE 30 BY 1 SPACE(4)
   dfields._Mandatory    LABEL     "Not Null" FORMAT "yes/no"
   dfields._Extent       LABEL     "  Extent" FORMAT ">>>>9" SKIP
 
@@ -210,6 +212,7 @@ on leave of dfields._For-type in frame odb_fld do:
       when "#" then assign l_format = "->>,>>>,>>>9.99".
       when "l" then assign  l_format = "yes/no".
       WHEN "dt"  THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS".
+      WHEN "dtz" THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS+HH:MM".
       end case.
 
     DISPLAY 
@@ -252,6 +255,7 @@ ON GET,HELP OF dfields._For-type IN FRAME odb_fld DO:
       when "#" then assign l_format = "->>,>>>,>>>9.99".
       when "l" then assign l_format = "yes/no".
       WHEN "dt"  THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS".
+      WHEN "dtz" THEN ASSIGN l_format = "99/99/9999 HH:MM:SS.SSS+HH:MM".
       end case.
 
     DISPLAY 

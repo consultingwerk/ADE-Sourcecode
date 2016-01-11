@@ -302,6 +302,7 @@ IF NOT ret THEN DO:
   MESSAGE "Unable to connect to the AppServer for the" AppSrv-TT.App-Service
           "service." VIEW-AS ALERT-BOX ERROR.
   ASSIGN conn-hdl = SESSION:HANDLE.
+  RETURN "ERROR".
 END.
 
 AppSrv-TT.AS-HANDLE = conn-hdl.

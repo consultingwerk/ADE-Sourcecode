@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -2815,17 +2815,16 @@ PROCEDURE constructObject :
   DEFINE VARIABLE cServerFileName     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lUseRepository      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cContainerName      AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE lStopped            AS LOGICAL    NO-UNDO.
+  
   ASSIGN ghTargetProcedure = TARGET-PROCEDURE NO-ERROR.
-
-  /* We could do a more intelligent search for object, but this is 
-     curently a hack for lookup.p so that the launched lookup container can 
-     fetch data from repository 
-     Warning: LogicalObjectName is used by webspoeed for lookup SDO that 
-              ALREADY has all info   */   
-              
-   /*set unknown here just in case of recursive call */  
+  /*set unknown here just in case of recursive call */  
   gcCurrentObjectName = ?.
+
+  /* this is (a hack...) for lookup.p so that the launched lookup container can 
+     fetch data from repository 
+     Warning: LogicalObjectName is used by webspeed for lookup SDO that 
+              ALREADY has all info   */               
   cFirstEntry = ENTRY(1,pcPropList,CHR(3)).  
   IF cFirstEntry <> '':U AND ENTRY(1,cFirstEntry,CHR(4)) = 'LaunchLogicalName':U THEN
   DO:
@@ -3040,7 +3039,7 @@ PROCEDURE constructObject :
       END.       /* END DO IF DotRFile still unfound */
       /* If cDotRFile is not ? then we run the object here unless SourceSearch
          was a Run DO option and we've already directly run the source code */
-      ELSE IF NOT VALID-HANDLE(phObject) THEN
+      ELSE IF NOT VALID-HANDLE(phObject) THEN 
           RUN VALUE(pcProcName) PERSISTENT SET phObject.
       /* Verify that the object was created successfully. */
       IF NOT VALID-HANDLE (phObject) THEN 
@@ -3076,10 +3075,25 @@ PROCEDURE constructObject :
               SUBSTR(cObjectName,1,INDEX(cObjectName,"_cl":U) - 1)).
       END.        /* END DO IF _cl */
     END.          /* This object is DB-AWARE */
-    ELSE 
-      RUN VALUE(pcProcName) PERSISTENT SET phObject.
-  
-      /* Verify that the object was created successfully. */
+    ELSE do:
+      do on stop undo, leave:
+        lStopped = true.  
+        /* no-error does not suppress error, but makes it available in 
+           error-status if it fails */
+        RUN VALUE(pcProcName) PERSISTENT SET phObject no-error.       
+        lStopped = false.
+      end.
+      if lStopped then 
+      do:
+        ghTargetProcedure = ?.
+        if session:remote then 
+          return error error-status:get-message(1).
+        else
+          stop. /* keep old behavior on client */
+      end.   
+    end. 
+      
+    /* Verify that the object was created successfully. */
     IF NOT VALID-HANDLE (phObject) THEN
     DO:
       ghTargetProcedure = ?.
@@ -3244,57 +3258,7 @@ PROCEDURE destroyObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE hContainerSource    AS HANDLE       NO-UNDO.
-DEFINE VARIABLE cObjectname         AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lSaveWindowPos      AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
-DEFINE VARIABLE hContainer          AS HANDLE       NO-UNDO.
-DEFINE VARIABLE hParent             AS HANDLE       NO-UNDO.
-
- ASSIGN lSaveWindowPos = NO.
-
- {get ContainerHandle hContainer}.
-
- IF VALID-HANDLE(hContainer) AND CAN-QUERY(hContainer, "window-state":U) AND 
-    (hContainer:WINDOW-STATE EQ WINDOW-NORMAL OR hContainer:WINDOW-STATE EQ WINDOW-MAXIMIZED) THEN
-     /* THis property is set by the container window super procedure rydyncontp.p in updateWindowSizes */
-     ASSIGN lSaveWindowPos = LOGICAL(DYNAMIC-FUNCTION("getUserProperty":U IN TARGET-PROCEDURE, INPUT "SaveWindowPos":U))
-            NO-ERROR.
-
- /* Only position and size if asked to */
- IF lSaveWindowPos THEN
- DO:
-     IF hContainer:WINDOW-STATE EQ WINDOW-MAXIMIZED THEN
-         ASSIGN cProfileData = "WINDOW-MAXIMIZED":U.
-     ELSE
-         /* Always store decimal values as if they were in American numeric format.
-          * When retrieving decimal values, we need to convert to the current
-          * SESSION:NUMERIC-DECIMAL-POINT.                                         */
-         ASSIGN cProfileData = REPLACE(STRING(hContainer:COLUMN),       SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hContainer:ROW),          SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hContainer:WIDTH-CHARS),  SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hContainer:HEIGHT-CHARS), SESSION:NUMERIC-DECIMAL-POINT, ".":U)
-                .
-         {get LogicalObjectName cObjectName}.
-
-    
-   IF LENGTH(cObjectName) > 0 THEN
-   DO:
-     /* We have to check if this handle is valid since it might 
-        have been killed if a developer was running something
-        and closed the AppBuilder and it then attempts to close
-        down any running containers. */
-     IF VALID-HANDLE(gshProfileManager) THEN
-       RUN setProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code */
-                                                INPUT "SizePos":U,         /* Profile code */
-                                                INPUT cObjectName,         /* Profile data key */
-                                                INPUT ?,                   /* Rowid of profile data */
-                                                INPUT cProfileData,        /* Profile data value */
-                                                INPUT NO,                  /* Delete flag */
-                                                INPUT "PER":u).            /* Save flag (permanent) */
-   END.     /* have an object name */
- END.   /* save window positions/size */
+ run saveWindowDimensions in target-procedure.
 
  RUN SUPER NO-ERROR.
  IF ERROR-STATUS:ERROR OR RETURN-VALUE = "ADM-ERROR":U THEN
@@ -3361,6 +3325,7 @@ DEFINE VARIABLE cTargets                AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hMasterObject           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lAsHasStarted           AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lHasDbAwareObjects      AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cDummy                  AS CHARACTER  NO-UNDO.
 
 /* set table before retrieval unless 'cache' , if 'cache' we do not set 
    the handle in case the object is static. instead we retrieve the 
@@ -3603,7 +3568,6 @@ DO:
     {set ProcessList pcHandles}.
     cContext = {fn obtainContextForServer}.
     {set ProcessList ''}.
-    
     IF VALID-HANDLE(hAppserver) THEN
     DO:
       {get ServerfileName cServerFileName}.
@@ -3647,7 +3611,8 @@ DO:
         OUTPUT TABLE-HANDLE hTT[59],OUTPUT TABLE-HANDLE hTT[60],
         OUTPUT TABLE-HANDLE hTT[61],OUTPUT TABLE-HANDLE hTT[62],
         OUTPUT TABLE-HANDLE hTT[63],OUTPUT TABLE-HANDLE hTT[64],
-        OUTPUT cError). /* not used yet */
+        OUTPUT cError). 
+       
     END.
     ELSE DO:  /* we cannot get here */ 
       {get AsHandle hAsHandle}.
@@ -3675,10 +3640,18 @@ DO:
          OUTPUT TABLE-HANDLE hTT[27],OUTPUT TABLE-HANDLE hTT[28],
          OUTPUT TABLE-HANDLE hTT[29],OUTPUT TABLE-HANDLE hTT[30],
          OUTPUT TABLE-HANDLE hTT[31],OUTPUT TABLE-HANDLE hTT[32],
-         OUTPUT cError). /* not used yet */       
+         OUTPUT cError).
+         
       RUN endClientDataRequest  IN TARGET-PROCEDURE.
     END.
-  
+ 
+    if cError <> "" then 
+    do:
+       RUN addServerReadError IN TARGET-PROCEDURE(cError).
+       RUN showDataMessagesProcedure IN TARGET-PROCEDURE(output cDummy).
+       RETURN.   
+    end.
+    
     /* foreign fields in query from server may not be registered on client
        so set QueryString from QueryWhere  */ 
     DO iObject = 1 TO NUM-ENTRIES(pcHandles):
@@ -3729,9 +3702,9 @@ DO:
                This ensures that the fetch output parameter above is unknown 
                and NOT mapped to the SDO AND avoids that the empty TT returned 
                is passed to the SDO as when the entry is '?', but instead is 
-               deleted immediately.  (This may change in the future as ideally we 
-               should not have gotten a TT back from the server in this case, but 
-               the current SBO data retrieval is a bit inflexible. ) */
+               deleted immediately.  (ideally we should not have gotten a TT 
+               back from the server in this case, but the SBO data retrieval
+               always retrieves all tables ) */
       ELSE IF ENTRY(iObject,cTTList) = '':U THEN
         DELETE OBJECT htt[iObject].
   
@@ -4188,6 +4161,7 @@ PROCEDURE fetchData :
    DEFINE VARIABLE cTargets     AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE hRequestor   AS HANDLE     NO-UNDO.
    DEFINE VARIABLE cMessage     AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE cDummy       AS CHARACTER  NO-UNDO.
     
    /* Run, don't publish, in order to call viewer override */
    RUN buildDataRequest IN TARGET-PROCEDURE
@@ -4225,15 +4199,7 @@ PROCEDURE fetchData :
   IF ERROR-STATUS:ERROR THEN
   DO:
     RUN addServerError IN TARGET-PROCEDURE('retrieve':u,RETURN-VALUE,cEntities).
-    ASSIGN 
-      cMessage = {fn fetchMessages}
-      cMessage = REPLACE(cMessage,chr(3),"~n~n")
-      /* we do not expect table and fields to be in a message handled here
-         in particular not if there is no updatetarget, but add 
-         spaces just in case */
-      cMessage = REPLACE(cMessage,chr(4)," ").  
-    MESSAGE cMessage  
-         VIEW-AS ALERT-BOX ERROR. 
+    RUN showDataMessagesProcedure IN TARGET-PROCEDURE (output cDummy).
     RETURN 'ADM-ERROR':U.
   END.
 
@@ -4488,7 +4454,7 @@ PROCEDURE initializeDataObjects :
           lFetchPending = {fn isFetchPending hContainerSource}.
   
         IF NOT lFetchPending THEN
-          RUN fetchContainedData IN TARGET-PROCEDURE (?).
+          RUN fetchContainedData IN TARGET-PROCEDURE (?).         
       END.
     END.  /* else (hasDbAware) */
   END. /* not queryobject (sbo)*/
@@ -4662,6 +4628,8 @@ PROCEDURE initializeObject :
  
   RUN SUPER.
   
+  
+  
   /* The visual class skips this to avoid becoming visible too early if 
      container is window. 
      
@@ -4676,12 +4644,19 @@ PROCEDURE initializeObject :
   {get ContainerHandle hWidget}.
   &undefine xp-Assign
   
+    
   /* Pack and layout this container. */
   if valid-handle(hWidget) and can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
   DO:
+    &SCOPED-DEFINE xp-assign
+    {get DisableOnInit lDisableOnInit}
+    {get HideOnInit lHideOnInit}
+    {get UseRepository lUseRepository}
+    .
+    &UNDEFINE xp-assign
+  
     /* If this is a Repository object, then make sure everything fits nicely.
      */
-    {get UseRepository lUseRepository}.
     IF lUseRepository THEN
     DO:
         /* Check whether this is a 'proper' container object, a window
@@ -4725,32 +4700,40 @@ PROCEDURE initializeObject :
             ELSE
             DO:
                 RUN packWindow IN hContainingWindow (INPUT ?, INPUT YES) NO-ERROR.
-                
-                /* Lay it out. */
-                RUN resizeWindow IN hContainingWindow NO-ERROR.
+                /* 
+                Lay it out unless window-maximized in which case we postpone until 
+                viewObject to make resizeWindow work on maximized size.
+                - if hideoninit viewObject is not called. It would eventually need to 
+                  call viewObject, but this is not tested, so rezise here for now 
+                - The viewObject only calls resizeWindow if width and height is different 
+                  from max width and heigth to avoid the resize on hide and view, so we 
+                  do the resize here if the sizes match. In this case we do no need to 
+                  wait for the view to get it right */
+         
+                if hContainerHandle:type <> "WINDOW"  
+                or lHideOnInit
+                or hContainerHandle:WINDOW-STATE <> WINDOW-MAXIMIZED 
+                or (    hContainerHandle:width = hContainerHandle:max-width 
+                    and hContainerHandle:height = hContainerHandle:max-height) 
+                then
+                   RUN resizeWindow IN hContainingWindow NO-ERROR. 
             END.    /* parent init'ed */
         END.    /* valid containing window. */
     END.    /* Repository is around. */
-  END.    /* window & frame packing and layout. */
-  
-  /* Only view if this is a window-like container. See comments above for more. */
-  if valid-handle(hWidget) and can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then
-  DO:
-    &SCOPED-DEFINE xp-assign
-    {get DisableOnInit lDisableOnInit}
-    {get HideOnInit lHideOnInit}
-    .
-    &UNDEFINE xp-assign
-    
+      
     IF NOT lDisableOnInit THEN
       RUN enableObject IN TARGET-PROCEDURE.
- 
+      
     IF NOT lHideOnInit THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       run hideObject in target-procedure.
-  END.
-
+  END. /* 'SmartWindow,SmartFrame,SmartDialog' */
+ 
+/*  if  hContainerHandle:type = "window" then DO:                            */
+/*                   ASSIGN hContainERhANDLE:WINDOW-STATE = WINDOW-MAXIMIZED.*/
+/*             RUN resizeWindow IN TARGET-PROCEDURE NO-ERROR.                */
+/*  END.*/
   SUBSCRIBE TO "RepositoryCacheCleared":U ANYWHERE RUN-PROCEDURE 'clearWidgetIDCache':U.
 
   IF RETURN-VALUE = "ADM-ERROR":U THEN 
@@ -5899,6 +5882,87 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-saveWindowDimensions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveWindowDimensions Procedure 
+PROCEDURE saveWindowDimensions :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hContainerSource    AS HANDLE       NO-UNDO.
+DEFINE VARIABLE cObjectname         AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE lSaveWindowPos      AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE cProfileData        AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE rProfileRid         AS ROWID        NO-UNDO.
+DEFINE VARIABLE hContainer          AS HANDLE       NO-UNDO.
+DEFINE VARIABLE hParent             AS HANDLE       NO-UNDO.
+ 
+ 
+ ASSIGN lSaveWindowPos = NO.
+
+ {get ContainerHandle hContainer}.
+
+ 
+ IF VALID-HANDLE(hContainer) AND CAN-QUERY(hContainer, "window-state":U) AND 
+    (hContainer:WINDOW-STATE EQ WINDOW-NORMAL OR hContainer:WINDOW-STATE EQ WINDOW-MAXIMIZED) THEN
+     /* THis property is set by the container window super procedure rydyncontp.p in updateWindowSizes */
+     ASSIGN lSaveWindowPos = LOGICAL(DYNAMIC-FUNCTION("getUserProperty":U IN TARGET-PROCEDURE, INPUT "SaveWindowPos":U))
+            NO-ERROR.
+
+ /* Only position and size if asked to */
+ IF lSaveWindowPos and VALID-HANDLE(gshProfileManager) THEN
+ DO:
+   {get LogicalObjectName cObjectName}. 
+   IF hContainer:WINDOW-STATE EQ WINDOW-MAXIMIZED THEN
+   do:
+        
+      RUN getProfileData IN gshProfileManager ( INPUT        "Window":U,              /* Profile type code                            */
+                                                INPUT        "SizePos":U,             /* Profile code                                 */
+                                                INPUT        cObjectName,             /* Profile data key                             */
+                                                INPUT        "NO":U,                  /* Get next record flag                         */
+                                                INPUT-OUTPUT rProfileRid,             /* Rowid of profile data                        */
+                                                      OUTPUT cProfileData       ).    /* Found profile data. Positions as follows:    */
+      if num-entries(cProfileData,CHR(3)) = 4 then
+         ASSIGN cProfileData = cProfileData + CHR(3) + "WINDOW-MAXIMIZED":U.
+      ELSE if num-entries(cProfileData,CHR(3)) = 5 then
+         ENTRY(5,cProfileData,CHR(3)) = "WINDOW-MAXIMIZED":U.
+      ELSE
+         cProfileData = "WINDOW-MAXIMIZED":U.
+   end.
+   else  
+      /* Always store decimal values as if they were in American numeric format.
+       * When retrieving decimal values, we need to convert to the current
+       * SESSION:NUMERIC-DECIMAL-POINT.                                         */
+     ASSIGN cProfileData = REPLACE(STRING(hContainer:COLUMN),       SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
+                         + REPLACE(STRING(hContainer:ROW),          SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
+                         + REPLACE(STRING(hContainer:WIDTH-CHARS),  SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
+                         + REPLACE(STRING(hContainer:HEIGHT-CHARS), SESSION:NUMERIC-DECIMAL-POINT, ".":U).
+        
+   IF LENGTH(cObjectName) > 0 THEN
+   DO:
+     /* We have to check if this handle is valid since it might 
+        have been killed if a developer was running something
+        and closed the AppBuilder and it then attempts to close
+        down any running containers. */
+       RUN setProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code */
+                                                INPUT "SizePos":U,         /* Profile code */
+                                                INPUT cObjectName,         /* Profile data key */
+                                                INPUT ?,                   /* Rowid of profile data */
+                                                INPUT cProfileData,        /* Profile data value */
+                                                INPUT NO,                  /* Delete flag */
+                                                INPUT "PER":u).            /* Save flag (permanent) */
+   END.     /* have an object name */
+ END.   /* save window positions/size */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-selectPage) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPage Procedure 
@@ -6059,10 +6123,10 @@ CASE pcValue:
     DO:
       IF VALID-HANDLE(gshSessionManager) THEN
         RUN launchExternalProcess IN gshSessionManager
-            ( INPUT  "c:\program files\plus!\microsoft internet\iexplore.exe www.mip-holdings.com":U,
+            ( INPUT  "C:\Program Files\Internet Explorer\iexplore.exe":U,
               INPUT  "":U,
               INPUT  1,
-              OUTPUT cResult ).
+              OUTPUT cResult).
     END.
     WHEN "email" THEN
     DO:
@@ -6381,8 +6445,22 @@ PROCEDURE viewObject :
   
   IF lRemoveMenu THEN
     PUBLISH 'rebuildMenu':U FROM  TARGET-PROCEDURE.
-
+  
   RUN SUPER.
+  
+  /* dynamics container is started from stored maximized mode postpones resizeWindow until 
+     the window is visible (the check of width <> max-width ensures we do not do this if 
+     someone just hides and views a maximized window) 
+     We do it before we view the frame to avod the children to flash by in small size  */
+  
+  IF VALID-HANDLE(hContainer) 
+  AND hContainer:TYPE = "WINDOW":U  
+  AND hContainer:WINDOW-STATE = WINDOW-MAXIMIZE  
+  and (hContainer:width <> hContainer:max-width 
+       or 
+       hContainer:height <> hContainer:max-height)
+  and {fn getUseRepository} then
+     run resizeWindow in target-procedure no-error.     
   
   /* If this need to be before super, then just move it. The current order
     is arbitrary  */
@@ -6391,8 +6469,12 @@ PROCEDURE viewObject :
     hFrame:HIDDEN = NO.
   END.
   
+  
+  
   IF VALID-HANDLE(hContainer) AND hContainer:TYPE = "WINDOW":U THEN
   DO:
+     
+     
     APPLY "ENTRY" TO hContainer.
     &IF "{&WINDOW-SYSTEM}":U <> "TTY":U &THEN
     hContainer:MOVE-TO-TOP().

@@ -1,5 +1,5 @@
 /**************************************************************************
-*Copyright (C) 2005 by Progress Software Corporation.                     *
+*Copyright (C) 2005,2008 by Progress Software Corporation.                *
 *All rights reserved.  Prior versions of this work may contain portions   *
 *contributed by participants of Possenet.                                 *
 **************************************************************************/
@@ -202,20 +202,21 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    "Copyright (c) 1984-2008 Progress Software Corp." + CHR(10) +
+    "Copyright (c) 1984-2008 Progress Software Corporation." + CHR(10) +
     "All rights reserved" + CHR(10).
 
+  AboutText2 = AboutText2 +
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2008 Vol 1 CLR 2.0." + CHR(10) +
+        "Copyright ¸ 1996-2008 Infragistics, Inc." + CHR(10) +
+        "All rights reserved." +
+        CHR(10) + CHR(10).
+
   IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
-      AboutText2 = 
-         "This product includes Imaging Technology copyrighted by Snowbound Software Corporation 1993 - 
-2003. www.snowbound.com" +
-         CHR(10) + CHR(10) +
-        "© 1988-2004 SlickEdit Inc.  All rights reserved.  CONFIDENTIAL AND " +
-        "PROPRIETARY.  SLICKEDIT and VISUAL SLICKEDIT are trademarks of " +
-        "SlickEdit Inc.  The VISUAL SLICKEDIT software product and related " +
-        "copyrights and trademarks are under license from SlickEdit Inc." +
+      AboutText2 = AboutText2 +
+         "OpenEdge includes Imaging Technology copyrighted by Snowbound Software Corporation 1993 - 2003." + CHR(10) +
+         "www.snowbound.com" +
          CHR(10) + CHR(10).
-    
+
   ASSIGN AboutText1:READ-ONLY = TRUE
          AboutText1:TAB-STOP  = NO   
          AboutText1:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U

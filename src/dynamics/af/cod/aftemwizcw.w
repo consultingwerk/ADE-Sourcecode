@@ -100,7 +100,7 @@ af/cod/aftemwizpw.w
 DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-UNDO.
 &scop object-version    010001
 
-{ adm2/support/admhlp.i } /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER ip_context_id AS INTEGER   NO-UNDO.

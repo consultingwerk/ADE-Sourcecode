@@ -5,7 +5,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -478,7 +478,7 @@ OR RETURN OF fiObjectName DO:
   DEFINE VARIABLE cDecimalPoint     AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER bObjectList FOR ttObjectList.
-    define buffer rycso        for ryc_smartobject.  
+  define BUFFER rycso        for ryc_smartobject.  
 
   IF coObjectType:SCREEN-VALUE <> "<All>":U THEN
   DO:
@@ -781,6 +781,8 @@ PROCEDURE generate4GLPrograms :
   DEFINE VARIABLE iOS-ERROR               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dElapsedTime            AS DECIMAL    NO-UNDO DECIMALS 4.
   DEFINE VARIABLE cCompileOptions         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLoop                   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cCurrentDir             AS CHARACTER  NO-UNDO.
 
   PUBLISH "getHookProcedure":U          FROM ghContainerSource (OUTPUT cHookfilename).
   PUBLISH "getResultCodes":U            FROM ghContainerSource (OUTPUT cResultCodes).
@@ -829,28 +831,41 @@ PROCEDURE generate4GLPrograms :
 
   IF lCompile THEN /* Check Rcode directory */
   DO:
+      cCompileDirectory = REPLACE(cCompileDirectory, '~\':u, '/':u).
       FILE-INFO:FILE-NAME = cCompileDirectory.
       IF FILE-INFO:FULL-PATHNAME = ? THEN
       DO:
           writeLog("Rcode directory was not found. Creating directory " + cCompileDirectory + "~n").
-          OS-CREATE-DIR VALUE(cCompileDirectory).
-          iOS-ERROR = OS-ERROR.
-          IF iOS-ERROR NE 0 THEN
-          DO:
-              writeLog("Creation of rcode directory failed.").
-              writeLog("~nGeneration process was aborted "
-                             + STRING(TODAY) + " " + STRING(TIME, "HH:MM:SS")) NO-ERROR.
-              RUN showMessages IN gshSessionManager (INPUT "Creation of rcode directory failed.~nGeneration process was aborted.",
-                                       INPUT "ERR":U,
-                                       INPUT "OK":U,
-                                       INPUT "OK":U,
-                                       INPUT "OK":U,
-                                       INPUT "Generate 4GL Programs",
-                                       INPUT YES,
-                                       INPUT ?,
-                                       OUTPUT cButton).
-              RETURN.
-          END.
+
+          DO iLoop = 1 TO NUM-ENTRIES(cCompileDirectory, '/':u).
+            cCurrentDir = cCurrentDir 
+                        + (IF iLoop EQ 1 THEN '':u ELSE '/':u)
+                        + ENTRY(iLoop, cCompileDirectory, '/':u).
+
+            writeLog('Creating directory - ' + cCurrentDir).
+            OS-CREATE-DIR VALUE(cCurrentDir).
+            iOS-Error = OS-ERROR.
+            IF iOS-Error GT 0 THEN LEAVE.
+          END.    /* loop through directories and create the missing ones */
+
+          FILE-INFORMATION:FILE-NAME = cCompileDirectory.
+      END.    /* create directory */
+    
+      IF iOS-ERROR NE 0 THEN
+      DO:
+          writeLog("Creation of rcode directory failed.").
+          writeLog("~nGeneration process was aborted "
+                         + STRING(TODAY) + " " + STRING(TIME, "HH:MM:SS")) NO-ERROR.
+          RUN showMessages IN gshSessionManager (INPUT "Creation of rcode directory failed.~nGeneration process was aborted.",
+                                   INPUT "ERR":U,
+                                   INPUT "OK":U,
+                                   INPUT "OK":U,
+                                   INPUT "OK":U,
+                                   INPUT "Generate 4GL Programs",
+                                   INPUT YES,
+                                   INPUT ?,
+                                   OUTPUT cButton).
+          RETURN.
       END.
   END.
   

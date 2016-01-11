@@ -64,6 +64,18 @@ FUNCTION addForeignKey RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignBufferOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignBufferOuterJoin Procedure 
+FUNCTION assignBufferOuterJoin RETURNS CHARACTER
+  ( pcBuffer as char,
+    pcQuery  as char) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignQuerySelection) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignQuerySelection Procedure 
@@ -71,6 +83,29 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
   (pcColumns   AS CHARACTER,   
    pcValues    AS CHARACTER,    
    pcOperators AS CHARACTER) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferHasOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferHasOuterJoin Procedure 
+FUNCTION bufferHasOuterJoin RETURNS logical
+    ( pcBuffer as char,
+      pcQuery  as char) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferHasOuterJoinDefault) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferHasOuterJoinDefault Procedure 
+FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
+  ( pcBuffer as char) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -691,6 +726,17 @@ FUNCTION getToggleDataTargets RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getToggleOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToggleOuterJoin Procedure 
+FUNCTION getToggleOuterJoin RETURNS LOGICAL
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTransferChildrenForAll Procedure 
@@ -819,6 +865,18 @@ FUNCTION newWhereClause RETURNS CHARACTER
    pcExpression AS char,  
    pcWhere      AS CHAR,
    pcAndOr      AS CHAR) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-removeBufferOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeBufferOuterJoin Procedure 
+FUNCTION removeBufferOuterJoin RETURNS CHARACTER
+  ( pcBuffer as char,
+    pcQuery  as char) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2728,6 +2786,108 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignBufferOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignBufferOuterJoin Procedure 
+FUNCTION assignBufferOuterJoin RETURNS CHARACTER
+  ( pcBuffer as char,
+    pcQuery  as char):
+/*------------------------------------------------------------------------------
+  Purpose:     assign outer-join to the specified buffer's where clause.
+  Parameters:  pcBuffer     - Buffer.  
+               pcQuery      - The query string to add to. 
+                              ? or "" use and set QueryString
+    Notes: The QueryString is not assigned if pcQuery parameter is passed.
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cBufferWhere AS CHAR   NO-UNDO.
+ 
+  DEFINE VARIABLE cNewWhere    AS CHAR   NO-UNDO.
+  DEFINE VARIABLE iWherePos     AS INT  NO-UNDO.
+  DEFINE VARIABLE iOfPos        AS INT  NO-UNDO.
+  DEFINE VARIABLE iRelTblPos    AS INT  NO-UNDO.  
+  DEFINE VARIABLE iInsertPos    AS INT  NO-UNDO.    
+   
+  DEFINE VARIABLE iUseIdxPos    AS INT  NO-UNDO.        
+  DEFINE VARIABLE iOuterPos     AS INT  NO-UNDO.        
+  DEFINE VARIABLE iLockPos      AS INT  NO-UNDO.      
+   
+  DEFINE VARIABLE iByPos        AS INT  NO-UNDO.        
+  DEFINE VARIABLE iIdxRePos     AS INT  NO-UNDO.        
+  DEFINE VARIABLE cTmpQuery     AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE lStore        AS LOGICAL     NO-UNDO.
+
+  if pcQuery = "":U or pcQuery = ? then
+  do:
+     {get QueryString pcQuery}.      
+     /* If no QueryString use the default */ 
+     IF pcQuery = "":U OR pcQuery = ? THEN
+     DO:
+        {get QueryStringDefault pcQuery}.    
+     END.
+     lStore = true.
+  end.
+  
+    /* Get rid of potential line break characters (query builder -> repository)*/   
+  assign
+     pcQuery    = REPLACE(pcQuery,CHR(10),' ':U)
+     /* Find the buffer's 'expression-entry' in the query */
+     cBufferWhere = DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
+                                      pcBuffer,
+                                      pcQuery).
+  if cBufferWhere = "" 
+  /* no outer join on first table */
+  or left-trim(cBufferWhere) begins "FOR":U 
+  or left-trim(cBufferWhere) begins "PRESELECT":U then
+     return pcQuery.
+
+  assign    
+
+     /* We mask quoted strings to ensure the following table and keyword lookup
+        only finds stuff in the expression(in lack of parsing) */ 
+     cTmpQuery  = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                    cBufferWhere,'':U)
+     iWherePos   = INDEX(cTmpQuery," WHERE ":U) + 6    
+
+     iByPos      = INDEX(cTmpQuery," BY ":U)    
+     iUseIdxPos  = INDEX(cTmpQuery," USE-INDEX ":U)    
+     iIdxRePos   = INDEX(cTmpQuery + " ":U," INDEXED-REPOSITION ":U)    
+     iOuterPos   = INDEX(cTmpQuery + " ":U," OUTER-JOIN ":U)     
+     iLockPos    = MAX(INDEX(cTmpQuery + " ":U," NO-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," SHARE-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," EXCLUSIVE-LOCK ":U),
+                      INDEX(cTmpQuery + " ":U," SHARE ":U),
+                      INDEX(cTmpQuery + " ":U," EXCLUSIVE ":U)
+                      ) 
+     iInsertPos  = LENGTH(cTmpQuery) + 1 
+     
+     /* We insert before the leftmoust keyword,
+        unless the keyword is Before the WHERE keyword */ 
+     iInsertPos  = MIN(
+                      (IF iLockPos   > iWherePos THEN iLockPos   ELSE iInsertPos),
+                      (IF iUseIdxPos > iWherePos THEN iUseIdxPos ELSE iInsertPos),
+                      (IF iIdxRePos  > iWherePos THEN iIdxRePos  ELSE iInsertPos),
+                      (IF iByPos     > iWherePos THEN iByPos     ELSE iInsertPos)
+                     )         
+      .
+      
+  if iOuterPos > 0 then
+     return pcQuery.
+
+  cNewWhere = cBufferWhere.
+  SUBSTRING(cNewWhere,iInsertPos,0) = " OUTER-JOIN":U. 
+  pcQuery = replace(pcQuery,cBufferWhere,cNewWhere).
+  if lStore then
+     {set QueryString pcQuery}.      
+
+  return pcQuery.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignQuerySelection) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignQuerySelection Procedure 
@@ -2768,7 +2928,7 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
             also used to store the offset and length of the corresponding values.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryString   AS CHARACTER NO-UNDO.
-    
+  DEFINE VARIABLE cTmpQuery      AS CHARACTER NO-UNDO.  
   DEFINE VARIABLE cBufferList    AS CHAR      NO-UNDO.
   DEFINE VARIABLE cBuffer        AS CHARACTER NO-UNDO.
   
@@ -2945,8 +3105,12 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
     /* Get the buffers position in the where clause (always the
        first entry in a dynamic query because there's no 'of <external>')*/ 
     ASSIGN
-      iWhereBufPos = INDEX(cQueryString + " "," ":U + cBuffer + " ":U)
-      iPos         = INDEX(cQueryString,      " ":U + cBuffer + ",":U)
+      /* We mask quoted strings to ensure the following table lookup
+         only finds stuff in the expression(in lack of parsing) */ 
+      cTmpQuery   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                      cQueryString,'':U)
+      iWhereBufPos = INDEX(cTmpQuery + " "," ":U + cBuffer + " ":U)
+      iPos         = INDEX(cTmpQuery,      " ":U + cBuffer + ",":U)
       iWhereBufPos = (IF iWhereBufPos > 0 AND iPos > 0
                       THEN MIN(iPos,iWhereBufPos) 
                       ELSE MAX(iPos,iWhereBufPos))
@@ -2956,7 +3120,6 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
     /* We have a new expression */                               
     IF cBufWhere <> "":U THEN
     DO: 
-      
       ASSIGN 
         cQueryString = DYNAMIC-FUNCTION('newWhereClause':U IN TARGET-PROCEDURE,
                                          cBuffer,
@@ -2999,13 +3162,23 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
        The order in Querycolumns is NOT dependent of the order in the query */              
     IF cQueryBufCols <> "":U THEN
     DO:    
-      IF iBufPos = 0 THEN   
+      IF iBufPos = 0 THEN 
+      DO:  
          cQueryColumns = cQueryColumns 
                          + (IF cQueryColumns = "":U THEN "":U ELSE ":":U)
                          + cBuffer + ":" + cQueryBufCols.
       
-      ELSE /* There is already a entry for this buffer */
-        ENTRY(iBufPos + 1,cQueryColumns,":":U) = cQueryBufCols.        
+       /* if toggle outer join is true (default) and the default/design query 
+          has outer join on this table then remove it */ 
+        if {fn getToggleOuterJoin} and {fnarg bufferHasOuterJoinDefault cBuffer} then
+           cQueryString = DYNAMIC-FUNCTION('removeBufferOuterJoin':U IN TARGET-PROCEDURE,
+                                         cBuffer,
+                                         cQueryString).
+      end.                                    
+      ELSE   /* There is already a entry for this buffer */
+        ENTRY(iBufPos + 1,cQueryColumns,":":U) = cQueryBufCols. 
+       
+                
     END. /* cQueryBufCols <> '' */
 
   END. /* do iBuffer = 1 to hQuery:num-buffers */
@@ -3016,6 +3189,80 @@ FUNCTION assignQuerySelection RETURNS LOGICAL
   &UNDEFINE xp-assign
   
   RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferHasOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferHasOuterJoin Procedure 
+FUNCTION bufferHasOuterJoin RETURNS logical
+    ( pcBuffer as char,
+      pcQuery  as char):
+  /*------------------------------------------------------------------------------
+    Purpose:     return true if theres is an outer-join in the specified 
+                 buffer's where clause.
+    Parameters:  pcBuffer     - Buffer in basequery.  
+                 pcQuery      - The query string  
+                                ? or "" use current query.
+      Notes:  
+  ------------------------------------------------------------------------------*/
+   DEFINE VARIABLE cBufferWhere AS CHAR   NO-UNDO.
+   DEFINE VARIABLE cMaskedWhere AS CHAR   NO-UNDO.
+     
+   if pcQuery = "":U or pcQuery = ? then
+   do:
+     {get QueryString pcQuery}.      
+     /* If no QueryString use the default */ 
+     IF pcQuery = "":U OR pcQuery = ? THEN
+     DO:
+        {get QueryStringDefault pcQuery}.    
+     END.
+   end.
+
+   if index(pcQuery, "OUTER-JOIN":U) = 0 then
+      return false.
+     
+   assign
+     /* Find the buffer's 'expression-entry' in the query */
+     cBufferWhere = DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
+                                      pcBuffer,
+                                      pcQuery)
+       /* We mask quoted strings to ensure the following lookup
+          only finds stuff in the expression(in lack of parsing) */ 
+     cMaskedWhere   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                        cBufferWhere,'':U).
+
+   return index(cMaskedWhere + " "," OUTER-JOIN ":U) > 0. 
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-bufferHasOuterJoinDefault) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferHasOuterJoinDefault Procedure 
+FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
+  ( pcBuffer as char):
+/*------------------------------------------------------------------------------
+  Purpose: return true if the buffer has outer-join in the default query  
+  Parameter:  pcBuffer - Buffer in object.  (no check)
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cDefaultQuery AS CHARACTER   NO-UNDO.
+  
+  {get DataQueryString cDefaultQuery}.
+
+  RETURN DYNAMIC-FUNCTION('bufferHasOuterJoin':U IN TARGET-PROCEDURE,
+                           pcBuffer,cDefaultQuery).
 
 END FUNCTION.
 
@@ -4829,6 +5076,33 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getToggleOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getToggleOuterJoin Procedure 
+FUNCTION getToggleOuterJoin RETURNS LOGICAL
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override in case someone relied on the old behavior that kept 
+           outerjoin with criteria.  
+    Notes: There is no set 
+           This is implemented purely to allow someone that had worked around
+           the old behavior in the UI (or maybe have trained their users 
+           to spot the differences in the UI).  
+         - WARNING: The data object (dataview or SDO) is a single view and 
+           setting this to true basically makes the query wrong in that you'd 
+           still get records with no children, while the filter would remove 
+           records with children that did not match the criteria.
+------------------------------------------------------------------------------*/
+
+  RETURN TRUE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTransferChildrenForAll) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTransferChildrenForAll Procedure 
@@ -4928,11 +5202,11 @@ FUNCTION getWordIndexedFields RETURNS CHARACTER
     Notes: 
 ------------------------------------------------------------------------------*/
   /* Get the word indexes from the IndexInformation function */
-  RETURN DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                          'WORD':U, /* query  */
-                           NO,   /* no table delimiter */
-                           ?).
-
+  RETURN REPLACE(DYNAMIC-FUNCTION("indexInformation":U IN TARGET-PROCEDURE,
+                           "WORD":U,
+                           NO,
+                           ?),
+          CHR(1),",":U).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5014,6 +5288,10 @@ Parameters: pcQuery - What information?
     IF NOT VALID-HANDLE(hQuery) THEN
       RETURN ?.
   END.
+  
+  ASSIGN
+    cTblDlm     = CHR(2) 
+    cIdxDlm     = CHR(1).
 
   /* request for single buffer */
   IF INDEX(pcQuery,"(":U) > 0 THEN
@@ -5028,10 +5306,6 @@ Parameters: pcQuery - What information?
       iLastEntry  = IF VALID-HANDLE(hQuery)
                     THEN hQuery:NUM-BUFFERS
                     ELSE NUM-ENTRIES(pcIndexInfo,cTblDlm).
-  ASSIGN
-    cTblDlm     = CHR(2) 
-    cIdxDlm     = CHR(1).
-
   /* If no table separator find qualifier rule */   
   IF NOT plUseTableSep THEN
     {get UseDBQualifier lUseDBQual}.
@@ -5711,6 +5985,72 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-removeBufferOuterJoin) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeBufferOuterJoin Procedure 
+FUNCTION removeBufferOuterJoin RETURNS CHARACTER
+  ( pcBuffer as char,
+    pcQuery  as char):
+/*------------------------------------------------------------------------------
+  Purpose:     removes the outer-join from the specified buffer's where clause.
+   Parameters:  pcBuffer     - Buffer.  
+               pcQuery      - The query string to add to. 
+                              ? or "" use and set QueryString
+    Notes: The QueryString is not assigned if pcQuery parameter is passed
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE iPos        AS INT    NO-UNDO.
+ DEFINE VARIABLE cBufferWhere AS CHAR   NO-UNDO.
+ DEFINE VARIABLE cNewWhere    AS CHAR   NO-UNDO.
+ DEFINE VARIABLE cMaskedWhere AS CHAR   NO-UNDO.
+ DEFINE VARIABLE lStore        AS LOGICAL     NO-UNDO.
+
+ if pcQuery = "":U or pcQuery = ? then
+ do:
+     {get QueryString pcQuery}.      
+     /* If no QueryString use the default */ 
+     IF pcQuery = "":U OR pcQuery = ? THEN
+     DO:
+        {get QueryStringDefault pcQuery}.    
+     END.
+     lStore = true.
+ end.
+
+ if index(pcQuery, "OUTER-JOIN":U) > 0 then
+ do: 
+   assign
+       /* Get rid of potential line break characters (query builder -> repository)*/   
+       pcQuery    = REPLACE(pcQuery,CHR(10),' ':U)
+        /* Find the buffer's 'expression-entry' in the query */
+       cBufferWhere = DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
+                                        pcBuffer,
+                                        pcQuery)
+       /* We mask quoted strings to ensure the following lookup
+              only finds stuff in the expression  */ 
+       cMaskedWhere   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                          cBufferWhere,'':U)
+    
+       iPos  = INDEX(cMaskedWhere + " "," OUTER-JOIN ":U).
+           
+   if iPos > 0 then 
+   do:
+       cNewWhere = cBufferWhere.
+       substr(cNewWhere,iPos + 1,length('OUTER-JOIN':U) + 1) = "".
+       pcQuery = replace(pcQuery,cBufferWhere,cNewWhere).
+   end.
+ end.
+
+ if lStore then
+     {set QueryString pcQuery}.   
+ 
+ return pcQuery.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-removeForeignKey) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeForeignKey Procedure 
@@ -5774,6 +6114,8 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
                of the position and length stored in the QueryColumns property. 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryString   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTmpQuery      AS CHARACTER NO-UNDO.
+  
   DEFINE VARIABLE cBufferList    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cBuffer        AS CHARACTER NO-UNDO.
   
@@ -5916,8 +6258,12 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
     /* Get the buffers position in the where clause (always the
        first entry in a dynamic query because there's no 'of <external>')*/ 
     ASSIGN
-      iWhereBufPos = INDEX(cQueryString + " "," ":U + cBuffer + " ":U)
-      iPos         = INDEX(cQueryString,      " ":U + cBuffer + ",":U)
+      /* We mask quoted strings to ensure the following table lookup
+         only finds stuff in the expression(in lack of parsing) */ 
+      cTmpQuery   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                      cQueryString,'':U)
+      iWhereBufPos = INDEX(cTmpQuery + " "," ":U + cBuffer + " ":U)
+      iPos         = INDEX(cTmpQuery,      " ":U + cBuffer + ",":U)
       iWhereBufPos = (IF iWhereBufPos > 0 AND iPos > 0
                       THEN MIN(iPos,iWhereBufPos) 
                       ELSE MAX(iPos,iWhereBufPos))
@@ -6035,10 +6381,20 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
       ENTRY(iBufPos + 1,cQueryColumns,":":U) = cNewCols.        
     END.
     ELSE IF iLowestChanged > 0 THEN
+    do:
       ASSIGN
         ENTRY(iBufPos,cQueryColumns,":":U) = "":U
         ENTRY(iBufPos + 1,cQueryColumns,":":U) = "":U
         cQueryColumns = TRIM(REPLACE(cQueryColumns,":::":U,":":U),":":U).
+      /* if toggle outer join is true (default) and the default/design query 
+         has outer join on this table then add it back in */ 
+      if {fn getToggleOuterJoin} and {fnarg bufferHasOuterJoinDefault cBuffer} then
+         cQueryString = DYNAMIC-FUNCTION('assignBufferOuterJoin':U IN TARGET-PROCEDURE,
+                                         cBuffer,
+                                         cQueryString).
+
+    end.
+
   END.  
   
   &SCOPED-DEFINE xp-assign

@@ -1,9 +1,9 @@
-/**************************************************************************
-* Copyright (C) 2006,2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions             *
-* contributed by participants of Possenet.                                *
-*                                                                         *
-**************************************************************************/
+/***********************************************************************
+* Copyright (C) 2006,2008 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -34,8 +34,8 @@ History:
     mcmann      02/09/10    Added check for num-entries for Synonyms
                             20020820-004               
     04/19/06    fernando    Oracle 10g - skip BIN$* tables
-    07/08/08    ashukla     LDAP support (CR#OE00170689)
-   
+    08/11/08    ashukla     LDAP support (CR#OE00172458)
+    08/14/08    knavneet    OE00170417 - Quoting object names if it has special chars.
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -60,7 +60,7 @@ define variable l_syst-names    AS character no-undo.
 define variable l_type          AS character no-undo.
 define variable l_unspprtd      AS character no-undo.
 DEFINE VARIABLE batch_mode      AS LOGICAL   no-undo.
-DEFINE VARIABLE ldaph1          AS INTEGER   NO-UNDO. /*ldap CR#OE00170689 */
+define variable l_quoted-owner  AS character no-undo.
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 
@@ -137,7 +137,6 @@ assign
   &dbrec  = "drec_db"
   &output = "l_syst-names"
   }
-
 find first s_ttb_link
   where s_ttb_link.slctd  = TRUE
   and   s_ttb_link.level  = s_level
@@ -184,10 +183,9 @@ if index(l_owner,"@") <> 0
 
 /* In case l_owner is null, we are using external authentication 
  * Get user name from database.
- * CR#OE00170689.Begin
  */
 IF (l_owner EQ "" OR l_owner EQ ?) THEN 
-   RUN getOwner.
+   RUN prodict/ora/_get_orauser.p (OUTPUT l_owner).
      
 /* Skip remote packages, functions and procedures */
 if s_qual <> ?
@@ -269,21 +267,23 @@ for each DICTDBG.oracle_users
      * records that the user selected and that have a ? instead a 
      * progress-name, and find a new name for the object
      */
+      l_quoted-owner = QUOTER(DICTDBG.oracle_users.name).
+
       if ENTRY(DICTDBG.oracle_objects.type + 1, oobjects) = "SYNONYM" then do:  /* synonym */
         find first DICTDB._Sequence
           where DICTDB._Sequence._Db-recid    = drec_db
             and (DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
-            /* OE00170417 - string may be quoted */
-            OR    DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
+                 /* OE00170417 - string may be quoted */
+                 OR DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
             and   DICTDB._Sequence._Seq-misc[2] = ""
             and   DICTDB._Sequence._Seq-misc[8] = s_qual
             no-error.
         if not available DICTDB._Sequence
          then find first DICTDB._File
             where DICTDB._File._Db-recid     = drec_db
-              and  ( DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
-              /* OE00170417 - string may be quoted */
-              OR    DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
+              and   (DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
+                    /* OE00170417 - string may be quoted */
+                     OR DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
               and   DICTDB._File._For-Owner    = ""
               and   DICTDB._File._Fil-misc2[8] = s_qual
               no-error.
@@ -292,9 +292,10 @@ for each DICTDBG.oracle_users
       else if ENTRY(DICTDBG.oracle_objects.type + 1, oobjects) = "SEQUENCE" then do:  /* sequence */
         find first DICTDB._Sequence where DICTDB._Sequence._Db-recid    = drec_db
           and  (DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
-           /* OE00170417 - string may be quoted */
-          OR DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
-          and   DICTDB._Sequence._Seq-misc[2] = DICTDBG.oracle_users.name
+                 /* OE00170417 - string may be quoted */
+                 OR DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
+          and  (DICTDB._Sequence._Seq-misc[2] = DICTDBG.oracle_users.name
+                 OR DICTDB._Sequence._Seq-misc[2] = l_quoted-owner)
           and   DICTDB._Sequence._Seq-misc[8] = s_qual
           no-error.
       end.     /* sequence */
@@ -303,18 +304,20 @@ for each DICTDBG.oracle_users
         if ENTRY(DICTDBG.oracle_objects.type + 1, oobjects) = "PACKAGE"
          then find first DICTDB._File
            where DICTDB._File._Db-recid     = drec_db
-             and DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
+             and (DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
+                  OR DICTDB._File._For-Owner = l_quoted-owner)
              and (DICTDB._File._Fil-misc2[1] = DICTDBG.oracle_objects.name
-             /* OE00170417 - string may be quoted */
-             OR  DICTDB._File._Fil-misc2[1] = QUOTER(DICTDBG.oracle_objects.NAME))
+                 /* OE00170417 - string may be quoted */
+                 OR DICTDB._File._Fil-misc2[1] = QUOTER(DICTDBG.oracle_objects.NAME))
              and DICTDB._File._Fil-misc2[8] = s_qual
              no-error.
          else find first DICTDB._File
             where DICTDB._File._Db-recid     = drec_db
               and (DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
-              /* OE00170417 - string may be quoted */
-              OR  DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
-              and DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
+                 /* OE00170417 - string may be quoted */
+                 OR DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
+              and (DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
+                   OR DICTDB._File._For-Owner = l_quoted-owner)
               and DICTDB._File._Fil-misc2[8] = s_qual
               no-error.
 
@@ -327,6 +330,7 @@ for each DICTDBG.oracle_users
 
       if not available _File and not available _Sequence
           and s_vrfy = TRUE then NEXT.
+
       IF NOT batch_mode THEN   
           display DICTDBG.oracle_objects.name @ hint with frame gate_wait.
 
@@ -334,6 +338,8 @@ for each DICTDBG.oracle_users
       ASSIGN gate-work.gate-user = DICTDBG.oracle_users.name
              gate-work.gate-prog = ( if available DICTDB._File
                                     and DICTDB._File._Fil-misc2[1] <> ?
+                                    /* OE00130417 - and not 0-length value */
+                                    AND DICTDB._File._Fil-misc2[1] <> ""
                                     and user_env[25] <> "compare"
                                     then ?
                                     else if available DICTDB._File
@@ -661,23 +667,3 @@ IF NOT batch_mode THEN
 /**/   &ENDIF
 
 /*------------------------------------------------------------------*/
-
-/* PROCEDURE getOwner
-   We get called when l_owner is null, so we check if we are using external
-   authentication, in which case we try to get user name from database.
-   Fix for OE00170689.
- */
-PROCEDURE getOwner:
-
-   RUN STORED-PROC DICTDBG.send-sql-statement 
-       ldaph1 = PROC-HANDLE NO-ERROR 
-       ("SELECT USER FROM DUAL").
-
-   IF NOT ERROR-STATUS:ERROR AND ldaph1 <> ? THEN DO: 
-     FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = ldaph1:
-           l_owner = TRIM(proc-text).
-     END.
-     CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = ldaph1.
-   END. 
-
-END.       

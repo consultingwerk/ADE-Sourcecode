@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="271" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="3.39" key_field_value="3000000431.09" record_version_obj="100000006043.39" secondary_key_value="" version_date="12/03/2007" version_number_seq="4.39" version_time="54571" version_user="admin"><dataset_header DatasetCode="GSMMI" DatasetObj="1007600153.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="94" SCMManaged="no" YearOffset="1950"/>
+<dataset Transactions="271" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="4.39" key_field_value="3000000431.09" record_version_obj="100000006043.39" secondary_key_value="" version_date="12/03/2007" version_number_seq="4.39" version_time="54571" version_user="admin"><dataset_header DatasetCode="GSMMI" DatasetObj="1007600153.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="95" SCMManaged="no" YearOffset="1950"/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="gsmmi" import_version_number_seq="1.09" key_field_value="1000009546.81" record_version_obj="1000009547.81" secondary_key_value="ICF18_00000206" version_date="09/23/2003" version_number_seq="1.09" version_time="63003" version_user="admin"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="gsmmi" import_version_number_seq="1" key_field_value="1000708119.09" record_version_obj="3000051334.09" secondary_key_value="TxtTableioOK" version_date="06/05/2003" version_number_seq="1" version_time="61529" version_user="admin"/>
@@ -3014,7 +3014,7 @@
 <source_language_obj>426</source_language_obj>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="104" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_menu_item" deletion_flag="no" entity_mnemonic="gsmmi" import_version_number_seq="2.49" key_field_value="1000708117.09" record_version_obj="4313.7692" secondary_key_value="Filter" version_date="11/09/2007" version_number_seq="2.49" version_time="58042" version_user="admin"><menu_item_obj>1000708117.09</menu_item_obj>
+<dataset_transaction TransactionNo="104" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_menu_item" deletion_flag="no" entity_mnemonic="gsmmi" import_version_number_seq="4.66" key_field_value="1000708117.09" record_version_obj="4313.7692" secondary_key_value="Filter" version_date="09/16/2008" version_number_seq="4.66" version_time="45070" version_user="admin"><menu_item_obj>1000708117.09</menu_item_obj>
 <product_module_obj>0</product_module_obj>
 <object_obj>0</object_obj>
 <instance_attribute_obj>0</instance_attribute_obj>
@@ -3044,7 +3044,7 @@
 <item_select_parameter></item_select_parameter>
 <item_menu_drop></item_menu_drop>
 <on_create_publish_event></on_create_publish_event>
-<enable_rule>FilterAvailable=yes and RecordState=RecordAvailable,NoRecordAvailable</enable_rule>
+<enable_rule>FilterAvailable=yes and QueryPosition=NoRecordAvailable,RecordAvailable,FirstRecord,LastRecord,OnlyRecord,NotFirstOrLast</enable_rule>
 <disable_rule></disable_rule>
 <image_alternate_rule></image_alternate_rule>
 <hide_rule></hide_rule>
@@ -3752,7 +3752,7 @@
 <source_language_obj>426</source_language_obj>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="122" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_menu_item" deletion_flag="no" entity_mnemonic="gsmmi" import_version_number_seq="1.09" key_field_value="1000708138.09" record_version_obj="2685.5498" secondary_key_value="Preview" version_date="12/03/2007" version_number_seq="3.49" version_time="54553" version_user="admin"><menu_item_obj>1000708138.09</menu_item_obj>
+<dataset_transaction TransactionNo="122" TransactionType="DATA"><contained_record DB="icfdb" Table="gsm_menu_item" deletion_flag="no" entity_mnemonic="gsmmi" import_version_number_seq="3.49" key_field_value="1000708138.09" record_version_obj="2685.5498" secondary_key_value="Preview" version_date="12/03/2007" version_number_seq="3.49" version_time="54553" version_user="admin"><menu_item_obj>1000708138.09</menu_item_obj>
 <product_module_obj>0</product_module_obj>
 <object_obj>0</object_obj>
 <instance_attribute_obj>0</instance_attribute_obj>

@@ -77,7 +77,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /*  object identifying preprocessor */
 &glob   astra2-staticSmartDataViewer yes
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 {ry/inc/rycustprpt.i}
 
@@ -267,7 +267,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTableWin 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/viewer.i}
+{src/adm2/viewer.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

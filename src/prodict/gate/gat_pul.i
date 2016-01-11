@@ -92,8 +92,8 @@ History:
     fernando    06/12/06  Support for large sequences
     fernando    06/11/07  Unicode and clob support
     fernando    04/07/08  Datetime support for ORACLE
-    ashukla     07/08/08  LDAP support (CR#OE00170689)
-    knavneet    08/12/08  OE00170417 - Quoting object names if it has special chars.
+    ashukla     07/08/08  LDAP support (CR#OE00172458)
+    knavneet    08/14/08  OE00170417 - Quoting object names if it has special chars.
 */
 
 /*
@@ -371,7 +371,7 @@ assign
   l_i##l-types     = ""
   l_i###-types     = "TIME"
   l_logi-types     = "LOGICAL"
-  l_tmst-types     = "TIMESTAMP,TIMESTAMP_LOCAL"
+  l_tmst-types     = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
   l_link           = user_env[25]
   user_env         = "" /* yes this is destructive, but we need the -l space */
   user_env[25]     = l_link
@@ -470,7 +470,7 @@ for each gate-work
   FOR first ds_users
     where ds_users.name = uservar
     no-lock.
-    /* To leave the record in scope after leaving this block */
+    /* to leave the record in scope after leaving this block */
     LEAVE.
   END.
 
@@ -781,8 +781,11 @@ for each gate-work
   &ENDIF
 
   assign
-        l_fld-pos = ( IF ds_columns.{&colid} > 0 THEN ds_columns.{&colid}
+        l_fld-pos = ( IF (ds_columns.{&colid} > 0 AND NOT ( "{&db-type}" = "oracle" AND 
+                                                 ds_columns.NAME BEGINS "SYS_NC" )) THEN
+                          ds_columns.{&colid}
                       ELSE (INTEGER(SUBSTRING(ds_columns.NAME, 7, 5))) * -1) .
+
 
       { prodict/gate/gat_pulf.i 
         &extent       = "m1"
@@ -1212,7 +1215,7 @@ for each gate-work
  &THEN 
 
 /* OE00170417:Quoting objects when they have special character *
- * CR#OE00169024: Quoting user when they have special char slash *
+ * CR#OE00170689: Quoting user when they have special char slash *
 */
 for each s_ttb_tbl:
    if scanSplCharacter(s_ttb_tbl.ds_name) = 1 then
@@ -1224,7 +1227,7 @@ for each s_ttb_tbl:
      LOOKUP(s_ttb_tbl.ds_msc21,"PROCEDURE,FUNCTION,PACKAGE") > 0 THEN DO:
            if scanSplCharacter(s_ttb_tbl.ds_msc21) = 1 then 
                s_ttb_tbl.ds_msc21 =QUOTER(s_ttb_tbl.ds_name).
-           if (INDEX(s_ttb_tbl.ds_user,'~\') > 0) then 
+           if (INDEX(s_ttb_tbl.ds_user,'~\') > 0) then
                s_ttb_tbl.ds_user =QUOTER(s_ttb_tbl.ds_user).
    end.
 end.
@@ -1245,7 +1248,7 @@ for each s_ttb_seq:
    if (INDEX(s_ttb_seq.ds_user,'~\') > 0) then
       s_ttb_seq.ds_user = QUOTER(s_ttb_seq.ds_user).
 end.
-/* END of Quoting code for OE00170417 / CR#OE00169024 */
+/* END of Quoting code for OE00170417 / CR#OE00170689 */
 
 /*--------------------- PREPARE FOR NEXT LINK  ---------------------*/
 
@@ -1455,6 +1458,7 @@ splchar[{&SPL_CHAR_SUPPORTED}] = STRING(CHR(10)). /*LINE FEED */
   END.
   RETURN 0.
 END FUNCTION.
+
 
 RETURN.
 

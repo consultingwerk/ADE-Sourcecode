@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="14.709" key_field_value="95914.48" record_version_obj="95915.48" secondary_key_value="rycatcls2v#CHR(1)#0" version_date="08/19/2005" version_number_seq="14.709" version_time="52847" version_user="admin"><smartobject_obj>95914.48</smartobject_obj>
+<dataset Transactions="1" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="1.49" key_field_value="9156.49" record_version_obj="9157.49" secondary_key_value="" version_date="09/19/2007" version_number_seq="1.49" version_time="44113" version_user="admin"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="95" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="28.94251" key_field_value="95914.48" record_version_obj="95915.48" secondary_key_value="rycatcls2v#CHR(1)#0" version_date="09/16/2008" version_number_seq="28.94251" version_time="44027" version_user="admin"><smartobject_obj>95914.48</smartobject_obj>
 <object_filename>rycatcls2v</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -26,6 +26,36 @@
 <extends_smartobject_obj>0</extends_smartobject_obj>
 <security_smartobject_obj>95914.48</security_smartobject_obj>
 <object_is_runnable>yes</object_is_runnable>
+<contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>5.94251</ui_event_obj>
+<object_type_obj>5540.409</object_type_obj>
+<container_smartobject_obj>95914.48</container_smartobject_obj>
+<smartobject_obj>6318.409</smartobject_obj>
+<object_instance_obj>96012.48</object_instance_obj>
+<event_name>VALUE-CHANGED</event_name>
+<constant_value>no</constant_value>
+<action_type>RUN</action_type>
+<action_target>SELF</action_target>
+<event_action>changeOverrideType</event_action>
+<event_parameter></event_parameter>
+<event_disabled>no</event_disabled>
+<primary_smartobject_obj>95914.48</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>6.94251</ui_event_obj>
+<object_type_obj>5540.409</object_type_obj>
+<container_smartobject_obj>95914.48</container_smartobject_obj>
+<smartobject_obj>6318.409</smartobject_obj>
+<object_instance_obj>96019.48</object_instance_obj>
+<event_name>VALUE-CHANGED</event_name>
+<constant_value>no</constant_value>
+<action_type>RUN</action_type>
+<action_target>SELF</action_target>
+<event_action>changeOverrideType</event_action>
+<event_parameter></event_parameter>
+<event_disabled>no</event_disabled>
+<primary_smartobject_obj>95914.48</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+</contained_record>
 <contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>99890.48</ui_event_obj>
 <object_type_obj>1005091923.09</object_type_obj>
 <container_smartobject_obj>95914.48</container_smartobject_obj>
@@ -1553,22 +1583,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>95936.48</attribute_value_obj>
-<object_type_obj>473.99</object_type_obj>
-<container_smartobject_obj>95914.48</container_smartobject_obj>
-<smartobject_obj>15870.409</smartobject_obj>
-<object_instance_obj>95923.48</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>TOOLTIP</attribute_label>
-<character_value>?</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>95914.48</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>96025.48</attribute_value_obj>
 <object_type_obj>5540.409</object_type_obj>
 <container_smartobject_obj>95914.48</container_smartobject_obj>
@@ -1617,22 +1631,6 @@
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
 </contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>96367.48</attribute_value_obj>
-<object_type_obj>1005091923.09</object_type_obj>
-<container_smartobject_obj>95914.48</container_smartobject_obj>
-<smartobject_obj>3000026856.09</smartobject_obj>
-<object_instance_obj>96360.48</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>TOOLTIP</attribute_label>
-<character_value>?</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>95914.48</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
 <contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>96376.48</attribute_value_obj>
 <object_type_obj>1005091923.09</object_type_obj>
 <container_smartobject_obj>95914.48</container_smartobject_obj>
@@ -1657,38 +1655,6 @@
 <constant_value>no</constant_value>
 <attribute_label>TOOLTIP</attribute_label>
 <character_value>Check if the value is derived from other data and/or attributes</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>95914.48</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>96389.48</attribute_value_obj>
-<object_type_obj>1005091923.09</object_type_obj>
-<container_smartobject_obj>95914.48</container_smartobject_obj>
-<smartobject_obj>3000026880.09</smartobject_obj>
-<object_instance_obj>96387.48</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>TOOLTIP</attribute_label>
-<character_value>?</character_value>
-<integer_value>0</integer_value>
-<date_value>?</date_value>
-<decimal_value>0</decimal_value>
-<logical_value>no</logical_value>
-<primary_smartobject_obj>95914.48</primary_smartobject_obj>
-<render_type_obj>0</render_type_obj>
-<applies_at_runtime>yes</applies_at_runtime>
-</contained_record>
-<contained_record DB="icfdb" Table="ryc_attribute_value"><attribute_value_obj>96404.48</attribute_value_obj>
-<object_type_obj>1005091923.09</object_type_obj>
-<container_smartobject_obj>95914.48</container_smartobject_obj>
-<smartobject_obj>3000026734.09</smartobject_obj>
-<object_instance_obj>96396.48</object_instance_obj>
-<constant_value>no</constant_value>
-<attribute_label>TOOLTIP</attribute_label>
-<character_value>?</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>
@@ -1899,7 +1865,7 @@
 <character_value></character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
-<decimal_value>50.2</decimal_value>
+<decimal_value>50</decimal_value>
 <logical_value>no</logical_value>
 <primary_smartobject_obj>95914.48</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
@@ -1920,6 +1886,36 @@
 <primary_smartobject_obj>95914.48</primary_smartobject_obj>
 <render_type_obj>0</render_type_obj>
 <applies_at_runtime>yes</applies_at_runtime>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>5.94251</ui_event_obj>
+<object_type_obj>5540.409</object_type_obj>
+<container_smartobject_obj>95914.48</container_smartobject_obj>
+<smartobject_obj>6318.409</smartobject_obj>
+<object_instance_obj>96012.48</object_instance_obj>
+<event_name>VALUE-CHANGED</event_name>
+<constant_value>no</constant_value>
+<action_type>RUN</action_type>
+<action_target>SELF</action_target>
+<event_action>changeOverrideType</event_action>
+<event_parameter></event_parameter>
+<event_disabled>no</event_disabled>
+<primary_smartobject_obj>95914.48</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>6.94251</ui_event_obj>
+<object_type_obj>5540.409</object_type_obj>
+<container_smartobject_obj>95914.48</container_smartobject_obj>
+<smartobject_obj>6318.409</smartobject_obj>
+<object_instance_obj>96019.48</object_instance_obj>
+<event_name>VALUE-CHANGED</event_name>
+<constant_value>no</constant_value>
+<action_type>RUN</action_type>
+<action_target>SELF</action_target>
+<event_action>changeOverrideType</event_action>
+<event_parameter></event_parameter>
+<event_disabled>no</event_disabled>
+<primary_smartobject_obj>95914.48</primary_smartobject_obj>
+<render_type_obj>0</render_type_obj>
 </contained_record>
 <contained_record DB="icfdb" Table="ryc_ui_event"><ui_event_obj>99890.48</ui_event_obj>
 <object_type_obj>1005091923.09</object_type_obj>

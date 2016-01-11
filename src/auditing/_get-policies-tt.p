@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -81,7 +81,7 @@ DEFINE INPUT-OUTPUT PARAMETER TABLE-HANDLE hTable.
 
 CASE mode:
     WHEN  "_aud-audit-policy"       THEN RUN buildPolicyTable.
-    WHEN  "_aud-file-file-policy"   THEN RUN buildFilePolicyTable.
+    WHEN  "_aud-file-policy"        THEN RUN buildFilePolicyTable.
     WHEN  "_aud-field-policy"       THEN RUN buildFieldPolicyTable.
     WHEN  "_aud-event-policy"       THEN RUN buildEventPolicyTable.
 END CASE.
@@ -136,7 +136,7 @@ PROCEDURE buildEventPolicyTable :
         /* copy the data into the temp-table */
         ASSIGN hBufferTT::_Audit-policy-guid = hBuffer::_Audit-policy-guid
                hBufferTT::_Event-id = hBuffer::_Event-id
-               hBufferTT::_Event-id = hBuffer::_Event-id
+               hBufferTT::_Event-level = hBuffer::_Event-level
                hBufferTT::_Event-criteria = hBuffer::_Event-criteria.
 
         IF hBufferEvent:AVAILABLE THEN
@@ -245,12 +245,16 @@ PROCEDURE buildFilePolicyTable :
             hBufferTT::_File-name = hBuffer::_File-name
             hBufferTT::_Owner = hBuffer::_Owner
             hBufferTT::_Audit-create-level = hBuffer::_Audit-create-level
+            hBufferTT::_Create-event-id = hBuffer::_Create-event-id
             hBufferTT::_Audit-create-criteria = hBuffer::_Audit-create-criteria
             hBufferTT::_Audit-update-level = hBuffer::_Audit-update-level
+            hBufferTT::_Update-event-id = hBuffer::_Update-event-id
             hBufferTT::_Audit-update-criteria = hBuffer::_Audit-update-criteria
             hBufferTT::_Audit-delete-level = hBuffer::_Audit-delete-level
+            hBufferTT::_Delete-event-id = hBuffer::_Delete-event-id
             hBufferTT::_Audit-delete-criteria = hBuffer::_Audit-delete-criteria
             hBufferTT::_Audit-read-level = hBuffer::_Audit-read-level
+            hBufferTT::_Read-event-id = hBuffer::_Read-event-id
             hBufferTT::_Audit-read-criteria = hBuffer::_Audit-read-criteria.
     END.
 

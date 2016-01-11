@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -38,6 +38,7 @@
           knavneet    08/03/07  For db2/400, making library name a required field
                       08/22/07  For db2/400, changing label from Library to Collection/Library and defaulting it to what is specified in the DSN.
           fernando    10/18/07  Make sure pcompatible is mantain disabled after error - OE00134723           
+          fernando    08/18/08  Allow COLLECTION for batch - DB2/400
 */            
 
 
@@ -444,6 +445,10 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE 
     loadsql = TRUE.
  
+  /* allow collection to be specified */
+  IF odb_type = "DB2/400" AND OS-GETENV("COLLECTION") <> ? THEN
+     odb_library = OS-GETENV("COLLECTION").
+
   IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
     ASSIGN mvdta = FALSE.
   ELSE
@@ -577,7 +582,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             VIEW-AS ALERT-BOX ERROR.  
         NEXT _updtvar.
       END.
-     IF odb_library:HIDDEN = NO and odb_library = "" OR odb_library = ? THEN DO:
+     IF odb_library:HIDDEN = NO and (odb_library = "" OR odb_library = ?) THEN DO:
        MESSAGE "Collection/Library is required."
             VIEW-AS ALERT-BOX ERROR.
        NEXT-PROMPT odb_library with frame x.
@@ -603,6 +608,12 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END.
   IF odb_type = "" OR odb_type = ? THEN DO:
      PUT STREAM logfile UNFORMATTED "Foreign DBMS type is required." SKIP.   
+     ASSIGN err-rtn = TRUE.
+  END.
+
+  /* for DB2/400, must specify collection name */
+  IF odb_type = "DB2/400" AND (odb_library = "" OR odb_library = ?) THEN DO:
+     PUT STREAM logfile UNFORMATTED "Collection/Library is required." SKIP.
      ASSIGN err-rtn = TRUE.
   END.
 

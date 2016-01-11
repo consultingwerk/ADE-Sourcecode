@@ -2836,6 +2836,7 @@ PROCEDURE createObjects:
               errors if any objects call action methods in the toolbar before 
               it is initialized.    
 ------------------------------------------------------------------------------*/
+ 
   IF {fn getUseRepository} THEN
     RUN loadToolbar IN TARGET-PROCEDURE.
   /* If not repository, init (load) all actions in the toolbar class.  */         
@@ -2843,7 +2844,7 @@ PROCEDURE createObjects:
     RUN initAction IN TARGET-PROCEDURE.
   
   run super. 
-  
+    
   return.
 END PROCEDURE.
 	
@@ -5195,6 +5196,10 @@ PROCEDURE resizeObject :
   DEFINE VARIABLE iPage                 AS INTEGER    NO-UNDO.
   DEFINE VARIABLE dRow                  AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dCol                  AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dOldWidth             AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dOldHeight            AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dNewWidth             AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dNewHeight            AS DECIMAL    NO-UNDO.
   
   &SCOPED-DEFINE xp-assign
   {get UIBMode              cUIBmode}
@@ -5281,7 +5286,7 @@ PROCEDURE resizeObject :
     ASSIGN 
       hFrame:HEIGHT      = pdHeight WHEN dMinHeight < pdHeight
       hFrame:WIDTH       = pdWidth WHEN dMinWidth < pdWidth. 
-
+ 
   IF dMinHeight > 0 AND dMinHeight < (SESSION:HEIGHT - 1) AND
      dMinWidth > 0 AND dMinWidth < (SESSION:WIDTH - 1) AND
      (hWindow:WIDTH < dMinWidth OR hWindow:HEIGHT < dMinHeight) THEN
@@ -5290,32 +5295,42 @@ PROCEDURE resizeObject :
       ASSIGN
         hWindow:HEIGHT     = dMinHeight
         hWindow:MIN-HEIGHT = dMinHeight NO-ERROR.
-
+    
     IF hWindow:WIDTH < dMinWidth THEN
       ASSIGN
         hWindow:WIDTH     = dMinWidth
         hWindow:MIN-WIDTH = dMinWidth NO-ERROR.
+    
     RUN resizeWindow IN hContainerSource NO-ERROR.
     lWindowResize = TRUE. /* flag for design mode further down  */
   END.
-
+  
   /* Ensure frame height / width is not smaller than minimum allowed to fit buttons, plus reset to 1 column/row
      depending on horizontal / vertical alignment
-     Also ensure that height/width is not changed on horizontal/vertical */
+     - Also ensure that height/width is not changed on horizontal/vertical
+     - Avoiding query of frame:width or height avoids window realization.
+     - Hwnd = ? if the window is not realized. 
+  */
   IF cToolbarDrawDirection BEGINS "v":U THEN
     ASSIGN
       hFrame:WIDTH       = dMinWidth
-      hFrame:HEIGHT      = MAX(hFrame:HEIGHT,dMinHeight) 
-      hRectangle:HEIGHT  = hFrame:HEIGHT WHEN VALID-HANDLE(hRectangle)
-      hRectangle2:HEIGHT = hFrame:HEIGHT WHEN VALID-HANDLE(hRectangle2)
+      dOldHeight         = (if hWindow:Hwnd = ? then 0 else hFrame:HEIGHT)
+      dNewHeight         = MAX(dOldHeight,dMinHeight) 
+      hFrame:HEIGHT      = dNewHeight 
+      hRectangle:HEIGHT  = dNewHeight WHEN VALID-HANDLE(hRectangle)
+      hRectangle2:HEIGHT = dNewHeight WHEN VALID-HANDLE(hRectangle2)
     NO-ERROR.
-  ELSE 
+  ELSE DO:      
     ASSIGN
       hFrame:HEIGHT      = dMinHeight
-      hFrame:WIDTH       = MAX(hFrame:WIDTH,dMinWidth) 
-      hRectangle:WIDTH   = hFrame:WIDTH WHEN VALID-HANDLE(hRectangle)
-      hRectangle2:WIDTH  = hFrame:WIDTH WHEN VALID-HANDLE(hRectangle2)
-    NO-ERROR.
+      dOldWidth          = (if hWindow:Hwnd = ? then 0 else hFrame:WIDTH)
+      dNewWidth          = MAX(dOldWidth,dMinWidth) 
+      hFrame:WIDTH       = dNewWidth 
+      hRectangle:WIDTH   = dNewWidth WHEN VALID-HANDLE(hRectangle)
+      hRectangle2:WIDTH  = dNewWidth WHEN VALID-HANDLE(hRectangle2)
+     NO-ERROR.
+  END.
+ 
   /* reposition buttons according to new size of frame */
   RUN moveButtons IN TARGET-PROCEDURE (INPUT NO).
 
@@ -5341,16 +5356,15 @@ PROCEDURE resizeObject :
     IF VALID-HANDLE(hPopupFrame) THEN 
       hPopupframe:MOVE-TO-TOP().
 
-   IF program-name(2) <> 'adeuib/_setsize.p':u AND glInitComplete THEN
+    IF program-name(2) <> 'adeuib/_setsize.p':u AND glInitComplete THEN
     DO:
       APPLY "end-resize":U TO hFrame.
       APPLY "end-resize":U TO hWindow. 
     END.
 
   END.
-
-ASSIGN hFrame:HIDDEN     = lPreviouslyHidden 
-       hFrame:SCROLLABLE = TRUE NO-ERROR.
+  ASSIGN hFrame:HIDDEN     = lPreviouslyHidden 
+         hFrame:SCROLLABLE = TRUE NO-ERROR.
 
 END PROCEDURE.
 

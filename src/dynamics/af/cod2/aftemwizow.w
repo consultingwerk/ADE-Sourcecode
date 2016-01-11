@@ -42,7 +42,7 @@
 CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
-{ adm2/support/admhlp.i } /* ADM Help File Defs */
+{ src/adm2/support/admhlp.i } /* ADM Help File Defs */
 {destdefi.i}             /*  Contains definitions for dynamics design-time temp-tables. */
 
 /* Parameters Definitions ---                                           */

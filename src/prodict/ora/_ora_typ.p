@@ -65,7 +65,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
    * ? to use the PROGRESS default format  
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 40 NO-UNDO INITIAL [
   /*description     datatyp  sz code pro type fm format*/
   /*--------------- -------  - ----- -------- -- ------*/ 
   "Character string,Char      ,0, 4096,character,0,|c", 
@@ -80,7 +80,6 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
   "Cursor          ,Cursor    ,0, 8192,integer  ,1,|i",
   "Float           ,Float     ,0, 8192,decimal  ,0,|#",
   "CLOB            ,CLOB      ,0,    0,CLOB     ,0,|c",
-  "CLOB            ,CLOB      ,0,    0,character,0,|c",
   "NCLOB           ,NCLOB     ,0,    0,CLOB     ,0,|c",
   "NCLOB           ,NCLOB     ,0,    0,character,0,|c",
   "BLOB            ,BLOB      ,0,    0,BLOB     ,0,|c",
@@ -93,13 +92,21 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
   "Logical         ,Logical   ,0, 8192,logical  ,0,|?",
   "Date            ,Date      ,0,12288,date     ,2,|?",
   "Date            ,Date      ,0,12288,datetime ,2,|dt",
+  "Date            ,Date      ,0,12288,datetime-tz,2,|dtz",
   "DateTime (Char) ,Date      ,0,12288,character,2,|9999/99/99 99:99:99",
   "Time            ,Time      ,0,28672,integer  ,0,|>>,>>9",
   "DateTime        ,Timestamp ,0, 6144,datetime ,3,|dt",
   "DateTime        ,Timestamp ,0, 6144,date     ,3,|d",
+  "DateTime        ,Timestamp ,0, 6144,datetime-tz,3,|dtz",
   "DateTime        ,Timestamp ,0, 6144,character,3,|x(26)",
-  "DateTime (local),Timestamp_local,0, 14336,datetime ,4,|dt",
-  "DateTime (local),Timestamp_local,0, 14336,date,     4,|d",
+  "DateTime (local),Timestamp_local,0, 14336,datetime,   4,|dt",
+  "DateTime (local),Timestamp_local,0, 14336,date,       4,|d",
+  "DateTime (local),Timestamp_local,0, 14336,datetime-tz,4,|dtz",
+  "DateTime (local),Timestamp_local,0, 14336,character,  4,|x(26)",
+  "DateTime-tz      ,Timestamp_tz ,0, 10240,datetime-tz, 5,|dtz",
+  "DateTime-tz      ,Timestamp_tz ,0, 10240,datetime,    5,|dt",
+  "DateTime-tz      ,Timestamp_tz ,0, 10240,date,        5,|d",
+  "DateTime-tz      ,Timestamp_tz ,0, 10240,character,   5,|x(34)",
   ?
 ].
 

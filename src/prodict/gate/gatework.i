@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2007-08 by Progress Software Corporation. All    *
-* rights  reserved.  Prior versions of this work may contain portions *
+* Copyright (C) 2008 by Progress Software Corporation. All rights     *
+* reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 **********************************************************************/
                                                                        /*
@@ -38,6 +38,7 @@ History:
     slutz      08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
     fernando   06/26/06 Added support for large sequences
     fernando   02/25/08 Added parameter for datetime
+    rohit      04/30/08 Added new field gate-seqpre to gate-work
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -50,6 +51,7 @@ DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
   field gate-qual AS CHARACTER		   /* db-qualifier */
   field gate-slct AS LOGICAL INITIAL FALSE /* user selected me? y/n */
   field gate-type AS CHARACTER             /* type (our name) */
+  field gate-seqpre AS CHARACTER           /* sequence prefix- either _SEQT_ or _SEQT_REV_ */
   field gate-user AS CHARACTER             /* userid */
   field ttb-recid AS RECID                 /* RECID(s_ttb_{seq|tbl}) */
        /* don't use it for packages with 1 gate-work = n s_ttb_tbl!! */

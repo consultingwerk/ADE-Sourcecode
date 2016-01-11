@@ -40,7 +40,6 @@ History:
     mcmann    09/30/02  Added THREE-D to frame to match the rest of the
                         utility.
    fernando   06/11/07  Unicode and clob support
-   fernando   04/07/08  Datetime support
 --------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------
@@ -223,7 +222,7 @@ assign
   l_i###-types  = "TIME"
   l_logi-types  = "LOGICAL"
 /*l_time-types  = ""*/
-  l_tmst-types  = ""
+  l_tmst-types  = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
   onum          = DICTDBG.oracle_objects.obj#
   p_ttb_tbl     = 0.
 
@@ -451,13 +450,7 @@ for each ds_columns
     no-lock no-error.
   
   assign
-    dtyp    = LOOKUP(l_dt,user_env[12]).
-  
-  /* for 10.1C01, dtyp must be date and not datetime */
-  IF dtyp > 0 AND ENTRY(dtyp,user_env[15]) = "datetime" THEN
-     dtyp = dtyp + 1. /* the next one is date */
-
-  assign
+    dtyp    = LOOKUP(l_dt,user_env[12])
     l_init  = ?
     ntyp    = ( if dtyp > 0
                   then ENTRY(dtyp,user_env[15])

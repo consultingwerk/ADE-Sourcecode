@@ -19,6 +19,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
+/* Copyright (c) 2000-2008 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */
 /*---------------------------------------------------------------------------------
   File: gscddimprv.w
 
@@ -930,7 +933,7 @@ PROCEDURE importADOs :
 
       hTT = ?.
       buImport:sensitive = no.
-
+      
       RUN importDeploymentDataset IN ghDSAPI
         (bttSelected.cPath,
          bttSelected.cRootDir,
@@ -1303,8 +1306,8 @@ PROCEDURE recurseDirectory :
             ASSIGN
               cFullPath = REPLACE(cFullPath,"~\":U,"/":U)
               bttAvailable.cFileName = cFullPath
-              bttAvailable.cPath     = TRIM(SUBSTRING(cFullPath,LENGTH(fiInputDirectory) + 1),"/":U)
-              bttAvailable.cRootDir  = TRIM(SUBSTRING(cFullPath,1,LENGTH(fiInputDirectory)),"/":U)
+              bttAvailable.cPath     = RIGHT-TRIM(SUBSTRING(cFullPath,LENGTH(fiInputDirectory) + 1),"/":U)
+              bttAvailable.cRootDir  = RIGHT-TRIM(SUBSTRING(cFullPath,1,LENGTH(fiInputDirectory)),"/":U)
               bttAvailable.daModDate = daModDate
               bttAvailable.iModTime  = iModTime
               bttAvailable.cStrTime  = STRING(iModTime,"HH:MM:SS":U)

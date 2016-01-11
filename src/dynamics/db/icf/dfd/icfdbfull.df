@@ -38,7 +38,7 @@ ADD SEQUENCE "seq_ICFDB_DBVersion"
   INCREMENT 1
   CYCLE-ON-LIMIT yes
   MIN-VAL 0
-  MAX-VAL 101201
+  MAX-VAL 102001
 
 ADD TABLE "gsc_custom_procedure"
   AREA "Schema Area"

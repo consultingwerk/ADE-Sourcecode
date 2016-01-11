@@ -1005,6 +1005,10 @@ PROCEDURE commitTransaction :
   DEFINE VARIABLE hSource        AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lCancel        AS LOGICAL    NO-UNDO.
   
+  /* reset return-value */
+  IF RETURN-VALUE > "" THEN
+    RUN returnNothing IN TARGET-PROCEDURE.
+
   /* If they have made record changes they haven't saved, they must
      do that before they Commit. Make this check if it came from the
      Commit Panel, but skip if it came locally or from an SBO */
@@ -1015,7 +1019,7 @@ PROCEDURE commitTransaction :
     PUBLISH 'confirmCommit':U FROM TARGET-PROCEDURE (INPUT-OUTPUT lCancel).
     IF lCancel THEN RETURN 'ADM-ERROR':U.
   END.    /* END IF hSource  */
-
+  
   /* Continue only if no unsaved changes. */
   lSuccess = {fn Commit}. 
 
@@ -1107,7 +1111,7 @@ PROCEDURE createObjects :
   DEFINE VARIABLE lDefined             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lDynamicData         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lInitialized         AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE cBufferHandles       AS CHARACTER  NO-UNDO.
   &SCOPED-DEFINE xp-assign
   {get AsDivision cAsDivision}
   {get DynamicData lDynamicData}
@@ -1150,9 +1154,24 @@ PROCEDURE createObjects :
       END. /* calculated columns */
     END. /* no repos manager or logic procedure  */
   END. /* AsDivison = 'CLIENT' */
-  ELSE /* db connected, create buffers queries etc..*/
+  ELSE DO: /* db connected, create buffers queries etc..*/
     RUN SUPER.
-
+    /* the check below exists purely to avoid more error messages on the connected 
+       client if the buffer creation failed. This is not very elegant error 
+       handling, but low risk as it piggy backs on the fact that the SDO 
+       already handles error from here with repository failure of any kind. 
+      - the dynamic data check is because static sdos behaves very different 
+        with these kind of errors (typcially db connection issues) )
+        and have not been tested for possible cases that might end up 
+        finding an error here. (if they even exist) */
+    if lDynamicData and cAsDivision <> "Server" then 
+    do:
+       {get BufferHandles cBufferHandles}.
+       if cBufferHandles = ? or cBufferHandles = "" then  
+          RETURN ERROR "ADM-ERROR".  
+    end.
+  END.
+   
   /* Dynamic */
   IF lDynamicData THEN  
     lDefined = {fn createRowObjectTable}.    
@@ -2784,13 +2803,13 @@ PROCEDURE initializeLogicObject :
   DEFINE VARIABLE hObject      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lWebClient   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lRunProxy    AS LOGICAL    NO-UNDO.
-  
+  DEFINE VARIABLE cMessage     AS CHARACTER NO-UNDO.
   &SCOPED-DEFINE xp-assign
   {get DataLogicProcedure cLogicProc}
   {get DataLogicObject hObject}
   .
   &UNDEFINE xp-assign
-  
+
   IF cLogicProc = '':U THEN
     RETURN.
 
@@ -2885,8 +2904,12 @@ PROCEDURE initializeLogicObject :
   /* RunProxy = yes  */
   ELSE IF NOT lUseProxy OR lRunProxy THEN
   DO:
-    RUN showMessageProcedure IN TARGET-PROCEDURE("33,":U + cLogicProc, 
-                                                 OUTPUT cDummy).
+    cMessage = substitute({fnarg messageNumber 33},cLogicProc).
+    
+    RUN showMessageProcedure IN TARGET-PROCEDURE(cMessage, OUTPUT cDummy).
+    
+    if {fn getManageReadErrors} then
+       run addMessage in target-procedure(cMessage,?,?).
     RUN destroyObject IN TARGET-PROCEDURE. 
   END.
      
@@ -4243,14 +4266,11 @@ DEFINE VARIABLE cSdoName                        AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cSdoSignature                   AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE rRowid                          AS ROWID        NO-UNDO.
 DEFINE VARIABLE cFilterSettings                 AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cRUnAttribute                   AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE cRunAttribute                   AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cFieldNames                     AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cFieldValues                    AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cFieldOperators                 AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lSuccess                        AS LOGICAL      NO-UNDO.
-DEFINE VARIABLE cAssignQuerySelection           AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cAddQueryWhere                  AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cQuerySort                      AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cManualAddQueryWhere            AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE iLoop                           AS INTEGER      NO-UNDO.
 DEFINE VARIABLE cEntry                          AS CHARACTER    NO-UNDO.
@@ -4262,13 +4282,7 @@ DEFINE VARIABLE cDataContainerName              AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE lQueryObject                    AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE hSboContainer                   AS HANDLE       NO-UNDO.
 DEFINE VARIABLE iCnt                            AS INTEGER      NO-UNDO.
-DEFINE VARIABLE cTableName                      AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cQualifiedFieldList             AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cQualifiedField                 AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE cField                          AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cQueryString                    AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE cNewQueryString                 AS CHARACTER    NO-UNDO.
-DEFINE VARIABLE lFilterActive                   AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE cColumnSelection                AS CHARACTER  NO-UNDO.
 
 /* RETRIEVAL OF FILTER IS DEPENDANT UPON LINKS WHICH ONLY EXIST CLIENT-SIDE */
@@ -4376,39 +4390,7 @@ DEFINE VARIABLE cColumnSelection                AS CHARACTER  NO-UNDO.
                                        cFieldNames,
                                        cFieldValues,
                                        cFieldOperators).
-            END.
-
-            /* If we've filtered on any OUTER-JOINs, we need to remove the OUTER-JOIN keyword. *  
-             * Otherwise, the filter isn't going to be effective.                              */
-            {get QueryString  cQueryString}.
-            IF  INDEX(cQueryString, "OUTER-JOIN":U) > 0
-            AND NUM-ENTRIES(cFieldNames) > 0
-            AND VALID-HANDLE(gshSessionManager) THEN 
-            DO:
-              DO iCnt = 1 TO NUM-ENTRIES(cFieldNames):
-                 ASSIGN 
-                   cField = ENTRY(iCnt, cFieldNames).
-
-                 IF NUM-ENTRIES(cField, ".":U) = 1 THEN
-                   ASSIGN 
-                     cTableName      = {fnarg columnTable cField}
-                     cTableName      = IF NUM-ENTRIES(cTableName, ".":U) = 2 /* Remove db qualifier if one has been returned */
-                                       THEN ENTRY(2, cTableName, ".":U)
-                                       ELSE cTableName
-                     cQualifiedField = cTableName + ".":U + cField.
-                 ELSE
-                   ASSIGN cQualifiedField = cField. /* Already in the correct format */
-
-                 ASSIGN cQualifiedFieldList  = cQualifiedFieldList + cQualifiedField + ",":U.
-              END.
-              ASSIGN
-                cQualifiedFieldList = RIGHT-TRIM(cQualifiedFieldList, ",":U)
-                cNewQueryString     = DYNAMIC-FUNCTION("filterEvaluateOuterJoins":U IN gshSessionManager, INPUT cQueryString, INPUT cQualifiedFieldList).
-
-              /* The OUTER-JOIN keyword has now been removed.  Update the query if necessary. */
-              IF cNewQueryString <> cQueryString THEN
-                {set queryString cNewQueryString}.
-            END.         
+            END. 
         END.
         ELSE IF cManualAddQueryWhere > '':U THEN
         DO:
@@ -5105,6 +5087,13 @@ PROCEDURE submitCommit :
   DO:
     /* Add the update cancelled message */
     RUN addMessage IN TARGET-PROCEDURE({fnarg messageNumber 15},?,?).
+    /* The returntoaddmode undoes the rowobjupd after an add while
+       doundorow is for the normal case. we could/should call the applicable
+       by a check with getnewmode, but this would require more testing 
+       (commit mode and sbo both modes) since we're in the middle of stuff. 
+       The end result is ensured with these calls and the state is based on 
+       the underlying temp-tables anyways, so any check would really double 
+       check the same conditions that the procedures handles. */ 
     RUN doReturnToAddMode IN TARGET-PROCEDURE.
     RUN doUndoRow IN TARGET-PROCEDURE.
     RETURN "ADM-ERROR":U.    /* If there were any Data messages */
@@ -9062,7 +9051,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
  DEFINE VARIABLE lAuditEnabled      AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cAuditEnabled      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iRowsToBatch       AS INTEGER    NO-UNDO.
- 
+ DEFINE VARIABLE cWordIndexedFields AS CHARACTER  NO-UNDO.
  {get ServerFirstCall lFirstCall}.
  IF lFirstCall THEN
  DO:
@@ -9089,6 +9078,7 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
    {get AuditEnabled lAuditEnabled}
    /* Is this before or after a data request */
    {get QueryOpen lData}
+   {get WordIndexedFields cWordIndexedFields} 
    {get IndexInformation cIndexInfo}
    . 
    &UNDEFINE xp-assign
@@ -9104,6 +9094,10 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
       which of course always is the case if we are state aware. */
    {set ServerFirstCall FALSE}.
 
+   /* not all of these should ever be unknown, like word idx fields, 
+      but the consequence of an unknown is bad and everything can be 
+      overridden, so we check thoroughly...*/  
+     
    ASSIGN
      cOperatingMode  = (IF cOperatingMode  = ? THEN '?':U ELSE cOperatingMode)
      cIndexInfo      = (IF cIndexInfo      = ? THEN '?':U ELSE cIndexInfo)
@@ -9114,6 +9108,8 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
      cKeyTableId     = (IF cKeyTableId     = ? THEN '?':U ELSE cKeyTableId)
      cEntityFields   = (IF cEntityFields   = ? THEN '?':U ELSE cEntityFields)
      cAuditEnabled   = (IF lAuditEnabled   = ? THEN '?':U ELSE STRING(lAuditEnabled))
+     /* unknown should not happen, but if it is then make it blank */ 
+     cWordIndexedFields = (IF cWordIndexedFields = ? THEN ' ':U ELSE cWordIndexedFields)
      cContext        = "IndexInformation":U + CHR(4) + cIndexInfo + CHR(3) 
                      + "ServerOperatingMode":U + CHR(4) + cOperatingMode
                      + CHR(3) 
@@ -9131,6 +9127,8 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
                     + CHR(3) 
                     + "EntityFields":U + CHR(4) + cEntityFields
                     + CHR(3) 
+                    + "WordIndexedFields":U + CHR(4) + cWordIndexedFields
+                    + CHR(3)  
                     /* we send it back as it usually is set to true on the client 
                        to be passed as context to this (server) side */
                     + "ServerFirstCall":U + CHR(4) + 'NO':U
@@ -9141,8 +9139,8 @@ FUNCTION obtainContextForClient RETURNS CHARACTER
                     + (IF SESSION:CLIENT-TYPE <> "WEBSPEED":U 
                        AND cQueryWhere <> ? 
                        THEN CHR(3) + "QueryContext":U + CHR(4) + cQueryWhere
-                       ELSE '':U)
-     .  
+                       ELSE '':U)      
+              .  
  END. /* firstCall */
 
  IF NOT lFirstCall OR lData THEN

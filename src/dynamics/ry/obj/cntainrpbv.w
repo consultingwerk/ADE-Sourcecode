@@ -329,7 +329,7 @@ PROCEDURE createBrowse :
   hColumn[1] = ghBrowse:ADD-CALC-COLUMN("INTEGER":U, ">9":U , 0, "Page Seq.":U).
   hColumn[2] = ghBrowse:ADD-LIKE-COLUMN(ghMainBuffer:BUFFER-FIELD("c_page_label":U)).
   hColumn[3] = ghBrowse:ADD-LIKE-COLUMN(ghMainBuffer:BUFFER-FIELD("c_security_token":U)).
-
+  hColumn[3]:LABEL = "Security action".
   ghColumn = hColumn[1].
   
   DO iFieldLoop = 1 TO ghBrowse:NUM-COLUMNS:

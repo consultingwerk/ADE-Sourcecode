@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,6 +24,7 @@ Included in:
 History:
     hutegger    95/03   creation
     mcmann   06/04/02   Added output to file logic
+    fernando 02/22/08   Output internal retained info mismatch
     
 --------------------------------------------------------------------*/        
 /*h-*/
@@ -92,7 +93,7 @@ History:
                      then l_sev-msg-txt + chr(10) + l_sev-msg + chr(10)
                      else "")
                  + ( if l_int-msg <> ""
-                     then l_int-msg-txt /*+ chr(10) + l_int-msg */ + chr(10)
+                     then l_int-msg-txt + chr(10) + l_int-msg + chr(10)
                       else "").
 
       IF l_ret-msg <> "" OR l_ret2-msg <> "" OR l_reti-msg <> "" THEN 

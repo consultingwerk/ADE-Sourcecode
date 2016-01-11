@@ -2424,7 +2424,7 @@ PROCEDURE add-fields.ip:
         IF NOT isQuery AND NOT isSmartData AND
            CAN-DO("BLOB,CLOB":U, _BC._data-type) THEN 
         DO:
-             MESSAGE _BC._NAME + ' is defined as a large object and cannot be added to a SmartDataBrowser.':U
+            MESSAGE _BC._NAME + ' is defined as a large object and cannot be added to a SmartDataBrowser.':U
              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
             DELETE _BC.
             NEXT AddFieldLoop.

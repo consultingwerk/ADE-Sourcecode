@@ -80,7 +80,7 @@ FORM
   dfields._Field-name   LABEL "  Field-Name" FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
-  dfields._Data-type    LABEL    "Data-Type" FORMAT "x(9)"  SKIP
+  dfields._Data-type    LABEL    "Data-Type" FORMAT "x(11)"  SKIP
 
   dfields._For-Name LABEL " Oracle-Name" FORMAT "x(30)" SPACE(4)
   dfields._For-Type LABEL     "Ora-Type" FORMAT "x(12)" SKIP
@@ -97,7 +97,8 @@ FORM
   /* dfields._For-retrieve  */
   retriev              LABEL     "Retrieve ?" FORMAT "y/n" SKIP
 
-  dfields._Initial      LABEL "     Initial" FORMAT "x(30)" SPACE(4)
+  dfields._Initial      LABEL "     Initial" FORMAT "x(100)" 
+                        VIEW-AS FILL-IN SIZE 30 BY 1        SPACE(4)
   dfields._Mandatory    LABEL     "Not Null" FORMAT "yes/no"
   dfields._Extent	LABEL	  "  Extent" FORMAT ">>>>9" SKIP
 
@@ -141,8 +142,12 @@ on leave of dfields._data-type in frame ora_fld do:
           IF dfields._Initial = "now" THEN
              dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = "today".
       END.
-      ELSE IF l_dt-new = "datetime" THEN DO:
-          dfields._Format:SCREEN-VALUE IN FRAME ora_fld = "99/99/9999 HH:MM:SS.SSS".
+      ELSE IF l_dt-new BEGINS "datetime" THEN DO:
+          IF l_dt-new = "datetime" THEN
+             dfields._Format:SCREEN-VALUE IN FRAME ora_fld = "99/99/9999 HH:MM:SS.SSS".
+          ELSE
+             dfields._Format:SCREEN-VALUE IN FRAME ora_fld = "99/99/9999 HH:MM:SS.SSS+HH:MM".
+
           IF dfields._Initial = "today" THEN
              dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = "now".
       END.
@@ -150,7 +155,8 @@ on leave of dfields._data-type in frame ora_fld do:
           ASSIGN dfields._Format:SCREEN-VALUE IN FRAME ora_fld = 
                         (IF dfields._For-type = "date"
                          THEN "9999/99/99 99:99:99"
-                         ELSE "X(26)")
+                         ELSE IF dfields._For-type = "TIMESTAMP_TZ" 
+                             THEN "X(34)" ELSE "X(26)")
                  dfields._Initial:SCREEN-VALUE IN FRAME ora_fld = ?.
       END.
   END.
@@ -207,12 +213,6 @@ RUN "prodict/ora/_ora_typ.p"
    INPUT-OUTPUT pro_typ,INPUT-OUTPUT gat_typ,
    OUTPUT c).
 
-IF gat_typ = "DATE" AND available _File AND 
-   CAN-DO("PROCEDURE,FUNCTION",_File._For-type) THEN DO:
-   /* in 10.1C01, datetime is not supported for stored procedures */
-   ASSIGN pro_typ = REPLACE(pro_typ,"datetime","date").
-END.
-
 RELEASE _File.
 
 /*retriev = dfields._For-retrieve = 1.*/
@@ -251,6 +251,8 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     dfields._Field-name 
     dfields._Data-type  VALIDATE(
       CAN-DO(pro_typ,dfields._Data-type), new_lang[7]) /* not equiv dtype */
+      /* OE00173867 - disallow type changed if foreign type is N/CLOB */
+      WHEN NOT (dfields._For-type = "CLOB" OR dfields._For-type = "NCLOB")
   /*dfields._For-Name*/
   /*dfields._For-Type*/
     dfields._Format

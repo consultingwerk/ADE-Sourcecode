@@ -83,7 +83,7 @@ History:
                          for MSS and ODBC
     fernando    06/11/07 Unicode support for ORACLE
     fernando    04/08/08 Datetime support for ORACLE
-    knavneet    08/19/08 OE00170417
+    knavneet    08/14/08 OE00170417
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -333,7 +333,7 @@ if can-do(odbtyp,user_dbtype)
 else if user_dbtype = "ORACLE"
    then assign
     l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,NCHAR,NVARCHAR2"
-    l_chda-types = "TIMESTAMP,TIMESTAMP_LOCAL"
+    l_chda-types = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
     l_date-types = "DATE"
     l_dcml-types = "FLOAT"
     l_dein-types = ""
@@ -389,8 +389,8 @@ for each gate-work where gate-work.gate-slct = TRUE
       then find first DICTDB._Sequence
           where DICTDB._Sequence._Db-Recid    = drec_db
             and DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
-            and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
-            /* OE00170417 - check the foreign name too */
+            and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl 
+          /* OE00170417 - check the foreign name too */
             and DICTDB._Sequence._Seq-misc[1] = s_ttb_seq.ds_name no-error.
     else if can-do(odbtyp,user_dbtype)
       then find first DICTDB._Sequence

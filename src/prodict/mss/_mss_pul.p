@@ -421,6 +421,7 @@ for each gate-work
   IF gate-work.gate-user = "INFORMATION_SCHEMA" THEN
     NEXT.
   
+
   assign
     has_id_ix          = no
     namevar   = ( if      gate-work.gate-type = "BUFFER"
@@ -429,8 +430,8 @@ for each gate-work
                   else if gate-work.gate-type <> "SEQUENCE"
                    then            gate-work.gate-name
                   else if asc(substring(gate-work.gate-type,1,1,"character")) = 115
-                   then "_seqt_" + gate-work.gate-name
-                   else "_SEQT_" + gate-work.gate-name
+		    then LC(gate-work.gate-seqpre) + gate-work.gate-name
+                  else gate-work.gate-seqpre + gate-work.gate-name
                 )
     typevar   = ( if gate-work.gate-type = "BUFFER"
                    then "VIEW"
@@ -447,7 +448,6 @@ for each gate-work
    then put unformatted
      gate-work.gate-type at 10
      gate-work.gate-name at 25 skip.
-
 
   RUN  prodict/mss/mss_fix.p (spclvar, OUTPUT spclvar-1, escp, bug1).
   RUN  prodict/mss/mss_fix.p (uservar, OUTPUT uservar-1, escp, bug8).
@@ -686,23 +686,26 @@ for each gate-work
 
     for each DICTDBG.SQLColumns_buffer:
 
-     /* 20031205-003
-        If the table name has underscore (_), we may get records for
-        different tables, since '_' may be a search pattern depending on
-        the driver settings/version. So we need to filter out anything
-        that is not from the table we want.
-     */
-     IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
-        NEXT.
-     IF DICTDBG.SQLColumns_buffer.column-name begins 'PROGRESS_RECID'
+      /* 20031205-003
+         If the table name has underscore (_), we may get records for
+         different tables, since '_' may be a search pattern depending on
+         the driver settings/version. So we need to filter out anything
+         that is not from the table we want.
+       */
+      IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
+         NEXT.
+
+      IF DICTDBG.SQLColumns_buffer.column-name begins "PROGRESS_RECID" 
        THEN DO:
-         IF DICTDBG.SQLColumns_buffer.data-type = 4 /* int */
+
+         IF DICTDBG.SQLColumns_buffer.data-type = 4 /* int */ 
           THEN
             s_ttb_tbl.ds_msc15 = 1.
          IF DICTDBG.SQLColumns_buffer.data-type = -5 /* bigint */
           THEN
             s_ttb_tbl.ds_msc15 = 2.
       END.
+
       find first column-id
          where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
 

@@ -28,6 +28,12 @@ DEFINE TEMP-TABLE RowObject
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/***********************************************************************
+* Copyright (C) 2002,2008 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: rytreeattv.w
 
@@ -627,10 +633,9 @@ PROCEDURE comboValueChanged :
   DEFINE INPUT PARAMETER pcKeyFieldValue  AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcScreenValue    AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER phField          AS HANDLE     NO-UNDO.
-  
+
   IF glTrackChanges THEN
     PUBLISH "changesMade":U FROM ghContainerSource.
-
 
 END PROCEDURE.
 
@@ -705,7 +710,7 @@ PROCEDURE initializeObject :
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "ChangedAttribute":U IN hContainerSource.
 
   {get LookupHandle hLookupHandle hRootNodeCode}.
-  ON VALUE-CHANGED OF hLookupHandle PERSISTENT RUN changesMade IN TARGET-PROCEDURE. 
+  ON VALUE-CHANGED OF hLookupHandle PERSISTENT RUN rootNodeChangesMade IN TARGET-PROCEDURE. 
   {get LookupHandle hLookupHandle hFilterViewer}.
   ON VALUE-CHANGED OF hLookupHandle PERSISTENT RUN changesMade IN TARGET-PROCEDURE. 
 
@@ -830,6 +835,29 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+ 
+&IF DEFINED(EXCLUDE-rootNodeChangesMade) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rootNodeChangesMade Include
+PROCEDURE rootNodeChangesMade:
+
+	/*------------------------------------------------------------------------------
+			Purpose:
+			Notes:
+	------------------------------------------------------------------------------*/
+	DEFINE VARIABLE comboValue AS CHARACTER NO-UNDO.
+
+	ASSIGN comboValue = DYNAMIC-FUNCTION("getDataValue":U IN hRootNodeCode).
+
+    PUBLISH "changesMade":U FROM ghContainerSource.
+    PUBLISH "changedAttribute" FROM ghContainerSource (INPUT "RootNodeCode":U, comboValue, "character":U).
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* ************************  Function Implementations ***************** */
 
@@ -847,4 +875,5 @@ END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
 

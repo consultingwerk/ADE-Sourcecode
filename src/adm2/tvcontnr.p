@@ -1505,7 +1505,6 @@ PROCEDURE destroyObject :
 
   RUN saveTreeViewWidth IN TARGET-PROCEDURE.
   DELETE WIDGET-POOL ("WidgetPool" + STRING(TARGET-PROCEDURE)) NO-ERROR.
-  RUN saveWindowDimensions IN TARGET-PROCEDURE.
   
   RUN SUPER.
   
@@ -3710,74 +3709,6 @@ PROCEDURE saveTreeViewWidth :
                                                 INPUT "PER":u).            /* Save flag (permanent) */
     END.
   END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-saveWindowDimensions) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveWindowDimensions Procedure 
-PROCEDURE saveWindowDimensions :
-/*------------------------------------------------------------------------------
-  Purpose:     Eventhough this is done in the destroyObject we are doing it here
-               since destroyObject is getting the incorrect window handle
-               when saving the window dimensions for the TreeView Object. 
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cObjectname    AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE lSaveWindowPos AS LOGICAL      NO-UNDO.
-  DEFINE VARIABLE cProfileData   AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE rProfileRid    AS ROWID        NO-UNDO.
-  DEFINE VARIABLE hWindow        AS HANDLE       NO-UNDO.
-
- ASSIGN lSaveWindowPos = NO.
-
- {get ContainerHandle hWindow}.
-
- IF VALID-HANDLE(hWindow) AND CAN-QUERY(hWindow, "window-state":U) AND 
-    (hWindow:WINDOW-STATE EQ WINDOW-NORMAL OR hWindow:WINDOW-STATE EQ WINDOW-MAXIMIZED) THEN
-     /* THis property is set by the container window super procedure rydyncontp.p in updateWindowSizes */
-     ASSIGN lSaveWindowPos = LOGICAL(DYNAMIC-FUNCTION("getUserProperty":U IN TARGET-PROCEDURE, INPUT "SaveWindowPos":U))
-            NO-ERROR.
-
- /* Only position and size if asked to */
- IF lSaveWindowPos THEN
- DO:
-     IF hWindow:WINDOW-STATE EQ WINDOW-MAXIMIZED THEN
-         ASSIGN cProfileData = "WINDOW-MAXIMIZED":U.
-     ELSE
-         /* Always store decimal values as if they were in American numeric format.
-          * When retrieving decimal values, we need to convert to the current
-          * SESSION:NUMERIC-DECIMAL-POINT.                                         */
-         ASSIGN cProfileData = REPLACE(STRING(hWindow:COLUMN),       SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hWindow:ROW),          SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hWindow:WIDTH-CHARS),  SESSION:NUMERIC-DECIMAL-POINT, ".":U) + CHR(3)
-                             + REPLACE(STRING(hWindow:HEIGHT-CHARS), SESSION:NUMERIC-DECIMAL-POINT, ".":U)
-                .
-     FIND FIRST ttProp WHERE ttProp.hTargetProcedure = TARGET-PROCEDURE NO-LOCK.
-     cObjectName = ttProp.cTreeLogicalObjectName.
-    
-   IF LENGTH(cObjectName) > 0 THEN
-   DO:
-     /* We have to check if this handle is valid since it might 
-        have been killed if a developer was running something
-        and closed the AppBuilder and it then attempts to close
-        down any running containers. */
-     IF VALID-HANDLE(gshProfileManager) THEN
-       RUN setProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code */
-                                                INPUT "SizePos":U,         /* Profile code */
-                                                INPUT cObjectName,         /* Profile data key */
-                                                INPUT ?,                   /* Rowid of profile data */
-                                                INPUT cProfileData,        /* Profile data value */
-                                                INPUT NO,                  /* Delete flag */
-                                                INPUT "PER":u).            /* Save flag (permanent) */
-   END.     /* have an object name */
- END.   /* save window positions/size */
 
 END PROCEDURE.
 

@@ -38,7 +38,7 @@ Date Created: 08/05/92
 Modified: 01/31/03 D. McMann Added support for lobs
           07/01/03 D. McMann Added support for Date-time and Date-time-tz
           05/24/06 fernando  Added support for int64 datatype
-          02/14/08 fernando support for datetime - DataServers
+          02/14/08 fernando support for datetime/tz - DataServers
 
 ----------------------------------------------------------------------------*/
 
@@ -107,6 +107,8 @@ do:
 	    fmt = "->>,>>9.99".
 	 when "dt" then
 	    fmt = "99/99/9999 HH:MM:SS.SSS".
+	 when "dtz" then
+	    fmt = "99/99/9999 HH:MM:SS.SSS+HH:MM".
       end.
 
    p_Format:screen-value = fmt.

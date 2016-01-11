@@ -30,7 +30,7 @@
 
 /* Local Variable Definitions ---                                       */
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 DEFINE VARIABLE cNameList     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cValueList    AS CHARACTER  NO-UNDO.

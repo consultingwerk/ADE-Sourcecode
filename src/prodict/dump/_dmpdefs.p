@@ -33,9 +33,10 @@ history:
                                 ISO-Latin-1   =now=>  ISO8859-1
                                 ISO 8859-1    =now=>  ISO8859-1
                                 Codepage 850  =now=>  IBM850
-   knavneet    08/20/22    OE00170417 - Changed the dump of FOREIGN_NAME for Sequences
+   knavneet     08/08/22    OE00170417 - Changed the dump of FOREIGN_NAME for Sequences
                            Also changed the dump for FOREIGN_OWNER for Sequences (in case of 
                            LDAP it may be quoted, so we must take care of that)
+
 */
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.

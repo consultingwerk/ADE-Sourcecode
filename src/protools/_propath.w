@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _propath.w
@@ -409,8 +409,8 @@ DO:
     END.
     ASSIGN l_ok = YES.
     ASSIGN pos       = INT(TRIM(SUBSTRING(curr_dir,1,(INDEX(curr_dir,".":U,1) - 1)))) 
-           cpos      = IF pos < 100 THEN STRING(pos," 99. ":U) ELSE STRING(pos,"999. ":U) 
-           new_dir   = cpos + new_dir:SCREEN-VALUE.
+           cpos      = IF pos < 100 THEN STRING(pos," 99":U) ELSE STRING(pos,"999":U) 
+           new_dir   = cpos + ". " + new_dir:SCREEN-VALUE.
     path-list:REPLACE(new_dir,pos).
     IF l_ok THEN
     DO:

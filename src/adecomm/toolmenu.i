@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -145,6 +145,17 @@ DEFINE SUB-MENU mnu_Tools
         &ENDIF
     &ENDIF
 &ENDIF
+/* Assembly References only available on GUI - Proc Editor only */
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    &if DEFINED(EXCLUDE_EDIT) <> 0 &THEN
+        MENU-ITEM mnu_asmref    LABEL "A&ssembly References"  
+        &IF DEFINED(DEF_TRIGGERS) &THEN
+        TRIGGERS:
+          ON CHOOSE {&PERSISTENT} RUN run-asmref.
+        END.
+        &ENDIF
+    &ENDIF
+&ENDIF
 .
 
 /* Define this procedure once and call it from the persistent procedure
@@ -161,3 +172,45 @@ END.  /* PROCEDURE run-dblist */
 PROCEDURE run-apmt:
     RUN auditing/_apmt.p.
 END.
+
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+PROCEDURE run-asmref:
+    DEFINE VARIABLE dlcValue AS CHARACTER NO-UNDO. /* DLC */
+    DEFINE VARIABLE retval AS INTEGER NO-UNDO.
+    DEFINE VARIABLE exeValue AS CHARACTER NO-UNDO.
+
+    IF OPSYS = "Win32":U THEN /* Get DLC from Registry */
+      GET-KEY-VALUE SECTION "Startup":U KEY "DLC":U VALUE dlcValue.
+
+    IF (dlcValue = "" OR dlcValue = ?) THEN DO:
+      ASSIGN dlcValue = OS-GETENV("DLC":U). /* Get DLC from environment */
+      IF (dlcValue = "" OR dlcValue = ?) THEN DO: /* Still nothing? */
+        RETURN.
+      END.
+    END.
+
+    exeValue = dlcValue + "\bin\proasmref.exe".
+
+    RUN ProExec(exeValue,
+                1 /* SW_SHOWNORMAL */,
+                1 /* Wait (modal) */,
+                1 /* unused */,
+                OUTPUT retval).
+
+    IF retval = 2 THEN
+        MESSAGE "Assembly References tool not found:" exeValue
+            VIEW-AS ALERT-BOX.
+    ELSE
+        IF retval <> 0 THEN
+            MESSAGE "Error" retval "launching Assembly References tool:" 
+                exeValue VIEW-AS ALERT-BOX.
+END.
+
+PROCEDURE ProExec EXTERNAL "PROEXEC.DLL" CDECL:
+    DEFINE INPUT PARAMETER prog_name AS CHARACTER.
+    DEFINE INPUT PARAMETER prog_style AS LONG.
+    DEFINE INPUT PARAMETER wait_for_me as LONG.
+    DEFINE INPUT PARAMETER num_seconds as SHORT.
+    DEFINE RETURN PARAMETER return_value as LONG.
+END.
+&ENDIF /* "{&WINDOW-SYSTEM}" <> "TTY" */

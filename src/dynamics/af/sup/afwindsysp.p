@@ -1,8 +1,8 @@
 /***********************************************************************
 * Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions           *
-* contributed by participants of Possenet.                             *
-*                                                                      *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+*                                                                    *
 ***********************************************************************/
 /*
 Procedure:    adecomm/_winsys.p

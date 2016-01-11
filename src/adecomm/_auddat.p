@@ -2085,12 +2085,17 @@ PROCEDURE audDataAfterRowFill:
     WHEN "10512" THEN
       hADBuff::_formatted-event-context = "User " +
           hADBuff::_event-context + ": Attempted login failed!".
-    WHEN "10520" THEN
-      hADBuff::_formatted-event-context = "SQL User: " +
-                                "Successfully logged in to the Database".
+    WHEN "10520" THEN DO:
+      hADBuff::_formatted-event-context = "SQL User: " + 
+            (IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
+                hADBuff::_user-id + " s" ELSE "S") + 
+                  "uccessfully logged in to the Database".
+    END.
     WHEN "10521" THEN
       hADBuff::_formatted-event-context = "SQL User: " +
-                                "Successfully logged out of the Database".
+            (IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
+                hADBuff::_user-id + " s" ELSE "S")
+                + "uccessfully logged out of the Database".
     WHEN "10522" THEN
       hADBuff::_formatted-event-context = "SQL User: " +
                                 "Attempted login failed!".
@@ -2106,12 +2111,24 @@ PROCEDURE audDataAfterRowFill:
             hADBuff::_user-id NE "" THEN "User " + hADBuff::_user-id + " s"
          ELSE "S") + "uccessfully disconnected from " +
         hADBuff::_event-context + cUserId.
-    WHEN "10610" THEN
-      hADBuff::_formatted-event-context =
+    WHEN "10610" THEN DO:
+       IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
+          hADBuff::_formatted-event-context = "SQL User: " + 
+                                hADBuff::_user-id + 
+                                " successfully connected to the database".
+       ELSE
+          hADBuff::_formatted-event-context =
                     "A SQL Client successfully connected to the database".
-    WHEN "10611" THEN
-      hADBuff::_formatted-event-context =
-                    "A SQL Client successfully disconnected from the database".
+    END.
+    WHEN "10611" THEN DO:
+        IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
+           hADBuff::_formatted-event-context = "SQL User: " + 
+                     hADBuff::_user-id +
+                     " successfully disconnected from the database".
+        ELSE
+           hADBuff::_formatted-event-context =
+                      "A SQL Client successfully disconnected from the database".
+    END.
     OTHERWISE 
       hADBuff::_formatted-event-context = hADBuff::_event-context.
   END CASE.

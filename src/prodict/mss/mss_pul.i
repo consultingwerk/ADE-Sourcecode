@@ -33,6 +33,8 @@ History:
    knavneet   11/14/07 Fixing issue with numeric default for char column - OE00127261
    fernando   02/14/08 Support for datetime
    fernando   04/08/08 Handle MAX field with Native driver - OE00165897
+   fernando   08/18/08 Check default value for date/time - OE00167581
+   fernando   08/25/08 Increase column size for default processing
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -80,9 +82,10 @@ ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR"
    we are assumed to have utf-8 as the schema codepage. Otherwise, we will only
    be able to read the first character out of the proc-text
 */
+/* OE00168292 - use max column size for given type so we can handle big values */
 ASSIGN sqlstate = "select CAST(text AS " + 
-      (IF my_typ_unicode THEN "nvarchar" ELSE "varchar") +
-       "(60)) from syscomments where id = (select cdefault from syscolumns " + 
+      (IF my_typ_unicode THEN "nvarchar(4000)" ELSE "varchar(8000)") +
+       ") from syscomments where id = (select cdefault from syscolumns " + 
        "where syscolumns.id = (OBJECT_ID('" + DICTDBG.SQLColumns_buffer.OWNER + "." + 
        DICTDBG.SQLColumns_buffer.NAME + "')) and syscolumns.name = '" + 
        DICTDBG.SQLColumns_buffer.column-name + "')".
@@ -113,8 +116,11 @@ END.
 
 IF l_init <> ? THEN DO:
   ASSIGN l_init = TRIM(l_init).
-  
-  IF ntyp = "DATE" THEN 
+
+  /* OE00167581 - check default for date/time field */
+  IF (ntyp = "DATE" OR ntyp = "DATETIME") AND INDEX(l_init,"GETDATE") = 0 THEN
+      ASSIGN l_init = ?. /* if not getdate, we can't handle it */
+  ELSE IF ntyp = "DATE" THEN 
       ASSIGN l_init = "TODAY".
   ELSE IF ntyp = "DATETIME" THEN
       ASSIGN l_init = "NOW".

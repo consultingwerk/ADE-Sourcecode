@@ -31,6 +31,7 @@ Date Created: 02/05/92
               08/26/03 D. McMann Display of updated LOB fields 20030826-013
               06/08/06 fernando  Added support for int64
               06/13/07 fernando  Support for Clob for DataServers
+              02/22/08 fernando Adjust display data type length for Dsrv schemas
 ----------------------------------------------------------------------------*/
 
 
@@ -246,7 +247,7 @@ do:
       in select-list works.
    */
    gate_type = ENTRY(type_ix, user_env[11]).  /* the long form */
-   curr_type = STRING(gate_type, "x(21)") + "(" + 
+   curr_type = STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + "(" + 
       	       ENTRY(type_ix, user_env[15]) + ")".
 end.
 
@@ -269,23 +270,11 @@ do:
       do num = 1 to NUM-ENTRIES(user_env[16]):
       	 if family = ENTRY(num, user_env[16]) then
       	 do:
-             assign
-                gate_type = ENTRY(num, user_env[11])
-                pro_type = ENTRY(num, user_env[15]).
-
-            /* for 10.1C01, we won't support datetime for Procedures and Functions,
-               so don't show it as a valid type 
-            */
-            IF pro_type = "datetime" AND 
-               s_DbCache_Type[s_DbCache_ix] = "ORACLE" THEN DO:
-               find DICTDB._File of b_field no-lock no-error.
-               IF available DICTDB._File AND 
-                  CAN-DO("PROCEDURE,FUNCTION",DICTDB._File._For-type) THEN
-                  NEXT.
-            END.
-
       	    /* The list entry has the format: "gatetype (pro type)". */
-      	    ASSIGN s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x(21)") + 
+      	    assign
+      	       gate_type = ENTRY(num, user_env[11])
+      	       pro_type = ENTRY(num, user_env[15])
+	       s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + 
       	       	     	      	              "(" + pro_type + ")")
       	       	       in {&Frame}.
       	 end.

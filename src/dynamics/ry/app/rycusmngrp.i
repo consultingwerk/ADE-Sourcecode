@@ -38,7 +38,7 @@ af/cod/aftemwizpw.w
 /* object identifying preprocessor */
 &glob   AstraInclude    yes
 
-{ adm2/globals.i }
+{ src/adm2/globals.i }
 
 DEFINE VARIABLE gcCustomisationTypesPrioritised     AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE gcSessionResultCodes                AS CHARACTER                NO-UNDO.

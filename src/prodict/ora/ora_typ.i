@@ -50,6 +50,7 @@ assign
         ELSE IF ds_columns.type# = 113 THEN "BLOB"
         ELSE IF ds_columns.type# = 114 THEN "BFILE"
         ELSE IF ds_columns.type# = 180 THEN "TIMESTAMP"
+        ELSE IF ds_columns.type# = 181 THEN "TIMESTAMP_TZ"
         ELSE IF ds_columns.type# = 231 THEN "TIMESTAMP_LOCAL"
         ELSE                                "UNDEFINED").
 

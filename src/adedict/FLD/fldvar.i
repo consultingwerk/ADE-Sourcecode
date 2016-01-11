@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,6 +22,7 @@ Date Created: 02/04/92
     Modified: 06/18/98 Change DTYPE_RAW from 6 to 8 DLM
               05/24/06 fernando Added support int64 datatype
               06/08/06 fernando Added s_btn_toint64
+              02/22/08 fernando Adjust display data type length for Dsrv schemas
  
 ----------------------------------------------------------------------------*/
 
@@ -37,7 +38,7 @@ Define {1} frame fldprops.  /* field properties */
    "Using buffer" phrase.  So create a variable for it.
 */
 Define button  s_btn_Fld_DType IMAGE-UP FILE "btn-down-arrow".
-Define {1} var s_Fld_DType     as char format "x(32)" NO-UNDO.
+Define {1} var s_Fld_DType     as char format "x(34)" NO-UNDO.
 Define {1} var s_lst_Fld_Dtype as char
    view-as SELECTION-LIST SINGLE  
    INNER-CHARS 32 INNER-LINES 9 SCROLLBAR-VERTICAL.
@@ -154,6 +155,9 @@ do with frame newfld:
   end.
 
 
-
+/* defines the length of the foreign data type string when concatenating the OE data type
+   for display purposes, so that the OE types are all aligned.
+*/
+&global-define 	  FOREIGN_DTYPE_DISPLAY   16
 
 

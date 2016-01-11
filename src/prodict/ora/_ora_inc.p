@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,6 +16,7 @@
              11/26/02 D. McMann Removed Oracle V7 support
              06/11/07 fernando  Unicode support   
              08/30/07 fernando  More Unicode support stuff
+             01/22/08 fernando  Unicode support for ORACLE
 */   
 
 { prodict/user/uservar.i NEW }
@@ -61,7 +62,7 @@ FORM
                 INPUT ora_varlen <= 4000,
                 "Maximum length must not be greater than 4000") 
            LABEL "Maximum char length"  COLON 35
-  space(2) lExpandClob view-as toggle-box label "Expand to CLOB" SKIP({&VM_WIDG})
+  /*space(2) lExpandClob view-as toggle-box label "Expand to CLOB"*/ SKIP({&VM_WIDG})
   SPACE(3) pcompatible view-as toggle-box LABEL "Create RECID Field"  
   crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" AT 40  SKIP({&VM_WID})
   SPACE(3) create_df view-as toggle-box LABEL "Create schema holder delta df"
@@ -197,6 +198,8 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
     IF SELF:screen-value = "yes" THEN DO:
        ASSIGN lCharSemantics:SENSITIVE = NO
               lCharSemantics:SCREEN-VALUE = "NO"
+               /*lExpandClob:SENSITIVE = NO*/
+               /*lExpandClob:SCREEN-VALUE = "no"*/
                ora_varlen = 2000
                ora_varlen:SCREEN-VALUE = "2000".
 
@@ -213,9 +216,11 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
     END.
     ELSE DO:
        ASSIGN lCharSemantics:SENSITIVE = YES
+              /*lExpandClob:SENSITIVE = YES*/
               ora_varlen = 4000
               ora_varlen:SCREEN-VALUE = "4000".
 
+       /*lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame read-df.*/
        lCharSemantics:move-after-tab-item(shadowcol:HANDLE) in frame read-df.
     END.
 
@@ -277,6 +282,7 @@ UPDATE df-file
        ora_tspace
        ora_ispace
        ora_varlen
+       /*lExpandClob*/
        pcompatible
        crtdefault        
        create_df
@@ -306,7 +312,7 @@ ASSIGN user_env[1]  = df-file
        user_env[8]  = "y"
        user_env[9]  = "ALL"
        user_env[10] = string(ora_varlen) /* maximum char column length */
-                             + "," + "no"  /* expand to clob */
+                             + "," + "NO" /*STRING(lExpandClob)*/  /* expand to clob */
                              + "," + STRING(lCharSemantics) /* use char semantics */
        user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2") 
        user_env[12] = "date"

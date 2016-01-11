@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,7 +16,11 @@
 DEFINE INPUT PARAMETER dbkey AS RECID NO-UNDO.
 
 return.
+/* commenting code below since it's not executed - to get rid of compiler
+   warning on statement not reached. 
+*/
 
+/*
 FIND _File
   WHERE _File._Db-recid = dbkey
     AND _File._File-name = "oracle_procedures" 
@@ -97,3 +101,4 @@ ASSIGN
   _Field._For-Type = "number".
 
 RETURN.
+*/

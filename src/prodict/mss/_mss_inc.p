@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -12,7 +12,9 @@
    
    fernando   04/17/06 Unicode support
    fernando   07/19/06 Unicode support - restrict UI   
-   fernando   08/10/07 Removed UI restriction for Unicode support   
+   fernando   08/10/07 Removed UI restriction for Unicode support  
+   fernando   01/22/08 Check if codepage is utf-8 before allowing unicode types 
+   fernando   04/21/08 Support for new sequence generator
 */   
 
 { prodict/user/uservar.i NEW }
@@ -56,7 +58,8 @@ FORM
   create_df view-as toggle-box LABEL "Create schema holder delta df" SKIP({&VM_WID})
   SPACE(3) unicodeTypes view-as toggle-box LABEL "Use Unicode Types " 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(10) &ELSE SPACE (9) &ENDIF
-  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
+  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" SKIP({&VM_WID})
+  SPACE (3) newseq   view-as toggle-box label "Use revised sequence generator"
   SKIP({&VM_WID}) SPACE(13) cFormat VIEW-AS TEXT NO-LABEL  
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
@@ -231,6 +234,7 @@ UPDATE df-file
        create_df
        unicodeTypes WHEN hasUniSupport
        lUniExpand WHEN unicodeTypes
+       newseq
        iFmtOption
        lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
@@ -267,7 +271,9 @@ ASSIGN user_env[1]  = df-file
        user_env[22] = "MSS"
        user_env[23] = "30"
        user_env[24] = "15"
-       user_env[25] = "y" 
+       /* first y is for sequence support.
+          second entry is for new sequence generator */
+       user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n")
        user_env[28] = "128"
        user_env[29] = "128"            
        user_env[30] = "y"

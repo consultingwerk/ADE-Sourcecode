@@ -71,9 +71,9 @@ else do:
       	 to get the index because for properties the select list
       	 may not have the full complement of types.
       */
-      s_Fld_Gatetype = TRIM(SUBSTR(s_Fld_DType, 1, 21,"character")) /* the long version */
+      s_Fld_Gatetype = TRIM(SUBSTR(s_Fld_DType, 1, {&FOREIGN_DTYPE_DISPLAY},"character")) /* the long version */
       type_idx = LOOKUP(s_Fld_Gatetype, user_env[11])
-      s_Fld_Protype = TRIM(SUBSTR(s_Fld_DType, 23,-1,"character"))
+      s_Fld_Protype = TRIM(SUBSTR(s_Fld_DType, {&FOREIGN_DTYPE_DISPLAY} + 2,-1,"character"))
       /* Remove the trailing parenthesis */
       s_Fld_Protype = SUBSTR(s_Fld_Protype,1,LENGTH(s_Fld_Protype,"character") - 1,"character").
 
@@ -137,11 +137,12 @@ run adedict/FLD/_dtcust.p (INPUT b_Field._Fld-case:HANDLE in {&Frame},
 /* Set other defaults. */
 case s_Fld_Typecode:
    when {&DTYPE_CHARACTER} THEN DO: 
-     IF s_Fld_Gatetype = "Timestamp" THEN /* Timestamp needs ? as initial value */
+     /* OE00169243 - date/Timestamp foreign fields need ? as initial value */
+     IF s_Fld_Gatetype BEGINS "Timestamp" OR 
+        s_Fld_Gatetype = "date" THEN
         ASSIGN b_Field._Initial:screen-value in {&Frame} = ?. 
      ELSE
-      assign
-         b_Field._Initial:screen-value in {&Frame} = "".
+        ASSIGN b_Field._Initial:screen-value in {&Frame} = "".
    END.
    /* DTYPE_LOGICAL - Initial value is the only thing to set and it 
       has been done in _dfltfmt.p */
@@ -161,10 +162,10 @@ case s_Fld_Typecode:
    WHEN {&DTYPE_RAW} THEN
       ASSIGN
          b_Field._Initial:SCREEN-VALUE IN {&Frame} = "".
-   WHEN {&DTYPE_DATE} OR WHEN {&DTYPE_DATETM} THEN DO:
+   WHEN {&DTYPE_DATE} OR WHEN {&DTYPE_DATETM} OR WHEN {&DTYPE_DATETMTZ} THEN DO:
        ASSIGN b_Field._Initial:screen-value in {&Frame} = ?.
 
-       /* if Dataservers, and changing from date/datetime, keep initial value
+       /* if Dataservers, and changing from date/datetime/tz, keep initial value
           as today/now
        */
        IF (s_Fld_Gatetype BEGINS "Timestamp" OR s_Fld_Gatetype = "date") AND 

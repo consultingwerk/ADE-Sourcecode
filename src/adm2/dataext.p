@@ -939,6 +939,17 @@ FUNCTION setShareData RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setWordIndexedFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setWordIndexedFields Procedure 
+FUNCTION setWordIndexedFields RETURNS LOGICAL
+  ( pcWordIndexedFields AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -2724,15 +2735,16 @@ FUNCTION getIndexInfoTables RETURNS CHARACTER
            the fact that all indexinformation used to be passed to the client 
            in previous versions.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cTableList AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE cTableList  AS CHARACTER  NO-UNDO.
+  
   {get EnabledTables cTableList}.
+    
   IF cTableList = '' THEN
   DO:
     {get Tables cTableList}.
     cTableList = ENTRY(1,cTableList).
   END.
-
+    
   RETURN cTableList.
 
 END FUNCTION.
@@ -3823,34 +3835,74 @@ FUNCTION getWordIndexedFields RETURNS CHARACTER
            mapped to database fields that has a word indexed.   
     Notes: This overrides query.p version completely.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cIndexInfo  AS CHAR NO-UNDO.
-  DEFINE VARIABLE cFieldList  AS CHAR NO-UNDO.
-  DEFINE VARIABLE cColumnList AS CHAR NO-UNDO.
-  DEFINE VARIABLE cColumn     AS CHAR NO-UNDO.
-  DEFINE VARIABLE i           AS INT    NO-UNDO.
+  DEFINE VARIABLE cWordIndexedFields AS CHAR NO-UNDO.
+  DEFINE VARIABLE cDBWordIdxFields   AS CHAR NO-UNDO.
   
-  /* The indexInformation contains all indexes for this dataobject */
-  {get IndexInformation cIndexInfo}.
-  IF cIndexInfo <> ? THEN
-  DO:
-    /* Get the word indexes from the IndexInformation function */
-    cFieldList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                  'WORD':U, /* query  */
-                                  'no':U,   /* no table delimiter */
-                                  cIndexInfo).
+  DEFINE VARIABLE cColumn            AS CHAR NO-UNDO.
+  DEFINE VARIABLE cDataColumn        AS CHAR NO-UNDO.
+  DEFINE VARIABLE cAsDivision        AS CHARACTER NO-UNDO. 
+  DEFINE VARIABLE lAsHasStarted      AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE hContainerSource   AS HANDLE NO-UNDO. 
+  DEFINE VARIABLE hAppServer         AS HANDLE NO-UNDO.
+  DEFINE VARIABLE i                  AS INT  NO-UNDO.
+  
+  &scop xpWordIndexedFields
+  {get WordIndexedFields cWordIndexedFields}.
+  &undefine xpWordIndexedFields
+  if cWordIndexedFields = ? then
+  do:         
+    {get ASDivision cAsDivision}.    
+    /* Set it to blank for accumulation below or SET beleow 
+      (we want it blank also if nothing is returned due to an error 
+       as there is no point in repeating the error next time) */
+    cWordIndexedFields = "". 
+    if cAsDivision = "Client" then 
+    do:         
+      /* This logic is just in case this should be called too early. 
+         This is one of the "first-time" properties, so there is no point 
+         in attempting to retrieve this AGAIN if AsHasStarted is true. */
+      {get AsHasStarted lAsHasStarted}.
+      IF NOT lAsHasStarted THEN
+      DO:
+        {get ContainerSource hContainerSource}.   
+        /* This will retrieve all first time properties including this */        
+        if valid-handle(hContainerSource) and {fnarg instanceOf 'SBO' hContainerSource} THEN
+        DO:
+          RUN startServerObject IN hContainerSource.
+          RUN unbindServer IN hContainerSource(?).          
+        end. 
+        ELSE DO:
+          {get ASHandle hAppServer}.                
+          /* We may need to unbind if this call did the bind (getASHandle) */
+          RUN unbindServer IN TARGET-PROCEDURE (?).
+        END.   
+        /* get it again */
+        &scop xpWordIndexedFields
+        {get WordIndexedFields cWordIndexedFields} no-error.
+        &undefine xpWordIndexedFields
+        if cWordIndexedFields = ? then
+          cWordIndexedFields = "". 
+      END. /* not AsHasStarted */     
+    end.  /* on client */            
+    else do:
+      /* Get the database column list from super  */
+      cDBWordIdxFields = super().
+      /* return them as data column names */
+      do i = 1 to num-entries(cDBWordIdxFields):
+        assign 
+            cColumn     = ENTRY(i,cDBWordIdxFields) 
+            cDataColumn = {fnarg dbColumnDataName cColumn}.
+        if cDataColumn > "" then 
+           cWordIndexedFields = cWordIndexedFields 
+                       + (IF cWordIndexedFields = "" THEN "":U ELSE ",":U)
+                       + cDataColumn.
+      end. /* do i = 1 to num-entries cWordIndexedFields */     
+    end. 
+    
+    {set WordIndexedFields cWordIndexedFields}.
+  end. /* prop was ? not initalized */
  
-    /* Remove qualifed columns (not in the SDO) and make the list comma 
-       separated */
-    DO i = 1 TO NUM-ENTRIES(cFieldList,CHR(1)):
-      cColumn = ENTRY(i,cFieldList,CHR(1)).       
-      IF INDEX(cColumn,".":U) = 0 THEN
-        ASSIGN cColumnList = cColumnList 
-                             + (IF cColumnList = "":U THEN "":U ELSE ",":U)
-                             + cColumn.
-    END. /* do i = 1 to num-entries cFieldList */
-  END. /* cinfo <> ? */
-
-  RETURN TRIM(cColumnList,",":U).
+  return cWordIndexedFields.
 
 END FUNCTION.
 
@@ -4708,6 +4760,29 @@ FUNCTION setShareData RETURNS LOGICAL
     Notes:  The current default is no.   
 ------------------------------------------------------------------------------*/
   {set ShareData plShareData}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setWordIndexedFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setWordIndexedFields Procedure 
+FUNCTION setWordIndexedFields RETURNS LOGICAL
+  ( pcWordIndexedFields AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set the list of wordindexed fields .
+   Params:    
+    Notes:  Only for internal usage (i.e. as context from server).   
+------------------------------------------------------------------------------*/
+  &scop xpWordIndexedFields 
+  {set WordIndexedFields pcWordIndexedFields}.
+  &undefine xpWordIndexedFields 
+  
   RETURN TRUE.
 
 END FUNCTION.

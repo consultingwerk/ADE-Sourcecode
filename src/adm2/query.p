@@ -131,6 +131,17 @@ FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-bufferHasOuterJoinDefault) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferHasOuterJoinDefault Procedure 
+FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
+  ( pcBuffer as char) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-closeQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD closeQuery Procedure 
@@ -1925,7 +1936,10 @@ PROCEDURE createObjects :
   DEFINE VARIABLE lOk             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cDBName         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iAlias          AS INTEGER    NO-UNDO.
-
+  DEFINE VARIABLE iError          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lShowMsg        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMessage        AS CHARACTER  NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get Tables cTables}
   {get PhysicalTables cPhysicalTables}.
@@ -1961,7 +1975,6 @@ PROCEDURE createObjects :
       hBuffer = WIDGET-HANDLE(ENTRY(iLoop,cBufferHandles)).
       DELETE OBJECT hBuffer.
     END.
-
     DO iLoop = 1 TO NUM-ENTRIES(cTables):
       ASSIGN
         cTable    = ENTRY(iLoop,cTables)
@@ -1970,23 +1983,40 @@ PROCEDURE createObjects :
       hBuffer = DYNAMIC-FUNCTION('createBuffer':U IN TARGET-PROCEDURE,
                                   ENTRY(NUM-ENTRIES(cTable,'.':U),cTable,'.':U),
                                   cPhysical).  
+      
+      if not valid-handle(hBuffer) then
+      do:
+        iError = if num-entries(cTable,".") = 2 or num-dbs = 1 then 104 else 105.                
+        cMessage =  substitute({fnarg messageNumber iError},cPhysical).      
+        lShowMsg = true.
+        if {fn getManageReadErrors} then  
+        do:
+           run addMessage in target-procedure(substitute({fnarg messageNumber iError},cPhysical),cTable,?).
+           /* ensure error is written to log if remote */
+           if session:remote then
+              lShowMsg = session:remote.
+        end.   
+        if lShowMsg then
+           run showMessageProcedure in target-procedure(cMessage, output lShowMsg /*dummy*/).  
+        return.
+      end.
+
       IF iLoop = 1 THEN 
       DO:
         lOk = hQuery:SET-BUFFERS(hBuffer) NO-ERROR.
-        /* Any message means that it is futile to continue adding to the query
-          (expect future changes to capture non-connected databases etc.) */
+        /* Any message means that it is futile to continue adding to the query  */
         IF NOT lok THEN 
         DO:
           IF VALID-HANDLE(hBuffer) THEN
             DELETE OBJECT hBuffer.     
-          LEAVE. 
+          return. 
         END.
       END.
       ELSE 
         hQuery:ADD-BUFFER(hBuffer).
     END.
   END.
-
+  
   cBufferHandles = ?.
   DO iLoop = 1 TO hQuery:NUM-BUFFERS:
     ASSIGN 
@@ -2430,7 +2460,9 @@ PROCEDURE fetchDBRowForUpdate :
   ASSIGN hRowIdent = hRowObjUpd:BUFFER-FIELD('RowIdent':U)
          cRowIdent = hRowIdent:BUFFER-VALUE
          hRowMod   = hRowObjUpd:BUFFER-FIELD('RowMod':U).
+     
   DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
+     
     hBuffer = WIDGET-HANDLE(ENTRY(iTable, cBuffers)).
     IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/no rec*/
     DO:
@@ -2441,7 +2473,6 @@ PROCEDURE fetchDBRowForUpdate :
         lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
       else
         lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
-            
       if not lok then
         RETURN ENTRY(iTable, cTables).
     END.
@@ -2509,7 +2540,6 @@ PROCEDURE fetchDBRowForUpdate :
              out any leftover record in case code looks at it later. */
       ELSE hBuffer:BUFFER-RELEASE() NO-ERROR.
     END.      /* END DO iTable */
-    
     /* sendRows currently does not reopen the query when running locally, so 
              we do a delete-result-list-entry so transferRows does not find this 
              row in the result list when determining where to start retrieving records 
@@ -2521,17 +2551,19 @@ PROCEDURE fetchDBRowForUpdate :
     IF cAsDivision = '':U AND NOT (lOneToOne = TRUE) THEN
     DO:
       /* Only delete result list entry if all records in the row are deleted,
-             or if the first record in the row is deleted. */
+         or if the first record in the row is deleted. */
       IF lFirstRecDeleted OR (iDelCnt = NUM-ENTRIES(cRowIdent)) THEN
       DO:
         {get QueryHandle hQuery}.
         IF hQuery:IS-OPEN THEN
         DO:
           DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
-            rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
+            IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/no rec*/
+               rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
           END.
-          IF hQuery:REPOSITION-TO-ROWID(rRowidList) THEN
-            hQuery:DELETE-RESULT-LIST-ENTRY().
+          lOk = hQuery:REPOSITION-TO-ROWID(rRowidList) no-error.
+          if lok THEN
+              hQuery:DELETE-RESULT-LIST-ENTRY().
         END.
       END.
     END.
@@ -4988,6 +5020,31 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-bufferHasOuterJoinDefault) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferHasOuterJoinDefault Procedure 
+FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
+  ( pcBuffer as char):
+/*------------------------------------------------------------------------------
+  Purpose: return true if the buffer has outer-join in the default query  
+  Parameter:  pcBuffer - Buffer in object.  (no check)
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  DEFINE VARIABLE cDefaultQuery AS CHARACTER   NO-UNDO.
+  
+  {get BaseQuery cDefaultQuery}.
+
+  RETURN DYNAMIC-FUNCTION('bufferHasOuterJoin':U IN TARGET-PROCEDURE,
+                           pcBuffer,cDefaultQuery).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-closeQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION closeQuery Procedure 
@@ -6607,14 +6664,34 @@ FUNCTION prepareQuery RETURNS LOGICAL
                  if called with blank or ? parameter. 
    Note date: 2002/07/02                        
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hQuery AS HANDLE NO-UNDO.         
+  DEFINE VARIABLE hQuery   AS HANDLE NO-UNDO.         
+  DEFINE VARIABLE lOk      AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE cMessage AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lDummy   AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE lShowMsg AS LOGICAL NO-UNDO.
   
   {get QueryHandle hQuery}.   
 
   IF pcQuery = '':U OR pcQuery = ? THEN
     {get OpenQuery pcQuery}.
-
-  RETURN hQuery:QUERY-PREPARE(pcQuery).
+  
+  lOk = hQuery:QUERY-PREPARE(pcQuery) no-error.
+ 
+  if not lok then 
+  do: 
+     cMessage = substitute({fnarg messageNumber 106},trim(error-status:get-message(1))). 
+     
+     lShowMsg = true.
+     if {fn getManageReadErrors} then 
+     do:         
+        RUN addMessage in target-procedure(cMessage,?,?).
+        /* if remote ensure error is written to log file */
+        lShowMsg = session:remote.  
+     end.
+     if lShowMsg then
+       RUN showMessageProcedure in target-procedure(cMessage, output lDummy).      
+  end.    
+  RETURN lOk.
 
 END FUNCTION.
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -254,7 +254,8 @@ case (p_Obj):
       changed =
       	 input frame fldprops b_Field._Field-Name <> name                OR
       	 input frame fldprops b_Field._Order      <> b_Field._Order      OR
-      	 input frame fldprops b_Field._Desc       <> b_Field._Desc.
+      	 ((input frame fldprops b_Field._Desc     <> b_Field._Desc) AND
+          input frame fldprops b_Field._Desc NE "" AND b_Field._Desc NE ?).
 
       /* for a Progress db, check if the user changed an integer field to
          int64 
@@ -273,6 +274,7 @@ case (p_Obj):
                          input frame fldprops b_Field._Initial    <> b_Field._Initial    OR
                          input frame fldprops b_Field._Mandatory  <> b_Field._Mandatory  OR
                          input frame fldprops b_Field._Help       <> b_Field._Help.
+
               /* _Label and _Col-label may not be sensitive if CLOB and DataServers */
               IF NOT changed THEN DO:
                   changed = (IF b_Field._Label:SENSITIVE THEN input frame fldprops b_Field._Label  <> b_Field._Label ELSE NO) OR

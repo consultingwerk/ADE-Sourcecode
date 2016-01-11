@@ -27,7 +27,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright (C) 2000-2007 by Progress Software Corporation.  All rights 
+/* Copyright (c) 2000-2008 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */
 /*---------------------------------------------------------------------------------
@@ -93,13 +93,13 @@ DEFINE VARIABLE giSiteDiv           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE giDeleteRec         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE ghTargetProc        AS HANDLE     NO-UNDO.
 
-{afcheckerr.i &define-only = YES}
+{checkerr.i &define-only = YES}
   
 ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
 
-{src/adm2/globals.i}
+{adm2/globals.i}
 
 
 /* The following include contains the replaceCtrlChar function */
@@ -504,6 +504,7 @@ FUNCTION buildWhereFromKeyList RETURNS CHARACTER
 &IF DEFINED(EXCLUDE-buildWhereFromKeyVal) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildWhereFromKeyVal Procedure 
+
 FUNCTION buildWhereFromKeyVal RETURNS CHARACTER
   ( INPUT pcDelimiter  AS CHARACTER,
     INPUT pcFieldList  AS CHARACTER,
@@ -2630,14 +2631,14 @@ PROCEDURE exportReleaseVersion :
   EMPTY TEMP-TABLE ttExportDataset.
   
 
-  pcPath          = TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
-  pcBlankPath     = TRIM(REPLACE(pcBlankPath,"~\":U,"/":U),"/").
-  pcPatchFileName = TRIM(REPLACE(pcPatchFileName,"~\":U,"/":U),"/").
+  pcPath          = RIGHT-TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
+  pcBlankPath     = RIGHT-TRIM(REPLACE(pcBlankPath,"~\":U,"/":U),"/").
+  pcPatchFileName = RIGHT-TRIM(REPLACE(pcPatchFileName,"~\":U,"/":U),"/").
 
   /* If the two paths are the same for the first section, then set the 
      blank path to be just the extra relative piece */
   IF SUBSTRING(pcBlankPath,1,LENGTH(pcPath)) = pcPath THEN
-    cRelative = TRIM(REPLACE(SUBSTRING(pcBlankPath,LENGTH(pcPath) + 1),"~\":U,"/":U),"/":U).
+    cRelative = RIGHT-TRIM(REPLACE(SUBSTRING(pcBlankPath,LENGTH(pcPath) + 1),"~\":U,"/":U),"/":U).
 
   RUN currentRelease (OUTPUT dToObj, OUTPUT cRelease).
   
@@ -3103,8 +3104,7 @@ PROCEDURE importDeploymentDataset :
   ERROR-STATUS:ERROR = NO.
 
   pcFileName = REPLACE(pcFileName,"~\":U, "/":U).
-  pcFileName = TRIM(pcFileName, "/":U).
-
+  pcFileName = RIGHT-TRIM(pcFileName, "/":U).
 
   cFileName = buildFileName(pcRootDir, pcFileName).
 
@@ -5428,6 +5428,7 @@ PROCEDURE writeADOSet :
         (hRecordsetQry).
       hRecordsetQry = ?.
 
+      /* Among other things, create any missing folders. */
       cOutFile = setFileDetails(hFileName:BUFFER-VALUE,
                                 pcPath,
                                 pcBlankPath,
@@ -6025,8 +6026,8 @@ PROCEDURE writeDeploymentDataset :
                (IF plModified THEN "YES":U ELSE "NO":U)).
 
   pcFileName = REPLACE(pcFileName,"~\":U, "/":U).
-  pcFileName = TRIM(pcFileName, "/":U).
-
+  pcFileName = RIGHT-TRIM(pcFileName, "/":U).
+  
   /* Set an attribute for each of the parameters in ttExportParams */
   FOR EACH ttExportParam:
     setAttribute(0, 
@@ -6748,12 +6749,12 @@ FUNCTION buildFileName RETURNS CHARACTER
     pcRootDir = REPLACE(pcRootDir,"~\":U, "/":U)
     pcFileName = REPLACE(pcFileName,"~\":U, "/":U)
     pcRootDir = RIGHT-TRIM(pcRootDir, "/":U)
-    pcFileName = TRIM(pcFileName, "/":U)
+    pcFileName = TRIM(pcFileName, "/":U)    /* trim off both ends since we're about to append again */
     cFileName = pcRootDir + "/":U + pcFileName
   .
-
+  
   RETURN cFileName.   /* Function return value. */
-
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -7388,7 +7389,7 @@ FUNCTION createPath RETURNS INTEGER
   DEFINE VARIABLE cOutDir    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCount     AS INTEGER    NO-UNDO.
   
-  pcPath        = TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
+  pcPath        = RIGHT-TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
 
   cPath = pcPath.
 
@@ -8875,16 +8876,16 @@ FUNCTION setFileDetails RETURNS CHARACTER
   DEFINE VARIABLE cDirectory AS CHARACTER  NO-UNDO.
 
 
-  cFileName     = TRIM(REPLACE(pcFileName,"~\":U,"/":U),"/").
-  pcPath        = TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
-  pcDefaultPath = TRIM(REPLACE(pcDefaultPath,"~\":U,"/":U),"/").
+  cFileName     = RIGHT-TRIM(REPLACE(pcFileName,"~\":U,"/":U),"/").
+  pcPath        = RIGHT-TRIM(REPLACE(pcPath,"~\":U,"/":U),"/").
+  pcDefaultPath = RIGHT-TRIM(REPLACE(pcDefaultPath,"~\":U,"/":U),"/").
 
   /* If the two paths are the same for the first section, then set the 
      blank path to be just the extra relative piece */
   IF SUBSTRING(pcDefaultPath,1,LENGTH(pcPath)) = pcPath THEN
   DO:
     ASSIGN
-      cRelative = TRIM(REPLACE(SUBSTRING(pcDefaultPath,LENGTH(pcPath) + 1),"~\":U,"/":U),"/":U)
+      cRelative = RIGHT-TRIM(REPLACE(SUBSTRING(pcDefaultPath,LENGTH(pcPath) + 1),"~\":U,"/":U),"/":U)
       .
   END.
 
@@ -8909,40 +8910,17 @@ FUNCTION setFileDetails RETURNS CHARACTER
   pcRetPath   = cPath.
   cRetFile    = cRelative + (IF cRelative = "":U THEN "":U ELSE "/":U) 
               + cFileName.
-
+    
   /* Now we need to make sure that all the directories exist */
   cPath       = cPath + (IF cRelative = "":U THEN "":U ELSE "/":U) 
               + cRelative.
-  cOutDir     = "":U.              
-  FILE-INFO:FILE-NAME = cPath.
-  IF FILE-INFO:FULL-PATHNAME = ? THEN
-  DO:
-    do-blk:
-    DO iCount = 1 TO NUM-ENTRIES(cPath,"/":U):
-      cDirectory = ENTRY(iCount,cPath,"/":U).
-      IF iCount = 1 AND
-         NUM-ENTRIES(cDirectory,":":U) > 1 THEN
-      DO:
-        cOutDir = cDirectory.
-        NEXT do-blk.
-      END.
-
-      cOutDir = cOutDir + (IF cOutDir = "":U THEN "":U ELSE "/":U) + cDirectory. 
-      FILE-INFO:FILE-NAME = cOutDir.
-      IF FILE-INFO:FULL-PATHNAME = ? THEN
-      DO:
-        OS-CREATE-DIR VALUE(cOutDir).
-        IF OS-ERROR <> 0 THEN
-          RETURN ?.
-      END.
-    END.
-  END.
-  ELSE
-    cOutDir = FILE-INFO:FILE-NAME.
-
-  RETURN cRetFile.
-
-END FUNCTION.
+  /* Call into Gen Manager since it deals with UNC as well as 
+     'normal' paths equally well. */
+  if not {fnarg createFolder cPath gshGenManager} then
+    return ?.
+  else
+    RETURN cRetFile.
+END FUNCTION.    /* setFileDetails */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

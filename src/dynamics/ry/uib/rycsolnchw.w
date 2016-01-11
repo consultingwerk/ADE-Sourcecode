@@ -977,24 +977,24 @@ PROCEDURE runContainer :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  DEFINE INPUT PARAMETER pcRunFile            AS CHARACTER    NO-UNDO.
+  DEFINE INPUT PARAMETER pcRunFile         AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE cPropertyList               AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cValueList                  AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE lStopped                    AS LOGICAL      NO-UNDO.
-  DEFINE VARIABLE cContainer                  AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hUIB                        AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE cLogicalName                AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cContainerSuperProcedure    AS CHARACTER    NO-UNDO.
+  DEFINE VARIABLE cPropertyList            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cValueList               AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lStopped                 AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE cContainer               AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hUIB                     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cLogicalName             AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cContainerSuperProcedure AS CHARACTER NO-UNDO.
 
-  DEFINE VARIABLE cChildDataKey               AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE cRunAttribute               AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hContainerWindow            AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hContainerSource            AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hObject                     AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE hRunContainer               AS HANDLE       NO-UNDO.
-  DEFINE VARIABLE cRunContainerType           AS CHARACTER    NO-UNDO.
-  DEFINE VARIABLE hCacheManager               AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cChildDataKey            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cRunAttribute            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hContainerWindow         AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hContainerSource         AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hObject                  AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRunContainer            AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cRunContainerType        AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hCacheManager            AS HANDLE    NO-UNDO.
 
   ASSIGN
     FRAME {&FRAME-NAME} toMultiple
@@ -1087,7 +1087,7 @@ PROCEDURE runContainer :
         DO:
           /* Subscribe to ConfirmExit to allow launcher to know whether object was destroyed. */
           SUBSCRIBE TO "ConfirmExit" IN hRunContainer.
-          
+
           RUN setMRULIST IN THIS-PROCEDURE (pcRunFile,YES).
 
           /* Keep the handles of the obejct we run to clean up afterwwards. */
@@ -1117,7 +1117,7 @@ PROCEDURE runContainer :
             VIEW-AS ALERT-BOX  INFORMATION BUTTONS OK.
           RETURN. 
         END.
-                
+
         /* Get the Logical and Physical Names */
         RUN getObjectNames IN gshRepositoryManager ( INPUT  pcRunFile,
                                                      input  '',    /* run attribute */

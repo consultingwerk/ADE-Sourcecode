@@ -24,6 +24,7 @@
              fernando 06/11/07 Unicode and clob support   
              fernando 08/30/07 More Unicode support stuff       
              fernando 09/14/07 Allow ORACLE version 11
+             fernando 08/28/08 Commented out references to lExpandClob - not supported yet.
 */            
 
 
@@ -90,7 +91,7 @@ FORM
               INPUT ora_varlen <= 4000,
               "Maximum length must not be greater than 4000") 
          LABEL "Maximum char length"  COLON 38
-  space(1) lExpandClob view-as toggle-box label "Expand to CLOB" SKIP({&VM_WID})
+ /* space(1) lExpandClob view-as toggle-box label "Expand to CLOB"*/ SKIP({&VM_WID})
   " ORACLE tablespace name for:" view-as text SKIP({&VM_WID})   
   ora_tspace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Tables" colon 8
@@ -182,9 +183,11 @@ ON VALUE-CHANGED OF ora_version IN FRAME x DO:
     /* when ora_version is 9 and up, we support Unicode data types */
     IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
         ASSIGN unicodeTypes:SENSITIVE = YES
-                     lCharSemantics:SENSITIVE = YES.
+                     lCharSemantics:SENSITIVE = YES
+                     /*lExpandClob:SENSITIVE = YES*/ .
 
         /* keep tab order right */
+        /*lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.*/
         lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
         unicodeTypes:move-after-tab-item(lCharSemantics:HANDLE) in frame X.
     END.
@@ -207,6 +210,8 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
     IF SELF:screen-value = "yes" THEN DO:
         ASSIGN lCharSemantics:SENSITIVE = NO
                lCharSemantics:SCREEN-VALUE = "NO"
+               /*lExpandClob:SENSITIVE = NO*/
+               /*lExpandClob:SCREEN-VALUE = "no"*/
                ora_codepage = 'UTF-8'
                ora_codepage:SCREEN-VALUE = 'UTF-8'.
 
@@ -224,12 +229,14 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
     END.
     ELSE DO:
         ASSIGN lCharSemantics:SENSITIVE = YES
+               /*lExpandClob:SENSITIVE = YES*/
                ora_codepage = session:cpinternal
                ora_codepage:SCREEN-VALUE = session:cpinternal.
 
         ASSIGN ora_varlen = 4000
                ora_varlen:SCREEN-VALUE = "4000".
 
+        /*lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.*/
         lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
     END.
 END.
@@ -390,10 +397,13 @@ END.
 ELSE IF ora_version >= 9 AND ora_codepage = "utf-8" THEN
      ASSIGN lCharSemantics = TRUE.
 
+/*
 IF OS-GETENV("EXPANDCLOB") <> ? THEN DO:
     ASSIGN tmp_str  = OS-GETENV("EXPANDCLOB").
-    IF tmp_str BEGINS "Y" THEN.
+    IF tmp_str BEGINS "Y" THEN 
+        ASSIGN lExpandClob = TRUE.
 END.
+*/
 
 /* Unicode Types only support for ORACLE 9 and up */
 
@@ -402,7 +412,8 @@ IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 9 THEN DO:
 
   IF tmp_str BEGINS "Y" THEN DO:
       ASSIGN unicodeTypes = TRUE
-             lCharSemantics = NO.  /* irrelevant */
+             lCharSemantics = NO  /* irrelevant */
+             /*lExpandClob = NO*/ . /* irrelevant */
 
       IF OS-GETENV("ORACODEPAGE") = ? THEN
          ASSIGN ora_codepage = 'UTF-8'.
@@ -484,6 +495,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_codepage
       ora_collname
       ora_varlen
+      /*lExpandClob*/
       ora_tspace
       ora_ispace
       pcompatible
@@ -623,7 +635,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
          PUT STREAM logfile UNFORMATTED "Oracle User Name is required." SKIP.   
          ASSIGN err-rtn = TRUE.
       END.
-      IF ora_password = "" OR ora_password = ? THEN DO:
+      IF ( ora_password = "" OR ora_password = ? ) AND 
+         NOT ora_username BEGINS "/" THEN DO:
          PUT STREAM logfile UNFORMATTED "Oracle User Password is required." SKIP.   
          ASSIGN err-rtn = TRUE.
       END.

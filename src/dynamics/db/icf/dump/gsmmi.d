@@ -70,7 +70,7 @@
 1000708114.09 0 0 0 1000709350.09 "&Prev" "Prev" no "Previous" "ALT-CURSOR-LEFT" no no no no "Prev" "" "Prev" "&Prev" "ry/img/prev.gif" "ry/img/toolclip.bmp,80,16,16,16" "" "" "" "" "PUBLISH" "fetchPrev" "" "" "" "" "QueryPosition=LastRecord,NotFirstOrlast and canNavigate()" "" "" "" "ACTION" "" "" "" 426
 1000708115.09 0 0 0 1000709350.09 "&Next" "Next" no "Next" "ALT-CURSOR-RIGHT" no no no no "Next" "" "Next" "&Next" "ry/img/next.gif" "ry/img/toolclip.bmp,96,16,16,16" "" "" "" "" "PUBLISH" "fetchNext" "" "" "" "" "QueryPosition=FirstRecord,NotFirstOrlast and canNavigate()" "" "" "" "ACTION" "" "" "" 426
 1000708116.09 0 0 0 1000709350.09 "&Last" "Last" no "Last" "ALT-CURSOR-DOWN" no no no no "Last" "" "Last" "&Last" "ry/img/last.gif" "ry/img/toolclip.bmp,112,16,16,16" "" "" "" "" "PUBLISH" "fetchLast" "" "" "" "" "QueryPosition=FirstRecord,NotFirstOrlast and canNavigate()" "" "" "" "ACTION" "" "" "" 426
-1000708117.09 0 0 0 0 "Fil&ter..." "Filter..." no "Filter" "ALT-T" no no no no "Filter" "" "Filter" "Fil&ter..." "ry/img/filter.gif" "ry/img/toolclip.bmp,48,16,16,16" "" "" "" "" "PUBLISH" "startFilter" "navigation-target" "" "" "" "FilterAvailable=yes and RecordState=RecordAvailable,NoRecordAvailable" "" "" "" "ACTION" "" "" "" 426
+1000708117.09 0 0 0 0 "Fil&ter..." "Filter..." no "Filter" "ALT-T" no no no no "Filter" "" "Filter" "Fil&ter..." "ry/img/filter.gif" "ry/img/toolclip.bmp,48,16,16,16" "" "" "" "" "PUBLISH" "startFilter" "navigation-target" "" "" "" "FilterAvailable=yes and QueryPosition=NoRecordAvailable,RecordAvailable,FirstRecord,LastRecord,OnlyRecord,NotFirstOrLast" "" "" "" "ACTION" "" "" "" 426
 1000708118.09 0 0 0 0 "&OK" "OK" no "" "ALT-O" no no no no "TxtOK" "" "OK" "&OK" "" "" "" "" "" "" "PUBLISH" "okObject" "containertoolbar-target" "" "" "" "" "" "" "UpdateActive=no" "ACTION" "" "" "" 426
 1000708120.09 0 0 0 0 "&Clear" "Clear" no "" "ALT-C" no no no no "TxtClear" "" "Clear" "&Clear" "" "" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "Clear" "" "" "" "" "" "" "ACTION" "" "" "" 426
 1000708121.09 0 0 0 0 "&Select Record" "Select Record" no "" "ALT-S" no no no no "TxtSelect" "" "Select" "&Select" "" "" "" "" "" "" "PUBLISH" "toolbar" "" "Select" "" "" "" "" "" "" "ACTION" "" "" "" 426
@@ -243,10 +243,10 @@ PSC
 filename=gsm_menu_item
 records=0000000000240
 ldbname=ICFDB
-timestamp=2007/12/03-15:38:40
+timestamp=2008/09/16-15:54:28
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000055723
+0000055774

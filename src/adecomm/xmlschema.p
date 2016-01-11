@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -633,20 +633,20 @@ PROCEDURE getChild :
       WHEN "any":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+        /* ASSIGN
           cID              = hNodeRef:GET-ATTRIBUTE("id":U)
           cMaxOccurs       = hNodeRef:GET-ATTRIBUTE("maxOccurs":U)
           cMinOccurs       = hNodeRef:GET-ATTRIBUTE("minOccurs":U)
           cNameSpace       = hNodeRef:GET-ATTRIBUTE("nameSpace":U)
-          cProcessContents = hNodeRef:GET-ATTRIBUTE("processContents":U).
+          cProcessContents = hNodeRef:GET-ATTRIBUTE("processContents":U). */
       END.
       WHEN "anyAttribute":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+        /* ASSIGN
           cID              = hNodeRef:GET-ATTRIBUTE("id":U)
           cProcessContents = hNodeRef:GET-ATTRIBUTE("processContents":U)
-          cNamespace       = hNodeRef:GET-ATTRIBUTE("nameSpace":U).
+          cNamespace       = hNodeRef:GET-ATTRIBUTE("nameSpace":U). */
       END.
       WHEN "appInfo":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
@@ -739,30 +739,30 @@ PROCEDURE getChild :
       WHEN "import":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
-          cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U).
+        /* ASSIGN
+          cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U). */
       END.
       WHEN "include":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+       /* ASSIGN
           cNameSpace      = hNodeRef:GET-ATTRIBUTE("nameSpace":U)
-          cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U).
+          cSchemaLocation = hNodeRef:GET-ATTRIBUTE("schemaLocation":U). */
       END.
       WHEN "key":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+        /* ASSIGN
           cID       = hNodeRef:GET-ATTRIBUTE("id":U)
-          cNodeName = hNodeRef:GET-ATTRIBUTE("name":U).
+          cNodeName = hNodeRef:GET-ATTRIBUTE("name":U). */
       END.
       WHEN "keyref":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+       /* ASSIGN
           cID       = hNodeRef:GET-ATTRIBUTE("id":U)
           cNodeName = hNodeRef:GET-ATTRIBUTE("name":U)
-          cRefer    = hNodeRef:GET-ATTRIBUTE("refer":U).
+          cRefer    = hNodeRef:GET-ATTRIBUTE("refer":U). */
       END.
       WHEN "length":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
@@ -817,9 +817,9 @@ PROCEDURE getChild :
       WHEN "unique":U THEN DO:
         hNodeRef = deleteObject(hNodeRef).
         NEXT child-loop. /* TBD */
-        ASSIGN
+        /* ASSIGN
           cID         = hNodeRef:GET-ATTRIBUTE("id":U)
-          cNodeName   = hNodeRef:GET-ATTRIBUTE("name":U).
+          cNodeName   = hNodeRef:GET-ATTRIBUTE("name":U). */
       END.
       OTHERWISE DO:
         hNodeRef = deleteObject(hNodeRef).

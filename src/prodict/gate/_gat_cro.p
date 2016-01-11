@@ -67,7 +67,8 @@ History:
     fernando    05/26/06 Added support for int64
     fernando    06/11/07 Unicode and clob support   
     fernando    02/14/08 Support for datetime 
-    knavneet    08/10/08  OE00170417 - Quoting object names if it has special chars.
+    fernando    08/18/08 Check foreign dtype when updating field - OE00168850
+    knavneet    08/19/08 Quoting object names if it has special chars - OE00170417
 --------------------------------------------------------------------*/
 
 
@@ -106,6 +107,7 @@ define variable scrap            as logical   no-undo.
 define variable def-ianum        as integer initial 6 no-undo.
 DEFINE VARIABLE fld-dif          AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE for_name         AS CHARACTER NO-UNDO. /* OE00170417 */
+DEFINE VARIABLE other-seq-name   AS CHARACTER NO-UNDO.
 
 /*------------------------------------------------------------------*/
 /* These variables/workfile are so we can save the Progress-only
@@ -480,7 +482,7 @@ if can-do(odbtyp,user_dbtype)
 else if user_dbtype = "ORACLE"
    then assign
     l_char-types = "CHAR,VARCHAR,VARCHAR2,ROWID,LONG,RAW,LONGRAW,BLOB,BFILE,NCHAR,NVARCHAR2,CLOB,NCLOB"
-    l_chda-types = "DATE,TIMESTAMP,TIMESTAMP_LOCAL"
+    l_chda-types = "DATE,TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
     l_date-types = ""
     l_dcml-types = "FLOAT"
     l_dein-types = ""
@@ -540,26 +542,41 @@ for each gate-work
   if s_ttb_seq.pro_recid = ?
    then do:  /* s_ttb_seq.pro_recid = ? */
 
- if user_dbtype = "ORACLE"
-     then 
-     DO:
+    if user_dbtype = "ORACLE" then
+      DO:
       ASSIGN for_name = s_ttb_seq.ds_name.
       IF for_name begins '"' then /* OE00170417: string may be quoted */
         ASSIGN for_name = TRIM(s_ttb_seq.ds_name,'"').
       find first DICTDB._Sequence
       where DICTDB._Sequence._Db-Recid    = drec_db
-      and  (DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name 
-            OR DICTDB._Sequence._Seq-Misc[1]  = for_name )/* OE00170417: string may be quoted */
+      and ( DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name 
+           OR DICTDB._Sequence._Seq-Misc[1]  = for_name) /* OE00170417: string may be quoted */
       and   DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
       and   DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
       no-error.
      END.
-    else if can-do(odbtyp,user_dbtype)
-     then find first DICTDB._Sequence
-      where DICTDB._Sequence._Db-Recid    = drec_db
-      and   DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
-      and   DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
-      no-error.
+    else if can-do(odbtyp,user_dbtype) then DO:
+      find first DICTDB._Sequence
+        where DICTDB._Sequence._Db-Recid    = drec_db
+        and   DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
+        and   DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
+        no-error.
+      /* OE00170189- code executed only for MSS dbtype */
+      if user_dbtype = "MSS" THEN DO:
+        if not available DICTDB._Sequence then DO:
+          assign other-seq-name = "".
+	  IF (s_ttb_seq.ds_name BEGINS "_SEQT_REV_" and s_ttb_seq.ds_name NE "_SEQT_REV_SEQTMGR" )
+		   THEN assign other-seq-name = "_SEQT_" + SUBSTRING(s_ttb_seq.ds_name,11,-1,"character").
+	  ELSE IF (s_ttb_seq.ds_name BEGINS "_SEQT_") 
+		   THEN assign other-seq-name = "_SEQT_REV_" + SUBSTRING(s_ttb_seq.ds_name,7,-1,"character"). 
+	  find first DICTDB._Sequence
+            where DICTDB._Sequence._Db-recid     = drec_db
+	    and   DICTDB._Sequence._Seq-Misc[1]  = other-seq-name 
+            and   DICTDB._Sequence._Seq-misc[2]  = s_ttb_seq.ds_user
+            no-error.
+        end. 
+      end.
+    end.
 
     if not available DICTDB._Sequence
      then find first DICTDB._Sequence
@@ -615,7 +632,7 @@ for each gate-work
   
   for each s_ttb_tbl
     where recid(gate-work) = s_ttb_tbl.gate-work:
-  
+
     /* just in case some garbage left over */
     for each w_field:       delete w_field.         end.
     for each w_index:       delete w_index.         end.
@@ -638,31 +655,29 @@ for each gate-work
         no-error.
     else if user_dbtype = "ORACLE"
      and s_ttb_tbl.ds_msc21 <> ?
-     and s_ttb_tbl.ds_msc21 <> ""
-     then 
-     DO:
+     and s_ttb_tbl.ds_msc21 <> "" then
+      DO:
         ASSIGN for_name = s_ttb_tbl.ds_name.
         IF for_name begins '"' then /* OE00170417: string may be quoted */
            ASSIGN for_name = TRIM(s_ttb_tbl.ds_name,'"').
         find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
-        and  (DICTDB._File._For-name     = s_ttb_tbl.ds_name
-              OR DICTDB._File._For-name      = for_name )/* OE00170417: string may be quoted */
+        and ( DICTDB._File._For-name     = s_ttb_tbl.ds_name
+              OR DICTDB._File._For-name  = for_name )/* OE00170417:string may be quoted*/
         and   DICTDB._File._For-owner    = s_ttb_tbl.ds_user
         and   DICTDB._File._Fil-misc2[8] = s_ttb_tbl.ds_spcl
         and   DICTDB._File._Fil-misc2[1] = s_ttb_tbl.ds_msc21
         no-error.
      END.
-    else if user_dbtype = "ORACLE"
-     then 
+    else if user_dbtype = "ORACLE" then
      DO:
         ASSIGN for_name = s_ttb_tbl.ds_name.
         IF for_name begins '"' then /* OE00170417: string may be quoted */
            ASSIGN for_name = TRIM(s_ttb_tbl.ds_name,'"').
         find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
-        and  (DICTDB._File._For-name     = s_ttb_tbl.ds_name
-             OR DICTDB._File._For-name     = for_name) /* OE00170417: string may be quoted */
+        and ( DICTDB._File._For-name     = s_ttb_tbl.ds_name
+              OR DICTDB._File._For-name  = for_name )/* OE00170417:string may be quoted*/
         and   DICTDB._File._For-owner    = s_ttb_tbl.ds_user
         and   DICTDB._File._Fil-misc2[8] = s_ttb_tbl.ds_spcl
         no-error.
@@ -698,7 +713,6 @@ for each gate-work
         run error_handling(10, DICTDB._File._File-name, "").
         next.
         end.
-
 
       for each DICTDB._Index of DICTDB._File:     /*---- Indexes -----*/
       
@@ -739,7 +753,6 @@ for each gate-work
    
       for each DICTDB._Field OF DICTDB._File:     /*----- fields -----*/
           ASSIGN fld-dif = FALSE.
-
           CREATE w_field.
           assign
             w_field.ds_Name      = DICTDB._Field._For-name
@@ -761,7 +774,6 @@ for each gate-work
             w_field.pro_Valmsg   = DICTDB._Field._Valmsg.
 
         RUN delete-field.
-       
         end.   /* for each DICTDB._Field OF DICTDB._File */
       
       assign
@@ -849,13 +861,13 @@ for each gate-work
     for each s_ttb_fld where s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl):
       IF s_ttb_fld.ds_name BEGINS "SYS_NC" THEN NEXT.
       /* if the main-part of date-field is of type character we don't
-       * need the time-part, so we skip it... Same for datetime.
+       * need the time-part, so we skip it... Same for datetime/tz.
        */
       IF lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
            and s_ttb_fld.pro_type  =  "integer"
            and can-find( w_field where w_field.ds_name  = s_ttb_fld.ds_name
                                    and (w_field.pro_type = "character"  OR
-                                        w_field.pro_type = "datetime"))
+                                        w_field.pro_type BEGINS "datetime"))
        then next.
 
       /* we need to find the w_field by name PLUS type because of
@@ -863,7 +875,7 @@ for each gate-work
        */
       if lookup(s_ttb_fld.ds_type,l_chda-types) <> 0
        then find first w_field where w_field.ds_name = s_ttb_fld.ds_name
-                                 and lookup(w_field.ds_type,"character,date,datetime") <> 0 no-error.
+                                 and lookup(w_field.ds_type,"character,date,datetime,datetime-tz") <> 0 no-error.
       else find first w_field where w_field.ds_name = s_ttb_fld.ds_name
                                 and w_field.ds_type = s_ttb_fld.ds_type no-error.
       if not available w_field then 
@@ -877,8 +889,8 @@ for each gate-work
                            and s_ttb_fld.pro_type = "integer" THEN DO:
          IF w_field.pro_type = "date" THEN
             release w_field.
-         ELSE IF w_field.pro_type = "datetime" THEN
-             /* don't need time portion if mapping to datetime */
+         ELSE IF w_field.pro_type BEGINS "datetime" THEN
+             /* don't need time portion if mapping to datetime/tz */
              NEXT.
       END.
 
@@ -887,6 +899,11 @@ for each gate-work
               ASSIGN fld-dif = TRUE.
           ELSE IF s_ttb_fld.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
               ASSIGN fld-dif = TRUE.
+          /* OE00168850 - check for foreign type change for timestamp */
+          ELSE IF (LOOKUP(w_field.ds_type,"date,timestamp") <> 0 OR
+                   LOOKUP(s_ttb_fld.ds_type,"date,timestamp") <> 0)
+                   AND s_ttb_fld.ds_type <> w_field.ds_Type THEN
+               ASSIGN fld-dif = TRUE.
       END.
           
       IF NOT AVAILABLE w_field AND s_ttb_fld.pro_type = "date" then
@@ -1013,7 +1030,7 @@ for each gate-work
          AND can-do("character"              ,w_field.pro_type) )
          OR
          (   can-do(l_chda-types                                    ,s_ttb_fld.ds_type) 
-         AND can-do("character,date,datetime",w_field.pro_type) )
+         AND can-do("character,date,datetime,datetime-tz",w_field.pro_type) )
          OR
          (   can-do(l_chda-types + "," + l_date-types               ,s_ttb_fld.ds_type) 
          AND can-do("date"                   ,w_field.pro_type) )
@@ -1282,6 +1299,8 @@ for each gate-work
               tab_recidOld = QUOTER(tab_recidOld).
          end.
       end.
+
+
 
       if available w_index
        then do:  /* available w_index */

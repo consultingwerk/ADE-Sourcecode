@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -18,6 +18,7 @@
              fernando  07/19/06 Unicode support - restrict UI
              moloney   03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
              fernando  08/10/07 Removed UI restriction for Unicode support
+             fernando  04/11/08 New sequence generator support
 */            
 
 
@@ -78,7 +79,8 @@ FORM
   SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"
   dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 32 
   unicodeTypes view-as toggle-box label "Use Unicode Types" AT 53 SKIP({&VM_WID})
-  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" SKIP({&VM_WID})
+  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" 
+  newseq   view-as toggle-box label "Use revised sequence generator" AT 32 SKIP({&VM_WID})
   cFormat VIEW-AS TEXT NO-LABEL AT 10
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
@@ -200,7 +202,7 @@ END.
 
 /* initialize variables */
 ASSIGN pcompatible = YES
-         run_time = TIME.
+       run_time = TIME.
 IF OS-GETENV("PRODBNAME")   <> ? THEN
   pro_dbname   = OS-GETENV("PRODBNAME").
  
@@ -239,6 +241,10 @@ IF OS-GETENV("MSSCASESEN") <> ? THEN DO:
 END.
 ELSE
     ASSIGN mss_incasesen = TRUE.
+
+tmp_str = OS-GETENV("MSSREVSEQGEN").
+IF tmp_str <> ? AND tmp_str BEGINS "Y" THEN
+   newseq = TRUE.
 
 IF OS-GETENV("VARLENGTH") <> ? THEN
   long-length = integer(OS-GETENV("VARLENGTH")).
@@ -375,6 +381,7 @@ IF NOT batch_mode THEN
         dflt
         unicodeTypes
         lUniExpand WHEN unicodeTypes
+        newseq
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
@@ -477,7 +484,7 @@ IF NOT batch_mode THEN
   END.      
   IF err-rtn THEN RETURN.
   ASSIGN redo = TRUE.
-         
+
   RUN prodict/mss/protoms1.p.
   IF RETURN-VALUE = "indb" THEN DO:
     ASSIGN redo = FALSE.

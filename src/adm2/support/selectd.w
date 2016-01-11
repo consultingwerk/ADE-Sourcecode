@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME frmAttributes
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS frmAttributes 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2008 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: statusd.w 
@@ -156,17 +156,23 @@ FUNCTION initTheme RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initViewAs frmAttributes 
 FUNCTION initViewAs RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
+  
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeLOBFields Procedure
+FUNCTION removeLOBFields RETURNS CHARACTER 
+	(INPUT cAllColumns AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD validateBrowseFields frmAttributes 
 FUNCTION validateBrowseFields RETURNS LOGICAL
-  ()  FORWARD.
-
+  (  )  FORWARD.
+ 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -724,9 +730,23 @@ END.
 &Scoped-define SELF-NAME btnBrowse
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnBrowse frmAttributes
 ON CHOOSE OF btnBrowse IN FRAME frmAttributes /* Edit Browse Columns... */
-DO: 
-  DEFINE VARIABLE cDataColumns AS CHAR NO-UNDO.
-  
+DO:
+  DEFINE VARIABLE cLOBColumns AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cAllColumns AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE i           AS INTEGER NO-UNDO.
+  DEFINE VARIABLE cColumn     AS CHARACTER NO-UNDO.
+
+  cAllColumns = DYNAMIC-FUNC("getDataColumns":U IN ghSDO).
+
+  DO i = 1 TO NUM-ENTRIES(cAllColumns):
+      cColumn = ENTRY(i,cAllColumns).
+      cDataType = DYNAMIC-FUNCTION("columnDataType" in ghSDO, cColumn). 
+      IF cDataType EQ "BLOB":U OR cDataType EQ "CLOB":U  THEN
+          ASSIGN cLOBColumns = cLOBColumns + "," + cColumn.
+    END. /* do i = 1 to num */
+
+    ASSIGN cLOBColumns = TRIM(cLOBColumns, ",").
+
   IF validateBrowseFields() THEN  
      RUN adecomm/_mfldsel.p
        (INPUT "":U,     /* Use an SDO, not db tables */
@@ -734,9 +754,8 @@ DO:
         INPUT ?,        /* No additional temp-tables */
         INPUT "1":U,    /* No db or table name qualification of fields */
         INPUT ",":U,    /* list delimiter */
-        INPUT "":U,     /* exclude field list */
+        INPUT cLOBColumns,     /* exclude field list */
         INPUT-OUTPUT gcBrowseFields).
-
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1358,11 +1377,16 @@ FUNCTION initSDO RETURNS LOGICAL
   Purpose: Start the SDO persistently and fill combo-boxes with column names  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE iLines AS INT NO-UNDO.
+  DEFINE VARIABLE iLines       AS INTEGER   NO-UNDO.
+/*  DEFINE VARIABLE cDataColumns  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cColumn      AS CHARACTER NO-UNDO.
+*/
+
   IF VALID-HANDLE(ghSDO) THEN
   DO WITH FRAME {&FRAME-NAME}:
+        
     ASSIGN
-       cKeyField:LIST-ITEMS = DYNAMIC-FUNCTION("getDataColumns" IN ghSDO)
+       cKeyField:LIST-ITEMS = removeLOBFields(DYNAMIC-FUNCTION("getDataColumns" IN ghSDO))
        iLines = NUM-ENTRIES(cKeyField:LIST-ITEMS)
 
        cDisplayedField:LIST-ITEMS   = cKeyField:LIST-ITEMS
@@ -1494,10 +1518,7 @@ DO WITH FRAME {&FRAME-NAME}:
   
   END. /* do with frame {&FRAME-NAME}. */
   RETURN TRUE.
-  
-
 END FUNCTION.
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -1518,7 +1539,7 @@ FUNCTION validateBrowseFields RETURNS LOGICAL
 
   IF VALID-HANDLE(ghSdo) THEN
   DO:
-    cDataColumns = DYNAMIC-FUNCTION("getDataColumns":U IN ghSDO).
+    cDataColumns = removeLOBFields(DYNAMIC-FUNCTION("getDataColumns":U IN ghSDO)).
     DO i = 1 TO NUM-ENTRIES(gcBrowseFields):
       cColumn = ENTRY(i,gcBrowseFields).
       IF CAN-DO(cDataColumns,cColumn) THEN
@@ -1550,7 +1571,34 @@ FUNCTION validateBrowseFields RETURNS LOGICAL
   ELSE RETURN FALSE.
 
 END FUNCTION.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeLOBFields Include
+FUNCTION removeLOBFields RETURNS CHARACTER 
+	(INPUT cAllColumns AS CHARACTER):
+  /*------------------------------------------------------------------------------
+			Purpose:  																	  
+			Notes:  																	  
+  ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE i            AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cDataColumns AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cDataType    AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cColumn      AS CHARACTER NO-UNDO.
+
+  cAllColumns = DYNAMIC-FUNC("getDataColumns":U IN ghSDO).
+
+  DO i = 1 TO NUM-ENTRIES(cAllColumns):
+      cColumn = ENTRY(i,cAllColumns).
+      cDataType = DYNAMIC-FUNCTION("columnDataType" in ghSDO, cColumn). 
+      IF cDataType NE "BLOB":U AND cDataType NE "CLOB":U  THEN
+          ASSIGN cDataColumns = cDataColumns + "," + cColumn.
+    END. /* do i = 1 to num */
+
+    ASSIGN cDataColumns = TRIM(cDataColumns, ",").
+
+  RETURN cDataColumns.
+END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

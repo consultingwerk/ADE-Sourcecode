@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="102001">
+      <PatchStage Stage="PreADOLoad"/>
+      <PatchStage Stage="Delta">
+         <Program>
+            <FileType>df</FileType>
+            <FileName>db/icf/dfd/icfdbmigrate101Cdelta.df</FileName>
+            <Description>Applying Migration Delta</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+      <PatchStage Stage="PostADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/#migration_source#/update_dynamics_version_property.p</FileName>
+            <Description>Update DynamicsVersion session property</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/#migration_source#/update_setup_type_file_property.p</FileName>
+            <Description>Update SetupTypeFile session property</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/#migration_source#/update_rtb_connection_params.p</FileName>
+            <Description>Update RoundTable physical connection parameters</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+   </Patch>
+</SetupInclude>

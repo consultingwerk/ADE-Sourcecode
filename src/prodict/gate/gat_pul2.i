@@ -66,6 +66,7 @@ else if CAN-DO(l_date-types,s_ttb_fld.ds_type)         /**** DATES ****/
       CASE ENTRY(dtyp,user_env[17],"|"):
           WHEN "d"  THEN l_frmt = "99/99/99".
           WHEN "dt" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS".
+          WHEN "dtz" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS+HH:MM".
           OTHERWISE      l_frmt   =  ENTRY(dtyp,user_env[17],"|").
       END CASE.
 end.
@@ -240,6 +241,7 @@ else if CAN-DO(l_tmst-types,s_ttb_fld.ds_type)   /**** TIME-STAMPS ****/
           WHEN "c"  THEN l_frmt = "x(26)".
           WHEN "d"  THEN l_frmt = "99/99/99".
           WHEN "dt" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS".
+          WHEN "dtz" THEN l_frmt = "99/99/9999 HH:MM:SS.SSS+HH:MM".
           OTHERWISE      l_frmt   =  ENTRY(dtyp,user_env[17],"|").
       END CASE.
 end.
@@ -281,7 +283,7 @@ assign
                           ).
   
   IF s_ttb_fld.pro_type = "INTEGER" OR s_ttb_fld.pro_type = "DECIMAL" 
-    OR s_ttb_fld.pro_type = "DATE" OR s_ttb_fld.pro_type = "DATETIME" THEN 
+    OR s_ttb_fld.pro_type = "DATE" OR s_ttb_fld.pro_type BEGINS "DATETIME" THEN 
   _init:
   DO:
     IF s_ttb_fld.pro_init = ? THEN LEAVE _init.

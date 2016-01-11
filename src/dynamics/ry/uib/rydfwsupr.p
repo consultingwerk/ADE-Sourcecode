@@ -139,7 +139,7 @@ FUNCTION setMasterName RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/customsuper.i}
+{src/adm2/customsuper.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

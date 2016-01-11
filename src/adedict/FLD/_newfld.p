@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -36,6 +36,7 @@ Date Created: 02/05/92
               06/08/06 fernando Hide toint64 button
               06/15/06 fernando Make sure we call setlob when leaving data type to
                                 enable/disable needed fields depending on the type.
+              02/22/08 fernando Adjust display data type length for Dsrv schemas
 ----------------------------------------------------------------------------*/
 
 
@@ -111,7 +112,7 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
       types = "".
       do num = 1 to NUM-ENTRIES(user_env[11]) - 1:
       	 types = types + (if num = 1 then "" else ",") +
-      	       	 STRING(ENTRY(num, user_env[11]), "x(21)") + 
+      	       	 STRING(ENTRY(num, user_env[11]), "x({&FOREIGN_DTYPE_DISPLAY})") + 
       	       	 "(" + ENTRY(num, user_env[15]) + ")".
       end.
       num = num - 1.  /* undo terminating loop iteration */

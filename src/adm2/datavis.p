@@ -898,17 +898,6 @@ FUNCTION setWindowTitleField RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-showDataMessages) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD showDataMessages Procedure 
-FUNCTION showDataMessages RETURNS CHARACTER
-  ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 /* *********************** Procedure Settings ************************ */
 
@@ -1825,7 +1814,7 @@ PROCEDURE deleteRecord :
   DEFINE VARIABLE lConfirmDelete AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cUpdateTargetNames  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSDO                AS HANDLE    NO-UNDO.
- 
+  
   {get UpdateTarget cTarget}.
   hUpdateTarget = WIDGET-HANDLE(cTarget).  /* NOTE: Make sure there's just 1? */
   
@@ -2993,158 +2982,6 @@ PROCEDURE resetRecord :
   IF VALID-HANDLE(hUpdateTarget) THEN
     RUN applyEntry IN TARGET-PROCEDURE (?).
    
-  RETURN.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-showDataMessagesProcedure) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE showDataMessagesProcedure Procedure 
-PROCEDURE showDataMessagesProcedure :
-/*------------------------------------------------------------------------------
-  Purpose:     New Astra 2 procedure to replace showDataMessages function and to
-               use Astra 2 message handling routines.
-               Returns the name of the field (if any) from the first
-               error message, to allow the caller to use it to position the 
-               cursor.
-  Parameters:  <none>
-  Notes:       Invokes fetchMessages() to retrieve all Data-related messages
-               (normally database update-related error messages), and
-               displays them in a alert-box of type error.
-               This function expects to receive back a single string 
-               from fetchMessages with one or more messages delimited by CHR(3),
-               and within each message the message text, Fieldname (or blank) +
-               a Tablename (or blank), delimited by CHR(4) if present.
-------------------------------------------------------------------------------*/
-  DEFINE OUTPUT PARAMETER pcReturn AS CHARACTER.
-
-  DEFINE VARIABLE cMessages   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iMsg        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iMsgCnt     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cMessage    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cFirstField AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cField      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
-  DEFINE VARIABLE hContainerSource AS HANDLE NO-UNDO.
-  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cIgnore     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lIgnore     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cSummary    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cParentType AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFocusType  AS CHARACTER  NO-UNDO.
-
-  ASSIGN cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
-
-  /* Issue 6945 - we need to detect if a browse cell is involved */
-  IF VALID-HANDLE(FOCUS) THEN
-      ASSIGN cParentType = FOCUS:PARENT:TYPE
-             cFocusType  = FOCUS:TYPE.
-  {get ContainerHandle hContainer}.
-
-  /* If we're running Dynamics, and a dialog is not involved, and there is
-     no function in the call stack, and we're not in an updatable field in a 
-     browser we can just send the message to the session manager to display.
-     We want to avoid calling afmessagep in the session manager in this scenario,
-     as each call to it will result in an Appserver hit, and showMessages is
-     going to run afmessagep anyway. */
-  IF  cMessages <> "":U
-  AND NOT {fnarg IsDialogBoxParent hContainer}
-  AND NOT {fn IsFunctionInCallStack}
-  AND NOT (cFocusType = 'FILL-IN' AND cParentType BEGINS 'BROWSE':U) /* 6945 */
-  AND VALID-HANDLE(gshSessionManager) THEN
-  DO:
-      DEFINE VARIABLE cButtonPressed AS CHARACTER NO-UNDO.
-      {get ContainerSource hContainerSource}.
-
-      /* Dynamics showMessages handles message list in raw form */
-      RUN showMessages IN gshSessionManager (
-          INPUT cMessages,        /* pcMessageList   */
-          INPUT "ERR",            /* pcMessageType   */
-          INPUT "OK",             /* pcButtonList    */
-          INPUT "OK",             /* pcDefaultButton */
-          INPUT "",               /* pcCancelButton  */
-          INPUT "ADM2Message",    /* pcMessageTitle  */
-          INPUT TRUE,             /* plDisplayEmpty  */
-          INPUT hContainerSource, /* phContainer     */
-          OUTPUT cButtonPressed   /* pcButtonPressed */
-          ).
-      /* Return the field name from the first error message so the caller can
-         use it to position the cursor. */
-      ASSIGN cMessage    = ENTRY(1, cMessages, CHR(3))
-             cFirstField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 
-                           THEN ENTRY(2, cMessage, CHR(4)) 
-                           ELSE "":U.
-  END.
-  ELSE
-  DO:
-      iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
-      msgCnt_blk:
-      DO iMsg = 1 TO iMsgCnt:
-        /* Format a string of messages; each has a first line of
-           "Field:  <field>    "Table:  <table>"
-           (if either of these is defined) plus the error message on a
-            separate line. */
-        ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
-               cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 
-                        THEN ENTRY(2, cMessage, CHR(4)) 
-                        ELSE "":U
-               cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 
-                        THEN ENTRY(3, cMessage, CHR(4)) 
-                        ELSE "":U
-               .
-          /* Is Dynamics running? If so then run the messages through the standard message routine.
-           * This will ensure that the messages are translated and correctly formatted.           */
-          IF VALID-HANDLE(gshSessionManager) THEN
-          DO:
-              /* We are only interested in getting the summary message here. Ignore all other 
-               * parameters.                                                                  */
-              RUN afmessagep IN gshSessionManager ( INPUT  cMessage,
-                                                    INPUT  "":U,
-                                                    INPUT  "":U,
-                                                   OUTPUT cSummary,
-                                                   OUTPUT cIgnore,
-                                                   OUTPUT cIgnore,
-                                                   OUTPUT cIgnore,
-                                                   OUTPUT lIgnore,
-                                                   OUTPUT lIgnore  ).
-              ASSIGN cText = cText
-                           + (IF cField NE "":U THEN DYNAMIC-FUNCTION("messageNumber":U IN TARGET-PROCEDURE, 10) ELSE "":U)
-                           + cField + "   ":U
-                           + (IF cTable NE "":U THEN DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U)
-                           + cTable
-                           + (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
-                           + "  ":U + cSummary + "~n":U.
-          END. /* Use Dynamics error formatting routine */
-          ELSE
-              ASSIGN cText = cText + (IF cField NE "":U THEN
-                  DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 10) ELSE "":U)              
-                 + cField + "   ":U +       
-                 (IF cTable NE "":U THEN 
-                 DYNAMIC-FUNCTION('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U) + cTable + 
-                 (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
-                     + "  ":U + ENTRY(1, cMessage, CHR(4)) + "~n":U.
-          
-        /* since we are displaying in a resizable dialog we can afford a blank line between fields */
-        IF TRIM(cText) <> "" THEN ASSIGN cText = cText + "~n".
-    
-        /* Return the field name from the first error message so the caller can
-           use it to position the cursor. */
-        IF iMsg = 1 THEN cFirstField = cField.
-      END.   /* END DO iMsg */
-      
-      /* Either Dynamics is not connected, or we couldn't use the standard Dynamics message window.
-         Either way, display the message using the standard 4GL MESSAGE statement. */
-      IF cText NE "":U AND cMessages <> "":U THEN
-          MESSAGE cText VIEW-AS ALERT-BOX ERROR TITLE "Data Error".
-  END.
-
-  pcReturn = cFirstField.
   RETURN.
 
 END PROCEDURE.
@@ -4651,7 +4488,7 @@ FUNCTION getEnabledWhenNew RETURNS CHARACTER
     /* finds the updatetarget, loops through GroupAssign-sources if necessary */
     {get GroupAssignUpdateTarget hUpdateTarget}.   
     if valid-handle(hUpdateTarget) and {fnarg instanceOf 'DataQuery':U hUpdateTarget} then
-    do: 
+    do:
       /* get the corresponding list from the update-target */
       {get UpdatableWhenNew cUpdatableWhenNew hUpdateTarget}.
       /* use displayedfields since enabledfields can change  */
@@ -6684,68 +6521,6 @@ FUNCTION setWindowTitleField RETURNS LOGICAL
     {set WindowTitleField cWindowTitleField}.
     RETURN TRUE.   /* Function return value. */
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-showDataMessages) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION showDataMessages Procedure 
-FUNCTION showDataMessages RETURNS CHARACTER
-  ( ) : 
-/*------------------------------------------------------------------------------
-  Purpose:   Returns the name of the field (if any) from the first
-             error message, to allow the caller to use it to position the 
-             cursor.
-   Params:   <none>.   
-   Notes:    Invokes fetchMessages() to retrieve all Data-related messages
-             (normally database update-related error messages), and
-             displays them in a alert-box of type error.
-             This function expects to receive back a single string 
-             from fetchMessages with one or more messages delimited by CHR(3),
-             and within each message the message text, Fieldname (or blank) +
-             a Tablename (or blank), delimited by CHR(4) if present.
-------------------------------------------------------------------------------*/
-
-  DEFINE VARIABLE cMessages   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iMsg        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iMsgCnt     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cMessage    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cFirstField AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cField      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cTable      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cText       AS CHARACTER NO-UNDO INIT "":U.
-
-  cMessages = DYNAMIC-FUNCTION('fetchMessages':U IN TARGET-PROCEDURE).
-  iMsgCnt = NUM-ENTRIES(cMessages, CHR(3)).
-  DO iMsg = 1 TO iMsgCnt:
-    /* Format a string of messages; each has a first line of
-       "Field:  <field>    "Table:  <table>"
-       (if either of these is defined) plus the error message on a
-        separate line. */
-    ASSIGN cMessage = ENTRY(iMsg, cMessages, CHR(3))
-           cField = IF NUM-ENTRIES(cMessage, CHR(4)) > 1 THEN
-             ENTRY(2, cMessage, CHR(4)) ELSE "":U
-           cTable = IF NUM-ENTRIES(cMessage, CHR(4)) > 2 THEN
-             ENTRY(3, cMessage, CHR(4)) ELSE "":U
-           cText = cText + (IF cField NE "":U THEN
-             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 10) ELSE "":U)              
-             + cField + "   ":U +       
-             (IF cTable NE "":U THEN 
-             dynamic-function('messageNumber':U IN TARGET-PROCEDURE, 11) ELSE "":U) + cTable + 
-             (IF cField NE "":U OR cTable NE "":U THEN "~n":U ELSE "":U)
-                 + "  ":U + ENTRY(1, cMessage, CHR(4)) + "~n":U.
-    /* Return the field name from the first error message so the caller can
-       use it to position the cursor. */
-    IF iMsg = 1 THEN cFirstField = cField.
-  END.   /* END DO iMsg */
-  IF cText NE "":U THEN
-    MESSAGE cText VIEW-AS ALERT-BOX ERROR.
-
-  RETURN cFirstField.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

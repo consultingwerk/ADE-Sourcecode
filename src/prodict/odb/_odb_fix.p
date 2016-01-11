@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -73,7 +73,7 @@ FORM
   msg[1] FORMAT "x(25)" LABEL "  File" SKIP
   msg[2] FORMAT "x(25)" LABEL " Field" SKIP
   msg[3] FORMAT "x(25)" LABEL " Index" SKIP
-  msg[4] FORMAT "x(25)" LABEL " Componet" SKIP
+  msg[4] FORMAT "x(25)" LABEL " Component" SKIP
   SKIP(1)
   WITH FRAME odb_fix ATTR-SPACE OVERLAY SIDE-LABELS ROW 4 CENTERED
    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN view-as dialog-box three-d &ENDIF
