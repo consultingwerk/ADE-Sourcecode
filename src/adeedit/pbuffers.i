@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -186,6 +186,7 @@ PROCEDURE CreateBuffer .
       SCROLLBAR-H    = ( SESSION:WINDOW-SYSTEM <> "TTY" )
       SCROLLBAR-V    = ( SESSION:WINDOW-SYSTEM <> "TTY" )
       AUTO-INDENT    = TRUE
+      RETURN-INSERTED = TRUE
       FONT           = Sys_Options.EditorFont
       BGCOLOR        = Sys_Options.BG_Color
       FGCOLOR        = Sys_Options.FG_Color

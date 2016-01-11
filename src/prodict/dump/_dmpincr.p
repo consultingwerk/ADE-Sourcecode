@@ -1299,7 +1299,7 @@ DO ON STOP UNDO, LEAVE
             ddl[18] = "  VALMSG-SA " + c.
       END.
 
-      IF NOT l AND DICTDB._Field._Col-label = ? THEN .
+      IF NOT l AND DICTDB._Field._View-as = ? THEN .
       ELSE DO:
           RUN dctquot IN h_dmputil (DICTDB._Field._View-as,'"',OUTPUT c).
           IF NOT l OR COMPARE(DICTDB._Field._View-as,"NE",DICTDB2._Field._View-as,"RAW") THEN
