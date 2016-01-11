@@ -660,7 +660,7 @@ DO WHILE TRUE
       ASSIGN tmp-buf = REPLACE(tmp-buf, CHR(9), " ":U).
 
       /* Get starting position of the CONTENT attribute. This two step
-         approach is required to avoid finding Content­Type instead! */
+         approach is required to avoid finding ContentðType instead! */
       ASSIGN attr-start = INDEX(tmp-buf, "CONTENT=":U).
       IF attr-start = 0 THEN
         ASSIGN attr-start = INDEX(tmp-buf, "CONTENT ":U).
@@ -716,7 +716,7 @@ DO WHILE TRUE
         CASE meta-name:
           WHEN "wsoptions":U THEN DO:
             /* Assign meta value after replacing spaces with commas and double
-               commas with a single one. Then append to p­options. */
+               commas with a single one. Then append to pðoptions. */
             ASSIGN wsoptions = TRIM(REPLACE(REPLACE(meta-value," ":U,",":U),
                                             ",,":U, ",")).
             /* If any wsoptions found in the <META tag ... */

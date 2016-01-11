@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,6 +37,10 @@
               06/09/08 rohit     Fixed bugs OE00169475/169635/169699 related to new sequence generator for MSS
               08/25/08 fernando  Keep progres_recid index name consistent with migration code - OE00133695
               09/28/08 knavneet  Added error handling code to the sequence generator - OE00172741
+              10/22/08 fernando  Fix for mandatory and and null columns with default - OE00175772
+              12/02/08 fernando  Fix for logical and sqlwidth, plus fix for field-misc22  - OE00177587
+                                 Properly handle sql-width for extent fields - OE00176198
+                                 Handle case where index is re-added - OE00177558
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -110,8 +114,6 @@ DEFINE VARIABLE for-init      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE comment_chars AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE col-text      AS INTEGER               NO-UNDO.
 DEFINE VARIABLE comment-out   AS LOGICAL INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE extline       AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE extlinenum    AS INTEGER               NO-UNDO.
 DEFINE VARIABLE newstoff      AS INTEGER               NO-UNDO.
 DEFINE VARIABLE efile         AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE rntbl         AS CHARACTER             NO-UNDO.
@@ -159,6 +161,8 @@ DEFINE TEMP-TABLE new-obj NO-UNDO
   FIELD prg-name AS CHARACTER
   FIELD n-order  AS INTEGER
   FIELD mand     AS LOGICAL
+  FIELD iExtents AS INTEGER
+  FIELD iMaxWidth AS INTEGER
   INDEX add-rec IS PRIMARY add-type tbl-name n-order prg-name.
 
 DEFINE TEMP-TABLE rename-obj NO-UNDO
@@ -229,10 +233,97 @@ FORM
 
     
 /* Internal Procedure */
+
+/* PROCEDURE: updateNewFields
+ * Write additional .df lines for updating FIELD-MISC22 and FOREGIN-POS, if specified
+ * by caller.
+ */
+PROCEDURE updateNewFields:
+    DEFINE INPUT PARAMETER ptblname AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER pforpos AS INT NO-UNDO.
+
+    DEFINE VARIABLE extnt AS LOGICAL NO-UNDO.
+
+    FOR EACH new-obj WHERE add-type = "F"
+                       AND tbl-name = ptblname:                                                     
+      IF INDEX(new-obj.for-name , "##") <> 0 THEN DO: 
+
+        IF SUBSTRING(new-obj.for-name, (LENGTH(new-obj.for-name) - 2), 3) = "##1" THEN
+          ASSIGN extnt = FALSE.
+
+        IF for-name BEGINS "_S#_" THEN 
+          ASSIGN extnt = FALSE.  
+        ELSE IF NOT extnt THEN DO:   
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = tbl-name
+                 df-info.df-fld = fieldname
+                 df-line = 'UPDATE FIELD "' + prg-name  + '" OF "' + tbl-name + '"'.
+
+          /* see if caller passed this */
+          IF pforpos <> ? THEN DO:
+              CREATE df-info.
+              ASSIGN df-info.df-seq = dfseq
+                     dfseq = dfseq + 1
+                     df-info.df-tbl = tbl-name
+                     df-info.df-fld = fieldname
+                     df-line = '  FOREIGN-POS ' + string(pforpos).
+          END.
+
+          /* be consistent with the schema pull */
+          CREATE df-info.
+          ASSIGN df-info.df-seq = dfseq
+                 dfseq = dfseq + 1
+                 df-info.df-tbl = new-obj.tbl-name
+                 df-info.df-fld = fieldname
+                 df-line = '  FIELD-MISC22 ' + (IF new-obj.mand = YES THEN '"N"' ELSE '"Y"').
+
+          IF for-name BEGINS "A##" THEN
+            ASSIGN extnt = false.
+          ELSE 
+            ASSIGN extnt = true.
+        END. 
+      END.
+      ELSE DO:
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = tbl-name
+               df-info.df-fld = fieldname
+               df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
+
+        /* see if caller passed this */
+        IF pforpos <> ? THEN DO:
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tbl-name
+                   df-info.df-fld = fieldname
+                   df-line = '  FOREIGN-POS ' + STRING(pforpos).
+        END.
+
+        /* be consistent with the schema pull */
+        CREATE df-info.
+        ASSIGN df-info.df-seq = dfseq
+               dfseq = dfseq + 1
+               df-info.df-tbl = new-obj.tbl-name
+               df-info.df-fld = fieldname
+               df-line = '  FIELD-MISC22 ' + (IF new-obj.mand = YES THEN '"N"' ELSE '"Y"').
+
+        ASSIGN extnt = FALSE.   
+      END.                  
+
+      /* see if caller passed this */
+      IF pforpos <> ? THEN
+         ASSIGN pforpos = pforpos + 1.
+    END.
+END.
+
+
 PROCEDURE write-tbl-sql:     
   DEFINE VARIABLE dftblname   AS CHARACTER                   NO-UNDO.
   DEFINE VARIABLE forpos      AS INTEGER                     NO-UNDO.
-  DEFINE VARIABLE extnt       AS LOGICAL                     NO-UNDO.
   DEFINE VARIABLE recidname   AS CHARACTER                   NO-UNDO.
   DEFINE VARIABLE recidpos    AS INTEGER                     NO-UNDO.
 
@@ -349,8 +440,7 @@ PROCEDURE write-tbl-sql:
           ASSIGN recidname = "progress_recid"
                  recidident = "progress_recid_ident_".             
         
-        ASSIGN forpos = 1
-               extnt = FALSE.
+        ASSIGN forpos = 1.
 
         FOR EACH DICTDB._field OF DICTDB._file BREAK BY _File-recid BY _fld-stoff: 
           IF forpos < DICTDB._field._fld-stoff THEN 
@@ -368,133 +458,77 @@ PROCEDURE write-tbl-sql:
         IF INTEGER(DICTDB._File._Fil-Misc2[2]) > forpos THEN
             ASSIGN forpos = INTEGER(DICTDB._File._Fil-Misc2[2]).
 
-        FOR EACH new-obj WHERE add-type = "F"
-                           AND tbl-name = tblname:                                                     
-          IF INDEX(for-name , "##") <> 0 THEN DO: 
+        /* update forpos and field-misc22 for new fields */
+        RUN updateNewFields (INPUT sql-info.tblname, INPUT forpos).
 
-            IF SUBSTRING(new-obj.for-name, (LENGTH(new-obj.for-name) - 2), 3) = "##1" THEN
-              ASSIGN extnt = FALSE.
-
-            IF for-name BEGINS "_S#_" THEN 
-              ASSIGN extnt = FALSE.  
-            ELSE IF NOT extnt THEN DO:   
-              CREATE df-info.
-              ASSIGN df-info.df-seq = dfseq
-                     dfseq = dfseq + 1
-                     df-info.df-tbl = tbl-name
-                     df-info.df-fld = fieldname
-                     df-line = 'UPDATE FIELD "' + prg-name  + '" OF "' + tbl-name + '"'.
-              CREATE df-info.
-              ASSIGN df-info.df-seq = dfseq
-                     dfseq = dfseq + 1
-                     df-info.df-tbl = tbl-name
-                     df-info.df-fld = fieldname
-                     df-line = '  FOREIGN-POS ' + string(forpos).
-              
-              IF for-name BEGINS "A##" THEN
-                ASSIGN extnt = false.
-              ELSE 
-                ASSIGN extnt = true.
-            END. 
-          END.
-          ELSE DO:
-            CREATE df-info.
-            ASSIGN df-info.df-seq = dfseq
-                   dfseq = dfseq + 1
-                   df-info.df-tbl = tbl-name
-                   df-info.df-fld = fieldname
-                   df-line = 'UPDATE FIELD "' + prg-name + '" OF "' + tbl-name + '"'.
-            CREATE df-info.
-            ASSIGN df-info.df-seq = dfseq
-                   dfseq = dfseq + 1
-                   df-info.df-tbl = tbl-name
-                   df-info.df-fld = fieldname
-                   df-line = '  FOREIGN-POS ' + STRING(forpos).
-            
-            ASSIGN extnt = FALSE.   
-          END.                  
-          ASSIGN forpos = forpos + 1.
-        END.
       END.        
       ELSE DO: /* Have a new file here */
-        ASSIGN forpos = 1
-               extnt = false.
+        ASSIGN forpos = 1.
 
-        FOR EACH new-obj WHERE new-obj.add-type = "F"
-                           AND new-obj.tbl-name = tblname: 
-          IF INDEX(new-obj.for-name , "##") <> 0 THEN DO: 
+        /* update forpos and field-misc22 for new fields */
+        RUN updateNewFields (INPUT sql-info.tblname, INPUT forpos).
 
-            IF SUBSTRING(new-obj.for-name, (LENGTH(new-obj.for-name) - 2), 3) = "##1" THEN
-              ASSIGN extnt = FALSE.
-
-            IF new-obj.for-name BEGINS "_S#_" THEN 
-              ASSIGN extnt = FALSE.  
-            ELSE IF NOT extnt THEN DO:   
-              CREATE df-info.
-              ASSIGN df-info.df-seq = dfseq
-                     dfseq = dfseq + 1
-                     df-info.df-tbl = new-obj.tbl-name
-                     df-info.df-fld = fieldname
-                     df-line = 'UPDATE FIELD "' + new-obj.prg-name + '" OF "' + new-obj.tbl-name + '"'.
-              CREATE df-info.
-              ASSIGN df-info.df-seq = dfseq
-                     dfseq = dfseq + 1
-                     df-info.df-tbl = new-obj.tbl-name
-                     df-info.df-fld = fieldname
-                     df-line = '  FOREIGN-POS ' + STRING(forpos).
-              
-              ASSIGN extnt = true.
-            END. 
-          END.
-          ELSE DO:
-            CREATE df-info.
-            ASSIGN df-info.df-seq = dfseq
-                   dfseq = dfseq + 1
-                   df-info.df-tbl = new-obj.tbl-name
-                   df-info.df-fld = fieldname
-                   df-line =  'UPDATE FIELD "' + new-obj.prg-name + '" OF "' + new-obj.tbl-name + '"'.
-            CREATE df-info.
-            ASSIGN df-info.df-seq = dfseq
-                   dfseq = dfseq + 1
-                   df-info.df-tbl = new-obj.tbl-name
-                   df-info.df-fld = fieldname
-                   df-line = '  FOREIGN-POS ' + STRING(forpos).
-            
-            ASSIGN extnt = FALSE.   
-          END.                  
-
-          /* be consistent with the schema pull */
-          CREATE df-info.
-          ASSIGN df-info.df-seq = dfseq
-                 dfseq = dfseq + 1
-                 df-info.df-tbl = new-obj.tbl-name
-                 df-info.df-fld = fieldname
-                 df-line = '  FIELD-MISC22 ' + (IF new-obj.mand = YES THEN '"N"' ELSE '"Y"').
-
-          ASSIGN forpos = forpos + 1.
-        END.
       END.
     END.                                       
     IF line-num < 2 THEN
       PUT STREAM tosql UNFORMATTED comment_chars line SKIP.          
-    ELSE IF NOT LAST-OF(tblname) THEN DO:      
-      PUT STREAM tosql UNFORMATTED comment_chars line "," SKIP.
-    END.
     ELSE DO:          
-      PUT STREAM tosql UNFORMATTED comment_chars line ")" SKIP.
-      PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+        FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                           AND new-obj.tbl-name = tblname 
+                           AND new-obj.fld-name = fldname NO-ERROR.
+
+        IF AVAILABLE new-obj THEN DO: 
+            /* OE00175772
+               if mandatory, add 'not null' clause for new fields. If not mandatory and has
+               default value, add 'with values' to get existing records updated with default
+               value
+            */
+            IF new-obj.mand = YES THEN
+               ASSIGN sql-info.line = sql-info.line + " NOT NULL".
+        END.
+
+        IF NOT LAST-OF(tblname) THEN DO:      
+          PUT STREAM tosql UNFORMATTED comment_chars line "," SKIP.
+        END.
+        ELSE DO:          
+          PUT STREAM tosql UNFORMATTED comment_chars line ")" SKIP.
+          PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+        END.
     END.         
     DELETE sql-info.
   END.
 
   FOR EACH alt-info BREAK BY a-tblname BY a-line-num:
+
+    IF FIRST-OF(a-tblname) THEN
+      /* need to generate FIELD-MISC22 for new fields */
+      RUN updateNewFields(INPUT alt-info.a-tblname, INPUT ?).
+
     IF FIRST-OF(a-tblname) THEN
       PUT STREAM tosql UNFORMATTED comment_chars a-line  SKIP.
-    ELSE IF NOT LAST-OF(a-tblname) THEN 
-      PUT STREAM tosql UNFORMATTED comment_chars a-line ","  SKIP.
     ELSE DO:          
-      PUT STREAM tosql UNFORMATTED  comment_chars a-line   SKIP.       
-      PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+        FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                           AND new-obj.tbl-name = a-tblname 
+                           AND new-obj.fld-name = a-fldname NO-ERROR.
+
+        IF AVAILABLE new-obj THEN  DO:
+            /* OE00175772
+               if mandatory, add 'not null' clause for new fields. If not mandatory and has
+               default value, add 'with values' to get existing records updated with default
+               value
+            */
+            IF new-obj.mand = YES THEN
+               ASSIGN alt-info.a-line = alt-info.a-line + " NOT NULL".
+            ELSE IF dflt AND INDEX(alt-info.a-line," DEFAULT") <> 0 THEN
+                ASSIGN alt-info.a-line = alt-info.a-line + " WITH VALUES".
+        END.
+
+        IF NOT LAST-OF(a-tblname) THEN 
+          PUT STREAM tosql UNFORMATTED comment_chars a-line ","  SKIP.
+        ELSE DO:          
+          PUT STREAM tosql UNFORMATTED  comment_chars a-line   SKIP.       
+          PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+        END.
     END.         
     DELETE alt-info.
   END.
@@ -1725,6 +1759,159 @@ PROCEDURE create-idx-field:
       ASSIGN j = 6. 
   END.                                                 
 END PROCEDURE.
+
+PROCEDURE process-sql-width.
+  DEFINE INPUT PARAMETER ptablename AS CHAR NO-UNDO.
+  DEFINE INPUT PARAMETER pfieldname AS CHAR NO-UNDO.
+  DEFINE INPUT PARAMETER pValue     AS INT  NO-UNDO.
+
+  DEFINE VARIABLE iValue            AS INT       NO-UNDO.
+  DEFINE VARIABLE cWidth            AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE defInfo           AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE defInfoOff        AS INTEGER   NO-UNDO.
+
+  FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                 AND new-obj.tbl-name = ptablename
+                 AND new-obj.fld-name = pfieldname
+                 NO-LOCK NO-ERROR. 
+
+  IF NOT AVAILABLE new-obj
+     OR new-obj.for-type = " UNSUPPORTED" THEN RETURN.
+
+  /* save it away if not set */
+  IF new-obj.iMaxWidth = 0 THEN
+     new-obj.iMaxWidth = pValue.
+
+  IF new-obj.for-type <> " INTEGER" AND
+     new-obj.for-type <> " TINYINT" AND
+     new-obj.for-type <> " DATETIME" AND
+     new-obj.for-type <> " TEXT" AND 
+     new-obj.for-type <> " NVARCHAR(MAX)" THEN DO:
+
+    /* this is the width value for the column size */
+    ASSIGN iValue = pValue.
+
+    /* if field has extents, take that into account */
+    IF new-obj.iExtents > 0 THEN
+       ASSIGN iValue = ((iValue - (new-obj.iExtents * 2)) / new-obj.iExtents).
+
+    IF SUBSTRING(new-obj.for-type,1,8) = " DECIMAL" THEN DO:
+        IF iValue > 28 THEN
+           ASSIGN iValue = 28.
+    END.
+    /* expand length - unicode support */
+    ELSE IF user_env[35] = "y" THEN
+       ASSIGN iValue = iValue * 2.
+
+    ASSIGN cWidth = STRING(iValue).
+
+    FIND df-info WHERE df-info.df-tbl = ptablename
+                   AND df-info.df-fld = pfieldname
+                   AND df-info.df-line BEGINS "  FORMAT".
+
+    IF alt-table THEN DO:               
+      /* there may be more than one if this is for an extent field */
+      FOR EACH alt-info WHERE a-tblname = ptablename
+                      AND a-fldname = pfieldname 
+                      AND NOT a-line BEGINS "ALTER":
+
+        IF INDEX(alt-info.a-line,"DEFAULT") <> 0 THEN
+           ASSIGN defInfoOff = INDEX(alt-info.a-line,"DEFAULT")
+               defInfo = SUBSTRING(alt-info.a-line, defInfoOff).
+        ELSE
+           ASSIGN defInfo = "".
+
+        IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN DO:  
+          IF iValue < varlngth THEN
+            ASSIGN new-obj.for-type = /*" VARCHAR("*/ " " + user_env[11] + "(" + cWidth + ")"
+                   alt-info.a-line = ENTRY(1,alt-info.a-line, " ") /* the field name */
+                                     + /*" VARCHAR("*/ " " + user_env[11] 
+                                     + "(" + cWidth + ") " + defInfo
+                   df-info.df-line = "  FORMAT " + '"x(' + cWidth + ')"'.
+          ELSE DO: 
+            ASSIGN new-obj.for-type = /*" TEXT"*/ " " + user_env[18]
+                   alt-info.a-line = ENTRY(1,alt-info.a-line, " ") /* the field name */
+                                     + /*" TEXT"*/ " " + user_env[18].
+
+            /* There is no format statement for a text */
+            IF AVAILABLE df-info THEN
+               DELETE df-info.
+          END.                        
+        END.
+        ELSE DO:
+          ASSIGN left_paren = INDEX(alt-info.a-line, "(")
+                 right_paren = INDEX(alt-info.a-line, ")")
+                 j = INDEX(alt-info.a-line, ",").
+
+          ASSIGN new-obj.for-type = " DECIMAL (" + cWidth + ","
+                                    + SUBSTRING(alt-info.a-line, j + 1, right_paren - j)
+                 alt-info.a-line = ENTRY(1,alt-info.a-line, " ") /* the field name */
+                                   + " DECIMAL (" + cWidth + ","
+                                   + SUBSTRING(alt-info.a-line, j + 1, right_paren - j) + " " + defInfo.
+        END.                    
+      END.
+    END.
+    ELSE DO:
+      /* there may be more than one if this is for an extent field */
+      FOR EACH sql-info WHERE tblname = ptablename
+                      AND fldname = pfieldname 
+                      AND LINE BEGINS pfieldname:
+      
+        IF INDEX(line,"DEFAULT") <> 0 THEN 
+            ASSIGN defInfoOff = INDEX(sql-info.line,"DEFAULT")
+                   defInfo = SUBSTRING(sql-info.line, defInfoOff).
+          ELSE
+            ASSIGN defInfo = "".
+
+        IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN DO:    
+          IF iValue < varlngth THEN
+            ASSIGN new-obj.for-type = /*" VARCHAR("*/ " " + user_env[11] + "(" + cWidth + ")"
+                   sql-info.line = ENTRY(1,sql-info.line, " ") /* the field name */
+                                   + /*" VARCHAR("*/ " " + user_env[11] 
+                                   + "(" + cWidth + ") " + defInfo
+                   df-info.df-line = "  FORMAT " + '"x(' + cWidth + ')"'.
+          ELSE DO:                      
+            ASSIGN new-obj.for-type = /*" TEXT"*/ " " + user_env[18]
+                   sql-info.line = ENTRY(1,sql-info.line, " ") /* the field name */
+                                   + /*" TEXT"*/  " " + user_env[18].
+
+            /* There is no format statement for a text */
+            IF AVAILABLE df-info THEN
+               DELETE df-info.                       
+          END.                        
+        END.                    
+        ELSE DO:
+          ASSIGN left_paren = INDEX(sql-info.line, "(")
+                 right_paren = INDEX(sql-info.line, ")")
+                 j = INDEX(sql-info.line, ",").
+          ASSIGN new-obj.for-type = " DECIMAL (" + cWidth + ","
+                                    + SUBSTRING(LINE, j + 1, right_paren - j)
+                 sql-info.line = ENTRY(1,sql-info.line, " ") /* the field name */
+                                 + " DECIMAL (" + cWidth + ","
+                                 + SUBSTRING(LINE, j + 1, right_paren - j) + " " + defInfo.
+        END.
+      END.
+    END.
+
+    /* now fix up the info related to the column length */
+    FIND df-info WHERE df-info.df-tbl = ptablename
+                   AND df-info.df-fld = pfieldname
+                   AND df-info.df-line BEGINS "  FIELD-MISC13".
+    ASSIGN df-info.df-line = "  FIELD-MISC13 " + cWidth.
+    FIND df-info WHERE df-info.df-tbl = ptablename
+                   AND df-info.df-fld = pfieldname
+                   AND df-info.df-line BEGINS "  FOREIGN-MAXIMUM".
+    ASSIGN df-info.df-line = "  FOREIGN-MAXIMUM " + cWidth.                  
+    FIND df-info WHERE df-info.df-tbl = ptablename
+                   AND df-info.df-fld = pfieldname
+                   AND df-info.df-line BEGINS "  DSRVR-PRECISION " NO-ERROR.
+    IF AVAILABLE df-info THEN
+       ASSIGN df-info.df-line = "  DSRVR-PRECISION " + cWidth.                  
+  END.                
+
+END.
+
+
 /*======================== Mainline =================================== */   
 
 ASSIGN ilin = ?
@@ -3051,7 +3238,8 @@ DO ON STOP UNDO, LEAVE:
                                    NO-ERROR.
                     IF AVAILABLE new-obj THEN
                       ASSIGN new-obj.for-name = new-obj.for-name + "##1"
-                             fortype = new-obj.for-type.                  
+                             fortype = new-obj.for-type
+                             new-obj.iExtents = INTEGER(ilin[2]).
                       
                     DO i = 2 TO INTEGER(ilin[2]):
                       CREATE sql-info.
@@ -3076,7 +3264,8 @@ DO ON STOP UNDO, LEAVE:
                                    NO-ERROR.
                     IF AVAILABLE new-obj THEN
                       ASSIGN new-obj.for-name = forname + "1"
-                             fortype = new-obj.for-type.                
+                             fortype = new-obj.for-type
+                             new-obj.iExtents = INTEGER(ilin[2]).                
                                                                                                    
                     DO i = 2 TO INTEGER(ilin[2]):
                       CREATE sql-info.
@@ -3098,10 +3287,11 @@ DO ON STOP UNDO, LEAVE:
                   IF AVAILABLE alt-info THEN DO:  
                     FIND new-obj WHERE new-obj.add-type = "F"
                                    AND new-obj.tbl-name = tablename
-                                   AND new-obj.for-name = fieldname
+                                   AND new-obj.fld-name = fieldname
                                    NO-ERROR.
                     IF AVAILABLE new-obj THEN
-                        ASSIGN new-obj.for-name = new-obj.for-name + "##1".
+                        ASSIGN new-obj.for-name = new-obj.for-name + "##1"
+                               new-obj.iExtents = INTEGER(ilin[2]).
                                                       
                     IF (LENGTH(fieldname) + length(ilin[2]) + 2) < integer(user_env[29]) THEN DO:
                
@@ -3137,6 +3327,17 @@ DO ON STOP UNDO, LEAVE:
                     END.
                   END.
                 END.
+
+                IF sqlwidth THEN DO:
+                    /* if we processed sql-width prior to extent, need to adjust colum size now */
+                    FIND FIRST new-obj WHERE new-obj.add-type = "F"
+                                       AND new-obj.tbl-name = tablename
+                                       AND new-obj.fld-name = fieldname
+                                       AND new-obj.iExtents > 0 NO-ERROR.
+
+                    IF AVAILABLE new-obj AND new-obj.iMaxWidth > 0 THEN
+                       RUN process-sql-width(INPUT tablename, INPUT fieldname, INPUT new-obj.iMaxWidth).
+                END.
               END.               
             END. /* WHEN EXTENT */
                  
@@ -3165,10 +3366,14 @@ DO ON STOP UNDO, LEAVE:
             WHEN "NULL-ALLOWED" THEN DO:
 
                 IF ilin[1] = "MANDATORY" THEN DO:
-                   FIND new-obj WHERE new-obj.add-type = "F"
+                   /* if extent, will have more records for the same field name,
+                      so need to find first.
+                   */
+                   FIND FIRST new-obj WHERE new-obj.add-type = "F"
                        AND new-obj.tbl-name = tablename
                        AND new-obj.fld-name = fieldname
                        NO-LOCK NO-ERROR. 
+
                    /* if it's mandatory for a new field */
                    IF AVAILABLE new-obj THEN
                        ASSIGN new-obj.mand = YES.
@@ -3197,146 +3402,8 @@ DO ON STOP UNDO, LEAVE:
                 ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
             END.
             WHEN "SQL-WIDTH" OR WHEN "MAX-WIDTH" THEN DO:
-              IF sqlwidth THEN 
-              _sqlw:    
-              DO:
-                FIND FIRST new-obj WHERE new-obj.add-type = "F"
-                               AND new-obj.tbl-name = tablename
-                               AND new-obj.fld-name = fieldname
-                               NO-LOCK NO-ERROR. 
-               
-                IF new-obj.for-type = " UNSUPPORTED" THEN LEAVE _sqlw.
-
-                IF new-obj.for-type <> " INTEGER" AND
-                   new-obj.for-type <> " DATETIME" AND
-                   new-obj.for-type <> " TEXT" AND 
-                   new-obj.for-type <> " NVARCHAR(MAX)" THEN DO:
-                  
-                  FIND df-info WHERE df-info.df-tbl = tablename
-                                 AND df-info.df-fld = fieldname
-                                 AND df-info.df-line BEGINS "  FORMAT".
-                 
-                  IF alt-table THEN DO:               
-                    FIND FIRST alt-info WHERE a-tblname = tablename
-                                    AND a-fldname = fieldname 
-                                    AND NOT a-line BEGINS "ALTER" NO-ERROR.
-                    IF AVAILABLE alt-info THEN DO:
-                      IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN DO:  
-                        IF INDEX(a-line,"DEFAULT") <> 0 THEN
-                          ASSIGN extlinenum = INDEX(a-line,"DEFAULT")
-                                 extline = SUBSTRING(a-line, extlinenum).
-                        ELSE
-                          ASSIGN extline = "".
-
-                        ASSIGN i = INTEGER(ilin[2]).
-                        /* expand length - unicode support */
-                        IF user_env[35] = "y" THEN
-                           ASSIGN i = i * 2.
-
-                        IF i < varlngth THEN
-                          ASSIGN new-obj.for-type = /*" VARCHAR("*/ " " + user_env[11] + "(" + string(i) + ")"
-                                 a-line = fieldname + /*" VARCHAR("*/ " " + user_env[11] + "(" + string(i) + ") " + extline
-                                 df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
-                                 extline = a-line
-                                 extlinenum = alt-info.a-line-num.
-                        ELSE DO: 
-                          ASSIGN new-obj.for-type = /*" TEXT"*/ " " + user_env[18]
-                                 a-line = fieldname + /*" TEXT"*/ " " + user_env[18]
-                                 extline = a-line
-                                 extlinenum = alt-info.a-line-num.
-                          DELETE df-info.
-                        END.                        
-                      END.
-                      ELSE DO:
-                        ASSIGN left_paren = INDEX(a-line, "(")
-                               right_paren = INDEX(a-line, ")")
-                               j = INDEX(a-line, ",").
-
-                        ASSIGN new-obj.for-type = " DECIMAL (" + ilin[2] + ","
-                                                  + SUBSTRING(a-line, j + 1, right_paren - j)
-                               a-line = fieldname + " DECIMAL (" + ilin[2] + ","
-                                        + SUBSTRING(a-line, j + 1, right_paren - j) + " " + extline
-                               extline = a-line
-                               extlinenum = alt-info.a-line-num.
-                      END.                    
-                    END.
-                    FOR EACH alt-info WHERE a-tblname = tablename
-                                        AND a-fldname = fieldname 
-                                        AND NOT a-line BEGINS "ALTER"
-                                        AND a-line-num > extlinenum:
-                        ASSIGN alt-info.a-line = extline.
-                    END.
-                  END.
-                  ELSE DO:
-                    FIND FIRST sql-info WHERE tblname = tablename
-                                    AND fldname = fieldname 
-                                    AND LINE BEGINS fieldname
-                                    NO-ERROR.
-                    IF AVAILABLE sql-info THEN DO:     
-                      IF INDEX(line,"DEFAULT") <> 0 THEN 
-                          ASSIGN extlinenum = INDEX(line,"DEFAULT")
-                                 extline = SUBSTRING(line, extlinenum).
-                        ELSE
-                          ASSIGN extline = "".
-
-
-                      ASSIGN i = INTEGER(ilin[2]).
-                      /* expand length - unicode support */
-                      IF user_env[35] = "y" THEN
-                         ASSIGN i = i * 2.
-
-                      IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN DO:    
-                        IF i < varlngth THEN
-                          ASSIGN new-obj.for-type = /*" VARCHAR("*/ " " + user_env[11] + "(" + STRING(i) + ")"
-                                 line = fieldname + /*" VARCHAR("*/ " " + user_env[11] + "(" + STRING(i) + ") " + extline
-                                 df-info.df-line = "  FORMAT " + '"x(' + ilin[2] + ')"'
-                                 extline = sql-info.line
-                                 extlinenum = sql-info.line-num.
-                        ELSE DO:                      
-                          ASSIGN new-obj.for-type = /*" TEXT"*/ " " + user_env[18]
-                                 line = fieldname + /*" TEXT"*/  " " + user_env[18]
-                                 extline = sql-info.line
-                                 extlinenum = sql-info.line-num.
-                          /* There is no format statement for a text */
-                          DELETE df-info.                       
-                        END.                        
-                      END.                    
-                      ELSE DO:
-                        ASSIGN left_paren = INDEX(line, "(")
-                               right_paren = INDEX(line, ")")
-                               j = INDEX(line, ",").
-                        ASSIGN new-obj.for-type = " DECIMAL (" + ilin[2] + ","
-                                                  + SUBSTRING(LINE, j + 1, right_paren - j)
-                               line = fieldname + " DECIMAL (" + ilin[2] + ","
-                                      + SUBSTRING(LINE, j + 1, right_paren - j) + " " + extline
-                               extline = sql-info.line
-                               extlinenum = sql-info.line-num.
-                      END.
-                      FOR EACH sql-info WHERE tblname = tablename
-                                    AND fldname = fieldname 
-                                    AND LINE BEGINS fieldname
-                                    AND sql-info.line-num > extlinenum:
-                          ASSIGN sql-info.LINE = extline.
-                      END.
-                    END.
-                  END.
-                  FIND df-info WHERE df-info.df-tbl = tablename
-                                 AND df-info.df-fld = fieldname
-                                 AND df-info.df-line BEGINS "  FIELD-MISC13".
-                  ASSIGN df-info.df-line = "  FIELD-MISC13 " + ilin[2].
-                  FIND df-info WHERE df-info.df-tbl = tablename
-                                 AND df-info.df-fld = fieldname
-                                 AND df-info.df-line BEGINS "  FOREIGN-MAXIMUM".
-                  ASSIGN df-info.df-line = "  FOREIGN-MAXIMUM " + ilin[2].                  
-                  FIND df-info WHERE df-info.df-tbl = tablename
-                                 AND df-info.df-fld = fieldname
-                                 AND df-info.df-line BEGINS "  DSRVR-PRECISION " NO-ERROR.
-                  IF AVAILABLE df-info THEN
-                     ASSIGN df-info.df-line = "  DSRVR-PRECISION " + ilin[2].                  
-                END.                
-              END.
-              ASSIGN extlinenum = ?
-                     extline = "".
+              IF sqlwidth THEN
+                  RUN process-sql-width(INPUT tablename, INPUT fieldname, INPUT INT(ilin[2])).
             END.
           END CASE.
         END. /* End subsequent lines of add field */       
@@ -3540,7 +3607,7 @@ DO ON STOP UNDO, LEAVE:
         CASE ilin[1]:
           WHEN "FORMAT" THEN DO: /* skip changes in format because MSS is already created */             
              /* if this is a logical field, we can change the format, since it won't
-                mean a change in ORACLE - also, if the format has changed for a logical field,
+                mean a change in MSS - also, if the format has changed for a logical field,
                 it means that the INITIAL may have also changed, in which case we will
                 generate a bad .df - we will fail to load it if INITIAL has changed, but
                 FORMAT hasn't changed.
@@ -3848,7 +3915,27 @@ DO ON STOP UNDO, LEAVE:
                 FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
                 FIND FIRST DICTDB._Index WHERE CAPS(DICTDB._Index._For-name) = CAPS(forname)
                                            AND DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
+
                 IF AVAILABLE verify-Index OR AVAILABLE DICTDB._Index THEN DO:
+                   /* OE00177558 - check if we found an index that was renamed */
+                   IF NOT AVAILABLE verify-Index THEN DO:
+                       FIND FIRST rename-obj WHERE rename-type = "I"
+                            and t-name = ilin[5]
+                            AND old-name = ilin[3]
+                            NO-ERROR.
+                       /* assuming that we are the only ones that would use 'temp-' to
+                          rename index, re-add it and delete the renamed version.
+                       */
+                       IF AVAILABLE rename-obj AND rename-obj.new-name BEGINS "temp-" THEN DO:         
+                          IF CAN-FIND (FIRST DICTDB._Index OF DICTDB._File 
+                                       WHERE DICTDB._Index._Index-name = old-name) THEN DO:
+                              CREATE verify-index.
+                              ASSIGN verify-index.inew-name = forname.
+                              LEAVE _verify-index.
+                          END.
+                       END.
+                  END.
+
                   DO a = 1 TO 999:
                     IF a = 1 THEN
                       ASSIGN forname = forname + STRING(a).
@@ -4409,8 +4496,4 @@ END.
 RUN adecomm/_setcurs.p ("").
  
 RETURN.
-
-
-
-
 

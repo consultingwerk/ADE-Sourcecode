@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -78,8 +78,9 @@ History:
     fernando    06/12/06    Support for int64 - allow int->int64 type change
     fernando    08/16/06    raw comparison when checking if char values are different - 20060301-002
     fernando    02/27/2007  Added case for critical field change - OE00147106   
-    fernando    08/10/2007 Close error stream when area mismatch error is detected - OE00136202
+    fernando    08/10/2007  Close error stream when area mismatch error is detected - OE00136202
     fernando    11/12/07    Ignore blank -sa fields during incremental - OE00150364
+    fernando    11/24/08    Handle clob field differences - OE00177533
 */
 /*h-*/
 
@@ -752,8 +753,6 @@ DO ON STOP UNDO, LEAVE:
          difference, so we need to check if the dype if 34.
       */
       IF l THEN DO:
-
-
         IF DICTDB._Field._Data-type <> DICTDB2._Field._Data-type THEN DO:
             
            /* check if this is a change from integer to int64 */
@@ -769,11 +768,20 @@ DO ON STOP UNDO, LEAVE:
            ELSE
               ans = TRUE.
         END.
-        ELSE
+        ELSE DO:
            ans = FALSE.
+
+           IF DICTDB._Field._Data-type = "CLOB" THEN DO:
+               /* OE00177533 - if a clob field, check if there was a change
+                  in codepage or collation */
+               IF (DICTDB._Field._Charset NE DICTDB2._Field._Charset) OR 
+                   (DICTDB._Field._Collation NE DICTDB2._Field._Collation) THEN
+                   ans = TRUE.
+           END.
+        END.
       END.
       
-      IF l AND (ans OR   DICTDB._Field._Extent <> DICTDB2._Field._Extent) THEN DO:
+      IF l AND (ans OR DICTDB._Field._Extent <> DICTDB2._Field._Extent) THEN DO:
 
         /* If DICTDB2 field is part of a primary index, we cannot simply drop it.
          * instead, we will rename it to something else, and delete it
@@ -932,8 +940,17 @@ DO ON STOP UNDO, LEAVE:
             ddl[26] = "  LOB-SIZE " + DICTDB._Field._Fld-Misc2[1].
 
         IF DICTDB._Field._Data-type = "CLOB" AND
-           DICTDB._Field._Attributes1  <> DICTDB2._Field._Attributes1 THEN
-          ddl[27] = "  CLOB-TYPE "      + STRING(DICTDB._Field._Attributes1).
+           DICTDB._Field._Attributes1  <> DICTDB2._Field._Attributes1 THEN DO:
+
+          IF DICTDB._Field._Attributes1 = 1 AND DICTDB2._Field._Attributes1 = 2 THEN DO:
+             /* OE00177533 - can't change it from 2 to 1 in the target db 
+               if the codepage of the db and column are not the same */
+             IF UPPER(DICTDB2._Field._Charset) EQ UPPER(DICTDB2._Db._db-xl-name) THEN
+                 ddl[27] = "  CLOB-TYPE "      + STRING(DICTDB._Field._Attributes1).
+          END.
+          ELSE
+             ddl[27] = "  CLOB-TYPE "      + STRING(DICTDB._Field._Attributes1).
+        END.
 
         FIND DICTDB._storageobject WHERE DICTDB._Storageobject._Db-recid = RECID(DICTDB._Db)
                                 AND DICTDB._Storageobject._Object-type = 3

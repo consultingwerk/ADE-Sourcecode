@@ -66,7 +66,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
 
-{src/adm2/globals.i}
+{adm2/globals.i}
 
 DEFINE VARIABLE cNameList     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cValueList    AS CHARACTER  NO-UNDO.

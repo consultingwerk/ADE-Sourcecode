@@ -883,6 +883,9 @@ PROCEDURE clientSendRows :
      initializeObject in a dynamic SDO) */ 
   IF NOT lInitRowObject THEN
     hDataContainer = {fn dataContainerHandle}.
+  
+  /* Only returned from server when not unknown - could have previous vslue*/
+  {set PositionForClient ?}.
  
   /* If this object is in a container with its own AppServer Handle,
      then we run fetchContainedRows in that in order to retrieve this objects
@@ -4749,9 +4752,10 @@ Parameters:
                                           lFill,
                                           ABS(piRowsToReturn),
                                           OUTPUT piRowsReturned).
+
     /* if failure return current batch */
     IF NOT lAppend AND piRowsReturned = 0 AND cMode = "REPOSITION":U THEN
-    DO: 
+    DO:
       /* Avoid this if we do not have info about what was current */
       IF cFirstResultrow <> ? AND cLastResultrow <> ? THEN
       DO:
@@ -4770,7 +4774,7 @@ Parameters:
                   0, /* we may have more than one batch */ 
                   OUTPUT piRowsReturned).
         /* Tell clientSendRows to not position */ 
-        {set QueryRowident ?}.
+        {set PositionForClient ?}. 
         /* Tell locally that we have no position */
         hRowObject:BUFFER-RELEASE.
       END.
@@ -7208,7 +7212,7 @@ FUNCTION deleteRow RETURNS LOGICAL
   DEFINE VARIABLE iValue         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lAutoCommit    AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lBrowsed       AS LOGICAL   NO-UNDO.  
-  DEFINE VARIABLE lNextNeeded    AS LOGICAL   NO-UNDO INIT no.
+  DEFINE VARIABLE lNextNeeded    AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lSuccess       AS LOGICAL   NO-UNDO INIT yes.
   DEFINE VARIABLE rDataQuery     AS ROWID     NO-UNDO.
   DEFINE VARIABLE rRowAfter      AS ROWID     NO-UNDO.
@@ -7225,7 +7229,8 @@ FUNCTION deleteRow RETURNS LOGICAL
   DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hRowObjUpd2     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cRowObjectState AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE lFirstDeleted   AS LOGICAL    NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign    
   {get RowObject hRowObject}
   {get RowObjUpd hRowObjUpd}
@@ -7241,9 +7246,6 @@ FUNCTION deleteRow RETURNS LOGICAL
      for it (no data needed, just the RowIdent field) and delete it. */
 
   /* This includes ? which means delete current from 9.1B */
-
-
-
   IF ENTRY(1, pcRowIdent) NE "":U THEN
   DO TRANSACTION:
     IF pcRowIdent <> ? THEN
@@ -7422,6 +7424,7 @@ FUNCTION deleteRow RETURNS LOGICAL
       /* This must now be the first record, unless it is new */
       IF hRowObject:AVAIL AND hRowIdent:BUFFER-VALUE > '':U THEN
       DO:
+        lFirstDeleted = true.  
         cFirstResult = hRowNum:BUFFER-VALUE + ';':U + hRowIdent:BUFFER-VALUE.
         {set FirstResultRow cFirstResult}.
       END.
@@ -7504,8 +7507,11 @@ FUNCTION deleteRow RETURNS LOGICAL
       END.
     
       /* NextNeeded = false if the browse 'autopositioned', also if we deleted 
-         the only or last record don't try to fetch another batch. */
-      IF lNextNeeded AND {fnarg rowAvailable 'NEXT':U} AND NOT lNewDeleted THEN
+         the first, only or last record don't try to fetch another batch. */
+      IF lNextNeeded 
+      AND {fnarg rowAvailable 'NEXT':U} 
+      AND NOT lFirstDeleted
+      AND NOT lNewDeleted THEN
         RUN fetchNext IN TARGET-PROCEDURE.
       ELSE 
       DO:    
@@ -10353,7 +10359,8 @@ FUNCTION submitRow RETURNS LOGICAL
                          INPUT pcValueList,
                          OUTPUT lReopen, 
                          OUTPUT cErrorMessages).
-
+  
+ 
   IF cErrorMessages NE "":U THEN
     RETURN FALSE.  
   /* Perform any validation on individual columns. */

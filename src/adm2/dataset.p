@@ -1312,7 +1312,6 @@ FUNCTION childTables RETURNS CHARACTER
   DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cChildren       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cChildTables    AS CHARACTER  NO-UNDO.
 
   hBuffer = {fnarg dataTableHandle pcTable}.
   IF VALID-HANDLE(hbuffer) THEN
@@ -1320,15 +1319,11 @@ FUNCTION childTables RETURNS CHARACTER
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
       IF {fnarg relationType hRelation} BEGINS 'one-':U THEN 
-      DO:
-        ASSIGN  
-          cChildren = cChildren 
-                    + (IF cChildren = '':U THEN '':U ELSE ',':U) 
-                    + hRelation:CHILD-BUFFER:NAME
-          cChildTables = {fnarg childTables hRelation:CHILD-BUFFER:NAME}.
-        IF cChildTables > '':U THEN
-           cChildren = cChildren + ',':U + cChildTables.
-      END.
+        cChildren = cChildren 
+                  + (IF cChildren = '':U THEN '':U ELSE ',':U) 
+                  + hRelation:CHILD-BUFFER:NAME
+                  + ',':U 
+                  + {fnarg childTables hRelation:CHILD-BUFFER:NAME}.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
  

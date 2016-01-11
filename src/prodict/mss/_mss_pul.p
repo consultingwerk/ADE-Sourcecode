@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -55,6 +55,7 @@ History:
     10/06/06 fernando  Check object name in case it has underscore - 20031205-003
     08/10/07 fernando  Removed UI restriction for Unicode support    
     02/22/08 fernando  Support for datetime
+    02/25/09 Nagaraju  to handle timestamp field properly - OE00181255
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -843,10 +844,15 @@ for each gate-work
       end. /* DO */
 
       /* OE00162531: adding identity fields to non-updatable list */
+      /* OE00181255: adding timestamp fields to non-updatable list */
       if DICTDBG.SQLColumns_buffer.column-name BEGINS "PROGRESS_RECID"
       then .
-      else if (s_ttb_fld.ds_msc24 EQ "identity")
-           then s_ttb_tbl.ds_msc22 = string(s_ttb_fld.ds_stoff) + ",".
+      else if ((s_ttb_fld.ds_msc24 EQ "identity") OR 
+               (s_ttb_fld.ds_msc24 EQ "timestamp")) then do:
+        if s_ttb_tbl.ds_msc22 = ? then 
+           assign s_ttb_tbl.ds_msc22 = "".
+        s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(s_ttb_fld.ds_stoff) + ",".
+      end.
 
       if shadow_col > 0 then 
         assign s_ttb_fld.pro_case = FALSE  

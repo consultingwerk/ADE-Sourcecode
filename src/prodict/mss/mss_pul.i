@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2007-2009 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -35,6 +35,7 @@ History:
    fernando   04/08/08 Handle MAX field with Native driver - OE00165897
    fernando   08/18/08 Check default value for date/time - OE00167581
    fernando   08/25/08 Increase column size for default processing
+   Nagaraju   02/23/09 to handle timestamp field properly - OE00181255
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -170,7 +171,8 @@ assign
                               + {&order-offset}
  s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
                                 then false
-                           ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0 THEN
+                           ELSE IF ((INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0) OR 
+                                    (INDEX(DICTDBG.SQLColumns_buffer.Type-name,"timestamp") > 0)) THEN
                                 FALSE
                            else (DICTDBG.SQLColumns_buffer.Nullable = 0)
                           ).
@@ -194,6 +196,8 @@ END CASE.
  IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0 THEN
    ASSIGN s_ttb_fld.ds_msc24 = "identity"
           s_ttb_fld.ds_itype = 1.
+ ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"timestamp") > 0 THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "timestamp".
 
  IF s_ttb_Fld.ds_scale = ? THEN 
    ASSIGN s_ttb_Fld.ds_scale = 0.

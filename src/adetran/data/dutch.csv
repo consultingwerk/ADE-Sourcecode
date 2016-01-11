@@ -1,6 +1,6 @@
 %s Object/Link,,%s-object/-koppeling,B/-,COM,,WIN,PUB
 (No suggestions),,(Geen suggesties),,TXT,,WIN,PUB
-¸ 1990-1993 Microsoft Corporation. All rights reserved.,,¸ 1990-1993 Microsoft Corporation. Alle rechten voorbehouden.,,TXT,,WIN,PUB
+© 1990-1993 Microsoft Corporation. All rights reserved.,,© 1990-1993 Microsoft Corporation. Alle rechten voorbehouden.,,TXT,,WIN,PUB
 1 pt,,1 pt,1,OPT,,WIN,PUB
 2 pt,,2 pt,2,OPT,,WIN,PUB
 4 pt,,4 pt,4,OPT,,WIN,PUB
@@ -22,7 +22,7 @@ After Paragraphs,,Na alinea's,N,DIA,,WIN,PUB
 After right page,,Na rechterpagina,N,OPT,,WIN,PUB
 After selected Cells,,Na selectie,N,OPT,,WIN,PUB
 Alignment,,Uitlijning,U,DIA,,WIN,PUB
-All,,Alle paginaïs,A,OPT,,WIN,PUB
+All,,Alle pagina´s,A,OPT,,WIN,PUB
 All Capitals,,HOOFDLETTERS,F,CHX,,WIN,PUB
 All Colors to Black,,Alle kleuren naar zwart,Z,CHX,,WIN,PUB
 All rights reserved.,,Alle rechten voorbehouden.,,TXT,,WIN,PUB
@@ -48,7 +48,7 @@ Before Paragraphs,,Voor alinea's,V,DIA,,WIN,PUB
 Before selected Cells,,Voor selectie,V,OPT,,WIN,PUB
 Between Lines,,Tussen regels,T,DIA,,WIN,PUB
 Between Pages,,Tussen pagina's,T,OPT,,WIN,PUB
-"Bitstream¸ is a registered trademark and Facelift is a trademark of Bitstream, Inc.",,"Bitstream¸ is een geregistreerd handelsmerk en Facelift is een handelsmerk van Bitstream, Inc.",,TXT,,WIN,PUB
+"Bitstream© is a registered trademark and Facelift is a trademark of Bitstream, Inc.",,"Bitstream© is een geregistreerd handelsmerk en Facelift is een handelsmerk van Bitstream, Inc.",,TXT,,WIN,PUB
 Border,,Rand,,TDB,,WIN,PUB
 Border ,,Rand,R,COM,,WIN,PUB
 Border Size:,,Kaderbreedte:,K,TXB,,WIN,PUB
@@ -84,7 +84,7 @@ Character ,,Teken,E,COM,,WIN,PUB
 Character Properties,,Tekeneigenschappen,E,CHX,,WIN,PUB
 Character type and size,,Lettertype en -grootte,E,OPT,,WIN,PUB
 Check All Stories,,Alle verhalen controleren,C,OPT,,WIN,PUB
-Check Background Page(s),,Achtergrondpagina(ïs) controleren,G,CHX,,WIN,PUB
+Check Background Page(s),,Achtergrondpagina(´s) controleren,G,CHX,,WIN,PUB
 Check For All Problems,,Alle problemen controleren,A,OPT,,WIN,PUB
 Check Layout,,Layout controleren,C,COM,,WIN,PUB
 Check Layout,,Layout controleren,,TDB,,WIN,PUB
@@ -121,7 +121,7 @@ Convert,,Converteren,C,COM,,WIN,PUB
 Convert,,Converteren,,TDB,,WIN,PUB
 Convert To:,,Converteren naar:,C,OPT,,WIN,PUB
 Copies:,,Aantal:,L,TXB,,WIN,PUB
-Copy,,Kopi‰ren,K,COM,,WIN,STANDARD
+Copy,,Kopiëren,K,COM,,WIN,STANDARD
 Copyright (c) 1990-91 Microsoft Corporation,,Copyright (c) 1990-91 Microsoft Corporation,,TXT,,WIN,PUB
 Covered Objects,,Bedekte objecten,B,CHX,,WIN,PUB
 Create a new style,,Nieuw opmaakprofiel maken,N,OPT,,WIN,PUB
@@ -130,7 +130,7 @@ Create New Publication,,Nieuwe publikatie maken,N,COM,,WIN,PUB
 Create New Publication,,Nieuwe publikatie maken,,TDB,,WIN,PUB
 Create new style,,Nieuw opmaakprofiel maken,,TDB,,WIN,PUB
 Create New:,,Nieuw object:,N,OPT,,WIN,PUB
-Create One Text Frame On Each Page,,E‚n tekstframe invoegen op elke pagina,E,OPT,,WIN,PUB
+Create One Text Frame On Each Page,,Eén tekstframe invoegen op elke pagina,E,OPT,,WIN,PUB
 Create Table,,Tabel maken,,TDB,,WIN,PUB
 Create two backgrounds with mirrored guides,,Twee achtergronden maken met gespiegelde hulplijnen,T,CHX,,WIN,PUB
 Crop Object,,Object bijsnijden,B,COM,,WIN,PUB
@@ -155,7 +155,7 @@ Delete,,Verwijderen,,DIA,,WIN,PUB
 Delete,,Rijen of kolommen verwijderen,,TDB,,WIN,PUB
 Delete All Tabs,,Alle tabs verwijderen,A,BUT,,WIN,PUB
 Delete Colomns,,Kolom(men) verwijderen,D,COM,,WIN,PUB
-Delete Page(s),,Pagina(ïs) verwijderen,E,COM,,WIN,PUB
+Delete Page(s),,Pagina(´s) verwijderen,E,COM,,WIN,PUB
 Delete Rows,,Rij(en) verwijderen,D,COM,,WIN,PUB
 Delete Rows or Colomns,,Rijen of kolommen verwijderen,D,COM,,WIN,PUB
 Delete Table Frame,,Tabelframe verwijderen,R,COM,,WIN,PUB
@@ -192,8 +192,8 @@ File,,Bestand,B,OPT,,WIN,PUB,
 File Name:,,Bestandsnaam:,N,TXB,,WIN,STANDARD,
 File:,,Bestand:,B,TXB,,WIN,PUB
 Files Found:,,Bestanden:,B,DIA,,WIN,PUB
-Fill Down,,Omlaag kopi‰ren,O,COM,,WIN,PUB
-Fill Right,,Rechts kopi‰ren,R,COM,,WIN,PUB
+Fill Down,,Omlaag kopiëren,O,COM,,WIN,PUB
+Fill Right,,Rechts kopiëren,R,COM,,WIN,PUB
 Find,,Zoeken ,Z,COM,,WIN,PUB
 Find,,Zoeken,,TDB,,WIN,STANDARD
 Find All Files of this Type:,,Bestandstype:,T,DIA,,WIN,PUB
@@ -285,7 +285,7 @@ Insert Symbol,,Symbool invoegen,,TDB,,WIN,PUB
 Inside:,,Binnenkant:,N,TXB,,WIN,PUB
 Instruction,,Instructies,I,BUT,,WIN,PUB
 Introduction to Publisher,,Introductie,N,COM,,WIN,PUB
-Kern Character Pairs Above,,Lettercombinaties boven xxx afspati‰ren,L,TXB,,WIN,PUB
+Kern Character Pairs Above,,Lettercombinaties boven xxx afspatiëren,L,TXB,,WIN,PUB
 Keyboard Guide,,Toetsenbord,T,COM,,WIN,PUB
 Label:,,Label:,L,DIA,,WIN,PUB
 Landscape,,Liggend,L,OPT,,WIN,PUB
@@ -405,7 +405,7 @@ Print,,Afdrukken ,D,COM,,WIN,STANDARD
 Print,,Afdrukken,,TDB,,WIN,PUB
 Print Crop Marks,,Bijsnijdmarkeringen,B,CHX,,WIN,PUB
 Print Entire Page,,Volledige pagina afdrukken,V,TXT,,WIN,PUB
-Print one Tile from Ruler Origin,,E‚n deel vanaf het begin van de liniaal afdrukken,E,TXT,,WIN,PUB
+Print one Tile from Ruler Origin,,Eén deel vanaf het begin van de liniaal afdrukken,E,TXT,,WIN,PUB
 Print Postscript Error Information,,Postscript-foutinformatie afdrukken,F,CHX,,WIN,PUB
 Print Quality:,,Afdrukkwaliteit:,K,DIA,,WIN,PUB
 Print Range,,Bereik,,DIA,,WIN,STANDARD
@@ -440,9 +440,9 @@ Redo Bring to Front,,Opnieuw Naar voorgrond,O,COM,,WIN,PUB
 Redo Change Cell Properties,,Opnieuw Celeigenschappen wijzigen,O,COM,,WIN,PUB
 Redo Change Frame Properties,,Opnieuw Frame-eigenschappen,O,COM,,WIN,PUB
 Redo Change Text Frame Properties,,Opnieuw Tekstframe-eigenschappen wijzigen,O,COM,,WIN,PUB
-Redo Copy Cells,,Opnieuw Cellen kopi‰ren,O,COM,,WIN,PUB
-Redo Copy Object(s),,Opnieuw Object(en) kopi‰ren,O,COM,,WIN,PUB
-Redo Copy Text,,Opnieuw Tekst kopi‰ren,O,COM,,WIN,PUB
+Redo Copy Cells,,Opnieuw Cellen kopiëren,O,COM,,WIN,PUB
+Redo Copy Object(s),,Opnieuw Object(en) kopiëren,O,COM,,WIN,PUB
+Redo Copy Text,,Opnieuw Tekst kopiëren,O,COM,,WIN,PUB
 Redo Create Object,,Opnieuw Object maken,O,COM,,WIN,PUB
 Redo Crop Object,,Opnieuw Object bijsnijden,O,COM,,WIN,PUB
 Redo Crop Picture,,Opnieuw Figuur bijsnijden,O,COM,,WIN,PUB
@@ -454,8 +454,8 @@ Redo Delete Object(s),,Opnieuw Object(en) verwijderen,O,COM,,WIN,PUB
 Redo Delete Page(s),,Opnieuw Pagina's verwijderen,O,COM,,WIN,PUB
 Redo Delete Row,,Opnieuw Rij verwijderen,O,COM,,WIN,PUB
 Redo Delete Text,,Opnieuw Tekst verwijderen,O,COM,,WIN,PUB
-Redo Fill Down,,Opnieuw Omlaag kopi‰ren,O,COM,,WIN,PUB
-Redo Fill Right,,Opnieuw Rechts kopi‰ren,O,COM,,WIN,PUB
+Redo Fill Down,,Opnieuw Omlaag kopiëren,O,COM,,WIN,PUB
+Redo Fill Right,,Opnieuw Rechts kopiëren,O,COM,,WIN,PUB
 Redo Flip/rotate,,Opnieuw Draaien/spiegelen,O,COM,,WIN,PUB
 Redo Format,,Opnieuw Opmaak,O,COM,,WIN,PUB
 Redo Frame Margins,,Opnieuw Framemarges,O,COM,,WIN,PUB
@@ -676,9 +676,9 @@ Undo Bring to Front,,Ongedaan maken Naar voorgrond,O,COM,,WIN,PUB
 Undo Change Cell Properties,,Ongedaan maken Celeigenschappen wijzigen,O,COM,,WIN,PUB
 Undo Change Frame Properties,,Ongedaan maken Frame-eigenschappen wijzigen,O,COM,,WIN,PUB
 Undo Change Text Frame Properties,,Ongedaan maken Tekstframe-eigenschappen wijzigen,O,COM,,WIN,PUB
-Undo Copy Cells,,Ongedaan maken Cellen kopi‰ren,O,COM,,WIN,PUB
-Undo Copy Object(s),,Ongedaan maken Object(en) kopi‰ren,O,COM,,WIN,PUB
-Undo Copy Text,,Ongedaan maken Tekst kopi‰ren,O,COM,,WIN,PUB
+Undo Copy Cells,,Ongedaan maken Cellen kopiëren,O,COM,,WIN,PUB
+Undo Copy Object(s),,Ongedaan maken Object(en) kopiëren,O,COM,,WIN,PUB
+Undo Copy Text,,Ongedaan maken Tekst kopiëren,O,COM,,WIN,PUB
 Undo Create Object,,Ongedaan maken Object maken,O,COM,,WIN,PUB
 Undo Crop Object,,Ongedaan maken Object bijsnijden,O,COM,,WIN,PUB
 Undo Crop Picture,,Ongedaan maken Figuur bijsnijden,O,COM,,WIN,PUB
@@ -687,13 +687,13 @@ Undo Cut Object(s),,Ongedaan maken Object(en) knippen,O,COM,,WIN,PUB
 Undo Cut Text,,Ongedaan maken Tekst knippen,O,COM,,WIN,PUB
 Undo Delete Column,,Ongedaan maken Kolom verwijderen,O,COM,,WIN,PUB
 Undo Delete Object(s),,Ongedaan maken Object(en) verwijderen,O,COM,,WIN,PUB
-Undo Delete Page(s),,Ongedaan maken Pagina(ïs) verwijderen,O,COM,,WIN,PUB
+Undo Delete Page(s),,Ongedaan maken Pagina(´s) verwijderen,O,COM,,WIN,PUB
 Undo Delete Row,,Ongedaan maken Rij verwijderen,O,COM,,WIN,PUB
 Undo Delete Text,,Ongedaan maken Tekst  verwijderen,O,COM,,WIN,PUB
 Undo Edit %s Object,,Ongedaan maken %s-object bewerken,O,COM,,WIN,PUB
 Undo Edit %s Object,,Ongedaan maken %s-object bewerken,O,COM,,WIN,PUB
-Undo Fill Down,,Ongedaan maken Omlaag kopi‰ren,O,COM,,WIN,PUB
-Undo Fill Right,,Ongedaan maken Rechts kopi‰ren,O,COM,,WIN,PUB
+Undo Fill Down,,Ongedaan maken Omlaag kopiëren,O,COM,,WIN,PUB
+Undo Fill Right,,Ongedaan maken Rechts kopiëren,O,COM,,WIN,PUB
 Undo Flip/rotate,,Ongedaan maken Draaien/spiegelen,O,COM,,WIN,PUB
 Undo Format,,Ongedaan maken Opmaak,O,COM,,WIN,PUB
 Undo Frame Margins,,Ongedaan maken Framemarges,O,COM,,WIN,PUB
@@ -755,7 +755,7 @@ Use this option to create,,Gebruik deze optie voor het maken van:,,TXT,,WIN,PUB
 Very Loose,,Ver uit elkaar,R,OPT,,WIN,PUB
 Very tight,,Heel dicht op elkaar,E,OPT,,WIN,PUB
 View More Options,,Meer opties,O,BUT,,WIN,PUB
-View Single Page,,E‚n pagina bekijken,B,COM,,WIN,PUB
+View Single Page,,Eén pagina bekijken,B,COM,,WIN,PUB
 View Two Page Spread,,Twee pagina's bekijken,B,COM,,WIN,PUB
 Virtual Memory (KB):,,Virtueel geheugen (kB):,V,TXB,,WIN,PUB
 Warning: This computer program is protected by copyright law and international treaties..,,Waarschuwing: dit computerprogramma is beschermd door copyright en internationale verdragen zoals beschreven in het dialoogvenster Info.,,TXT,,WIN,PUB

@@ -19,12 +19,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: gsmpyasdfv.w
 
@@ -514,7 +514,7 @@ PROCEDURE parseValue :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcValue AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE cList       AS CHARACTER  INIT '-H,-S,-A,-U'  NO-UNDO.
+DEFINE VARIABLE cList       AS CHARACTER  INIT '-H,-S,-AppService,-U'  NO-UNDO.
 DEFINE VARIABLE cString     AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE iPosition   AS INTEGER      NO-UNDO.
 DEFINE VARIABLE iNext       AS INTEGER      NO-UNDO.
@@ -538,7 +538,7 @@ DEFINE VARIABLE iSpace      AS INTEGER      NO-UNDO.
         CASE ENTRY(iNum, cList):
           WHEN '-H':U THEN fiHost:SCREEN-VALUE = cString.
           WHEN '-S':U THEN fiNameService:SCREEN-VALUE = cString.
-          WHEN '-A':U THEN fiAppService:SCREEN-VALUE = cString.
+          WHEN '-AppService':U THEN fiAppService:SCREEN-VALUE = cString.
           WHEN '-U':U THEN fiURL:SCREEN-VALUE = cString.
         END CASE.
       END.  /* option found */

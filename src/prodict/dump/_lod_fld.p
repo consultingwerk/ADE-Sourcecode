@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@
       08/16/06 Raw comparison when checking if char values are different - 20060301-002
       10/02/07 Error handling - OE00158774
       04/30/08 Fix handling of Order values - OE00166224
+      11/24/08 Changes for clob field - OE00177533
 */    
     
 define input-output parameter minimum-index as integer.
@@ -66,6 +67,14 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
   IF wfld._Data-type = "CLOB" AND
     (wfld._Charset = ? OR wfld._Collation = ?) THEN
     ierror = 46.
+
+  /* OE00177533 - make sure attributes1 is correct based on column and db codepage */
+  IF wfld._Data-type = "CLOB" AND wfld._Attributes1 = 1 THEN DO:
+     FIND _Db WHERE RECID(_Db)= _File._Db-recid.
+     /* if codepages don't match, then this must be 2 in spite of what the .df has */
+     IF UPPER(wfld._Charset) NE UPPER(_Db._db-xl-name) THEN
+        wfld._Attributes1 = 2.
+  END.
 
   /* allow int64 for 10.1B an later */
   IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
@@ -147,6 +156,15 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF _Field._Extent <> wfld._Extent THEN
     ierror = 11. /* "Cannot change extent of existing field" */
   IF ierror > 0 THEN RETURN.
+
+  /* OE00177533 - make sure attributes1 is correct based on column and db codepage */
+  IF _Field._Data-type = "CLOB" AND 
+     _Field._Attributes1 = 2  AND wfld._Attributes1 = 1 THEN DO:
+     FIND _Db WHERE RECID(_Db)= _File._Db-recid.
+     /* if codepages don't match, then this must be 2 in spite of what the .df has */
+     IF UPPER(_Field._Charset) NE UPPER(_Db._db-xl-name) THEN
+        wfld._Attributes1 = _Field._Attributes1.
+  END.
 
   /* existing order! */
   IF _Field._Order <> wfld._Order
@@ -244,6 +262,18 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
 
       /* OE00166224 - see if some other field wanted this order value */
       RUN retryOrder(INPUT freeOrder).
+  END.
+
+  /* OE00177533 - catch incorrect changes for clob fields - manual editing */
+  IF _Field._data-type = "clob" THEN DO:
+      IF (wfld._Charset   <> ? AND UPPER(_Field._Charset) NE UPPER(wfld._Charset)) OR
+         (wfld._Collation <> ? AND UPPER(_Field._Collation) NE UPPER(wfld._Collation)) THEN DO:
+          ASSIGN ierror = 60. /* Cannot change codepage or collation of existing column */
+          RETURN.
+      END.
+
+      IF wfld._Attributes1 <> 0 AND wfld._Attributes1 <> ? THEN 
+         _Field._Attributes1 = wfld._Attributes1.
   END.
 
   fldrecid = RECID(_Field).

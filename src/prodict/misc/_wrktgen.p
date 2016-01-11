@@ -178,6 +178,7 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   fernando 08/25/08   Fix logic for extent and sql-width - OE00172253
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
   knavneet 09/28/08   Added error handling code to the sequence generator - OE00172741
+  rkumar   12/20/08   Added code to generate correct DROP TABLE SQL for ODBC DataServer - OE00177726
 */
 
 { prodict/dictvar.i }
@@ -777,7 +778,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           comment_chars "    drop table " n1 SKIP
           comment_chars user_env[5] SKIP.
   END.
-  ELSE IF ( dbtyp <> "Informix" AND dbtyp <> "DB2" AND dbtyp <> "MS ACCESS" )  THEN DO:
+ /* ELSE IF ( dbtyp <> "Informix" AND dbtyp <> "DB2" AND dbtyp <> "MS ACCESS" )  THEN DO: */
+  ELSE DO:
       PUT STREAM code UNFORMATTED comment_chars "DROP TABLE " n1.
       IF skptrm THEN
           PUT STREAM code UNFORMATTED SKIP.

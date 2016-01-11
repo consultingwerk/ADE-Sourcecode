@@ -66,7 +66,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* object identifying preprocessor */
 &glob   AstraProcedure    yes
 
-{src/adm2/globals.i}
+{adm2/globals.i}
 
 DEFINE VARIABLE ghSessTypeCache AS HANDLE     NO-UNDO.
 

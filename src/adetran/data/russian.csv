@@ -1,423 +1,423 @@
 Source Term,Source Term Hot Key,Target Term,Target Term Hot Key,Category,Type,Environment,Product,Comments
-(keypad) *,,¤†Р… * (”Љ“РЊѓ… €‰…ѓЉ…•ўР…),,KEY,,WIN,Standard,GUI
-(keypad) +,,¤†Р–‚ + (”Љ“РЊѓ… €‰…ѓЉ…•ўР…),,KEY,,WIN,Standard,GUI
-(keypad) -,,¤†Р–‚ - (”Љ“РЊѓ… €‰…ѓЉ…•ўР…),,KEY,,WIN,Standard,GUI
-(keypad) /,,¤†Р… / (”Љ“РЊѓ… €‰…ѓЉ…•ўР…),,KEY,,WIN,Standard,GUI
-About,,Ч ‹РЊЖР…ЌЌ† ,Ч,COM,,WIN,Standard,GUI
-About Help,,Ч ‹РЊЖР…ЌЌ†... ,Ч,COM,,WIN,Standard,GUI
-access key,,ЖЊРц… €‰…ѓЉ›…,,GEN,,WIN,Standard,GUI
-Accessories,,ШРЉЎ…„‰†‘ЎЊ¤•Љ,,GEN,,WIN,Standard,Can be different in Chicago
-active window,,…€•ЉѓЎЊ† Њ€ЎЊ,,GEN,,WIN,Standard,GUI
-Active Window,,·€•ЉѓЎЊ† Њ€ЎЊ,·,COM,,WIN,Standard,GUI
-Add,,ЋЊ …ѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Alignment,,¶–Р…ѓЎЉѓ…ЎЉ†...,¶,GEN,,WIN,Standard,GUI
-All,,¶¤†,Џ,GEN,,WIN,Standard,GUI
+(keypad) *,,серая * (цифровая клавиатура),,KEY,,WIN,Standard,GUI
+(keypad) +,,серый + (цифровая клавиатура),,KEY,,WIN,Standard,GUI
+(keypad) -,,серый - (цифровая клавиатура),,KEY,,WIN,Standard,GUI
+(keypad) /,,серая / (цифровая клавиатура),,KEY,,WIN,Standard,GUI
+About,,О программе ,О,COM,,WIN,Standard,GUI
+About Help,,О программе... ,О,COM,,WIN,Standard,GUI
+access key,,горячая клавиша,,GEN,,WIN,Standard,GUI
+Accessories,,Принадлежности,,GEN,,WIN,Standard,Can be different in Chicago
+active window,,активное окно,,GEN,,WIN,Standard,GUI
+Active Window,,Активное окно,А,COM,,WIN,Standard,GUI
+Add,,Добавить,,GEN,,WIN,Standard,GUI
+Alignment,,Выравнивание...,В,GEN,,WIN,Standard,GUI
+All,,Все,Е,GEN,,WIN,Standard,GUI
 ALT,,ALT,,KEY,,WIN,Standard,GUI
 ALT GR,,ALT GR,,KEY,,WIN,Standard,GUI
-Always on Top,,ШЊѓ†Рд Њ¤•…‰ЃЎ–д,,GEN,,WIN,Standard,GUI
-Annotate,,ШРЉЌ†ц…ЎЉ†...,,GEN,,WIN,Standard,GUI
-application icon,,‡Ў…цЊ€ ‹РЉ‰Њ‘†ЎЉ / ‡Ў…цЊ€ ‹РЉ€‰…„ЎЊ‚ ‹РЊЖР…ЌЌ–,,GEN,,WIN,Standard,GUI
-application window,,Њ€ЎЊ ‹РЉ‰Њ‘†ЎЉ,,GEN,,WIN,Standard,GUI
-Applications,,ШРЉ‰Њ‘†ЎЉ,,GEN,,WIN,Standard,GUI
-Apply,,ШРЉЌ†ЎЉ•Ѓ,,GEN,,WIN,Standard,GUI
-arrange,,ў‹ЊР„ЊцЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Arrange All,,а‹ЊР„ЊцЉ•Ѓ ѓ¤†,а,GEN,,WIN,Standard,GUI
-arrow,,¤•Р†‰€…,,GEN,,WIN,Standard,GUI
-arrow pointer,,"ў€…‡…•†‰Ѓ ""¤•Р†‰€…""",,GEN,,WIN,Standard,GUI
-Assign to Key,,ШРЉ¤ѓЊЉ•Ѓ €‰…ѓЉ›†,,GEN,,WIN,Standard,GUI
-Assign to Menu,,ШРЉ¤ѓЊЉ•Ѓ Ќ†Ўз,,COM,,WIN,Standard,GUI
-automatic link,,…ѓ•ЊЌ…•Љц†¤€Љ Њ ЎЊѓ‰†Ќ… ¤ѓ‡Ѓ,,GEN,,WIN,Standard,GUI
-autoscroll,,…ѓ•Њ‹РЊ€Рў•€…,,GEN,,WIN,Standard,GUI
-Back,,Ц…‡…„,,GEN,,WIN,Standard,GUI
+Always on Top,,Поверх остальных,,GEN,,WIN,Standard,GUI
+Annotate,,Примечание...,,GEN,,WIN,Standard,GUI
+application icon,,значок приложения / значок прикладной программы,,GEN,,WIN,Standard,GUI
+application window,,окно приложения,,GEN,,WIN,Standard,GUI
+Applications,,Приложения,,GEN,,WIN,Standard,GUI
+Apply,,Применить,,GEN,,WIN,Standard,GUI
+arrange,,упорядочить,,GEN,,WIN,Standard,GUI
+Arrange All,,Упорядочить все,У,GEN,,WIN,Standard,GUI
+arrow,,стрелка,,GEN,,WIN,Standard,GUI
+arrow pointer,,"указатель ""стрелка""",,GEN,,WIN,Standard,GUI
+Assign to Key,,Присвоить клавише,,GEN,,WIN,Standard,GUI
+Assign to Menu,,Присвоить меню,,COM,,WIN,Standard,GUI
+automatic link,,автоматически обновляемая связь,,GEN,,WIN,Standard,GUI
+autoscroll,,автопрокрутка,,GEN,,WIN,Standard,GUI
+Back,,Назад,,GEN,,WIN,Standard,GUI
 BACKSPACE,,BACKSPACE,,KEY,,WIN,Standard,GUI
-bold,,‹Њ‰ў‘ЉРЎ–‚,’,GEN,,WIN,Standard,GUI
-Bookmark,,Ђ…€‰…„€… (Ђ),Ђ,MNU,,WIN,Standard,GUI
-border,,Њ Р…Ќ‰†ЎЉ† / ЖР…ЎЉ”…,,GEN,,WIN,Standard,GUI
-bottom window border,,ЎЉ‘Ў ЖР…ЎЉ”… Њ€Ў…,,GEN,,WIN,Standard,GUI
+bold,,полужирный,Ж,GEN,,WIN,Standard,GUI
+Bookmark,,Закладка (З),З,MNU,,WIN,Standard,GUI
+border,,обрамление / граница,,GEN,,WIN,Standard,GUI
+bottom window border,,нижняя граница окна,,GEN,,WIN,Standard,GUI
 BREAK,,BREAK,,KEY,,WIN,Standard,GUI
-browse,,‹РЊ‰Љ¤•…•Ѓ / ‰Љ¤•…•Ѓ (€ЎЊ‹€…) / ‹РЊ¤ЌЊ•Р,,GEN,,WIN,Standard,GUI
-button,,€ЎЊ‹€… (Ў…‘…•Ѓ €ЎЊ‹€ў),,GEN,,WIN,Standard,GUI
-Calculator,,Т…‰Ѓ€ў‰•ЊР,,GEN,,WIN,Standard,GUI
-Calendar,,Т…‰†Ў„…РЃ,,GEN,,WIN,Standard,GUI
-cancel,,Ч•Ќ†Ў…,,GEN,,WIN,Standard,GUI
-Cancel,,Њ•Ќ†ЎЉ•Ѓ,,COM,,WIN,Standard,GUI
+browse,,пролистать / листать (кнопка) / просмотр,,GEN,,WIN,Standard,GUI
+button,,кнопка (нажать кнопку),,GEN,,WIN,Standard,GUI
+Calculator,,Калькулятор,,GEN,,WIN,Standard,GUI
+Calendar,,Календарь,,GEN,,WIN,Standard,GUI
+cancel,,Отмена,,GEN,,WIN,Standard,GUI
+Cancel,,отменить,,COM,,WIN,Standard,GUI
 CAPS LOCK,,CAPS LOCK,,KEY,,WIN,Standard,GUI
 Caps Lock on (CAPS),,CAPS,,KEY,,WIN,Standard,GUI
-Cardfile,,Т…Р•Њ•†€…,,GEN,,WIN,Standard,GUI
-cascading menu,,‹Њ„Ќ†Ўз,,GEN,,WIN,Standard,GUI
-cascading windows,,Њ€Ў… €…¤€…„ЊЌ,,GEN,,WIN,Standard,GUI
-centered,,[ѓ–РЊѓЎ†ЎЎ–‚] ‹Њ ”†Ў•Рў,™,GEN,,WIN,Standard,GUI
-Change,,Ф‡Ќ†ЎЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Character Map,,г… ‰Љ”… ¤ЉЌѓЊ‰Њѓ,,GEN,,WIN,Standard,GUI
-Character,,ҐЉЌѓЊ‰... ,Ф,GEN,,WIN,Standard,GUI
-check,,Њ•Ќ†•Љ•Ѓ,,GEN,,WIN,Standard,GUI
-check box,,Ў†‡…ѓЉ¤ЉЌ–‚ ‹†Р†€‰зц…•†‰Ѓ / “‰…‘Њ€,,GEN,,WIN,Standard,GUI
-check mark,,Ж…‰Њц€… / Њ•Ќ†•€…,,GEN,,WIN,Standard,GUI
-checked command,,Њ•Ќ†ц†ЎЎ… €ЊЌ…Ў„…,,GEN,,WIN,Standard,GUI
-chevrons,,ўЖ‰Њѓ–† €…ѓ–ц€Љ / ›†ѓРЊЎ–,,GEN,,WIN,Standard,GUI
-choose,,ѓ– Р…•Ѓ,,GEN,,WIN,Standard,GUI
-clear,,ЊцЉ¤•Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Clear,,ЧцЉ¤•Љ•Ѓ,ћ,COM,,WIN,Standard,GUI
-clear (undo Select),,¤Ў•Ѓ ѓ–„†‰†ЎЉ† / Њ•Ќ†ЎЉ•Ѓ ѓ– ЊР,,GEN,,WIN,Standard,GUI
-Clear All,,ЧцЉ¤•Љ•Ѓ ѓ¤†,,COM,,WIN,Standard,GUI
-Clock,,ћ…¤–,,GEN,,WIN,Standard,GUI
-Close,,Ђ…€Р–•Ѓ,Ђ,COM,,WIN,Standard,GUI
-close,,‡…€Р–•Ѓ,,GEN,,WIN,Standard,GUI
-Close All,,Ђ…€Р–•Ѓ ѓ¤†,,COM,,WIN,Standard,GUI
-collapse,,¤ѓ†РЎў•Ѓ,,GEN,,WIN,Standard,GUI
-Collate Copies,,ТЊ‹ЉЉ ѓ ‹Њ„ ЊР,,GEN,,WIN,Standard,GUI
-Column (Col),,Ґ•Њ‰ †”,,GEN,,WIN,Standard,GUI
-combo box,,‹Њ‰† ¤Њ ¤‹Љ¤€ЊЌ,,GEN,,WIN,Standard,GUI
-command,,€ЊЌ…Ў„…,,GEN,,WIN,Standard,GUI
-command button,,€ЎЊ‹€… [€ЊЌ…Ў„–],,GEN,,WIN,Standard,GUI
-command separator,,Р…‡„†‰Љ•†‰Ѓ €ЊЌ…Ў„–,,GEN,,WIN,Standard,GUI
-container application,,‹РЉ‰Њ‘†ЎЉ†-€ЊЎ•†‚Ў†Р,,GEN,,WIN,Standard,GUI
-container document,,„Њ€ўЌ†Ў•-€ЊЎ•†‚Ў†Р,,GEN,,WIN,Standard,GUI
-Contents,,ҐЊ„†Р‘…ЎЉ†,,COM,,WIN,Standard,GUI
-Contents,,ҐЊ„†Р‘…ЎЉ†,Ґ,GEN,,WIN,Standard,GUI
-Control menu,,ҐЉ¤•†ЌЎЊ† Ќ†Ўз,,MNU,,WIN,Standard,GUI
-Control Panel,,Ш…Ў†‰Ѓ ў‹Р…ѓ‰†ЎЉ,,GEN,,WIN,Standard,GUI
-Control-menu box,,€ЎЊ‹€… ¤Љ¤•†ЌЎЊЖЊ Ќ†Ўз,,GEN,,WIN,Standard,GUI
-Copies,,ТЊ‹ЉЉ,Т,GEN,,WIN,Standard,GUI
-copy,,€Њ‹ЉРЊѓ…•Ѓ,,GEN,,WIN,Standard,GUI
-Copy,,ТЊ‹ЉРЊѓ…•Ѓ,Т,COM,,WIN,Standard,GUI
-Copy Special,,Ґ‹†”Љ…‰ЃЎ… €Њ‹Љ,,COM,,WIN,Standard,Can be different in Chicago
-Copy,,ТЊ‹ЉРЊѓ…•Ѓ... ,Т,COM,,WIN,Standard,GUI
-Create,,ҐЊ‡„…•Ѓ,,GEN,,WIN,Standard,GUI
-critical message,,•Р†ѓЊ‘ЎЊ† ¤ЊЊ —†ЎЉ†,,GEN,,WIN,Standard,GUI
-crop,,Њ Р†‡…•Ѓ/ €…„РЉРЊѓ€…,,GEN,,WIN,Standard,GUI
-cross-hair pointer,,"ў€…‡…•†‰Ѓ ""‹†Р†€Р†¤•Ѓ†""",,GEN,,WIN,Standard,GUI
+Cardfile,,Картотека,,GEN,,WIN,Standard,GUI
+cascading menu,,подменю,,GEN,,WIN,Standard,GUI
+cascading windows,,окна каскадом,,GEN,,WIN,Standard,GUI
+centered,,[выровненный] по центру,Ц,GEN,,WIN,Standard,GUI
+Change,,Изменить,,GEN,,WIN,Standard,GUI
+Character Map,,Таблица символов,,GEN,,WIN,Standard,GUI
+Character,,Символ... ,И,GEN,,WIN,Standard,GUI
+check,,отметить,,GEN,,WIN,Standard,GUI
+check box,,независимый переключатель / флажок,,GEN,,WIN,Standard,GUI
+check mark,,галочка / отметка,,GEN,,WIN,Standard,GUI
+checked command,,отмеченная команда,,GEN,,WIN,Standard,GUI
+chevrons,,угловые кавычки / шевроны,,GEN,,WIN,Standard,GUI
+choose,,выбрать,,GEN,,WIN,Standard,GUI
+clear,,очистить,,GEN,,WIN,Standard,GUI
+Clear,,Очистить,Ч,COM,,WIN,Standard,GUI
+clear (undo Select),,снять выделение / отменить выбор,,GEN,,WIN,Standard,GUI
+Clear All,,Очистить все,,COM,,WIN,Standard,GUI
+Clock,,Часы,,GEN,,WIN,Standard,GUI
+Close,,Закрыть,З,COM,,WIN,Standard,GUI
+close,,закрыть,,GEN,,WIN,Standard,GUI
+Close All,,Закрыть все,,COM,,WIN,Standard,GUI
+collapse,,свернуть,,GEN,,WIN,Standard,GUI
+Collate Copies,,Копии в подбор,,GEN,,WIN,Standard,GUI
+Column (Col),,Столбец,,GEN,,WIN,Standard,GUI
+combo box,,поле со списком,,GEN,,WIN,Standard,GUI
+command,,команда,,GEN,,WIN,Standard,GUI
+command button,,кнопка [команды],,GEN,,WIN,Standard,GUI
+command separator,,разделитель команды,,GEN,,WIN,Standard,GUI
+container application,,приложение-контейнер,,GEN,,WIN,Standard,GUI
+container document,,документ-контейнер,,GEN,,WIN,Standard,GUI
+Contents,,Содержание,,COM,,WIN,Standard,GUI
+Contents,,Содержание,С,GEN,,WIN,Standard,GUI
+Control menu,,Системное меню,,MNU,,WIN,Standard,GUI
+Control Panel,,Панель управления,,GEN,,WIN,Standard,GUI
+Control-menu box,,кнопка системного меню,,GEN,,WIN,Standard,GUI
+Copies,,Копии,К,GEN,,WIN,Standard,GUI
+copy,,копировать,,GEN,,WIN,Standard,GUI
+Copy,,Копировать,К,COM,,WIN,Standard,GUI
+Copy Special,,Специальная копия,,COM,,WIN,Standard,Can be different in Chicago
+Copy,,Копировать... ,К,COM,,WIN,Standard,GUI
+Create,,Создать,,GEN,,WIN,Standard,GUI
+critical message,,тревожное сообщение,,GEN,,WIN,Standard,GUI
+crop,,обрезать/ кадрировка,,GEN,,WIN,Standard,GUI
+cross-hair pointer,,"указатель ""перекрестье""",,GEN,,WIN,Standard,GUI
 CTRL,,CTRL,,KEY,,WIN,Standard,GUI
-Customize,,Ц…¤•РЊЉ•Ѓ,,COM,,WIN,Standard,GUI
-cut,,ѓ–Р†‡…•Ѓ,,GEN,,WIN,Standard,GUI
-Cut,,¶–Р†‡…•Ѓ,¶,COM,,WIN,Standard,GUI
-Decrease Speed,,аЌ†ЎЃ›Љ•Ѓ ¤€ЊРЊ¤•Ѓ,Ґ,COM,,WIN,Standard,GUI
-Decrease Volume,,аЌ†ЎЃ›Љ•Ѓ ЖРЊЌ€Њ¤•Ѓ,Ю,COM,,WIN,Standard,GUI
-Default,,ШЊ ўЌЊ‰ц…ЎЉз,,GEN,,WIN,Standard,GUI
-Define,,Ч‹Р†„†‰Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Define,,Ч‹Р†„†‰Љ•Ѓ... ,Ч,COM,,WIN,Standard,GUI
+Customize,,Настроить,,COM,,WIN,Standard,GUI
+cut,,вырезать,,GEN,,WIN,Standard,GUI
+Cut,,Вырезать,В,COM,,WIN,Standard,GUI
+Decrease Speed,,Уменьшить скорость,С,COM,,WIN,Standard,GUI
+Decrease Volume,,Уменьшить громкость,М,COM,,WIN,Standard,GUI
+Default,,По умолчанию,,GEN,,WIN,Standard,GUI
+Define,,Определить,,GEN,,WIN,Standard,GUI
+Define,,Определить... ,О,COM,,WIN,Standard,GUI
 DEL,,DELETE (DEL),,KEY,,WIN,Standard,GUI
-delete,,ў„…‰Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Delete,,а„…‰Љ•Ѓ,а,COM,,WIN,Standard,GUI
-Delete After Current Position,,а„…‰Љ•Ѓ ‹Њ¤‰† •†€ў—†‚ ‹Њ‡Љ”ЉЉ,Ш,GEN,,WIN,Standard,Can be changed in Chicago
-Delete Before Current Position,,а„…‰Љ•Ѓ „Њ •†€ў—†‚ ‹Њ‡Љ”ЉЉ ,Ћ,GEN,,WIN,Standard,Can be changed in Chicago
-Delete,,а„…‰Љ•Ѓ...,а,COM,,WIN,Standard,GUI
-desktop,,Њ“ЊРЌ‰†ЎЉ† / м€Р…Ў,,GEN,,WIN,Standard,Can be changed in Chicago
-destination application,,‹РЉ‰Њ‘†ЎЉ†-‹Њ‰ўц…•†‰Ѓ,,GEN,,WIN,Standard,GUI
-destination document,,„Њ€ўЌ†Ў•-‹Њ‰ўц…•†‰Ѓ,,GEN,,WIN,Standard,GUI
-Device,,а¤•РЊ‚¤•ѓЊ,а,GEN,,WIN,Standard,GUI
-dialog box,,Њ€ЎЊ „Љ…‰ЊЖ… / „Љ…‰ЊЖЊѓЊ† Њ€ЎЊ / „Љ…‰ЊЖ,,GEN,,WIN,Standard,GUI
-dialog box title,,‡…ЖЊ‰ЊѓЊ€ Њ€Ў… „Љ…‰ЊЖ… / „Љ…‰ЊЖЊѓЊЖЊ Њ€Ў… / „Љ…‰ЊЖ…,,GEN,,WIN,Standard,GUI
-Direction,,Ц…‹Р…ѓ‰†ЎЉ†,,GEN,,WIN,Standard,GUI
-Directories,,Т…•…‰ЊЖЉ,Т,GEN,,WIN,Standard,GUI
-directory icon,,‡Ў…цЊ€ €…•…‰ЊЖ…,,GEN,,WIN,Standard,GUI
-disk icon,,‡Ў…цЊ€ „Љ¤€…,,GEN,,WIN,Standard,GUI
-document file icon,,‡Ў…цЊ€ “…‚‰… „Њ€ўЌ†Ў•…,,GEN,,WIN,Standard,GUI
-document icon,,‡Ў…цЊ€ „Њ€ўЌ†Ў•…,,GEN,,WIN,Standard,GUI
-document window,,Њ€ЎЊ „Њ€ўЌ†Ў•…,,GEN,,WIN,Standard,GUI
-Document,,ЋЊ€ўЌ†Ў•...,Ћ,COM,,WIN,Standard,GUI
-Done,,ЗЊ•ЊѓЊ!,,GEN,,WIN,Standard,GUI
-double underline,,„ѓЊ‚ЎЊ† ‹Њ„ц†Р€Љѓ…ЎЉ† ,,GEN,,WIN,Standard,GUI
-double-click,,„ѓЊ‚ЎЊ‚ —†‰цЊ€ / „ѓ…‘„– Ў…‘…•Ѓ €ЎЊ‹€ў Ќ–›Љ / „ѓ…‘„– —†‰€Ўў•Ѓ Ќ–›Ѓз Ў… ...,,GEN,,WIN,Standard,GUI
-Down,,¶ЎЉ‡,Ц,GEN,,WIN,Standard,GUI
-DOWN ARROW,,ҐгСЏУТ· ¶ЦФЂ,,KEY,,WIN,Standard,GUI
-down scroll arrow,,¤•Р†‰€… ‹РЊ€Рў•€Љ ѓЎЉ‡,,GEN,,WIN,Standard,GUI
-drag,,•…—Љ•Ѓ,,GEN,,WIN,Standard,GUI
-drag-and-drop,,‹†Р†•…—Љ•Ѓ / ‹РЊ•…—Љ•Ѓ (-Љ-Њ¤•…ѓЉ•Ѓ),,GEN,,WIN,Standard,GUI
-drive icon,,‡Ў…цЊ€ „Љ¤€… (ў¤•РЊ‚¤•ѓ… / Ў…€Њ‹Љ•†‰ / „Љ¤€ЊѓЊ„…),,GEN,,WIN,Standard,GUI
-Drives,,ЋЉ¤€Љ (ў¤•РЊ‚¤•ѓ… / Ў…€Њ‹Љ•†‰Љ / „Љ¤€ЊѓЊ„–),,GEN,,WIN,Standard,GUI
-drop,,Њ¤•…ѓЉ•Ѓ / Њ•‹ў¤•Љ•Ѓ €ЎЊ‹€ў Ќ–›Љ,,GEN,,WIN,Standard,GUI
-drop-down combo box,,‹Њ‰† ¤ Р…¤€Р–ѓ…з—ЉЌ¤ ¤‹Љ¤€ЊЌ,,GEN,,WIN,Standard,GUI
-drop-down list box,,Р…¤€Р–ѓ…з—Љ‚¤ ¤‹Љ¤Њ€,,GEN,,WIN,Standard,GUI
-drop-down menu,,Р…¤€Р–ѓ…з—††¤ Ќ†Ўз,,GEN,,WIN,Standard,GUI
-Edit,,ШР…ѓ€…,,MNU,,WIN,Standard,GUI
-Edit,,ШР…ѓ€…,Ш,COM,,WIN,Standard,GUI
-ellipsis,,ЌЎЊЖЊ•ЊцЉ†,,GEN,,WIN,Standard,GUI
-embed,,ѓЎ†„РЉ•Ѓ,,GEN,,WIN,Standard,GUI
-embedded object,,ѓЎ†„Р†ЎЎ–‚ Њ Ј†€•,,GEN,,WIN,Standard,GUI
+delete,,удалить,,GEN,,WIN,Standard,GUI
+Delete,,Удалить,У,COM,,WIN,Standard,GUI
+Delete After Current Position,,Удалить после текущей позиции,П,GEN,,WIN,Standard,Can be changed in Chicago
+Delete Before Current Position,,Удалить до текущей позиции ,Д,GEN,,WIN,Standard,Can be changed in Chicago
+Delete,,Удалить...,У,COM,,WIN,Standard,GUI
+desktop,,оформление / экран,,GEN,,WIN,Standard,Can be changed in Chicago
+destination application,,приложение-получатель,,GEN,,WIN,Standard,GUI
+destination document,,документ-получатель,,GEN,,WIN,Standard,GUI
+Device,,Устройство,У,GEN,,WIN,Standard,GUI
+dialog box,,окно диалога / диалоговое окно / диалог,,GEN,,WIN,Standard,GUI
+dialog box title,,заголовок окна диалога / диалогового окна / диалога,,GEN,,WIN,Standard,GUI
+Direction,,Направление,,GEN,,WIN,Standard,GUI
+Directories,,Каталоги,К,GEN,,WIN,Standard,GUI
+directory icon,,значок каталога,,GEN,,WIN,Standard,GUI
+disk icon,,значок диска,,GEN,,WIN,Standard,GUI
+document file icon,,значок файла документа,,GEN,,WIN,Standard,GUI
+document icon,,значок документа,,GEN,,WIN,Standard,GUI
+document window,,окно документа,,GEN,,WIN,Standard,GUI
+Document,,Документ...,Д,COM,,WIN,Standard,GUI
+Done,,Готово!,,GEN,,WIN,Standard,GUI
+double underline,,двойное подчеркивание ,,GEN,,WIN,Standard,GUI
+double-click,,двойной щелчок / дважды нажать кнопку мыши / дважды щелкнуть мышью на ...,,GEN,,WIN,Standard,GUI
+Down,,Вниз,Н,GEN,,WIN,Standard,GUI
+DOWN ARROW,,СТРЕЛКА ВНИЗ,,KEY,,WIN,Standard,GUI
+down scroll arrow,,стрелка прокрутки вниз,,GEN,,WIN,Standard,GUI
+drag,,тащить,,GEN,,WIN,Standard,GUI
+drag-and-drop,,перетащить / протащить (-и-оставить),,GEN,,WIN,Standard,GUI
+drive icon,,значок диска (устройства / накопителя / дисковода),,GEN,,WIN,Standard,GUI
+Drives,,Диски (устройства / накопители / дисководы),,GEN,,WIN,Standard,GUI
+drop,,оставить / отпустить кнопку мыши,,GEN,,WIN,Standard,GUI
+drop-down combo box,,поле с раскрывающимся списком,,GEN,,WIN,Standard,GUI
+drop-down list box,,раскрывающийся список,,GEN,,WIN,Standard,GUI
+drop-down menu,,раскрывающееся меню,,GEN,,WIN,Standard,GUI
+Edit,,Правка,,MNU,,WIN,Standard,GUI
+Edit,,Правка,П,COM,,WIN,Standard,GUI
+ellipsis,,многоточие,,GEN,,WIN,Standard,GUI
+embed,,внедрить,,GEN,,WIN,Standard,GUI
+embedded object,,внедренный объект,,GEN,,WIN,Standard,GUI
 END,,END,,KEY,,WIN,Standard,GUI
-ENTER,,€‰…ѓЉ›… ѓѓЊ„…,,KEY,,WIN,Standard,GUI
-enter,,ѓѓ†¤•Љ,,GEN,,WIN,Standard,GUI
-ENTER (keypad),,€‰…ѓЉ›… ѓѓЊ„… ENTER (”Љ“РЊѓ… €‰…ѓЉ…•ўР…),,KEY,,WIN,Standard,GUI
+ENTER,,клавиша ввода,,KEY,,WIN,Standard,GUI
+enter,,ввести,,GEN,,WIN,Standard,GUI
+ENTER (keypad),,клавиша ввода ENTER (цифровая клавиатура),,KEY,,WIN,Standard,GUI
 ESC,,ESC,,KEY,,WIN,Standard,GUI
-Exit,,¶–дЊ„,к,COM,,WIN,Standard,GUI
-Exit and Return to,,¶–дЊ„ Љ ѓЊ‡ѓР…—†ЎЉ† ѓ,,COM,,WIN,Standard,GUI
-expand,,Р…‡ѓ†РЎў•Ѓ,,GEN,,WIN,Standard,GUI
-extend selection,,Р…¤›ЉРЉ•Ѓ ѓ–„†‰†ЎЉ† (ѓ–„†‰†ЎЎўз Њ ‰…¤•Ѓ),,GEN,,WIN,Standard,GUI
-Extend selection on (EXT),,С…¤›ЉРЉ•Ѓ ѓ–„†‰†ЎЉ† (ѓ–„†‰†ЎЎўз Њ ‰…¤•Ѓ),,GEN,,WIN,Standard,GUI
-File,,в…‚‰,в,MNU,,WIN,Standard,GUI
-File Manager,,в…‚‰–,,GEN,,WIN,Standard,GUI
-File Name,,ФЌ “…‚‰…,Ф,GEN,,WIN,Standard,GUI
-Find Next,,ШЊѓ•ЊРЉ•Ѓ ‹ЊЉ¤€,Ш,GEN,,WIN,Standard,GUI
-Find What,,Ц…‚•Љ (Ц) \ ћ•Њ:,Ц,GEN,,WIN,Standard,GUI
-Find,,Ц…‚•Љ... (H) / ШЊЉ¤€,Ц / Ш,COM,,WIN,Standard,GUI
-font,,›РЉ“•,,GEN,,WIN,Standard,GUI
-Font,,ќРЉ“•,ќ,COM,,WIN,Standard,GUI
-Font Style,,Ц…ц†Р•…ЎЉ†,,GEN,,WIN,Standard,GUI
-Format,,вЊРЌ…•,г,MNU,,WIN,Standard,GUI
-freeze,,‡…ЌЊРЊ‡Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Freeze Panes,,Ђ…ЌЊРЊ‡Љ•Ѓ ‹Њ„Њ€Ў…,,COM,,WIN,Standard,GUI
-From ,,Ч• / Ґ,,GEN,,WIN,Standard,GUI
-Full Menus,,ШЊ‰Ў–† Ќ†Ўз,,GEN,,WIN,Standard,GUI
-gallery,,¤Њ Р…ЎЉ† (€…Р•ЉЎЊ€)/ ¤ ЊРЎЉ€ / Ў… ЊР,,GEN,,WIN,Standard,GUI
-Games,,ФЖР–,,GEN,,WIN,Standard,GUI
-Glossary,,Ґ‰Њѓ…РЃ,,GEN,,WIN,Standard,GUI
-Go To,,Ш†Р†‚•Љ,,GEN,,WIN,Standard,GUI
-Go To,,Ш†Р†‚•Љ...,Џ,COM,,WIN,Standard,GUI
-Goto/Gosub button,,€ЎЊ‹€… Ш†Р†‚•Љ,,GEN,,WIN,Standard,GUI
-group,,ЖРў‹‹… / ЖРў‹‹ЉРЊѓ…•Ѓ,,GEN,,WIN,Standard,GUI
-group box,,Њ€ЎЊ / ‹Њ‰† ЖРў‹‹–,,GEN,,WIN,Standard,GUI
-group icon,,‡Ў…цЊ€ ЖРў‹‹–*,,GEN,,WIN,Standard,GUI
-group window,,Њ€ЎЊ ЖРў‹‹–,,GEN,,WIN,Standard,GUI
-Help,,Ґ‹Р…ѓ€…,,GEN,,WIN,Standard,GUI
-Help,,? / Ґ‹Р…ѓ€…,? / Ґ,MNU,,WIN,Standard,GUI
-Help window,,Њ€ЎЊ ¤‹Р…ѓ€Љ,,GEN,,WIN,Standard,GUI
-Hide,,Ґ€Р–•Ѓ,,COM,,WIN,Standard,GUI
-hide,,¤€Р–•Ѓ / ¤‹Р•…•Ѓ / ѓ–€‰зцЉ•Ѓ / ¤„†‰…•Ѓ Ў†ѓЉ„ЉЌ–Ќ,,GEN,,WIN,Standard,GUI
-History,,еРЊЎЊ‰ЊЖЉ,е,GEN,,WIN,Standard,GUI
+Exit,,Выход,Ы,COM,,WIN,Standard,GUI
+Exit and Return to,,Выход и возвращение в,,COM,,WIN,Standard,GUI
+expand,,развернуть,,GEN,,WIN,Standard,GUI
+extend selection,,расширить выделение (выделенную область),,GEN,,WIN,Standard,GUI
+Extend selection on (EXT),,Расширить выделение (выделенную область),,GEN,,WIN,Standard,GUI
+File,,Файл,Ф,MNU,,WIN,Standard,GUI
+File Manager,,Файлы,,GEN,,WIN,Standard,GUI
+File Name,,Имя файла,И,GEN,,WIN,Standard,GUI
+Find Next,,Повторить поиск,П,GEN,,WIN,Standard,GUI
+Find What,,Найти (Н) \ Что:,Н,GEN,,WIN,Standard,GUI
+Find,,Найти... (H) / Поиск,Н / П,COM,,WIN,Standard,GUI
+font,,шрифт,,GEN,,WIN,Standard,GUI
+Font,,Шрифт,Ш,COM,,WIN,Standard,GUI
+Font Style,,Начертание,,GEN,,WIN,Standard,GUI
+Format,,Формат,Т,MNU,,WIN,Standard,GUI
+freeze,,заморозить,,GEN,,WIN,Standard,GUI
+Freeze Panes,,Заморозить подокна,,COM,,WIN,Standard,GUI
+From ,,От / С,,GEN,,WIN,Standard,GUI
+Full Menus,,Полные меню,,GEN,,WIN,Standard,GUI
+gallery,,собрание (картинок)/ сборник / набор,,GEN,,WIN,Standard,GUI
+Games,,Игры,,GEN,,WIN,Standard,GUI
+Glossary,,Словарь,,GEN,,WIN,Standard,GUI
+Go To,,Перейти,,GEN,,WIN,Standard,GUI
+Go To,,Перейти...,Е,COM,,WIN,Standard,GUI
+Goto/Gosub button,,кнопка Перейти,,GEN,,WIN,Standard,GUI
+group,,группа / группировать,,GEN,,WIN,Standard,GUI
+group box,,окно / поле группы,,GEN,,WIN,Standard,GUI
+group icon,,значок группы*,,GEN,,WIN,Standard,GUI
+group window,,окно группы,,GEN,,WIN,Standard,GUI
+Help,,Справка,,GEN,,WIN,Standard,GUI
+Help,,? / Справка,? / С,MNU,,WIN,Standard,GUI
+Help window,,окно справки,,GEN,,WIN,Standard,GUI
+Hide,,Скрыть,,COM,,WIN,Standard,GUI
+hide,,скрыть / спрятать / выключить / сделать невидимым,,GEN,,WIN,Standard,GUI
+History,,Хронология,Х,GEN,,WIN,Standard,GUI
 HOME,,HOME,,KEY,,WIN,Standard,GUI
-horizontal scroll bar,,ЖЊРЉ‡ЊЎ•…‰ЃЎ… ‹Њ‰Њ¤… ‹РЊ€Рў•€Љ,,GEN,,WIN,Standard,GUI
-horizontal split bar,,ЖЊРЉ‡ЊЎ•…‰ЃЎ… ‰ЉЎЉ Р…‡ Љѓ€Љ,,GEN,,WIN,Standard,GUI
-hourglass pointer,,"ў€…‡…•†‰Ѓ ""‹†¤ЊцЎ–† ц…¤–""",,GEN,,WIN,Standard,GUI
-How to use Help,,Т…€ ‹Њ‰Ѓ‡Њѓ…•Ѓ¤ ¤‹Р…ѓ€Њ‚,Т,COM,,WIN,Standard,GUI
-I-beam pointer,,•†€¤•Њѓ–‚ ў€…‡…•†‰Ѓ/€ўР¤ЊР,,GEN,,WIN,Standard,GUI
-icon,,‡Ў…цЊ€,,GEN,,WIN,Standard,GUI
-inactive window,,Ў†…€•ЉѓЎЊ† Њ€ЎЊ,,GEN,,WIN,Standard,GUI
-Increase Speed (by 100%),,аѓ†‰ЉцЉ•Ѓ ¤€ЊРЊ¤•Ѓ (Ў… 100%),Ґ,COM,,WIN,Standard,GUI
-Increase Volume (by 25%),,аѓ†‰ЉцЉ•Ѓ ЖРЊЌ€Њ¤•Ѓ (Ў… 25%),З,COM,,WIN,Standard,GUI
+horizontal scroll bar,,горизонтальная полоса прокрутки,,GEN,,WIN,Standard,GUI
+horizontal split bar,,горизонтальная линия разбивки,,GEN,,WIN,Standard,GUI
+hourglass pointer,,"указатель ""песочные часы""",,GEN,,WIN,Standard,GUI
+How to use Help,,Как пользоваться справкой,К,COM,,WIN,Standard,GUI
+I-beam pointer,,текстовый указатель/курсор,,GEN,,WIN,Standard,GUI
+icon,,значок,,GEN,,WIN,Standard,GUI
+inactive window,,неактивное окно,,GEN,,WIN,Standard,GUI
+Increase Speed (by 100%),,Увеличить скорость (на 100%),С,COM,,WIN,Standard,GUI
+Increase Volume (by 25%),,Увеличить громкость (на 25%),Г,COM,,WIN,Standard,GUI
 INS,,INSERT (INS),,KEY,,WIN,Standard,GUI
-Insert,,¶¤•…ѓ€…,,MNU,,WIN,Standard,GUI
-Insert File,,¶¤•…ѓЉ•Ѓ “…‚‰... ,в,COM,,WIN,Standard,GUI
-Insert Object,,¶¤•…ѓЉ•Ѓ Њ Ј†€•...,й,COM,,WIN,Standard,GUI
-Insert,,¶¤•…ѓЉ•Ѓ...,,COM,,WIN,Standard,GUI
-insertion point,,Ќ†¤•Њ ѓѓЊ„…,,GEN,,WIN,Standard,GUI
-italic,,€ўР¤Љѓ,,GEN,,WIN,Standard,GUI
-justified,,ѓ–РЊѓЎ†ЎЎ–‚ / ѓ–€‰зц€…,,GEN,,WIN,Standard,GUI
-Keyboard,,Т‰…ѓЉ…•ўР…,Т,COM,,WIN,Standard,GUI
-label,,Ќ†•€… / ‹Њ„‹Љ¤Ѓ / ‹Њ¤Ў†ЎЉ† / Ў…€‰†‚€…,,GEN,,WIN,Standard,GUI
-Landscape,,·‰Ѓ ЊЌЎ…,,GEN,,WIN,Standard,GUI
-left aligned,,[ѓ–РЊѓЎ†ЎЎ–‚] ‹Њ ‰†ѓЊЌў €Р…з,,GEN,,WIN,Standard,GUI
-LEFT ARROW,,ҐгСЏУТ· ¶УЏ¶Ч,,KEY,,WIN,Standard,GUI
-left scroll arrow,,¤•Р†‰€… ‹РЊ€Рў•€Љ ѓ‰†ѓЊ,,GEN,,WIN,Standard,GUI
-left window border,,‰†ѓ… ЖР…ЎЉ”… Њ€Ў…,,GEN,,WIN,Standard,GUI
-Line (Ln),,Ґ•РЊ€… (Ґ•РЊ€),,GEN,,WIN,Standard,GUI
-link,,¤ѓ‡Ѓ,,GEN,,WIN,Standard,GUI
-linked object,,¤ѓ‡…ЎЎ–‚ Њ Ј†€•,,GEN,,WIN,Standard,GUI
-linked text and list box,,Њ€ЎЊ ‹Њ‰ / ¤ѓ‡…ЎЎЊЖЊ ¤Њ ¤‹Љ¤€ЊЌ,,GEN,,WIN,Standard,GUI
-list box,,¤‹Љ¤Њ€,,GEN,,WIN,Standard,GUI
-List Files of Type,,гЉ‹ “…‚‰Њѓ:,,GEN,,WIN,Standard,GUI
-Macro,,Ю…€РЊ€ЊЌ…Ў„… (Ю…€РЊ),,GEN,,WIN,Standard,GUI
-Macro Recorder on (REC),,Ђ…‹Љ¤Ѓ Ќ…€РЊ[€ЊЌ…Ў„–],,GEN,,WIN,Standard,GUI
-Main,,З‰…ѓЎ…,,GEN,,WIN,Standard,GUI
-main application,,Ж‰…ѓЎЊ† ‹РЉ‰Њ‘†ЎЉ†,,GEN,,WIN,Standard,GUI
-main document,,Ж‰…ѓЎ–‚ „Њ€ўЌ†Ў•,,GEN,,WIN,Standard,GUI
-manual link,,¤ѓ‡Ѓ / Њ ЎЊѓ‰†Ќ… ѓРўцЎўз,,GEN,,WIN,Standard,GUI
-Match Case,,С…‡‰Љц…•Ѓ ¤•РЊцЎ–† Љ ‹РЊ‹Љ¤Ў–† [ ў€ѓ–],,GEN,,WIN,Standard,GUI
-Match Whole Word Only,,Ґ‰ЊѓЊ ”†‰Љ€ЊЌ,,GEN,,WIN,Standard,GUI
-Maximize,,С…‡ѓ†РЎў•Ѓ [Ў… ‹Њ‰Ў–‚ м€Р…Ў],·,COM,,WIN,Standard,GUI
-Maximize button,,"€ЎЊ‹€… ""Р…‡ѓ†РЎў•Ѓ""",,GEN,,WIN,Standard,GUI
-menu,,Ќ†Ўз,,GEN,,WIN,Standard,GUI
-menu bar,,¤•РЊ€… Ќ†Ўз,,GEN,,WIN,Standard,GUI
-menu command,,€ЊЌ…Ў„… Ќ†Ўз,,GEN,,WIN,Standard,GUI
-menu name,,ЉЌ Ќ†Ўз,,GEN,,WIN,Standard,GUI
-message,,¤ЊЊ —†ЎЉ†,,GEN,,WIN,Standard,GUI
-message box,,Њ€ЎЊ ¤ЊЊ —†ЎЉ,,GEN,,WIN,Standard,GUI
-message line,,¤•РЊ€… ¤ЊЊ —†ЎЉ‚,,GEN,,WIN,Standard,GUI
-Minimize,,Ґѓ†РЎў•Ѓ,Ґ,GEN,,WIN,Standard,GUI
-Minimize button,,"€ЎЊ‹€… ""¤ѓ†РЎў•Ѓ""",,GEN,,WIN,Standard,GUI
-More,,Џ—† / Ћ…‰†† / ЋРўЖЉ†,,GEN,,WIN,Standard,GUI
-Mouse,,Ю–›Ѓ,Ю,COM,,WIN,Standard,GUI
-mouse pointer,,ў€…‡…•†‰Ѓ [Ќ–›Љ],,GEN,,WIN,Standard,GUI
-move,,‹†Р†Ќ†¤•Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Move,,Ш†Р†Ќ†¤•Љ•Ѓ,Ш,COM,,WIN,Standard,GUI
-MS-DOS Prompt,,С†‘ЉЌ MS-DOS / ШРЉЖ‰…›†ЎЉ† MS-DOS,,GEN,,WIN,Standard,GUI
-New Window,,ЦЊѓЊ† Њ€ЎЊ ,Ц,COM,,WIN,Standard,GUI
-New,,ҐЊ‡„…•Ѓ...,Ђ,COM,,WIN,Standard,GUI
-Next,,Ґ‰†„ўз—Љ‚,У,COM,,WIN,Standard,GUI
-Next Window,,Ґ‰†„ўз—†† Њ€ЎЊ,,COM,,WIN,Standard,GUI
-No,,Ц†•,,GEN,,WIN,Standard,GUI
+Insert,,Вставка,,MNU,,WIN,Standard,GUI
+Insert File,,Вставить файл... ,Ф,COM,,WIN,Standard,GUI
+Insert Object,,Вставить объект...,Ъ,COM,,WIN,Standard,GUI
+Insert,,Вставить...,,COM,,WIN,Standard,GUI
+insertion point,,место ввода,,GEN,,WIN,Standard,GUI
+italic,,курсив,,GEN,,WIN,Standard,GUI
+justified,,выровненный / выключка,,GEN,,WIN,Standard,GUI
+Keyboard,,Клавиатура,К,COM,,WIN,Standard,GUI
+label,,метка / подпись / пояснение / наклейка,,GEN,,WIN,Standard,GUI
+Landscape,,Альбомная,,GEN,,WIN,Standard,GUI
+left aligned,,[выровненный] по левому краю,,GEN,,WIN,Standard,GUI
+LEFT ARROW,,СТРЕЛКА ВЛЕВО,,KEY,,WIN,Standard,GUI
+left scroll arrow,,стрелка прокрутки влево,,GEN,,WIN,Standard,GUI
+left window border,,левая граница окна,,GEN,,WIN,Standard,GUI
+Line (Ln),,Строка (Строк),,GEN,,WIN,Standard,GUI
+link,,связь,,GEN,,WIN,Standard,GUI
+linked object,,связанный объект,,GEN,,WIN,Standard,GUI
+linked text and list box,,окно поля / связанного со списком,,GEN,,WIN,Standard,GUI
+list box,,список,,GEN,,WIN,Standard,GUI
+List Files of Type,,Тип файлов:,,GEN,,WIN,Standard,GUI
+Macro,,Макрокоманда (Макро),,GEN,,WIN,Standard,GUI
+Macro Recorder on (REC),,Запись макро[команды],,GEN,,WIN,Standard,GUI
+Main,,Главная,,GEN,,WIN,Standard,GUI
+main application,,главное приложение,,GEN,,WIN,Standard,GUI
+main document,,главный документ,,GEN,,WIN,Standard,GUI
+manual link,,связь / обновляемая вручную,,GEN,,WIN,Standard,GUI
+Match Case,,Различать строчные и прописные [буквы],,GEN,,WIN,Standard,GUI
+Match Whole Word Only,,Слово целиком,,GEN,,WIN,Standard,GUI
+Maximize,,Развернуть [на полный экран],А,COM,,WIN,Standard,GUI
+Maximize button,,"кнопка ""развернуть""",,GEN,,WIN,Standard,GUI
+menu,,меню,,GEN,,WIN,Standard,GUI
+menu bar,,строка меню,,GEN,,WIN,Standard,GUI
+menu command,,команда меню,,GEN,,WIN,Standard,GUI
+menu name,,имя меню,,GEN,,WIN,Standard,GUI
+message,,сообщение,,GEN,,WIN,Standard,GUI
+message box,,окно сообщения,,GEN,,WIN,Standard,GUI
+message line,,строка сообщений,,GEN,,WIN,Standard,GUI
+Minimize,,Свернуть,С,GEN,,WIN,Standard,GUI
+Minimize button,,"кнопка ""свернуть""",,GEN,,WIN,Standard,GUI
+More,,Еще / Далее / Другие,,GEN,,WIN,Standard,GUI
+Mouse,,Мышь,М,COM,,WIN,Standard,GUI
+mouse pointer,,указатель [мыши],,GEN,,WIN,Standard,GUI
+move,,переместить,,GEN,,WIN,Standard,GUI
+Move,,Переместить,П,COM,,WIN,Standard,GUI
+MS-DOS Prompt,,Режим MS-DOS / Приглашение MS-DOS,,GEN,,WIN,Standard,GUI
+New Window,,Новое окно ,Н,COM,,WIN,Standard,GUI
+New,,Создать...,З,COM,,WIN,Standard,GUI
+Next,,Следующий,Л,COM,,WIN,Standard,GUI
+Next Window,,Следующее окно,,COM,,WIN,Standard,GUI
+No,,Нет,,GEN,,WIN,Standard,GUI
 NUM LOCK,,NUM LOCK,,KEY,,WIN,Standard,GUI
 Num Lock on (NUM),,NUM,,KEY,,WIN,Standard,GUI
-Number,,ћЉ¤‰Њ...,,COM,,WIN,Standard,GUI
-object,,Њ Ј†€•,,GEN,,WIN,Standard,GUI
-object linking & embedding (OLE),,¤ѓ‡Ѓ Љ ѓЎ†„Р†ЎЉ† Њ Ј†€•Њѓ (OLE),,GEN,,WIN,Standard,GUI
-Object Packager,,а‹…€Њѓ—Љ€ Њ Ј†€•Њѓ,,GEN,,WIN,Standard,GUI
-Object,,Ч Ј†€•...,µ,COM,,WIN,Standard,GUI
-OLE (object linking & embedding),,OLE (¤ѓ‡Ѓ Љ ѓЎ†„Р†ЎЉ† Њ Ј†€•Њѓ),,GEN,,WIN,Standard,GUI
-OLE application,,‹РЉ‰Њ‘†ЎЉ† / ‹Њ„„†Р‘Љѓ…з—†† ‹РЊ•Њ€Њ‰ OLE; OLE-‹РЉ‰Њ‘†ЎЉ†,,GEN,,WIN,Standard,GUI
-Open,,Ч•€Р–•Ѓ,Ч,COM,,WIN,Standard,GUI
-option button,,‡…ѓЉ¤ЉЌ–‚ ‹†Р†€‰зц…•†‰Ѓ,,GEN,,WIN,Standard,GUI
-Options,,Ш…Р…Ќ†•Р– / ¶Њ‡ЌЊ‘ЎЊ¤•Љ / „Р. ‹†Р†ѓЊ„– ѓ ‡…ѓЉ¤ЉЌЊ¤•Љ Њ• ¤Њ„†Р‘…ЎЉ,,GEN,,WIN,Standard,GUI
-Overtype on (OVR),,Ђ… Љѓ…•Ѓ ( ў€ѓў  ў€ѓЊ‚) / Ђ…Ќ†—…•Ѓ (ѓ–„†‰†ЎЎЊ† ‹РЉ ѓѓЊ„†) / Ђ… Љѓ€…,,GEN,,WIN,Standard,GUI
-package,,‹…€†•,,GEN,,WIN,Standard,GUI
-Page (Pg),,Ґ•Р…ЎЉ”… (Ґ•Р),,GEN,,WIN,Standard,GUI
-Page Setup,,Ш…Р…Ќ†•Р– ¤•Р…ЎЉ”–,,GEN,,WIN,Standard,GUI
-Pages,,Ґ•Р…ЎЉ”–,г,GEN,,WIN,Standard,GUI
-palette,,”ѓ†•Њѓ… ‹…‰Љ•Р… / ‹…‰Љ•Р…,,GEN,,WIN,Standard,GUI
-pane,,‹Њ„Њ€ЎЊ,,GEN,,WIN,Standard,GUI
-Paper Size,,С…‡Ќ†Р  ўЌ…ЖЉ,С,GEN,,WIN,Standard,GUI
-Paragraph,,· ‡…”... ,µ,GEN,,WIN,Standard,GUI
-paste,,ѓ¤•…ѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Paste,,¶¤•…ѓЉ•Ѓ,·,COM,,WIN,Standard,GUI
-Paste Link,,¶¤•…ѓЉ•Ѓ ¤ѓ‡Ѓ,,COM,,WIN,Standard,GUI
-Paste Special,,Ґ‹†”Љ…‰ЃЎ… ѓ¤•…ѓ€…,Ґ,COM,,WIN,Standard,Can change for Chicago
+Number,,Число...,,COM,,WIN,Standard,GUI
+object,,объект,,GEN,,WIN,Standard,GUI
+object linking & embedding (OLE),,связь и внедрение объектов (OLE),,GEN,,WIN,Standard,GUI
+Object Packager,,Упаковщик объектов,,GEN,,WIN,Standard,GUI
+Object,,Объект...,Б,COM,,WIN,Standard,GUI
+OLE (object linking & embedding),,OLE (связь и внедрение объектов),,GEN,,WIN,Standard,GUI
+OLE application,,приложение / поддерживающее протокол OLE; OLE-приложение,,GEN,,WIN,Standard,GUI
+Open,,Открыть,О,COM,,WIN,Standard,GUI
+option button,,зависимый переключатель,,GEN,,WIN,Standard,GUI
+Options,,Параметры / Возможности / др. переводы в зависимости от содержания,,GEN,,WIN,Standard,GUI
+Overtype on (OVR),,Забивать (букву буквой) / Замещать (выделенное при вводе) / Забивка,,GEN,,WIN,Standard,GUI
+package,,пакет,,GEN,,WIN,Standard,GUI
+Page (Pg),,Страница (Стр),,GEN,,WIN,Standard,GUI
+Page Setup,,Параметры страницы,,GEN,,WIN,Standard,GUI
+Pages,,Страницы,Т,GEN,,WIN,Standard,GUI
+palette,,цветовая палитра / палитра,,GEN,,WIN,Standard,GUI
+pane,,подокно,,GEN,,WIN,Standard,GUI
+Paper Size,,Размер бумаги,Р,GEN,,WIN,Standard,GUI
+Paragraph,,Абзац... ,Б,GEN,,WIN,Standard,GUI
+paste,,вставить,,GEN,,WIN,Standard,GUI
+Paste,,Вставить,А,COM,,WIN,Standard,GUI
+Paste Link,,Вставить связь,,COM,,WIN,Standard,GUI
+Paste Special,,Специальная вставка,С,COM,,WIN,Standard,Can change for Chicago
 PAUSE ,,PAUSE ,,KEY,,WIN,Standard,GUI
 PG DN,,PAGE DOWN (PG DN),,KEY,,WIN,Standard,GUI
 PG UP,,PAGE UP (PG UP),,KEY,,WIN,Standard,GUI
-PIF Editor,,С†„…€•ЊР PIF,,GEN,,WIN,Standard,GUI
-point,,ў€…‡…•Ѓ Ў…,,GEN,,WIN,Standard,GUI
-pointer,,ў€…‡…•†‰Ѓ,,GEN,,WIN,Standard,GUI
-Portrait,,ТЎЉ‘Ў…,,GEN,,WIN,Standard,GUI
-Preferences,,Ч —… Ў…¤•РЊ‚€…,,GEN,,WIN,Standard,GUI
-press and hold down,,Ў…‘…•Ѓ Љ ў„†Р‘Љѓ…•Ѓ,,GEN,,WIN,Standard,GUI
-Print,,Ш†ц…•Ѓ ,Ш,COM,,WIN,Standard,GUI
-Print Manager,,ЋЉ¤‹†•ц†Р ‹†ц…•Љ,,GEN,,WIN,Standard,GUI
-Print Preview,,ШР†„ѓ…РЉ•†‰ЃЎ–‚ ‹РЊ¤ЌЊ•Р,Ћ,COM,,WIN,Standard,GUI
-Print Quality,,Т…ц†¤•ѓЊ ‹†ц…•Љ,ћ,GEN,,WIN,Standard,GUI
-Print Range,,С…¤‹†ц…•–ѓ…†Ќ… Њ ‰…¤•Ѓ,,GEN,,WIN,Standard,GUI
+PIF Editor,,Редактор PIF,,GEN,,WIN,Standard,GUI
+point,,указать на,,GEN,,WIN,Standard,GUI
+pointer,,указатель,,GEN,,WIN,Standard,GUI
+Portrait,,Книжная,,GEN,,WIN,Standard,GUI
+Preferences,,Общая настройка,,GEN,,WIN,Standard,GUI
+press and hold down,,нажать и удерживать,,GEN,,WIN,Standard,GUI
+Print,,Печать ,П,COM,,WIN,Standard,GUI
+Print Manager,,Диспетчер печати,,GEN,,WIN,Standard,GUI
+Print Preview,,Предварительный просмотр,Д,COM,,WIN,Standard,GUI
+Print Quality,,Качество печати,Ч,GEN,,WIN,Standard,GUI
+Print Range,,Распечатываемая область,,GEN,,WIN,Standard,GUI
 PRINT SCREEN,,PRINT SCREEN,,KEY,,WIN,Standard,GUI
-Print Setup,,Ц…¤•РЊ‚€… ‹†ц…•Љ... ,·,COM,,WIN,Standard,GUI
-Print to File,,Ш†ц…•Ѓ ѓ “…‚‰,в,GEN,,WIN,Standard,GUI
-Print Topic,,Ш†ц…•Ѓ •†Ќ–,Ш,COM,,WIN,Standard,GUI
-Printer,,ШРЉЎ•†Р,,GEN,,WIN,Standard,GUI
-Printer Setup,,Ц…¤•РЊ‚€… ‹†ц…•Љ,,COM,,WIN,Standard,GUI
-program group,,ЖРў‹‹… ‹РЊЖР…ЌЌ / ЖРў‹‹…,,GEN,,WIN,Standard,GUI
-program item,,‹РЊЖР…ЌЌ…,,GEN,,WIN,Standard,GUI
-Program Manager,,ШРЊЖР…ЌЌ–,,GEN,,WIN,Standard,GUI
-program-item icon,,‡Ў…цЊ€ ‹РЉ‰Њ‘†ЎЉ / ‹РЊЖР…ЌЌ–,,GEN,,WIN,Standard,GUI
-progress indicator,,‹Њ€…‡…•†‰Ѓ ѓ–‹Њ‰Ў†ЎЉ (‡…„…ЎЉ),,GEN,,WIN,Standard,GUI
-push button,,€ЎЊ‹€…,,GEN,,WIN,Standard,GUI
-Quit,,Ђ…ѓ†Р›Љ•Ѓ,,GEN,,WIN,Standard,GUI
-radio button,,‡…ѓЉ¤ЉЌ–‚ ‹†Р†€‰зц…•†‰Ѓ,,GEN,,WIN,Standard,GUI
-Read Only,,гЊ‰Ѓ€Њ „‰ ц•†ЎЉ,ћ,GEN,,WIN,Standard,GUI
-Record,,Ђ…‹Љ¤…•Ѓ... ,Ђ,COM,,WIN,Standard,GUI
-Recorder,,Ђ…‹Љ¤Ѓ Ќ…€РЊ€ЊЌ…Ў„ / Ђ…‹Љ¤Ѓ Ќ…€РЊ¤Њѓ,,GEN,,WIN,Standard,GUI
-Redo,,¶†РЎў•Ѓ,,GEN,,WIN,Standard,GUI
-reduce selection,,¤‘…•Ѓ ѓ–„†‰†ЎЉ† (ѓ–„†‰†ЎЎўз Њ ‰…¤•Ѓ),,GEN,,WIN,Standard,GUI
-Remove Split,,а Р…•Ѓ Р…‡ Љѓ€ў,,COM,,WIN,Standard,GUI
-Repeat,,ШЊѓ•ЊРЉ•Ѓ,,COM,,WIN,Standard,GUI
-Replace All,,Ђ…Ќ†ЎЉ•Ѓ ѓ¤† ,Ґ,GEN,,WIN,Standard,GUI
-Replace With,,Ђ…Ќ†ЎЉ•Ѓ Ў…,Ц,GEN,,WIN,Standard,GUI
-Replace,,Ђ…Ќ†Ў…...,Ђ,COM,,WIN,Standard,GUI
-Reset,,Ґ РЊ¤,,GEN,,WIN,Standard,GUI
-resize,,Љ‡Ќ†ЎЉ•Ѓ Р…‡Ќ†Р,,GEN,,WIN,Standard,GUI
-restore,,ѓЊ¤¤•…ЎЊѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Restore,,¶Њ¤¤•…ЎЊѓЉ•Ѓ,¶,COM,,WIN,Standard,GUI
-Restore button,,"€ЎЊ‹€… ""ѓЊ¤¤•…ЎЊѓЉ•Ѓ""",,GEN,,WIN,Standard,GUI
-Resume,,¶Њ‡Њ ЎЊѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Retry,,ШЊѓ•ЊРЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Reverse,,Ч Р…•ЎЊ / Ц…‡…„ ,,COM,,WIN,Standard,GUI
-Revert,,Ф¤дЊ„ЎЊ† ¤Њ¤•ЊЎЉ†... ,,COM,,WIN,Standard,GUI
-right aligned,,[ѓ–РЊѓЎ†ЎЎ–‚] ‹Њ ‹Р…ѓЊЌў €Р…з,Ш,GEN,,WIN,Standard,GUI
-RIGHT ARROW,,ҐгСЏУТ· ¶ШС·¶Ч,,KEY,,WIN,Standard,GUI
-right scroll arrow,,¤•Р†‰€… ‹РЊ€Рў•€Љ ѓ‹Р…ѓЊ,,GEN,,WIN,Standard,GUI
-right window border,,‹Р…ѓ… ЖР…ЎЉ”… Њ€Ў…,,GEN,,WIN,Standard,GUI
-ruler,,‰ЉЎ†‚€…,,GEN,,WIN,Standard,GUI
-Run,,¶–‹Њ‰ЎЉ•Ѓ... ,¶,COM,,WIN,Standard,GUI
-Sample,,Ч Р…‡†” (O) / ШРЉЌ†Р,,GEN,,WIN,Standard,GUI
-Save,,ҐЊдР…ЎЉ•Ѓ ,Ґ,COM,,WIN,Standard,GUI
-Save All,,ҐЊдР…ЎЉ•Ѓ ѓ¤†,,COM,,WIN,Standard,GUI
-Save As,,ҐЊдР…ЎЉ•Ѓ €…€... ,Т,COM,,WIN,Standard,GUI
-Save File as Type,,гЉ‹ ¤ЊдР…Ў†ЌЊЖЊ “…‚‰… ,г,GEN,,WIN,Standard,GUI
-Scale,,Ќ…¤›•…  / Љ‡Ќ†ЎЉ•Ѓ Ќ…¤›•… ,,MNU,,WIN,Standard,Can change for Chicago
-scale,,ќ€…‰…,ќ,GEN,,WIN,Standard,GUI
-Scaling,,Ф‡Ќ†Ў†ЎЉ† Ќ…¤›•… …,,GEN,,WIN,Standard,GUI
-scroll,,‹РЊ€Рў•Љ•Ѓ,,GEN,,WIN,Standard,GUI
-scroll arrow,,¤•Р†‰€… ‹РЊ€Рў•€Љ,,GEN,,WIN,Standard,GUI
-scroll bar,,‹Њ‰Њ¤… ‹РЊ€Рў•€Љ,,GEN,,WIN,Standard,GUI
-scroll box,, †ЖўЎЊ€,,GEN,,WIN,Standard,GUI
+Print Setup,,Настройка печати... ,А,COM,,WIN,Standard,GUI
+Print to File,,Печать в файл,Ф,GEN,,WIN,Standard,GUI
+Print Topic,,Печать темы,П,COM,,WIN,Standard,GUI
+Printer,,Принтер,,GEN,,WIN,Standard,GUI
+Printer Setup,,Настройка печати,,COM,,WIN,Standard,GUI
+program group,,группа программ / группа,,GEN,,WIN,Standard,GUI
+program item,,программа,,GEN,,WIN,Standard,GUI
+Program Manager,,Программы,,GEN,,WIN,Standard,GUI
+program-item icon,,значок приложения / программы,,GEN,,WIN,Standard,GUI
+progress indicator,,показатель выполнения (задания),,GEN,,WIN,Standard,GUI
+push button,,кнопка,,GEN,,WIN,Standard,GUI
+Quit,,Завершить,,GEN,,WIN,Standard,GUI
+radio button,,зависимый переключатель,,GEN,,WIN,Standard,GUI
+Read Only,,Только для чтения,Ч,GEN,,WIN,Standard,GUI
+Record,,Записать... ,З,COM,,WIN,Standard,GUI
+Recorder,,Запись макрокоманд / Запись макросов,,GEN,,WIN,Standard,GUI
+Redo,,Вернуть,,GEN,,WIN,Standard,GUI
+reduce selection,,сжать выделение (выделенную область),,GEN,,WIN,Standard,GUI
+Remove Split,,Убрать разбивку,,COM,,WIN,Standard,GUI
+Repeat,,Повторить,,COM,,WIN,Standard,GUI
+Replace All,,Заменить все ,С,GEN,,WIN,Standard,GUI
+Replace With,,Заменить на,Н,GEN,,WIN,Standard,GUI
+Replace,,Замена...,З,COM,,WIN,Standard,GUI
+Reset,,Сброс,,GEN,,WIN,Standard,GUI
+resize,,изменить размер,,GEN,,WIN,Standard,GUI
+restore,,восстановить,,GEN,,WIN,Standard,GUI
+Restore,,Восстановить,В,COM,,WIN,Standard,GUI
+Restore button,,"кнопка ""восстановить""",,GEN,,WIN,Standard,GUI
+Resume,,Возобновить,,GEN,,WIN,Standard,GUI
+Retry,,Повторить,,GEN,,WIN,Standard,GUI
+Reverse,,Обратно / Назад ,,COM,,WIN,Standard,GUI
+Revert,,Исходное состояние... ,,COM,,WIN,Standard,GUI
+right aligned,,[выровненный] по правому краю,П,GEN,,WIN,Standard,GUI
+RIGHT ARROW,,СТРЕЛКА ВПРАВО,,KEY,,WIN,Standard,GUI
+right scroll arrow,,стрелка прокрутки вправо,,GEN,,WIN,Standard,GUI
+right window border,,правая граница окна,,GEN,,WIN,Standard,GUI
+ruler,,линейка,,GEN,,WIN,Standard,GUI
+Run,,Выполнить... ,В,COM,,WIN,Standard,GUI
+Sample,,Образец (O) / Пример,,GEN,,WIN,Standard,GUI
+Save,,Сохранить ,С,COM,,WIN,Standard,GUI
+Save All,,Сохранить все,,COM,,WIN,Standard,GUI
+Save As,,Сохранить как... ,К,COM,,WIN,Standard,GUI
+Save File as Type,,Тип сохраняемого файла ,Т,GEN,,WIN,Standard,GUI
+Scale,,масштаб / изменить масштаб,,MNU,,WIN,Standard,Can change for Chicago
+scale,,Шкала,Ш,GEN,,WIN,Standard,GUI
+Scaling,,Изменение масштаба,,GEN,,WIN,Standard,GUI
+scroll,,прокрутить,,GEN,,WIN,Standard,GUI
+scroll arrow,,стрелка прокрутки,,GEN,,WIN,Standard,GUI
+scroll bar,,полоса прокрутки,,GEN,,WIN,Standard,GUI
+scroll box,,бегунок,,GEN,,WIN,Standard,GUI
 SCROLL LOCK,,SCROLL LOCK,,KEY,,WIN,Standard,GUI
 Scroll Lock on (SCRL),,SCRL,,KEY,,WIN,Standard,GUI
-Search,,ШЊЉ¤€,,COM,,WIN,Standard,GUI
-Search,,ШЊЉ¤€... ,Ш,GEN,,WIN,Standard,GUI
-Search for Help on,,ШЊЉ¤€ ¤‹Р…ѓ€Љ Њ,Ш,COM,,WIN,Standard,GUI
-Search,,С…‡„†‰ (С…‡),,COM,,WIN,Standard,GUI
-Section (Sec),,С…‡„†‰...,,GEN,,WIN,Standard,GUI
-Section,,ѓ– Р…•Ѓ/ѓ–„†‰Љ•Ѓ,,GEN,,WIN,Standard,GUI
-select,,ѓ– Р…•Ѓ / ѓ–„†‰Љ•Ѓ,,GEN,,WIN,Standard,GUI
-"select (check box, option button)",,ў¤•…ЎЊѓЉ•Ѓ “‰…‘Њ€ / ѓ– Р…•Ѓ €ЎЊ‹€ў ‹†Р†€‰зц…•†‰,,GEN,,WIN,Standard,GUI
-select (data),,ѓ– Р…•Ѓ („…ЎЎ–†),,GEN,,WIN,Standard,GUI
-select (drop-down menu),,ѓ– Р…•Ѓ (Р…¤€Р–ѓ…з—††¤ Ќ†Ўз),,GEN,,WIN,Standard,GUI
-select (list box),,ѓ– Р…•Ѓ (Њ€ЎЊ ¤‹Љ¤€…),,GEN,,WIN,Standard,GUI
-selected command,,ѓ–„†‰†ЎЎ… €ЊЌ…Ў„…,,GEN,,WIN,Standard,GUI
-Selection,,¶– ЊР/ѓ–„†‰†ЎЉ†,,GEN,,WIN,Standard,GUI
-selection cursor,,€ўР¤ЊР ѓ–„†‰†ЎЉ,,GEN,,WIN,Standard,Can change for Chicago
-Set,,Ђ…„…•Ѓ / а¤•…ЎЊѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Setup,,а¤•…ЎЊѓ€…,,GEN,,WIN,Standard,GUI
+Search,,Поиск,,COM,,WIN,Standard,GUI
+Search,,Поиск... ,П,GEN,,WIN,Standard,GUI
+Search for Help on,,Поиск справки о,П,COM,,WIN,Standard,GUI
+Search,,Раздел (Раз),,COM,,WIN,Standard,GUI
+Section (Sec),,Раздел...,,GEN,,WIN,Standard,GUI
+Section,,выбрать/выделить,,GEN,,WIN,Standard,GUI
+select,,выбрать / выделить,,GEN,,WIN,Standard,GUI
+"select (check box, option button)",,установить флажок / выбрать кнопку переключателя,,GEN,,WIN,Standard,GUI
+select (data),,выбрать (данные),,GEN,,WIN,Standard,GUI
+select (drop-down menu),,выбрать (раскрывающееся меню),,GEN,,WIN,Standard,GUI
+select (list box),,выбрать (окно списка),,GEN,,WIN,Standard,GUI
+selected command,,выделенная команда,,GEN,,WIN,Standard,GUI
+Selection,,Выбор/выделение,,GEN,,WIN,Standard,GUI
+selection cursor,,курсор выделения,,GEN,,WIN,Standard,Can change for Chicago
+Set,,Задать / Установить,,GEN,,WIN,Standard,GUI
+Setup,,Установка,,GEN,,WIN,Standard,GUI
 SHIFT,,SHIFT,,KEY,,WIN,Standard,GUI
-Short Menus,,ТР…•€Љ† Ќ†Ўз,,GEN,,WIN,Standard,GUI
-shortcut key,, –¤•Р… €‰…ѓЉ›… (Њ –цЎЊ Ў† ‹†Р†ѓЊ„Љ•¤),,GEN,,WIN,Standard,GUI
-Size,,С…‡Ќ†Р,С,GEN,,WIN,Standard,GUI
-size,,Р…‡Ќ†Р,,GEN,,WIN,Standard,GUI
-Size (font size),,С…‡Ќ†Р (Р…‡Ќ†Р ›РЉ“•…) ,С,GEN,,WIN,Standard,GUI
-sizing handle,,Ќ…Р€†Р Љ‡Ќ†Ў†ЎЉ Р…‡Ќ†Р…,,GEN,,WIN,Standard,Can change for Chicago
-slider,,‹Њ‰‡ўЎЊ€,,GEN,,WIN,Standard,Can change for Chicago
-slider indicator,,„ѓЉ‘Њ€,,GEN,,WIN,Standard,GUI
-small capitals,,Ќ…‰†ЎЃ€Љ† ‹РЊ‹Љ¤Ў–† (€…‹Љ•†‰Ѓ),,GEN,,WIN,Standard,GUI
-Sound Recorder,,Ђѓў€Њ‡…‹Љ¤Ѓ,,GEN,,WIN,Standard,GUI
-Sound,,Ђѓў€... ,Ђ,COM,,WIN,Standard,GUI
-Source (paper),,ШЊ„…ц… ( ўЌ…ЖЉ),Ф,GEN,,WIN,Standard,GUI
-source application,,‹РЉ‰Њ‘†ЎЉ†-Љ¤•ЊцЎЉ€ ,,GEN,,WIN,Standard,GUI
-source document,,„Њ€ўЌ†Ў•-Љ¤•ЊцЎЉ€,,GEN,,WIN,Standard,GUI
-SPACEBAR,,ШСЧµЏУ,,KEY,,WIN,Standard,GUI
-spin box,,‹Њ‰† ¤ц†•цЉ€… ,,GEN,,WIN,Standard,GUI
-Split,,С…‡ Љ•Ѓ,µ,COM,,WIN,Standard,GUI
-split,,Р…‡ Љ•Ѓ,,GEN,,WIN,Standard,GUI
-split bar,,‰ЉЎЉ Р…‡ Љѓ€Љ,,GEN,,WIN,Standard,GUI
-status bar,,¤•РЊ€… ¤Њ¤•ЊЎЉ,,GEN,,WIN,Standard,GUI
-status-bar indicator,,ЉЎ„Љ€…•ЊР ¤•РЊ€Љ ¤Њ¤•ЊЎЉ,,GEN,,WIN,Standard,Can change for Chicago
-submenu,,‹Њ„Ќ†Ўз,,GEN,,WIN,Standard,GUI
-switch,,‹†Р†€‰зцЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Switch to,,Ш†Р†€‰зцЉ•Ѓ¤ ѓ,,GEN,,WIN,Standard,GUI
-Switch to,,Ш†Р†€‰зцЉ•Ѓ¤ ѓ...,Џ,COM,,WIN,Standard,GUI
+Short Menus,,Краткие меню,,GEN,,WIN,Standard,GUI
+shortcut key,,быстрая клавиша (обычно не переводится),,GEN,,WIN,Standard,GUI
+Size,,Размер,Р,GEN,,WIN,Standard,GUI
+size,,размер,,GEN,,WIN,Standard,GUI
+Size (font size),,Размер (размер шрифта) ,Р,GEN,,WIN,Standard,GUI
+sizing handle,,маркер изменения размера,,GEN,,WIN,Standard,Can change for Chicago
+slider,,ползунок,,GEN,,WIN,Standard,Can change for Chicago
+slider indicator,,движок,,GEN,,WIN,Standard,GUI
+small capitals,,маленькие прописные (капитель),,GEN,,WIN,Standard,GUI
+Sound Recorder,,Звукозапись,,GEN,,WIN,Standard,GUI
+Sound,,Звук... ,З,COM,,WIN,Standard,GUI
+Source (paper),,Подача (бумаги),И,GEN,,WIN,Standard,GUI
+source application,,приложение-источник ,,GEN,,WIN,Standard,GUI
+source document,,документ-источник,,GEN,,WIN,Standard,GUI
+SPACEBAR,,ПРОБЕЛ,,KEY,,WIN,Standard,GUI
+spin box,,поле счетчика ,,GEN,,WIN,Standard,GUI
+Split,,Разбить,Б,COM,,WIN,Standard,GUI
+split,,разбить,,GEN,,WIN,Standard,GUI
+split bar,,линия разбивки,,GEN,,WIN,Standard,GUI
+status bar,,строка состояния,,GEN,,WIN,Standard,GUI
+status-bar indicator,,индикатор строки состояния,,GEN,,WIN,Standard,Can change for Chicago
+submenu,,подменю,,GEN,,WIN,Standard,GUI
+switch,,переключить,,GEN,,WIN,Standard,GUI
+Switch to,,Переключиться в,,GEN,,WIN,Standard,GUI
+Switch to,,Переключиться в...,Е,COM,,WIN,Standard,GUI
 SYS RQ,,SYS RQ,,KEY,,WIN,Standard,GUI
 TAB,,TAB,,KEY,,WIN,Standard,GUI
-Terminal,,г†РЌЉЎ…‰,,GEN,,WIN,Standard,GUI
-text box,,Њ€ЎЊ •†€¤•… / •†€¤•ЊѓЊ† ‹Њ‰† ,,GEN,,WIN,Standard,GUI
-text frame,,Р…Ќ€… •†€¤•…,,GEN,,WIN,Standard,GUI
-Tile,,С„ЊЌ,,COM,,WIN,Standard,GUI
-tiled windows,,Њ€Ў… ЌЊ‡…Љ€Њ‚,,GEN,,WIN,Standard,GUI
-Time,,¶Р†Ќ,¶,GEN,,WIN,Standard,GUI
-title bar,,¤•РЊ€… ‡…ЖЊ‰Њѓ€…,,GEN,,WIN,Standard,GUI
-tool,,ЉЎ¤•РўЌ†Ў•– / ¤Р†„¤•ѓ…,,GEN,,WIN,Standard,Can change for Chicago
-toolbar,,‹…Ў†‰Ѓ ЉЎ¤•РўЌ†Ў•Њѓ / ... ЉЎ¤•РўЌ†Ў•…‰ЃЎ–д ¤Р†„¤•ѓ,,GEN,,WIN,Standard,Can change for Chicago
-toolbox,,Ў… ЊР ЉЎ¤•РўЌ†Ў•Њѓ / ¤Р†„¤•ѓ,,GEN,,WIN,Standard,Can change for Chicago
-Tools,,ФЎ¤•РўЌ†Ў•– /  ҐР†„¤•ѓ… / Ґ†РѓЉ¤,,MNU,,WIN,Standard,Can change for Chicago
-top window border,,ѓ†РдЎ ЖР…ЎЉ”… Њ€Ў…,,GEN,,WIN,Standard,GUI
-Tracks,,вЊЎЊЖР…ЌЌ– / ЋЊРЊ‘€Љ,,COM,,WIN,Standard,GUI
-Tutorial,,ац† ЎЉ€,а,GEN,,WIN,Standard,GUI
-type,,Ў… Р…•Ѓ / ѓѓ†¤•Љ,,GEN,,WIN,Standard,GUI
-unavailable command,,Ў†„Њ¤•ў‹Ў… €ЊЌ…Ў„…,,GEN,,WIN,Standard,GUI
-underline,,‹Њ„ц†Р€Љѓ…ЎЉ†,Ш,GEN,,WIN,Standard,GUI
-Undo,,Ч•Ќ†ЎЉ•Ѓ ,Ч,COM,,WIN,Standard,GUI
-unfreeze,,Р…‡ЌЊРЊ‡Љ•Ѓ,,GEN,,WIN,Standard,GUI
-Unfreeze Panes,,С…‡ЌЊРЊ‡Љ•Ѓ ‹Њ„Њ€Ў…,,COM,,WIN,Standard,GUI
-Unhide,,ШЊ€…‡…•Ѓ...,,COM,,WIN,Standard,GUI
-Up,,¶ѓ†Рд ,¶,GEN,,WIN,Standard,GUI
-UP ARROW,,ҐгСЏУТ· ¶¶ЏСе,,KEY,,WIN,Standard,GUI
-up scroll arrow,,¤•Р†‰€… ‹РЊ€Рў•€Љ ѓѓ†Рд,,GEN,,WIN,Standard,GUI
-update,,Ч ЎЊѓЉ•Ѓ,,GEN,,WIN,Standard,GUI
-Update,,Њ ЎЊѓЉ•Ѓ,,COM,,WIN,Standard,GUI
-Utilities,,Ґ‰ў‘† Ў–† ‹РЊЖР…ЌЌ– /  а•Љ‰Љ•–,,MNU,,WIN,Standard,GUI
-value set,,Ў… ЊР ‡Ў…ц†ЎЉ‚,,GEN,,WIN,Standard,GUI
-vertical scroll bar,,ѓ†Р•Љ€…‰ЃЎ… ‹Њ‰Њ¤… ‹РЊ€Рў•€Љ,,GEN,,WIN,Standard,GUI
-vertical split bar,,ѓ†Р•Љ€…‰ЃЎ… ‰ЉЎЉ Р…‡ Љѓ€Љ,,GEN,,WIN,Standard,GUI
-view,,ШРЊ¤ЌЊ•Р ,,GEN,,WIN,Standard,GUI
-View,,‹РЊ¤ЌЊ•Р†•Ѓ,,MNU,,WIN,Standard,GUI
-wallpaper,,Њ ЊЉ,,GEN,,WIN,Standard,GUI
-warning message,,‹Р†„ў‹Р†‘„†ЎЉ† / ‹Р†„ў‹Р†‘„…з—†† ¤ЊЊ —†ЎЉ†,,GEN,,WIN,Standard,GUI
-wildcard,,‹Њ„¤•…ЎЊѓЊцЎ–† ¤ЉЌѓЊ‰– / ¤ЉЌѓЊ‰– ›… ‰ЊЎ…,,GEN,,WIN,Standard,GUI
-window,,Њ€ЎЊ,,GEN,,WIN,Standard,GUI
-Window,,Ч€ЎЊ,Ч,MNU,,WIN,Standard,GUI
-window background,,“ЊЎ Њ€Ў…,,GEN,,WIN,Standard,GUI
-window border,,ЖР…ЎЉ”… Њ€Ў…,,GEN,,WIN,Standard,GUI
-window corner,,ўЖЊ‰ Њ€Ў…,,GEN,,WIN,Standard,GUI
-window frame,,Р…Ќ€… Њ€Ў…,,GEN,,WIN,Standard,GUI
-window size,,Р…‡Ќ†Р Њ€Ў…,,GEN,,WIN,Standard,GUI
-window title,,‡…ЖЊ‰ЊѓЊ€ Њ€Ў…,,GEN,,WIN,Standard,GUI
-Windows Setup,,Windows Setup / а¤•…ЎЊѓ€… Windows,,GEN,,WIN,Standard,GUI
-workspace,,[Р… Њц…] Њ ¤•…ЎЊѓ€…,,GEN,,WIN,Standard,GUI
-Yes,,Ћ…,,GEN,,WIN,Standard,GUI
+Terminal,,Терминал,,GEN,,WIN,Standard,GUI
+text box,,окно текста / текстовое поле ,,GEN,,WIN,Standard,GUI
+text frame,,рамка текста,,GEN,,WIN,Standard,GUI
+Tile,,Рядом,,COM,,WIN,Standard,GUI
+tiled windows,,окна мозаикой,,GEN,,WIN,Standard,GUI
+Time,,Время,В,GEN,,WIN,Standard,GUI
+title bar,,строка заголовка,,GEN,,WIN,Standard,GUI
+tool,,инструменты / средства,,GEN,,WIN,Standard,Can change for Chicago
+toolbar,,панель инструментов / ... инструментальных средств,,GEN,,WIN,Standard,Can change for Chicago
+toolbox,,набор инструментов / средств,,GEN,,WIN,Standard,Can change for Chicago
+Tools,,Инструменты /  Средства / Сервис,,MNU,,WIN,Standard,Can change for Chicago
+top window border,,верхняя граница окна,,GEN,,WIN,Standard,GUI
+Tracks,,Фонограммы / Дорожки,,COM,,WIN,Standard,GUI
+Tutorial,,Учебник,У,GEN,,WIN,Standard,GUI
+type,,набрать / ввести,,GEN,,WIN,Standard,GUI
+unavailable command,,недоступная команда,,GEN,,WIN,Standard,GUI
+underline,,подчеркивание,П,GEN,,WIN,Standard,GUI
+Undo,,Отменить ,О,COM,,WIN,Standard,GUI
+unfreeze,,разморозить,,GEN,,WIN,Standard,GUI
+Unfreeze Panes,,Разморозить подокна,,COM,,WIN,Standard,GUI
+Unhide,,Показать...,,COM,,WIN,Standard,GUI
+Up,,Вверх ,В,GEN,,WIN,Standard,GUI
+UP ARROW,,СТРЕЛКА ВВЕРХ,,KEY,,WIN,Standard,GUI
+up scroll arrow,,стрелка прокрутки вверх,,GEN,,WIN,Standard,GUI
+update,,Обновить,,GEN,,WIN,Standard,GUI
+Update,,обновить,,COM,,WIN,Standard,GUI
+Utilities,,Служебные программы /  Утилиты,,MNU,,WIN,Standard,GUI
+value set,,набор значений,,GEN,,WIN,Standard,GUI
+vertical scroll bar,,вертикальная полоса прокрутки,,GEN,,WIN,Standard,GUI
+vertical split bar,,вертикальная линия разбивки,,GEN,,WIN,Standard,GUI
+view,,Просмотр ,,GEN,,WIN,Standard,GUI
+View,,просмотреть,,MNU,,WIN,Standard,GUI
+wallpaper,,обои,,GEN,,WIN,Standard,GUI
+warning message,,предупреждение / предупреждающее сообщение,,GEN,,WIN,Standard,GUI
+wildcard,,подстановочные символы / символы шаблона,,GEN,,WIN,Standard,GUI
+window,,окно,,GEN,,WIN,Standard,GUI
+Window,,Окно,О,MNU,,WIN,Standard,GUI
+window background,,фон окна,,GEN,,WIN,Standard,GUI
+window border,,граница окна,,GEN,,WIN,Standard,GUI
+window corner,,угол окна,,GEN,,WIN,Standard,GUI
+window frame,,рамка окна,,GEN,,WIN,Standard,GUI
+window size,,размер окна,,GEN,,WIN,Standard,GUI
+window title,,заголовок окна,,GEN,,WIN,Standard,GUI
+Windows Setup,,Windows Setup / Установка Windows,,GEN,,WIN,Standard,GUI
+workspace,,[рабочая] обстановка,,GEN,,WIN,Standard,GUI
+Yes,,Да,,GEN,,WIN,Standard,GUI
 ,,,,,,,,
 ,,,,,,,,
 ,,,,,,,,

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -64,6 +64,7 @@
      04/07/08 Datetime support
      04/14/08 Removed unnecessary type check in write-tbl-sql - OE00166674
      05/12/08 Handle duplicate field names being added - OE00166402
+     12/08/08 Handle case where index is re-added - OE00177558
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -4289,7 +4290,28 @@ DO ON STOP UNDO, LEAVE:
                 FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
                 FIND FIRST DICTDB._Index WHERE CAPS(DICTDB._Index._For-name) = CAPS(forname) 
                                            AND DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
+
                 IF (AVAILABLE verify-Index OR AVAILABLE DICTDB._Index) AND NOT AVAILABLE rename-obj THEN DO:
+
+                   /* OE00177558 - check if we found an index that was renamed */
+                   IF NOT AVAILABLE verify-Index THEN DO:
+                       FIND FIRST rename-obj WHERE rename-type = "I"
+                            and t-name = ilin[5]
+                            AND old-name = ilin[3]
+                            NO-ERROR.
+                       /* assuming that we are the only ones that would use 'temp-' to
+                          rename index, re-add it and delete the renamed version.
+                       */
+                       IF AVAILABLE rename-obj AND rename-obj.new-name BEGINS "temp-" THEN DO:         
+                          IF CAN-FIND (FIRST DICTDB._Index OF DICTDB._File 
+                                       WHERE DICTDB._Index._Index-name = old-name) THEN DO:
+                              CREATE verify-index.
+                              ASSIGN verify-index.inew-name = forname.
+                              LEAVE _verify-index.
+                          END.
+                       END.
+                  END.
+
                   DO a = 1 TO 999:
                     IF a = 1 THEN
                       ASSIGN forname = forname + STRING(a).

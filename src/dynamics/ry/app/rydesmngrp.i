@@ -11,7 +11,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/* Copyright © 1984-2007 by Progress Software Corporation.  All rights 
+/* Copyright ¸ 1984-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------

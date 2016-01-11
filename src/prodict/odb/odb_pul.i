@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006, 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,8 @@ History:
                          20050531-001
     fernando    01/04/06 Message added for 20050531-001 should be a warning
 	                     and should not come up during migration - 20051230-006.
+    nmanchal    11/06/08 setting initial value as 0 for numbers and Empty string for 
+	                     character column, reg. OE00176741 (DB2 - ODBC dataservers)
 
 --------------------------------------------------------------------*/
 
@@ -157,6 +159,15 @@ assign
                 else ENTRY(dtyp,user_env[15])
             )
   l_dcml  = 0.
+
+  IF INDEX(UPPER(_Db._Db-misc2[8]), "DB2") <> 0 THEN DO:
+      IF (ntyp = "CHARACTER") THEN
+          ASSIGN l_init = "". 
+      ELSE IF (ntyp = "LOGICAL") THEN
+          ASSIGN l_init = "NO". 
+      ELSE IF (ntyp = "DECIMAL" OR ntyp = "INTEGER" OR ntyp = "INT64" ) THEN 
+          ASSIGN l_init = "0". 
+  END.
 
 CREATE s_ttb_fld.
 

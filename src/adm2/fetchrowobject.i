@@ -55,8 +55,6 @@ END.
 
 do on stop undo,leave on error undo,leave:
   lStop = true.
-  MESSAGE "*****************  BEFORE CREATE ****************************** "
-  VIEW-AS ALERT-BOX.
   RUN {&createObjects} IN hContainer 
                            &IF "{&createParams}":U  <> "":U &THEN
                         ({&createParams})  
@@ -178,22 +176,14 @@ do on stop undo,leave on error undo,leave:
     END.
     hTempTable = ?. 
   END.
- MESSAGE '******************* BEFORE INIT ************** '
- VIEW-AS ALERT-BOX.
-
+ 
   RUN {&initializeObject} IN hContainer 
                         &IF "{&initializeParams}":U  <> "":U &THEN
                      ({&initializeParams})
                         &ENDIF
                      .
 
-MESSAGE '******************* AFTER INIT ************** '
- VIEW-AS ALERT-BOX.
-
   RUN {&fetchData} IN hContainer ({&fetchParams}).
-
-MESSAGE '******************* AFTER FETCH ************** '
- VIEW-AS ALERT-BOX.
 
 
 /* Defines the case statement to fetch the rowObject  */ 

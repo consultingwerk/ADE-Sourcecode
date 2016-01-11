@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights    
+/* Copyright (C) 2005-2008 by Progress Software Corporation. All rights    
    reserved.  Prior versions of this work may contain portions
    contributed by participants of Possenet. */
 /*------------------------------------------------------------------------
@@ -812,7 +812,7 @@ DO i = 1 TO NUM-ENTRIES(pcBufHandles):
         " AS " hField:DATA-TYPE  SKIP.
 
       PUT STREAM TempDBStream UNFORMATTED "  FORMAT ":U QUOTER(hField:FORMAT) SKIP.
-      PUT STREAM TempDBStream UNFORMATTED "  INITIAL ":U QUOTER(TRIM(hField:INITIAL)) SKIP .
+      PUT STREAM TempDBStream UNFORMATTED "  INITIAL ":U QUOTER(TRIM(hField:DEFAULT-STRING)) SKIP .
       IF hField:LABEL <> ? THEN
         PUT STREAM TempDBStream UNFORMATTED "  LABEL ":U QUOTER(hField:LABEL) SKIP .
       IF hField:COLUMN-LABEL <> ? THEN
@@ -1077,7 +1077,7 @@ PROCEDURE EntityProcess :
    IF NOT VALID-HANDLE(hRDM) THEN 
        ASSIGN cError = "AF^29^" + LC(PROGRAM-NAME(1)) + ":" + LC(PROGRAM-NAME(2)) + "^" 
                                                                + '"Repository Design Manager"' 
-                                                               + '"he handle to the Repository design Manager is invalid. Entity import failed"´"'
+                                                               + '"he handle to the Repository design Manager is invalid. Entity import failed"ï"'
                                                                +  CHR(4) + "?" + CHR(4) + "?" + CHR(4) + PROGRAM-NAME(1) 
                                                                + CHR(4) + PROGRAM-NAME(2).
 

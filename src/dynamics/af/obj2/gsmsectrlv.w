@@ -29,10 +29,10 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
-{src/adm2/globals.i}
+{adm2/globals.i}
 
 
-{src/adm2/widgetprto.i}
+{adm2/widgetprto.i}
 
   DEFINE VARIABLE glDBConfigDefault AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE glDBAllowUnreg    AS LOGICAL    NO-UNDO.

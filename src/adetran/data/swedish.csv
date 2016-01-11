@@ -1,70 +1,70 @@
-"""from"" file",,kÑllfil,,GEN,N,DOS,MS-DOS,generell term
-"""to"" file",,mÜlfil,,GEN,N,DOS,MS-DOS,generell term
+"""from"" file",,k‰llfil,,GEN,N,DOS,MS-DOS,generell term
+"""to"" file",,mÂlfil,,GEN,N,DOS,MS-DOS,generell term
 #,,#-tecken,,GEN,N,DOS,MS-DOS,generell term
 @,,"""@-tecken""",,GEN,N,DOS,MS-DOS,generell term
-"1.2 Mb 5¨"" High Density",,"1,2 Mb 5,25-tums hîgdensitetsdiskett  ",,DIA,N,DOS,MS-DOS,Backup-modul
-"1.44 Mb 3´"" High Density",,"1,44 Mb 3,5-tums hîgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
+"1.2 Mb 5º"" High Density",,"1,2 Mb 5,25-tums hˆgdensitetsdiskett  ",,DIA,N,DOS,MS-DOS,Backup-modul
+"1.44 Mb 3Ω"" High Density",,"1,44 Mb 3,5-tums hˆgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
 25 lines ,,25 rader,2,DIA,N,DOS,MS-DOS,Backup-modul
-"360 Kb 5¨"" Low-Density",,"360 kb 5,25-tums lÜgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
+"360 Kb 5º"" Low-Density",,"360 kb 5,25-tums lÂgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
 50 lines,,50 rader,5,DIA,N,DOS,MS-DOS,Backup-modul
-"720 Kb 3´"" Low-Density",,"720 kb 3,5-tums lÜgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
-"720 Kb 5¨"" Low-Density",,"720 kb 5,25-tums lÜgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
+"720 Kb 3Ω"" Low-Density",,"720 kb 3,5-tums lÂgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
+"720 Kb 5º"" Low-Density",,"720 kb 5,25-tums lÂgdensitetsdiskett",,DIA,N,DOS,MS-DOS,Backup-modul
 A&B,,A&B,,DIA,N,DOS,MS-DOS,Backup-modul
 abort,,avbryta,,GEN,V,DOS,MS-DOS,generell term
-"Abort, Retry, Ignore, Fail,  ",,"Avbryt, Fîrsîk igen, Ignorera, FortsÑtt",,GEN,V,DOS,MS-DOS,generell term
+"Abort, Retry, Ignore, Fail,  ",,"Avbryt, Fˆrsˆk igen, Ignorera, Forts‰tt",,GEN,V,DOS,MS-DOS,generell term
 About to delete: EXEMPLE.XYZ,,Kommer att ta bort EXAMPLE.XYZ,,TXT,N,DOS,MS-DOS,Backup-modul
 About Undelete...,,   Om Undelete...,O,COM,N,DOS,MS-DOS,Undel-modul
-About Windows Backup,,   Om Backup fîr Windows,O,COM,N,DOS,MS-DOS,Backup-modul
+About Windows Backup,,   Om Backup fˆr Windows,O,COM,N,DOS,MS-DOS,Backup-modul
 About...,,   Om Undelete...,O,COM,N,DOS,MS-DOS,Undel-modul
 "absolut (disk sector,DEBUG)",,absolut,,GEN,ADV,DOS,MS-DOS,generell term
-access,,Ütkomst,,GEN,N,DOS,MS-DOS,generell term
-access right,,behîrighet,,GEN,N,DOS,MS-DOS,generell term
+access,,Âtkomst,,GEN,N,DOS,MS-DOS,generell term
+access right,,behˆrighet,,GEN,N,DOS,MS-DOS,generell term
 Activate,,Aktivera,,COM,V,DOS,MS-DOS,Defrag
 active (DOS partition),,aktiv,,GEN,ADJ,DOS,MS-DOS,generell term
 active directory (same as 'current...'),,aktuell katalog,,GEN,N,DOS,MS-DOS,generell term
 active drive (same as 'current...'),,aktuell enhet,,GEN,N,DOS,MS-DOS,generell term
-Activity log,,HÑndelse-/Aktivitetslogg,,TXT,N,DOS,MS-DOS,MSAVF-modul
+Activity log,,H‰ndelse-/Aktivitetslogg,,TXT,N,DOS,MS-DOS,MSAVF-modul
 adapter,,adapter,,GEN,N,DOS,MS-DOS,generell term
-add,,"addera, lÑgga till",,GEN,V,DOS,MS-DOS,generell term + Backup-modul
-Administrator(s),,administratîr(er),,TXT,N,DOS,MS-DOS,Backup-modul
+add,,"addera, l‰gga till",,GEN,V,DOS,MS-DOS,generell term + Backup-modul
+Administrator(s),,administratˆr(er),,TXT,N,DOS,MS-DOS,Backup-modul
 Alarm sound,,Varningssignal,,TXT,N,DOS,MS-DOS,MSAVF-modul
 alert box,,varningsruta,,GEN,N,DOS,MS-DOS,Backup-modul
 alignment,,justering,,GEN,N,DOS,MS-DOS,generell term
-All Files,,Alla filer pÜ disken,,DIA,N,DOS,MS-DOS,Backup-modul
+All Files,,Alla filer pÂ disken,,DIA,N,DOS,MS-DOS,Backup-modul
 allocate,,"allokera, tilldela",,GEN,V,DOS,MS-DOS,generell term
 allocation unit,,datablock,,GEN,N,DOS,MS-DOS,generell term
 ALT,,ALT,,GEN,N,DOS,MS-DOS,generell term
 Alternate Directories,,Alternativa kataloger,,DIA,N,DOS,MS-DOS,Backup-modul
-Alternate Directory Too long,,Katalognamnet Ñr fîr lÜngt,,TXT,N,DOS,MS-DOS,Backup-modul
+Alternate Directory Too long,,Katalognamnet ‰r fˆr lÂngt,,TXT,N,DOS,MS-DOS,Backup-modul
 Alternate Drives,,Alternativa enheter,,DIA,N,DOS,MS-DOS,Backup-modul
 Always Format Diskettes,,formatera alltid disketter,,CHX,N,DOS,MS-DOS,Backup-modul
-Always Overwrite,,ErsÑtt alltid,,CHX,N,DOS,MS-DOS,Backup-modul
+Always Overwrite,,Ers‰tt alltid,,CHX,N,DOS,MS-DOS,Backup-modul
 ampersand (&),,&-tecken,,GEN,N,DOS,MS-DOS,generell term
-Anti-Stealth,,Sîk smygvirus,ô,CHX,N,DOS,MS-DOS,MSAVF-modul
-Anti-Stealth option,,alternativet Sîk smygvirus,,CHX,N,DOS,MS-DOS,MSAVF-modul
+Anti-Stealth,,Sˆk smygvirus,÷,CHX,N,DOS,MS-DOS,MSAVF-modul
+Anti-Stealth option,,alternativet Sˆk smygvirus,,CHX,N,DOS,MS-DOS,MSAVF-modul
 Anti-virus,,Antivirus,,TXT,N,DOS,MS-DOS,MSAVF-modul
-append,,"lÑgga till, bifoga",,GEN,V,DOS,MS-DOS,generell term
-appended path (APPEND),,(tillagd) sîkvÑg,,GEN,N,DOS,MS-DOS,generell term
+append,,"l‰gga till, bifoga",,GEN,V,DOS,MS-DOS,generell term
+appended path (APPEND),,(tillagd) sˆkv‰g,,GEN,N,DOS,MS-DOS,generell term
 appendix,,bilaga,,GEN,N,DOS,MS-DOS,generell term
 application,,"program, applikation",,GEN,N,DOS,MS-DOS,generell term
 application program,,"program, applikation",,GEN,N,DOS,MS-DOS,generell term
 application software,,"program, programvara",,GEN,N,DOS,MS-DOS,generell term
-Apply Date Range,,AnvÑnd datumintervall,A,CHX,N,DOS,MS-DOS,Backup-modul
-Apply to Subdirectories,,AnvÑnd i underkataloger ,A,OPT,N,DOS,MS-DOS,Backup-modul
+Apply Date Range,,Anv‰nd datumintervall,A,CHX,N,DOS,MS-DOS,Backup-modul
+Apply to Subdirectories,,Anv‰nd i underkataloger ,A,OPT,N,DOS,MS-DOS,Backup-modul
 archive,,arkiv,,GEN,N,DOS,MS-DOS,generell term
 Archive,,arkiv,,TXT,N,DOS,MS-DOS,Backup-modul
 archive bit,,arkivbit,,TXT,N,DOS,MS-DOS,Backup-modul
 archive flag,,arkivflagga,,TXT,N,DOS,MS-DOS,Backup-modul
-Are you sure you want to cancel the backup?,,Vill du avbryta SÑkerhetskopiera?,,TXT,N,DOS,MS-DOS,Backup-modul
-Are you sure you want to cancel the compare?,,Vill du avbryta JÑmfîr?,,TXT,N,DOS,MS-DOS,Backup-modul
-Are you sure you want to cancel the rebuild?,,Vill du avbryta èterskapa?,,TXT,N,DOS,MS-DOS,Backup-modul
-Are you sure you want to cancel the restore?,,Vill du avbryta èterstÑll?,,TXT,N,DOS,MS-DOS,Backup-modul
-Are you sure you want to cancel the retrieve?,,Vill du avbryta HÑmta?,,TXT,N,DOS,MS-DOS,Backup-modul
+Are you sure you want to cancel the backup?,,Vill du avbryta S‰kerhetskopiera?,,TXT,N,DOS,MS-DOS,Backup-modul
+Are you sure you want to cancel the compare?,,Vill du avbryta J‰mfˆr?,,TXT,N,DOS,MS-DOS,Backup-modul
+Are you sure you want to cancel the rebuild?,,Vill du avbryta ≈terskapa?,,TXT,N,DOS,MS-DOS,Backup-modul
+Are you sure you want to cancel the restore?,,Vill du avbryta ≈terst‰ll?,,TXT,N,DOS,MS-DOS,Backup-modul
+Are you sure you want to cancel the retrieve?,,Vill du avbryta H‰mta?,,TXT,N,DOS,MS-DOS,Backup-modul
 argument,,argument,,GEN,N,DOS,MS-DOS,generell term
 arrow key,,piltangent,,GEN,N,DOS,MS-DOS,generell term
 assembler  (DEBUG),,assemblerare,,GEN,N,DOS,MS-DOS,generell term
 assembler statement,,assemblersats,,GEN,N,DOS,MS-DOS,generell term
-assembly language,,assemblersprÜk,,GEN,N,DOS,MS-DOS,generell term
+assembly language,,assemblersprÂk,,GEN,N,DOS,MS-DOS,generell term
 assign,,"Allokera, tilldela",,GEN,V,DOS,MS-DOS,generell term
 Assign,,"Allokera, Tilldela",,MNU,V,DOS,MS-DOS,Defrag
 assign (ASSIGN),,tilldela,,GEN,V,DOS,MS-DOS,generell term
@@ -75,7 +75,7 @@ associate (with a DOS partition),,associera,,GEN,V,DOS,MS-DOS,generell term
 asterisk,,asterisk,,GEN,N,DOS,MS-DOS,generell term
 asterisk wildcard,,asterisk - jokertecken,,GEN,N,DOS,MS-DOS,generell term
 asynchronous,,asynkron,,GEN,ADJ,DOS,MS-DOS,generell term
-attribute,,"attribut, egenskap, kÑnnetecken",,GEN,N,DOS,MS-DOS,generell term
+attribute,,"attribut, egenskap, k‰nnetecken",,GEN,N,DOS,MS-DOS,generell term
 Attribute,,attribut,,TXT,N,DOS,MS-DOS,MSAVF-modul
 attributes,,Attribut,A,TXT,N,DOS,MS-DOS,Backup-modul
 Audible Prompts (Beep),,Ljudsignal,,CHX,N,DOS,MS-DOS,Backup-modul
@@ -83,59 +83,59 @@ Auto Config,,Automatisk konfiguration,,BUT,N,DOS,MS-DOS,Backup-modul
 Auto Configure,,Konfigurera automatiskt,,BUT,N,DOS,MS-DOS,Backup-modul
 Auto Floppy Config,,Automatisk diskettkonfiguration ,,OPT,N,DOS,MS-DOS,Backup-modul
 Auto Floppy Configure,,Konfigurera diskett automatiskt,,BUT,N,DOS,MS-DOS,Backup-modul
-Auto Flush,,automatisk bufferttîmning,,GEN,N,DOS,MS-DOS,generell term
+Auto Flush,,automatisk bufferttˆmning,,GEN,N,DOS,MS-DOS,generell term
 Autoconfig,,Automatisk konfiguration,,OPT,N,DOS,MS-DOS,Backup-modul
-automated backup,,automatisk sÑkerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
-Automating Backup(s),,automatisera sÑkerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
-Automating Backups Using Setup Files,,automatisera sÑkerhetskopiering med hjÑlp av instÑllningsfiler ,,TXT,N,DOS,MS-DOS,Backup-modul
-available (space),,"tillgÑngligt, ledigt (Om ""ledigt minne"")",,GEN,ADJ,DOS,MS-DOS,generell term
+automated backup,,automatisk s‰kerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
+Automating Backup(s),,automatisera s‰kerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
+Automating Backups Using Setup Files,,automatisera s‰kerhetskopiering med hj‰lp av inst‰llningsfiler ,,TXT,N,DOS,MS-DOS,Backup-modul
+available (space),,"tillg‰ngligt, ledigt (Om ""ledigt minne"")",,GEN,ADJ,DOS,MS-DOS,generell term
 BACK SPACE,,BACKSTEG,,GEN,N,DOS,MS-DOS,generell term
-Back up Hidden Files,,SÑkerhetskopiera dolda filer,,OPT,N,DOS,MS-DOS,Backup-modul
-Back up Read-Only Files,,SÑkerhetskopiera skrivskyddade filer ,,OPT,N,DOS,MS-DOS,Backup-modul
-Back up System Files,,SÑkerhetskopiera systemfiler,,OPT,N,DOS,MS-DOS,Backup-modul
+Back up Hidden Files,,S‰kerhetskopiera dolda filer,,OPT,N,DOS,MS-DOS,Backup-modul
+Back up Read-Only Files,,S‰kerhetskopiera skrivskyddade filer ,,OPT,N,DOS,MS-DOS,Backup-modul
+Back up System Files,,S‰kerhetskopiera systemfiler,,OPT,N,DOS,MS-DOS,Backup-modul
 background,,bakgrund,,GEN,N,DOS,MS-DOS,generell term
-Background Backup,,SÑkerhetskopiering i bakgrunden?,,TXT,N,DOS,MS-DOS,Backup-modul
-background color,,bakgrundsfÑrg,,GEN,N,DOS,MS-DOS,generell term
+Background Backup,,S‰kerhetskopiering i bakgrunden?,,TXT,N,DOS,MS-DOS,Backup-modul
+background color,,bakgrundsf‰rg,,GEN,N,DOS,MS-DOS,generell term
 background printing,,bakgrundsutskrift,,GEN,N,DOS,MS-DOS,generell term
-backslash (\),,omvÑnt snedstreck (\),,GEN,N,DOS,MS-DOS,generell term
-Backup,,   SÑkerhetskopiera,S,COM,V,DOS,MS-DOS,Backup-modul
-backup,,SÑkerhetskopia,,GEN,N,DOS,MS-DOS,generell term
-Backup,,"SÑkerhetskopiera, sÑkerhetskopia",,BUT,N,DOS,MS-DOS,Backup-modul
-backup [n],,sÑkerhetskopia,,GEN,N,DOS,MS-DOS,generell term
-backup [v],,sÑkerhetskopiera,,GEN,V,DOS,MS-DOS,generell term
-Backup canceled.,,SÑkerhetskopiera avbrutet,,TXT,N,DOS,MS-DOS,Backup-modul
-Backup Catalog,,Fîrteckning îver sÑkerhetskopierade filer,,TDB,N,DOS,MS-DOS,Backup-modul
-Backup Complete,,SÑkerhetskopiera fÑrdigt,,DIA,N,DOS,MS-DOS,Backup-modul
-backup copy,,sÑkerhetskopia,,GEN,N,DOS,MS-DOS,generell term
-backup cycle,,"tidsintervall mellan sÑkerhetskopieringar, sÑkerhetskopieringscykel",,MNU,N,DOS,MS-DOS,Backup-modul
-Backup Devices,,Utrustning fîr sÑkerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
-backup disk,,disk/diskett med sÑkerhetskopia,,GEN,N,DOS,MS-DOS,generell term
-Backup drive,,enhet fîr sÑkerhetskopiering,,GEN,N,DOS,MS-DOS,generell term
-Backup files,,sÑkerhetskopierade filer,,TXT,N,DOS,MS-DOS,Backup-modul
-Backup Files in Date Range,,SÑkerhetskopierade filer i datumintervall,,TDB,N,DOS,MS-DOS,Backup-modul
-Backup Fixed Disk,,hÜrddisk att sÑkerhetskopiera / sÑkerhetskopiera hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
-Backup From,,SÑkerhetskopiera frÜn,F,DIA,N,DOS,MS-DOS,Backup-modul
-Backup from drive,,SÑkerhetskopiera frÜn enhet,,DIA,N,DOS,MS-DOS,Backup-modul
-backup log file,,loggfil fîr sÑkerhetskopiering,,GEN,N,DOS,MS-DOS,generell term
-backup media,,sÑkerhetskopieringsmedia,,TXT,N,DOS,MS-DOS,Backup-modul
-Backup options,,Alternativ fîr SÑkerhetskopiera,,TDB,N,DOS,MS-DOS,Backup-modul
-Backup Program Window,,Fînster fîr sÑkerhetskopieringsprogram ,,TDB,N,DOS,MS-DOS,Backup-modul
-Backup Progress window,,Fîrloppsfînster fîr SÑkerhetskopiera,,DIA,N,DOS,MS-DOS,Backup-modul
-Backup Selection Legend,,Fîrklaring av markering vid sÑkerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
-backup session,,sÑkerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
-backup set,,uppsÑttning med sÑkerhetskopior,,TXT,N,DOS,MS-DOS,Backup-modul
-Backup Set Catalog,,fîrteckning îver uppsÑttning med sÑkerhetskopior,,DIA,N,DOS,MS-DOS,Backup-modul
-Backup Time,,SÑkerhetskopieringstid ,,DIA,N,DOS,MS-DOS,Backup-modul
-Backup To,,SÑkerhetskopiera till,T,DIA,N,DOS,MS-DOS,Backup-modul
-Backup Type,,SÑkerhetskopieringstyp,Y,DIA,N,DOS,MS-DOS,Backup-modul
-Backup window,,Fînster dÑr sÑkerhetskopieringen visas/kan fîljas,,DIA,N,DOS,MS-DOS,Backup-modul
+backslash (\),,omv‰nt snedstreck (\),,GEN,N,DOS,MS-DOS,generell term
+Backup,,   S‰kerhetskopiera,S,COM,V,DOS,MS-DOS,Backup-modul
+backup,,S‰kerhetskopia,,GEN,N,DOS,MS-DOS,generell term
+Backup,,"S‰kerhetskopiera, s‰kerhetskopia",,BUT,N,DOS,MS-DOS,Backup-modul
+backup [n],,s‰kerhetskopia,,GEN,N,DOS,MS-DOS,generell term
+backup [v],,s‰kerhetskopiera,,GEN,V,DOS,MS-DOS,generell term
+Backup canceled.,,S‰kerhetskopiera avbrutet,,TXT,N,DOS,MS-DOS,Backup-modul
+Backup Catalog,,Fˆrteckning ˆver s‰kerhetskopierade filer,,TDB,N,DOS,MS-DOS,Backup-modul
+Backup Complete,,S‰kerhetskopiera f‰rdigt,,DIA,N,DOS,MS-DOS,Backup-modul
+backup copy,,s‰kerhetskopia,,GEN,N,DOS,MS-DOS,generell term
+backup cycle,,"tidsintervall mellan s‰kerhetskopieringar, s‰kerhetskopieringscykel",,MNU,N,DOS,MS-DOS,Backup-modul
+Backup Devices,,Utrustning fˆr s‰kerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
+backup disk,,disk/diskett med s‰kerhetskopia,,GEN,N,DOS,MS-DOS,generell term
+Backup drive,,enhet fˆr s‰kerhetskopiering,,GEN,N,DOS,MS-DOS,generell term
+Backup files,,s‰kerhetskopierade filer,,TXT,N,DOS,MS-DOS,Backup-modul
+Backup Files in Date Range,,S‰kerhetskopierade filer i datumintervall,,TDB,N,DOS,MS-DOS,Backup-modul
+Backup Fixed Disk,,hÂrddisk att s‰kerhetskopiera / s‰kerhetskopiera hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
+Backup From,,S‰kerhetskopiera frÂn,F,DIA,N,DOS,MS-DOS,Backup-modul
+Backup from drive,,S‰kerhetskopiera frÂn enhet,,DIA,N,DOS,MS-DOS,Backup-modul
+backup log file,,loggfil fˆr s‰kerhetskopiering,,GEN,N,DOS,MS-DOS,generell term
+backup media,,s‰kerhetskopieringsmedia,,TXT,N,DOS,MS-DOS,Backup-modul
+Backup options,,Alternativ fˆr S‰kerhetskopiera,,TDB,N,DOS,MS-DOS,Backup-modul
+Backup Program Window,,Fˆnster fˆr s‰kerhetskopieringsprogram ,,TDB,N,DOS,MS-DOS,Backup-modul
+Backup Progress window,,Fˆrloppsfˆnster fˆr S‰kerhetskopiera,,DIA,N,DOS,MS-DOS,Backup-modul
+Backup Selection Legend,,Fˆrklaring av markering vid s‰kerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
+backup session,,s‰kerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
+backup set,,upps‰ttning med s‰kerhetskopior,,TXT,N,DOS,MS-DOS,Backup-modul
+Backup Set Catalog,,fˆrteckning ˆver upps‰ttning med s‰kerhetskopior,,DIA,N,DOS,MS-DOS,Backup-modul
+Backup Time,,S‰kerhetskopieringstid ,,DIA,N,DOS,MS-DOS,Backup-modul
+Backup To,,S‰kerhetskopiera till,T,DIA,N,DOS,MS-DOS,Backup-modul
+Backup Type,,S‰kerhetskopieringstyp,Y,DIA,N,DOS,MS-DOS,Backup-modul
+Backup window,,Fˆnster d‰r s‰kerhetskopieringen visas/kan fˆljas,,DIA,N,DOS,MS-DOS,Backup-modul
 "bad (allocation unit, link)",,felaktig,,GEN,ADJ,DOS,MS-DOS,generell term
 bad (attribute),,ogiltigt (attribut),,GEN,ADJ,DOS,MS-DOS,generell term
 "bad (command, device name)",,felaktigt (kommando),,GEN,ADJ,DOS,MS-DOS,generell term
 "bad (disk, sector, track)",,"skadad  (disk/sektor), ogiltig (sektorangivelse)",,GEN,N,DOS,MS-DOS,generell term
 bad (file size),,ogiltig,,GEN,ADJ,DOS,MS-DOS,generell term
 bad req. struct.,,felaktig registreringsstruktur,,GEN,N,DOS,MS-DOS,generell term
-Bad request,,Felaktig begÑran,,TXT,N,DOS,MS-DOS,Backup-modul
+Bad request,,Felaktig beg‰ran,,TXT,N,DOS,MS-DOS,Backup-modul
 Base Configuration,,Baskonfiguration,,TDB,N,DOS,MS-DOS,Defrag
 Basic Skills,,   Grundkunskaper,G,COM,N,DOS,MS-DOS,Backup-modul
 Basic Skills,,Grundkunskaper,,GEN,N,DOS,MS-DOS,Undel-modul
@@ -145,90 +145,90 @@ batch file,,kommandofil,,GEN,N,DOS,MS-DOS,generell term
 batch parameter processor,,kommandofilstolk,,GEN,N,DOS,MS-DOS,generell term
 batch processing,,satsvis bearbetning,,GEN,N,DOS,MS-DOS,generell term
 batch program,,kommandoprogram,,GEN,N,DOS,MS-DOS,generell term
-baud rate,,îverfîringshastighet i baud,,GEN,N,DOS,MS-DOS,generell term
+baud rate,,ˆverfˆringshastighet i baud,,GEN,N,DOS,MS-DOS,generell term
 beep (warning),,signal,,GEN,N,DOS,MS-DOS,generell term
 Bernouilli,,Bernouilli,,TXT,ADJ,DOS,MS-DOS,Backup-modul
-binary,,binÑr,,GEN,N,DOS,MS-DOS,generell term
-binary file,,binÑrfil,,GEN,N,DOS,MS-DOS,generell term
+binary,,bin‰r,,GEN,N,DOS,MS-DOS,generell term
+binary file,,bin‰rfil,,GEN,N,DOS,MS-DOS,generell term
 bit,,bit,,GEN,N,DOS,MS-DOS,generell term
-Black & Red,,Svart & rîd,,OPT,ADJ,DOS,MS-DOS,Backup-modul
+Black & Red,,Svart & rˆd,,OPT,ADJ,DOS,MS-DOS,Backup-modul
 Black and White,,Svartvit,,OPT,ADJ,DOS,MS-DOS,Backup-modul
 blank disk,,tom disk/diskett,,GEN,N,DOS,MS-DOS,generell term
 blank line,,blankrad,,GEN,N,DOS,MS-DOS,generell term
 blank space,,blanksteg,,GEN,N,DOS,MS-DOS,generell term
 blink (cursor),,blinkning,,GEN,N,DOS,MS-DOS,generell term
 block device,,blockenhet,,GEN,N,DOS,MS-DOS,generell term
-block device driver,,drivrutin fîr blockenhet,,GEN,N,DOS,MS-DOS,generell term
+block device driver,,drivrutin fˆr blockenhet,,GEN,N,DOS,MS-DOS,generell term
 boot,,"starta, systemstart",,GEN,N,DOS,MS-DOS,generell term
 boot disk (drive),,startdiskett,,GEN,N,DOS,MS-DOS,generell term
 boot drive,,startenhet,,GEN,N,DOS,MS-DOS,generell term
 Boot sector,,Startsektor,,TXT,N,DOS,MS-DOS,Backup-modul
 Boot sector virus,,Startsektorvirus,,TXT,N,DOS,MS-DOS,MSAVF-modul
-bootable,,"mîjlig att starta, startbar",,GEN,N,DOS,MS-DOS,generell term
+bootable,,"mˆjlig att starta, startbar",,GEN,N,DOS,MS-DOS,generell term
 bootstrap,,startprogram,,GEN,N,DOS,MS-DOS,generell term
 bracket,,hakparentes,,GEN,N,DOS,MS-DOS,generell term
 "BREAK, break key",,"BREAK, bryttangent",,GEN,N,DOS,MS-DOS,generell term
 breakpoint,,brytpunkt,,GEN,N,DOS,MS-DOS,generell term
 "breakpoint (assembler,DEBUG)",,brytpunkt,,GEN,N,DOS,MS-DOS,generell term
-Browse,,BlÑddra,,BUT,V,DOS,MS-DOS,Backup-modul
-browse key(s),,blÑddringstangenter/blÑddringsknappar i HjÑlp,,GEN,N,DOS,MS-DOS,Backup-modul
+Browse,,Bl‰ddra,,BUT,V,DOS,MS-DOS,Backup-modul
+browse key(s),,bl‰ddringstangenter/bl‰ddringsknappar i Hj‰lp,,GEN,N,DOS,MS-DOS,Backup-modul
 buffer,,buffert,,GEN,N,DOS,MS-DOS,generell term
 buffers,,buffertar,,TXT,N,DOS,MS-DOS,Backup-modul
 Building table,,Skapar tabell,,TXT,N,DOS,MS-DOS,Defrag
 busy (port),,upptagen,,GEN,ADJ,DOS,MS-DOS,generell term
-button bar,,knappfÑlt,,BUT,N,DOS,MS-DOS,Backup-modul
-bypass,,"kringgÜ, gÜ fîrbi",,GEN,V,DOS,MS-DOS,generell term
+button bar,,knappf‰lt,,BUT,N,DOS,MS-DOS,Backup-modul
+bypass,,"kringgÂ, gÂ fˆrbi",,GEN,V,DOS,MS-DOS,generell term
 byte,,byte,,GEN,N,DOS,MS-DOS,generell term
-byte string,,bytestrÑng,,GEN,N,DOS,MS-DOS,generell term
+byte string,,bytestr‰ng,,GEN,N,DOS,MS-DOS,generell term
 Bytes,,byte,,DIA,N,DOS,MS-DOS,Backup-modul
 "call (assembler,DEBUG)",,anrop,,GEN,N,DOS,MS-DOS,generell term
 cancel,,"Avbryt, avbryta",,GEN,V,DOS,MS-DOS,generell term
 Cancel,,"Avbryt, avbryta",,BUT,V,DOS,MS-DOS,Backup-modul
 Cancel Load,,Avbryt Ladda,,TXT,N,DOS,MS-DOS,Backup-modul
-cancel mode,,annulleringslÑge,,GEN,N,DOS,MS-DOS,generell term
+cancel mode,,annulleringsl‰ge,,GEN,N,DOS,MS-DOS,generell term
 Capacity,,Kapacitet,,COM,N,DOS,MS-DOS,Defrag
 CAPS LOCK,,CAPS LOCK,,GEN,N,DOS,MS-DOS,generell term
-caret (^),,insÑttningstecken,,GEN,N,DOS,MS-DOS,generell term
-Catalog,,Filfîrteckning,,MNU,N,DOS,MS-DOS,Backup-modul
-Catalog,,Filfîrteckning,F,DIA,N,DOS,MS-DOS,Backup-modul
-Catalog File Path,,SîkvÑg fîr fil med filfîrteckning,,TXB,N,DOS,MS-DOS,Backup-modul
-catalog file(s),,(filer med) filfîrteckningar,,TXT,N,DOS,MS-DOS,Backup-modul
-Catalog menu,,Filfîrteckningsmeny,,DIA,N,DOS,MS-DOS,Backup-modul
-catalog path,,sîkvÑg fîr filfîrteckning,,TXT,N,DOS,MS-DOS,Backup-modul
-Catalog rebuild,,èterskapande av filfîrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
+caret (^),,ins‰ttningstecken,,GEN,N,DOS,MS-DOS,generell term
+Catalog,,Filfˆrteckning,,MNU,N,DOS,MS-DOS,Backup-modul
+Catalog,,Filfˆrteckning,F,DIA,N,DOS,MS-DOS,Backup-modul
+Catalog File Path,,Sˆkv‰g fˆr fil med filfˆrteckning,,TXB,N,DOS,MS-DOS,Backup-modul
+catalog file(s),,(filer med) filfˆrteckningar,,TXT,N,DOS,MS-DOS,Backup-modul
+Catalog menu,,Filfˆrteckningsmeny,,DIA,N,DOS,MS-DOS,Backup-modul
+catalog path,,sˆkv‰g fˆr filfˆrteckning,,TXT,N,DOS,MS-DOS,Backup-modul
+Catalog rebuild,,≈terskapande av filfˆrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
 CAUTION,,Varning!,,GEN,N,DOS,MS-DOS,generell term
-CGA Colors,,CGA-fÑrger,G,OPT,N,DOS,MS-DOS,Backup-modul
-"chain, lost (CHKDSK)",,fîrlorade kedjor,,GEN,N,DOS,MS-DOS,generell term
-change,,"Ñndra, byta",,GEN,N,DOS,MS-DOS,generell term
-Change Drive/Directory,,   éndra enhet/katalog ,E,BUT,N,DOS,MS-DOS,Undel-modul
-change-line (doorlock) support,,stîd fîr kontroll av diskettlucka,,GEN,N,DOS,MS-DOS,generell term
+CGA Colors,,CGA-f‰rger,G,OPT,N,DOS,MS-DOS,Backup-modul
+"chain, lost (CHKDSK)",,fˆrlorade kedjor,,GEN,N,DOS,MS-DOS,generell term
+change,,"‰ndra, byta",,GEN,N,DOS,MS-DOS,generell term
+Change Drive/Directory,,   ƒndra enhet/katalog ,E,BUT,N,DOS,MS-DOS,Undel-modul
+change-line (doorlock) support,,stˆd fˆr kontroll av diskettlucka,,GEN,N,DOS,MS-DOS,generell term
 character,,tecken,,GEN,N,DOS,MS-DOS,generell term
-character set,,teckenuppsÑttning,,GEN,N,DOS,MS-DOS,generell term
+character set,,teckenupps‰ttning,,GEN,N,DOS,MS-DOS,generell term
 character table,,teckentabell,,GEN,N,DOS,MS-DOS,generell term
-check,,"markera/bocka fîr, kontrollera, Ñven ""kryssa fîr""",,GEN,N,DOS,MS-DOS,generell term
+check,,"markera/bocka fˆr, kontrollera, ‰ven ""kryssa fˆr""",,GEN,N,DOS,MS-DOS,generell term
 Check All Files,,Kontrollera alla filer,F,CHX,N,DOS,MS-DOS,MSAVF-modul
 check box,,kryssruta,,GEN,N,DOS,MS-DOS,generell term
 Checklist file,,Checklistefil ,,DIA,N,DOS,MS-DOS,MSAVF-modul
 Checksum,,Kontrollsumma,,TXT,N,DOS,MS-DOS,MSAVF-modul
 child directory,,underkatalog,,GEN,N,DOS,MS-DOS,generell term
-choose,,vÑlja,,GEN,V,DOS,MS-DOS,generell term
-Choose (Y),,"VÑlj ""J"" ",,GEN,N,DOS,MS-DOS,generell term
-Choose OK,,"VÑlj ""OK""",,GEN,N,DOS,MS-DOS,generell term
-Choosing the catalog...=Catalog,,Filfîrteckning,,BUT,N,DOS,MS-DOS,Backup-modul
+choose,,v‰lja,,GEN,V,DOS,MS-DOS,generell term
+Choose (Y),,"V‰lj ""J"" ",,GEN,N,DOS,MS-DOS,generell term
+Choose OK,,"V‰lj ""OK""",,GEN,N,DOS,MS-DOS,generell term
+Choosing the catalog...=Catalog,,Filfˆrteckning,,BUT,N,DOS,MS-DOS,Backup-modul
 class name,,klassnamn,,GEN,N,DOS,MS-DOS,generell term
 Clean,,Rensa,,COM,V,DOS,MS-DOS,MSAVF-modul
 clear,,ta bort,,GEN,N,DOS,MS-DOS,generell term
 click,,klicka,,TXT,V,DOS,MS-DOS,Backup-modul
-click (on),,"klicka (pÜ), Ñven ""klicka i""",,GEN,N,DOS,MS-DOS,generell term
+click (on),,"klicka (pÂ), ‰ven ""klicka i""",,GEN,N,DOS,MS-DOS,generell term
 cluster,,grupp,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
-"cluster, lost (CHKDSK)",,fîrlorade grupper,,GEN,N,DOS,MS-DOS,generell term
-co-processor,,hjÑlpprocessor,,GEN,N,DOS,MS-DOS,generell term
+"cluster, lost (CHKDSK)",,fˆrlorade grupper,,GEN,N,DOS,MS-DOS,generell term
+co-processor,,hj‰lpprocessor,,GEN,N,DOS,MS-DOS,generell term
 code character table (GRAFTABL),,kodteckentabell,,GEN,N,DOS,MS-DOS,generell term
 "code page (MODE,DRIVER)",,teckentabell,,GEN,N,DOS,MS-DOS,generell term
-code page support,,stîd fîr teckentabell,,GEN,N,DOS,MS-DOS,generell term
-code page switching,,byte  (vÑxlling) av teckentabell,,GEN,N,DOS,MS-DOS,generell term
+code page support,,stˆd fˆr teckentabell,,GEN,N,DOS,MS-DOS,generell term
+code page switching,,byte  (v‰xlling) av teckentabell,,GEN,N,DOS,MS-DOS,generell term
 code segment,,kodsegment,,GEN,N,DOS,MS-DOS,generell term
-Collapse Branch,,Dîlj underkataloger,,COM,N,DOS,MS-DOS,Backup-modul
+Collapse Branch,,Dˆlj underkataloger,,COM,N,DOS,MS-DOS,Backup-modul
 collating sequence,,sorteringsordning,,GEN,N,DOS,MS-DOS,generell term
 colon,,kolon,,GEN,N,DOS,MS-DOS,generell term
 "com port, communication port",,kommunikationsport,,GEN,N,DOS,MS-DOS,generell term
@@ -238,54 +238,54 @@ combined stack segment,,kombinerat stacksegment,,GEN,N,DOS,MS-DOS,generell term
 combined type,,kombinerad typ,,GEN,N,DOS,MS-DOS,generell term
 command,,kommando,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
 command button,,kommandoknapp,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
-command completion (interruptable by  BREAK),,slutfîrande av kommando,,GEN,N,DOS,MS-DOS,generell term
-command editing keys,,tangenter fîr kommandoredigering,,GEN,N,DOS,MS-DOS,generell term
+command completion (interruptable by  BREAK),,slutfˆrande av kommando,,GEN,N,DOS,MS-DOS,generell term
+command editing keys,,tangenter fˆr kommandoredigering,,GEN,N,DOS,MS-DOS,generell term
 command input,,indata till kommando,,GEN,N,DOS,MS-DOS,generell term
 command interpreter,,kommandotolk,,GEN,N,DOS,MS-DOS,generell term
 command line,,kommandorad,,GEN,N,DOS,MS-DOS,generell term
-command line screen,,skÑrmsida med kommandorad ,,GEN,N,DOS,MS-DOS,generell term
+command line screen,,sk‰rmsida med kommandorad ,,GEN,N,DOS,MS-DOS,generell term
 command macro,,kommandomakro,,GEN,N,DOS,MS-DOS,generell term
 command name,,kommandonamn,,GEN,N,DOS,MS-DOS,generell term
-command output,,utdata frÜn kommando,,GEN,N,DOS,MS-DOS,generell term
-command path,,kommandosîkvÑg,,GEN,N,DOS,MS-DOS,generell term
+command output,,utdata frÂn kommando,,GEN,N,DOS,MS-DOS,generell term
+command path,,kommandosˆkv‰g,,GEN,N,DOS,MS-DOS,generell term
 command processor,,kommandotolk,,GEN,N,DOS,MS-DOS,generell term
 command prompt,,DOS-prompt,,GEN,N,DOS,MS-DOS,generell term
 Command-Line,,Kommandorad,,GEN,N,DOS,MS-DOS,Undel-modul
 command-line option,,kommandoradsalternativ,,TXT,N,DOS,MS-DOS,Backup-modul
 Commands,,   Kommandon,,COM,N,DOS,MS-DOS,Undel-modul
 comment,,kommentar,,GEN,N,DOS,MS-DOS,generell term
-Compare,,   JÑmfîr,J,COM,V,DOS,MS-DOS,Backup-modul
-Compare,,JÑmfîr,J,DIA,V,DOS,MS-DOS,Backup-modul
-Compare canceled.,,JÑmfîr avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
-Compare Complete,,JÑmfîr klart,,DIA,N,DOS,MS-DOS,Backup-modul
-Compare Files,,JÑmfîr filer,J,DIA,N,DOS,MS-DOS,Backup-modul
-Compare From,,JÑmfîr frÜn,N,DIA,N,DOS,MS-DOS,Backup-modul
-Compare Options,,Alternativ fîr JÑmfîr,,TDB,N,DOS,MS-DOS,Backup-modul
-Compare phase of the compatibility test is complete.,,JÑmfîrfasen av kompatibilitetstestet Ñr fÑrdig.,,TXT,N,DOS,MS-DOS,Backup-modul
-Compare Progress window,,Fîrloppsfînster fîr JÑmfîr,,DIA,N,DOS,MS-DOS,Backup-modul
-Compare Time,,JÑmfîr tid,,DIA,N,DOS,MS-DOS,Backup-modul
-Compare To,,JÑmfîr till ,T,DIA,N,DOS,MS-DOS,Backup-modul
-Comparing and tracking files,,JÑmfîr och spÜrar filer,,GEN,N,DOS,MS-DOS,generell term
+Compare,,   J‰mfˆr,J,COM,V,DOS,MS-DOS,Backup-modul
+Compare,,J‰mfˆr,J,DIA,V,DOS,MS-DOS,Backup-modul
+Compare canceled.,,J‰mfˆr avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
+Compare Complete,,J‰mfˆr klart,,DIA,N,DOS,MS-DOS,Backup-modul
+Compare Files,,J‰mfˆr filer,J,DIA,N,DOS,MS-DOS,Backup-modul
+Compare From,,J‰mfˆr frÂn,N,DIA,N,DOS,MS-DOS,Backup-modul
+Compare Options,,Alternativ fˆr J‰mfˆr,,TDB,N,DOS,MS-DOS,Backup-modul
+Compare phase of the compatibility test is complete.,,J‰mfˆrfasen av kompatibilitetstestet ‰r f‰rdig.,,TXT,N,DOS,MS-DOS,Backup-modul
+Compare Progress window,,Fˆrloppsfˆnster fˆr J‰mfˆr,,DIA,N,DOS,MS-DOS,Backup-modul
+Compare Time,,J‰mfˆr tid,,DIA,N,DOS,MS-DOS,Backup-modul
+Compare To,,J‰mfˆr till ,T,DIA,N,DOS,MS-DOS,Backup-modul
+Comparing and tracking files,,J‰mfˆr och spÂrar filer,,GEN,N,DOS,MS-DOS,generell term
 compatibility,,kompatibilitet,,GEN,N,DOS,MS-DOS,generell term
 Compatibility Options,,Kompatibilitetsalternativ,,DIA,N,DOS,MS-DOS,Backup-modul
 Compatibility Test,,Kompatibilitetstest,K,BUT,N,DOS,MS-DOS,Backup-modul
 compiler,,kompilator,,GEN,N,DOS,MS-DOS,generell term
-Complete,,fullstÑndig,F,DIA,ADJ,DOS,MS-DOS,Backup-modul
+Complete,,fullst‰ndig,F,DIA,ADJ,DOS,MS-DOS,Backup-modul
 Complete (adj),,Klar(t),,DIA,ADJ,DOS,MS-DOS,Backup-modul
 complex,,komplex,,GEN,ADJ,DOS,MS-DOS,generell term
 component file,,komponentfil,,TXT,N,DOS,MS-DOS,Backup-modul
 component files,,komponentfiler,,TXT,N,DOS,MS-DOS,Backup-modul
-Compress Backup Data,,Komprimera sÑkerhetskopierade data,,CHX,N,DOS,MS-DOS,Backup-modul
+Compress Backup Data,,Komprimera s‰kerhetskopierade data,,CHX,N,DOS,MS-DOS,Backup-modul
 Compression header,,komprimeringsrubrik,,TXT,N,DOS,MS-DOS,Backup-modul
-concatenate [v],,lÑnka samman,,GEN,N,DOS,MS-DOS,generell term
+concatenate [v],,l‰nka samman,,GEN,N,DOS,MS-DOS,generell term
 concealed,,dold,,GEN,ADJ,DOS,MS-DOS,generell term
-Condition,,TillstÜnd,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition Destroyed,,TillstÜnd: Fîrstîrd,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition Excellent,,TillstÜnd: UtmÑrkt,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition Lost File,,TillstÜnd: Fîrlorad fil,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition None,,TillstÜnd: Inget,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition Poor,,TillstÜnd: DÜligt,,DIA,N,DOS,MS-DOS,Undel-modul
-Condition Recovered,,TillstÜnd: èterskapad,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition,,TillstÂnd,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition Destroyed,,TillstÂnd: Fˆrstˆrd,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition Excellent,,TillstÂnd: Utm‰rkt,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition Lost File,,TillstÂnd: Fˆrlorad fil,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition None,,TillstÂnd: Inget,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition Poor,,TillstÂnd: DÂligt,,DIA,N,DOS,MS-DOS,Undel-modul
+Condition Recovered,,TillstÂnd: ≈terskapad,,DIA,N,DOS,MS-DOS,Undel-modul
 conditional,,"villkorlig, villkorligt",,GEN,ADJ/ADV,DOS,MS-DOS,generell term
 configuration,,konfiguration,,GEN,N,DOS,MS-DOS,generell term
 configuration file,,konfigurationsfil,,GEN,N,DOS,MS-DOS,generell term
@@ -293,19 +293,19 @@ Configure,,   Konfigurera,K,COM,V,DOS,MS-DOS,Backup-modul
 configure,,konfigurera,,GEN,V,DOS,MS-DOS,generell term
 Configure ,,konfigurera,K,TXB,V,DOS,MS-DOS,Backup-modul
 Configure Delete Protection,,   Konfigurera borttagningsskydd...,K,COM,N,DOS,MS-DOS,Undel-modul
-confirm on delete,,bekrÑfta borttagning,,GEN,N,DOS,MS-DOS,generell term
-confirm on replace,,bekrÑfta ersÑttning,,GEN,N,DOS,MS-DOS,generell term
+confirm on delete,,bekr‰fta borttagning,,GEN,N,DOS,MS-DOS,generell term
+confirm on replace,,bekr‰fta ers‰ttning,,GEN,N,DOS,MS-DOS,generell term
 Connect to,,Anslut till,,DIA,N,DOS,MS-DOS,Backup-modul
 connector,,"(anslutnings)kontakt, (port)kontakt",,GEN,N,DOS,MS-DOS,generell term
-console,,"konsol, skÑrm och tangentbord",,GEN,N,DOS,MS-DOS,generell term
-console driver,,drivrutin fîr konsol,,GEN,N,DOS,MS-DOS,generell term
-console screen device,,bildskÑrm,,GEN,N,DOS,MS-DOS,generell term
-Contents,,InnehÜll,I,DIA,N,DOS,MS-DOS,Undel-modul
-context-sensitive help,,sammanhangsberoende hjÑlp,,TXT,N,DOS,MS-DOS,Backup-modul
-contiguous,,"sammanhÑngande, angrÑnsande",,GEN,ADJ,DOS,MS-DOS,generell term
-Continue,,FortsÑtt,,TXT,V,DOS,MS-DOS,Backup-modul
-Continue Scan,,FortsÑtt scanning,,GEN,N,DOS,MS-DOS,Undel-modul
-continuous (disk space),,sammanhÑngande,,GEN,ADJ,DOS,MS-DOS,generell term
+console,,"konsol, sk‰rm och tangentbord",,GEN,N,DOS,MS-DOS,generell term
+console driver,,drivrutin fˆr konsol,,GEN,N,DOS,MS-DOS,generell term
+console screen device,,bildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
+Contents,,InnehÂll,I,DIA,N,DOS,MS-DOS,Undel-modul
+context-sensitive help,,sammanhangsberoende hj‰lp,,TXT,N,DOS,MS-DOS,Backup-modul
+contiguous,,"sammanh‰ngande, angr‰nsande",,GEN,ADJ,DOS,MS-DOS,generell term
+Continue,,Forts‰tt,,TXT,V,DOS,MS-DOS,Backup-modul
+Continue Scan,,Forts‰tt scanning,,GEN,N,DOS,MS-DOS,Undel-modul
+continuous (disk space),,sammanh‰ngande,,GEN,ADJ,DOS,MS-DOS,generell term
 control character,,"kontrolltecken, styrtecken",,GEN,N,DOS,MS-DOS,generell term
 "conventional (memory, XMA2EMS)",,konventionellt,,GEN,ADJ,DOS,MS-DOS,generell term
 copy,,"kopia, kopiera",,GEN,N,DOS,MS-DOS,generell term
@@ -313,7 +313,7 @@ Copy All Files,,Kopiera alla filer,,BUT,N,DOS,MS-DOS,Backup-modul
 copy protected,,kopieringsskyddad,,GEN,ADJ,DOS,MS-DOS,generell term
 copy protection,,kopieringsskydd,,GEN,N,DOS,MS-DOS,generell term
 copy-protected files,,kopieringsskyddade filer,,DIA,N,DOS,MS-DOS,Backup-modul
-Corrections,,"rÑttningar, Ñven ""korrigeringar""",,DIA,N,DOS,MS-DOS,Backup-modul
+Corrections,,"r‰ttningar, ‰ven ""korrigeringar""",,DIA,N,DOS,MS-DOS,Backup-modul
 corruption,,"trasig (om data), skada (fil)",,GEN,N,DOS,MS-DOS,generell term
 country code (MODE),,landskod,,GEN,N,DOS,MS-DOS,generell term
 country-dependent,,landsberoende,,GEN,ADJ,DOS,MS-DOS,generell term
@@ -323,24 +323,24 @@ crash,,"krasch, haverera",,GEN,N,DOS,MS-DOS,generell term
 crash (computer.OS ),,"haveri, haverera",,GEN,N,DOS,MS-DOS,generell term
 create,,skapa,,GEN,V,DOS,MS-DOS,generell term
 Create,,Skapa,,MNU,V,DOS,MS-DOS,Defrag
-Create Backup,,Skapa sÑkerhetskopia,S,CHX,N,DOS,MS-DOS,MSAVF-modul
+Create Backup,,Skapa s‰kerhetskopia,S,CHX,N,DOS,MS-DOS,MSAVF-modul
 Create Directory,,Skapa katalog,,GEN,N,DOS,MS-DOS,generell term
 Create Directory,,Skapa katalog,,TDB,N,DOS,MS-DOS,Backup-modul
 Create File,,Skapa fil,,TDB,N,DOS,MS-DOS,Backup-modul
 Create New Checksums,,Skapa nya kontrollsummor,N,CHX,N,DOS,MS-DOS,MSAVF-modul
 Create Report,,Skapa rapport,P,CHX,N,DOS,MS-DOS,MSAVF-modul
-"cross-linked (allocation units, CHKDSK)",,korslÑnkad,,GEN,ADJ,DOS,MS-DOS,generell term
+"cross-linked (allocation units, CHKDSK)",,korsl‰nkad,,GEN,ADJ,DOS,MS-DOS,generell term
 CTRL,,CTRL,,GEN,N,DOS,MS-DOS,generell term
 current,,aktuell,,GEN,ADJ,DOS,MS-DOS,generell term
 current (codepage),,aktuell (teckentabell),,GEN,ADJ,DOS,MS-DOS,generell term
 "current (time, date)",,"aktuell (tid), aktuellt (datum)",,GEN,ADJ,DOS,MS-DOS,generell term
-Current capacity ratio,,Aktuellt kapacitetsfîrhÜllande,,TXT,N,DOS,MS-DOS,Defrag
+Current capacity ratio,,Aktuellt kapacitetsfˆrhÂllande,,TXT,N,DOS,MS-DOS,Defrag
 current date,,aktuellt datum,,GEN,N,DOS,MS-DOS,generell term
 current file,,aktuell fil,,TXT,N,DOS,MS-DOS,Backup-modul
 Current Physical Size,,Aktuell fysisk storlek,,OPT,N,DOS,MS-DOS,Defrag
 current time,,"aktuell tid, aktuellt klockslag",,GEN,N,DOS,MS-DOS,generell term
-cursor,,markîr,,GEN,N,DOS,MS-DOS,generell term
-cursor key,,markîrtangent,,GEN,N,DOS,MS-DOS,generell term
+cursor,,markˆr,,GEN,N,DOS,MS-DOS,generell term
+cursor key,,markˆrtangent,,GEN,N,DOS,MS-DOS,generell term
 cyclic copy,,periodisk (cyklisk) kopiering,,GEN,N,DOS,MS-DOS,generell term
 cylinder,,cylinder,,GEN,N,DOS,MS-DOS,generell term
 daisy wheel printer,,typhjulskrivare,,GEN,N,DOS,MS-DOS,generell term
@@ -356,19 +356,19 @@ date,,datum,,GEN,N,DOS,MS-DOS,generell term
 Date not entered properly.,,Felaktigt (inskrivet) datum,,TXT,N,DOS,MS-DOS,Backup-modul
 Date range,,Datumintervall,,DIA,N,DOS,MS-DOS,Backup-modul
 Dates out of order.,,Felaktiga datum.,,TXT,N,DOS,MS-DOS,Backup-modul
-Day of the month,,dag i mÜnaden,,TXT,N,DOS,MS-DOS,Backup-modul
+Day of the month,,dag i mÂnaden,,TXT,N,DOS,MS-DOS,Backup-modul
 Deactivate,,deaktivera,,COM,V,DOS,MS-DOS,Defrag
-"deallocate(expanded memory, handle)",,frigîra,,GEN,V,DOS,MS-DOS,generell term
-debug,,felsîka,,GEN,V,DOS,MS-DOS,generell term
-debugging,,felsîkning,,GEN,N,DOS,MS-DOS,generell term
+"deallocate(expanded memory, handle)",,frigˆra,,GEN,V,DOS,MS-DOS,generell term
+debug,,felsˆka,,GEN,V,DOS,MS-DOS,generell term
+debugging,,felsˆkning,,GEN,N,DOS,MS-DOS,generell term
 decimal,,decimal,,GEN,N,DOS,MS-DOS,generell term
 default,,standard,,GEN,N,DOS,MS-DOS,generell term
 default directory (same as 'current ...'),,standardkatalog / aktuell katalog,,GEN,N,DOS,MS-DOS,generell term
-default disk ,,"standarddisk, Ñven ""aktuell disk/enhet""",,GEN,N,DOS,MS-DOS,generell term
+default disk ,,"standarddisk, ‰ven ""aktuell disk/enhet""",,GEN,N,DOS,MS-DOS,generell term
 default drive (same as 'current drive'),,standardenhet / aktuell enhet,,GEN,N,DOS,MS-DOS,generell term
 Default Lines,,standardlinjer/standardrader,,OPT,N,DOS,MS-DOS,Backup-modul
-default option settings,,standardinstÑllningar av alternativ,,TXT,N,DOS,MS-DOS,Backup-modul
-Defaults,,StandardinstÑllningar,,COM,N,DOS,MS-DOS,Defrag
+default option settings,,standardinst‰llningar av alternativ,,TXT,N,DOS,MS-DOS,Backup-modul
+Defaults,,Standardinst‰llningar,,COM,N,DOS,MS-DOS,Defrag
 defragmentation utility,,defragmenteringsverktyg,,GEN,N,DOS,MS-DOS,generell term
 Delete,,   Ta bort,,COM,V,DOS,MS-DOS,Backup-modul
 delete,,ta bort,,GEN,N,DOS,MS-DOS,generell term
@@ -376,59 +376,59 @@ Delete,,Ta bort,,BUT,N,DOS,MS-DOS,Backup-modul
 Delete,,Ta bort,,MNU,N,DOS,MS-DOS,Defrag
 Delete,,Ta bort,,COM,N,DOS,MS-DOS,MSAVF-modul
 DELETE (DEL),,DEL,,GEN,N,DOS,MS-DOS,generell term
-Delete Catalog,,Ta bort filfîrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
+Delete Catalog,,Ta bort filfˆrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
 Delete Date,,Borttagningsdatum,,DIA,N,DOS,MS-DOS,Undel-modul
 Delete files,,Ta bort filer,,BUT,N,DOS,MS-DOS,Backup-modul
 Delete Protection,,Borttagningsskydd,,DIA,N,DOS,MS-DOS,Undel-modul
 Delete Sentry,,Filvakt,V,CHX,N,DOS,MS-DOS,Undel-modul
-Delete Setup,,   Ta bort instÑllningsfil,T,COM,V,DOS,MS-DOS,Backup-modul
-Delete Setup File,,Ta bort instÑllningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
-Delete Setup Files,,Ta bort instÑllningsfiler,,DIA,N,DOS,MS-DOS,Backup-modul
-delete this item,,"Ta bort element, Ñven ""ta bort objekt""",,GEN,N,DOS,MS-DOS,generell term
+Delete Setup,,   Ta bort inst‰llningsfil,T,COM,V,DOS,MS-DOS,Backup-modul
+Delete Setup File,,Ta bort inst‰llningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
+Delete Setup Files,,Ta bort inst‰llningsfiler,,DIA,N,DOS,MS-DOS,Backup-modul
+delete this item,,"Ta bort element, ‰ven ""ta bort objekt""",,GEN,N,DOS,MS-DOS,generell term
 Delete Time,,Borttagningstid,,DIA,N,DOS,MS-DOS,Undel-modul
-Delete Tracker,,FilspÜrning,F,CHX,N,DOS,MS-DOS,Undel-modul
-Delete tracking file,,FilspÜrningsfil,,GEN,N,DOS,MS-DOS,generell term
-delimiter,,"grÑnstecken, avgrÑnsare",,GEN,N,DOS,MS-DOS,generell term
+Delete Tracker,,FilspÂrning,F,CHX,N,DOS,MS-DOS,Undel-modul
+Delete tracking file,,FilspÂrningsfil,,GEN,N,DOS,MS-DOS,generell term
+delimiter,,"gr‰nstecken, avgr‰nsare",,GEN,N,DOS,MS-DOS,generell term
 Description ,,Beskrivning,,DIA,N,DOS,MS-DOS,Backup-modul
-deselect,,VÑlja bort,,MNU,N,DOS,MS-DOS,Backup-modul
-Deselect All,,VÑlja bort alla,,COM,N,DOS,MS-DOS,Backup-modul
-Designing Backup Routines,,utformar rutiner fîr sÑkerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
+deselect,,V‰lja bort,,MNU,N,DOS,MS-DOS,Backup-modul
+Deselect All,,V‰lja bort alla,,COM,N,DOS,MS-DOS,Backup-modul
+Designing Backup Routines,,utformar rutiner fˆr s‰kerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
 desktop,,skrivbord,,TXT,N,DOS,MS-DOS,Backup-modul
-destination,,"mÜl, destination",,GEN,N,DOS,MS-DOS,generell term
-"destination (drive, directory)",,"mÜl (mÜlenhet, mÜlkatalog)",,GEN,N,DOS,MS-DOS,generell term
-Destroyed,,"Fîrstîrd,  fîrstîrt",,GEN,ADJ,DOS,MS-DOS,generell term
-Detect,,Sîk,S,COM,V,DOS,MS-DOS,MSAVF-modul
+destination,,"mÂl, destination",,GEN,N,DOS,MS-DOS,generell term
+"destination (drive, directory)",,"mÂl (mÂlenhet, mÂlkatalog)",,GEN,N,DOS,MS-DOS,generell term
+Destroyed,,"Fˆrstˆrd,  fˆrstˆrt",,GEN,ADJ,DOS,MS-DOS,generell term
+Detect,,Sˆk,S,COM,V,DOS,MS-DOS,MSAVF-modul
 device,,enhet,,GEN,N,DOS,MS-DOS,generell term
 device driver,,drivrutin,,GEN,N,DOS,MS-DOS,generell term
 device error,,enhetsfel,,GEN,N,DOS,MS-DOS,generell term
 device name,,enhetsnamn,,GEN,N,DOS,MS-DOS,generell term
 dialog box,,dialogruta,,GEN,N,DOS,MS-DOS,generell term
 Differential,,Differentiell,D,DIA,ADJ,DOS,MS-DOS,Backup-modul
-Differential backup,,Differentiell sÑkerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
-Differential backup type ,,Differentiell sÑkerhetskopieringstyp,,TXT,N,DOS,MS-DOS,Backup-modul
+Differential backup,,Differentiell s‰kerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
+Differential backup type ,,Differentiell s‰kerhetskopieringstyp,,TXT,N,DOS,MS-DOS,Backup-modul
 digit,,siffra,,GEN,N,DOS,MS-DOS,generell term
 dimmed,,nedtonat,,TXT,ADJ,DOS,MS-DOS,Backup-modul
 direction keys (see: arrow keys),,piltangenter,,GEN,N,DOS,MS-DOS,generell term
-Directories Rebuilt,,èterskapade kataloger,,DIA,N,DOS,MS-DOS,Backup-modul
+Directories Rebuilt,,≈terskapade kataloger,,DIA,N,DOS,MS-DOS,Backup-modul
 Directories to scan,,Kataloger att scanna,,DIA,N,DOS,MS-DOS,MSAVF-modul
 directory,,katalog,,GEN,N,DOS,MS-DOS,generell term
 Directory,,katalog,,DIA,N,DOS,MS-DOS,Undel-modul
-directory listing,,"Kataloglistning, lista îver filer och kataloger",,GEN,N,DOS,MS-DOS,generell term
+directory listing,,"Kataloglistning, lista ˆver filer och kataloger",,GEN,N,DOS,MS-DOS,generell term
 directory name,,katalognamn,,GEN,N,DOS,MS-DOS,generell term
 Directory pane,,Katalogruta,,DIA,N,DOS,MS-DOS,Backup-modul
-directory tree,,katalogtrÑd,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
-Disable Alarm Sound,,StÑng av varningssignal,,OPT,N,DOS,MS-DOS,MSAVF-modul
-Disable this message,,SpÑrra detta meddelande,,CHX,N,DOS,MS-DOS,Backup-modul
+directory tree,,katalogtr‰d,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
+Disable Alarm Sound,,St‰ng av varningssignal,,OPT,N,DOS,MS-DOS,MSAVF-modul
+Disable this message,,Sp‰rra detta meddelande,,CHX,N,DOS,MS-DOS,Backup-modul
 disassemble [v] (DEBUG),,disassemblera,,GEN,V,DOS,MS-DOS,generell term
-Discard Changes,,ignorera Ñndringar,,TXT,N,DOS,MS-DOS,Backup-modul
+Discard Changes,,ignorera ‰ndringar,,TXT,N,DOS,MS-DOS,Backup-modul
 disk,,disk/diskett,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
 "Disk 1,2,.. (installation disk)",,"Installationsdiskett 1,2,...",,GEN,N,DOS,MS-DOS,generell term
 disk buffer,,diskbuffert,,GEN,N,DOS,MS-DOS,generell term
 disk cache,,cache / disk-cache,,GEN,N,DOS,MS-DOS,generell term
-Disk Change Detection,,DiskettbytesavkÑnning,,DIA,N,DOS,MS-DOS,Backup-modul
+Disk Change Detection,,Diskettbytesavk‰nning,,DIA,N,DOS,MS-DOS,Backup-modul
 Disk Change Test,,Diskettbytestest,,DIA,N,DOS,MS-DOS,Backup-modul
 Disk compaction,,komprimering av disk,,GEN,N,DOS,MS-DOS,generell term
-Disk Compare,,DiskjÑmfîrelse,,GEN,N,DOS,MS-DOS,generell term
+Disk Compare,,Diskj‰mfˆrelse,,GEN,N,DOS,MS-DOS,generell term
 Disk Copy,,Kopiera disketter,,GEN,N,DOS,MS-DOS,generell term
 disk drive,,disk/diskettenhet,,GEN,N,DOS,MS-DOS,generell term
 disk drive door,,diskettlucka,,GEN,N,DOS,MS-DOS,generell term
@@ -438,100 +438,100 @@ disk space (CHKDSK),,diskutrymme,,GEN,N,DOS,MS-DOS,generell term
 disk space (SYS),,diskutrymme,,GEN,N,DOS,MS-DOS,generell term
 disk-caching program,,cache-program / diskcache-program,,GEN,N,DOS,MS-DOS,generell term
 diskette,,diskett,,GEN,N,DOS,MS-DOS,generell term
-Diskette Overwrite Warning,,Varning nÑr innehÜll pÜ diskett ersÑtts,,OPT,N,DOS,MS-DOS,Backup-modul
+Diskette Overwrite Warning,,Varning n‰r innehÂll pÂ diskett ers‰tts,,OPT,N,DOS,MS-DOS,Backup-modul
 Disks,,Disketter/Diskar,,DIA,N,DOS,MS-DOS,Backup-modul
-Display,,"Visa (v) SkÑrm, BildskÑrm (s)",,BUT,N,DOS,MS-DOS,Backup-modul
+Display,,"Visa (v) Sk‰rm, Bildsk‰rm (s)",,BUT,N,DOS,MS-DOS,Backup-modul
 display (v),,visa,,GEN,V,DOS,MS-DOS,generell term
-display [n],,bildskÑrm,,GEN,N,DOS,MS-DOS,generell term
-Display Directory Before Backup,,Visa katalog fîre sÑkerhetskopiering ,,OPT,N,DOS,MS-DOS,Backup-modul
-Display Directory Prior to Backup,,Visa katalog fîre sÑkerhetskopiering,,OPT,N,DOS,MS-DOS,Backup-modul
-display driver,,drivrutin fîr bildskÑrm,,GEN,N,DOS,MS-DOS,generell term
+display [n],,bildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
+Display Directory Before Backup,,Visa katalog fˆre s‰kerhetskopiering ,,OPT,N,DOS,MS-DOS,Backup-modul
+Display Directory Prior to Backup,,Visa katalog fˆre s‰kerhetskopiering,,OPT,N,DOS,MS-DOS,Backup-modul
+display driver,,drivrutin fˆr bildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
 Display Lines,,Visa linjer,,DIA,N,DOS,MS-DOS,Backup-modul
 display options,,visningsalternativ,,GEN,N,DOS,MS-DOS,generell term
 Display Options,,visningsalternativ,,DIA,N,DOS,MS-DOS,Backup-modul
 Divide Overflow Error,,Divisionsfel (spill),,TXT,N,DOS,MS-DOS,Backup-modul
 DMA buffer memory,,DMA-buffertminne,,TXT,N,DOS,MS-DOS,Backup-modul
-DMA(direct memory acces),,direkt minnesÜtkomst (DMA),,GEN,N,DOS,MS-DOS,generell term
-DOCFILES.SET setup file not found.,,Kan inte hitta instÑllningsfilen DOCFILES.SET.,,TXT,N,DOS,MS-DOS,Backup-modul
+DMA(direct memory acces),,direkt minnesÂtkomst (DMA),,GEN,N,DOS,MS-DOS,generell term
+DOCFILES.SET setup file not found.,,Kan inte hitta inst‰llningsfilen DOCFILES.SET.,,TXT,N,DOS,MS-DOS,Backup-modul
 DOS compatible tape drives,,MS-DOS-kompatibla bandenheter,,TXT,N,DOS,MS-DOS,Backup-modul
-DOS Drive and Path,,MS-DOS-enhet och -sîkvÑg ELLER sîkvÑg,,BUT,N,DOS,MS-DOS,Backup-modul
+DOS Drive and Path,,MS-DOS-enhet och -sˆkv‰g ELLER sˆkv‰g,,BUT,N,DOS,MS-DOS,Backup-modul
 DOS partition,,DOS-partition,,GEN,N,DOS,MS-DOS,generell term
-DOS Path,,MS-DOS-sîkvÑg ELLER SîkvÑg,,DIA,N,DOS,MS-DOS,Backup-modul
-DOS Utilities,,DOS-tillbehîr,,GEN,N,DOS,MS-DOS,generell term
+DOS Path,,MS-DOS-sˆkv‰g ELLER Sˆkv‰g,,DIA,N,DOS,MS-DOS,Backup-modul
+DOS Utilities,,DOS-tillbehˆr,,GEN,N,DOS,MS-DOS,generell term
 dot matrix printer,,(punkt)matrisskrivare,,GEN,N,DOS,MS-DOS,generell term
 double click,,dubbelklicka,,GEN,V,DOS,MS-DOS,generell term
 double-click,,dubbelklickning,,TXT,N,DOS,MS-DOS,Backup-modul
-Double-click Speed (slow/fast),,Dubbelklickning (snabb/lÜngsam),D,OPT,N,DOS,MS-DOS,Backup-modul
+Double-click Speed (slow/fast),,Dubbelklickning (snabb/lÂngsam),D,OPT,N,DOS,MS-DOS,Backup-modul
 double-density disk,,diskett med dubbel densitet,,GEN,N,DOS,MS-DOS,generell term
 double-sided,,dubbelsidig,,GEN,ADJ,DOS,MS-DOS,generell term
 down arrow,,NEDPIL,,GEN,N,DOS,MS-DOS,generell term
 drag,,dra,,TXT,V,DOS,MS-DOS,Backup-modul
 drag (Mouse),,dra (musen),,GEN,V,DOS,MS-DOS,generell term
-drag and drop,,dra och slÑpp,,TXT,N,DOS,MS-DOS,Backup-modul
-Drag-and-Drop Backup,,sÑkerhetskopiera med musen,,TXT,N,DOS,MS-DOS,Backup-modul
+drag and drop,,dra och sl‰pp,,TXT,N,DOS,MS-DOS,Backup-modul
+Drag-and-Drop Backup,,s‰kerhetskopiera med musen,,TXT,N,DOS,MS-DOS,Backup-modul
 drive,,enhet,,GEN,N,DOS,MS-DOS,generell term
 Drive ,,Enhet,,TXB,N,DOS,MS-DOS,Backup-modul
-Drive (Path) Too long,,Fîr lÜng sîkvÑg till enheten ,,TDB,N,DOS,MS-DOS,Backup-modul
+Drive (Path) Too long,,Fˆr lÂng sˆkv‰g till enheten ,,TDB,N,DOS,MS-DOS,Backup-modul
 drive (re)assignment,,enhetstilldelning,,GEN,N,DOS,MS-DOS,generell term
 Drive A,,Enhet A,,DIA,N,DOS,MS-DOS,Backup-modul
-Drive A Configuration,,Konfiguration fîr enhet A,,DIA,N,DOS,MS-DOS,Backup-modul
+Drive A Configuration,,Konfiguration fˆr enhet A,,DIA,N,DOS,MS-DOS,Backup-modul
 Drive B,,Enhet B,,DIA,N,DOS,MS-DOS,Backup-modul
-Drive B Configuration,,Konfiguration fîr enhet B,,DIA,N,DOS,MS-DOS,Backup-modul
+Drive B Configuration,,Konfiguration fˆr enhet B,,DIA,N,DOS,MS-DOS,Backup-modul
 Drive Configuration,,Enhetskonfiguration,,DIA,N,DOS,MS-DOS,Backup-modul
 drive door,,diskettlucka,,GEN,N,DOS,MS-DOS,generell term
 drive icon,,enhetsikon,,TXT,N,DOS,MS-DOS,Backup-modul
 "Drive is active, Format?",,Aktiv enhet. Vill du formatera?,,TXT,N,DOS,MS-DOS,Defrag
-drive LED,,(LED-)indikator fîr aktiv enhet,,GEN,N,DOS,MS-DOS,generell term
+drive LED,,(LED-)indikator fˆr aktiv enhet,,GEN,N,DOS,MS-DOS,generell term
 drive letter,,Enhetsbeteckning,,GEN,N,DOS,MS-DOS,generell term
-Drive line,,EnhetsfÑlt,,TXT,N,DOS,MS-DOS,MSAVF-modul
-Drive List,,Enheter/TillgÑngliga enheter ?,,DIA,N,DOS,MS-DOS,Backup-modul
+Drive line,,Enhetsf‰lt,,TXT,N,DOS,MS-DOS,MSAVF-modul
+Drive List,,Enheter/Tillg‰ngliga enheter ?,,DIA,N,DOS,MS-DOS,Backup-modul
 "drive name, letter",,enhetsbeteckning,,GEN,N,DOS,MS-DOS,generell term
-Drive not ready,,Enheten Ñr inte klar,,TXT,N,DOS,MS-DOS,Backup-modul
-drive progress bar,,Fîrloppsindikator ?,,TXT,N,DOS,MS-DOS,Backup-modul
+Drive not ready,,Enheten ‰r inte klar,,TXT,N,DOS,MS-DOS,Backup-modul
+drive progress bar,,Fˆrloppsindikator ?,,TXT,N,DOS,MS-DOS,Backup-modul
 Drive to test,,Testenhet,,TXT,N,DOS,MS-DOS,Backup-modul
 drop-down list box,,listruta,,TXT,N,DOS,MS-DOS,Backup-modul
 drop-down menus,,menyer,,GEN,N,DOS,MS-DOS,generell term
-Dual drive rebuild not supported.,,èterskapande av dubbla enheter stîds inte.,,TXT,N,DOS,MS-DOS,Backup-modul
+Dual drive rebuild not supported.,,≈terskapande av dubbla enheter stˆds inte.,,TXT,N,DOS,MS-DOS,Backup-modul
 dummy (replacable parameter),,dummy (utbytbar parameter) ,,GEN,N,DOS,MS-DOS,generell term
 dump (memory),,dump,,GEN,N,DOS,MS-DOS,generell term
-echo (ECHO),,skriva pÜ skÑrmen,,GEN,N,DOS,MS-DOS,generell term
+echo (ECHO),,skriva pÂ sk‰rmen,,GEN,N,DOS,MS-DOS,generell term
 Edit,,Redigera,,GEN,V,DOS,MS-DOS,generell term
 Edit,,Redigera,R,BUT,V,DOS,MS-DOS,Backup-modul
 edit box,,skrivruta,,TXT,N,DOS,MS-DOS,Backup-modul
-Edit Include/Exclude List,,Redigera lista îver Inkludera/Undanta,,TDB,N,DOS,MS-DOS,Backup-modul
+Edit Include/Exclude List,,Redigera lista ˆver Inkludera/Undanta,,TDB,N,DOS,MS-DOS,Backup-modul
 editing key,,redigeringstangent,,GEN,N,DOS,MS-DOS,generell term
 editing template,,redigeringsmall,,GEN,N,DOS,MS-DOS,generell term
 editor,,"redigeringsprogram, redigerare",,GEN,N,DOS,MS-DOS,generell term
 EDLIN,,EDLIN (radredigerare),,GEN,N,DOS,MS-DOS,generell term
-EGA/VGA Colors #1,,EGA/VGA-fÑrger  (grupp 1),,OPT,N,DOS,MS-DOS,Backup-modul
-EGA/VGA Colors #2,,EGA/VGA-fÑrger  (grupp 2),,OPT,N,DOS,MS-DOS,Backup-modul
+EGA/VGA Colors #1,,EGA/VGA-f‰rger  (grupp 1),,OPT,N,DOS,MS-DOS,Backup-modul
+EGA/VGA Colors #2,,EGA/VGA-f‰rger  (grupp 2),,OPT,N,DOS,MS-DOS,Backup-modul
 ellipses (...),,punkter (...),,GEN,N,DOS,MS-DOS,generell term
-EMM(Expanded Memory Manager),,hanterare fîr expanderat minne (EMM),,GEN,N,DOS,MS-DOS,generell term
-EMS driver (expanded memory),,drivrutin fîr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
+EMM(Expanded Memory Manager),,hanterare fˆr expanderat minne (EMM),,GEN,N,DOS,MS-DOS,generell term
+EMS driver (expanded memory),,drivrutin fˆr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
 emulator,,emulator,,GEN,N,DOS,MS-DOS,generell term
 END,,END,,GEN,N,DOS,MS-DOS,generell term
 end-of-file (EOF),,"filslut, filslutstecken (EOF)",,GEN,N,DOS,MS-DOS,generell term
 end-of-line,,radens slut/radslut/radslutstecken (EOL),,GEN,N,DOS,MS-DOS,generell term
-enhancement,,fîrbÑttring,,GEN,N,DOS,MS-DOS,generell term
+enhancement,,fˆrb‰ttring,,GEN,N,DOS,MS-DOS,generell term
 enter,,skriva in,,GEN,N,DOS,MS-DOS,generell term
 ENTER,,RETUR,,GEN,N,DOS,MS-DOS,generell term
-Enter disk letter for,,Skriv (ange) enhetsbeteckning fîr,,TXT,N,DOS,MS-DOS,Defrag
-Enter New Password,,Skriv in nytt lîsenord,,OPT,N,DOS,MS-DOS,Defrag
-Enter Old Password,,Skriv in gammalt lîsenord,,OPT,N,DOS,MS-DOS,Defrag
-Enter Password,,Ange lîsenord,,TDB,N,DOS,MS-DOS,Backup-modul
+Enter disk letter for,,Skriv (ange) enhetsbeteckning fˆr,,TXT,N,DOS,MS-DOS,Defrag
+Enter New Password,,Skriv in nytt lˆsenord,,OPT,N,DOS,MS-DOS,Defrag
+Enter Old Password,,Skriv in gammalt lˆsenord,,OPT,N,DOS,MS-DOS,Defrag
+Enter Password,,Ange lˆsenord,,TDB,N,DOS,MS-DOS,Backup-modul
 "entry (directory, extent, allocation unit, log)",,post,,GEN,N,DOS,MS-DOS,generell term
 entry (keyboard),,"inmatning, omskrivning med ""skriva in""",,GEN,N,DOS,MS-DOS,generell term
 Entry error. Title is entered incorrectly,,Inmatningsfel. Felaktig inmatning av rubrik,,TXT,N,DOS,MS-DOS,Backup-modul
-environment,,miljî,,GEN,N,DOS,MS-DOS,generell term
-environment size,,miljîstorlek,,GEN,N,DOS,MS-DOS,generell term
-environment space,,minnesomrÜde fîr miljîn,,GEN,N,DOS,MS-DOS,generell term
+environment,,miljˆ,,GEN,N,DOS,MS-DOS,generell term
+environment size,,miljˆstorlek,,GEN,N,DOS,MS-DOS,generell term
+environment space,,minnesomrÂde fˆr miljˆn,,GEN,N,DOS,MS-DOS,generell term
 equal sign (=),,likhetstecken,,GEN,N,DOS,MS-DOS,generell term
 error,,fel,,GEN,N,DOS,MS-DOS,generell term
-Error Correction (ECC)=Error Correction Code,,FelrÑttningskod,,CHX,N,DOS,MS-DOS,Backup-modul
+Error Correction (ECC)=Error Correction Code,,Felr‰ttningskod,,CHX,N,DOS,MS-DOS,Backup-modul
 error message,,felmeddelande,,GEN,N,DOS,MS-DOS,generell term
 ESC,,ESC,,GEN,N,DOS,MS-DOS,generell term
 escape sequence,,"ESC-sekvens, skiftsekvens",,GEN,N,DOS,MS-DOS,generell term
-Examine,,"undersîka, prîva",,GEN,V,DOS,MS-DOS,Undel-modul
+Examine,,"undersˆka, prˆva",,GEN,V,DOS,MS-DOS,Undel-modul
 Exclude,,Undanta,N,BUT,V,DOS,MS-DOS,Backup-modul
 Exclude Copy Protected Files,,Undanta kopieringsskyddade filer,,OPT,N,DOS,MS-DOS,Backup-modul
 Exclude File Specification,,Specifikation av Undanta filer,,OPT,N,DOS,MS-DOS,Backup-modul
@@ -539,8 +539,8 @@ Exclude Files,,Undanta filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Exclude Hidden Files,,Undanta dolda filer,D,CHX,N,DOS,MS-DOS,Backup-modul
 Exclude Read-Only Files,,Undanta skrivskyddade filer,S,CHX,N,DOS,MS-DOS,Backup-modul
 Exclude System Files,,Undanta systemfiler,Y,CHX,N,DOS,MS-DOS,Backup-modul
-executable file,,kîrbar fil,,TXT,N,DOS,MS-DOS,Backup-modul
-"execute, executable",,"kîra, kîrbar",,GEN,N,DOS,MS-DOS,generell term
+executable file,,kˆrbar fil,,TXT,N,DOS,MS-DOS,Backup-modul
+"execute, executable",,"kˆra, kˆrbar",,GEN,N,DOS,MS-DOS,generell term
 Existing File,,befintlig fil,,GEN,N,DOS,MS-DOS,Undel-modul
 Exit,,   Avsluta,V,COM,V,DOS,MS-DOS,Backup-modul
 Exit,,   Avsluta,A,COM,V,DOS,MS-DOS,Undel-modul
@@ -551,32 +551,32 @@ Exit File System,,Avsluta Filsystem,,GEN,N,DOS,MS-DOS,generell term
 Exit Program,,Avsluta ,A,OPT,V,DOS,MS-DOS,Backup-modul
 Exit Shell,,Avsluta Skal,,GEN,N,DOS,MS-DOS,generell term
 expand (compressed files),,expandera,,GEN,V,DOS,MS-DOS,generell term
-Expand All,,Utîka alla,,MNU,N,DOS,MS-DOS,Backup-modul
+Expand All,,Utˆka alla,,MNU,N,DOS,MS-DOS,Backup-modul
 Expand Branch,,Visa underkataloger,,MNU,N,DOS,MS-DOS,Backup-modul
-Expand One Level,,Utîka en nivÜ,,MNU,N,DOS,MS-DOS,Backup-modul
+Expand One Level,,Utˆka en nivÂ,,MNU,N,DOS,MS-DOS,Backup-modul
 expandable device driver,,expanderbar drivrutin,,GEN,N,DOS,MS-DOS,generell term
 expanded memory,,expanderat minne,,GEN,N,DOS,MS-DOS,generell term
-Expanded Memory Adapter (EMS),,adapter fîr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
-expanded memory card,,kretskort fîr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
-Expanded Memory Manager,,hanterare fîr expanderat minne (EMM),,GEN,N,DOS,MS-DOS,generell term
-Expanding Dialogs,,Fîrstora dialogrutor,F,OPT,N,DOS,MS-DOS,Backup-modul
+Expanded Memory Adapter (EMS),,adapter fˆr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
+expanded memory card,,kretskort fˆr expanderat minne,,GEN,N,DOS,MS-DOS,generell term
+Expanded Memory Manager,,hanterare fˆr expanderat minne (EMM),,GEN,N,DOS,MS-DOS,generell term
+Expanding Dialogs,,Fˆrstora dialogrutor,F,OPT,N,DOS,MS-DOS,Backup-modul
 Express menu,,"Expressmeny, Snabbmeny",,TXT,N,DOS,MS-DOS,MSAVF-modul
-extend,,"utvidga, utîka",,GEN,V,DOS,MS-DOS,generell term
+extend,,"utvidga, utˆka",,GEN,V,DOS,MS-DOS,generell term
 Extend,,utvidga,,TDB,V,DOS,MS-DOS,Defrag
-extended character set (GRAFTABL),,utîkad teckenuppsÑttning,,GEN,N,DOS,MS-DOS,generell term
-"extended memory (XMS,XMA)",,utîkat minne,,GEN,N,DOS,MS-DOS,generell term
-Extended Memory Manager,,hanterare fîr utîkat minne (XMM),,GEN,N,DOS,MS-DOS,generell term
-Extended Memory Specification,,specifikation av utîkat minne (XMS),,GEN,N,DOS,MS-DOS,generell term
-extended partition,,utîkad partition,,GEN,N,DOS,MS-DOS,generell term
-extension,,tillÑgg,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
+extended character set (GRAFTABL),,utˆkad teckenupps‰ttning,,GEN,N,DOS,MS-DOS,generell term
+"extended memory (XMS,XMA)",,utˆkat minne,,GEN,N,DOS,MS-DOS,generell term
+Extended Memory Manager,,hanterare fˆr utˆkat minne (XMM),,GEN,N,DOS,MS-DOS,generell term
+Extended Memory Specification,,specifikation av utˆkat minne (XMS),,GEN,N,DOS,MS-DOS,generell term
+extended partition,,utˆkad partition,,GEN,N,DOS,MS-DOS,generell term
+extension,,till‰gg,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
 external command,,externt kommando,,GEN,N,DOS,MS-DOS,generell term
 external drive,,extern enhet,,GEN,N,DOS,MS-DOS,generell term
 External Floppy Drives,,Externa diskettenheter,,TXT,N,DOS,MS-DOS,Backup-modul
-Fail,,FortsÑtt,,GEN,V,DOS,MS-DOS,generell term
-"far (jump,call,DEBUG)",,lÜng(t),,GEN,ADJ,DOS,MS-DOS,generell term
-fatal (error),,oÜterkalleligt (fel),,GEN,ADJ,DOS,MS-DOS,generell term
+Fail,,Forts‰tt,,GEN,V,DOS,MS-DOS,generell term
+"far (jump,call,DEBUG)",,lÂng(t),,GEN,ADJ,DOS,MS-DOS,generell term
+fatal (error),,oÂterkalleligt (fel),,GEN,ADJ,DOS,MS-DOS,generell term
 "fault (write, read, network data)",,fel,,GEN,N,DOS,MS-DOS,generell term
-Field,,fÑlt,,TXT,N,DOS,MS-DOS,Backup-modul
+Field,,f‰lt,,TXT,N,DOS,MS-DOS,Backup-modul
 file,,fil,,GEN,N,DOS,MS-DOS,generell term
 File,,Arkiv,R ,MNU,N,DOS,MS-DOS,Backup-modul
 File,,fil,,TXB,N,DOS,MS-DOS,Backup-modul
@@ -587,7 +587,7 @@ File Attributes,,Filattribut,,DIA,N,DOS,MS-DOS,Backup-modul
 file commands,,filkommandon,,GEN,N,DOS,MS-DOS,generell term
 file control block (FCB),,filstyrblock,,GEN,N,DOS,MS-DOS,generell term
 File Date,,Fildatum,,DIA,N,DOS,MS-DOS,Backup-modul
-File Extension,,FiltillÑgg,,DIA,N,DOS,MS-DOS,Backup-modul
+File Extension,,Filtill‰gg,,DIA,N,DOS,MS-DOS,Backup-modul
 File Filter,,Filfilter,F,TXT,N,DOS,MS-DOS,Backup-modul
 file folder icon,,filmappsikon,,TXT,N,DOS,MS-DOS,Backup-modul
 file handle (APPEND),,filhantering,,GEN,N,DOS,MS-DOS,generell term
@@ -599,7 +599,7 @@ File Name,,Filnamn,N,DIA,N,DOS,MS-DOS,Backup-modul
 File name entered incorrectly.,,Felaktigt angivet filnamn.,,TXT,N,DOS,MS-DOS,Backup-modul
 file name; filename; file name extension,,filnamn,,GEN,N,DOS,MS-DOS,generell term
 File Options,,Filalternativ,,GEN,N,DOS,MS-DOS,generell term
-file pane,,filfînsterruta,,TXT,N,DOS,MS-DOS,Backup-modul
+file pane,,filfˆnsterruta,,TXT,N,DOS,MS-DOS,Backup-modul
 File Selection,,filmarkering/filval,,DIA,N,DOS,MS-DOS,Backup-modul
 file sharing,,fildelning,,GEN,N,DOS,MS-DOS,generell term
 File Size,,Filstorlek,,DIA,N,DOS,MS-DOS,Backup-modul
@@ -610,19 +610,19 @@ file system,,filsystem,,GEN,N,DOS,MS-DOS,generell term
 file table information,,information i filtabell,,GEN,N,DOS,MS-DOS,generell term
 File Time,,Filtid ,,DIA,N,DOS,MS-DOS,Backup-modul
 Files,,Filer,F,DIA,N,DOS,MS-DOS,Backup-modul
-Files Backed Up,,SÑkerhetskopierade filer,,DIA,N,DOS,MS-DOS,Backup-modul
-Files Compared,,JÑmfîrda filer,,DIA,N,DOS,MS-DOS,Backup-modul
+Files Backed Up,,S‰kerhetskopierade filer,,DIA,N,DOS,MS-DOS,Backup-modul
+Files Compared,,J‰mfˆrda filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Files in current dir,,Filer i aktuell katalog,,DIA,N,DOS,MS-DOS,MSAVF-modul
-Files Rebuilt,,èterskapade filer,,DIA,N,DOS,MS-DOS,Backup-modul
-Files Restored,,èterstÑllda filer,,DIA,N,DOS,MS-DOS,Backup-modul
+Files Rebuilt,,≈terskapade filer,,DIA,N,DOS,MS-DOS,Backup-modul
+Files Restored,,≈terst‰llda filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Files Selected,,Valda/markerade filer,,DIA,N,DOS,MS-DOS,Backup-modul
 filter,,filter,,GEN,N,DOS,MS-DOS,generell term
 filter command,,filterkommando,,GEN,N,DOS,MS-DOS,generell term
-Find Deleted Files...,,   Sîk borttagna filer,S,COM,N,DOS,MS-DOS,Undel-modul
-Find Next,,Sîk nÑsta,N,TXT,N,DOS,MS-DOS,MSAVF-modul
+Find Deleted Files...,,   Sˆk borttagna filer,S,COM,N,DOS,MS-DOS,Undel-modul
+Find Next,,Sˆk n‰sta,N,TXT,N,DOS,MS-DOS,MSAVF-modul
 Finished Optimizing,,Optimeringen klar,,DIA,N,DOS,MS-DOS,Defrag
-fixed disk,,hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
-fixed disk drive,,hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
+fixed disk,,hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
+fixed disk drive,,hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
 flag,,flagga,,GEN,N,DOS,MS-DOS,generell term
 "flag (assembler,DEBUG)",,flagga,,GEN,N,DOS,MS-DOS,generell term
 Floppy Configuration,,Diskettkonfiguration,,BUT,N,DOS,MS-DOS,Backup-modul
@@ -631,11 +631,11 @@ Floppy Disk Drive,,diskettenhet,,DIA,N,DOS,MS-DOS,Backup-modul
 "floppy disk, floppy disk drive",,"diskett, diskettenhet",,GEN,N,DOS,MS-DOS,generell term
 Floppy Drive A,,Diskettenhet A,A,BUT,N,DOS,MS-DOS,Backup-modul
 Floppy Drive B,,Diskettenhet B,B,BUT,N,DOS,MS-DOS,Backup-modul
-Floppy Drive Configuration,,konfiguration fîr/konfigurering av diskettenhet,,DIA,N,DOS,MS-DOS,Backup-modul
+Floppy Drive Configuration,,konfiguration fˆr/konfigurering av diskettenhet,,DIA,N,DOS,MS-DOS,Backup-modul
 Floppy Drive Type,,diskettenhetstyp,,DIA,N,DOS,MS-DOS,Backup-modul
-flush (buffers),,tîmma (buffertar),,GEN,V,DOS,MS-DOS,generell term
+flush (buffers),,tˆmma (buffertar),,GEN,V,DOS,MS-DOS,generell term
 font,,teckensnitt,,GEN,N,DOS,MS-DOS,generell term
-foreground,,fîrgrund,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
+foreground,,fˆrgrund,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
 form factor (DRIVPARM),,formfaktor,,GEN,N,DOS,MS-DOS,generell term
 Format,,format,,MNU,N,DOS,MS-DOS,Defrag
 Format ,,Format,,TDB,N,DOS,MS-DOS,Defrag
@@ -645,58 +645,58 @@ forward slash,,snedstreck (/),,GEN,N,DOS,MS-DOS,generell term
 Fragment,,fragment / fragmentera,,GEN,N,DOS,MS-DOS,Undel-modul
 fragmented (file),,fragmenterad,,GEN,ADJ,DOS,MS-DOS,generell term
 frame segment (memory),,ramsegment,,GEN,N,DOS,MS-DOS,generell term
-free (space),,"tillgÑngligt utrymme, ledigt utrymme",,GEN,N,DOS,MS-DOS,generell term
+free (space),,"tillg‰ngligt utrymme, ledigt utrymme",,GEN,N,DOS,MS-DOS,generell term
 Free Clusters,,lediga grupper,,GEN,N,DOS,MS-DOS,Undel-modul
-freeze (display),,lÜsa,,GEN,V,DOS,MS-DOS,generell term
-From (intervalle de temps),,frÜn,,TXT,PREP,DOS,MS-DOS,Backup-modul
-Full,,"hel, fullstÑndig, full",,DIA,ADJ,DOS,MS-DOS,Backup-modul
-Full backup,,FullstÑndig sÑkerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
+freeze (display),,lÂsa,,GEN,V,DOS,MS-DOS,generell term
+From (intervalle de temps),,frÂn,,TXT,PREP,DOS,MS-DOS,Backup-modul
+Full,,"hel, fullst‰ndig, full",,DIA,ADJ,DOS,MS-DOS,Backup-modul
+Full backup,,Fullst‰ndig s‰kerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
 function (system call),,funktion,,GEN,N,DOS,MS-DOS,generell term
-General failure,,AllmÑnt fel,,TXT,N,DOS,MS-DOS,Backup-modul
-General Help Topics,,AllmÑnna hjÑlpavsnitt,,DIA,N,DOS,MS-DOS,Backup-modul
+General failure,,Allm‰nt fel,,TXT,N,DOS,MS-DOS,Backup-modul
+General Help Topics,,Allm‰nna hj‰lpavsnitt,,DIA,N,DOS,MS-DOS,Backup-modul
 Getting Started (MS-DOS Guide),,Startbok (MS-DOS-handbok)/kapitlet 'Installera MS-DOS',,GEN,N,DOS,MS-DOS,generell term
 "Getting Started (QBasic, Edit Help)",,Startbok ,,GEN,N,DOS,MS-DOS,generell term
 Glossary,,   Ordlista,L,COM,N,DOS,MS-DOS,Backup-modul + Undel-modul
 Graphic Rendition,,Grafisk presentation ?,,GEN,N,DOS,MS-DOS,generell term
-Graphical controls,,GrafiklÑge 1: Knappar,,OPT,N,DOS,MS-DOS,Backup-modul
-Graphical Controls and Mouse ,,GrafiklÑge 2: Knappar och mus,,OPT,N,DOS,MS-DOS,Backup-modul
-"Graphical Controls, Mouse and Dialogs",,"GrafiklÑge 3: Knappar, mus och dialogrutor",,OPT,N,DOS,MS-DOS,Backup-modul
+Graphical controls,,Grafikl‰ge 1: Knappar,,OPT,N,DOS,MS-DOS,Backup-modul
+Graphical Controls and Mouse ,,Grafikl‰ge 2: Knappar och mus,,OPT,N,DOS,MS-DOS,Backup-modul
+"Graphical Controls, Mouse and Dialogs",,"Grafikl‰ge 3: Knappar, mus och dialogrutor",,OPT,N,DOS,MS-DOS,Backup-modul
 Graphical Display,,Visningsalternativ ,V,OPT,N,DOS,MS-DOS,Backup-modul
-graphical interface,,grafiskt grÑnssnitt,,GEN,N,DOS,MS-DOS,generell term
+graphical interface,,grafiskt gr‰nssnitt,,GEN,N,DOS,MS-DOS,generell term
 Graphics,,Grafik,,OPT,N,DOS,MS-DOS,Backup-modul
 grayed out,,nedtonat,,TXT,ADJ,DOS,MS-DOS,Backup-modul
-greater-than sign (>),,stîrre Ñn-tecken,,GEN,N,DOS,MS-DOS,generell term
-Green & Brown,,Grîn & brun,,OPT,ADJ,DOS,MS-DOS,Backup-modul
+greater-than sign (>),,stˆrre ‰n-tecken,,GEN,N,DOS,MS-DOS,generell term
+Green & Brown,,Grˆn & brun,,OPT,ADJ,DOS,MS-DOS,Backup-modul
 group,,"gruppera, grupp",,GEN,N,DOS,MS-DOS,generell term
 group box,,gruppruta,,TXT,N,DOS,MS-DOS,Backup-modul
 group list,,grupplista,,GEN,N,DOS,MS-DOS,generell term
 Group Selected Files,,Gruppera valda filer,G,OPT,N,DOS,MS-DOS,Backup-modul
 handle,,handtag,,GEN,N,DOS,MS-DOS,generell term
 handler,,hanterare,,GEN,N,DOS,MS-DOS,generell term
-hard disk,,hÜrddisk,,TXT,N,DOS,MS-DOS,Backup-modul
-hard disk settings,,hÜrddiskinstÑllning,,GEN,N,DOS,MS-DOS,generell term
-hard disk; hard disk drive,,hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
-Hard Mouse Reset,,èterstÑllning av mus,T,OPT,N,DOS,MS-DOS,Backup-modul
-hardcard,,kretskort med hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
+hard disk,,hÂrddisk,,TXT,N,DOS,MS-DOS,Backup-modul
+hard disk settings,,hÂrddiskinst‰llning,,GEN,N,DOS,MS-DOS,generell term
+hard disk; hard disk drive,,hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
+Hard Mouse Reset,,≈terst‰llning av mus,T,OPT,N,DOS,MS-DOS,Backup-modul
+hardcard,,kretskort med hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
 hardware code pages,,inbyggd teckentabell,,GEN,N,DOS,MS-DOS,generell term
-hardware trace mode,,spÜrnings/felsîkningslÑge,,GEN,N,DOS,MS-DOS,generell term
+hardware trace mode,,spÂrnings/felsˆkningsl‰ge,,GEN,N,DOS,MS-DOS,generell term
 header (of an .EXE file),,filhuvud,,GEN,N,DOS,MS-DOS,generell term
-help,,hjÑlp,,GEN,N,DOS,MS-DOS,generell term
-Help,,HjÑlp,H,DIA,N,DOS,MS-DOS,Backup-modul
+help,,hj‰lp,,GEN,N,DOS,MS-DOS,generell term
+Help,,Hj‰lp,H,DIA,N,DOS,MS-DOS,Backup-modul
 Help,,?,?,MNU,N,DOS,MS-DOS,Undel-modul + Backup-modul
-Help (disk),,hjÑlp,,GEN,N,DOS,MS-DOS,generell term
-help text,,hjÑlptext,,GEN,N,DOS,MS-DOS,generell term
+Help (disk),,hj‰lp,,GEN,N,DOS,MS-DOS,generell term
+help text,,hj‰lptext,,GEN,N,DOS,MS-DOS,generell term
 Hidden ,,"Dold, Dolt, Dolda",,TXT,ADJ,DOS,MS-DOS,Backup-modul
-hidden (file),,gîmd (fil),,GEN,ADJ,DOS,MS-DOS,generell term
+hidden (file),,gˆmd (fil),,GEN,ADJ,DOS,MS-DOS,generell term
 hidden attribute,,attributet dolt,,TXT,N,DOS,MS-DOS,Backup-modul
-High Memory Area (HMA),,Hîga minnesomrÜdet (High Memory Area),,GEN,N,DOS,MS-DOS,generell term
-High Resolution,,hîg upplîsning,,OPT,N,DOS,MS-DOS,Backup-modul
-high-capacity floppy disk (drive),,diskettenhet fîr hîgkapacitetsdisketter,,GEN,N,DOS,MS-DOS,generell term
-high-density disk,,hîgdensitetsdiskett,,GEN,N,DOS,MS-DOS,generell term
-high-level language,,hîgnivÜsprÜk,,GEN,N,DOS,MS-DOS,generell term
-high-start address,,hîg startadress,,GEN,N,DOS,MS-DOS,generell term
+High Memory Area (HMA),,Hˆga minnesomrÂdet (High Memory Area),,GEN,N,DOS,MS-DOS,generell term
+High Resolution,,hˆg upplˆsning,,OPT,N,DOS,MS-DOS,Backup-modul
+high-capacity floppy disk (drive),,diskettenhet fˆr hˆgkapacitetsdisketter,,GEN,N,DOS,MS-DOS,generell term
+high-density disk,,hˆgdensitetsdiskett,,GEN,N,DOS,MS-DOS,generell term
+high-level language,,hˆgnivÂsprÂk,,GEN,N,DOS,MS-DOS,generell term
+high-start address,,hˆg startadress,,GEN,N,DOS,MS-DOS,generell term
 HOME,,HOME,,GEN,N,DOS,MS-DOS,generell term
-Host drive,,VÑrdenhet,,OPT,N,DOS,MS-DOS,Defrag
+Host drive,,V‰rdenhet,,OPT,N,DOS,MS-DOS,Defrag
 hotkey,,snabbtangent,,TXT,N,DOS,MS-DOS,Backup-modul
 hyphen,,bindestreck,,GEN,N,DOS,MS-DOS,generell term
 icon,,ikon,,GEN,N,DOS,MS-DOS,generell term
@@ -705,23 +705,23 @@ ignore,,ignorera,,GEN,V,DOS,MS-DOS,generell term
 illegal,,ogiltig,,GEN,ADJ,DOS,MS-DOS,generell term
 illegal (parameter),,ogiltig,,GEN,ADJ,DOS,MS-DOS,generell term
 Immunize,,Virusskydda,,TXT,V,DOS,MS-DOS,MSAVF-modul
-in windows-size increments,,i fînsterstora îkningar,,TXT,N,DOS,MS-DOS,Backup-modul
+in windows-size increments,,i fˆnsterstora ˆkningar,,TXT,N,DOS,MS-DOS,Backup-modul
 Include,,Inkludera,K,BUT,V,DOS,MS-DOS,Backup-modul
 Include All Subdirectories,,Inkludera alla underkataloger,I,DIA,N,DOS,MS-DOS,Backup-modul
 Include Files,,Inkludera filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Include Subdirectories,,Inkludera underkataloger,,CHX,N,DOS,MS-DOS,Backup-modul
 Include/Exclude function(s),,Inkludera/Undanta funktion(er),,TXT,N,DOS,MS-DOS,Backup-modul
-Include/Exclude List,,Lista îver Inkludera/Undanta,,DIA,N,DOS,MS-DOS,Backup-modul
+Include/Exclude List,,Lista ˆver Inkludera/Undanta,,DIA,N,DOS,MS-DOS,Backup-modul
 Include/Exclude Statements,,Inkludera/Undanta programsatser,,TXT,N,DOS,MS-DOS,Backup-modul
 "incorrect (DOS version, file type)",,felaktig,,GEN,ADJ,DOS,MS-DOS,generell term
 Incremental,,inkrementell,I,DIA,ADJ,DOS,MS-DOS,Backup-modul
-Incremental Backup,,Inkrementell sÑkerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
-Index,,   InnehÜll,I,COM,N,DOS,MS-DOS,Backup-modul
+Incremental Backup,,Inkrementell s‰kerhetskopiering,,DIA,N,DOS,MS-DOS,Backup-modul
+Index,,   InnehÂll,I,COM,N,DOS,MS-DOS,Backup-modul
 Infected,,Infekterad/t,,TXT,ADJ,DOS,MS-DOS,MSAVF-modul
-"information ""?"" cursor",,informationsmarkîr (?),,TXT,N,DOS,MS-DOS,Backup-modul
+"information ""?"" cursor",,informationsmarkˆr (?),,TXT,N,DOS,MS-DOS,Backup-modul
 information box,,informationsruta,,TXT,N,DOS,MS-DOS,Backup-modul
 informational message,,meddelande,,GEN,N,DOS,MS-DOS,generell term
-ink jet printer,,blÑckstrÜleskrivare,,GEN,N,DOS,MS-DOS,generell term
+ink jet printer,,bl‰ckstrÂleskrivare,,GEN,N,DOS,MS-DOS,generell term
 input,,indata,,GEN,N,DOS,MS-DOS,generell term
 insert,,infoga,,GEN,V,DOS,MS-DOS,generell term
 INSERT (INS),,INS,,GEN,V,DOS,MS-DOS,generell term
@@ -730,7 +730,7 @@ installable,,installerbar,,GEN,ADJ,DOS,MS-DOS,generell term
 installation,,installation,,GEN,N,DOS,MS-DOS,generell term
 instruction,,instruktion,,GEN,N,DOS,MS-DOS,generell term
 instruction pointer,,instruktionspekare,,GEN,N,DOS,MS-DOS,generell term
-"insufficient (space, memory)",,"otillrÑckligt, fîr lite ledigt",,GEN,ADJ,DOS,MS-DOS,generell term
+"insufficient (space, memory)",,"otillr‰ckligt, fˆr lite ledigt",,GEN,ADJ,DOS,MS-DOS,generell term
 integer,,heltal,,GEN,N,DOS,MS-DOS,generell term
 intermediate subdirectory,,mellankatalog,,GEN,N,DOS,MS-DOS,generell term
 internal command,,internt kommando,,GEN,N,DOS,MS-DOS,generell term
@@ -739,14 +739,14 @@ internal name,,internt namn,,GEN,N,DOS,MS-DOS,generell term
 internal tape drive,,intern bandstation,,GEN,N,DOS,MS-DOS,generell term
 interrupt,,avbryta,,GEN,V,DOS,MS-DOS,generell term
 "interrupt code (assembler,DEBUG)",,avbrottskod,,GEN,N,DOS,MS-DOS,generell term
-invalid,,"ogiltig, olÑslig, felaktig, otillÜten",,GEN,ADJ,DOS,MS-DOS,generell term
+invalid,,"ogiltig, ol‰slig, felaktig, otillÂten",,GEN,ADJ,DOS,MS-DOS,generell term
 Invalid drive specifier,,Ogiltig enhetsangivelse,,TXT,N,DOS,MS-DOS,Backup-modul
 invoke,,framkalla,,GEN,V,DOS,MS-DOS,generell term
 italic,,kursiv,,GEN,ADJ,DOS,MS-DOS,generell term
-join,,"fîrena, foga samman",,GEN,V,DOS,MS-DOS,generell term
-join (JOIN),,fîrena,,GEN,V,DOS,MS-DOS,generell term
+join,,"fˆrena, foga samman",,GEN,V,DOS,MS-DOS,generell term
+join (JOIN),,fˆrena,,GEN,V,DOS,MS-DOS,generell term
 "jump (assembler,DEBUG)",,hopp,,GEN,N,DOS,MS-DOS,generell term
-Keep Old Backup Catalogs,,BehÜll gamla filfîrteckningar îver sÑkerhetskopior,,CHX,N,DOS,MS-DOS,Backup-modul
+Keep Old Backup Catalogs,,BehÂll gamla filfˆrteckningar ˆver s‰kerhetskopior,,CHX,N,DOS,MS-DOS,Backup-modul
 key,,tangent,,GEN,N,DOS,MS-DOS,generell term
 key combination,,tangentkombination,,GEN,N,DOS,MS-DOS,generell term
 key sequence,,"tangentsekvens, tangentkombination",,GEN,N,DOS,MS-DOS,generell term
@@ -754,24 +754,24 @@ key word,,nyckelord,,GEN,N,DOS,MS-DOS,generell term
 Keyboard,,   Tangentbord,T,COM,N,DOS,MS-DOS,Backup-modul + Undel-modul
 keyboard,,tangentbord,,GEN,N,DOS,MS-DOS,generell term
 keyboard code ( KEYB),,tangentbordskod,,GEN,N,DOS,MS-DOS,generell term
-keyboard definition file,,definitionsfil fîr tangentbord,,GEN,N,DOS,MS-DOS,generell term
-keyboard definition table,,definitionstabell fîr tangentbord,,GEN,N,DOS,MS-DOS,generell term
+keyboard definition file,,definitionsfil fˆr tangentbord,,GEN,N,DOS,MS-DOS,generell term
+keyboard definition table,,definitionstabell fˆr tangentbord,,GEN,N,DOS,MS-DOS,generell term
 keyboard ID,,tangentsbords-ID,,GEN,N,DOS,MS-DOS,generell term
 keyboard layout,,tangentbordslayout,,GEN,N,DOS,MS-DOS,generell term
 kilobyte,,kilobyte (kb),,GEN,N,DOS,MS-DOS,generell term
 Label (command GOTO),,Etikett/Namnge,,GEN,V,DOS,MS-DOS,generell term
 "label (disk, see also: volume label)",,etikett,,GEN,N,DOS,MS-DOS,generell term
-language-specific,,sprÜkspecifik,,GEN,ADJ,DOS,MS-DOS,generell term
-Laptop,,bÑrbar dator,B,OPT,N,DOS,MS-DOS,Backup-modul
-Last Action,,Senaste ÜtgÑrd,,DIA,N,DOS,MS-DOS,MSAVF-modul
-Last Virus Found,,Senast upptÑckta virus/Senaste virus,,DIA,N,DOS,MS-DOS,MSAVF-modul
+language-specific,,sprÂkspecifik,,GEN,ADJ,DOS,MS-DOS,generell term
+Laptop,,b‰rbar dator,B,OPT,N,DOS,MS-DOS,Backup-modul
+Last Action,,Senaste Âtg‰rd,,DIA,N,DOS,MS-DOS,MSAVF-modul
+Last Virus Found,,Senast uppt‰ckta virus/Senaste virus,,DIA,N,DOS,MS-DOS,MSAVF-modul
 "Latin (I and II, code page, character set)",,Latin (I och II),,GEN,N,DOS,MS-DOS,generell term
 launch,,starta,,TXT,V,DOS,MS-DOS,Backup-modul
-left arrow,,VéNSTERPIL,,GEN,N,DOS,MS-DOS,generell term
-Left-Handed mouse,,mus fîr vÑnsterhÑnta,M,OPT,N,DOS,MS-DOS,Backup-modul
-Legend,,Fîrklaring,,DIA,N,DOS,MS-DOS,Backup-modul
-less-than sign (<),,mindre Ñn-tecken,,GEN,N,DOS,MS-DOS,generell term
-level (directory),,nivÜ,,GEN,N,DOS,MS-DOS,generell term
+left arrow,,VƒNSTERPIL,,GEN,N,DOS,MS-DOS,generell term
+Left-Handed mouse,,mus fˆr v‰nsterh‰nta,M,OPT,N,DOS,MS-DOS,Backup-modul
+Legend,,Fˆrklaring,,DIA,N,DOS,MS-DOS,Backup-modul
+less-than sign (<),,mindre ‰n-tecken,,GEN,N,DOS,MS-DOS,generell term
+level (directory),,nivÂ,,GEN,N,DOS,MS-DOS,generell term
 library,,bibliotek,,GEN,N,DOS,MS-DOS,generell term
 LIM (Lotus-Intel-MS Expanded Memory Specification),,LIM,,GEN,N,DOS,MS-DOS,generell term
 line buffer,,radbuffert,,GEN,N,DOS,MS-DOS,generell term
@@ -779,35 +779,35 @@ line editor,,radredigerare,,GEN,N,DOS,MS-DOS,generell term
 line option,,radalternativ,,GEN,N,DOS,MS-DOS,generell term
 line printer,,radskrivare,,GEN,N,DOS,MS-DOS,generell term
 Lines/pages,,Rader/sidor,,DIA,N,DOS,MS-DOS,Backup-modul
-"link [n] (in the file system,CHKDSK)",,lÑnk,,GEN,N,DOS,MS-DOS,generell term
-link [v] (LINK),,lÑnka,,GEN,V,DOS,MS-DOS,generell term
-link file,,lÑnka fil,,GEN,N,DOS,MS-DOS,generell term
-link term,,lÑnkningsterm/-vilkor,,TXT,N,DOS,MS-DOS,Backup-modul
-linker,,"lÑnkare, lÑnkningsprogram",,GEN,N,DOS,MS-DOS,generell term
-Liquid Crystal Display (LCD),,LCD-skÑrm,,GEN,N,DOS,MS-DOS,generell term
+"link [n] (in the file system,CHKDSK)",,l‰nk,,GEN,N,DOS,MS-DOS,generell term
+link [v] (LINK),,l‰nka,,GEN,V,DOS,MS-DOS,generell term
+link file,,l‰nka fil,,GEN,N,DOS,MS-DOS,generell term
+link term,,l‰nkningsterm/-vilkor,,TXT,N,DOS,MS-DOS,Backup-modul
+linker,,"l‰nkare, l‰nkningsprogram",,GEN,N,DOS,MS-DOS,generell term
+Liquid Crystal Display (LCD),,LCD-sk‰rm,,GEN,N,DOS,MS-DOS,generell term
 list,,lista,,GEN,N,DOS,MS-DOS,generell term
 list box,,listruta,,GEN,N,DOS,MS-DOS,generell term
 list box(es),,listruta/listrutor,,TXT,N,DOS,MS-DOS,Backup-modul
 List(s) Zone(s),,listzon(er) ?,,TXT,N,DOS,MS-DOS,Backup-modul
 Load,,   Ladda,,COM,V,DOS,MS-DOS,Backup-modul
-load,,"ladda, lÑsa in",,GEN,V,DOS,MS-DOS,generell term
+load,,"ladda, l‰sa in",,GEN,V,DOS,MS-DOS,generell term
 Load ,,Ladda,,BUT,V,DOS,MS-DOS,Backup-modul
-Load Catalog,,Ladda filfîrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
+Load Catalog,,Ladda filfˆrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
 load segment (EXE2BIN),,laddningssegment,,GEN,N,DOS,MS-DOS,generell term
 local drive,,lokal  enhet,,GEN,N,DOS,MS-DOS,generell term
-location,,lÑge,,GEN,N,DOS,MS-DOS,generell term
+location,,l‰ge,,GEN,N,DOS,MS-DOS,generell term
 location (memory),,minnesposition,,GEN,N,DOS,MS-DOS,generell term
 location pointer,,allokeringspekare,,GEN,N,DOS,MS-DOS,generell term
-lock,,"lÜs, lÜsa",,GEN,N,DOS,MS-DOS,generell term
-locked file (SHARE),,lÜst fil,,GEN,N,DOS,MS-DOS,generell term
+lock,,"lÂs, lÂsa",,GEN,N,DOS,MS-DOS,generell term
+locked file (SHARE),,lÂst fil,,GEN,N,DOS,MS-DOS,generell term
 log entry (backup),,anteckning om kopiering,,GEN,N,DOS,MS-DOS,generell term
 log file (backup),,loggfil,,GEN,N,DOS,MS-DOS,generell term
 logging a drive,,logga en enhet,,TXT,N,DOS,MS-DOS,Backup-modul
 logical drive,,logisk enhet,,GEN,N,DOS,MS-DOS,generell term
-long reference,,lÜng referens,,GEN,N,DOS,MS-DOS,generell term
-Lost File,,fîrlorad fil,,GEN,N,DOS,MS-DOS,Undel-modul
-"low (memory, not the same as 'conventional')",,lÜga (minnesomrÜdet),,GEN,N,DOS,MS-DOS,generell term
-low density disk,,lÜgkapacitetsdiskett,,GEN,N,DOS,MS-DOS,generell term
+long reference,,lÂng referens,,GEN,N,DOS,MS-DOS,generell term
+Lost File,,fˆrlorad fil,,GEN,N,DOS,MS-DOS,Undel-modul
+"low (memory, not the same as 'conventional')",,lÂga (minnesomrÂdet),,GEN,N,DOS,MS-DOS,generell term
+low density disk,,lÂgkapacitetsdiskett,,GEN,N,DOS,MS-DOS,generell term
 lower case (character),,gemener,,GEN,N,DOS,MS-DOS,generell term
 Main Group,,huvudgrupp,,GEN,N,DOS,MS-DOS,generell term
 Main Program,,Huvudprogram,,DIA,N,DOS,MS-DOS,Backup-modul
@@ -819,7 +819,7 @@ Max. Sector Size,,Maximal sektorstorlek,,TXT,N,DOS,MS-DOS,Defrag
 Maximum Physical Size,,Maximal fysisk storlek,,OPT,N,DOS,MS-DOS,Defrag
 Maximum Sector Size,,Maximal sektorstorlek,,OPT,N,DOS,MS-DOS,Defrag
 media,,medium,,TXT,N,DOS,MS-DOS,Backup-modul
-mÇdias,,media,,TXT,N,DOS,MS-DOS,Backup-modul
+mÈdias,,media,,TXT,N,DOS,MS-DOS,Backup-modul
 megabyte,,megabyte (Mb),,GEN,N,DOS,MS-DOS,generell term
 memory,,minne,,GEN,N,DOS,MS-DOS,generell term
 memory address,,minnesadress,,GEN,N,DOS,MS-DOS,generell term
@@ -834,7 +834,7 @@ Menu system,,menysystem,,GEN,N,DOS,MS-DOS,Backup-modul
 menu text,,menytext,,GEN,N,DOS,MS-DOS,generell term
 merge (files),,kombinera,,GEN,V,DOS,MS-DOS,generell term
 "message (On-screen-, error-)",,meddelande,,GEN,N,DOS,MS-DOS,generell term
-Message bar,,meddelandefÑlt,,TXT,N,DOS,MS-DOS,MSAVF-modul
+Message bar,,meddelandef‰lt,,TXT,N,DOS,MS-DOS,MSAVF-modul
 message box,,meddelanderuta,,GEN,N,DOS,MS-DOS,generell term
 micro-floppies,,mikrodiskett,,GEN,N,DOS,MS-DOS,generell term
 micro-processor,,mikroprocessor,,GEN,N,DOS,MS-DOS,generell term
@@ -842,86 +842,86 @@ mirror file,,spegelfil,,GEN,N,DOS,MS-DOS,generell term + Undel-modul
 Miscellaneous,,"diverse, olika",,TXT,ADJ,DOS,MS-DOS,Backup-modul
 mismatch,,avvikelse,,GEN,N,DOS,MS-DOS,generell term
 mnemonic (DEBUG),,mnemonisk,,GEN,ADJ,DOS,MS-DOS,generell term
-"mode, mode of operation",,lÑge,,GEN,N,DOS,MS-DOS,generell term
+"mode, mode of operation",,l‰ge,,GEN,N,DOS,MS-DOS,generell term
 modem,,modem,,GEN,N,DOS,MS-DOS,generell term
-Modified date,,éndrat datum / modifierad,,GEN,N,DOS,MS-DOS,Undel-modul. Avser fil som modifierats.
-modify,,"Ñndra, modifiera",,GEN,V,DOS,MS-DOS,generell term
-Modify Defaults,,éndra standardinstÑllningar,,TDB,N,DOS,MS-DOS,Defrag
-monitor  [n],,bildskÑrm,,GEN,N,DOS,MS-DOS,generell term
+Modified date,,ƒndrat datum / modifierad,,GEN,N,DOS,MS-DOS,Undel-modul. Avser fil som modifierats.
+modify,,"‰ndra, modifiera",,GEN,V,DOS,MS-DOS,generell term
+Modify Defaults,,ƒndra standardinst‰llningar,,TDB,N,DOS,MS-DOS,Defrag
+monitor  [n],,bildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
 Monochrome,,"monokrom, svartvit",S,OPT,N,DOS,MS-DOS,Backup-modul
-Month,,mÜnad,,TXT,N,DOS,MS-DOS,Backup-modul
+Month,,mÂnad,,TXT,N,DOS,MS-DOS,Backup-modul
 "mouse (MS Mouse stays ""Mouse"")",,mus,,GEN,N,DOS,MS-DOS,generell term
 Mouse Acceleration,,(mus)acceleration,,OPT,N,DOS,MS-DOS,Backup-modul
 mouse pointer,,muspekare,,GEN,N,DOS,MS-DOS,generell term
-Mouse Sensitivity,,(mus)kÑnslighet,,OPT,N,DOS,MS-DOS,Backup-modul
+Mouse Sensitivity,,(mus)k‰nslighet,,OPT,N,DOS,MS-DOS,Backup-modul
 move (file),,flytta,,GEN,V,DOS,MS-DOS,generell term
 MS-DOS,,MS-DOS,,GEN,N,DOS,MS-DOS,generell term
 MS-DOS QBasic,,MS-DOS QBasic,,GEN,N,DOS,MS-DOS,generell term
 MS-DOS Shell,,MS-DOS Skal/Skal,,GEN,N,DOS,MS-DOS,generell term
-multitasking,,multikîrning,,TXT,N,DOS,MS-DOS,Backup-modul
+multitasking,,multikˆrning,,TXT,N,DOS,MS-DOS,Backup-modul
 Name,,Namn,,DIA,N,DOS,MS-DOS,Undel-modul
 named parameter,,namngiven parameter,,GEN,N,DOS,MS-DOS,generell term
-National Language Support (NLS),,sprÜkstîd (NLS),,GEN,N,DOS,MS-DOS,generell term
+National Language Support (NLS),,sprÂkstˆd (NLS),,GEN,N,DOS,MS-DOS,generell term
 "near (jump,call,DEBUG)",,kort (hopp),,GEN,ADJ,DOS,MS-DOS,generell term
 nested,,kapslad,,GEN,ADJ,DOS,MS-DOS,generell term
-network,,nÑtverk,,TXT,N,DOS,MS-DOS,Backup-modul
-network (-link),,nÑtverk,,GEN,N,DOS,MS-DOS,generell term
-network drive,,nÑtverksenhet,,TXT,N,DOS,MS-DOS,Backup-modul
-network redirection,,NÑtverksomdirigering,,GEN,N,DOS,MS-DOS,generell term
-network redirector,,NÑtverksomdirigerare,,GEN,N,DOS,MS-DOS,generell term
-network server (station),,nÑtverksserver,,GEN,N,DOS,MS-DOS,generell term
-network shares,,nÑtverkskataloger (nÑtverksresurser),,GEN,N,DOS,MS-DOS,generell term
-Never Overwrite,,ErsÑtt aldrig (innehÜll),,DIA,N,DOS,MS-DOS,Backup-modul
+network,,n‰tverk,,TXT,N,DOS,MS-DOS,Backup-modul
+network (-link),,n‰tverk,,GEN,N,DOS,MS-DOS,generell term
+network drive,,n‰tverksenhet,,TXT,N,DOS,MS-DOS,Backup-modul
+network redirection,,N‰tverksomdirigering,,GEN,N,DOS,MS-DOS,generell term
+network redirector,,N‰tverksomdirigerare,,GEN,N,DOS,MS-DOS,generell term
+network server (station),,n‰tverksserver,,GEN,N,DOS,MS-DOS,generell term
+network shares,,n‰tverkskataloger (n‰tverksresurser),,GEN,N,DOS,MS-DOS,generell term
+Never Overwrite,,Ers‰tt aldrig (innehÂll),,DIA,N,DOS,MS-DOS,Backup-modul
 New Directory Name,,Nytt katalognamn,,GEN,N,DOS,MS-DOS,generell term
 new filename,,Nytt filnamn,,GEN,N,DOS,MS-DOS,generell term
 New Physical Size,,Ny fysisk storlek,,OPT,N,DOS,MS-DOS,Defrag
-Next,,NÑsta ,N,BUT,ADV,DOS,MS-DOS,Backup-modul
-No catalogs to restore from.,,Inga filfîrteckningar att ÜterstÑlla frÜn.,,TXT,N,DOS,MS-DOS,Backup-modul
+Next,,N‰sta ,N,BUT,ADV,DOS,MS-DOS,Backup-modul
+No catalogs to restore from.,,Inga filfˆrteckningar att Âterst‰lla frÂn.,,TXT,N,DOS,MS-DOS,Backup-modul
 No Description,,Ingen beskrivning,,DIA,N,DOS,MS-DOS,Backup-modul
 No drives to delete,,Inga enheter att ta bort,,DIA,N,DOS,MS-DOS,Defrag
-No files could be restored. ,,Inga filer kunde ÜterstÑllas,,TXT,N,DOS,MS-DOS,Backup-modul
-No files selected for restore.,,Inga filer valda fîr ÜterstÑllning ,,TXT,N,DOS,MS-DOS,Backup-modul
-No room for new catalog name.,,Utrymme saknas fîr nytt filfîrteckningsnamn,,TXT,N,DOS,MS-DOS,Backup-modul
-No special graphics characters are used,,Inga speciella grafiska tecken anvÑnds. ,,OPT,N,DOS,MS-DOS,Backup-modul
-non-contiguous (disk space),,"inte angrÑnsande, inte sammanhÑngande",,GEN,N,DOS,MS-DOS,generell term
+No files could be restored. ,,Inga filer kunde Âterst‰llas,,TXT,N,DOS,MS-DOS,Backup-modul
+No files selected for restore.,,Inga filer valda fˆr Âterst‰llning ,,TXT,N,DOS,MS-DOS,Backup-modul
+No room for new catalog name.,,Utrymme saknas fˆr nytt filfˆrteckningsnamn,,TXT,N,DOS,MS-DOS,Backup-modul
+No special graphics characters are used,,Inga speciella grafiska tecken anv‰nds. ,,OPT,N,DOS,MS-DOS,Backup-modul
+non-contiguous (disk space),,"inte angr‰nsande, inte sammanh‰ngande",,GEN,N,DOS,MS-DOS,generell term
 non-DOS (disk),,icke-DOS-disk,,GEN,N,DOS,MS-DOS,generell term
 non-removable,,fast,,GEN,ADJ,DOS,MS-DOS,generell term
-non-zero size,,skild frÜn noll,,GEN,N,DOS,MS-DOS,generell term
+non-zero size,,skild frÂn noll,,GEN,N,DOS,MS-DOS,generell term
 nondisclosure agreement,,avtal om tystnadsplikt,,GEN,N,DOS,MS-DOS,generell term
 Not installed,,Inte installerad,,DIA,N,DOS,MS-DOS,Backup-modul
 notational convention,,skrivregler,,GEN,N,DOS,MS-DOS,generell term
-notch,,skrivskyddsskÜra,,GEN,N,DOS,MS-DOS,generell term
+notch,,skrivskyddsskÂra,,GEN,N,DOS,MS-DOS,generell term
 note,,"anteckning, kommentar",,GEN,N,DOS,MS-DOS,generell term
-Now Backing Up,,SÑkerhetskopierar,,DIA,V,DOS,MS-DOS,Backup-modul
-Now Comparing,,JÑmfîr,,DIA,V,DOS,MS-DOS,Backup-modul
+Now Backing Up,,S‰kerhetskopierar,,DIA,V,DOS,MS-DOS,Backup-modul
+Now Comparing,,J‰mfˆr,,DIA,V,DOS,MS-DOS,Backup-modul
 null bytes,,tomma byte,,GEN,N,DOS,MS-DOS,generell term
 null device (NUL:),,nollenhet,,GEN,N,DOS,MS-DOS,generell term
 NUM LOCK,,NUM LOCK,,GEN,N,DOS,MS-DOS,generell term
 Number of units,,Antal enheter,,OPT,N,DOS,MS-DOS,Defrag
 numeric keypad,,numeriskt tangentbord,,GEN,N,DOS,MS-DOS,generell term
 object file,,objektfil,,GEN,N,DOS,MS-DOS,generell term
-object linker (LINK),,"objektlÑnkare, lÑnkare av objekt",,GEN,N,DOS,MS-DOS,generell term
+object linker (LINK),,"objektl‰nkare, l‰nkare av objekt",,GEN,N,DOS,MS-DOS,generell term
 octal number,,oktalt tal,,GEN,N,DOS,MS-DOS,generell term
 OFF,,Av,,DIA,PREP,DOS,MS-DOS,Backup-modul
-off-line (MODE),,frÜnkopplad,,GEN,ADJ,DOS,MS-DOS,generell term
+off-line (MODE),,frÂnkopplad,,GEN,ADJ,DOS,MS-DOS,generell term
 offset,,offset/relativ position,,GEN,N,DOS,MS-DOS,generell term
 "offset (file, FC)",,"offset, relativ position",,GEN,N,DOS,MS-DOS,generell term
 OK,,OK,,BUT,ADV,DOS,MS-DOS,Backup-modul
-old utility,,gammalt tillbehîr ,,GEN,N,DOS,MS-DOS,generell term
+old utility,,gammalt tillbehˆr ,,GEN,N,DOS,MS-DOS,generell term
 Older Files Only,,Endast gamla filer,,OPT,N,DOS,MS-DOS,Backup-modul
-ON,,PÜ,,DIA,PREP,DOS,MS-DOS,Backup-modul
-on line help,,DirekthjÑlp,,GEN,N,DOS,MS-DOS,generell term
-on-line (MODE),,"inkopplad, direkt(hjÑlp, -Ütkomst osv)",,GEN,N,DOS,MS-DOS,generell term
-On-Screen Help Line,,Rad fîr direkthjÑlp,,DIA,N,DOS,MS-DOS,Backup-modul
-"online help (Shell, Edit, QBasic)",,direkthjÑlp,,GEN,N,DOS,MS-DOS,generell term
+ON,,PÂ,,DIA,PREP,DOS,MS-DOS,Backup-modul
+on line help,,Direkthj‰lp,,GEN,N,DOS,MS-DOS,generell term
+on-line (MODE),,"inkopplad, direkt(hj‰lp, -Âtkomst osv)",,GEN,N,DOS,MS-DOS,generell term
+On-Screen Help Line,,Rad fˆr direkthj‰lp,,DIA,N,DOS,MS-DOS,Backup-modul
+"online help (Shell, Edit, QBasic)",,direkthj‰lp,,GEN,N,DOS,MS-DOS,generell term
 opcode,,"op-kod, operationskod",,GEN,N,DOS,MS-DOS,generell term
 "opcode (assembler,DEBUG)",,"op-kod, operationskod",,GEN,N,DOS,MS-DOS,generell term
-open ,,îppna,,GEN,V,DOS,MS-DOS,generell term
-Open Setup,,   ôppna instÑllningsfil,N,COM,V,DOS,MS-DOS,Backup-modul
-Open Setup File,,ôppna instÑllningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
+open ,,ˆppna,,GEN,V,DOS,MS-DOS,generell term
+Open Setup,,   ÷ppna inst‰llningsfil,N,COM,V,DOS,MS-DOS,Backup-modul
+Open Setup File,,÷ppna inst‰llningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
 operand,,operand,,GEN,N,DOS,MS-DOS,generell term
 operating system,,operativsystem,,GEN,N,DOS,MS-DOS,generell term
-operation mode,,arbetslÑge,,GEN,N,DOS,MS-DOS,generell term
+operation mode,,arbetsl‰ge,,GEN,N,DOS,MS-DOS,generell term
 Optimize,,Optimera,,COM,V,DOS,MS-DOS,Defrag
 option,,alternativ,,GEN,N,DOS,MS-DOS,generell term
 Option,,Alternativ,V,COM,N,DOS,MS-DOS,MSAVF-modul
@@ -934,43 +934,43 @@ Options,,Alternativ,,MNU,N,DOS,MS-DOS,Defrag
 Options,,Alternativ,V,MNU,N,DOS,MS-DOS,Undel-modul
 Options,,Alternativ,V,COM,N,DOS,MS-DOS,Undel-modul
 Original Drive=Original Locations,,Ursprunglig enhet,,DIA,N,DOS,MS-DOS,Backup-modul
-Original Locations,,Ursprungliga lÑgen,U,DIA,N,DOS,MS-DOS,Backup-modul
+Original Locations,,Ursprungliga l‰gen,U,DIA,N,DOS,MS-DOS,Backup-modul
 Other,,Annan,,OPT,ADV,DOS,MS-DOS,Backup-modul
 Other Directories,,Andra kataloger,K,DIA,N,DOS,MS-DOS,Backup-modul
 Other Drives,,Andra enheter,A,DIA,N,DOS,MS-DOS,Backup-modul
-out of memory,,Arbetsminne fullt / Slut pÜ ledigt minne,,GEN,N,DOS,MS-DOS,generell term
-Out of memory.,,Slut pÜ ledigt minne.,,TXT,N,DOS,MS-DOS,Backup-modul
+out of memory,,Arbetsminne fullt / Slut pÂ ledigt minne,,GEN,N,DOS,MS-DOS,generell term
+Out of memory.,,Slut pÂ ledigt minne.,,TXT,N,DOS,MS-DOS,Backup-modul
 output,,utdata (s),,GEN,N,DOS,MS-DOS,generell term
 output file,,utdatafil,,GEN,N,DOS,MS-DOS,generell term
 output port,,utdataport,,GEN,N,DOS,MS-DOS,generell term
-Output screen,,UtdatabildskÑrm,,GEN,N,DOS,MS-DOS,generell term
+Output screen,,Utdatabildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
 "overflow (divide, internal stack)",,spill,,GEN,N,DOS,MS-DOS,generell term
-overlap,,îverlappa(v)/îverlappning(n),,GEN,N,DOS,MS-DOS,generell term
-overlay,,"mall, îverlagring",,GEN,N,DOS,MS-DOS,generell term
-overlay interrupt,,îverlagring avbruten,,GEN,N,DOS,MS-DOS,generell term
-overlay loading routine,,îverlagringsrutin,,GEN,N,DOS,MS-DOS,generell term
-overlay manager,,îverlagringshanterare,,GEN,N,DOS,MS-DOS,generell term
-overlay modules,,îverlagringsmodul,,GEN,N,DOS,MS-DOS,generell term
-override,,ÜsidosÑtta,,GEN,V,DOS,MS-DOS,generell term
-Overrun,,ôverskrida,,GEN,V,DOS,MS-DOS,generell term
-Overview,,îversikt,,TXT,N,DOS,MS-DOS,Backup-modul
-Overwrite,,ErsÑtta,,GEN,V,DOS,MS-DOS,generell term
-Overwrite,,"Skriva îver, Ñven ""Skriv îver"" ELLER ""ErsÑtt""",,BUT,N,DOS,MS-DOS,Backup-modul
-Overwrite,,ErsÑtta (innehÜll),,GEN,V,DOS,MS-DOS,Undel-modul
-Overwrite Backup Diskette,,ErsÑtt innehÜllet pÜ disketten med sÑkerhetskopior,,TXT,N,DOS,MS-DOS,Backup-modul
-Overwrite DOS Diskette,,ErsÑtt innehÜllet pÜ DOS-disketten,,TXT,N,DOS,MS-DOS,Backup-modul
-Overwrite existing EXCEL.SET?,,ErsÑtta existerande EXCEL.SET,,TXT,N,DOS,MS-DOS,Backup-modul
-Overwrite File,,ersÑtta (innehÜllet pÜ) fil,,TXT,N,DOS,MS-DOS,Backup-modul
-overwrite files,,ersÑtta (innehÜllet pÜ) filer,,DIA,N,DOS,MS-DOS,Backup-modul
-overwrite mode,,îverskrivningslÑge,,GEN,N,DOS,MS-DOS,generell term
+overlap,,ˆverlappa(v)/ˆverlappning(n),,GEN,N,DOS,MS-DOS,generell term
+overlay,,"mall, ˆverlagring",,GEN,N,DOS,MS-DOS,generell term
+overlay interrupt,,ˆverlagring avbruten,,GEN,N,DOS,MS-DOS,generell term
+overlay loading routine,,ˆverlagringsrutin,,GEN,N,DOS,MS-DOS,generell term
+overlay manager,,ˆverlagringshanterare,,GEN,N,DOS,MS-DOS,generell term
+overlay modules,,ˆverlagringsmodul,,GEN,N,DOS,MS-DOS,generell term
+override,,Âsidos‰tta,,GEN,V,DOS,MS-DOS,generell term
+Overrun,,÷verskrida,,GEN,V,DOS,MS-DOS,generell term
+Overview,,ˆversikt,,TXT,N,DOS,MS-DOS,Backup-modul
+Overwrite,,Ers‰tta,,GEN,V,DOS,MS-DOS,generell term
+Overwrite,,"Skriva ˆver, ‰ven ""Skriv ˆver"" ELLER ""Ers‰tt""",,BUT,N,DOS,MS-DOS,Backup-modul
+Overwrite,,Ers‰tta (innehÂll),,GEN,V,DOS,MS-DOS,Undel-modul
+Overwrite Backup Diskette,,Ers‰tt innehÂllet pÂ disketten med s‰kerhetskopior,,TXT,N,DOS,MS-DOS,Backup-modul
+Overwrite DOS Diskette,,Ers‰tt innehÂllet pÂ DOS-disketten,,TXT,N,DOS,MS-DOS,Backup-modul
+Overwrite existing EXCEL.SET?,,Ers‰tta existerande EXCEL.SET,,TXT,N,DOS,MS-DOS,Backup-modul
+Overwrite File,,ers‰tta (innehÂllet pÂ) fil,,TXT,N,DOS,MS-DOS,Backup-modul
+overwrite files,,ers‰tta (innehÂllet pÂ) filer,,DIA,N,DOS,MS-DOS,Backup-modul
+overwrite mode,,ˆverskrivningsl‰ge,,GEN,N,DOS,MS-DOS,generell term
 Packed file corrupt,,komprimerad fil skadad,,GEN,N,DOS,MS-DOS,generell term
 page (memory),,sida,,GEN,N,DOS,MS-DOS,generell term
-page boundaries,,sidgrÑnser,,GEN,N,DOS,MS-DOS,generell term
+page boundaries,,sidgr‰nser,,GEN,N,DOS,MS-DOS,generell term
 PAGE DOWN,,PGDN,,GEN,N,DOS,MS-DOS,generell term
 Page Feed,,sidmatning,,DIA,N,DOS,MS-DOS,Backup-modul
 Page frame,,sidram,,GEN,N,DOS,MS-DOS,generell term
 PAGE UP,,PGUP,,GEN,N,DOS,MS-DOS,generell term
-pane,,fînsterruta,,TXT,N,DOS,MS-DOS,Backup-modul
+pane,,fˆnsterruta,,TXT,N,DOS,MS-DOS,Backup-modul
 parallel port,,parallell port,,GEN,N,DOS,MS-DOS,generell term
 parallel printer,,parallellt ansluten skrivare,,GEN,N,DOS,MS-DOS,generell term
 parameter ,,parameter,,GEN,N,DOS,MS-DOS,generell term
@@ -979,286 +979,286 @@ parent directory,,moderkatalog,,GEN,N,DOS,MS-DOS, generell term + Backup-modul
 parse,,"analysera (syntax), tolka",,GEN,V,DOS,MS-DOS,generell term
 Parse error,,"analysfel, tolkningsfel",,GEN,N,DOS,MS-DOS,generell term
 partition,,partition,,GEN,N,DOS,MS-DOS,generell term
-partition boundaries,,partitionsgrÑnser,,GEN,N,DOS,MS-DOS,generell term
+partition boundaries,,partitionsgr‰nser,,GEN,N,DOS,MS-DOS,generell term
 partition data,,partitionsdata,,GEN,N,DOS,MS-DOS,generell term
 partition table (FORMAT),,partitionstabell,,GEN,N,DOS,MS-DOS,generell term
-password,,lîsenord,,GEN,N,DOS,MS-DOS,generell term
-Password,,lîsenord,,MNU,N,DOS,MS-DOS,Defrag
-Password Protect Backup Sets ,,Lîsenordsskyddade uppsÑttningar med sÑkerhetskopior,,DIA,N,DOS,MS-DOS,Backup-modul
-Password Protection,,lîsenordsskydd,,CHX,N,DOS,MS-DOS,Backup-modul
-Path,,SîkvÑg,V,DIA,N,DOS,MS-DOS,Backup-modul
-Path,,SîkvÑg,,DIA,N,DOS,MS-DOS,Undel-modul
-path (command search),,sîkvÑg,,GEN,N,DOS,MS-DOS,generell term
-Path name entered incorrectly.,,Felaktigt inmatat sîkvÑgsnamn.,,TXT,N,DOS,MS-DOS,Backup-modul
-"path,pathname",,sîkvÑg,,GEN,N,DOS,MS-DOS,generell term
+password,,lˆsenord,,GEN,N,DOS,MS-DOS,generell term
+Password,,lˆsenord,,MNU,N,DOS,MS-DOS,Defrag
+Password Protect Backup Sets ,,Lˆsenordsskyddade upps‰ttningar med s‰kerhetskopior,,DIA,N,DOS,MS-DOS,Backup-modul
+Password Protection,,lˆsenordsskydd,,CHX,N,DOS,MS-DOS,Backup-modul
+Path,,Sˆkv‰g,V,DIA,N,DOS,MS-DOS,Backup-modul
+Path,,Sˆkv‰g,,DIA,N,DOS,MS-DOS,Undel-modul
+path (command search),,sˆkv‰g,,GEN,N,DOS,MS-DOS,generell term
+Path name entered incorrectly.,,Felaktigt inmatat sˆkv‰gsnamn.,,TXT,N,DOS,MS-DOS,Backup-modul
+"path,pathname",,sˆkv‰g,,GEN,N,DOS,MS-DOS,generell term
 PAUSE,,Paus,,GEN,N,DOS,MS-DOS,generell term
-pause [v],,"ta paus, gîra paus",,GEN,N,DOS,MS-DOS,generell term
+pause [v],,"ta paus, gˆra paus",,GEN,N,DOS,MS-DOS,generell term
 percent sign (%),,procenttecken,,GEN,N,DOS,MS-DOS,generell term
 peripheral device,,kringutrustning,,GEN,N,DOS,MS-DOS,generell term
 Personal Computer,,persondator,,GEN,N,DOS,MS-DOS,generell term
 pipe (character),,vertikalt streck (|),,GEN,N,DOS,MS-DOS,generell term
 pipe (command pipe),,datakanal,,GEN,N,DOS,MS-DOS,generell term
 piping,,skicka via datakanal,,GEN,N,DOS,MS-DOS,generell term
-placeholder,,platshÜllare,,GEN,N,DOS,MS-DOS,generell term
+placeholder,,platshÂllare,,GEN,N,DOS,MS-DOS,generell term
 plotter,,plotter,,GEN,N,DOS,MS-DOS,generell term
-point (to),,peka pÜ,,TXT,N,DOS,MS-DOS,Backup-modul
-point to (with mouse),,peka pÜ (med musen),,GEN,N,DOS,MS-DOS,generell term
+point (to),,peka pÂ,,TXT,N,DOS,MS-DOS,Backup-modul
+point to (with mouse),,peka pÂ (med musen),,GEN,N,DOS,MS-DOS,generell term
 pointer (to file data area),,pekare,,GEN,N,DOS,MS-DOS,generell term
 prefix mnemonic (DEBUG),,mnemoniskt prefix,,GEN,N,DOS,MS-DOS,generell term
-prepare (code page),,fîrbereda,,GEN,V,DOS,MS-DOS,generell term
-presetting,,fîrvÑlja,,GEN,V,DOS,MS-DOS,generell term
-Prevent Program Switch,,Fîrhindra programvÑxling,,GEN,N,DOS,MS-DOS,generell term
-Previous,,FîregÜende,F,BUT,ADV,DOS,MS-DOS,Backup-modul
-primary command processor,,primÑr kommandotolk,,GEN,N,DOS,MS-DOS,generell term
-primary MS-DOS partition ,,primÑr MS-DOS-partition,,GEN,N,DOS,MS-DOS,generell term
+prepare (code page),,fˆrbereda,,GEN,V,DOS,MS-DOS,generell term
+presetting,,fˆrv‰lja,,GEN,V,DOS,MS-DOS,generell term
+Prevent Program Switch,,Fˆrhindra programv‰xling,,GEN,N,DOS,MS-DOS,generell term
+Previous,,FˆregÂende,F,BUT,ADV,DOS,MS-DOS,Backup-modul
+primary command processor,,prim‰r kommandotolk,,GEN,N,DOS,MS-DOS,generell term
+primary MS-DOS partition ,,prim‰r MS-DOS-partition,,GEN,N,DOS,MS-DOS,generell term
 Print,,   Skriv ut,U,COM,V,DOS,MS-DOS,Backup-modul
 print,,skriva ut,,GEN,N,DOS,MS-DOS,generell term
 Print,,"Skriv ut, skriva ut",,BUT,N,DOS,MS-DOS,Backup-modul
-Print Catalog,,Skriv ut filfîrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
-Print Current Settings,,Skriv ut aktuella instÑllningar,,DIA,N,DOS,MS-DOS,Backup-modul
+Print Catalog,,Skriv ut filfˆrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
+Print Current Settings,,Skriv ut aktuella inst‰llningar,,DIA,N,DOS,MS-DOS,Backup-modul
 Print Data For All Drives,,Skriv ut information om alla enheter,,DIA,N,DOS,MS-DOS,Backup-modul
 Print Data For Current Drive,,Skriv ut information om aktuell enhet,,DIA,N,DOS,MS-DOS,Backup-modul
 Print File list,,Skriv ut fillista,,OPT,N,DOS,MS-DOS,Backup-modul
 Print List,,   Skriv ut lista,U,COM,N,DOS,MS-DOS,Undel-modul
-Print Mode,,UtskriftslÑge,,TDB,N,DOS,MS-DOS,Backup-modul
-print queue (PRINT),,utskriftskî,,GEN,N,DOS,MS-DOS,generell term
+Print Mode,,Utskriftsl‰ge,,TDB,N,DOS,MS-DOS,Backup-modul
+print queue (PRINT),,utskriftskˆ,,GEN,N,DOS,MS-DOS,generell term
 PRINT SCREEN,,PRINTSCRN,,GEN,N,DOS,MS-DOS,generell term
-Print Source,,UtskriftskÑlla,,DIA,N,DOS,MS-DOS,Backup-modul
+Print Source,,Utskriftsk‰lla,,DIA,N,DOS,MS-DOS,Backup-modul
 Print To File,,Skriv ut till fil,,DIA,N,DOS,MS-DOS,Backup-modul
 Print to Text File,,Skriv ut till textfil,,DIA,N,DOS,MS-DOS,Backup-modul
 printbox (GRAPHICS),,printbox,,GEN,N,DOS,MS-DOS,generell term
 printer,,skrivare,,GEN,N,DOS,MS-DOS,generell term
 printer cable,,skrivarkabel,,GEN,N,DOS,MS-DOS,generell term
-printer device driver,,drivrutin fîr skrivare,,GEN,N,DOS,MS-DOS,generell term
-Printer out of paper,,Slut pÜ papperet i skrivaren,,TXT,N,DOS,MS-DOS,Backup-modul
+printer device driver,,drivrutin fˆr skrivare,,GEN,N,DOS,MS-DOS,generell term
+Printer out of paper,,Slut pÂ papperet i skrivaren,,TXT,N,DOS,MS-DOS,Backup-modul
 printer port,,skrivarport,,GEN,N,DOS,MS-DOS,generell term
-Printer Setup,,   SkrivarinstÑllning,I,COM,V,DOS,MS-DOS,Backup-modul
-Printer Setup,,   SkrivarinstÑllning,K,COM,N,DOS,MS-DOS,Undel-modul
-Printer Setup,,SkrivarinstÑllning,,TDB,N,DOS,MS-DOS,Backup-modul
+Printer Setup,,   Skrivarinst‰llning,I,COM,V,DOS,MS-DOS,Backup-modul
+Printer Setup,,   Skrivarinst‰llning,K,COM,N,DOS,MS-DOS,Undel-modul
+Printer Setup,,Skrivarinst‰llning,,TDB,N,DOS,MS-DOS,Backup-modul
 process (copy),,"bearbeta, process",,GEN,V,DOS,MS-DOS,generell term
 processing,,bearbetning,,GEN,N,DOS,MS-DOS,generell term
 "profile (file, GRAPHICS)",,profil,,GEN,N,DOS,MS-DOS,generell term
 program,,program,,GEN,N,DOS,MS-DOS,generell term
 program file,,programfil,,GEN,N,DOS,MS-DOS,generell term
 program item icon,,programobjektsikon,,TXT,N,DOS,MS-DOS,Backup-modul
-Progress Screen,,FîrloppsskÑrm ,,DIA,N,DOS,MS-DOS,Backup-modul
+Progress Screen,,Fˆrloppssk‰rm ,,DIA,N,DOS,MS-DOS,Backup-modul
 prompt [n],,"prompt, ledtext",,GEN,N,DOS,MS-DOS,generell term
-Prompt Before Creating Directories,,BekrÑfta innan kataloger skapas,K,DIA,N,DOS,MS-DOS,Backup-modul
-Prompt Before Creating Files,,BekrÑfta innan filer skapas,F,DIA,N,DOS,MS-DOS,Backup-modul
-Prompt Before Overwriting Existing Files,,BekrÑfta innan innehÜllet pÜ filer ersÑtts,,DIA,N,DOS,MS-DOS,Backup-modul
-Prompt Before Overwriting Used Diskettes,,BekrÑfta innan innehÜll pÜ disketter ersÑtts,,CHX,N,DOS,MS-DOS,Backup-modul
-Prompt Button,,frÜgeknapp/uppmaningsknapp ??,,TXT,N,DOS,MS-DOS,Backup-modul
-Prompt While Detect,,BekrÑfta vid upptÑckt,B,CHX,N,DOS,MS-DOS,MSAVF-modul
+Prompt Before Creating Directories,,Bekr‰fta innan kataloger skapas,K,DIA,N,DOS,MS-DOS,Backup-modul
+Prompt Before Creating Files,,Bekr‰fta innan filer skapas,F,DIA,N,DOS,MS-DOS,Backup-modul
+Prompt Before Overwriting Existing Files,,Bekr‰fta innan innehÂllet pÂ filer ers‰tts,,DIA,N,DOS,MS-DOS,Backup-modul
+Prompt Before Overwriting Used Diskettes,,Bekr‰fta innan innehÂll pÂ disketter ers‰tts,,CHX,N,DOS,MS-DOS,Backup-modul
+Prompt Button,,frÂgeknapp/uppmaningsknapp ??,,TXT,N,DOS,MS-DOS,Backup-modul
+Prompt While Detect,,Bekr‰fta vid uppt‰ckt,B,CHX,N,DOS,MS-DOS,MSAVF-modul
 Protected by,,Skyddad/t av,,GEN,N,DOS,MS-DOS,Undel-modul
-protected mode,,skyddat lÑge,,GEN,N,DOS,MS-DOS,generell term
+protected mode,,skyddat l‰ge,,GEN,N,DOS,MS-DOS,generell term
 protection,,skydd,,GEN,N,DOS,MS-DOS,generell term
 protective jacket,,(skydds)fodral,,GEN,N,DOS,MS-DOS,generell term
-provider (UMB),,(UMB-)fîrsîrjare,,GEN,N,DOS,MS-DOS,generell term
-pseudo-instruction,,sjÑlvstudier,,GEN,N,DOS,MS-DOS,generell term
+provider (UMB),,(UMB-)fˆrsˆrjare,,GEN,N,DOS,MS-DOS,generell term
+pseudo-instruction,,sj‰lvstudier,,GEN,N,DOS,MS-DOS,generell term
 Pull-down,,Meny,,GEN,N,DOS,MS-DOS,Undel-modul
 Purge Delete Sentry File..,,   Rensa Filvaktens filer,R,COM,N,DOS,MS-DOS,Undel-modul
-question mark wildcard,,frÜgetecken-jokertecken,,GEN,N,DOS,MS-DOS,generell term
+question mark wildcard,,frÂgetecken-jokertecken,,GEN,N,DOS,MS-DOS,generell term
 QuickFormat (FORMAT),,QuickFormat,,GEN,N,DOS,MS-DOS,generell term
-QuickFormat (FORMAT),,anvÑnda QuickFormat,,GEN,N,DOS,MS-DOS,generell term
+QuickFormat (FORMAT),,anv‰nda QuickFormat,,GEN,N,DOS,MS-DOS,generell term
 quit,,avsluta,,GEN,V,DOS,MS-DOS,generell term
 Quit,,Avsluta,,BUT,V,DOS,MS-DOS,Backup-modul
 Quit,,Avsluta,,MNU,V,DOS,MS-DOS,Defrag
-Quit After Backup,,Avsluta efter SÑkerhetskopiera,V,OPT,N,DOS,MS-DOS,Backup-modul
-Quit After Compare,,Avsluta efter JÑmfîr,A,CHX,N,DOS,MS-DOS,Backup-modul
-Quit After Restore,,Avsluta efter èterstÑll,V,OPT,N,DOS,MS-DOS,Backup-modul
+Quit After Backup,,Avsluta efter S‰kerhetskopiera,V,OPT,N,DOS,MS-DOS,Backup-modul
+Quit After Compare,,Avsluta efter J‰mfˆr,A,CHX,N,DOS,MS-DOS,Backup-modul
+Quit After Restore,,Avsluta efter ≈terst‰ll,V,OPT,N,DOS,MS-DOS,Backup-modul
 Radio Button,,alternativknapp,,TXT,N,DOS,MS-DOS,Backup-modul
 RAM (Random Access Memory),,RAM-minne,,GEN,N,DOS,MS-DOS,generell term
 "RAM-Disk, RAM drive",,"RAM-disk, RAM-drive",,GEN,N,DOS,MS-DOS,generell term
 Random data,,Slumpdata,,GEN,N,DOS,MS-DOS,Undel-modul
-range,,"intervall, omrÜde",,GEN,N,DOS,MS-DOS,generell term
+range,,"intervall, omrÂde",,GEN,N,DOS,MS-DOS,generell term
 rapid blink,,blinkning,,GEN,N,DOS,MS-DOS,generell term
-Read fault,,LÑsfel,,TXT,N,DOS,MS-DOS,Backup-modul
+Read fault,,L‰sfel,,TXT,N,DOS,MS-DOS,Backup-modul
 read only,,skrivskyddad,,GEN,ADJ,DOS,MS-DOS,generell term + Backup-modul
 Read Only Memory (ROM),,ROM-minne,,GEN,N,DOS,MS-DOS,generell term
-Reading Directories,,LÑser kataloger,,TDB,N,DOS,MS-DOS,Backup-modul
-Reading Volume,,LÑser volym,,DIA,N,DOS,MS-DOS,Backup-modul
+Reading Directories,,L‰ser kataloger,,TDB,N,DOS,MS-DOS,Backup-modul
+Reading Volume,,L‰ser volym,,DIA,N,DOS,MS-DOS,Backup-modul
 README.TXT,,VIKTIGT.TXT,,GEN,N,DOS,MS-DOS,generell term
 ready (port),,klar,,GEN,ADJ,DOS,MS-DOS,generell term
-real mode,,reallÑge,,GEN,N,DOS,MS-DOS,generell term
+real mode,,reall‰ge,,GEN,N,DOS,MS-DOS,generell term
 reboot,,starta om,,GEN,N,DOS,MS-DOS,generell term
-Rebuild,,   èterskapa,,COM,V,DOS,MS-DOS,Backup-modul
-Rebuild,,èterskapa,,GEN,V,DOS,MS-DOS,generell term
-Rebuild,,èterskapa,R,MNU,V,DOS,MS-DOS,Backup-modul
-Rebuild canceled.,,èterskapa avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
-Rebuild Catalog,,èterskapa filfîrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
-Rebuild is complete.,,èterskapa klart,,TXT,N,DOS,MS-DOS,Backup-modul
-Rebuild Progress,,èterskapa-fîrlopp,,TDB,N,DOS,MS-DOS,Backup-modul
-Rebuilding Catalog,,èterskapar filfîrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
+Rebuild,,   ≈terskapa,,COM,V,DOS,MS-DOS,Backup-modul
+Rebuild,,≈terskapa,,GEN,V,DOS,MS-DOS,generell term
+Rebuild,,≈terskapa,R,MNU,V,DOS,MS-DOS,Backup-modul
+Rebuild canceled.,,≈terskapa avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
+Rebuild Catalog,,≈terskapa filfˆrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
+Rebuild is complete.,,≈terskapa klart,,TXT,N,DOS,MS-DOS,Backup-modul
+Rebuild Progress,,≈terskapa-fˆrlopp,,TDB,N,DOS,MS-DOS,Backup-modul
+Rebuilding Catalog,,≈terskapar filfˆrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
 Reconfigure,,Konfigurera om,,TXT,N,DOS,MS-DOS,Backup-modul
 Reconstructing,,Rekonstruera,,GEN,V,DOS,MS-DOS,Undel-modul
 "record (disk, file, DEBUG)",,post,,GEN,N,DOS,MS-DOS,generell term
 record [n],,post,,GEN,N,DOS,MS-DOS,generell term
 record [v],,registrera,,GEN,V,DOS,MS-DOS,generell term
-recover,,"rekonstruera, Üterskapa",,GEN,V,DOS,MS-DOS,generell term
+recover,,"rekonstruera, Âterskapa",,GEN,V,DOS,MS-DOS,generell term
 recursive,,rekursiv,,GEN,ADJ,DOS,MS-DOS,generell term
 recursive call,,rekursivt anrop,,GEN,N,DOS,MS-DOS,generell term
-"Red, White &Blue",,"Rîd, vit & blÜ",,OPT,ADJ,DOS,MS-DOS,Backup-modul
+"Red, White &Blue",,"Rˆd, vit & blÂ",,OPT,ADJ,DOS,MS-DOS,Backup-modul
 redirect,,dirigera om,,GEN,N,DOS,MS-DOS,generell term
 redirection(characters),,omdirigering,,GEN,N,DOS,MS-DOS,generell term
-Reduce Display Speed,,Minska skÑrmhastighet,H,OPT,N,DOS,MS-DOS,Backup-modul
+Reduce Display Speed,,Minska sk‰rmhastighet,H,OPT,N,DOS,MS-DOS,Backup-modul
 reference guide,,Referenshandbok,,GEN,N,DOS,MS-DOS,generell term
-refresh,,Uppdatera skÑrmbild,,GEN,N,DOS,MS-DOS,generell term
+refresh,,Uppdatera sk‰rmbild,,GEN,N,DOS,MS-DOS,generell term
 register,,"register(s), registrera(v)",,GEN,N,DOS,MS-DOS,generell term
-Register inteface,,RegistergrÑnssnitt,,GEN,N,DOS,MS-DOS,generell term
+Register inteface,,Registergr‰nssnitt,,GEN,N,DOS,MS-DOS,generell term
 relative address,,relativ adress,,GEN,N,DOS,MS-DOS,generell term
 reload (part of command processor),,"ny laddning(s), ladda om (v)",,GEN,N,DOS,MS-DOS,generell term
-Remain in Backup/Compare/Restore,,Stanna kvar i SÑkerhetskopiera/JÑmfîr/èterstÑll ELLER Avbryt,,TXT,N,DOS,MS-DOS,Backup-modul
+Remain in Backup/Compare/Restore,,Stanna kvar i S‰kerhetskopiera/J‰mfˆr/≈terst‰ll ELLER Avbryt,,TXT,N,DOS,MS-DOS,Backup-modul
 remark (REM),,"kommentar(s), kommentera(v)",,GEN,N,DOS,MS-DOS,generell term
-"remote (server, adapter)",,fjÑrr-,,GEN,ADJ,DOS,MS-DOS,generell term
-Removable hard disk cartridges,,Flyttbara hÜrddiskkassetter ,,TXT,N,DOS,MS-DOS,Backup-modul
+"remote (server, adapter)",,fj‰rr-,,GEN,ADJ,DOS,MS-DOS,generell term
+Removable hard disk cartridges,,Flyttbara hÂrddiskkassetter ,,TXT,N,DOS,MS-DOS,Backup-modul
 remove,,ta bort,,GEN,N,DOS,MS-DOS,generell term
 rename,,byta namn,,GEN,N,DOS,MS-DOS,generell term
 reorder,,"omstrukturera, organisera om ",,GEN,V,DOS,MS-DOS,generell term
-replaceable (parameter),,"ersÑttbar, utbytbar",,GEN,ADJ,DOS,MS-DOS,generell term
-required,,nîdvÑndig,,GEN,ADJ,DOS,MS-DOS,generell term
-Reserved letters,,Reserverade bokstÑver/beteckningar,,TXT,N,DOS,MS-DOS,Defrag
-reset,,"ÜterstÑlla, nollstÑlla",,GEN,V,DOS,MS-DOS,generell term
+replaceable (parameter),,"ers‰ttbar, utbytbar",,GEN,ADJ,DOS,MS-DOS,generell term
+required,,nˆdv‰ndig,,GEN,ADJ,DOS,MS-DOS,generell term
+Reserved letters,,Reserverade bokst‰ver/beteckningar,,TXT,N,DOS,MS-DOS,Defrag
+reset,,"Âterst‰lla, nollst‰lla",,GEN,V,DOS,MS-DOS,generell term
 resident (in memory),,resident,,GEN,ADJ,DOS,MS-DOS,generell term
 resource,,resurs,,GEN,N,DOS,MS-DOS,generell term
 response file,,svarsfil,,GEN,N,DOS,MS-DOS,generell term
 restart,,starta om,,GEN,N,DOS,MS-DOS,generell term
-Restore,,   èterstÑll,E,COM,V,DOS,MS-DOS,Backup-modul
-Restore,,èterstÑll,T,DIA,V,DOS,MS-DOS,Backup-modul
-restore (RESTORE),,ÜterstÑlla,,GEN,V,DOS,MS-DOS,generell term
-Restore canceled.,,èterstÑll avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
-Restore Complete,,èterstÑll klart,,DIA,N,DOS,MS-DOS,Backup-modul
-Restore destination,,MÜl fîr ÜterstÑllning,,TXT,N,DOS,MS-DOS,Backup-modul
-Restore Empty Directories,,èterstÑll tomma kataloger,T,CHX,N,DOS,MS-DOS,Backup-modul
-Restore Files,,èterstÑll filer,E,CHX,N,DOS,MS-DOS,Backup-modul
-Restore Files in Date Range,,èterstÑll filer i datumintervall,,TDB,N,DOS,MS-DOS,Backup-modul
-Restore Fixed Disk,,èterstÑll hÜrddisk,,GEN,N,DOS,MS-DOS,generell term
-Restore From ,,èterstÑll frÜn,R,CHX,N,DOS,MS-DOS,Backup-modul
-Restore Hidden Files,,èterstÑll dolda filer,,CHX,N,DOS,MS-DOS,Backup-modul
-Restore Options,,Alternativ fîr èterstÑll,,DIA,N,DOS,MS-DOS,Backup-modul
-Restore Progress window,,Fîrloppsfînster fîr èterstÑll,,DIA,N,DOS,MS-DOS,Backup-modul
-Restore Prompts,,èterstÑllningsprompt,,TXT,N,DOS,MS-DOS,Backup-modul
-Restore Read-Only Files,,èterstÑll skrivskyddade filer,,CHX,N,DOS,MS-DOS,Backup-modul
-Restore set,,UppsÑttning med ÜterstÑllda filer,,TXT,N,DOS,MS-DOS,Backup-modul
-Restore source,,KÑlla fîr ÜterstÑllning,,TXT,N,DOS,MS-DOS,Backup-modul
-Restore System Files,,èterstÑll systemfiler,,CHX,N,DOS,MS-DOS,Backup-modul
-Restore To,,èterstÑll till,T,DIA,N,DOS,MS-DOS,Backup-modul
+Restore,,   ≈terst‰ll,E,COM,V,DOS,MS-DOS,Backup-modul
+Restore,,≈terst‰ll,T,DIA,V,DOS,MS-DOS,Backup-modul
+restore (RESTORE),,Âterst‰lla,,GEN,V,DOS,MS-DOS,generell term
+Restore canceled.,,≈terst‰ll avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
+Restore Complete,,≈terst‰ll klart,,DIA,N,DOS,MS-DOS,Backup-modul
+Restore destination,,MÂl fˆr Âterst‰llning,,TXT,N,DOS,MS-DOS,Backup-modul
+Restore Empty Directories,,≈terst‰ll tomma kataloger,T,CHX,N,DOS,MS-DOS,Backup-modul
+Restore Files,,≈terst‰ll filer,E,CHX,N,DOS,MS-DOS,Backup-modul
+Restore Files in Date Range,,≈terst‰ll filer i datumintervall,,TDB,N,DOS,MS-DOS,Backup-modul
+Restore Fixed Disk,,≈terst‰ll hÂrddisk,,GEN,N,DOS,MS-DOS,generell term
+Restore From ,,≈terst‰ll frÂn,R,CHX,N,DOS,MS-DOS,Backup-modul
+Restore Hidden Files,,≈terst‰ll dolda filer,,CHX,N,DOS,MS-DOS,Backup-modul
+Restore Options,,Alternativ fˆr ≈terst‰ll,,DIA,N,DOS,MS-DOS,Backup-modul
+Restore Progress window,,Fˆrloppsfˆnster fˆr ≈terst‰ll,,DIA,N,DOS,MS-DOS,Backup-modul
+Restore Prompts,,≈terst‰llningsprompt,,TXT,N,DOS,MS-DOS,Backup-modul
+Restore Read-Only Files,,≈terst‰ll skrivskyddade filer,,CHX,N,DOS,MS-DOS,Backup-modul
+Restore set,,Upps‰ttning med Âterst‰llda filer,,TXT,N,DOS,MS-DOS,Backup-modul
+Restore source,,K‰lla fˆr Âterst‰llning,,TXT,N,DOS,MS-DOS,Backup-modul
+Restore System Files,,≈terst‰ll systemfiler,,CHX,N,DOS,MS-DOS,Backup-modul
+Restore To,,≈terst‰ll till,T,DIA,N,DOS,MS-DOS,Backup-modul
 resync,,synkronisera om,,GEN,N,DOS,MS-DOS,generell term
-Retrieve,,   HÑmta,,COM,V,DOS,MS-DOS,Backup-modul
-Retrieve,,hÑmta,H,BUT,V,DOS,MS-DOS,Backup-modul
-Retrieve canceled.,,HÑmta avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
-Retrieve Catalog,,HÑmta filfîrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
-Retrieve is complete.,,HÑmta klart.,,TXT,N,DOS,MS-DOS,Backup-modul
-retry,,"nytt fîrsîk(s), fîrsîka igen(v)",,GEN,N,DOS,MS-DOS,generell term
-Retry,,"nytt fîrsîk(s), fîrsîka igen(v)",,BUT,N,DOS,MS-DOS,Backup-modul
+Retrieve,,   H‰mta,,COM,V,DOS,MS-DOS,Backup-modul
+Retrieve,,h‰mta,H,BUT,V,DOS,MS-DOS,Backup-modul
+Retrieve canceled.,,H‰mta avbrutet.,,TXT,N,DOS,MS-DOS,Backup-modul
+Retrieve Catalog,,H‰mta filfˆrteckning,,TDB,N,DOS,MS-DOS,Backup-modul
+Retrieve is complete.,,H‰mta klart.,,TXT,N,DOS,MS-DOS,Backup-modul
+retry,,"nytt fˆrsˆk(s), fˆrsˆka igen(v)",,GEN,N,DOS,MS-DOS,generell term
+Retry,,"nytt fˆrsˆk(s), fˆrsˆka igen(v)",,BUT,N,DOS,MS-DOS,Backup-modul
 "return [n] (assembler,DEBUG)",,retur,,GEN,N,DOS,MS-DOS,generell term
 reverse video,,negativ bild/text ,,GEN,N,DOS,MS-DOS,generell term
-right arrow,,HôGERPIL,,GEN,N,DOS,MS-DOS,generell term
+right arrow,,H÷GERPIL,,GEN,N,DOS,MS-DOS,generell term
 ROM (Read Only Memory),,ROM-minne,,GEN,N,DOS,MS-DOS,generell term
 root directory,,rotkatalog,,GEN,N,DOS,MS-DOS,generell term
-root level,,rotnivÜ,,GEN,N,DOS,MS-DOS,generell term
+root level,,rotnivÂ,,GEN,N,DOS,MS-DOS,generell term
 routine,,rutin,,GEN,N,DOS,MS-DOS,generell term
-run,,"kîra, Kîr",,GEN,V,DOS,MS-DOS,generell term
-run-time environment,,(runtime-)miljî,,GEN,N,DOS,MS-DOS,generell term
+run,,"kˆra, Kˆr",,GEN,V,DOS,MS-DOS,generell term
+run-time environment,,(runtime-)miljˆ,,GEN,N,DOS,MS-DOS,generell term
 run-time module,,(runtime-)modul,,GEN,N,DOS,MS-DOS,generell term
 Safe (FORMAT),,sparat,,GEN,ADJ,DOS,MS-DOS,generell term
 "safe(format,FORMAT)",,sparat,,GEN,ADJ,DOS,MS-DOS,generell term
-sample color panels,,exempel pÜ fÑrgpanel,,GEN,N,DOS,MS-DOS,generell term
-sample command line,,exempel pÜ kommandorad,,GEN,N,DOS,MS-DOS,generell term
+sample color panels,,exempel pÂ f‰rgpanel,,GEN,N,DOS,MS-DOS,generell term
+sample command line,,exempel pÂ kommandorad,,GEN,N,DOS,MS-DOS,generell term
 sample file,,exempelfil,,GEN,N,DOS,MS-DOS,generell term
 sample session,,arbetsexempel,,GEN,N,DOS,MS-DOS,generell term
 save,,spara,,GEN,V,DOS,MS-DOS,generell term
 Save,,Spara,,DIA,V,DOS,MS-DOS,Backup-modul
 save area (DEBUG),,spara yta,,GEN,N,DOS,MS-DOS,generell term
-Save changes,,Spara Ñndringar,,TXT,N,DOS,MS-DOS,Backup-modul
+Save changes,,Spara ‰ndringar,,TXT,N,DOS,MS-DOS,Backup-modul
 Save current disk assignment,,Spara aktuell disktilldelning ,,OPT,N,DOS,MS-DOS,Defrag
-Save Setup,,   Spara instÑllningsfil,S,COM,V,DOS,MS-DOS,Backup-modul
-Save Setup As,,   Spara instÑllningsfil som,P,COM,V,DOS,MS-DOS,Backup-modul
-Save Setup File,,Spara instÑllningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
+Save Setup,,   Spara inst‰llningsfil,S,COM,V,DOS,MS-DOS,Backup-modul
+Save Setup As,,   Spara inst‰llningsfil som,P,COM,V,DOS,MS-DOS,Backup-modul
+Save Setup File,,Spara inst‰llningsfil,,DIA,N,DOS,MS-DOS,Backup-modul
 Save Time,,Spara tid,,DIA,N,DOS,MS-DOS,Backup-modul
 Scan,,Scanna,,GEN,V,DOS,MS-DOS,Undel-modul
-scan code (keyboard),,avsîkningskod,,GEN,N,DOS,MS-DOS,generell term
-scan code sequence (keyboard),,kodssekvens fîr avsîkning,,GEN,N,DOS,MS-DOS,generell term
-scan code signal (keyboard),,kodssignal fîr avsîkning,,GEN,N,DOS,MS-DOS,generell term
+scan code (keyboard),,avsˆkningskod,,GEN,N,DOS,MS-DOS,generell term
+scan code sequence (keyboard),,kodssekvens fˆr avsˆkning,,GEN,N,DOS,MS-DOS,generell term
+scan code signal (keyboard),,kodssignal fˆr avsˆkning,,GEN,N,DOS,MS-DOS,generell term
 Scan Disks,,Scanna disketter/diskar,,COM,N,DOS,MS-DOS,Defrag
-Scan for Contents...,,Scanna efter innehÜll...,,GEN,N,DOS,MS-DOS,Undel-modul
+Scan for Contents...,,Scanna efter innehÂll...,,GEN,N,DOS,MS-DOS,Undel-modul
 Scan for Data Types...,,Scanna ,,GEN,V,DOS,MS-DOS,Undel-modul
-Scan for Lost Deleted Files,,Scanna efter fîrlorade borttagna filer,,GEN,N,DOS,MS-DOS,Undel-modul
+Scan for Lost Deleted Files,,Scanna efter fˆrlorade borttagna filer,,GEN,N,DOS,MS-DOS,Undel-modul
 Scan time,,Scanningstid,,DIA,N,DOS,MS-DOS,MSAVF-modul
 Scann,,Scanna,,DIA,V,DOS,MS-DOS,MSAVF-modul
-scanner,,"avsîkare, scanner",,GEN,N,DOS,MS-DOS,generell term
+scanner,,"avsˆkare, scanner",,GEN,N,DOS,MS-DOS,generell term
 Scanning Cluster,,Scannar grupp,,GEN,N,DOS,MS-DOS,Undel-modul
-scheduler,,jobbîvervakare,,GEN,N,DOS,MS-DOS,generell term
-screen,,"bildskÑrm, skÑrm",,GEN,N,DOS,MS-DOS,generell term
-Screen Colors,,skÑrmfÑrger,,OPT,N,DOS,MS-DOS,Backup-modul
-screen console device,,bildskÑrm,,GEN,N,DOS,MS-DOS,generell term
-screenful,,en skÑrmsida,,GEN,N,DOS,MS-DOS,generell term
+scheduler,,jobbˆvervakare,,GEN,N,DOS,MS-DOS,generell term
+screen,,"bildsk‰rm, sk‰rm",,GEN,N,DOS,MS-DOS,generell term
+Screen Colors,,sk‰rmf‰rger,,OPT,N,DOS,MS-DOS,Backup-modul
+screen console device,,bildsk‰rm,,GEN,N,DOS,MS-DOS,generell term
+screenful,,en sk‰rmsida,,GEN,N,DOS,MS-DOS,generell term
 scroll,,rulla,,GEN,V,DOS,MS-DOS,generell term
 scroll arrow,,rullningspil,,GEN,N,DOS,MS-DOS,generell term
 scroll bar (vertical; horizontal),,rullningslist,,GEN,N,DOS,MS-DOS,generell term
 scroll box,,rullningsruta,,GEN,N,DOS,MS-DOS,generell term
 SCROLL LOCK,,SCROLL LOCK,,GEN,N,DOS,MS-DOS,generell term
-Search,,Sîk,,BUT,V,DOS,MS-DOS,Backup-modul
-search  path,,sîkvÑg,,GEN,N,DOS,MS-DOS,generell term
+Search,,Sˆk,,BUT,V,DOS,MS-DOS,Backup-modul
+search  path,,sˆkv‰g,,GEN,N,DOS,MS-DOS,generell term
 Sector not found,,Kan inte hitta sektor,,TXT,N,DOS,MS-DOS,Backup-modul
-Seek error,,Sîkfel,,TXT,N,DOS,MS-DOS,Backup-modul
+Seek error,,Sˆkfel,,TXT,N,DOS,MS-DOS,Backup-modul
 segment,,segment,,GEN,N,DOS,MS-DOS,generell term
-select,,"markera, vÑlja",,GEN,V,DOS,MS-DOS,generell term + Undel-modul
-Select All,,VÑlj alla,,COM,N,DOS,MS-DOS,Backup-modul
-Select Backup Files,,VÑlj / Markera filer som ska sÑkerhetskopieras,,DIA,N,DOS,MS-DOS,Backup-modul
-Select Backup Set,,VÑlj / Markera uppsÑttning med sÑkerhetskopior,,TDB,N,DOS,MS-DOS,Backup-modul
-Select by Name...,,   VÑlj filer...,V,COM,N,DOS,MS-DOS,Undel-modul
-Select Catalog,,VÑlj / Markera filfîrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
-Select Compare,,VÑlj / Markera JÑmfîr,,DIA,N,DOS,MS-DOS,Backup-modul
-Select Compare Files,,VÑlj / Markera filer som ska jÑmfîras ,,DIA,N,DOS,MS-DOS,Backup-modul
-Select Compare Files window,,Fînstret fîr att vÑlja / markera filer som ska jamforas,,DIA,N,DOS,MS-DOS,Backup-modul
+select,,"markera, v‰lja",,GEN,V,DOS,MS-DOS,generell term + Undel-modul
+Select All,,V‰lj alla,,COM,N,DOS,MS-DOS,Backup-modul
+Select Backup Files,,V‰lj / Markera filer som ska s‰kerhetskopieras,,DIA,N,DOS,MS-DOS,Backup-modul
+Select Backup Set,,V‰lj / Markera upps‰ttning med s‰kerhetskopior,,TDB,N,DOS,MS-DOS,Backup-modul
+Select by Name...,,   V‰lj filer...,V,COM,N,DOS,MS-DOS,Undel-modul
+Select Catalog,,V‰lj / Markera filfˆrteckning,,DIA,N,DOS,MS-DOS,Backup-modul
+Select Compare,,V‰lj / Markera J‰mfˆr,,DIA,N,DOS,MS-DOS,Backup-modul
+Select Compare Files,,V‰lj / Markera filer som ska j‰mfˆras ,,DIA,N,DOS,MS-DOS,Backup-modul
+Select Compare Files window,,Fˆnstret fˆr att v‰lja / markera filer som ska jamforas,,DIA,N,DOS,MS-DOS,Backup-modul
 Select Files,,Markera filer,,TXT,N,DOS,MS-DOS,Backup-modul
-Select new drive,,VÑlj ny enhet,,DIA,N,DOS,MS-DOS,MSAVF-modul
-Select Restore,,VÑlj / Markera èterstÑll,,DIA,N,DOS,MS-DOS,Backup-modul
-Select Restore Files,,VÑlj / Markera filer som ska ÜterstÑllas,,DIA,N,DOS,MS-DOS,Backup-modul
-Select the file version to be compared,,VÑlj / Markera filversionen som ska jÑmfîras,,TXT,N,DOS,MS-DOS,Backup-modul
-Select the file version to be restored,,VÑlj / Markera filversionen som ska ÜterstÑllas,,TXT,N,DOS,MS-DOS,Backup-modul
+Select new drive,,V‰lj ny enhet,,DIA,N,DOS,MS-DOS,MSAVF-modul
+Select Restore,,V‰lj / Markera ≈terst‰ll,,DIA,N,DOS,MS-DOS,Backup-modul
+Select Restore Files,,V‰lj / Markera filer som ska Âterst‰llas,,DIA,N,DOS,MS-DOS,Backup-modul
+Select the file version to be compared,,V‰lj / Markera filversionen som ska j‰mfˆras,,TXT,N,DOS,MS-DOS,Backup-modul
+Select the file version to be restored,,V‰lj / Markera filversionen som ska Âterst‰llas,,TXT,N,DOS,MS-DOS,Backup-modul
 Selected Files,,Valda / Markerade filer,,TXT,N,DOS,MS-DOS,Backup-modul
 selection,,"markering, val",,GEN,N,DOS,MS-DOS,generell term
 selection bar,,markeringsram,,GEN,N,DOS,MS-DOS,generell term
-selection cursor,,markîr,,GEN,N,DOS,MS-DOS,generell term
+selection cursor,,markˆr,,GEN,N,DOS,MS-DOS,generell term
 selection status,,Markeringsstatus,,GEN,N,DOS,MS-DOS,Backup-modul
-Sensitivity (default/low/medium/high),,KÑnslighet (Standard/LÜg/Medel/Hîg),K,OPT,N,DOS,MS-DOS,Backup-modul
-separator,,"avgrÑnsare, grÑnstecken",,GEN,N,DOS,MS-DOS,generell term
+Sensitivity (default/low/medium/high),,K‰nslighet (Standard/LÂg/Medel/Hˆg),K,OPT,N,DOS,MS-DOS,Backup-modul
+separator,,"avgr‰nsare, gr‰nstecken",,GEN,N,DOS,MS-DOS,generell term
 sequence (command),,sekvens,,GEN,N,DOS,MS-DOS,generell term
 sequentially,,sekventiellt,,GEN,ADJ,DOS,MS-DOS,generell term
 serial port,,seriell port,,GEN,N,DOS,MS-DOS,generell term
 Session,,arbetspass,,DIA,N,DOS,MS-DOS,Backup-modul
-set,,"set(s), aktivera/bestÑmma(v)",,GEN,N,DOS,MS-DOS,generell term
+set,,"set(s), aktivera/best‰mma(v)",,GEN,N,DOS,MS-DOS,generell term
 Set,,Aktivera,,BUT,V,DOS,MS-DOS,Defrag
 Set Date and Time,,Datum och tid,,GEN,N,DOS,MS-DOS,generell term
 Set Scan Range...,,Ange scanningsintervall... ,,GEN,N,DOS,MS-DOS,Undel-modul
 Setup,,installationsprogrammet,,GEN,N,DOS,MS-DOS,generell term
-Setup,,"installationsprogrammet, InstÑllningar",,BUT,N,DOS,MS-DOS,Backup-modul
-Setup File,,instÑllningsfil,I,DIA,N,DOS,MS-DOS,Backup-modul
-Setup File Title Button,,Rubrikknapp fîr instÑllningsfil,,TXT,N,DOS,MS-DOS,Backup-modul
-Setup Files,,instÑllningsfiler,I,TXT,N,DOS,MS-DOS,Backup-modul
+Setup,,"installationsprogrammet, Inst‰llningar",,BUT,N,DOS,MS-DOS,Backup-modul
+Setup File,,inst‰llningsfil,I,DIA,N,DOS,MS-DOS,Backup-modul
+Setup File Title Button,,Rubrikknapp fˆr inst‰llningsfil,,TXT,N,DOS,MS-DOS,Backup-modul
+Setup Files,,inst‰llningsfiler,I,TXT,N,DOS,MS-DOS,Backup-modul
 setup procedure,,installationsprocedur,,GEN,N,DOS,MS-DOS,generell term
 Shadow RAM,,Skuggminne,,GEN,N,DOS,MS-DOS,generell term
 share [v] (SHARE),,dela,,GEN,V,DOS,MS-DOS,generell term
 shareable,,delbar,,GEN,ADJ,DOS,MS-DOS,generell term
 shell,,skal,,GEN,N,DOS,MS-DOS,generell term
 Shell (disk),,Skal,,GEN,N,DOS,MS-DOS,generell term
-Shell/Help (disk),,Skal/HjÑlp,,GEN,N,DOS,MS-DOS,generell term
+Shell/Help (disk),,Skal/Hj‰lp,,GEN,N,DOS,MS-DOS,generell term
 SHIFT,,SKIFT,,GEN,N,DOS,MS-DOS,generell term
 "short (jump,call,DEBUG)",,kort,,GEN,ADJ,DOS,MS-DOS,generell term
-shortcut,,genvÑg,,GEN,N,DOS,MS-DOS,generell term
+shortcut,,genv‰g,,GEN,N,DOS,MS-DOS,generell term
 Show Directories Above Files,,Visa kataloger,,DIA,N,DOS,MS-DOS,Backup-modul
 Show Existing Files,,   Visa filer,,COM,N,DOS,MS-DOS,Undel-modul
 Show Information,,Visa information,,GEN,N,DOS,MS-DOS,generell term
 Show Versions,,Visa versioner,,TDB,N,DOS,MS-DOS,Backup-modul
-Shrink,,Fîrminska,,COM,V,DOS,MS-DOS,Defrag
-Shrink,,Fîrminska,,BUT,V,DOS,MS-DOS,Defrag
+Shrink,,Fˆrminska,,COM,V,DOS,MS-DOS,Defrag
+Shrink,,Fˆrminska,,BUT,V,DOS,MS-DOS,Defrag
 single sided,,enkelsidig,,GEN,ADJ,DOS,MS-DOS,generell term
-Size,,"Storlek, éndra storlek (Ñ)",,MNU,N,DOS,MS-DOS,Defrag
+Size,,"Storlek, ƒndra storlek (‰)",,MNU,N,DOS,MS-DOS,Defrag
 Size,,Storlek,,DIA,N,DOS,MS-DOS,Undel-modul
 size (file),,storlek,,GEN,N,DOS,MS-DOS,generell term
 slash,,snedstreck (/),,GEN,N,DOS,MS-DOS,generell term
-small caps,,"KapitÑler, smÜ versaler",,GEN,N,DOS,MS-DOS,generell term
+small caps,,"Kapit‰ler, smÂ versaler",,GEN,N,DOS,MS-DOS,generell term
 software,,"program, programvara",,GEN,N,DOS,MS-DOS,generell term
 Some Files,,Vissa filer,,DIA,N,DOS,MS-DOS,Backup-modul
 sort,,sortera,,GEN,V,DOS,MS-DOS,generell term
@@ -1268,7 +1268,7 @@ Sort Files,,Sortera filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Sort Files by,,Sortera filer efter,,OPT,N,DOS,MS-DOS,Backup-modul
 Sort Order,,sorteringsordning,,DIA,N,DOS,MS-DOS,Backup-modul
 sorter (part of the printer),,sorteringsrutin,,GEN,N,DOS,MS-DOS,generell term
-source ,,kÑlla,,GEN,N,DOS,MS-DOS,generell term
+source ,,k‰lla,,GEN,N,DOS,MS-DOS,generell term
 space bar,,blanksteg,,GEN,N,DOS,MS-DOS,generell term
 Special,,Special,S,BUT,ADV,DOS,MS-DOS,Backup-modul
 Special exclusions,,Speciella undantag,,OPT,N,DOS,MS-DOS,Backup-modul
@@ -1295,27 +1295,27 @@ startup disk,,startdisk,,GEN,N,DOS,MS-DOS,generell term
 startup record (FDISK),,startpost,,GEN,N,DOS,MS-DOS,generell term
 Startup/Support (disk),,Start,,GEN,N,DOS,MS-DOS,generell term
 statement,,programsats,,GEN,N,DOS,MS-DOS,generell term
-status bar,,statusfÑlt,,GEN,N,DOS,MS-DOS,generell term
+status bar,,statusf‰lt,,GEN,N,DOS,MS-DOS,generell term
 status line,,statusrad,,GEN,N,DOS,MS-DOS,generell term
 Stealth viruses,,Smygvirus,,TXT,N,DOS,MS-DOS,MSAVF-modul
 stop,,Avbryt,,GEN,V,DOS,MS-DOS,generell term
 Stop,,Avbryt,A,BUT,V,DOS,MS-DOS,MSAVF-modul
-storage area,,"minnesomrÜde, lagringsutrymme",,GEN,N,DOS,MS-DOS,generell term
+storage area,,"minnesomrÂde, lagringsutrymme",,GEN,N,DOS,MS-DOS,generell term
 store,,Lagra,,GEN,V,DOS,MS-DOS,generell term
-string instruction (DEBUG),,strÑnginstruktion,,GEN,N,DOS,MS-DOS,generell term
+string instruction (DEBUG),,str‰nginstruktion,,GEN,N,DOS,MS-DOS,generell term
 subdirectory,,underkatalog,,GEN,N,DOS,MS-DOS,generell term
 subfont,,ytterliggare teckensnitt,,GEN,N,DOS,MS-DOS,generell term
-substitute (SUBST),,ersÑtta,,GEN,V,DOS,MS-DOS,generell term
-Suggested capacity ratio,,Fîreslaget kapacitetsfîrhÜllande,,TXT,N,DOS,MS-DOS,Defrag
+substitute (SUBST),,ers‰tta,,GEN,V,DOS,MS-DOS,generell term
+Suggested capacity ratio,,Fˆreslaget kapacitetsfˆrhÂllande,,TXT,N,DOS,MS-DOS,Defrag
 Supplemental (disk),,kompletteringsdisk,,GEN,N,DOS,MS-DOS,generell term
-support,,"support, stîd(s), stîdja(v)",,GEN,N,DOS,MS-DOS,generell term
-Support (disk),,Stîd,,GEN,N,DOS,MS-DOS,generell term
-Survival Guide (Edit),,ôversikt,,GEN,N,DOS,MS-DOS,generell term
-swap file,,"byt fil, vÑxlingsfil",,TXT,N,DOS,MS-DOS,Backup-modul
-switch [n] (on the command line),,vÑxel,,GEN,N,DOS,MS-DOS,generell term
-switch [v] (tasks),,vÑxla,,GEN,V,DOS,MS-DOS,generell term
-switcher,,vÑxlare,,GEN,N,DOS,MS-DOS,generell term
-switcher (Shell),,vÑxlare (Skal),,GEN,N,DOS,MS-DOS,generell term
+support,,"support, stˆd(s), stˆdja(v)",,GEN,N,DOS,MS-DOS,generell term
+Support (disk),,Stˆd,,GEN,N,DOS,MS-DOS,generell term
+Survival Guide (Edit),,÷versikt,,GEN,N,DOS,MS-DOS,generell term
+swap file,,"byt fil, v‰xlingsfil",,TXT,N,DOS,MS-DOS,Backup-modul
+switch [n] (on the command line),,v‰xel,,GEN,N,DOS,MS-DOS,generell term
+switch [v] (tasks),,v‰xla,,GEN,V,DOS,MS-DOS,generell term
+switcher,,v‰xlare,,GEN,N,DOS,MS-DOS,generell term
+switcher (Shell),,v‰xlare (Skal),,GEN,N,DOS,MS-DOS,generell term
 syntax,,syntax,,GEN,N,DOS,MS-DOS,generell term
 SYS RQ,,SYS RQ,,GEN,N,DOS,MS-DOS,generell term
 system,,system,,GEN,N,DOS,MS-DOS,generell term + Backup-modul
@@ -1329,28 +1329,28 @@ System halted,,Systemstopp,,GEN,N,DOS,MS-DOS,generell term
 system prompt (see: prompt),,DOS-prompt,,GEN,N,DOS,MS-DOS,generell term
 system requirements,,systemkrav,,GEN,N,DOS,MS-DOS,generell term
 TAB,,"tabb, Tab",,GEN,N,DOS,MS-DOS,generell term
-"target (drive, directory)",,"MÜl (enhet, katalog)",,GEN,N,DOS,MS-DOS,generell term
-target disk,,"mÜldisk, destinationsdisk",,GEN,N,DOS,MS-DOS,generell term
+"target (drive, directory)",,"MÂl (enhet, katalog)",,GEN,N,DOS,MS-DOS,generell term
+target disk,,"mÂldisk, destinationsdisk",,GEN,N,DOS,MS-DOS,generell term
 task,,"program, uppgift",,GEN,N,DOS,MS-DOS,generell term
 task list,,aktiva sessioner,,GEN,N,DOS,MS-DOS,generell term
-Task Swapper,,ProgramvÑxlare,,GEN,N,DOS,MS-DOS,generell term
+Task Swapper,,Programv‰xlare,,GEN,N,DOS,MS-DOS,generell term
 template,,mall,,GEN,N,DOS,MS-DOS,generell term
-temporary file,,temporÑr fil,,GEN,N,DOS,MS-DOS,generell term
-temporary memory,,temporÑrt minne,,GEN,N,DOS,MS-DOS,generell term
-Temporary Restore Options,,TillfÑlliga alternativ i èterstÑll,,DIA,N,DOS,MS-DOS,Backup-modul
+temporary file,,tempor‰r fil,,GEN,N,DOS,MS-DOS,generell term
+temporary memory,,tempor‰rt minne,,GEN,N,DOS,MS-DOS,generell term
+Temporary Restore Options,,Tillf‰lliga alternativ i ≈terst‰ll,,DIA,N,DOS,MS-DOS,Backup-modul
 terminal device,,terminalenhet,,GEN,N,DOS,MS-DOS,generell term
 Terminate-and-Stay-Resident (TSR),,TSR (minnesresident program),,GEN,N,DOS,MS-DOS,generell term
-test pattern,,testmînster,,GEN,N,DOS,MS-DOS,generell term
-Text (mode),,Text(lÑge),,OPT,N,DOS,MS-DOS,Backup-modul
+test pattern,,testmˆnster,,GEN,N,DOS,MS-DOS,generell term
+Text (mode),,Text(l‰ge),,OPT,N,DOS,MS-DOS,Backup-modul
 text box,,textruta,,GEN,N,DOS,MS-DOS,generell term
 text file,,textfil,,GEN,N,DOS,MS-DOS,generell term
-text mode,,textlÑge,,GEN,N,DOS,MS-DOS,generell term
+text mode,,textl‰ge,,GEN,N,DOS,MS-DOS,generell term
 time,,tid,,GEN,N,DOS,MS-DOS,generell term
 Time,,tid,,OPT,N,DOS,MS-DOS,Backup-modul
 time format,,tidsformat,,GEN,N,DOS,MS-DOS,generell term
 time out,,"avbrott, timeout",,GEN,N,DOS,MS-DOS,generell term
 time stamp,,tidsmarkering,,GEN,N,DOS,MS-DOS,generell term
-time-out  error,,"tidsîverdragsfel, ""time out""-fel",,GEN,N,DOS,MS-DOS,generell term
+time-out  error,,"tidsˆverdragsfel, ""time out""-fel",,GEN,N,DOS,MS-DOS,generell term
 timeslice,,tidsandel,,GEN,N,DOS,MS-DOS,generell term
 Tip,,Tips!,,GEN,N,DOS,MS-DOS,generell term
 title,,titel,,GEN,N,DOS,MS-DOS,generell term
@@ -1358,76 +1358,76 @@ title bar,,"namnlist, titelrad",,GEN,N,DOS,MS-DOS,generell term
 title buttons,,rubrikknappar ,,TXT,N,DOS,MS-DOS,Backup-modul
 To  (intervalle de temps),,Till,,TXT,PREP,DOS,MS-DOS,Backup-modul
 to log a drive,,logga en enhet,,TXT,N,DOS,MS-DOS,Backup-modul
-toggle,,vÑxla,,TXT,V,DOS,MS-DOS,Backup-modul
-Topics,,   InnehÜll,,GEN,N,DOS,MS-DOS,Undel-modul
-Topics,,"avsnitt, Ñmne, innehÜll",,BUT,N,DOS,MS-DOS,Backup-modul
+toggle,,v‰xla,,TXT,V,DOS,MS-DOS,Backup-modul
+Topics,,   InnehÂll,,GEN,N,DOS,MS-DOS,Undel-modul
+Topics,,"avsnitt, ‰mne, innehÂll",,BUT,N,DOS,MS-DOS,Backup-modul
 total (space),,"totalt, sammanlagt",,GEN,ADJ,DOS,MS-DOS,generell term
 total allocation units (CHKDSK),,totalt antal datablock ,,GEN,N,DOS,MS-DOS,generell term
-total backup,,fullstÑndig sÑkerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
+total backup,,fullst‰ndig s‰kerhetskopiering,,TXT,N,DOS,MS-DOS,Backup-modul
 total disk space,,totalt diskutrymme,,GEN,N,DOS,MS-DOS,generell term
 Total Files,,Totalt antal filer,,DIA,N,DOS,MS-DOS,Backup-modul
-track,,spÜr,,GEN,N,DOS,MS-DOS,generell term
-Tracking,,SpÜrning,,GEN,N,DOS,MS-DOS,Undel-modul
-transient (COMMAND.COM),,tillfÑllig,,GEN,ADJ,DOS,MS-DOS,generell term
-Tree,,TrÑd,,BUT,N,DOS,MS-DOS,Backup-modul
-tree (structure),,trÑd,,GEN,N,DOS,MS-DOS,generell term
-tree pane,,trÑdruta,,TXT,N,DOS,MS-DOS,Backup-modul
+track,,spÂr,,GEN,N,DOS,MS-DOS,generell term
+Tracking,,SpÂrning,,GEN,N,DOS,MS-DOS,Undel-modul
+transient (COMMAND.COM),,tillf‰llig,,GEN,ADJ,DOS,MS-DOS,generell term
+Tree,,Tr‰d,,BUT,N,DOS,MS-DOS,Backup-modul
+tree (structure),,tr‰d,,GEN,N,DOS,MS-DOS,generell term
+tree pane,,tr‰druta,,TXT,N,DOS,MS-DOS,Backup-modul
 Trojan,,Trojansk,,TXT,ADJ,DOS,MS-DOS,MSAVF-modul
-Trojan horses,,"Trojansk hÑst, virus av typen trojansk hÑst",,TXT,N,DOS,MS-DOS,MSAVF-modul
+Trojan horses,,"Trojansk h‰st, virus av typen trojansk h‰st",,TXT,N,DOS,MS-DOS,MSAVF-modul
 TSR,,minnesresidenta program (TSR),,DIA,N,DOS,MS-DOS,Backup-modul
 type [v],,skriva,,GEN,V,DOS,MS-DOS,generell term
 unconditional  (format) ,,ovillkorligt,,GEN,ADJ,DOS,MS-DOS,generell term
-Undelete,,   èterstÑll,è,COM,V,DOS,MS-DOS,Undel-modul
-Undelete,,èterstÑll,,GEN,V,DOS,MS-DOS,generell term
-Undelete to...,,   èterstÑll till...,T,COM,N,DOS,MS-DOS,Undel-modul
-Undeleting File,,èterstÑller fil,,GEN,N,DOS,MS-DOS,Undel-modul
-Undeleting Network Files,,èterstÑller nÑtverksfiler,,GEN,N,DOS,MS-DOS,Undel-modul
+Undelete,,   ≈terst‰ll,≈,COM,V,DOS,MS-DOS,Undel-modul
+Undelete,,≈terst‰ll,,GEN,V,DOS,MS-DOS,generell term
+Undelete to...,,   ≈terst‰ll till...,T,COM,N,DOS,MS-DOS,Undel-modul
+Undeleting File,,≈terst‰ller fil,,GEN,N,DOS,MS-DOS,Undel-modul
+Undeleting Network Files,,≈terst‰ller n‰tverksfiler,,GEN,N,DOS,MS-DOS,Undel-modul
 underscore,,"understreck (_), stryka under",,GEN,N,DOS,MS-DOS,generell term
 unformat,,ta bort formatering,,GEN,N,DOS,MS-DOS,generell term
 Unit Allocated,,Allokerad enhet,,TXT,N,DOS,MS-DOS,Defrag
-Units Used,,AnvÑnda enheter,,TXT,N,DOS,MS-DOS,Defrag
-Unknown,,okÑnd/okÑnt/okÑnda,,GEN,ADJ,DOS,MS-DOS,Undel-modul
-Unknown command,,OkÑnt kommando,,TXT,N,DOS,MS-DOS,Backup-modul
-unknown media,,okÑnt medium,,GEN,N,DOS,MS-DOS,generell term
-Unknown unit,,OkÑnd enhet,,TXT,N,DOS,MS-DOS,Backup-modul
+Units Used,,Anv‰nda enheter,,TXT,N,DOS,MS-DOS,Defrag
+Unknown,,ok‰nd/ok‰nt/ok‰nda,,GEN,ADJ,DOS,MS-DOS,Undel-modul
+Unknown command,,Ok‰nt kommando,,TXT,N,DOS,MS-DOS,Backup-modul
+unknown media,,ok‰nt medium,,GEN,N,DOS,MS-DOS,generell term
+Unknown unit,,Ok‰nd enhet,,TXT,N,DOS,MS-DOS,Backup-modul
 Unprotected,,icke skrivskyddat,,GEN,N,DOS,MS-DOS,generell term
 unrecoverable error,,icke rekonstruerbart fel,,GEN,N,DOS,MS-DOS,generell term
 Unselect,,Avmarkera,,GEN,V,DOS,MS-DOS,Undel-modul
-Unselect by Name...,,   VÑlj bort filer,B,COM,N,DOS,MS-DOS,Undel-modul
+Unselect by Name...,,   V‰lj bort filer,B,COM,N,DOS,MS-DOS,Undel-modul
 up arrow,,UPPIL,,GEN,N,DOS,MS-DOS,generell term
 update,,"uppdatering(s), uppdatera(v)",,GEN,N,DOS,MS-DOS,generell term
 Update,,Uppdatera,,BUT,V,DOS,MS-DOS,MSAVF-modul
 updated,,uppdaterad,,GEN,ADJ,DOS,MS-DOS,generell term
 upgraded,,uppgraderad,,GEN,ADJ,DOS,MS-DOS,generell term
-Upper memory area,,îvre minnesomrÜdet,,GEN,N,DOS,MS-DOS,generell term
-Upper memory block,,îvre minnesblock,,GEN,N,DOS,MS-DOS,generell term
-Use Error Correction,,AnvÑnd felrÑttning,,CHX,N,DOS,MS-DOS,Backup-modul
-Use Error Correction on Diskettes,,AnvÑnd felrÑttning pÜ disketter,,CHX,N,DOS,MS-DOS,Backup-modul
-Use expanded memory,,AnvÑnd expanderat minne,,OPT,N,DOS,MS-DOS,Defrag
-Use extended memory,,AnvÑnd utîkat minne,,OPT,N,DOS,MS-DOS,Defrag
-Use Mirror File,,   AnvÑnd spegelfil,,GEN,N,DOS,MS-DOS,Undel-modul
-Use slow expanded memory,,AnvÑnd lÜngsamt expanderat minne,,OPT,N,DOS,MS-DOS,Defrag
-"user stack (assembler,DEBUG)",,anvÑndarstack,,GEN,N,DOS,MS-DOS,generell term
-user's guide,,anvÑndarhandbok,,GEN,N,DOS,MS-DOS,generell term
-User's Guide and Reference,,AnvÑndar- och Referenshandbok,,GEN,N,DOS,MS-DOS,generell term
-Using Help,,   AnvÑnda HjÑlp,A,COM,V,DOS,MS-DOS,Backup-modul + Undel-modul
-utility,,"tillÑggsprogram, Ñven ""tillbehîr""",,GEN,N,DOS,MS-DOS,generell term
-Utility (disk),,tillÑggsprogram,,GEN,N,DOS,MS-DOS,generell term
-value,,vÑrde,,GEN,N,DOS,MS-DOS,generell term
+Upper memory area,,ˆvre minnesomrÂdet,,GEN,N,DOS,MS-DOS,generell term
+Upper memory block,,ˆvre minnesblock,,GEN,N,DOS,MS-DOS,generell term
+Use Error Correction,,Anv‰nd felr‰ttning,,CHX,N,DOS,MS-DOS,Backup-modul
+Use Error Correction on Diskettes,,Anv‰nd felr‰ttning pÂ disketter,,CHX,N,DOS,MS-DOS,Backup-modul
+Use expanded memory,,Anv‰nd expanderat minne,,OPT,N,DOS,MS-DOS,Defrag
+Use extended memory,,Anv‰nd utˆkat minne,,OPT,N,DOS,MS-DOS,Defrag
+Use Mirror File,,   Anv‰nd spegelfil,,GEN,N,DOS,MS-DOS,Undel-modul
+Use slow expanded memory,,Anv‰nd lÂngsamt expanderat minne,,OPT,N,DOS,MS-DOS,Defrag
+"user stack (assembler,DEBUG)",,anv‰ndarstack,,GEN,N,DOS,MS-DOS,generell term
+user's guide,,anv‰ndarhandbok,,GEN,N,DOS,MS-DOS,generell term
+User's Guide and Reference,,Anv‰ndar- och Referenshandbok,,GEN,N,DOS,MS-DOS,generell term
+Using Help,,   Anv‰nda Hj‰lp,A,COM,V,DOS,MS-DOS,Backup-modul + Undel-modul
+utility,,"till‰ggsprogram, ‰ven ""tillbehˆr""",,GEN,N,DOS,MS-DOS,generell term
+Utility (disk),,till‰ggsprogram,,GEN,N,DOS,MS-DOS,generell term
+value,,v‰rde,,GEN,N,DOS,MS-DOS,generell term
 variable,,variabel,,GEN,N,DOS,MS-DOS,generell term
 Variant virus,,Virusvariant,,TXT,N,DOS,MS-DOS,MSAVF-modul
-Verification=Verify Backup Data,,Verifikation=Kontrollera sÑkerhetskopierade data,,CHX,N,DOS,MS-DOS,Backup-modul
+Verification=Verify Backup Data,,Verifikation=Kontrollera s‰kerhetskopierade data,,CHX,N,DOS,MS-DOS,Backup-modul
 Verify,,verifiera,,MNU,V,DOS,MS-DOS,Defrag
 Verify,,verifiera,,TDB,V,DOS,MS-DOS,Defrag
-Verify Backup Data,,Verifiera sÑkerhetskopior,,CHX,N,DOS,MS-DOS,Backup-modul
-Verify Integrity,,Varna om fil har Ñndrats,V,CHX,N,DOS,MS-DOS,MSAVF-modul
-Verify Restore Data,,Verifiera ÜterstÑllda data,,CHX,N,DOS,MS-DOS,Backup-modul
-Verify Restored Files,,Verifiera ÜterstÑllda filer,,DIA,N,DOS,MS-DOS,Backup-modul
+Verify Backup Data,,Verifiera s‰kerhetskopior,,CHX,N,DOS,MS-DOS,Backup-modul
+Verify Integrity,,Varna om fil har ‰ndrats,V,CHX,N,DOS,MS-DOS,MSAVF-modul
+Verify Restore Data,,Verifiera Âterst‰llda data,,CHX,N,DOS,MS-DOS,Backup-modul
+Verify Restored Files,,Verifiera Âterst‰llda filer,,DIA,N,DOS,MS-DOS,Backup-modul
 Version,,version,,BUT,N,DOS,MS-DOS,Backup-modul
-Video and Mouse,,BildskÑrm och mus,B,DIA,N,DOS,MS-DOS,Backup-modul
-Video and Mouse Configuration,,Konfiguration fîr bildskÑrm och mus,,DIA,N,DOS,MS-DOS,Backup-modul
-video mode,,videolÑge,,GEN,N,DOS,MS-DOS,generell term
-view,,"Visa, îversikt(s), se",,GEN,N,DOS,MS-DOS,generell term
+Video and Mouse,,Bildsk‰rm och mus,B,DIA,N,DOS,MS-DOS,Backup-modul
+Video and Mouse Configuration,,Konfiguration fˆr bildsk‰rm och mus,,DIA,N,DOS,MS-DOS,Backup-modul
+video mode,,videol‰ge,,GEN,N,DOS,MS-DOS,generell term
+view,,"Visa, ˆversikt(s), se",,GEN,N,DOS,MS-DOS,generell term
 virtual DMA,,virtuell DMA,,TXT,N,DOS,MS-DOS,Backup-modul
 virtual drive,,virtuell enhet,,GEN,N,DOS,MS-DOS,generell term
 Virus,,Virus,,TXT,N,DOS,MS-DOS,MSAVF-modul
@@ -1436,20 +1436,20 @@ volume,,volym,,GEN,N,DOS,MS-DOS,generell term
 volume label,,volymetikett,,GEN,N,DOS,MS-DOS,generell term
 Volume label,,volymetikett,,OPT,N,DOS,MS-DOS,Defrag
 volume serial number,,volymens serienummer,,GEN,N,DOS,MS-DOS,generell term
-Volumes Read,,LÑsta volymer,,DIA,N,DOS,MS-DOS,Backup-modul
+Volumes Read,,L‰sta volymer,,DIA,N,DOS,MS-DOS,Backup-modul
 warning,,varning,,GEN,N,DOS,MS-DOS,generell term
 Warning box,,varningsruta,,TXT,N,DOS,MS-DOS,Backup-modul
 warning message,,varningsmeddelande,,GEN,N,DOS,MS-DOS,generell term
 white space,,blankt utrymme,,GEN,N,DOS,MS-DOS,generell term
 wildcard,,jokertecken,,GEN,N,DOS,MS-DOS,generell term
-window,,fînster,,GEN,N,DOS,MS-DOS,generell term
+window,,fˆnster,,GEN,N,DOS,MS-DOS,generell term
 Windows Backup,,Windows Backup,,GEN,N,DOS,MS-DOS,Backup-modul
 word processor,,ordbehandlare,,GEN,N,DOS,MS-DOS,generell term
 word wrapping,,automatiskt radbyte,,GEN,N,DOS,MS-DOS,generell term
 Work drive,,Arbetsenhet,,DIA,N,DOS,MS-DOS,MSAVF-modul
 working directory (see 'current directory'),,aktuell katalog,,GEN,N,DOS,MS-DOS,generell term
 working drive (see 'current drive'),,aktuell enhet,,GEN,N,DOS,MS-DOS,generell term
-"Working, Please wait",,VÑnta... (i arbete) / VÑnta,,TXT,N,DOS,MS-DOS,Defrag
+"Working, Please wait",,V‰nta... (i arbete) / V‰nta,,TXT,N,DOS,MS-DOS,Defrag
 Write fault,,Skrivfel,,TXT,N,DOS,MS-DOS,Backup-modul
 write-protect tab,,skrivskyddsetikett,,GEN,N,DOS,MS-DOS,generell term
 write-protected,,skrivskyddad,,GEN,ADJ,DOS,MS-DOS,generell term
@@ -1457,7 +1457,7 @@ Write-protected disk,,Skrivskyddad diskett,,TXT,N,DOS,MS-DOS,Backup-modul
 XMA (board) emulator,,XMA-emulator,,GEN,N,DOS,MS-DOS,generell term
 XMA board,,XMA-kort,,GEN,N,DOS,MS-DOS,generell term
 XMA memory adaptor,,XMA (extended memory adapter),,GEN,N,DOS,MS-DOS,generell term
-XMM(Extended Memory Manager),,hanterare fîr utîkat minne (XMM),,GEN,N,DOS,MS-DOS,generell term
-Yellow & Green,,Gul & grîn,,OPT,ADJ,DOS,MS-DOS,Backup-modul
+XMM(Extended Memory Manager),,hanterare fˆr utˆkat minne (XMM),,GEN,N,DOS,MS-DOS,generell term
+Yellow & Green,,Gul & grˆn,,OPT,ADJ,DOS,MS-DOS,Backup-modul
 Your Time,,Passiv tid,,OPT,N,DOS,MS-DOS,Backup-modul
-FALSE,,"falsk, Ñven ""felaktig""",,GEN,ADJ,DOS,MS-DOS,generell term
+FALSE,,"falsk, ‰ven ""felaktig""",,GEN,ADJ,DOS,MS-DOS,generell term

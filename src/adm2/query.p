@@ -2470,11 +2470,16 @@ PROCEDURE fetchDBRowForUpdate :
         rRowid = TO-ROWID(ENTRY(iTable, cRowIdent))
         cTable = entry(iTable,cTables).      
       if {fnarg bufferExclusiveLock cTable} then 
+      do:
         lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
-      else
+        if not lok then
+          RETURN ENTRY(iTable, cTables).
+      end.  
+      else do:
         lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
-      if not lok then
-        RETURN ENTRY(iTable, cTables).
+        if not lok then
+           ENTRY(iTable, cRowIdent) = "".
+      end.  
     END.
   end.
   

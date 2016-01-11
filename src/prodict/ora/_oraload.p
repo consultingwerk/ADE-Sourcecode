@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -276,6 +276,7 @@ PROCEDURE read-cp.
   DEFINE VARIABLE j     AS INTEGER          NO-UNDO.
 
   INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
+  SEEK INPUT TO END.
   i = SEEK(INPUT) - 11.
   SEEK INPUT TO i. /* position to possible beginning of last line */
 

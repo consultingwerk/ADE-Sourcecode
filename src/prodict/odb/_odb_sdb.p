@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
-* rights reserved. Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions       *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+**************************************************************************/
 /* Procedure prodict/odb/_odb_sdb.p
    Created February 18, 2000
    Donna L. McMann
@@ -44,11 +44,9 @@ FOR EACH DICTDBG.GetInfo_buffer:
    IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) >= 7 AND
       DICTDBG.GetInfo_buffer.dbms_name BEGINS "Microsoft SQL" THEN
        RETURN "wrg-ver".
-   IF user_library <> "" AND user_library <> "*" THEN 
-    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name + "," + UPPER(user_library).
-   ELSE
-    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name.
-   ASSIGN DICTDB._Db._Db-misc2[2] = DICTDBG.GetInfo_buffer.driver_version
+
+   ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name
+          DICTDB._Db._Db-misc2[2] = DICTDBG.GetInfo_buffer.driver_version
           DICTDB._Db._Db-misc2[3] = escape_char + quote_char
           DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " 
   			        + DICTDBG.GetInfo_buffer.dbms_version 
@@ -68,6 +66,12 @@ FOR EACH DICTDBG.GetInfo_buffer:
                                       ,"character")
   		                       ELSE DICTDB._Db._Db-misc2[1] )
           DICTDB._Db._Db-misc2[4] = "".
+
+    /* wait until here to add library name so that driver-prefix is correctly set
+       to the driver name only.
+    */
+   IF user_library <> "" AND user_library <> "*" THEN 
+    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name + "," + UPPER(user_library).
  
    /* If client version is formatted w/"sh_min", the client is OpenEdge 10.1A or greater
     * which knows about the dictionary version number
