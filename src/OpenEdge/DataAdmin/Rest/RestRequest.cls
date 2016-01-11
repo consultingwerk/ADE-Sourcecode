@@ -16,7 +16,6 @@
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.Error.DataAdminError from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
@@ -25,11 +24,25 @@ using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 using OpenEdge.DataAdmin.Rest.PageRequest from propath. 
 using OpenEdge.DataAdmin.Rest.IRestRequest from propath.
 using OpenEdge.DataAdmin.Rest.IRestRequestInfo from propath.
+using OpenEdge.DataAdmin.Rest.IRestQueryFactory from propath.
+using OpenEdge.DataAdmin.Rest.RestQueryFactory from propath.
+
+using OpenEdge.DataAdmin.Lang.QueryString from propath.
 
 class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest: 
     
     define protected property RequestInfo as IRestRequestInfo no-undo get. set.
-    
+     
+     define private var IsDisposed as logical no-undo.
+  
+    define public property Queries as IRestQueryFactory no-undo 
+        get():
+            if not IsDisposed and not valid-object(Queries) then
+                Queries = new RestQueryFactory().
+            return Queries.    
+        end. 
+        private set.
+        
     define public property StatusFileName as char no-undo 
         get():
             if valid-object(RequestInfo) then
@@ -43,14 +56,16 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
                 return RequestInfo:DownloadFileName.
             return DownloadFileName.
         end.      
-    
+        private set.
+        
     define public property UploadFileName as char no-undo 
         get():
             if valid-object(RequestInfo) then
                 return RequestInfo:UploadFileName.
             return UploadFileName.
         end.      
-        
+        private set.
+         
     define public property CaptureFileName as char no-undo 
         get():
             if valid-object(RequestInfo) then
@@ -158,7 +173,7 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
     
     define public property Query as char no-undo  
         get. 
-        private set.
+        set.
      
     define public property CollectionName as char no-undo extent  
         get. 
@@ -181,7 +196,9 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
     
     define private variable mProps  as char no-undo. 
     define private variable mValues as char no-undo. 
-         
+    
+    define private variable IsUpload as log no-undo. 
+        
     define private property WebUtil as WebUtil no-undo 
         get():
             if not valid-object(WebUtil) then
@@ -195,22 +212,27 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
         InitRequest(info:Method,info:Collection,info:Url). 
     end method.
       
-    constructor RestRequest(cMode as char, cName as char, cUrl as char):
-        ParseParams(cName,cUrl).
+/*    constructor RestRequest(cMode as char, cName as char, cUrl as char):*/
+/*        ParseParams(cName,cUrl).                                        */
+/*        InitRequest(cMode,cName,RequestUrl).                            */
+/*    end method.                                                         */
+/*                                                                        */
+    constructor RestRequest(cMode as char, cName as char, cUrl as char, plUpload as log):
+        ParseParams(cName,cUrl,plUpload).
         InitRequest(cMode,cName,RequestUrl).  
     end method.
-
-    constructor RestRequest(pMode as char, pName as char):
+    
+    constructor RestRequest(pMode as char, pName as char,plUpload as log):
          if session:batch-mode then   
          do:
              /* TODO - comma is unsafe as delimiter - both url and filenames might have them */
-             ParseParams(pname,session:parameter).            
+             ParseParams(pname,session:parameter,plUpload).            
              InitRequest(pMode,pName,RequestUrl).                 
          end. 
          else Error = new UnsupportedOperationError("RestRequest(char,char) is only supported in batch mode").
     end constructor.    
     
-    method private void ParseParams(pName as char,pcRequest as char):
+    method private void ParseParams(pName as char,pcRequest as char,plUpload as log):
         define variable i as integer no-undo.
         i = num-entries(pcRequest). 
         if i > 2 then
@@ -241,7 +263,12 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
                 FileName = entry(2,pcRequest).
                 OutFileName = entry(3,pcRequest).
                 if i > 3 then
-                    FileName2 = entry(4,pcRequest).
+                do:
+                    if plUpload then 
+                       UploadFileName = entry(4,pcRequest).
+                    else    
+                       DownloadFileName = entry(4,pcRequest).
+                end.   
             end.
         end.
         else do: 
@@ -249,7 +276,6 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
             FileName = pName + ".json".
             OutFileName = pName + "res.json".
         end.   
-        
         LogFileName = FileName.
         entry(num-entries(LogFileName,"."),LogFileName,".") = "log".
     end method. 
@@ -322,17 +348,17 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
                 return.
             end.
             case i modulo 2:
-               when 1 then do:
-                   
+               when 1 then 
+               do:
                    iLevel = iLevel + 1.
                    CollectionName[iLevel] = cEntry.
-               
                end.    
                when 0 then
-                   KeyValue[iLevel] = WebUtil:UrlDecode(cEntry).                     
+               do:
+                   KeyValue[iLevel] = WebUtil:UrlDecode(cEntry).  
+               end.                       
             end.     
         end.
-     
         ConnectionUrl = right-trim(cUrl,"/").
     end method.
     
@@ -414,35 +440,31 @@ class OpenEdge.DataAdmin.Rest.RestRequest implements IRestRequest:
         define variable iLimit      as integer no-undo.  
         define variable pageRequest as IPageRequest no-undo.
         define variable cCollection as character no-undo.
-        cLimit = GetQueryValue("limit").
+        define variable cNamedQuery as character no-undo.
         
-        if cLimit <> ? then 
+        cLimit = GetQueryValue("limit").
+        iLimit = int(cLimit).  
+        pageRequest = Queries:GetRequest(CollectionName[NumLevels]).     
+        if iLimit <> ? then
+           pageRequest:PageSize = iLimit.  
+        cStart = GetQueryValue("start").
+        if cStart <> ? then
+        do: 
+            iStart = int(cStart) + 1. /* javaScript extjs is 0 based */
+            pageRequest:Start = iStart.
+        end.
+        
+        if this-object:Query > "" then
         do:
-            
-            iLimit = int(cLimit).  
-            /* could probably use collection name numlevels in all cases */
-            if NumLevels > 1 then 
-            do:
-                cCollection = CollectionName[NumLevels].     
-                pageRequest = new PageRequest(cCollection).
-            end.
-            else
-                pageRequest = new PageRequest().
-            
-            pageRequest:PageSize = iLimit.  
-            cStart = GetQueryValue("start").
-            if cStart <> ? then
-            do: 
-                iStart = int(cStart) + 1. 
-                pageRequest:Start = iStart.
-            end.
-            if this-object:Query > "" then
-                pageRequest:QueryString = this-object:Query.
-            return pageRequest.
-        end.   
-        return ?.
+            pageRequest:MergeQueryExpression(this-object:Query).
+        end.
+        return pageRequest.
     end method.
-
+    
+    destructor public RestRequest ( ):
+        IsDisposed = true.
+        delete object Queries no-error.        
+    end. 
     /*
     method public void PostToService(service as DataAdminService):
     end method.

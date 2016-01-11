@@ -190,7 +190,7 @@ PROCEDURE Fill_Field_List:
         _File._DB-recid = s_DbRecId AND
         (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN").
    cpy_Recid = RECID(_File).
-   cpy_NoArea = _File._File-attributes[1] and _File._File-attributes[2] = false.
+   cpy_NoArea = (_File._File-attributes[1] and _File._File-attributes[2] = false) or (_File._File-attributes[3]).
    if NOT cpy_lst_Flds:visible in frame fldcopy then
       cpy_lst_Flds:visible in frame fldcopy = yes.
 
@@ -348,7 +348,7 @@ do:
         
          find _File where RECID(_File) = s_TblRecId.
          assign
-             NoArea  = (_File._File-attributes[1] and _File._File-attributes[2] = false)
+             NoArea  = (_File._File-attributes[1] and _File._File-attributes[2] = false) or (_File._File-attributes[3])
              cmbArea = "" 
              CopyArea = true.
          if (cpy_Field._Data-type = "BLOB" or cpy_Field._Data-type = "CLOB") then

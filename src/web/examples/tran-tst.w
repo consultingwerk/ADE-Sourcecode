@@ -128,29 +128,29 @@ PROCEDURE process-web-request :
   
   /* remote: Get the action that we are supposed to take. */
   ASSIGN
-    cAction  = get-field("submitAction")
-    cList    = get-field('List')
-    cName    = get-field("Name")
-    cNum     = get-field("CustNum").
+    cAction  = get-field("submitAction":U)
+    cList    = get-field('List':U)
+    cName    = get-field("Name":U)
+    cNum     = get-field("CustNum":U).
       
   /* Check the State-Aware and Transaction-state actions. The "Update"
      action is handled later. */
   CASE cAction:
-    WHEN "State-Aware" THEN DO:
-    	dTimeOut = MAXIMUM(1.0, DECIMAL(get-field("timeOut"))).
+    WHEN "State-Aware":U THEN DO:
+    	dTimeOut = MAXIMUM(1.0, DECIMAL(get-field("timeOut":U))).
       RUN set-web-state IN web-utilities-hdl (THIS-PROCEDURE, dTimeOut).
     END.
-    WHEN "State-Less" THEN
+    WHEN "State-Less":U THEN
       RUN set-web-state IN web-utilities-hdl (THIS-PROCEDURE, 0).
-    WHEN "Start" OR  
-    WHEN "Undo" OR 
-    WHEN "Retry" OR
-    WHEN "Commit" THEN
+    WHEN "Start":U OR  
+    WHEN "Undo":U OR 
+    WHEN "Retry":U OR
+    WHEN "Commit":U THEN
       RUN set-transaction-state IN web-utilities-hdl (cAction).
   END CASE.
   
   /* Get the Web and Transaction states. */
-  RUN getAttribute ('Web-State').
+  RUN getAttribute ('Web-State':U).
   cWebState = RETURN-VALUE.
   
   IF cWebState = "state-aware":U THEN
@@ -169,16 +169,16 @@ PROCEDURE process-web-request :
     '<TITLE>Transaction State</TITLE>':U SKIP
     '</HEAD>':U SKIP
     '<BODY>':U SKIP
-    '<FORM METHOD=POST ACTION="tran-tst.w">' SKIP
+    '<FORM METHOD=POST ACTION="tran-tst.w">':U SKIP
     .
   
   /* Update the current customer, if possible. */ 
-  IF cAction EQ "Update" THEN DO:   
+  IF cAction EQ "Update":U THEN DO:   
     FIND customer WHERE CustNum EQ INTEGER(cNum) EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
     IF LOCKED customer THEN
-      {&OUT} "Customer " cNum " is LOCKED and cannot be updated.<BR>".
+      {&OUT} "Customer ":U cNum " is LOCKED and cannot be updated.<BR>":U.
     ELSE IF NOT AVAILABLE customer THEN
-      {&OUT} "There is no customer " cNum " available in the database.<BR>".
+      {&OUT} "There is no customer ":U cNum " available in the database.<BR>":U.
     ELSE DO:
       /* Everything is OK.  Update the customer.name. */
       ASSIGN Customer.Name = cName.
@@ -189,17 +189,17 @@ PROCEDURE process-web-request :
   IF CAN-DO ('Start-Pending,Undo-Pending,Commit-Pending,Retry-Pending', cTranState)
   THEN DO:
     /* 'Start' has no impact when the object is stateless. */
-    IF cTranState EQ 'Start-Pending' AND cWebState NE 'State-Aware'
+    IF cTranState EQ 'Start-Pending':U AND cWebState NE 'State-Aware':U
     THEN
-      {&OUT} 'Setting START has no affect unless some object is STATE-AWARE<HR>'.
+      {&OUT} 'Setting START has no affect unless some object is STATE-AWARE<HR>':U.
     ELSE 
-      {&OUT} 'Setting Transaction-State to ' cTranState
-             ' will <b>NOT</b> affect behavior until the <b>NEXT</b> web request.'
-             '<HR>'.
+      {&OUT} 'Setting Transaction-State to ':U cTranState
+             ' will <b>NOT</b> affect behavior until the <b>NEXT</b> web request.':U
+             '<HR>':U.
     {&OUT}
-      '<TABLE>'
-      '<TR>'
-      '<TD>'.
+      '<TABLE>':U
+      '<TR>':U
+      '<TD>':U.
   END.
   ELSE DO:
     /* Show some customer value. */
@@ -209,85 +209,85 @@ PROCEDURE process-web-request :
     
     /* If there is an available customer. */
     {&OUT}
-      '<TABLE>' SKIP
-      '<TR>' SKIP
-      '<TD>CustNum:</TD>' SKIP
-      '<TD COLSPAN="2"><INPUT TYPE="TEXT" NAME="CustNum"' (IF AVAILABLE Customer THEN ' VALUE="' + STRING(CustNum) + '"' ELSE '') '></TD>'  SKIP
-      '</TR>' SKIP
+      '<TABLE>':U SKIP
+      '<TR>':U SKIP
+      '<TD>CustNum:</TD>':U SKIP
+      '<TD COLSPAN="2"><INPUT TYPE="TEXT" NAME="CustNum"':U (IF AVAILABLE Customer THEN ' VALUE="' + STRING(CustNum) + '"':U ELSE '') '></TD>':U  SKIP
+      '</TR>':U SKIP
       
-      '<TR>' SKIP
-      '<TD>Name:</TD>' SKIP
-      '<TD COLSPAN="2"><INPUT TYPE="TEXT" NAME="Name"' (IF AVAILABLE Customer THEN ' VALUE="' + name + '"' ELSE '') '></TD>' SKIP
-      '</TR>' SKIP
+      '<TR>':U SKIP
+      '<TD>Name:</TD>':U SKIP
+      '<TD COLSPAN="2"><INPUT TYPE="TEXT" NAME="Name"':U (IF AVAILABLE Customer THEN ' VALUE="' + name + '"':U ELSE '') '></TD>':U SKIP
+      '</TR>':U SKIP
       
-      '<TR>' SKIP
-      '<TD>Actions:</TD>' SKIP
-      '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Update">' SKIP
+      '<TR>':U SKIP
+      '<TD>Actions:</TD>':U SKIP
+      '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Update">':U SKIP
     .
   END.
   
   {&OUT}
-    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Refresh"></TD>' SKIP
-    '<TD ALIGN="left"><INPUT TYPE="CHECKBOX" NAME="List" '
+    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Refresh"></TD>':U SKIP
+    '<TD ALIGN="left"><INPUT TYPE="CHECKBOX" NAME="List" ':U
       (IF cList NE "" THEN 'CHECKED' ELSE '')
-      '>List all Customers</TD>' SKIP
-    '</TR>' SKIP
+      '>List all Customers</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Set Web-State:</TD>' SKIP
-    '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="State-Aware">' SKIP
-    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="State-Less"></TD>' SKIP
-    '<TD ALIGN="left"><INPUT TYPE="text" NAME="timeOut" SIZE="2"> Timeout (minutes)</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Set Web-State:</TD>':U SKIP
+    '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="State-Aware">':U SKIP
+    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="State-Less"></TD>':U SKIP
+    '<TD ALIGN="left"><INPUT TYPE="text" NAME="timeOut" SIZE="2"> Timeout (minutes)</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Set Tran-State:</TD>' SKIP
-    '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Start">' SKIP
-    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Undo">' SKIP
-    '<INPUT TYPE= "SUBMIT" NAME="submitAction" VALUE="Retry">' SKIP
-    '<INPUT TYPE= "SUBMIT" NAME="submitAction" VALUE="Commit"></TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Set Tran-State:</TD>':U SKIP
+    '<TD><INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Start">':U SKIP
+    '<INPUT TYPE="SUBMIT" NAME="submitAction" VALUE="Undo">':U SKIP
+    '<INPUT TYPE= "SUBMIT" NAME="submitAction" VALUE="Retry">':U SKIP
+    '<INPUT TYPE= "SUBMIT" NAME="submitAction" VALUE="Commit"></TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD COLSPAN="3"><HR></TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD COLSPAN="3"><HR></TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Connection ID:</TD>' SKIP
-    '<TD>' SESSION:SERVER-CONNECTION-ID '</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Connection ID:</TD>':U SKIP
+    '<TD>':U SESSION:SERVER-CONNECTION-ID '</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Exclusive ID:</TD>' SKIP
-    '<TD>' WEB-CONTEXT:EXCLUSIVE-ID '</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Exclusive ID:</TD>':U SKIP
+    '<TD>':U WEB-CONTEXT:EXCLUSIVE-ID '</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Web-State:</TD>' SKIP
-    '<TD>' cWebState '</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Web-State:</TD>':U SKIP
+    '<TD>':U cWebState '</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Time Remaining:</TD>' SKIP
-    '<TD>' STRING(dRemaining,">>>9.99":U) ' minutes</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Time Remaining:</TD>':U SKIP
+    '<TD>':U STRING(dRemaining,">>>9.99":U) ' minutes</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD>Transaction-State:</TD>' SKIP
-    '<TD>' cTranState '</TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD>Transaction-State:</TD>':U SKIP
+    '<TD>':U cTranState '</TD>':U SKIP
+    '</TR>':U SKIP
     
-    '<TR>' SKIP
-    '<TD COLSPAN="3"><HR></TD>' SKIP
-    '</TR>' SKIP
+    '<TR>':U SKIP
+    '<TD COLSPAN="3"><HR></TD>':U SKIP
+    '</TR>':U SKIP
     
-    '</TABLE>' SKIP
-    '</FORM>' SKIP.
+    '</TABLE>':U SKIP
+    '</FORM>':U SKIP.
       
   IF cList ne '' THEN DO:
     /* Watch out for other users having open locks on Customer. */
     FOR EACH Customer NO-LOCK:
-     {&OUT} customer.CustNum ' ' customer.name '<BR>'.
+     {&OUT} customer.CustNum ' ':U customer.name '<BR>':U.
     END.
   END.
   

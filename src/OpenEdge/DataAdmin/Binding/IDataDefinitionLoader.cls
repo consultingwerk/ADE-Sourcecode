@@ -49,8 +49,11 @@ interface OpenEdge.DataAdmin.Binding.IDataDefinitionLoader:
     method public void AddSequence(pcAction as char, h as handle).
     
     method public logical IsNewTable(pcTable as char).
-     
-    method public void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int).
+    
+    /*  used by _lod to check if current parent need area */
+    method public logical extent  CurrentTableAttributes().
+
+    method public void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int,piPrimary as log).
      
     method public void AddField(pcAction as char, pcTable as char, h as handle, piArea as int).
     

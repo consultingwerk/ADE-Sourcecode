@@ -31,8 +31,12 @@ routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.ExtentDataSource inherits DataSource: 
     define stream struct.
-    define temp-table ttType2 no-undo
-       field IsType2 as logical.
+    define temp-table ttFile no-undo
+       field  Name as char
+       field  Size as int 
+       field  LogSize as int
+       field  blockSize as int /* same as area */
+       index idx   name.
     
     define protected variable AreaTypeNames as char no-undo
         init "Recovery,Transaction log,Event log,Data,Rollforward recovery". 
@@ -103,6 +107,20 @@ Size,_Extent-size"
         end. 
     end method.    
     
+    method private void FillFiles():
+        /* vst tables have only one index - so we fill it in a tt for faster 
+           lookup (assumed to be faster when filling many (not well tested) 
+            may not be faster in all cases...)    */
+        for each dictdb._filelist no-lock:   
+            create ttFile.
+            assign 
+                ttFile.Name = dictdb._filelist._filelist-name
+                ttFile.Size = dictdb._filelist._filelist-size
+                ttFile.LogSize = dictdb._filelist._filelist-logicalsz 
+                ttFile.blockSize  = dictdb._filelist._filelist-blksize.
+        end.
+    end method.
+                                                                                  
     method private void ExecuteProstruct(pcfile as char):
         define variable msg as prostrctAddOnlineRequest no-undo.
         msg = new ProstrctAddOnlineRequest().
@@ -300,12 +318,13 @@ Size,_Extent-size"
     end method.
     
     method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        phBuffer:set-callback("After-Row-fill","AfterExtentRow").
+        phBuffer:set-callback("After-Row-fill","AfterRow").
         super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
+        FillFiles().
     end method.
     
-    method public void AfterExtentRow(dataset-handle hds):
+    method public override void AfterRow(dataset-handle hds):
         define variable hbuffer as handle    no-undo.
         define variable hbufferArea as handle    no-undo.
         define variable iunix as integer no-undo.
@@ -322,7 +341,15 @@ Size,_Extent-size"
             iunix = r-index(cfile,"/")
             idos = r-index(cfile,"~\")
             iPathPos = max(iunix,idos).
-       
+            
+        find ttFile where ttFile.name = cfile no-error.
+        if avail ttfile then 
+        do:
+           hbuffer::SizeUsed = ((ttFile.LogSize * ttFile.blockSize) / 1024) .
+           if hbuffer::Size = 0 then
+               hbuffer::Size = ttfile.Size. 
+        end.
+        
         if iPathPos > 0 then
              hBuffer::Path = substr(cfile,1,iPathPos - 1).
          

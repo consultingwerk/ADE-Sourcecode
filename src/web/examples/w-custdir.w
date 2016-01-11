@@ -373,9 +373,9 @@ PROCEDURE inputFields :
   RUN SUPER.
 
   /* All other requested actions indicate that the ADD should be discontinued. */
-  IF ab_unmap.AddMode:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "YES" AND
-    ( get-field ("requestedAction") = "Save" OR
-      get-field ("requestedAction") = "Reset")  THEN DO:
+  IF ab_unmap.AddMode:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "YES":U AND
+    ( get-field ("requestedAction":U) = "Save":U OR
+      get-field ("requestedAction":U) = "Reset":U)  THEN DO:
     setAddMode (TRUE).
     setUpdateMode ("Add":U).
   END.

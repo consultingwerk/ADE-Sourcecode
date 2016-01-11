@@ -1,6 +1,6 @@
 <!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2014 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 --------------------------------------------------------------------->
@@ -29,7 +29,7 @@
 <br>
 <B><FONT SIZE = "+1">Other:</FONT></B><br>
 <A HREF="http://developer.webspeed.com" TARGET="_new">Developer&nbsp;Corner</A><br>
-<A HREF="http://webspeed.progress.com" TARGET="_new">WebSpeed&nbsp;Home</A><br>
+<A HREF="http://www.progress.com/products/openedge/features/operational-excellence/appserver/webspeed-workshop" TARGET="_new">WebSpeed&nbsp;Home</A><br>
 
  
 

@@ -237,12 +237,12 @@ PROCEDURE process-web-request :
   IF REQUEST_METHOD = "POST":U THEN DO:
     /* STEP 1 -
      * Copy HTML input field values to the Progress form buffer. */
-    RUN dispatch IN THIS-PROCEDURE ("inputfields").
+    RUN dispatch IN THIS-PROCEDURE ("inputfields":U).
     
     /* STEP 2 -
      * If there are DATABASE fields, find the relevant record that needs to be 
      * assigned. Define the QUERY "web-query" to do this for you. 
-    RUN dispatch IN THIS-PROCEDURE ("find-records").
+    RUN dispatch IN THIS-PROCEDURE ("find-records":U).
      */
 
     /* STEP 3 -
@@ -252,7 +252,7 @@ PROCEDURE process-web-request :
      *
      *  FIND CURRENT Customer EXCLUSIVE-LOCK NO-ERROR. 
      */
-    RUN dispatch IN THIS-PROCEDURE ("assign-fields").
+    RUN dispatch IN THIS-PROCEDURE ("assign-fields":U).
     
     /* STEP 4 -
      * Decide what HTML to return to the user. Choose STEP 4.1 to simulate
@@ -273,15 +273,15 @@ PROCEDURE process-web-request :
      *
      * STEP 4.2a -
      * Set any values that need to be set, then display them. */
-    RUN dispatch IN THIS-PROCEDURE ("display-fields").
+    RUN dispatch IN THIS-PROCEDURE ("display-fields":U).
    
     /* STEP 4.2b -
      * Enable objects that should be enabled. */
-    RUN dispatch IN THIS-PROCEDURE ("enable-fields").
+    RUN dispatch IN THIS-PROCEDURE ("enable-fields":U).
 
     /* STEP 4.2c -
      * OUTPUT the Progress form buffer to the WEB stream. */
-    RUN dispatch IN THIS-PROCEDURE ("output-fields").
+    RUN dispatch IN THIS-PROCEDURE ("output-fields":U).
   END. /* Form has been submitted. */
  
   /* REQUEST-METHOD = GET */ 
@@ -293,7 +293,7 @@ PROCEDURE process-web-request :
     /* STEP 1-
      * If there are DATABASE fields, find the relevant record that needs to
      * be assigned. Define the QUERY "web-query" to do this for you.
-    RUN dispatch IN THIS-PROCEDURE ("find-records").
+    RUN dispatch IN THIS-PROCEDURE ("find-records":U).
      */
     
     /* Return the form again. Set data values, display them, and output them
@@ -301,15 +301,15 @@ PROCEDURE process-web-request :
      *
      * STEP 2a -
      * Set any values that need to be set, then display them. */
-    RUN dispatch IN THIS-PROCEDURE ("display-fields").
+    RUN dispatch IN THIS-PROCEDURE ("display-fields":U).
 
     /* STEP 2b -
      * Enable objects that should be enabled. */
-    RUN dispatch IN THIS-PROCEDURE ("enable-fields").
+    RUN dispatch IN THIS-PROCEDURE ("enable-fields":U).
 
     /* STEP 2c -
      * OUTPUT the Progress from buffer to the WEB stream. */
-    RUN dispatch IN THIS-PROCEDURE ("output-fields").
+    RUN dispatch IN THIS-PROCEDURE ("output-fields":U).
   END. 
 END PROCEDURE.
 

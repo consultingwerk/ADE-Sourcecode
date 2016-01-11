@@ -15,29 +15,32 @@
    Notes       : 
  ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IExtent from propath. 
-using OpenEdge.DataAdmin.Extent from propath. 
-using OpenEdge.DataAdmin.ExtentList from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IAreaScope from propath. 
-using OpenEdge.DataAdmin.Binding.ExtentContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.AreaExtentQuery from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
-using OpenEdge.DataAdmin.Message.ITableResponse from propath.
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
-using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath.
-using OpenEdge.DataAdmin.Error.ValidationError from propath.
-using OpenEdge.DataAdmin.Error.CreateOnlyPropertyError from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
+
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.ExtentContext.
+using OpenEdge.DataAdmin.Binding.Factory.IAreaScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.Query.AreaExtentQuery.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.CreateOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.InvalidPropertyValueError.
+using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.Error.ValidationError.
+using OpenEdge.DataAdmin.Extent.
+using OpenEdge.DataAdmin.ExtentList.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IExtent.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Message.ITableResponse.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -48,10 +51,6 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
     define buffer bextent for ttExtent. 
     define temp-table copytable reference-only like ttExtent.  
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsExtent:handle.
-        end get.
     
     define public override property TableHandle as handle no-undo 
         get():
@@ -84,7 +83,12 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
 	constructor public ExtentContext ( pscope as IAreaScope):
         super ("Extent",pscope).
     end constructor.
-	
+	        
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsExtent:handle. 
+    end method.
+    
 	method public override character GetJoinFields(parentid as char):
         if parentid = "areas" then 
              return "Name,AreaName".
@@ -163,7 +167,7 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
             
     end method.  
     
-    method protected override void CopyTable(cntxt as IDataAdminContext):
+    method protected override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
@@ -342,8 +346,8 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
         return new ExtentList(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Extent(cast(cntxt,ExtentContext)).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new Extent(this-object,preq).
     end method.
     
     /** override to deal with unique key on number */

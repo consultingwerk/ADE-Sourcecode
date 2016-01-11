@@ -85,7 +85,7 @@ class prodict.pro._pro-model implements _imodel:
     
     method public void FetchData():
         define variable msg as IFetchRequest no-undo.
-        msg = new FetchRequest(EntityName,"",DatasetHandle).
+        msg = new FetchRequest(EntityName,"",DatasetHandle,yes).
         FetchData(msg).   
     end method.
         
@@ -93,7 +93,7 @@ class prodict.pro._pro-model implements _imodel:
         define variable msg as IFetchRequest no-undo.  
         define variable cBuffer as character no-undo.
         define variable i as integer no-undo.
-        msg = new FetchRequest(EntityName,"",DatasetHandle). 
+        msg = new FetchRequest(EntityName,"",DatasetHandle,yes). 
         do i = 1 to extent(pctables):
            msg:SetTableQuery(pcTables[i],pcQueries[i]).
         end.        

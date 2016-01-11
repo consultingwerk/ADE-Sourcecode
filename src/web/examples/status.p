@@ -56,11 +56,11 @@ PROCEDURE show-status :
      Windows NT. */
   IF OPSYS = "unix":U THEN
     {&OUT}
-      '<LI>' 'WebSpeed installation directory: '
+      '<LI>':U 'WebSpeed installation directory: '
              '<B>':U OS-GETENV("DLC":U) '</B>~n':U.
 
   {&OUT}
-    '<LI>' 'WebSpeed operating system (OPSYS): '
+    '<LI>':U 'WebSpeed operating system (OPSYS): '
            '<B>':U OPSYS '</B>~n':U
     '</UL>~n':U.
 

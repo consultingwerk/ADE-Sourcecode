@@ -40,7 +40,7 @@ History:
     mcmann      98/07/13 Added _Owner to _File finds
     hutegger    95/08   included {&end} parameter
     hutegger    95/04   creation
-    
+    sdash    05/04/14   Support for native sequence generator for MSS.
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -84,6 +84,12 @@ if user_env[25] begins "AUTO"
     where {&where}:
     assign gate-flag = {&gate-flag}.
     end.
+
+    for each s_ttb_seq    /*===== but exclude system-tables =====*/
+    where {&where}:
+    assign gate-flag = {&gate-flag}.
+    end.
+
   end.      /*========= automatically select all possible tables =======*/
 
  else do:   /*=========== let user select the tables he wants ==========*/

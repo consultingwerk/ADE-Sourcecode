@@ -14,15 +14,16 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Entity from propath.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.IArea from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISchemaElement from propath.
 using OpenEdge.DataAdmin.ISchemaPartitionMap from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using Progress.Lang.* from propath.
 
 routine-level on error undo, throw.
 
@@ -58,10 +59,7 @@ class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract impleme
         get():
             if not valid-object(Partitions) then
             do:
-                if num-entries(Context:KeyFields) > 1 then 
-                     Partitions = cast(GetChildCollection(GetKeyValues(),"partitions"),ISchemaPartitionMap).
-                else
-                     Partitions = cast(GetChildCollection(name,"partitions"),ISchemaPartitionMap).
+                Partitions = cast(GetChildCollection("partitions"),ISchemaPartitionMap).
            end.     
            return Partitions.
         end.
@@ -73,16 +71,26 @@ class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract impleme
                 return mBuffer::Description.
              return Description.
         end.    
+        set(pDescription as char):
+            if ObjectType = "Field" then 
+                undo, throw new UnsupportedOperationError ("Fields are not editable").
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::Description = pDescription.
+            end.
+            Description = pDescription.
+        end. 
         
 	constructor public AbstractSchemaElement (name as character ):
 		super (input name).
 	end constructor.
 	
-	constructor public AbstractSchemaElement (cntxt as IDataAdminContext ):
+	constructor public AbstractSchemaElement (cntxt as IDataAdminModel ):
 		super (input cntxt).
 	end constructor.
 
-    constructor public AbstractSchemaElement (cntxt as IDataAdminContext,pReq as IRequestInfo ):
+    constructor public AbstractSchemaElement (cntxt as IDataAdminModel,pReq as IRequestInfo ):
         super (cntxt,pReq).
     end constructor.
 

@@ -96,12 +96,11 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 45 NO-UNDO INITIAL [
   /*39*/ """ is not in the schema holder database ",
   /*40*/ "There is already a logical database """, 
   /*41*/ """ opened in another schema holder """, 
-  /*42*/ "Aborting: logical database only associated with one schema holder in a session.",
+  /*42*/ "Aborting: logical database only associated with one schema holder in a session.", 
   /*43*/ "Specified schema holder database """, 
   /*44*/ """ had more than one non-PROGRESS logical database.",
   /*45*/ "Your environement variables must select a logical database value when there are more than one in the specified schema holder."
 ].
-
 
 FORM
   new_lang[9]  FORMAT "x(39)" SKIP
@@ -134,7 +133,7 @@ DEFINE VARIABLE bufList      AS CHARACTER NO-UNDO EXTENT 4
 /* For DataServer use */
 DEFINE VARIABLE ds_shname    AS CHARACTER INITIAL ?  NO-UNDO.
 DEFINE VARIABLE ds_dbname    AS CHARACTER INITIAL "" NO-UNDO.
-DEFINE VARIABLE user-dbtype2 AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VARIABLE user-dbtype2  AS CHARACTER INITIAL ?  NO-UNDO.
 DEFINE VARIABLE ds_alias     AS CHARACTER INITIAL ?  NO-UNDO.
 DEFINE VARIABLE shdb2-id     AS RECID     INITIAL ?  NO-UNDO.
 DEFINE VARIABLE dictdb2-id   AS RECID     INITIAL ?  NO-UNDO.
@@ -207,7 +206,6 @@ END.
 
 
 /*============================Mainline code===============================*/
-
 
 /* PROGRESS provides normal legacy execution by default */
 ASSIGN s_DbType1    = "PROGRESS"
@@ -353,13 +351,13 @@ CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(pik_first) NO-ERROR.
 IF ds_dbname <> ? THEN DO:
   ASSIGN ds_alias = "DICTDB2".
 
-  RUN "prodict/misc/_valsch.p" (INPUT        ds_alias     /* Dictionary Alias Name */,
-                                INPUT        pik_first    /* Schema holder name */,
-                                INPUT-OUTPUT ds_dbname    /* Logical database name */,
+  RUN "prodict/misc/_valsch.p" (INPUT        ds_alias    /* Dictionary Alias Name */,
+                                INPUT        pik_first   /* Schema holder name */,
+                                INPUT-OUTPUT ds_dbname   /* Logical database name */,
                                 INPUT-OUTPUT user-dbtype2 /* Logical database type */,
-                                OUTPUT       shdb2-id     /* RECID of DICTDB */,
-                                OUTPUT       dictdb2-id   /* RECID of DICTDB2 */,
-                                OUTPUT       errcode      /* Error code */).  
+                                OUTPUT       shdb2-id    /* RECID of DICTDB */,
+                                OUTPUT       dictdb2-id  /* RECID of DICTDB2 */,
+                                OUTPUT       errcode     /* Error code */).  
 
   IF errcode > 0 THEN DO:
     CASE errcode:
@@ -381,7 +379,7 @@ IF ds_dbname <> ? THEN DO:
   END.
   
   s_DbRecId = ?. /* Borrow ADE dictionary variable not used by incremental dump */
-  IF ds_dbname = ? OR ds_dbname = "" OR dictdb2-id = ? THEN DO:
+   IF ds_dbname = ? OR ds_dbname = "" OR dictdb2-id = ? THEN DO:
       user_path = "". 
       RETURN.
   END.

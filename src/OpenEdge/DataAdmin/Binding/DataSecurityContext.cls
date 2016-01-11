@@ -39,14 +39,6 @@ class OpenEdge.DataAdmin.Binding.DataSecurityContext inherits DataAdminContext i
  
     define private dataset dsSchema serialize-name "root" for ttSchema .
            
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return DatasetHandle.
-        end get.
-        private set. 
-    
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttSchema:handle.
@@ -94,7 +86,7 @@ class OpenEdge.DataAdmin.Binding.DataSecurityContext inherits DataAdminContext i
       
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         undo, throw new UnsupportedOperationError("CopyTable DataSecurity row").
 	end method.
 	
@@ -150,8 +142,8 @@ class OpenEdge.DataAdmin.Binding.DataSecurityContext inherits DataAdminContext i
         undo, throw new UnsupportedOperationError("CreateCollection in DataSecurityContext").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new DataSecurity(cntxt).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new DataSecurity(this-object,pReq).
     end method. 
  
        

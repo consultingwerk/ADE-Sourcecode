@@ -17,7 +17,7 @@
 routine-level on error undo, throw.
  
 using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JSONObject from propath.
+using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.DataAdminService.
 
 class OpenEdge.DataAdmin.Rest.Connection: 
@@ -32,12 +32,14 @@ class OpenEdge.DataAdmin.Rest.Connection:
     define public property DomainName   as char no-undo get. private set.
     define public property IsMultiTenancyEnabled as logical no-undo get. private set.
     define public property IsSecurityAdministrator   as logical no-undo get. private set.
+    define public property isHorizontalPartitionEnabled   as logical  no-undo get. private set.
+ 
     define public property Name            as char no-undo get. private set.
     define public property URL             as char no-undo get. private set.
     define public property ProgressVersion as char no-undo get. private set. 
     define public property DatabaseVersion as char no-undo get. private set. 
     define public property Version         as int  no-undo 
-       init 2
+       init 3 /* from 11.4 */
        get. 
     
     define variable ans as logical no-undo.
@@ -64,7 +66,12 @@ class OpenEdge.DataAdmin.Rest.Connection:
             TenantType = service:GetTenant(TenantName):Type.
         end.   
         
-        RUN "prodict/_dctadmn.p" (DatabaseUser,OUTPUT ans).
+        /* @todo -  move to api /service */
+        find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+        if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+            isHorizontalPartitionEnabled = true.
+              
+        RUN prodict/_dctadmn.p (DatabaseUser,OUTPUT ans).
         
         assign IsSecurityAdministrator = ans. 
         
@@ -77,12 +84,15 @@ class OpenEdge.DataAdmin.Rest.Connection:
         AddProp("tenantcounts").
         AddProp("creategroupscript","scripts/CreateGroupScript").
         AddProp("createtenantscript","scripts/CreateTenantScript").
+        AddProp("createpolicyscript","scripts/CreatePolicyScript").
+  
         AddProp("datasecurity").
         AddProp("definitions").
         AddProp("domains").
         AddProp("authenticationsystems").
         AddProp("groups","tenantgroups").
         AddProp("permissions").
+        AddProp("partitionpolicies").
         AddProp("sequences").
         AddProp("schemas").
         AddProp("securitysummary").
@@ -94,6 +104,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
         AddProp("users").
         AddProp("tabledatawriter","utilities/TableDataWriter").
         AddProp("tabledatareader","utilities/TableDataReader").
+        AddProp("partitionpolicydetailsfromdata","operations/PartitionPolicyDetailsFromData").
      
     end method.
     
@@ -121,22 +132,35 @@ class OpenEdge.DataAdmin.Rest.Connection:
         return Jsonroot.
     end method.
     
+    method protected JsonObject GetQueries ():
+        define variable json  as JsonObject no-undo.    
+        define variable jsonfields  as JsonObject no-undo.    
+        json   = new JsonObject(). 
+        json:Add("tablesforhp_url",URL + "/tablesforhp").  
+        return json.
+    end method.
+    
     method protected JsonObject GetJsonProperties():
         define variable json  as JsonObject no-undo.    
         define variable jsonfields  as JsonObject no-undo.    
         json   = new JsonObject(). 
+        json:Add("name",this-object:Name).  
         json:Add("version",this-object:Version).  
         json:Add("progressVersion",ProgressVersion).  
         json:Add("databaseVersion",DatabaseVersion).  
         json:Add("databaseUser",DatabaseUser).  
         json:Add("isMultiTenancyEnabled",IsMultiTenancyEnabled).    
+        json:Add("isHorizontalPartitionEnabled",isHorizontalPartitionEnabled).    
         json:Add("tenantName",TenantName).  
         json:Add("tenantType",TenantType).  
         json:Add("domainName",DomainName).
         json:Add("isSecurityAdministrator",IsSecurityAdministrator).    
+        json:Add("queries",GetQueries() ).    
+       
         for each ttProp by name:
             json:Add(ttProp.Name,URL + "/" + ttProp.propvalue).  
         end.    
+       
         return json.
     end method.
 

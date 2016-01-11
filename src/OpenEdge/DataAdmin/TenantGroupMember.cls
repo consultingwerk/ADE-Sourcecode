@@ -16,37 +16,35 @@
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 
-using Progress.Lang.Error from propath.
-using Progress.Lang.Object from propath.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.TenantGroupContext.
+using OpenEdge.DataAdmin.Core.CodeWriter.
+using OpenEdge.DataAdmin.Core.JSONWriter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.InvalidPropertyValueError.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IArea.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminExporter.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IPartitionCollection.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ITable.
+using OpenEdge.DataAdmin.ITenant.
+using OpenEdge.DataAdmin.ITenantGroup.
+using OpenEdge.DataAdmin.ITenantGroupMember.
+using OpenEdge.DataAdmin.IUserSet.
+using OpenEdge.DataAdmin.TenantGroup.
+using OpenEdge.DataAdmin.TenantGroupMember.
+using Progress.Lang.Error.
+using Progress.Lang.Object.
 
-using OpenEdge.DataAdmin.DataAdminService from propath. 
-using OpenEdge.DataAdmin.IArea from propath.
-using OpenEdge.DataAdmin.ITenantGroupMember from propath.
-using OpenEdge.DataAdmin.ITenantGroup from propath.
-using OpenEdge.DataAdmin.TenantGroup from propath.
-using OpenEdge.DataAdmin.TenantGroupMember from propath.
-using OpenEdge.DataAdmin.IPartitionCollection from propath.
- 
 
-using OpenEdge.DataAdmin.Entity from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.IUserSet from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminExporter from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.TenantGroupContext from propath. 
-
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath. 
-using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath. 
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath. 
-
-using OpenEdge.DataAdmin.Core.JSONWriter from propath.  
-using OpenEdge.DataAdmin.Core.CodeWriter from propath.  
 
 class OpenEdge.DataAdmin.TenantGroupMember inherits Entity implements ITenantGroupMember:
     
@@ -127,12 +125,16 @@ class OpenEdge.DataAdmin.TenantGroupMember inherits Entity implements ITenantGro
         super ("").   
     end constructor.
        
-    constructor public TenantGroupMember (pcntxt as IDataAdminContext ):
+    constructor public TenantGroupMember (pcntxt as IDataAdminModel ):
+        super (pcntxt).   
+    end constructor.
+   
+    constructor public TenantGroupMember (pcntxt as IDataAdminModel,preq as IRequestInfo ):
         super (pcntxt).   
     end constructor.
         
      /* No local context needed - currently not used to create    */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     
@@ -154,7 +156,7 @@ class OpenEdge.DataAdmin.TenantGroupMember inherits Entity implements ITenantGro
 /*    end method.                                               */
     
     method public override void Export():
-        Export("tenantgroupmember.json").
+        export("tenantgroupmember.json").
     end method.          
     
     method protected character GetCreateError():
@@ -185,28 +187,5 @@ class OpenEdge.DataAdmin.TenantGroupMember inherits Entity implements ITenantGro
         writer = GetExporter(pcfile).
         writer:WriteToFile(this-object,pcfile,pcCollectionlist).
     end method.     
-     
-    method private char GetFileExtension(pcFile as char):
-       define variable i as integer no-undo.
-       i = num-entries(pcfile,".").
-       if i > 1 then
-           return entry(i,pcfile,".").
-       else return "".    
-    end method.   
-    
-    method protected IDataAdminExporter GetExporter(pcFile as char):
-        define variable i as integer no-undo.
-        define variable fileext as character no-undo.
-        fileExt = GetFileExtension(pcFile).
-        case fileExt:
-            when "p" then
-                return new CodeWriter().
-            when "json" then  
-                return new JSONWriter().
-            otherwise 
-                undo, throw new IllegalArgumentError("Export to file with extension " + quoter(fileext)). 
-        end.
-    end method.
-    
    
 end class.

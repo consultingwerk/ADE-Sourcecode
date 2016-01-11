@@ -16,6 +16,8 @@
 { prodict/dictvar.i NEW }
 { prodict/ora/oravar.i }
 DEFINE NEW SHARED STREAM   loaderr.
+DEFINE NEW SHARED STREAM   loadread.
+
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER INITIAL 0 NO-UNDO.
 DEFINE NEW SHARED VARIABLE recs   AS INTEGER INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
@@ -42,9 +44,9 @@ FOR EACH DICTDB._File OF DICTDB._Db
   BY DICTDB._File._File-name:
 
   OUTPUT STREAM loaderr TO VALUE(_Dump-name + ".e") NO-ECHO.
-  INPUT FROM VALUE(_Dump-name + ".d") NO-ECHO NO-MAP.
+  INPUT STREAM loadread FROM VALUE(_Dump-name + ".d") NO-ECHO NO-MAP.
   RUN prodict/misc/_runload.i (INPUT "y") _File-name 0 100 _File-name 0.
-  INPUT  CLOSE.
+  INPUT STREAM loadread CLOSE.
   OUTPUT STREAM loaderr CLOSE.  
 
 

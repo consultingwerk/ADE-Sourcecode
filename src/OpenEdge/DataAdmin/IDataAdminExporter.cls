@@ -17,7 +17,11 @@
 using OpenEdge.DataAdmin.IDataAdminSerializable from propath.
 
 interface OpenEdge.DataAdmin.IDataAdminExporter:  
-          
+        
+    define public property Formatted as logical no-undo 
+    get.
+    set.      
+    
     /** WriteToFile 
         @param Serializable IDataAdminSerializable is implemented by all entities and collections 
         @param FileName file name IDataAdminSerializable is implemented by all entities and collections 

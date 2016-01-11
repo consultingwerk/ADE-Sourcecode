@@ -54,20 +54,20 @@ DEFINE OUTPUT PARAMETER paramValue      AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE         paramPos        AS INTEGER INITIAL 0         NO-UNDO.
 DEFINE VARIABLE         delimPos        AS INTEGER INITIAL 0         NO-UNDO.  
 
-DEFINE VARIABLE         searchString    AS CHARACTER FORMAT "x(32)"  NO-UNDO.
-DEFINE VARIABLE         tempString      AS CHARACTER FORMAT "x(50)"  NO-UNDO.
+DEFINE VARIABLE         searchString    AS CHARACTER FORMAT "x(32)":U  NO-UNDO.
+DEFINE VARIABLE         tempString      AS CHARACTER FORMAT "x(50)":U  NO-UNDO.
 
 
 /* Determine what token to parse fieldDef for */ 
 case paramName:
-  WHEN "name" THEN 
-    searchString = "NAME=".
-  WHEN "type" THEN
-    searchString = "TYPE=".
-  WHEN "file" THEN
-    searchString = "FILE=".
-  WHEN "value" THEN 
-    searchString = "VALUE=".
+  WHEN "name":U THEN 
+    searchString = "NAME=":U.
+  WHEN "type":U THEN
+    searchString = "TYPE=":U.
+  WHEN "file":U THEN
+    searchString = "FILE=":U.
+  WHEN "value":U THEN 
+    searchString = "VALUE=":U.
 END CASE.
 
 
@@ -84,7 +84,7 @@ DO:
   ASSIGN tempString  = SUBSTRING(fieldDef, paramPos + LENGTH(searchString), -1,
                                  "CHARACTER":U). 
 
-  IF (tempString BEGINS '"') THEN 
+  IF (tempString BEGINS '"':U) THEN 
   DO:       
     delimPos       = INDEX(tempString, '" ':U).
     IF (delimPos <> 0) THEN

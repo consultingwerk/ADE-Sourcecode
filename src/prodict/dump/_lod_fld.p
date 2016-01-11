@@ -165,14 +165,25 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
     _Field._File-recid = drec_file
     _Field._Field-name = wfld._Field-name
     _Field._Data-type  = wfld._Data-type
-    _Field._Order      = wfld._Order NO-ERROR.
+    _Field._Order      = wfld._Order.
 
   { prodict/dump/copy_fld.i &from=wfld &to=_Field &all=false}
 
   fldrecid = RECID(_Field).
   IF wfld._Format  <> ?  THEN _Field._Format  = wfld._Format.
   
-  IF wfld._Initial <> "" THEN DO:
+  if wfld._Initial <> "" then
+  /**************
+     The wfld._initial is set to "" for all in _lodsddl.p 
+     PSC00285607 addresses the fact that init "" is loaded on UPDATE 
+     This is part of the (potential) fix to allow init "" to be loaded on add 
+  --------------
+  if (lookup(wfld._Data-type,"INT,INTEGER,INT64,DECIMAL,DEC") > 0 and wfld._Initial <> "0")
+  or (lookup(wfld._Data-type,"CHAR,CHARACTER,RAW") > 0            and wfld._Initial <> "")
+  or (wfld._Data-type = "LOGICAL"                                 and wfld._Initial <> "no")
+  or wfld._Initial <> ? then
+  ****************/
+  do:   
       /* check for overflow (in case this is an int/int64 field */
       ASSIGN _Field._Initial = wfld._Initial NO-ERROR. 
       IF ERROR-STATUS:ERROR THEN DO:
@@ -255,7 +266,36 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF COMPARE(_Field._Format-SA,"NE",wfld._Format-SA,"RAW")  THEN _Field._Format-SA     = wfld._Format-SA.
   IF COMPARE(_Field._Help,"NE",wfld._Help,"RAW")            THEN _Field._Help          = wfld._Help.
   IF COMPARE(_Field._Help-SA ,"NE",wfld._Help-SA,"RAW")     THEN _Field._Help-SA       = wfld._Help-SA.
-  IF COMPARE(_Field._Initial,"NE",wfld._Initial,"RAW")      THEN _Field._Initial       = wfld._Initial.
+  IF COMPARE(_Field._Initial,"NE",wfld._Initial,"RAW")      THEN
+  do:
+      /**
+        PSC00285607 addresses the fact that init "" is loaded on UPDATE and not 
+        on ADD causing unnecessary incremental .df. (there's no runtime difference
+        - blank is treated as default )
+        This is a potentail fox to disallow it on UPDATE also 
+      if wfld._Initial = "" then 
+      do: 
+         if wfld._Data-type = "LOGICAL" and _Field._Initial <> "no" then
+             _Field._Initial = "no".
+         else if (lookup(wfld._Data-type,"INT,INTEGER,INT64,DECIMAL,DEC") > 0 and _Field._Initial <> "0") then
+             _Field._Initial = "0".  
+         else if (lookup(wfld._Data-type,"CHAR,CHARACTER,RAW") > 0) then
+             _Field._Initial = "".  
+         else 
+            _Field._Initial  = ?.
+      end. 
+      else do: 
+       **/
+          _Field._Initial = wfld._Initial no-error.
+          /* check for overflow (in case this is an int/int64 field */
+          IF ERROR-STATUS:ERROR THEN 
+          DO:
+             ierror = 52.
+             RETURN.
+          END.
+/*      end.*/
+  end.
+  
   IF COMPARE(_Field._Initial-SA,"NE",wfld._Initial-SA,"RAW") THEN _Field._Initial-SA    = wfld._Initial-SA.
   IF COMPARE(_Field._Label,"NE",wfld._Label,"RAW")          THEN _Field._Label         = wfld._Label.
   IF COMPARE(_Field._Label-SA,"NE",wfld._Label-SA,"RAW")    THEN _Field._Label-SA      = wfld._Label-SA.
@@ -435,7 +475,7 @@ IF imod = "a" OR imod = "m" THEN DO:
     IF AVAILABLE _Field-trig
       AND _Field-trig._Event     = wflt._Event
       AND _Field-trig._Override  = wflt._Override
-      AND _Field-trig._Proc-name = wflt._Proc-name 
+      AND compare(_Field-trig._Proc-name,"=",wflt._Proc-name,"raw") 
       AND _Field-trig._Trig-CRC  = wflt._Trig-CRC THEN NEXT.
     IF AVAILABLE _Field-trig THEN DELETE _Field-trig.
     CREATE _Field-trig.

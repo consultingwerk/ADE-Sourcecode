@@ -76,9 +76,7 @@ class OpenEdge.DataAdmin.ExtentList inherits DataAdminCollection  implements IEx
         if Contains(pExtent) then
             return false.   
            
-        pExtent:Attach(Context).
-      
-        return true.
+        return Context:AddEntity(pExtent).
     end method.  
    
     method public IExtent Get(i as int):

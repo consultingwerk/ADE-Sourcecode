@@ -143,9 +143,6 @@ class OpenEdge.DataAdmin.Message.DataAdminMessage implements IDataAdminMessage:
 /*        DataHandle:top-nav-query(pcTable):query-prepare(pcQuery).*/
     end method.    
     
-    
-    
-    
     method protected void AssertTable(pcTable as char):
         define variable hBuffer as handle no-undo.
         hbuffer = DataHandle:get-buffer-handle(pctable).
@@ -191,16 +188,17 @@ class OpenEdge.DataAdmin.Message.DataAdminMessage implements IDataAdminMessage:
         define variable i as integer no-undo.
         define variable cname as character no-undo.
         define variable hBuf as handle no-undo.
-        define variable cQuery as character no-undo.
         define variable cString as character no-undo.
         if valid-handle(DataHandle) then
         do i = 1 to DataHandle:num-buffers:
            hBuf  = DataHandle:get-buffer-handle(i).
            cName = hbuf:name.
            cString = cString + "~n" 
-                   + (if cQuery > "" then cQuery else cName)
-                   + " " + string(hBuf:table-handle:has-records)   .     
+                   + cname 
+                   + " hasRecords: " + string(hBuf:table-handle:has-records) 
+                   + " table-handle: "  + string(hBuf:table-handle) .     
         end.     
         return cString.
-    end.    
+    end.  
+    
 end class.

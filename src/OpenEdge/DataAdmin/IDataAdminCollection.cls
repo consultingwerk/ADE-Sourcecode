@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2013 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -48,12 +48,6 @@ interface OpenEdge.DataAdmin.IDataAdminCollection inherits IDataAdminSerializabl
                        values <b>must</b> be quoted. also int, logical dec       */ 
     method public IIterator Iterator( filter as char).
       
-    /* method public IDataAdminElement FindElement(c as char).*/
-    /* method public IDataAdminElement FindElement(i as int).*/
-    /* method public IDataAdminElement FindElement(rid as rowid).*/
-     
-    method public void Attach(context as IDataAdminContext).
-          
     method public void Reset().
             
     method public void ExportTree(cFile as char).  
@@ -61,17 +55,34 @@ interface OpenEdge.DataAdmin.IDataAdminCollection inherits IDataAdminSerializabl
      
     method public void Export(). 
     method public void Export(pcFile as char). 
+ 
     method public void ExportList(). 
     method public void ExportList(pcFile as char). 
     
-    /** JSON communication, use after import and call to service create or update */
+    /** REST/JSON communication, use after import and call to service create or update */
     method public void ExportLastSaved(pcFile as char).  
     
-    /** JSON communication, use after importTree and call to service create or update */
+    /** REST/JSON communication, use after importTree and call to service create or update */
     method public void ExportLastSavedTree(pcFile as char). 
     
+    /* import table from file - json - d */ 
     method public void Import(pcFile as char). 
-    method public void ImportTree(pcFile as char). 
    
-   
+    /* import table with children from file - json */ 
+    method public void ImportTree(pcFile as char).
+    
+     /* import new rows with children from file - json */ 
+    method public void ImportNewTree(pcFile as char). 
+  
+    /* import new rows to table from file - json - d */ 
+    method public void ImportNew(pcFile as char). 
+    
+    /* import keys to delete from file -  json only   */ 
+    method public void ImportDelete(pcFile as char). 
+    
+     /* deserialize from stream abl standard import format 
+        @return num rows imported */
+    method public int Deserialize(phStream as handle).
+    method public int Deserialize(phStream as handle,piMax as int).
+ 
 end interface.

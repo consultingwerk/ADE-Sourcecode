@@ -14,14 +14,14 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.IRowChange from propath.
-using OpenEdge.DataAdmin.Binding.RowImpl from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRowChange.
+using OpenEdge.DataAdmin.Binding.RowImpl.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.RowChange inherits RowImpl implements IRowChange: 
@@ -29,8 +29,8 @@ class OpenEdge.DataAdmin.Binding.RowChange inherits RowImpl implements IRowChang
        get.
        private set. 
 
-    constructor public RowChange (pSerializename as char,pKeyFields as char,pOldKeyValues as char extent,pNewFieldValues as char extent):
-        super (pSerializename,row-modified,pKeyFields,pNewFieldValues).
+    constructor public RowChange (pContext as IDataAdminModel, pSerializename as char,pKeyFields as char,pOldKeyValues as char extent,pNewFieldValues as char extent):
+        super (pContext,pSerializename,row-modified,pKeyFields,pNewFieldValues).
         OldKeyValues = pOldKeyValues.
     end constructor.    
 

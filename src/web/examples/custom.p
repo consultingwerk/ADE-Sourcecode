@@ -19,9 +19,9 @@
 /* ***************************  Definitions  ************************** */
 DEFINE NEW GLOBAL SHARED VARIABLE web-utilities-hdl AS HANDLE NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE gscSessionId      AS CHARACTER NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS char FORMAT "x(50)" NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE SCRIPT_NAME       AS char FORMAT "x(50)" NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE PATH_INFO         AS char FORMAT "x(50)" NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS char FORMAT "x(50)":U NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE SCRIPT_NAME       AS char FORMAT "x(50)":U NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE PATH_INFO         AS char FORMAT "x(50)":U NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -87,8 +87,8 @@ PROCEDURE init-session :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-   DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "NOTE":U,
-                                "Initializing my custom") NO-ERROR.    
+   DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "NOTE":U,
+                                "Initializing my custom":U) NO-ERROR.    
    RUN SUPER.
 
 END PROCEDURE.
@@ -110,10 +110,10 @@ PROCEDURE run-batch-object :
                and the resulting r code will be run if possible
 ------------------------------------------------------------------------------*/
    gscSessionId = "Batch".
-   DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "BATCH":U,
+   DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "BATCH":U,
                                 "*****Starting Batch*****") NO-ERROR.    
    /*** Whatever batch routines ***/
-   DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "BATCH":U,
+   DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "BATCH":U,
                                 "************************") NO-ERROR.    
 END PROCEDURE.
 
@@ -138,7 +138,7 @@ PROCEDURE run-web-object :
 /***** Extension mapping for dynamics *******/
   IF SCRIPT_NAME matches "*icf" THEN DO: 
     MESSAGE "Dynamics ExtMap:" SCRIPT_NAME.
-    DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "NOTE":U,
+    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "NOTE":U,
                       "Dynamics ExtMap:" + SCRIPT_NAME) NO-ERROR.    
     assign PATH_INFO   = "/icfweb/"
            SCRIPT_NAME = REPLACE(SCRIPT_NAME,PATH_INFO,"").

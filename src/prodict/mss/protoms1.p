@@ -51,6 +51,16 @@
 &SCOPED-DEFINE UNICODE-MSG-3 "You have chosen to use Unicode data types but the schema holder database codepage is not 'utf-8'"
 &SCOPED-DEFINE UNICODE-MSG-4 "You must build your schema holder database with a 'utf-8' code page"
 
+/*h-*/
+&SCOPED-DEFINE NOTTCACHE 1
+&SCOPED-DEFINE xxDS_DEBUG                   DEBUG
+&SCOPED-DEFINE DATASERVER                 YES
+&SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
+{ prodict/dictvar.i NEW }
+&UNDEFINE DATASERVER
+&UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
+&UNDEFINE NOTTCACHE
+
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
 
@@ -70,7 +80,7 @@ DEFINE VARIABLE ClustAsROWID  AS LOGICAL             NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE mdrec_db      AS RECID               NO-UNDO.    
 DEFINE VARIABLE lcompatible   AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE useLegacyRanking    AS LOGICAL    NO-UNDO INITIAL TRUE.
-DEFINE VARIABLE RankDesc      AS CHARACTER           NO-UNDO.
+DEFINE  VARIABLE rank_rep     AS CHARACTER    NO-UNDO INITIAL "dsmssrank.lg".
 
 DEFINE STREAM strm.
 
@@ -97,7 +107,7 @@ IF (ENTRY(1,user_env[36]) = "y") OR (ENTRY(2,user_env[36]) = "y")  OR
    )  
 THEN  ASSIGN useLegacyRanking = FALSE.
 
-ASSIGN user_env[42] = (IF genrep THEN "Y" ELSE "N") +   /* Generate ranking report */
+ASSIGN user_env[42] = STRING(genreplvl) +   /* Generate ranking report level */
                       (IF useLegacyRanking THEN ',L' ELSE ',N').
 
 FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = mdrec_db
@@ -108,16 +118,19 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = mdrec_db
                              ELSE
                                DICTDB._File._File-name = user_filename
                             ):
-    Assign RankDesc = "".
     IF useLegacyRanking AND lcompatible THEN
        ASSIGN DICTDB._FILE._Fil-misc1[1] = 1. /* assign positive to indicate PROGRESS_RECID as ROWID */
-    ELSE 
+    ELSE
        RUN prodict/mss/_rankpdb.p ( INPUT RECID(DICTDB._File),
-                               INPUT ClustAsROWID, INPUT RankDesc).
+                               INPUT ClustAsROWID).
 END.
-IF ((NUM-ENTRIES(user_env[42]) >= 2) AND 
-    UPPER(ENTRY(1,user_env[42])) = "Y" ) THEN
- RUN prodict/mss/_ctestr.p(INPUT "rnkreppdb.out",INPUT RankDesc).
+IF OS-GETENV("_RANKLOGNAME") <> ?
+THEN DO:
+   tmp_str = OS-GETENV("_RANKLOGNAME").
+   IF trim(tmp_str) <> "" THEN
+      ASSIGN rank_rep = tmp_str.
+END.
+RUN prodict/mss/_ctestr.p(INPUT rank_rep).
 
 END PROCEDURE.
 
@@ -157,12 +170,14 @@ IF batch_mode THEN DO:
        "Create Shadow Columns:                " shadowcol SKIP       
        "Include Defaults:                     " dflt SKIP       
        "Use Revised Sequence Generator:       " newseq SKIP
+       "Try Native Sequence ?:                " nativeseq SKIP
+       "Cache Size:                           " cachesize SKIP
        "Map to MSS Datetime Type:             " mapMSSDatetime SKIP.
 
         IF OS-GETENV("UNICODETYPES") NE ? THEN
             PUT STREAM logfile UNFORMATTED
-                  "Unicode Types:                        " unicodeTypes skip
-                  "Expand Width (utf-8):                 " lUniExpand skip(2).
+        "Unicode Types:                        " unicodeTypes skip
+        "Expand Width (utf-8):                 " lUniExpand skip(2).
 END.
 
 IF loadsql THEN DO:
@@ -283,7 +298,9 @@ ASSIGN user_dbname  = mss_dbname
           third entry is for use newer datatime types 
        */
        user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
-                      (IF mapMSSDatetime THEN ',n' ELSE ',y')
+                      (IF mapMSSDatetime THEN ',n' ELSE ',y') + 
+		      (IF nativeseq THEN ",y" ELSE ",n" ) +
+		      (IF cachesize <> ? THEN "," + string(cachesize) ELSE " ")
        user_env[26] = mss_username
        user_env[28] = "128"
        user_env[29] = "128"            
@@ -294,7 +311,6 @@ ASSIGN user_dbname  = mss_dbname
                              * IP - Independent PULL operation */
        user_env[38] = choiceUniquness . /* 195067 */
        user_env[39] = choiceDefault . /* 195067 */       
-       /* user_env[42] = (IF genrep THEN "y" ELSE "n") . * Generate ranking report */       
 
 
 IF pcompatible THEN 

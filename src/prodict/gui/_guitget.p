@@ -1,6 +1,6 @@
 /*********************************************************************
 * Copyright (C) 2007,2009,2011,2013 by Progress Software Corporation.*
-* All rights reserved.  Prior versions of this work may contain      *
+*  All rights reserved.  Prior versions of this work may contain     *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
@@ -727,7 +727,7 @@ PROCEDURE BuildList:
     DEFINE INPUT PARAMETER ttype AS CHARACTER NO-UNDO.
     DEFINE VAR selsave AS CHAR NO-UNDO.
 
-    /*ASSIGN selsave = tlist:SCREEN-VALUE in frame tbl_get. */ /* Save off selected items */
+    ASSIGN selsave = tlist:SCREEN-VALUE in frame tbl_get.  /* Save off selected items */
     ASSIGN tlist:LIST-ITEMS IN frame tbl_get = "".  /* Clear first */
 
    IF l_cache_tt THEN DO:
@@ -752,8 +752,7 @@ PROCEDURE BuildList:
    end.
    ELSE
      do ix = 1 to cache_file#:
-     FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix]
-          and (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
+     FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix] and (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
 
        if  ttype = "A"  THEN DO:
            stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
@@ -768,12 +767,7 @@ PROCEDURE BuildList:
        END.
    end.
 
-   /*ASSIGN tlist:SCREEN-VALUE = selsave. */ /* put 'em back */
-   IF tlist:SCREEN-VALUE = "" or tlist:SCREEN-VALUE = ? THEN DO:
-      tlist:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) IN frame tbl_get.
-      if tfill:SENSITIVE in frame tbl_get then
-         tfill:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) in frame tbl_get.
-   END.
-
+    ASSIGN tlist:SCREEN-VALUE = selsave.  /* put 'em back */
+   
 END PROCEDURE.
 

@@ -36,14 +36,13 @@ class OpenEdge.DataAdmin.Message.FetchRequest
                         implements IFetchRequest, IFetchResponse    : 
      
     define public property IsPageRequest as logical no-undo get. set.
-     
     /* init true 
        - replace on client - append on server (complex queries)
        - better separation - deep copy from dataaccess (overhead, but small - ?)
        - can be split to run on server (see serviceAdapter) 
       */   
     define public property UseReplaceOnClient as logical init true no-undo get. set.
-         
+    define variable KeepDataset as logical no-undo.     
     constructor public FetchRequest (h as handle ):
 		super (h).	
 	end constructor.
@@ -57,8 +56,13 @@ class OpenEdge.DataAdmin.Message.FetchRequest
         super (ctnxtid,h,pcurl).  
     end constructor.
     */
-    constructor public FetchRequest (name as char, ctnxtid as char,h as handle):
-        super (name,ctnxtid,h).      
+/*    constructor public FetchRequest (name as char, ctnxtid as char,h as handle):*/
+/*        super (name,ctnxtid,h).                                                 */
+/*    end constructor.                                                            */
+    
+    constructor public FetchRequest (name as char, ctnxtid as char,h as handle,lkeep as log ):
+        super (name,ctnxtid,h).   
+        KeepDataset = lkeep.   
     end constructor.
     
     /** serialize over TT handle */ 
@@ -96,14 +100,19 @@ class OpenEdge.DataAdmin.Message.FetchRequest
     
     
     method public ITableRequest GetTableRequest(pcName as char):
-        define variable h as handle no-undo.
+        define variable hmsg as handle no-undo.
+        define variable hBuffer as handle no-undo.
        
-        h = GetRow(pcname).    
-        if valid-handle(h) then 
+        hMsg = GetRow(pcname).    
+        /* return a default request if table in dataset */
+        if not valid-handle(hMsg) then 
         do:
-            return new TableRequest(h).
+            hBuffer = DataHandle:get-buffer-handle (pcName) no-error.
+            if not valid-handle(hBuffer) then
+               return ?.
+            hmsg = FindOrCreateTable(pcName).  
         end.
-        return ?.
+        return new TableRequest(hmsg).
     end method.   
     
      /** Set total (response after fill) */   
@@ -146,10 +155,26 @@ class OpenEdge.DataAdmin.Message.FetchRequest
            cQuery = GetTableQuery(cName).
            cString = cString + "~n" 
                    + (if cQuery > "" then cQuery else cName)
-                   + " " + string(hBuf:table-handle:has-records)   .     
+                   + " hasRecords: "  + string(hBuf:table-handle:has-records) 
+                   + " table-handle: "  + string(hBuf:table-handle) .    
         end.     
         return cString.
     end.    
-     
+
+	/*------------------------------------------------------------------------------
+	 Purpose: Added to allow keep alive of dynamic dataset
+	         (before this all dynamic ds IN where deleted by ServoceAdapter)
+	 Notes: Relying on the garbage collector could lead to errors, for example if checking 
+	        valid-handle before it was deleted and then getting in trouble when the gc kicks in.
+	        But if the dataset is needed then set keep alive must be set.   
+	------------------------------------------------------------------------------*/
+	destructor public FetchRequest ( ):
+        /* delete the request dataset retrieved from the message if it is dynamic */
+        if not KeepDataset and valid-handle(DataHandle) and DataHandle:dynamic then
+        do: 
+            delete object DataHandle no-error. 
+        end.
+            
+	end destructor.
          
 end class.

@@ -14,24 +14,25 @@
     Created     :   2010
     Notes       : 
   ----------------------------------------------------------------------*/
-routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IndexImpl from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope from propath.
+using OpenEdge.DataAdmin.Binding.FieldContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
+using OpenEdge.DataAdmin.Binding.Query.PartitionPolicyIndexQuery from propath.
 using OpenEdge.DataAdmin.Binding.Query.TableIndexQuery from propath.
-using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope from propath. 
-
-using OpenEdge.DataAdmin.Support.TableIndexSet from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.IDataAdminCollection from propath.
+using OpenEdge.DataAdmin.IDataAdminElement from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.IndexImpl from propath.
+using OpenEdge.DataAdmin.Support.PartitionPolicyIndexSet from propath.
+using OpenEdge.DataAdmin.Support.TableIndexSet from propath.
+
+routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.IndexContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -42,11 +43,6 @@ class OpenEdge.DataAdmin.Binding.IndexContext inherits DataAdminContext implemen
     define temp-table copyIndex reference-only like ttIndex .  
     define variable mpartitions as PartitionContext no-undo.
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsIndex:handle.
-        end get.
-    
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttIndex:handle.
@@ -70,41 +66,92 @@ class OpenEdge.DataAdmin.Binding.IndexContext inherits DataAdminContext implemen
             return Count.
         end.
         protected set.
+        
+    define private variable FieldContext as FieldContext no-undo.
+    define private variable ContextFactory as ISchemaScope no-undo.
+ 
     
     constructor public IndexContext ():
         super ("Index").
+        ExportWithRoot = false.
     end constructor.
     
     constructor public IndexContext (pscope as ISchemaScope):
         super ("Index",pscope).   
+        AddChild(pscope:IndexFieldContext).
         AddChild(pscope:PartitionContext).
+        ContextFactory = pscope.
+        ExportWithRoot = false.
     end constructor.    
-		
+	        
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsIndex:handle. 
+    end method.
+    	
 	/* override default tree to not include child (partitions) */
-	method override public void AddTreeTo( input tree as OpenEdge.DataAdmin.Binding.IContextTree ):
-		super:AddTableTo(input tree).
+	method override public void AddTreeTo( input tree as OpenEdge.DataAdmin.Binding.IContextTree,pReq as IRequestInfo ):
+		super:AddTableTo(tree,pReq).
 	end method.
 
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Schema").
     end method. 
      
     method public override void CreateRow(entity as IDataAdminElement):
         undo, throw new UnsupportedOperationError("Create Schema row").
     end method. 
-	
+
     method public override character GetJoinFields(parentid as char):
         case parentid:
             when "tables" then 
                  return "name,TableName".
+            when "partitionPolicies" then 
+                return "Name,PartitionPolicyName".
         end.
         return "".
     end.
     
-    method override public void WriteTo( input writer as OpenEdge.DataAdmin.Binding.IContextWriter ):
-        super:WriteTo(input writer).
+    method public override character GetChildQuery(pParentrow as IRow):
+        define variable cQuery as character no-undo.
+        
+        case pParentrow:SerializeName:
+            when "partitionPolicies" then 
+            do:
+                cQuery = "preselect " + TrimQuery(GetServerChildQuery(pParentrow)).
+                return cQuery + " where ttIndex.TableName = ttLocalIndex.TableName"
+                                + " and  ttIndex.name = ttLocalIndex.IndexName". 
+            end.        
+        end case.
+        return super:GetChildQuery(pParentrow).
+    end.
+    
+    method public override character GetServerChildQuery(pParentrow as IRow):
+        define variable cQuery as character no-undo.
+        
+        case pParentrow:SerializeName:
+            when "partitionPolicies" then 
+            do:
+                return "for each ttLocalIndex where ttLocalIndex.PartitionPolicyName "  
+                        +  " = "  + quoter(pParentrow:KeyValue ) 
+                        +  ", each ttIndex". 
+            end.        
+        end case.
+        return super:GetChildQuery(pParentrow).
+    end.
+    
+    method public override handle extent GetQueryHandles(pcParent as char):
+        define variable h as handle extent 2 no-undo.
+        if pcParent = "partitionPolicies" then
+        do: 
+            h[1] = ContextFactory:LocalIndexContext:TableHandle:default-buffer-handle.
+            h[2] = TableHandle:default-buffer-handle.
+            return h.
+        end.
+        else 
+            return super:GetQueryHandles(pcParent). 
     end method.
-   
+    
     /** Find with unique key
          @param TableName  
          @param IndexName   */
@@ -127,31 +174,51 @@ class OpenEdge.DataAdmin.Binding.IndexContext inherits DataAdminContext implemen
 /*        return new IndexSet(cntxt).*/
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-         return new IndexImpl(cntxt).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+         return new IndexImpl(this-object,pReq).
     end method.
+       
+     /* support many-to-many to fields (fields as child) */    
+    method protected override IDataAdminModel GetNamedChild(pname as char):
+        define variable i as integer no-undo.
+        if pName = "fields" then
+        do:
+            if not valid-object(Fieldcontext) then
+            do:
+                if valid-object(ContextFactory) then
+                    FieldContext = ContextFactory:FieldContext.
+            end.
+            return FieldContext.
+        end.
+        return super:GetNamedChild(pname).
+    end method .
     
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
-         define variable cTable as character no-undo.
+    method override protected FilteredContext CreateFilteredContext(pparent as IRow, pReq as IRequestInfo):     
          
-         case pparent:
+         case pparent:SerializeName:
              when "tables" then
              do:              
-                 return new TableIndexQuery(this-object,pkey,pReq).
+                 return new TableIndexQuery(this-object,pparent:KeyValue,pReq).
+             end. 
+             when "partitionPolicies" then
+             do:              
+                 return new PartitionPolicyIndexQuery(this-object,pparent,pReq).
              end.              
              otherwise
-                 return super:CreateFilteredContext(pparent,pkey,pReq).              
+                 return super:CreateFilteredContext(pparent,pReq).              
          end.        
     end method.
     
     method override protected IDataAdminCollection CreateCollection(pparent as char,pcntxt as FilteredContext):     
-         
         case pparent:
             when "tables" then
             do:          
                 return new TableIndexSet(cast(pcntxt,TableIndexQuery)).
             end.   
-          
+            when "partitionPolicies" then
+            do:          
+                return new PartitionPolicyIndexSet(cast(pcntxt,PartitionPolicyIndexQuery)).
+            end.   
             otherwise 
                 return super:CreateCollection(pparent,pcntxt).             
         end.        

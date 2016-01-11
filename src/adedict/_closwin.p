@@ -29,8 +29,7 @@ Date Created: 04/24/92
 {adedict/SEQ/seqvar.i shared}
 {adedict/FLD/fldvar.i shared}
 {adedict/IDX/idxvar2.i shared}
-{adedict/IDX/idxvar.i shared}
-
+ 
 case (SELF):
    when s_win_Db then do:
       {adedict/delwin.i &Win = s_win_Db &Obj = {&OBJ_DB}}

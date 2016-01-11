@@ -59,6 +59,7 @@ ASSIGN
   {&to}._I-res2[5]  = {&from}._I-res2[5]  
   {&to}._I-res2[6]  = {&from}._I-res2[6]  
   {&to}._I-res2[7]  = {&from}._I-res2[7]  
-  {&to}._I-res2[8]  = {&from}._I-res2[8].
-
+  {&to}._I-res2[8]  = {&from}._I-res2[8]
+  
+  {&to}._index-attributes[1] = {&from}._index-attributes[1]. /* To copy is-local index value */
 /*-----------------------------------------------------------*/

@@ -1,4 +1,13 @@
 /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Entity.
+USING OpenEdge.DataAdmin.IDataFile.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ITable.
+USING OpenEdge.DataAdmin.ITenant.
+USING OpenEdge.DataAdmin.ITenantGroup.
+USING Progress.Lang.*.
 /* Copyright (c) 2012 by Progress Software Corporation.      */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
@@ -13,14 +22,8 @@
     Created     : Fri Mar 30 21:56:15 EDT 2012
     Notes       : 
   ----------------------------------------------------------------------*/
-
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.Entity from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.ITenantGroup from propath.
-using OpenEdge.DataAdmin.IDataFile from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+block-level on error undo,throw .
+ 
 class OpenEdge.DataAdmin.DataFile inherits Entity implements IDataFile:  
     
     define public property TableSequence      as integer       no-undo 
@@ -166,12 +169,16 @@ class OpenEdge.DataAdmin.DataFile inherits Entity implements IDataFile:
                 return this-object:CanExport. 
         end.
       
-    constructor public DataFile(pcntxt as IDataAdminContext):
+    constructor public DataFile(pcntxt as IDataAdminModel):
         super (pcntxt).     
     end constructor.
     
+    constructor public DataFile(pcntxt as IDataAdminModel, preq as IRequestInfo):
+        super (pcntxt,preq).     
+    end constructor.
+    
      /**   local context needed - has child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel  CreateLocalContext():
 /*        return new AreaContext().*/
     end method.
      

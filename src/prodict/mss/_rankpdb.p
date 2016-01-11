@@ -27,21 +27,22 @@ History:
 
 --------------------------------------------------------------------*/
 /*h-*/
+
+/*h-*/
 &SCOPED-DEFINE NOTTCACHE 1
-&SCOPED-DEFINE xxDS_DEBUG                 DEBUG 
-&SCOPED-DEFINE DATASERVER                 YES 
+&SCOPED-DEFINE xxDS_DEBUG                   DEBUG
+&SCOPED-DEFINE DATASERVER                 YES
 &SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
- { prodict/dictvar.i NEW }
+{ prodict/dictvar.i }
 &UNDEFINE DATASERVER
 &UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
 &UNDEFINE NOTTCACHE
 
-{ prodict/user/uservar.i }
 
+{ prodict/user/uservar.i }
 /*----------------------------  DEFINES  ---------------------------*/
 define input parameter itbl_recid as RECID no-undo.
 define input parameter ClustAsROWID as LOGICAL no-undo.
-define input parameter RankDesc as CHARACTER no-undo.
 
 DEFINE VARIABLE compatible          AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE migConstraint       AS LOGICAL    NO-UNDO INITIAL FALSE.
@@ -61,6 +62,7 @@ DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE NonUnikCC           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE restorReqd          AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE noIndex             AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE mdrec_db            AS RECID      NO-UNDO.
 
 DEFINE VARIABLE s_tmp_best          AS INTEGER    NO-UNDO INITIAL 0. 
@@ -156,7 +158,8 @@ CASE UPPER(s_ttb_fld.pro_type):
                   ASSIGN j = lngth.
           END.
           FIND FIRST DICTDB._Db WHERE _Db-local NO-LOCK NO-ERROR.
-          ASSIGN mdrec_db = RECID(DICTDB._Db).
+          ASSIGN mdrec_db = RECID(DICTDB._Db). 
+
           IF DICTDB._Field._Decimals > 0
              AND can-find(first DICTDB._Db where RECID(DICTDB._Db) = mdrec_db
                           and DICTDB._Db._Db-type <> "PROGRESS" ) THEN
@@ -241,13 +244,13 @@ THEN DO:
               s_ttb_tbl.pk_idx_recid = DICTDB._File._Prime-index.    
 END. 
 ELSE FIND FIRST s_ttb_tbl WHERE s_ttb_tbl.tmp_recid = itbl_recid.
-
   /* Check if User will have PROGRESS_RECID as ROWID, if no indexes */  
   IF compatible AND (mssOptRowid NE "U") AND 
      NOT CAN-FIND(FIRST DICTDB._index WHERE DICTDB._index._file-recid = s_ttb_tbl.tmp_recid AND
                         DICTDB._Index._Index-name <> "default" AND
                         DICTDB._Index._Wordidx <> 1 ) THEN
-     ASSIGN RecidAsRowid = TRUE.
+     ASSIGN RecidAsRowid = TRUE
+            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":PSREC".
   /* Add index/field details to temp tables relevant for ranking purposes */
 _idxloop:
   FOR EACH DICTDB._index WHERE DICTDB._index._file-recid = s_ttb_tbl.tmp_recid AND
@@ -276,9 +279,9 @@ _idxloop:
       IF migConstraint AND CAN-FIND(FIRST DICTDB._Constraint 
               WHERE DICTDB._Constraint._Index-Recid = s_ttb_idx.idx_recid  AND
                     DICTDB._Constraint._Con-Active = TRUE AND 
-                   (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
+                   (DICTDB._Constraint._Con-Type = "PC" OR
                     DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" )
-         ) THEN ASSIGN s_ttb_idx.ds_idx_typ = 1.
+                   ) THEN ASSIGN s_ttb_idx.ds_idx_typ = 1.
       ELSE ASSIGN s_ttb_idx.ds_idx_typ = 2.
       for each DICTDB._Index-field 
           where DICTDB._Index-field._index-recid = s_ttb_idx.idx_recid:
@@ -305,11 +308,12 @@ _idxloop:
                                s_ttb_fld.ds_name  = DICTDB._Field._Field-Name.
                  IF UPPER(s_ttb_fld.pro_type) = "INT64" THEN assign s_ttb_fld.ds_type = "BIGINT".
                  RUN calc-fldsize ( OUTPUT s_ttb_fld.fld_size ). 
+
             END.
-         end. /* for each DICTDB._Index-field  */
+         end.  /* for each DICTDB._Index-field  */
   end.  /* for each _INDEX */
 
-  keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = itbl_recid AND
+ keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = itbl_recid AND
                             DICTDB._Constraint._Con-Active = TRUE AND
                            (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
                             DICTDB._Constraint._Con-Type = "MP" )).
@@ -321,7 +325,9 @@ _idxloop:
        FIND FIRST s_ttb_idx 
                   WHERE s_ttb_idx.idx_recid = DICTDB._CONSTRAINT._Index-recid AND
                         s_ttb_idx.pro_uniq <> TRUE NO-ERROR.
-       IF AVAILABLE s_ttb_idx THEN ASSIGN NonUnikCC = TRUE.
+       IF AVAILABLE s_ttb_idx THEN 
+          ASSIGN NonUnikCC = TRUE
+                 s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +  ":CKC".
        ELSE ASSIGN keyExist = TRUE.
   END.
   FIND FIRST s_ttb_idx WHERE s_ttb_idx.ttb_tbl = itbl_recid AND 
@@ -330,24 +336,35 @@ _idxloop:
      IF s_ttb_idx.pro_uniq = TRUE THEN ASSIGN pk_unique = TRUE.
      ELSE ASSIGN pk_unique = FALSE.
   END.
+  ELSE ASSIGN noIndex = TRUE.
 
   IF ( migConstraint AND keyExist) THEN 
-     ASSIGN keyCreated   = TRUE.
-  ELSE IF msstryp AND ( pk_unique OR ( NOT pk_unique AND (compatible AND (mssOptRowid EQ "U")))) THEN DO:
+     ASSIGN keyCreated   = TRUE
+            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +  ":PKC:MIGCON".
+  ELSE IF msstryp AND NOT noIndex AND 
+        ( pk_unique OR ( NOT pk_unique AND (compatible AND (mssOptRowid EQ "U")))) THEN DO:
      FIND FIRST s_ttb_idx WHERE s_ttb_idx.ttb_tbl = itbl_recid AND 
                                 s_ttb_idx.pro_prim = TRUE NO-ERROR.
      IF AVAILABLE s_ttb_idx AND NOT pk_unique THEN DO:
         ASSIGN s_ttb_idx.pro_uniq_bkp = s_ttb_idx.pro_uniq /* save original */
                s_ttb_idx.pro_uniq = TRUE /* Fake it as Unique */
                s_ttb_idx.ds_idx_typ = 1
-               restorReqd = TRUE.
+               restorReqd = TRUE
+               s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":OEPUK|" + s_ttb_idx.pro_name.
+        IF (NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "1") 
+        THEN  ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NTGPK".
      END.
      ASSIGN keyCreated   = TRUE
+            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":OEPK"
             s_ttb_idx.ds_idx_typ = 1.
   END.
   ELSE IF (compatible AND (mssOptRowid NE "U")) THEN 
      ASSIGN RecidAsRowid = TRUE
-            keyCreated   = TRUE.
+            keyCreated   = TRUE
+            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":PSREC".
+
+IF NOT RecidAsRowid AND NOT keyCreated THEN
+   ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":SELBST".
 
 IF RecidAsRowid THEN DO:
    ASSIGN DICTDB._FILE._Fil-misc1[1] = 1  /* assign positive to indicate PROGRESS_RECID as ROWID */
@@ -387,17 +404,37 @@ ELSE DO:
           uniqifying those mandatory indexes.
         */
           IF mssOptRowid EQ "U" AND NOT mssrecidCompat AND 
-             NOT keyCreated AND
-             NOT CAN-FIND(FIRST s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
+            NOT keyCreated AND
+            NOT CAN-FIND(FIRST s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
                                    AND s_ttb_idx.hlp_level <= 22)
           THEN RUN Uniquify-Non-UniqIdx-and-retry. 
 
-
        FOR EACH s_ttb_idx  where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid:
-          IF parse2 THEN ASSIGN s_ttb_idx.pro_uniq = s_ttb_idx.pro_uniq_bkp. /* restore original */
- 
-          IF s_ttb_idx.pro_prim AND restorReqd THEN ASSIGN s_ttb_idx.pro_uniq = TRUE.
+          IF parse2 THEN DO:
+            ASSIGN s_ttb_idx.pro_uniq = s_ttb_idx.pro_uniq_bkp. /* restore original */
+            IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND INDEX(s_ttb_idx.ds_msc21,"v") <> 0 THEN DO:
+               ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":UKFRW|" + s_ttb_idx.pro_name.
+               IF (NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "1") 
+                  THEN  ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NTGPK".
+            END.
+          END.
 
+         IF INDEX(s_ttb_idx.ds_msc21,"p") <> 0 THEN DO:
+             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":PKROW|" + s_ttb_idx.pro_name.
+             IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 THEN
+                ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +
+                                        ":PKFND".
+         END.
+         ELSE IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 THEN
+                ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NONCC|" + s_ttb_idx.pro_name.
+
+         IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND INDEX(s_ttb_idx.ds_msc21,"p") <> 0 AND NOT keyCreated THEN
+	    assign s_ttb_idx.ds_idx_typ = 1.
+
+         IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND  s_ttb_idx.ds_idx_typ <> 1 THEN
+            ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +  ":RWNCC".
+
+          IF s_ttb_idx.pro_prim AND restorReqd THEN ASSIGN s_ttb_idx.pro_uniq = TRUE.
          /* Update ranking info irrespective of rowid designation */
 	  FIND FIRST DICTDB._INDEX  where RECID(DICTDB._INDEX) = s_ttb_idx.Idx_recid. 
 	  UPDATE DICTDB._INDEX._I-misc2[1] = s_ttb_idx.ds_msc21.
@@ -406,25 +443,17 @@ ELSE DO:
        IF (s_ttb_tbl.ds_rowid GT 0 AND                  /* ROWID designated successfully */
               s_ttb_tbl.ds_rowid NE ? ) THEN DO:  
           IF NOT parse2 THEN  /* Check if it was done successfully in 1st attempt(parse) */ 
-             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +
-                                       "First parse successfully identified a ROWID candidate.". 
-          ELSE ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +
-                                       "SECOND parse successfully identified a ROWID candidate.". 
+             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":EXIST".
+          ELSE ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":DERIVED".
        END.
        ELSE DO:            /* Even with 2nd parse could not manage to designate a rowid */
-          ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +
-                                       "No eligible ROWID candidate identified.". 
+          ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NORW".
           IF parse2 THEN 
-             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +
-                         "Parse-2 attempted and failed. Possibly table has no indexes " + 
-                         "OR table has only non-mandatory indexes.". 
+             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NORW2".
           ELSE DO:
-             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + "Parse2 not attempted.". 
+             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":PAS2".
              IF(mssOptRowid NE "U") THEN
-                ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + 
-                              "Try turning ON 'For ROWID Uniqueness' migration option.".
-             ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + 
-                              "Ensure there are MANDATORY field Indexes.". 
+                ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":UON".
           END.
        END.
 
@@ -437,6 +466,11 @@ ELSE DO:
 
 END. /* end of else part of - IF RecidAsRowid */
 
-Assign RankDesc = s_ttb_tbl.rank_desc.
-DELETE s_ttb_tbl. 
+/* Temp table s_ttb_tbl has ranking description for reporting purposes
+ * If user has  not requested the report then clean temp table record
+ *  else clean after report generation.
+*/
+IF ((NUM-ENTRIES(user_env[42]) >= 2) AND
+    UPPER(ENTRY(1,user_env[42])) = "N" ) THEN DELETE s_ttb_tbl.
+
 /*------------------------------------------------------------------*/

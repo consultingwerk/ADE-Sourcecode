@@ -175,7 +175,7 @@ repeat transaction ON ERROR UNDO, RETRY:
 	   if answer = no THEN DO:
 	     display "Transaction Undone" @ s_Browse_Stat with frame browse.
 	     if s_Trans = {&TRANS_ASK_AND_DO} then
-      	    do:
+      	 do:
       	       {adedict/setdirty.i &Dirty = "false"}.
       	 end.
       	 else
@@ -187,17 +187,17 @@ repeat transaction ON ERROR UNDO, RETRY:
 	     undo tranblk, leave tranblk. 
 	   end.
        else if answer = yes then /* Commit and then take action */
-      	 do:
-   	    /* flag that we're done but let code drop through 
-      	       the end of the repeat first. */
-	    if s_Trans = {&TRANS_ASK_AND_EXIT} then
-      	       s_DictState = {&STATE_DONE}.
-      	    s_Trans = {&TRANS_DONE}.
+       do:
+       	   /* flag that we're done but let code drop through 
+          	       the end of the repeat first. */
+    	   if s_Trans = {&TRANS_ASK_AND_EXIT} then
+          	   s_DictState = {&STATE_DONE}.
+           s_Trans = {&TRANS_DONE}.
        end.
      end.  /* end of ASK_AND_DO/ASK_AND_EXIT */
 
      else if s_Trans = {&TRANS_UNDO} then
-      do:
+     do:
       	 {adedict/setdirty.i &Dirty = "false"}.
 
       	 /* Since anything could have changed, just close up
@@ -207,8 +207,8 @@ repeat transaction ON ERROR UNDO, RETRY:
 
       	 run adecomm/_setcurs.p ("WAIT"). /* while undoing */
       	 s_Browse_Stat = "Transaction Undone". 	/* to be displayed when done */
-	 undo tranblk, next tranblk.
-      end.
+	     undo tranblk, next tranblk.
+     end.
 
       /* else s_Trans = {&TRANS_COMMIT} and we'll fall through to
       	 commit the transaction. 
@@ -235,10 +235,25 @@ repeat transaction ON ERROR UNDO, RETRY:
     
    s_Browse_Stat = "Transaction committed".  /* to be displayed when done */
    {adedict/setdirty.i &Dirty = "false"}.
+   
+   catch e as Progress.Lang.Error :
+   	   run showTransactionError(e)	 .
+   end catch.
 end. 
 
 return.
 
+Procedure showTransactionError:
+    define input parameter  pError  as Progress.Lang.Error no-undo.
+    define variable cMsg as character no-undo.
+    define variable i as integer no-undo.
+    define variable ctxt as character no-undo.
+    do i = 1 to pError:NumMessages:
+        cMsg = cMsg + pError:GetMessage (i) + chr(10).
+    end.
+    cMsg = trim(cMsg,CHR(10)).
+    message cMsg view-as alert-box error title "Transaction Failed".     
+end procedure.
 
 
 

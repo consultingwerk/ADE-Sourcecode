@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2014 by Progress Software Corporation. All rights*
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,6 +21,7 @@
   
   Modified: 
     2/17/98 (wood) remove About" options
+    3/19/2014 rkumar Modified WebSpeed Home link
 ------------------------------------------------------------------------*/
 /*           This .W file was created with WebSpeed WorkBench.          */
 /*----------------------------------------------------------------------*/
@@ -94,7 +95,7 @@ PROCEDURE process-web-request :
     '<H3>Scripting:</H3>~n'
     '<A HREF="edtscrpt.w">Script Editor</A><br>~n'    
     '<H3>Information:</H3>~n'
-    '<A HREF="http://webspeed.progress.com">WebSpeed Home Page</A><br>~n'
+    '<A HREF="http://www.progress.com/products/openedge/features/operational-excellence/appserver/webspeed-workshop">WebSpeed Home Page</A><br>~n'
     .
   END.
 

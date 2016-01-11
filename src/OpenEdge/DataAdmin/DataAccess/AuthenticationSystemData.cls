@@ -28,24 +28,17 @@ using OpenEdge.DataAdmin.Message.ITableRequest from propath.
 
 class OpenEdge.DataAdmin.DataAccess.AuthenticationSystemData inherits DataAccess implements IDataAccess : 
    
-    define private variable Url as character no-undo.
- 
     define public property BaseQuery as character no-undo
         get():
            return "".
         end get.     
         set.
     
-    method protected override void SetUrl(pcUrl as char):
-        Url = pcUrl. 
-    end method.
-    
-     
     method public override void FetchData(msg as IFetchRequest):
         define variable hBuffer as handle no-undo.
         define variable authenticationSystemDataSource as IDataSource no-undo.
         define variable tableRequest as ITableRequest no-undo.
-        SetUrl(msg:url).
+        Url = msg:url.
         DatasetHandle = msg:DataHandle.       
         
         hBuffer = msg:DataHandle:get-buffer-handle ("ttAuthenticationSystem").
@@ -74,7 +67,7 @@ class OpenEdge.DataAdmin.DataAccess.AuthenticationSystemData inherits DataAccess
         define variable hBuffer as handle no-undo.
         define variable authenticationSystemDataSource as IDataSource no-undo.
  
-        SetUrl(phChanges:url).
+        Url = phChanges:url.
         DatasetHandle = phChanges:DataHandle.              
         hBuffer = phChanges:DataHandle:get-buffer-handle ("ttAuthenticationSystem").
         if valid-handle(hBuffer) then

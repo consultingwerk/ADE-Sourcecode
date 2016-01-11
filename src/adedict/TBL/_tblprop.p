@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2000-2010,2013 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -46,7 +46,9 @@ Define var capab            as char        NO-UNDO.
 Define var junk	            as logical     NO-UNDO.
 Define var junk-i           as integer     NO-UNDO.
 define var isDBMultiTenant  as logical     no-undo.
-
+define variable isPartitionEnabled as logical no-undo.
+define variable canEnablePartitionOptions as logical no-undo. 
+define variable isType2    as logical no-undo.
 find dictdb._File WHERE dictdb._File._File-name = "_File"
              AND dictdb._File._Owner = "PUB"
              NO-LOCK.
@@ -59,6 +61,8 @@ end.
 
 /* a default tenantrecord is created when the database is enabled for multi-tenancy */
 isDBMultiTenant = can-find(first dictdb._tenant).
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+isPartitionEnabled = avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1".
 
 /* Don't want Cancel if moving to next table - only when window opens */
 if s_win_Tbl = ? then
@@ -218,23 +222,35 @@ do:
                                    AND dictdb._StorageObject._Object-number = b_File._File-number
                                    and dictdb._StorageObject._Partitionid = 0 
                                    NO-LOCK NO-ERROR.
-        IF AVAILABLE dictdb._StorageObject THEN                      
-            FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
-        ELSE
+        IF AVAILABLE dictdb._StorageObject THEN     
+        do:   
+            if dictdb._StorageObject._Area-number <> 0 then           
+                FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+        end.    
+        ELSE if b_File._File-Attributes[3] = false then
             FIND dictdb._Area WHERE dictdb._Area._Area-number = 6 NO-LOCK. 
     END.
-    ELSE
-        FIND dictdb._Area WHERE dictdb._Area._Area-number = b_File._ianum NO-LOCK.
-      
-    ASSIGN s_Tbl_Area = dictdb._Area._Area-name.    
+    ELSE do:
+        if b_File._ianum <> 0 then 
+            FIND dictdb._Area WHERE dictdb._Area._Area-number = b_File._ianum NO-LOCK.
+    end.
+    if AVAILABLE dictdb._Area then
+    do:    
+        assign isType2 = dictdb._Area._Area-clustersize = 8 or  dictdb._Area._Area-clustersize = 64 or  dictdb._Area._Area-clustersize = 512    
+               s_Tbl_Area = dictdb._Area._Area-name.  
+    end.
+    else 
+        assign s_Tbl_Area = "".       
 end.
 s_btn_File_Area:visible in frame tblprops = false.
 s_lst_File_Area:visible in frame tblprops = false.
 
 /*setAreaLabel(s_Tbl_Area:handle in frame tblprops,b_File._File-Attributes[1]).*/
 setAreaState(b_File._File-Attributes[1],b_File._File-Attributes[2],no,no,b_File._File-Attributes[2]:handle in FRAME tblprops,s_tbl_Area:handle in FRAME tblprops,?,s_Tbl_Area).  
+/*setAreaState(b_File._File-Attributes[3],b_File._File-Attributes[4],no,no,b_File._File-Attributes[4]:handle in FRAME tblprops,s_tbl_Area:handle in FRAME tblprops,?,s_Tbl_Area).  */
 
 display  b_File._File-Name
+	 b_File._File-Attributes[3]
          b_File._File-Attributes[1]
          b_File._File-Attributes[2]   
          s_Tbl_Area 
@@ -292,6 +308,9 @@ do:
    apply "entry" to s_btn_Tbl_Triggers in frame tblprops.
 end.
 else do:
+    /* these may have been enabled below in previous call to this   */
+    disable b_File._File-Attributes[1] b_File._File-Attributes[2] b_File._File-Attributes[3]
+           with frame tblprops. 
    /* User is not allowed to modify the name of a SQL table or a view.  Also 
       some gateways don't allow rename. */
    if b_File._Db-lang >= {&TBLTYP_SQL} OR
@@ -300,15 +319,15 @@ else do:
       name_editable = false.
    else if INDEX(capab, {&CAPAB_RENAME}) = 0 then
       name_editable = false.
-   else
+   else do:
       name_editable = true.
-  
-   disable b_File._File-Attributes[1] when b_File._File-Attributes[1]
-           with frame tblprops.
+      canEnablePartitionOptions = isType2 and b_File._File-Attributes[1] = false and b_File._File-Attributes[3] = false.
+   end.
    /* Note: the order of enables will govern the TAB order. */
-   enable b_File._File-Name   when name_editable
-          b_File._File-Attributes[1] when isDBMultiTenant and b_File._File-Attributes[1] = false
-          b_File._Dump-Name  
+   enable  b_File._File-Name   when name_editable
+          b_File._File-Attributes[1] when isDBMultiTenant    and canEnablePartitionOptions
+          b_File._File-Attributes[3] when isPartitionEnabled and canEnablePartitionOptions
+          b_File._Dump-Name
           b_File._Hidden
 	   	  s_Tbl_Type          when INDEX(capab, {&CAPAB_TBL_TYPE_MOD}) > 0
       	  b_File._File-label

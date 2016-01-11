@@ -1,4 +1,17 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.DataAdminContext.
+USING OpenEdge.DataAdmin.Binding.Factory.IContextScope.
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.DataAdminService.
+USING OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.UserFieldPermission.
+USING OpenEdge.DataAdmin.UserFieldPermissionSet.
+USING Progress.Json.ObjectModel.JsonObject.
+USING Progress.Lang.*.
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -15,32 +28,12 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-
-using Progress.Json.ObjectModel.JsonObject from propath.
-
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.UserFieldPermission from propath.
-using OpenEdge.DataAdmin.UserFieldPermissionSet from propath. 
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/userfieldpermission.i}
      
     define private dataset dsUserFieldPermission serialize-name "root" for ttUserFieldPermission.
-    
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsUserFieldPermission:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -70,7 +63,12 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
         super ("UserFieldPermission",pScope).
     end constructor.
     
-	method public override void CopyTable(cntxt as IDataAdminContext).
+        /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsUserFieldPermission:handle. 
+    end method.
+    
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy UserFieldPermission").
     end method. 
      
@@ -86,10 +84,6 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
         return "".
     end.
     
-    method override public void WriteTo( input writer as IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
-   
 	method public override logical CanFind(name as character):
         undo, throw new UnsupportedOperationError("CanFind of UserFieldPermission with single key.").
     end.    
@@ -115,8 +109,8 @@ class OpenEdge.DataAdmin.Binding.UserFieldPermissionContext inherits DataAdminCo
         return new UserFieldPermissionSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new UserFieldPermission(cntxt).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new UserFieldPermission(this-object,pReq).
     end method.
     
     method public JsonObject GetJsonObjects(pcParent as char,hSerializebuffer as handle):

@@ -28,33 +28,6 @@ using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Rest.Connection from propath.
 
-/*                                                                                                 */
-/*define temp-table ttConnection serialize-name "connection"                                       */
-/*   field DatabaseUser         as char serialize-name "databaseUser"                              */
-/*   field TenantName           as char serialize-name "tenantName"                                */
-/*   field TenantType           as char serialize-name "tenantType"                                */
-/*   field DomainName           as char serialize-name "domainName"                                */
-/*                                                                                                 */
-/*   field Administrators_url     as char serialize-name "administrators_url"                      */
-/*   field Areas_url              as char serialize-name "areas_url"                               */
-/*   field CountTenants_url       as char serialize-name "counttenants_url"                        */
-/*   field CreateGroupScript_url  as char serialize-name "creategroupscript_url"                   */
-/*   field CreateTenantScript_url as char serialize-name "createtenantscript_url"                  */
-/*   field DataSecurity_url       as char serialize-name "datasecurity_url"                        */
-/*   field Definitions_url        as char serialize-name "definitions_url"                         */
-/*   field Domains_url            as char serialize-name "domains_url"                             */
-/*   field DomainTypes_url        as char serialize-name "domaintypes_url"                         */
-/*   field Groups_url             as char serialize-name "groups_url" /* uses *_partitiongroups.p*/*/
-/*   field Permissions_url        as char serialize-name "permissions_url"                         */
-/*   field Schemas_url            as char serialize-name "schemas_url"                             */
-/*   field SecuritySummary_url    as char serialize-name "securitysummary_url"                     */
-/*   field Sequences_url          as char serialize-name "sequences_url"                           */
-/*   field Tenants_url            as char serialize-name "tenants_url"                             */
-/*   field UserPermissions_url    as char serialize-name "userpermissions_url"                     */
-/*   field Users_url              as char serialize-name "users_url"                               */
-/*   .                                                                                             */
-   
-
 {darest/restbase.i get connections}
  
 procedure Execute :

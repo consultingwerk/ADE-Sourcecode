@@ -1,4 +1,10 @@
- 
+ /* ***********************************************************/
+ /* Copyright (c) 2012-2014 by Progress Software Corporation  */
+ /*                                                           */
+ /* All rights reserved.  No part of this program or document */
+ /* may be  reproduced in  any form  or by  any means without */
+ /* permission in writing from Progress Software Corporation. */
+ /*************************************************************/
  /*------------------------------------------------------------------------
     File        : RestService
     Purpose     : 

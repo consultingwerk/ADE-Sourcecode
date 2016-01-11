@@ -115,10 +115,8 @@ class OpenEdge.DataAdmin.UserSet inherits DataAdminCollection implements IUserSe
         if valid-object(Domain) then
             userImpl:Domain = Domain.
        
-        userImpl:Attach(Context).
-    
-        return true.
-    end method.  
+        return Context:AddEntity(userImpl).
+    end method.    
  
     method public override logical Remove(o as Object):
         define variable auser as IUser no-undo.

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2008-2014 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -17,6 +17,16 @@ Author: Laura Stern
 
 Date Created: 04/22/92
 
+BIG NOTE: Make sure ANY widget reference is qualified with IN or WITH FRAME idxnew!
+
+          The shared idxprop frame is defined here and has the same objects as idxnew. 
+          ANY widget reference that does not explicitly use IN or WITH idxnew will then reference idxprop. 
+          This may lead to idxprop being realized here parented to the DD main window. 
+          So when clicking on Index Properties after this it will display in main window and 
+          hide the frame already there, which again leads to a STOP due to the _dcttran WAIT-FOR 
+          now waiting for a hidden widget. (not 100% sure this is the wait-for that fails, 
+          but some wait-for will fail if widgets have no frame reference)  
+             
 History:
 	gfs	11/04/94	Fixed problem with sensitive on Asc/Desc
 	DLM     03/26/98    Added area support
@@ -48,23 +58,20 @@ History:
 {adedict/IDX/idxvar2.i shared}
 {adedict/IDX/idxvar.i shared}
 {adedict/capab.i}
-/* include file contains function for area label */
-{prodict/pro/arealabel.i}
-/* General processing variables */
-Define var num_flds  as integer NO-UNDO. /* # of index flds chosen */
-Define var max_flds  as integer NO-UNDO.
-Define var capab     as char   	NO-UNDO.
-Define var all_cnt   as integer NO-UNDO.
-Define var added     as logical NO-UNDO INIT no.
-Define var num       as integer NO-UNDO.
-Define var curr_type as CHARACTER NO-UNDO.
-define variable AreaList as character no-undo.
-define variable lNoArea as logical no-undo.
-DEFINE VARIABLE ans AS LOGICAL NO-UNDO.
 
+/* General processing variables */
+Define var num_flds   as integer NO-UNDO. /* # of index flds chosen */
+Define var max_flds   as integer NO-UNDO. 
+Define var capab      as char   	NO-UNDO.
+Define var all_cnt    as integer NO-UNDO.
+Define var added      as logical NO-UNDO INIT no.
+Define var numindexes as integer NO-UNDO.
+Define var curr_type  as CHARACTER NO-UNDO.
+define variable lNoArea as logical no-undo.
+define variable LastArea as character no-undo.
+define variable lAreaOk as logical no-undo.
 
 Define buffer x_File for dictdb._File.
-
 
 /*=========================Internal Procedures===============================*/
 
@@ -78,6 +85,39 @@ Define buffer x_File for dictdb._File.
       p_To_Index - True, if the field is being added to the index or
       	       	   false if field is being removed from the index.
 ------------------------------------------------------------------*/
+
+
+/* **********************  Internal Procedures  *********************** */
+/** fill and display the area  
+    @param plShow 
+              - true - fill from db and show and select first 
+              - false - blank (mt with no default or hp with local true)
+              - ?     - "N/A" (foreign db).
+*/
+procedure FillArea:
+    define input parameter plShow as logical no-undo.
+    define variable cAreaList as character no-undo.
+    define variable cEmpty    as character no-undo. 
+    if plShow then 
+    do:
+       run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame newidx, output cAreaList).
+       assign
+          s_Idx_Area:list-items in frame newidx = cAreaList
+          s_Idx_Area:screen-value in frame newidx = s_Idx_Area:entry(1) in frame newidx 
+          numindexes = s_Idx_Area:num-items in frame newidx
+          s_Idx_Area:inner-lines in frame newidx = min(numindexes,20).  
+          s_Idx_Area:sensitive in frame newidx = true.
+    end.
+    else do:
+        cEmpty = if plShow = false then " " else "N/A".
+        assign 
+            s_Idx_Area:list-items in frame newidx = cEmpty
+            s_Idx_Area:screen-value in frame newidx = cEmpty 
+            s_Idx_Area:sensitive in frame newidx = false. 
+    end. 
+end.    
+
+
 PROCEDURE Transfer_Name:
 
 Define INPUT parameter p_lst_Add  as widget-handle NO-UNDO.
@@ -196,7 +236,7 @@ end.
 PROCEDURE Adjust_Move_Btns:
 
 Define var val as char NO-UNDO.
-
+  
    val = s_lst_IdxFlds:screen-value in frame newidx.
 
    s_btn_IdxFldDwn:sensitive in frame newidx = 
@@ -266,6 +306,54 @@ PROCEDURE Remove_Field:
       s_btn_IdxFldAdd:sensitive in frame newidx = yes.
 end.
 
+procedure ValidateArea:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+     
+    define output parameter pok as logical no-undo.
+    ASSIGN pok = false.
+    if s_idx_Area:screen-value IN FRAME newidx  = "" then
+    do:
+         message "You must specify an Area for the index"
+                   view-as ALERT-BOX ERROR  buttons OK.
+         return.    
+    end. 
+     
+    IF NOT s_In_Schema_Area AND numindexes > 1 THEN 
+    DO:
+        IF s_Idx_Area:screen-value in FRAME newidx  = "Schema Area" THEN 
+        DO:
+            MESSAGE "Progress Software Corporation does not recommend" SKIP
+                  "creating user indices in the Schema Area."  Skip(1)
+                  "Should indices be created in this area?" SKIP (1)
+                  VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE pok .
+            IF pok THEN
+                ASSIGN s_In_Schema_Area = TRUE.        
+            ELSE DO:
+                /* set to true to not ask again - output false */
+                ASSIGN s_In_Schema_Area = TRUE.
+                RETURN.
+            END.
+        END.
+        ELSE
+            ASSIGN pok = TRUE.
+    END.
+    ELSE IF NOT s_In_Schema_Area AND s_Idx_Area:screen-value in FRAME newidx  = "Schema Area" THEN 
+    DO:
+      MESSAGE "Progress Software Corporation does not recommend" SKIP
+            "creating user indices in the Schema Area. " SKIP (1)
+            "See the System Administration Guide on how to" SKIP
+            "create other data areas." SKIP (1)
+            VIEW-AS ALERT-BOX WARNING.
+      ASSIGN s_In_Schema_Area = TRUE
+             pok              = TRUE.
+    END.  
+    ELSE 
+       ASSIGN pok = true.      
+
+end procedure.
 
 /*===============================Triggers====================================*/
 
@@ -282,6 +370,7 @@ on choose of s_btn_OK in frame newidx
 
 /*----- HIT of ADD (Index) BUTTON or GO -----*/
 on GO of frame newidx	/* or Create - because it's auto-go */
+/* The GO trigger should never change s_ok_hit to true since it is also fired on Create.*/ 
 do:
    Define var fnum   	as integer NO-UNDO.
    Define var flds   	as char    NO-UNDO.
@@ -320,7 +409,7 @@ do:
       return NO-APPLY.
    end.
    
-   
+    
    if num_flds = 0 then
    do:
       message "You must specify at least one field" SKIP
@@ -329,16 +418,14 @@ do:
       s_OK_Hit = no.
       return NO-APPLY.
    end.
- 
-   IF NOT s_In_Schema_Area THEN DO:
-     APPLY "LEAVE" TO idx-area-name.
-     IF NOT ans THEN DO:
-        s_OK_Hit = no.  /* in case ok was hit */
-        APPLY "ENTRY" TO idx-area-name.
-        return NO-APPLY.
-     END.
-   END.       
-  
+   
+   if not lNoArea then
+   do:
+       run ValidateArea(output lAreaOk).
+       if lAreaOk = no then
+           return no-apply.    
+   end.
+   
    flds = s_lst_IdxFlds:LIST-ITEMS in frame newidx. /* Get all fields in list */
 
    wordidx = input frame newidx s_Idx_Word.
@@ -364,12 +451,20 @@ do:
       find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
       if dictdb._Field._Data-Type <> "Character" then
       do:
-	 message "You can only specify word-indexed when" SKIP
-		 "the index contains a character field."
-      	    view-as ALERT-BOX ERROR  buttons OK.    
-      	 s_OK_Hit = no.
-	 return NO-APPLY.
-      end.                  
+	      message "You can only specify word-indexed when" SKIP
+		          "the index contains a character field."
+      	         view-as ALERT-BOX ERROR  buttons OK.    
+      	  s_OK_Hit = no.
+	      return NO-APPLY.
+      end.       
+      assign frame newidx s_Idx_Local.
+      if s_Idx_Local then
+      do:
+          message "You cannot specify a local word-index"  
+              view-as ALERT-BOX ERROR  buttons OK.    
+          s_OK_Hit = no.
+          return NO-APPLY.
+      end.
    end.
    else do: /* Word index was not specified */
       do fnum = 1 to num_flds:
@@ -405,7 +500,7 @@ do:
 	    return NO-APPLY.
       	 end.     
       end.
-
+                      
       if input frame newidx b_Index._Unique = yes AND
       	 input frame newidx b_Index._Active = yes then
       do:   
@@ -452,29 +547,49 @@ do:
       	    end.
       	 end.
       end.
+      if s_idx_Area:screen-value IN FRAME newidx  = "" then
+      do:
+          if not lNoArea then 
+             message "Yo must specify an Area for the index"
+                     view-as ALERT-BOX ERROR  buttons OK.
+               s_OK_Hit = no.
+               return no-apply.    
+      end.
    end.
 
    do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       run adecomm/_setcurs.p ("WAIT").
-   
       assign
 	      b_Index._File-recid = s_TblRecId
 	      input frame newidx b_Index._Index-name
 	      input frame newidx b_Index._Unique
-	      input frame newidx b_Index._Active
+	      input frame newidx b_Index._Active	      
+	      input frame newidx s_Idx_Local
 	      input frame newidx b_Index._Desc.
-      if x_File._file-Attributes[1] and x_File._file-Attributes[2] = false then
-         ASSIGN b_Index._ianum = 0.
-      else IF idx-area-name = "N/A"  THEN
-        ASSIGN b_Index._ianum = 6.
-      ELSE  DO:
-          FIND dictdb._Area WHERE dictdb._Area._Area-name = INPUT FRAME newidx idx-area-name NO-LOCK.
+	  
+      if (x_File._file-Attributes[1] and x_File._file-Attributes[2] = false) 
+      OR (x_File._file-Attributes[3] and s_Idx_Local) then
+          ASSIGN b_Index._ianum = 0.
+      else IF s_idx_Area:screen-value in frame newidx = "N/A"  THEN
+          ASSIGN b_Index._ianum = 6.
+      ELSE DO:
+          FIND dictdb._Area WHERE dictdb._Area._Area-name =  s_idx_Area:screen-value IN FRAME newidx NO-LOCK no-error.
+          if not avail dictdb._Area  then
+          do:
+               message "Area does not exist"
+               view-as ALERT-BOX ERROR  buttons OK.
+               s_OK_Hit = no.
+               return no-apply.    
+          end.    
           ASSIGN b_Index._ianum = dictdb._Area._Area-number
-                 idx-area-name = INPUT FRAME newidx idx-area-name.
+                 s_idx_Area = INPUT FRAME newidx s_idx_Area.
       END.
-      
+
       b_Index._Wordidx = (if wordidx then 1 else ?).
-      
+      if x_File._file-Attributes[3] then do:
+	      if s_Idx_Local then
+              b_Index._index-attributes[1] = true.
+      end.
       if INDEX(capab, {&CAPAB_GATE_IDXNUM}) > 0 then
       do:
       	 /* Call gateway specific routine to get index number */
@@ -489,7 +604,7 @@ do:
       	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
       	 find dictdb._Field of x_File where dictdb._Field._Field-Name = name.
 
-	 create dictdb._Index-Field.
+	     create dictdb._Index-Field.
       	 assign
       	    dictdb._Index-Field._Index-recid = RECID(b_Index)
       	    dictdb._Index-Field._Field-recid = RECID(dictdb._Field)
@@ -548,11 +663,10 @@ do:
       	 this index to be the primary one, set the primary index flag 
       	 in the _File record. 
       */
-      if (primary OR
-      	  input frame newidx s_Idx_Primary = yes) then
+      if (primary OR input frame newidx s_Idx_Primary = yes) then
       do:
-	 x_File._Prime-Index = RECID(b_Index).
-      	 s_Status = " - Made this the primary index".
+	      x_File._Prime-Index = RECID(b_Index).
+      	  s_Status = " - Made this the primary index".
       end.
       else 
       	 s_Status = "".
@@ -584,41 +698,6 @@ do:
    return NO-APPLY.
 end.
 
-
-/* ------on leave of idx-area-name ----*/
-ON LEAVE OF idx-area-name in frame newidx 
-do:
-  ASSIGN ans = FALSE.
-  IF NOT s_In_Schema_Area AND num > 1 THEN DO:
-    IF INPUT FRAME newidx idx-area-name = "Schema Area" THEN DO:
-      MESSAGE "Progress Software Corporation does not recommend" SKIP
-              "creating user indices in the Schema Area."  Skip(1)
-              "Should indices be created in this area?" SKIP (1)
-              VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE ans .
-      IF ans THEN
-        ASSIGN s_In_Schema_Area = TRUE.        
-      ELSE DO:
-        ASSIGN s_In_Schema_Area = TRUE.
-        RETURN NO-APPLY.
-      END.
-    END.
-    ELSE
-      ASSIGN ans = TRUE.
-  END.
-  ELSE IF NOT s_In_Schema_Area AND INPUT FRAME newidx idx-area-name = "Schema Area" THEN DO:
-    MESSAGE "Progress Software Corporation does not recommend" SKIP
-            "creating user indices in the Schema Area. " SKIP (1)
-            "See the System Administration Guide on how to" SKIP
-            "create other data areas." SKIP (1)
-            VIEW-AS ALERT-BOX WARNING.
-    ASSIGN s_In_Schema_Area = TRUE
-           ans          = TRUE.
-  END.  
-  ELSE 
-    ASSIGN ans = true.      
-END.  
-
-
 /*----- HIT of ADD >> (add field) BUTTON -----*/
 on choose of s_btn_IdxFldAdd in frame newidx
    run Add_Field.
@@ -648,6 +727,18 @@ on choose of s_btn_IdxFldUp in frame newidx
 on default-action of s_lst_IdxFlds in frame newidx
    run Remove_Field.
 
+/*----- VALUE-CHANGED of Local/Global Button -----*/
+on value-changed of s_Idx_Local in frame newidx 
+do:
+   assign frame newidx s_Idx_Local.
+   /* keep track of last choice before emptying */ 
+   if s_Idx_Local  then 
+      LastArea = s_Idx_Area:screen-value in frame newidx.
+   run FillArea(not s_Idx_Local).
+   /* Common courtesy - no loss of input when toggling an option that empties choice */
+   if not s_Idx_Local and LastArea > "" then
+       s_Idx_Area:screen-value in frame newidx = LastArea.
+end.
 
 /*----- VALUE-CHANGED of ASC/DESC RADIO SET -----*/
 on value-changed of s_IdxFld_AscDesc in frame newidx  
@@ -758,7 +849,6 @@ on HELP of frame newidx OR choose of s_btn_Help in frame newidx
 
 
 /*============================Mainline code==================================*/
-
 Define var frstfld  as char    NO-UNDO init "".
 Define var char_fld as logical NO-UNDO init yes.
 Define var cmax     as char    NO-UNDO.
@@ -773,6 +863,7 @@ do:
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
+
 find dictdb._File WHERE dictdb._File._FIle-name = "_Index-Field"
              AND dictdb._File._Owner = "PUB" NO-LOCK.
 if NOT can-do(dictdb._File._Can-create, USERID("DICTDB")) then
@@ -781,6 +872,7 @@ do:
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
+
 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
 if dictdb._File._Frozen then  
 do:
@@ -790,7 +882,8 @@ do:
 end.
 
 /* OE00135682 - use other delimiter in case area name has comma */
-s_lst_idx_Area:DELIMITER in frame newidx = CHR(1).
+s_idx_Area:DELIMITER in frame newidx = CHR(1).
+
 /* Set up for filling the list of all fields from the current table */
 find x_File where RECID(x_file) = s_TblRecId.
 
@@ -801,52 +894,7 @@ do:
 	   view-as ALERT-BOX ERROR buttons OK.
    return.
 end.
-IF x_File._For-type <> ?  
-OR (x_File._file-Attributes[1] and x_File._file-Attributes[2] = false) THEN
-   /* we show blank for no default area in table and field , so do that here as well */
-  ASSIGN idx-area-name = if x_File._For-type <> ? then "N/A" else ""
-         idx-area-name:sensitive in frame newidx = false
-         s_Lst_Idx_Area:hidden in frame newidx = yes
-         s_btn_Idx_Area:HIDDEN in frame newidx = yes
-         s_Area_mttext:hidden in frame newidx = yes
-         lNoArea = true.
 
-ELSE DO with frame newidx:
-   s_lst_idx_area:list-items in frame newidx = "".
-   if x_File._File-Attributes[1] and x_File._File-Attributes[2] then
-   do:
-       s_Area_mttext:screen-value in frame newidx = "(for default tenant)". 
-       s_Area_mttext:hidden in frame newidx = false.        
-   end.
-   run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_lst_idx_area:DELIMITER in frame newidx, output AreaList).
-   assign
-       s_lst_idx_area:list-items in frame newidx = AreaList
-       idx-area-name = s_lst_idx_area:entry(1) in frame newidx 
-       num = s_lst_Idx_Area:num-items in frame newidx
-       s_Lst_Idx_Area:inner-lines in frame newidx = min(num,10).  
-
-   FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-   s_In_Schema_Area = (idx-area-name = DICTDB._AREA._Area-name).
-     
-   assign idx-area-name:font  in frame newidx = 0
-          s_lst_idx_Area:font in frame newidx = 0
-          idx-Area-name:width  in frame newidx = 34
-          s_lst_idx_Area:width in frame newidx = 38.
-
-  {adecomm/cbdrop.i &Frame  = "frame newidx"
-      	       	  &CBFill = "idx-area-name"
-      	       	  &CBList = "s_lst_idx_Area"
-      	       	  &CBBtn  = "s_btn_idx_area"
-     	       	  &CBInit = """"}
-
-
-   {adecomm/cbcdrop.i &Frame  = "frame newidx"
-		         &CBFill = "idx-area-name"
-		         &CBList = "s_lst_idx_Area"
-		     	 &CBBtn  = "s_btn_idx_Area"
-		     	 &CBInit = "curr_type"}
-END.
-    
 find FIRST dictdb._Field of x_File NO-ERROR.
 if NOT AVAILABLE dictdb._Field then
 do:
@@ -908,16 +956,17 @@ if NOT char_fld then
 
 s_Status = "".
 display s_Status with frame newidx. /* erases val from the last time */
+
 s_btn_Done:label in frame newidx = "Cancel".
  
-enable b_Index._Index-Name   
-       idx-area-name when lNoArea = false
-       s_btn_Idx_Area when lNoArea = false
+enable b_Index._Index-Name
+       s_Idx_Local when x_file._file-attributes[3]
+       s_idx_Area /* enabled for tab order - will be disabled if necessary below*/   
        b_Index._Desc
        s_Idx_Primary
        b_Index._Active
        b_Index._Unique
-       s_Idx_Word    	when char_fld AND INDEX(capab, {&CAPAB_WORD_INDEX}) > 0
+       s_Idx_Word     when char_fld AND INDEX(capab, {&CAPAB_WORD_INDEX}) > 0
        s_Idx_Abbrev   when char_fld
        s_lst_IdxFldChoice
        s_btn_IdxFldAdd
@@ -926,6 +975,40 @@ enable b_Index._Index-Name
        s_btn_Done
        s_btn_Help
        with frame newidx.
+       
+s_Area_mttext:hidden in frame newidx = true.          
+lNoArea = false.  
+ s_Idx_Local = false.
+/* no area */
+IF x_File._For-type <> ? then
+do:
+    run FillArea(?).
+    lNoArea = true.
+end.      
+else if (x_File._file-Attributes[1] and x_File._file-Attributes[2] = false) OR (x_File._file-Attributes[3]) THEN
+do:
+    run FillArea(false).
+    /* default local to true if partitioned */  
+    if x_File._file-Attributes[3] then do:
+	    s_Idx_Local = true.
+    end.
+    lNoArea = true.
+end.
+else do with frame newidx:
+   if not x_File._File-Attributes[1] or x_File._File-Attributes[2] then
+   do:
+       if x_File._File-Attributes[2] then
+       do:
+           s_Area_mttext:screen-value in frame newidx = "(for default tenant)".
+           s_Area_mttext:hidden in frame newidx = false.        
+       end.
+       run FillArea(true).
+   end.
+   else do:
+       run FillArea(false).
+       lNoArea = true. 
+   end.       
+end.
 
 /* Since we will be enabling/disabling various widgets as the user adds/deletes
    fields from the index, and since we don't want to ENABLE all widgets up
@@ -934,8 +1017,8 @@ enable b_Index._Index-Name
    widgets which may become sensitized as user users the frame.
 */
 assign
-   s_Res = s_lst_Idx_Area:move-after-tab-item
-      	       (s_btn_Idx_Area:handle in frame newidx) in frame newidx
+/*   s_Res = s_lst_Idx_Area:move-after-tab-item
+      	       (s_btn_Idx_Area:handle in frame newidx) in frame newidx*/
    s_Res = s_btn_IdxFldRmv:move-after-tab-item 
       	       (s_btn_IdxFldAdd:handle in frame newidx) in frame newidx
    s_Res = s_btn_IdxFldDwn:move-after-tab-item 
@@ -993,7 +1076,7 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	 Private data is in different data space.
       */
       s_lst_IdxFldChoice:private-data in frame newidx = 
-      	 s_lst_IdxFldChoice:LIST-ITEMS in frame newidx
+      s_lst_IdxFldChoice:LIST-ITEMS in frame newidx
       all_cnt = NUM-ENTRIES(s_lst_IdxFldChoice:private-data in frame newidx)
       s_lst_IdxFlds:LIST-ITEMS in frame newidx = "" /* clear the list */
    
@@ -1003,9 +1086,9 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       s_btn_IdxFldRmv:sensitive in frame newidx = false
       s_btn_IdxFldDwn:sensitive in frame newidx = false
       s_btn_IdxFldUp:sensitive in frame newidx = false.
-
-   display "" @ b_Index._Index-Name /* blank instead of ? */
-           idx-area-name
+   
+   display "" @ b_Index._Index-Name /* blank instead of ? */          
+	       s_Idx_Local
       	   s_Idx_Primary
        	   b_Index._Active
        	   b_Index._Unique
@@ -1019,7 +1102,7 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
 
    /* Set selection to first item in list of fields */
    s_lst_IdxFldChoice:screen-value in frame newidx =
-      s_lst_IdxFldChoice:entry(1) in frame newidx.
+   s_lst_IdxFldChoice:entry(1) in frame newidx.
 
    wait-for choose of s_btn_OK in frame newidx,
       	              s_btn_Add in frame newidx OR
@@ -1032,7 +1115,7 @@ s_lst_IdxFldChoice:private-data in frame newidx = "".
 
 hide frame newidx.
 return.
-
+ 
 
 
 

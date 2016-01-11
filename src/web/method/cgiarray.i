@@ -41,14 +41,14 @@ Created: 05/14/96
 &ENDIF
 
 /* List of CGI variables passed */
-DEFINE NEW GLOBAL SHARED VARIABLE CgiList           AS CHAR FORMAT "x(70)" 
+DEFINE NEW GLOBAL SHARED VARIABLE CgiList           AS LONGCHAR
     NO-UNDO.
 /* Array of CGI values corresponding to CgiList (arbitrary limit) */
-DEFINE NEW GLOBAL SHARED VARIABLE CgiVar            AS CHAR 
+DEFINE NEW GLOBAL SHARED VARIABLE CgiVar            AS LONGCHAR
     EXTENT {&MAX-CGI}    NO-UNDO.
 
 /* List of fields in form */
-DEFINE NEW GLOBAL SHARED VARIABLE FieldList         AS CHAR FORMAT "x(70)" 
+DEFINE NEW GLOBAL SHARED VARIABLE FieldList         AS CHAR FORMAT "x(70)":U 
     NO-UNDO.
 /* Array of field values corresponding to FieldList (arbitrary limit) */
 DEFINE NEW GLOBAL SHARED VARIABLE FieldVar          AS CHAR 
@@ -64,7 +64,7 @@ DEFINE NEW GLOBAL SHARED TEMP-TABLE ttWebFieldList NO-UNDO
 DEFINE NEW GLOBAL SHARED VARIABLE usetttWebFieldList AS LOGICAL NO-UNDO.
 
 /* List of local fields */
-DEFINE NEW GLOBAL SHARED VARIABLE UserFieldList    AS CHAR FORMAT "x(70)" 
+DEFINE NEW GLOBAL SHARED VARIABLE UserFieldList    AS CHAR FORMAT "x(70)":U 
     NO-UNDO.
 /* Array of values corresponding to UserFieldList (arbitrary limit) */
 DEFINE NEW GLOBAL SHARED VARIABLE UserFieldVar     AS CHAR

@@ -28,10 +28,11 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
     define variable mIndexArea as char no-undo.
     define variable mLobArea as char no-undo.
     define variable mAllocation as char no-undo.
-    define variable mRefTable as character no-undo.     
+    define variable mRefTable as character no-undo.
+         
     define protected property FileExpression as char no-undo
         get():
-             return DatabaseInfo:FileExpression + " and _file._file-attributes[1] = true".       
+             return DatabaseInfo:FileExpression.       
         end.
             
 	constructor public NewPartitionDataSource (pcTables  as char,
@@ -48,7 +49,7 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         
         DataBuffer = phBuffer.    
         
-        phBuffer:set-callback("After-Row-fill","AfterPartitionRow").              
+        phBuffer:set-callback("After-Row-fill","AfterRow").              
         CreateQuery().    
         hParentRel = ParentRelation.
         
@@ -73,22 +74,23 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
               (columnValue ensures parent reference is NOT transformed) */
             else if valid-handle(hParentRel) and hParentRel:active and not hParentRel:reposition then
                 oQueryString:addExpression(DataSourceHandle:fill-where-string).
-       
+            if mType = "P" then
+                 oQueryString:AddExpression(" _file._file-attributes[1] = 'false'").
+            else
+                 oQueryString:AddExpression(" _file._file-attributes[1] = 'true'").
             cQuery = oQueryString:BuildQueryString(Tables).
          
 /*              oQueryString:showdata() .*/
-
-            lok = QueryHandle:query-prepare (cQuery).
  
+            lok = QueryHandle:query-prepare (cQuery).
             delete object oQueryString. 
         end.
         else
             lok = Prepare().
-            
-        return lOk.
+        return lok.    
     end method. 
     
-    method public override void AfterPartitionRow(dataset-handle hds):
+    method public override void AfterRow(dataset-handle hds):
          
         define variable hbuffer as handle    no-undo.
          
@@ -101,17 +103,29 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         else
             hBuffer::ObjectType = "Table".   
         
+        hBuffer::AllocationState = mAllocation.
+  
         if mType = "T" then 
         do:
             hBuffer::TenantName = mKey.
             hBuffer::TenantGroupName = ?.  /* avoid unique index error */
+            hBuffer::PartitionPolicyDetailName = ?.  /* avoid unique index error */
         end.
-        else do:
+        else if mType = "G" then
+        do:
             hBuffer::TenantGroupName = mKey. 
             hBuffer::TenantName = ?.  /* avoid unique index error */
+            hBuffer::PartitionPolicyDetailName = ?.  /* avoid unique index error */
         end.
-        hBuffer::AllocationState = mAllocation.
-        
+        else do:
+            hBuffer::PartitionPolicyDetailName = mKey. 
+            hBuffer::TenantGroupName = ?.  /* avoid unique index error */
+            hBuffer::TenantName = ?.  /* avoid unique index error */
+            /*the default is two levels up so the mAllocation field is currently typically blank  */
+            if hBuffer::AllocationState = "" then
+                hBuffer::AllocationState = "None".
+        end.
+         
         /*    DEFAULT    hBuffer::BufferPool = partition:ObjectLevelBufferPool.*/
         hBuffer::CanAssignAlternateBufferPool = true.
         if hBuffer::ObjectType = "table" then 
@@ -147,17 +161,20 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         */
     method public void CheckParentExpression(pccol as char,pcop as char,pcVal as char):
         define variable cMsgMany as character no-undo         
-               init "Can only have one unique expression (ttTenant.Name or ttTenantGroup.Name) to identify the new owner in a request for new partitions.".
+               init "Can only have one unique expression (ttTenant.Name, ttTenantGroup.Name or ttPartitionPolicy.Name) to identify the new owner in a request for new partitions.".
         define variable cMsgOp as character no-undo         
                init "Invalid expression &1 &2 &3 in new partition request. Can only have equals operator in &1 expression.".
         define variable cMsgBoth as character no-undo         
-               init "Cannot reference both ttTenant and ttTenantGroup in new partition request.". 
+               init "Cannot reference both &1 and &2 in new partition request.". 
         define variable ctable  as character no-undo. 
         define variable lError  as logical no-undo. 
+        define variable hPolicyDet as handle no-undo.
         if pccol  = "ttPartition.TenantName" then 
             cTable = "ttTenant".
         else if pccol  = "ttPartition.TenantGroupName" then 
             cTable = "ttTenantGroup".
+        else if pccol  = "ttPartition.PartitionPolicyDetailName" then 
+            cTable = "ttPartitionPolicyDetail".
         else       
             ctable = entry(1,pccol,".").    
         
@@ -166,14 +183,27 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         if mType <> "" then
             undo, throw new IllegalArgumentError(cMsgMany).
         if mRefTable <> "" and mRefTable <> cTable then
-            undo, throw new IllegalArgumentError(cMsgboth).
+            undo, throw new IllegalArgumentError(substitute (cMsgboth,mRefTable,cTable)).
                 
         case cTable:
             when "ttTenant" then
                 lError = can-find(dictdb._tenant where _tenant._tenant-name = pcVal).
             when "ttTenantGroup" then
                 lError = can-find(dictdb._Partition-set where _Partition-set._Pset-name = pcVal).
-             otherwise 
+            when "ttPartitionPolicyDetail" then
+            do on error undo, throw:
+                /* could define this as property/field, but assumption is that this happens rarely (once or never) */
+                create buffer hPolicyDet for table "_Partition-policy-detail".
+                hPolicyDet:find-unique ("where _Partition-policy-detail._Policy-name = " + quoter(pcVal)) no-error.
+                catch e as Progress.Lang.Error :
+                   message e:GetMessage(1)
+                   view-as alert-box.		
+                end catch.
+                finally:
+                    delete object hPolicyDet no-error.		
+                end finally.
+            end.         
+            otherwise 
                undo, throw new IllegalArgumentError("Invalid column refeference in new partition query. " + pccol). 
         end.
         
@@ -183,7 +213,7 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
                                           + substr(cTable,3) + " with the same name." ). 
                    
         mRefTable = ctable.
-        mType = if cTable = "ttTenant" then "T" else "G".
+        mType = if cTable = "ttTenant" then "T" else if cTable = "ttTenantGroup" then "G" else "P".
         mKey = pcVal. 
         
     end method.
@@ -200,46 +230,12 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
                init "Cannot reference both ttTenant and ttTenantGroup in new partition request.". 
       
         ctable = entry(1,pccol,".") no-error. 
-        
-        if pccol = "ttTenant.Name" or pccol  = "ttPartition.TenantName" then
+        if lookup(pccol,"ttTenant.Name,ttPartition.TenantName,ttTenantGroup.Name,ttPartition.TenantGroupName,ttPartitionPolicyDetail.name,ttPartition.PartitionPolicyDetailName") > 0 then
         do:
             CheckParentExpression(pccol,pcop,pcval).
-            /*
-            if pccol  = "ttPartition.TenantName" then 
-               cTable = "ttTenant".
-          
-            if lookup(pcop,"EQ,=") = 0 then 
-                undo, throw new IllegalArgumentError(substitute (cMsgOp,pccol,pcop,quoter(pcval))).
-            if mType <> "" then
-                undo, throw new IllegalArgumentError(cMsgMany).
-            mType = "T".
-            if mRefTable <> "" and mRefTable <> cTable then
-                undo, throw new IllegalArgumentError(cMsgboth).
-            
-            mRefTable = ctale.
-            mKey = pcVal. 
-            */
             return ?.        
         end.          
-        else if pccol = "ttTenantGroup.Name" or pccol  = "ttPartition.TenantGroupName" then 
-        do:
-            CheckParentExpression(pccol,pcop,pcval).
-            /*
-            if pccol  = "ttPartition.TenantGroupName" then 
-               cTable = "ttTenantGroup".
-            if lookup(pcop,"EQ,=") = 0 then 
-                undo, throw new IllegalArgumentError(substitute (cMsgOp,pccol)).
-            if mType <> "" then
-                undo, throw new IllegalArgumentError(cMsgMany).
-            mType = "G".
-            if mRefTable <> "" and mRefTable <> cTable then
-                undo, throw new IllegalArgumentError(cMsgBoth).
-            mRefTable = ctable.
-            mKey = pcVal.
-            */             
-            return ?.        
-        end.
-        else if cTable = "ttTenant" or cTable = "ttTenantGroup" then 
+        else if cTable = "ttTenant" or cTable = "ttTenantGroup" or  cTable = "ttPartitionPolicyDetail" then 
         do:
             if mRefTable <> "" and mRefTable <> cTable then
                 undo, throw new IllegalArgumentError(cMsgBoth).
@@ -284,19 +280,24 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         
     method public override character ColumnSource (pcColumn as char):
         define variable cTable as character no-undo.        
-        define variable cColumn as character no-undo.        
+        define variable cColumn as character no-undo.  
+              
         ctable = entry(1,pccolumn,".") no-error. 
        
+        if lookup(cTable,"ttTenant,ttTenantGroup,ttPartitionPolicyDetail,_file") > 0  then 
+            return pccolumn. 
+     
         /* keep the fields that we'll validate and grab the value from in columnExpression as-is */
-        if pcColumn = "ttTenant.Name" or pcColumn = "ttPartition.TenantName" then 
+        if pcColumn  = "ttPartition.TenantName" then 
             return pccolumn.
         
-        if pcColumn = "ttTenantGroup.Name" or pcColumn  = "ttPartition.TenantGroupName" then 
+        if pcColumn = "ttPartition.TenantGroupName" then 
             return pccolumn. 
         
-        if cTable = "ttTenant" or cTable = "ttTenantGroup" then 
+        if pcColumn = "ttPartition.PartitionPolicyDetailName" then 
             return pccolumn. 
         
+         
         if pcColumn = "ttPartition.TableName" 
         or pcColumn = "ttPartition.IndexName" 
         or pcColumn = "ttPartition.FieldName"

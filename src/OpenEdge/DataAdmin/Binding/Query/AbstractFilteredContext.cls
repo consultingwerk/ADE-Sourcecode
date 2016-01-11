@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/* Copyright (c) 2010-2013 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,68 +14,75 @@
    Author(s)   : hdaniels
    Created     : Aug 2010
    Notes       : FilteredContext is a buffer and query used to 
-                 control and limit access to the Parent DataAdminContext,
+                 control and limit access to the Model DataAdminContext,
                  which really is a temp-table. 
                  It has the same interface so that the collection
                  that uses it doesn't need to know the difference. 
  ----------------------------------------------------------------------*/
-routine-level on error undo, throw.
+ 
+block-level on error undo, throw.
 
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
-using Progress.Json.ObjectModel.JsonArray from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.IDataAdminService from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.DataError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
+using OpenEdge.DataAdmin.Binding.DataAdminJsonUtil from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
-using OpenEdge.DataAdmin.Binding.IRowChange from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
-using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 using OpenEdge.DataAdmin.Binding.IFilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.DataAdminQuery from propath. 
-
+using OpenEdge.DataAdmin.Binding.IRow from propath.
+using OpenEdge.DataAdmin.Binding.IRowChange from propath.
+using OpenEdge.DataAdmin.Binding.Query.DataAdminQuery from propath.
+using OpenEdge.DataAdmin.Error.DataError from propath.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.IDataAdminCollection from propath.
+using OpenEdge.DataAdmin.IDataAdminElement from propath.
+using OpenEdge.DataAdmin.IDataAdminService from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Lang.BeforeQuery from propath.
-using OpenEdge.DataAdmin.Lang.QueryString from propath. 
- 
-class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-widget-pool  inherits DataAdminQuery implements IFilteredContext,IDataAdminContext: 
+using OpenEdge.DataAdmin.Lang.QueryString from propath.
+using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
+using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
+using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
+using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
+using OpenEdge.DataAdmin.Message.ITableResponse from propath.
+using Progress.Json.ObjectModel.JsonArray from propath.
+using Progress.Json.ObjectModel.JsonObject from propath.
+using Progress.Lang.* from propath.
+
+class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract inherits DataAdminQuery implements IFilteredContext,IDataAdminContext: 
     /*** events ****************************************/ 
     define public event RowCreated signature void (). 
     define public event RowDeleted signature void ().
     define public event ContextDeleted signature void ().
-    define public event AddedToContext signature void (newContext as IDataAdminContext). 
+    define public event AddedToContext signature void (newContext as IDataAdminModel). 
     define public event ContextRefreshed signature void (tblResponse as ITableResponse). 
               
     /*** properties ****************************************/
+    define protected property JsonUtil as DataAdminJsonUtil no-undo 
+        get():
+            if not valid-object(JsonUtil) then
+                JsonUtil = new DataAdminJsonUtil().
+            return JsonUtil.     
+        end. 
+        set.
 	
 	define public override property Tables         as character no-undo 
-      get():
-          define variable hBufs as handle extent no-undo.
-          define variable i  as integer no-undo. 
-          define variable cTables as character no-undo.
-          hBufs = GetBufferHandles().
-          /** Tables could possibly be referenced early in construction
-              before all query handles are decided 
-              so refresh each time (this is not called often)
-              This is consistent with the fact that CreateQuery also can be called 
-              again if the buffers are changed */
-          do i = 1 to extent(hBufs):
-              cTables = (if i > 1 then cTables + "," else "")
-                 + hBufs[i]:name.
-          end.   
-          return cTables.  
-      end. 
+        get():
+            define variable hBufs as handle extent no-undo.
+            define variable i  as integer no-undo. 
+            define variable cTables as character no-undo.
+            hBufs = GetBufferHandles().
+            /** Tables could possibly be referenced early in construction
+                before all query handles are decided 
+                so refresh each time (this is not called often)
+                This is consistent with the fact that CreateQuery also can be called 
+                 again if the buffers are changed */
+            do i = 1 to extent(hBufs):
+                cTables = (if i > 1 then cTables + "," else "")
+                        + hBufs[i]:name.
+            end.   
+            return cTables.  
+        end. 
  
     define public property Filter as character  no-undo  get. 
         protected set.
@@ -96,75 +103,64 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
                 undo, throw new UnsupportedOperationError("Set of Filter context to lazy").
         end.
     
-    define protected property Parent as IDataAdminContext no-undo 
+    define public property Model as IDataAdminModel no-undo 
         get.
-        set(pParent as IDataAdminContext):
-            define variable pModel as IDataAdminModel no-undo.
-            if valid-object(Parent) then 
+        set(pModel as IDataAdminModel):
+            if valid-object(Model) then 
             do:
-                Parent:ContextRefreshed:unsubscribe(TableRefreshed).
-                Parent:RowCreated:unsubscribe(RowCreated).     
-                Parent:RowDeleted:unsubscribe(RowDeleted).  
-                Parent:AddedToContext:unsubscribe(NewContext). 
-                Parent:ContextDeleted:unsubscribe(Destroy).
-                if type-of(Parent,IDataAdminModel) then
-                do:
-                    pModel = cast(Parent,IDataAdminModel).
-                    pModel:SearchQuery:unsubscribe(SearchContent). 
-                    pModel:SearchRequest:unsubscribe(SearchRequest). 
-                    pModel:KeyChanged:unsubscribe(ForeignKeyChanged).
-                end.
+                Model:ContextRefreshed:unsubscribe(TableRefreshed).
+                Model:RowCreated:unsubscribe(RowCreated).     
+                Model:RowDeleted:unsubscribe(RowDeleted).  
+                Model:AddedToContext:unsubscribe(NewContext). 
+                Model:ContextDeleted:unsubscribe(Destroy).
+                Model:SearchQuery:unsubscribe(SearchContent). 
+                Model:SearchRequest:unsubscribe(SearchRequest). 
+                Model:KeyChanged:unsubscribe(ForeignKeyChanged).
             end.
-            this-object:Parent = pParent.
+            this-object:Model = pModel.
             
-            Parent:ContextRefreshed:subscribe(TableRefreshed).
-            Parent:RowCreated:subscribe(RowCreated).     
-            Parent:RowDeleted:subscribe(RowDeleted).  
-            Parent:AddedToContext:subscribe(NewContext). 
-            Parent:ContextDeleted:subscribe(Destroy).
-            if type-of(Parent,IDataAdminModel) then
-            do:
-                pModel = cast(Parent,IDataAdminModel).
-                pModel:SearchQuery:subscribe(SearchContent). 
-                pModel:SearchRequest:subscribe(SearchRequest). 
-                pModel:KeyChanged:subscribe(ForeignKeyChanged).
-            end.
-            this-object:KeyFields = parent:KeyFields.
+            Model:ContextRefreshed:subscribe(TableRefreshed).
+            Model:RowCreated:subscribe(RowCreated).     
+            Model:RowDeleted:subscribe(RowDeleted).  
+            Model:AddedToContext:subscribe(NewContext). 
+            Model:ContextDeleted:subscribe(Destroy).
+            Model:SearchQuery:subscribe(SearchContent). 
+            Model:SearchRequest:subscribe(SearchRequest). 
+            Model:KeyChanged:subscribe(ForeignKeyChanged).
+            this-object:KeyFields = Model:KeyFields.
         end.
         
-    /* model - should eventually replace parent  */
-    define protected property Model as IDataAdminModel no-undo 
-        get():
-            return cast(Parent,IDataAdminModel).
-        end.    
-        set.
-    
     /** return unknown - filter should not be root context */
-    define public property RootId as Rowid no-undo 
+    define public property RootId as rowid no-undo 
         get.
         
     define public property DatasetHandle as handle no-undo 
         get():
-            return Parent:DatasetHandle. 
+            return Model:DatasetHandle. 
         end.
 	
 	define public property EntityFieldName as char no-undo 
         get().
-            return Parent:EntityFieldName.  
+            return Model:EntityFieldName.  
         end.
          
-	
+	define public property CanGenerateCode      as logical no-undo  
+	    get():
+	         return Model:CanGenerateCode.  
+	    end.  
+	    set.   
+  
 	define public property LastSavedDataset as handle no-undo 
         get():
-            return Parent:LastSavedDataset. 
+            return Model:LastSavedDataset. 
         end.
         set(h as handle):
-            Parent:LastSavedDataset = h.
+            Model:LastSavedDataset = h.
         end.    
 	  
     define public property TableHandle as handle no-undo 
         get():
-            return Parent:TableHandle. 
+            return Model:TableHandle. 
         end.
  
 	    
@@ -191,19 +187,19 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
          
     define public property Service as IDataAdminService no-undo  
         get():
-            return Parent:Service. 
+            return Model:Service. 
         end.
    
     define public property TargetService as IDataAdminService no-undo  
         get():
-            return Parent:TargetService. 
+            return Model:TargetService. 
         end.
    
     /* unique context identifier, exposed as contextid for comparison
        of collections and entities */ 
     define public property Id            as character no-undo  
         get():
-            return Parent:Id.    
+            return Model:Id.    
         end.    
     
      /**  
@@ -219,32 +215,38 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         end.    
         private set.
         
-    define public property Total as integer no-undo 
+    define public property Total as int64 no-undo 
         get():
-            return Parent:Total. 
+            return Model:Total. 
         end. 
         
     define public property Name as character no-undo 
         get():
-            return Parent:name.
+            return Model:name.
         end.    
         private set. 
-	
+        
+	 /** currently root is default (dataset did not support this in first release - UI need to support old versions) */
+     define public property ExportWithRoot       as logical init ? no-undo  
+         get(): 
+             if ExportWithRoot = ? then
+                  return Model:ExportWithRoot.
+             return ExportWithRoot.
+         end.    
+         set.   
+  
 	define public property RequestInfo as IRequestInfo no-undo get. set.
 	
     /*** constructors ****************************************/ 
      
-    constructor public AbstractFilteredContext (pParent as IDataAdminContext):
-        this-object(pParent,?).
+    constructor public AbstractFilteredContext (pModel as IDataAdminModel):
+        this-object(pModel,?).
     end constructor.
       
-    constructor public AbstractFilteredContext (pParent as IDataAdminContext,pReq as IRequestInfo):
-        super (pParent:TableHandle:Name).
+    constructor public AbstractFilteredContext (pModel as IDataAdminModel,pReq as IRequestInfo):
+        super (pModel:TableHandle:Name).
         RequestInfo = pReq. 
-        this-object:Parent = pParent.
-       
-       
-        
+        this-object:Model = pModel.
         /* set BaseQuery for QueryString to override defaultquery, which
            adds no-lock and indexed-reposition */
         
@@ -257,24 +259,25 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         return SingleExtent(TableHandle:default-buffer-handle).
     end method.    
      
-    method protected void NewContext(sourcecntxt as IDataAdminContext):
+    method protected void NewContext(sourcecntxt as IDataAdminModel):
         define variable cQueryString as character no-undo. 
-        this-object:Parent = sourcecntxt.
+        this-object:Model = sourcecntxt.
+        createAndOpenQuery().
+    end method.
+    
+    method protected void createAndOpenQuery():
+        define variable cQueryString as character no-undo. 
         if valid-handle(QueryHandle) then 
             cQueryString = QueryHandle:prepare-string.
         
         /* Calls GetBufferHandles and ensures query will use the new context */
         CreateQuery().    
        
-        /** init parent end (localfilter is changed in subclas constructors) **/
+        /** init Model end (localfilter is changed in subclas constructors) **/
         if cQueryString > "" then
              QueryHandle:query-prepare (cQueryString).
         OpenQuery().
-        /* entities added with no context will still subscribe to the query 
-           and need to be refreshed here 
-           (DataAdminCollection Context setter does not subscribe from query ) */
-        AddedToContext:Publish(sourcecntxt).
-    end method.
+    end. 
     
     method protected logical OpenQuery():
         return QueryHandle:query-open(). 
@@ -308,6 +311,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     method protected abstract void RowDeleted().   
     
     method public abstract void Import(pcfile as char,pcMode as char).
+    method public abstract void Import(pJson as JsonObject, pcMode as char):
      
      
     /** @TODO move to IDataAdminModel or make unsupported 
@@ -322,42 +326,57 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
    
    /* single row import of the entity (flat no tree) */     
     method public void ImportRow(pcfile as char, c as char extent).
-        parent:ImportRow(pcFile,c).
+        Model:ImportRow(pcFile,c).
     end method.
-   
+    
+    method public void ImportDelete(pcfile as char):
+        JsonUtil:ImportDelete(this-object,pcfile).
+    end method.     
+          
     method public void ImportTree(pcfile as char, c as char):
-        parent:ImportTree(pcFile,c).
+        Model:ImportTree(pcFile,c).
+    end method.
+    
+    method public void ImportTree(pJson as JsonObject, c as char):
+        Model:ImportTree(pJson,c).
     end method.
     
     /**  */
     method public void ImportRowTree(pcfile as char, c as char):
-        parent:ImportRowTree(pcFile,c).
+        Model:ImportRowTree(pcFile,c).
         /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
     end method.
     
     method public void ImportRowTree(pcfile as char, pc as char extent):
-        parent:ImportRowTree(pcFile,pc).
+        Model:ImportRowTree(pcFile,pc).
         /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
     end method.
     
     /** */ 
     method public void ImportRowTree(pcfile as char, i as int):
-        parent:ImportRowTree(pcFile,i).
+        Model:ImportRowTree(pcFile,i).
         /*        undo, throw new UnsupportedOperationError("ImportRowTree in filtered context").*/
     end method.
  
-    method public abstract void ReadChild(parentRow as IRow, json as JSONObject).
-       
-    method public void ImportForParent(pcParent as char, pcValue as char,pcfile as char):
-        undo, throw new UnsupportedOperationError("ImportForParent in filtered context").
-    end method. 
+    method public JsonObject ReadJsonRoot(pcFile as char):
+        return Model:ReadJsonRoot(pcfile).
+    end method.    
     
-     method public void ImportNewForParent(pcParent as char, pcValue as char,pcfile as char):
-        undo, throw new UnsupportedOperationError("ImportNewForParent in filtered context").
-    end method. 
-     
-    method public void CreateRow(entity as IDataAdminElement).   
-        Parent:CreateRow(entity).
+    method public abstract void ReadChild(parentRow as IRow, json as JSONObject).
+    
+    method public logical AddEntity(pentity as IDataAdminElement):
+        if pEntity:CanAttach(this-object) then 
+        do:
+            pentity:Attach(this-object).
+        end.
+        else do:
+            CreateRow(pEntity). 
+        end.
+        return true.   
+    end method.
+       
+    method public void CreateRow(pentity as IDataAdminElement).   
+        Model:CreateRow(pentity).
     end method.
     
     method public logical Delete(pName as character):
@@ -379,7 +398,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     method protected logical DeleteCurrent():
         define variable hBuffer as handle no-undo.
         hBuffer = QueryHandle:get-buffer-handle(this-object:Table).
-        return Parent:Remove(hBuffer).
+        return Model:Remove(hBuffer).
     end method.
     
     
@@ -393,13 +412,21 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     
     define public property SerializeName as character  no-undo  
         get():
-            if valid-object(parent) then
-                return Parent:SerializeName.
+            if valid-object(Model) then
+                return Model:SerializeName.
             return "".
         end. 
     
     method public character GetJoinFields(parenturl as char):
-        return Parent:GetJoinFields(parenturl).
+        return Model:GetJoinFields(parenturl).
+    end method.
+    
+    method public final character GetParentJoinFields(parentid as char):
+        return Model:GetFieldsFromJoin(GetJoinFields(parentid),no).
+    end method.
+    
+    method public final character GetChildJoinFields(parentid as char):
+        return Model:GetFieldsFromJoin(GetJoinFields(parentid),yes).
     end method.
     
     method protected character GetJoinFieldsReversed(parenturl as char):
@@ -416,20 +443,20 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     end method.
     
     method public character extent GetKeyValues(pBuffer as handle): 
-        return Parent:GetKeyValues(pBuffer).   
+        return Model:GetKeyValues(pBuffer).   
     end method.
     
      /** get a where expression from the passed extent using Keyfields */
     method public character GetKeyWhere(pcValues as char extent):
-        return Parent:GetKeyWhere(pcValues).   
+        return Model:GetKeyWhere(pcValues).   
     end method.       
          
     /** future - see IDataAdminContext commented code
     method public character GetServerJoinFields(parenturl as char):
-        return Parent:GetServerJoinFields(parenturl).
+        return Model:GetServerJoinFields(parenturl).
     end method.
     **/
-    /* cannot use parent - need BaseQuery here */
+    /* cannot use Model - need BaseQuery here */
     method public void TransferMatchingRequests(pReq as IRequestInfo,pMsg as IFetchRequest):
         undo, throw new UnsupportedOperationError("TransferMatchingRequests in abstract filter context.").
     end method.
@@ -438,56 +465,97 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         undo, throw new UnsupportedOperationError("TransferMatchingRequests in abstract filter context.").
     end method.
     
-    method public void AddTableTo(tree as IContextTree):
-        tree:setHandle(SerializeName,TableHandle:default-buffer-handle,Filter).
+    method final public void AddRowTo(tree as IContextTree,prid as rowid).
+        Model:AddRowTo(tree,prid).
     end method.    
+     
+    method final public void AddTableTo(tree as IContextTree):
+        this-object:AddTableTo(tree,RequestInfo).  
+    end method.  
+      
+    method final public void AddTableTo(tree as IContextTree,pReq as IRequestInfo):
+        Model:AddTableTo(tree,pReq).
+        /* must add filter after context call, since it also applied the RequestInfo:QueryString
+           We need this filter that has both RequestInfo:QueryString and parent filter */
+        AddFilterTo(tree,preq).   
+    end method.  
+      
+    method public final void AddChildrenTo(tree as IContextTree,pReq as IRequestInfo):
+        Model:AddChildrenTo(tree,pReq).  
+    end method.  
     
-    method public void AddRowTo(tree as IContextTree,prid as rowid).
-        Parent:AddRowTo(tree,prid).
-    end method.    
-    
+    method public final void AddChildrenTo(tree as IContextTree,pcCollections as char,pReq as IRequestInfo):
+        Model:AddChildrenTo(tree,pcCollections,pReq).  
+    end method.  
+ 
     method public void AddTreeTo(tree as IContextTree).
-        tree:SetFilter(SerializeName,filter).
-        Parent:AddTreeTo(tree).
-    end method.    
-    
-    method public void AddTreeTo(tree as IContextTree,parentcntxt as IDataAdminContext).
-        tree:SetFilter(SerializeName,Filter).
-        Parent:AddTreeTo(tree,parentcntxt).
-    end method.    
-    
-    method public void AddTreeTo(tree as IContextTree,parentcntxt as IDataAdminContext,pcCollections as char).
-        tree:SetFilter(SerializeName,Filter).
-        Parent:AddTreeTo(tree,parentcntxt,pcCollections).
+        this-object:AddTreeTo(tree,RequestInfo).
     end method.    
     
     method public void AddTreeTo(tree as IContextTree,pcCollections as char).
-        tree:setHandle(SerializeName,TableHandle:default-buffer-handle,Filter).
-        Parent:AddTreeTo(tree,pcCollections).     
+        this-object:AddTreeTo(tree,pcCollections,RequestInfo).     
     end method.
     
-    method public void WriteTo(writer as IContextWriter):
-        define variable cName as character no-undo. 
-        cName = TableHandle:serialize-name.
-        writer:WriteHandle(cName,DatasetHandle).
-    end method.
-        
-    method public void WriteRowTo(writer as IContextWriter,pcKey as char):
-        Parent:WriteRowTo(writer,pcKey). 
+    method public void AddTreeTo(tree as IContextTree,pReq as IRequestInfo).
+        Model:AddTreeTo(tree,pReq).
+        /* must add filter after context call, since it also applied the RequestInfo:QueryString
+           We need this filter that has both RequestInfo:QueryString and parent filter */
+        AddFilterTo(tree,preq).   
+    end method.    
+    
+    method public void AddTreeTo(tree as IContextTree,pcCollections as char,pReq as IRequestInfo).
+        Model:AddTreeTo(tree,pcCollections,pReq).
+        /* must add filter after context call, since it also applied the RequestInfo:QueryString
+           We need this filter that has both RequestInfo:QueryString and parent filter */
+        AddFilterTo(tree,preq).   
     end method.
     
-    method public void WriteRowTo(writer as IContextWriter,piKey as int):
-        Parent:WriteRowTo(writer,piKey).  
-    end method.
+    method public final void AddTreeTo(tree as IContextTree,parentcntxt as IDataAdminContext,pReq as IRequestInfo).
+        undo, throw new UnsupportedOperationError("AddTreeTo with parent context parameter in abstract filter context.").
+ 
+/*        AddFilterTo(tree,pReq).*/
+/*        Model:AddTreeTo(tree,parentcntxt,pReq).*/
+    end method.    
+    
+    method public final void AddTreeTo(tree as IContextTree,parentcntxt as IDataAdminContext,pcCollections as char,pReq as IRequestInfo).
+        undo, throw new UnsupportedOperationError("AddTreeTo with parent context parameter in abstract filter context.").
+/*        tree:SetFilter(SerializeName,Filter).*/
+/*        Model:AddTreeTo(tree,parentcntxt,pcCollections,pReq).*/
+    end method.    
+    
+    method protected final void AddFilterTo(tree as IContextTree,pReq as IRequestInfo).
+        define variable cName as character no-undo.
+        cName = if valid-object(pReq) and pReq:name <> Serializename then pReq:name else SerializeName.
+        /* the RequestInfo:QueryString is already applied to the Filter 
+          + the filter also has foreign key criteria needed when this is at the top of  
+            this tree/dataset hierarchy    */
+        tree:SetQuery(cName,QueryHandle,TableHandle:name).
+    end method.    
+    
+     
+/*                                                                          */
+/*    method public void WriteTo(writer as IContextWriter):                 */
+/*        define variable cName as character no-undo.                       */
+/*        cName = TableHandle:serialize-name.                               */
+/*        writer:WriteHandle(cName,DatasetHandle).                          */
+/*    end method.                                                           */
+/*                                                                          */
+/*    method public void WriteRowTo(writer as IContextWriter,pcKey as char):*/
+/*        Model:WriteRowTo(writer,pcKey).                                  */
+/*    end method.                                                           */
+/*                                                                          */
+/*    method public void WriteRowTo(writer as IContextWriter,piKey as int): */
+/*        Model:WriteRowTo(writer,piKey).                                  */
+/*    end method.                                                           */
     
     method public logical CanFind(i as int):
-        if parent:Find(i) then 
+        if Model:Find(i) then 
             return CanFindCurrentModel().
         return false.
     end method. 
     
     method public logical Find(i as int):
-        if Parent:Find(i) then 
+        if Model:Find(i) then 
             return SynchWithModel().
         return false.          
     end method. 
@@ -496,7 +564,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
        @param rOriginid rowid from row in change dataset   */
     method public logical FindOrigin(rOriginid as rowid):
         
-        if Parent:FindOrigin(rOriginid) then 
+        if Model:FindOrigin(rOriginid) then 
         do:
             return SynchWithModel().
         end.
@@ -504,7 +572,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     end method.    
     
     method public logical CanFind(c as char):
-        if parent:Find(c) then 
+        if Model:Find(c) then 
             return CanFindCurrentModel().
         return false.
     end method. 
@@ -514,18 +582,29 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         /*
         if Parent:Find(c) then 
             return SynchWithParent().
-        return false. 
+        return false. R
         */         
     end method. 
     
+    method public int IndexOf(c as char):
+        if Model:Find(c) then
+        do: 
+            if SynchWithModel() then
+            do: 
+                return QueryHandle:current-result-row. 
+            end. 
+        end.      
+        return 0.          
+    end method. 
+    
     method public logical Find(c as char):
-        if Parent:Find(c) then 
+        if Model:Find(c) then 
             return SynchWithModel().
         return false.          
     end method. 
     
     method public logical Find(pReq as IRequestInfo):
-        if Parent:Find(pReq) then 
+        if Model:Find(pReq) then 
             return SynchWithModel().
         return false.          
     end method. 
@@ -580,7 +659,6 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
     end.
     
     method public void Reopen():
-        
         define variable rids as rowid extent no-undo.
         /* @TODO  research - refine 
         - if the query changed the iterator should possibly be made stale
@@ -610,32 +688,23 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
             lok = SetPosition(rsinglerowid).
          end.
          if lok then
-             lok = Parent:SetProperty(pid,pname,pvalue).
+             lok = Model:SetProperty(pid,pname,pvalue).
       
          return lok.   
     end method.
-     
+    
+    /* subclasses with many to many must override this to check update context
+       NOTE: this should not check if parent is matching. It should only tell if 
+       passed context can be transferred into my context based on TT and context state (islocal) */ 
+    method public logical CanCopy(cntxt as IDataAdminContext):
+        return Model:CanCopy(cntxt).                   
+    end method.        
+    
     /* subclasses with relational parent overrides this to call CopyFoParent in their context parent*/ 
     method public void Copy(cntxt as IDataAdminContext):
-        Parent:Copy(cntxt).                   
-    end method.  
+        Model:Copy(cntxt).                   
+    end method.    
     
-    method public void MoveQueries(cntxt as IDataAdminContext).
-        undo, throw new UnsupportedOperationError("MoveQueries in abstract filter context").
-/*        Parent:MoveQueries(cntxt).*/
-    end method.
-    
-    /* subclasses overrides copy(cntxt) to call this in their context parent 
-     - should not be needed here (unless a filter can be parent) */     
-    method public void CopyForParent(pcParent as char, pcValue as char,cntxt as IDataAdminContext):
-        undo, throw new UnsupportedOperationError("CopyForParent in abstract filter context").
-/*        Parent:CopyForParent(pcParent,pcValue,cntxt).*/
-    end method.  
-    
-/*    method public void CopyTable(cntxt as IDataAdminContext):*/
-/*        Parent:CopyTable(cntxt).                             */
-/*    end method.                                              */
-     
     method public void ForeignKeyChanged(pparentChange as IRowChange):
        
     end method.
@@ -645,114 +714,13 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
           return TableHandle:before-table:has-records.
     end method.
    
-    method public IDataAdminCollection NewCollection().
-        undo, throw new UnsupportedOperationError("NewCollection in filtered context").
-    end method.
-   
-    
-    /* @TODO separate this out from IDataAdmincontext - */
-    method public IDataAdminCollection GetCollection():
-        return parent:GetCollection().
-    end method.   
-     
-    method public final IDataAdminCollection GetCollection(filter as char).
-        undo, throw new UnsupportedOperationError("GetCollection(filter) in filtered context").
-    end method.
-   
-    method public final IDataAdminCollection GetCollection(preq as IRequestInfo).
-        undo, throw new UnsupportedOperationError("GetCollection(IRequestInfo) in filtered context").
-    end method.
-    
-    method public final IDataAdminCollection GetCollection(pParentRow as IRow, preq as IRequestInfo).
-        undo, throw new UnsupportedOperationError("GetCollection(IRow,RequestInfo) in filtered context").
-    end method.
-   
-    method public final IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char,preq as IRequestInfo).    
-        undo, throw new UnsupportedOperationError("GetCollection(parent,key,IRequestInfo) in filtered context").
-    end method.
-    
-    method public final IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char extent,preq as IRequestInfo).    
-        undo, throw new UnsupportedOperationError("GetCollection(parent,key[],IRequestInfo) in filtered context").
-    end method.
-    
-    method public final IDataAdminCollection GetCollection(pcparent as char,pkey as char).
-        undo, throw new UnsupportedOperationError("GetCollection(parent,key) in filtered context").
-    end method.
-    
-    method public final IDataAdminCollection GetCollection(pcparent as char,pkey as char extent).
-        undo, throw new UnsupportedOperationError("GetCollection(parent,key[]) in filtered context").
-    end method.
-    
-    method public final IDataAdminCollection GetChildCollection(ckey as char extent, child as char).
-        undo, throw new UnsupportedOperationError("GetChildCollection with extent key in filtered context.").
-    end method.    
-    
-    method public IDataAdminCollection GetChildCollection(pParent as IRow,preq as IRequestInfo): 
-        undo, throw new UnsupportedOperationError("GetChildCollection with IRow and IRequestInfo in filtered context.").
-    end method.    
-   
-    method public IDataAdminCollection GetChildCollection(pParent as IRow,child as char): 
-        undo, throw new UnsupportedOperationError("GetChildCollection with IRow and child serializename in filtered context.").
-    end method.    
-  
-    
-    method public IDataAdminCollection GetChildCollection(ckey as char, child as char).
-        define variable req as IRequestInfo no-undo.
-        if this-object:Find(ckey) then
-        do: 
-            if valid-object(RequestInfo) then
-                req = RequestInfo:Get(child). 
-                
-            if valid-object(req) then 
-                return Parent:GetChildCollection(ckey,req).
-            else        
-                return Parent:GetChildCollection(ckey,child).
-        end.
-        return ?.
-    end method.
-    
-    method public IDataAdminCollection GetChildCollection(ikey as int, child as char).
-        define variable req as IRequestInfo no-undo.
-        if this-object:Find(ikey) then
-        do:
-            if valid-object(RequestInfo) then
-                req = RequestInfo:Get(child). 
-            
-            if valid-object(req) then 
-                return Parent:GetChildCollection(ikey,req).
-            else
-                return Parent:GetChildCollection(ikey,child).
-        end.
-        return ?.
-    end method.
-    
-    method public IDataAdminCollection GetChildCollection(ckey as char, pReq as IRequestInfo).
-        if this-object:Find(ckey) then
-        do:
-            return Parent:GetChildCollection(cKey,pReq).
-        end.
-        return ?.
-    end method.
-    
-    method public IDataAdminCollection GetChildCollection(ikey as int, pReq as IRequestInfo).
-        if this-object:Find(ikey) then
-        do:
-            return Parent:GetChildCollection(iKey,pReq).
-        end.
-        return ?.
-    end method.
-    
-    method public final IDataAdminCollection GetChildCollection(ckey as char extent, pReq as IRequestInfo).
-        undo, throw new UnsupportedOperationError("GetChildCollection with extent key in filtered context.").
-    end method.
-     
     method public IFetchRequest GetRequest():
-        return new FetchRequest(Name,Id,DatasetHandle).
+        return new FetchRequest(Name,Id,DatasetHandle,yes).
     end method.
     
     /* @todo    */
     method public ISaveRequest GetSaveRequest():
-        return Parent:GetSaveRequest().
+        return Model:GetSaveRequest().
     end method.
     
     method public void ValidateChanges(phDs as handle ):
@@ -923,17 +891,13 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         end.       
         phBuffer:buffer-delete(). 
     end method.    
-    
-    method public IDataAdminContext GetChild(name as char):
-        return Parent:GetChild(name).
-    end method.    
-    
+   
     method public void MergeChanges(pResponse as ISaveRequest):
-        Parent:MergeChanges(pResponse).     
+        Model:MergeChanges(pResponse).     
     end method.    
     
     method public void MergeChanges(phChangeDataset as handle):
-        Parent:MergeChanges(phChangeDataset). 
+        Model:MergeChanges(phChangeDataset). 
     end method.    
     
     method public IDataAdminElement GetEntity(i as int):
@@ -945,7 +909,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
          if PositionToHandle(phdl) then
          do: 
              hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
-             return Parent:Remove(hBuffer).
+             return Model:Remove(hBuffer).
          end.
          return false.   
     end method.
@@ -1015,6 +979,28 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         end.
         return rPosition.
     end method.
+    
+   /** find the entity at row position (factory method ) 
+        @param  number  */  
+    method public IDataAdminElement FindEntityAtRow(piRow as integer).
+         define variable hbuffer as handle no-undo. 
+         if PositionToRow(piRow) then
+         do: 
+            hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
+            return Model:FindEntity(hBuffer).
+         end.
+         return ?.    
+    end method.
+    
+    method public logical PositionToRow(piRow as integer):
+        define variable lok as logical no-undo.
+        define variable i as integer no-undo.
+        lok = QueryHandle:reposition-to-row (piRow) no-error.
+        if lok and QueryHandle:get-next then
+            return true. 
+        return false.
+    end method.
+    
  
     /** find the entity (factory method ) 
         Is considered internal.                    
@@ -1024,7 +1010,7 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
          if PositionToHandle(phdl) then
          do: 
             hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
-            return Parent:FindEntity(hBuffer).
+            return Model:FindEntity(hBuffer).
          end.
          return ?.    
     end method.
@@ -1186,6 +1172,31 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         jsonroot:WriteFile(pcfile, TRUE).          
     end method.
     
+    method public int Serialize(phStream as handle):
+        define variable hBuffer as handle no-undo.
+        define variable jsonArray as JsonArray no-undo.    
+        jsonArray  = new JSONArray().
+        QueryHandle:get-first.
+        hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
+        do while hBuffer:avail:
+            Model:SerializeRow(hBuffer,phStream).
+            QueryHandle:get-next.
+        end.
+        return Count.
+    end method.
+    
+    method public int Deserialize(phStream as handle,pimax as int,pcMode as char):
+        return Model:Deserialize(phStream,pimax,pcMode).
+    end method.
+    
+    /* optional call back from context tree. 
+        called when parse is complete
+         return json  to export instead  of dataset
+         return unknown to use standard dataset. write-json  */
+    method public JSONObject GetJSONExport(tree as IContextTree):
+        return Model:GetJSONExport(tree).
+    end.    
+   
     method protected JsonArray GetJsonArray():
         define variable hBuffer as handle no-undo.
         define variable jsonArray as JsonArray no-undo.    
@@ -1199,8 +1210,10 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         return jsonArray.
     end method.
     
-    method protected JsonObject JSONROw(hBuffer as handle):
+    method protected JsonObject JSONRow(hBuffer as handle):
         define variable jsonRow   as JsonObject no-undo.
+        define variable jsonArray as JsonArray no-undo.
+      
         define variable i         as integer no-undo.    
         define variable hfld as handle no-undo.
        
@@ -1209,70 +1222,103 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract  use-wid
         define variable iInt as integer no-undo.
         define variable iInt64 as int64 no-undo.
         define variable lLog as logical no-undo.
-        
+        define variable ddate as date no-undo.   
+        define variable ddatetm as datetime no-undo.   
+        define variable ddatetmtz as datetime-tz no-undo.   
         JsonRow = new JSONObject(). 
         
         do i = 1 to hbuffer:num-fields:
             hfld = hBuffer:buffer-field(i).
             if not hfld:serialize-hidden then
             do:
-               case hfld:data-type: 
-                   when "character" then
-                   do:  
-                       cChar = hfld:buffer-value.
-                       JsonRow:Add(hfld:serialize-name,cChar).
+                if hfld:extent > 0  then
+                do:
+                    jsonArray = GetJsonFieldArray(hfld).
+                    JsonRow:Add(hfld:serialize-name,jsonArray).
+                end.
+                else do:
+                    case hfld:data-type: 
+                    when "character" then
+                        do:  
+                            cChar = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,cChar).
+                        end.
+                        when "decimal" then
+                        do:  
+                            dDec = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,dDec).
+                        end.
+                        when "logical" then
+                        do:  
+                            llog = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,llog).
+                        end.
+                        when "integer" then
+                        do:
+                            iInt = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,iInt).
+                        end.
+                        when "int64" then
+                        do:  
+                            iInt64 = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,iInt64).
+                        end.
+                        when "date" then
+                        do:  
+                            ddate = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,ddate).
+                        end.
+                        when "datetime" then
+                        do:  
+                            ddatetm = hfld:buffer-value.
+                            JsonRow:Add(hfld:serialize-name,ddatetm).
+                        end.
+                        when "datetime-tz" then
+                       do:  
+                           ddatetmtz = hfld:buffer-value.
+                           JsonRow:Add(hfld:serialize-name,ddatetmtz).
+                       end. 
                    end.
-                   when "decimal" then
-                   do:  
-                       dDec = hfld:buffer-value.
-                       JsonRow:Add(hfld:serialize-name,dDec).
-                   end.
-                   when "logical" then
-                   do:  
-                       llog = hfld:buffer-value.
-                       JsonRow:Add(hfld:serialize-name,llog).
-                   end.
-                   when "integer" then
-                   do:  
-                       iInt = hfld:buffer-value.
-                       JsonRow:Add(hfld:serialize-name,iInt).
-                   end.
-                   when "int64" then
-                   do:  
-                       iInt64 = hfld:buffer-value.
-                       JsonRow:Add(hfld:serialize-name,iInt64).
-                   end.
-                    
                end.
             end.        
         end. 
         return JsonRow.
     end method.
     
+    method protected JsonArray GetJsonFieldArray(hfld as handle):
+        define variable i as integer no-undo.
+        define variable jsonArray as JsonArray no-undo.    
+        jsonArray  = new JSONArray().
+        do i = 1 to hfld:extent:
+           jsonArray:Add(hfld:buffer-value(i)).
+        end.
+        return jsonArray.
+    end method.
+     
     method public void ExportLastSavedTree(pcfile as char):
-        Parent:ExportLastSavedTree(pcfile).     
+        Model:ExportLastSavedTree(pcfile).     
     end method.
     
     method public void ExportNormalized(pcfilename as char):         
-        Parent:ExportNormalized(pcfilename).
+        Model:ExportNormalized(pcfilename).
     end method.
     
     method public void ExportLastSaved(pcfile as char). 
-        Parent:ExportLastSaved(pcfile).     
+        Model:ExportLastSaved(pcfile).     
     end method.   
     
      /** convert expression for QueryString - unknown = keep as is */
     method public character ColumnExpression(pcColumn as char,pcOperator as char,pcValue as char):
-        return Parent:ColumnExpression(pcColumn,pcoperator,pcValue).
+        return Model:ColumnExpression(pcColumn,pcoperator,pcValue).
     end. 
     
     method public character ColumnSortSource(pcColumn as char).
-        return Parent:ColumnSortSource(pcColumn).
+        return Model:ColumnSortSource(pcColumn).
     end method.   
        
     /* qualify columns for QueryString parsing */
     method public character ColumnSource(pcColumn as char):
-        return Parent:ColumnSource(pccolumn).
+        return Model:ColumnSource(pccolumn).
     end method.
     
     method private void SearchContent (pid as char,input-output pqueryContext as IDataAdminContext): 

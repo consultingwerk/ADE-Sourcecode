@@ -20,7 +20,7 @@ using Progress.Lang.Error from propath.
 using Progress.Lang.Object from propath.
 
 using OpenEdge.DataAdmin.DataAdminService from propath. 
-using OpenEdge.DataAdmin.Entity from propath.
+using OpenEdge.DataAdmin.AbstractPartitionOwner from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.ITenant from propath.
 using OpenEdge.DataAdmin.IPartitionMap from propath.
@@ -37,7 +37,7 @@ using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Tenant from propath.
 
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.TenantContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
@@ -55,25 +55,14 @@ using OpenEdge.DataAdmin.Error.ValidationError from propath.
 using OpenEdge.DataAdmin.Core.JSONWriter from propath.  
 using OpenEdge.DataAdmin.Core.CodeWriter from propath.  
 
-class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
+class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITenant:
     /* implements ITenant, IDataAdminElement, IDataAdminSerializable */  
     define private property ValidTypeList as char 
        init "Regular,Super"
        get.
           
-    define private property ValidDefaultAllocationList as char 
-       init "Immediate,Delayed,None"
-       get.
-         
     define private variable mChild as logical no-undo. 
     
-    define public property Id as int init ? no-undo             
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::id.
-            else
-                return Id.    
-        end.
     
     define public property Type as character no-undo           
        init "Regular"
@@ -118,24 +107,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
                 ExternalID = pExternalID.
         end.    
        
-    define public property Description as char no-undo         
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::Description.
-            else
-                return Description. 
-        end.
-        set(pDescription as char):
-            if valid-handle(mBuffer) then
-            do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-                mdefaultbuffer::Description = pDescription.
-            end.
-            else
-                Description = pDescription.
-        end.    
-    
-    define public property DefaultAllocation as char no-undo                 
+    define public override property DefaultAllocation as char no-undo                 
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::DefaultAllocation.
@@ -160,7 +132,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
             DefaultAllocation = pDefaultAllocation.
         end.    
           
-    define public property IsDataEnabled as logical no-undo  
+    define public override  property IsDataEnabled as logical no-undo  
         init true        
         get():
             if valid-handle(mBuffer) then
@@ -178,24 +150,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
                 IsDataEnabled = pIsDataEnabled.
         end. 
 
-    define public property IsAllocated as logical no-undo          
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::IsAllocated.
-            else
-                return IsAllocated. 
-        end.
-        protected set(pIsAllocated as logical):
-            if valid-handle(mBuffer) then
-            do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-                mdefaultbuffer::IsAllocated = pIsAllocated.
-            end.
-            else
-                IsAllocated = pIsAllocated.
-        end. 
-
-    define public property DefaultDataArea as IArea no-undo   
+    define public override property DefaultDataArea as IArea no-undo   
         get():
             if not valid-object(DefaultDataArea) then
             do: 
@@ -221,7 +176,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
             DefaultDataArea = pDefaultDataArea.
         end. 
     
-    define public property DefaultIndexArea as IArea no-undo     
+    define public override property DefaultIndexArea as IArea no-undo     
         get():
             if not valid-object(DefaultIndexArea) then
             do: 
@@ -247,7 +202,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
             DefaultIndexArea = pDefaultIndexArea.
         end. 
         
-    define public property DefaultLobArea   as IArea no-undo    
+    define public override property DefaultLobArea   as IArea no-undo    
         get():
             
             if not valid-object(DefaultLobArea) then
@@ -280,20 +235,6 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
 /*        end.                                           */
 /*        set.                                           */
         
-    define public property Partitions as IPartitionMap no-undo  
-        get():
-            if not valid-object(Partitions) then
-            do:
-                if not valid-object(context:Service) and not valid-object(context:TargetService) then
-                    undo, throw new UnsupportedOperationError("Partitions are not available in a Tenant that is not newed, created or retrieved by a service.").  
-                Partitions = cast(GetChildCollection("partitions"),IPartitionMap).
-/*                Partitions:Tenant = this-object.*/
-       
-           end.     
-           return Partitions.
-        end.
-        private set.
-    
     define public property SequenceValues as ISequenceValueMap no-undo      
         get():
             define variable err as Error no-undo.
@@ -370,11 +311,11 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
         
-    constructor public Tenant (cntxt as IDataAdminContext):
+    constructor public Tenant (cntxt as IDataAdminModel):
         super (cntxt). 
     end constructor.
    
-    constructor public Tenant (cntxt as IDataAdminContext,preq as IRequestInfo):
+    constructor public Tenant (cntxt as IDataAdminModel,preq as IRequestInfo):
         super (cntxt,pReq). 
     end constructor.
       
@@ -382,11 +323,11 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
         super (cname).
     end constructor. 
     
-    method protected override IDataAdminContext CreateLocalContext(): 
+    method protected override IDataAdminModel CreateLocalContext(): 
         return new TenantContext().  
     end method.
     
-    method public logical Allocate():
+    method public override logical Allocate():
         IsAllocated = true.
         return Partitions:Allocate().
     end method.        
@@ -395,7 +336,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
     end method.   
         
     method public override void Export():
-        Export("area.json").
+        Export("tenant.json").
     end method.          
     
     method protected character GetCreateError():
@@ -452,66 +393,48 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
  
            end.    
         end.
-       
     end method.
-     
-    method public override  void ExportTree(pcfile as char):
-        define variable writer as IDataAdminExporter no-undo.
-        writer = GetExporter(pcfile).
-        writer:WriteToFile(this-object,pcfile,"All").
-    end method.     
+ 
+    method public override void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        define variable iPos as integer no-undo.
+         /* The code writer actually support this, but it writes tenants, so externally 
+             we give error if actually asking for it (see below) */ 
+        iPos = lookup("TenantGroupMembers",pcCollectionList).
+        if iPos > 0 then
+           undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
+               
+        /*  we generate code for TenantGroups when passing TenantGroupMembers, 
+            so we just fix the list internally. */
+        iPos = lookup("TenantGroups",pcCollectionList).
+        if iPos > 0 then 
+            entry(iPos,pcCollectionList) = "TenantGroupMembers".
+            
+        super:ExportAsProcedure(pcfile,pcCollectionlist).     
+    end.
     
     /** override to get codewriter if .p and to handle collections for this */
     method public override void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
         define variable iPos as integer no-undo.
         define variable cExt as character no-undo.
-        
         /* The code writer support this, but it writes tenants, so externally 
             we give error if actually asking for it (see below) */ 
-        iPos = lookup("TenantGroupMembers",pcCollectionList).
-        if iPos > 0 then
+        cExt = GetFileExtension(pcfile).
+             /* deal with current limitations that does not handle the TenantGroups collection */  
+        if cExt = "p" or cExt = CodeExtension then 
         do:
-            cExt = GetFileExtension(pcfile).
-            if cExt = "p" or cExt = "download" then
-               undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
+            ExportAsProcedure(pcfile,pcCollectionlist).
         end.
+        else do:
+             iPos = lookup("TenantGroups",pcCollectionList).
+             if iPos > 0 then
+                 undo, throw new UnsupportedOperationError("Export of TenantGroups collection. Use TenantGroupMembers instead.").
+                    
+            super:ExportTree(pcfile,pcCollectionlist). 
+        end.    
+    end method. 
         
-        /* This will give error in writeTree, but code writer actually exports 
-           code for Tenants when passing "TenantGroupMembers", so we just change it here */
-        iPos = lookup("TenantGroups",pcCollectionList).
-        if iPos > 0 then
-        do:
-            cExt = GetFileExtension(pcfile).
-            if cExt = "p" or cExt = "download" then
-                entry(iPos,pcCollectionList) = "TenantGroupMembers".
-        end.
-        
-        writer = GetExporter(pcfile).
-        writer:WriteToFile(this-object,pcfile,pcCollectionlist).
-    end method.     
-     
-    method private char GetFileExtension(pcFile as char):
-       define variable i as integer no-undo.
-       i = num-entries(pcfile,".").
-       if i > 1 then
-           return entry(i,pcfile,".").
-       else return "".    
-    end method.   
-    
-    method protected IDataAdminExporter GetExporter(pcFile as char):
-        define variable i as integer no-undo.
-        define variable fileext as character no-undo.
-        fileExt = GetFileExtension(pcFile).
-        case fileExt:
-            when "p" or when "download" then
-                return new CodeWriter().
-            when "json" then  
-                return new JSONWriter().
-            otherwise 
-                undo, throw new IllegalArgumentError("Export to file with extension " + quoter(fileext)). 
-        end.
-    end method.
-    
-    
+    method protected override void AssertPartitions():
+        /* all valid */    
+    end method.    
 end class.

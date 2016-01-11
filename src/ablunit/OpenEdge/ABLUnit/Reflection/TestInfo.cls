@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
  /*------------------------------------------------------------------------
     File        : TestInfo
     Purpose     : 
@@ -9,51 +11,33 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
+USING Progress.Lang.*.
+USING OpenEdge.ABLUnit.Reflection.AnnotationInfo.
+USING OpenEdge.Core.Collections.Array.
 
 
-
-class OpenEdge.ABLUnit.Reflection.TestInfo: 
-    define public property annotations as OpenEdge.ABLUnit.Reflection.AnnotationInfo no-undo get. 
-        private set.
-    define public property testName as character no-undo get. 
-        private set.
+CLASS OpenEdge.ABLUnit.Reflection.TestInfo: 
+    DEFINE PUBLIC PROPERTY annotations AS Array NO-UNDO GET. 
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY annotationsCount AS INTEGER NO-UNDO GET. 
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY testName AS CHARACTER NO-UNDO GET. 
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY isStatic AS LOGICAL INIT FALSE NO-UNDO GET. SET .
     
-    constructor public TestInfo(input annotationInfo as OpenEdge.ABLUnit.Reflection.AnnotationInfo, input testN as character):
-        annotations = annotationInfo.               
+    CONSTRUCTOR PUBLIC TestInfo(INPUT annotationInfo AS Array, INPUT annotationsCount AS INTEGER, INPUT testN AS CHARACTER):
+        annotations = annotationInfo.    
+        THIS-OBJECT:annotationsCount = annotationsCount.           
         testName = testN.
-    end constructor.
+    END CONSTRUCTOR.
 
-    /*------------------------------------------------------------------------------
-            Purpose: Returns the annotation name of this method                                                                     
-            Notes:                                                                        
-    ------------------------------------------------------------------------------*/
-    method public character getAnnotationName( ):
-        return annotations:getAnnotationName().         
-    end method.
-
-    /*------------------------------------------------------------------------------
-            Purpose: Returns the attribute value of the annotation, if any                                                                     
-            Notes:                                                                        
-    ------------------------------------------------------------------------------*/
-    method public character getAttributeValue( ):
-        return annotations:getAttributeValue().            
-    end method.
-    
-    /*------------------------------------------------------------------------------
-            Purpose: Returns the attribute name in the annotation, if any                                                                     
-            Notes:                                                                        
-    ------------------------------------------------------------------------------*/
-    method public character getAttributeName( ):
-        return annotations:getAttributeName().            
-    end method.
 
     /*------------------------------------------------------------------------------
             Purpose: Returns the method name                                                                      
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
-    method public character getTestName( ):
-        return testName.          
-    end method.
+    METHOD PUBLIC CHARACTER getTestName( ):
+        RETURN testName.          
+    END METHOD.
 
-end class.
+END CLASS.

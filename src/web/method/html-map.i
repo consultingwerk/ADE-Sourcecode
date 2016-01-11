@@ -148,7 +148,7 @@ PROCEDURE adm-find-records :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  &IF "{&OPEN-QUERY-{&QUERY-NAME}}" ne "":U &THEN
+  &IF "{&OPEN-QUERY-{&QUERY-NAME}}" ne "" &THEN
     {&OPEN-QUERY-{&QUERY-NAME}}
     GET FIRST {&QUERY-NAME}.
   &ENDIF

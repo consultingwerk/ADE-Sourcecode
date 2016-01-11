@@ -27,7 +27,7 @@ using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.ISchema from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Error.ForbiddenOperationError from propath.
 using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
@@ -193,11 +193,11 @@ class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdm
         end.     
         private set.
         
-    constructor public Sequence ( pcntxt as IDataAdminContext ):
+    constructor public Sequence ( pcntxt as IDataAdminModel ):
 		super (pcntxt).
 	end constructor.
 	
-	constructor public Sequence (pcntxt as IDataAdminContext,preq as IRequestInfo):
+	constructor public Sequence (pcntxt as IDataAdminModel,preq as IRequestInfo):
 	    super (pcntxt,preq).
     end constructor.
 		
@@ -207,7 +207,7 @@ class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdm
     
 
     /* No local context needed - no child collections (yet...?)   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     
@@ -219,8 +219,5 @@ class OpenEdge.DataAdmin.Sequence inherits Entity implements ISequence, IDataAdm
 /*        return lok.                                      */
 /*    end method.                                          */
                                                                
-    method private character GetFileExtension(pcfile as char):
-        return entry(num-entries(pcfile,"."),pcfile,".").
-    end method.
-        
+    
 end class.

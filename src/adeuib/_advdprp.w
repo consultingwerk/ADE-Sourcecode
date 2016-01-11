@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v7r10
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME    adv-dial
 &Scoped-define FRAME-NAME     adv-dial
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS adv-dial 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -53,8 +50,6 @@ define variable frameTitle as character no-undo init "Advanced Properties":L.
 /* New-line character */
 &Scoped-define NL CHR(10)
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -80,17 +75,23 @@ ASSIGN FRAME adv-dial:HIDDEN = TRUE
 
 FIND _U WHERE RECID(_U) = u-recid.
 FIND _P WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE.
-ASSIGN FRAME adv-dial:TITLE = FRAME adv-dial:TITLE + " for " +
-			     _P._TYPE + " " +
-                             _U._NAME 
-       _U._PRIVATE-DATA:RETURN-INSERTED IN FRAME adv-dial = TRUE.
+
+ASSIGN 
+     &if defined(IDE-IS-RUNNING) = 0 &then 
+   FRAME adv-dial:TITLE = FRAME adv-dial:TITLE 
+    &else
+    frameTitle = frameTitle 
+    &endif
+        + " for " +  _P._TYPE + " " + _U._NAME 
+			     
+   _U._PRIVATE-DATA:RETURN-INSERTED IN FRAME adv-dial = TRUE.
+
 
 /* Shrink the dialog */
 FRAME adv-dial:HEIGHT = FRAME adv-dial:HEIGHT - .75.
 
 /* ***************  Runtime Attributes and UIB Settings  ************** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX adv-dial
    VISIBLE,L                                                            */
 
@@ -102,12 +103,10 @@ ASSIGN
 /* SETTINGS FOR FILL-IN cur-layout IN FRAME adv-dial
    NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
 /* ************************  Control Triggers  ************************ */
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK adv-dial 
 
 
 /* ***************************  Main Block  *************************** */
@@ -156,13 +155,10 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 END.  /* MAIN-BLOCK */
 
 RUN disable_UI.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI adv-dial _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /* --------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -175,11 +171,8 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME adv-dial.
 END PROCEDURE.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI adv-dial _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /* --------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -194,5 +187,3 @@ PROCEDURE enable_UI :
   DISPLAY _U._PRIVATE-DATA WITH FRAME adv-dial.
   ENABLE _U._PRIVATE-DATA WITH FRAME adv-dial.
 END PROCEDURE.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME

@@ -1,4 +1,5 @@
  /*************************************************************/
+
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -15,23 +16,25 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath. 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath. 
-using OpenEdge.DataAdmin.AuthenticationSystem from propath. 
-using OpenEdge.DataAdmin.AuthenticationSystemSet from propath. 
-using OpenEdge.DataAdmin.IDomain from propath. 
-using OpenEdge.DataAdmin.IAuthenticationSystem from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath. 
-using OpenEdge.DataAdmin.Binding.UserContext from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 
+using OpenEdge.DataAdmin.AuthenticationSystem.
+using OpenEdge.DataAdmin.AuthenticationSystemSet.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.UserContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IAuthenticationSystem.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDomain.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*. 
 class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminContext :
 
     {daschema/authenticationsystem.i} 
@@ -39,11 +42,7 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
     define buffer bauthenticationsystem for ttAuthenticationSystem.
     define temp-table copytable reference-only like ttAuthenticationSystem .  
    
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsAuthenticationSystem:handle.
-        end get.
-    
+      
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttAuthenticationSystem:handle.
@@ -76,6 +75,10 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
         super ("AuthenticationSystem",pscope). 
     end constructor.
     
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsAuthenticationSystem:handle. 
+    end method.
     	
 	method public override character GetJoinFields(parentid as char):
         case parentid:
@@ -103,7 +106,7 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
 	    CreateRow(cast(entity,IAuthenticationSystem)).    
 	end method.
 
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
@@ -160,8 +163,8 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
         do:
             hBefore = phSystem:before-buffer.
             hbefore:find-by-rowid(phSystem:before-rowid).
-            if phSystem::Name <> hBefore::Name then
-               undo, throw new ReadOnlyPropertyError(Name,phSystem::Name,"Name").
+            if phSystem::name <> hBefore::name then
+               undo, throw new ReadOnlyPropertyError(Name,phSystem::name,"Name").
         end.    
         
     end method.      
@@ -227,10 +230,8 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
         return new AuthenticationSystemSet(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new AuthenticationSystem(cntxt).
+    method protected override IDataAdminElement CreateEntity(req as IRequestInfo):
+        return new AuthenticationSystem(this-object,req).
     end method.
     
-    
-     
 end class.

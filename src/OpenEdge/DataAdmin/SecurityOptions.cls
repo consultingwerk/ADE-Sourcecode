@@ -9,16 +9,16 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-routine-level on error undo, throw.
-
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ISecurityOptions.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.*.
-using Progress.Json.ObjectModel.JsonObject         from propath.
-using Progress.Json.ObjectModel.ObjectModelParser  from propath.
-using OpenEdge.DataAdmin.IDataAdminElement         from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable   from propath.
-using OpenEdge.DataAdmin.Entity                    from propath.
-using OpenEdge.DataAdmin.ISecurityOptions            from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminElement, IDataAdminSerializable, ISecurityOptions: 
 
@@ -95,12 +95,17 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
             Purpose:                                                                      
             Notes:                                                                        
     ------------------------------------------------------------------------------*/        
-    constructor public SecurityOptions( cntxt as IDataAdminContext ):
+    constructor public SecurityOptions( cntxt as IDataAdminModel ):
         super (cntxt).
     end constructor.
     
+    constructor public SecurityOptions( cntxt as IDataAdminModel, preq as IRequestInfo ):
+        super (cntxt,pReq).
+    end constructor.
+    
+    
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
      

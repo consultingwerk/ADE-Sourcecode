@@ -123,7 +123,7 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
         DICTDB._StorageObject._Object-type = 2 AND
         DICTDB._Storageobject._Object-number = db1IndexNo and
         DICTDB._Storageobject._Partitionid = 0 NO-ERROR.
-   IF AVAILABLE DICTDB._StorageObject THEN
+   IF AVAILABLE DICTDB._StorageObject AND DICTDB._StorageObject._Area-number NE 0 THEN
       FIND DICTDB._Area WHERE
            DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
       NO-ERROR.
@@ -136,7 +136,7 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
         DICTDB2._StorageObject._Object-type = 2 AND
         DICTDB2._Storageobject._Object-number = db2IndexNo and
         DICTDB2._Storageobject._Partitionid = 0 NO-ERROR.
-   IF AVAILABLE DICTDB2._StorageObject THEN
+   IF AVAILABLE DICTDB2._StorageObject AND DICTDB2._StorageObject._Area-number NE 0 THEN
       FIND DICTDB2._Area WHERE
            DICTDB2._Area._Area-number = DICTDB2._StorageObject._Area-number
       NO-ERROR.
@@ -151,6 +151,10 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    /* Assuming if nothing is available then dictdb and dictdb2 index areas are same */
    IF NOT AVAIL DICTDB._StorageObject AND NOT AVAIL DICTDB2._StorageObject
       AND NOT AVAIL DICTDB._Area AND NOT AVAIL DICTDB2._Area THEN 
+      RETURN TRUE.
+      
+   IF AVAILABLE DICTDB._StorageObject AND AVAIL DICTDB2._StorageObject 
+      AND DICTDB._StorageObject._Area-number = 0 AND DICTDB2._StorageObject._Area-number = 0 THEN
       RETURN TRUE.
     
    RETURN FALSE.

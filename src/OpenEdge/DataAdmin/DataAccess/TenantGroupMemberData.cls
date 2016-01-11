@@ -35,7 +35,6 @@ using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 
 class OpenEdge.DataAdmin.DataAccess.TenantGroupMemberData inherits DataAccess implements IDataAccess : 
         
-    define private variable Url as character no-undo.
     
     define public property BaseQuery as character no-undo
         get():

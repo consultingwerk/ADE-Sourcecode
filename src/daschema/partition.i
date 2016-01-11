@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010,2011 by progress Software Corporation  */
+/* Copyright (c) 2010-2013 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,7 +14,7 @@
     Description : 
 
     Author(s)   : hdaniels
-    Created     : Sat 2010
+    Created     : Summer 2010
     Notes       :
   ----------------------------------------------------------------------*/
  
@@ -32,10 +32,15 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
          field Collation  as character         serialize-name "collation"   format "x(20)" label "Collation"  
          field AreaName   as character         serialize-name "areaName"    format "x(20)" label "Area"
           /* we can use different name since this will never be updated from client */
-         field AreaUrl            as character serialize-name "area_url"  format "x(32)" label "Area url"
-         field TenantName         as character serialize-name "tenantName" format "x(32)" label "Tenant"  init ? 
+         field AreaUrl             as character serialize-name "area_url"  format "x(32)" label "Area url"
+         field TenantName          as character serialize-name "tenantName" format "x(32)" label "Tenant"  init ? 
          field TenantId           as integer  init ? serialize-hidden   
          field TenantUrl          as character serialize-name "tenant_url" format "x(20)" label "Tenant url"
+        
+         field PartitionPolicyDetailName as character serialize-name "partitionPolicyDetailName" format "x(32)" label "PolicyDetail"  init ? 
+         field PartitionPolicyDetailId   as integer  init ? serialize-hidden   
+         field PartitionPolicyDetailUrl  as character serialize-name "partitionPolicyDetail_url" format "x(20)" label "partitionPolicyDetail url"  
+          
          field TenantGroupName as character serialize-name "tenantGroupName" format "x(20)" label "TenantGroup" init ?
          field TenantGroupId   as integer   init ? serialize-hidden    
          field TenantGroupUrl  as character serialize-name "tenantGroup_url" format "x(20)" label "TenantGroup url"  
@@ -43,7 +48,7 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
          field AllocationState    as character serialize-name "allocationState" format "x(9)"
          field BufferPool         as character serialize-name "bufferPool" format "x(9)"
                init "Primary" 
-         field CanAssignAlternateBufferPool as logical serialize-name "canAssignAlternateBufferPool" format "x(5)"
+         field CanAssignAlternateBufferPool as logical serialize-name "canAssignAlternateBufferPool" 
                init true
          field ParentId  as integer serialize-hidden init ?
          field trowid as rowid serialize-hidden
@@ -57,16 +62,18 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
             it is set to unknown in after row...          
           */
          index idx as unique trowid   
-         /* primary key is used by json when loading (as we don't export/expose the rowid field) */
-         index idxpart      as unique primary TenantName TenantGroupName TableName  FieldName IndexName  Collation 
+         /* primary key is used in copy-table datarefresh
+            @todo  - remove tentatGroupName ? -  */
+         index idxpart  as primary unique TenantName TenantGroupName PartitionPolicyDetailName TableName  FieldName IndexName  Collation 
 /*         index idxparttenant as unique  TenantName TableName  FieldName IndexName  Collation*/
-         index idxpartgroup  as unique  TenantGroupName TableName FieldName IndexName  Collation
+         index idxpartgroup   as unique  TenantGroupName TableName FieldName IndexName  Collation
+         index idxpartpolicy  as unique  PartitionPolicyDetailName TableName FieldName IndexName  Collation
 /*         index idxtenant  TenantName TableName*/
          index idxarea    AreaName TenantName TenantGroupName
          index idxtable   TableName
          index idxTenantId   TenantId
          index idxTenantGroupId   TenantGroupId
-       
+         index idxPartitionPolicyDetailId   PartitionPolicyDetailId
          .
           
         

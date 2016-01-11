@@ -23,8 +23,8 @@ using OpenEdge.BusinessRules.SeverityEnum.
 using OpenEdge.BusinessRules.RulesServerConnection.
 using OpenEdge.BusinessRules.PayloadBuilder.
 using OpenEdge.Core.XML.SaxReader.
-using OpenEdge.Lang.Assert.
-using OpenEdge.Lang.TimeStamp.
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.TimeStamp.
 using Progress.Lang.AppError.
 
 class OpenEdge.BusinessRules.DecisionService use-widget-pool:
@@ -121,8 +121,8 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                         input pcDecisionServiceName as character,
                                         input pdVersion as decimal,
                                         input ptEffectiveOn as datetime-tz):
-        Assert:ArgumentNotNull(poServer, 'Server Connection').
-        Assert:ArgumentNotNullOrEmpty(pcDecisionServiceName, 'Decision Service Name').
+        Assert:NotNull(poServer, 'Server Connection').
+        Assert:NotNullOrEmpty(pcDecisionServiceName, 'Decision Service Name').
         
         /* Must specify either version OR date OR neither */
         if pdVersion ne ? and ptEffectiveOn ne ? then
@@ -131,7 +131,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                     , 0).
         
         if pdVersion ne ? then
-            Assert:ArgumentIsZeroOrPositive(pdVersion, 'Decision Service Version').
+            Assert:IsZeroOrPositive(pdVersion, 'Decision Service Version').
         
         assign this-object:ServerConnection = poServer
                this-object:Name = pcDecisionServiceName
@@ -237,8 +237,8 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         define variable hAppDataset as handle no-undo.
         define variable hResponseDataset as handle no-undo.
         
-        Assert:ArgumentNotNull(phAppData, 'Temp-Table').
-        Assert:ArgumentIsNull(phAppData:default-buffer-handle:dataset, 
+        Assert:NotNull(phAppData, 'Temp-Table').
+        Assert:IsNull(phAppData:default-buffer-handle:dataset, 
                     substitute ('Temp-table &1~'s dataset handle', phAppData:name)).
         
         /* Create a temporary dataset to hold the input temp-table.
@@ -282,8 +282,8 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     method public void InvokeService(input-output table-handle phAppData):
         define variable hTempDataset as handle no-undo.
         
-        Assert:ArgumentNotNull(phAppData, 'Temp-Table').
-        Assert:ArgumentIsNull(phAppData:default-buffer-handle:dataset, 
+        Assert:NotNull(phAppData, 'Temp-Table').
+        Assert:IsNull(phAppData:default-buffer-handle:dataset, 
                     substitute ('Temp-table &1~'s dataset handle', phAppData:name)).
         
         /* create a temporary dataset to hold the input temp-table.
@@ -327,7 +327,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                      data from the decision service.  */
     method public void InvokeService(input  dataset-handle phAppData,
                                      output dataset-handle phResponseData):
-        Assert:ArgumentNotNull(phAppData, 'ProDataSet').
+        Assert:NotNull(phAppData, 'ProDataSet').
         
         create dataset phResponseData.
         
@@ -347,7 +347,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         @param input-output dataset-handle Dataset containing the business data
                                            for processing by the decision service. */
     method public void InvokeService(input-output dataset-handle phAppData):
-        Assert:ArgumentNotNull(phAppData, 'ProDataSet').
+        Assert:NotNull(phAppData, 'ProDataSet').
         
         InvokeService(input dataset-handle phAppData by-reference,
                       input dataset-handle phAppData by-reference).
@@ -365,8 +365,8 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         define variable lcResponseData as longchar no-undo.
         define variable cSelectorValue as character no-undo.
         
-        Assert:ArgumentNotNull(phAppData, 'Application Data container').
-        Assert:ArgumentNotNull(phResponseData, 'Temporary Data container').
+        Assert:NotNull(phAppData, 'Application Data container').
+        Assert:NotNull(phResponseData, 'Temporary Data container').
         
         /* Cache of temp-table data */
         CacheAppDataSchema(phAppData).
@@ -491,6 +491,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable cValue as character no-undo.
+        define variable lIsBufferNode as logical no-undo.
         define variable cBufferAttributeName as character no-undo.
         
         define buffer lbMessage for RulesMessage.
@@ -554,13 +555,17 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                         if phAttributes:get-index-by-qname(cBufferAttributeName) eq ? then
                             cBufferAttributeName = 'xsi:type'.
                         
-                        if phAttributes:get-index-by-qname(cBufferAttributeName) gt 0 then
+                        assign iIdx          = phAttributes:get-index-by-qname(cBufferAttributeName)
+                               lIsBufferNode = (iIdx gt 0 and iIdx ne ?).
+                        if lIsBufferNode then
                             CreateOrFindRecord(phAttributes:get-value-by-qname(cBufferAttributeName),
                                                phAttributes:get-value-by-qname('id') ).
                     end.
                     else
-                    /* Find the field name that maps to the element */
-                    if valid-handle(mhDataBuffer) and mhDataBuffer:available then
+                        assign lIsBufferNode = false.
+                    
+                    /* Find the field name that maps to the element. */
+                    if not lIsBufferNode and valid-handle(mhDataBuffer) and mhDataBuffer:available then
                     do:
                         /* ttTables was found when we created the record */
                         assign iIdx          = lookup(pcLocalName, ttTables.FieldXmlName)
@@ -575,7 +580,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                                mcCurrentFieldValue = ?.
                 end.
                 
-                if valid-handle(phAttributes) then
+                if not lIsBufferNode and valid-handle(phAttributes) then
                 do:
                     /* is this a unknown/nil value? */
                     if phAttributes:get-index-by-qname('xsi:nil') gt 0 and

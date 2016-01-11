@@ -94,24 +94,21 @@ class OpenEdge.DataAdmin.Support.PartitionMap inherits PartitionCollection imple
             return this-object:ContainsKey(cast(element,IField)). 
         else if type-of(element,IIndex) then 
             return this-object:ContainsKey(cast(element,IIndex)).    
-        return ?.     
+        return false.     
     end method.  
     
     method public IPartition FindTable(pctable as char):
-        if PartitionQuery:FindTable(pctable) then
-             return new Partition( Context).
+        return cast(PartitionQuery:FindTableEntity(pctable), IPartition).
     end method. 
     
     method public IPartition FindField(pctable as char,pcField as char):
-        if PartitionQuery:FindField(pctable,pcfield) then
-             return new Partition( Context).
+        return cast(PartitionQuery:FindFieldEntity(pctable,pcField ), IPartition).
     end method. 
-    
+   
     method public IPartition FindIndex(pctable as char,pcIndex as char,pcCollation as char):
-       if PartitionQuery:FindIndex(pctable,pcIndex,pcCollation)  then
-           return new Partition( Context).
+        return cast(PartitionQuery:FindIndexEntity(pctable,pcIndex,pcCollation), IPartition).
     end method. 
-             
+            
     method public logical CanFindTable(pctable as char):
         return PartitionQuery:CanFindTable(pctable). 
     end method. 

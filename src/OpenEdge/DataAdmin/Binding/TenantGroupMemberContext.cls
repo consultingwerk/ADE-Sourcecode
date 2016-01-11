@@ -1,4 +1,28 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.ContextTree.
+USING OpenEdge.DataAdmin.Binding.DataAdminContext.
+USING OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope.
+USING OpenEdge.DataAdmin.Binding.IContextTree.
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+USING OpenEdge.DataAdmin.Binding.ServiceAdapter.
+USING OpenEdge.DataAdmin.DataAdminService.
+USING OpenEdge.DataAdmin.Error.DataContextError.
+USING OpenEdge.DataAdmin.Error.IllegalArgumentError.
+USING OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ITenantGroupMember.
+USING OpenEdge.DataAdmin.Message.FetchRequest.
+USING OpenEdge.DataAdmin.Message.IFetchRequest.
+USING OpenEdge.DataAdmin.Message.ISaveRequest.
+USING OpenEdge.DataAdmin.Message.SaveRequest.
+USING OpenEdge.DataAdmin.Support.TenantGroupTenantGroupMemberSet.
+USING OpenEdge.DataAdmin.Support.TenantTenantGroupMemberSet.
+USING OpenEdge.DataAdmin.TenantGroupMember.
+USING Progress.Lang.*.
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -14,36 +38,10 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.ITenantGroupMember from propath.
-using OpenEdge.DataAdmin.TenantGroupMember from propath.
- 
-using OpenEdge.DataAdmin.Support.TenantTenantGroupMemberSet from propath.
-using OpenEdge.DataAdmin.Support.TenantGroupTenantGroupMemberSet from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath. 
-using OpenEdge.DataAdmin.Binding.IContextTree from propath. 
-using OpenEdge.DataAdmin.Binding.ContextTree from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope from propath. 
- 
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-
 class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/tenantgroupmember.i} 
-    define private dataset dsTenant serialize-name "root" for ttTenantGroupMember.
+    define private dataset dsTenantGroupMember serialize-name "root" for ttTenantGroupMember.
     define buffer bTenantGroupMember for ttTenantGroupMember.
     define temp-table copytable reference-only like ttTenantGroupMember.
       
@@ -55,14 +53,6 @@ class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminCont
         
     define variable mCreate as logical no-undo.
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then 
-                DatasetHandle  = dataset dsTenant:handle.
-            return DatasetHandle.
-        end get.
-        private set.
-        
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttTenantGroupMember:handle.
@@ -98,7 +88,12 @@ class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminCont
          super ("TenantGroupMember",pScope).                                    
  
     end constructor.
- 	
+    
+ 	    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsTenantGroupMember:handle. 
+    end method.
+    
 	method public override void CreateRow(entity as IDataAdminElement):
 	    /* the default syserror has all info */
 	    CreateRow(cast(entity,ITenantGroupMember)).    
@@ -112,12 +107,8 @@ class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminCont
                 return "Name,TenantGroupName".
         end.
     end.
-    
-    method override public void WriteTo( input writer as OpenEdge.DataAdmin.Binding.IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
  
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
@@ -312,8 +303,8 @@ class OpenEdge.DataAdmin.Binding.TenantGroupMemberContext inherits DataAdminCont
         undo, throw new UnsupportedOperationError("CreateCollection with context only (no key).").           
      end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new TenantGroupMember (cntxt).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new TenantGroupMember (this-object,preq).
     end method.
    
     method override protected IDataAdminCollection CreateCollection(pparent as char,cntxt as FilteredContext):     

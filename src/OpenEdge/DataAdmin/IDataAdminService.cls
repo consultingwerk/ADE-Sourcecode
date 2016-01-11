@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2014 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -17,59 +17,46 @@
    Notes       :  
    */
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
- 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
 
+using OpenEdge.DataAdmin.Core.FileLogger from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
 using OpenEdge.DataAdmin.IArea from propath.
+using OpenEdge.DataAdmin.IAreaSet from propath.
+using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
+using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
+using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataSecurity from propath.
 using OpenEdge.DataAdmin.IDomain from propath.
-using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
+using OpenEdge.DataAdmin.IDomainSet from propath.
 using OpenEdge.DataAdmin.IExtent from propath.
+using OpenEdge.DataAdmin.IIndex from propath.
+using OpenEdge.DataAdmin.IPartitionPolicy from propath.
+using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
+using OpenEdge.DataAdmin.IPartitionPolicyDetailSet from propath.
+using OpenEdge.DataAdmin.IPartitionPolicySet from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.ISchema from propath.
+using OpenEdge.DataAdmin.ISequence from propath.
+using OpenEdge.DataAdmin.ISequenceSet from propath.
 using OpenEdge.DataAdmin.ITable from propath.
+using OpenEdge.DataAdmin.ITablePermission from propath.
+using OpenEdge.DataAdmin.ITablePermissionSet from propath.
+using OpenEdge.DataAdmin.ITableSet from propath.
 using OpenEdge.DataAdmin.ITenant from propath.
 using OpenEdge.DataAdmin.ITenantGroup from propath.
 using OpenEdge.DataAdmin.ITenantGroupMember from propath.
-using OpenEdge.DataAdmin.IUser from propath.
-using OpenEdge.DataAdmin.ITablePermission from propath.
-using OpenEdge.DataAdmin.IUserPermission from propath.
-using OpenEdge.DataAdmin.IUserTablePermission from propath.
- 
-using OpenEdge.DataAdmin.IAreaSet from propath. 
-using OpenEdge.DataAdmin.IDomainSet from propath.
-using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
-using OpenEdge.DataAdmin.ISchemaSet from propath.
-using OpenEdge.DataAdmin.ISchema from propath.
-using OpenEdge.DataAdmin.ITableSet from propath.
-using OpenEdge.DataAdmin.ITablePermissionSet from propath.
+using OpenEdge.DataAdmin.ITenantGroupSet from propath.
 using OpenEdge.DataAdmin.ITenantSet from propath.
-using OpenEdge.DataAdmin.IUserSet from propath.
+using OpenEdge.DataAdmin.IUser from propath.
+using OpenEdge.DataAdmin.IUserPermission from propath.
 using OpenEdge.DataAdmin.IUserPermissionSet from propath.
+using OpenEdge.DataAdmin.IUserSet from propath.
 using OpenEdge.DataAdmin.IUserTablePermissionSet from propath.
- 
-using OpenEdge.DataAdmin.IPartitionMap from propath.
-using OpenEdge.DataAdmin.ITenantGroupSet   from propath.
-using OpenEdge.DataAdmin.IPartitionCollection from propath.
- 
-using OpenEdge.DataAdmin.ISequence from propath.
-using OpenEdge.DataAdmin.ISequenceSet from propath.
-
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-
-using OpenEdge.DataAdmin.Binding.CreateContext from propath.
- 
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
- 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
- 
-
-using OpenEdge.DataAdmin.Core.FileLogger from propath. 
 using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
+using OpenEdge.DataAdmin.Util.IUtilityFactory from propath.
+using Progress.Lang.Error from propath.
+ 
+
 
 interface OpenEdge.DataAdmin.IDataAdminService : 
     
@@ -93,6 +80,9 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Service name - currently database name - read-only */
     define public property Name as character no-undo get.
     
+     /**utility factory - read-only */
+    define public property UtilityFactory as IUtilityFactory no-undo get.
+   
     /* not yet
     /** LocalContextScope decides context scope for New<Entity> methods 
              Service = One local scope for the service 
@@ -113,6 +103,9 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         CancelSchemaChanges does the same thing  */
     /*method public logical DeleteSchemaChanges(pschema as ISchema).*/
     
+    /** create a collection */
+    method public logical CreateCollection(pccol as IDataAdminCollection).
+  
     /** Create a new area  
         @param IArea to be created */
     method public logical CreateArea(area as IArea).
@@ -121,13 +114,6 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param IAreaSet with a collection of areas to create */
     method public logical CreateAreas(areas as IAreaSet).
     
-    /** Create a new domain  
-        @param domain IDomain to be created */
-    method public logical CreateDomain(domain as IDomain).
-   
-    /** Create new domains  
-        @param domains IDomainSet with a collection of domains to create */
-    method public logical CreateDomains(domains as IDomainSet).
     
     /** Create a new authentication system  
         @param system IAuthenticationSystem to be created */
@@ -136,7 +122,23 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Create new authentication systems  
         @param systems IAuthenticationSystemSet with a collection of authentication systems to create */
     method public logical CreateAuthenticationSystems(authenticationsystems as IAuthenticationSystemSet).
+   
+    /** Create a new domain  
+        @param domain IDomain to be created */
+    method public logical CreateDomain(domain as IDomain).
+   
+    /** Create new domains  
+        @param domains IDomainSet with a collection of domains to create */
+    method public logical CreateDomains(domains as IDomainSet).
     
+   /** Create a new partition policy 
+        @param policy IPartitionPolicy to be created */
+    method public logical CreatePartitionPolicy(policy as IPartitionPolicy).
+   
+   /** Create a new partition policy  
+        @param policies IPartitionPolicySet with policies to be created */
+    method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
+  
     /** Create a new group  
         @param group ITenantGroup to be created */
     method public logical CreateTenantGroup(newgroup as ITenantGroup).
@@ -178,7 +180,12 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param authenticationsystemName name of authentication system to delete. 
         @throws NotFoundError if authentication system does not exist. */
     method public logical DeleteAuthenticationSystem(authenticationsystemName as char).
-    
+
+    /** Delete PartitionPolicy 
+        @param policyName name of policy to delete. 
+        @throws NotFoundError if policy does not exist. */
+    method public logical DeletePartitionPolicy(tenantName as char).
+   
     /** Delete tenant 
         @param tenantName name of tenant to delete. 
         @throws NotFoundError if tenant does not exist. */
@@ -199,6 +206,13 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @throws NotFoundError if user does not exist */
     method public logical DeleteUser(usrId as char).
     
+    /** Get a collection of the specified serializename, entity name or physical database filename  */
+    method public IDataAdminCollection GetCollection(pcname as char).
+    
+     /** Get a collection specified by the request in the database */
+    method public IDataAdminCollection GetCollection(pRequestInfo as IRequestInfo):
+    
+    /* get administrator - has administrator user ids */
     method public IAdministrator GetAdministrator().
     
     /** Get an area  
@@ -388,6 +402,36 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param filter a character query expression of tenant properties 
                with optional request info children with QueryStrings for child collections */
     method public ITenantSet GetTenants(pRequestInfo as IRequestInfo).
+    
+    /** Get a PartitionPolicy  
+        @param  name char of PartitionPolicy*/ 
+    method public IPartitionPolicy GetPartitionPolicy(pname as char).
+    
+    /** Get a PartitionPolicy  
+         @param  request IRequestInfo*/ 
+    method public IPartitionPolicy GetPartitionPolicy(pRequestInfo as IRequestInfo).
+    
+    /** Get a collection of all partition policies  in the database   */ 
+    method public IPartitionPolicySet GetPartitionPolicies().
+   
+    /** Get a collection of partition policies 
+        @param  request IRequestInfo*/ 
+    method public IPartitionPolicySet GetPartitionPolicies(pRequestInfo as IRequestInfo).
+   
+    /** Get a collection of partition policies 
+        @param  filter  */ 
+    method public IPartitionPolicySet GetPartitionPolicies(pFilter as char).
+   
+   /** Get a collection of all partition policies details in the database   */
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails().
+   
+    /** Get a collection of  partition policies details   
+         @param  request IRequestInfo*/ 
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pRequestInfo as IRequestInfo).
+    
+    /** Get a collection of  partition policies details   
+       @param  filter  */ 
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as char).
    
     /** Get a collection of permissions for the specified collections 
         @param collections a comma separated list of collections known by the service */ 
@@ -419,7 +463,10 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Get a collection of users in the database *
         @param filter a character query expression of user properties. */
     method public IUserSet GetUsers(pReq as IRequestInfo).
-    
+     
+    /** Get a new collection of the specified serializename, entity name or physical database filename  */
+    method public IDataAdminCollection NewCollection(pcname as char).
+  
     /** Get a new area   
         Expected to be passed to CreateArea() to be created in the database or added to a new or 
         existing IAreaSet collection to be submitted to the database with the collection.
@@ -435,6 +482,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         Expected to be added to an IArea:Extents collection to be submitted to the database 
         using the service's CreateArea() or UpdateAreas() methods.*/ 
     method public IExtent NewExtent().
+    
+     /** Get a new index     
+        Expected to be added to an ITable:Indexes collection to be submitted to the database 
+        using the service's CreateTable() or UpdateTables() methods.*/ 
+    method public IIndex NewIndex().
     
     /** Get a new tenant group member    
         Expected to be added to an ITenant or ITenantGroup TenantGroupMembers collection to be 
@@ -465,7 +517,18 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         Add new authentication systems to the collection and pass it to CreateAuthenticationSystems() 
         to create the authentication systems in the database. */ 
     method public IAuthenticationSystemSet NewAuthenticationSystems().
-        
+    
+     /** Get an empty partition policy   */ 
+    method public IPartitionPolicy NewPartitionPolicy(pname as char).
+   
+     /** Get an empty partition policy collection  */ 
+    method public IPartitionPolicySet NewPartitionPolicies().
+    
+         /** Get an empty partition policy detail  */ 
+     /*  Expected to be added to IPartitionPolicy:Details collection to be submitted to the database*/
+     /*        using the service's UpdateTable() or UpdateTables() methods.*/
+    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pname as char).
+      
     /** Get a new tenant
         Expected to be passed to CreateTenant() to be created in the database or added to a new 
         or existing ITenantSet collection to be submitted to the database with the collection. 
@@ -515,6 +578,9 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         in the database. */ 
     method public IUserSet NewUsers(). 
     
+     /** Update a collection */
+    method public logical UpdateCollection(pccol as IDataAdminCollection).
+  
     /** Update the database with administrator changes 
         @param admin IAdministrator */ 
     method public logical UpdateAdministrator(admin as IAdministrator).
@@ -546,6 +612,14 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Update the database with changes for many authentication systems 
         @param authenticationSystems IAuthenticationSystemSet collection */ 
     method public logical UpdateAuthenticationSystems(authenticationsystems as IAuthenticationSystemSet).
+    
+       /** Update the database with partition policy changes  
+       @param policy IPartitionPolicy to be created */
+    method public logical UpdatePartitionPolicy(policy as IPartitionPolicy).
+   
+   /** Update the database with partition policies with changes   
+        @param policies IPartitionPolicySet with policies to be updated */
+    method public logical UpdatePartitionPolicies(policy as IPartitionPolicySet).
     
     /** Update the database with sequence changes  
         @param sequence ISequence */ 

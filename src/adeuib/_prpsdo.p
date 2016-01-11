@@ -78,7 +78,7 @@ DEFINE VARIABLE cLine                    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lContainsLOB             AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lDynamic                 AS LOGICAL    NO-UNDO.
 define variable frameTitle               as character no-undo.
-
+define variable closeWindow              as logical no-undo.
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
@@ -89,111 +89,125 @@ CREATE WIDGET-POOL.
    windows. */     
 BIG-TRANS-BLK:
 DO TRANSACTION:
-/* Turn off status messages, otherwise they will appear in the status area of
- * the Design window.  They are turned back on before exiting the procedure */
-STATUS INPUT OFF.
-
-/* Create necessary widgets and initialize with current data                */
-FIND _U WHERE _U._HANDLE = h_self.
-FIND _P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE.
-FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
-IF NOT AVAILABLE _F THEN DO:
-  FIND _C WHERE RECID(_C) = _U._x-recid.
-  IF _C._q-recid NE ? THEN FIND _Q WHERE RECID(_Q) = _C._q-recid NO-ERROR.
-END.
-
-/* Find _C of Window  */
-FIND _U WHERE _U._HANDLE = _h_win.
-FIND _C WHERE RECID(_C)  = _U._x-recid.
-FIND _U WHERE _U._HANDLE = h_self.
-
-ASSIGN 
-  isSmartData = _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U
-  isWebObject = _P._TYPE BEGINS "WEB":U.
-
-IF _DynamicsIsRunning AND DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynSDO":U) THEN
-  lDynamic = TRUE.
-
-IF NOT lDynamic THEN 
-  RUN checkLOBs.
-
-IF NOT RETRY THEN DO:
-  DEFINE FRAME prop_sht
-         name         AT ROW 1.13  COL 11 COLON-ALIGNED {&STDPH_FILL}
-         btn_adv      AT ROW 19    COL 50         
-       WITH 
-       &if defined(IDE-IS-RUNNING) = 0 &then
-       VIEW-AS DIALOG-BOX 
-       &else
-       no-box
-       &endif
-       SIDE-LABELS SIZE 95 BY 22 THREE-D.
-
-  {adeuib/ide/dialoginit.i "frame prop_sht:handle"}
-  &if defined(IDE-IS-RUNNING) <> 0 &then
-  dialogService:View().
-  &endif
-  RUN adjust_frame.
-  
-  /* *************************** Generate Needed Widgets ************************** */
-
-  /* Set up the stuff at the top of the property sheet --- NON-toggle stuff         */
-  RUN create_smartData_stuff.
-  RUN set_tab_order.
-
-  {adecomm/okbar.i &FRAME-NAME = prop_sht}
-  RUN final_adjustments.
-END.  /* IF NOT RETRY */
-
-ON WINDOW-CLOSE OF FRAME prop_sht APPLY "END-ERROR":U TO SELF.
-
-
-ON CHOOSE OF btn_help IN FRAME prop_sht OR HELP OF FRAME prop_sht DO:
-  DEFINE VARIABLE help-context AS INTEGER NO-UNDO.
-  IF isSmartData          THEN help-context = {&Property_Sheet_for_SmartDataObject_Client_Server_}.
-  ELSE IF isWebObject     THEN help-context = {&Property_Sheet_for_SmartDataObject_Web_}.
-  RUN adecomm/_adehelp.p ( "AB", "CONTEXT", help-context, ? ).
-END.
-
-/* Make sure names are valid */
-ON LEAVE OF name IN FRAME prop_sht DO:
-  DEFINE VARIABLE valid_name AS LOGICAL NO-UNDO.
+    /* Turn off status messages, otherwise they will appear in the status area of
+     * the Design window.  They are turned back on before exiting the procedure */
+    STATUS INPUT OFF.
     
-    IF SELF:SCREEN-VALUE <> _U._NAME THEN DO:
-      RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
-      
-      IF valid_name THEN DO:
-        ASSIGN _U._NAME = INPUT FRAME prop_sht name
-         &if defined(IDE-IS-RUNNING) = 0 &then
-               FRAME prop_sht:TITLE = "Property Sheet - " 
-                                    + IF isSmartData THEN _P._TYPE ELSE "" + " " + _U._NAME
-         &endif
-               .
-      END.
-      ELSE RETURN NO-APPLY.
+    /* Create necessary widgets and initialize with current data                */
+    FIND _U WHERE _U._HANDLE = h_self.
+    FIND _P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE.
+    FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
+    IF NOT AVAILABLE _F THEN DO:
+      FIND _C WHERE RECID(_C) = _U._x-recid.
+      IF _C._q-recid NE ? THEN FIND _Q WHERE RECID(_Q) = _C._q-recid NO-ERROR.
     END.
-END.
+    
+    /* Find _C of Window  */
+    FIND _U WHERE _U._HANDLE = _h_win.
+    FIND _C WHERE RECID(_C)  = _U._x-recid.
+    FIND _U WHERE _U._HANDLE = h_self.
+    
+    ASSIGN 
+      isSmartData = _U._TYPE = "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U
+      isWebObject = _P._TYPE BEGINS "WEB":U.
+    
+    IF _DynamicsIsRunning AND DYNAMIC-FUNCTION("ClassIsA" IN gshRepositoryManager, _P.object_type_code, "DynSDO":U) THEN
+      lDynamic = TRUE.
+    
+    IF NOT lDynamic THEN 
+      RUN checkLOBs.
+    
+    IF NOT RETRY THEN DO:
+      DEFINE FRAME prop_sht
+             name         AT ROW 1.13  COL 11 COLON-ALIGNED {&STDPH_FILL}
+             btn_adv      AT ROW 19    COL 50         
+           WITH 
+           &if defined(IDE-IS-RUNNING) = 0 &then
+           VIEW-AS DIALOG-BOX 
+           &else
+           no-box
+           &endif
+           SIDE-LABELS SIZE 95 BY 22 THREE-D.
+    
+      {adeuib/ide/dialoginit.i "frame prop_sht:handle"}
+      &if defined(IDE-IS-RUNNING) <> 0 &then
+      dialogService:View().
+      &endif
+      RUN adjust_frame.
+      
+      /* *************************** Generate Needed Widgets ************************** */
+    
+      /* Set up the stuff at the top of the property sheet --- NON-toggle stuff         */
+      RUN create_smartData_stuff.
+      RUN set_tab_order.
+    
+      {adecomm/okbar.i &FRAME-NAME = prop_sht}
+      RUN final_adjustments.
+    END.  /* IF NOT RETRY */
+    
+    ON WINDOW-CLOSE OF FRAME prop_sht DO:
+       &if DEFINED(IDE-IS-RUNNING) = 0  &then
+         APPLY "END-ERROR":U TO SELF.
+       &else 
+         closeWindow = true.
+         APPLY "U2" to this-procedure.
+       &endif
+    end.
+    
+    ON CHOOSE OF btn_help IN FRAME prop_sht OR HELP OF FRAME prop_sht DO:
+      DEFINE VARIABLE help-context AS INTEGER NO-UNDO.
+      IF isSmartData          THEN help-context = {&Property_Sheet_for_SmartDataObject_Client_Server_}.
+      ELSE IF isWebObject     THEN help-context = {&Property_Sheet_for_SmartDataObject_Web_}.
+      RUN adecomm/_adehelp.p ( "AB", "CONTEXT", help-context, ? ).
+    END.
+    
+    /* Make sure names are valid */
+    ON LEAVE OF name IN FRAME prop_sht DO:
+      DEFINE VARIABLE valid_name AS LOGICAL NO-UNDO.
+        
+        IF SELF:SCREEN-VALUE <> _U._NAME THEN DO:
+          RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
+          
+          IF valid_name THEN DO:
+            ASSIGN _U._NAME = INPUT FRAME prop_sht name
+             &if defined(IDE-IS-RUNNING) = 0 &then
+                   FRAME prop_sht:TITLE = "Property Sheet - " 
+                                        + IF isSmartData THEN _P._TYPE ELSE "" + " " + _U._NAME
+             &endif
+                   .
+          END.
+          ELSE RETURN NO-APPLY.
+        END.
+    END.
+    
+    ON CHOOSE OF btn_adv DO:
+       run choose_advanced.
+    END.
+    
+    IF SESSION:WIDTH-PIXELS = 640 AND SESSION:PIXELS-PER-COLUMN = 8 THEN
+    ASSIGN FRAME prop_sht:X = 0 - CURRENT-WINDOW:X 
+           FRAME prop_sht:Y = 0 - CURRENT-WINDOW:Y.
+           
+    RUN sensitize.
+    
+    RUN adecomm/_setcurs.p ("").
+    
+    &scoped-define CANCEL-EVENT U2    
+    {adeuib/ide/dialogstart.i  btn_ok btn_cancel frameTitle}
+   
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR "GO" OF FRAME prop_sht. 
+    &ELSE
+        WAIT-FOR "GO" OF FRAME prop_sht or "u2" of this-procedure.       
+        if cancelDialog or closeWindow THEN UNDO, LEAVE.  
+    &endif
+    /* Turn status messages back on. (They were turned off at the top of the block */
+    STATUS INPUT.
 
-ON CHOOSE OF btn_adv DO:
-   run choose_advanced.
-END.
+    RUN complete_the_transaction.
 
-IF SESSION:WIDTH-PIXELS = 640 AND SESSION:PIXELS-PER-COLUMN = 8 THEN
-ASSIGN FRAME prop_sht:X = 0 - CURRENT-WINDOW:X 
-       FRAME prop_sht:Y = 0 - CURRENT-WINDOW:Y.
-       
-RUN sensitize.
-
-RUN adecomm/_setcurs.p ("").
-{adeuib/ide/dialogstart.i  btn_ok btn_cancel frameTitle}
- 
-WAIT-FOR "GO" OF FRAME prop_sht.
-
-/* Turn status messages back on. (They were turned off at the top of the block */
-STATUS INPUT.
-
-RUN complete_the_transaction.
 END.  /* BIG-TRANS-BLK */
+
 HIDE FRAME prop_sht.
 DELETE WIDGET-POOL.
 /* ***************** PERSISTENT TRIGGERS FOR DYNAMIC WIDGETS  **************** */

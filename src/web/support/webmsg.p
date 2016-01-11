@@ -87,7 +87,7 @@ PROCEDURE web.output:
   DEFINE VARIABLE        msgCount          AS INTEGER   INITIAL 0       NO-UNDO.
   
 
-  ASSIGN WSMSGParameters = "name,value".
+  ASSIGN WSMSGParameters = "name,value":U.
   
   /* Run tagparse.p to retrieve each of WSTAG's token values */ 
   DO i = 1 TO NUM-ENTRIES(WSMSGParameters):
@@ -96,9 +96,9 @@ PROCEDURE web.output:
                                 OUTPUT paramValue).
 
     CASE paramName:
-      WHEN "name" THEN
+      WHEN "name":U THEN
         nameValue = paramValue.
-      WHEN "value" THEN 
+      WHEN "value":U THEN 
       DO:
         titleValue = paramValue.
         IF titleValue = "" THEN titleValue = ?.
@@ -107,26 +107,26 @@ PROCEDURE web.output:
   END.
 
   CASE nameValue:
-    WHEN "page" THEN 
+    WHEN "page":U THEN 
       ASSIGN
-        groupType = "page"
+        groupType = "page":U
         groupValue = ?.
-    WHEN "all" THEN      
+    WHEN "all":U THEN      
       ASSIGN
-        groupType = "all"
+        groupType = "all":U
         groupValue = ?.
     WHEN ? THEN
       ASSIGN
-        groupType = "all"
+        groupType = "all":U
         groupValue = ?.
     WHEN "" THEN
       ASSIGN
-        groupType = "all"
+        groupType = "all":U
         groupValue = ?.
     OTHERWISE
       ASSIGN
         groupValue = groupType
-        groupType = "group".
+        groupType = "group":U.
   END CASE.
  
   output-messages(groupType, groupValue, titleValue).

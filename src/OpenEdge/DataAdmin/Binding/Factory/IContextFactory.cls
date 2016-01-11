@@ -9,14 +9,18 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.Factory.* from propath.
-
+using OpenEdge.DataAdmin.Binding.Factory.*.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using Progress.Lang.*.
 interface OpenEdge.DataAdmin.Binding.Factory.IContextFactory
                     inherits IAreaScope,
                              IMultiTenantScope, 
                              ISchemaScope, 
                              IIdentityScope:  
+                                 
+    /* wide name scope - serialize, context , physical db table*/   
+    method public IDataAdminModel GetContextByAnyName(pname as char):
+   
                                  
 end interface.

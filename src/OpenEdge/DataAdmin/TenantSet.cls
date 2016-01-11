@@ -58,12 +58,10 @@ class OpenEdge.DataAdmin.TenantSet inherits DataAdminCollection implements ITena
         return this-object:Add(inst).
     end method.
     
-    method public logical Add(tenant as ITenant).  
-        if Contains(tenant) then
+    method public logical Add(ptenant as ITenant).  
+        if Contains(ptenant) then
             return false.   
-        tenant:Attach(Context).
-        
-        return true.
+        return Context:AddEntity(ptenant).
     end method.  
     
     method public override logical Remove(o as Object):
@@ -121,8 +119,25 @@ class OpenEdge.DataAdmin.TenantSet inherits DataAdminCollection implements ITena
         tenantCntxt = cast(Context,TenantContext).
         return tenantCntxt:CanFindByExternalId(ExtId).
     end.
+    
+    method public override void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        define variable iPos as integer no-undo.
+         /* The code writer actually support this, but it writes tenants, so externally 
+             we give error if actually asking for it (see below) */ 
+        iPos = lookup("TenantGroupMembers",pcCollectionList).
+        if iPos > 0 then
+           undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
+               
+        /*  we generate code for TenantGroups when passing TenantGroupMembers, 
+            so we just fix the list internally. */
+        iPos = lookup("TenantGroups",pcCollectionList).
+        if iPos > 0 then 
+            entry(iPos,pcCollectionList) = "TenantGroupMembers".
+            
+        super:ExportAsProcedure(pcfile,pcCollectionlist).     
+    end.
      
-    method public override void  ExportTree(pcfile as char,pcCollectionlist as char):
+    method public override void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
         define variable codewriter as CodeWriter no-undo.
         define variable fileext as character no-undo.
@@ -130,30 +145,19 @@ class OpenEdge.DataAdmin.TenantSet inherits DataAdminCollection implements ITena
         fileExt = GetFileExtension(pcFile).
         case fileExt:
             /* deal with current limitations that does not handle the TenantGroups collection */  
-            when "p" or when "download" then 
+            when "p" or when CodeExtension then 
             do:
-                /* The code writer actually support this, but it writes tenants, so externally 
-                  we give error if actually asking for it (see below) */ 
-               iPos = lookup("TenantGroupMembers",pcCollectionList).
-               if iPos > 0 then
-                   undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
-               
-               /* for .p we generate code for TenantGroups when passing TenantGroupMembers, 
-                  so we just fix the list internally. */
-               iPos = lookup("TenantGroups",pcCollectionList).
-               if iPos > 0 then 
-                   entry(iPos,pcCollectionList) = "TenantGroupMembers".
+                ExportAsProcedure(pcfile,pcCollectionlist).
             end.
             otherwise 
             do:
-               iPos = lookup("TenantGroups",pcCollectionList).
-               if iPos > 0 then
+                iPos = lookup("TenantGroups",pcCollectionList).
+                if iPos > 0 then
                     undo, throw new UnsupportedOperationError("Export of TenantGroups collection. Use TenantGroupMembers instead.").
-               
+                    
+                super:ExportTree(pcfile,pcCollectionlist). 
             end.
         end.
-            
-        super:ExportTree(pcfile,pcCollectionlist). 
     end method. 
      
     method override protected void PrepareExport(  ):

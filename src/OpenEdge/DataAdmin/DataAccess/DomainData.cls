@@ -27,9 +27,6 @@ using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
 using OpenEdge.DataAdmin.Message.ITableRequest from propath.
 
 class OpenEdge.DataAdmin.DataAccess.DomainData inherits DataAccess implements IDataAccess : 
-    
- 
-    define private variable Url as character no-undo.
  
   define public property BaseQuery as character no-undo
         get():

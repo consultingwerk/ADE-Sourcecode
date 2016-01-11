@@ -39,21 +39,15 @@ using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
 
 class OpenEdge.DataAdmin.DataAccess.UserData inherits DataAccess implements IDataAccess : 
  .
- 
-    define private variable TenantURL as character no-undo.
-    
     define private variable mStart as integer no-undo.
     define private variable mSingle as logical no-undo.
-    define private variable domainsURL     as character no-undo.
-    define private variable  URL     as character no-undo.
     
- 
     define public property BaseQuery as character no-undo
         get.     
         set.
     
     method public override void FetchData(msg as IFetchRequest):
-        SetUrl(msg:url).
+        Url = msg:url.
         DatasetHandle = msg:DataHandle.       
         FillData(msg).
     end method.
@@ -211,12 +205,6 @@ class OpenEdge.DataAdmin.DataAccess.UserData inherits DataAccess implements IDat
             delete object userPerm no-error.       
         end finally.
     end method.    
-     
-    method protected override void SetUrl(pcUrl as char):   
-        Url = pcurl.
-        TenantUrl =  pcurl + "/tenants/".
-        domainsURL = pcurl + "/domains/".
-     end method.
      
     /* This is the call back for the QueryString parsing. There is currently no mapping, but we override it in 
        order to return the ttPartition's parent keys to the Query. This allows us to extract the expression later.

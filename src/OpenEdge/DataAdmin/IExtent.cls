@@ -38,4 +38,7 @@ interface OpenEdge.DataAdmin.IExtent inherits IDataAdminElement:
     /** The Size of the extent in KB */
     define public property Size as int no-undo get. set.
     
+     /** The Size used (High water mark) of the extent in KB */
+    define public property SizeUsed  as int no-undo get.  
+    
 end interface.  

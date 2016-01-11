@@ -1,4 +1,14 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.UtilityContext.
+USING OpenEdge.DataAdmin.Error.IllegalArgumentError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ISchema.
+USING OpenEdge.DataAdmin.ITable.
+USING OpenEdge.DataAdmin.Internal.Util.UtilityTableSet.
+USING Progress.Lang.*.
  /* Copyright (c) 2012 by Progress Software Corporation.      */
  /*                                                           */
  /* All rights reserved.  No part of this program or document */
@@ -15,19 +25,7 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminElement.
-using OpenEdge.DataAdmin.IDataAdminCollection.
-using OpenEdge.DataAdmin.ISchema.
-using OpenEdge.DataAdmin.ITable.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext.
-using OpenEdge.DataAdmin.Binding.UtilityContext.
-using OpenEdge.DataAdmin.Internal.Util.UtilityTableSet.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError.
-
 routine-level on error undo, throw.
-
-
   
 class OpenEdge.DataAdmin.Binding.UtilityTableContext inherits UtilityContext: 
     {daschema/tabledata.i reference-only}
@@ -78,11 +76,11 @@ class OpenEdge.DataAdmin.Binding.UtilityTableContext inherits UtilityContext:
         return new UtilityTableSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
         if valid-object(TargetService) then
         do:
-            if this-object:Find(cntxt:TableHandle::name) then 
-                return TargetService:GetTable(cntxt:TableHandle::name).
+            if this-object:Find(this-object:TableHandle::name) then 
+                return TargetService:GetTable(this-object:TableHandle::name).
         end.   
     end method.
     

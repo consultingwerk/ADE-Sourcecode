@@ -33,11 +33,13 @@ Define {1} var s_Seq_Limit    like DICTDB._Sequence._Seq-max NO-UNDO.
 DEFINE {1} VAR s_Large_Seq_info    AS CHAR                   NO-UNDO.
 DEFINE {1} VAR s_Seq_Current_Value AS CHAR                   NO-UNDO.
 
+DEFINE RECTANGLE RECT-DS EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE 77 BY 5.4.
+
 /* This is the form for the seqprops and newseq windows. */
 &IF "{&WINDOW-SYSTEM}" begins "MS-WIN" &THEN
    {adedict/SEQ/seqprop.f  
-      &frame_phrase = "frame seqprops NO-BOX 
-       default-button s_btn_OK cancel-button s_btn_Close"
+      &frame_phrase = "frame seqprops NO-BOX
+       default-button s_btn_OK cancel-button s_btn_Close "
       &apply_btn  = s_btn_Save
       &other_btns = "SPACE({&HM_DBTN}) s_btn_Close SPACE({&HM_DBTNG}) 
      s_btn_Prev SPACE({&HM_DBTN}) s_btn_Next"

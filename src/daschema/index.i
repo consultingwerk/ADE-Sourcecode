@@ -13,15 +13,20 @@
   ----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
- define temp-table ttIndex no-undo serialize-name "indexes" {1}
+ define temp-table ttIndex no-undo serialize-name "indexes" {1} before-table ttIndexCopy 
      field Name          as character serialize-name "name"
+     /* not used in index or join - only for serve lookup*/
+     field SchemaName    as character  serialize-hidden  
+ 
      field TableName     as character serialize-name "tableName"
      field Description   as character serialize-name "description"
      field AreaName      as character serialize-name "areaName"
      field AreaUrl       as character serialize-name "area_url"
      field IsMultitenant as logical   serialize-name "isMultitenant"
      field tRowid        as rowid     serialize-hidden
-  
+     field IndexFieldUrl as char      serialize-name "indexfields_url"
+     field FieldUrl      as char      serialize-name "fields_url"
+     field IsLocal       as logical serialize-name "isLocal"
      field IsActive      as logical serialize-name "isActive"
      field IsUnique      as logical serialize-name "isUnique"
      field IsPrimary     as logical serialize-name "isPrimary"

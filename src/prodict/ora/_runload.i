@@ -28,6 +28,7 @@ Created 02/02/00
 DEFINE INPUT PARAMETER p_Disable AS CHARACTER NO-UNDO.
 
 DEFINE SHARED STREAM   loaderr.
+DEFINE SHARED STREAM   loadread.
 DEFINE SHARED VARIABLE errs    AS INTEGER NO-UNDO.
 DEFINE SHARED VARIABLE recs    AS INT64. /*UNDO*/
 DEFINE SHARED VARIABLE xpos    AS INTEGER NO-UNDO.
@@ -107,11 +108,11 @@ DO WHILE TRUE TRANSACTION:
 
     CREATE {1}.
     ASSIGN
-      errbyte = SEEK(INPUT)
+      errbyte = SEEK(loadread)
       errline = errline + 1
       recs    = recs + 1.
 
-    IMPORT {4} NO-ERROR.
+    IMPORT STREAM loadread {4} NO-ERROR.
 
     IF ERROR-STATUS:ERROR THEN DO:
       IF TERMINAL <> "" AND user_env[6] = "s" THEN DO:

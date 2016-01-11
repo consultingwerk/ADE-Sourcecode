@@ -1,9 +1,9 @@
- /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
+/*************************************************************/
+/* Copyright (c) 2011 by progress Software Corporation.      */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
   /*************************************************************/
  /*------------------------------------------------------------------------
     File        : Administrator
@@ -25,16 +25,16 @@
                     that returns a collection of these(and no header)                  
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.IAdministrator.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.*.
-using Progress.Json.ObjectModel.JsonObject         from propath.
-using Progress.Json.ObjectModel.ObjectModelParser  from propath.
-using OpenEdge.DataAdmin.IDataAdminElement         from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable   from propath.
-using OpenEdge.DataAdmin.Entity                    from propath.
-using OpenEdge.DataAdmin.IAdministrator            from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-
 class OpenEdge.DataAdmin.Administrator inherits Entity implements IDataAdminElement, IDataAdminSerializable, IAdministrator: 
 
 	define public property Administrators as character no-undo 
@@ -58,12 +58,16 @@ class OpenEdge.DataAdmin.Administrator inherits Entity implements IDataAdminElem
 			Purpose:  																	  
 			Notes:  																	  
 	------------------------------------------------------------------------------*/		
-	constructor public Administrator( cntxt as IDataAdminContext ):
+	constructor public Administrator( cntxt as IDataAdminModel ):
 		super (cntxt).
 	end constructor.
 	
+	constructor public Administrator( cntxt as IDataAdminModel,pReq as IRequestInfo ):
+        super (cntxt,pReq).
+    end constructor.
+    
 	/* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
      

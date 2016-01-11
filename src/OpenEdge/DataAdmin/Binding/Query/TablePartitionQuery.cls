@@ -1,10 +1,10 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
+/* Copyright (c) 2011-2014 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
  /*------------------------------------------------------------------------
     Purpose     : Query Partitions for a table 
     Syntax      : 
@@ -14,21 +14,19 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
+using OpenEdge.DataAdmin.Binding.IRow from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery from propath.
- 
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using Progress.Lang.* from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Query.TablePartitionQuery inherits SchemaPartitionQuery: 
 	define private variable mTable as character no-undo.
-	constructor public TablePartitionQuery ( pdatacontext as PartitionContext, pcTable as character, preq as IRequestInfo):
-	 	super (pdatacontext,"tables", pcTable, "","","",preq).
-	 	mTable = pcTable. 
+	constructor public TablePartitionQuery ( pdatacontext as PartitionContext, pRow as IRow, preq as IRequestInfo):
+	 	super (pdatacontext,pRow,preq).
+	 	mTable = pRow:KeyValues[1]. 
 	end constructor.
-    
-     
     
     /** Allocate tenant partitions for the table 
         override to call context and allocate fields and indexes not aprt of the query
@@ -36,7 +34,7 @@ class OpenEdge.DataAdmin.Binding.Query.TablePartitionQuery inherits SchemaPartit
         @return true if any partition was allocated 
         @throw IllegalArgumentError if not valid AllocationState */     
     method public override logical AllocateTenants(pcAllocationState as char):        
-        return cast(this-object:Parent,PartitionContext):AllocateTableTenants(mTable,pcAllocationState).
+        return cast(this-object:Model,PartitionContext):AllocateTableTenants(mTable,pcAllocationState).
     end method.
     
     /** Allocate tenant partitions for the table 
@@ -45,7 +43,7 @@ class OpenEdge.DataAdmin.Binding.Query.TablePartitionQuery inherits SchemaPartit
         @return true if any partition was allocated 
         @throw IllegalArgumentError if not valid AllocationState */     
     method public override logical AllocateGroups(pcAllocationState as char):        
-         return cast(this-object:Parent,PartitionContext):AllocateTableGroups(mTable,pcAllocationState).
+         return cast(this-object:Model,PartitionContext):AllocateTableGroups(mTable,pcAllocationState).
     end method.
     /*
     method public override logical Deallocate(): 

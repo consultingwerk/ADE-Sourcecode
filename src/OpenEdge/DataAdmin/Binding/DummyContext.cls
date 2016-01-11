@@ -8,19 +8,18 @@
     Created     : Fri Dec 17 05:15:41 EST 2010
     Notes       : 
   ----------------------------------------------------------------------*/
-
+block-level  on error undo, throw. 
+  
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.Binding.DummyContext inherits DataAdminContext: 
-     define public override property DatasetHandle as handle no-undo 
-        get():
-            return ?.
-        end get.
     
     define public override property TableHandle as handle no-undo 
         get.
@@ -42,12 +41,17 @@ class OpenEdge.DataAdmin.Binding.DummyContext inherits DataAdminContext:
 		super (input "Dummy").	
 		TableHandle = tt.
 	end constructor.
-	
+	        
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return ?. 
+    end method. 
+    
 	method public override character GetJoinFields(parentid as char):
         return "".
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Dummy context").
     end method. 
      
@@ -67,7 +71,7 @@ class OpenEdge.DataAdmin.Binding.DummyContext inherits DataAdminContext:
         undo, throw new UnsupportedOperationError("CreateCollection in Dummy context").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
         undo, throw new UnsupportedOperationError("CreateEntity in Dummy context").
     end method.
         

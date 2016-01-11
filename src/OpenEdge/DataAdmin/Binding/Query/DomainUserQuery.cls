@@ -16,7 +16,6 @@
 
 using Progress.Lang.* from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
-using Progress.Json.ObjectModel.JsonConstruct from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using Progress.Json.ObjectModel.JsonArray from propath.
 using OpenEdge.DataAdmin.IRequestInfo  from propath.

@@ -133,12 +133,10 @@ class OpenEdge.DataAdmin.AreaSet inherits DataAdminCollection implements IAreaSe
         return this-object:Add(inst).
     end method.
     
-    method public logical Add(area as IArea):
-        if Contains(area) then
+    method public logical Add(parea as IArea):
+        if Contains(parea) then
             return false.   
        
-        area:Attach(Context).
-      
-        return true. 
+        return Context:AddEntity(parea).
     end method.    
 end class.

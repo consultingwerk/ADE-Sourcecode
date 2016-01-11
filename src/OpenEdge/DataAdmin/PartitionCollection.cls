@@ -21,6 +21,7 @@ using OpenEdge.DataAdmin.DataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IPartitionCollection from propath.
 using OpenEdge.DataAdmin.IPartition from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Partition from propath.
 using OpenEdge.DataAdmin.ITable from propath.
 using OpenEdge.DataAdmin.IField from propath.
@@ -146,8 +147,7 @@ class OpenEdge.DataAdmin.PartitionCollection inherits DataAdminCollection
     end method.
     
     method public IPartition FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
-        if PartitionContext:FindTenant(pcTenant,pctable,pcField,pcIndex,pcCollection) then
-            return new Partition( Context).
+        return cast(PartitionContext:FindTenantEntity(pcTenant,pctable,pcField,pcIndex,pcCollection),IPartition). 
     end method.    
    
     method public logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char,pccollection as char).
@@ -155,12 +155,19 @@ class OpenEdge.DataAdmin.PartitionCollection inherits DataAdminCollection
     end method.
     
     method public IPartition FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
-        if PartitionContext:FindGroup(pcGroup,pctable,pcField,pcIndex,pcCollection) then
-            return new Partition( Context).
+         return cast(PartitionContext:FindGroupEntity(pcGroup,pctable,pcField,pcIndex,pcCollection),IPartition). 
     end method.    
    
     method public logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char,pccollection as char).
         return PartitionContext:CanFindGroup(pcGroup,pctable,pcField,pcIndex,pcCollection). 
+    end method.     
+    
+    method public IPartition FindPolicyDetail(pcPolicyDetail as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
+         return cast(PartitionContext:FindPolicyDetailEntity(pcPolicyDetail,pctable,pcField,pcIndex,pcCollection),IPartition). 
+    end method.    
+   
+    method public logical CanFindPolicyDetail(pcPolicyDetail as char,pctable as char,pcField as char, pcIndex as char,pccollection as char).
+        return PartitionContext:CanFindPolicyDetail(pcPolicyDetail,pctable,pcField,pcIndex,pcCollection). 
     end method.     
     
     method protected override void PrepareExport():

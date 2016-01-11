@@ -511,7 +511,6 @@ if bug22 then RUN error_handling(6, "", "").
 if bug34 then escp = "".
 
 /*---------------------------- MAIN-LOOP ---------------------------*/
-
 /* just in case some garbage left over */
 for each s_ttb_tbl: delete s_ttb_tbl. end.
 for each s_ttb_fld: delete s_ttb_fld. end.
@@ -570,9 +569,9 @@ for each gate-work
   IF gate-work.gate-type <> "PROCEDURE" THEN DO:
   
     /*-------------------------- SEQUENCES -----------------------------*/
-
-    if gate-work.gate-type = "SEQUENCE"
-        then do:  /* gate-work.gate-type = "SEQUENCE" */
+ 
+    IF ( gate-work.gate-type = "SEQUENCE" )  
+    THEN DO:  /* gate-work.gate-type = "SEQUENCE" */
 
       ASSIGN s = progvar.
       IF SESSION:SCHEMA-CHANGE = "new objects"  THEN 
@@ -585,6 +584,9 @@ for each gate-work
         progvar = SUBSTRING(s,1,32 - LENGTH(STRING(- i),"character"),"character") 
                   + STRING(- i).
       end.
+
+ IF ( gate-seqpre = "_SEQT_REV_" OR gate-seqpre = "_SEQT_" ) THEN DO: 
+
       create s_ttb_seq.
       assign
         gate-work.ttb-recid = RECID(s_ttb_seq)
@@ -606,16 +608,47 @@ for each gate-work
         s_ttb_seq.gate-work = RECID(gate-work)
         s_ttb_seq.pro_name  = progvar.
 
-      if TERMINAL <> "" and NOT batch-mode
+     END.
+      ELSE DO: 
+          FIND s_ttb_ntvseq where TRIM(s_ttb_ntvseq.seqname) = trim(namevar) AND trim(s_ttb_ntvseq.schname) = trim(uservar) NO-LOCK NO-ERROR. 
+          DO i = 1 TO 9999 WHILE can-find(FIRST s_ttb_seq where s_ttb_seq.pro_name = progvar):
+             progvar = SUBSTRING(s,1,32 - LENGTH(STRING(- i),"character"),"character") + STRING(- i).
+      	  end.
+
+          create s_ttb_seq.
+            ASSIGN
+            gate-work.ttb-recid     = RECID(s_ttb_seq)
+            s_ttb_seq.ds_attr64     = true
+            s_ttb_seq.fdbname       = s_ttb_ntvseq.fdbname
+            s_ttb_seq.ds_user       = s_ttb_ntvseq.schname
+            s_ttb_seq.ds_type       = s_ttb_ntvseq.seqtype
+            s_ttb_seq.ds_name       = s_ttb_ntvseq.seqname
+    	    s_ttb_seq.ds_datatype   = s_ttb_ntvseq.datatype
+	    s_ttb_seq.ds_prec       = s_ttb_ntvseq.precision
+	    s_ttb_seq.ds_scale      = s_ttb_ntvseq.scale
+            s_ttb_seq.ds_init       = s_ttb_ntvseq.startvalue
+            s_ttb_seq.ds_min        = s_ttb_ntvseq.minvalue
+            s_ttb_seq.ds_max        = s_ttb_ntvseq.maxvalue
+	                             /* ( if s_ttb_ntvseq.maxvalue > (IF is-pre-101b-db THEN 2147483647 ELSE 9223372036854775807)
+                                      then ? else s_ttb_ntvseq.maxvalue ) */
+            s_ttb_seq.ds_incr       = s_ttb_ntvseq.increment
+            s_ttb_seq.ds_cycle      = s_ttb_ntvseq.iscycle 
+	    s_ttb_seq.ds_cache      = s_ttb_ntvseq.cachesize
+            s_ttb_seq.gate-work     = RECID(gate-work)
+            s_ttb_seq.ds_spcl       = s_ttb_seq.fdbname + "," + s_ttb_seq.ds_name + "," + "@op" + "," + "@val" + ","
+            s_ttb_seq.ds_natspcl    = s_ttb_seq.fdbname + "," + s_ttb_seq.ds_name + "," + "@op" + "," + "@val" + ","  + s_ttb_seq.ds_user + ","
+	    s_ttb_seq.pro_name      = progvar.
+   END. 
+
+	if TERMINAL <> "" and NOT batch-mode
         then DISPLAY 
           namevar @ msg[1]   ""   @ msg[4]
           progvar @ msg[2]   ""   @ msg[5]
           ""      @ msg[3]   ""   @ msg[6]
           with frame ds_make.
 
-      NEXT.
-
-    end.     /* gate-work.gate-type = "SEQUENCE" */
+     NEXT.
+  end.  /* gate-work.gate-type = "SEQUENCE" */
 
 
     /*---------------------------- TABLES ------------------------------*/

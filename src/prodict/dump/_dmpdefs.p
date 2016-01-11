@@ -40,6 +40,8 @@ history:
                                 Codepage 850  =now=>  IBM850
     kmayur      06/21/11    Added support for constraint dump OE00195067
     rkamboj     11/30/09    Added logic to dump category field.
+    rkamboj     09/23/13    Added support for load of partitioned table flag for _File. 
+                            Added support for load of is-local index for _index.
 */
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.
@@ -374,14 +376,19 @@ ELSE IF pi_method BEGINS "s" THEN DO: /*-------------------------*/ /* sequences
     END.
     IF _Sequence._Seq-Misc[3] <> ? THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC3 " _Sequence._Seq-Misc[3] SKIP.
+
     IF _Sequence._Seq-Misc[4] <> ? THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC4 " _Sequence._Seq-Misc[4] SKIP.
+
     IF _Sequence._Seq-Misc[5] <> ? THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC5 " _Sequence._Seq-Misc[5] SKIP.
-    IF _Sequence._Seq-Misc[6] <> ? THEN
+
+    IF _Sequence._Seq-Misc[6] <> ? AND _Sequence._Seq-Misc[6] <> "n/a" THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC6 " _Sequence._Seq-Misc[6] SKIP.
-    IF _Sequence._Seq-Misc[7] <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  SEQ-MISC7 " _Sequence._Seq-Misc[7] SKIP.
+
+    IF _Sequence._Seq-Misc[7] <> ? AND _Sequence._Seq-Misc[7] <> "n/a" THEN
+      PUT STREAM ddl UNFORMATTED " SEQ-MISC7 " _Sequence._Seq-Misc[7] SKIP.
+
     IF _Sequence._Seq-Misc[8] <> ? THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC8 " _Sequence._Seq-Misc[8] SKIP.
 
@@ -421,7 +428,7 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     
     lNoArea = false.
   
-    IF _File._File-attributes[1] AND _File._File-attributes[2] = FALSE THEN
+    IF ((_File._File-attributes[1] AND _File._File-attributes[2] = FALSE) or (_File._File-attributes[3] )) THEN
     DO:
         PUT STREAM ddl UNFORMATTED "  NO-DEFAULT-AREA "  SKIP.    
         lNoArea = true.
@@ -436,7 +443,6 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
         FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
         PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
     END.  
-     
     IF _File._Can-Create <> '*' THEN DO:
       PUT STREAM ddl CONTROL "  CAN-CREATE ".
       EXPORT STREAM ddl _File._Can-Create.
@@ -592,6 +598,10 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
       PUT STREAM ddl CONTROL "  CATEGORY ".
       EXPORT STREAM ddl _File._category.
     END.
+    if _file._File-Attributes[3] then
+    do:
+        PUT STREAM ddl UNFORMATTED "  IS-PARTITIONED" SKIP.
+    end.    
     FOR EACH _File-trig OF _File NO-LOCK BY _Event:
       PUT STREAM ddl UNFORMATTED
         "  TABLE-TRIGGER """ _File-Trig._Event """ "
@@ -896,6 +906,17 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
       PUT STREAM ddl CONTROL "  RECID-INDEX ".
       EXPORT STREAM ddl _Index._I-misc2[1].
     END.
+    /* dump only if table is partitioned */
+    if (_Db._Db-type = "PROGRESS" and _File._File-Attributes[3]) then
+    do:
+        put stream ddl control "  IS-LOCAL ".
+        export stream ddl if _Index._index-attributes[1] then "TRUE" else "FALSE".
+	if _Index._index-attributes[1] = false then do:
+            FIND _Area WHERE _Area._Area-number = _Index._ianum NO-LOCK.
+	    PUT STREAM ddl CONTROL "  AREA ".
+            EXPORT STREAM ddl _Area._Area-name.
+	end.
+    end.
     FOR EACH _Index-field OF _Index NO-LOCK,
       _Field OF _Index-field NO-LOCK
       BY _Index-field._Index-seq:     

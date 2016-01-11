@@ -49,7 +49,7 @@ class OpenEdge.DataAdmin.Core.FileUtil:
             if iStat <> 0 then
                  undo, throw new AppError("Cannot create directory " + pDirectory + ". System error:" + string(iStat),?).
         end.
-        return 0.
+        return istat.
     end method. /* CreateDirectoryIf */
     
     method public character GetValidDirectory(pcPath as char, pcchild as char):

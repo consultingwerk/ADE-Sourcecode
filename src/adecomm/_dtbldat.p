@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2006,2013 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -47,6 +47,8 @@ DEFINE VARIABLE line        AS CHAR                NO-UNDO.
 DEFINE VARIABLE name        AS CHAR                NO-UNDO.
 DEFINE VARIABLE descrip     AS CHAR    INITIAL ""  NO-UNDO.
 DEFINE VARIABLE flags       AS CHAR                   NO-UNDO.
+DEFINE VARIABLE flags1       AS CHAR                   NO-UNDO.
+DEFINE VARIABLE flags2       AS CHAR                   NO-UNDO.
 DEFINE VARIABLE fldcnt      AS INTEGER INITIAL -1  NO-UNDO.
 DEFINE VARIABLE idx_primary AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE check_crc   AS LOGICAL                   NO-UNDO.
@@ -99,12 +101,12 @@ DEFINE VAR lbls AS CHAR EXTENT 19 NO-UNDO INITIAL
 
 DEFINE VAR separators AS CHAR EXTENT 6 NO-UNDO INITIAL 
 [
-  "=========================================================================",
-  "============================= FIELD SUMMARY =============================", 
-  "============================= INDEX SUMMARY =============================",
-  "============================= FIELD DETAILS =============================",
-  "============================= Table: ",
-  "============================= SEQUENCES ================================="
+  "============================================================================",
+  "=============================== FIELD SUMMARY ==============================", 
+  "=============================== INDEX SUMMARY ==============================",
+  "=============================== FIELD DETAILS ==============================",
+  "=============================== Table: ",
+  "=============================== SEQUENCES =================================="
 ].
 
 &GLOBAL-DEFINE SEP_NEXTTBL    1
@@ -114,13 +116,13 @@ DEFINE VAR separators AS CHAR EXTENT 6 NO-UNDO INITIAL
 &GLOBAL-DEFINE SEP_TBLNAME    5
 &GLOBAL-DEFINE SEP_SEQUENCE   6
 
-&GLOBAL-DEFINE SEP_TBLEND " " + STRING(separators[{&SEP_NEXTTBL}],   SUBSTITUTE("x(&1)", 35 - LENGTH(bFile._File-name,"RAW":u)))
+&GLOBAL-DEFINE SEP_TBLEND " " + STRING(separators[{&SEP_NEXTTBL}],   SUBSTITUTE("x(&1)", 36 - LENGTH(bFile._File-name,"RAW":u)))
 
 /*=================================Forms===================================*/
 
 /* For general long text strings.  line is formatted as appropriate. */
 FORM
-   line FORMAT "x(77)" NO-LABEL
+   line FORMAT "x(80)" NO-LABEL
    WITH FRAME rptline NO-ATTR-SPACE DOWN NO-BOX USE-TEXT STREAM-IO.
 
 FORM
@@ -358,7 +360,7 @@ PROCEDURE Display_Fld_Detail_Rec:
                                      and dictdb._StorageObject._Partitionid = 0
                                      NO-LOCK NO-ERROR.
          /* show label as default area if multi-tenant */
-         cAreaLabel = if bFile._File-Attributes[1] 
+         cAreaLabel = if bFile._File-Attributes[1] or bFile._File-Attributes[3] 
                       then lbls[{&LBL_DEFAULTAREA}]
                       else lbls[{&LBL_AREA}]. 
      end.
@@ -456,14 +458,14 @@ FOR EACH bFile NO-LOCK
       {&SEP_TBLEND} @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
-   flags = STRING("", "x(4)") + 
-                 "Table Flags: ""m"" = multi-tenant, ""f"" = frozen, ""s"" = a SQL table".
+   flags = " Table Flags: ""m""=multi-tenant, ""p""=partitioned, ""f""=frozen, ""s""=a SQL table".
    DISPLAY STREAM rpt flags @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
    /* Table info */      
    ASSIGN
       flags = (if bFile._File-Attributes[1] then "m" else "")
+      flags = (flags + IF bFile._File-Attributes[3] then "p" else "")
       flags = (flags + IF bFile._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF bFile._Frozen THEN "f" ELSE "").
 
@@ -506,7 +508,7 @@ FOR EACH bFile NO-LOCK
                                      and dictdb._StorageObject._Object-type = 1 
                                      and dictdb._StorageObject._Partitionid = 0 NO-LOCK NO-ERROR.
         /* show label as default area if multi-tenant */
-        mAreaLabel = if bFile._File-Attributes[1] 
+        mAreaLabel = if bFile._File-Attributes[1] or bFile._File-Attributes[3] 
                      then lbls[{&LBL_DEFAULTAREA}]
                      else lbls[{&LBL_AREA}]. 
      END.                
@@ -622,16 +624,20 @@ FOR EACH bFile NO-LOCK
       {&SEP_TBLEND} @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
-   flags = "Flags: <p>rimary, <u>nique, <w>ord, <a>bbreviated, <i>nactive, " +
-                 "+ asc, - desc".
-   DISPLAY STREAM rpt flags @ line WITH FRAME rptline.
+   flags1 = "Flags: <g>lobal, <l>ocal, <p>rimary, <u>nique, <w>ord, <a>bbreviated, ".
+   flags2 = "       <i>nactive, + asc, - desc".
+   DISPLAY STREAM rpt flags1 @ line WITH FRAME rptline.
+   DOWN STREAM rpt WITH FRAME rptline.
+   DISPLAY STREAM rpt flags2 @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
    /* Index info */
    FOR EACH dictdb._Index OF bFile NO-LOCK BREAK BY dictdb._Index._Index-name:
       FIND LAST dictdb._Index-field OF dictdb._Index NO-LOCK NO-ERROR.
       flags = 
-           ( (IF bFile._Prime-index = RECID(dictdb._Index) 
+           ( (IF dictdb._Index._index-attributes[1]   
+               THEN "l" ELSE "g")
+           + (IF bFile._Prime-index = RECID(dictdb._Index) 
               THEN "p" ELSE "")
            + (IF dictdb._Index._Unique   
                THEN "u" ELSE "")
@@ -639,7 +645,7 @@ FOR EACH bFile NO-LOCK
                THEN "i" ELSE "") 
            + (IF dictdb._Index._Wordidx = 1
                THEN "w" ELSE "") 
-                 + (IF AVAILABLE dictdb._Index-field AND dictdb._Index-field._Abbreviate
+           + (IF AVAILABLE dictdb._Index-field AND dictdb._Index-field._Abbreviate
                      THEN "a" ELSE "") ).
 
       DISPLAY STREAM rpt
@@ -696,7 +702,7 @@ FOR EACH bFile NO-LOCK
                                              and   dictdb._StorageObject._Partitionid = 0 
                                       NO-LOCK NO-ERROR.
             /* show label as default area if multi-tenant */
-            mAreaLabel = if bFile._File-Attributes[1] 
+            mAreaLabel = if bFile._File-Attributes[1] or bFile._File-Attributes[3] 
                          then lbls[{&LBL_DEFAULTAREA}]
                          else lbls[{&LBL_AREA}]. 
         END.                

@@ -45,9 +45,7 @@ class OpenEdge.DataAdmin.Support.TenantGroupMemberSet abstract inherits DataAdmi
     method public logical Add(detail as ITenantGroupMember):
         if Contains(detail) then
             return false.  
-        detail:Attach(Context).
-        
-        return true.      
+        return Context:AddEntity(detail).
     end method.  
     
     method public override logical Contains(obj as Object):

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2014 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -35,7 +35,8 @@ DEFINE OUTPUT PARAMETER p_codepage AS character.
 DEFINE OUTPUT PARAMETER p_collname AS character.
 DEFINE OUTPUT PARAMETER p_large_seq AS LOGICAL.
 DEFINE OUTPUT PARAMETER p_large_keys AS LOGICAL.
-
+DEFINE OUTPUT PARAMETER p_multitenant AS LOGICAL.
+DEFINE OUTPUT PARAMETER p_partitioned AS LOGICAL.
 /*------------------------------------------------------------------*/
 
 if p_currdbt = "PROGRESS"
@@ -70,6 +71,23 @@ if available DICTDB._Db
     ELSE 
         ASSIGN p_large_keys = ?
                p_large_seq = ?.
+
+   /* Adding support for Multitenant and Partitioned display*/
+   FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Table Partitioning" NO-LOCK NO-ERROR.
+   IF AVAILABLE DICTDB._Database-feature THEN DO:
+     IF DICTDB._Database-feature._DBFeature_Enabled = "1" THEN
+          p_partitioned = true.
+     ELSE
+          p_partitioned = false.
+   END.
+   ELSE 
+        ASSIGN p_partitioned = ?.
+
+   IF can-find(first dictdb._tenant) then
+      p_multitenant = true.
+   ELSE
+      p_multitenant = false.
+
   END.
   else assign 
     p_codepage = ""

@@ -9,27 +9,24 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.SecurityOptions.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.SecurityOptions from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
- 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.Binding.SecurityOptionsContext inherits DataAdminContext: 
     {daschema/securityoptions.i}
     
     define dataset dsSecOpt for ttSecurityOptions.
     
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsSecOpt:handle.
-        end get.
     
     define public override property TableHandle as handle no-undo 
         get():
@@ -52,12 +49,16 @@ class OpenEdge.DataAdmin.Binding.SecurityOptionsContext inherits DataAdminContex
         super ("SecurityOptions",pScope).    
     end constructor.
     
+        /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsSecOpt:handle. 
+    end method.
     
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy SecurityOptions context. There is only one keyless instance").
     end method. 
      
@@ -78,8 +79,8 @@ class OpenEdge.DataAdmin.Binding.SecurityOptionsContext inherits DataAdminContex
         undo, throw new UnsupportedOperationError("CreateCollection in Dummy context. There is only one keyless instance").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new SecurityOptions(this-object).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new SecurityOptions(this-object,preq).
     end method.  
         
 end class.

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012 by Progress Software Corporation. */
+/* Copyright (c) 2010-2013 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,31 +14,32 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath. 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.User from propath. 
-using OpenEdge.DataAdmin.UserSet from propath. 
-using OpenEdge.DataAdmin.IUser from propath. 
-using OpenEdge.DataAdmin.IDomain from propath. 
-
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath. 
-using OpenEdge.DataAdmin.Binding.Query.UserQuery from propath. 
-using OpenEdge.DataAdmin.Binding.Query.DomainUserQuery from propath. 
-using OpenEdge.DataAdmin.Binding.UserContext from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope from propath. 
-using OpenEdge.DataAdmin.Message.IFetchResponse  from propath. 
-using OpenEdge.DataAdmin.Message.ITableResponse  from propath. 
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError  from propath.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.Query.DomainUserQuery.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.UserQuery.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.UserContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDomain.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.IUser.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Message.ITableResponse.
+using OpenEdge.DataAdmin.User.
+using OpenEdge.DataAdmin.UserSet.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -49,11 +50,6 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
     
     define private variable mRefresh as logical no-undo.
     
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsUser:handle.
-        end get.
-     
     define public property ContextFactory as IContextFactory  no-undo 
         get():
             return cast(ContextScope,IContextFactory) .
@@ -98,6 +94,11 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         
     end constructor.
     
+        /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsUser:handle. 
+    end method.
+    
 	method public override character GetJoinFields(parentid as char):
         case parentid:
             when "tenants" then
@@ -137,7 +138,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
 	    CreateRow(cast(entity,IUser)).    
 	end method.
 
-    method protected override void CopyTable(cntxt as IDataAdminContext):
+    method protected override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
           
         hTbl = cntxt:TableHandle.
@@ -146,18 +147,18 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         Loaded = false.
     end method.    
     
-    method protected override void CopyTableForParent(pcparent as char, pcValue as char,cntxt as IDataAdminContext):
+    method protected override void CopyTableForParent(piRow as IRow,cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
-        case pcparent:          
+        case piRow:SerializeName:         
            when "tenants" then 
            do:
-               CopyTable(table-handle hTbl by-reference,"T",pcValue).
+               CopyTable(table-handle hTbl by-reference,"T",piRow:KeyValue).
            end.
            when "domains" then
-               CopyTable(table-handle hTbl by-reference,"D",pcValue). 
+               CopyTable(table-handle hTbl by-reference,"D",piRow:KeyValue). 
            otherwise 
-               undo, throw new IllegalArgumentError("UserContext:CopyTableForParent called with parent " + quoter(pcparent)).        
+               undo, throw new IllegalArgumentError("UserContext:CopyTableForParent called with parent " + quoter(piRow:SerializeName)).        
         end.
         
         Loaded = false.
@@ -294,19 +295,19 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
 	end method.    
 	
 	/* called with tracking-changes */
-    method protected override void ReadNewForParent(pcParent as char, pcValue as char,phTbl as handle):       
-        case pcParent:
+    method protected override void CopyNewTableForParent(pRow as IRow,phTbl as handle):       
+        case pRow:SerializeName:
             when "tenants" then
             do:
-                ReadNewForTenant(pcValue,table-handle phtbl by-reference).
+                CopyNewForTenant(pRow:KeyValue,table-handle phtbl by-reference).
             end.   
             otherwise 
-                undo, throw new IllegalArgumentError("UserContext:ImportNewTableForParent parent" + quoter(pcParent)).
+                undo, throw new IllegalArgumentError("UserContext:ImportNewTableForParent parent " + quoter(pRow:SerializeName)).
      
         end.     
     end method.
      
-	method private void ReadNewForTenant(pcVal as char,input table copytable ):
+	method private void CopyNewForTenant(pcVal as char,input table copytable ):
         define variable dataerror as DataContextError no-undo.      
         for each copytable on error undo, throw:  
             
@@ -326,7 +327,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
 	method protected override void InitRow(pId as char):
 	    define variable cDomain as character no-undo.
         define variable cUserid as character no-undo.
-	    validId(pId,output cUserid,output cDomain).  
+	    SplitId(pId,output cUserid,output cDomain).  
         create ttUser. 
         assign ttUser.Domainname = cDomain
                ttUser.name = cUserid .  
@@ -392,7 +393,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
     method public override logical CanFind(pid as character):
         define variable cDomain as character no-undo.
         define variable cUserid as character no-undo.
-        validId(pid,output cUserid,output cDomain).  
+        SplitId(pid,output cUserid,output cDomain).  
         return can-find(ttUser where ttUser.Domainname = cDomain
                                and   ttUser.name = cUserid).            
     end method.
@@ -401,7 +402,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         define variable cDomain as character no-undo.
         define variable cUserid as character no-undo.
         
-        validId(pid,output cUserid,output cDomain).  
+        SplitId(pid,output cUserid,output cDomain).  
         find ttUser where ttUser.Domainname = cDomain
                     and   ttUser.name = cUserid no-error.  
                
@@ -419,7 +420,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return avail ttUser.            
     end.     
      
-    method private void validId(id as char,output puser as char, output pdomain as char): 
+    method private void SplitId(id as char,output puser as char, output pdomain as char): 
         if num-entries(id,"@") > 1 then 
             pdomain = entry(2,id,"@").
        
@@ -437,14 +438,14 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return new UserQuery(this-object,pReq).
     end method.
   
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
-         case pparent:          
+    method override protected FilteredContext CreateFilteredContext(pparent as IRow, pReq as IRequestInfo):     
+         case pparent:SerializeName:          
              when "domains" then
              do:              
-                  return new DomainUserQuery(this-object,pkey,pReq).
+                  return new DomainUserQuery(this-object,pparent:KeyValue,pReq).
              end.
              otherwise
-                 return super:CreateFilteredContext(pparent,pkey,pReq).              
+                 return super:CreateFilteredContext(pparent,pReq).              
          end.        
     end method.
    
@@ -452,18 +453,18 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return new UserSet(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new User(cntxt).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new User(this-object,pReq).
     end method.
     
-    method protected override void ReadRowForParent(pcParent as char, pcValue as char extent,pjson as JSONObject).
-        case pcParent:
+    method protected override void ReadRowForParent(pRow as IRow,pjson as JSONObject).
+        case pRow:SerializeName:
             when "tenants" then 
             do:
-                ReadRowForTenant(pcValue[1],pjson).    
+                ReadRowForTenant(pRow:KeyValues[1],pjson).    
             end.
             otherwise 
-                 undo, throw new IllegalArgumentError("ReadRowForParent " +  quoter(pcParent)).
+                 undo, throw new IllegalArgumentError("ReadRowForParent " +  quoter(pRow:SerializeName)).
         end case.         
     end method.    
     
@@ -513,13 +514,54 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         define variable cDomain as character no-undo.
         define variable cUserid as character no-undo.
         
-        validId(pusrid,output cUserid,output cDomain).  
+        SplitId(pusrid,output cUserid,output cDomain).  
         
         return  "ttUser.DomainName = " + quoter(cDomain) 
               + " and "
               + "ttUser.Name = " + quoter(cUserid) .
     end method.
     
+    /* Override to split id in name and domain  
+       We do remove @ from id for user with no domain in copyTables but not in 
+       ReadJson* so the record may have "<name>@' in buffer or Row.keyvalues 
+       before being copied into context, so it is safer to use name annd domain in expression than removing @ from id in this case
+       (we do this in Find also ) 
+       (this was added to ensure this works when RowBuffer:NewContext calls GetWhere
+        - GetWhere was fixed to call this) 
+       */ 
+    method public override character ColumnExpression (pcColumn as char, pcOperator as char, pcValue as char):
+        define variable cExpress as character no-undo.
+        define variable cName as character no-undo.
+        define variable cDomain as character no-undo.
+        
+        if pcColumn = "ttUser.Id" then 
+        do: 
+            SplitId(pcValue,output cName,output cDomain).
+            /* ensure domain is in query also when blank in expression value */
+            if lookup(pcoperator,"EQ,=") > 0 then
+            do:
+                cExpress = "(ttUser.name " + pcOperator + " " + quoter(cName)
+                         + " and ttUser.DomainName " + pcOperator + " " + quoter(cDomain)
+                         + ")".  
+            end.                
+            else if cDomain = "" then
+                cExpress = "(ttUser.name " 
+                         + pcOperator
+                         + " "
+                         + quoter(cName) + ")".
+            else          
+                cExpress = "(ttUser.name + " 
+                         +  "(if ttUser.DomainName = '' then '' else '@' + ttUser.DomainName) "
+                         + pcOperator
+                         + " "
+                         + quoter(pcValue) + ")".
+          
+            return cExpress.
+        end.
+        
+        return super:ColumnExpression(pccolumn,pcOperator,pcValue).     
+   
+    end method.  
     method public override void DataRefreshed(pResponse as IFetchResponse):
         define variable i as integer no-undo.
         define variable tblResponse as ITableResponse no-undo.

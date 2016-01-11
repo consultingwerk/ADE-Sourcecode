@@ -57,13 +57,10 @@ class OpenEdge.DataAdmin.SequenceSet inherits DataAdminCollection implements ISe
         return this-object:Add(seq).
     end method.  
     
-    method public logical Add(sequence as ISequence):  
-        if Contains(sequence) then
+    method public logical Add(psequence as ISequence):  
+        if Contains(psequence) then
             return false.   
-       
-        sequence:Attach(Context).
-      
-        return true.
+        return Context:AddEntity(psequence).
     end method.  
     
     method public override logical Remove(o as Object):

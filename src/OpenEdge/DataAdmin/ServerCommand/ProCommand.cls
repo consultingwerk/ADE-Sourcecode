@@ -185,26 +185,29 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
         define variable CommandError as AppError no-undo.      
         define variable iEntries     as integer no-undo.
         define variable iLine        as integer no-undo.
-        define variable iStart       as integer no-undo.
         define variable cMsg         as character no-undo.
-        define variable lAnyMsgAdded    as logical no-undo.
+        define variable lPromptFound as logical no-undo.
         
-        if entry(1,pcMessage,chr(10)) begins ProgressHeaderStart then
-           iStart = 3.
-        else 
-           iStart = 2.        
-        
-        if PromptValue > "" then 
-           iStart = iStart + 1.
-         
         iEntries  = num-entries(pcMessage,chr(10)).       
         iStatus   = int(entry(iEntries,pcMessage,chr(10))) no-error.
      
         if istatus <> 0 then 
         do:
            CommandError = new AppError().         
-           do iLine = iStart to iEntries - 1.
+           do iLine = 1 to iEntries - 1.
                cMsg = entry(iLine,pcMessage,chr(10)).
+               if cMsg begins ProgressHeaderStart then
+                   next.
+               /* if we find a prompt then get rid of what we have and 
+                  collect the messages after the prompt */
+               if lPromptFound =  false and PromptValue > "" and IsPrompt(cMsg) then
+               do:
+                   /* */
+                   delete object CommandError.
+                   CommandError = new AppError().
+                   lPromptFound = true.   
+                   next.
+               end.
                if cMsg > "" then
                do:
                   CommandError:AddMessage(cMsg,?).

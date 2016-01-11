@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2011,2014 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -111,6 +111,7 @@ assign
 ASSIGN s_lob_size:HIDDEN IN {&FRAME} = YES
        s_lob_Area:HIDDEN IN {&FRAME} = YES
        s_btn_lob_Area:HIDDEN IN {&FRAME} = YES
+       s_lob_Area_mttext:HIDDEN IN {&FRAME} = YES
        s_clob_cp:HIDDEN IN {&FRAME} = YES
        s_clob_col:HIDDEN IN {&FRAME} = YES
        s_btn_clob_cp:HIDDEN IN {&FRAME} = YES
@@ -347,7 +348,7 @@ end.
 IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
     find dictdb._File of b_field no-lock.
     
-    if dictdb._File._File-attributes[1] and dictdb._File._File-attributes[2] = false THEN 
+    if (dictdb._File._File-attributes[1] and dictdb._File._File-attributes[2] = false) or dictdb._File._File-attributes[3]  THEN 
         s_lob_Area = "".
     else do:       
         /* Find the storage object so that we can see which area the lob is stored

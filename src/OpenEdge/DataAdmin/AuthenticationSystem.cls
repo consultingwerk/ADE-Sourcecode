@@ -21,10 +21,11 @@ using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminSerializable from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IDomainSet from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Entity from propath.
 using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.Binding.AuthenticationSystemContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
@@ -105,7 +106,7 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
         get():
             if not valid-object(Domains) then
             do:
-                Domains = cast(Context:GetChildCollection(name,"users"),IDomainSet).
+                Domains = cast(GetChildCollection("users"),IDomainSet).
                 /*
                 if valid-object(Service) then 
                 do:
@@ -134,8 +135,8 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
             Type = pType.
         end.  
 	
-	constructor public AuthenticationSystem (cntxt as IDataAdminContext):
-        super (cntxt).
+	constructor public AuthenticationSystem (cntxt as IDataAdminModel,preq as IRequestInfo):
+        super (cntxt,preq).
     end constructor.
       
     constructor public AuthenticationSystem (name as character):
@@ -143,7 +144,7 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
     end constructor. 
     
      /*  local context needed - for child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return new AuthenticationSystemContext().
     end method.
      

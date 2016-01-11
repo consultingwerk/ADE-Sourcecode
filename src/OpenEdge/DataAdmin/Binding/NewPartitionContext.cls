@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2013 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -20,7 +20,7 @@ using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.ITenant from propath.
 using OpenEdge.DataAdmin.ITenantGroup from propath.
-
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
@@ -37,13 +37,6 @@ routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.NewPartitionContext inherits PartitionContext: 
 
-	define protected property DefaultAllocation as char get. set.
-	define protected property DefaultDataArea as char get. set.
-    define protected property DefaultIndexArea as char get. set.
-    define protected property DefaultLobArea as char get. set.
-    define protected property TableName as char get. set.
-    
-    define private variable Type as character no-undo.
     define private variable Factory as IContextFactory no-undo.
      
     /** we're in a local scope, but need service
@@ -58,7 +51,7 @@ class OpenEdge.DataAdmin.Binding.NewPartitionContext inherits PartitionContext:
     end method.  
     
     /* override to avoid fetching nothing */
-    method public override void AddTreeTo(tree as IContextTree,parent as IDataAdminContext).
+    method public override void AddTreeTo(tree as IContextTree,parent as IDataAdminContext,pReq as IRequestInfo).
       
         define variable msg as IFetchRequest no-undo.
         tree:SetJoin(Parent:SerializeName,Serializename,GetJoinFields(Parent:SerializeName)).
@@ -70,7 +63,7 @@ class OpenEdge.DataAdmin.Binding.NewPartitionContext inherits PartitionContext:
         end. 
         */   
  
-        super:AddTreeTo(tree).
+        super:AddTreeTo(tree,pReq).
       
     end method.    
 /*                                                                        */

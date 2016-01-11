@@ -16,37 +16,33 @@
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 using Progress.Lang.* from propath. 
+using Progress.Json.ObjectModel.* from propath.
 using OpenEdge.DataAdmin.* from propath.
 using OpenEdge.DataAdmin.Binding.* from propath.
 using OpenEdge.DataAdmin.Error.* from propath.
 using OpenEdge.DataAdmin.Core.* from propath.
 
 class OpenEdge.DataAdmin.Core.DataAdminWriter abstract implements IDataAdminWriter:  
-    define private variable ContextTree as IContextTree no-undo.
- 
-    define private variable clog as character no-undo.	
-	 
-	constructor public DataAdminWriter (  ):
+    define private variable mlog as character no-undo.	
+    
+   constructor public DataAdminWriter (  ):
 		super ().
     end constructor.
    
     method override public character ToString(  ):
         return super:ToString()
-                + if clog > "" then chr(10) + clog else "".
+                + if mlog > "" then chr(10) + mlog else "".
     end method. 
      
-    method private void Parse(serializable as IDataAdminSerializable,pcMode as char):
+    method private void Parse(serializable as IDataAdminSerializable,tree as IContextTree,pcMode as char):
         define variable cMsg as character no-undo.
-        define variable hdl as handle no-undo.
-         
-        ContextTree = new ContextTree(). 
         case pcMode: 
             when "All" then
             do:
 /*                if NotReadyForContextTree then           */
 /*                    serializable:WriteAllTo(this-object).*/
 /*                else                                     */
-                    serializable:WriteTree(ContextTree).                    
+                    serializable:WriteTree(tree).                    
             end.
             when "Object" then
                 undo, throw new UnsupportedOperationError("Parse object").   
@@ -62,38 +58,38 @@ class OpenEdge.DataAdmin.Core.DataAdminWriter abstract implements IDataAdminWrit
 /*                end.                                           */
 /*                else do:                                       */
                   
-                    serializable:WriteTree(ContextTree,pcMode).
+                    serializable:WriteTree(tree,pcMode).
 /*                end.*/
             end.
         end.
-        
-            clog = ContextTree:ToString().
+        mlog = tree:ToString().
     end method.
     
-    method protected handle Write(serializable as IDataAdminSerializable,pcMode as char):
-        define variable cMsg as character no-undo.
-        define variable hdl as handle no-undo.
-        Parse(serializable,pcMode).
+    method protected IContextTree CreateContextTree():
+        return new ContextTree(). 
+    end method.
+    
+    method protected IContextTree Write(serializable as IDataAdminSerializable,pcMode as char):
+        define variable contextTree as IContextTree no-undo.
+        ContextTree = CreateContextTree(). 
+        ContextTree:Write = true.
+        Parse(serializable,contextTree,pcMode).
          
-        hdl = ContextTree:GetWriteHandle().
-        
-        if not valid-handle(hdl) then 
-            undo, throw new AppError("The write operation cannot complete. No output result returned from the context writer.").
-       
-        return hdl.
+/*        mDS = ContextTree:GetWriteHandle().                                                                                     */
+/*                                                                                                                                */
+/*        if not valid-handle(mDS) then                                                                                           */
+/*            undo, throw new AppError("The write operation cannot complete. No output result returned from the context writer.").*/
+/*                                                                                                                                */
+        return ContextTree.
     end method.
     
-    method protected handle Load(serializable as IDataAdminSerializable,pcMode as char):
-        define variable cMsg as character no-undo.
-        define variable hdl as handle no-undo.
-        Parse(serializable,pcMode).
-     
-        hdl = ContextTree:GetReadHandle().
-        
-        if not valid-handle(hdl) then 
-            undo, throw new AppError("The write operation cannot complete. No output result returned from the context writer.").
-        return hdl.
+    method protected IContextTree Load(serializable as IDataAdminSerializable,pcMode as char):
+        define variable contextTree as IContextTree no-undo.
+        contextTree = new ContextTree(). 
+        Parse(serializable,contextTree,pcMode).
+        return contextTree.
     end method.
-    
+
+	 
     
 end class.

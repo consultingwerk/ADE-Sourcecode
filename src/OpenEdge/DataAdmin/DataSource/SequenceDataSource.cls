@@ -146,13 +146,14 @@ no-undo.
                         dynamic-current-value(dictdb._Sequence._Seq-name, "DICTDB")  = phBuffer::CurrentValue.
                     end.
                 end.
-                 
-                if ((phBuffer::IncrementValue > 0) AND (phBuffer::InitialValue >= phBuffer::MaximumValue)) then
-                     undo, throw new DataAccessError("The maximum value must be greater than the initial value when the increment value is positive."). 
-                else 
-                if ((phBuffer::IncrementValue < 0) AND (phBuffer::InitialValue <= phBuffer::MinimumValue)) then
-                    undo, throw new DataAccessError("The minimum value must be less than the initial value when the increment value is negative.").
-                
+
+                if phBuffer::MaximumValue < phBuffer::InitialValue  then
+                    undo, throw new DataAccessError("Maximum value " + phBuffer::MaximumValue + " is less than initial value " + phBuffer::InitialValue
+                                                     + " on sequence " + quoter(phBuffer::name)).
+                else if phBuffer::minimumValue > phBuffer::InitialValue then
+                     undo, throw new DataAccessError("Minimum value " + phBuffer::minimumValue + " is greater than initial value " + phBuffer::InitialValue
+                                                     + " on sequence " + quoter(phBuffer::name)).
+            
                 
                 if phBuffer::name <> dictdb._Sequence._Seq-name then
                     phBuffer::name = dictdb._Sequence._Seq-name.
@@ -170,7 +171,7 @@ no-undo.
                     dictdb._Sequence._Cycle-Ok = phBuffer::IsCyclic.                    
                 
                 hdataset = phBuffer:dataset.
-                
+              
                 mSaving = true.    
                
                 AfterRow (dataset-handle hdataset by-reference).

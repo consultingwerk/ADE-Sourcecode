@@ -32,7 +32,7 @@
 {src/web/method/cgidefs.i}
 
 DEFINE VARIABLE ix            AS INTEGER    NO-UNDO.
-DEFINE VARIABLE mime-boundary AS CHARACTER  NO-UNDO INITIAL "BoUnDarYtExT".
+DEFINE VARIABLE mime-boundary AS CHARACTER  NO-UNDO INITIAL "BoUnDarYtExT":U.
 
 /* Make sure DISPLAY doesn't output any HTML tags itself. */
 ASSIGN
@@ -71,6 +71,6 @@ END.
 
 /* Output final boundary indicating the end of multipart output */
 {&OUT} SKIP  /* force newline if not at start of line */
-  '--' mime-boundary '--' SKIP.
+  '--':U mime-boundary '--':U SKIP.
 
 /* svrpush.p - end of file */

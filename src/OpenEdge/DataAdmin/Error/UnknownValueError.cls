@@ -24,8 +24,8 @@ using OpenEdge.DataAdmin.Error.DataAdminError.
 
 class OpenEdge.DataAdmin.Error.UnknownValueError inherits DataAdminError: 
     constructor public UnknownValueError (pOperation as char, parg as char, pcMoretext as char):  
-        super("Cannot call " + poperation + " with unknown " + parg + "."
-              + if pcMoreText > "" then " " + pcMoreText ELSE "").
+        super("Cannot call " + poperation + " with unknown " + parg + " parameter."
+              + if pcMoreText > "" then " " + pcMoreText else "").
     end method. 
     
     constructor public UnknownValueError (pOperation as char, parg as char):  

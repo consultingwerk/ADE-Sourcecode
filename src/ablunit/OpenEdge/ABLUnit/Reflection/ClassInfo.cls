@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
  /*------------------------------------------------------------------------
     File        : ClassInfo
     Purpose     : Stores the information of the class and annotation preceding the class
@@ -9,27 +11,25 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
+USING OpenEdge.Core.Collections.Array.
 
+CLASS OpenEdge.ABLUnit.Reflection.ClassInfo: 
 
-
-class OpenEdge.ABLUnit.Reflection.ClassInfo: 
-
-	define variable className as character no-undo.
-	define variable annotationInfo as OpenEdge.ABLUnit.Reflection.AnnotationInfo no-undo.
+	DEFINE PRIVATE VARIABLE className AS CHARACTER NO-UNDO.
+	DEFINE PUBLIC PROPERTY annotationsInfo AS Array NO-UNDO GET. SET.
 	
-	constructor public ClassInfo (input classN as character, input annot as OpenEdge.ABLUnit.Reflection.AnnotationInfo):
+	CONSTRUCTOR PUBLIC ClassInfo (INPUT classN AS CHARACTER, INPUT annotationsInfo AS Array):
         	className = classN.
-        	annotationInfo = annot.	
-	end constructor.
+        	THIS-OBJECT:annotationsInfo = annotationsInfo.	
+	END CONSTRUCTOR.
 
-	method public character getClassName(  ):
-		return className.
-	end method.    
+	METHOD PUBLIC CHARACTER getClassName(  ):
+		RETURN className.
+	END METHOD.    
 
 
-    method public character getAnnotationName(  ):
-        return annotationInfo:getAnnotationName().
-    end method.    
+    METHOD PUBLIC Array getAnnotations(  ):
+        RETURN annotationsInfo.
+    END METHOD.    
 
-end class.
+END CLASS.

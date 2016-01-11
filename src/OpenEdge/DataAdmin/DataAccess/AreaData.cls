@@ -36,17 +36,12 @@ class OpenEdge.DataAdmin.DataAccess.AreaData inherits DataAccess implements IDat
     define data-source dArea for dictdb._Area.
     define data-source dExtent for dictdb._AreaExtent.
 
-    define private variable URL     as character no-undo.
      
     define public property BaseQuery as character no-undo
         get():
            return "for each _Area no-lock".
         end get.     
         set.
-    
-    method protected override void SetUrl(pcurl as character):
-        url =  pcurl + "/areas/".
-    end method.
             
     method public override void FetchData(pmsg as IFetchRequest):
         FillData(pmsg).

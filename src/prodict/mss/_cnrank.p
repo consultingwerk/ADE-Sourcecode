@@ -50,6 +50,7 @@ History:
 &UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
 &UNDEFINE NOTTCACHE
 
+
 define input parameter tmp_best as INTEGER no-undo.
 define input parameter tbl_recid as RECID no-undo.
 define input parameter uniquifyAddon as INTEGER no-undo.
@@ -140,7 +141,6 @@ END PROCEDURE.
 		s_ttb_idx.ds_msc21 = ""
 		s_ttb_idx.key_wt# = 0.
        end.
-
 
 /* Calculate field sizes of the table fields */
      IF callerid = 2 THEN DO:
@@ -278,7 +278,8 @@ END PROCEDURE.
           IF s_ttb_idx.hlp_fld# <= 2 and (s_ttb_idx.hlp_level <= 3 OR
              (s_ttb_idx.hlp_level >= 12 AND s_ttb_idx.hlp_level <= 14 )) THEN 
             assign s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "c".  /* RECID compatible index */
-          IF s_ttb_idx.pro_uniq THEN DO:
+
+            IF s_ttb_idx.pro_uniq THEN DO:
              IF s_ttb_idx.hlp_mand AND NOT pkfound THEN
                 assign pkfound = TRUE
                        s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "p". /* Primary key candidate */
@@ -286,6 +287,7 @@ END PROCEDURE.
                 s_ttb_idx.ds_idx_typ = 1 AND index(s_ttb_idx.ds_msc21,"v") = 0 THEN 
                   s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "v". /*enforced uniqness on OE PK */
           END.
+
        end.     /* for each s_ttb_idx */
 
    FOR EACH s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
@@ -327,7 +329,7 @@ END PROCEDURE.
        END.
        ELSE DO:
          IF substring(s_ttb_idx.ds_msc21,1,1) <> "r" THEN DO: 
-           IF( ( s_ttb_idx.ds_idx_typ = 1 AND s_ttb_idx.pro_uniq ) OR 
+           IF( (s_ttb_idx.ds_idx_typ = 1 AND s_ttb_idx.pro_uniq) OR 
                INDEX(s_ttb_idx.ds_msc21,"n") = 0 OR  /* is Unique already */
                INDEX(s_ttb_idx.ds_msc21,"v") <> 0 )  /* OR uniqueness enforced */
            THEN DO:

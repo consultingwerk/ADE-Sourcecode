@@ -1045,11 +1045,11 @@ DEFINE VARIABLE lAuto      AS LOGICAL    NO-UNDO.
   hQuery:QUERY-OPEN().
   hQuery:GET-FIRST().
   DO WHILE NOT hQuery:QUERY-OFF-END:
-  /* Rohit- Added NO-ERROR and IF hRowObjUpd:AVAILABLE check- trying to fix PSC00262510 based on the stack trace */
-  /* 7/1/2014 undid previous changes made in 11.3.2 */
       hRowObjUpd:FIND-FIRST('WHERE RowNum = ':U + 
-                            STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
-      hRowObjUpd:BUFFER-COPY(hRowObject).
+                            STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)) NO-ERROR.
+
+      IF hRowObjUpd:AVAILABLE THEN
+          hRowObjUpd:BUFFER-COPY(hRowObject).
       hQuery:GET-NEXT().
   END.
   
@@ -2978,7 +2978,7 @@ END FUNCTION.
 function  getKeyWhere return character ():
     define variable cKeyFields    as character no-undo.
     define variable cQueryFields  as character no-undo.
-    define variable pcValues      as character no-undo.
+    define variable cValues       as character no-undo.
     define variable cQueryString  as character no-undo.
     define variable cntr          as integer   no-undo.
     define variable cForName      as character no-undo.
@@ -2992,20 +2992,20 @@ function  getKeyWhere return character ():
     do cntr = 1 to num-entries(cKeyFields):
        cForName = entry(cntr,cKeyFields).
        if cntr > 1 then 
-          assign pcValues = pcValues +  CHR(1)
+          assign cValues = cValues +  CHR(1)
                  cQueryFields = cQueryFields +  ",":U.
        cValue = {fnarg columnValue cForName }.         
-       pcValues = pcValues + if cValue <> ? then cValue else "?":U.
+       cValues = cValues + if cValue <> ? then cValue else "?":U.
        if cForName = ? then
           return ?.
        if num-entries(cForName,".":U) = 1 then 
-          cForName = "RowObject." + cForName.
+          cForName = "RowObject.":U + cForName.
        
        cQueryFields = cQueryFields + cForName.
     end.     
     cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
                                      cQueryFields,
-                                     pcValues,
+                                     cValues,
                                      "=":U,
                                      ?,
                                      ?).

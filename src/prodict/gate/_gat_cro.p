@@ -72,8 +72,10 @@ History:
     fernando    05/29/09 MSS support for blob
     kmayur      06/21/11 Support for constraint migration- OE00190567
     sdash       10/11/12 _File-Label added to left Table Label intact - OE00225208
+    sgarg       04/10/12 _field-rpos retention for existing field - PSC00290776
+    sdash       05/04/14   Support for native sequence generator for MSS.
+    sgarg       06/13/14   Retain Abbreviate attribute of Index.
 --------------------------------------------------------------------*/
-
 
 /*    &DS_DEBUG   DEBUG to protocol the creation    */
 /*                ""    to turn off protocol        */
@@ -139,6 +141,8 @@ define variable tab_Valexp       as character no-undo. /*_Valexp */
 define variable tab_Valmsg       as character no-undo. /*_Valmsg */
 define variable tab_File-Label   as character no-undo. /*_File-Label */
 
+define var test as integer.
+
 define TEMP-TABLE w_field no-undo
             field ds_name             as character case-sensitive
             field ds_type             as character
@@ -158,6 +162,7 @@ define TEMP-TABLE w_field no-undo
             field pro_type            as character
             field pro_Valexp          as character
             field pro_Valmsg          as character
+            field pro_rpos            as integer
             index upi        IS UNIQUE PRIMARY ds_name ds_type
             index order      is unique         pro_order.
 
@@ -612,7 +617,11 @@ for each gate-work
    else if SESSION:BATCH-MODE and logfile_open
      then put stream logfile unformatted skip.
   
-   assign
+ IF (s_ttb_seq.ds_name BEGINS "_SEQT_REV_" 
+           OR s_ttb_seq.ds_name BEGINS "_SEQT_" 
+           OR user_dbtype = "ORACLE" ) 
+  THEN 
+   ASSIGN
      DICTDB._Sequence._Seq-Incr    = s_ttb_seq.ds_incr
      DICTDB._Sequence._Seq-Init    = s_ttb_seq.ds_min
      DICTDB._Sequence._Seq-Max     = s_ttb_seq.ds_max
@@ -628,7 +637,58 @@ for each gate-work
                                         then s_ttb_seq.ds_spcl
                                         else DICTDB._Sequence._Seq-misc[8]
                                      ).
+ ELSE 
+   ASSIGN
+     DICTDB._Sequence._Seq-Incr    = s_ttb_seq.ds_incr
+     DICTDB._Sequence._Seq-Init    = s_ttb_seq.ds_min
+     DICTDB._Sequence._Seq-Max     = s_ttb_seq.ds_max 
+     DICTDB._Sequence._Seq-Min     = s_ttb_seq.ds_min
+     DICTDB._Sequence._Cycle-ok    = s_ttb_seq.ds_cycle
+     DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
+     DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
+     DICTDB._Sequence._Seq-misc[3] = ( if can-do(odbtyp,user_dbtype) and s_ttb_seq.ds_attr64 = false
+                                         then s_ttb_seq.ds_spcl
+                                       else if s_ttb_seq.ds_attr64 = true
+                                         then s_ttb_seq.ds_natspcl
+                                       else DICTDB._Sequence._Seq-misc[3] )
+     DICTDB._Sequence._Seq-misc[4]  = s_ttb_seq.fdbname
+     DICTDB._Sequence._Seq-misc[5]  = string(s_ttb_seq.ds_prec) + "," + string(s_ttb_seq.ds_scale)
+     DICTDB._Sequence._Seq-misc[6]  = s_ttb_seq.ds_datatype
+     DICTDB._Sequence._Seq-misc[7]  = string(s_ttb_seq.ds_cache)
+     DICTDB._Sequence._Seq-misc[8]  = DICTDB._Sequence._Seq-misc[8]
+     DICTDB._Sequence._Seq-Attributes[64] = s_ttb_seq.ds_attr64. /* NOTE: Don't touch Seq-Attributes[1] - used for multi-tenancy */ 
 END.
+
+/*
+    DEFINE VAR precIdx AS INT NO-UNDO.
+    DEFINE VAR precVal AS INT NO-UNDO. 
+
+   IF ( user_dbtype = "MSS" ) THEN DO:
+       FOR EACH DICTDB._Sequence WHERE ( DICTDB._Sequence._Seq-misc[6] = "DECIMAL" ) OR ( DICTDB._Sequence._Seq-misc[6] = "NUMERIC" ) :
+	     /* WHERE DICTDB._Sequence._Seq-Init = 0 : */
+          precIdx = INDEX(DICTDB._Sequence._Seq-misc[5], ",").
+          IF (precIdx > 0) THEN DO:
+            precVal = INT(SUBSTRING(DICTDB._Sequence._Seq-misc[5], precIdx - 1)).
+
+             IF ( PrecVal > 18 ) AND ( DICTDB._Sequence._Seq-Min <= 9223372036854775807 ) THEN 
+                  message "Warning: Minimum value" DICTDB._Sequence._Seq-Min "exceeds the range limit of Minimum value. " view-as alert-box warning buttons ok.
+
+             ELSE IF ( PrecVal > 18 ) AND ( DICTDB._Sequence._Seq-Min > 9223372036854775807 ) THEN DO:
+                  message "Minimum value" DICTDB._Sequence._Seq-Min "exceeds the range limit of Minimum value. " view-as alert-box warning buttons ok.
+                  DELETE DICTDB._Sequence.
+                  END.
+
+             IF ( PrecVal > 18 ) AND ( DICTDB._Sequence._Seq-Max <= 9223372036854775807 ) THEN
+                  message "Warning: Maximum value" DICTDB._Sequence._Seq-Max "exceeds the range limit of Maximum value. " view-as alert-box warning buttons ok.
+
+             ELSE IF ( PrecVal > 18 ) AND ( DICTDB._Sequence._Seq-Max > 9223372036854775807 ) THEN DO:
+                  message "Maximum value" DICTDB._Sequence._Seq-Max "exceeds the range limit of Maximum value. " view-as alert-box warning buttons ok.
+                  DELETE DICTDB._Sequence.
+                  END.
+           END.
+       END.
+   END.
+*/
 
 /*------------------------------ Tables ----------------------------*/  
 
@@ -637,7 +697,15 @@ for each gate-work
 
   if  gate-work.gate-type = "SEQUENCE" 
    or gate-work.gate-type = "PROGRESS" then next.
-  
+
+for each s_ttb_seq :
+ if TERMINAL <> "" and NOT batch_mode
+     then DISPLAY 
+      s_ttb_seq.ds_name  @ msg[1]
+      s_ttb_seq.pro_name @ msg[2]
+        WITH FRAME ds_make.
+end.	
+	
   for each s_ttb_tbl
     where recid(gate-work) = s_ttb_tbl.gate-work:
 
@@ -709,7 +777,6 @@ for each gate-work
 
   
     assign tab_PrimeIdx = ?.
-
 
 /*---------------------- SAVE CURRENT VALUES -----------------------*/
 
@@ -786,7 +853,8 @@ for each gate-work
             w_field.pro_Name     = DICTDB._Field._Field-name
             w_field.pro_Order    = DICTDB._Field._Order
             w_field.pro_Valexp   = DICTDB._Field._Valexp
-            w_field.pro_Valmsg   = DICTDB._Field._Valmsg.
+            w_field.pro_Valmsg   = DICTDB._Field._Valmsg
+            w_field.pro_rpos     = DICTDB._Field._field-rpos.
 
         RUN delete-field.
         end.   /* for each DICTDB._Field OF DICTDB._File */
@@ -939,6 +1007,13 @@ for each gate-work
           ASSIGN s_ttb_fld.pro_frmt = "99/99/99".
 
       CREATE DICTDB._Field.
+
+      /* Need separate assignment so that _field-rpos is unknown for new fields
+       * "else" branch requirement and schema traps on subsequenct assignments prevent val=unk 
+       */
+      IF (available w_field AND w_field.pro_rpos > 0 ) then
+            ASSIGN DICTDB._Field._field-rpos = w_field.pro_rpos.
+
       ASSIGN DICTDB._Field._Desc   = ( if available w_field
                                           and w_field.pro_desc <> ""
                                           and w_field.pro_desc <> ?
@@ -1375,13 +1450,17 @@ for each gate-work
            tab_RIfstoff = s_ttb_idx.hlp_fstoff
            tab_RIidx#   = s_ttb_idx.pro_idx#
            tab_RImsc23  = s_ttb_idx.hlp_msc23.
-        
+/*        
+        We need w_index-field info to restore Abbreviate attribute,
+        Therefore not deleting _Index here.
+
         /* delete this w_index record */
         for each w_index-field
           where  w_index-field.pro_idx-num = w_index.pro_idx-num:
           DELETE w_index-field.
           end.
         DELETE w_index.  
+*/
         end.     /* available w_index */
  
 /*-------------------------- INDEX-FIELDS --------------------------*/
@@ -1398,21 +1477,39 @@ for each gate-work
           FIND FIRST DICTDB._Field WHERE DICTDB._Field._File-recid = DICTDB._Index._File-recid
                                      AND DICTDB._Field._Field-name = s_ttb_fld.defaultname NO-ERROR.
         END.
+
+        find first w_index-field
+          where w_index-field.pro_idx-num = s_ttb_idx.pro_idx#
+          no-error.
+         
+        if available w_index-field then do: 
+           find w_index-field where 
+                      w_index-field.pro_For-name = s_ttb_fld.ds_name no-error.
+        end.
         
         IF AVAILABLE DICTDB._Field THEN DO:
           CREATE DICTDB._Index-field.
           assign
-            DICTDB._Index-Field._Ascending   = s_ttb_idf.pro_asc
-            DICTDB._Index-Field._Abbreviate  = s_ttb_idf.pro_abbr
+            DICTDB._Index-Field._Abbreviate  = (if available w_index-field then
+                                                   w_index-field.pro_abbreviate
+                                                else s_ttb_idf.pro_abbr)
             DICTDB._Index-Field._Field-recid = RECID(DICTDB._Field)
             DICTDB._Index-Field._Index-recid = RECID(DICTDB._Index)
+            DICTDB._Index-Field._Ascending   = s_ttb_idf.pro_asc
             DICTDB._Index-Field._Index-Seq   = s_ttb_idf.pro_order.
         END.
        end.   /* for each s_ttb_idf */
 
       end.   /* for each s_ttb_idx */
   
-
+      if available w_index
+       then do:
+        for each w_index-field
+          where  w_index-field.pro_idx-num = w_index.pro_idx-num:
+          DELETE w_index-field.
+          end.
+        DELETE w_index.  
+      end.
 /*--------------------------- RECID-INDEX ----------------------------*/
 
     if  ( DICTDB._File._Fil-misc1[1] <= 0

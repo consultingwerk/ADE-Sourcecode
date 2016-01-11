@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/  
 /*------------------------------------------------------------------------
    File        : TestTypeResult
    Purpose     : 
@@ -6,7 +8,7 @@
    Description : 
    Author(s)   : hgarapat
    Created     : Tue Aug 14 16:43:04 IST 2012
-   Notes       : 
+   Notes       : class that stores the test results (TestTestResult) for each of its methods similarly for procedure for each of its internal procs
  ----------------------------------------------------------------------*/
 
 USING Progress.Lang.*.
@@ -15,71 +17,43 @@ USING Progress.Lang.*.
 
 CLASS OpenEdge.ABLUnit.Results.TestTypeResult:
      
-    define variable testCount        as integer                                   no-undo.
-    define variable testResultList   as OpenEdge.ABLUnit.Results.TestTestResult extent 100.
-    define variable beforeTypeResult as OpenEdge.ABLUnit.Results.TestTestResult.    
-    define variable successCount     as integer                                   no-undo init 0.
-    define variable failureCount     as integer                                   no-undo init 0.
-    define variable errorCount       as integer                                   no-undo init 0.      
+    DEFINE PRIVATE VARIABLE testCount        AS INTEGER                                   NO-UNDO INIT 1.
+    DEFINE PRIVATE VARIABLE successCount     AS INTEGER                                   NO-UNDO INIT 0.
+    DEFINE PRIVATE VARIABLE failureCount     AS INTEGER                                   NO-UNDO INIT 0.
+    DEFINE PRIVATE VARIABLE errorCount       AS INTEGER                                   NO-UNDO INIT 0.      
 
     /*
     Returns all the test methods for a particular test class
     */
-    method public integer getTestCount(  ):
-        return testCount.
-    end method.
+    METHOD PUBLIC INTEGER getTestCount(  ):
+        RETURN successCount + failureCount + errorCount.
+    END METHOD.
 
-    method public void setTestCount(input i as  integer ):
-        testCount= i.
-    end method.
-    
-    /*--------------------------------------------------------------------
-    All the method results inside a test class are stored in an array.
-    ----------------------------------------------------------------------*/
-    method public void setTestResult(input resultList as OpenEdge.ABLUnit.Results.TestTestResult extent 100):
-        testResultList = resultList.
-    end method.
-    
-    /*--------------------------------------------------------------------
-    All the method results inside a test class are stored in an array.
-    ----------------------------------------------------------------------*/
-    method public void setBeforeTypeResult(input resultList as OpenEdge.ABLUnit.Results.TestTestResult):
-        beforeTypeResult = resultList.
-    end method.
-
-    method public OpenEdge.ABLUnit.Results.TestTestResult extent 100 getTestResult(  ):
-        return testResultList.
-    end method.
-    
-    method public OpenEdge.ABLUnit.Results.TestTestResult getBeforeTypeResult(  ):
-        return beforeTypeResult.
-    end method.
-
-    method public void IncrementSuccess(  ):
+    METHOD PUBLIC VOID IncrementSuccess(  ):
         successCount = successCount + 1.        
-        return.
-    end method.        
+        RETURN.
+    END METHOD.        
 
-    method public void IncrementFailure(  ):
+    METHOD PUBLIC VOID IncrementFailure(  ):
         failureCount = failureCount + 1.        
-        return.
-    end method.        
+        RETURN.
+    END METHOD.        
 
-    method public void IncrementError(  ):
+    METHOD PUBLIC VOID IncrementError(  ):
         errorCount = errorCount + 1.        
-        return.
-    end method.        
+        RETURN.
+    END METHOD.        
 
-    method public integer GetSuccessCount(  ):
-        return successCount.
-    end method.
+    METHOD PUBLIC INTEGER GetSuccessCount(  ):
+        RETURN successCount.
+    END METHOD.
 
-    method public integer GetFailureCount(  ):
-        return failureCount.
-    end method.
+    METHOD PUBLIC INTEGER GetFailureCount(  ):
+        RETURN failureCount.
+    END METHOD.
 
-    method public integer GetErrorCount(  ):
-        return errorCount.
-    end method.
+    METHOD PUBLIC INTEGER GetErrorCount(  ):
+        RETURN errorCount.
+    END METHOD.
     
-end class.
+END CLASS.

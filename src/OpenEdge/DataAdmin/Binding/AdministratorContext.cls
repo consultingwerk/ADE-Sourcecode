@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
+  /* Copyright (c) 2011,2013 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -16,29 +16,30 @@
                   datadmin through service to database.
                   Could in theory hold user records that matches.
   ----------------------------------------------------------------------*/
-
-using Progress.Lang.*.
-using OpenEdge.DataAdmin.Administrator from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
- 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
+block-level on error undo, throw.  
+using OpenEdge.DataAdmin.Administrator.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.  
+  
 class OpenEdge.DataAdmin.Binding.AdministratorContext inherits DataAdminContext: 
     {daschema/administrator.i}
     
     define dataset dsAdmin for ttAdministrator.
     
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsAdmin:handle.
-        end get.
-    
+     /*   temporary until converted to use createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsAdmin:handle.
+    end method.
+     
     define public override property TableHandle as handle no-undo 
         get():
            return temp-table ttAdministrator:handle.
@@ -65,7 +66,7 @@ class OpenEdge.DataAdmin.Binding.AdministratorContext inherits DataAdminContext:
         return "".
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Administrator context. There is only one keyless instance").
     end method. 
      
@@ -86,8 +87,8 @@ class OpenEdge.DataAdmin.Binding.AdministratorContext inherits DataAdminContext:
         undo, throw new UnsupportedOperationError("CreateCollection in Dummy context. There is only one keyless instance").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Administrator(this-object).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new Administrator(this-object,pReq).
     end method.  
 		
 end class.

@@ -37,7 +37,7 @@ DEFINE INPUT PARAMETER p_Tbl  AS CHAR  NO-UNDO.
 DEFINE SHARED STREAM rpt.
 DEFINE VARIABLE flags      AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE starea     AS CHARACTER   NO-UNDO.
-
+define variable isLocal    as character   no-undo.
 FORM
    _File._File-name  LABEL "Table"
    SKIP
@@ -45,11 +45,12 @@ FORM
 
 FORM
   flags                   FORMAT "x(5)"  COLUMN-LABEL "Flags"
-  _Index._Index-name      FORMAT "x(29)" COLUMN-LABEL "Index Name"
+  _Index._Index-name      FORMAT "x(23)" COLUMN-LABEL "Index Name"
   starea                  FORMAT "x(4)" COLUMN-LABEL "St Area"
   _Index._Num-comp        FORMAT ">>9"   COLUMN-LABEL "Cnt"
   _Index-field._Ascending FORMAT "+/- " COLUMN-LABEL "Fi" SPACE(0)
-  _Field._Field-name      FORMAT "x(28)" COLUMN-LABEL "eld Name"
+  _Field._Field-name      FORMAT "x(20)" COLUMN-LABEL "eld Name" 
+  isLocal                 FORMAT "x(8)"  column-label "Local"
   WITH FRAME shoindex 
   DOWN USE-TEXT STREAM-IO.
 
@@ -123,12 +124,14 @@ FOR EACH _File NO-LOCK WHERE _File._Db-recid = p_DbId AND
       END.     
       ELSE
           ASSIGN starea = "N/A".
-          
+      
+      isLocal = if _Index._index-attributes[1] then "Yes" else "No".    
       DISPLAY STREAM rpt
           starea
                 flags
           _Index._Index-name
                 _Index._Num-comp
+                isLocal
                 WITH FRAME shoindex.
 
       /* The default index has no fields! so this loop must be separate

@@ -1,10 +1,9 @@
-
-/*********************************************************************
-* Copyright (C) 2005-2009,2011 by Progress Software Corporation. All *
-* rights  reserved.  Prior versions of this work may contain portions*
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2014 by Progress Software Corporation. All rights *
+  reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /* _dmpincr.p - phase 2 of incremental .df maker 
 
@@ -91,6 +90,7 @@ History:
                             Also fixed no _area found problem.
     Rkamboj     09/30/11    Added CATEGORY field support for incremental dump.
     rkamboj     03/30/2012  Added check for sql-92 tables with unsupported ABL prop - OE00208080
+    rkamboj     11/14/13    Added support to generate incremental for IS-PARTITIONED for _file and IS-LOCAL for _Index. For table partitioning feature.
 */
 
 using Progress.Lang.*.
@@ -154,9 +154,11 @@ DEFINE            VARIABLE isDictdbMultiTenant  AS LOGICAL           NO-UNDO.
 DEFINE            VARIABLE isDictdb2MultiTenant AS LOGICAL           NO-UNDO.
 DEFINE            VARIABLE Constr         AS CHARACTER               NO-UNDO.
 DEFINE            VARIABLE Constr1        AS CHARACTER               NO-UNDO.
-DEFINE            VARIABLE isIndexDel           AS LOGICAL           NO-UNDO.
-DEFINE            VARIABLE indxRecid            AS RECID             NO-UNDO.
+DEFINE            VARIABLE isIndexDel     AS LOGICAL           NO-UNDO.
+DEFINE            VARIABLE indxRecid      AS RECID             NO-UNDO.
 DEFINE            VARIABLE l_sys-obj      AS CHARACTER               NO-UNDO.
+define            variable isDictDbPartitionEnabled  as logical no-undo.
+define            variable isDictDb2PartitionEnabled as logical no-undo.
 
 DEFINE NEW SHARED VARIABLE df-con AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
@@ -169,7 +171,7 @@ DEFINE NEW SHARED TEMP-TABLE df-info NO-UNDO
 
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 52 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 62 NO-UNDO INITIAL [
   /* 1*/ "(initializing)",
   /* 2*/ "", /* See Below */
   /* 3*/ "WARNING: The ",
@@ -221,7 +223,18 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 52 NO-UNDO INITIAL [
   /*49*/ " database but defined as non multi-tenant in  ",
   /*50*/ " database is defined as non multi-tenant database. Multi-tenant sequence feature has been ignored while generating incremental df.",
   /*51*/ "sequence ", 
-  /*52*/ " definition is not identical in both databases."
+  /*52*/ " definition is not identical in both databases.",
+  /*53*/ " table is defined as non-partitioned table in ", 
+  /*54*/ " database but defined as partitioned in ",
+  /*55*/ " database. As a result some partitioned features have been ignored while generating incremental df.",
+  /*56*/ " is partition-enabled database and ",
+  /*57*/ " is not partition-enabled database. As a result some partitioning features have been ignored while generating incremental df.",
+  /*58*/ " is not partition-enabled database and ",
+  /*59*/ " is partition-enabled database. As a result some partitioning features have been ignored while generating incremental df.",
+  /*60*/ " index is defined as global in ", 
+  /*61*/ " database but defined as local in ",
+  /*62*/ " database. As a result some partitioned features have been ignored while generating incremental df."
+           
 ]. 
 
 new_lang[2] = "The incremental definitions file will contain at least "
@@ -241,6 +254,7 @@ IF s_DbType1 = "MSS" OR s_DbType2 = "MSS" THEN
 ELSE
   IF s_DbType1 = "ORACLE" OR s_DbType2 = "ORACLE" THEN 
       assign l_sys-obj = {prodict/ora/ora_sys.i}.
+
 
 /* LANGUAGE DEPENDENCIES END */ /*-------------------------------------------*/
 
@@ -608,6 +622,19 @@ END.  /* batchmode */
 ASSIGN isDictdbMultiTenant  = can-find(first dictdb._tenant)
        isDictdb2MultiTenant = can-find(first dictdb2._tenant).
 
+/* Check if table partition feature is eanble or not for both database. */
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+   assign isDictDbPartitionEnabled = yes.
+else
+   assign isDictDbPartitionEnabled = no.
+
+find dictdb2._Database-feature where dictdb2._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.   
+if avail dictdb2._Database-feature and dictdb2._Database-feature._dbfeature_enabled="1" then
+   assign isDictDb2PartitionEnabled = yes.
+else
+   assign isDictDb2PartitionEnabled = no.
+    
 /* If either db is non-progress, it means one or both of the comparisons is with a 
  * "foreign" schema image.  As there are no real objects, just schema definitions 
  * in the schema image, skip the database encryption comparisons.  By avoiding setup 
@@ -655,6 +682,7 @@ DO ON STOP UNDO, LEAVE
                            INPUT DICTDB._File._Db-recid,
                            INPUT DICTDB2._File._Db-recid) 
          AND s_DbType1 = "PROGRESS" AND s_DbType2 = "PROGRESS" THEN DO:
+
                                
         s_errorsLogged = TRUE.
         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
@@ -675,7 +703,7 @@ DO ON STOP UNDO, LEAVE
 
   /* build list of new or renamed files */
   FOR EACH DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
-                          AND (IF s_DbType1 = "PROGRESS" 
+                    AND (IF s_DbType1 = "PROGRESS" 
                                THEN DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN"
                                ELSE DICTDB._File._Owner = "_FOREIGN")
                           AND (IF s_DbType1 <> "PROGRESS"
@@ -688,7 +716,7 @@ DO ON STOP UNDO, LEAVE
                                     ELSE DICTDB2._File._Db-recid = s_DbRecId)
                                AND DICTDB2._File._File-name = 
                                    DICTDB._File._File-name
-                               AND (IF s_DbType2 = "PROGRESS"
+                              AND (IF s_DbType2 = "PROGRESS"
                                     THEN DICTDB2._File._Owner = "PUB" OR DICTDB2._File._Owner = "_FOREIGN"
                                     ELSE DICTDB2._File._Owner = "_FOREIGN")
                                AND (IF s_DbType2 <> "PROGRESS"
@@ -802,6 +830,28 @@ DO ON STOP UNDO, LEAVE
                   '"' + LDBNAME("DICTDB2") + '"' + new_lang[42]    SKIP(1).
      OUTPUT STREAM err-log CLOSE.
    END.
+
+  IF isDictDbPartitionEnabled = yes and isDictDb2PartitionEnabled = no THEN  /* IF one database is TP and other one is non TP. Give warning message */
+  DO:
+     ASSIGN s_errorsLogged = TRUE.        
+     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         
+       PUT STREAM err-log UNFORMATTED new_lang[3] +
+                  '"' + LDBNAME("DICTDB") + '"' + new_lang[56]     SKIP
+                  '"' + LDBNAME("DICTDB2") + '"' + new_lang[57]    SKIP(1).
+     OUTPUT STREAM err-log CLOSE.
+   END.
+   ELSE IF isDictDbPartitionEnabled = no and isDictDb2PartitionEnabled = yes THEN
+   DO:
+      ASSIGN s_errorsLogged = TRUE.        
+      OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+         
+       PUT STREAM err-log UNFORMATTED new_lang[3] +
+                  '"' + LDBNAME("DICTDB") + '"' + new_lang[58]     SKIP
+                  '"' + LDBNAME("DICTDB2") + '"' + new_lang[59]    SKIP(1).
+     OUTPUT STREAM err-log CLOSE.
+   END.
+
   /* dump newly created files */
   FOR EACH table-list WHERE table-list.t2-name = ?:
     FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND
@@ -832,13 +882,14 @@ DO ON STOP UNDO, LEAVE
            and DICTDB._Storageobject._Partitionid   = 0                       
          NO-ERROR.
    
-    IF AVAILABLE DICTDB._StorageObject THEN
+    IF AVAILABLE DICTDB._StorageObject AND DICTDB._StorageObject._Area-number NE 0 THEN
+    DO:
        FIND DICTDB._Area WHERE
             DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
        NO-ERROR.
        IF AVAILABLE DICTDB._Area THEN
-       FIND DICTDB2._Area WHERE
-            DICTDB2._Area._Area-name = DICTDB._Area._Area-name NO-ERROR.
+          FIND DICTDB2._Area WHERE
+               DICTDB2._Area._Area-name = DICTDB._Area._Area-name NO-ERROR.
        IF NOT AVAILABLE DICTDB2._Area THEN
        DO:
          ASSIGN s_errorsLogged = TRUE.
@@ -874,6 +925,7 @@ DO ON STOP UNDO, LEAVE
                         
              OUTPUT STREAM err-log CLOSE.
        END.
+    END.   
     RUN "prodict/dump/_dmpdefs.p" ("t",RECID(DICTDB._File),"Y").
     IF NOT p-batchmode and not p-silentincrd THEN  /* 02/01/29 vap (IZ# 1525) */
       DISPLAY DICTDB._File._File-name @ fil2 WITH FRAME seeking.
@@ -888,7 +940,10 @@ DO ON STOP UNDO, LEAVE
                                           "Table", 
                                           OUTPUT DATASET dsObjAttrs BY-REFERENCE).
 
-       IF VALID-OBJECT(myObjAttrs[1]) and NOT DICTDB._File._File-attributes[1] THEN
+       /* buffer pool is not per table for multi-tenant and partitioned tables */ 
+       IF VALID-OBJECT(myObjAttrs[1]) 
+       and DICTDB._File._File-attributes[1] = false
+       and DICTDB._File._File-attributes[3] = false THEN
            myObjAttrs[1]:getObjectAttributes(DICTDB._File._File-Number, 
                                              DICTDB._File._File-Name, 
                                              "Table", 
@@ -902,8 +957,9 @@ DO ON STOP UNDO, LEAVE
                                               DICTDB._Field._Data-type, 
                                               OUTPUT DATASET dsObjAttrs BY-REFERENCE).
 
-           IF VALID-OBJECT(myObjAttrs[1]) and NOT DICTDB._File._File-attributes[1] 
-               AND NOT DICTDB._Field._Field-attributes[1] THEN
+           IF VALID-OBJECT(myObjAttrs[1]) 
+           and DICTDB._File._File-attributes[1] = false 
+           and DICTDB._File._File-attributes[3] = false THEN
                myObjAttrs[1]:getObjectAttributes(DICTDB._Field._fld-stlen, 
                                                  DICTDB._File._File-Name + "." + DICTDB._Field._Field-Name, 
                                                  DICTDB._Field._Data-type, 
@@ -917,8 +973,10 @@ DO ON STOP UNDO, LEAVE
                                               "Index", 
                                               OUTPUT DATASET dsObjAttrs BY-REFERENCE).
 
-           IF VALID-OBJECT(myObjAttrs[1]) and not DICTDB._File._File-attributes[1] THEN
-               myObjAttrs[1]:getObjectAttributes(DICTDB._Index._Idx-num, 
+           IF VALID-OBJECT(myObjAttrs[1]) 
+           and DICTDB._File._File-attributes[1] = false 
+           and DICTDB._File._File-attributes[3] = false THEN
+             myObjAttrs[1]:getObjectAttributes(DICTDB._Index._Idx-num, 
                                                  DICTDB._File._File-Name + "." + DICTDB._Index._Index-name, 
                                                  "Index", 
                                                  OUTPUT DATASET dsObjAttrs BY-REFERENCE).
@@ -1029,7 +1087,7 @@ DO ON STOP UNDO, LEAVE
       j = j + 1
       ddl[j] = "  VALMSG-SA " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Dump-name,'"',OUTPUT c).
-    IF DICTDB._File._Dump-name <> DICTDB2._File._Dump-name THEN ASSIGN
+    IF compare(DICTDB._File._Dump-name,"<>",DICTDB2._File._Dump-name,"raw") THEN ASSIGN
       j = j + 1
       ddl[j] = "  DUMP-NAME " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._category,'"',OUTPUT c).
@@ -1051,7 +1109,24 @@ DO ON STOP UNDO, LEAVE
     IF DICTDB._File._Frozen <> DICTDB2._File._Frozen AND NOT DICTDB2._File._Frozen THEN
         ASSIGN j = j + 1
                ddl[j] = "  FROZEN".
-  
+    
+    if isDictDbPartitionEnabled = yes and isDictDb2PartitionEnabled = yes and 
+       DICTDB._File._File-Attributes[3] <> DICTDB2._File._File-Attributes[3] THEN
+    do:
+        If not DICTDB._File._File-Attributes[3] and DICTDB2._File._File-Attributes[3] then
+        do:
+            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+                PUT STREAM err-log UNFORMATTED new_lang[3] +
+                        '"' + DICTDB._File._File-name + '"' + new_lang[53]     SKIP
+                        '"' + LDBNAME("DICTDB")       + '"' + new_lang[54]     SKIP
+                        '"' + LDBNAME("DICTDB2")      + '"' + new_lang[55]     SKIP(1).
+            OUTPUT STREAM err-log CLOSE.    
+        end.  
+        else if DICTDB._File._File-Attributes[3] then do : 
+          ASSIGN j      = j + 1
+                 ddl[j] = '  IS-PARTITIONED '.
+        end.
+    end.
     /* let's cache the encryption info and object attributes in temp-tables */
     IF VALID-OBJECT(myEPolicy[1]) OR VALID-OBJECT(myObjAttrs[1]) THEN DO:
 
@@ -1061,7 +1136,8 @@ DO ON STOP UNDO, LEAVE
                                           "Table", 
                                           OUTPUT DATASET dsObjAttrs BY-REFERENCE).
 
-       IF VALID-OBJECT(myObjAttrs[1]) and not DICTDB._File._File-attributes[1] THEN
+       IF VALID-OBJECT(myObjAttrs[1]) and not DICTDB._File._File-attributes[1] 
+       and not DICTDB._File._File-attributes[3] THEN
            myObjAttrs[1]:getObjectAttributes(DICTDB._File._File-Number, 
                                              DICTDB._File._File-Name, 
                                              "Table", 
@@ -1082,7 +1158,8 @@ DO ON STOP UNDO, LEAVE
                                               DICTDB2._File._File-Name,
                                               "Table", 
                                               OUTPUT DATASET dsObjAttrs2 BY-REFERENCE).
-           IF VALID-OBJECT(myObjAttrs[2]) and not DICTDB2._File._File-attributes[1]THEN 
+           IF VALID-OBJECT(myObjAttrs[2]) and not DICTDB2._File._File-attributes[1] 
+           and not DICTDB2._File._File-attributes[3] THEN 
                myObjAttrs[2]:getObjectAttributes(DICTDB2._File._File-Number, 
                                                  DICTDB2._File._File-Name, 
                                                  "Table", 
@@ -1107,7 +1184,7 @@ DO ON STOP UNDO, LEAVE
         WHERE DICTDB2._File-trig._Event = DICTDB._File-trig._Event NO-ERROR.
       IF AVAILABLE DICTDB2._File-trig AND 
         DICTDB2._File-trig._Override = DICTDB._File-trig._Override AND
-        DICTDB2._File-trig._Proc-name = DICTDB._File-trig._Proc-name AND
+        compare(DICTDB2._File-trig._Proc-name,"=",DICTDB._File-trig._Proc-name,"raw") AND
         DICTDB2._File-trig._Trig-CRC = DICTDB._File-trig._Trig-CRC THEN
         NEXT.
         
@@ -1696,7 +1773,7 @@ DO ON STOP UNDO, LEAVE
           WHERE DICTDB2._Field-trig._Event = DICTDB._Field-trig._Event NO-ERROR.
         IF AVAILABLE DICTDB2._Field-trig AND 
           DICTDB2._Field-trig._Override = DICTDB._Field-trig._Override AND
-          DICTDB2._Field-trig._Proc-name = DICTDB._Field-trig._Proc-name AND
+          compare(DICTDB2._Field-trig._Proc-name,"=", DICTDB._Field-trig._Proc-name,"raw") AND
           DICTDB2._Field-trig._Trig-CRC = DICTDB._Field-trig._Trig-CRC THEN
           NEXT.
           
@@ -1951,7 +2028,7 @@ DO ON STOP UNDO, LEAVE
                                                  OUTPUT DATASET dsObjAttrs BY-REFERENCE).
 
               IF VALID-OBJECT(myObjAttrs[1]) and NOT DICTDB._File._File-attributes[1] 
-                 AND not DICTDB._Index._Index-attributes[1] THEN
+                 AND not DICTDB._Index._Index-attributes[1] and not DICTDB._File._File-attributes[3] THEN
                   myObjAttrs[1]:getObjectAttributes(DICTDB._Index._Idx-num, 
                                                     DICTDB._File._File-Name + "." + DICTDB._Index._Index-name, 
                                                     "Index", 
@@ -1976,7 +2053,7 @@ DO ON STOP UNDO, LEAVE
                                                      OUTPUT DATASET dsObjAttrs2 BY-REFERENCE).
 
                   IF VALID-OBJECT(myObjAttrs[2]) and NOT DICTDB2._File._File-attributes[1] 
-                     AND not DICTDB2._Index._Index-attributes[1] THEN
+                     AND not DICTDB2._Index._Index-attributes[1] and not DICTDB2._File._File-attributes[3] THEN
                      myObjAttrs[2]:getObjectAttributes(DICTDB2._Index._Idx-num, 
                                                        DICTDB2._File._File-Name + "." +  DICTDB2._Index._Index-name, 
                                                        "Index", 
@@ -2090,7 +2167,6 @@ DO ON STOP UNDO, LEAVE
       iact = NOT iact.
       LEAVE. /* we only need to ask once */
     END.
-  
     /* handle new indexes */
     FOR EACH index-list WHERE index-list.i1-i2,
         DICTDB._Index OF DICTDB._File
@@ -2119,17 +2195,16 @@ DO ON STOP UNDO, LEAVE
            and DICTDB._StorageObject._Object-number = DICTDB._Index._idx-num
            and DICTDB._Storageobject._Partitionid   = 0                       
       NO-LOCK NO-ERROR.
-      
-      IF AVAILABLE DICTDB._StorageObject THEN
+      IF AVAILABLE DICTDB._StorageObject AND DICTDB._StorageObject._Area-number NE 0 THEN
          FIND DICTDB._Area WHERE
               DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
          NO-ERROR.
       ELSE
-      FIND DICTDB._Area WHERE
-           DICTDB._Area._Area-number = DICTDB._Index._idx-num NO-LOCK .
+         FIND DICTDB._Area WHERE
+              DICTDB._Area._Area-number = DICTDB._Index._idx-num NO-LOCK .
       IF AVAIL DICTDB._Area THEN   
-      FIND DICTDB2._Area WHERE
-           DICTDB2._Area._Area-name = DICTDB._Area._Area-name no-error.
+         FIND DICTDB2._Area WHERE
+              DICTDB2._Area._Area-name = DICTDB._Area._Area-name no-error.
       IF NOT AVAIL DICTDB2._Area THEN DO:
         ASSIGN s_errorsLogged = TRUE.        
         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
@@ -2170,6 +2245,23 @@ DO ON STOP UNDO, LEAVE
           (IF DICTDB._Index-field._Abbreviate THEN " ABBREVIATED" ELSE "")
           (IF DICTDB._Index-field._Unsorted   THEN " UNSORTED"    ELSE "") SKIP.
       END.
+      /* Check if both database are partitioned or not. We will generate isLocal flag only if both the database are partitioned */
+      if isDictDbPartitionEnabled = yes and isDictDb2PartitionEnabled = yes and 
+         DICTDB._Index._index-attributes[1] <> DICTDB2._Index._index-attributes[1] then 
+      do:  
+         if not DICTDB._Index._index-attributes[1] and DICTDB2._Index._index-attributes[1] then
+         do: 
+            OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.  
+            PUT STREAM err-log UNFORMATTED new_lang[3] +
+                        '"' + DICTDB._Index._Index-name + '"' + new_lang[53]     SKIP
+                        '"' + LDBNAME("DICTDB")       + '"' + new_lang[54]     SKIP
+                        '"' + LDBNAME("DICTDB2")      + '"' + new_lang[55]     SKIP(1).
+            OUTPUT STREAM err-log CLOSE.
+         end.            
+         else
+          PUT STREAM ddl UNFORMATTED
+          ' IS-LOCAL ' if DICTDB._Index._index-attributes[1] then '"TRUE"' else '"FALSE"' .   
+      end.    
       PUT STREAM ddl UNFORMATTED SKIP(1).
 
       /* store encryption policy info */
@@ -2266,15 +2358,16 @@ DO ON STOP UNDO, LEAVE
 /************************************************************************************************/
 
     FOR EACH DICTDB._Constraint OF DICTDB._File WHERE DICTDB._constraint._con-Status <> "O"
-                          AND DICTDB._constraint._con-Status <> "D"
+                           AND DICTDB._constraint._con-Status <> "D"
                           AND DICTDB._File._Db-recid = drec_db:
      Constr = "".
-     FIND FIRST DICTDB2._Constraint OF DICTDB2._File WHERE DICTDB2._constraint._con-Status <> "O" 
+    FIND FIRST DICTDB2._Constraint OF DICTDB2._File WHERE DICTDB2._constraint._con-Status <> "O" 
                               AND DICTDB2._constraint._con-Status <> "D" 
                               AND DICTDB2._Constraint._Con-Name = DICTDB._Constraint._Con-Name
                               AND (IF s_DbType2 = "PROGRESS" 
                                    THEN DICTDB2._File._Db-recid = RECID(database2) 
                                    ELSE DICTDB2._File._Db-recid = s_DbRecId) NO-LOCK NO-ERROR.
+
      IF NOT AVAILABLE (DICTDB2._Constraint)
       THEN DO:
           FIND FIRST DICTDB._Index WHERE RECID(DICTDB._Index) = DICTDB._Constraint._Index-Recid NO-LOCK NO-ERROR.
@@ -2392,7 +2485,7 @@ DO ON STOP UNDO, LEAVE
   
   /* build missing sequence list for rename/delete determination */
   FOR EACH DICTDB2._Sequence
-    WHERE (IF s_DbType2 = "PROGRESS"  
+    WHERE (IF s_DbType2 = "PROGRESS"
            THEN DICTDB2._Sequence._Db-recid = RECID(database2)
            ELSE DICTDB2._Sequence._Db-recid = s_DbRecId)
       AND NOT DICTDB2._Sequence._Seq-name BEGINS "$":

@@ -17,7 +17,7 @@ class OpenEdge.DataAdmin.DataSource.DBQuery  inherits DataAdminQuery    :
   
   define protected property TempSourceBuffer as handle no-undo
       get.
-      private set.
+      protected set.
   
   constructor public DBQuery(pcTables as char,pcKeyFields as char): 
        this-object(pcTables,pcTables,pcKeyFields).

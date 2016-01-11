@@ -1,7 +1,7 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                            *                         *
+* Copyright (C) 2000,2006,2013 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                            *                         
 **********************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
@@ -144,7 +144,7 @@ EMPTY TEMP-TABLE ttpik NO-ERROR.
 
 FIND _file where recid(_file) = drec_File.
 /* we need to know if the TO table requires area in case the FROM does not have one */
-NoArea = _file._file-attributes[1] and _file._file-attributes[2] = false.
+NoArea = (_file._file-attributes[1] and _file._file-attributes[2] = false) or (_file._file-attributes[3]).
 
 FIND _File WHERE _File._Db-recid = drec_db 
              AND _File._File-name = pik_first
@@ -152,7 +152,7 @@ FIND _File WHERE _File._Db-recid = drec_db
 
 ASSIGN
 /* we need to know if the FROM table does not have area in case the TO requires one */
-  CopyNoArea = _file._file-attributes[1] and _file._file-attributes[2] = false
+  CopyNoArea = (_file._file-attributes[1] and _file._file-attributes[2] = false) or (_file._file-attributes[3])
   pik_column = 38
   pik_hide   = TRUE
   pik_init   = ""

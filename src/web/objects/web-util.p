@@ -653,8 +653,8 @@ Description: Initializes PROGRESS variables from the environment
 Input:       Environment variables
 Output:      Sets global variables defined in src/web/method/cgidefs.i
 ----------------------------------------------------------------------------*/
-  DEFINE VARIABLE i-field AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i-pair  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i-field AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE i-pair  AS LONGCHAR  NO-UNDO.
   DEFINE VARIABLE asc-del AS CHARACTER  NO-UNDO
     INITIAL "~377":U.   /* delimiter character in octal = CHR(255) */
   DEFINE VARIABLE hex-del AS CHARACTER  NO-UNDO
@@ -684,8 +684,8 @@ Output:      Sets global variables defined in src/web/method/cgidefs.i
     ASSIGN
       i-pair     = ENTRY(ix, {&WEB-CURRENT-ENVIRONMENT}, asc-del)
       eql        = INDEX(i-pair,"=":U)
-      i-field    = SUBSTRING(i-pair,1,eql - 1,"RAW":U)
-      CgiVar[ix] = REPLACE(SUBSTRING(i-pair,eql + 1,-1,"RAW":U),hex-del,asc-del)
+      i-field    = SUBSTRING(i-pair,1,eql - 1,"CHARACTER":U)
+      CgiVar[ix] = REPLACE(SUBSTRING(i-pair,eql + 1,-1,"CHARACTER":U),hex-del,asc-del)
       CgiList    = CgiList + (IF CgiList = "" THEN "" ELSE ",":U ) + i-field.
   END.
 
@@ -971,7 +971,7 @@ PROCEDURE run-web-object :
   /* If the rcode or the file was not in the propath then error */
   IF cSearchFile = ? THEN DO:
       /* If we found rcode but the file was not in the propath then reject it */
-    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING",
+    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
       SUBSTITUTE ("&1 was requested by &2 but was not in the propath and was rejected. (Ref: &3)", 
                   pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
@@ -1009,7 +1009,7 @@ PROCEDURE run-web-object :
     cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER":U) + "r":U).
 
   IF cfg-compile-xcode > "" AND CAN-DO(".w,.p":U, cFileExt) THEN
-    cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER":U) + "r":U).
+    cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER") + "r":U).
 
   IF cfg-checktime AND cSearchFile > "" AND NOT CAN-DO(".r,.":U, cFileExt) THEN DO:
     ASSIGN

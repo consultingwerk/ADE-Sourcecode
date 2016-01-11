@@ -13,7 +13,7 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
 routine-level on error undo, throw.
 
 using OpenEdge.BusinessRules.DecisionServiceSelectorEnum.
-using OpenEdge.Lang.EnumMember.
+using OpenEdge.Core.EnumMember.
 
 class OpenEdge.BusinessRules.DecisionServiceSelectorEnum final inherits EnumMember:
 

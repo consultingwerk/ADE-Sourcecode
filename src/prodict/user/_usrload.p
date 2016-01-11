@@ -161,7 +161,7 @@ define variable RootDirectory as character no-undo.
     INIT "Lob Directory (blank = current directory):". 
   
   DEFINE VARIABLE ldirmt_lbl AS CHARACTER  NO-UNDO FORMAT "X(65)"
-    INIT "Te&nant Lob Directory (blank = current directory):". 
+    INIT "Te&nant LOB Directory (relative to Effective Tenant Directory):". 
 
   DEFINE BUTTON btn_dir
     SIZE 11 by 1.
@@ -365,11 +365,14 @@ FORM SKIP({&TFM_WID})
                     VIEW-AS FILL-IN SIZE 41 BY 1 
     user_env[2]    {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 22 
                     VIEW-AS FILL-IN SIZE 41 BY 1
-         LABEL "&Input File" btn_File  SKIP ({&VM_WIDG})
+         LABEL "&Input File" btn_File 
     "Include LOB:" VIEW-AS TEXT AT 11 
-    inclob LABEL  ""  colon 22    view-as toggle-box SKIP  
+    inclob LABEL  ""  colon 22    view-as toggle-box 
+         
     user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 22 LABEL "LOB Directory"
-    VIEW-AS FILL-IN SIZE 41 BY 1 SKIP ({&VM_WIDG})
+    VIEW-AS FILL-IN SIZE 28 BY 1 
+    "(relative to Effective"            COLON 51 
+    "Tenant Directory)" COLON 51 SKIP ({&VM_WIDG})    
   &ELSE 
     user_env[32]    {&STDPH_FILL} FORMAT "x(32)" colon 17 VIEW-AS FILL-IN SIZE 39 BY 1
                     LABEL "&Effective Tenant" 
@@ -386,6 +389,7 @@ FORM SKIP({&TFM_WID})
                     LABEL "&Input File" 
     btn_File        SKIP ({&VM_WIDG})
     inclob          colon 17 LABEL "Include LOB" view-as toggle-box SKIP ({&VM_WID})
+    "(LOB Directory is relative to Effective Tenant Directory)"         VIEW-AS TEXT AT 4    
     user_env[30]    {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 17 VIEW-AS FILL-IN SIZE 45 BY 1
                     LABEL " &LOB Directory" 
     btn_dir         LABEL "Dir..." SKIP ({&VM_WIDG})
@@ -546,6 +550,7 @@ FORM
     
     btn_dir2 LABEL "Lob Dir..." SKIP ({&VM_WIDG})
     ldirmt_lbl NO-LABEL VIEW-AS TEXT AT 2
+
     user_env[34] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
                                SIZE 55 BY 1 NO-LABEL 
     btn_dirmtlob LABEL "Lob Dir..." SKIP ({&VM_WIDG})
@@ -564,14 +569,17 @@ FORM
                 VIEW-AS FILL-IN SIZE 51 BY 1 LABEL "Shared Directory"  SKIP 
     user_env[33] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 22
                 help "Leave blank for current directory"
-                VIEW-AS FILL-IN SIZE 51 BY 1 LABEL "Tenant Directory" SKIP ({&VM_WID})
+                VIEW-AS FILL-IN SIZE 51 BY 1 LABEL "Tenant Directory" 
     
-    "Include LOB:" VIEW-AS TEXT AT 11 inclob LABEL "" view-as toggle-box SKIP ({&VM_WID})
+    "Include LOB:" VIEW-AS TEXT AT 11 inclob LABEL "" view-as toggle-box 
     
     user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 22 
-                 VIEW-AS FILL-IN SIZE 51 BY 1 LABEL "LOB Directory"  skip({&VM_WID})
+                 VIEW-AS FILL-IN SIZE 28 BY 1 LABEL "LOB Directory" 
+     
     user_env[34] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" colon 22 
-                 VIEW-AS FILL-IN SIZE 51 BY 1  LABEL "Tenant LOB Directory" SKIP ({&VM_WIDG})
+                 VIEW-AS FILL-IN SIZE 28 BY 1  LABEL "Tenant LOB Directory" 
+    "(relative to Effective"            COLON 51 
+    "Tenant Directory)" COLON 51 
     
   &ENDIF  
    {&DFILE-SPEECH}
@@ -843,6 +851,52 @@ function validateDirectory returns logical ( cValue as char):
   END.
 end function. /* validateDirectory */
 
+function validateLoadLobDirectory returns logical ( cValue as char):
+   
+    IF cValue <> "" THEN 
+    DO:
+        IF NOT (cValue begins "/" or cValue begins "~\" or INDEX(cValue,":") <> 0) THEN
+        DO:
+            IF SUBSTRING(user_env[2],1,R-Index(user_env[2],"/") - 1) = user_env[2] THEN
+                cValue = "./" + cValue.
+            ELSE
+                cValue = SUBSTRING(user_env[2],1,R-Index(user_env[2],"/") - 1) + "/" + cValue.
+         END.
+            
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        IF SUBSTRING(FILE-INFO:FILE-TYPE,1,1) <> "D" THEN DO:
+            MESSAGE "Directory " + user_env[30] + " does not exist" SKIP(1)
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    
+        return false.
+    END.
+    return true.
+  END.
+end function. /* validateLoadLobDirectory */
+
+function validateLoadTenantLobDirectory returns logical ( cValue as char):
+   
+    IF cValue <> "" THEN 
+    DO:
+        IF NOT (cValue begins "/" or cValue begins "~\" or INDEX(cValue,":") <> 0) THEN
+        DO:
+            IF user_env[33] = "" THEN
+                cValue = "./" + cValue.
+             ELSE
+                cValue = user_env[33] + "/" + cValue.
+        END.
+            
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        IF SUBSTRING(FILE-INFO:FILE-TYPE,1,1) <> "D" THEN DO:
+            MESSAGE "Directory " + user_env[34] + " does not exist" SKIP(1)
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   
+        return false.
+    END.
+    return true.
+  END.
+end function. /* validateLoadTenantLobDirectory */
+
 /* refresh variables depending in tenant (use_env[32]) and Rootdirectory
    Call whenever one of them has changed  (used by write-dump-dir-file) 
    (Could also be used to refresh if gFileName and gLobFolderName changes)
@@ -870,7 +924,7 @@ function refreshDirDefaults return logical():
          assign   
              user_env[33] = cdir + user_env[32]  
              user_env[30] = cdir + gLobFolderName
-             user_env[34] = cdir + user_env[32]  + cUseSlash + gLobFolderName.
+             user_env[34] = cdir + gLobFolderName.
          return true. 
      end. 
      return false.    
@@ -903,7 +957,7 @@ function refreshFileDefaults return logical():
          end.
          assign   
              user_env[2] =  cdir + user_env[32] + cUseSlash + gFileName
-             user_env[30] = cdir + user_env[32] + cUseSlash + gLobFolderName.
+             user_env[30] = cdir + gLobFolderName.
          return true. 
      end. 
      return false.    
@@ -1363,9 +1417,13 @@ DO:
             
             RETURN NO-APPLY.
         END.
+        /* PSC00306654- moved above to get updated values for user_env before calling validatedirectory() */
+        ASSIGN user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-d-file-mt
+               user_env[30] = user_env[30]:SCREEN-VALUE IN FRAME read-d-file-mt 
+               user_env[32] = user_env[32]:SCREEN-VALUE IN FRAME read-d-file-mt.
       
         IF inclob:SCREEN-VALUE IN FRAME read-d-file-mt = "yes" 
-        and not validateDirectory(user_env[30]:screen-value IN FRAME read-d-file-mt) then 
+        and not validateLoadLobDirectory(user_env[30]:screen-value IN FRAME read-d-file-mt) then 
         do:
             if user_env[30]:sensitive in FRAME read-d-file-mt then
                 apply "entry" to user_env[30] IN FRAME read-d-file-mt.
@@ -1373,11 +1431,7 @@ DO:
                 APPLY "ENTRY" TO UseDefaultDirs IN FRAME read-d-file-mt.
             return no-apply.
         end.      
-        
-        ASSIGN user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-d-file-mt
-               user_env[30] = user_env[30]:SCREEN-VALUE IN FRAME read-d-file-mt 
-               user_env[32] = user_env[32]:SCREEN-VALUE IN FRAME read-d-file-mt.
-        
+                
         if not setEffectiveTenant(user_env[32]) then
         do:
             apply "entry" to user_env[32].
@@ -1553,7 +1607,7 @@ DO:
         end.    
         
         IF inclob:SCREEN-VALUE in frame read-d-dir-mt = "yes" 
-        and not validateDirectory(user_env[34]:screen-value in frame read-d-dir-mt) then 
+        and not validateLoadTenantLobDirectory(user_env[34]:screen-value in frame read-d-dir-mt) then 
         do:
             apply "entry" to user_env[34] in frame read-d-dir-mt. 
             return no-apply.
@@ -1773,7 +1827,7 @@ ON VALUE-CHANGED OF inclob IN FRAME read-d-dir
 DO:
     refreshLobField(SELF:screen-value = "yes",user_env[30]:handle IN FRAME read-d-dir  ).
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-        btn_dir:sensitive in frame read-d-dir = SELF:screen-value IN FRAME read-d-dir = "yes".
+        btn_dir2:sensitive in frame read-d-dir = SELF:screen-value IN FRAME read-d-dir = "yes".
     &ENDIF
 END.
 
@@ -2621,8 +2675,8 @@ ELSE IF io-frame = "d" THEN DO:
             
             if isAllMultiTenant then 
             do:           
-                user_env[34]:row in frame read-d-dir-mt = user_env[30]:row in frame read-d-dir-mt.
-                user_env[34]:side-label-handle:row in frame read-d-dir-mt = user_env[34]:row in frame read-d-dir-mt.
+                user_env[30]:row in frame read-d-dir-mt = user_env[34]:row in frame read-d-dir-mt.
+                user_env[30]:side-label-handle:hidden in frame read-d-dir-mt = yes.
             end.
                
             enable 
@@ -2632,7 +2686,7 @@ ELSE IF io-frame = "d" THEN DO:
                    user_env[2]  
                    user_env[33]
                    inclob 
-                   user_env[30]  
+                   user_env[30] WHEN NOT isAllMultiTenant
                    user_env[34]
                    err%
                    do-screen 
@@ -2815,13 +2869,14 @@ ELSE IF io-frame = "d" THEN DO:
                    frame read-d-file-mt err% 
                    user_env[4] = STRING(err%) 
                    user_env[6] = (IF do-screen THEN "s" ELSE "f").
-           if UseDefaultDirs then
+            /* commented below code since it is a regression-PSC00250409 */
+           /* if UseDefaultDirs then
            do:
                user_env[33] = gUseDefaultOut.
                user_env[40] = gLobfolderName.
            end.
            else 
-              user_env[40] = "".
+              user_env[40] = "". */
            { prodict/dictnext.i trash }
           canned = FALSE.
     
@@ -2960,8 +3015,11 @@ ELSE DO:
              btn_OK
              btn_Cancel
              {&HLP_BTN_NAME}.
+             
+      ASSIGN user_env[4] = STRING(err%).  /* PSC00267783 - load Application Audit Events fails with 100% Acceptable Error Percentage */
       
-      RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
+      /* the ostodir call is not required for these 3 load operations which require file-name as input. */
+      /*RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).*/
 
       {prodict/dictnext.i trash}
       canned = FALSE.

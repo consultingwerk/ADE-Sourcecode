@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2014 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -26,7 +26,7 @@ Date  : 02/01/95 jep    Created
         05/20/99 jep    Support for custom ADM method libraries
                         (containing custom start-super-procedure calls)
         12/15/00 adams  Remote File Management support
-
+        02/24/14 rkumar remove extra ) when running _s-alert.p
 *************************************************************************/
 
 /* ********************  Standard Includes         ******************** */
@@ -419,7 +419,7 @@ PROCEDURE open-lib:
     DO ON STOP UNDO WARNING_BLOCK, LEAVE WARNING_BLOCK:
       RUN adecomm/_s-alert.p (INPUT-OUTPUT lReturn, "warning":u, "ok":U,
         SUBSTITUTE("&1^Cannot find Method Library file.^^Check that the file exists and can be found in the PROPATH.  The including file may not compile correctly until the Method Library can be found.",
-        File_Name ))).
+        File_Name )).
     END.
     
     /* See if the cross reference record exists. If no, create it. */

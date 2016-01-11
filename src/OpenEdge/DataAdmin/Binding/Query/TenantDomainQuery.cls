@@ -16,7 +16,6 @@
 
 using Progress.Lang.* from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
-using Progress.Json.ObjectModel.JsonConstruct from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using Progress.Json.ObjectModel.JsonArray from propath.
 
@@ -38,10 +37,10 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery inherits FilteredContext: 
-    /** Parent context (Model) may change so don't store this */   
+    /** Model may change so don't store this */   
     define private property DomainContext as DomainContext no-undo
         get():
-            return cast(Parent,DomainContext).   
+            return cast(Model,DomainContext).   
         end.
       
     constructor public TenantDomainQuery (pparent as DomainContext, pRow as IRow,pReq as IRequestInfo):
@@ -69,7 +68,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery inherits FilteredContex
         AddTableTo(tree).
         hds = tree:GetReadHandle().
        
-        return new FetchRequest(Name,Id,hds). 
+        return new FetchRequest(Name,Id,hds,no). 
     end method.
     
     method public override void ExportLastSaved(pcfile as char). 

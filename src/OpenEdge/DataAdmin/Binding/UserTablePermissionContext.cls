@@ -1,4 +1,25 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.ContextTree.
+USING OpenEdge.DataAdmin.Binding.DataAdminContext.
+USING OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+USING OpenEdge.DataAdmin.Binding.IContextTree.
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Binding.ServiceAdapter.
+USING OpenEdge.DataAdmin.Binding.ServiceAdapter.
+USING OpenEdge.DataAdmin.Binding.UserFieldPermissionContext.
+USING OpenEdge.DataAdmin.DataAdminService.
+USING OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.Message.FetchRequest.
+USING OpenEdge.DataAdmin.Message.IFetchRequest.
+USING OpenEdge.DataAdmin.Message.ISaveRequest.
+USING OpenEdge.DataAdmin.Message.SaveRequest.
+USING OpenEdge.DataAdmin.UserTablePermission.
+USING OpenEdge.DataAdmin.UserTablePermissionSet.
+USING Progress.Lang.*.
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -15,30 +36,6 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.UserTablePermissionSet from propath.
-using OpenEdge.DataAdmin.UserTablePermission  from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.UserFieldPermissionContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-
- 
-/*using OpenEdge.DataAdmin.Binding.FieldPermissionContext from propath.*/
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
 class OpenEdge.DataAdmin.Binding.UserTablePermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/usertablepermission.i}
@@ -47,14 +44,6 @@ class OpenEdge.DataAdmin.Binding.UserTablePermissionContext inherits DataAdminCo
     
     define variable mLastSavedTable as handle no-undo.
      
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return  DatasetHandle.   
-        end get.
-        private set.
-        
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttUserTablePermission:handle.
@@ -80,14 +69,18 @@ class OpenEdge.DataAdmin.Binding.UserTablePermissionContext inherits DataAdminCo
         protected set.
     
     constructor public UserTablePermissionContext (pScope as IServiceContextFactory):
-        define variable cntxt as IDataAdminContext no-undo.
+        define variable cntxt as IDataAdminModel no-undo.
         super ("UserTablePermission",pScope).
         cntxt = pScope:GetUserFieldPermissionContext().
         cntxt:Lazy = false.
         AddChild(cntxt).  
     end constructor.
+      
+    method override protected handle InitDataset ():
+        return dataset dsTablePermission:handle. 
+    end method.
     
-	method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy UserTablePermission").
     end method. 
      
@@ -125,7 +118,7 @@ class OpenEdge.DataAdmin.Binding.UserTablePermissionContext inherits DataAdminCo
         return new UserTablePermissionSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new UserTablePermission(cntxt). 
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new UserTablePermission(this-object,pReq). 
     end method. 
 end class.

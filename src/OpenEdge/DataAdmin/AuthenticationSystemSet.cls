@@ -57,9 +57,7 @@ class OpenEdge.DataAdmin.AuthenticationSystemSet inherits DataAdminCollection im
         if Contains(authenticationSystem) then
             return false.   
       
-        authenticationSystem:Attach(Context).
-         
-        return true.
+        return Context:AddEntity(authenticationSystem).
     end method.  
     
     method public override logical Remove(o as Object):

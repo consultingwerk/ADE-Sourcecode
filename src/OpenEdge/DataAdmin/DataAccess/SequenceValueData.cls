@@ -35,7 +35,6 @@ using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 class OpenEdge.DataAdmin.DataAccess.SequenceValueData inherits DataAccess implements IDataAccess,IQueryMap: 
     
  
-    define private variable Url as character no-undo.
     define variable cMsg as character no-undo. 
     define public property BaseQuery as character no-undo
         get.     

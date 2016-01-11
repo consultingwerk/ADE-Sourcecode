@@ -52,7 +52,7 @@ class OpenEdge.DataAdmin.UserPermission inherits Entity implements IUserPermissi
             define variable h as handle no-undo.
             if not valid-object(UserTablePermissions) then
             do:
-                UserTablePermissions = cast(Context:GetChildCollection(Id,"userTablePermissions"),IUserTablePermissionSet).
+                UserTablePermissions = cast(GetChildCollection("userTablePermissions"),IUserTablePermissionSet).
             end.
 /*            if not mTablesLoaded then*/
 /*                FetchTables().       */
@@ -61,23 +61,20 @@ class OpenEdge.DataAdmin.UserPermission inherits Entity implements IUserPermissi
         protected set.
     
    
-	constructor public UserPermission(cntxt as IDataAdminContext):
+	constructor public UserPermission(cntxt as IDataAdminModel):
         super (cntxt).
     end constructor.
+       
+    constructor public UserPermission(cntxt as IDataAdminModel,pReq as IRequestInfo):
+        super (cntxt,pReq).
+    end constructor.
+    
     
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
       
-    method public override void WriteTree(tree as IContextTree):
-        undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
-    end method. 
-    
-    method public override void WriteTree(tree as IContextTree,pcCollections as char):
-       undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
-    end method.
-    
 	method public override void ImportTree(pcFile as char). 
         undo, throw new UnsupportedOperationError("Import to UserSecurity").
     end method. 

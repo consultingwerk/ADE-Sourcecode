@@ -180,7 +180,7 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionLoader  implements IDataDefinitio
         undo, throw new UnsupportedOperationError(substitute(mUnsupported,"AddSequence")).
     end method.
     
-    method public void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int):
+    method public void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int, plPrimary as log):
           undo, throw new UnsupportedOperationError(substitute(mUnsupported,"AddIndex")).
     end method.
      
@@ -191,6 +191,10 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionLoader  implements IDataDefinitio
     method public logical IsNewTable(pcTable as char):
         undo, throw new UnsupportedOperationError(substitute(mUnsupported,"IsNewTable")).
     end method. 
+    
+    method public logical extent CurrentTableAttributes().
+        undo, throw new UnsupportedOperationError(substitute(mUnsupported,"CurrentTableAttributes")).
+    end method.
     
     method public void RenameTable(pcname as char,pcNewname as char):
         undo, throw new UnsupportedOperationError(substitute(mUnsupported,"RenameTable")).

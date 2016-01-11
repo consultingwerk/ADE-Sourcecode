@@ -132,8 +132,12 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
     col-handle = height-hdl:FIRST-COLUMN.
     FOR EACH _BC WHERE _BC._x-recid = RECID(_U) BY _SEQUENCE:
       ON END-RESIZE OF col-handle PERSISTENT RUN adeuib/_adjcols.p (height-hdl).
-      ASSIGN _BC._COL-HANDLE  = col-handle
-             _BC._WIDTH       = IF _BC._WIDTH EQ 0 THEN col-handle:WIDTH
+    /* _col-handle is indexed 
+        - split assign to avoid bad state if assign of widget attributes 
+          fails due to bad width  - PSC00300460 */
+      assign _BC._COL-HANDLE  = col-handle.
+      
+      assign _BC._WIDTH       = IF _BC._WIDTH EQ 0 THEN col-handle:WIDTH
                                   ELSE _BC._WIDTH
              _BC._DEF-WIDTH   = IF _BC._DEF-WIDTH EQ 0 THEN col-handle:WIDTH
                                   ELSE _BC._DEF-WIDTH
@@ -196,8 +200,11 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
   col-handle = _U._HANDLE:FIRST-COLUMN.
   FOR EACH _BC WHERE _BC._x-recid = RECID(_U) BY _SEQUENCE: 
     ON END-RESIZE OF col-handle PERSISTENT RUN adeuib/_adjcols.p (_U._HANDLE).
-    ASSIGN _BC._COL-HANDLE  = col-handle
-           _BC._WIDTH       = IF _BC._WIDTH EQ 0 THEN col-handle:WIDTH
+  /* _col-handle is indexed 
+        - split assign to avoid bad state if assign of widget attributes 
+          fails due to bad width  - PSC00300460 */
+    assign _BC._COL-HANDLE  = col-handle.
+    assign _BC._WIDTH       = IF _BC._WIDTH EQ 0 THEN col-handle:WIDTH
                                 ELSE _BC._WIDTH
            _BC._DEF-WIDTH   = IF _BC._DEF-WIDTH EQ 0 THEN col-handle:WIDTH
                                 ELSE _BC._DEF-WIDTH

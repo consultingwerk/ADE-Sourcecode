@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2008,2013 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -841,7 +841,7 @@ IF NOT copied THEN
     WITH FRAME pro_fld.
  
 find dictdb._file where recid(dictdb._file) = drec_file no-lock.
-lNoArea = dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2] = false.
+lNoArea = (dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2] = false) or (dictdb._file._file-attributes[3]).
 
 /* adjust lable to mid position - this is done to math up with for default tenant,
    but we do it always for consistency */
@@ -867,10 +867,14 @@ assign
     .
   
 
-if dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2] then
+if (dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2]) or (dictdb._file._file-attributes[3]) then
 do:
+    if dictdb._file._file-attributes[3] then 
+        areaMtText = "":T20.        
+    else
+        areaMtText = "(for default tenant)":T20.
+
     assign
-        areaMtText = "(for default tenant)":T20
         areaMtText:row in frame pro-blob = 3
         areaMtText:row in frame pro-clob = 3
         areaMtText:row in frame mod-blob = 3

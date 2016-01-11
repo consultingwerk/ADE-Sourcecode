@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/   
  /*------------------------------------------------------------------------
     File        : TestTestResult
     Purpose     : 
@@ -9,63 +11,23 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
+USING Progress.Lang.*.
 
 
 
-class OpenEdge.ABLUnit.Results.TestTestResult: 
-    define public static property StatusIgnored    as integer no-undo init 1 get.
-    define public static property StatusNoTests    as integer no-undo init 2 get.
-    define public static property StatusPassed     as integer no-undo init 3 get.
-    define public static property StatusNotStarted as integer no-undo init 4 get.
-    define public static property StatusFailed     as integer no-undo init 5 get.
-    define public static property StatusError      as integer no-undo init 6 get.
+CLASS OpenEdge.ABLUnit.Results.TestTestResult: 
+    DEFINE PUBLIC STATIC PROPERTY StatusIgnored    AS INTEGER NO-UNDO INIT 1 GET.
+    DEFINE PUBLIC STATIC PROPERTY StatusNoTests    AS INTEGER NO-UNDO INIT 2 GET.
+    DEFINE PUBLIC STATIC PROPERTY StatusPassed     AS INTEGER NO-UNDO INIT 3 GET.
+    DEFINE PUBLIC STATIC PROPERTY StatusNotStarted AS INTEGER NO-UNDO INIT 4 GET.
+    DEFINE PUBLIC STATIC PROPERTY StatusFailed     AS INTEGER NO-UNDO INIT 5 GET.
+    DEFINE PUBLIC STATIC PROPERTY StatusError      AS INTEGER NO-UNDO INIT 6 GET.
   
-    define variable testResult       as integer             no-undo.
-    define variable isIncomplete     as logical             no-undo init false.
-    define variable testName         as character           no-undo.
-    define variable exceptionMessage as character           no-undo.
-    define variable errors           as Progress.Lang.Error.
+    DEFINE PUBLIC PROPERTY TestResult       AS INTEGER             NO-UNDO GET. SET.
+    DEFINE PUBLIC PROPERTY IsIncomplete     AS LOGICAL             NO-UNDO INIT FALSE GET. SET.
+    DEFINE PUBLIC PROPERTY TestName         AS CHARACTER           NO-UNDO GET. SET.
+    DEFINE PUBLIC PROPERTY ErrorMessage AS CHARACTER           NO-UNDO GET. SET.
+    DEFINE PUBLIC PROPERTY Error    AS Progress.Lang.Error NO-UNDO GET. SET.
     
-    method public void AddError(input err as Progress.Lang.Error ):
-        errors = err.       
-    end method.
-
-
-    method public  character getTestName(  ):
-        return testName.
-    end method.
-
-    method public void setTestName(input mName as character):
-        testName = mName.
-    end method.
-
-    method public void setStatus(input testStatus as INTEGER):
-        testResult = testStatus.
-    end method.
-
-    method public integer getStatus(  ):
-        return testResult.
-    end method.
-
-    method public void SetExceptionMessage(input mesg as character  ):
-        exceptionMessage = mesg.    
-    end method.    
-
-
-    method public character getExceptionMessage(  ):
-        return exceptionMessage.
-    end method. 
-
-    method public Progress.Lang.Error GetError(  ):
-        return errors.
-    end method. 
-
-    method public void setIncomplete(input incomplete as logical):
-        isIncomplete = incomplete.
-    end method.    
     
-    method public logical isIncomplete():
-        return isIncomplete.
-    end method.
-end class.
+END CLASS.

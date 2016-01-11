@@ -14,24 +14,28 @@
    Notes       : 
  ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.*  from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext  from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree  from propath. 
-using OpenEdge.DataAdmin.Binding.ContextTree  from propath. 
-using OpenEdge.DataAdmin.Binding.IFilteredContext  from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminModel  from propath. 
-using OpenEdge.DataAdmin.Binding.CreateContext  from propath. 
-using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext  from propath. 
-using OpenEdge.DataAdmin.Error.*  from propath.
-using OpenEdge.DataAdmin.Core.JSONWriter from propath. 
-using OpenEdge.DataAdmin.Core.CodeWriter from propath.
-using OpenEdge.DataAdmin.Core.DataAdminIterator from propath.
-using OpenEdge.DataAdmin.Lang.Collections.IIterator from propath.
-using OpenEdge.DataAdmin.Lang.Collections.ICollection from propath.
-
+using OpenEdge.DataAdmin.*.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.CreateContext.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IFilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext.
+using OpenEdge.DataAdmin.Core.CodeWriter.
+using OpenEdge.DataAdmin.Core.DataAdminIterator.
+using OpenEdge.DataAdmin.Core.JSONWriter.
+using OpenEdge.DataAdmin.Error.*.
+using OpenEdge.DataAdmin.Lang.Collections.ICollection.
+using OpenEdge.DataAdmin.Lang.Collections.IIterator.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminCollection,IDataAdminSerializable,ICollection: 
-     
+    
+    define stream exportstream.
+    define stream importstream.
+          
+           
     define protected property DefaultBuffer    as handle    no-undo 
         get. 
         private set. 
@@ -132,6 +136,8 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         get():
             return Context:ContentId.
         end.     
+    
+    define public property CodeExtension as char no-undo init "download" get. set.  
         
     constructor public DataAdminCollection (contxt as IDataAdminContext):
         super ().    
@@ -167,16 +173,32 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
     method abstract public logical Contains(obj as Object).
     
     method public logical AddAll(pcol as ICollection).
-        define variable newcol as IDataAdminCollection no-undo.
-        newcol  = cast(pcol,IDataAdminCollection).
-        AddAll(newcol).
+        if type-of(pcol,IDataAdminCollection) then
+        do:
+            return AddAll(cast(pcol,IDataAdminCollection)). 
+        end.   
+        return AddAll(pcol:Iterator()).
     end method.
     
     method protected logical AddAll(pcol as IDataAdminCollection).
-        pcol:Attach(Context).
-        return TRUE.
+        if pCol:CanAttach(Context) then 
+        do:
+            pcol:Attach(Context).
+            return true.
+        end.
+        return AddAll(pcol:Iterator()).
+    end method.    
+    
+    method private logical AddAll(piter as IITerator).
+        define variable lok as logical no-undo. 
+        define variable lanyok as logical no-undo.
+        do while piter:HasNext():
+            lok = this-object:Add(piter:next()). 
+            if lok then lanyok = true.
+        end. 
+        return lanyok.  
     end method.
-       
+         
     method public IIterator Iterator():
         return new DataAdminIterator(Context).
     end method.   
@@ -221,8 +243,7 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
                end.               
             end.
         end.
-        /** this hack was done here to minimize tokens for checkin 
-         @todo move to context objects */
+        /**  hack   @todo move to context objects */
         if type-of(Context,AbstractFilteredContext) then
         do: 
             hQuery = Context:IteratorHandle.
@@ -233,8 +254,22 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         iter = new DataAdminIterator(Context,cQuery).
         return iter. 
     end method.   
-     
-
+    
+    
+    method public logical CanAttach(cntxt as IDataAdminContext):
+        if valid-object(cntxt) then
+        do: 
+            /* no context - assume transition ok - type checking will happen later */
+            if ContextId = "" then
+                return true.
+                
+            return cntxt:CanCopy(Context).     
+        
+        end.
+        return false.
+    end method.   
+  
+    
     /**
      * 
      * @param context 
@@ -243,14 +278,16 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         define variable oldcontext as IDataAdminContext no-undo.
         if not valid-object(cntxt) then
             undo, throw new UnknownValueError("Attach","context").  
-        
         cntxt:Copy(this-object:Context).                     
             
         oldcontext = this-object:Context.  
         this-object:Context = cntxt.
          
+         
         if oldcontext:IsLocal then
-            delete object oldcontext.        
+        do:
+            delete object oldcontext.
+        end.        
         
     end method.
      
@@ -264,8 +301,9 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
     end method.
    
     method public void ExportTree(pcfile as char):
-        PrepareExportTree().
-        DatasetHandle:write-json ("File",pcFile,yes).    
+        define variable writer as IDataAdminExporter no-undo.
+        writer = GetExporter(pcfile).
+        writer:WriteToFile(this-object,pcfile,"ALL").
     end method.     
     
     method public void ExportTree(pcfile as char,pcCollectionlist as char):
@@ -274,18 +312,82 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         writer:WriteToFile(this-object,pcfile, pcCollectionlist).
     end method.
     
+    method public void ExportAsProcedure(pcfile as char ):
+        define variable writer as IDataAdminExporter no-undo.
+        writer = GetCodeExporter().
+        writer:WriteToFile(this-object,pcfile,"ALL").
+    end method. 
+    
+    method public void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        define variable writer as IDataAdminExporter no-undo.
+        writer = GetCodeExporter().
+        writer:WriteToFile(this-object,pcfile,pcCollectionList).
+    end method. 
+    
     method public void Export():
         this-object:Export(DatasetHandle:get-buffer-handle(1):serialize-name + ".json").     
-    end method.    
-    
-    method public void Export(pcFile as char):        
-        PrepareExport().    
-        Context:Export(pcFile,"").    
+    end method.  
+        
+    method public void Export(pcFile as char):   
+        define variable hst as handle no-undo.
+        define variable cRenamed as char no-undo. 
+        if GetFileExtension(pcFile) = "d" then 
+        do on error undo, throw:
+            output stream exportstream to value(pcFile).   
+            hst = stream exportstream:handle.
+            this-object:Serialize(hst).
+            put stream-handle hst unformatted "." .
+            finally:
+                 output stream exportstream close.		
+            end finally.
+        end.
+        else do on error undo, throw: 
+            PrepareExport().    
+            if valid-object(RequestInfo) then 
+            do:
+                if RequestInfo:name > "" and RequestInfo:name <> Serializename then 
+                do:
+                    cRenamed = TableHandle:default-buffer-handle:serialize-name.
+                    TableHandle:default-buffer-handle:serialize-name = RequestInfo:name.
+                end.    
+            end.    
+            Context:Export(pcFile,"").   
+            finally:
+               if cRenamed > "" then 
+                   TableHandle:default-buffer-handle:serialize-name = cRenamed.  		
+            end finally.  
+        end.
     end method.    
     
     method public void ExportList( ):   
         ExportList(DatasetHandle:serialize-name + ".json").
     end method.
+    
+    method public final integer Deserialize(phHandle as handle). 
+        return Deserialize(phHandle,0) .
+    end.
+    
+    method public final integer Deserialize(phHandle as handle,piMaxRows as int). 
+        return Deserialize(phHandle,piMaxRows,"Append") .
+    end.
+    
+    method protected integer Deserialize(phHandle as handle,piMaxRows as int, pcmode as char). 
+        return Context:Deserialize(phHandle,piMaxRows,pcmode) .
+    end.
+    
+    method public integer Serialize(phHandle as handle). 
+        return Context:Serialize(phHandle) .
+/*        define variable iter as IIterator no-undo.        */
+/*        define variable inst as IDataAdminElement no-undo.*/
+/*        define variable i as integer no-undo.             */
+/*        iter = Iterator().                                */
+/*        do while iter:HasNext() on error undo, throw:     */
+/*            inst = cast(iter:Next(),IDataAdminElement).   */
+/*            inst:Serialize(phHandle).                     */
+/*            i = i + 1.                                    */
+/*        end.                                              */
+/*        return i.                                         */
+    end method. 
     
     method protected abstract void PrepareExportTree().
     
@@ -304,23 +406,65 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
     end method.   
      
     method public void WriteTree(tree as IContextTree):
-        Context:AddTreeTo(tree).     
+        Context:AddTreeTo(tree,RequestInfo).     
     end method.
     
     /* write specified collections  */
     method public void WriteTree(tree as IContextTree,pcCollections as char):
-        Context:AddTreeTo(tree,pcCollections).     
-    end method.
-     
-    method public void Import(pcFile as char). 
-        Context:Import(pcfile,"Replace").
+        Context:AddTreeTo(tree,pcCollections,RequestInfo).     
     end method.
     
+    method public void ImportNew(pcFile as char). 
+        this-object:Import(pcfile,"Append").
+    end method.
+    
+    method public final void ImportDelete(pcFile as char). 
+        Context:ImportDelete(pcfile).
+    end method.
+      
+    method public void Import(pcFile as char). 
+        this-object:Import(pcfile,"Replace").
+    end method.
+    
+    method private void Import(pcFile as char,pcmode as char). 
+        define variable hst as handle no-undo.
+        if GetFileExtension(pcFile) = "d" then 
+        do on error undo, throw:
+            input stream importstream from value(pcFile).   
+            hst = stream importstream:handle.
+            this-object:Deserialize(hst,0,pcmode).
+            catch e as UnsupportedOperationError  :
+            	if pcMode = "Replace" then 
+            	   	undo, throw new UnsupportedOperationError("Import of .d in replace mode for " + GetClass():TypeName) .      
+                else
+                    undo, throw new UnsupportedOperationError("Import of .d in " + GetClass():TypeName ).      
+            end catch.
+            finally:
+                output stream importstream close.      
+            end finally.
+        end.
+        else 
+           Context:Import(pcfile,pcmode).
+    end method.
+    
+    method public void ImportNewTree(pcFile as char). 
+        ImportTree(pcFile,"Append").
+    end method. 
     method public void ImportTree(pcFile as char). 
+        ImportTree(pcFile,"Replace").
+    end method. 
+    
+    /* not ready for prime time? - see comment in interface  
+    method public void ImportNewTree(pcFile as char). 
+        ImportTree(pcFile,"Append").
+    end method. 
+    */
+    
+    method private void ImportTree(pcFile as char,pcMode as char). 
         define variable tree as IContextTree no-undo.
         tree = new ContextTree(). 
         WriteTree(tree).
-        Context:ImportTree(pcFile,"Replace").
+        Context:ImportTree(pcFile,pcMode).
     end method. 
     
     method public void ExportLastSavedTree(pcFile as char). 
@@ -331,19 +475,37 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         Context:ExportLastSaved(pcFile).
     end method. 
     
+        /* optional call back from context tree. 
+        called when parse is complete
+         override to return json  to export instead  of dataset
+         returns unknown to use standard dataset. write-json  */
+    method public JSONObject GetJSONExport(tree as IContextTree):
+        return Context:GetJSONExport(tree).
+    end.  
+    
+    method protected IDataAdminExporter GetCodeExporter():
+        if Context:CanGenerateCode then
+            return new CodeWriter().
+                    
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
+    end method.
+     
     method protected IDataAdminExporter GetExporter(pcFile as char):
         define variable i as integer no-undo.
         define variable fileext as character no-undo.
         fileExt = GetFileExtension(pcFile).
         case fileExt:
-            when "p" or when "download" then
-                return new CodeWriter().
+            when "p" or when CodeExtension  then
+            do:
+                return GetCodeExporter().
+            end.  
             when "json" then  
                 return new JSONWriter().
             otherwise 
                 undo, throw new IllegalArgumentError("Export to file with extension " + quoter(fileext)). 
         end.
     end method.
+    
     
     method protected char GetFileExtension(pcFile as char):
        define variable i as integer no-undo.

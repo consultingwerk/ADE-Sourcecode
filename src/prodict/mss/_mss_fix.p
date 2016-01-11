@@ -212,12 +212,20 @@ END. /* each DICTDB2._Sequence */
 /* To avoid double dump-names we set them to ? for now, they will be
  * set to dictdb2._File._Dump-name lateron
  */
+
+/* PSC00290776: indicator to runtime.
+ * schema fixup is called as part of Schema Migration. Therefore 
+ * rpos need to be reassigned in the order of OE names.
+ */
+DO TRANS:
+RUN STORED-PROC DICTDBG.SendInfo ("mssfix-init").
+END.
+
 FOR EACH DICTDB._File WHERE DICTDB._File._DB-recid = drec_db
         and DICTDB._File._Owner = "_FOREIGN"
         and ( l_files = "**all**" or lookup(DICTDB._File._File-name,l_files) <> 0):
   ASSIGN DICTDB._File._Dump-name = ?.
 END. /* each DICTDB2._File */
-
 
 FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB" 
                          AND DICTDB2._File._Tbl-type = "T"
@@ -599,24 +607,24 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
           find a corresponding Progress index and pass the rowid designation to it *
        */
        FIND FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
-                               AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
-                                    DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
-                               AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
+                         AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
+                              DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
+                         AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
                                AND DICTDB._constraint._con-name = DICTDB._Index._Index-Name 
                                AND DICTDB._constraint._Con-Active = TRUE
                                NO-LOCK NO-ERROR.
       IF NOT AVAILABLE DICTDB._constraint THEN 
              FIND FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
-                               AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
-                                    DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
-                               AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
-                               AND substr(DICTDB._constraint._con-name,2,LENGTH(DICTDB._constraint._con-name)) = 
+                        AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
+                             DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
+                        AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
+                        AND substr(DICTDB._constraint._con-name,2,LENGTH(DICTDB._constraint._con-name)) = 
                                           DICTDB._Index._Index-Name 
                                AND DICTDB._constraint._Con-Active = TRUE
                                NO-LOCK NO-ERROR.
 
-      IF AVAILABLE DICTDB._constraint THEN
-         ASSIGN con_recid =  RECID(DICTDB._CONSTRAINT).
+             IF AVAILABLE DICTDB._constraint THEN
+               ASSIGN con_recid =  RECID(DICTDB._CONSTRAINT).
     END.
     FOR EACH DICTDB._Index-field OF DICTDB._Index:
       DELETE DICTDB._Index-field.
@@ -825,6 +833,11 @@ IF del-cycle THEN DO:
        DELETE DICTDB._Sequence.
   END.    
 END.
+
+DO TRANS:
+RUN STORED-PROC DICTDBG.SendInfo ("mssfix-end").
+END.
+
 
 IF NOT SESSION:BATCH-MODE THEN 
     HIDE FRAME mss_fix NO-PAUSE.

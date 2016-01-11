@@ -99,6 +99,11 @@ class OpenEdge.DataAdmin.Lang.QueryString :
   define protected variable mcQueryWhere    as character  no-undo.
   define protected variable mcUnparsedQuery as character  no-undo.
   
+  /*  use as utility -   InsertExpression */
+  constructor public QueryString ( ) :
+       
+  end constructor.
+  
   constructor public QueryString (pQueryMap as IQueryMap) :
        if not valid-object(pQueryMap) then                                     
            undo, throw new AppError("invalid IQueryMap passed to constructor",?). 
@@ -1015,7 +1020,7 @@ method private character NewQuerySort ( pcQuery       as char,
  end method.
  
                                                            
- method private character InsertExpression 
+ method public character InsertExpression 
                                (pcWhere       as char,   
                                 pcExpression  as char,     
                                 pcAndOr       as char):                         

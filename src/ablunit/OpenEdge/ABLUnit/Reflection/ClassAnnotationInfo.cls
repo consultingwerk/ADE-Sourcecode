@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
    File        : ClassAnnotationInfo
    Purpose     : Stores the information related to the BeforeClass,Before, Test, After, AfterClass annotations in
@@ -10,364 +12,307 @@
    Notes       : 
  ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
-using Progress.Lang.AppError.
-using OpenEdge.ABLUnit.Util.*.
-using OpenEdge.ABLUnit.Reflection.*.
-using OpenEdge.ABLUnit.Assertions.AssertionFailedException.
-using OpenEdge.ABLUnit.Assertions.Assert.
+USING OpenEdge.Core.AssertionFailedError.
+USING OpenEdge.ABLUnit.Reflection.AnnotationInfo.
+USING OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo.
+USING OpenEdge.ABLUnit.Reflection.TestInfo.
+USING OpenEdge.ABLUnit.Reflection.TestInfo.
+USING OpenEdge.ABLUnit.Results.TestTestResult.
+USING OpenEdge.ABLUnit.Results.TestTypeResult.
+USING OpenEdge.Core.Collections.Array.
 
+CLASS OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo: 
 
-class OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo: 
-    define variable beforeClassCount     as integer                                 no-undo init 0.
-    define variable beforeClassList      as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable beforeCount          as integer                                 no-undo init 0.
-    define variable beforeList           as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable testCount            as integer                                 no-undo init 0.
-    define variable testList             as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo extent 100.
-    define variable afterCount           as integer                                 no-undo init 0.
-    define variable afterList            as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable afterClassCount      as integer                                 no-undo init 0.
-    define variable afterClassList       as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
+    DEFINE PRIVATE VARIABLE beforeClassMethod AS  TestInfo   NO-UNDO.
+    DEFINE PRIVATE VARIABLE beforeMethod      AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE testList          AS Array NO-UNDO.
+    DEFINE PUBLIC PROPERTY testCount         AS INTEGER NO-UNDO GET. SET.
+    DEFINE PRIVATE VARIABLE afterMethod       AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE afterClassMethod  AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE testMethodResult  AS TestTestResult NO-UNDO.
     
-    define variable testMethodResult     as OpenEdge.ABLUnit.Results.TestTestResult no-undo.
-    define variable methodResultCount    as integer                                 no-undo init 0.
-    define variable testMethodResultList as OpenEdge.ABLUnit.Results.TestTestResult no-undo extent 100.
-    
-    method public void setBeforeClass(input bClass as OpenEdge.ABLUnit.Reflection.TestInfo):
-        beforeClassCount = beforeClassCount + 1.
-        beforeClassList= bClass.
-    end method.
+    /*------------------------------------------------------------------------------
+	 Purpose:
+	 Notes:
+	------------------------------------------------------------------------------*/
+		
+	CONSTRUCTOR PUBLIC ClassAnnotationInfo (  ):
+		SUPER ().
+		testList = NEW Array().
+		testList:AutoExpand = TRUE.
+	END CONSTRUCTOR.
+
+    METHOD PUBLIC VOID setBeforeClass(INPUT bClass AS TestInfo):
+        IF beforeClassMethod = ? THEN
+            beforeClassMethod= bClass.
+        ELSE 
+            throwError().
+    END METHOD.
 	
-	method public character getBeforeClass():
-	    return beforeClassList:getTestName().
-	end method.
+	METHOD PUBLIC CHARACTER getBeforeClass():
+	    RETURN beforeClassMethod:getTestName().
+	END METHOD.
 	
-	method public character getAfterClass():
-        return afterClassList:getTestName().
-    end method.
-	
-    method public void setAfterClass(input aClass as OpenEdge.ABLUnit.Reflection.TestInfo):
-        afterClassCount = afterClassCount + 1.
-        afterClassList= aClass.
-    end method.
+	METHOD PUBLIC CHARACTER getAfterClass():
+        RETURN afterClassMethod:getTestName().
+    END METHOD.
     
-    method public void setBeforeMethod(input bMethod as OpenEdge.ABLUnit.Reflection.TestInfo):
-        beforeCount = beforeCount + 1.
-        beforeList = bMethod.
-    end method.
+    METHOD PUBLIC Array getTestList():
+        RETURN testList.
+    END METHOD.
     
-    method public void setAfterMethod(input aMethod as OpenEdge.ABLUnit.Reflection.TestInfo):
-        afterCount = afterCount + 1.
-        afterList = aMethod.
-    end method.
+    METHOD PUBLIC VOID setAfterClass(INPUT aClass AS TestInfo):
+        IF afterClassMethod = ? THEN
+            afterClassMethod= aClass.
+        ELSE 
+            throwError().
+    END METHOD.
     
-    method public void setTestMethod(input tMethod as OpenEdge.ABLUnit.Reflection.TestInfo):
+    METHOD PUBLIC VOID setBeforeMethod(INPUT bMethod AS TestInfo):
+        IF beforeMethod = ? THEN
+            beforeMethod = bMethod.
+        ELSE 
+            throwError().
+    END METHOD.
+    
+    METHOD PUBLIC VOID setAfterMethod(INPUT aMethod AS TestInfo):
+        IF afterMethod = ? THEN
+            afterMethod = aMethod.
+        ELSE 
+            throwError().
+    END METHOD.
+    
+    METHOD PUBLIC VOID AddTestMethod(INPUT tMethod AS TestInfo):
         testCount = testCount + 1.
-        testList[testCount] = tMethod.
-    end method.
-
+        testList:SetValue(tMethod, testCount).
+    END METHOD.
+   
     /*------------------------------------------------------------------------------
         Runs the @BeforeClass annotated method.    
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunBeforeClass(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not beforeClassCount = 0 and not testCount = 0 then 
-        do on error undo, throw:
-            Invoke(testClassType, beforeClassList:getTestName()).
-            catch e as Progress.Lang.Error :
-                return error e.        		
-            end catch.
-        end.
-        return testClassResult.    
-    end method.
+    METHOD PUBLIC TestTypeResult RunBeforeClass(INPUT testClassType AS Progress.Lang.Object, 
+        INPUT testClassResult AS TestTypeResult ):
+        IF NOT beforeClassMethod = ? AND NOT testList:size = 0 THEN 
+        DO ON ERROR UNDO, THROW:
+            Invoke(testClassType, beforeClassMethod:getTestName()).
+            CATCH e AS Progress.Lang.Error :
+                RETURN ERROR e.        		
+            END CATCH.
+        END.
+        RETURN testClassResult.    
+    END METHOD.
     
     /*------------------------------------------------------------------------------
         Runs the @Before annotated method
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunBeforeMethod(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not beforeCount = 0 then
-        do on error undo, throw:
-            Invoke(testClassType, beforeList:getTestName()).
-            catch e as Progress.Lang.Error :
-            	return error e.
-            end catch.
-        end.    
-        return testClassResult.
-    end method.
+    METHOD PUBLIC VOID RunBeforeMethod(INPUT testClassType AS Progress.Lang.Object, 
+        INPUT testResult AS TestTestResult):
+        IF NOT beforeMethod = ? THEN
+        DO ON ERROR UNDO, THROW:
+            Invoke(testClassType, beforeMethod:getTestName()).
+            CATCH e AS Progress.Lang.Error :
+            	RETURN ERROR e.
+            END CATCH.
+        END.    
+    END METHOD.
     
     /*------------------------------------------------------------------------------
-        Runs all @Test annotated methods
+        Runs a particular test method denoted by OpenEdge.ABLUnit.Reflection.TestInfo
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunTestMethods(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        define variable j as integer no-undo.
-        do j=1 to testCount on error undo, throw :
-            testClassResult = RunBeforeMethod(testClassType, testClassResult).
-            testClassResult = RunTestMethod(testClassType, testClassResult, testList[j]).
-            catch err as AssertionFailedException :
-                testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testMethodResult:SetExceptionMessage(err:GetMessage()).
-                testMethodResult:setTestName(testList[j]:getTestName()).
-                testMethodResult:setIncomplete(true).
-                methodResultCount = methodResultCount + 1.
-                testMethodResultList[methodResultCount] = testMethodResult.
-                testClassResult:setTestResult(testMethodResultList).
-                testClassResult:IncrementFailure().
-                testClassResult:setTestCount(methodResultCount).
-            end catch.
-            catch e as Progress.Lang.Error:
-                testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusError).
-                testMethodResult:AddError(e).
-                testMethodResult:setTestName(testList[j]:getTestName()).
-                testMethodResult:setIncomplete(true).
-                methodResultCount = methodResultCount + 1.
-                testMethodResultList[methodResultCount] = testMethodResult.
-                testClassResult:setTestResult(testMethodResultList).
-                testClassResult:setTestCount(methodResultCount).
-                testClassResult:IncrementError().
-            end catch.
-            finally:
-                testClassResult = RunAfterMethod(testClassType, testClassResult).
-                catch err as AssertionFailedException :
-                    testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                    testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                    testMethodResult:SetExceptionMessage(err:GetMessage()).
-                    testMethodResult:setTestName(testList[j]:getTestName()).
-                    testMethodResultList[methodResultCount] = testMethodResult.
-                    testClassResult:setTestResult(testMethodResultList).
-                    testClassResult:IncrementFailure().
-                    testClassResult:setTestCount(methodResultCount).
-                end catch.
-                catch e as Progress.Lang.Error:
-                    testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                    testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusError).
-                    testMethodResult:AddError(e).
-                    testMethodResult:setTestName(testList[j]:getTestName()).
-                    testMethodResultList[methodResultCount] = testMethodResult.
-                    testClassResult:setTestResult(testMethodResultList).
-                    testClassResult:setTestCount(methodResultCount).
-                    testClassResult:IncrementError().
-                end catch.
-            end finally.
-        end.
-        return testClassResult.
-    end method.
+    METHOD PUBLIC TestTestResult RunSelectedTestMethod(INPUT testClassType AS Progress.Lang.Object, INPUT testMethod AS TestInfo):
+        DEFINE VARIABLE testResult AS TestTestResult  NO-UNDO.
+        testResult = NEW TestTestResult().
+        RunBeforeMethod(testClassType, testResult).
+        RunTestMethod(testClassType, testResult, testMethod).
+        CATCH err AS AssertionFailedError :
+            testResult:testResult = TestTestResult:StatusFailed.
+            testResult:ErrorMessage = err:GetMessage().
+            testResult:Error = err.
+            testResult:TestName = testMethod:getTestName().
+            testResult:isIncomplete = TRUE.
+        END CATCH.
+        CATCH e AS Progress.Lang.Error:
+            testResult:testResult = TestTestResult:StatusError.
+            testResult:Error  = err.
+            testResult:TestName = testMethod:getTestName().
+             testResult:isIncomplete = TRUE.
+        END CATCH.
+        FINALLY:
+            RunAfterMethod(testClassType, testResult).
+            CATCH err AS AssertionFailedError :
+                testResult:TestResult = TestTestResult:StatusFailed.
+                testResult:ErrorMessage = err:GetMessage().
+                testResult:TestName = testMethod:getTestName().
+                testResult:Error = err.
+            END CATCH.
+            CATCH e AS Progress.Lang.Error:
+                testResult:TestResult = TestTestResult:StatusError.
+                testResult:Error = e.
+                testResult:TestName = testMethod:getTestName().
+            END CATCH.
+            FINALLY:
+                RETURN testResult.
+            END FINALLY.
+        END FINALLY.
+    END METHOD.
     
-    /*------------------------------------------------------------------------------
-        Runs all @Test annotated methods
+   /*------------------------------------------------------------------------------
+        Invokes instance method.
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunSelectedTestMethod(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult, input testMethod as OpenEdge.ABLUnit.Reflection.TestInfo):
-        testClassResult = RunBeforeMethod(testClassType, testClassResult).
-        testClassResult = RunTestMethod(testClassType, testClassResult, testMethod).
-        catch err as AssertionFailedException :
-            testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-            testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-            testMethodResult:SetExceptionMessage(err:GetMessage()).
-            testMethodResult:setTestName(testMethod:getTestName()).
-            testMethodResult:setIncomplete(true).
-            methodResultCount = methodResultCount + 1.
-            testMethodResultList[methodResultCount] = testMethodResult.
-            testClassResult:setTestResult(testMethodResultList).
-            testClassResult:IncrementFailure().
-            testClassResult:setTestCount(methodResultCount).
-        end catch.
-        catch e as Progress.Lang.Error:
-            testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-            testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusError).
-            testMethodResult:AddError(e).
-            testMethodResult:setTestName(testMethod:getTestName()).
-            testMethodResult:setIncomplete(true).
-            methodResultCount = methodResultCount + 1.
-            testMethodResultList[methodResultCount] = testMethodResult.
-            testClassResult:setTestResult(testMethodResultList).
-            testClassResult:setTestCount(methodResultCount).
-            testClassResult:IncrementError().
-        end catch.
-        finally:
-            testClassResult = RunAfterMethod(testClassType, testClassResult).
-            catch err as AssertionFailedException :
-                testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testMethodResult:SetExceptionMessage(err:GetMessage()).
-                testMethodResult:setTestName(testMethod:getTestName()).
-                testMethodResultList[methodResultCount] = testMethodResult.
-                testClassResult:setTestResult(testMethodResultList).
-                testClassResult:IncrementFailure().
-                testClassResult:setTestCount(methodResultCount).
-            end catch.
-            catch e as Progress.Lang.Error:
-                testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusError).
-                testMethodResult:AddError(e).
-                testMethodResult:setTestName(testMethod:getTestName()).
-                testMethodResultList[methodResultCount] = testMethodResult.
-                testClassResult:setTestResult(testMethodResultList).
-                testClassResult:setTestCount(methodResultCount).
-                testClassResult:IncrementError().
-            end catch.
-            finally:
-                return testClassResult.
-            end finally.
-        end finally.
-    end method.
-    
-    method public static void Invoke(input obj as Progress.Lang.Object, input testMethod as character):
-        dynamic-invoke (obj, testMethod).
-        catch e as Progress.Lang.Error :
-            return error e.	
-        end catch.
-    end method.
+    METHOD PUBLIC STATIC VOID Invoke(INPUT obj AS Progress.Lang.Object, INPUT testMethod AS CHARACTER):
+        DYNAMIC-INVOKE (obj, testMethod).
+        CATCH e AS Progress.Lang.Error :
+            RETURN ERROR e.	
+        END CATCH.
+    END METHOD.
 
+    /*------------------------------------------------------------------------------
+        Invokes static method given.
+    ------------------------------------------------------------------------------*/
+    METHOD PUBLIC STATIC VOID invokeStatic(INPUT obj AS Progress.Lang.Object, INPUT testMethod AS CHARACTER):
+        DYNAMIC-INVOKE (obj:GetClass():TypeName, testMethod).
+        CATCH e AS Progress.Lang.Error :
+            RETURN ERROR e. 
+        END CATCH.
+    END METHOD.
+    
     /*------------------------------------------------------------------------------
         Runs a particular @Test method
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunTestMethod(input testClassType as Progress.Lang.Object,
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult, input testMethod as OpenEdge.ABLUnit.Reflection.TestInfo):
-        testMethodResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-        define variable expectedException as character no-undo.
-        expectedException = testMethod:getAttributeValue().
-        Invoke(testClassType, testMethod:getTestName()).
-        if expectedException = "" then
-        do:
-            testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusPassed).
-            testMethodResult:setTestName(testMethod:getTestName()).
-            methodResultCount = methodResultCount + 1.
-            testMethodResultList[methodResultCount] = testMethodResult.
-            testClassResult:setTestResult(testMethodResultList).
-            testClassResult:setTestCount(methodResultCount).
-            testClassResult:IncrementSuccess().
-        end.
-        else
-        do:
-            testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-            testMethodResult:setTestName(testMethod:getTestName()).
-            testMethodResult:SetExceptionMessage("Expecting: " + expectedException + "but this expection is not raised.").
-            methodResultCount = methodResultCount + 1.
-            testMethodResultList[methodResultCount] = testMethodResult.
-            testClassResult:setTestResult(testMethodResultList).
-            testClassResult:setTestCount(methodResultCount).
-            testClassResult:IncrementFailure().
-        end.
-        catch err as AssertionFailedException :
-            testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-            testMethodResult:setTestName(testMethod:getTestName()).
-            testMethodResult:SetExceptionMessage(err:GetMessage()).
-            methodResultCount = methodResultCount + 1.
-            testMethodResultList[methodResultCount] = testMethodResult.
-            testClassResult:setTestResult(testMethodResultList).
-            testClassResult:setTestCount(methodResultCount).
-            testClassResult:IncrementFailure().		
-        end catch.
-        catch e as Progress.Lang.Error :
-            if expectedException = "" then
-            do: 
-                testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusError).
-                testMethodResult:setTestName(testMethod:getTestName()).
-                testMethodResult:AddError(e).
-                methodResultCount = methodResultCount + 1.
-                testMethodResultList[methodResultCount] = testMethodResult.
-                testClassResult:setTestResult(testMethodResultList).
-                testClassResult:setTestCount(methodResultCount).
-                testClassResult:IncrementError().
-            end.
-            else if (OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo:IsTypeOf(e, GetExpectedErrorType(expectedException))) THEN
-                do:
-                    testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusPassed).
-                    testMethodResult:setTestName(testMethod:getTestName()).
-                    methodResultCount = methodResultCount + 1.
-                    testMethodResultList[methodResultCount] = testMethodResult.
-                    testClassResult:setTestResult(testMethodResultList).
-                    testClassResult:setTestCount(methodResultCount).
-                    testClassResult:IncrementSuccess().
-                end.
-                else 
-                do:
-                    testMethodResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                    testMethodResult:setTestName(testMethod:getTestName()).
-                    testMethodResult:SetExceptionMessage("Expecting: " + expectedException + "but found :" + STRING(e)).
-                    methodResultCount = methodResultCount + 1.
-                    testMethodResultList[methodResultCount] = testMethodResult.
-                    testClassResult:setTestResult(testMethodResultList).
-                    testClassResult:setTestCount(methodResultCount).
-                    testClassResult:IncrementFailure().
-                end.
-        end catch.
-        finally:
-            return testClassResult.	
-        end finally.
-    end method.
+    METHOD PUBLIC TestTestResult RunTestMethod(INPUT testClassType AS Progress.Lang.Object, INPUT testResult AS TestTestResult, INPUT testMethod AS TestInfo ):
+        DEFINE VARIABLE expectedException AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE annotations AS Array NO-UNDO. 
+        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
+        DEFINE VARIABLE exception AS Progress.Lang.Error NO-UNDO.
+        
+        annotations = testMethod:annotations.
+        /** considering only the 1st annotation for now**/
+        annotation = CAST(annotations:GetValue(1), AnnotationInfo ).
+        expectedException = annotation:getAttributeValue().
+       
+        IF testMethod:isStatic THEN
+            invokeStatic(testClassType, testMethod:getTestName()).
+        ELSE
+            Invoke(testClassType, testMethod:getTestName()).
+        IF expectedException = "" THEN
+        DO:
+            testResult:TestResult = TestTestResult:StatusPassed.
+            testResult:TestName = testMethod:getTestName().
+        END.
+        ELSE
+        DO:
+            testResult:TestResult = TestTestResult:StatusFailed.
+            testResult:TestName = testMethod:getTestName().
+            testResult:ErrorMessage = "Expecting:" + expectedException + " but this expection is not raised.".
+            exception = NEW Progress.Lang.AppError("No exception is raised but expecting " + expectedException, 1).
+            testResult:Error = exception.
+        END.
+        CATCH e AS Progress.Lang.Error :
+            IF expectedException = "" THEN
+            DO:
+                IF (e:GetClass():TypeName = "OpenEdge.Core.AssertionFailedError") THEN
+                DO:
+                    testResult:TestResult  = TestTestResult:StatusFailed.
+                    testResult:TestName = testMethod:getTestName().
+                    testResult:Error = e.
+                    testResult:ErrorMessage = e:GetMessage(1).
+                END.
+                ELSE
+                DO:
+                   testResult:TestResult  = TestTestResult:StatusError.
+                    testResult:TestName = testMethod:getTestName().
+                    testResult:Error = e.
+                END.
+            END.
+            ELSE IF (ClassAnnotationInfo:IsTypeOf(e, GetExpectedErrorType(expectedException))) THEN
+            DO:
+                testResult:TestResult = TestTestResult:StatusPassed.
+                testResult:TestName = testMethod:getTestName().
+            END.
+            ELSE 
+            DO:
+                testResult:TestResult = OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed.
+                testResult:TestName = testMethod:getTestName().
+                testResult:ErrorMessage = "Expecting:" + expectedException + " but found:" + e:GetClass():TypeName.
+                testResult:Error = e.
+            END.
+        END CATCH.
+        FINALLY:
+            RETURN testResult.	
+        END FINALLY.
+    END METHOD.
+    
     /*----------------------------------------------------------------------------
         Expands the given expected error type if it is a recognised abbreviation.
       ----------------------------------------------------------------------------*/
-    method protected static character GetExpectedErrorType(input expectedError as character):
+    METHOD PUBLIC STATIC CHARACTER GetExpectedErrorType(INPUT expectedError AS CHARACTER):
     
         /* Add the package name for recognised error types */
-        case expectedError:
-            when "Error"           
-            or 
-            when "AppError"
-            or 
-            when "ProError"
-            or 
-            when "SoapFaultError"          
-            or 
-            when "SysError" then
-                return "Progress.Lang." + expectedError.
-            when "Stop" then
-                return "OEUnit.Reflection.StopConditionError".
-            when "Quit" then
-                return "OEUnit.Reflection.QuitConditionError".
-        end case.
-        return expectedError.    
-    end method.
+        CASE expectedError:
+            WHEN "Error"           
+            OR 
+            WHEN "AppError"
+            OR 
+            WHEN "ProError"
+            OR 
+            WHEN "SoapFaultError"          
+            OR 
+            WHEN "SysError" THEN
+                RETURN "Progress.Lang." + expectedError.
+            WHEN "Stop"
+                OR
+            WHEN "Quit" THEN
+                RETURN "Progress.Lang.SysError".
+        END CASE.
+        RETURN expectedError.
+    END METHOD.
 
     /*----------------------------------------------------------------------------
       Returns true if the given object can be cast to the given type. Otherwise 
       returns false.
     ----------------------------------------------------------------------------*/
-    method public static logical IsTypeOf(input obj as Progress.Lang.Object, 
-        input castType as character):
-        if obj:GetClass():TypeName = castType then return true.
-        define variable castObject as Progress.Lang.Object no-undo.
-        castObject = dynamic-cast(obj, castType) no-error.
-        if error-status:error then
-            return false.
-        return true.
-    end method.
+    METHOD PUBLIC STATIC LOGICAL IsTypeOf(INPUT obj AS Progress.Lang.Object, INPUT castType AS CHARACTER):
+        IF obj:GetClass():TypeName = castType THEN RETURN TRUE.
+        DEFINE VARIABLE castObject AS Progress.Lang.Object NO-UNDO.
+        castObject = DYNAMIC-CAST(obj, castType) NO-ERROR.
+        IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN
+            RETURN FALSE.
+        RETURN TRUE.
+    END METHOD.
   
     /*------------------------------------------------------------------------------
     Runs @After annotated method
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunAfterMethod(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not afterCount = 0 then
-        do on error undo, throw:
-            Invoke(testClassType, afterList:getTestName()).
-            catch e as Progress.Lang.Error :
-                return error e.
-            end catch.
-        end.
-        return testClassResult.
-    end method.
+    METHOD PUBLIC VOID RunAfterMethod(INPUT testClassType AS Progress.Lang.Object, 
+        INPUT testResult AS OpenEdge.ABLUnit.Results.TestTestResult):
+        IF NOT afterMethod = ? THEN
+        DO ON ERROR UNDO, THROW:
+            Invoke(testClassType, afterMethod:getTestName()).
+            CATCH e AS Progress.Lang.Error :
+                RETURN ERROR e.
+            END CATCH.
+        END.
+        RETURN.
+    END METHOD.
 
     /*------------------------------------------------------------------------------
     Runs @AfterClass annotated method
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunAfterClass(input testClassType as Progress.Lang.Object, 
-        input testClassResult as OpenEdge.ABLUnit.Results.TestTypeResult ):
-        if not afterClassCount = 0 and not testCount = 0 then
-        do on error undo, throw:
-            Invoke(testClassType, afterClassList:getTestName()).
-            catch e as Progress.Lang.Error :
-                return error e.
-            end catch.
-        end.
-        return testClassResult.
-    end method.
+    METHOD PUBLIC OpenEdge.ABLUnit.Results.TestTypeResult RunAfterClass(INPUT testClassType AS Progress.Lang.Object):
+        IF NOT afterClassMethod = ? AND NOT testList:size = 0 THEN
+        DO ON ERROR UNDO, THROW:
+            Invoke(testClassType, afterClassMethod:getTestName()).
+            CATCH e AS Progress.Lang.Error :
+                RETURN ERROR e.
+            END CATCH.
+        END.
+    END METHOD.
 
-end class.
+    /*------------------------------------------------------------------------------
+        Throws error for multiple occurence of lifecycle methods   
+    ------------------------------------------------------------------------------*/
+    METHOD PRIVATE VOID throwError( ):
+        RETURN ERROR NEW Progress.Lang.AppError("Life cycle annotations can not occur more than once.", 0).
+    END METHOD.
+    
+END CLASS.

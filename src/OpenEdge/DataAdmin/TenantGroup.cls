@@ -15,77 +15,63 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
+using OpenEdge.DataAdmin.AbstractPartitionOwner.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery.
+using OpenEdge.DataAdmin.Binding.TenantGroupContext.
+using OpenEdge.DataAdmin.Core.CodeWriter.
+using OpenEdge.DataAdmin.Core.JSONLoader.
+using OpenEdge.DataAdmin.Core.JSONWriter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.CreateOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.IllegalOperationError.
+using OpenEdge.DataAdmin.Error.InvalidPropertyValueError.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IArea.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminExporter.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IPartitionMap.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ITable.
+using OpenEdge.DataAdmin.ITenantGroup.
+using OpenEdge.DataAdmin.ITenantGroupMemberSet.
+using OpenEdge.DataAdmin.ITenantSet.
+using OpenEdge.DataAdmin.TenantGroup.
+using Progress.Lang.Error.
+using Progress.Lang.Object.
 
-using Progress.Lang.Error from propath.
-using Progress.Lang.Object from propath.
-
-using OpenEdge.DataAdmin.DataAdminService from propath. 
-using OpenEdge.DataAdmin.IArea from propath.
-using OpenEdge.DataAdmin.ITenantGroup from propath.
-using OpenEdge.DataAdmin.TenantGroup from propath.
-using OpenEdge.DataAdmin.IPartitionMap from propath.
- 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-
-using OpenEdge.DataAdmin.ITenantGroupMemberSet from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.ITenantSet from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminExporter from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
-using OpenEdge.DataAdmin.Entity from propath. 
-using OpenEdge.DataAdmin.IRequestInfo  from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.TenantGroupContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath. 
-using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath. 
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath. 
-using OpenEdge.DataAdmin.Error.CreateOnlyPropertyError from propath. 
-using OpenEdge.DataAdmin.Core.JSONWriter from propath.  
-using OpenEdge.DataAdmin.Core.CodeWriter from propath.  
-using OpenEdge.DataAdmin.Core.JSONLoader from propath.  
-
-class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
+class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements ITenantGroup:
      
     define private variable mPartitionTable as handle no-undo. 
     define private variable mTenantGroupMembersTable as handle no-undo. 
        
-    define private property ValidDefaultAllocationList as char 
-       init "Immediate,Delayed,None"
-       get.
- 
     define private variable mChild as logical no-undo.    
          
-    define public property Id as int init ? no-undo             
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::id.
-            else
-                return Id.    
-        end.
-      
     define public property Table as ITable no-undo                 
         get():
             if not valid-object(this-object:Table) then
             do:
-                if valid-handle(mBuffer) then
+                if valid-handle(mBuffer) and valid-object(Service) then
                     return Service:GetTable(mBuffer::TableName).
             end.
             return this-object:Table. 
         end.
+        
         set(pTable as ITable):
             if not valid-object(pTable) then 
                 undo, throw new UnknownValueError("TenantGroup:Table").
             
             if valid-object(Service) then
                 undo, throw new CreateOnlyPropertyError("TenantGroup",Name,"Table").
+                
             if valid-handle(mBuffer) then
             do:
                 mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
@@ -114,40 +100,8 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
             return TenantGroupMembers.
         end.
         private set .
-    
-      
-     define public property Partitions as IPartitionMap no-undo    
-        get():
-            if not valid-object(Partitions) then
-            do:   
-                if not valid-object(context:Service) and not valid-object(context:TargetService) then
-                    undo, throw new UnsupportedOperationError("Partitions are not available in a TenantGroup that is not newed, created or retrieved by a service.").  
-                      
-                Partitions = cast(GetChildCollection("partitions"),IPartitionMap).
-            end.     
-            return Partitions.
-        end.
-        private set.     
-    
        
-    define public property Description as char no-undo         
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::Description.
-            else
-                return Description. 
-        end.
-        set(pDescription as char):
-            if valid-handle(mBuffer) then
-            do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-                mdefaultbuffer::Description = pDescription.
-            end.
-            else
-                Description = pDescription.
-        end.    
-    
-    define public property DefaultAllocation as char no-undo                 
+    define public override property DefaultAllocation as char no-undo                 
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::DefaultAllocation.
@@ -164,25 +118,30 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
             end.
             DefaultAllocation = pDefaultAllocation.
         end.    
+    
+      define public override property IsDataEnabled as logical no-undo  
+          init true get.     
           
-    define public property IsAllocated as logical no-undo          
-        get():
-            if valid-handle(mBuffer) then
-                return mBuffer::IsAllocated.
-            else
-                return IsAllocated. 
+/*        get():*/
+/*            if valid-handle(mBuffer) then     */
+/*                return mBuffer::IsDataEnabled.*/
+/*            else                              */
+/*                return IsDataEnabled.         */
+/*        end.                                                   */
+        set(pIsDataEnabled as logical):
+             /* @todo explain why. Not needed on table group, block tenant instead? ? or fix to work... */
+             undo, throw new UnsupportedOperationError("Cannot set IsDataEnabled in TenantGroup.").
+/*            if valid-handle(mBuffer) then                      */
+/*            do:                                                */
+/*                mDefaultBuffer:find-by-rowid(mBuffer:rowid).   */
+/*                mdefaultbuffer::IsDataEnabled = pIsDataEnabled.*/
+/*            end.                                               */
+/*            else                                               */
+/*                IsDataEnabled = pIsDataEnabled.                */
         end.
-        protected set(pIsAllocated as logical):
-            if valid-handle(mBuffer) then
-            do:
-                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-                mdefaultbuffer::IsAllocated = pIsAllocated.
-            end.
-            else
-                IsAllocated = pIsAllocated.
-        end. 
-
-    define public property DefaultDataArea as IArea no-undo   
+              
+ 
+    define public override property DefaultDataArea as IArea no-undo   
         get():
             if not valid-object(DefaultDataArea) then
             do: 
@@ -202,7 +161,7 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
             DefaultDataArea = pDefaultDataArea.
         end. 
     
-    define public property DefaultIndexArea as IArea no-undo     
+    define public override property DefaultIndexArea as IArea no-undo     
         get():
             if not valid-object(DefaultIndexArea) then
             do: 
@@ -225,7 +184,7 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
             DefaultIndexArea = pDefaultIndexArea.
         end. 
         
-    define public property DefaultLobArea   as IArea no-undo    
+    define public override property DefaultLobArea   as IArea no-undo    
         get():
             if not valid-object(DefaultLobArea) then
             do: 
@@ -257,11 +216,11 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
         
-    constructor public TenantGroup (cntxt as IDataAdminContext):
+    constructor public TenantGroup (cntxt as IDataAdminModel):
         super (cntxt).
     end constructor.
     
-    constructor public TenantGroup (cntxt as IDataAdminContext,preq as IRequestInfo):
+    constructor public TenantGroup (cntxt as IDataAdminModel,preq as IRequestInfo):
         super (cntxt,preq).
     end constructor.
       
@@ -274,12 +233,12 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
     end constructor. 
     
     /* local context needed - child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return new TenantGroupContext().
     end method.
      
   
-    method public logical Allocate():
+    method public override logical Allocate():
         IsAllocated = true.
         return Partitions:Allocate(). 
     end method.        
@@ -301,7 +260,7 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
 /*    end method.                                      */
     
     method public override void Export():
-        Export("area.json").
+        Export("tenantGroup.json").
     end method.          
     
     method protected character GetCreateError():
@@ -411,14 +370,13 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
         define variable writer as IDataAdminExporter no-undo.
         define variable iPos as integer no-undo.
         define variable cExt as character no-undo.
-       
         /* The code writer support this, but it writes tenants, so externally 
             we give error if actually asking for it (see below) */ 
         iPos = lookup("TenantGroupMembers",pcCollectionList).
         if iPos > 0 then
         do:
             cExt = GetFileExtension(pcfile).
-            if cExt = "p" or cExt = "download" then
+            if cExt = "p" or cExt = CodeExtension  then
                 undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use Tenants instead.").
         end.
         
@@ -428,8 +386,8 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
         if iPos > 0 then
         do:
             cExt = GetFileExtension(pcfile).
-            if cExt = "p" or cExt = "download" then
-               entry(iPos,pcCollectionList) = "TenantGroupMembers".
+            if cExt = "p" or cExt = CodeExtension  then
+                entry(iPos,pcCollectionList) = "TenantGroupMembers".
         end.
         
         writer = GetExporter(pcfile).
@@ -461,27 +419,11 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
     end method.     
        ***/ 
     
-    method private char GetFileExtension(pcFile as char):
-       define variable i as integer no-undo.
-       i = num-entries(pcfile,".").
-       if i > 1 then
-           return entry(i,pcfile,".").
-       else return "".    
-    end method.   
     
-    method protected IDataAdminExporter GetExporter(pcFile as char):
-        define variable i as integer no-undo.
-        define variable fileext as character no-undo.
-        fileExt = GetFileExtension(pcFile).
-        case fileExt:
-            when "p" or when "download" then
-                return new CodeWriter().
-            when "json" then  
-                return new JSONWriter().
-            otherwise 
-                undo, throw new IllegalArgumentError("Export to file with extension " + quoter(fileext)). 
-        end.
-    end method.
-    
+    method protected override void AssertPartitions():
+        if Created and not valid-object(this-object:Table) then
+            undo, throw new IllegalOperationError("Partitions are not available in a new TenantGroup that has no Table assigned.").  
+     
+    end method.         
    
 end class.

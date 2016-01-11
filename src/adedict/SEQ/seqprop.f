@@ -27,8 +27,6 @@ Date Created: 02/20/92
     Modified: 05/25/06 fernando   Support for large sequences
 
 ----------------------------------------------------------------------------*/
-
-
 form
    SKIP({&TFM_WID})
 
@@ -55,17 +53,25 @@ form
    
 &if defined(prop) &then
     s_Seq_Current_Value    label "Current Value" format "X(30)" colon {&col1} {&STDPH_FILL}
-    SKIP({&VM_WID})
+    SKIP(0.1)
 &endif
 
    b_Sequence._Seq-misc[1] label "&DataServer Name" colon {&col1} {&STDPH_FILL}
-   format "x(32)" SKIP({&VM_WID})
+     format "x(32)"  SKIP({&VM_WID}) 
 
    b_Sequence._Seq-misc[2] label "&Owner"	    colon {&col1} {&STDPH_FILL}
 
    b_Sequence._Seq-misc[8]  label "DB &Link"        colon {&col1}  
                         format "x(21)"                       {&STDPH_FILL}
+
+ &if defined(prop) &then
+    b_Sequence._Seq-misc[6]  label "Data Type"  format "x(32)" colon {&col1} 
+                        {&STDPH_FILL} SKIP({&VM_WID})
+   b_Sequence._Seq-misc[7]  label "Cache Size" colon {&col1} {&STDPH_FILL} SKIP({&VM_WID})
    
+   RECT-DS AT ROW 8.7 COL 2    
+&endif
+
    s_Large_Seq_info        no-label format "X(40)" at 2 
    SKIP(.25)           
    s_Status                NO-LABEL format "x(50)"  at    2 

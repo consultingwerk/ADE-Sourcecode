@@ -41,89 +41,89 @@ DEFINE {1} SHARED {&WEBSTREAM}.
 /* CGI 1.1 Variables */
 DEFINE NEW GLOBAL SHARED VARIABLE GATEWAY_INTERFACE AS char 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE SERVER_SOFTWARE   AS char FORMAT "x(20)"
+DEFINE NEW GLOBAL SHARED VARIABLE SERVER_SOFTWARE   AS char FORMAT "x(20)":U
     NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE SERVER_PROTOCOL   AS char 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE SERVER_NAME       AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE SERVER_NAME       AS char FORMAT "x(40)":U 
     NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE SERVER_PORT       AS char 
     NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE REQUEST_METHOD    AS char 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE SCRIPT_NAME       AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE SCRIPT_NAME       AS char FORMAT "x(40)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE PATH_INFO         AS char FORMAT "x(40)"
+DEFINE NEW GLOBAL SHARED VARIABLE PATH_INFO         AS char FORMAT "x(40)":U
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE PATH_TRANSLATED   AS char FORMAT "x(60)" 
+DEFINE NEW GLOBAL SHARED VARIABLE PATH_TRANSLATED   AS char FORMAT "x(60)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE QUERY_STRING      AS char FORMAT "x(60)" 
+DEFINE NEW GLOBAL SHARED VARIABLE QUERY_STRING      AS char FORMAT "x(60)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_ADDR       AS char FORMAT "x(15)"
+DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_ADDR       AS char FORMAT "x(15)":U
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_HOST       AS char FORMAT "x(30)"
+DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_HOST       AS char FORMAT "x(30)":U
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_IDENT      AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_IDENT      AS char FORMAT "x(50)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_USER       AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE REMOTE_USER       AS char FORMAT "x(50)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE AUTH_TYPE         AS char FORMAT "x(10)" 
+DEFINE NEW GLOBAL SHARED VARIABLE AUTH_TYPE         AS char FORMAT "x(10)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE CONTENT_TYPE      AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE CONTENT_TYPE      AS char FORMAT "x(50)":U 
     NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE CONTENT_LENGTH    AS INTEGER 
     NO-UNDO.
 
 /* Common HTTP Header Variables */
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_ACCEPT       AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_ACCEPT       AS char FORMAT "x(50)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS char FORMAT "x(50)":U 
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_REFERER      AS char FORMAT "x(60)"
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_REFERER      AS char FORMAT "x(60)":U
     NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_USER_AGENT   AS char FORMAT "x(50)" 
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_USER_AGENT   AS char FORMAT "x(50)":U 
     NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE HTTPS             AS char
     NO-UNDO.
 
 /* Name of the program we're about to run */
-DEFINE NEW GLOBAL SHARED VARIABLE AppProgram        AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE AppProgram        AS char FORMAT "x(40)":U 
     NO-UNDO.
 
 /* Relative URL where the application directory is the root. */
-DEFINE NEW GLOBAL SHARED VARIABLE AppURL            AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE AppURL            AS char FORMAT "x(40)":U 
     NO-UNDO.
 
 /* Relative URL for ourself from the server root directory. */
-DEFINE NEW GLOBAL SHARED VARIABLE SelfURL           AS char FORMAT "x(60)" 
+DEFINE NEW GLOBAL SHARED VARIABLE SelfURL           AS char FORMAT "x(60)":U 
     NO-UNDO.
 
 /* Host and port part of URL. */
-DEFINE NEW GLOBAL SHARED VARIABLE HostURL           AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE HostURL           AS char FORMAT "x(40)":U 
     NO-UNDO.
 
 /* Default path for set-cookie() function.  Normally the same as AppURL.
    Otherwise, obtained from the DefaultCookiePath configuration option. */
-DEFINE NEW GLOBAL SHARED VARIABLE CookiePath        AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE CookiePath        AS char FORMAT "x(40)":U 
     NO-UNDO.
 
 /* Relative path for our static HTML, JAVA, DOC, and IMG file off the web
    server's DOCUMENT_ROOT directory.                                    */   
-DEFINE NEW GLOBAL SHARED VARIABLE RootURL           AS char FORMAT "x(60)" 
+DEFINE NEW GLOBAL SHARED VARIABLE RootURL           AS char FORMAT "x(60)":U 
     NO-UNDO.
 
 /* Messenger Server Connection ID is inactive/active (0/1)              */   
-DEFINE NEW GLOBAL SHARED VARIABLE useConnID         AS char FORMAT "x(60)" 
+DEFINE NEW GLOBAL SHARED VARIABLE useConnID         AS char FORMAT "x(60)":U 
     NO-UNDO.
 
 /* Default domain for the set-cookie() function.  Normally blank. */
-DEFINE NEW GLOBAL SHARED VARIABLE CookieDomain      AS char FORMAT "x(40)" 
+DEFINE NEW GLOBAL SHARED VARIABLE CookieDomain      AS char FORMAT "x(40)":U 
     NO-UNDO.
 
 /* Delimiter for multiple items assigned to a single field name.
    Typically a comma or tab. */
-DEFINE NEW GLOBAL SHARED VARIABLE SelDelim          AS char FORMAT "x" 
-    NO-UNDO INITIAL ",".
+DEFINE NEW GLOBAL SHARED VARIABLE SelDelim          AS char FORMAT "x":U 
+    NO-UNDO INITIAL ",":U.
 
 /* Flag set by the output-content-type() function to the Content-Type header
    value that was output.  If this is blank, then the output-content-type()
@@ -135,7 +135,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE output-content-type AS char NO-UNDO.
    Some web servers do not allow the CR, LF combination but only support
    an LF character. */
 DEFINE NEW GLOBAL SHARED VARIABLE http-newline AS char NO-UNDO
-    INITIAL "~r~n".
+    INITIAL "~r~n":U.
 
 /* Offset from Coordinated Universal Time (UTC) or GMT time in seconds.
    This value is updated with each request.  A positive number is west of
@@ -147,7 +147,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE utc-offset AS INTEGER NO-UNDO INITIAL -1.
 DEFINE NEW GLOBAL SHARED VARIABLE web-utilities-hdl AS HANDLE NO-UNDO.
 
 /* Comma delimited list of debugging options. */
-DEFINE NEW GLOBAL SHARED VARIABLE debug-options AS char FORMAT "x(20)"
+DEFINE NEW GLOBAL SHARED VARIABLE debug-options AS char FORMAT "x(20)":U
     NO-UNDO.
 
 /* True if debugging is enabled via the configuration options Environment

@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2000-2010,2013 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -72,6 +72,8 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
              input frame tblprops b_File._File-Attributes[1]
       input frame tblprops b_File._File-Attributes[2] when 
              input frame tblprops b_File._File-Attributes[2]
+      input frame tblprops b_File._File-Attributes[3] when 
+             input frame tblprops b_File._File-Attributes[3]
       input frame tblprops b_File._Dump-Name
       input frame tblprops b_File._Hidden
       input frame tblprops b_File._For-Size
@@ -161,6 +163,10 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
        do:
            b_File._File-Attributes[1]:sensitive = false.
            b_File._File-Attributes[2]:sensitive = false.
+       end.
+       if b_File._File-Attributes[3] and b_File._File-Attributes[3]:sensitive then
+       do:
+           b_File._File-Attributes[3]:sensitive = false.
        end.
        if s_win_Tbl <> ? then
            display "Table modified" @ s_Status.

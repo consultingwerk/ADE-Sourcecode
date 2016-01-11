@@ -278,7 +278,7 @@ PROCEDURE findCustomer :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE vName AS CHARACTER NO-UNDO.
 
-  vName = get-value("Name"). /* Name value for customer search */
+  vName = get-value("Name":U). /* Name value for customer search */
 
   CASE vButton:
     WHEN "Search":U THEN DO WITH FRAME {&FRAME-NAME}:
@@ -286,25 +286,25 @@ PROCEDURE findCustomer :
       IF NOT AVAILABLE(Customer) THEN 
         FIND FIRST Customer USE-INDEX Name NO-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN
-        Name:SCREEN-VALUE = "*** NO RECORDS ***".
+        Name:SCREEN-VALUE = "*** NO RECORDS ***":U.
     END.
     WHEN "Next":U THEN DO WITH FRAME {&FRAME-NAME}:
       FIND FIRST Customer WHERE Name > vName NO-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN
         FIND FIRST Customer USE-INDEX NAME NO-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN 
-        Name:SCREEN-VALUE = "*** NO RECORDS ***".
+        Name:SCREEN-VALUE = "*** NO RECORDS ***":U.
     END.
     WHEN "Update":U THEN DO WITH FRAME {&FRAME-NAME}:  /* CustNum to update */
-      FIND Customer WHERE CustNum = INTEGER(get-value("CustNum"))
+      FIND Customer WHERE CustNum = INTEGER(get-value("CustNum":U))
         EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
       IF LOCKED(Customer) THEN
-        Name:SCREEN-VALUE = "*** LOCKED ***".
+        Name:SCREEN-VALUE = "*** LOCKED ***":U.
       ELSE IF NOT AVAILABLE(Customer) THEN
-        Name:SCREEN-VALUE = "*** NOT FOUND ***".
+        Name:SCREEN-VALUE = "*** NOT FOUND ***":U.
       ELSE        
         Comments:SCREEN-VALUE = Comments:SCREEN-VALUE +
-                                  "~n*** Updated " + STRING(TODAY) + " ***".
+                                  "~n*** Updated ":U + STRING(TODAY) + " ***":U.
     END.
   END CASE.
   
@@ -429,7 +429,7 @@ PROCEDURE process-web-request :
    * Here we look at REQUEST_METHOD. 
    */
   IF REQUEST_METHOD = "POST":U THEN DO:
-     vButton = get-value(INPUT "Button Value"). 
+     vButton = get-value(INPUT "Button Value":U). 
     /* STEP 1 -
      * Copy HTML input field values to the Progress form buffer. */
     RUN inputFields.
@@ -519,7 +519,7 @@ PROCEDURE process-web-request :
     /* ShowDataMessage may return a Progress column name. This means you can 
        use as a parameter to HTMLSetFocus instead of calling it directly.           
        The first parameter is the form name.   
-       HTMLSetFocus("document.DetailForm",ShowDataMessages()). */
+       HTMLSetFocus("document.DetailForm":U,ShowDataMessages()). */
   END.
  
 END PROCEDURE.

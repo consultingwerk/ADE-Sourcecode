@@ -103,16 +103,14 @@ class  OpenEdge.DataAdmin.Support.SchemaPartitionMap inherits PartitionCollectio
         @param tenantName   
         @return IPartition if partition is mapped to specified tenant name, unknown if not found */
     method public IPartition FindTenant(pctenant as char):
-        if SchemaPartitionQuery:FindTenant(pctenant) then
-             return new Partition( Context).
+        return cast(SchemaPartitionQuery:FindTenantEntity(pctenant),IPartition).
     end method. 
     
     /** find group partition
         @param groupName TenantGroup  
         @return IPartition if partition is mapped to specified group name, unknown if not found */
     method public IPartition FindGroup(pcGroup as char):
-        if SchemaPartitionQuery:FindGroup(pcGroup) then
-             return new Partition( Context).
+        return cast(SchemaPartitionQuery:FindGroupEntity(pcGroup),IPartition).
     end method. 
     
     /** Can find tenant partition

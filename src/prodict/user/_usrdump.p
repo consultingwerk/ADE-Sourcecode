@@ -340,7 +340,8 @@ FORM SKIP({&TFM_WID})
        btn_File                 SKIP({&VM_WIDG})
        inclob                   AT 2 LABEL "Include LOB" 
                                 view-as toggle-box SKIP({&VM_WID}) 
-       "LOB Directory (blank = current directory):":t50         VIEW-AS TEXT AT 2 
+       "LOB Directory (relative to Effective Tenant Directory):"         VIEW-AS TEXT AT 2 
+ 
        user_env[30]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
                                 AT 2 VIEW-AS FILL-IN SIZE 47 BY 1 
        btn_dir                  LABEL "Dir..." SKIP ({&VM_WIDG})
@@ -482,14 +483,16 @@ FORM SKIP({&TFM_WID})
        
        inclob                   AT 2 LABEL "Include LOB" 
                                 view-as toggle-box SKIP({&VM_WIDG})
-       "LOB Directory (blank = current directory):":t53 VIEW-AS TEXT AT 2
+       "Shared LOB Directory (blank = current directory):":t53 VIEW-AS TEXT AT 2
                                  
        user_env[30]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
                                 AT 2 VIEW-AS FILL-IN 
                                 SIZE {&FILLCH} BY 1  
        btn_dir                  LABEL "Dir..."  SKIP({&VM_WIDG})
        
-       "Tenant LOB Directory (blank = current directory):":t53 VIEW-AS TEXT AT 2
+       "Tenant LOB Directory (relative to Effective Tenant Directory):" VIEW-AS TEXT AT 2
+       "(blank = current directory) ":t53 VIEW-AS TEXT AT 2
+
        user_env[34]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
                                 AT 2 VIEW-AS FILL-IN 
                                 SIZE {&FILLCH} BY 1   
@@ -629,10 +632,13 @@ FORM SKIP({&TFM_WID})
        btn_File                 SKIP({&VM_WIDG})
        "Include LOB:"           VIEW-AS TEXT AT 11 
        inclob                   LABEL " " 
-                                view-as toggle-box SKIP({&VM_WID})
+                                view-as toggle-box 
+       
        "LOB Directory:"         VIEW-AS TEXT at  9
        user_env[30]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})"  
-                                VIEW-AS FILL-IN SIZE 41 BY 1 SKIP({&VM_WIDG})
+                                VIEW-AS FILL-IN SIZE 28 BY 1 
+       "(relative to Effective" COLON 51
+       "Tenant Directory)"      COLON 51 
        io-mapc                  {&STDPH_FILL} LABEL "Character Mapping"
                                 FORMAT "x(20)" COLON 22
        "(Blank = Default Map; use"       COLON 43
@@ -714,13 +720,15 @@ FORM SKIP({&TFM_WID})
                                 LABEL "Tenant Directory" SKIP({&VM_WIDG})
        "Include LOB:"           VIEW-AS TEXT AT 11
        inclob                   colon 22 LABEL " (X = yes)" view-as toggle-box 
-                                SKIP({&VM_WIDG})     
+                                     
        user_env[30]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})"  
-                                colon 26 VIEW-AS FILL-IN SIZE 47 BY 1  
+                                colon 22 VIEW-AS FILL-IN SIZE 28 BY 1  
                                 LABEL "Shared LOB Directory" SKIP
        user_env[34]             {&STDPH_FILL} FORMAT "x({&PATH_WIDG})"  
-                                colon 26  VIEW-AS FILL-IN SIZE 47 BY 1        
-                                LABEL "Tenant LOB Directory" SKIP({&VM_WIDG})
+                                colon 22  VIEW-AS FILL-IN SIZE 28 BY 1        
+                                LABEL "Tenant LOB Directory" 
+       "(relative to Effective"  COLON 51
+       "Tenant Directory)"       COLON 51 SKIP({&VM_WIDG})
        io-mapc                  {&STDPH_FILL} LABEL "Character Mapping"
                                 FORMAT "x(20)" COLON 22
        "(Blank = Default Map; use"       COLON 44
@@ -945,7 +953,7 @@ function refreshFileDefaults return logical():
          end.
          assign   
              user_env[2] =  cdir + user_env[32] + cUseSlash + gFileName
-             user_env[30] = cdir + user_env[32] + cUseSlash + gLobFolderName.
+             user_env[30] = cdir + gLobFolderName.
          return true. 
      end. 
      return false.    
@@ -978,7 +986,7 @@ function refreshDirDefaults return logical():
          assign   
              user_env[33] = cdir + user_env[32]  
              user_env[30] = cdir + gLobFolderName
-             user_env[34] = cdir + user_env[32]  + cUseSlash + gLobFolderName.
+             user_env[34] = cdir + gLobFolderName.
          return true. 
      end. 
      return false.    
@@ -1100,6 +1108,44 @@ function validDirectory returns logical ( cValue as char):
     return true.
  
 end function. /* validateDirectory */
+
+function validLobDirectory returns logical ( cValue as char):
+  
+    IF cValue <> "" THEN 
+    DO:
+        if not (cValue begins "/" or cvalue begins "~\" or index(cValue,":") <> 0) then
+        DO:
+            if SUBSTRING(user_env[2],1,R-INDEX(user_env[2], "/") - 1) = user_env[2] then
+                cValue = "./" + cValue.
+            else
+                cValue = SUBSTRING(user_env[2],1,R-INDEX(user_env[2], "/") - 1) + "/" + cValue.  
+        END.
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
+    END.    
+    
+    return true.
+ 
+end function. /* validateLobDirectory */
+
+function validTenantLobDirectory returns logical ( cValue as char):
+  
+    IF cValue <> "" THEN 
+    DO:
+        if not (cValue begins "/" or cvalue begins "~\" or index(cValue,":") <> 0) then
+        DO:
+            if user_env[33] = "" then
+                cValue = "./" + cValue.
+            else 
+                cValue = user_env[33] + "/" + cValue.  
+        END.
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
+    END.
+    
+    return true.
+ 
+end function. /* validateTenantLobDirectory */
 
 function createDirectoryIf returns logical ( cdirname as char):
 
@@ -1266,6 +1312,38 @@ function validateDirectory returns logical ( cValue as char):
     return true.
   END.
 end function. /* validateDirectory */
+
+function validateLobDirectory returns logical ( cValue as char):
+      
+    IF cValue <> "" THEN 
+    DO:
+        if not validLobDirectory(cValue) then
+        DO:
+            MESSAGE "Directory " + cValue + " does not exist!" SKIP(1)
+            "Please enter a valid directory name."
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   
+            return false.
+        END.
+      return true.
+    END.
+end function. /* validateLobDirectory */
+
+function validateTenantLobDirectory returns logical ( cValue as char):
+   
+    IF cValue <> "" THEN 
+    DO:
+        if not validTenantLobDirectory(cValue) then
+        DO:
+            MESSAGE "Directory " + cValue + " does not exist!" SKIP(1)
+            "Please enter a valid directory name."
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   
+            return false.
+        END.
+      return true.
+    END.
+end function. /* validateTenantLobDirectory */
 
 function validateFileExists returns logical ( cFile as char): 
     define variable prefix    as character no-undo.
@@ -1804,7 +1882,7 @@ DO:
             return no-apply.
         end. 
         
-        if not validateDirectory(user_env[30]:screen-value) then 
+        if not validateLobDirectory(user_env[30]:screen-value) then 
         do:
             if user_env[30]:sensitive then
                 apply "ENTRY" to user_env[30].
@@ -2051,7 +2129,7 @@ do:
               return no-apply. 
           end. 
           
-          if not validateDirectory(user_env[34]:screen-value) then 
+          if not validateTenantLobDirectory(user_env[34]:screen-value) then 
           do:
               apply "entry" to user_env[34].
               return no-apply. 

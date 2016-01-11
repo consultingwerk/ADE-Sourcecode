@@ -1668,18 +1668,10 @@ end procedure.
 procedure syncFromAppbuilder:
     define input parameter pcParam  as char no-undo.
     define variable cLinkedFile as character no-undo.
-    define variable cFile as character no-undo.  
-    define variable ihwnd as int64 no-undo. 
     define variable hwin as handle no-undo. 
     cLinkedFile = entry(1,pcParam,PARAMETER_DELIMITER).
-    if num-entries(pcParam) > 1 then 
-    do: 
-        cFile = entry(1,pcParam,PARAMETER_DELIMITER).
-        cfile = replace(cfile, "~\":U, "/":U).  
-    end.      
     hwin = getLinkFileWindow(cLinkedFile).
-    run ide_syncFromAppbuilder in fUIB (cLinkedFile,cfile,hwin).
-    
+    run ide_syncFromAppbuilder in fUIB (cLinkedFile,hwin).
     return "OK":U. 
     catch e as Progress.Lang.Error :
     	return "CANCEL":U.

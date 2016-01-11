@@ -14,21 +14,20 @@
     Created     :  
     Notes       : 
   ----------------------------------------------------------------------*/
- 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.Entity from propath.
- 
-using OpenEdge.DataAdmin.ISchema from propath.
-using OpenEdge.DataAdmin.IUserFieldPermissionSet from propath.
-using OpenEdge.DataAdmin.IUser  from propath.
- 
- 
-using OpenEdge.DataAdmin.IUserTablePermission from propath.
-using OpenEdge.DataAdmin.UserTablePermission from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+block-level on error undo, throw.
+
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ISchema.
+using OpenEdge.DataAdmin.IUser.
+using OpenEdge.DataAdmin.IUserFieldPermissionSet.
+using OpenEdge.DataAdmin.IUserTablePermission.
+using OpenEdge.DataAdmin.UserTablePermission.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.UserTablePermission final inherits Entity  implements IUserTablePermission: 
            
@@ -99,20 +98,16 @@ class OpenEdge.DataAdmin.UserTablePermission final inherits Entity  implements I
     /* lists all LOBs in the schema */ 
     define public property UserFieldPermissions as IUserFieldPermissionSet no-undo     
         get():
-            define variable c as character extent 2 no-undo.
             if valid-handle(mBuffer) and not valid-object(UserFieldPermissions) then
             do:
-                c[1] = mbuffer::UserRef.
-                c[2] = name.
-                UserFieldPermissions = cast(GetChildCollection(c,"userFieldPermissions"),IUserFieldPermissionSet).         
+                UserFieldPermissions = cast(GetChildCollection("userFieldPermissions"),IUserFieldPermissionSet).         
             end.
             return UserFieldPermissions.
-            
         end.
         protected set.
        
     method public override void Export():
-        Export("tablepermission.json").
+        export("tablepermission.json").
     end method.          
     
    /*------------------------------------------------------------------------------
@@ -120,12 +115,16 @@ class OpenEdge.DataAdmin.UserTablePermission final inherits Entity  implements I
 			Notes:  																	  
 	------------------------------------------------------------------------------*/
 		
-	constructor public UserTablePermission ( cntxt as IDataAdmincontext ):
+	constructor public UserTablePermission ( cntxt as IDataAdminModel ):
 		super (cntxt).
 	end constructor.
+	
+    constructor public UserTablePermission ( cntxt as IDataAdminModel , preq as IRequestInfo):
+        super (cntxt,preq).
+    end constructor.
     
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     

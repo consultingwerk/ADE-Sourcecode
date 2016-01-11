@@ -165,7 +165,7 @@ DEFINE FRAME Web-Frame
    Events: web.output,web.input
    Other Settings: COMPILE
    Temp-Tables and Buffers:
-      TABLE: ab_unmap W "?" ?  
+      TABLE: ab_unmap W "?":U ?  
       ADDITIONAL-FIELDS:
           FIELD Country AS CHARACTER 
           FIELD cust-prompt AS CHARACTER FORMAT "X(256)":U 
@@ -227,8 +227,8 @@ DEFINE FRAME Web-Frame
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY QUERY-2
 /* Query rebuild information for QUERY QUERY-2
-     _TblList          = "sports2000.Customer"
-     _Options          = "NO-LOCK INDEXED-REPOSITION"
+     _TblList          = "sports2000.Customer":U
+     _Options          = "NO-LOCK INDEXED-REPOSITION":U
      _Design-Parent    is FRAME Web-Frame @ ( 1 , 1 )
 */  /* QUERY QUERY-2 */
 &ANALYZE-RESUME
@@ -291,8 +291,8 @@ PROCEDURE assignFields :
                                                                   
     ELSE  IF get-field("requestedAction") = "Update":U THEN
       {&OUT} 
-        "<P> No customer " matching-cust-names:SCREEN-VALUE 
-        " ... " cSubmitVal.                                      
+        "<P> No customer ":U matching-cust-names:SCREEN-VALUE 
+        " ... ":U cSubmitVal.                                      
 
      ASSIGN matching-cust-names cust-prompt.
   END.
@@ -334,8 +334,8 @@ PROCEDURE findRecords :
     END.
 
     /* Use selected name if Show Detail or Update selected */
-    IF get-field("requestedAction") = "Show Detail" OR
-       get-field("requestedAction") = "Update" 
+    IF get-field("requestedAction") = "Show Detail":U OR
+       get-field("requestedAction") = "Update":U 
     THEN matching-cust-names:SCREEN-VALUE = get-value("matching-cust-names":U).
 
     /* Find Selected Name (strip off custnum from list entry) */

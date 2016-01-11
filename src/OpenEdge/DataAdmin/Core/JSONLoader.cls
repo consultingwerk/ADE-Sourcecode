@@ -25,6 +25,7 @@
 routine-level on error undo, throw.
 using Progress.Lang.*  from propath. 
 using OpenEdge.DataAdmin.* from propath.
+using OpenEdge.DataAdmin.Binding.IContextTree from propath. 
 using OpenEdge.DataAdmin.Core.DataAdminWriter from propath. 
 
 class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :  
@@ -41,15 +42,22 @@ class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :
          LoadFromFile(serializable,pcfile,pcMode,"All").
     end method.
     
+    method protected handle GetReadHandle(serializable as IDataAdminSerializable,pccollection as char) :
+        define variable h as handle no-undo.
+        define variable tree as IContextTree no-undo.
+        tree = this-object:Load(serializable,pccollection /*pcMode*/ ).
+        h = tree:GetReadHandle().
+        if not valid-handle(h) then
+            undo, throw new AppError("The load operation cannot complete. No output result returned from the context writer.").
+        return h.
+    end method.    
+    
     method public void LoadFromFile(serializable as IDataAdminSerializable,pcFile as char,pcMode as char,pccollection as char):
         define variable h as handle no-undo.
-        h = this-object:Load(serializable,pccollection /*pcMode*/ ).
+        h = GetReadHandle(serializable,pccollection).
         Trackchanges(h, yes).    
-       
         h:read-json ("File",pcFile,pcMode).
-        CheckRead(serializable, h).
-        delete object mDs no-error.
-        mDs = h.
+        CheckReadAndDelete(serializable, h).
     end method.
     
     method public void LoadFromLongchar(serializable as IDataAdminSerializable,pLong as longchar,pcMode as char):
@@ -58,11 +66,10 @@ class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :
     
     method public longchar LoadFromLongchar(serializable as IDataAdminSerializable,pcl as longchar,pcmode as char,pccollection as char):
         define variable h as handle no-undo.
-        define variable cl as longchar no-undo.
-        h = this-object:Load(serializable,pcCollection).
+        h = GetReadHandle(serializable,pccollection).
         Trackchanges(h, yes).
         h:read-json ("Longchar",pcl,pcMode). 
-        CheckRead(serializable, h).
+        CheckReadAndDelete(serializable, h).
     end method.
     
     method public void LoadFromMemptr(serializable as IDataAdminSerializable,m as memptr,pcMode as char):
@@ -70,11 +77,11 @@ class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :
     end method.
     
     method public void LoadFromMemptr(serializable as IDataAdminSerializable,m as memptr,pcMode as char,pccollection as char):
-        define variable h as handle no-undo.       
-        h = this-object:Load(serializable,pccollection).
+        define variable h as handle no-undo.
+        h = GetReadHandle(serializable,pccollection).
         Trackchanges(h, yes).
         h:read-json ("memptr",m,pcMode). 
-        CheckRead(serializable, h).
+        CheckReadAndDelete(serializable, h).
     end method.
     
     method public void LoadFromStream(serializable as IDataAdminSerializable,phStream as handle,pcMode as char):
@@ -83,19 +90,19 @@ class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :
     
     method public void LoadFromStream(serializable as IDataAdminSerializable,phStream as handle,pcMode as char,pccollection as char):
         define variable h as handle no-undo.
-       /* rename load to parse or ? */
-        h = this-object:Load(serializable,pccollection).
+        h = GetReadHandle(serializable,pccollection).
         Trackchanges(h, yes).
         h:read-json("STREAM-HANDLE",phStream,pcMode).  
-        CheckRead(serializable, h).
+        CheckReadAndDelete(serializable, h).
     end method.
     
-    method private void CheckRead(serializable as IDataAdminSerializable,hds as  handle):
+    method private void CheckReadAndDelete(serializable as IDataAdminSerializable,hds as  handle):
         if type-of(serializable,IDataAdminElement) then
         do:
               
         end.    
         TrackChanges(hds,no).
+        delete object hds no-error.
     end method.    
     
     method private void TrackChanges(hds as  handle, pl as logical):
@@ -106,7 +113,6 @@ class OpenEdge.DataAdmin.Core.JSONLoader  inherits DataAdminWriter  :
              if valid-handle(hBuffer:before-buffer) then 
              do:
                 hbuffer:table-handle:tracking-changes =  pl.   
-       
              end.
         end.    
     end method.

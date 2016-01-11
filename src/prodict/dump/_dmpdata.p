@@ -91,7 +91,7 @@ define variable xUseDefault    as character no-undo init "<default>".
 DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
 define variable lImmediatedisp as logical no-undo.
 define variable xDumpTerminatedMsg as character no-undo init "Dump terminated.".
-
+define variable dumpCollection  as OpenEdge.DataAdmin.IDataAdminCollection no-undo.
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
   SPACE(0) fil            FORMAT "x(32)" LABEL "Dump File" SPACE(0)
@@ -135,6 +135,23 @@ function createDirectoryIf returns logical ( cdirname as char):
     return true.
 end function. /* createDirectoryIf */
 
+function dumpCollection returns integer (pcTablename as character):
+    define variable service as OpenEdge.DataAdmin.IDataAdminService  no-undo.
+    define variable collection as OpenEdge.DataAdmin.IDataAdminCollection  no-undo.
+    service = new OpenEdge.DataAdmin.DataAdminService (ldbname("dictdb":U)).
+    /** Get a datadmin collection realized from the database - remove first _ and -  */
+    collection = service:GetCollection(pcTablename).
+    collection:Serialize(stream dump:handle).
+    return collection:Count.
+        
+    catch e as Progress.Lang.Error :
+        undo, throw e.
+    end catch.    
+    finally:
+        delete object service no-error. 
+    end finally.  
+end function.
+/*--------------------------- END FUNCTIONS  --------------------------*/
 
 IF SESSION:CPINTERNAL EQ "undefined":U THEN
     isCpUndefined = YES.
@@ -661,12 +678,19 @@ DO ON STOP UNDO, LEAVE:
                ASSIGN dis_trig = "y".
         END.
         
-        RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
-                    VALUE(_File._File-name) 
-                    VALUE(tableexpression) 
-                    VALUE(user_env[31])
-                    VALUE(exceptfields).
-                                           
+        if lookup(DICTDB._File._File-name,"_Partition-Policy,_Partition-Policy-Detail,_Tenant") > 0 then 
+        do:  
+            recs = dumpCollection(DICTDB._File._File-name).
+        end.
+        else do:
+        
+            RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
+                        VALUE(DICTDB._File._File-name) 
+                        VALUE(tableexpression) 
+                        VALUE(user_env[31])
+                        VALUE(exceptfields).
+        end.                                   
+        
         /* move on to the next one in the list */
         IF old_dis_trig OR (dis_trig = "n") THEN
            user_env[4] = SUBSTRING(user_env[4]
@@ -798,10 +822,12 @@ finally:
    end.
 end finally.
 
+
 procedure handleError:
     define input parameter pError as Progress.Lang.Error no-undo.
     define variable i as integer no-undo.
     define variable cMsg as character no-undo.
+    
     if pError:NumMessages = 0 and type-of(pError,AppError)then 
         cmsg = cast(perror,AppError):ReturnValue.
     else  
@@ -810,7 +836,7 @@ procedure handleError:
     end.  
     
     if user_env[6] NE "dump-silent" then
-        message cmsg
+        message cmsg   
             view-as alert-box error.      
     else do:
         undo, throw new AppError(cmsg).

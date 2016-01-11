@@ -55,7 +55,6 @@ procedure Execute :
     restRequest:Validate().
     
     service:URL = restRequest:ConnectionUrl.
-    
     assign
         cFile = restRequest:FileName
         cFileOut = restRequest:OutFileName.
@@ -131,33 +130,35 @@ procedure Execute :
         cTaskName = restRequest:GetQueryValue("TaskName").
         if cTaskName > "" then
         do:
-                fileLogger = new FileLogger(restRequest:LogFileName). 
-                fileLogger:TaskName = cTaskName.
-                fileLogger:Log("Request start").    
-                service:TransactionLogger = fileLogger.
-                output stream acceptstream to value(cFileOut).                                 
-                put stream  acceptstream unformatted "HTTP/1.1 202 ACCEPTED" skip(1) .
-                output stream  acceptstream  close.        
+            fileLogger = new FileLogger(restRequest:LogFileName). 
+            fileLogger:TaskName = cTaskName.
+            fileLogger:Log("Request start").    
+            service:TransactionLogger = fileLogger.
+            output stream acceptstream to value(cFileOut).                                 
+            put stream  acceptstream unformatted "HTTP/1.1 202 ACCEPTED" skip(1) .
+            output stream  acceptstream  close.        
         end.
         
         tenants = service:NewTenants().
         tenants:ImportTree(cFile).   
         service:CreateTenants(tenants).
-        tenants:ExportTree(cFileOut,"partitions,tenantgroupmembers").
-        copy-lob file cFileOut to clong.   
-        substring(cLong,2,0) = '"success" : true, '.
-        copy-lob clong to file cFileOut.
-        
+         
         /* write Request complete once put_tenants completes. */
         if cTaskName > "" then do:
             if valid-object(fileLogger) then
             do:
-                  fileLogger:Log("Request complete").
+                fileLogger:Log("Request complete").
             end.    
             output stream  acceptstream to value(cFileOut).
             put stream  acceptstream unformatted "HTTP/1.1 200 OK" skip(1) .
             output stream  acceptstream  close.
-        end.                           
+        end. 
+        else do:
+            tenants:ExportTree(cFileOut,"partitions,tenantgroupmembers").
+            copy-lob file cFileOut to clong.   
+            substring(cLong,2,0) = '"success" : true, '.
+            copy-lob clong to file cFileOut.
+        end.                              
     end.
      
     catch e as Progress.Lang.Error :

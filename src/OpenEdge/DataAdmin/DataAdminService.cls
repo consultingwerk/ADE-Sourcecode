@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2014 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -16,88 +16,75 @@
    Notes       :  
    */
  
-routine-level on error undo, throw.
-using Progress.Lang.* from propath.
 
-using OpenEdge.DataAdmin.IDataAdminService from propath.
+block-level on error undo, throw.
 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IAdministrator from propath.
-using OpenEdge.DataAdmin.ISecurityOptions from propath.
-using OpenEdge.DataAdmin.IArea from propath.
-
-using OpenEdge.DataAdmin.IDataSecurity from propath.
-using OpenEdge.DataAdmin.IDomain from propath.
-using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
-using OpenEdge.DataAdmin.IExtent from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.ITablePermission from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.ITenantGroup from propath.
-using OpenEdge.DataAdmin.ITenantGroupMember from propath.
-using OpenEdge.DataAdmin.IUser from propath.
-using OpenEdge.DataAdmin.IUserPermission from propath.
-using OpenEdge.DataAdmin.IUserTablePermission from propath.
-using OpenEdge.DataAdmin.Extent from propath.
-using OpenEdge.DataAdmin.TenantGroupMember from propath.
-
-using OpenEdge.DataAdmin.IAreaSet from propath. 
-using OpenEdge.DataAdmin.IDomainSet from propath.
-using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
-using OpenEdge.DataAdmin.ISchemaSet from propath.
-using OpenEdge.DataAdmin.ISchema from propath.
-using OpenEdge.DataAdmin.ITableSet from propath.
-using OpenEdge.DataAdmin.ITablePermissionSet from propath.
-using OpenEdge.DataAdmin.ITenantSet from propath.
-using OpenEdge.DataAdmin.IUserSet from propath.
-using OpenEdge.DataAdmin.IUserPermissionSet from propath.
-using OpenEdge.DataAdmin.IUserTablePermissionSet from propath.
- 
-using OpenEdge.DataAdmin.IPartitionMap from propath.
-using OpenEdge.DataAdmin.ITenantGroupSet   from propath.
-using OpenEdge.DataAdmin.IPartitionCollection from propath.
- 
-using OpenEdge.DataAdmin.DomainSet from propath.
-using OpenEdge.DataAdmin.SchemaSet from propath.
-using OpenEdge.DataAdmin.Schema from propath.
-using OpenEdge.DataAdmin.TableSet from propath.
-using OpenEdge.DataAdmin.UserSet from propath.
-  
-using OpenEdge.DataAdmin.ISequence from propath.
-using OpenEdge.DataAdmin.ISequenceSet from propath.
-
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-
+using OpenEdge.DataAdmin.Binding.CreateContext from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
+using OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.IRow from propath.
- 
-using OpenEdge.DataAdmin.Binding.CreateContext from propath.
-using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
 using OpenEdge.DataAdmin.Binding.RowImpl from propath.
- 
+using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
+using OpenEdge.DataAdmin.Core.FileLogger from propath.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
+using OpenEdge.DataAdmin.Error.NotFoundError from propath.
+using OpenEdge.DataAdmin.Error.OperationError from propath.
+using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Extent from propath.
+using OpenEdge.DataAdmin.IAdministrator from propath.
+using OpenEdge.DataAdmin.IArea from propath.
+using OpenEdge.DataAdmin.IAreaSet from propath.
+using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
+using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
+using OpenEdge.DataAdmin.IDataAdminCollection from propath.
+using OpenEdge.DataAdmin.IDataAdminElement from propath.
+using OpenEdge.DataAdmin.IDataAdminService from propath.
+using OpenEdge.DataAdmin.IDataSecurity from propath.
+using OpenEdge.DataAdmin.IDomain from propath.
+using OpenEdge.DataAdmin.IDomainSet from propath.
+using OpenEdge.DataAdmin.IExtent from propath.
+using OpenEdge.DataAdmin.IIndex from propath.
+using OpenEdge.DataAdmin.IPartitionPolicy from propath.
+using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
+using OpenEdge.DataAdmin.IPartitionPolicyDetailSet from propath.
+using OpenEdge.DataAdmin.IPartitionPolicySet from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.ISchema from propath.
+using OpenEdge.DataAdmin.ISecurityOptions from propath.
+using OpenEdge.DataAdmin.ISequence from propath.
+using OpenEdge.DataAdmin.ISequenceSet from propath.
+using OpenEdge.DataAdmin.ITable from propath.
+using OpenEdge.DataAdmin.ITablePermission from propath.
+using OpenEdge.DataAdmin.ITablePermissionSet from propath.
+using OpenEdge.DataAdmin.ITableSet from propath.
+using OpenEdge.DataAdmin.ITenant from propath.
+using OpenEdge.DataAdmin.ITenantGroup from propath.
+using OpenEdge.DataAdmin.ITenantGroupMember from propath.
+using OpenEdge.DataAdmin.ITenantGroupSet from propath.
+using OpenEdge.DataAdmin.ITenantSet from propath.
+using OpenEdge.DataAdmin.IUser from propath.
+using OpenEdge.DataAdmin.IUserPermission from propath.
+using OpenEdge.DataAdmin.IUserPermissionSet from propath.
+using OpenEdge.DataAdmin.IUserSet from propath.
+using OpenEdge.DataAdmin.IUserTablePermissionSet from propath.
+using OpenEdge.DataAdmin.Message.FetchDefinitions from propath.
 using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
-using OpenEdge.DataAdmin.Message.FetchDefinitions from propath.
 using OpenEdge.DataAdmin.Message.LoadDefinitions from propath.
-
-using OpenEdge.DataAdmin.Error.DataError from propath.
-using OpenEdge.DataAdmin.Error.OperationError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.NotFoundError from propath.
-
-using OpenEdge.DataAdmin.Core.FileLogger from propath. 
+using OpenEdge.DataAdmin.TenantGroupMember from propath.
 using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
+using OpenEdge.DataAdmin.Util.IUtilityFactory from propath.
+using OpenEdge.DataAdmin.Util.UtilityFactory from propath.
+using Progress.Lang.AppError from propath.
+using Progress.Lang.Error from propath.
+using Progress.Lang.Object from propath.
+using OpenEdge.DataAdmin.Error.DataError from propath.
 
 class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService: 
     
@@ -126,7 +113,16 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     define private property CurrentSchemaChanges as SchemaChanges no-undo 
         get.
         set.
-           
+        
+       /**utility factory - read-only */
+    define public property UtilityFactory as IUtilityFactory no-undo 
+       get():
+           if not valid-object(UtilityFactory) then
+               UtilityFactory = new UtilityFactory(). 
+           return UtilityFactory.    
+       end get.
+       private set.
+       
     constructor public DataAdminService (  ):
         super ().
     	ServiceAdapter = new ServiceAdapter( ).
@@ -185,6 +181,17 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return CreateCollection(authenticationsystems,ContextFactory:AuthenticationSystemContext). 
     end method.
     
+    /** Create a new partition policy 
+        @param policy IPartitionPolicy to be created */
+    method public logical CreatePartitionPolicy(policy as IPartitionPolicy):
+        return CreateElement(policy,ContextFactory:PartitionPolicyContext). 
+    end method.    
+   /** Create a new partition policy  
+        @param policies IPartitionPolicySet with policies to be created */
+    method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
+       return CreateCollection(policies,ContextFactory:PartitionPolicyContext).
+    end method. 
+      
     method public logical CreateTenantGroups(groups as ITenantGroupSet):
         return CreateCollection(groups,ContextFactory:TenantGroupContext). 
     end method.
@@ -213,7 +220,14 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return CreateCollection(users,ContextFactory:UserContext).        
     end method.
     
-    method protected logical CreateCollection(coll as IDataAdminCollection, cntxt as IDataAdminContext):
+    /** Create a collection */
+    method public logical CreateCollection(pccol as IDataAdminCollection).
+        define variable cntxt as IDataAdminModel no-undo. 
+        cntxt = ContextFactory:GetContextBySerializeName(pccol:SerializeName).
+        return CreateCollection(pccol,cntxt).
+    end method.  
+    
+    method protected logical CreateCollection(coll as IDataAdminCollection, cntxt as IDataAdminModel):
         define variable newcontext as IDataAdminContext no-undo.
         AssertCreate(coll,cntxt).
         do on error undo, throw:
@@ -225,9 +239,14 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             end catch.
         end.
         return UpdateCollection(coll,cntxt).
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.
     
-    method protected logical CreateElement(elem as IDataAdminElement,cntxt as IDataAdminContext):
+    method protected logical CreateElement(elem as IDataAdminElement,cntxt as IDataAdminModel):
         define variable rowinfo as IRow no-undo.
         define variable response as ISaveRequest no-undo.
         AssertCreate(elem,cntxt).
@@ -244,6 +263,8 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             if not valid-object(response) then
                 return false. 
             response = SaveData(response).
+            if not valid-object(response) then
+                return false. 
             cntxt:MergeChanges(response).
             catch e as Progress.Lang.Error:
                 ErrorHandler(e).          
@@ -251,6 +272,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             end catch.
         end.
         return true.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.
     
     method public Error RemoveError():
@@ -299,6 +325,19 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return DeleteElement(authenticationsystemName,inst,ContextFactory:AuthenticationSystemContext).    
     end method.
     
+        /** Delete PartitionPolicy 
+        @param policyName name of policy to delete. 
+        @throws NotFoundError if policy does not exist. */
+    method public logical DeletePartitionPolicy(policyName as char).
+        define variable response as ISaveRequest no-undo.       
+        define variable inst as IPartitionPolicy no-undo.       
+        inst = GetPartitionPolicy(policyName).
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("PartitionPolicy " + quoter(policyName) + " not found").  
+              
+        return DeleteElement(policyName,inst,ContextFactory:PartitionPolicyContext). 
+    end method.
+       
     method public logical DeleteTenant(tenantName as char):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ITenant no-undo.       
@@ -307,7 +346,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             undo, throw new NotFoundError("Tenant " + quoter(tenantName) + " not found").  
               
         return DeleteElement(tenantName,inst,ContextFactory:TenantContext).    
-     end method.
+    end method.
     
     method public logical DeleteTenantGroup(groupName as char):
         define variable response as ISaveRequest no-undo.       
@@ -322,6 +361,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             ErrorHandler(e).          
             return false.
         end catch.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.
     
     method public logical DeleteSequence(seqname as char):
@@ -346,6 +390,24 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return DeleteElement(usrId,inst,ContextFactory:UserContext).    
     end method.
     
+    /** Get a collection of the specified serializename, entity name or physical database filename  */
+    method public IDataAdminCollection GetCollection(pcType as char):
+        define variable cntxt as IDataAdminModel no-undo.
+        cntxt = ContextFactory:GetContextByAnyName(pcType).
+        if not valid-object(cntxt) then 
+             undo, throw new IllegalArgumentError(pcType + " is not a valid public collection name in the service.").  
+        return cntxt:GetCollection(). 
+    end method.
+    
+    /** Get a collection specified by the request in the database */
+    method public IDataAdminCollection GetCollection(pRequestInfo as IRequestInfo):
+        define variable cntxt as IDataAdminModel no-undo.
+        cntxt = ContextFactory:GetContextBySerializeName(pRequestInfo:Name).
+        if not valid-object(cntxt) then 
+             undo, throw new IllegalArgumentError(pRequestInfo:Name + " is not a valid public collection name in the service.").  
+        return  cntxt:GetCollection(pRequestInfo). 
+    end method.
+    
     method public IAdministrator GetAdministrator():
         return cast(ContextFactory:AdministratorContext:GetEntity(""),IAdministrator). 
     end method.
@@ -359,7 +421,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     method public IArea GetArea(pReq as IRequestInfo):
-        CheckAreaReq(pReq).
+        AssertNotRequested("extents",pReq).
         return cast(ContextFactory:AreaContext:GetEntity(pReq),IArea). 
     end method.
      
@@ -375,22 +437,26 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:AreaContext:GetCollection(filter),IAreaSet).
     end method.
     
-    method private void CheckAreaReq(preq as IRequestInfo):
+    method private void AssertNotRequested(pcList as char,preq as IRequestInfo):
         define variable extentReq as IRequestInfo no-undo. 
+        define variable i as integer no-undo.
+        define variable cCollection as character no-undo.
          /** the AreaNumExtents require all data on client, since it is using Count
             (would need to count created  ) */
         if valid-object(pReq) then
-        do:
-            extentReq = pReq:Get("extents").
+        do i = 1 to num-entries(pcList):
+            cCollection = entry(i,pcList).
+            extentReq = pReq:Get(cCollection).
             if valid-object(extentReq) then
             do:
-                undo, throw new UnsupportedOperationError("Filter on extents is not supported.").
+                undo, throw new IllegalOperationError("Filter on " + quoter(cCollection) + " collection is not allowed.").
             end.
         end.    
     end method.
     
+    
     method public IAreaSet GetAreas(preq as IRequestInfo):
-        CheckAreaReq(pReq).
+        AssertNotRequested("extents",pReq).
         return cast(ContextFactory:AreaContext:GetCollection(preq),IAreaSet).
     end method.
      
@@ -492,6 +558,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
    
     /* the service only supports "pub" schema so no key parameter */
     method public ISchema GetSchema():
+        define variable req as IRequestInfo no-undo.
         return cast(ContextFactory:SchemaContext:GetEntity("PUB"),ISchema). 
     end method.
     
@@ -600,6 +667,53 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:UserContext:GetEntity(usrID),IUser). 
     end method.
     
+    method public IPartitionPolicy GetPartitionPolicy(pname as char).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pname),IPartitionPolicy). 
+    end method. 
+     
+    method public IPartitionPolicy GetPartitionPolicy(pRequestInfo as IRequestInfo).
+        AssertNotRequested("fields",pRequestInfo).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pRequestInfo),IPartitionPolicy). 
+    end method.
+    
+     /** Get a collection of allpartition policies  in the database   
+        @param  name char of PartitionPolicy*/ 
+    method public IPartitionPolicySet GetPartitionPolicies().
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(),IPartitionPolicySet).
+    end method.
+    
+    /** Get a collection of partition policies 
+        @param  request IRequestInfo*/ 
+    method public IPartitionPolicySet GetPartitionPolicies(pRequestInfo as IRequestInfo):
+        AssertNotRequested("fields",pRequestInfo).
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pRequestInfo),IPartitionPolicySet).
+    end method.
+    
+    /** Get a collection of partition policies 
+         @param  filter  */ 
+    method public IPartitionPolicySet GetPartitionPolicies(pFilter as char):
+        return cast(ContextFactory:PartitionPolicyContext:GetCollection(pFilter),IPartitionPolicySet).
+    end method.
+  
+     /** Get a collection of all partition policies details in the database   */
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails().
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(),IPartitionPolicyDetailSet).
+    end method.
+   
+    /** Get a collection of  partition policies details   
+         @param  request IRequestInfo*/ 
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pRequestInfo as IRequestInfo).
+/*     ??    AssertNotRequested("values",pRequestInfo).*/
+   
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pRequestInfo),IPartitionPolicyDetailSet).
+    end method.
+   
+    /** Get a collection of  partition policies details   
+       @param  filter  */ 
+    method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as char).
+        return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pFilter),IPartitionPolicyDetailSet).
+    end method.
+   
     method public IUserTablePermissionSet GetPermissions(pccollections as char):
         return cast(ContextFactory:PermissionContext:GetCollection(pcCollections),IUserTablePermissionSet).
     end method.
@@ -651,7 +765,27 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             to the next in the list 
             return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(),IExtent).*/
     end method.
-
+ 
+    method public IIndex NewIndex().
+        undo, throw new AppError("Not implemented").
+    end method. 
+      
+    method public IPartitionPolicy NewPartitionPolicy(pname as char).
+        return cast(NewEntity("PartitionPolicy",pname),IPartitionPolicy). 
+    end method. 
+    
+    method public IPartitionPolicySet NewPartitionPolicies().
+        return cast(NewCollection("PartitionPolicy"),IPartitionPolicySet). 
+        
+    end method. 
+    
+         /** Get an empty partition policy detail  */ 
+     /*  Expected to be added to IPartitionPolicy:Details collection to be submitted to the database*/
+     /*        using the service's UpdateTable() or UpdateTables() methods.*/
+    method public IPartitionPolicyDetail NewPartitionPolicyDetail(pName as char).
+        return cast(NewEntity("PartitionPolicyDetail",pname),IPartitionPolicyDetail). 
+    end method.  
+   
     method public ITenantGroupMember NewTenantGroupMember():
         return new TenantGroupMember().
         /*  this does work but we do not need context before added to service or collection   
@@ -710,20 +844,22 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method protected IDataAdminElement NewEntity(pcType as char,pname as char):
         /* NOTE - must define context variable here or else the 
                   context gets garbage collected when NewEntity ends 
-                  before the entity is returned */          
+                  before the entity is returned  - 
+                -   this is likely no longer true  */          
         define variable cntxt as IDataAdminContext no-undo.
         cntxt = ContextFactory:GetLocalContext(pcType).
-             
+   
         return  cntxt:CreateRootEntity(pname). 
     
     end method.
-    
-    method protected IDataAdminCollection NewCollection(pcType as char):
+     
+    /** returns a new collection of the specified serializename, entity name or physical database filename  */
+    method public IDataAdminCollection NewCollection(pcType as char):
         /* NOTE - must define context variable here or else the 
                   context gets garbage collected when NewEntity ends 
                   before the entity is returned */          
-        define variable cntxt as IDataAdminContext no-undo.
-        cntxt = ContextFactory:GetLocalContext(pcType).
+        define variable cntxt as IDataAdminModel no-undo.
+        cntxt = ContextFactory:GetLocalContextByAnyName(pcType).
         return  cntxt:NewCollection(). 
     end method.
     
@@ -736,7 +872,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
    
     /* base update method (not used by all) */
-    method protected logical DeleteElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminContext):
+    method protected logical DeleteElement(pkey as char,inst as IDataAdminElement,cntxt as IDataAdminModel):
         define variable saverequest as ISaveRequest no-undo.
         define variable requestinfo as IRequestinfo no-undo.
         define variable rowinfo as IRow no-undo.
@@ -758,6 +894,8 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             if not valid-object(saverequest) then 
                 return false.
             saverequest = SaveData(saverequest).
+            if not valid-object(saverequest) then
+                return false. 
             cntxt:MergeChanges(saverequest). 
             return true.
         end.
@@ -766,6 +904,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             ErrorHandler(e).          
             return false.
         end catch.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.    
     
 /*    /* base update method (not used by all) */                                                                */
@@ -787,20 +930,29 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         AssertUpdate(inst,cntxt).
         req = inst:RequestInfo.
         response = cast(cntxt,IDataAdminModel):GetSaveRowRequest(pKey,req).
-        if not valid-object(response) then 
-            return false.
-        response = SaveData(response).
-        cntxt:MergeChanges(response).
-        return true.
+        if valid-object(response) then 
+        do:
+            response = SaveData(response).
+            if valid-object(response) then 
+            do:
+                cntxt:MergeChanges(response).
+                return true.
+            end.    
+        end.    
+        return false.
         catch e as Progress.Lang.Error:
             ErrorHandler(e).          
             return false.
         end catch.
-        
+         finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.    
     
      /* base update method (not used by all) */
-    method protected logical UpdateElement(inst as IDataAdminElement,cntxt as IDataAdminContext):
+    method protected logical UpdateElement(inst as IDataAdminElement,cntxt as IDataAdminModel):
         define variable req as IRequestInfo no-undo.
         define variable rowinfo as IRow no-undo.
         define variable response as ISaveRequest no-undo.
@@ -814,16 +966,30 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         if not valid-object(response) then 
             return false.
         response = SaveData(response).
+        if not valid-object(response) then 
+            return false.
         cntxt:MergeChanges(response).
         return true.
         catch e as Progress.Lang.Error:
             ErrorHandler(e).          
             return false.
         end catch.
-        
+        finally:
+            /* clean error-status */
+            i = i no-error.
+        end finally.
     end method.    
-       
-      
+    
+      /** Update a collection */
+    method public logical UpdateCollection(pccol as IDataAdminCollection).
+        define variable cntxt as IDataAdminContext no-undo. 
+        cntxt = ContextFactory:GetContextBySerializeName(pccol:SerializeName).
+        /* tables have special code */
+        if type-of(pccol,ITableSet) then 
+            return UpdateTables(cast(pccol,ITableSet)).
+        return UpdateCollection(pccol,cntxt).
+    end method.  
+        
     /* base update method  */
     method protected logical UpdateCollection(inst as IDataAdminCollection,cntxt as IDataAdminContext):
         define variable response as ISaveRequest no-undo.
@@ -844,6 +1010,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             ErrorHandler(e).          
             return false.
         end catch.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally. 
     end method.    
     
     /* base update method (not used by all) */
@@ -851,6 +1022,9 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         define variable saverequest as ISaveRequest no-undo.
         saverequest = cntxt:GetSaveRequest().
         saverequest = SaveData(saverequest).
+        if not valid-object(saverequest) then 
+            return false.
+     
         cntxt:MergeChanges(saverequest). 
         /* short version - debug unfriendly...
           cntxt:MergeChanges(SaveData(cntxt:GetSaveRequest())).*/
@@ -859,6 +1033,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             ErrorHandler(e).          
             return false.
         end catch.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.		
+            i = i no-error.
+        end finally. 
     end method.    
      
     method public logical UpdateDataSecurity(pinst as IDataSecurity ):
@@ -879,6 +1058,18 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     method public logical UpdateAuthenticationSystems(authenticationsystems as IAuthenticationSystemSet):
         return UpdateCollection(authenticationsystems,ContextFactory:AuthenticationSystemContext).
+    end method.
+    
+      /** Update the database with partition policy changes  
+       @param policy IPartitionPolicy to be created */
+    method public logical UpdatePartitionPolicy(policy as IPartitionPolicy).
+        return UpdateElement(policy,ContextFactory:PartitionPolicyContext).
+    end method.
+    
+    /** Update the database with partition policies with changes   
+        @param policies IPartitionPolicySet with policies to be updated */
+    method public logical UpdatePartitionPolicies(policy as IPartitionPolicySet).
+        return UpdateCollection(policy,ContextFactory:PartitionPolicyContext).
     end method.
     
     method public logical UpdateSequence(seq as ISequence):
@@ -905,6 +1096,9 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         define variable response as ISaveRequest no-undo.
         
         response = SaveData(ContextFactory:TableContext:GetSaveRequest()).
+        if not valid-object(response) then 
+            return false.
+     
         ContextFactory:TableContext:MergeChanges(response).        
          /* partitions may have been imported with table multitenant changes, but 
             does not exist until after the transaction,  save partition changes now  
@@ -918,6 +1112,8 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             do:
                 
                 response = SaveData(ContextFactory:TableContext:GetPartitionSaveRequest()).
+                if not valid-object(response) then 
+                     return false.
                 ContextFactory:TableContext:MergeChanges(response).
             end.
             catch e2 as Progress.Lang.AppError:
@@ -931,6 +1127,11 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             ErrorHandler(e).          
             return false.
         end catch.
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.
     end method.
     
     method public logical UpdateTablePermission(tableperm as ITablePermission):
@@ -950,7 +1151,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.  
     
     method public logical UpdateTenant(ptnt as ITenant):
-         return UpdateElement(ptnt:name,ptnt,ContextFactory:TenantContext).
+        return UpdateElement(ptnt:name,ptnt,ContextFactory:TenantContext).
     end method.
     
     method public logical UpdateTenants(tenants as ITenantSet):
@@ -999,8 +1200,14 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
                 ErrorHandler(e).          
                 return false.
             end catch.
+            
         end.
-        return true.      
+        return true.  
+        finally:
+            /* clean error-status */
+            define variable i as integer no-undo.       
+            i = i no-error.
+        end finally.    
     end method.
    
 /*    method public logical AttachPartitions(partitions as IPartitionMap):
@@ -1069,7 +1276,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         cname = serviceContext:name + "Set".
         if not valid-object(coll) then 
             undo, throw new UnknownValueError("Update" + serviceContext:name + "s",cname).  
-        if coll:ContextId = "" then
+        if coll:ContextId = ""  or coll:Service = ? then
             undo, throw new IllegalArgumentError("The " + cname + " is not created in the service").     
         if serviceContext:Id <> coll:ContextId then
             undo, throw new IllegalArgumentError("The " + cname + " belongs in a different service").
@@ -1112,10 +1319,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return msg.
     end method.
     
-    method protected IRow GetRowInfo(inst as IDataAdminElement,cntxt as IDataAdminContext):
+    method protected IRow GetRowInfo(inst as IDataAdminElement,cntxt as IDataAdminModel):
         define variable cKeyValues as character extent no-undo .
         cKeyValues = GetPropertyValues(inst,cntxt:KeyFields).
-        return new RowImpl(cntxt:SerializeName,?,cntxt:KeyFields,cKeyValues).
+        return new RowImpl(cntxt,cntxt:SerializeName,?,cntxt:KeyFields,cKeyValues).
     end method.
         
     method protected char extent GetPropertyValues(inst as IDataAdminElement,pcKeyFields as char):

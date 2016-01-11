@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/
  /*------------------------------------------------------------------------
     File        : AnnotationInfo
     Purpose     : Stores the information of the Annotation like annotation type and attribute type and values. 
@@ -9,39 +11,37 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
+USING Progress.Lang.*.
 
+CLASS OpenEdge.ABLUnit.Reflection.AnnotationInfo: 
 
-
-class OpenEdge.ABLUnit.Reflection.AnnotationInfo: 
-
-    define public property AnnotationType as character no-undo get. 
-        private set.
-    define public property AttributeName as character no-undo get. 
-        private set.
-    define public property AttributeValue as character no-undo get. 
-        private set.
+    DEFINE PUBLIC PROPERTY AnnotationType AS CHARACTER NO-UNDO GET. 
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY AttributeName AS CHARACTER NO-UNDO GET. 
+        PRIVATE SET.
+    DEFINE PUBLIC PROPERTY AttributeValue AS CHARACTER NO-UNDO GET. 
+        PRIVATE SET.
     
-    constructor public AnnotationInfo (input annotationString as character):
-        define variable attribute as character no-undo.
-        assign
-            AnnotationType = entry(1, annotationString, "(")
-            attribute      = trim(substring(annotationString, length(AnnotationType) + 1),"()")
-            AttributeName  = entry(1, attribute, "=")
-            AttributeValue = substring(attribute, length(AttributeName) + 2).
-    end constructor.
+    CONSTRUCTOR PUBLIC AnnotationInfo (INPUT annotationString AS CHARACTER):
+        DEFINE VARIABLE attribute AS CHARACTER NO-UNDO.
+        ASSIGN
+            AnnotationType = ENTRY(1, annotationString, "(")
+            attribute      = TRIM(SUBSTRING(annotationString, LENGTH(AnnotationType) + 1),"()")
+            AttributeName  = ENTRY(1, attribute, "=")
+            AttributeValue = TRIM(SUBSTRING(attribute, LENGTH(AttributeName) + 2)).
+    END CONSTRUCTOR.
 
 
-    method public character getAnnotationName(  ):
-        return AnnotationType.		
-    end method.
+    METHOD PUBLIC CHARACTER getAnnotationName(  ):
+        RETURN AnnotationType.		
+    END METHOD.
 
-    method public character getAttributeName(  ):
-        return AttributeName.            
-    end method.
+    METHOD PUBLIC CHARACTER getAttributeName(  ):
+        RETURN AttributeName.            
+    END METHOD.
 
-    method public character getAttributeValue(  ):
-        return AttributeValue.        
-    end method.	
+    METHOD PUBLIC CHARACTER getAttributeValue(  ):
+        RETURN AttributeValue.        
+    END METHOD.	
 	
-end class.
+END CLASS.

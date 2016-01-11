@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2000-2010,2011 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2000-2013 by Progress Software Corporation.            *
+* All rights reserved.  Prior versions of this work may contain        *
+* portions contributed by participants of Possenet.                    *
 *                                                                      *
 ***********************************************************************/
 
@@ -53,6 +53,7 @@ DEFINE VARIABLE curr_type as CHARACTER         NO-UNDO.
 define variable cAreaList as character no-undo.
 DEFINE VARIABLE ans AS LOGICAL NO-UNDO.
 define variable isDBMultiTenant as logical no-undo.
+define variable isPartitionEnabled as logical no-undo.
 /*===============================Triggers====================================*/
 
 /*-----WINDOW-CLOSE-----*/
@@ -104,7 +105,13 @@ do:
                     and not b_File._File-Attributes[1]  
 	         input frame newtbl b_File._File-Attributes[2] 
                   when (input frame newtbl b_File._File-Attributes[2]
-                        <>  b_File._File-Attributes[2])                          
+                        <>  b_File._File-Attributes[2])  
+	     input frame newtbl b_File._File-Attributes[3] 
+                  when  input frame newtbl b_File._File-Attributes[3]
+                    and not b_File._File-Attributes[3]  
+/*	         input frame newtbl b_File._File-Attributes[4] 
+                  when (input frame newtbl b_File._File-Attributes[4]
+                        <>  b_File._File-Attributes[4])  */		
              input frame newtbl b_File._Dump-Name
 	         input frame newtbl b_File._Hidden
 	         input frame newtbl b_File._For-Size
@@ -215,8 +222,10 @@ end.
 
 /* a default tenantrecord is created when the database is enabled for multi-tenancy */
 isDBMultiTenant = can-find(first dictdb._tenant).
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+    isPartitionEnabled = true.
  
-
 /* Get gateway capabilities */
 run adedict/_capab.p (INPUT {&CAPAB_TBL}, OUTPUT capab).
 
@@ -278,7 +287,6 @@ ELSE DO:
   ASSIGN s_Tbl_Area = DICTDB._AREA._Area-name
          s_In_Schema_Area = TRUE.
 END.  
-
 run prodict/pro/_pro_area_list(?,{&INVALID_AREAS},s_lst_file_Area:DELIMITER in frame newtbl, output  cAreaList).
 s_lst_file_area:list-items in frame newtbl = cAreaList.
 num = s_lst_File_Area:num-items in frame newtbl.
@@ -322,6 +330,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
    enable   
        b_File._File-Name
        b_File._File-Attributes[1] when isDBMultiTenant  
+       b_File._File-Attributes[3] when isPartitionEnabled  
        s_Tbl_Area
        s_btn_File_area
        b_File._Dump-Name
@@ -340,15 +349,16 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
        s_btn_Done
        s_btn_Help
        with frame newtbl.
-       
-disable b_File._File-Attributes[2] when isDBMultiTenant  with frame newtbl.
-
-assign s_Res = s_lst_File_Area:move-after-tab-item
+    
+    disable b_File._File-Attributes[2] when isDBMultiTenant  with frame newtbl.
+   
+    assign s_Res = s_lst_File_Area:move-after-tab-item
       	       (s_btn_File_Area:handle in frame newtbl) in frame newtbl.
 
    /* Have to display all fields, so on 2nd or 3rd add, any entered values
       will be cleared. */
    display "" @ b_File._File-Name   /* display blank instead of ? */
+	   b_File._File-Attributes[3]
            b_File._File-Attributes[1]
            b_File._File-Attributes[2]
            s_Tbl_Area

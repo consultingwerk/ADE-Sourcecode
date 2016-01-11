@@ -27,18 +27,11 @@ using OpenEdge.DataAdmin.Message.ITableRequest from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataAccess.AllFileData inherits DataAccess  : 
-    define private variable Url as character no-undo.
-    define private variable AreaURL as character no-undo.
     define variable mfieldrel as handle no-undo.
     define variable mindexrel as handle no-undo.
-    
-    
-    method protected override void SetUrl(pcUrl as char):
-        Url = pcUrl.
-        AreaURL = pcURL + "/areas/".
-    end method.
    
 	method public override void FetchData(msg as IFetchRequest):  
+	    url = msg:URL. 
 	    FillData(msg).
     end method.  
     

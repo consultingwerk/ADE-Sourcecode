@@ -14,12 +14,13 @@
     Created     :  
     Notes       : 
   ----------------------------------------------------------------------*/
-  
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.Entity from propath.
-using OpenEdge.DataAdmin.IFieldPermission from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
- 
+block-level on error undo, throw.
+
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.IFieldPermission.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.FieldPermission inherits Entity implements IFieldPermission: 
 	    
     define public property CanRead as character no-undo 
@@ -54,12 +55,16 @@ class OpenEdge.DataAdmin.FieldPermission inherits Entity implements IFieldPermis
             CanWrite = pVal.
         end.    
 	
-	constructor public FieldPermission ( cntxt as IDataAdminContext ):
+	constructor public FieldPermission ( cntxt as IDataAdminModel ):
         super (cntxt).
     end constructor.
-   
+    
+    constructor public FieldPermission ( cntxt as IDataAdminModel ,pReq as IRequestInfo ):
+        super (cntxt,pReq).
+    end constructor.
+    
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
      

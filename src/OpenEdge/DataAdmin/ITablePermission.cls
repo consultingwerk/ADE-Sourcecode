@@ -27,6 +27,7 @@ interface OpenEdge.DataAdmin.ITablePermission inherits IDataAdminElement :
     define public property Name as character no-undo get.  
     define public property Hidden as logical no-undo get.  
     define public property Frozen as logical no-undo get.  
+    define public property IsMultiTenant as logical no-undo get.
     define public property CanRead as character no-undo get. set.
     define public property CanWrite as character no-undo get. set.
     define public property CanCreate as character no-undo get. set.

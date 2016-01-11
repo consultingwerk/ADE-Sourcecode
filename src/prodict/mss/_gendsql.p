@@ -55,7 +55,8 @@
               08/03/13 ushrivas Fix for Delta .DF sets FOREIGN-POS 0 causing Load Aborted error(OE00230825)
               07/05/13 sdash    Added Logical DB validation in a Schema Holder while using delta SQL utility.
                                 Supported batch mode delta SQL Utility.
-              12/04/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
+              09/18/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
+              12/11/13 sdash    OE Initial Value not propagated w/"Include Defaults" on delta.sql (PSC00247036)
 
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -185,12 +186,12 @@ DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL FALSE  NO-UNDO.
 DEFINE VARIABLE newline       AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE create_shadow_col     AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE is-idx-comp   AS LOGICAL INITIAL FALSE NO-UNDO.
-DEFINE VARIABLE tmp_ilin2       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE tmp_ilin2        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE tmp_df_line      AS CHARACTER             NO-UNDO.
-DEFINE VARIABLE tmp_df_line_int      AS INTEGER           NO-UNDO.
-
-DEFINE VARIABLE misc11     AS LOGICAL               NO-UNDO INITIAL TRUE.
-
+DEFINE VARIABLE tmp_df_line_int  AS INTEGER               NO-UNDO.
+DEFINE VARIABLE sql-default      AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE dfltconname      AS CHARACTER  INITIAL ?  NO-UNDO.
+DEFINE VARIABLE misc11           AS LOGICAL               NO-UNDO INITIAL TRUE.
 batch_mode = SESSION:BATCH-MODE.
 
 DEFINE TEMP-TABLE con-index NO-UNDO
@@ -746,7 +747,7 @@ PROCEDURE write-tbl-sql:
     ELSE DO:          
         FIND FIRST new-obj WHERE new-obj.add-type = "F"
                            AND new-obj.tbl-name = a-tblname 
-                           AND new-obj.prg-name = a-fldname NO-ERROR.
+                           AND new-obj.fld-name = a-fldname NO-ERROR.
    
 
         IF AVAILABLE new-obj THEN  DO:
@@ -838,10 +839,10 @@ END.
     
 PROCEDURE write-idx-sql:
   IF idxline = ? OR idxline = "" THEN LEAVE.
-        
-   IF pcompatible AND is-unique = FALSE AND misc11 THEN 
+  
+  IF pcompatible AND is-unique = FALSE AND misc11 THEN 
          ASSIGN idxline = idxline + ", PROGRESS_RECID".
-
+       
   PUT STREAM tosql UNFORMATTED comment_chars idxline ")"  SKIP.
   PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
     
@@ -2785,7 +2786,7 @@ DO ON STOP UNDO, LEAVE:
       END. /* End Rename Table */
       
       /* Add new table */
-      ELSE IF imod = "a" THEN DO:  
+      ELSE IF imod = "a" THEN DO:                               
         IF ilin[1] = "ADD" AND ilin[2] = "TABLE" THEN DO: 
           RUN write-tbl-sql.
           
@@ -4685,11 +4686,76 @@ DO ON STOP UNDO, LEAVE:
           WHEN "SQL-WIDTH" OR WHEN "MAX-WIDTH" THEN DO:
             IF sqlwidth THEN DO:
               ASSIGN efile = tablename + ".e".
-              OUTPUT TO value(efile) APPEND.
-              PUT UNFORMATTED fieldname " in " tablename " had a change to WIDTH which was not passed to the" SKIP
+              IF ilin[2] = ? THEN DO:
+                 OUTPUT TO value(efile) APPEND.
+                 PUT UNFORMATTED fieldname " in " tablename " had a change to WIDTH which was not passed to the" SKIP
                               "df file and no ALTER TABLE statement was created to change field size." SKIP(1).
-              OUTPUT CLOSE.
-            END.
+                 OUTPUT CLOSE.
+              END.
+              ELSE DO:
+                FIND DICTDB._File  WHERE DICTDB._File._File-name = tablename.
+                IF AVAILABLE DICTDB._File THEN DO:
+                   FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = fieldname.
+                   IF AVAILABLE DICTDB._Field THEN DO:
+                     Assign tmp_str = STRING(DICTDB._Field._Fld-misc1[3]).
+                     IF DICTDB._Field._Fld-misc1[3] < INTEGER(ilin[2]) THEN  DO:
+                        Assign tmp_str = ilin[2].
+                        IF DICTDB._Field._dtype = 5 THEN DO: 
+                           IF INTEGER(ilin[2]) > 28 THEN Assign tmp_str = "28".
+                           Assign tmp_str =  tmp_str + "," + STRING(DICTDB._Field._decimal).
+                        END.
+
+                        IF DICTDB._Field._extent = 0 THEN  
+                           PUT STREAM tosql UNFORMATTED comment_chars 
+                             " ALTER TABLE " DICTDB._File._For-owner "." tablename " ALTER COLUMN " DICTDB._Field._For-name " " 
+                               DICTDB._field._for-type  "(" tmp_str ")"  SKIP(1).
+                        ELSE DO:
+                           PUT STREAM tosql UNFORMATTED comment_chars 
+                              " DECLARE @c_col1 varchar(max);" SKIP
+
+                              " DECLARE Fld_Cursor CURSOR FOR " SKIP
+                              "         SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS" SKIP
+                              "                WHERE TABLE_NAME=OBJECT_NAME(OBJECT_ID('" tablename "')) AND COLUMN_NAME LIKE '" DICTDB._Field._For-name "%'" SKIP 
+                              " OPEN Fld_Cursor;" SKIP
+                              " FETCH NEXT FROM Fld_Cursor INTO @c_col1;" SKIP
+                              " WHILE @@FETCH_STATUS = 0 " SKIP
+                              "  BEGIN " SKIP
+                              "      EXEC('ALTER TABLE " DICTDB._File._For-owner "." tablename " ALTER COLUMN ' + @c_col1 + '" 
+                              " " DICTDB._field._for-type "(" tmp_str ")')"  SKIP
+                              "      FETCH NEXT FROM Fld_Cursor INTO @c_col1;" SKIP
+                              "  END;" SKIP
+                              " CLOSE Fld_Cursor;" SKIP
+                              " DEALLOCATE Fld_Cursor;" SKIP
+                              " GO " SKIP(1).
+                        END.
+                     END.  /* DICTDB._Field._Fld-misc1[3] < INTEGER(ilin[2]) */
+		     ELSE DO:
+                        OUTPUT TO value(efile) APPEND.
+                        IF LOOKUP(DICTDB._Field._for-type, "VARBINARY,LONGVARBINARY,LONGVARCHAR,NLONGVARCHAR") > 0 
+                        THEN 
+                            PUT UNFORMATTED fieldname " in " tablename " of Type: " DICTDB._Field._for-type " has no scope for expansion. " SKIP(1).
+                        ELSE
+                            PUT UNFORMATTED fieldname " in " tablename " had a change to WIDTH which cannot be completed."  SKIP
+                                       "New length " ilin[2] " should be more than existing width " DICTDB._Field._Fld-misc1[3] " of the field. You can only expand a field. " SKIP(1).
+                        OUTPUT CLOSE.
+		     END.
+                        CREATE df-info.
+                         ASSIGN df-info.df-seq = dfseq
+                                dfseq = dfseq + 1
+                                df-info.df-tbl = tablename
+                                df-info.df-fld = fieldname
+                                df-line =  "  DSRVR-LENGTH " + ENTRY(1,tmp_str).
+                         CREATE df-info.
+                         ASSIGN df-info.df-seq = dfseq
+                                dfseq = dfseq + 1
+                                df-info.df-tbl = tablename
+                                df-info.df-fld = fieldname
+                                df-line =  "  DSRVR-PRECISION " + ENTRY(1,tmp_str).
+
+                   END. /* available _Field */
+                END.   /* available _File */
+              END. /* ELSE DO */
+            END.  /* sqlwidth */
           END.
           WHEN "DESC"            OR WHEN "DESCRIPTION"      OR WHEN "CAN-READ"        OR 
           WHEN "CAN-SELECT"      OR WHEN "CAN-WRITE"        OR WHEN "CAN-UPDATE"      OR
@@ -4718,10 +4784,41 @@ DO ON STOP UNDO, LEAVE:
                        df-info.df-tbl = tablename
                        df-info.df-fld = fieldname
                        df-line =  "  " + ilin[1] + " " + oq-string.
-              END.       
-            END.              
+              END.
+            END.
+            IF ilin[1] = "INITIAL" THEN DO:
+              IF dflt OR useoedflt THEN DO:
+	        FIND DICTDB._File  WHERE DICTDB._File._File-name = tablename.
+                 IF AVAILABLE DICTDB._File THEN DO:
+                    FIND DICTDB._Field OF DICTDB._File WHERE
+                     DICTDB._Field._Field-name = fieldname.
+                  ASSIGN sql-default = DICTDB._Field._INITIAL. 
+                 END.
+
+                 IF (sql-default <> ? AND sql-default <> "") OR (useoedflt OR blankdefault AND sql-default = "") THEN DO:
+                  PUT STREAM tosql UNFORMATTED comment_chars 
+                  " DECLARE @ObjectName NVARCHAR(50)" SKIP
+                  " SET @ObjectName = (SELECT T1.NAME FROM SYS.DEFAULT_CONSTRAINTS T1" SKIP
+                  "  INNER JOIN INFORMATION_SCHEMA.COLUMNS T2" SKIP 
+                  "     ON (COL_NAME(T1.PARENT_OBJECT_ID, T1.PARENT_COLUMN_ID) = T2.COLUMN_NAME)" SKIP
+                  "       AND (OBJECT_NAME(T1.PARENT_OBJECT_ID) = T2.TABLE_NAME)" SKIP		 
+                  "         WHERE T2.TABLE_SCHEMA = '" DICTDB._File._For-owner "'" SKIP 
+                  "           AND T2.TABLE_NAME = '" tablename "'" SKIP
+                  "           AND T2.COLUMN_NAME = '" DICTDB._Field._For-name "')" SKIP(1) 
+                  " EXEC('ALTER TABLE " DICTDB._File._For-owner "." tablename " DROP CONSTRAINT '+ @ObjectName)" SKIP(1).
+                 END.
+
+                 ELSE IF dfltconname <> ? THEN
+                  PUT STREAM tosql UNFORMATTED comment_chars
+                  " ALTER TABLE " DICTDB._File._For-owner "." tablename " DROP CONSTRAINT '" dfltconname "'" SKIP(1).
+
+                 PUT STREAM tosql UNFORMATTED comment_chars
+                 " ALTER TABLE " DICTDB._File._For-owner "." tablename " ADD DEFAULT '" ilin[2] "' FOR " DICTDB._Field._For-name SKIP(1).
+                 PUT STREAM tosql UNFORMATTED comment_chars "GO" SKIP(1).
+              END.
+            END.
           END.
-          
+
           WHEN "POSITION"     OR WHEN "LENGTH"       OR WHEN "SCALE"        OR
           WHEN "ORDER"        OR WHEN "FOREIGN-CODE" OR WHEN "FIELD-MISC11" OR 
           WHEN "FIELD-MISC12" OR WHEN "FIELD-MISC13" OR WHEN "FIELD-MISC14" OR 
@@ -4983,10 +5080,9 @@ DO ON STOP UNDO, LEAVE:
         ASSIGN ilin = ?.
       END. /* End delete index */                
       IF imod = "a" THEN DO:
-      
         IF ilin[1] = "ADD" and ilin[2] = "INDEX" THEN DO: 
-            ASSIGN misc11 = TRUE.    
-          
+	   ASSIGN misc11 = TRUE.
+
           RUN write-tbl-sql.
                                  
           IF idxline <> ? THEN 
@@ -5168,7 +5264,7 @@ DO ON STOP UNDO, LEAVE:
           
           IF AVAILABLE DICTDB._File THEN DO:
               ASSIGN idxline = "CREATE INDEX " + forname + " ON " + DICTDB._File._For-owner + "." + DICTDB._File._For-name.
-              IF NOT DICTDB._File._fil-misc1[1] > 0 THEN ASSIGN  misc11 = FALSE.
+	      IF NOT DICTDB._File._fil-misc1[1] > 0 THEN ASSIGN  misc11 = FALSE.
           END.
           ELSE DO:
             FIND FIRST new-obj WHERE new-obj.add-type = "T"

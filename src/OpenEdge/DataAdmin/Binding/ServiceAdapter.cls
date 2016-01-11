@@ -112,9 +112,7 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
                           /* some requests have input data for query */
                           input-output dataset-handle hCopy) .
             
-/*            hds:copy-dataset(hCopy,yes,yes).*/
-            
-             response = new FetchResponse(pmsg:EntityName,hCopy,hcontextTable).
+            response = new FetchResponse(pmsg:EntityName,hCopy,hcontextTable).
             
         end.
         else  /* NOT pmsg:UseReplaceOnClient */ 
@@ -128,14 +126,6 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
         ServiceName = cDbname.
   
         RequestComplete:Publish(response).  
-        finally:
-            /* delete the request dataset retrieved from the message if it is dynamic */
-            if valid-handle(hds) and hds:dynamic then
-            do: 
-                delete object hds no-error. 
-            end.
-            delete object hCopy no-error.
-        end finally.
     end method.
 
     method public ISaveRequest SaveData(  msg as ISaveRequest):

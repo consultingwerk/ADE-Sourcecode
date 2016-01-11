@@ -544,6 +544,12 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
       MESSAGE "Multi-tenant enabled tables will not appear on the list"
               VIEW-AS ALERT-BOX WARNING BUTTONS OK.
   END.
+  
+  /* warn that partitioned tables will not appear on the list */
+  IF myObjAtribObj:hasTPEnabledTables THEN DO:
+      MESSAGE "Partition enabled tables will not appear on the list"
+              VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+  END.
 
   WAIT-FOR GO OF FRAME ObjSelFrame.
 END.

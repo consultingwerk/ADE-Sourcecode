@@ -177,9 +177,9 @@ PROCEDURE process-web-request :
     '<H1>':U 'Customer List' '</H1>':U SKIP
     '<TABLE BORDER="1">':U SKIP
     '<TR>':U SKIP
-    '  <TH>' 'Customer ID' '</TH>':U SKIP
-    '  <TH>' 'Customer Name' '</TH>':U SKIP
-    '  <TH>' 'Phone Number' '</TH>':U SKIP
+    '  <TH>':U 'Customer ID' '</TH>':U SKIP
+    '  <TH>':U 'Customer Name' '</TH>':U SKIP
+    '  <TH>':U 'Phone Number' '</TH>':U SKIP
     '</TR>':U SKIP.
     
   FOR EACH Customer:

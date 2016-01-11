@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights*
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2007,2014 by Progress Software Corporation. All *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -74,10 +74,17 @@ if no_name then return "error".
 
 assign
   oldname = b_Index._Index-Name
-  newname = input frame idxprops b_Index._Index-Name.
+  newname = input frame idxprops b_Index._Index-Name 
+  frame idxprops s_Idx_Local.  
 
 do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
-   run adecomm/_setcurs.p ("WAIT").  
+   run adecomm/_setcurs.p ("WAIT").
+   /* s_Idx_Local button will be enabled only if the table is partitioned. */
+   if input frame newidx s_Idx_Local:SENSITIVE then
+   do:  
+       if b_Index._index-attributes[1] <> s_Idx_Local then
+           b_Index._index-attributes[1] = s_Idx_Local.
+   end. 
 
    /* Do old/new name check in case name is "default".  If we try to 
       assign it Progress will complain. */

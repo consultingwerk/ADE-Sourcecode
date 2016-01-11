@@ -125,7 +125,7 @@ FUNCTION bufferCompareFields RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferExclusiveLock Procedure 
 FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
   ( pcBuffer     as character,
-    pcMode       as character )  FORWARD.
+    pcMode       as character)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -143,11 +143,22 @@ FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-bufferRowident) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferRowident Procedure 
+FUNCTION bufferRowident RETURNS CHARACTER
+  ( phBuffer as handle)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-checkReadOnlyAvailOnDelete) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD checkReadOnlyAvailOnDelete Procedure
-FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL 
-	(  ) FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD checkReadOnlyAvailOnDelete Procedure 
+FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -491,8 +502,8 @@ FUNCTION rowidWhereCols RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 18.43
-         WIDTH              = 58.8.
+         HEIGHT             = 18.42
+         WIDTH              = 58.86.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -884,8 +895,8 @@ PROCEDURE assignDBRow :
         END.
       END. /* iField = 1 to num-entries(cLargeList) */
     END. /* cUpdColumns <> '':u */      
-
-    IF lCreate THEN
+    
+    IF lCreate or hBuffer:is-partitioned THEN
     DO:
       /* Reference ROWID of the new row only AFTER the all field values have 
          been assigned as DataServers creates the record as soon as ROWID 
@@ -907,7 +918,7 @@ PROCEDURE assignDBRow :
     END. /* new record */
   END.  /* DO iTable */
 
-  IF lCreate THEN
+  IF lCreate or hBuffer:is-partitioned THEN
     ASSIGN 
       phRowObjUpd:BUFFER-FIELD('RowIdentIdx':U):BUFFER-VALUE = SUBSTR(cRowIdent, 1, xiRocketIndexLimit)
       phRowObjUpd:BUFFER-FIELD('RowIdent':U):BUFFER-VALUE = cRowIdent.
@@ -2463,6 +2474,7 @@ PROCEDURE fetchDBRowForUpdate :
   DEFINE VARIABLE lOneToOne        AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lCheck           AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lOk              AS LOGICAL   NO-UNDO.
+  define variable cNewIdent        as character no-undo.
   
   &SCOPED-DEFINE xp-assign
   {get BufferHandles cBuffers}     /* DB Buffer handles. */
@@ -2483,15 +2495,30 @@ PROCEDURE fetchDBRowForUpdate :
         rRowid = TO-ROWID(ENTRY(iTable, cRowIdent))
         cTable = entry(iTable,cTables).      
       if dynamic-function("bufferExclusiveLock":U  in target-procedure,cTable,hRowObjUpd::RowMod) then 
-      do:
-        lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
+      do: 
+        lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT) no-error.
         if not lok then
+        do:
+            /* a partitioned table may have moved if partition values have been changed
+               check if it can be found by keys and refrehs the rowident and 
+               return conflict error if it exist   */
+            if hBuffer:is-partitioned then 
+            do:
+                cNewIdent =  DYNAMIC-FUNCTION("bufferRowident":U IN TARGET-PROCEDURE, hBuffer). 
+                if cNewIdent > ? then
+                do:
+                    cRowIdent = cNewIdent.
+                    hRowIdent:BUFFER-VALUE = cRowIdent.
+                    RETURN entry(iTable, cTables) + ",":U + "<conflict>":U. 
+                end.     
+            end.      
             RETURN entry(iTable, cTables).
+        end. 
       end.  
       else do:
-        lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
+        lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK) no-error.
         if not lok then
-           entry(iTable, cRowIdent) = "".
+            entry(iTable, cRowIdent) = "".
       end.  
     END.
   end.
@@ -5074,24 +5101,85 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-bufferRowident) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferRowident Procedure 
+FUNCTION bufferRowident RETURNS CHARACTER 
+  (phBuffer as handle) :
+/*------------------------------------------------------------------------------
+  Purpose: Return current rowids for SDO RowObjUpd buffer using key fields.
+    Notes: To be used to if rowid is not reliable  (partitioned table) 
+------------------------------------------------------------------------------*/
+    define variable cKeyFields    as character no-undo.
+    define variable cQueryFields  as character no-undo.
+    define variable cValues      as character no-undo.
+    define variable cQueryString  as character no-undo.
+    define variable cFieldName    as character no-undo.
+    define variable cValue        as character no-undo. 
+    define variable hFld          as handle    no-undo.  
+    define variable cntr          as integer   no-undo.
+    define variable cRowident     as character no-undo.
+    
+    {get KeyFields cKeyFields}.
+    {get QueryWhere cQueryString}.    
+    
+    if cKeyFields = "" or cKeyFields = ? then 
+       return ?.
+       
+    do cntr = 1 to num-entries(cKeyFields):
+       cFieldName = entry(cntr,cKeyFields).
+       /* should not be qualified, but it is settable */ 
+       if num-entries(cFieldName,".") > 1 then
+           cFieldName = entry(num-entries(cFieldName,"."),cKeyFields).
+
+       hFld = phBuffer:buffer-field (cFieldName) no-error.
+       if not valid-handle(hFld) then
+           return ?.
+      
+       assign 
+           cFieldName   = "RowObject.":U + cFieldName  /* qualify for mapping */
+           cValue       = hFld:buffer-value    
+           cValues      = cValues
+                        + (if cntr = 1 then "":U else chr(1))
+                        + (if cValue <> ? then cValue else "?":U)
+           cQueryFields = cQueryFields 
+                        + (if cntr = 1 then "":U else ",":U)
+                        + cFieldName.
+    end.     
+    
+    cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                     cQueryFields,
+                                     cValues,
+                                     "=":U,
+                                     cQueryString,
+                                     ?).
+    return dynamic-function('firstRowIds':U in target-procedure,cQueryString).                                   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-checkReadOnlyAvailOnDelete) = 0 &THEN
-		
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION checkReadOnlyAvailOnDelete Procedure
-FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL 
-	(  ):
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION checkReadOnlyAvailOnDelete Procedure 
+FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL
+        (  ):
 /*------------------------------------------------------------------------------
 Purpose: Decides if availability of read only tables should be included in optimistic 
          lock check for deletions.
          The default is FALSE due to the fact that it is common to delete such 
-         tables in begin transaction hooks to avoid conflicts with database triggers.         	  																	  
+         tables in begin transaction hooks to avoid conflicts with database triggers.                                                                                                                                                     
   Notes: The optimistic lock check for deletions that was introduced in 10.1 caused 
          issues in existing apps. The default behavior was thus changed to NOT onclude 
          deleted read-only tables in 10.2B and this function was added to allow this 
-         default to be overridden (and keep the behavior introduced in 10.1).             																	  
-	------------------------------------------------------------------------------*/
+         default to be overridden (and keep the behavior introduced in 10.1).                                                                                                                                                     
+        ------------------------------------------------------------------------------*/
     return false.
 END FUNCTION.
-	
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -6764,7 +6852,7 @@ Parameters: pcRowident - RowIdent of a row in  the current query.
             
             The refresh applies to read-only tables that are at the 
             end of the join (no updatable tables further down in the join). 
-            The first Rowid is of course NEVER refreshed.  
+            The first Rowid is NOT refreshed.  
              
             It is assuming that SDOs are used correctly,            
             - Only one copy of the record that's being updated in the query,

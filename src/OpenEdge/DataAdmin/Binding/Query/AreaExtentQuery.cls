@@ -44,10 +44,10 @@ class OpenEdge.DataAdmin.Binding.Query.AreaExtentQuery inherits FilteredContext 
 			Purpose: Used for a Area list of extents 													  
 			Notes:  																	  
 	------------------------------------------------------------------------------*/
-	/** Parent context (Model) may change so don't store this */
+	/** Model context may change so don't store this */
 	define private property ExtentContext as ExtentContext no-undo
 	    get():
-	         return cast(Parent,ExtentContext).
+	         return cast(Model,ExtentContext).
 	    end.
 	    
     define private variable AreaType   as char no-undo.

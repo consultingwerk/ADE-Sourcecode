@@ -35,6 +35,8 @@ END PROCEDURE.
 DEFINE VARIABLE scrap AS LOGICAL NO-UNDO.
 DEFINE BUFFER another_index FOR _Index.
 define variable lnewparent  as logical no-undo.
+define variable lCheckArea as logical no-undo.
+define variable lCheckAttrs as logical extent no-undo.
 DEFINE VARIABLE gotError AS LOGICAL   NO-UNDO.
 DEFINE BUFFER   con        FOR  _Constraint. 
 
@@ -88,39 +90,70 @@ DO ON ERROR UNDO, LEAVE:
         END.
       end.
       
-      /* if multi-tenant and keep-default is off, it's ok to have area number zero */
-      If lnewparent OR 
-         index-area-number NE 0 OR
-         NOT (_File._File-Attributes[1] = TRUE AND /* MT */
-              _File._File-Attributes[2] = FALSE) THEN /* keep-default off */
-      DO:
+      /* if index ne 0 validate - note default set to 6 in _lodsddl unless Mt (no default area ) or HP  */
+      if index-area-number NE 0 then
+          lCheckArea = true.
+      else do:
+          if lnewparent then
+          do:
+             lCheckAttrs =  dictLoader:CurrentTableAttributes().
+             /* should not happen, but we should probably throw an error in case
+                for now just set to all to false, which will require area check   */
+             if extent(lCheckAttrs) = ? then
+                extent(lCheckAttrs) = 3.
+          end.   
+          else do:
+              /* could just use the attr but  */
+             extent(lCheckAttrs) = 3.
+             assign
+                lCheckAttrs[1] =  _File._File-Attributes[1]
+                lCheckAttrs[2] =  _File._File-Attributes[2]
+                lCheckAttrs[3] =  _File._File-Attributes[3].
+          end.
+          
+          if lCheckAttrs[1] then
+              lCheckArea = lCheckAttrs[2]. 
+          /* table partition */
+          else if lCheckAttrs[3] then   
+              lCheckArea = not widx._index-attributes[1].
+          else
+              lCheckArea = true.
+      end.
+      
+      if lCheckArea then
+      do:  
          RUN check_area_num (OUTPUT is-area).
-         IF NOT is-area THEN DO:
+         IF NOT is-area THEN 
+         DO:
            ierror = 31.
            RETURN NO-APPLY.
          END.
       END.
-      
+     
       if valid-object(dictLoader) and dictLoader:isReader then
       do:
-          dictLoader:AddIndex(iMod,if lnewparent then ? else _File._file-name,buffer widx:handle,index-area-number).
+          dictLoader:AddIndex(iMod,if lnewparent then ? else _File._file-name,buffer widx:handle,index-area-number,iprimary).
           return.   
       end.
-    
+  
       CREATE _Index.
       ASSIGN
         _Index._File-recid = drec_file
         _Index._I-misc1[1] = widx._I-misc1[1]
         _Index._Index-name = widx._Index-name
-        _Index._ianum      = index-area-number
-        index-area-number = 6 /* reset it to default value */
         _Index._Unique     = widx._Unique.
       IF widx._Desc       <> ? THEN _Index._Desc       = widx._Desc.
       IF widx._Wordidx    <> ? THEN _Index._Wordidx    = widx._Wordidx.
       IF widx._Idx-num    <> ? THEN _Index._Idx-num    = widx._Idx-num.
       IF widx._For-name   <> ? THEN _Index._For-name   = widx._For-name.
       IF widx._I-misc2[1] <> ? THEN _Index._I-misc2[1] = widx._I-misc2[1].
-     
+      IF widx._index-attributes[1] = no then
+         assign _Index._ianum      = index-area-number
+                index-area-number = 6. /* reset it to default value */
+      if _File._File-Attributes[3] and widx._index-attributes[1] <> ? then 
+      do: 
+         _Index._index-attributes[1] = widx._index-attributes[1].
+      end. 
       IF NOT widx._Active 
       or (valid-object(dictLoadOptions) and dictLoadOptions:ForceIndexDeactivate) THEN 
           _Index._Active = FALSE.
@@ -158,7 +191,7 @@ DO ON ERROR UNDO, LEAVE:
     IF imod = "m" THEN DO: /*---------------------------------------------------*/
       if valid-object(dictLoader) and dictLoader:isReader then
       do:
-          dictLoader:AddIndex(iMod,_File._file-name,buffer widx:handle,?).
+          dictLoader:AddIndex(iMod,_File._file-name,buffer widx:handle,?,if iprimary then true else _File._Prime-index = RECID(_Index)).
           return.   
       end.
       
@@ -173,7 +206,12 @@ DO ON ERROR UNDO, LEAVE:
       IF widx._For-type <> _Index._For-type THEN _Index._For-type = widx._For-type.
       IF widx._I-misc1[1] <> _Index._I-misc1[1] THEN _Index._I-misc1[1] = widx._I-misc1[1].
       IF widx._I-misc2[1] <> _Index._I-misc2[1] THEN _Index._I-misc2[1] = widx._I-misc2[1].
-    END. /*---------------------------------------------------------------------*/
+      if _File._File-Attributes[3] and _Index._index-attributes[1] <> widx._index-attributes[1] then 
+      do: 
+          _Index._index-attributes[1] = widx._index-attributes[1].
+      end. 
+    END.  
+    /*---------------------------------------------------------------------*/
     ELSE
     IF imod = "r" THEN DO: /*---------------------------------------------------*/
       IF CAN-FIND(FIRST _Index OF _File WHERE _Index._Index-name = irename) THEN
@@ -199,7 +237,7 @@ DO ON ERROR UNDO, LEAVE:
       
       if valid-object(dictLoader) and dictLoader:isReader then
       do:
-          dictLoader:AddIndex(iMod,_File._file-name,buffer widx:handle,?).
+          dictLoader:AddIndex(iMod,_File._file-name,buffer widx:handle,?,_File._Prime-index = RECID(_Index)).
           return.   
       end.
       

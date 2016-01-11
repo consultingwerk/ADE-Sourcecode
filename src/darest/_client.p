@@ -399,41 +399,44 @@ procedure executeCmd:
                 or (INDEX(file-info:file-type, "F") = 0 and INDEX(file-info:file-type, "M") = 0) then 
                 Command.Name = SEARCH(cPDir + "_ide" + Command.Name + ".p").
         end. 
-    
+       
         run ClearReturnValue no-error.
-           
         if valid-handle(hTarget) then 
         do: 
-            do on error  undo,leave on stop undo,leave on endkey undo,leave on quit undo,leave:
-              run value(Command.Name) in hTarget (Command.Parameters).
-              run getOutput in hTarget(output commandResult).
+            do on error undo,leave on stop undo,leave on endkey undo,leave on quit undo,leave: 
+                run value(Command.Name) in hTarget (Command.Parameters).
+                run getOutput in hTarget(output commandResult).
             end.
         end.
         else if Command.Scope = "EXTERNAL" and Command.Name > "" then 
-            do:
-                do on error  undo,leave on stop undo,leave on endkey undo,leave on quit undo,leave:
-                    if Command.ResultIsLongChar then do:
-                        run value(Command.Name)(Command.Parameters, output commandResult).
-                    end.
-                    else do:
-                        run value(Command.Name)(Command.Parameters).
-                    end. 
+        do:
+            do on error  undo,leave on stop undo,leave on endkey undo,leave on quit undo,leave:
+                if Command.ResultIsLongChar then do:
+                    run value(Command.Name)(Command.Parameters, output commandResult).
                 end.
-                if not Command.ResultIsLongChar then
-                    commandResult = return-value.      
+                else do:
+                    run value(Command.Name)(Command.Parameters).
+                end. 
             end.
+            if not Command.ResultIsLongChar then
+                commandResult = return-value.      
+        end.
         else 
         do:
             commandResult = "ERROR:FileNotFound".
         end.
     end.
     
-    if commandResult = "" and (error-status:error or error-status:get-message(1) > "") then 
-        commandResult = "ERROR:" + error-status:get-message(1).
- 
-    if valid-handle(fLoggerHandle) and length(commandResult) < 28000 then 
-        log( "Response " + string(Command.requestid) + " : " + string(commandResult)).
-  
+    if commandResult = "" and error-status:error then 
+        commandResult = "~{error:~{ text:~"" + error-status:get-message(1) + "~"~}~}".
+        
+    if valid-handle(fLoggerHandle) then
+    do:  
+        if length(commandResult) < 28000 then 
+           log( "Response " + string(Command.requestid) + " : " + string(commandResult)).
+        else
+           log( "Response " + string(Command.requestid) + " : <response > 28K>") .
+    end.
     run WriteToSocket(Command.RequestId, commandResult) no-error.
   
     if error-status:error or return-value <> "" then

@@ -14,6 +14,8 @@
 { prodict/user/uservar.i }
 
 DEFINE NEW SHARED STREAM   loaderr.
+DEFINE NEW SHARED STREAM   loadread.
+
 DEFINE NEW SHARED VARIABLE recs   AS INT64   INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER           NO-UNDO.
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
@@ -92,7 +94,7 @@ PAUSE BEFORE-HIDE.
    user_env[10]=disable trigger flag
 */
 OUTPUT STREAM loaderr TO VALUE(user_env[1] + ".e") NO-ECHO.
-INPUT FROM VALUE(tmpfile_o) NO-ECHO NO-MAP.
+INPUT STREAM loadread FROM VALUE(tmpfile_o) NO-ECHO NO-MAP.
 CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
 
 VIEW FRAME importing.
@@ -104,7 +106,7 @@ END.
 
 HIDE frame importing NO-PAUSE.
 SESSION:IMMEDIATE-DISPLAY = no.
-INPUT CLOSE.
+INPUT STREAM loadread CLOSE.
 OUTPUT STREAM loaderr CLOSE.
 run adecomm/_setcurs.p ("").
 

@@ -18,8 +18,8 @@ using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 
 interface OpenEdge.DataAdmin.IRequestInfo:  
-    /** protected set - not changeable - provide with constructor  */  
-    define public property Name   as char no-undo get.
+    /** protected set - not changeable - provide with constructor   */  
+    define public property Name   as char no-undo get. set.
     
     /** A query on properties of the collection entities  */
     define public property QueryString as char no-undo get. set.
@@ -27,7 +27,12 @@ interface OpenEdge.DataAdmin.IRequestInfo:
     define public property KeyFields as char no-undo get. 
     
     define public property SearchString as char no-undo get. set.
-     
+    
+    /** for internal use. Set to true when a named context (different name than context serializename)  
+        query has been checked and applied. The Request info is kept in both collection and entity instances 
+        and will be used multiple times to AddTreeTo or getChildWithRequestInfo   */
+    define public property IsNameChecked as logical no-undo get. set.
+    
     /** The number of records to return per page or batch */
     define property PageSize as integer no-undo get. set.
                      
@@ -37,6 +42,11 @@ interface OpenEdge.DataAdmin.IRequestInfo:
     /** add collection request
         @param child IRequestInfo with name set to match a collection */
     method public logical Add(child as IRequestInfo). 
+    /** add collection request
+    
+        @param expression to add to exisiting query string  */
+    method public logical MergeQueryExpression(pcQuery as char). 
+  
      /*
     /** add collection request
         @param namechild character name to match a collection 

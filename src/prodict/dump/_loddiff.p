@@ -23,7 +23,9 @@ DEFINE VARIABLE numvalue  AS DECIMAL   DECIMALS    10 NO-UNDO.
 DEFINE VARIABLE reccount  AS INT64     INITIAL      0 NO-UNDO.
 
 /* fields for dif load */
+DEFINE NEW SHARED STREAM   loadread. 
 DEFINE NEW SHARED STREAM   loaderr.
+
 DEFINE NEW SHARED VARIABLE recs   AS INT64   INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE fil-d  AS CHARACTER NO-UNDO. /*UNDO*/
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER           NO-UNDO.
@@ -276,7 +278,7 @@ ELSE DO:
      user_env[10]=disable trigger flag
   */
   OUTPUT STREAM loaderr TO VALUE(user_env[1] + ".e") NO-ECHO.
-  INPUT FROM VALUE(tmpfile_o) NO-ECHO NO-MAP.
+  INPUT STREAM loadread FROM VALUE(tmpfile_o) NO-ECHO NO-MAP.
   CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
 
   SESSION:IMMEDIATE-DISPLAY = yes.
@@ -288,7 +290,7 @@ ELSE DO:
   END.
   HIDE FRAME importing NO-PAUSE.
   SESSION:IMMEDIATE-DISPLAY = no.
-  INPUT CLOSE.
+  INPUT STREAM loadread  CLOSE.
   OUTPUT STREAM loaderr CLOSE.
   run adecomm/_setcurs.p ("").
 

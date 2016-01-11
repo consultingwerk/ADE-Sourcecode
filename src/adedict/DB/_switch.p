@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2006,2014 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -31,6 +31,8 @@ Define var is_progress	as logical init true NO-UNDO.
 Define var useable_db   as integer           NO-UNDO.
 Define var answer       as logical           NO-UNDO.
 Define var l_CurrDB     as character         NO-UNDO.
+Define var isMultitenant       as logical           NO-UNDO.
+Define var isPartitioned       as logical           NO-UNDO.
 
 /* Parameters for getting datatype info for gateway. */
 Define var io1        as integer NO-UNDO.
@@ -109,7 +111,9 @@ do:
        OUTPUT ctemp, 
        OUTPUT ctemp,
        OUTPUT s_Large_Seq,
-       OUTPUT answer).
+       OUTPUT answer,
+       OUTPUT isMultitenant,
+       OUTPUT isPartitioned).
       
   /* if large_keys is not known by db, answer will be ? */
   IF answer NE ? THEN

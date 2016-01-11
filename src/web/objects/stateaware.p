@@ -487,8 +487,8 @@ Description: Initializes WebSpeed environment for each web request
 Input:       Environment variables
 Output:      Sets global variables defined in src/web/method/cgidefs.i
 ---------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDebugCookie  AS CHARACTER FORMAT "x(20)" NO-UNDO.
-  DEFINE VARIABLE cValue        AS CHARACTER FORMAT "x(40)" NO-UNDO.
+  DEFINE VARIABLE cDebugCookie  AS CHARACTER FORMAT "x(20)":U NO-UNDO.
+  DEFINE VARIABLE cValue        AS CHARACTER FORMAT "x(40)":U NO-UNDO.
   
   ASSIGN
     /* Check for a "WSDebug" Cookie */
@@ -553,7 +553,7 @@ PROCEDURE list-web-objects :
               wo.timeout-date wo.timeout-time.
     END.  
   END.
-  ELSE {&OUT} "No Web Objects exist in the web-utilities-hdl.". 
+  ELSE {&OUT} "No Web Objects exist in the web-utilities-hdl.":U. 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

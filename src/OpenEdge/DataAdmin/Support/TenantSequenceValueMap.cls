@@ -64,12 +64,9 @@ class OpenEdge.DataAdmin.Support.TenantSequenceValueMap inherits SequenceValueMa
     end method.
     
     method public ISequenceValue Get(seq as ISequence). 
-        
-        if /*seq:ContextId = ContextId 
-        and */ Context:Find(seq:name) then
-            return new SequenceValue(Context).
-        
+        return cast(Context:FindEntity(seq:Name ), ISequenceValue).
     end method.
+ 
              
     method override protected void PrepareExport(  ):
         TableHandle:default-buffer-handle:buffer-field("TenantName"):serialize-hidden = true.

@@ -101,7 +101,7 @@ NOTE: The variable isReport is used to enable calculated fields
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER Tbl-List AS CHAR                    NO-UNDO.
 DEFINE INPUT        PARAMETER p_hSmartData AS WIDGET-HANDLE       NO-UNDO.
-
+ 
 &GLOBAL-DEFINE WIN95-BTN TRUE
 /* Shared variables and temp-tables                                     */
 {adecomm/adestds.i}
@@ -1836,6 +1836,7 @@ PROCEDURE enable_UI :
         WITH FRAME bc-editor.
   END.  /* If isQuery */
   ELSE DO: /* A browse of some kind - either regular or SmartBrowse */
+    
     ASSIGN col-attrs-lbl = " Column Attributes "
            col-attrs-lbl:WIDTH IN FRAME bc-editor =
                            FONT-TABLE:GET-TEXT-WIDTH-CHARS(col-attrs-lbl)
@@ -1950,13 +1951,13 @@ PROCEDURE enable_UI :
               tog_enabled tog_visible WHEN _P.static_object tog_auto_resize
               _BC._HELP _BC._LABEL format-lbl bcformat width-lbl _BC._WIDTH
             WITH FRAME bc-editor.
+      
       ENABLE Flds-in-brws-lbl brw-flds b_mv-up _BC._LABEL b_mv-dn tog_enabled 
              b_remove b_lbl-clr b_lbl-fnt b_add b_enable b_disable b_clr b_fnt 
-             b_attr b_view-as b_calc-fld WHEN first-rec NE ? _BC._WIDTH _BC._HELP 
+             bcformat b_frm-hlp  b_attr b_view-as b_calc-fld WHEN first-rec NE ? _BC._WIDTH _BC._HELP 
              btn_ok btn_cancel btn_help
            WITH FRAME bc-editor.
-      IF NOT srcSmartData THEN
-        ENABLE b_frm-hlp bcformat WITH FRAME bc-editor.
+ 
       IF srcSmartData AND _P.static_object = NO THEN
         ASSIGN b_calc-fld:HIDDEN = YES
                b_edit:HIDDEN     = YES
@@ -1969,8 +1970,7 @@ PROCEDURE enable_UI :
              tog_auto_resize:SENSITIVE      = _BC._DBNAME <> "_<CALC>":U
              tog_disable_auto_zap:SENSITIVE = tog_enabled:CHECKED
              tog_column_read_only:SENSITIVE = _BC._DBNAME <> "_<CALC>":U
-             tog_auto_return:SENSITIVE      = tog_enabled:CHECKED
-             b_frm-hlp:SENSITIVE            = (NOT srcSmartData).
+             tog_auto_return:SENSITIVE      = tog_enabled:CHECKED.
     END. /*  Working on a Browser */
 
     dummy = brw-flds:SELECT-FOCUSED-ROW() NO-ERROR.
@@ -2916,7 +2916,7 @@ PROCEDURE display_bc.ip.
                                    _P.static_object
            _BC._LABEL:SENSITIVE  = lEnableDFInfo
            _BC._COL-LABEL:SENSITIVE = lEnableDFInfo 
-           bcformat:SENSITIVE    = NOT srcSmartdata AND lEnableDFInfo
+           bcformat:SENSITIVE    = NOT srcSmartdata OR lEnableDFInfo
            b_edit:SENSITIVE      = (_BC._DBNAME = "_<CALC>":U AND NOT isDynSDO)
            b_mv-dn:SENSITIVE     = (cur-record NE last-rec)
            b_mv-up:SENSITIVE     = (cur-record NE first-rec)
@@ -2972,7 +2972,7 @@ PROCEDURE display_bc.ip.
              tog_auto_return:SENSITIVE      = tog_enabled:CHECKED AND
                                               tog_enabled:SENSITIVE
              b_frm-hlp:SENSITIVE      = (_BC._DBNAME NE "_<CALC>":U AND
-                                          NOT srcSmartData).
+                                          (NOT srcSmartdata OR lEnableDFInfo)).
       DISPLAY _BC._LABEL
               bcformat 
               _BC._WIDTH 

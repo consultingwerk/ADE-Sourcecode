@@ -78,8 +78,15 @@ IF ok-cancel = "Freeform":U THEN DO:
   /* Get the OPEN-QUERY statement that is going to be output into the preprocessor
      section. Note that this will have lines that end with tilde. Remove these
      tilde's. */
+     
   RUN adeshar/_coddflt.p (INPUT "_OPEN-QUERY", INPUT _query-u-rec, OUTPUT _4GLQury).
-  ASSIGN _4GLQury = REPLACE(REPLACE(_4GLQury,":":U,".":U)," ~~":U + CHR(10) , CHR(10)).
+  /* the previous code replaced all ":" with ".* messing with query values  (datetime-tz)
+     this assumption is that this is to replace the colon at end as this will not compile (11.4).
+     not sure if it is always there so also remove period to avoid double period   
+  */
+   
+  assign  _4GLQury = right-trim(_4GLQury,":.":U) + ".":U  
+          _4GLQury = REPLACE(_4GLQury," ~~":U + CHR(10) , CHR(10)).
   CREATE _TRG.
   ASSIGN _TRG._pRECID   = RECID(_P)
          _TRG._tSECTION = "_CONTROL":U

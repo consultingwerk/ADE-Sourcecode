@@ -8,6 +8,7 @@
   -- webabout.dat       Author: Wm.T.Wood       Date: 2/27/98
   -- Contains HTML listing of the About and Help options for WebSpeed.
   -- This is the index that comes up at the bottom of WebTools index screens.
+  -- Rohit- 5/23/2014 updated copyright for 11.4.0.
   --> 
   
 <HR>
@@ -16,5 +17,5 @@
    onMouseOver="window.status='Browse the contents of the on-line WebSpeed Library.'; return true;" 
    onMouseOut="window.status=''; return true;">Help</A>
 <BR> 
-* Copyright ©1984-2013 Progress Software Corporation and/or its      *
+* Copyright ©1984-2014 Progress Software Corporation and/or its      *
 * subsidiaries or affiliates. All rights reserved.                   *

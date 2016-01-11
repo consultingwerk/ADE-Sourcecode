@@ -55,13 +55,6 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
     
     define private dataset dsSchema serialize-name "root" for ttSchema .
            
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return DatasetHandle.
-        end get.
-        private set. 
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -86,7 +79,6 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
             return Count.
         end.
         protected set.
-   
     
     define private variable mPartitionContext as PartitionContext no-undo.
     define private variable mSequenceContext as SequenceContext no-undo.
@@ -136,7 +128,7 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
 /*                                               */
 /*        cntxt = tblcntxt:GetChild("indexes").  */
 /*        cntxt:AddTreeTo(tree,"partitions").    */
-/*        cntxt = tblcntxt:GetChild("lobfields").*/
+/*        cntxt = tblcntxt:GetChild("fields").*/
 /*        cntxt:AddTreeTo(tree).                 */
 /*        cntxt = GetChild("sequences").         */
 /*        cntxt:AddTableTo(tree).                */
@@ -156,7 +148,7 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
     
     /* public because it is  called from Schema  
       @todo make protected and overide copy() to call this) */ 
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         if type-of(cntxt,SchemaChanges) then 
         do:
             CopyTable(cast(cntxt,SchemaChanges)).
@@ -205,8 +197,8 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
         return can-find(ttSchema where ttSchema.name = name).            
     end.    
      
-    method public override logical Find(name as character):
-        find ttSchema where ttSchema.name = name no-error.
+    method public override logical Find(pname as character):
+        find ttSchema where ttSchema.name = pname no-error.
         return avail ttSchema.            
     end.    
     
@@ -318,7 +310,7 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
 /*        contextTree:SetJoin("fields","partitions3","tablename,tablename,name,fieldname").*/
 /*        contextTree:SetHandle("partitions3",hPartitionTT:default-buffer-handle).         */
       
-        msg = new FetchRequest("File",ID,contexttree:GetReadHandle()).
+        msg = new FetchRequest("File",ID,contexttree:GetReadHandle(),no).
         msg:UseReplaceOnClient = false.
         return msg. 
     end method.      
@@ -357,9 +349,8 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
         undo, throw new UnsupportedOperationError("CreateCollection in SchemaContext").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Schema(cntxt).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new Schema(this-object,preq).
     end method. 
  
-       
 end class.

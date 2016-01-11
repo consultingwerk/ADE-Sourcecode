@@ -32,23 +32,13 @@ class OpenEdge.DataAdmin.DataAccess.FileDataChanges inherits DataAccess implemen
     define data-source dsField for dictdb._Field.
     define data-source dsIndex for dictdb._index.    
     
-    define private variable mURL as character no-undo.
-    define private variable AreaURL as character no-undo.
-    
-    method protected override void SetUrl(pcUrl as char):
-        mURL = pcURL.
-        AreaURL = pcURL + "/areas/".
-    end method.
-    
-    
-    
     method public override void FetchData(msg as IFetchRequest):
         define variable c  as FetchDefinitions no-undo.
         FetchData(cast(msg,FetchDefinitions)).
     end method.
     
     method public void FetchData(msg as FetchDefinitions):
-        SetUrl(msg:URL). 
+        url = msg:URL. 
         DatasetHandle = msg:DataHandle.
         FillData(msg).
     end method.

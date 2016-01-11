@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2013 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -35,6 +35,8 @@ form
    s_Db_Type 	 LABEL "Type"	      	 colon 17
                  FORMAT "x(12)" view-as TEXT        SKIP
    s_Db_Cp       LABEL "Codepage"        colon 17
+                 FORMAT "x(32)" view-as TEXT    SKIP      
+   s_Db_Partition_Enabled label "Table Partitioning"  colon 17
                  FORMAT "x(32)" view-as TEXT    SKIP      
    s_Db_Multi_Tenancy label "Multi-tenancy"  colon 17
                  FORMAT "x(32)" view-as TEXT    SKIP      

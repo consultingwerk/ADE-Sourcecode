@@ -27,21 +27,19 @@ routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Query.TableFieldQuery inherits FilteredContext: 
 	  
-	/** Parent context (Model) may change so don't store this */   
+	/** Model may change so don't store this */   
     define private property FieldContext as FieldContext no-undo
         get():
-            return cast(Parent,FieldContext).   
+            return cast(Model,FieldContext).   
         end.
         
     define private variable TableName    as char        no-undo.
     
 	constructor public TableFieldQuery ( pdatacontext as FieldContext, pcTable as character, pReq as IRequestInfo):
 	 	super (pdatacontext,"tables", pcTable, pReq).
-        TableName = pcTable.     
-        
+        TableName = pcTable.  
         QueryHandle:query-prepare (LocalFilter).
 	end constructor.
-	
 	
     method public override logical CanFind(pName as char): 
         if FieldContext:Find(TableName,pName) then 
@@ -55,19 +53,19 @@ class OpenEdge.DataAdmin.Binding.Query.TableFieldQuery inherits FilteredContext:
         return false.
     end method.
     
-    method public override IFetchRequest GetQueryRequest():
-      
-        define variable tree   as IContextTree no-undo.
-        define variable hds    as handle no-undo.
-        define variable cQuery as character no-undo.
-       
-        tree = new ContextTree().
-        AddTableTo(tree).
-        
-        hds = tree:GetReadHandle().
-       
-        return new FetchRequest(Name,Id,hds).
-    end method.
+/*    method public override IFetchRequest GetQueryRequest():*/
+/*                                                           */
+/*        define variable tree   as IContextTree no-undo.    */
+/*        define variable hds    as handle no-undo.          */
+/*        define variable cQuery as character no-undo.       */
+/*                                                           */
+/*        tree = new ContextTree().                          */
+/*        AddTableTo(tree).                                  */
+/*                                                           */
+/*        hds = tree:GetReadHandle().                        */
+/*                                                           */
+/*        return new FetchRequest(Name,Id,hds,no).           */
+/*    end method.                                            */
     
     
 end class.

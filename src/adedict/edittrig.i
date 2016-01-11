@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2006,2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2006,2010,2014 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -28,6 +28,9 @@ Date Created: 02/04/92
           06/08/2006 fernando Added trigger for s_btn_toint64 - support for int64
 	      
 ----------------------------------------------------------------------------*/
+define variable AreaList as character no-undo.
+define variable lNoArea as logical no-undo.
+Define var num 	     as integer NO-UNDO.
 
 /*======================Triggers for Browse Window===========================*/
 
@@ -210,6 +213,70 @@ do:
                      ?,
                      s_Tbl_Area).   
 end.    
+
+/*----- VALUE-CHANGED of PARTITIONED -----*/
+on value-changed of b_File._File-Attributes[3] in frame newtbl,
+                    b_File._File-Attributes[3] in frame tblprops
+do:
+    if s_Adding then do:
+      if b_File._File-Attributes[3]:screen-value in frame newtbl eq "yes" then do:
+            hideArea(s_Tbl_Area:handle in frame newtbl). 
+	    s_Tbl_Area:handle:sensitive in frame newtbl = false.
+            if valid-handle(s_btn_File_Area:handle) then 
+               s_btn_File_Area:handle:sensitive in frame newtbl = false.
+       	       s_btn_File_Area:handle:enabled in frame newtbl= false.
+	       
+      end.
+      else do:
+        showArea(s_Tbl_Area:handle in frame newtbl, s_Tbl_Area,s_Adding).
+	    s_Tbl_Area:handle:sensitive in frame newtbl = true.
+	    if valid-handle(s_btn_File_Area:handle) then do:
+           s_btn_File_Area:handle:sensitive in frame newtbl = true.
+	     end.
+      end.
+    end.
+    else do:
+    /* if enabling Partitioned attribute for an existing table having an area, do not hide the area field */
+      if b_File._File-Attributes[3]:screen-value in frame tblprops  eq "yes" and s_Tbl_Area EQ "" then do:
+         hideArea(s_Tbl_Area:handle in frame tblprops). 
+	     s_Tbl_Area:handle:sensitive in frame tblprops = false.
+         if valid-handle(s_btn_File_Area:handle) then 
+            s_btn_File_Area:handle:sensitive in frame tblprops = false.
+      end.
+      else do:
+        showArea(s_Tbl_Area:handle in frame tblprops, s_Tbl_Area,s_Adding).
+	    s_Tbl_Area:handle:sensitive in frame tblprops = false.
+	    if valid-handle(s_btn_File_Area:handle) then 
+           s_btn_File_Area:handle:sensitive in frame tblprops = true.
+        
+      end.
+    end.
+end.    
+
+/*----- VALUE-CHANGED of LOCAL/GLOBAL -----*/
+/* we do not really need a combo in idxprops as of current as we cannot change the area  */
+on value-changed of s_Idx_Local in frame idxprops
+do:
+    define variable cAreaList  as character no-undo.
+    define variable iNum       as integer   no-undo.
+    assign s_Idx_Local.
+    if s_Idx_Local then
+    do:    
+        assign 
+            s_Idx_Area:list-items in frame idxprops = ""          
+	    s_Idx_Area:sensitive in frame idxprops = false.        
+    end.
+    else do:
+	     /*cannot change area of index */
+        run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame idxprops, output cAreaList).
+        assign
+            s_Idx_Area:list-items in frame idxprops = cAreaList
+            s_Idx_Area:screen-value in frame idxprops = s_Idx_Area
+            iNum = s_Idx_Area:num-items in frame idxprops
+            s_Idx_Area:inner-lines in frame idxprops = min(iNum,20) 
+            s_Idx_Area:sensitive in frame idxprops = false.
+	end.
+end.
 
 /*----- LEAVE of DUMP NAME -----*/
 on leave of b_File._Dump-name in frame newtbl,
@@ -988,7 +1055,8 @@ do:
 
    run adedict/_leavnam.p (INPUT  b_Index._Index-Name,
       	       	     	   INPUT  s_win_Idx, 
-      	       	     	   OUTPUT name, OUTPUT okay).
+      	       	     	   OUTPUT name, 
+      	       	     	   OUTPUT okay).
    if okay = ? then return.
    if NOT okay then do:
       s_Valid = no.
@@ -1010,9 +1078,5 @@ do:
       return NO-APPLY.
    end.
 end.
-
-
-
-
 
 

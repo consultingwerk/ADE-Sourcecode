@@ -40,7 +40,7 @@ class OpenEdge.DataAdmin.Error.DataError inherits DataAdminError:
             do:
                 msg = e:GetMessage(1).
                 entry(2,msg," ") = cEntity.
-                msg = replace(msg,"(" + string(e:GetMessageNum(1)) + ")","").
+/*                msg = replace(msg,"(" + string(e:GetMessageNum(1)) + ")","").*/
                 return msg.
             end.
             otherwise 

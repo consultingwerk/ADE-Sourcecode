@@ -261,31 +261,31 @@ PROCEDURE findCustomer :
 
   CASE vButton:
     WHEN "Search":U THEN DO WITH FRAME {&FRAME-NAME}:
-      vName = get-value("Name"). /* Name value for customer search */
+      vName = get-value("Name":U). /* Name value for customer search */
       FIND FIRST Customer WHERE Name >= vName share-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN 
         FIND FIRST Customer USE-INDEX Name share-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN
-        Name:SCREEN-VALUE = "*** NO RECORDS ***".
+        Name:SCREEN-VALUE = "*** NO RECORDS ***":U.
     END.
     WHEN "Next":U THEN DO WITH FRAME {&FRAME-NAME}:
       FIND NEXT Customer USE-INDEX Name NO-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN
         FIND FIRST Customer USE-INDEX NAME NO-LOCK NO-ERROR.
       IF NOT AVAILABLE(Customer) THEN 
-        Name:SCREEN-VALUE = "*** NO RECORDS ***".
+        Name:SCREEN-VALUE = "*** NO RECORDS ***":U.
     END.
     WHEN "Update":U THEN DO WITH FRAME {&FRAME-NAME}:  /* CustNum to update */
       FIND CURRENT Customer EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
       IF LOCKED(Customer) THEN
-        Name:SCREEN-VALUE = "*** LOCKED ***".
+        Name:SCREEN-VALUE = "*** LOCKED ***":U.
       ELSE IF NOT AVAILABLE(Customer) THEN
-        Name:SCREEN-VALUE = "*** NOT FOUND ***".
+        Name:SCREEN-VALUE = "*** NOT FOUND ***":U.
       ELSE 
         ASSIGN
           CustNum:SCREEN-VALUE  = STRING(CustNum)
           Comments:SCREEN-VALUE = Comments:SCREEN-VALUE +
-                                  "~n*** Updated " + STRING(TODAY) + " ***".
+                                  "~n*** Updated ":U + STRING(TODAY) + " ***":U.
     END.
   END CASE.
 END PROCEDURE.
@@ -410,7 +410,7 @@ PROCEDURE process-web-request :
    * information.
    *   
    */ 
-  ASSIGN vButton = get-value(INPUT "Button Value"). 
+  ASSIGN vButton = get-value(INPUT "Button Value":U). 
   RUN outputHeader.
   
   /*
@@ -418,7 +418,7 @@ PROCEDURE process-web-request :
    * check particular input fields (using GetField in web-utilities-hdl). 
    * Here we look at REQUEST_METHOD. 
    */
-  IF REQUEST_METHOD = "POST":U THEN DO:
+  IF REQUEST_METHOD = "POST" THEN DO:
     /* STEP 1 -
      * Copy HTML input field values to the Progress form buffer. */
     RUN inputFields.
@@ -450,8 +450,8 @@ PROCEDURE process-web-request :
      * To simulate another Web request, change the REQUEST_METHOD to GET
      * and RUN the Web object here.  For example,
      *
-     *  ASSIGN REQUEST_METHOD = "GET":U.
-     *  RUN run-web-object IN web-utilities-hdl ("myobject.w":U).
+     *  ASSIGN REQUEST_METHOD = "GET".
+     *  RUN run-web-object IN web-utilities-hdl ("myobject.w").
      */
      
     /* STEP 4.2 -

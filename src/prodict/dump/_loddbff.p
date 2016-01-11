@@ -13,7 +13,8 @@
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
-DEFINE NEW SHARED STREAM   loaderr.
+DEFINE NEW SHARED STREAM loadread.
+DEFINE NEW SHARED STREAM loaderr.
 DEFINE NEW SHARED VARIABLE recs   AS INT64   INITIAL 0. /*UNDO*/
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER           NO-UNDO.
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
@@ -64,7 +65,7 @@ INPUT CLOSE.
 /* user_env[1]=filename, user_env[6]=fieldnames */
 run adecomm/_setcurs.p ("WAIT").
 OUTPUT STREAM loaderr TO VALUE(user_env[1] + ".e") NO-ECHO.
-INPUT FROM VALUE(tmpfile_d) NO-ECHO NO-MAP.
+INPUT STREAM loadread FROM VALUE(tmpfile_d) NO-ECHO NO-MAP.
 CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
 
 DO ON STOP UNDO, LEAVE:
@@ -72,7 +73,7 @@ DO ON STOP UNDO, LEAVE:
       VALUE(user_env[1]) 100 100 user_env[6] 0.
 END.
 
-INPUT CLOSE.
+INPUT STREAM loadread CLOSE.
 OUTPUT STREAM loaderr CLOSE.
 run adecomm/_setcurs.p ("").
 

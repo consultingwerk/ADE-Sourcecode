@@ -60,12 +60,17 @@ DEFINE BUTTON butt-help
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL 
-     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 5.5.     
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 5.6.     
      &ELSE SIZE 75 BY 7.5. &ENDIF.
      
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL 
-     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 1.9.     
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 2.4.     
+     &ELSE SIZE 75 BY 4 . &ENDIF.
+
+DEFINE RECTANGLE RECT-4
+     EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL 
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 2.4.     
      &ELSE SIZE 75 BY 4 . &ENDIF.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN
@@ -84,14 +89,14 @@ DEFINE VARIABLE text3      AS CHARACTER
                            INITIAL "Using"
                            FORMAT "x(8)" NO-UNDO.    
 DEFINE VARIABLE text4      AS CHARACTER 
-                           INITIAL "For field widths use"
-                           FORMAT "x(22)" NO-UNDO.              
+                           INITIAL "For Field Widths Use:"
+                           FORMAT "x(22)" NO-UNDO.
 DEFINE VARIABLE s_res         AS LOGICAL                  NO-UNDO.
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
-     migConstraint view-as toggle-box label "Migrate Constraints" AT 2 SKIP({&VM_WIDG})
+     migConstraint view-as toggle-box label "Migrate Constraints" AT ROW 1.5 COL 2 SKIP({&VM_WIDG})
      SPACE(2)    
      tryPimaryForRowid view-as toggle-box LABEL "Try Primary for ROWID" AT 2
      recidCompat view-as toggle-box LABEL "Maintain RECID compatibility" AT 35 SKIP({&VM_WID})
@@ -112,45 +117,58 @@ DEFINE FRAME DEFAULT-FRAME
         "OE Schema", 1,
         "Foreign schema", 2
         HORIZONTAL AT 28 NO-LABEL SKIP({&VM_WIDG})
-     SPACE(2)
-     mapMSSDatetime view-as toggle-box LABEL "Map to MSS 'Datetime' Type"  AT 2 
-     shadowcol view-as toggle-box label "Create Shadow Column" AT 38 SKIP({&VM_WID})
-     newseq view-as toggle-box LABEL  "Use revised sequence Generator"  AT 2 SKIP({&VM_WIDG})
+     SPACE(10)
+     mapMSSDatetime view-as toggle-box LABEL "Map to MSS 'Datetime' Type"   AT  ROW 8.6 COL 2
+     shadowcol view-as toggle-box label "Create Shadow Column" AT ROW 8.6 COL 38 SKIP({&VM_WID})
+
+     newseq view-as toggle-box LABEL  "Use Revised Sequence Generator"   AT  ROW 10 COL 2 SKIP({&VM_WID})
+     SPACE(2) nativeseq view-as toggle-box LABEL  "Try Native Sequence ?"   AT 2 
+     /*cachesize  VIEW-AS FILL-IN SIZE 10 BY 1 LABEL "Cache Size" AT ROW 9.9 COL 35 SKIP({&VM_WID})*/
+     cachesize  VIEW-AS FILL-IN SIZE 9 BY 1 LABEL "Cache size (0=server, ?=no-cache) ":t33 AT ROW 10.8 COL 31 SKIP({&VM_WID}) 
      SPACE(2)         
-     unicodeTypes view-as toggle-box LABEL "Use Unicode Types"  AT 2 
+     SKIP (0.5) unicodeTypes view-as toggle-box LABEL "Use Unicode Types"  AT ROW 12.8 COL 2
      lUniExpand view-as toggle-box LABEL "Expand Width(utf-8)" AT 36 SKIP({&VM_WID})
-     text4 VIEW-AS TEXT NO-LABEL AT 2 
+     text4 VIEW-AS TEXT NO-LABEL AT ROW 13.8 COL 2
      iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS
          "Width", 1,
          "ABL Format", 2
-         HORIZONTAL AT 24 NO-LABEL 
+         HORIZONTAL AT  ROW 13.8 COL 25 NO-LABEL 
      lExpand view-as toggle-box LABEL "Expand x(8) to 30"  AT 53 SKIP({&VM_WIDG})
      
      SPACE(2)
-     text1 VIEW-AS TEXT NO-LABEL AT 2       
+     text1 VIEW-AS TEXT NO-LABEL AT  ROW 15.4 COL 2 SKIP ({&VM_WID})   
      choiceUniquness VIEW-AS RADIO-SET RADIO-BUTTONS
          "Index Attributes", "1",
          "Constraints", "2"
-         HORIZONTAL NO-LABEL AT 23 SKIP({&VM_WID})
-     dflt  view-as toggle-box LABEL "Include Default" AT 2 SKIP({&VM_WID})
-    
-     "Apply Defaults as:" VIEW-AS TEXT AT 2
+         HORIZONTAL NO-LABEL AT ROW 15.4 COL 25 SKIP({&VM_WID})
+     dflt  view-as toggle-box LABEL "Include Default" AT ROW 16.5 COL 2 SKIP({&VM_WID})
+
+     "Apply Defaults as:" VIEW-AS TEXT  AT ROW 17.5 COL 2
      choiceDefault VIEW-AS RADIO-SET RADIO-BUTTONS 
         "Field Attributes", "1",
         "Constraints", "2"
-        HORIZONTAL AT 20 NO-LABEL SKIP({&VM_WIDG})
+        HORIZONTAL AT ROW 17.5 COL 25 NO-LABEL SKIP({&VM_WIDG})
        
-     butt-ok AT 3 WIDGET-ID 22
+  /*   butt-ok AT 3 WIDGET-ID 22
      butt-cancel AT 14 WIDGET-ID 24
      &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
          butt-help AT 26
+     &ENDIF */
+
+     butt-ok AT ROW 19.2 COL 3 WIDGET-ID 22
+     butt-cancel AT ROW 19.2 COL 14 WIDGET-ID 22
+     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+         butt-help AT ROW 19.2 COL 26.5 WIDGET-ID 22
      &ENDIF
      
-    RECT-1 AT ROW 2.2 COL 1 
-     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-2 AT ROW 10.3 COL 1   
+    RECT-1 AT ROW 2.7 COL 1 
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-2 AT ROW 12.5 COL 1   
      &ELSE RECT-2 AT ROW 12.1 COL 1 &ENDIF
 
-    &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-3 AT ROW 15.5 COL 2 &ENDIF                   
+    &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-3 AT ROW 19 COL 2 &ENDIF
+
+      &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-4 AT ROW 9.8 COL 1   
+     &ELSE RECT-4 AT ROW 8.9 COL 1 &ENDIF
  
     WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
@@ -159,6 +177,7 @@ DEFINE FRAME DEFAULT-FRAME
 
 IF not recid_verify THEN
   ASSIGN recidCompat:hidden in frame DEFAULT-FRAME = TRUE.
+
 
 ON CHOOSE OF butt-ok IN FRAME DEFAULT-FRAME 
 DO:
@@ -179,14 +198,15 @@ DO:
    IF (ForRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
    Assign dflt = (dflt:SCREEN-VALUE = "yes").
    Assign mapMSSDatetime = (mapMSSDatetime:SCREEN-VALUE = "yes" ).
-   Assign newseq = (newseq:SCREEN-VALUE = "yes" ). 
+   Assign newseq = (newseq:SCREEN-VALUE = "yes" ).
    ASSIGN choiceDefault = choiceDefault:screen-value.
    ASSIGN choiceUniquness = choiceUniquness:screen-value.
    ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").
    ASSIGN lUniExpand = (lUniExpand:SCREEN-VALUE ="yes").
    ASSIGN iFmtOption = INTEGER(iFmtOption:SCREEN-VALUE).
    ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
-   
+   Assign nativeseq = (nativeseq:SCREEN-VALUE = "yes" ).
+   ASSIGN cachesize = (cachesize:SCREEN-VALUE).
    IF iFmtOption = 1 THEN
       ASSIGN lFormat = ?
              iFmtOption = 1.
@@ -363,6 +383,26 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
  END.
 END.
 
+ASSIGN cachesize:READ-ONLY = YES.
+
+ON VALUE-CHANGED OF nativeseq IN FRAME DEFAULT-FRAME DO:
+    IF nativeseq:screen-value = "NO" THEN
+         ASSIGN cachesize:READ-ONLY = YES.
+    ELSE
+         ASSIGN cachesize:READ-ONLY = NO.
+END.
+
+/*
+ON VALUE-CHANGED OF newseq IN FRAME DEFAULT-FRAME DO:
+    IF newseq:screen-value = "NO" THEN
+           ASSIGN nativeseq:SENSITIVE = NO
+                 cachesize:READ-ONLY = YES.
+    ELSE
+           ASSIGN nativeseq:SENSITIVE = YES
+                 cachesize:READ-ONLY = YES.
+END.
+*/
+
 IF NOT batch_mode THEN
   DO: 
    DISPLAY text1 text2 text3 text4 WITH FRAME DEFAULT-FRAME.
@@ -388,11 +428,14 @@ IF NOT batch_mode THEN
         choiceUniquness
         dflt
         choiceDefault WHEN dflt = TRUE
+        nativeseq /* WHEN newseq = TRUE */
+        cachesize /* WHEN nativeseq = TRUE */
         butt-ok butt-cancel
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             butt-help
         &ENDIF              	        
         WITH FRAME DEFAULT-FRAME. 
+        
         
         ASSIGN recidCompat = (recidCompat:SCREEN-VALUE  = "yes").
         ASSIGN iRecidOption = INTEGER(iRecidOption:SCREEN-VALUE).

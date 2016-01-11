@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2006,2014 by Progress Software Corporation. All  *
+* rights reserved. Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -43,29 +43,30 @@ define {1} browse b-idx-list query q-idx-list
 form
    SKIP({&TFM_WID})
 
-   b_Index._Index-Name label "Index &Name"     colon 13  {&STDPH_FILL}
+   b_Index._Index-Name label "Index &Name" colon 13  {&STDPH_FILL}
    SKIP({&VM_WID})
-   idx-area-name   label "Area" colon 13 
-   s_area_mttext no-label 
+   s_Idx_Local	       label "&Index Type"  colon 13
+   s_Idx_Area          label "Area" colon 13 
+   s_area_mttext       no-label 
    SKIP({&VM_WID})
    b_Index._Desc       label "Descri&ption"    colon 13
                        view-as EDITOR SCROLLBAR-VERTICAL
-      	       	       INNER-CHARS 52 INNER-LINES 2  {&STDPH_EDITOR}
+      	       	       INNER-CHARS 62 INNER-LINES 2  {&STDPH_EDITOR}
    SKIP({&VM_WIDG})
 
-   s_Idx_Primary     	label "Pri&mary"       at  2
+   s_Idx_Primary     	label "Pri&mary"       colon  13
+       	       	     	view-as TOGGLE-BOX     SPACE({&HM_WIDG})
+   ActRec       	    label "Ac&tive"         
       	       	     	view-as TOGGLE-BOX     SPACE({&HM_WIDG})
-   ActRec       	label "Ac&tive"         
-      	       	     	view-as TOGGLE-BOX     SPACE({&HM_WIDG})
-   b_Index._Unique 	label "Uni&que"         
+   b_Index._Unique 	    label "Uni&que"         
       	       	     	view-as TOGGLE-BOX     SPACE({&HM_WIDG})
    s_Idx_Word           label "&Word Index"     
                         view-as TOGGLE-BOX     SPACE({&HM_WIDG})
    s_Idx_Abbrev         label "A&bbreviated"     
-      	       	     	view-as TOGGLE-BOX 
+      	       	     	view-as TOGGLE-BOX     SPACE({&HM_WIDG})   
    SKIP({&VM_WIDG})
   
-   b-idx-list           at 7
+   b-idx-list           colon 13 
    
    SKIP(.25)
    s_msg NO-LABEL      format "x(50)" at  7 view-as TEXT 
@@ -84,5 +85,5 @@ form
 
    with frame idxprops
       default-button s_btn_OK cancel-button s_btn_Close
-      SIDE-LABELS NO-BOX.
+      SIDE-LABELS SCROLLABLE NO-BOX.
 

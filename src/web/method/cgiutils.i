@@ -53,11 +53,11 @@ DEFINE VARIABLE HelpAddress  AS CHARACTER NO-UNDO FORMAT "x(40)":U.
 
 /* Unsafe characters that must be encoded in URL's.  See RFC 1738 Sect 2.2. */
 DEFINE VARIABLE url_unsafe   AS CHARACTER NO-UNDO 
-    INITIAL " <>~"#%~{}|~\^~~[]`":U.
+    INITIAL " <>~"#%~{}|~\^~~[]`".
 
 /* Reserved characters that normally are not encoded in URL's */
 DEFINE VARIABLE url_reserved AS CHARACTER NO-UNDO 
-    INITIAL "~;/?:@=&":U.
+    INITIAL "~;/?:@=&".
 &ANALYZE-RESUME
 /* *********************** Procedure Settings ************************ */
 
@@ -220,14 +220,14 @@ References:
                     STRING(YEAR(p_date), "9999":U) + " ":U +
                     STRING(p_time,"HH:MM:SS":U) + " GMT":U.
     END.
-    WHEN "HTTP":U THEN DO:
+    WHEN "HTTP" THEN DO:
       /* HTTP format based on RFC-1123: Wdy, DD Mon YYYY HH:MM:SS GMT */
       ASSIGN 
         p_rfcdate = ENTRY(WEEKDAY(p_date), weekday-list) + ", ":U +
                     STRING(DAY(p_date),"99":U) + " ":U +
                     ENTRY(MONTH(p_date), month-list) + " ":U +
-                    STRING(YEAR(p_date), "9999":U) + " ":U +
-                    STRING(p_time,"HH:MM:SS":U) + " GMT":U.
+                    STRING(YEAR(p_date), "9999") + " ":U +
+                    STRING(p_time,"HH:MM:SS") + " GMT":U.
     END.
     OTHERWISE
       queue-message("WebSpeed":U, "format-datetime: ":U + "format '" + p_format +
@@ -434,7 +434,7 @@ Global Variables: FieldList
     IF get-from-form-fields(p_name) NE NO /* yes and ? should go here */ THEN
       cTmp = WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim).
     ELSE
-      cTmp = WEB-CONTEXT:GET-CGI-VALUE("QUERY":U, p_name, SelDelim).
+      cTmp = WEB-CONTEXT:GET-CGI-VALUE("QUERY:U", p_name, SelDelim).
 
     IF (cTmp > "") THEN
       cTmp = REPLACE(cTmp, "~r~n":U, "~n":U).
@@ -1106,7 +1106,7 @@ END FUNCTION.  /* url-format */
 
 &ENDIF
 
-&ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM "Main Code Block" 
+&ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM "Main Code Block"
 
 
 /* ***************************  Main Block  *************************** */
@@ -1195,8 +1195,8 @@ Input Parameter: Character string to output
   "<H1>":U "Application Error" "</H1>~n~n":U
   "<P>":U p_error "</P>~n":U
   (IF HelpAddress <> "" THEN
-    "<P>":U + "In the event of a problem with this application, please " +
-    "contact " + HelpAddress + "</P>~n":U ELSE "")
+    "<P>":U + "In the event of a problem with this application, please ":U +
+    "contact ":U + HelpAddress + "</P>~n":U ELSE "")
   "</BODY>~n":U
   "</HTML>~n":U
   {&END}

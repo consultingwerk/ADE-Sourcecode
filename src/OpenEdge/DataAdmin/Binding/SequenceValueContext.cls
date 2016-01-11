@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/* Copyright (c) 2011-2013 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -16,35 +16,32 @@
             
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
 
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.SequenceTenantQuery.
+using OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.SequenceValue.
+using OpenEdge.DataAdmin.Support.SequenceSequenceValueMap.
+using OpenEdge.DataAdmin.Support.TenantSequenceValueMap.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 
-using OpenEdge.DataAdmin.SequenceValue from propath.
-using OpenEdge.DataAdmin.Support.TenantSequenceValueMap from propath.
-using OpenEdge.DataAdmin.Support.SequenceSequenceValueMap from propath.
-
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.IRow from propath. 
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.SequenceTenantQuery from propath. 
-using OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath. 
-
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath. 
-
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError  from propath. 
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext  : 
     
@@ -59,11 +56,6 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
     define public property SchemaName as character  no-undo  
         get. 
         private set.   
-    
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsSequenceValue:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -99,19 +91,24 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         SchemaName = pschema.     
     end constructor.
     
+        /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsSequenceValue:handle. 
+    end method.
+    
 	/* called with tracking-changes */
-   method protected override void ReadRowForParent(pcParent as char, pcValue as char extent,json as JSONObject).      
-        case pcParent:
+    method protected override void ReadRowForParent(prow as IRow,json as JSONObject).      
+        case prow:SerializeName:
             when "tenants" then
             do:
-                ReadTenantRow(pcValue[1],json).
+                ReadTenantRow(prow:KeyValues[1],json).
             end.   
             when "sequences" then
             do:
-                ReadSequenceRow(pcValue[1],json).
+                ReadSequenceRow(prow:KeyValues,json).
             end.
             otherwise 
-                undo, throw new IllegalArgumentError("SequenceValuecontext:ImportTableForParent parent" + quoter(pcParent)).
+                undo, throw new IllegalArgumentError("SequenceValueContext ReadRowForParent " + quoter(prow:SerializeName)).
         end.     
     end method.
     
@@ -137,7 +134,7 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         
     end method. 
     
-    method private void ReadSequenceRow(pcVal as char,json as JSONObject):
+    method private void ReadSequenceRow(pcVal as char extent ,json as JSONObject):
         define variable h as handle no-undo.         
        
         define variable cTenant as character no-undo.
@@ -145,11 +142,11 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         h = buffer ttSequenceValue:buffer-field("TenantName").
         cTenant =  json:GetCharacter(h:serialize-name).
         
-        find ttSequenceValue where ttSequenceValue.SchemaName = SchemaName
-                             and   ttSequenceValue.SequenceName = pcVal
+        find ttSequenceValue where ttSequenceValue.SchemaName = pcVal[1]
+                             and   ttSequenceValue.SequenceName = pcVal[2]
                              and   ttSequenceValue.TenantName = cTenant no-error.
         if not avail ttSequenceValue then  
-            undo, throw new IllegalArgumentError(NotFoundError(SchemaName,pcVal,cTenant)).
+            undo, throw new IllegalArgumentError(NotFoundError(pcVal[1],pcVal[1],cTenant)).
         
         h = buffer ttSequenceValue:buffer-field("CurrentValue").
         ttSequenceValue.CurrentValue = json:GetInt64(h:serialize-name) .                 
@@ -165,7 +162,7 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
     end method.
     
      	
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy SequenceValue").
     end method. 
      
@@ -182,57 +179,38 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         end.
     end.
     
-    method public override character  GetChildQuery(parentid as char,pcKeyValue as char).
+    method public override character GetChildQuery(pParent as IRow).
         define variable cQuery as character no-undo.
        
-        cQuery = super:GetChildQuery(parentid,pcKeyValue).
+        cQuery = super:GetChildQuery(pParent).
          
-        case parentid:
+        case pParent:SerializeName:
             when "tenants" then
             do:
                 cQuery = cQuery 
                        + ", "
                        +  GetJoinQuery("Sequence").
-            end.    
-         end. 
-         return cQuery.
-    end method.
-    
-    method public override character  GetChildQuery(parentid as char,pcKeyValues as char extent).
-        define variable cQuery as character no-undo.
-       
-        cQuery = super:GetChildQuery(parentid,pcKeyValues).
-               
-        case parentid:
-            /* no join on server -  */
+            end. 
             when "sequences" then
             do:
                 cQuery = cQuery 
                        + ", "
                        +  GetJoinQuery("tenant").
-            end.    
+            end.       
          end. 
          return cQuery.
     end method.
-      
-    method public override character  GetServerChildQuery(parentid as char,pcKeyValue as char ).
+    
+    method public override character  GetServerChildQuery(pParent as IRow).
         define variable cQuery as character no-undo.
-        cQuery = super:GetServerChildQuery(parentid,pcKeyValue).
-        case parentid:
+        cQuery = super:GetServerChildQuery(pParent).
+        case pParent:SerializeName:
             /* no join on server -  */
             when "tenants" then
             do:
                 cQuery = cQuery + ", each ttSequence".
             end.    
-         end. 
-         return cQuery.
-    end method.  
-      
-    method public override character  GetServerChildQuery(parentid as char,pcKeyValues as char extent).
-        define variable cQuery as character no-undo.
-        cQuery = super:GetServerChildQuery(parentid,pcKeyValues).
-        case parentid:
-            /* no join on server -  */
+             /* no join on server -  */
             when "sequences" then
             do:
                 cQuery = cQuery + ", each ttTenant".
@@ -243,8 +221,8 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
             end.    
          end. 
          return cQuery.
-    end method.
-    
+    end method.  
+      
      /**  Get default buffer handles 
           to use in child query for parent  
         - must match order of GetChildQuery
@@ -274,10 +252,6 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         end.     
     end method.
     
-    method override public void WriteTo(writer as IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
-     
     method override protected FilteredContext CreateFilteredContext(pParentRow as IRow,pReq as IRequestInfo):     
         case pParentRow:SerializeName:
             when "tenants" then
@@ -346,8 +320,8 @@ class OpenEdge.DataAdmin.Binding.SequenceValueContext inherits DataAdminContext 
         undo, throw new UnsupportedOperationError("CreateCollection SequenceValueContext." ).  
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new SequenceValue(cntxt).       
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new SequenceValue(this-object,preq).       
     end method. 
     
     method public override character ColumnSource(pcColumn as char):

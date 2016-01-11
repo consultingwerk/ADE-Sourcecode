@@ -29,117 +29,117 @@ PROCEDURE web.output:
 	RETURN.
 
   PUT STREAM webStream UNFORMATTED 
-    '<SCRIPT LANGUAGE="JavaScript">~n'
-    'function mask(InString, Mask) ~{~n'
-    '  LenStr = InString.length~; ~n'
-    '  LenMsk = Mask.length~; ~n'
-    '  if ((LenStr == 0) || (LenMsk == 0))~n'
-    '    return(0)~;~n'
-    '  if (LenStr > LenMsk)~n'
-    '    return(0)~;~n'
-    '  TempString = ""~;~n'
-    '  for (Count = 0~; Count <= InString.length~; Count++)  ~{ ~n'
-    '    StrChar = InString.substring(Count, Count+1)~; ~n'
-    '    MskChar = Mask.substring(Count, Count+1)~; ~n'
-    '    if (MskChar == "9") ~{ ~n'
-    '      if(!isNumberChar(StrChar)) ~n'
-    '        return(0)~; ~n'
-    '      } ~n'
-    '      else if ((MskChar == "A") || (MskChar == "a")) ~{ ~n'
-    '        if(!isAlphabeticChar(StrChar)) ~n'
-    '          return(0)~; ~n'
-    '      } ~n'
-    '      else if ((MskChar == "N") || (MskChar == "n"))~{ ~n'
-    '        if(!isNumOrChar(StrChar)) ~n'
-    '          return(0)~; ~n'
-    '      } ~n'
-    '      else if ((MskChar == "X") || (MskChar == "x")) ~{ ~n'
-    '    } ~n'
-    '    else ~{ ~n'
-    '      if (MskChar != StrChar)  ~n'
-    '        return(0)~; ~n'
-    '    } ~n'
-    '  } ~n'
-    '  for (~; Count <= InString.length~; Count++) ~{ ~n'
-    '    MskChar = Mask.substring(Count, Count+1)~; ~n'
-    '    if ((MskChar == "X") || (MskChar == "x")) ~{ ~n'
+    '<SCRIPT LANGUAGE="JavaScript">~n':U
+    'function mask(InString, Mask) ~{~n':U
+    '  LenStr = InString.length~; ~n':U
+    '  LenMsk = Mask.length~; ~n':U
+    '  if ((LenStr == 0) || (LenMsk == 0))~n':U
+    '    return(0)~;~n':U
+    '  if (LenStr > LenMsk)~n':U
+    '    return(0)~;~n':U
+    '  TempString = ""~;~n':U
+    '  for (Count = 0~; Count <= InString.length~; Count++)  ~{ ~n':U
+    '    StrChar = InString.substring(Count, Count+1)~; ~n':U
+    '    MskChar = Mask.substring(Count, Count+1)~; ~n':U
+    '    if (MskChar == "9") ~{ ~n':U
+    '      if(!isNumberChar(StrChar)) ~n':U
+    '        return(0)~; ~n':U
+    '      } ~n':U
+    '      else if ((MskChar == "A") || (MskChar == "a")) ~{ ~n':U
+    '        if(!isAlphabeticChar(StrChar)) ~n':U
+    '          return(0)~; ~n':U
+    '      } ~n':U
+    '      else if ((MskChar == "N") || (MskChar == "n"))~{ ~n':U
+    '        if(!isNumOrChar(StrChar)) ~n':U
+    '          return(0)~; ~n':U
+    '      } ~n':U
+    '      else if ((MskChar == "X") || (MskChar == "x")) ~{ ~n':U
+    '    } ~n':U
+    '    else ~{ ~n':U
+    '      if (MskChar != StrChar)  ~n':U
+    '        return(0)~; ~n':U
+    '    } ~n':U
+    '  } ~n':U
+    '  for (~; Count <= InString.length~; Count++) ~{ ~n':U
+    '    MskChar = Mask.substring(Count, Count+1)~; ~n':U
+    '    if ((MskChar == "X") || (MskChar == "x")) ~{ ~n':U
     '      // do nothing.  we can ignore checking if MskChar == x ~n'
-    '    } ~n'
-    '    else  ~n'
-    '      return(0)~; ~n'
-    '  } ~n'
-    '  return (1)~; ~n'
-    '} ~n'.
+    '    } ~n':U
+    '    else  ~n':U
+    '      return(0)~; ~n':U
+    '  } ~n':U
+    '  return (1)~; ~n':U
+    '} ~n':U.
     
   PUT STREAM webStream UNFORMATTED 
-    'function isAlphabeticChar (InString) ~{ ~n'
-    '  if(InString.length != 1) ~n'
-    '    return (false)~; ~n'
-    '  InString  = InString.toLowerCase () ~n'
-    '  RefString = "abcdefghijklmnopqrstuvwxyz"~; ~n'
-    '  if (RefString.indexOf(InString, 0) == -1) ~n'
-    '    return (false)~; ~n'
-    '  return (true)~; ~n'
-    '} ~n'
-    'function isNumberChar (InString) ~{ ~n'
-    '  if(InString.length != 1)  ~n'
-    '    return (false)~; ~n'
-    '  RefString = "1234567890"~; ~n'
-    '  if (RefString.indexOf(InString, 0) == -1)  ~n'
-    '    return (false)~; ~n'
-    '  return (true)~; ~n'
-    '} ~n'
-    ' ~n'
-    'function isNumOrChar (InString) ~{ ~n'
-    '  if(InString.length != 1)  ~n'
-    '    return (false)~; ~n'
-    '  InString  = InString.toLowerCase()~; ~n'
-    '  RefString = "1234567890abcdefghijklmnopqrstuvwxyz"~; ~n'
-    '  if (RefString.indexOf(InString, 0) == -1)   ~n'
-    '    return (false)~; ~n'
-    '  return (true)~; ~n'
-    '} ~n'
-    ' ~n'.
+    'function isAlphabeticChar (InString) ~{ ~n':U
+    '  if(InString.length != 1) ~n':U
+    '    return (false)~; ~n':U
+    '  InString  = InString.toLowerCase () ~n':U
+    '  RefString = "abcdefghijklmnopqrstuvwxyz"~; ~n':U
+    '  if (RefString.indexOf(InString, 0) == -1) ~n':U
+    '    return (false)~; ~n':U
+    '  return (true)~; ~n':U
+    '} ~n':U
+    'function isNumberChar (InString) ~{ ~n':U
+    '  if(InString.length != 1)  ~n':U
+    '    return (false)~; ~n':U
+    '  RefString = "1234567890"~; ~n':U
+    '  if (RefString.indexOf(InString, 0) == -1)  ~n':U
+    '    return (false)~; ~n':U
+    '  return (true)~; ~n':U
+    '} ~n':U
+    ' ~n':U
+    'function isNumOrChar (InString) ~{ ~n':U
+    '  if(InString.length != 1)  ~n':U
+    '    return (false)~; ~n':U
+    '  InString  = InString.toLowerCase()~; ~n':U
+    '  RefString = "1234567890abcdefghijklmnopqrstuvwxyz"~; ~n':U
+    '  if (RefString.indexOf(InString, 0) == -1)   ~n':U
+    '    return (false)~; ~n':U
+    '  return (true)~; ~n':U
+    '} ~n':U
+    ' ~n':U.
     
   PUT STREAM webStream UNFORMATTED 
-    'function expandFormat (InFormat) ~{ ~n'
-    '  OutFormat = ""~; ~n'
-    '  if(InFormat.length < 1)  ~n'
-    '    return (OutFormat)~; ~n'
-    '  InFormat  = InFormat.toLowerCase()~; ~n'
-    '  RefString = "9anx"~; /* valid format characters */ ~n'
-    '  FirstChar = InFormat.charAt(0)~; ~n'
-    '  if (RefString.indexOf(FirstChar) == -1) ~{ /* not a format character */ ~n'
-    '    return InFormat~; ~n'
-    '  } ~n'
-    '  /* now check if second is ~'(~' and if there is a ~')~' */ ~n'
-    '  StartPos = InFormat.indexOf(~'(~')~; ~n'
-    '  StopPos  = InFormat.indexOf(~')~')~; ~n'
-    '  if ((StartPos == 1) && (StopPos > 2)) ~{ ~n'
-    '    RepeatCount = parseInt(InFormat.substring(StartPos + 1, StopPos))~; ~n'
-    '    if (RepeatCount > 256) ~n'
-    '      RepeatCount = 256~; ~n'
-    '	 while (RepeatCount > 0) ~{ ~n'
-    '	   OutFormat = OutFormat + FirstChar~; ~n'
-    '	   RepeatCount--~; ~n'
-    '	 } ~n'
-    '  } ~n'
-    '  else ~n'
-    '    return InFormat~; ~n'
-    '  return OutFormat~; ~n'
-    '} ~n'
-    ' ~n'
-    'function WSTextVerify(field, field_format) ~{ ~n'
-    '  // a null string is OK, we do not do mandatory field checking (yet) ~n'
-    '  if (field.value == null || field.value == "" || field.value == "<undefined>") ~n'
-    '    return~; ~n'
-    '  picture = expandFormat(field_format)~; ~n'
-    '  if (mask(field.value, picture) == 0) ~{ ~n'
-    '    alert(field.value + " does not match pattern for field " + field.name + "::" + picture)~; ~n'
-    '    field.focus()~; ~n'
-    '  } ~n'
-    '} ~n'
-    '</SCRIPT> ~n'.
+    'function expandFormat (InFormat) ~{ ~n':U
+    '  OutFormat = ""~; ~n':U
+    '  if(InFormat.length < 1)  ~n':U
+    '    return (OutFormat)~; ~n':U
+    '  InFormat  = InFormat.toLowerCase()~; ~n':U
+    '  RefString = "9anx"~; /* valid format characters */ ~n':U
+    '  FirstChar = InFormat.charAt(0)~; ~n':U
+    '  if (RefString.indexOf(FirstChar) == -1) ~{ /* not a format character */ ~n':U
+    '    return InFormat~; ~n':U
+    '  } ~n':U
+    '  /* now check if second is ~'(~' and if there is a ~')~' */ ~n':U
+    '  StartPos = InFormat.indexOf(~'(~')~; ~n':U
+    '  StopPos  = InFormat.indexOf(~')~')~; ~n':U
+    '  if ((StartPos == 1) && (StopPos > 2)) ~{ ~n':U
+    '    RepeatCount = parseInt(InFormat.substring(StartPos + 1, StopPos))~; ~n':U
+    '    if (RepeatCount > 256) ~n':U
+    '      RepeatCount = 256~; ~n':U
+    '	 while (RepeatCount > 0) ~{ ~n':U
+    '	   OutFormat = OutFormat + FirstChar~; ~n':U
+    '	   RepeatCount--~; ~n':U
+    '	 } ~n':U
+    '  } ~n':U
+    '  else ~n':U
+    '    return InFormat~; ~n':U
+    '  return OutFormat~; ~n':U
+    '} ~n':U
+    ' ~n':U
+    'function WSTextVerify(field, field_format) ~{ ~n':U
+    '  // a null string is OK, we do not do mandatory field checking (yet) ~n':U
+    '  if (field.value == null || field.value == "" || field.value == "<undefined>") ~n':U
+    '    return~; ~n':U
+    '  picture = expandFormat(field_format)~; ~n':U
+    '  if (mask(field.value, picture) == 0) ~{ ~n':U
+    '    alert(field.value + " does not match pattern for field " + field.name + "::" + picture)~; ~n':U
+    '    field.focus()~; ~n':U
+    '  } ~n':U
+    '} ~n':U
+    '</SCRIPT> ~n':U.
 END PROCEDURE. /* web.output*/
 
 /* wsverify.p - end of file */

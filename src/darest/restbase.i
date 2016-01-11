@@ -22,7 +22,7 @@
   
 define variable mMode       as char init "{1}" no-undo.
 define variable mCollection as char init "{2}" no-undo.
-
+ 
 if session:batch-mode and not this-procedure:persistent then 
 do:
    output to value("get_administrators.log"). 
@@ -35,7 +35,12 @@ end finally.
 procedure executeRequest:
     define input parameter pcURL as character no-undo.
     define variable restRequest  as IRestRequest no-undo.
-    restRequest = new OpenEdge.DataAdmin.Rest.RestRequest(mMode,mCollection,pcUrl).  
+    define variable lupload      as logical no-undo.
+    &if "{3}" = "upload" &then 
+    lupload = true.
+    &endif
+    restRequest = new OpenEdge.DataAdmin.Rest.RestRequest(mMode,mCollection,pcUrl,lupload).  
+    
     run execute in target-procedure(restRequest).  
 end procedure.
 

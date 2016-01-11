@@ -45,6 +45,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.ITableRequest from propath.
 using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
+using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
 
 class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements IDataAccess, IQueryMap: 
     
@@ -58,9 +59,6 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         field name as char
      /*   field typeno as int  1 2 or 3 .. */
         index idxtype as unique name.
-        
-    
-   define private variable mUrl as character no-undo.    
    
     /*
    define protected property StateEnum as PartitionStateEnum no-undo
@@ -71,11 +69,6 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
        end.
        private set.
 */
-    /*    define query dsextent for dictdb._areaextent,b_Area.*/
-    /*    define data-source dsExtent for query dsextent.     */
-    define private variable TenantURL as character no-undo.
-    define private variable AreaURL   as character no-undo.
-    
     define public property BaseQuery as character no-undo
         get.
         set.
@@ -93,86 +86,98 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
          return pChanges.     
     end method.   
     
+    method protected override IDataSource CreateReadSource(pcName as char):
+        case pcName: 
+            when "ttTenant" then
+                return new TenantDataSource().
+            when "ttTenantGroup" then
+                return new TenantGroupDataSource().    
+            when "ttArea" then 
+                return new AreaDataSource().    
+        end.
+    end method.  
+                
     method private PartitionDataSource GetSource():
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new  PartitionDataSource( ).
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private TablePartitionDataSource GetTableSource():
         define variable partitionSource as TablePartitionDataSource no-undo.
-        partitionSource = new  TablePartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource = new TablePartitionDataSource().
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
      method private PartitionDataSource GetTableJoinSource(pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new TablePartitionDataSource(pcJoinTables,pcJoinPhysTables,pcJoinQueries).
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private PartitionDataSource GetIndexJoinSource(pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new IndexPartitionDataSource(pcJoinTables,pcJoinPhysTables,pcJoinQueries).
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private PartitionDataSource GetFieldJoinSource(pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new FieldPartitionDataSource(pcJoinTables,pcJoinPhysTables,pcJoinQueries).
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private PartitionDataSource GetNewTableSource():
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new  NewTablePartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         return partitionsource.
     end.
        
     method private IndexPartitionDataSource GetIndexSource():
         define variable partitionSource as IndexPartitionDataSource no-undo.
         partitionSource = new  IndexPartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private PartitionDataSource GetNewIndexSource():
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new  NewIndexPartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private FieldPartitionDataSource GetFieldSource():
         define variable partitionSource as FieldPartitionDataSource no-undo.
         partitionSource = new  FieldPartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
     method private PartitionDataSource GetNewFieldSource():
         define variable partitionSource as PartitionDataSource no-undo.
         partitionSource = new  NewFieldPartitionDataSource().
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
+        partitionSource:DataAccess = this-object.
         return partitionsource.
     end.
     
-     
-    method protected override void SetUrl(pcUrl as char):
-        if pcUrl > "" then
-            mUrl = pcUrl.
-        TenantUrl =  pcurl + "/tenants/".
-        AreaURL = pcurl + "/areas/".
-    end method.
-    
     method public override void FetchData(msg as IFetchRequest):
-        SetUrl(msg:Url).
+        Url = msg:Url.
         DatasetHandle = msg:DataHandle. 
         FillData(msg).
     end method.
@@ -215,9 +220,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         define variable hTenant     as handle no-undo.
         define variable hArea       as handle no-undo.
         define variable hGroup      as handle no-undo.
-        define variable tntSource   as TenantDataSource no-undo. 
-        define variable grpSource   as TenantGroupDataSource no-undo. 
-        define variable areaSource  as AreaDataSource no-undo. 
+        define variable tmpSource   as IDataSource no-undo. 
         define variable cJoinTables as character no-undo. 
         define variable cJoinPhysicalTables as character no-undo. 
         define variable cJoinQueries as character no-undo. 
@@ -228,11 +231,10 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         if not valid-object(tableRequest) then 
             undo , throw new IllegalArgumentError("The request message does not have a partition table").
         filter = tableRequest:QueryString.
-        /* RequestTyp NEW is special case for new tenant or group */
+        /* RequestTyp NEW is special case for new tenant,group or policy detail */
         lSimulation = pmsg:GetTableRequestType("ttPartition") = "NEW". 
         hBuffer = DatasetHandle:get-buffer-handle("ttPartition").
         hBuffer:fill-mode = "merge".
-         
         /*   check for index and field  
          Note that ObjectType = "Table" is for table only 
          while TableName is applied to both indexes, tables and fields 
@@ -260,14 +262,14 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
             hTenant = pmsg:DataHandle:get-buffer-handle ("ttTenant").
             if valid-handle(hTenant) then
             do:
-                tntSource = new TenantDataSource().
-                tntSource:FillMode = "Replace".
+                tmpSource = GetReadSource("ttTenant").
+                tmpSource:FillMode = "Replace".
                 /* the partition source will add query on tenant  */
-                tntSource:Prepare(hTenant,"","").
+                tmpSource:Prepare(hTenant,"","").
                 assign
-                    cJoinTables = entry(1,tntSource:tables)
-                    cJoinPhysicalTables = entry(1,tntSource:PhysicalTables)
-                    cJoinQueries = trim(entry(1,tntSource:BaseQuery)) 
+                    cJoinTables = entry(1,tmpSource:tables)
+                    cJoinPhysicalTables = entry(1,tmpSource:PhysicalTables)
+                    cJoinQueries = trim(entry(1,tmpSource:BaseQuery)) 
                     /* remove for or preselect */
                     cQmode = entry(1,cJoinQueries," ")      
                     cJoinQueries = left-trim(substr(cJoinQueries,length(cQmode) + 1))
@@ -277,17 +279,17 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
             hGroup = pmsg:DataHandle:get-buffer-handle ("ttTenantGroup").
             if valid-handle(hGroup) then
             do:
-                grpSource = new TenantGroupDataSource().
-                grpSource:FillMode = "Replace".
+                tmpSource =  GetReadSource("ttTenantGroup").
+                tmpSource:FillMode = "Replace".
                 /* the partition source will add query on tenantgroup  */
-                grpSource:Prepare(hGroup,"","").
+                tmpSource:Prepare(hGroup,"","").
                 assign
                     cJoinTables = (if lJoin then cJoinTables + "," else "")
-                                + entry(1,grpSource:tables)
+                                + entry(1,tmpSource:tables)
                     cJoinPhysicalTables = (if lJoin then cJoinPhysicalTables + "," else "")
-                                        + entry(1,grpSource:PhysicalTables)
+                                        + entry(1,tmpSource:PhysicalTables)
                     cJoinQueries = (if lJoin then cJoinQueries + ", " else "")
-                                 +  trim(entry(1,grpSource:BaseQuery)) 
+                                 +  trim(entry(1,tmpSource:BaseQuery)) 
                     /* remove for or preselect */
                     cQmode = entry(1,cJoinQueries," ")      
                     cJoinQueries = left-trim(substr(cJoinQueries,length(cQmode) + 1))
@@ -297,17 +299,17 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
             hArea = pmsg:DataHandle:get-buffer-handle ("ttArea").
             if valid-handle(hArea) then
             do:
-                areaSource = new AreaDataSource().
-                areaSource:FillMode = "Replace".
+                tmpSource =  GetReadSource("ttArea").  
+                tmpSource:FillMode = "Replace".
                 /* the partition source will add query on area  */
-                areaSource:Prepare(hArea,"","").
+                tmpSource:Prepare(hArea,"","").
                 assign
                     cJoinTables = (if lJoin then cJoinTables + "," else "")
-                                + entry(1,areaSource:tables)
+                                + entry(1,tmpSource:tables)
                     cJoinPhysicalTables = (if lJoin then cJoinPhysicalTables + "," else "")
-                                        + entry(1,areaSource:PhysicalTables)
+                                        + entry(1,tmpSource:PhysicalTables)
                     cJoinQueries = (if lJoin then cJoinQueries + ", " else "")
-                                 +  trim(entry(1,areaSource:BaseQuery)) 
+                                 +  trim(entry(1,tmpSource:BaseQuery)) 
                     /* remove for or preselect */
                     cQmode = entry(1,cJoinQueries," ")      
                     cJoinQueries = left-trim(substr(cJoinQueries,length(cQmode) + 1))
@@ -340,30 +342,32 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
                 fldPartitionSource = GetNewFieldSource().  
         end.    
         
-        
-        
         /* these can be true also if there is an OR with other tables */
         if lindexsearch or lfieldsearch then
         do:
-           if valid-object(tableRequest) and tableRequest:PageSize > 0 then
-               undo, throw new UnsupportedoperationError("Batching is only supported for table partion requests.").  
-          
-           /* this is somewhat restrictive, but it difficult to 
-              decide what a "tablename begins 'a' or fieldname begins 'a'" 
-              requestwould mean since the file and index are children 
-              of table... Partitions are either for index, lob or table
-               */
-           if lindexsearch and lfieldsearch then
-               undo, throw new UnsupportedOperationError("PartitionData filter request on both indexes and fields."). 
            
-           if lindexsearch then
-               FillIndexPartitions(idxPartitionSource,hbuffer,filter,lsimulation).
-           if lfieldsearch then
-               FillFieldPartitions(fldPartitionsource,hbuffer,filter,lsimulation).
+            /* this is somewhat restrictive, but it difficult to 
+               decide what a "tablename begins 'a' or fieldname begins 'a'" 
+               requestwould mean since the file and index are children 
+               of table... Partitions are either for index, lob or table
+               */
+            if lindexsearch and lfieldsearch then
+                undo, throw new UnsupportedOperationError("PartitionData filter request on both indexes and fields."). 
+           
+            if lindexsearch then
+                iRecords = FillSchemaElementPartitions(idxPartitionSource,hbuffer,tableRequest,lsimulation).
+            if lfieldsearch then
+                iRecords = FillSchemaElementPartitions(fldPartitionsource,hbuffer,tableRequest,lsimulation).
+               
+            if iRecords <> ? then
+            do: 
+                pMsg:SetTableTotal("ttPartition",iRecords).
+            end.    
         end.
         else do:
             if not lsimulation then 
             do:
+                
                 if lJoin then 
                     tblPartitionSource = GetTableJoinSource(cJoinTables,cJoinPhysicalTables,cJoinQueries).  
                 else 
@@ -371,28 +375,24 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
             end.
             else
                 tblPartitionSource = GetNewTableSource().  
-            
-            iRecords = FillTablePartitions(tblPartitionSource,hbuffer,tableRequest,lsimulation).
+                
+            iRecords = FillSchemaElementPartitions(tblPartitionSource,hbuffer,tableRequest,lsimulation).
             
             if iRecords <> ? then
             do: 
-                if not lfileonly then
-                    undo, throw new UnsupportedoperationError("Batching is only supported for table partion requests.").  
                 pMsg:SetTableTotal("ttPartition",iRecords).
             end.
             if not lfileonly then
             do:
-                FillIndexPartitions(idxPartitionSource,hbuffer,filter,lsimulation).
-                FillFieldPartitions(fldPartitionsource,hbuffer,filter,lsimulation).
+                FillSchemaElementPartitions(idxPartitionSource,hbuffer,tableRequest,lsimulation).
+                FillSchemaElementPartitions(fldPartitionsource,hbuffer,tableRequest,lsimulation).
             end.
         end.
         finally:
+            DestroySources().
             delete object tblPartitionSource no-error.		
             delete object idxPartitionSource no-error.      
             delete object fldPartitionSource no-error.      
-            delete object tntSource no-error.
-            delete object grpSource no-error.
-            delete object areaSource no-error.
         end finally.
     end method.
      
@@ -411,7 +411,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         partitionSource = new  PartitionDataSource(phPartitionIdBuffer,
                               "for each ttPartitionIdRequest, "
                             + " each _StorageObject where _StorageObject._PartitionId = ttPartitionIdRequest.PartitionId no-lock" ).
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         phPartitionIdBuffer:fill-mode = "no-fill".
         hBuffer = DatasetHandle:get-buffer-handle("ttPartition").
         partitionSource:FillMode = "Append".
@@ -432,7 +432,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         
         partitionSource = new TablePartitionDataSource(phTableRequestBuffer,cjoin).
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
         /* is not garbage collected if set-callback is used */
@@ -440,7 +440,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
     
         partitionSource = new IndexPartitionDataSource(phTableRequestBuffer,cjoin). 
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
          /* is not garbage collected if set-callback is used */
@@ -448,7 +448,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         
         partitionSource = new FieldPartitionDataSource(phTableRequestBuffer,cjoin).
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
          /* is not garbage collected if set-callback is used */
@@ -472,7 +472,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         partitionSource = new PartitionDataSource(phBuffer,
                                             "for each ttGroupNameRequest, each _storageObject " + cjoin + " no-lock").
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
         /* is not garbage collected if set-callback is used */
@@ -482,7 +482,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
                          "_file._File-number = ttGroupNameRequest.ObjectNumber",
                      "_StorageObject._PartitionId = ttGroupNameRequest.Id"  ).
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
         /* is not garbage collected if set-callback is used */
@@ -492,7 +492,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
                          "_file._File-number = ttGroupNameRequest.ObjectNumber",
                      "_StorageObject._PartitionId = ttGroupNameRequest.Id"  ).
         partitionSource:FillMode = "Append".
-        partitionSource:Url = mUrl.
+        partitionSource:Url = Url.
         partitionSource:Prepare(hBuffer,"","").
         DatasetHandle:Fill().
          /* is not garbage collected if set-callback is used */
@@ -557,7 +557,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
         return ?.   
     end method.
     
-    method private integer FillTablePartitions(psrc as PartitionDataSource,phBuffer as handle,preq as ITableRequest,plsim as log): 
+    method private integer FillSchemaElementPartitions(psrc as PartitionDataSource,phBuffer as handle,preq as ITableRequest,plsim as log): 
         define variable lok as logical no-undo.
         psrc:FillMode = "Append".
         if valid-object(preq) then 
@@ -574,35 +574,9 @@ class OpenEdge.DataAdmin.DataAccess.PartitionData inherits DataAccess implements
             	undo, throw new DataAccessError(e).	
             end catch.
         end.
-                  
+         return ?.             
     end method.
       
-    method private logical FillIndexPartitions(psrc as PartitionDataSource,phBuffer as handle,filter as char,plsim as log): 
-        define variable lok as logical no-undo.
-        psrc:FillMode = "Append".
-        lok = psrc:Prepare(phBuffer,filter,"").
-        if lok then        
-        do on error undo, throw:       
-            DatasetHandle:Fill().
-            catch e as Progress.Lang.Error :
-                undo, throw new DataAccessError(e). 
-            end catch.
-        end.    
-        return lok.
-    end method.
-    
-    method private logical FillFieldPartitions(psrc as PartitionDataSource,phBuffer as handle,filter as char,plsim as log): 
-        define variable lok as logical no-undo.
-        psrc:FillMode = "Append".
-        lok = psrc:Prepare(phBuffer,filter,"").
-        if lok then        
-        do on error undo, throw:       
-            DatasetHandle:Fill(). 
-            catch e as Progress.Lang.Error :
-                undo, throw new DataAccessError(e). 
-            end catch.
-        end.
-        return lok.    
-    end method.
+ 
  
 end class.

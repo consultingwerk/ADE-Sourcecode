@@ -14,13 +14,11 @@
     Created     : Aug 2010
     Notes       : 
   ----------------------------------------------------------------------*/
- 
-using OpenEdge.DataAdmin.Core.IElement from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath.
-using OpenEdge.DataAdmin.IDataAdminService from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Core.IElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IDataAdminService.
+using OpenEdge.DataAdmin.IRequestInfo.
 interface OpenEdge.DataAdmin.IDataAdminElement inherits IDataAdminSerializable, IElement:  
     
     /** returns the Service the object was retrieved from */
@@ -43,14 +41,6 @@ interface OpenEdge.DataAdmin.IDataAdminElement inherits IDataAdminSerializable, 
     /** Tells whether the instance is in a collection or service. */
     define public property Attached as logical no-undo           get.
     
-    /** Attaches the object to the context/model 
-        @param context IDataAdminContext that holds the data     
-        Call cntxt:CreateRow if IsAttached = false and contextid = "".
-        Call cntxt:Copy(oldcontext) if IsAttached is false and context is valid
-        
-     */
-    method public void Attach(cntxt as IDataAdminContext).
-       
     /** Import entity data from the specified file (must exist) 
         @param file the file name to imprt from - currently supportes .json only */   
     method public void Import(cFile as char).      

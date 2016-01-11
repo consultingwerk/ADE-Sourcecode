@@ -209,11 +209,11 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
             AuthenticationSystem = pType.
         end.  
 	
-	constructor public Domain (cntxt as IDataAdminContext,preq as IRequestInfo):
+	constructor public Domain (cntxt as IDataAdminModel,preq as IRequestInfo):
         super (cntxt,preq).        
     end constructor.
       
-	constructor public Domain (cntxt as IDataAdminContext):
+	constructor public Domain (cntxt as IDataAdminModel):
         super (cntxt).        
     
     end constructor.
@@ -222,7 +222,7 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
         super (name).
     end constructor. 
     
-    method protected override IDataAdminContext CreateLocalContext(): 
+    method protected override IDataAdminModel CreateLocalContext(): 
         return new DomainContext().  
     end method.
         

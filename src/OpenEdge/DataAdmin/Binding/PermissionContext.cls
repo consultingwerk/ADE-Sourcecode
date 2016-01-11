@@ -1,4 +1,5 @@
  /*************************************************************/
+
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -14,33 +15,24 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.UserTablePermissionSet from propath.
-using OpenEdge.DataAdmin.UserTablePermission  from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.UserFieldPermissionContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
 using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.QueryContext from propath.
+using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-
-/*using OpenEdge.DataAdmin.Binding.FieldPermissionContext from propath.*/
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-/*using OpenEdge.DataAdmin.Message.IFetchResponse from propath.*/
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-
+using OpenEdge.DataAdmin.Binding.IContextTree from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.Binding.QueryContext from propath.
+using OpenEdge.DataAdmin.Binding.UserFieldPermissionContext from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.IDataAdminCollection from propath.
+using OpenEdge.DataAdmin.IDataAdminElement from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
+using OpenEdge.DataAdmin.UserTablePermission from propath.
+using OpenEdge.DataAdmin.UserTablePermissionSet from propath.
+using Progress.Json.ObjectModel.JsonObject from propath.
 
 class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -49,16 +41,7 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
      
     define private dataset dsTablePermission serialize-name "root" for ttUserTablePermission.  
     define private variable mUsercntxt as UserFieldPermissionContext no-undo.     
-    define variable mRequestDataset as handle no-undo.
     define private variable NewFactory as IServiceContextFactory no-undo.     
-     
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return  DatasetHandle.   
-        end get.
-        private set.
         
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -85,7 +68,6 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
         protected set.
   
   	constructor public PermissionContext (pscope as IServiceContextFactory):
-       
         super ("Permission",pscope).
         mUsercntxt = pscope:GetUserFieldPermissionContext().
         mUsercntxt:Lazy = false.
@@ -93,8 +75,7 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
         NewFactory = pScope.  
     end constructor.
     
-	
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Permission").
     end method. 
      
@@ -122,12 +103,12 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
         return new UserTablePermissionSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new UserTablePermission(cntxt). 
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new UserTablePermission(this-object,preq). 
     end method. 
     
 	method public IFetchRequest GetRequest(pcCollections as char):
-		define variable tree  as ContextTree no-undo.
+		define variable tree  as IContextTree no-undo.
 	    define variable msg   as IFetchRequest no-undo.
 	    define variable cntxt as IDataAdminContext no-undo.
     	define variable i as integer no-undo.
@@ -157,16 +138,16 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
                     + " = " 
                     + quoter(cntxt:TableHandle:name).       
         end.
-		mRequestDataset = tree:GetReadHandle().
-		msg =  new FetchRequest(Name,Id,mRequestDataset).
+        
+		DatasetHandle = tree:GetReadHandle().
+		msg =  new FetchRequest(Name,Id,DatasetHandle,yes). /* keep dyn dataset*/
 		msg:SetTableQuery("ttUserTablePermission",cWhere).
         msg:SetTableQuery("ttUserFieldPermission",cfieldWhere).
-		msg:UseReplaceOnClient = false.
 		return msg.
 		
 	end method.
     
-    method private IDataAdminContext GetContexctBySerializeName(pcName as char).
+    method private IDataAdminContext GetContextBySerializeName(pcName as char).
         return  NewFactory:GetContextBySerializeName(pcname).
       
        end method.
@@ -202,7 +183,7 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
         define variable cname as character no-undo.
         jsonRoot   = new JsonObject().   
         for each ttUserTablePermission on error undo,throw:        
-            hBuffer = mRequestDataset:get-buffer-handle(ttUserTablePermission.name).  
+            hBuffer = DatasetHandle:get-buffer-handle(ttUserTablePermission.name).  
   
 /*            cname =  lc(substr(ttUserTablePermission.name,3) + "s") .*/
             jsonRoot:Add(hBuffer:serialize-name,GetJsonProperties(hBuffer)). 
@@ -228,20 +209,12 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
     method public override void ExportNormalized (pcfile as char):
         define variable jsonroot as JsonObject no-undo.    
         jsonroot  = GetJsonObjects().
-        jsonroot:WriteFile(pcfile, TRUE).
-        delete object mRequestDataset.
+        jsonroot:WriteFile(pcfile, true).
     end method.
-    
-    /* this is needed if UseReplaceOnClient is not set to false in GetRequest 
-    method public override void DataRefreshed(pResponse as IFetchResponse): 
-         super:DataRefreshed(pResponse).
-         if pResponse:EntityName = 'Permission' then
-         do:
-             create dataset mRequestdataset.
-             mRequestdataset:create-like(pResponse:DataHandle).
-             mRequestdataset:copy-dataset(pResponse:DataHandle).
-         end.
-          
-    end method.
-    */
+
+	/*------------------------------------------------------------------------------
+	 Purpose:
+	 Notes:
+	------------------------------------------------------------------------------*/
+ 
 end class.

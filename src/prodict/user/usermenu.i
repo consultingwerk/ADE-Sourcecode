@@ -974,8 +974,7 @@ Procedure Perform_Func:
    Define var prev_dbname as char    NO-UNDO.
    Define var ampersand   as integer NO-UNDO.
    Define var lbl         as char    NO-UNDO.
-   DEFINE VAR lError      AS LOGICAL NO-UNDO.
-   DEFINE VAR inTrans1    AS LOGICAL NO-UNDO /*UNDO*/.
+   
 
    hide message NO-PAUSE.
 
@@ -1004,29 +1003,26 @@ Procedure Perform_Func:
    &ENDIF
 
    /* this is the main execute loop */
-mainl:
+   mainl:
    DO WHILE user_path <> "" AND user_path <> "*E" AND user_path <> "*R"
              ON ERROR UNDO, LEAVE mainl
              ON STOP  UNDO, LEAVE mainl:
-      IF user_dbname = ""
-       THEN RUN "prodict/_dctexen.p".
-       ELSE do:
-        IF dict_trans
-         THEN 
-          _dict: DO TRANSACTION:
-            ASSIGN inTrans1 = YES.
-            RUN "prodict/_dctexec.p".
-            IF user_path = "*R" THEN UNDO _dict,LEAVE _dict.
-
-            FINALLY:
-                /* OE00111504 - if not inTrans1, transaction was rolled back */
-                IF NOT inTrans1 THEN
-                   lerror = YES.
-            END.
-         END.
-         ELSE RUN "prodict/_dctexec.p".
+       if user_dbname = "" then 
+           run "prodict/_dctexen.p".
+       else do:
+           if dict_trans then 
+           _dict: 
+           do transaction:
+               run "prodict/_dctexec.p".
+               if user_path = "*R" then undo _dict,leave _dict.
+               catch onError as Progress.Lang.Error:
+                    /* display alert box for error condition when transaction is rolled back  */
+                   run showTransactionError(onError).
+               end catch.
+           end.
+           else run "prodict/_dctexec.p".
        end.
-     end.
+   end.
 
    IF user_path = "*E" 
      THEN APPLY "CHOOSE" TO MENU-ITEM mi_Exit IN MENU mnu_Database.
@@ -1038,11 +1034,7 @@ mainl:
     */
    user_path =  "".
 
-   /* OE00111504 - give the user a chance to see the error message that
-      caused the rollback.
-   */
-   IF lError THEN
-       PAUSE.
+   
 
    hide all no-pause.
    RUN adecomm/_setcurs.p ("").
@@ -1090,6 +1082,22 @@ Procedure disable_widgets:
   end.
 
 
+Procedure showTransactionError:
+    define input parameter  pError  as Progress.Lang.Error no-undo.
+    define variable cMsg as character no-undo.
+    define variable i as integer no-undo.
+    define variable ctxt as character no-undo.
+    do i = 1 to pError:NumMessages:
+        cMsg = cMsg + pError:GetMessage (i) + chr(10).
+    end.
+    cMsg = trim(cMsg,CHR(10)).
+    /* Show something a bit meaningful in context line */
+     ctxt = "Apply Changes".
+    { prodict/user/userhdr.i ctxt}
+    message cMsg view-as alert-box title "Transaction Failed".     
+end procedure.
+
+
 /*------------------------------------------------------------------------ 
    Reactivate myself now that invoked tool has returned. 
 ------------------------------------------------------------------------*/
@@ -1130,42 +1138,42 @@ Procedure enable_widgets:
    */
    curr_conn = connected (user_dbname).
    if num_connected = NUM-DBS then  /* this check is for efficiency */
-      do ix = 1 to cache_db# while all_conn:
-         all_conn = all_conn AND CONNECTED(cache_db_l[ix]).
-        end.
+   do ix = 1 to cache_db# while all_conn:
+       all_conn = all_conn AND CONNECTED(cache_db_l[ix]).
+   end.
 
    if num_connected <> NUM-DBS OR NOT all_conn then
    do:
       prev_db = user_dbname.
       if user_dbname <> "" AND NOT curr_conn then
       do:
-               /* previous db no longer connected */
-               user_dbname = "".
-               user_dbtype = "".
-               user_filename = "".
-               { prodict/user/usercon.i user_filename} /* displays footer */
-        end.
+           /* previous db no longer connected */
+           user_dbname = "".
+           user_dbtype = "".
+           user_filename = "".
+           { prodict/user/usercon.i user_filename} /* displays footer */
+      end.
       if user_dbname = "" then
-               run Reset_Db (INPUT prev_db). /* refresh cache and pick a new db */
+          run Reset_Db (INPUT prev_db). /* refresh cache and pick a new db */
       else 
-               run "prodict/_dctsget.p".  /* refresh the cache */
-     end.
+          run "prodict/_dctsget.p".  /* refresh the cache */
+    end.
 
-  if curr_conn then 
-   do:
-     IF user_dbtype <> "PROGRESS" THEN
-      /* Make sure alias is still set properly. */
-        CREATE ALIAS "DICTDB" FOR DATABASE VALUE(SDBNAME(user_dbname)) NO-ERROR.
-     ELSE
-        CREATE ALIAS "DICTDB" FOR DATABASE VALUE(user_dbname) NO-ERROR.
+    if curr_conn then 
+    do:
+        IF user_dbtype <> "PROGRESS" THEN
+            /* Make sure alias is still set properly. */
+            CREATE ALIAS "DICTDB" FOR DATABASE VALUE(SDBNAME(user_dbname)) NO-ERROR.
+        ELSE
+            CREATE ALIAS "DICTDB" FOR DATABASE VALUE(user_dbname) NO-ERROR.
 
-      /* Since someone may have changed the schema in other tool */
-      assign
-               user_filename = ""
-               cache_dirty = yes.
-     end.
-   {prodict/user/usercon.i user_filename} /* redisplay footer */
-  end.
+        /* Since someone may have changed the schema in other tool */
+        assign
+            user_filename = ""
+            cache_dirty = yes.
+    end.
+    {prodict/user/usercon.i user_filename} /* redisplay footer */
+end procedure.
 
 /* Execute the different utilities for encryption policies */
 PROCEDURE encpol_tool.

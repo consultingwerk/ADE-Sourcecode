@@ -593,7 +593,7 @@
       <_Event-criteria></_Event-criteria>
     </audit-event>
     <audit-event Event-id="10300">
-      <_Event-level>2</_Event-level>
+      <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
     <audit-event Event-id="10301">
@@ -617,7 +617,7 @@
       <_Event-criteria></_Event-criteria>
     </audit-event>
     <audit-event Event-id="10306">
-      <_Event-level>2</_Event-level>
+      <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
     <audit-event Event-id="10400">
@@ -1315,6 +1315,38 @@
       <_Event-criteria></_Event-criteria>
     </audit-event>
   </Policy>
+  <Policy GUID="3X2aMPgFPqbiE/GFnD8GDA" Name="PSC-Table-partition">
+    <policy-properties>
+      <_Audit-policy-description>Audit policy for TP database utilities and administration</_Audit-policy-description>
+      <_Audit-data-security-level>0</_Audit-data-security-level>
+      <_Audit-custom-detail-level>0</_Audit-custom-detail-level>
+      <_Audit-policy-active>YES</_Audit-policy-active>
+    </policy-properties>
+    <audit-event Event-id="11800">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11801">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11802">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11803">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11804">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11805">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+  </Policy>
   <Policy GUID="kyuAW8cenLzZEVPCzRhVbw" Name="Application">
     <policy-properties>
       <_Audit-policy-description>Application events (context and event groups)</_Audit-policy-description>
@@ -1388,4 +1420,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=4A8xAMDXpKUT0myf26nrcA;OYEr4CB3XxUr9CjqduG/0A== -->
+<!-- SealID=qAQMRtssT50T5mKUQFHhEA;AKL1zvORJp9q6hnQh2HPcg== -->

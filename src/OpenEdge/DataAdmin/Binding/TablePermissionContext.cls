@@ -15,28 +15,26 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.TablePermissionSet from propath.
-using OpenEdge.DataAdmin.TablePermission  from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
- 
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
- 
-/*using OpenEdge.DataAdmin.Binding.FieldPermissionContext from propath.*/
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
 
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using OpenEdge.DataAdmin.Message.SaveRequest.
+using OpenEdge.DataAdmin.TablePermission.
+using OpenEdge.DataAdmin.TablePermissionSet.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -48,14 +46,6 @@ class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContex
     
     define variable mLastSavedTable as handle no-undo.
      
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return DatasetHandle.
-        end get.
-        private set. 
-    
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -88,7 +78,7 @@ class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContex
     end constructor.
     
 	
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy TablePermission").
     end method. 
      
@@ -115,10 +105,6 @@ class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContex
         hDs:write-json ("File",pcFile,yes).        
     end method.
       
-    method override public void WriteTo( input writer as OpenEdge.DataAdmin.Binding.IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
-   
 	method public override logical CanFind(name as character):
         return can-find(ttTablePermission where ttTablePermission.name = name).            
     end.    
@@ -132,7 +118,7 @@ class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContex
         return new TablePermissionSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new TablePermission(cntxt). 
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new TablePermission(this-object,pReq). 
     end method. 
 end class.

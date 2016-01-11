@@ -1,10 +1,10 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
+/* Copyright (c) 2011,2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
  /*------------------------------------------------------------------------
     Purpose     : Query for partitions of a single TenantGroup 
     Syntax      : 
@@ -14,27 +14,24 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
  
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IRequestInfo  from propath.
- 
- 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.IPartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.TenantGroupContext from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.PartitionQuery from propath.
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-
 routine-level on error undo, throw.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IPartitionContext.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.PartitionQuery.
+using OpenEdge.DataAdmin.Binding.TenantGroupContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.IllegalOperationError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits PartitionQuery implements IPartitionQuery,IPartitionContext: 
 	/*------------------------------------------------------------------------------
@@ -49,11 +46,11 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Partit
     define protected property DefaultIndexArea as char get. set.
     define protected property DefaultLobArea as char get. set.
     define protected property TableName as char get. set.
-    
+     
     /** Parent context (Model) may change so don't store this */   
 	define private property TenantGroupContext as TenantGroupContext no-undo
 	     get():
-	         return  cast(Parent:GetChild("tenantGroups"),TenantGroupContext).
+	         return  cast(Model:GetChild("tenantGroups"),TenantGroupContext).
          end.
 	  
 	 
@@ -66,13 +63,14 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Partit
         super (pModel,pParent,pReq).     
         if pparent:Created then
         do:
-          
             assign
                 TableName         = pParent:FieldValue("TableName")
                 DefaultAllocation = pParent:FieldValue("DefaultAllocation")
                 DefaultDataArea   = pParent:FieldValue("DefaultDataAreaName") 
                 DefaultIndexArea  = pParent:FieldValue("DefaultIndexAreaName") 
                 DefaultLobArea    = pParent:FieldValue("DefaultLobAreaName"). 
+            if TableName = "" then
+                undo, throw new IllegalOperationError("Request for partitions for new TenantGroup with no Table.").   
             mNew = true.
         end.
         PartitionContext = pModel.
@@ -98,7 +96,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Partit
     
     method public IFetchRequest GetNewRequest():   
         define variable msg as IFetchRequest no-undo.
-        msg = new FetchRequest(Name,Id,DatasetHandle).
+        msg = new FetchRequest(Name,Id,DatasetHandle,yes).
         msg:SetTableRequestType("ttPartition","NEW").
         msg:SetTableQuery("ttPartition",GetNewQuery()).
         return msg.
@@ -125,25 +123,22 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Partit
         end.
     end method.  
     
-    method public logical FindTable(pctable as char):
+    method public override logical FindTable(pctable as char):
         return this-object:Find(pctable,"","",""). 
     end method.
     
-    method public logical FindField(pctable as char, pcfield as char):
+    method public override logical FindField(pctable as char, pcfield as char):
         return this-object:Find(pctable,pcfield,"",""). 
     end method.
      
-    method public logical FindIndex(pctable as char, pcIndex as char,pcCollection as char):
+    method public override logical FindIndex(pctable as char, pcIndex as char,pcCollection as char):
         return this-object:Find(pctable,"",pcIndex,pcCollection). 
     end method.
     
     method protected logical Find(pctable as char,pcField as char, pcIndex as char,pccollation as char):
-        if cast(parent,PartitionContext):FindGroup(ParentValue,pctable,pcField,pcIndex,pccollation) then
+        if PartitionContext:FindGroup(ParentValue,pctable,pcField,pcIndex,pccollation) then
         do:
-            TableHandle:default-buffer-handle:rowid.
-            
-            return true.  
-/*            FindInQuery(TableHandle:default-buffer-handle:rowid).*/
+            return SynchWithModel(PartitionContext). 
         end.
         else return false.    
     end method.
@@ -161,32 +156,45 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery inherits Partit
     end method.
     
     method protected logical CanFind(pctable as char,pcField as char, pcIndex as char, pccollection as char):
-        return cast(parent,PartitionContext):CanFindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection).
+        if PartitionContext:FindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+           return CanFindCurrentModel(PartitionContext).
     end method.
     
-    method public logical CanFindTenant(pcchar as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical CanFindTenant(pcchar as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return false.
     end method.
     
-    method public logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         if ParentValue = pcGroup then 
-            return cast(parent,PartitionContext):CanFindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection).
-        else
-            return false.  
+        do:
+            if PartitionContext:FindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+               return CanFindCurrentModel(PartitionContext).
+         end.
+         return false.
     end method.
     
-    method public logical FindTenant(pcchar as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical CanFindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+        return false.  
+    end method.
+    
+    method public override logical FindTenant(pcchar as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return false.
     end method.
     
-    method public logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         if ParentValue = pcGroup then 
-            return cast(parent,PartitionContext):FindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection).
-        else
-            return false.  
+        do:
+            if PartitionContext:FindGroup(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+                return SynchWithModel(PartitionContext).
+        end.
+        return false.  
     end method.
-     
-    method public logical Allocate():        
+    
+    method public override logical FindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+        return false.  
+    end method.  
+    
+    method public override logical Allocate():        
         define variable rid as rowid no-undo.
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.

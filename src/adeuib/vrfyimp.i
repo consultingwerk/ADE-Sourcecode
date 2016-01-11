@@ -437,7 +437,7 @@ PROCEDURE connect_dbs:
   _inp_line = "".
   IMPORT STREAM _P_QS _inp_line.
   DO WHILE _inp_line[1] NE "*/":
-    IF NOT CONNECTED(_inp_line[1]) THEN
+    IF NOT CONNECTED(_inp_line[1]) and not ideSynchSilent THEN
     DO ON STOP UNDO, RETRY:
       IF RETRY THEN DO:
         ASSIGN AbortImport = YES.

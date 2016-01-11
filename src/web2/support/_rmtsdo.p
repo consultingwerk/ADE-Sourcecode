@@ -1036,7 +1036,7 @@ FUNCTION getAsUsePrompt RETURNS LOGICAL
   Purpose: Return the appservice name 
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1053,7 +1053,7 @@ FUNCTION getCheckCurrentChanged RETURNS LOGICAL
   Purpose: Return the property of the remote object.   
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1088,7 +1088,7 @@ FUNCTION getDBAware RETURNS LOGICAL
   Purpose: Return the property of the remote object.   
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1105,7 +1105,7 @@ FUNCTION getDestroyStateless RETURNS LOGICAL
   Purpose: Return the property of the remote object.   
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1122,7 +1122,7 @@ FUNCTION getDisconnectAppServer RETURNS LOGICAL
   Purpose: Return the property of the remote object.   
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1210,7 +1210,7 @@ FUNCTION getQueryObject RETURNS LOGICAL
   Purpose: Return the property of the remote object.   
     Notes:  
 ------------------------------------------------------------------------------*/
-    RETURN CAN-DO("yes,true",admProp()).
+    RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1227,7 +1227,7 @@ FUNCTION getReBuildOnRepos RETURNS LOGICAL
   Purpose: Return the property of the remote object.    
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN CAN-DO("yes,true",admProp()).
+  RETURN CAN-DO("yes,true":U,admProp()).
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

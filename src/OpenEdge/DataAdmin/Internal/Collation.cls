@@ -15,23 +15,22 @@
 ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
  
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.Entity from propath.
-
-using OpenEdge.DataAdmin.Internal.Collation from propath.
-using OpenEdge.DataAdmin.Internal.ICollation from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
- 
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.Internal.Collation.
+using OpenEdge.DataAdmin.Internal.ICollation.
+using Progress.Lang.*. 
 
 class OpenEdge.DataAdmin.Internal.Collation abstract inherits Entity implements ICollation use-widget-pool: 
  
-    constructor public Collation (cntxt as IDataAdminContext ):
+    constructor public Collation (cntxt as IDataAdminModel ):
         super (cntxt).    
 /*        Context = cntxt.*/
     end constructor.
     
     /* return local contaxt if needed (if entity has child collections).  */ 
-    method protected override IDataAdminContext CreateLocalContext().
+    method protected override IDataAdminModel CreateLocalContext().
         return ?.
     end method.
     

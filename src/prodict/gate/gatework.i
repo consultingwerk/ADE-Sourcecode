@@ -41,7 +41,8 @@ History:
     rohit      04/30/08 Added new field gate-seqpre to gate-work
     knavneet   04/28/09 BLOB support for MSS (OE00178319)
     sgarg      04/28/09 Added s_ttb_fld.ds_msc17. (OE00193877)
-    kmayur     06/21/11 Added s_ttb_con for constraint pull OE00195067    
+    kmayur     06/21/11 Added s_ttb_con for constraint pull OE00195067
+    sdash    05/04/14   Support for native sequence generator for MSS.
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -143,24 +144,48 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
   define {&new} shared stream     s_stm_errors.
   
   define {&new} shared TEMP-TABLE s_ttb_seq
-          field ds_name          as character /* foreign name */
+          field ds_name          as CHARACTER /* foreign name */
           field ds_spcl          as character initial ? 
-                                              /* ODB: FullName [3] */
-                                              /* ORA: LinkName [8]*/
-          field ds_type          as character /* foreign type */
-          field ds_user          as character /* foreing owner */
-          field ds_incr          as INT64     /* FOREIGN increment */
-          field ds_max           as INT64     /* FOREIGN max-value */
-          field ds_min           as INT64     /* FOREIGN min-value */
-          field ds_cycle         as logical   /* foreign cycle yes/no */
+                                               /* ODB: FullName [3] */
+                                               /* ORA: LinkName [8]*/
+          field ds_natspcl       as character initial ? 
+                                               /* MSS: FullName:DSN.Owner.SeqN+
+                                                  NatSeqAttr's: foreign type, prec, scale, incr, min, max, cycle, <parms> */
+          field ds_attr64        as logical    /* is Native Sequence? */
+          field ds_type          as character  /* foreign type */
+          field ds_user          as character  /* foreing owner */
+          field ds_incr          as INT64      /* FOREIGN increment */
+          field ds_max           as INT64      /* FOREIGN max-value */
+          field ds_min           as INT64      /* FOREIGN min-value */
+          field ds_cycle         as logical    /* foreign cycle yes/no */
           field gate-work        as recid
-          field pro_name         as character /* PROGRESS name */
-          field pro_recid        as recid     initial ?
-          index upi              is unique primary
-                                     pro_name
-          index uids             is unique
-                                    ds_name ds_user ds_spcl.
-                                    
+          field pro_name         as character  /* PROGRESS name */
+          field pro_recid        as recid   initial ?
+          field fdbname          as character  /* FOREIGN Database name of native sequence */
+          field ds_cache         as INT64      /* FOREIGN cache size of native sequence */
+          field ds_scale         as INT64      /* FOREIGN scale of native sequence */
+          field ds_prec          as INT64      /* FOREIGN precision of native sequence */
+          field ds_datatype      as character  /* FOREIGN sequence datatype of native sequence */
+	  field ds_init          as INT64      /* FOREIGN sequence Init of native sequence */
+          index upi              is unique    primary  pro_name
+          index uids             is unique    ds_name  ds_user  ds_spcl.
+
+  DEFINE {&new} shared TEMP-TABLE s_ttb_ntvseq NO-UNDO
+          FIELD fdbname         AS  CHARACTER
+          FIELD schname         AS  CHARACTER 
+          FIELD seqtype         AS  CHARACTER
+          FIELD seqname         AS  CHARACTER 
+          FIELD datatype        AS  CHARACTER
+          FIELD precision       AS  INT64 
+          FIELD scale           AS  INT64 
+          FIELD startvalue      AS  INT64 
+          FIELD minvalue        AS  INT64 
+          FIELD maxvalue        AS  INT64 
+          FIELD increment       AS  INT64 
+          FIELD iscycle         AS  LOGICAL
+          FIELD cachesize       AS  INTEGER
+          index uinatseq        is unique primary   seqname schname.
+  
   define {&new} shared TEMP-TABLE s_ttb_tbl
           field ds_msc13         as integer   initial ? 
                                               /*    misc1[3]           */
@@ -351,5 +376,6 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
   /* OE00195067 END */
   DEFINE {&new} shared TEMP-TABLE s_ttb_splfld        
           field name AS CHAR.
+
   &ENDIF
  

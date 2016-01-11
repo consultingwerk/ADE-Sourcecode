@@ -1,4 +1,6 @@
- 
+/************************************************
+Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
    File        : ProcedureAnnotationInfo
    Purpose     : Stores the information related to the BeforeProcedure,Before, Test, After, AfterProcedure annotations in
@@ -10,268 +12,238 @@
    Notes       : 
  ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
-using Progress.Lang.AppError.
-using OpenEdge.ABLUnit.Util.*.
-using OpenEdge.ABLUnit.Reflection.*.
-using OpenEdge.ABLUnit.Assertions.AssertionFailedException.
-using OpenEdge.ABLUnit.Assertions.Assert.
 
+USING OpenEdge.Core.AssertionFailedError.
+USING OpenEdge.ABLUnit.Reflection.AnnotationInfo.
+USING OpenEdge.ABLUnit.Reflection.TestInfo.
+USING OpenEdge.ABLUnit.Results.TestTestResult.
+USING OpenEdge.ABLUnit.Results.TestTypeResult.
+USING OpenEdge.Core.Collections.Array.
+USING OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo.
 
-
-class OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo: 
-    define variable beforeProcCount      as integer                                 no-undo init 0.
-    define variable beforeProcList       as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable beforeCount          as integer                                 no-undo init 0.
-    define variable beforeList           as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable testCount            as integer                                 no-undo init 0.
-    define variable testList             as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo extent 100.
-    define variable afterCount           as integer                                 no-undo init 0.
-    define variable afterList            as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable afterProcCount       as integer                                 no-undo init 0.
-    define variable afterProcList        as OpenEdge.ABLUnit.Reflection.TestInfo    no-undo.
-    define variable testInProcResult     as OpenEdge.ABLUnit.Results.TestTestResult no-undo.
-    define variable inProcResultCount    as integer                                 no-undo init 0.
-    define variable testInProcResultList as OpenEdge.ABLUnit.Results.TestTestResult no-undo extent 100.
+CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo: 
     
-    method public void setBeforeProcedure(input bProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        beforeProcCount = beforeProcCount + 1.
-        beforeProcList = bProc.
-    end method.
+    DEFINE PRIVATE VARIABLE beforeProcMethod   AS  TestInfo   NO-UNDO.
+    DEFINE PRIVATE VARIABLE beforeMethod       AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE testList           AS Array NO-UNDO.
+    DEFINE PUBLIC PROPERTY testCount           AS INTEGER NO-UNDO GET. SET.
+    DEFINE PRIVATE VARIABLE afterMethod        AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE afterProcMethod    AS TestInfo    NO-UNDO.
+    DEFINE PRIVATE VARIABLE testInProcResult   AS TestTestResult NO-UNDO.
     
-    method public void setAfterProcedure(input aProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        afterProcCount = afterProcCount + 1.
-        afterProcList = aProc.
-    end method.
+    /*------------------------------------------------------------------------------
+     Purpose:
+     Notes:
+    ------------------------------------------------------------------------------*/
+        
+    CONSTRUCTOR PUBLIC ProcedureAnnotationInfo (  ):
+        SUPER ().
+        testList = NEW Array().
+        testList:AutoExpand = TRUE.
+    END CONSTRUCTOR.
     
-    method public void setBefore(input beforeProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        beforeCount = beforeCount + 1.
-        beforeList = beforeProc.
-    end method.
+    METHOD PUBLIC VOID setBeforeProcedure(INPUT bProc AS TestInfo):
+        IF beforeProcMethod = ? THEN
+            beforeProcMethod = bProc.
+        ELSE 
+            throwError().
+    END METHOD.
     
-    method public void setAfter(input afterProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        afterCount = afterCount + 1.
-        afterList = afterProc.
-    end method.
+    METHOD PUBLIC VOID setAfterProcedure(INPUT aProc AS TestInfo):
+        IF afterProcMethod = ? THEN
+            afterProcMethod = aProc.
+        ELSE 
+            throwError().
+    END METHOD.
     
-    method public void setTestProc(input tProc as OpenEdge.ABLUnit.Reflection.TestInfo):
+    METHOD PUBLIC VOID setBefore(INPUT beforeProc AS TestInfo):
+        IF beforeMethod = ? THEN
+            beforeMethod = beforeProc.
+        ELSE 
+            throwError().
+    END METHOD.
+    
+    METHOD PUBLIC VOID setAfter(INPUT afterProc AS TestInfo):
+        IF afterMethod = ? THEN
+            afterMethod = afterProc.
+        ELSE 
+            throwError().
+    END METHOD.
+    
+    METHOD PUBLIC VOID addTestProc(INPUT tProc AS TestInfo):
         testCount = testCount + 1.
-        testList[testCount] = tProc.
-    end method.
+        testList:SetValue(tProc, testCount).
+    END METHOD.
     
-    method public character getBeforeProcedure():
-        return beforeProcList:getTestName().
-    end method.
+    METHOD PUBLIC CHARACTER getBeforeProcedure():
+        RETURN beforeProcMethod:getTestName().
+    END METHOD.
     
-    method public character getAfterProcedure():
-        return afterProcList:getTestName().
-    end method.
-
+    METHOD PUBLIC CHARACTER getAfterProcedure():
+        RETURN afterProcMethod:getTestName().
+    END METHOD.
+    
+    METHOD PUBLIC Array getTestProcs():
+        RETURN testList.
+    END METHOD.
+    
     /*------------------------------------------------------------------------------
     Runs @BeforeProcedure annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunBeforeProcedure(input procHandle as handle, input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not beforeProcCount = 0 and not testCount = 0 then
-        do on error undo, throw:
-            define variable beforeProc as character no-undo.
-            beforeProc = beforeProcList:getTestName().
-            run value (beforeProc) in procHandle no-error.
-            if (error-status:error) then
-                return error "Exception in @BeforeProcedure".
-        end.
-        return testProcResult.
-    end method.    
+    METHOD PUBLIC TestTypeResult RunBeforeProcedure(INPUT procHandle AS HANDLE, INPUT testProcResult AS TestTypeResult):
+        IF NOT beforeProcMethod = ? AND NOT testList:Size = 0 THEN
+        DO ON ERROR UNDO, THROW:
+            DEFINE VARIABLE beforeProc AS CHARACTER NO-UNDO.
+            beforeProc = beforeProcMethod:getTestName().
+            RUN value (beforeProc) IN procHandle NO-ERROR.
+            IF (ERROR-STATUS:ERROR) THEN
+                RETURN ERROR "Exception in @BeforeProcedure".
+        END.
+        RETURN testProcResult.
+    END METHOD.    
 
     /*------------------------------------------------------------------------------
     Runs @Before annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunBefore(input procHandle as handle, input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not beforeCount = 0 then 
-        do on error undo, throw:
-            define variable before as character no-undo.
-            before = beforeList:getTestName().
-            run value (before) in procHandle no-error.
-            if (error-status:error) then
-                return error "Exception in @Before procedure".
-        end.
-        return testProcResult.
-    end method.    
+    METHOD PUBLIC TestTestResult RunBefore(INPUT procHandle AS HANDLE, INPUT testProcResult AS TestTestResult):
+        IF NOT beforeMethod = ? THEN 
+        DO ON ERROR UNDO, THROW:
+            DEFINE VARIABLE before AS CHARACTER NO-UNDO.
+            before = beforeMethod:getTestName().
+            RUN value (before) IN procHandle NO-ERROR.
+            IF (ERROR-STATUS:ERROR) THEN
+                RETURN ERROR "Exception in @Before procedure".
+        END.
+        RETURN testProcResult.
+    END METHOD.    
     
     /*------------------------------------------------------------------------------
     Runs a particular @Test annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunTestProc(input procHandle as handle,
-        input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult, input testProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        define variable expectedException as character no-undo.
-        expectedException = testProc:getAttributeValue().
-        run value (testProc:getTestName()) in procHandle no-error.
-        if (error-status:error) then
-        do:
-            if expectedException = "" then
-            do:
-                testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testInProcResult:setTestName(testProc:getTestName()).
-                testInProcResult:SetExceptionMessage("Not Expecting any exception but found one").
-                inProcResultCount = inProcResultCount + 1.
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:setTestCount(inProcResultCount).
-                testProcResult:IncrementFailure().
-            end.
-            else
-            do:
-                testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusPassed).
-                testInProcResult:setTestName(testProc:getTestName()).
-                inProcResultCount = inProcResultCount + 1.
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:setTestCount(inProcResultCount).
-                testProcResult:IncrementSuccess().
-            end.
-            return testProcResult.
-        end.
-        else
-        do:
-            if expectedException = "" then
-            do:
-                testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusPassed).
-                testInProcResult:setTestName(testProc:getTestName()).
-                inProcResultCount = inProcResultCount + 1.
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:setTestCount(inProcResultCount).
-                testProcResult:IncrementSuccess().
-            end.
-            else
-            do:
-                testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testInProcResult:setTestName(testProc:getTestName()).
-                testInProcResult:SetExceptionMessage("Expecting: " + expectedException + " but did not find any").
-                inProcResultCount = inProcResultCount + 1.
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:setTestCount(inProcResultCount).
-                testProcResult:IncrementFailure().
-            end.
-            return testProcResult.
-        end.
-    end method.
-    
-    
+    METHOD PUBLIC TestTestResult RunTestProc(INPUT procHandle AS HANDLE, INPUT testProc AS TestInfo, INPUT testInProcResult AS TestTestResult):
+
+        RUN value (testProc:getTestName()) IN procHandle.
+         CATCH e AS Progress.Lang.Error :
+             RETURN ERROR e.
+        END CATCH.
+   
+    END METHOD.
     
     /*------------------------------------------------------------------------------
     Runs all @Test annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunTestProcs(input procHandle as handle, 
-        input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        define variable j as integer no-undo.
-        do j=1 to testCount on error undo, throw :
-            testProcResult = RunBefore(procHandle, testProcResult).
-            testProcResult = RunTestProc(procHandle, testProcResult, testList[j]).
-            catch e as Progress.Lang.Error :
-            	testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testInProcResult:SetExceptionMessage("Exception in @Before procedure").
-                testInProcResult:setTestName(testList[j]:getTestName()).
-                testInProcResult:setIncomplete(true).
-                inProcResultCount = inProcResultCount + 1.
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:IncrementFailure().
-                testProcResult:setTestCount(inProcResultCount).	
-            end catch.
-            finally:
-                testProcResult = RunAfter(procHandle, testProcResult).
-                catch e as Progress.Lang.Error :
-                    testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                    testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                    testInProcResult:SetExceptionMessage("Exception in @After procedure").
-                    testInProcResult:setTestName(testList[j]:getTestName()).
-                    testInProcResultList[inProcResultCount] = testInProcResult.
-                    testProcResult:setTestResult(testInProcResultList).
-                    testProcResult:IncrementFailure().
-                    testProcResult:setTestCount(inProcResultCount). 
-                end catch.                		
-            end finally.
-        end.
-        return testProcResult.
-    end method.
+    METHOD PUBLIC TestTestResult RunSelectedTestProc(INPUT procHandle AS HANDLE, INPUT testProc AS TestInfo):
+        DEFINE VARIABLE expectedException AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE annotations AS Array NO-UNDO. 
+        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
+        annotations = testProc:annotations.
+        /** considering only the 1st annotation for now**/
+        annotation = CAST(annotations:GetValue(1), AnnotationInfo ).
+        
+        expectedException = annotation:getAttributeValue().
+        testInProcResult = NEW TestTestResult().
+        RunBefore(procHandle, testInProcResult).
+        RunTestProc(procHandle, testProc, testInProcResult).
+        /*Ensure that the execution proceeds normally and there are no expected exceptions*/
+        IF expectedException = "" THEN DO:
+            testInProcResult:TestResult = TestTestResult:StatusPassed.
+            testInProcResult:TestName = testProc:getTestName().
+        END.
+        ELSE
+        DO:
+            testInProcResult:TestResult = TestTestResult:StatusFailed.
+            testInProcResult:TestName = testProc:getTestName().
+            testInProcResult:ErrorMessage = "Expecting:" + expectedException + " but this expection is not raised.".
+            DEFINE VARIABLE exception AS Progress.Lang.Error NO-UNDO.
+            exception = NEW Progress.Lang.AppError("No exception is raised but expecting " + expectedException, 1).
+            testInProcResult:Error = exception.
+        END.
+        CATCH e AS Progress.Lang.Error :
+            IF expectedException = "" THEN
+            DO:
+                IF (e:GetClass():TypeName = "OpenEdge.Core.AssertionFailedError") THEN
+                DO:
+                    testInProcResult:TestResult  = TestTestResult:StatusFailed.
+                    testInProcResult:TestName = testProc:getTestName().
+                    testInProcResult:Error = e.
+                    testInProcResult:ErrorMessage = e:GetMessage(1).
+                END.
+                ELSE
+                DO:
+                    testInProcResult:TestResult  = TestTestResult:StatusError.
+                    testInProcResult:TestName = testProc:getTestName().
+                    testInProcResult:Error = e.
+                END.
+            END.
+            ELSE IF (ClassAnnotationInfo:IsTypeOf(e, ClassAnnotationInfo:GetExpectedErrorType(expectedException))) THEN
+            DO:
+                testInProcResult:TestResult = TestTestResult:StatusPassed.
+                testInProcResult:TestName = testProc:getTestName().
+            END.
+            ELSE 
+            DO:
+                testInProcResult:TestResult = OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed.
+                testInProcResult:TestName = testProc:getTestName().
+                testInProcResult:ErrorMessage = "Expecting:" + expectedException + " but found:" + e:GetClass():TypeName.
+                testInProcResult:Error = e.
+            END.
+        END CATCH.
+        FINALLY:
+            RunAfter(procHandle).
+            CATCH e AS Progress.Lang.Error :
+                testInProcResult:TestResult = TestTestResult:StatusError.
+                updateTestResult(testInProcResult, e, testProc).
+            END CATCH.
+            FINALLY:
+                RETURN testInProcResult.    
+            END FINALLY.
+        END FINALLY.
+    END METHOD.
     
+    METHOD PUBLIC VOID updateTestResult(INPUT testResult AS TestTestResult,INPUT err AS Progress.Lang.Error,  INPUT testProc AS TestInfo):
+            testResult:TestName = testProc:getTestName().
+            testResult:IsIncomplete = TRUE.
+            testResult:Error = err.
+        END METHOD.
     
-    /*------------------------------------------------------------------------------
-    Runs all @Test annotated procedure
-    ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunSelectedTestProc(input procHandle as handle, 
-        input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult, input testProc as OpenEdge.ABLUnit.Reflection.TestInfo):
-        testProcResult = RunBefore(procHandle, testProcResult).
-        testProcResult = RunTestProc(procHandle, testProcResult, testProc).
-        catch e as Progress.Lang.Error :
-            testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-            testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-            testInProcResult:SetExceptionMessage("Exception in @Before procedure").
-            testInProcResult:setTestName(testProc:getTestName()).
-            testInProcResult:setIncomplete(true).
-            inProcResultCount = inProcResultCount + 1.
-            testInProcResultList[inProcResultCount] = testInProcResult.
-            testProcResult:setTestResult(testInProcResultList).
-            testProcResult:IncrementFailure().
-            testProcResult:setTestCount(inProcResultCount). 
-        end catch.
-        finally:
-            testProcResult = RunAfter(procHandle, testProcResult).
-            catch e as Progress.Lang.Error :
-                testInProcResult = new OpenEdge.ABLUnit.Results.TestTestResult().
-                testInProcResult:setStatus(OpenEdge.ABLUnit.Results.TestTestResult:StatusFailed).
-                testInProcResult:SetExceptionMessage("Exception in @After procedure").
-                testInProcResult:setTestName(testProc:getTestName()).
-                testInProcResultList[inProcResultCount] = testInProcResult.
-                testProcResult:setTestResult(testInProcResultList).
-                testProcResult:IncrementFailure().
-                testProcResult:setTestCount(inProcResultCount). 
-            end catch.
-            finally:
-                	return testProcResult.	
-            end finally.                      
-        end finally.
-    end method.
     /*------------------------------------------------------------------------------
     Runs @After annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunAfter(input procHandle as handle, input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not afterCount = 0 then
-        do on error undo, throw:
-            define variable after as character no-undo.
-            after = afterList:getTestName().
-            run value (after) in procHandle no-error.
-            if (error-STATUS:error) then 
-                return error "Exception in @After procedure".
-        end.
-        return testProcResult.
-    end method.    
+    METHOD PUBLIC VOID RunAfter(INPUT procHandle AS HANDLE):
+        IF NOT afterMethod = ? THEN
+        DO ON ERROR UNDO, THROW:
+            DEFINE VARIABLE after AS CHARACTER NO-UNDO.
+            after = afterMethod:getTestName().
+            RUN value (after) IN procHandle NO-ERROR.
+            IF (ERROR-STATUS:ERROR) THEN 
+                RETURN ERROR "Exception in @After procedure".
+        END.
+    END METHOD.    
     
     /*------------------------------------------------------------------------------
     Runs @AfterProcedure annotated procedure
     ------------------------------------------------------------------------------*/
-    method public OpenEdge.ABLUnit.Results.TestTypeResult RunAfterProcedure(input procHandle as handle, input testProcResult as OpenEdge.ABLUnit.Results.TestTypeResult):
-        if not afterProcCount = 0 and not testCount = 0 then
-        do:
-            define variable afterProc as character no-undo.
-            afterProc = afterProcList:getTestName().
-            run value (afterProc) in procHandle no-error.
-            if (error-status:error) then
-                return error "Exception in @AfterProcedure".
-        end.
-        return testProcResult.
-    end method.
+    METHOD PUBLIC TestTypeResult RunAfterProcedure(INPUT procHandle AS HANDLE):
+        IF NOT afterProcMethod = ? AND NOT testList:size = 0 THEN
+        DO:
+            DEFINE VARIABLE afterProc AS CHARACTER NO-UNDO.
+            afterProc = afterProcMethod:getTestName().
+            RUN value (afterProc) IN procHandle NO-ERROR.
+            IF (ERROR-STATUS:ERROR) THEN
+                RETURN ERROR "Exception in @AfterProcedure".
+        END.
+    END METHOD.
 
-	method public void TestMethod(  ):
-		
-		return error new Progress.Lang.AppError().
+    METHOD PUBLIC VOID TestMethod(  ):
+        
+        RETURN ERROR NEW Progress.Lang.AppError().
 
-	end method.
+    END METHOD.
 
-end class.
+    /*------------------------------------------------------------------------------
+        Throws error for multiple occurence of lifecycle methods   
+    ------------------------------------------------------------------------------*/
+    METHOD PRIVATE VOID throwError( ):
+        RETURN ERROR NEW Progress.Lang.AppError("Life cycle annotations can not occur more than once.", 0).
+    END METHOD.
+END CLASS.

@@ -21,8 +21,8 @@ using OpenEdge.Core.ServerConnection.WebServiceConnection.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.ServerConnection.WebServiceConnectionParameters.
 using OpenEdge.Core.ServerConnection.IServerConnection.
-using OpenEdge.Lang.WidgetHandle.
-using OpenEdge.Lang.Assert.
+using OpenEdge.Core.WidgetHandle.
+using OpenEdge.Core.Assert.
 using Progress.Lang.SoapFaultError.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
@@ -59,7 +59,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         end get.
 
 	constructor public RulesServerConnection (input poConnectionParameters as RulesServerConnectionParameters):
-        Assert:ArgumentNotNull(poConnectionParameters, 'Connection Parameters').
+        Assert:NotNull(poConnectionParameters, 'Connection Parameters').
         this-object:ConnectionParameters = poConnectionParameters.
         
         moDecisionServiceConnection = new WebServiceConnection(cast(poConnectionParameters:DecisionServiceConnectionParameters, WebServiceConnectionParameters)).
@@ -155,7 +155,7 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
     method public logical IsDecisionServiceAvailable(input pcServiceName as character):
         define variable lIsAvailable as logical no-undo.
         
-        Assert:ArgumentNotNull(moAdminServiceConnection, 'Admin Service Connection').
+        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
         if not this-object:Connected then
             this-object:Connect().
 
@@ -178,14 +178,14 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         define variable cMinorVersion as character no-undo.
         define variable cVersion as character no-undo.
         
-        Assert:ArgumentNotNull(moAdminServiceConnection, 'Admin Service Connection').
+        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
         if not this-object:Connected then
             this-object:Connect().
             
         if pdVersion eq ? then
             return IsDecisionServiceAvailable(pcServiceName).
         
-        Assert:ArgumentIsZeroOrPositive(pdVersion, 'Decision Service Version').
+        Assert:IsZeroOrPositive(pdVersion, 'Decision Service Version').
         
         /* format the string so that we always have 2 parts.
            hopefully the format mask is large enough (yes, yes, I know). */
@@ -215,14 +215,14 @@ class OpenEdge.BusinessRules.RulesServerConnection use-widget-pool implements IS
         define variable lIsAvailable as logical no-undo.
         define variable oAppError as AppError no-undo.
 
-        Assert:ArgumentNotNull(moAdminServiceConnection, 'Admin Service Connection').
+        Assert:NotNull(moAdminServiceConnection, 'Admin Service Connection').
         if not this-object:Connected then
             this-object:Connect().
 
         if ptEffectiveOn eq ? then
             return IsDecisionServiceAvailable(pcServiceName).
 
-        Assert:ArgumentNotNull(ptEffectiveOn, 'Decision Service Effective Date').
+        Assert:NotNull(ptEffectiveOn, 'Decision Service Effective Date').
         
         run isDecisionServiceDeployedEffectiveTimestamp in mhAdminServicePort (
                     input  pcServiceName,

@@ -16,6 +16,8 @@
  define temp-table ttTablePermission no-undo serialize-name "tablePermissions"  {1} before-table ttTablePermissionCopy
      field SchemaName      as character serialize-name "schemaName"
      field Name            as character serialize-name "name"
+     field IsMultiTenant   as logical   serialize-name "isMultiTenant"
+/*?     field isPartitioned   as logical   serialize-name "isPartitioned"*/
      field Hidden          as logical   serialize-name "hidden"
      field Frozen          as logical   serialize-name "frozen"
      field CanRead         as character serialize-name "canRead"

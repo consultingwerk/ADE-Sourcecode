@@ -74,6 +74,7 @@ DEFINE VARIABLE dLoginUser        AS DECIMAL    NO-UNDO.
 define variable cAllowedCompany   as character no-undo.
 define variable h_fiAllowedCompany as handle no-undo.    /* fiAllowedCompany */
 define variable h_default_login_company_obj as handle    no-undo.
+
 /*  object identifying preprocessor */
 &glob   AstraProcedure    yes
 

@@ -20,17 +20,29 @@ using OpenEdge.DataAdmin.ISchemaElement from propath.
 using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.IIndexSet from propath.
 using OpenEdge.DataAdmin.IFieldSet from propath.
+using OpenEdge.DataAdmin.IPartitionPolicy from propath.
  
 interface OpenEdge.DataAdmin.ITable  inherits ISchemaElement  :  
     /** is the table multi-tenant. Only updatable before create  */
     define public property IsMultitenant as logical no-undo get. set.
+    
+    /** is the table partitioned.   */
+    define public property IsPartitioned as logical no-undo get. set.
+    
     /** keep area for default tenant. Only updatable before create  */
     define public property KeepDefaultArea as logical no-undo get. set.
+    
+    /** Returns the partiton policy if applicable  */
+    define public property PartitionPolicy as IPartitionPolicy no-undo get. set.
+    
     /* collection of the table's indexes */
     define public property Indexes as IIndexSet no-undo get.
     
     /* collection of the table's LOBfields */
     define public property LOBFields as IFieldSet no-undo   get.
+    
+    /* collection of the table's Fields */
+    define public property Fields as IFieldSet no-undo   get.
     
     /** Allocate all delayed partitions for all tenants
         Does not allocate group partitions  
@@ -42,6 +54,11 @@ interface OpenEdge.DataAdmin.ITable  inherits ISchemaElement  :
         @param AllocationState Specify state of partitions to allocate - All, Delayed or None 
         @return true if any partition was allocated  */     
     method public logical Allocate(pcmode as char).
- 
+    
+/*    /* check if the table has any data */      */
+/*    method public logical HasData().           */
+/*                                               */
+/*    /* count the number of rows in the table */*/
+/*    method public int64 CountRows().           */
       
 end interface.

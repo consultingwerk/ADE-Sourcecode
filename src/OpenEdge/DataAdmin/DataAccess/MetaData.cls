@@ -52,7 +52,6 @@ class OpenEdge.DataAdmin.DataAccess.MetaData inherits DataAccess implements IDat
     define private variable mStart as integer no-undo.
     define private variable mSingle as logical no-undo.
     define private variable domainsURL     as character no-undo.
-    define private variable  URL     as character no-undo.
     
     
     define public property BaseQuery as character no-undo

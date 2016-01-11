@@ -13,19 +13,34 @@
     Created     : Sat Oct 08 15:09:48 EDT 2011
     Notes       : 
   ----------------------------------------------------------------------*/
-
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-
 routine-level on error undo, throw.
 
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.
+
 class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow: 
+    
 	define private variable mBuffer as handle no-undo.
     define private variable mState as integer init ? no-undo.
+    
+    define public property Model as IDataAdminModel no-undo 
+        get. 
+        private set(pmodel as IDataAdminModel).
+            if valid-object(Model) then 
+            do:
+                Model:RowDeleted:Unsubscribe(RowDeleted).
+                Model:AddedToContext:Unsubscribe(NewContext).
+            end.
+            Model = pmodel.  
+            Model:AddedToContext:Subscribe(NewContext).
+            Model:RowDeleted:Subscribe(RowDeleted).    
+        end. 
+        
     /** SerializeName is used in child and parent defintitions  */
     define public property SerializeName as character no-undo 
         get.
@@ -90,12 +105,17 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
 			Notes:  																	  
 	------------------------------------------------------------------------------*/
     
-    constructor public RowBuffer (pBuffer as handle,pstate as int,pKeyFields as char):
-        this-object(pbuffer,pKeyFields).
+    constructor public RowBuffer (pModel as IDataAdminModel, pBuffer as handle,pstate as int,pKeyFields as char):
+        this-object(pModel, pbuffer, pKeyFields).
         mstate = pState.   
     end method.
     
-    constructor public RowBuffer (pBuffer as handle,pKeyFields as char):
+    constructor public RowBuffer (pModel as IDataAdminModel, pBuffer as handle,pKeyFields as char):
+        define variable nullid as rowid no-undo.
+        this-object(pModel, pbuffer, pKeyFields, nullid).
+    end method.
+    
+    constructor public RowBuffer (pModel as IDataAdminModel, pBuffer as handle,pKeyFields as char,prowid as rowid):
         super().
         
         if not valid-handle(pBuffer) then
@@ -106,19 +126,41 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
         SetKeyValues(pBuffer,pKeyFields).
         create buffer mBuffer for table pbuffer.
         SerializeName = pBuffer:serialize-name.
-        mBuffer:find-by-rowid(pBuffer:rowid). 
+        Model = pModel.
+        if pRowid = ? then 
+            prowid = pBuffer:rowid.
+        
+        mBuffer:find-by-rowid(prowid). 
     end constructor.
     
-    constructor public RowBuffer (hBuffer as handle,pKeyFields as char,pFieldNames as char):
-        this-object (hBuffer,pKeyFields).
+    constructor public RowBuffer (pModel as IDataAdminModel, hBuffer as handle,pKeyFields as char,pFieldNames as char):
+        this-object (pModel, hBuffer,pKeyFields).
         FieldNames = pFieldNames. 
     end constructor.
     
-    constructor public RowBuffer (hBuffer as handle,pState as int,pKeyFields as char,pFieldNames as char):
-        this-object (hBuffer,pState,pKeyFields).
+    constructor public RowBuffer (pModel as IDataAdminModel, hBuffer as handle,pState as int,pKeyFields as char,pFieldNames as char):
+        this-object (pModel, hBuffer, pState, pKeyFields).
         FieldNames = pFieldNames. 
     end constructor.
     
+    /* the context we attached to changed */
+    method protected void NewContext(cntxt as IDataAdminModel):
+        define variable hNewDefaultBuffer as handle no-undo. 
+        define variable hNewBuffer as handle no-undo. 
+        hNewDefaultbuffer = cntxt:TableHandle:default-buffer-handle.
+        create buffer hNewBuffer for table hNewDefaultbuffer.
+        hNewBuffer:serialize-name = hNewDefaultbuffer:serialize-name.
+        hNewBuffer:find-unique ("where " + cntxt:GetWhere(KeyFields,KeyValues)).
+        delete object mbuffer no-error.
+        mBuffer = hNewBuffer.      
+        Model = cntxt.
+    end method.
+    
+    /* ?? @todo  - event needs rowid   */
+    method protected void RowDeleted( ):
+       
+    end.
+     
     method private char SetKeyValues(pBuffer as handle,pnames as char):
          define variable hField as handle no-undo. 
          define variable i as integer no-undo.
@@ -134,8 +176,14 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
              hField = pBuffer:buffer-field(pnames).
              if hfield:data-type = "character" then
                 KeyValue = hField:buffer-value.  
+              /* seems to have been a bad idea? - this is only used quoted in dynamic queries 
+                - ensure KeyValue is also set */  
              else if hfield:data-type = "integer" then
-                KeyIntValue = hField:buffer-value.  
+             do:
+                assign
+                    KeyIntValue = hField:buffer-value  
+                    KeyValue = string(KeyIntValue).
+             end.       
              KeyValues[1] = hField:buffer-value.
          end.    
          else do:   
@@ -161,6 +209,35 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
         end. 
         undo, throw new IllegalArgumentError("Invalid field name " + quoter(pccolumn) + " passed to FieldValue().").
 	end method.
+	
+	/* currently not in any interface (@todo IrowBuffer? need to cast anayways) */
+    method public logical AssignFieldValue( pcColumn as character, pVal as int ):
+        AssignFieldValue( pcColumn,string(pval)).   
+    end method.
+	
+	/* currently not in any interface (@todo IrowBuffer? need to cast anayways) */
+    method public logical AssignFieldValue( pcColumn as character, pcValue as char ):
+        define variable ifld as integer no-undo.
+        define variable hfld as handle no-undo.
+        define variable lTrack  as logical no-undo.
+        if FieldNames = ? or lookup(pcColumn,FieldNames) > 0 then
+        do on error undo, throw :
+            lTrack =  mBuffer:table-handle:tracking-changes.    
+            hFld = mBuffer:buffer-field(pccolumn) no-error.
+            if valid-handle(hFld) then
+            do: 
+                mBuffer:table-handle:tracking-changes = false.    
+                hFld:buffer-value = pcValue.
+                return true.
+            end.
+            else 
+            finally:
+                mBuffer:table-handle:tracking-changes = lTrack.    
+            end finally.
+        end. 
+        undo, throw new IllegalArgumentError("Invalid field name " + quoter(pccolumn) + " passed to AssignFieldValue().").
+    end method.
+ 
  
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  

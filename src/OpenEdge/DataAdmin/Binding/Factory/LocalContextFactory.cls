@@ -1,10 +1,10 @@
- /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
-  /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2011,2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : LocaContextFactory
     Purpose     : 
@@ -15,24 +15,36 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-
-using OpenEdge.DataAdmin.Binding.NewPartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using  OpenEdge.DataAdmin.IDataAdminService from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory.
- 
 
 routine-level on error undo, throw.
+using OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.NewPartitionContext.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.IDataAdminService.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.Factory.LocalContextFactory inherits AbstractContextFactory: 
     
     define protected property ServiceFactory as IServiceContextFactory no-undo get. set.
     
+    /* override in local context to allow joins for many to many for new objects 
+       to use service for the other end of the relation  */        
+    method public override IDataAdminModel GetLookupContext(pname as char):
+        return ServiceFactory:GetContext(pname).
+    end method.
+    
+    /* override in local context to allow joins for many to many for new objects 
+       to use service for the other end of the relation  */        
+    method public override IDataAdminModel GetLookupContextBySerializeName(pname as char):
+        return ServiceFactory:GetContextBySerializeName (pname).
+    end method.
+    
 	define override public property IsLocal as logical no-undo 
-	init TRUE
+	init true
 	get.
 	  
 	define public override property PartitionContext as PartitionContext no-undo 

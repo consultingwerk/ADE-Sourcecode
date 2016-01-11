@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2014 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -44,8 +44,12 @@ DEFINE VARIABLE yy        AS INTEGER        NO-UNDO.
 DEFINE VARIABLE idx       AS INTEGER        NO-UNDO.
 DEFINE VARIABLE Large_Sequence AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Large_Keys     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE l_seq          AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE l_keys         AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE Is_Partitioned AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Is_Multitenant     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_seq          AS LOGICAL   /*UNDO*/.
+DEFINE VARIABLE l_keys         AS LOGICAL   /*UNDO*/.
+DEFINE VARIABLE IsPartitioned  AS LOGICAL /*UNDO*/.
+DEFINE VARIABLE IsMultitenant  AS LOGICAL /*UNDO*/.
 
 DEFINE SHARED STREAM rpt.
 
@@ -78,6 +82,8 @@ FORM
    collname FORMAT "x(50)"  LABEL "Database collation"  COLON 19 SKIP
    Large_Sequence FORMAT "x(20)"  LABEL "64-bit Sequences" COLON 19 SKIP
    Large_Keys     FORMAT "x(20)"  LABEL "Large key entries"  COLON 19 SKIP
+   is_Multitenant FORMAT "x(20)"  LABEL "Multi-tenancy" COLON 19 SKIP
+   is_Partitioned FORMAT "x(20)"  LABEL "Table Partitioning" COLON 19 SKIP
    WITH FRAME dbs-2 SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
    TITLE " Currently Selected Database ".
 
@@ -127,7 +133,9 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
        OUTPUT codepage, 
        OUTPUT collname,
        OUTPUT l_seq,
-       OUTPUT l_keys).
+       OUTPUT l_keys,
+       OUTPUT isMultitenant,
+       OUTPUT isPartitioned).
 
     /* 20060209-012
        Make sure we omit the password, after the '/' character, in case
@@ -170,6 +178,12 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
             uid
             codepage
             collname
+	    (IF isMultitenant = ? THEN "n/a" ELSE 
+                    IF isMultitenant THEN "enabled" 
+                        ELSE "not enabled") @ is_Multitenant
+	    (IF isPartitioned = ? THEN "n/a" ELSE 
+                    IF isPartitioned THEN "enabled" 
+                        ELSE "not enabled") @ is_Partitioned 
             (IF l_seq = ? THEN "n/a" ELSE 
                     IF l_seq THEN "enabled" 
                         ELSE "not enabled") @ Large_Sequence

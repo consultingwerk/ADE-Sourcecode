@@ -22,4 +22,6 @@ interface OpenEdge.DataAdmin.IField inherits ISchemaElement :
       
     /** the data type of the field */
     define public property DataType as char no-undo get.
+    /** is this a lob field */
+    define public property IsLob as logical no-undo get.
 end interface.

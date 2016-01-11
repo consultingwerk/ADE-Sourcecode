@@ -17,6 +17,7 @@
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Lang.QueryString  from propath.
 
 routine-level on error undo, throw.
 
@@ -30,7 +31,7 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
        index idxObj as unique obj.
        
     /** Name  - must match property in requested class */  
-    define public property Name as char no-undo get. protected set.
+    define public property Name as char no-undo get. set.
     
     /** protected set - not changeable - provide with constructor  */  
     define public property SearchString as char no-undo get. set.
@@ -43,6 +44,12 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
     
     define public property KeyFields as char no-undo init ? get.   set. 
     
+     /** for internal use. Set to true when a named context (different name than context serializename)  
+        query has been checked and applied. The Request info is kept in both collection and entity instances 
+        and will be used multiple times to AddTreeTo or getChildWithRequestInfo   */
+    define public property IsNameChecked as logical no-undo get. set.
+    
+ 
     /**  QueryString   */  
     define public property QueryString as char no-undo   
         get. 
@@ -116,7 +123,6 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
         
         if extent(mKeyValues) <> ? then 
             return mKeyValues.
-        
         else 
             undo, throw new AppError("Key values not set in Row Request.",?).       
     end method.
@@ -128,8 +134,6 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
         if avail ttchild then
         do: 
             delete ttChild.
-         
-                  
         end.
     end method. 
     
@@ -158,4 +162,47 @@ class OpenEdge.DataAdmin.RequestInfo implements IRequestInfo :
             return cast( ttChild.obj,IRequestInfo).
     end method.    
     
+    method public logical MergeQueryExpression(pcQuery as char). 
+        QueryString = MergeQueries(pcQuery,QueryString).        
+    end method.
+    
+    /* merge query expressions - only one can have a sort */ 
+    method private char MergeQueries(pcQuery1 as char,pcQuery2 as char) :
+        define variable queryString  as QueryString no-undo.
+        define variable cDummyQuery  as character no-undo.
+        define variable cBaseQuery   as character no-undo.
+        define variable cQueryNoSort as character no-undo.
+        define variable cReturnQuery as character no-undo.
+        define variable iPos as integer no-undo.
+        
+        /* merge if both queries have vakues */
+        if pcQuery1 > "" and pcQuery2 > "" then
+        do: 
+            queryString = new QueryString().
+            if index(" " + queryString:MaskQuotes(pcQuery1,"X")," by ") > 0 then
+            do:
+                if index(" " + queryString:MaskQuotes(pcQuery2,"X")," by ") > 0 then
+                do:
+                    undo, throw new IllegalArgumentError("Cannot add a sorted query to a QueryString with sort.").            
+                end.
+                cBaseQuery = pcQuery1.
+                cQueryNoSort = pcQuery2.
+            end.
+            else do:
+                cBaseQuery = pcQuery2.
+                cQueryNoSort = pcQuery1.
+            end.
+            cDummyQuery = "for each dummy" 
+                        + (if trim(cBaseQuery) begins "by " then "" else " where") 
+                        + " " + cBaseQuery.
+            cReturnQuery = queryString:InsertExpression(cDummyQuery,cQueryNoSort,"and").
+            ipos = index(cReturnQuery,"where").
+            cReturnQuery = trim(substr(cReturnQuery,ipos + 5)).
+            return cReturnQuery.
+        end.
+        else if pcQuery1 > "" then
+            return pcQuery1.
+        else     
+            return pcQuery2.
+    end.
 end class.

@@ -1,10 +1,10 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
+/* Copyright (c) 2011,2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
  /*------------------------------------------------------------------------
     Purpose     : Query for partitions of a single Tenant 
     Syntax      : 
@@ -42,7 +42,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery inherits PartitionQu
 	/** Parent context (Model) may change so don't store this */   
     define private property PartitionContext as PartitionContext no-undo
         get():
-            return cast(Parent,PartitionContext).   
+            return cast(Model,PartitionContext).   
         end.
 	
     define private variable mNew as logical no-undo.
@@ -87,27 +87,24 @@ class OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery inherits PartitionQu
         end.
     end method.  
     
-     method public logical FindTable(pctable as char):
+     method public override logical FindTable(pctable as char):
         return this-object:Find(pctable,"","",""). 
     end method.
     
-    method public logical FindField(pctable as char, pcfield as char):
+    method public override logical FindField(pctable as char, pcfield as char):
         return this-object:Find(pctable,pcfield,"",""). 
     end method.
      
-    method public logical FindIndex(pctable as char, pcIndex as char,pcCollection as char):
+    method public override logical FindIndex(pctable as char, pcIndex as char,pcCollection as char):
         return this-object:Find(pctable,"",pcIndex,pcCollection). 
     end method.
     
     method protected logical Find(pctable as char,pcField as char, pcIndex as char,pccollection as char):
-        if cast(parent,PartitionContext):FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+        if PartitionContext:FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection) then
         do:
-            TableHandle:default-buffer-handle:rowid.
-            
-            return true.  
-/*            FindInQuery(TableHandle:default-buffer-handle:rowid).*/
+            return SynchWithModel(PartitionContext).
         end.
-        else return false.    
+        return false.    
     end method.
     
     method public logical CanFindTable(pctable as char):
@@ -123,30 +120,44 @@ class OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery inherits PartitionQu
     end method.
     
     method protected logical CanFind(pctable as char,pcField as char, pcIndex as char, pccollection as char):
-        return PartitionContext:CanFindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection).
+        if PartitionContext:FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+            return CanFindCurrentModel(PartitionContext).
+        return false.
     end method.
     
-    method public logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         if ParentValue = pcTenant then 
-            return cast(parent,PartitionContext):CanFindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection).
-        else
-            return false.
+        do:
+           if PartitionContext:FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+               return CanFindCurrentModel(PartitionContext).
+        end.
+        return false.
     end method.
     
-    method public logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return false.  
     end method.
     
-    method public logical FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
-        if ParentValue = pcTenant then 
-            return cast(parent,PartitionContext):FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection).
-        else
-            return false.
+    method public override logical CanFindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+        return false.  
+    end method.  
+    
+    method public override logical FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+        if ParentValue = pcTenant then
+        do: 
+            if PartitionContext:FindTenant(ParentValue,pctable,pcField,pcIndex,pcCollection) then
+                return SynchWithModel(PartitionContext).
+        end.
+        return false.
     end method.
     
-    method public logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+    method public override logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return false.  
     end method.
+    
+    method public override logical FindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
+        return false.  
+    end method.  
     
     method public logical AllocateTable(pcTable as char):        
         return PartitionContext:AllocateTenantTablePartition(ParentValue,pcTable).  
@@ -178,13 +189,13 @@ class OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery inherits PartitionQu
     method public IFetchRequest GetNewRequest():   
         define variable msg as IFetchRequest no-undo.
         define variable cWhere as character no-undo.
-        msg = new FetchRequest(Name,Id,DatasetHandle).
+        msg = new FetchRequest(Name,Id,DatasetHandle,yes).
         msg:SetTableRequestType("ttPartition","NEW").
         msg:SetTableQuery("ttPartition",GetNewQuery()).
         return msg.
     end method.
    
-    method public logical Allocate():        
+    method public override logical Allocate():        
         define variable rid as rowid no-undo.
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.

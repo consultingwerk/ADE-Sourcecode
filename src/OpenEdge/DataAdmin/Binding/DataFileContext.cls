@@ -29,10 +29,6 @@ class OpenEdge.DataAdmin.Binding.DataFileContext inherits DataAdminContext imple
        
     define private dataset dsfilestatus serialize-name "root" for ttfilestatus.
     
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsfilestatus:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -61,6 +57,12 @@ class OpenEdge.DataAdmin.Binding.DataFileContext inherits DataAdminContext imple
     constructor public DataFileContext ():
         super ("DataFile").
     end constructor.
+    
+        
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsfilestatus:handle. 
+    end method.
         /*
 	constructor public OptionContext ( service as DataAdminService):
 		super ( "Options",service).
@@ -79,10 +81,10 @@ class OpenEdge.DataAdmin.Binding.DataFileContext inherits DataAdminContext imple
         define variable hNewBuffer  as handle no-undo.
         /*            hds:copy-dataset(hCopy,yes,yes).*/
         Service = pResponse:service.
-        TblResponse = pResponse:GetTableResponse(TableHandle:Name).
+        TblResponse = pResponse:GetTableResponse(TableHandle:name).
         if valid-object(TblResponse) then
         do:
-            hNewBuffer = pResponse:DataHandle:get-buffer-handle (TableHandle:Name).              
+            hNewBuffer = pResponse:DataHandle:get-buffer-handle (TableHandle:name).              
             if hNewBuffer:table-handle <> Tablehandle then
             do:
                 Tablehandle:copy-temp-table(hNewBuffer,yes,yes).
@@ -96,7 +98,7 @@ class OpenEdge.DataAdmin.Binding.DataFileContext inherits DataAdminContext imple
         return "".
     end.
     
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
 	    undo, throw new UnsupportedOperationError("Copy DataFile").
 	end method. 
      
@@ -126,8 +128,8 @@ class OpenEdge.DataAdmin.Binding.DataFileContext inherits DataAdminContext imple
         return new DataFileList(cntxt) .
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new DataFile(cntxt) .
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new DataFile(this-object,pReq) .
     end method.
         
 end class.

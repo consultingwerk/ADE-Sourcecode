@@ -14,9 +14,17 @@
                   and entitites does not need to know the difference  
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*.
+
 interface OpenEdge.DataAdmin.Binding.IFilteredContext:  
+    define public property Model as IDataAdminModel no-undo  get.
+   
     define public property Filter as character  no-undo  get. 
     define public property RequestInfo as IRequestInfo no-undo get. set.
+    method public int IndexOf(c as char).
+    method public IDataAdminElement FindEntityAtRow(piRow as integer).
+   
 end interface.

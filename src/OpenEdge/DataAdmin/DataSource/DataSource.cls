@@ -1,24 +1,34 @@
+/*************************************************************/
+/* Copyright (c) 2011-2014 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
 /**  DataSource manages the source query for a target and deals with various 
      query tranformation in support of this. It implements IQueryMap 
      to utilize QueryString for the transformation                       HD **/
 
 
+
 routine-level on error undo, throw.     
-using Progress.Lang.* from propath.
+
+using OpenEdge.DataAdmin.DataAccess.IDataAccess from propath.
 using OpenEdge.DataAdmin.DataSource.DBQuery from propath.
-using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
 using OpenEdge.DataAdmin.DataSource.DatabaseInfo from propath.
+using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Message.ITableRequest from propath.
-using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
 using OpenEdge.DataAdmin.Lang.WebUtil from propath.
+using OpenEdge.DataAdmin.Message.ITableRequest from propath.
+using Progress.Lang.Error from propath.
 
-class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IDataSource, IQueryMap:
+class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IDataSource:
     
     define private variable mBuffer as handle no-undo.
-         
+       
     define protected property DatabaseInfo as DatabaseInfo no-undo 
         get():
             if not valid-object(DatabaseInfo) then
@@ -26,7 +36,10 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
             return DatabaseInfo.     
         end. 
         set.
-    
+        
+    /* not always set - set from DataAccess  getsource - read and save  */ 
+    define public property DataAccess as IDataAccess no-undo get. set. 
+ 
     define protected property WebUtil as WebUtil no-undo 
         get():
             if not valid-object(WebUtil) then
@@ -46,7 +59,17 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     define public property NumRecords     as integer   no-undo 
         init ?
         get. set.
-         
+        
+    /* optional list of datasource table names that is managed by the source 
+       and not to be saved from the IDataAccess container  */
+    define public property SaveChildNames   as character no-undo
+        get.  
+        protected set(pnames as char):
+            if pnames = ? then 
+                undo, throw new UnknownValueError("SaveChildNames").
+            SaveChildNames = pnames.
+        end.
+        
     define public property BatchSize as integer   no-undo 
         get.     
         set(newSize as integer):
@@ -133,12 +156,33 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     end constructor.
       
     method public logical Save(bufferHandle as handle).
-        undo, throw new UnsupportedOperationError("Save of " + GetClass():TypeName).
+        undo, throw new UnsupportedOperationError("Save without state for " + this-object:GetClass():TypeName).
     end method.     
     
     method public logical Save(bufferHandle as handle,piState as integer).
         undo, throw new UnsupportedOperationError("Save a specified state for " + GetClass():TypeName).
     end method.       
+     
+    method public logical Save(parentbufferHandle as handle,bufferHandle as handle,piState as integer).
+        undo, throw new UnsupportedOperationError("Save child for a specified state for " + GetClass():TypeName).
+    end method. 
+   
+    method protected logical SaveChildBuffers(phBuffer as handle,pcChildnames as char,piState as int):
+        define variable i as integer no-undo.
+        define variable hchild as handle no-undo.
+        define variable lok as logical no-undo.
+        define variable lsave as logical no-undo.
+        do i = 1 to phBuffer:num-child-relations:
+            hchild = phBuffer:get-child-relation(i):child-buffer.
+            if lookup(hchild:name,pcChildnames) > 0 then 
+            do:
+                lsave = DataAccess:GetSaveSource(hchild:name):Save(phBuffer,hchild,piState).
+                if lsave then
+                   lok = true.
+            end.
+        end.   
+        return lok. 
+    end method.
      
     method public logical Refresh(bufferHandle as handle).
         undo, throw new UnsupportedOperationError("Refresh for " + GetClass():TypeName).
@@ -210,7 +254,7 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         iStart = req:Start. 
         iPageSize = req:PageSize. 
         lok = Prepare(phBuffer,cQuery,"").
-        
+        /* if paging we need total */
         if iPageSize > 0 then
         do: 
             BatchSize = iPageSize.
@@ -240,7 +284,6 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         DataBuffer:attach-data-source(DataSourceHandle:handle,FieldMapping).
    
         hParentRel = ParentRelation.
-        
         if pcTargetQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
         do:
             oQueryString = new QueryString(pcTargetQuery,this-object).
@@ -252,13 +295,13 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
                tables so that Progress can identify the related when filling the temp-tables.
               (columnValue ensures parent reference is NOT transformed) */
             else if valid-handle(hParentRel) and hParentRel:active and not hParentRel:reposition then
+            do:
                 oQueryString:addExpression(DataSourceHandle:fill-where-string).
-            
+            end.
             lOk = PrepareQueryString(oQueryString).
         end.
         else
             lok = Prepare().
-       
         return lOk.
         catch e1 as IllegalArgumentError :
         	undo, throw e1.	
@@ -301,7 +344,8 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         do:
             if not valid-handle(QueryHandle) then
                 CreateQuery().
-            
+/*             message poQueryString:buildQueryString(QueryHandle)*/
+/*             view-as alert-box.                                 */
             isOk = poQueryString:InsertToQuery(QueryHandle).
         end.    
         else 
@@ -332,7 +376,7 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
                 /* ambiguous */
                 when 3166 then
                     return ?.
-                 /* fields in query not for tenant . 
+                 /* fields in queryexp not for any of the query tables  . 
                     this could still be a valid query, but an OR expression
                     to other tables returned from BuildFindString  */
                 when 7328 then
@@ -528,6 +572,8 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     define variable hDataset   as handle     no-undo.
     define variable cColumn    as character  no-undo.
     define variable hParentRel as handle     no-undo.
+    define variable joinedsrc  as IDataSource no-undo.
+    define variable cJoinCol   as character no-undo.
     /*  inner join reference to other buffers can be passed from client,
         so we use the buffer's dataset to get those datasources' 
         fieldmap. This assume that any buffer that has been attached to a 
@@ -539,19 +585,31 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         The actual fill of the joined table is handled by another datasource.  */
                                 
     cTable = entry(1,pcColumn,".").
+    hDataset = DataBuffer:dataset.
     if DataBuffer:name = cTable then
-      hBuffer = DataBuffer.
-    /* keep reference to parent relation as is  */
+        hBuffer = DataBuffer.
     else do:
-      hParentRel = ParentRelation.
-      if valid-handle(hParentRel) and cTable = hParentRel:parent-buffer:NAME then
-        return pcColumn.
+        hParentRel = ParentRelation.
+        /* keep reference to parent relation as is  */
+        if valid-handle(hParentRel) and cTable = hParentRel:parent-buffer:name then
+           return pcColumn.
+           
+        hBuffer  = hDataSet:get-buffer-handle(cTable) no-error.     
+        /* if this is a dataset buffer check if we have a registered datasource
+           that can be used to find the column  */
+        if valid-handle(hBuffer) and valid-object(DataAccess)  then
+        do:
+            joinedsrc = DataAccess:GetReadSource(cTable).
+            if valid-object(joinedsrc)  then 
+            do:
+               cJoinCol = joinedsrc:ColumnSource(pcColumn).
+               /* @todo - should check datatype since the columnsource in some cases 
+                  returns a field of wrong type for permission   */
+               return cJoinCol.
+            end.    
+        end.     
     end.
-    
-    assign
-      hDataset = DataBuffer:dataset
-      hBuffer  = hDataSet:get-buffer-handle(cTable) NO-ERROR.
-    
+   
     if valid-handle(hBuffer) then
     do:
       iLookup = lookup(pcColumn,hBuffer:data-source-complete-map).

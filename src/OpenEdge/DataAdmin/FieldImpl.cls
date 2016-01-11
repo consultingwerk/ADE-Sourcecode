@@ -21,7 +21,8 @@ using OpenEdge.DataAdmin.DataAdminService from propath.
 using OpenEdge.DataAdmin.AbstractSchemaElement from propath.
 using OpenEdge.DataAdmin.ITable from propath.  
 using OpenEdge.DataAdmin.IField from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Binding.IndexContext from propath.
@@ -43,7 +44,7 @@ class OpenEdge.DataAdmin.FieldImpl final  inherits AbstractSchemaElement  implem
             return "Field". 
         end.
     
-   define public property DataType as character no-undo 
+    define public property DataType as character no-undo 
         get():
             if valid-handle(mBuffer) then
                 return mBuffer::DataType.
@@ -51,17 +52,26 @@ class OpenEdge.DataAdmin.FieldImpl final  inherits AbstractSchemaElement  implem
                 return DataType. 
         end.  
                     
-      
+    define public property IsLob as logical no-undo 
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::IsLob.
+            else
+                return DataType="clob" or DataType="blob". 
+        end. 
    
    /*------------------------------------------------------------------------------
             Purpose:                                                                      
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
         
-    constructor public FieldImpl ( cntxt as IDataAdminContext ):
+    constructor public FieldImpl ( cntxt as IDataAdminModel ):
         super (cntxt).
     end constructor.
     
+    constructor public FieldImpl (cntxt as IDataAdminModel,preq as IRequestInfo):
+        super (cntxt,preq).        
+    end constructor.
     
        
     method public override void Export():
@@ -69,7 +79,7 @@ class OpenEdge.DataAdmin.FieldImpl final  inherits AbstractSchemaElement  implem
     end method.          
     
     /* No local context needed - currently not used to create    */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
      

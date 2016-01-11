@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000-2011 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2011,2013 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -79,9 +79,12 @@ DEFINE VARIABLE odbtyp          AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearea        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearealog     AS CHARACTER             NO-UNDO.
 
-DEFINE VARIABLE arealist        AS CHARACTER INITIAL ?   NO-UNDO.
-DEFINE VARIABLE areaname        AS CHARACTER             NO-UNDO.
-define variable multitenantdb   as logical               no-undo.
+DEFINE VARIABLE arealist                   AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE areaname                   AS CHARACTER             NO-UNDO.
+define variable multitenantdb              as logical               no-undo.
+define variable isPartitionEnabled         as logical no-undo.
+define variable canEnablePartitionOptions  as logical no-undo.
+define variable isType2                    as logical no-undo.
 DEFINE VARIABLE events   AS CHARACTER EXTENT    7 NO-UNDO 
    init ["Create","Delete","Find","Write",
          "Replication-Create","Replication-Delete","Replication-Write"].
@@ -187,26 +190,47 @@ ASSIGN
 /* 20051228-008 - use other delimiter in case area name has comma */
 areaname:DELIMITER IN FRAME frame-d = CHR(1).
 
-IF NOT adding THEN DO:
+
+IF NOT adding THEN  DO:
   IF DICTDB._File._For-type <> ? THEN
     ASSIGN arealist = "N/A"
            areaname:LIST-ITEMS IN FRAME frame-d = arealist.          
   ELSE DO:
     if DICTDB._File._file-attributes[1] = false or DICTDB._File._file-attributes[2] = true then
     do:
-        FIND _StorageObject WHERE _StorageObject._Db-recid = DICTDB._File._Db-recid
-                              AND _StorageObject._Object-type = 1
-                              AND _StorageObject._Object-number = DICTDB._File._File-number
-                              and _StorageObject._Partitionid = 0
-                              NO-LOCK NO-ERROR.
-        IF AVAILABLE _StorageObject THEN                                               
-          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 
-                                          _StorageObject._Area-number NO-LOCK.
-        ELSE
-          FIND DICTDB._Area WHERE DICTDB._Area._Area-number =  6 NO-LOCK.
-          
-        ASSIGN arealist = DICTDB._Area._Area-name
-               areaname:LIST-ITEMS IN FRAME frame-d = arealist.
+        if DICTDB._File._File-number <> ? then
+        do:
+            FIND  DICTDB._StorageObject WHERE  DICTDB._StorageObject._Db-recid = DICTDB._File._Db-recid
+                                  AND  DICTDB._StorageObject._Object-type = 1
+                                  AND  DICTDB._StorageObject._Object-number = DICTDB._File._File-number
+                                  and  DICTDB._StorageObject._Partitionid = 0
+                                  NO-LOCK NO-ERROR.
+            IF AVAILABLE DICTDB._StorageObject THEN 
+            DO: 
+                 if DICTDB._StorageObject._Area-number <> 0 then                                                
+                      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number NO-LOCK.
+            end.
+            else if not DICTDB._File._file-attributes[3] then
+                FIND DICTDB._Area WHERE DICTDB._Area._Area-number =  6 NO-LOCK.
+        end.
+        else do:
+            if DICTDB._File._ianum <> 0 then
+                FIND DICTDB._Area WHERE DICTDB._Area._Area-number = DICTDB._File._ianum no-lock no-error.
+            
+        end. 
+        IF AVAILABLE DICTDB._Area THEN  
+        do:   
+           ASSIGN arealist = DICTDB._Area._Area-name
+                  isType2 = dictdb._Area._Area-clustersize = 8 
+                          or  dictdb._Area._Area-clustersize = 64
+                          or  dictdb._Area._Area-clustersize = 512    
+                  areaname:LIST-ITEMS IN FRAME frame-d = arealist.
+        end.   
+        else /* file-area-number seems to only be used when adding? 
+               (refactored from if not DICTDB._File._file-attributes[3] ) */
+            ASSIGN file-area-number = 0
+                   arealist = "".
+             
     end.       
   END.  
   { prodict/dump/copy_fil.i &from=DICTDB._File &to=wfil &all=true}
@@ -215,8 +239,7 @@ IF NOT adding THEN DO:
     { prodict/dump/copy_fit.i &from=DICTDB._File-trig &to=wfit }
   END.
 END.
-ELSE DO:
-
+ELSE DO: 
   FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
                           AND DICTDB._Area._Area-type = 6
                           AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
@@ -241,7 +264,6 @@ ELSE DO:
 
   ASSIGN areaname:LIST-ITEMS IN FRAME frame-d = arealist.
          
-  
 END.
           
 /*--------------------------------------------------------------------------*/
@@ -298,6 +320,11 @@ stdmsg =
   ELSE "You do not have permission to modify tables.").
 
 
+
+
+
+
+
 /*--------------------------------------------------------------------------*/
 
 /* See if the field editor is in user_path.  If not, don't show field editor
@@ -321,8 +348,7 @@ IF adding OR NOT fldeditor THEN DO:
   btn_flds:VISIBLE IN FRAME frame-d = no.
 END.
 
-VIEW FRAME frame-d.
-    
+VIEW FRAME frame-d.    
 /*
 This code sets the file type.
 File-types:
@@ -350,12 +376,17 @@ IF adding THEN
       wfil._Dump-name = "".
       
 multitenantdb = can-find(first dictdb._tenant) .
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+    isPartitionEnabled = true.
+
 if not multitenantdb then
     wfil._File-attribute[2]:hidden in frame frame-d = true.
 DISPLAY
   wfil._File-name
   wfil._File-attribute[1] 
   wfil._File-attribute[2] when multitenantdb
+  wfil._File-attribute[3]  
   areaname
   wfil._Dump-name
   ftyp @ wfil._For-Type
@@ -375,7 +406,8 @@ DISPLAY
   wfil._Desc
   WITH FRAME frame-d.
 
-setAreaState(wfil._File-attribute[1],
+if multitenantdb then 
+    setAreaState(wfil._File-attribute[1],
              wfil._File-attribute[2],
              no,
              adding,
@@ -389,19 +421,23 @@ newnam = (romode = 0)
          AND (wfil._Db-lang = 0)
          AND (NOT CAN-FIND(FIRST DICTDB._View-ref
          WHERE DICTDB._View-ref._Ref-Table = wfil._File-name)).
-
+         
 desc_frame:
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
-    
+   canEnablePartitionOptions = adding 
+                             or (isType2 and  wfil._File-Attributes[1] = false and wfil._File-Attributes[3] = false).
+
   /* use enable and wait-for in order to control wfil._File-attributes[2] tab order
      even if it is not enabled and the area is not sensitive (the SetAreaState
      is fired from value changed on the File-attributes and set [2] tab order 
      before the Area */   
   ENABLE 
     wfil._File-name  WHEN newnam
-    wfil._File-attributes[1] when multitenantdb /* disabled below if necessary */
-    wfil._File-attributes[2] when multitenantdb  /* disabled below   */
-    areaname when ierror EQ 0 /* disabled below if necessary  */
+    wfil._File-attributes[3] when romode = 0 and isPartitionEnabled and canEnablePartitionOptions  
+    wfil._File-attributes[1] when romode = 0 and multitenantdb and canEnablePartitionOptions  /* disabled below if necessary */
+    /* enable here for tab order - senistive is set false below and enabling is managed in triggers */  
+    wfil._File-attributes[2] when romode = 0 and multitenantdb and canEnablePartitionOptions  
+    areaname when ierror EQ 0  /* disabled below if necessary  */
     wfil._Dump-name  WHEN romode = 0
 	     VALIDATE(INDEX(INPUT wfil._Dump-name, " ") = 0, "Invalid character in Dump Name")
     wfil._For-Type   WHEN romode = 0 AND capabs[5]
@@ -418,23 +454,36 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
     btn_Cancel 
     btn_flds         WHEN NOT adding AND fldeditor
     WITH FRAME frame-d.
+
      
   if ierror EQ 0 THEN
   do:
-    if multitenantdb then
+    areaname:sensitive = false.
+    if multitenantdb then 
+    do:
       assign
-        wfil._File-attributes[1]:sensitive = (romode = 0 and multitenantdb and not wfil._File-attributes[1])
-        wfil._File-attributes[2]:sensitive = romode = 0 and FALSE. /* enabled in triggers only*/
-        areaname:sensitive = romode = 0 AND adding.
+          wfil._File-attributes[2]:sensitive = FALSE. /* enabled in triggers only*/
+          areaname:sensitive = romode = 0 AND adding.
+    end.
+    else if canEnablePartitionOptions then do:
+      assign
+          areaname:sensitive = romode = 0 AND adding.
+    end.
+    else if not multitenantdb and not isPartitionEnabled  then do:
+      assign
+          areaname:sensitive = romode = 0 AND adding.
+    end.
   end.
+
   wait-for go of frame frame-d.
-  
+  hide message no-pause.
   ASSIGN 
      wfil._File-name           when wfil._File-name:sensitive 
      wfil._File-attributes[1]  when wfil._File-attributes[1]:sensitive
                                /* NOT a typo - [2] need to be saved also when disabled
                                   when [1] is enabled  */ 
      wfil._File-attributes[2]  when wfil._File-attributes[1]:sensitive 
+     wfil._File-attributes[3]  when wfil._File-attributes[3]:sensitive 
      wfil._Dump-name           when wfil._Dump-name:sensitive      
      wfil._For-Type            when wfil._For-Type:sensitive 
      wfil._Hidden              when wfil._Hidden:sensitive  
@@ -447,6 +496,7 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
            OR FRAME frame-d wfil._File-name ENTERED
            OR FRAME frame-d wfil._File-attribute[1] ENTERED
            OR FRAME frame-d wfil._File-attribute[2] ENTERED
+           OR FRAME frame-d wfil._File-attribute[3] ENTERED
            OR FRAME frame-d wfil._For-Type ENTERED
            OR FRAME frame-d wfil._Hidden ENTERED
            OR FRAME frame-d areaname ENTERED
@@ -458,7 +508,7 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
     wfil._Dump-name = INPUT FRAME frame-d wfil._Dump-name.
 
   IF adding THEN DO:
-    if wfil._File-attributes[1] = true and wfil._File-attributes[2] = false then
+    if (wfil._File-attributes[1] = true and wfil._File-attributes[2] = false) or (wfil._File-attributes[3]) then
     do:
         ASSIGN file-area-number = 0.
     end.      
@@ -541,5 +591,3 @@ PAUSE 0 BEFORE-HIDE.
 RETURN.
 
 &ENDIF  /* only compile for tty */
-
-

@@ -338,7 +338,7 @@ DO ON STOP UNDO, LEAVE:
       /* let's cache the encryption info in a temp-table */
       /* and the object attributes - for alt buffer pool settings */
       /* Skip multi-tennat objects since they have buffer pool per tenant */
-      IF  (DICTDB._File._File-Attributes[1] = false ) 
+      IF  (DICTDB._File._File-Attributes[1] = false )  and (DICTDB._File._File-Attributes[3] = false)
       and (VALID-OBJECT(myEPolicy) OR VALID-OBJECT(myObjAttrs)) THEN 
       DO:
          

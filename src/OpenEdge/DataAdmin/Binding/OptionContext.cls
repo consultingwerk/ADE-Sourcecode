@@ -27,11 +27,6 @@ class OpenEdge.DataAdmin.Binding.OptionContext inherits DataAdminContext impleme
        
     define private dataset dsOptions serialize-name "root" for ttOptions
        .
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsOptions:handle.
-        end get.
-    
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttOptions:handle.
@@ -71,12 +66,17 @@ class OpenEdge.DataAdmin.Binding.OptionContext inherits DataAdminContext impleme
 /*    method protected void UnLoadInstances().                                   */
 /*        undo, throw new UnsupportedOperationError("Load instances for Schema").*/
 /*    end method.                                                                */
+        /*   temporary until all sub classes are using createDataset  */
+        
+    method override protected handle InitDataset ():
+        return dataset dsOptions:handle. 
+    end method.
     
 	method public override character GetJoinFields(parentid as char):
         return "".
     end.
     
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
 	    undo, throw new UnsupportedOperationError("Copy Option").
 	end method. 
      
@@ -96,7 +96,7 @@ class OpenEdge.DataAdmin.Binding.OptionContext inherits DataAdminContext impleme
         undo, throw new UnsupportedOperationError("CreateCollection in OptionContext").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+    method protected override IDataAdminElement CreateEntity(req as IRequestInfo):
         undo, throw new UnsupportedOperationError("CreateEntity in OptionContext").
     end method.
         

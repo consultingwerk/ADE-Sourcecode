@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2000-2011 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2000-2011,2013 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -95,27 +95,32 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
 
     {prodict/dump/dumpname.i}
 
+
     ASSIGN wfil._Dump-name = nam.
   END. 
   
-  if wfil._File-Attributes[1] = true then
+  if wfil._File-Attributes[1] = true and wfil._File-Attributes[3] = false then
   do:
       if not can-find(first _tenant) then
       do:
-         /* db must be mt enabled to add mt sequence */
+         /* db must be mt enabled to add mt file  */
          iError = 72.
          RETURN.
       end.     
   end.    
-   
-  If lForceSharedSchema and wfil._File-Attributes[1] and wfil._File-Attributes[2] = false then
+  
+  If lForceSharedSchema and ((wfil._File-Attributes[1] and wfil._File-Attributes[2] = false) or (wfil._File-Attributes[3] = true)) then
   do:
       /* cannot force shared with keep default area false  */
       iError = 71.
       return.
-  end.       
-        
-  If wfil._File-Attributes[1] = false or wfil._File-Attributes[2] = true then
+  end.     
+    
+  If  wfil._File-Attributes[3] = true then
+  do:
+     /* avoid area check  - (leave check for error  if wfil._File-Attributes[1] true to core for now) */ 
+  end.          
+  else If (wfil._File-Attributes[1] = false or wfil._File-Attributes[2] = true) then
   do:
       RUN check_area_num (OUTPUT is-area).
       IF NOT is-area THEN DO:
@@ -150,7 +155,12 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
           DICTDB._File._File-Attributes[2] = wfil._File-Attributes[2]. 
       end.
   end.  
-   
+  
+  If wfil._File-Attributes[3] then
+  do:
+      DICTDB._File._File-Attributes[3] = wfil._File-Attributes[3].
+  end.  
+
   IF wfil._Dump-name <> ? THEN DICTDB._File._Dump-name = wfil._Dump-name.
 
   IF wfil._Db-lang = 1 THEN
@@ -270,6 +280,12 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
           DICTDB._File._File-Attributes[2] = wfil._File-Attributes[2]. 
       end.
   END.
+  
+  If wfil._File-Attributes[3] <> _File._File-Attributes[3] then
+  do:
+      DICTDB._File._File-Attributes[3] = wfil._File-Attributes[3].
+  end.  
+
   /* keep default area is currently not changable 
   ELSE 
   IF DICTDB._File._File-attributes[1] = true 
@@ -342,8 +358,9 @@ IF imod = "a" OR imod = "m" THEN DO:
       new_name = wfit._Proc-name.
       IF  DICTDB._File-trig._Event     = wfit._Event
       AND DICTDB._File-trig._Override  = wfit._Override
-      AND old_name              = new_name
+      AND compare(old_name,'=',new_name,'raw')
       AND DICTDB._File-trig._Trig-CRC  = wfit._Trig-CRC THEN NEXT trig_loop.
+    
     END.
 
     /* Progress doesn't let you modify a trigger record, so delete and

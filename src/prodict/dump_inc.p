@@ -31,8 +31,7 @@ Usage:
        $DLC/bin/_progres -b -db master \
                             -db slave  \ 
                             -p prodict/dump_inc.p > /tmp/dump_inc.log
-
-DataServer Usage:
+    DataServer Usage:
 
        $DLC/bin/_progres -b -db master \
                             -db slave  \ 
@@ -48,6 +47,7 @@ DataServer Usage:
        NOTE: If -db parameters are not set at run-time, environment variables must be set to make up for them.
              If -db parameters are set at run-time, they are used for defaulting when certain environment variables is not set.
     
+
 Environment Variables:
     DUMP_INC_DFFILE          : name of file to dump to
     DUMP_INC_CODEPAGE        : output codepage
@@ -123,11 +123,12 @@ DEFINE VARIABLE rename-file  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE df-file-name AS CHARACTER NO-UNDO.
 DEFINE VARIABLE code-page    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE index-mode   AS CHARACTER NO-UNDO.
-DEFINE VARIABLE debug-mode   AS INTEGER   NO-UNDO.
+DEFINE VARIABLE debug-mode   AS INTEGER   INITIAL 0 NO-UNDO.
 
 DEFINE VARIABLE foo          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE setincrdmpSilent        AS LOGICAL   NO-UNDO INIT NO.
 DEFINE VARIABLE hBuf         AS HANDLE    NO-UNDO.
+
 
 /* For DataServer Use */
 DEFINE VARIABLE ds_shname1   AS CHARACTER INITIAL "" NO-UNDO.
@@ -148,6 +149,7 @@ DEFINE VARIABLE shdb1-id     AS RECID     INITIAL ? NO-UNDO.
 DEFINE VARIABLE dictdb-id    AS RECID     INITIAL ? NO-UNDO.
 DEFINE VARIABLE shdb2-id     AS RECID     INITIAL ? NO-UNDO.
 DEFINE VARIABLE dictdb2-id   AS RECID     INITIAL ? NO-UNDO.
+
 DEFINE VARIABLE errcode      AS INTEGER   INITIAL 0 NO-UNDO.
 /* For DataServer Use */
 
@@ -252,10 +254,10 @@ END.
 Procedure doDumpIncr:
 
 IF debug-mode GT 0 THEN
-      OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
+   OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
 
 IF NUM-DBS LT 2 THEN DO:
-  IF user-dbtype1 = "PROGRESS" AND user-dbtype2 = "PROGRESS" THEN DO:
+ IF user-dbtype1 = "PROGRESS" AND user-dbtype2 = "PROGRESS" THEN DO:
     IF debug-mode GT 0 THEN
       PUT STREAM err-log UNFORMATTED new_lang[02].
     IF LDBNAME(2) = ? THEN
@@ -331,7 +333,6 @@ IF debug-mode GT 1 THEN DO:
   PUT STREAM err-log UNFORMATTED "DUMP_INC_INDEXMODE  = ":U index-mode SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_RENAMEFILE = ":U rename-file SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_DEBUG      = ":U debug-mode SKIP.
-
   IF user-dbtype1 <> "PROGRESS" THEN DO: 
     PUT STREAM err-log UNFORMATTED "SHDBNAME1           = ":U ds_shname1 SKIP.
     PUT STREAM err-log UNFORMATTED "MSSDBNAME1          = ":U ds_mssname1 SKIP.
@@ -342,6 +343,7 @@ IF debug-mode GT 1 THEN DO:
     PUT STREAM err-log UNFORMATTED "MSSDBNAME2          = ":U ds_mssname2 SKIP.
     PUT STREAM err-log UNFORMATTED "ORADBNAME2          = ":U ds_oraname2 SKIP.
   END.
+
 END.  /* debug-mode GT 1 */
 
 IF user-dbtype1 = "PROGRESS" THEN DO:
@@ -397,11 +399,11 @@ END. /* end of doDumpIncr */
 /* mainline code **********************************************************/
 
 IF NOT SESSION:BATCH-MODE THEN DO:
-  if not THIS-PROCEDURE:persistent THEN 
-    MESSAGE SUBSTITUTE(new_lang[01], "{0}":U) 
+ if not THIS-PROCEDURE:persistent THEN 
+  MESSAGE SUBSTITUTE(new_lang[01], "{0}":U) 
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    RETURN.
-END. /* NOT SESSION:BATCH-MODE */
+  RETURN.
+END.  /* NOT SESSION:BATCH-MODE */
 
 IF this-procedure:persistent THEN DO:
   IF debug-mode GT 0 THEN DO:
@@ -410,7 +412,6 @@ IF this-procedure:persistent THEN DO:
   END.
 END.
 ELSE DO:
-
   ASSIGN debug-mode   = getEnvironmentInt("{&VAR_PREFIX}_DEBUG":U)
          rename-file  = getEnvironment("{&VAR_PREFIX}_RENAMEFILE":U)
          df-file-name = getEnvironment("{&VAR_PREFIX}_DFFILE":U)
@@ -423,7 +424,8 @@ ELSE DO:
          ds_oraname1  = getEnvironment("ORADBNAME1":U)
          ds_oraname2  = getEnvironment("ORADBNAME2":U).
 
-  IF debug-mode GT 0 THEN DO:
+
+IF debug-mode GT 0 THEN DO:
     OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
     PUT STREAM err-log UNFORMATTED SUBSTITUTE(new_lang[23], STRING(NOW)) SKIP(1).
   END.
@@ -588,7 +590,7 @@ ELSE DO:
 
     IF ds_dbname1 <> "" THEN DO:
       IF dictdb-id = ? THEN DO:
-        IF CAPS(ds_dbname1) = CAPS("<none>") THEN DO:
+         IF CAPS(ds_dbname1) = CAPS("<none>") THEN DO:
           drec_db = shdb1-id.
           s_DbType1 = "PROGRESS".
         END. 
@@ -645,12 +647,12 @@ ELSE DO:
         END.
       END CASE.
       RETURN.
-    END.
+  END.
 
-    s_DbRecId = ?. /* Borrow ADE dictionary variable not used by incremental dump */
-    IF ds_dbname2 <> "" THEN DO:
+  s_DbRecId = ?. /* Borrow ADE dictionary variable not used by incremental dump */
+  IF ds_dbname2 <> "" THEN DO:
       IF dictdb2-id = ? THEN DO:
-        IF CAPS(ds_dbname2) = CAPS("<none>") THEN DO:
+         IF CAPS(ds_dbname2) = CAPS("<none>") THEN DO:
           s_DbRecId = shdb1-id.
           s_DbType2 = "PROGRESS".
         END.
@@ -668,7 +670,13 @@ ELSE DO:
     ELSE DO:
       PUT STREAM err-log UNFORMATTED new_lang[09] SKIP.
       RETURN.
+
     END.
+  END.
+
+  IF debug-mode GT 0 THEN DO:
+     PUT STREAM err-log UNFORMATTED "" SKIP.
+     OUTPUT STREAM err-log CLOSE.
   END.
 
   run doDumpIncr.

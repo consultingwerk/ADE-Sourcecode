@@ -81,8 +81,8 @@ FORM
   mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
   LABEL "Collation"  COLON 36 SKIP({&VM_WID})  
   mss_incasesen  LABEL "Insensitive" COLON 36 SKIP({&VM_WID})
+  genreplvl  view-as COMBO-BOX COLON 36 SKIP({&VM_WID})
   loadsql   view-as toggle-box label "Load SQL" AT 5 
-  genrep    view-as toggle-box label "Generate Rank Report" AT 38 SKIP({&VM_WID})
   movedata  view-as toggle-box label "Move Data" AT 5 
   s_btn_Advanced label "Advanced..." AT 50 SKIP({&VM_WID})
 
@@ -329,7 +329,25 @@ IF OS-GETENV("DFLTCONSTR") <> ? AND dflt
     
 tmp_str = OS-GETENV("MSSREVSEQGEN").
 IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
-   newseq = FALSE.
+ ASSIGN  newseq = FALSE.
+
+IF OS-GETENV("MSSSEQ") <> ? THEN DO:
+ tmp_str = OS-GETENV("MSSSEQ").
+ IF (newseq = TRUE AND tmp_str <> ? AND tmp_str BEGINS "Y" ) THEN
+   nativeseq = TRUE.
+ ELSE
+   nativeseq = FALSE.
+END.
+
+IF OS-GETENV("SEQCACHESIZE") <> ? THEN DO:
+   tmp_str = OS-GETENV("SEQCACHESIZE").
+   IF (nativeseq = TRUE AND tmp_str <> ? AND tmp_str BEGINS "?" ) THEN
+        ASSIGN cachesize = "?".
+   ELSE IF (nativeseq = TRUE AND tmp_str <> ? AND tmp_str NE "?" ) THEN
+        ASSIGN cachesize = tmp_str.
+   ELSE 
+        ASSIGN cachesize = "0".
+END.
 
 tmp_str = OS-GETENV("MAPMSSDATETIME").
 IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
@@ -382,12 +400,21 @@ IF OS-GETENV("RECIDCOMPAT") <> ? THEN DO:
      ASSIGN  recidCompat = FALSE.
 END.
 
-IF OS-GETENV("GENRANKRPT") <> ? THEN DO:
-  ASSIGN tmp_str  = OS-GETENV("GENRANKRPT").
-  IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN 
-     ASSIGN  genrep = TRUE.
-  ELSE 
-     ASSIGN  genrep = FALSE.
+IF OS-GETENV("RANKLOGLVL") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("RANKLOGLVL").
+  CASE tmp_str:
+  WHEN "0" OR 
+  WHEN "1" OR 
+  WHEN "2" OR 
+  WHEN "4" THEN 
+       ASSIGN  genrepenv = INTEGER(tmp_str).
+  WHEN "3" THEN 
+       ASSIGN  genrepenv = 2.
+  OTHERWISE
+       ASSIGN  genrepenv = 9.
+  END CASE.
+  IF batch_mode THEN ASSIGN genreplvl = genrepenv.
+  ELSE IF genrepenv > 2 THEN ASSIGN genreplvl = 2.
 END.
 
 IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
@@ -528,7 +555,7 @@ IF NOT batch_mode THEN
         mss_collname
         mss_incasesen
         loadsql
-        genrep
+        genreplvl
         movedata WHEN mvdta = TRUE
         s_btn_Advanced
         btn_OK btn_Cancel 
@@ -540,6 +567,17 @@ IF NOT batch_mode THEN
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
 
+  IF genrepenv > 2  AND genreplvl = 2 THEN DO:
+     CASE genrepenv:
+          WHEN 4 THEN 
+               ASSIGN  genreplvl = genrepenv.
+          WHEN 3 THEN 
+               ASSIGN  genreplvl = 2.
+          OTHERWISE
+               ASSIGN  genreplvl = 9.
+     END CASE.
+  END.
+     
     IF loadsql THEN DO:
       IF Osh_dbname = "" OR osh_dbname = ? THEN DO:
         MESSAGE "Schema holder database Name is required." 

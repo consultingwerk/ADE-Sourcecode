@@ -35,6 +35,7 @@ using OpenEdge.DataAdmin.Core.JSONWriter from propath.
  
 using OpenEdge.DataAdmin.Binding.AreaContext from propath.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Binding.IContextTree from propath.
  
 using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
@@ -172,7 +173,7 @@ class OpenEdge.DataAdmin.Area inherits Entity implements IArea:
             return NumExtents.
         end.
      
-	constructor public Area (cntxt as IDataAdminContext):
+	constructor public Area (cntxt as IDataAdminModel):
         super (cntxt).     
     end constructor.
     
@@ -181,12 +182,12 @@ class OpenEdge.DataAdmin.Area inherits Entity implements IArea:
     end constructor.
     
     
-    constructor public Area (cntxt as IDataAdminContext,preq as IRequestInfo):
+    constructor public Area (cntxt as IDataAdminModel,preq as IRequestInfo):
         super (cntxt,preq).        
     end constructor.
         
     /**   local context needed - has child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return new AreaContext().
     end method.
      
@@ -240,26 +241,17 @@ class OpenEdge.DataAdmin.Area inherits Entity implements IArea:
         mDefaultBuffer:write-json ("File",cFile,yes).     
     end method.
         
-    method protected IDataAdminExporter GetExporter(pcFile as char):
+    method protected override IDataAdminExporter GetExporter(pcFile as char):
         define variable i as integer no-undo.
         define variable fileext as character no-undo.
         fileExt = GetFileExtension(pcFile).
         case fileExt:
             when "st" then
                  undo, throw new UnsupportedOperationError("Export Area as structure file."). 
-            when "json" then  
-                return new JSONWriter().
-            otherwise 
-                undo, throw new IllegalArgumentError("Export to file with extension " + quoter(fileext)). 
+            otherwise
+                 return super:GetExporter(pcFile).
         end.
     end method.
-    
-    method private char GetFileExtension(pcFile as char):
-       define variable i as integer no-undo.
-       i = num-entries(pcfile,".").
-       if i > 1 then
-           return entry(i,pcfile,".").
-       else return "".    
-    end method.   
+   
     
 end class.

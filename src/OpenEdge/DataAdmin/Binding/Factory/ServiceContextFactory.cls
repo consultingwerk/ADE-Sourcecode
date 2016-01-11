@@ -9,28 +9,28 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
+using OpenEdge.DataAdmin.Binding.AdministratorContext.
+using OpenEdge.DataAdmin.Binding.DataSecurityContext.
+using OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.LocalContextFactory.
+using OpenEdge.DataAdmin.Binding.FieldPermissionContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.PermissionContext.
+using OpenEdge.DataAdmin.Binding.SchemaChanges.
+using OpenEdge.DataAdmin.Binding.SecurityOptionsContext.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.TablePermissionContext.
+using OpenEdge.DataAdmin.Binding.UserFieldPermissionContext.
+using OpenEdge.DataAdmin.Binding.UserPermissionContext.
+using OpenEdge.DataAdmin.Binding.UserTablePermissionContext.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.NotFoundError.
+using OpenEdge.DataAdmin.IDataAdminService.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminService  from propath.
-using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
-using OpenEdge.DataAdmin.Binding.AdministratorContext  from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext  from propath.
-using OpenEdge.DataAdmin.Binding.PermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.UserFieldPermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.UserTablePermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.FieldPermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.TablePermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.UserPermissionContext  from propath.
-using OpenEdge.DataAdmin.Binding.DataSecurityContext  from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext  from propath.
-using OpenEdge.DataAdmin.Binding.SecurityOptionsContext  from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter  from propath.
-using OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Factory.LocalContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.NotFoundError from propath.
-
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits AbstractContextFactory implements IServiceContextFactory: 
@@ -124,91 +124,18 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
     
     constructor public ServiceContextFactory ( pservice as IDataAdminService, padapter as ServiceAdapter ):
         super (pservice, padapter).
-    
     end constructor.
     
-    method public IDataAdminContext GetContextBySerializeName(pname as char):
-        define variable cname as character no-undo.
-        if pname matches "indexes" then
-            cname = "index".
-        else if pname matches "*s" then
-            cName = substr(pname,1,length(pname) - 1).
-        else 
-            undo, throw new NotFoundError("x").    
-        return GetContext(cName).
-        /* catch notfound from lower evel to return passed name and term that corresponds to api */
-        catch e1 as NotFoundError :
-            undo, throw new NotFoundError("Collection " + quoter(pname) + " was not found.").    
-        end catch.
-        catch e2 as Progress.Lang.Error :
-        	undo, throw e2.	
-        end catch.
-    end method.
-    
-    method public IDataAdminContext GetLocalContext(pname as char):                
+    method public IDataAdminModel GetLocalContext(pname as char):                
         define variable factory as IContextFactory no-undo.
         factory = new LocalContextFactory(this-object).
         return factory:GetContext(pname).
-        /*
-        case pname:
-            when "Area" then
-            do:
-                
-            end.
-            when "Domain" then
-            do:
-            end.
-            when "AuthenticationSystem" then
-            do:
-            end.
-            when "Extent" then
-            do:
-            end.
-            when "Field" then
-            do:
-            end.
-            when "FieldPermission" then
-            do:
-            end.
-            when "Index" then
-            do:
-            end.
-            when "Partition" then
-            do:
-            end.
-            when "TenantGroup" then
-            do:
-            end.
-            when "TenantGroupMember" then
-            do:
-            end.
-            when "Schema" then
-            do:
-            end.
-            when "SchemaDefinition" then
-            do:
-            end.
-            when "Sequence" then
-            do:
-            end.
-            when "SequenceValue" then
-            do:
-            end.
-            when "Table" then
-            do:
-            end.
-            when "TablePermission" then
-            do:
-            end.
-            when "Tenant" then
-            do:
-            end.
-            when "User" then
-            do:
-            end.
-                
-        end.   
-         */
+    end method.
+    
+    method public IDataAdminModel GetLocalContextByAnyName(pname as char):                
+        define variable factory as IContextFactory no-undo.
+        factory = new LocalContextFactory(this-object).
+        return factory:GetContextByAnyName(pname).
     end method.
              
     method public SchemaChanges GetSchemaDefinitionContext(pcfile as char): 
@@ -223,7 +150,7 @@ class OpenEdge.DataAdmin.Binding.Factory.ServiceContextFactory inherits Abstract
         return new UserFieldPermissionContext(this-object).
     end method.
     
-    method protected override IDataAdminContext GetInternalContext(pname as char):
+    method protected override IDataAdminModel  GetInternalContext(pname as char):
         case pname:
             when "FieldPermission" then
                 return FieldPermissionContext.

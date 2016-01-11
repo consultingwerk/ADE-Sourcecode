@@ -36,6 +36,7 @@ class OpenEdge.DataAdmin.DataSource.TablePermissionDataSource inherits DataSourc
 	   init  	   
 "SchemaName,_Owner,~
 Name,_File-name,~
+IsMultiTenant,_File-attributes[1],~
 trowid,rowid(_File),~
 CanRead,_Can-read,~
 CanWrite,_Can-write,~

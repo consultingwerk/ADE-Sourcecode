@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2013 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -68,13 +68,21 @@ assign
    s_Db_Cp     = if hBuffer_DB:AVAILABLE then hBuffer_DB::_db-xl-name else "".
 
 /* check large sequence, large key support and mulit-tenancy, but only for Progress databases */
-IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
+IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN 
+DO:
+ 
+    find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+    if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+            s_Db_Partition_Enabled = "enabled".
+    else
+            s_Db_Partition_Enabled = "not enabled".
+
     /* For large key support, we look at the _Database-feature table.
        For large sequence - if 'Large Keys' is not a valid feature, than this
        is a pre-10.1B db in which case large sequences is not
        applicable. Otherwise we look at db-res1[1].
     */
-    FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
+    FIND DICTDB._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
     IF AVAILABLE DICTDB._Database-feature THEN DO:
         if can-find(first dictdb._tenant) then 
            s_Db_Multi_Tenancy = "enabled".     
@@ -97,6 +105,7 @@ IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
 END.
 ELSE
     ASSIGN s_Db_Multi_Tenancy = "n/a"
+           s_Db_Partition_Enabled = "n/a"
            s_Db_Large_Sequence = "n/a"
            s_Db_Large_Keys = "n/a".
 
@@ -139,6 +148,7 @@ display s_CurrDb
 	s_Db_Holder
     s_Db_Type
     s_Db_Cp
+    s_Db_Partition_Enabled
     s_Db_Multi_tenancy
     s_Db_Large_Sequence
     s_Db_Large_Keys

@@ -1,11 +1,11 @@
- /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
-  /*************************************************************/
- /*------------------------------------------------------------------------
+/**************************************************************/
+/* Copyright (c) 2011-2014 by progress Software Corporation.  */
+/*                                                            */
+/* all rights reserved.  no part of this program or document  */
+/* may be  reproduced in  any form  or by  any means without  */
+/* permission in writing from progress Software Corporation.  */
+/**************************************************************/
+/*------------------------------------------------------------------------------
     File        : UtilityFactory
     Purpose     : 
     Syntax      : 
@@ -13,33 +13,59 @@
     Author(s)   : hdaniels
     Created     : Fri Apr 29  
     Notes       : 
-  ----------------------------------------------------------------------*/
+  ----------------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.*.
-/*                                                  */
-/*using OpenEdge.DataAdmin.Internal.Util.SequenceValueReader.*/
-/*using OpenEdge.DataAdmin.Internal.Util.SequenceValueWriter.*/
-/*using OpenEdge.DataAdmin.Internal.Util.TableDataReader.    */
-/*using OpenEdge.DataAdmin.Internal.Util.TableDataWriter.    */
-using OpenEdge.DataAdmin.Util.IDataAdminUtility.
-using OpenEdge.DataAdmin.Util.IDataUtility.
-using OpenEdge.DataAdmin.Util.IExportUtility.
-using OpenEdge.DataAdmin.Error.NotFoundError.
 
-class OpenEdge.DataAdmin.Util.UtilityFactory: 
-     
+using OpenEdge.DataAdmin.Error.NotFoundError from propath.
+using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
+using OpenEdge.DataAdmin.Util.IUtilityFactory from propath.
+
+class OpenEdge.DataAdmin.Util.UtilityFactory implements IUtilityFactory: 
     
     method public IDataAdminUtility GetUtility(pcUtil as char):
         define variable util as IDataAdminUtility no-undo.
         define variable cmsg as character no-undo.
+        define variable cPath as character no-undo.
+        define variable cPubPath as character no-undo init "OpenEdge.DataAdmin.Util.".
+        define variable cInternalPath as character no-undo init "OpenEdge.DataAdmin.Internal.Util.".
+        define variable cClassName as character no-undo.
+        /* supported as public  (consider search instead? )  */
+        define variable PublicUtilityNames as character no-undo init "DeallocateUtility,PartitionSplitUtility,PartitionMergeUtility".
+        define variable cUtil as character no-undo.
+        cUtil = pcUtil.
+        case cUtil:
+            /* allow use of interface name (without I) and without *Utility for the Reader and Writer classes */
+            when "TableImportUtility" or when "TableImport" then 
+                cUtil = "TableDataReader".
+            when "TableExportUtility" or when "TableExport" then 
+                cUtil = "TableDataWriter".
+            when "SequenceExportUtility" or when "SequenceExport" then 
+                cUtil = "SequenceValueWriter".    
+            when "SequenceImportUtility" or when "SequenceImport" then 
+                cUtil = "SequenceValueReader".        
+            otherwise  do:
+                /* Allow name without *Utility   */ 
+                if not cUtil matches "*Utility" then
+                do:
+                    if lookup(cUtil + "Utility",PublicUtilityNames) > 0 then
+                        cClassName = cPubPath + cUtil + "Utility".
+                    else 
+                    if  search(replace(cInternalPath,".","/") + cUtil + ".r" ) = ?  
+                    and search(replace(cInternalPath,".","/") + cUtil + ".cls") = ? then
+                        cUtil = cUtil + "Utility".
+                end. 
+                else do:
+                    if lookup(pcUtil,PublicUtilityNames) > 0  then
+                        cClassName = cPubPath + cUtil.
+                end.
+            end.   
+        end case.  
+         
+        if cClassName = "" then
+            cClassName = cInternalPath + cUtil .
+         
+        util = dynamic-new cClassName ( ).
         
-        /* allow use of interface name (without I)  */
-        if pcUtil = "TableImportUtility" then 
-            pcUtil = "TableDataReader".
-        else if pcUtil = "TableExportUtility" then 
-            pcUtil = "TableDataWriter".
-        
-        util = dynamic-new "OpenEdge.DataAdmin.Internal.Util." + pcUtil + "" ( ).
         return util.
         catch e as Progress.Lang.Error :
 /*            if e:GetMessageNum(1) = 14758 then                                    */
@@ -53,5 +79,8 @@ class OpenEdge.DataAdmin.Util.UtilityFactory:
         	   undo, throw e. 
         end catch.
     end method.     
+     
+     
+     
      
 end class.

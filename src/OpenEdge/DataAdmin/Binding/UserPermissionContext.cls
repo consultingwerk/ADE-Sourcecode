@@ -32,13 +32,6 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
  
     define private dataset dsUserPermission serialize-name "root" for ttUserPermission.
            
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then
-                DatasetHandle = CreateDataset().
-            return DatasetHandle.
-        end get.
-        private set. 
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -70,7 +63,7 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
     
                                                 
     constructor public UserPermissionContext ( pScope as IServiceContextFactory):
-        define variable cntxt as IDataAdminContext no-undo.
+        define variable cntxt as IDataAdminModel no-undo.
         super ("UserPermission",pScope).
         cntxt = pScope:GetUserTablePermissionContext().
         cntxt:Lazy = false.
@@ -83,7 +76,7 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
       
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         undo, throw new UnsupportedOperationError("CopyTable DataSecurity row").
 	end method.
 	
@@ -146,18 +139,18 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
 /*        end.                                                                  */
         
 
-        if not session:batch-mode then
-        do:
-            message cc view-as alert-box.
-        end.
+/*        if not session:batch-mode then   */
+/*        do:                              */
+/*            message cc view-as alert-box.*/
+/*        end.                             */
     end method. 
       
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
         return new UserPermissionSet(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new UserPermission(cntxt).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new UserPermission(this-object,pReq).
     end method. 
  
        

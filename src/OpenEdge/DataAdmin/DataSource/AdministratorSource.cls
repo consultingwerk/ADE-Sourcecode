@@ -41,16 +41,25 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
 	constructor public AdministratorSource (  ):
       	super (). 
 	end constructor.
-    
-           /** keep intact for prodict **/
+           
+    /** keep numbers intact for prodict, prodict does not use the text
+        from the error here, but has its own with same numbers due to 
+        the fact the code supports translation **/
     method public logical CheckAccess():
+        return CheckAccess(false).
+    end.
+    
+    /*DA prevented read if not admin for years, but this was an artificial  
+      limitation not reflected in the language. I.e the data can be read 
+      with ABL code also by non admin -   */
+    method public logical CheckAccess(pread as logical):
         define variable msg-num as integer no-undo.
-        IF transaction 
+        IF (transaction and pRead) 
         OR PROGRESS = "Run-Time"
         OR CAN-DO("READ-ONLY",DBRESTRICTIONS("DICTDB")) THEN 
-            msg-num = 6. /* r/o mode */
+            msg-num = 7. /* r/o mode */
         
-        IF NOT IsAdministrator() THEN 
+        IF pread = false and IsAdministrator() = false THEN 
             msg-num = 3. /* secu admin? */
         
         IF USERID("dictdb") = ""  THEN 
@@ -62,6 +71,7 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
         IF msg-num <> 0 THEN DO:          
             undo , throw  new AppError(ErrorStrings[msg-num],msg-num).
         end. 
+        return true.
     end.
         
     method private logical IsAdministrator():
@@ -71,7 +81,7 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
     end.
     
     method public void Fill(hbuffer as handle):
-        CheckAccess().
+        CheckAccess(true).
         hBuffer:buffer-create ( ).
         find DICTDB._File  "_User" no-lock.
         hBuffer::Administrators = DICTDB._File._Can-create.
@@ -81,6 +91,8 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
         define variable hBeforeBuff as handle    no-undo.  
         define variable mass        as character no-undo.
         define variable user-exists as logical   no-undo.   
+
+        CheckAccess().
         
         hBeforeBuff = phBuffer:before-buffer.
         

@@ -3037,7 +3037,7 @@ PROCEDURE display_trg.
                                 THEN _SEW_U._LABEL
 				ELSE "<":U + x_U._NAME + " Column>".
      if available _SEW_U and _SEW_U._DBNAME NE ?   THEN DO:
-     FIND p_U WHERE p_U._TYPE EQ "FRAME" and RECID(p_U) = _sew_U._PARENT-RECID NO-ERROR.
+     FIND p_U WHERE RECID(p_U) = _sew_U._PARENT-RECID NO-ERROR.
       IF AVAILABLE p_U THEN
         list_label = "<":U  + p_U._NAME + " Frame>".
      END.

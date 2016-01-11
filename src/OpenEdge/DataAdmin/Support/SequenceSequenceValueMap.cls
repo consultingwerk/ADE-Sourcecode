@@ -71,10 +71,8 @@ class OpenEdge.DataAdmin.Support.SequenceSequenceValueMap inherits SequenceValue
             undo, throw new IllegalArgumentError("Invalid type used in Get. The collection is mapped to ITenant.").         
     end method.
     
-    method public ISequenceValue Get(tenant as ITenant). 
-        if Context:Find(tenant:name) then
-           return new SequenceValue(Context).
-        
+    method public ISequenceValue Get(ptenant as ITenant). 
+        return cast(Context:FindEntity(ptenant:Name ), ISequenceValue).
     end method.
               
     method override protected void PrepareExport(  ):

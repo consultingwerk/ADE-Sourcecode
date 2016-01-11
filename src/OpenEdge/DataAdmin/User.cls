@@ -217,15 +217,19 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
             Email = pEmail.
         end. 
 
-	constructor public User(cntxt as IDataAdminContext):
+	constructor public User(cntxt as IDataAdminModel):
         super (cntxt).
     end constructor.
-      
+    
+    constructor public User(cntxt as IDataAdminModel,pReq as IRequestInfo):
+        super (cntxt,pReq).
+    end constructor. 
+    
     constructor public User (cname as character):
         super (cname).
     end constructor. 
     
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     

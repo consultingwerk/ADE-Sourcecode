@@ -301,21 +301,29 @@ Email,_Email"
     end method.
      
     method public override character ColumnExpression (pcColumn as char, pcOperator as char, pcValue as char):
+        define variable cName as character no-undo.
+        define variable cDomain as character no-undo.
         define variable cExpress as character no-undo.
         if pcColumn = "_User.id" then 
         do: 
-            if index(pcValue,"@") > 0 
-            and lookup(pcoperator,"EQ,=") > 0 then
-                cExpress =  "(_user._userid " + pcOperator + " " + quoter(entry(1,pcValue,"@"))
-                      +  " and _user._domain-name " + pcOperator + " " + quoter(entry(2,pcValue,"@"))
-                      + ")".  
+            SplitId(pcValue,output cName,output cDomain).
+            /* ensure domain is in query also when blank in expression value */
+            if lookup(pcoperator,"EQ,=") > 0 then
+                cExpress = "(_user._userid " + pcOperator + " " + quoter(cName)
+                         + " and _user._domain-name " + pcOperator + " " + quoter(cDomain)
+                         + ")".  
                             
+            else if cDomain = "" then
+               cExpress = "(_user._userid " 
+                         + pcOperator
+                         + " "
+                         + quoter(cName) + ")".
             else
                 cExpress = "( _user._userid + " 
-                   +  "(if _user._domain-name = '' then '' else '@' + _user._domain-name) "
-                        + pcOperator
-                        + " "
-                        + quoter(pcValue) + ")".
+                         +  "(if _user._domain-name = '' then '' else '@' + _user._domain-name) "
+                         + pcOperator
+                         + " "
+                         + quoter(pcValue) + ")".
          
             return cExpress.
         end.
@@ -323,6 +331,14 @@ Email,_Email"
         return super:ColumnExpression(pccolumn,pcOperator,pcValue).     
    
     end method.  
+    
+    method private void SplitId(id as char,output puser as char, output pdomain as char): 
+        if num-entries(id,"@") > 1 then 
+            pdomain = entry(2,id,"@").
+       
+        puser = entry(1,id,"@").
+             
+    end method.
     
     method protected override character FindTableJoinValues(pTable as char,pFind as char):
         case pTable:

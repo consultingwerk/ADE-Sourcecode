@@ -1,5 +1,6 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012 by Progress Software Corporation  */
+
+/* Copyright (c) 2011,2013 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -15,37 +16,38 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection  from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.Partition  from propath.
-using OpenEdge.DataAdmin.PartitionCollection  from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.Binding.IRow from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath. 
-using OpenEdge.DataAdmin.Support.PartitionMap from propath.
-using OpenEdge.DataAdmin.Support.SchemaPartitionMap from propath. 
-using OpenEdge.DataAdmin.Support.TenantPartitionMap from propath. 
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IPartitionContext.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.PartitionFilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.FieldPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.IndexPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.PartitionPolicyDetailPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.TablePartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.*.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Partition.
+using OpenEdge.DataAdmin.PartitionCollection.
+using OpenEdge.DataAdmin.Support.PartitionMap.
+using OpenEdge.DataAdmin.Support.SchemaPartitionMap.
+using OpenEdge.DataAdmin.Support.TenantPartitionMap.
+using Progress.Lang.*.
 
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IPartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionFilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.TenantPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.TablePartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.IndexPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.FieldPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope from propath. 
-using OpenEdge.DataAdmin.Binding.Query.TenantGroupPartitionQuery from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath. 
- 
-using OpenEdge.DataAdmin.Error.* from propath.
 
 class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext implements IDataAdminContext, IPartitionContext: 
     
@@ -69,10 +71,6 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     
     define private variable ValidAllocationStateList as char no-undo
         init   "Allocated,Delayed,None".
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsPartition:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -110,7 +108,11 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     constructor protected PartitionContext ( pScope as IMultiTenantScope,plLocal as log):
         super ("Partition",pScope,plLocal).
     end constructor.
-    
+            
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsPartition:handle. 
+    end method.
  	
 	method public override character GetJoinFields(parentid as char):
         case parentid:
@@ -118,6 +120,8 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                 return "Name,TenantName".
             when "tenantGroups" then
                 return "Name,TenantGroupName".    
+            when "partitionPolicyDetails" then
+                return "Name,PartitionPolicyDetailName".
             when "areas" then
                 return "Name,AreaName".
             when "tables" then
@@ -149,51 +153,85 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                 return "Id,ParentId".
             when "tenantGroups" then
                 return "Id,ParentId".
-             when "areas" then /* AreaNumber is not mapped - handled by PartitionDataSource:ColumnSource*/
+            when "partitionPolicyDetails" then
+                return "Id,ParentId".
+            when "areas" then /* AreaNumber is not mapped - handled by PartitionDataSource:ColumnSource*/
                 return "Number,AreaNumber".        
         end.
         return super:GetServerJoinFields(parentid).
     end.
 	
-    method public override character GetChildQuery(pcParent as char,pcKeys as char extent):
-        if lookup(pcParent,"tables,fields,indexes") <> 0 then 
-            return GetChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+    method public override character GetChildQuery(pParent as IRow):
+        if lookup(pParent:SerializeName,"tables,fields,indexes") <> 0 then 
+        do: 
+            if extent(pParent:KeyValues) > 3 then
+                return GetChildQuery(pParent:SerializeName,pParent:KeyValues[1],pParent:KeyValues[2],pParent:KeyValues[3],pParent:KeyValues[4]).
+            else do:
+                case pParent:SerializeName:
+                    when "tables" then 
+                        return GetTableChildQuery(pParent:KeyValues[1]).
+                    when "fields" then 
+                        return GetFieldChildQuery(pParent:KeyValues[1],pParent:KeyValues[2]).
+                    when "indexes" then 
+                        return GetIndexChildQuery(pParent:KeyValues[1],pParent:KeyValues[2],if extent(pParent:KeyValues) > 2 then pParent:KeyValues[3] else "").
+                end.     
+            end.      
+        end.    
         else 
-            return super:GetChildQuery(pcParent,pcKeys).
+            return super:GetChildQuery(pParent).
     end method.
 	
-	method public override character GetServerChildQuery(pcParent as char,pcKeys as char extent):
-        if lookup(pcParent,"tables,fields,indexes") <> 0 then 
-            return GetServerChildQuery(pcParent,pcKeys[1],pcKeys[2],pcKeys[3],pcKeys[4]).
+	method public override character GetServerChildQuery(pParent as IRow):
+        if lookup(pParent:SerializeName,"tables,fields,indexes") <> 0 then 
+        do: 
+            if extent(pParent:KeyValues) > 3 then
+                return GetServerChildQuery(pParent:SerializeName,pParent:KeyValues[1],pParent:KeyValues[2],pParent:KeyValues[3],pParent:KeyValues[4]).
+            else do:
+                case pParent:SerializeName:
+                    when "tables" then 
+                        return "for " + TrimQuery(GetTableChildQuery(pParent:KeyValues[1])).
+                    when "fields" then 
+                        return "for " + TrimQuery(GetFieldChildQuery(pParent:KeyValues[1],pParent:KeyValues[2])).
+                    when "indexes" then 
+                        return "for " + TrimQuery(GetIndexChildQuery(pParent:KeyValues[1],pParent:KeyValues[2],if extent(pParent:KeyValues) > 2 then pParent:KeyValues[3] else "")).
+                end.     
+            end.    
+        end.
         else 
-            return super:GetServerChildQuery(pcParent,pcKeys).
+            return super:GetServerChildQuery(pParent).
     end method.
   
     method private character GetChildQuery(pcParent as char,pcTable as char,pcfield as char, pcIndex as char, pcCollation as char):
         case pcparent:
             when "tables" then
-                return "preselect each ttPartition where ttPartition.ObjectType= 'Table'" 
-                   + " and ttPartition.TableName = "  + quoter(pcTable).
+                return GetTableChildQuery(pcTable).
             when "fields" then
-                return "preselect each ttPartition where ttPartition.ObjectType= 'Field'" 
-                                   + " and ttPartition.TableName = "  + quoter(pcTable)
-                                   + " and ttPartition.FieldName = "  + quoter(pcField).
-             when "indexes" then
-                return "preselect each ttPartition where ttPartition.ObjectType= 'Index'" 
-                                   + " and ttPartition.TableName = "  + quoter(pcTable)
-                                   + " and ttPartition.IndexName = "  + quoter(pcIndex)
-                                   + " and ttPartition.Collation = "  + quoter(pcCollation).
-      
+                return GetFieldChildQuery(pcTable,pcfield).
+            when "indexes" then
+                return GetIndexChildQuery(pcTable,pcIndex,pcCollation).
         end.
     end method.
     
+    method private character GetIndexChildQuery(pcTable as char, pcIndex as char,pcCollation as char):
+        return "preselect each ttPartition where ttPartition.ObjectType = 'Index'" 
+                                   + " and ttPartition.TableName = "  + quoter(pcTable)
+                                   + " and ttPartition.IndexName = "  + quoter(pcIndex)
+                                   + " and ttPartition.Collation = "  + quoter(pcCollation).                                  .
+    end method.
+
+    method private character GetFieldChildQuery(pcTable as char, pcField as char):
+        return "preselect each ttPartition where ttPartition.ObjectType = 'Field'" 
+                                   + " and ttPartition.TableName = "  + quoter(pcTable)
+                                   + " and ttPartition.FieldName = "  + quoter(pcField).                                    .
+    end method.
+    
+    method private character GetTableChildQuery(pcTable as char):
+        return "preselect each ttPartition where ttPartition.ObjectType = 'Table'" 
+                                         + " and ttPartition.TableName = "  + quoter(pcTable).
+    end method.
+    
     method private character GetServerChildQuery(pcParent as char,pcTable as char,pcfield as char, pcIndex as char, pccollation as char):
-        define variable cQuery as character no-undo.
-        cQuery = GetChildQuery(pcParent,pcTable,pcfield,pcIndex,pccollation).
-        cQuery = left-trim(cQuery).
-        entry(1,cQuery," ") = "for".
-        return cQuery.
-           
+        return "for " + TrimQuery(GetChildQuery(pcParent,pcTable,pcfield,pcIndex,pccollation)).
     end method.
     
     method protected override void ValueChanged(pcfield as char, pcOld as char, pcnew as char):
@@ -212,9 +250,13 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
             do: 
                 UpdateTenantTableChildPartitions(ttPartition.TenantName,ttPartition.TableName,pcNew).
             end.
-            else do:
+            else if ttPartition.TenantGroupName > "" then 
+            do:
                 UpdateGroupTableChildPartitions(ttPartition.TenantGroupName,ttPartition.TableName,pcNew).
             end.
+            else do:
+                UpdatePolicyDetailTableChildPartitions(ttPartition.TenantGroupName,ttPartition.TableName,pcNew).
+            end.    
         end.
     end method.    
     
@@ -247,6 +289,17 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                               + "Valid values are " 
                               + quoter("Delayed") 
                               + "," + quoter("All")
+                              + " or " + quoter("None") + ".").                      
+   
+    end method.
+   
+    method public void ValidatePolicyDetailAllocationRequest(pcRequest as char):
+        /* error is duplicated in TableImpl */
+        if lookup(pcRequest,"All,None") = 0 then
+              undo, throw new IllegalArgumentError (
+                               "Parameter value " + quoter(pcRequest) + " passed to allocate method. " 
+                              + "Valid values are " 
+                              + quoter("All")
                               + " or " + quoter("None") + ".").                      
    
     end method.
@@ -304,7 +357,19 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         end case.  
     end method.
     
-    
+    method public void UpdatePolicyDetailDefault(pckey as char,pfield as char, poldvalue as char,pValue as char):  
+        case pfield:
+            when "DefaultAllocation" then
+                NewPolicyDetailDefaultAllocation(pckey,poldvalue,pValue).  
+            when "DefaultDataAreaName" then
+                NewPolicyDetailDefaultArea(pckey,"Data",poldvalue,pValue).  
+            when "DefaultIndexAreaName" then
+                NewPolicyDetailDefaultArea(pckey,"Index",poldvalue,pValue).  
+            when "DefaultLobAreaName" then
+                NewPolicyDetailDefaultArea(pckey,"Lob",poldvalue,pValue).  
+        end case.  
+    end method.
+   
 	method public override void CreateRow(entity as IDataAdminElement):
 	    undo, throw new UnsupportedOperationError("CreateRow in PartitionContext").
 	end method.
@@ -314,7 +379,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     end method.    
     */
     
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         
@@ -325,7 +390,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     
     method public logical FindGroupTable(pcGroup as char,pctable as char):
         return FindGroup(pcGroup,pctable,"","","").                      
-    end method.    
+    end method.   
     
     method public logical FindGroupIndex(pcGroup as char,pctable as char,pcIndex as char,pccollation as char):
         return FindGroup(pcGroup,pctable,"",pcIndex,pccollation).                      
@@ -345,8 +410,20 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
     
     method public logical FindTenantField(pcTenant as char,pctable as char,pcfield as char):
         return FindTenant(pcTenant,pctable,pcfield,"","").                      
-    end method.    
+    end method. 
+       
+    method public logical FindPolicyDetailTable(pcDetail as char,pctable as char):
+        return FindPolicyDetail(pcDetail,pctable,"","","").                      
+    end method.  
     
+    method public logical FindPolicyDetailField(pcDetail as char,pctable as char,pcfield as char):
+        return FindPolicyDetail(pcDetail,pctable,pcfield,"","").                      
+    end method.  
+     
+    method public logical FindPolicyDetailIndex(pcDetail as char,pctable as char,pcIndex as char,pccollation as char):
+        return FindPolicyDetail(pcDetail,pctable,"",pcIndex,pccollation ).                      
+    end method.  
+     
     method public logical FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
         find ttpartition where ttPartition.TableName = pctable
                              and   ttPartition.FieldName = pcField
@@ -355,7 +432,12 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                              and   ttPartition.Collation = pccollection
                              no-error.
         return avail ttPartition.                     
-    end method.    
+    end method.  
+    
+    method public IDataAdminElement FindTenantEntity(pcTenant as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
+        if FindTenant(pcTenant,pctable,pcField,pcIndex,pccollation) then
+            return RealizeEntity().                     
+    end method.  
     
     method public logical FindAreaTenant(pcArea as char, pcTenant as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
         find ttpartition where ttPartition.TableName = pctable
@@ -368,6 +450,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         return avail ttPartition.                     
     end method.    
     
+    
     method public logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
         find ttpartition where ttPartition.TableName = pctable
                              and   ttPartition.FieldName = pcField
@@ -376,7 +459,12 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                              and   ttPartition.Collation = pccollation
                              no-error.
         return avail ttPartition.                     
-    end method.    
+    end method. 
+    
+    method public IDataAdminElement FindGroupEntity(pcGroup as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
+        if FindGroup(pcGroup,pctable,pcField,pcIndex,pccollation) then
+            return RealizeEntity().                     
+    end method.       
    
     method public logical FindAreaGroup(pcarea as char,pcGroup as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
         find ttpartition where ttPartition.TableName = pctable
@@ -388,6 +476,33 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                              no-error.
         return avail ttPartition.                     
     end method.    
+    
+    method public logical FindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
+        find ttpartition where ttPartition.TableName = pctable
+                             and   ttPartition.FieldName = pcField
+                             and   ttPartition.IndexName = pcIndex
+                             and   ttPartition.PartitionPolicyDetailName = pcDetail 
+                             and   ttPartition.Collation = pccollation
+                             no-error.
+        return avail ttPartition.                     
+    end method.    
+     
+    method public IDataAdminElement FindPolicyDetailEntity(pcDetail as char,pctable as char,pcField as char, pcIndex as char,pccollation as char):
+        if FindPolicyDetail(pcDetail,pctable,pcField,pcIndex,pccollation) then
+            return RealizeEntity().                     
+    end method.       
+   
+    method public logical FindAreaPolicyDetail(pcArea as char, pcDetail as char,pctable as char,pcField as char, pcIndex as char,pccollection as char):
+        find ttpartition where ttPartition.TableName = pctable
+                             and   ttPartition.FieldName = pcField
+                             and   ttPartition.IndexName = pcIndex
+                             and   ttPartition.PartitionPolicyDetailName = pcDetail 
+                             and   ttPartition.Collation = pccollection
+                             and   ttPartition.AreaName = pcArea 
+                             no-error.
+        return avail ttPartition.                     
+    end method.    
+    
     
     method public logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollection as char):
         return can-find (ttpartition where ttPartition.TableName = pctable
@@ -422,7 +537,25 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                                      and   ttPartition.AreaName = pcArea 
                                      and   ttPartition.Collation = pccollation).
     end method.    
+    
+     method public logical CanFindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+        return can-find (ttpartition where ttPartition.TableName = pctable
+                                     and   ttPartition.FieldName = pcField
+                                     and   ttPartition.IndexName = pcIndex
+                                     and   ttPartition.PartitionPolicyDetailName = pcDetail 
+                                     and   ttPartition.Collation = pccollation).
+    end method.    
    
+    method public logical CanFindAreaPolicyDetail(pcArea as char,pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+        return can-find (ttpartition where ttPartition.TableName = pctable
+                                     and   ttPartition.FieldName = pcField
+                                     and   ttPartition.IndexName = pcIndex
+                                     and   ttPartition.PartitionPolicyDetailName = pcDetail 
+                                     and   ttPartition.AreaName = pcArea 
+                                     and   ttPartition.Collation = pccollation).
+    end method.   
+    
+    
     method private void CopyTable(input table copytable):
         define variable dataerror as DataContextError no-undo.      
         define variable inst   as IDataAdminElement no-undo.
@@ -434,6 +567,7 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
                              and   ttPartition.IndexName = copytable.IndexName
                              and   ttPartition.TenantName = copytable.TenantName
                              and   ttPartition.TenantGroupName = copytable.TenantGroupName
+                             and   ttPartition.PartitionPolicyDetailName = copytable.PartitionPolicyDetailName
                              and   ttPartition.Collation = copytable.Collation
                              no-error.
             if not avail ttPartition then
@@ -518,15 +652,29 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         temp-table ttPartition:tracking-changes = true.
         
         for each bttPartition where bttPartition.TableName = pctable
-                             and   bttPartition.ObjectType <> "Table"  
-                             and   bttPartition.TenantGroupName = pcTenantGroup:
+                              and   bttPartition.ObjectType <> "Table"  
+                              and   bttPartition.TenantGroupName = pcTenantGroup:
             bttPartition.AllocationState = pcValue. 
         end.
         temp-table ttPartition:tracking-changes = lTrack.
-    end method.    
-    
-   
-   
+    end method.   
+     
+    /* UPDATES FIELDS AND INDEXES, not the table */
+    method private void UpdatePolicyDetailTableChildPartitions(pcDetail as char,pcTable as char,pcValue as char):
+        define variable lTrack as logical no-undo.
+        define buffer bttPartition for ttPartition.  
+         
+        lTrack =  temp-table ttPartition:tracking-changes .
+        temp-table ttPartition:tracking-changes = true.
+        
+        for each bttPartition where bttPartition.TableName = pctable
+                              and   bttPartition.ObjectType <> "Table"  
+                              and   bttPartition.PartitionPolicyDetailName = pcDetail:
+            bttPartition.AllocationState = pcValue. 
+        end.
+        temp-table ttPartition:tracking-changes = lTrack.
+    end method.  
+         
     /** Allocates a table partition including index and lob partitions 
         @param Tenant Tenant name  
         @param Table Table name
@@ -602,6 +750,20 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         temp-table ttPartition:tracking-changes = lTrack.   
     end method.    
       
+    method public void NewPolicyDetailDefaultArea (pcDetail as char,pcType as char,pcOldValue as char,pcNewvalue as char):
+        define variable lTrack as logical no-undo.
+        lTrack = temp-table ttPartition:tracking-changes .
+        temp-table ttPartition:tracking-changes = false.
+        
+        for each ttpartition where ttPartition.PartitionPolicyDetailName = pcDetail 
+                             and   ttPartition.ObjectType = pcType
+                             and   ttPartition.AreaName = pcOldValue: 
+            ttPartition.AreaName = pcNewValue. 
+        end.
+        temp-table ttPartition:tracking-changes = lTrack.   
+    end method.    
+        
+      
     method public void NewGroupDefaultAllocation (pcGroup as char,pcOldValue as char,pcNewvalue as char):
         define variable lTrack as logical no-undo.
         lTrack = temp-table ttPartition:tracking-changes .
@@ -630,6 +792,22 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         temp-table ttPartition:tracking-changes = lTrack.   
     end method.    
        
+     method public void NewPolicyDetailDefaultAllocation (pcDetail as char,pcOldValue as char,pcNewvalue as char):
+        define variable lTrack as logical no-undo.
+        lTrack = temp-table ttPartition:tracking-changes .
+        temp-table ttPartition:tracking-changes = false.
+        if pcOldValue = "Immediate" then 
+             pcOldValue = "Allocated".
+        if pcNewValue = "Immediate" then 
+             pcNewValue = "Allocated".
+        for each ttpartition where ttPartition.PartitionPolicyDetailName = pcDetail 
+                             and   ttPartition.AllocationState = pcOldValue: 
+                                 
+            ttPartition.AllocationState = pcNewValue. 
+        end.
+        temp-table ttPartition:tracking-changes = lTrack.   
+    end method.    
+       
     method public logical AllocateGroup (pcGroup as char,pcMode as char):
         define variable lTrack as logical no-undo.
         define variable lok as logical no-undo.
@@ -650,11 +828,42 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         return lok.       
     end method.    
     
+    method public logical AllocatePolicyDetail (pcDetail as char,pcMode as char):
+        define variable lTrack as logical no-undo.
+        define variable lok as logical no-undo.
+        
+        ValidatePolicyDetailAllocationRequest(pcMode).
+        ValidateAllocationKey(pcDetail,"PartitionPolicyDetail").    
+       
+        lTrack = temp-table ttPartition:tracking-changes .
+        temp-table ttPartition:tracking-changes = true.
+        
+        for each ttpartition where ttPartition.PartitionPolicyDetailName = pcDetail 
+                             and   ttPartition.AllocationState <> "Allocated" 
+                             and   (pcMode = "all" or ttPartition.AllocationState = pcMode): 
+            ttPartition.AllocationState = "Allocated". 
+            lok = true.
+        end.
+        temp-table ttPartition:tracking-changes = lTrack.
+        return lok.       
+    end method.
+    
+    
     /*  Allocate does not make sense for all partitions 
         (We currently implement IPartitionContext which really is for query objects.) */
     method public logical Allocate():
         undo, throw new UnsupportedOperationError("Allocate() in PartitionContext").
     end method.
+    
+/*    method public logical HasNewPolicyDetailChanges (pDetail as char):             */
+/*        for each ttpartition where ttPartition.PartitionPolicyDetailName = pDetail:*/
+/*            if buffer ttpartition:row-state = row-created then                     */
+/*            do:                                                                    */
+/*                return true.                                                       */
+/*            end.                                                                   */
+/*        end.                                                                       */
+/*        return false.                                                              */
+/*    end method.                                                                    */
      
      /**** deallocate is sdupported through utility 
       
@@ -695,27 +904,19 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         return new PartitionCollection(this-object).
     end method.
     
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char extent,pReq as IRequestInfo):     
+    method override protected FilteredContext CreateFilteredContext(pParent as IRow,pReq as IRequestInfo):     
         define variable cTable as character no-undo.
-        ctable = pkey[1].
+        ctable = pParent:KeyValues[1].
         
-        case pparent:
+        case pParent:SerializeName:  
             when "indexes" then
             do:              
-                return new IndexPartitionQuery(this-object,cTable,pkey[2],"",pReq).
+                return new IndexPartitionQuery(this-object,pParent,pReq).
             end.
             when "fields"  or when "lobfields" then
             do:              
-                return new FieldPartitionQuery(this-object,cTable,pkey[2],pReq).
+                return new FieldPartitionQuery(this-object,pParent,pReq).
             end.
-            otherwise
-                return super:CreateFilteredContext(pparent,pkey,pReq).                      
-        end case.
-             
-    end method.
-    
-    method override protected FilteredContext CreateFilteredContext(pParent as IRow,pReq as IRequestInfo):     
-        case pParent:SerializeName:  
             when "tenants" then
             do:
                 return new TenantPartitionQuery(this-object,pParent,pReq).
@@ -723,33 +924,18 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
             when "tenantGroups" then
             do:              
                 return new TenantGroupPartitionQuery(this-object,pParent,pReq).
-            end.              
+            end.  
+            when "partitionPolicyDetails" then
+            do:              
+                return new PartitionPolicyDetailPartitionQuery (this-object,pParent,pReq).
+            end.  
+             when "tables" then
+             do:              
+                 return new TablePartitionQuery(this-object,pParent,pReq).
+             end.            
         end.  
         super:CreateFilteredContext(pParent,pReq).
     end method. 
-    
-    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):     
-         define variable parentcntxt as IDataAdminContext no-undo.
-         case pparent:
-/*             when "tenantGroups" then                                        */
-/*             do:                                                             */
-/*                 return new TenantGroupPartitionQuery(this-object,pkey,pReq).*/
-/*             end.                                                            */
-/*             when "tenants" then                                                */
-/*             do:                                                                */
-/*/*                 parentcntxt = ContextScope:GetContext("Tenant").           */*/
-/*/*                 parentcntxt:Find(pkey).                                    */*/
-/*/*                 tnt = cast(Factory:TenantContext:FindEntity(pkey),ITenant).*/*/
-/*                 return new TenantPartitionQuery(this-object,pkey,pReq).        */
-/*             end.                                                               */
-             when "tables" then
-             do:              
-                 return new TablePartitionQuery(this-object,pkey,pReq).
-             end.
-             otherwise
-                 return super:CreateFilteredContext(pparent,pkey,pReq).              
-         end.        
-    end method.
     
     method override protected IDataAdminCollection CreateCollection(pparent as char,pcntxt as FilteredContext):     
         case pparent:
@@ -761,6 +947,10 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
             do:          
                 return new TenantPartitionMap(cast(pcntxt,IPartitionQuery)).
             end.   
+            when "partitionPolicyDetails" then
+            do:              
+                return new PartitionMap(cast(pcntxt,IPartitionQuery)).
+            end.  
             when "tables" or when "fields" or when "lobfields" or when "indexes" then
                 return new SchemaPartitionMap(cast(pcntxt,SchemaPartitionQuery)).
             otherwise 
@@ -777,8 +967,8 @@ class OpenEdge.DataAdmin.Binding.PartitionContext inherits DataAdminContext impl
         return new PartitionFilteredContext(this-object,pReq).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Partition(cntxt).
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
+        return new Partition(this-object,preq).
     end method. 
         
     method protected override char FindExpression(i as int):

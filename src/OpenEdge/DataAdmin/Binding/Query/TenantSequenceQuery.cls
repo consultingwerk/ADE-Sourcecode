@@ -38,7 +38,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery inherits FilteredCont
 	/** Parent context (Model) may change so don't store this */
     define private property SequenceValueContext as SequenceValueContext no-undo
         get():
-            return cast(Parent,SequenceValueContext).
+            return cast(Model,SequenceValueContext).
         end.
     
     /** Parent context (Model) may change so don't store this */     
@@ -93,7 +93,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantSequenceQuery inherits FilteredCont
         
         SequenceContext:AddTableTo(tree).
         hds = tree:GetReadHandle().
-        msg = new FetchRequest(Name,Id,hds). 
+        msg = new FetchRequest(Name,Id,hds,no). 
         
         qstr = new QueryString(Filter ).
         cSeqValQuery = qstr:GetUnparsedWhereClause("ttSequenceValue").

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation.      */
+/* Copyright (c) 2011,2013 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -28,7 +28,7 @@ using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
  
   
  
-{darest/restbase.i get definitions}
+{darest/restbase.i get definitions upload}
  
 procedure Execute :
     define input  parameter restRequest as IRestRequest  no-undo.
@@ -44,7 +44,7 @@ procedure Execute :
     service = new DataAdminService(restRequest:ConnectionName). 
     restRequest:Validate().
     service:URL = restRequest:ConnectionUrl.
-    definitions = service:GetSchemaChanges(restRequest:FileName2). 
+    definitions = service:GetSchemaChanges(restRequest:UploadFileName). 
     cFile = restRequest:FileName.
     cFileOut = restRequest:OutFileName.
     definitions:ExportTree(cFileOut).

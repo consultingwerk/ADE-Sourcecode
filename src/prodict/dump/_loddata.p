@@ -74,12 +74,16 @@ using Progress.Lang.*.
 &SCOPED-DEFINE MAX_RECS_FORMAT_SIZE 8
 
 DEFINE NEW SHARED STREAM   loaderr.
+DEFINE NEW SHARED STREAM   loadread.
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER  NO-UNDO.
 DEFINE NEW SHARED VARIABLE recs   AS INT64.   /*UNDO*/
 DEFINE NEW SHARED VARIABLE xpos   AS INTEGER  NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER  NO-UNDO.
 
-DEFINE VARIABLE c          AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE cload_size          AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE cFile          AS CHARACTER           NO-UNDO.
+define variable cChar         as character no-undo.
+DEFINE VARIABLE cImport        AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cerror     AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE cerrors    AS INTEGER   INITIAL 0 NO-UNDO.
 DEFINE VARIABLE codepage   AS CHARACTER           NO-UNDO init "UNDEFINED".
@@ -298,11 +302,11 @@ if user_env[6] NE "load-silent" then do:
 end.
 
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
-{ prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=c }
+{ prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=cload_size }
 
 
 ASSIGN
-  load_size   = INTEGER(ENTRY(4,c))
+  load_size   = INTEGER(ENTRY(4,cload_size))
   infinity    = TRUE /* use this to mark initial entry into loop */
   addfilename = (IF has_lchar THEN INDEX(user_longchar,",") > 0 ELSE INDEX(user_env[1],",") > 0)
                 or
@@ -689,45 +693,45 @@ DO ON STOP UNDO, LEAVE:
     END.     /* conversion needed but NOT possible */
 
     ELSE DO:  /* conversion not needed OR needed and possible */
-      IF cerror = "no-convert" then do:
-        IF maptype BEGINS "MAP:" THEN DO:
-          IF lobdir = ""  THEN
-            INPUT FROM VALUE(fil-d) NO-ECHO 
-               MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
-               NO-CONVERT.
-          ELSE
-            INPUT FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO 
-               MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
-               NO-CONVERT.
-        END.
-        ELSE DO: 
-          IF lobdir = "" THEN
-            INPUT FROM VALUE(fil-d) NO-ECHO NO-MAP NO-CONVERT.
-          ELSE
-            INPUT FROM VALUE(fil-d) LOB-DIR VALUE(lobdir)  
-              NO-ECHO NO-MAP NO-CONVERT.
-        END.
-      end.
-      else do:
-        IF maptype BEGINS "MAP:" THEN DO:
-          IF lobdir = "" THEN
-            INPUT FROM VALUE(fil-d) NO-ECHO
-               MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
-               CONVERT SOURCE codepage TARGET SESSION:CHARSET.
-          ELSE
-            INPUT FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO
-               MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
-               CONVERT SOURCE codepage TARGET SESSION:CHARSET.
-        END.
-        ELSE DO: 
-          IF lobdir = "" THEN
-            INPUT FROM VALUE(fil-d) NO-ECHO 
-              NO-MAP CONVERT SOURCE codepage TARGET SESSION:CHARSET.
-          ELSE
-            INPUT FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO 
-              NO-MAP CONVERT SOURCE codepage TARGET SESSION:CHARSET.
-        END.
-      end.
+        IF cerror = "no-convert" then do:
+            IF maptype BEGINS "MAP:" THEN DO:
+                IF lobdir = ""  THEN
+                    INPUT STREAM loadread FROM VALUE(fil-d) NO-ECHO 
+                        MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
+                        NO-CONVERT.
+                ELSE
+                    INPUT STREAM loadread FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO 
+                        MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
+                        NO-CONVERT.
+            END.
+            ELSE DO: 
+                IF lobdir = "" THEN
+                    INPUT STREAM loadread FROM VALUE(fil-d) NO-ECHO NO-MAP NO-CONVERT.
+                ELSE
+                    INPUT STREAM loadread FROM VALUE(fil-d) LOB-DIR VALUE(lobdir)  
+                    NO-ECHO NO-MAP NO-CONVERT.
+            END.
+        end.
+        else do:
+            IF maptype BEGINS "MAP:" THEN DO:
+                IF lobdir = "" THEN
+                    INPUT STREAM loadread FROM VALUE(fil-d) NO-ECHO
+                        MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
+                        CONVERT SOURCE codepage TARGET SESSION:CHARSET.
+                ELSE
+                    INPUT STREAM loadread FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO
+                        MAP VALUE(SUBSTRING(maptype,5,-1,"character"))
+                        CONVERT SOURCE codepage TARGET SESSION:CHARSET.
+            END.
+            ELSE DO: 
+                IF lobdir = "" THEN
+                    INPUT STREAM loadread FROM VALUE(fil-d) NO-ECHO 
+                        NO-MAP CONVERT SOURCE codepage TARGET SESSION:CHARSET.
+                ELSE
+                    INPUT STREAM loadread FROM VALUE(fil-d) LOB-DIR VALUE(lobdir) NO-ECHO 
+                        NO-MAP CONVERT SOURCE codepage TARGET SESSION:CHARSET.
+            END.
+        end.
     END.     /* conversion not needed OR needed and possible */
 
     /* check for numeric format (-E set or not) and error out if wrong */
@@ -794,7 +798,22 @@ DO ON STOP UNDO, LEAVE:
        END.
     END.
     
-    if dictdb._file._file-name = "_user" then
+    ASSIGN
+       cFile   = DICTDB._File._File-name
+       cImport = cFile
+      &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
+      &THEN
+          .
+      &ELSE
+        xpos = FRAME-COL(loaddata) + 49
+        ypos = FRAME-ROW(loaddata) + FRAME-LINE(loaddata) + 5.
+      &ENDIF
+    
+    if lookup(dictdb._file._file-name,"_tenant,_Partition-Policy,_Partition-Policy-Detail") > 0 then
+    do:
+        cImport = "<collection>":U.
+    end.
+    else if dictdb._file._file-name = "_user" then
     do:
         exceptList = "EXCEPT _Tenantid".  
     end.    
@@ -803,21 +822,12 @@ DO ON STOP UNDO, LEAVE:
         exceptList = "EXCEPT _Domain-id".  
     end.    
     
-    ASSIGN
-      c    = DICTDB._File._File-name
-      &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
-      &THEN
-          .
-      &ELSE
-        xpos = FRAME-COL(loaddata) + 49
-        ypos = FRAME-ROW(loaddata) + FRAME-LINE(loaddata) + 5.
-      &ENDIF
     CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
     OUTPUT STREAM loaderr TO VALUE(fil-e) NO-ECHO.
      
-    IF SEEK(INPUT) = ? THEN DO:
+    IF SEEK(loadread) = ? THEN DO:
       PUT STREAM loaderr UNFORMATTED 
-        new_lang[2] ' "' fil-d '" ' new_lang[3] ' "' c '".'.
+        new_lang[2] ' "' fil-d '" ' new_lang[3] ' "' cFile '".'.
       errs = 1.
     END.
     ELSE DO:
@@ -848,23 +858,23 @@ DO ON STOP UNDO, LEAVE:
            RETURN.
          END.
          RUN "prodict/ora/_runload.i" (INPUT dis_trig)
-                                    c 
+                                    cFile 
                                     error%
                                     load_size 
-                                    c 
+                                    cFile 
                                     (IF irecs = ? THEN 100 else irecs).
       END.
-      ELSE
+      ELSE DO:
  
         RUN "prodict/misc/_runload.i" (INPUT dis_trig)
-                                    c 
+                                    cFile 
                                     error%
                                     load_size 
-                                    c 
+                                    cImport
                                     (IF irecs = ? THEN 100 else irecs)
                                      user_env[31]
                                      exceptList.
-       
+      END. 
       IF RETURN-VALUE = "stopped" THEN 
           UNDO stoploop, LEAVE stoploop.
       
@@ -879,21 +889,24 @@ DO ON STOP UNDO, LEAVE:
       IF irecs = ? THEN 
       _irecs: 
       DO: /*----------- for reading damaged trailer */
-        /* this code is used when a trailer might be present, but not in its
-           proper relative offset from the start of the file.  this can happen
-           if the file is edited or damaged, changing its length. */
-        i = SEEK(INPUT).
-        READKEY PAUSE 0. IF LASTKEY <> ASC("P") THEN LEAVE _irecs.
-        READKEY PAUSE 0. IF LASTKEY <> ASC("S") THEN LEAVE _irecs.
-        READKEY PAUSE 0. IF LASTKEY <> ASC("C") THEN LEAVE _irecs.
-        SEEK INPUT TO i. /* just to get eol right */
-        REPEAT WHILE irecs = ?:
-          IMPORT c.
-          IF c BEGINS "records=" THEN irecs = INT64(SUBSTRING(c,9,-1,"character")).
-        END.
+            /* this code is used when a trailer might be present, but not in its
+               proper relative offset from the start of the file.  this can happen
+               if the file is edited or damaged, changing its length. */
+          i = SEEK(loadread).
+          if i <> ? then
+          DO:
+              READKEY STREAM loadread PAUSE 0. IF LASTKEY <> ASC("P") THEN LEAVE _irecs.
+              READKEY STREAM loadread PAUSE 0. IF LASTKEY <> ASC("S") THEN LEAVE _irecs.
+              READKEY STREAM loadread PAUSE 0. IF LASTKEY <> ASC("C") THEN LEAVE _irecs.
+              SEEK STREAM loadread TO i. /* just to get eol right */
+              REPEAT WHILE irecs = ?:
+                  IMPORT STREAM loadread cChar.
+                  IF cChar BEGINS "records=" THEN irecs = INT64(SUBSTRING(cChar,9,-1,"character")).
+              END.
+          END.
       END. /*---------------------------------- end of damaged trailer reader */
   
-      INPUT CLOSE.
+      INPUT STREAM loadread CLOSE.
     END.
     
     IF irecs <> ? AND irecs <> recs THEN 

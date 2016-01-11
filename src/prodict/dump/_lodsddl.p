@@ -56,6 +56,8 @@
    kmayur      06/21/11 Added logic for loading constraint OE00195067  
    rkamboj     09/23/11 Update _File-Attributes[2] = true if table is Multitenant.
    rkamboj     09/30/11 Added logic for loading category field.
+   rkamboj     09/23/13 Added support for load of partitioned table flag for _File. 
+                        Added support for load of is-local index for _index.
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -1911,8 +1913,18 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                 UNDO, LEAVE start_obj.
             END.
             ELSE
-              ASSIGN wfld._Field-name = ilin[3]    
-                     wfld._Initial    = "". /* to be checkable in _lod_fld */
+              ASSIGN wfld._Field-name = ilin[3]
+                     /* To be checkable in _lod_fld
+                        This has the side effect that INIT "" is ignored for 
+                        every type. (keeps default)
+                        PSC00285607 addresses the fact that this is inconsistent
+                        with UPDATE which will load INIT "" and then causes 
+                        unwanted incremental .df behavior. 
+                        The runtime behavior is the same. 
+                        The issue is not closed. 
+                        (a fix was backed out -  see datatype below)   */
+                     wfld._Initial = "". 
+                 
           END.
           ELSE DO:
             FIND _Field OF _File WHERE _Field._Field-name = ilin[3] NO-ERROR.
@@ -2009,7 +2021,6 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                  ASSIGN widx._Index-name = ilin[3]
                         widx._Unique     = FALSE. /* different from schema default of TRUE */
               
-              
               /* zero by default (seems better than 6?) */
               IF cNewFile > "" then 
                    /* @todo 
@@ -2021,11 +2032,14 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                  zero by default
               */
               else do:
-                 If _File._File-Attributes[1] = TRUE /*multi-tenant */
-                 AND _File._File-Attributes[2] = FALSE /* no default partition*/ THEN 
+                 If (_File._File-Attributes[1] = TRUE /*multi-tenant */
+                      AND _File._File-Attributes[2] = FALSE)  /* no default partition*/
+                     OR (_File-Attributes[3] = TRUE) THEN
                  DO:
                      index-area-number = 0.
                  END.
+                 else 
+                     index-area-number = 6.
               END.
             END.
             ELSE DO:
@@ -2347,8 +2361,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
 				
           END.
           WHEN    "NO-DEFAULT-AREA" THEN DO:
-              wfil._File-Attributes[2] = false.
-              file-area-number = 0. /* make sure previous area is not used */
+              if not wfil._File-Attributes[3] then
+              assign 
+                    wfil._File-Attributes[2] = false
+                    file-area-number = 0. /* make sure previous area is not used */
                       
           END.
           WHEN    "AREA"            THEN DO:
@@ -2470,7 +2486,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
               RUN checkObjAttrs.
               RUN addBufferPoolSetting("table", iKwd , iarg).
           END.
-          
+          when "IS-PARTITIONED" then
+          do:
+              wfil._File-Attributes[3] = if iarg = ? or iarg = "" then true else logical(iarg).
+          end.    
           OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
         END CASE.  
       END. /*-------------------------------------------------------------------*/
@@ -2478,9 +2497,35 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   
         CASE ikwd:
           WHEN    "AS" OR WHEN "TYPE" THEN 
+          do:
               ASSIGN wfld._Data-type = (IF iarg = "boolean" THEN "logical"
-                               ELSE IF iarg = "dbkey"   THEN "recid" 
-                               ELSE iarg).                     
+                                         ELSE IF iarg = "dbkey"   THEN "recid" 
+                                         ELSE iarg). 
+                                         
+              /********************** 
+                Code in _lod_fld assigns only when <> ""  ( see assign wfld._Initial above) 
+                This causes inconsistency since init ""  is loaded for update 
+                and subsequent unecessary incremental .df issues 
+                PSC00285607 addresses this 
+                This is the (potential) fix to allow init "" to be loaded on 
+                add also. The asignment of blank above must be removed.
+                _lod_fld.p must be cganged accordingly and ignore initials 
+                but load "" 
+                --------                       
+               if lookup(wfld._Data-type,"INT,INTEGER,INT64,DECIMAL,DEC") > 0 then
+              do:
+                  wfld._Initial = "0".
+              end.    
+              else if lookup(wfld._Data-type,"CHAR,CHARACTER,RAW") > 0 then
+              do: 
+                  wfld._Initial    = "".      
+              end.
+              else if wfld._Data-type = "LOGICAL" then
+              do:
+                  wfld._Initial    = "no".     
+              end.
+              **********************/    
+          end.      
           WHEN    "FIELD"     OR WHEN "COLUMN"      THEN wfld._Field-name = iarg.
           WHEN    "DESC"      OR WHEN "DESCRIPTION" THEN wfld._Desc = iarg.
           WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN DO:
@@ -2502,7 +2547,6 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                          ierror = 0.
                   END.
               END.
-
               wfld._Initial = iarg.
           END.
           WHEN    "CAN-READ"  OR WHEN "CAN-SELECT"  THEN wfld._Can-Read = iarg.
@@ -2678,6 +2722,11 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           WHEN    "PRIMARY"             THEN iprimary         = TRUE.
           WHEN    "WORD"                THEN widx._Wordidx    = LOOKUP(iarg,"yes").
           WHEN    "INDEX-NUM"           THEN widx._Idx-num    = INTEGER(iarg).
+          when    "IS-LOCAL"            then 
+          do:
+               widx._index-attributes[1] = if iarg = ? or iarg = "" then true else logical(iarg).
+          end.    
+           
           WHEN    "AREA"                THEN DO:
              ASSIGN iarg = ""
                     j    = 2.
@@ -2693,6 +2742,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                         j = j + 1.
              END.           
              FIND _AREA WHERE _Area._Area-name = iarg NO-LOCK NO-ERROR.
+           
              IF AVAILABLE _Area THEN   
                  ASSIGN 
                      index-area-number   = _Area._Area-number.
@@ -2833,7 +2883,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           RUN "prodict/dump/_lod_fil.p".
       end.
 
-      IF AVAILABLE wfld AND imod <> ? THEN do:
+      IF AVAILABLE wfld  AND imod <> ? THEN do:
       	  /*run adecomm/_valname.p (wfld._Field-name, INPUT true, OUTPUT okay).
           if NOT okay then
              LEAVE.*/

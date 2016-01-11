@@ -14,17 +14,16 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataSource.IDataSource from propath. 
-using OpenEdge.DataAdmin.DataAccess.IDataAccess from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Lang.QueryString from propath.
-using OpenEdge.DataAdmin.Lang.WebUtil from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
+using OpenEdge.DataAdmin.DataAccess.IDataAccess.
+using OpenEdge.DataAdmin.DataSource.DatabaseInfo.
+using OpenEdge.DataAdmin.DataSource.IDataSource.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.Lang.QueryString.
+using OpenEdge.DataAdmin.Lang.WebUtil.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using Progress.Lang.*.
 /*using OpenEdge.DataAdmin.DataSource.IDataSource.*/
 /*using OpenEdge.DataAdmin.DataSource.DataSource. */
 
@@ -38,10 +37,19 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
             return WebUtil.     
         end. 
         set.
+        
+    define protected property DatabaseInfo as DatabaseInfo no-undo 
+        get():
+            if not valid-object(DatabaseInfo) then
+                DatabaseInfo = new DatabaseInfo().
+            return DatabaseInfo.     
+        end. 
+        set.     
+        
     define variable hRel as handle no-undo extent.
     define protected property DatasetHandle as handle no-undo get. set.
     /* private  for now - subclasses have their own solutions  */
-    define private property Url as char no-undo get. set. 
+    define protected property Url as char no-undo get. set. 
            
        /* private - sub classes should not have access to the TT. 
           There is protected methods for DataSource access
@@ -162,19 +170,22 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
 /*                                                                                */
     method public ISaveRequest SaveData(pSaveReq as ISaveRequest): 
         DatasetHandle = pSaveReq:DataHandle. 
-        SetUrl(pSaveReq:Url). 
         Url = pSaveReq:Url.
         do transaction on error undo, throw:
             SaveBuffers(DatasetHandle). 
         end.
         return pSaveReq.
+        catch e as Progress.Lang.Error :
+        	undo, throw ClientTransactionError(e).	
+        end catch.
         finally:
             DestroySources().
         end finally.
     end method.     
     
-    method protected void SetUrl(pcUrl as char):
-    end method.
+    method protected Error ClientTransactionError(e as Error):
+        return e.
+    end method.      
     
     method protected void SaveBuffers(phDataset as handle):
         define variable i as integer no-undo.  
@@ -187,10 +198,13 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
         end.    
     end method.
     
-    method private void SaveChildBuffers(phBuffer as handle,piState as int):
+    method private void SaveChildBuffers(pdatasource as IDataSource , phBuffer as handle,piState as int):
         define variable i as integer no-undo.
+        define variable hchild as handle no-undo.
         do i = 1 to phBuffer:num-child-relations:
-            SaveBuffer(phBuffer:get-child-relation(i):child-buffer,piState).          
+            hchild = phBuffer:get-child-relation(i):child-buffer.
+            if pdatasource:SaveChildNames = "" or lookup(hchild:name,pdatasource:SaveChildNames) = 0 then 
+                SaveBuffer(hchild,piState).          
         end.    
     end method.
     
@@ -201,37 +215,65 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
              when row-created then 
              do:
                  datasource:Save(phBuffer,pistate).
-                 SaveChildBuffers(phBuffer,piState).          
+                 SaveChildBuffers(datasource,phBuffer,piState).          
              end.
              when row-deleted or when row-modified then 
              do:  
-                 SaveChildBuffers(phBuffer,piState).          
+                 SaveChildBuffers(datasource,phBuffer,piState).          
                  datasource:Save(phBuffer,pistate).
              end.
          end.    
     end method.
     
-    method protected final IDataSource GetSaveSource(pcName as char):
+    /* used by data access for fill when data sources needs access to each other 
+       subclass must implement createReadSource  */    
+    method public final IDataSource GetReadSource(pcName as char):
+        return GetSource(pcName,false).
+    end method.
+    
+    /* used by data access for save traverse through the dataset tree 
+       subclass must implement createSaveSource  
+       This is an all or none  - the data access objects that use this use it for all 
+       It is generic enough to be used by all  */    
+    method public final IDataSource GetSaveSource(pcName as char):
+        return GetSource(pcName,true).
+    end method.
+    
+    method public final IDataSource GetSource(pcName as char,plSave as log):
         define variable dsrc as IDataSource no-undo.
         define variable h as handle no-undo.
         find ttDataSource where ttdatasource.name = pcname no-error.
         if not avail ttDataSource then
         do:
-            dsrc = CreateSaveSource(pcName). 
-            if not valid-object(dsrc) then
-                undo, throw new UnsupportedOperationError("No data source returned from CreateSaveSource for " + substr(pcName,3)).
+            if plSave then
+            do:
+                dsrc = CreateSaveSource(pcName). 
+                if not valid-object(dsrc) then
+                   undo, throw new UnsupportedOperationError("No data source returned from CreateSaveSource for " + substr(pcName,3)).
+            end.    
+            else do:  
+                /* this is very optional ... so don't throw anything */
+                dsrc = CreateReadSource(pcName). 
+                if not valid-object(dsrc) then
+                   return ?.
+            end.
             dsrc:Url = Url.
+            dsrc:DataAccess = this-object.
             create ttDataSource.
-            assign ttDatasource.name = pcname.
+            assign ttDatasource.name = pcname
                    ttDatasource.instance = dsrc.
           
         end.
         return cast(ttDataSource.instance,IDataSource).
     end method.
     
+    method protected IDataSource CreateReadSource(pcName as char):
+        return ?.
+    end method.
+    
     method protected IDataSource CreateSaveSource(pcName as char):
         
-        undo, throw new UnsupportedOperationError("CreateSaveSource is not implemented in " + this-object:GetClass():TypeName).
+        undo, throw new UnsupportedOperationError("CreateSaveSource for " + quoter(pcName) + " is not implemented in " + this-object:GetClass():TypeName).
        /** @todo ?       
         define variable src as IDataSource no-undo.
         define variable cName as character no-undo.
@@ -242,7 +284,7 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
         **/
     end method.
    
-    method private IDataSource DestroySources():
+    method protected IDataSource DestroySources():
         for each ttDataSource:
             delete object ttDatasource.instance no-error.
             delete ttDataSource.
@@ -323,7 +365,7 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
         if type-of(e,AppError) then
             undo, throw e.
         undo, throw new IllegalArgumentError(
-                "Request for " + quoter(cname) + " have invalid field reference in query."
+                "Request for " + quoter(cname) + " has invalid field reference in query."
                 + chr(10) + quoter(pQuery) + "." 
                 + chr(10) + "This could be references to non existing fields or use of OR expression across mutually exclusive tables." 
                 + chr(10) + e:GetMessage(1)

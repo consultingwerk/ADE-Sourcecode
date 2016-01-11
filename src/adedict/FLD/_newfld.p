@@ -62,6 +62,7 @@ DEFINE VARIABLE odbtyp     AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE isodbc     AS LOGICAL INIT FALSE NO-UNDO.
 DEFINE VARIABLE islob      AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE cObjList   AS CHARACTER          NO-UNDO.
+define variable isPartitionEnabled as logical    no-undo.
 
 define variable NoDefaultArea as logical no-undo.
 define variable AreaList      as character no-undo.
@@ -651,7 +652,7 @@ end.
 
 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
 
-if dictdb._File._file-attributes[1] and dictdb._File._file-attributes[2] = false then
+if dictdb._File._file-attributes[1] and dictdb._File._file-attributes[2] = false OR dictdb._File._file-attributes[3] then
     NoDefaultArea = true.
      
 msg = "".
@@ -762,15 +763,18 @@ run SetDataTypes.
 /* FILL THE SELECTION LIST OF AREAS FOR BLOB / CLOB FIELDS */
 
 FIND DICTDB._Db WHERE RECID(_Db) = dictdb._File._Db-recid NO-LOCK.
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+    isPartitionEnabled = true.
 
 s_lst_lob_area:list-items in frame newfld = "".
-s_lob_Area_mttext:screen-value in frame newfld = "(for default tenant)".
+if not isPartitionEnabled then s_lob_Area_mttext:screen-value in frame newfld = "(for default tenant)".
 s_lob_Area_mttext:hidden in frame newfld  = true.
 /* use other delimiter in case area name has comma */
 s_lst_lob_area:DELIMITER in frame newfld = CHR(1).
 
 IF dictdb._File._For-type <> ? 
-OR (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) THEN
+OR (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) or (dictdb._File._file-Attributes[3]) THEN
   ASSIGN s_lob_Area = "".
 ELSE DO with frame newfld:   
    run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld , output AreaList).

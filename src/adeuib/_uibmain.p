@@ -72,6 +72,9 @@ Modified    :
 /* ===================================================================== */
 /*                            INCLUDE FILES                              */
 /* ===================================================================== */
+
+using Progress.Lang.AppError from propath.
+
 {adecomm/oeideservice.i}
 {adeuib/pre_proc.i}             
 {adecomm/adestds.i}        /* Standared ADE Preprocessor Directives */
@@ -4051,20 +4054,22 @@ END PROCEDURE.
 
 
 /** pclinkedfilename - linked file name
-*   pcfile - file name (used to open silently if no handle passed)
 *   phhandle - the handle of the design window (if open)
 */
 PROCEDURE ide_syncFromAppbuilder :
     define input  parameter pcLinkedFileName  as character no-undo.
-    define input  parameter pcFile   as character no-undo.
     define input  parameter phhandle as handle no-undo.
     define variable lSilentOpen    as logical no-undo.
     
-    /* not used by ide - requires management of linked file by caller  */
+    /* if window is not open, just read the linked file to ensure code is in appbuilder format    */
     if phHandle = ? then
     do:
-        /* No window open -  run the _qssuckr to open the file silently */       
-        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        /* No window open -  run the _qssuckr to open the file silently and ignore connection errors */       
+        RUN adeuib/_qssuckr.p (pcLinkedFileName,"":U,"Synch-Silent":U, FALSE).
+        
+        if return-value begins "_abort":U then 
+            undo, throw new AppError(trim(substr(return-value,7)),?).         
+        
         phhandle = _h_win.
         lSilentOpen = true.
     end.
@@ -4076,7 +4081,7 @@ PROCEDURE ide_syncFromAppbuilder :
            To keep this around we would need to be able to make it visible and embedd in eclipse if 
            design window is opened while it is alive 
            @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */ 
-        if lSilentOpen then 
+        if lSilentOpen and valid-handle(phhandle) then 
            run wind-close (phhandle).      
                 
     end finally.

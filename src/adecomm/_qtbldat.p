@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2006,2013 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -57,8 +57,11 @@ FOR EACH dictdb._File WHERE dictdb._File._Db-recid = p_DbId AND NOT dictdb._File
    IF INTEGER(DBVERSION("DICTDB")) > 8 AND
       (dictdb._File._Owner <> "PUB" AND dictdb._File._Owner <> "_FOREIGN") THEN NEXT.
    
-   IF INTEGER(DBVERSION("DICTDB")) > 10 THEN
-      flags = (IF dictdb._File._File-Attributes[1] THEN "m" ELSE "").  
+   IF INTEGER(DBVERSION("DICTDB")) > 10 THEN DO:
+      /* Note that a table can either be multi-tenant 'm' or partitioned 'p'. */
+      flags = (IF dictdb._File._File-Attributes[1] THEN "m" ELSE "").
+      flags = (flags + IF dictdb._File._File-Attributes[3] THEN "p" ELSE "").   
+   END.
    ASSIGN
       flags = (flags + IF dictdb._File._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF dictdb._File._Frozen THEN "f" ELSE "").

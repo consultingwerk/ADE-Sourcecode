@@ -19,10 +19,14 @@
                   refrences are needed.    
   ----------------------------------------------------------------------*/
 
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Core.IElement.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Core.IElement from propath.
 
 interface OpenEdge.DataAdmin.Binding.IRow inherits IElement:  
+    /**  Model - to manage relations between local Model and service Model in many-to-many queries */
+    define public property Model as IDataAdminModel no-undo get. 
+  
     /** serializename is used in child and parent defintitions  */
     define public property SerializeName as character no-undo get. 
     

@@ -14,24 +14,21 @@
     Created     :  
     Notes       : 
   ----------------------------------------------------------------------*/
- 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.Entity from propath.
- 
-using OpenEdge.DataAdmin.ISchema from propath.
-using OpenEdge.DataAdmin.IFieldPermissionSet from propath.
- 
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.ITablePermission from propath.
-using OpenEdge.DataAdmin.TablePermission from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
-
+block-level on error undo, throw.
+  
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IFieldPermissionSet.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ISchema.
+using OpenEdge.DataAdmin.ITable.
+using OpenEdge.DataAdmin.ITablePermission.
+using OpenEdge.DataAdmin.TablePermission.
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.TablePermission final inherits Entity  implements ITablePermission: 
-           
-    
     define public property Schema as ISchema no-undo 
         get():
             if valid-object(Service) then
@@ -55,6 +52,13 @@ class OpenEdge.DataAdmin.TablePermission final inherits Entity  implements ITabl
                 return Frozen. 
         end.
     
+     define public property IsMultiTenant as logical no-undo  
+         get():
+             if valid-handle(mBuffer) then
+                 return mBuffer::IsMultiTenant.
+             return IsMultiTenant.
+         end.    
+        
     define public property CanRead as character no-undo 
         get():
             if valid-handle(mBuffer) then
@@ -154,14 +158,14 @@ class OpenEdge.DataAdmin.TablePermission final inherits Entity  implements ITabl
     define public property FieldPermissions as IFieldPermissionSet no-undo     
         get():
              if not valid-object(FieldPermissions) then
-                FieldPermissions = cast(GetChildCollection(name,"fieldPermissions"),IFieldPermissionSet).
+                FieldPermissions = cast(GetChildCollection("fieldPermissions"),IFieldPermissionSet).
    
              return FieldPermissions.
         end.
         protected set.
         
     method public override void Export():
-        Export("tablepermission.json").
+        export("tablepermission.json").
     end method.          
     
    /*------------------------------------------------------------------------------
@@ -169,12 +173,16 @@ class OpenEdge.DataAdmin.TablePermission final inherits Entity  implements ITabl
 			Notes:  																	  
 	------------------------------------------------------------------------------*/
 		
-	constructor public TablePermission ( cntxt as IDataAdmincontext ):
+	constructor public TablePermission ( cntxt as IDataAdminModel ):
 		super (cntxt).
 	end constructor.
+        
+    constructor public TablePermission ( cntxt as IDataAdminModel ,pReq as IRequestInfo):
+        super (cntxt,pReq).
+    end constructor.
     
     /* No local context needed - not used locally   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     

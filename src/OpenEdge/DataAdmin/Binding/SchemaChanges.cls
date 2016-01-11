@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010,2013 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -15,29 +15,27 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.Schema from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchDefinitions from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
 routine-level on error undo, throw.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.Message.FetchDefinitions.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Schema.
+using OpenEdge.DataAdmin.IRequestInfo.
 
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext implements IDataAdminContext:
     {daschema/schema.i}    
     {daschema/table.i}
@@ -68,16 +66,9 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
        data-relation sequencechange for ttSequence,ttSequenceChange
            relation-fields(name,SequenceName) nested foreign-key-hidden
        .
-       
      
     define variable mCount as integer no-undo.
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsSchema:handle.
-        end get.
-    
-    
     define public override property TableHandle as handle no-undo 
         get():
             return temp-table ttSchema:handle.
@@ -107,7 +98,7 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
         set.
  
     constructor public SchemaChanges (pcfile as char,pScope as IServiceContextFactory):
-        define variable prt as IDataAdminContext no-undo.
+        define variable prt as IDataAdminModel no-undo.
         super ("SchemaChanges",pScope).
        
         FileName = pcfile.
@@ -116,7 +107,12 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
         AddChild(prt).
         
     end constructor.
-      
+    
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsSchema:handle. 
+    end method.
+     
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
@@ -135,7 +131,7 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
         return msg.
     end method.
     */
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Schema").
     end method. 
      
@@ -204,13 +200,13 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
     end method.
     
     method private char GetAction(imod as char):  
-        return IF imod = "cp":u THEN "ADD/MODIFY"
-                ELSE IF imod = "a":u  THEN "ADD"
-                ELSE IF imod = "m":u  THEN "MODIFY"
-                ELSE IF imod = "r":u  THEN "RENAME"
-                ELSE IF imod = "d":u  THEN "DELETE"
-                ELSE IF imod = "e":u  THEN ""
-                ELSe ?.
+        return if imod = "cp":u then "ADD/MODIFY"
+                else if imod = "a":u  then "ADD"
+                else if imod = "m":u  then "MODIFY"
+                else if imod = "r":u  then "RENAME"
+                else if imod = "d":u  then "DELETE"
+                else if imod = "e":u  then ""
+                else ?.
     end method.
             
     method private void CreateSequenceChange(pcaction as char, pcname as char):
@@ -278,9 +274,9 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
         undo, throw new UnsupportedOperationError("CreateCollection in SchemaChanges").
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+    method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
         define variable schemaobj as Schema no-undo.
-        schemaobj = new Schema(cntxt).
+        schemaobj = new Schema(this-object,preq).
         schemaobj:LoadOptions:FileName = FileName.
         return schemaobj.
     end method. 

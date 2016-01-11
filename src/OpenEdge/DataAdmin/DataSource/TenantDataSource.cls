@@ -435,6 +435,7 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
     
     /* convert type char value in query to the integer value in the db */
     method public override character ColumnExpression(pcColumn as char,pcOperator as char,pcValue as char):
+        define variable cmsg as character no-undo.
         if pccolumn = "_tenant._Tenant-type" then
         do:
             if pcValue = "regular" then
@@ -443,9 +444,28 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                 pcValue = "2".
             else if pcValue = "default" then
                 pcValue = "0".
+            else do:
+                undo, throw new IllegalArgumentError('Query has expression "ttTenant.Type ' +  pcOperator + ' ' + pcValue + '".' 
+                                                     + ' Query for "Type" is only supported on value, "Regular", "Super" or "Default".').
+            end.   
+
+         /*     GT.GE, LE, LT will actually work correctly since they are alphabetically in same order 
+                BEGINS can be converted to EQ.. ()
+                As long as we only allow full value  
+            if lookup(pcOperator,"=,EQ,<>,NE") = 0 then  */
+            if pcOperator = "BEGINS" then 
+                 pcOperator = "EQ". 
+                /* undo, throw new IllegalArgumentError('Query operator' +  quoter(pcOperator) + ' is not supported for "ttTenant.Type".').*/
             
+                
             return pcColumn + ' ' + pcoperator + ' ' + quoter(pcValue).    
         end. 
+/*        if pccolumn = "_tenant._Tenant-DataArea-default"     */
+/*        or pccolumn = "_tenant._Tenant-IndexArea-default"    */
+/*        or pccolumn = "_tenant._Tenant-LobArea-default"  then*/
+/*        do:                                                  */
+/*                                                             */
+/*        end.                                                 */
         return ?.   
     end. 
     
@@ -474,6 +494,7 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                  return cNew.       
         end.
         /* data types does not match - for access permissions 
+           
            Attach maps with MapNoArea to avoid finding the area fields */
         if pccolumn = "ttTenant.DefaultDataAreaName" then
         do:

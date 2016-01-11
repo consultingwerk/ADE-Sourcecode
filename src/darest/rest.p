@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2011-2012 by Progress Software Corporation  */
+/* Copyright (c) 2011-2013 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -29,7 +29,14 @@ using OpenEdge.DataAdmin.Error.DataAdminErrorHandler from propath.
 using OpenEdge.DataAdmin.Error.OperationError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
+
+/* *************************** Definitions *************************** */
+define variable resOutput as longchar no-undo.
+define variable useLongChar as logical no-undo init false.
+define stream capture .
 /* ***************************  Main Block  *************************** */
+
+ 
 if not this-procedure:persistent then
 do:
     if session:batch-mode then 
@@ -38,8 +45,6 @@ do:
         undo, throw new UnsupportedOperationError("rest.p must be run persistent when not in batch mode") .   
 end.
 
-define variable resOutput as longchar no-undo.
-define variable useLongChar as logical no-undo init false.
 
 procedure getOutput:
     define output parameter res as longchar no-undo.
@@ -59,10 +64,9 @@ procedure runApi:
     define variable cConnectionString as character no-undo.
     define variable cURL              as character no-undo.
     define variable hRestService      as handle    no-undo.
-
-    define variable errorHandler      as DataAdminErrorHandler no-undo.
-    
-    
+    define variable lOk               as logical no-undo.
+    define variable cDb               as character no-undo.
+ 
     requestInfo = new RestRequestInfo().
     requestInfo:InitFromJsonFile(pcPrm). 
     assign 
@@ -70,43 +74,72 @@ procedure runApi:
        cProgramName      = requestInfo:ProcedureName.
     
     if session:batch-mode then
-        output to value(requestInfo:captureFileName). 
+        output to value(requestInfo:captureFileName).
         
-    connect value(cConnectionString).
+    do on error undo, throw:     
+        connect value(cConnectionString).
+        catch e as Progress.Lang.Error :
+            /* ignore already connected */
+        	if e:GetMessageNum(1) <> 1012 then
+        	    undo, throw e.
+        end catch.
+    end.
+     
     request = new RestRequest(requestInfo).
     request:ConnectionName = ldbname(num-dbs).
-    
-    do on stop undo, leave:
-        run value(cProgramName) persistent set hRestService.
-    end.
-    if valid-handle(hRestService) then
-    do:
-        run execute in hRestService (request).
-    end. 
-    
-
-    catch e as Progress.Lang.Error:
-        
-        if session:batch-mode then
-            errorHandler = new DataAdminErrorHandler(requestInfo:ErrorFileName).
-        else
-            errorHandler = new DataAdminErrorHandler().
-        errorHandler:Error(e).
-    end.
-    finally :
-        if valid-handle(hRestService) then
-	        delete object hRestService.
-        /* if connection failed the request will not be valid */
-        if valid-object(request) then 
-            disconnect value(request:ConnectionName).
-                  
-        if useLongChar then do:
-            copy-lob from file requestInfo:OutFileName to resOutput convert target codepage "UTF-8".
+    cDb = request:ConnectionName.
+    /* on stop or quit seems to mess up on error - catch so we use to blocks*/
+    do on stop undo, leave on quit, leave:
+        do on error undo, leave :
+            run value(cProgramName) persistent set hRestService.
+            run execute in hRestService (request).
+            catch e as Progress.Lang.Error:
+                run handleError(e,requestInfo:ErrorFileName).
+            end.
         end.
-           
-        if session:batch-mode then 
-            output close.   
-           
-           
+        lok = true.
+    end.   
+    if not lok then
+    do:
+        run handleStop(requestInfo:captureFileName,requestInfo:ErrorFileName).
+    end. 
+    catch e as Progress.Lang.Error:
+        run handleError(e,requestInfo:ErrorFileName).
     end.
+    finally:  
+        if valid-handle(hRestService) then 
+            delete object hRestService. 
+         /* use no-error - if connection failed the request will not be valid */  
+        disconnect value(cDb) no-error.
+        if useLongChar and search(requestInfo:OutFileName ) <> ? then 
+            copy-lob from file requestInfo:OutFileName to resOutput convert target codepage "UTF-8". 
+        if session:batch-mode then                                                                         
+            output close. 
+        		
+    end finally. 
 end.
+
+procedure handleStop:
+    define input  parameter pLogFile as character no-undo.
+    define input  parameter pErrorfile as character no-undo.
+    define variable cline as character no-undo.
+    define variable err as AppError no-undo.
+    err = new AppError("The service request was stopped. This could be because a schema lock exists or could not be aquired.",?).
+    if session:batch-mode then output close.                               
+    undo, throw err.
+    catch e as Progress.Lang.Error :
+		run handleError(e,pErrorfile).
+    end catch.
+end. 
+
+procedure handleError:
+    define input  parameter perr as error no-undo.
+    define input  parameter pfile as character no-undo.
+    define variable errorHandler      as DataAdminErrorHandler no-undo.
+   
+    if session:batch-mode then
+        errorHandler = new DataAdminErrorHandler(pfile).
+    else
+        errorHandler = new DataAdminErrorHandler().
+    errorHandler:Error(perr).
+end.    

@@ -1,10 +1,10 @@
- /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
+/*************************************************************/
+/* Copyright (c) 2010,2013 by progress Software Corporation  */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
  /*------------------------------------------------------------------------
     File        : TableContext
     Purpose     : 
@@ -15,36 +15,38 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.TableImpl from propath.
-using OpenEdge.DataAdmin.TableSet from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.IndexContext from propath.
-using OpenEdge.DataAdmin.Binding.FieldContext from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope from propath. 
 
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
+/*using OpenEdge.DataAdmin.Binding.IContextWriter from propath.*/
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope.
+using OpenEdge.DataAdmin.Binding.FieldContext.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IndexContext.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using OpenEdge.DataAdmin.Message.SaveRequest.
+using OpenEdge.DataAdmin.TableImpl.
+using OpenEdge.DataAdmin.TableSet.
+using Progress.Lang.*.
 
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
-class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implements IDataAdminContext: 
+class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext : 
     
     {daschema/table.i}
-     
+    
     define private dataset dsTable serialize-name "root" for ttTable.
+  
     define buffer btable for ttTable.
     define temp-table copytable reference-only like ttTable .  
     
@@ -56,14 +58,6 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         field tablename as char
         index partname as  unique tablename .
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then 
-                DatasetHandle  = CreateDataSet().
-            return DatasetHandle.
-        end get.
-        private set.
-    
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttTable:handle.
@@ -106,9 +100,9 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         
  	constructor public TableContext ( pScope as ISchemaScope): 
         this-object("Table",pScope).                        
-    end constructor.                                       
-	
-	method public override void CopyTable(cntxt as IDataAdminContext).
+    end constructor.    
+                                       
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Schema").
     end method. 
      
@@ -120,14 +114,25 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         case parentid:
             when "schemas" then 
                 return "Name,SchemaName".
+            when "areas" then 
+                return "Name,AreaName".
         end.
-    end.
+     end method. 
     
-    method public override IDataAdminContext GetChild(child as char):
+    method public override character GetServerJoinFields(parentid as char):
+        case parentid:
+            when "areas" then /* AreaNumber is not mapped - handled by PartitionDataSource:ColumnSource*/
+                return "Number,AreaNumber".        
+        end.
+        return super:GetServerJoinFields(parentid).
+    end method. 
+     
+    /* return partitions if requested (not in default tree)*/
+    method public override IDataAdminModel GetNamedChild(child as char):
         if child = "partitions" then 
-             return mpartitions.         
-        return super:GetChild(child).
-    end method.
+             return mpartitions.  
+        return super:GetNamedChild(child).     
+    end method.     
     
     method public logical NeedPartitionRefresh():
         return can-find(first ttTablePartitionRequest).        
@@ -214,7 +219,7 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         tree:Parse = true.   
         tree:SetHandle("requests",buffer ttTablePartitionRequest:handle).    
         mPartitions:AddTableTo(tree).         
-        msg = new FetchRequest("Partition",Id,tree:GetReadHandle()).
+        msg = new FetchRequest("Partition",Id,tree:GetReadHandle(),no).
         return msg. 
     end method.    
     
@@ -318,21 +323,31 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         end.
     end method.    
     */
-    
-    method override public void WriteTo( input writer as OpenEdge.DataAdmin.Binding.IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
-   
-    method public override void AddTreeTo(tree as IContextTree,pcCollections as char):
+       
+    method public override void AddTreeTo(tree as IContextTree,pcCollections as char,pReq as IRequestInfo ):
         define variable i as integer no-undo.
+        define variable childreq   as IRequestInfo no-undo.
+        super:AddTreeTo(tree,pcCollections,pReq).
+        
         if lookup("partitions",pcCollections) > 0 then
         do:
             tree:SetJoin("tables","partitions","Name,TableName").
-            mpartitions:AddTableTo(tree).
+            if valid-object(pReq) then 
+                childreq = preq:Get("partitions").
+            mpartitions:AddTableTo(tree,childreq).
         
         end.
-        super:AddTreeTo(tree,pcCollections).
     end method.    
+       
+    method public override void AddTreeTo(tree as IContextTree,parent as IDataAdminContext,pReq as IRequestInfo).
+        if parent:SerializeName = "schemas" then 
+        do:
+            AddTreeTo(tree,parent,"lobFields,indexes",pReq).
+        end.
+        else 
+            super:AddTreeTo(tree,parent,pReq).
+                     
+    end method. 
    
 	method public override logical CanFind(name as character):
         return can-find(ttTable where ttTable.name = name).            
@@ -341,14 +356,30 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
     method public override logical Find(name as character):
         find ttTable where ttTable.name = name no-error.
         return avail ttTable.            
-    end.    
+    end.  
+    
+    /** update policy info if record avail */
+    method public logical UpdatePolicyName(name as character,pcPolicyName as char):
+        define variable lTrack  as logical no-undo.
+        find ttTable where ttTable.name = name no-error.
+        if avail ttTable then
+        do on error undo,throw:
+            lTrack = temp-table ttTable:tracking-changes.
+            temp-table ttTable:tracking-changes = false. 
+            assign
+                ttTable.PartitionPolicyName = pcPolicyName
+                ttTable.IsPartitioned = true.
+/*            message "updated  ttTable.PartitionPolicyName "  ttTable.PartitionPolicyName*/
+/*            view-as alert-box.                                                          */
+            FireContextRefreshed().
+            finally:
+                temp-table ttTable:tracking-changes	= lTrack.	
+            end finally.        
+        end.
+    end.     
       
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
           return new TableSet(cntxt).
-    end method.
-    
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-       return new TableImpl(cntxt).
     end method.
     
     method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
@@ -376,5 +407,29 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext implemen
         end.
         return super:ColumnSource(pcColumn).
     end method.
+    
+       /** DataRefreshed Override to handle requests for indexfields  */
+    method public override void DataRefreshed(pResponse as IFetchResponse):
+        define variable i as integer no-undo.
+        define variable hBuffer  as handle no-undo.
+/*        define variable ldone as logical no-undo.*/
+        if /*not mRefresh  and*/ pResponse:Entityname = "Table" then
+        do:
+            hBuffer = pResponse:DataHandle:get-buffer-handle ("ttArea").
+            if valid-handle(hBuffer) then
+            do:
+/*                mRefresh = true. /* this will fire back here - avoid endless loop,      */
+/*                                    but ensure call to super below when it happens */   */
+                ContextScope:GetContext("Area"):DataRefreshed(pResponse).
+/*                ldone = true.                                                           */
+            end.
+        end.
+/*        if not ldone then*/
+/*        do:              */
+        super:DataRefreshed(pResponse).       
+/*            mRefresh = false.*/
+/*        end.*/
+     end method.
+    
      
 end class.

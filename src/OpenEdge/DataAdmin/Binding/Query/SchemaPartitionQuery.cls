@@ -1,11 +1,11 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
- /*------------------------------------------------------------------------
+/* Copyright (c) 2011,2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
+/*------------------------------------------------------------------------
     Purpose     : abstract query for partitions of a schema element 
     Syntax      : 
     Description : 
@@ -15,25 +15,24 @@
                   and FieldPartitionQuery 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath.
-using OpenEdge.DataAdmin.Binding.IPartitionContext from propath.
- 
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery from propath.
-using OpenEdge.DataAdmin.Binding.Query.PartitionQuery from propath.
-
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IPartitionContext.
+using OpenEdge.DataAdmin.Binding.IRow from propath.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.Query.IPartitionQuery.
+using OpenEdge.DataAdmin.Binding.Query.PartitionQuery.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using Progress.Lang.*.
 
 routine-level on error undo, throw.
-
-class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits PartitionQuery implements IPartitionContext: 
+class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits PartitionQuery  : 
 	/*------------------------------------------------------------------------------
 			Purpose: Used for a collection of partitions of a schema element
 			 		 mapped by tenant or group															  
@@ -42,7 +41,7 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Pa
 	/** Parent context (Model) may change so don't store this */
 	define private property PartitionContext as PartitionContext no-undo
 	    get():
-	        return cast(Parent,PartitionContext).   
+	        return cast(Model,PartitionContext).   
 	    end.
 	    
     define protected variable TableName as character no-undo.
@@ -50,34 +49,50 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Pa
     define protected variable IndexName as character no-undo.
     define protected variable Collation as character no-undo.
     
-    constructor protected SchemaPartitionQuery (pdatacontext as PartitionContext,pcparent as char,pcTable as char,pcfield as char, pcIndex as char,pccollation as char,preq as IRequestInfo):
- 	    super (pdatacontext,pcParent,GetValues(pcTable,pcfield,pcIndex,pccollation),pReq).    
- 	    assign
- 	        TableName = pcTable
- 	        FieldName = pcfield
- 	        IndexName = pcIndex
- 	        Collation = pccollation.
-	end constructor.
-    
-    method private char extent 4 GetValues(pcTable as char,pcfield as char, pcIndex as char,pccollation as char):
-        define variable cValues  as character extent 4 no-undo.
+	constructor protected SchemaPartitionQuery (pdatacontext as PartitionContext, pRow as IRow,preq as IRequestInfo):
+        super (pdatacontext,pRow,pReq).
         
-        assign
-            cValues[1] = pctable
-            cValues[2] = pcfield
-            cValues[3] = pcIndex
-            cValues[4] = pccollation.
-        return cValues.
-    end.
-     
+        /* use FieldValue to allow current number and order of extents in key to change 
+          - SchemaName may or may not be in key      
+          (can alternatively use KeyFields to find correct entry) */
+      
+        case pRow:SerializeName:
+            when "table" then
+                TableName = pRow:FieldValue("Name").     
+            when "fields" then
+                assign
+                    TableName = pRow:FieldValue("TableName")     
+                    FieldName = pRow:FieldValue("Name").     
+            when "indexes" then 
+                assign
+                    TableName = pRow:FieldValue("TableName")   
+                    IndexName = pRow:FieldValue("Name")
+                    /* future                    
+                    Collation = pRow:FieldValue("CollationName")*/
+                    .
+        end case.      
+    end constructor.
+    
     method public override logical CanFind(pname as character):
         undo, throw new UnsupportedOperationError("SchemaPartitionQuery CanFind with single key").
     end.    
      
     method public override logical Find(pname as character):
         undo, throw new UnsupportedOperationError("SchemaPartitionQuery Find with single key").
+    end.
+      
+    method public override logical FindTable(pname as character):
+        undo, throw new UnsupportedOperationError("SchemaPartitionQuery FindTable").
+    end.   
+     
+    method public override logical FindIndex(pname as character,pcIndex as char,pccol as char):
+        undo, throw new UnsupportedOperationError("SchemaPartitionQuery FindIndex").
     end.    
-    
+        
+    method public override logical FindField(pname as character,pcField as char):
+        undo, throw new UnsupportedOperationError("SchemaPartitionQuery FindField").
+    end.    
+        
 /*    method public override IFetchRequest GetQueryRequest():*/
 /*        define variable tree   as IContextTree no-undo.    */
 /*        define variable hds    as handle no-undo.          */
@@ -105,55 +120,117 @@ class OpenEdge.DataAdmin.Binding.Query.SchemaPartitionQuery abstract inherits Pa
     end method.  
     
     method public logical CanFindTenant(pcTenant as char):      
-        return PartitionContext:CanFindTenant(pcTenant,TableName,FieldName,Indexname,Collation).
+        if PartitionContext:FindTenant(pcTenant,TableName,FieldName,Indexname,Collation) then
+            return CanFindCurrentModel(PartitionContext).
+        return false.   
     end method.
     
     method public logical CanFindGroup(pcGroup as char):      
-        return PartitionContext:CanFindGroup(pcGroup,TableName,FieldName,Indexname,Collation).
+        if PartitionContext:FindGroup(pcGroup,TableName,FieldName,Indexname,Collation) then
+            return CanFindCurrentModel(PartitionContext).
+        return false.   
     end method.
     
-     method public logical FindTenant(pcTenant as char):
-         return PartitionContext:FindTenant(pcTenant,TableName,FieldName,Indexname,Collation).
-     end method.
+    method public logical CanFindPolicyDetail(pcDetail as char):
+        if PartitionContext:FindPolicyDetail(pcDetail,TableName,FieldName,Indexname,Collation) then
+            return CanFindCurrentModel(PartitionContext).
+        return false.   
+    end method.
+     
+    method public logical FindTenant(pcTenant as char):
+        if PartitionContext:FindTenant(pcTenant,TableName,FieldName,Indexname,Collation) then
+            return SynchWithModel(PartitionContext).
+        return false.   
+    end method.
     
     method public logical FindGroup(pcGroup as char):
-        return PartitionContext:FindGroup(pcGroup,TableName,FieldName,Indexname,Collation).
+        if PartitionContext:FindGroup(pcGroup,TableName,FieldName,Indexname,Collation) then
+            return SynchWithModel(PartitionContext).
+        return false.   
     end method.
-       
-    method public logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):      
+    
+    method public logical FindPolicyDetail(pcDetail as char):
+        if PartitionContext:FindPolicyDetail(pcDetail,TableName,FieldName,Indexname,Collation) then
+            return SynchWithModel(PartitionContext).
+        return false.   
+    end method.   
+    
+    method public override logical CanFindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):      
         if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
             return CanFindTenant(pcTenant).
         else
             return false.
     end method.
     
-    method public logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+    method public override logical CanFindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
         if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
             return CanFindGroup(pcGroup).
         else
             return false.
     end method.
+      
+    method public override logical CanFindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+        if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
+            return CanFindPolicyDetail(pcDetail).
+        else
+            return false.
+    end method.
     
-    method public logical FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+    method public override logical FindTenant(pcTenant as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
         if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
             return FindTenant(pcTenant).
         else
             return false.
     end method.
     
-    method public logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+    method public override logical FindGroup(pcGroup as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
         if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
             return FindGroup(pcGroup).
         else
             return false.
     end method.
-      
+    
+    method public override logical FindPolicyDetail(pcDetail as char,pctable as char,pcField as char, pcIndex as char, pccollation as char):
+        if pcTable = TableName and pcField = FieldName and pcIndex = Indexname and pcCollation = Collation then  
+            return FindPolicyDetail(pcDetail).
+        else
+            return false.
+    end method.   
+    
+    method public IDataAdminElement FindGroupEntity(pcGroup as char):
+        define variable hBuffer as handle no-undo.
+        if FindGroup(pcGroup) then
+        do:
+            hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
+            return Model:FindEntity(hBuffer,RequestInfo).  
+        end.          
+    end method.  
+    
+    method public IDataAdminElement FindTenantEntity(pcTenant as char):
+        define variable hBuffer as handle no-undo.
+        if FindTenant(pcTenant) then
+        do:
+            hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
+            return Model:FindEntity(hBuffer,RequestInfo).  
+        end.                   
+    end method.  
+    
+    method public IDataAdminElement FindPolicyDetailEntity(pcDetail as char):
+        define variable hBuffer as handle no-undo.
+        if FindPolicyDetail(pcDetail) then
+        do:
+            hBuffer = QueryHandle:get-buffer-handle (this-object:Table).
+            return Model:FindEntity(hBuffer,RequestInfo).  
+        end.                                    
+    end method. 
+    
+    
     /****
     method public logical Deallocate(): 
         undo, throw new UnsupportedOperationError("Allocate() in SchemaPartitionContext. Use TablePartitionContext").    
     end method.     
     ****/
-    method public logical Allocate():        
+    method public override logical Allocate():        
         return AllocateTenants("Delayed"). 
     end method.     
     

@@ -1082,6 +1082,33 @@ ASSIGN
   _Field._For-name     = "NONAME"
   _Field._For-type     = "char".
 
+  /* Generic Stored procedures buffer.					  */
+CREATE _File.
+ASSIGN
+  _File._Db-recid     = dbkey
+  _File._File-name    = "PROC-TEXT-BUFFER-Q"
+  _File._ianum        = 6
+  _File._For-type     = "GENERIC-BUFFER"
+  _File._For-name     = "NONAME"
+  _File._Last-change  = 2146431
+  _File._Hidden       = TRUE.
+  _File._For-Owner    = "".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "proc-text-q"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ?
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 10
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 1
+  _Field._For-name     = "NONAME"
+  _Field._For-type     = "char".
+  
+  
 /* Dummy Stored procedures SQL pass thru. 				*/
 CREATE _File.
 ASSIGN

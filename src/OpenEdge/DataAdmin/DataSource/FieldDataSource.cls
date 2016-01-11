@@ -1,11 +1,11 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
- /*------------------------------------------------------------------------
+/* Copyright (c) 2010-2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
+/*------------------------------------------------------------------------
     File        : FieldDataSource
     Purpose     : 
     Syntax      : 
@@ -17,7 +17,7 @@
 
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.DataSource.DataSource.
-
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.FieldDataSource inherits DataSource: 
@@ -25,7 +25,7 @@ class OpenEdge.DataAdmin.DataSource.FieldDataSource inherits DataSource:
     define protected variable mBuffer as handle no-undo.
   
  
-	define private variable mMapping as char
+	define protected variable mMapping as char
 	   init  	   
 "Name,_field-name,~
 TableName,_file-name,~
@@ -34,35 +34,56 @@ Description,_field._desc,~
 trowid,rowid(_Field),~
 IsMultiTenant,_File-attributes[1]"
  no-undo.
-/*
-Description,_Desc,~
-SideLabel,_Label,~
-IsMultiTenant,_File._file-attributes[1],~
-ColumnLabel,_Col-label,~
-Order,_Order,~
-IsMandatory,_Mandatory" no-undo.
-*/
 	
-	constructor public FieldDataSource (pcurl as char):        
-        this-object ( ).   
-        url = pcURL.
-        AreaURL = pcURL + AreaURL.
-    end constructor.
-    
     constructor public FieldDataSource (hchanges as handle ):     
         super (hchanges,"_File,_Field","dictdb._File,dictdb._Field", 
                "Name,ttFieldChange.Fieldname,ttField.TableName,ttFieldChange.Tablename,DataType,_data-type,trowid,rowid(_Field),IsMultiTenant,_File-attributes[1]").
        
         BaseQuery = "for each ttFieldChange, each _file where _file._file-name = ttFieldChange.Tablename "
                   + " and " + DatabaseInfo:FileExpression + " no-lock,"
-                  + " each _field of _file where  _field-name = ttFieldChange.Fieldname and (_field._data-type ='clob' or _field._data-type ='blob') no-lock" .
+                  + " each _field of _file where  _field-name = ttFieldChange.Fieldname no-lock" .
+                  
+/*                  + " each _field of _file where  _field-name = ttFieldChange.Fieldname and (_field._data-type ='clob' or _field._data-type ='blob') no-lock" .*/
     end constructor.
     
     constructor public FieldDataSource ( ):	    
         super ("_File,_Field","dictdb._File,dictdb._Field", mMapping).	
-/*		BaseQuery = "for each _file no-lock, each _field of _file  no-lock ".*/
-        BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _field of _file where (_field._data-type ='clob' or _field._data-type ='blob') no-lock ".
+        BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _field of _file no-lock ".
     end constructor.
+    
+/*    constructor public FieldDataSource (fieldfirst as log ):                                                            */
+/*        super (GetTables(yes,no),GetTables(yes,yes), mMapping).                                                         */
+/*        BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _field of _file no-lock ".*/
+/*    end constructor.                                                                                                    */
+    
+    
+     /* allow subclass to have different order   */
+    constructor protected FieldDataSource (pcTables as char, pcPhysicalTables as char,pcMapping as char):
+        super (pcTables ,pcPhysicalTables, pcMapping).  
+    end constructor.
+    
+    constructor public FieldDataSource (phParent as handle,pcFileJoin as char,pcFieldJoin as char):
+        super (phParent,"_File,_Field","dictdb._File,dictdb._Field", mMapping). 
+        BaseQuery = "for each " + phParent:name + ", each _file where " + pcFileJoin 
+                  + " and " + DatabaseInfo:FileExpression + " no-lock,"
+                  + " each _field of _file where " + pcFieldJoin + " no-lock" .
+         
+    end constructor.
+    
+/*    method private char GetTables(fieldfirst as log ,pphys as log):    */
+/*        define variable cfieldFile as character no-undo init "_File".  */
+/*        define variable cfieldField as character no-undo init "_Field".*/
+/*        if pphys then                                                  */
+/*        do:                                                            */
+/*            assign                                                     */
+/*               cfieldFile = "dictdb." + cfieldFile                     */
+/*               cfieldField = "dictdb." + cfieldField.                  */
+/*        end.                                                           */
+/*        if fieldFirst then                                             */
+/*            return cfieldField + "," + cfieldFile.                     */
+/*        else                                                           */
+/*            return cfieldFile + "," + cfieldField.                     */
+/*    end method.                                                        */
     
     method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
         phBuffer:set-callback("After-Row-fill","AfterFieldRow").
@@ -91,19 +112,81 @@ IsMandatory,_Mandatory" no-undo.
                                    and dictdb._storage._Partitionid = 0
                                    no-lock no-error.
                      
-            if avail dictdb._storage then
+            if avail dictdb._storage and dictdb._storage._Area-number <> 0 then
             do:
-                find dictdb._area where dictdb._Area._Area-number
-                                      =  dictdb._storage._Area-number no-lock.   
+                find dictdb._area where dictdb._Area._Area-number =  dictdb._storage._Area-number no-lock.   
                 assign
                     cArea    = dictdb._area._area-name       
-                    cAreaRef = AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default"). 
+                    cAreaRef = url + AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default"). 
           end.
         end. 
         assign
+            mBuffer::IsLob = mBuffer::DataType = "clob" or mBuffer::DataType = "blob"
             mBuffer::AreaName = cArea
             mBuffer::AreaURL  = cAreaRef.
     end method.
+    
+    /* rename here to be added to _field expressions and handled in ColumnExpression */
+    method public override character ColumnSource(pcColumn as char):
+        if pcColumn = "ttField.isLob" then
+        do:
+            return "_field._isLob".
+        end.
+        else
+            return super:ColumnSource(pcColumn).    
+    end method.
+    
+    /* override to handle islob. renamed to _field in Columnsource. too late to rename here   */
+    method public override character ColumnExpression (pcColumn as char, pcOperator as char, pcValue as char):
+        define variable cExpress as character no-undo.
+        if pcColumn = "_field._isLob" then 
+        do: 
+            if (lookup(pcoperator,"EQ,=") > 0 and logical(pcValue) = true) then
+            do:
+                cExpress =  "(_field._data-type " + pcOperator + " " + quoter("clob") 
+                         +   " or "
+                         +  "_field._data-type  " + pcOperator + " " + quoter("blob") 
+                         + ")".  
+               return cExpress.
+            end.
+            else if (lookup(pcoperator,"NE,<>") > 0 and logical(pcValue) = false) then
+            do:
+                if pcOperator = "NE" then 
+                    pcOperator = "EQ".
+                else 
+                    pcOperator = "=".
+                cExpress =  "(_field._data-type " + pcOperator + " " + quoter("clob") 
+                         +   " or "
+                         +  "_field._data-type  " + pcOperator + " " + quoter("blob") 
+                         + ")".  
+               return cExpress.
+            end.
+            else if (lookup(pcoperator,"EQ,=") > 0 and logical(pcValue) = false) then
+            do:
+                if pcOperator = "EQ" then 
+                    pcOperator = "NE".
+                else 
+                    pcOperator = "<>".
+                cExpress =  "(_field._data-type " + pcOperator + " " + quoter("clob") 
+                         +   " and "
+                         +  "_field._data-type  " + pcOperator + " " + quoter("blob") 
+                         + ")".  
+               return cExpress.
+            end.
+            else if (lookup(pcoperator,"NE,<>") > 0 and logical(pcValue) = true) then
+            do:
+                cExpress =  "(_field._data-type " + pcOperator + " " + quoter("clob") 
+                         +   " and "
+                         +  "_field._data-type  " + pcOperator + " " + quoter("blob") 
+                         + ")".  
+               return cExpress.
+            end.
+            else undo,throw new IllegalArgumentError("Invalid operator " + pcoperator + " used for IsLob. Only EQ,=,<> or NE is allowed.").
+        end.
+        
+        return super:ColumnExpression(pccolumn,pcOperator,pcValue).     
+   
+    end method.  
     
     method private integer SaveField(phbuffer as handle):
         

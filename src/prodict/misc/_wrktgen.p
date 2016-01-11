@@ -202,7 +202,10 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   fernando 02/11/10   Fix issue with sql generated for old sequence generator
   sgarg    06/03/10   Support for CLOB for MSS (OE00193877)
   kmayur   06/21/11   Support for migration of constraint - OE00195067
-  sgarg    12/05/13   Default INITIAL value for character field w/ env. variable (OE00241307)
+  sgarg    10/23/13   Default INITIAL value for character field w/ env. variable (OE00241307)
+  sdash    01/22/13   Include Default Apply Default as Constraint option was not generating default constraints in MSS(PSC00284588)
+  sdash    05/04/14   Support for native sequence generator for MSS.
+  sgarg    07/09/14   PSC00307888 - Fix issue with MS SQL Server native sequence qualifier and owner
 */
 
 { prodict/dictvar.i }
@@ -345,6 +348,9 @@ DEFINE VARIABLE mssNewDTTypes       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE unique_idx_flag     AS LOGICAL    NO-UNDO INITIAL FALSE. /* OE00177721 */
 
 DEFINE NEW SHARED VARIABLE crnt-vals AS INT64 EXTENT 2000 init 0 NO-UNDO.
+
+DEFINE VARIABLE lnativeseq          AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lcachesize          AS CHARACTER  NO-UNDO.
 
 DEFINE TEMP-TABLE verify-name NO-UNDO
   FIELD new-name LIKE _Field._Field-name
@@ -1304,9 +1310,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          (DICTDB._Field._Initial = ? OR Dictdb._field._Initial = " " OR DICTDB._Field._Initial = "?") THEN DO:
          IF blankdefault THEN
             PUT STREAM code UNFORMATTED " DEFAULT ' ' ".
-           ELSE IF (DICTDB._Field._Data-type = "character" AND Dictdb._field._Initial = "") AND useoedflt THEN
+         ELSE IF (DICTDB._Field._Data-type = "character" AND Dictdb._field._Initial = "") AND useoedflt THEN
               PUT STREAM code UNFORMATTED " DEFAULT '' ".
       END.
+
       /* Put default values */
       IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )THEN DO:      
           c = DICTDB._Field._Initial. 
@@ -1562,41 +1569,38 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                  Assign AllConsFields = AllConsFields + verify-name.new-name.  
          END. /* FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK, */
 	     
-            IF  (ConType = "P" AND dbtyp = "MSSQLSRV7") THEN                  
-            DO:
-	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
-                    PKCreated = TRUE.
-            
-            END. /* IF ConType = "P" */
+         IF  (ConType = "P" AND dbtyp = "MSSQLSRV7") THEN                  
+         DO:
+	   if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	   AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
+           PKCreated = TRUE.    
+         END. /* IF ConType = "P" */
 	        
-	    IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
-            DO:
-	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
-            
-            END. /* IF ConType = "P" */
+	 IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
+         DO:
+	     if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	     AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
+         END. /* IF ConType = "P" */
 	        
-	    IF  (ConType = "PC" OR ConType = "MP") THEN                  
-            DO:
-	      if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	      AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
-              PKCreated = TRUE.
-            END. /* IF ConType = "PC" */
+	 IF  (ConType = "PC" OR ConType = "MP") THEN                  
+         DO:
+	    if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	    AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
+            PKCreated = TRUE.    
+         END. /* IF ConType = "PC" */
                     
-            IF (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
-            DO:
-	       if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
-	          ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
+         IF  (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
+         DO:
+	    if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
+	    ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
 	             + AllConsFields + ")".
-
-            END. /* IF ConType = "M" */
+         END. /* IF ConType = "M" */
             
-	    IF ConType = "U" THEN
-            DO:	       
-	      if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-              AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
-            END. /* IF ConType = "U" */
+	 IF ConType = "U" THEN
+         DO:	       
+	   if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+           AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
+         END. /* IF ConType = "U" */
 	       	      
        END. /* IF ConType <> "D" or ConType <> "C" */
        	  
@@ -1668,14 +1672,15 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         PUT STREAM code UNFORMATTED n2 (IF LAST(_Index-seq) THEN ")" ELSE ",").
     END. /* end of each _index_field */
   END. /* FOR EACH DICTDB._Index of DICTDB._File WHERE DICTDB._Index._Index-name BEGINS "sql-uniq" */
+  
   IF (dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" ) THEN DO: 
     keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE 
-                              DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND 
-                              DICTDB._Constraint._Con-Active AND 
-                             ( DICTDB._Constraint._Con-Type = "P" OR 
-                               DICTDB._Constraint._Con-Type = "PC" OR 
-                               DICTDB._Constraint._Con-Type = "MP" )
-                       ). 
+                   DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
+                   DICTDB._Constraint._Con-Active AND 
+                  (DICTDB._Constraint._Con-Type = "P" OR 
+                   DICTDB._Constraint._Con-Type = "PC" OR 
+                   DICTDB._Constraint._Con-Type = "MP" )
+               ). 
 
     FIND FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
          DICTDB._Constraint._Con-Active AND DICTDB._Constraint._Con-Type = "M" NO-ERROR. 
@@ -2152,6 +2157,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          pindex = comment_chars + "sp_primarykey " + n1.
       
       /* Primary key code */
+
       IF DICTDB._File._Prime-index = RECID (DICTDB._Index) AND msstryp
       THEN DO:  
          Assign userPKexist = TRUE.
@@ -2172,6 +2178,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       END.
       assign n3 = DICTDB._Index._I-MISC2[1].
       IF (INDEX(n3,"v") = 0 OR mssrecidCompat OR INDEX(n3,"r") = 0) AND mssOptRowid EQ "U" THEN assign uniqfyIdx = FALSE. 
+
 IF dbtyp = "MSSQLSRV7" AND useNewRanking AND NOT KeyCreated AND 
    n3 begins "r" AND INDEX(n3,"n") = 0 AND NOT ( migConstraint AND   
          CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
@@ -2211,7 +2218,6 @@ THEN DO:
              comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
              " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
       END.
-
 END.
 ELSE DO:
       IF (uniqueindx eq "1") 
@@ -2239,7 +2245,7 @@ ELSE DO:
            ELSE PUT STREAM code UNFORMATTED
               comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
               " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
-        END.
+          END.
       END. /* IF (uniqueindx eq "1") */
       ELSE DO:
         IF DICTDB._Index._Unique THEN DO:
@@ -2249,9 +2255,9 @@ ELSE DO:
            IF AVAILABLE (DICTDB._Constraint)  AND migConstraint
            THEN DO:
             IF DICTDB._Constraint._Con-Type = "M" THEN DO:
-             PUT STREAM code UNFORMATTED
-             comment_chars "CREATE UNIQUE CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
-             CcCreated = TRUE.
+              PUT STREAM code UNFORMATTED
+              comment_chars "CREATE UNIQUE CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+              CcCreated = TRUE.
             END.
             ELSE PUT STREAM code UNFORMATTED
              comment_chars "CREATE UNIQUE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
@@ -2279,7 +2285,7 @@ ELSE DO:
            END.
         END.
         ELSE DO:
-        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
+        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7" THEN DO:         
              Assign uniqueness = "".
              IF (NonUnikCC AND ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U"))) THEN 
@@ -2420,9 +2426,9 @@ END.
         PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " + user_library dot n1  +  " ADD (" +  AllCons + ")" skip.
 	    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
     END.
-    IF DefCons <> "" and (dbtyp = "MSSQLSRV7") THEN
+    IF DefC <> "" and (dbtyp = "MSSQLSRV7") THEN
 	DO:
-	    PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " +  user_library dot n1  +  " ADD " +  DefCons skip.
+	    PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " +  user_library dot n1  +  " ADD " +  DefC skip.
 	    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
 	END.
 	
@@ -2577,24 +2583,180 @@ IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop2.
 END.   /*  FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db  */
 END.  /* THEN */
 
-/* creating SEQT_REV_SEQTMGR table for revised sequence generator for MSS if one does not exist. */
-IF lnewSeq THEN DO:
-put stream code unformatted 
-    " if not exists (select * from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
-    "    and OBJECTPROPERTY(id, 'IsTable') = 1)" skip
-           "create table _SEQT_REV_SEQTMGR (" skip
-           "        seq_name varchar(30) not null, " skip
-	   "        initial_value bigint, " skip
-	   "        increment_value bigint, " skip
-	   "        upper_limit bigint, " skip
-	   "        cycle bit not null )" skip 
-           " " skip.
+ IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" THEN DO:
+     PUT STREAM code UNFORMATTED
+       " IF OBJECT_ID('tempdb..##Globals') IS NOT NULL DROP TABLE ##Globals " skip
+       " GO " skip
+       " IF not exists (select * from dbo.sysobjects where id = object_id('##Globals') and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+       " EXEC(' CREATE TABLE ##Globals ( isVersion nvarchar(30) NULL ) ') " skip
+       " GO " skip
+       " INSERT INTO ##Globals DEFAULT VALUES " skip 
+       " UPDATE ##Globals SET isVersion = CAST(serverproperty('ProductVersion') AS nvarchar) " skip
+       " UPDATE ##Globals SET isVersion  = SUBSTRING(isVersion, 1, CHARINDEX('.', isVersion) - 1) " skip
+       " " skip.
 END.
 
-IF doseq THEN DO:
+IF lnativeseq = TRUE THEN DO:
+PUT STREAM CODE UNFORMATTED
+" IF (select isVersion from ##Globals) >= 11 " skip
+"  BEGIN " skip
+"   IF exists (select * from dbo.sysobjects where id = object_id('_SEQP_NAT_SEQUENCE') " skip
+"          and OBJECTPROPERTY(id, 'IsProcedure') = 1) " skip
+"     BEGIN " skip
+"      EXEC (' DROP PROCEDURE _SEQP_NAT_SEQUENCE ')  " skip
+"     END " skip
+"    EXEC ('  " skip
+"     CREATE PROCEDURE _SEQP_NAT_SEQUENCE   " skip
+"	 (  " skip
+"         @op INT ,  " skip
+"         @val BIGINT OUTPUT,  " skip
+"         @seqN VARCHAR(100)  " skip
+"     )  " skip
+"     AS  " skip
+"     BEGIN  " skip
+"       DECLARE  @SeqSchema NVARCHAR(50) " skip
+"       DECLARE  @SeqDb NVARCHAR(50) " skip
+"       DECLARE  @tmp NVARCHAR(64) " skip
+"       DECLARE  @SeqName NVARCHAR(50) " skip
+"       DECLARE  @SQLQuery NVARCHAR(500) " skip
+"       DECLARE  @err int  " skip
+"   IF @seqN IS NOT NULL AND LEN(@seqN) < 1  " skip
+"          BEGIN  " skip
+"            SET @op = -1  /* Bad Sequence Name */   " skip
+"            RETURN  " skip
+"          END  " skip
+"       ELSE " skip
+"       BEGIN " skip
+"           SELECT @SQLQuery = " skip
+"                N''SELECT @SeqDb = LEFT('' + char(39) + @seqN + char(39) + '', CHARINDEX(''''.'''' ,'' + char(39)+ @seqN + char(39) + '')-1)''; " skip
+"           EXEC sp_executesql @SQLQuery, N''@SeqDb NVARCHAR(50) output'', @SeqDb output; " skip
+"           SELECT @SQLQuery = " skip
+"                N''SELECT @tmp = RIGHT('' + char(39) + @seqN + char(39) + '', LEN ('' + char(39) + @seqN + char(39) + '') - CHARINDEX(''''.'''' ,'' + char(39)+ @seqN + char(39) + ''))''; " skip
+"           EXEC sp_executesql @SQLQuery, N''@tmp NVARCHAR(64) output'', @tmp output; " skip
+"           SELECT @SQLQuery = " skip
+"                N''SELECT @SeqSchema = LEFT('' + char(39) + @tmp + char(39) + '', CHARINDEX(''''.'''' ,'' + char(39)+ @tmp + char(39) + '')-1)''; " skip
+"           EXEC sp_executesql @SQLQuery, N''@SeqSchema NVARCHAR(50) output'', @SeqSchema output; " skip
+"           SELECT @SQLQuery = " skip
+"                N''SELECT @SeqName = RIGHT('' + char(39) + @seqN + char(39) + '', CHARINDEX(''''.'''', '' + '' REVERSE('' + char(39)+ @seqN + char(39) + ''))-1)''; " skip
+"           EXEC sp_executesql @SQLQuery, N''@SeqName NVARCHAR(50) output'', @SeqName output; " skip
+"       END " skip
+"   IF @op = 0   /* Current_Value function */   " skip
+"       BEGIN  " skip
+"           SELECT @SQLQuery = N''SELECT @val = CONVERT(bigint,current_value) " skip
+"                  FROM sys.schemas AS T1 INNER JOIN sys.sequences AS T2 ON (T1.schema_id = T2.schema_id) " skip
+"                    WHERE T2.NAME = '' + char(39) + @SeqName + char(39) + '' AND T1.NAME = '' + char(39) + @SeqSchema + char(39); " skip
+"           EXEC sp_executesql @SQLQuery, N''@val bigint output'', @val output; " skip
+"           RETURN     /* Success */   " skip
+"       END  " skip
+"   ELSE IF @op = 1 /* NEXT VALUE FOR function */   " skip
+"        BEGIN  " skip
+"             DECLARE @ParamDef NVARCHAR (512)  " skip
+"             DECLARE @cycle   bit  " skip
+"             DECLARE @incval  bigint  " skip
+"             DECLARE @maxval  bigint  " skip 
+"             DECLARE @minval  bigint  " skip
+"             DECLARE @curval  bigint  " skip
+"             DECLARE @strtval bigint  " skip   
+"             SET @SQLQuery = N''SELECT @cycle = is_cycling,  " skip
+"                          @incval = CONVERT(bigint,increment) ,  " skip
+"                          @minval = CONVERT(bigint,minimum_value) ,  " skip
+"                          @maxval = CONVERT(bigint,maximum_value) ,  " skip
+"                          @curval = CONVERT(bigint,current_value),  " skip
+"                          @strtval = CONVERT(bigint,start_value)  " skip
+"                               from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+"          SET @ParamDef = N''@cycle bit output, @incval bigint output, @minval bigint output,  " skip
+"                    @maxval bigint output, @curval bigint output, @strtval bigint output''  " skip
+"          EXEC sp_executesql @SQLQuery, @ParamDef, @cycle output, @incval output, @minval output,  " skip
+"                    @maxval output, @curval output, @strtval output;  " skip
+"          SET @err = @@error  " skip
+"          IF @err <> 0 goto Err  " skip
+"          IF (@incval > 0 and @maxval - @curval < @incval) or (@incval < 0 and @maxval + @curval > @incval)  " skip
+"           BEGIN  " skip
+"  IF @cycle = 0  " skip
+"    BEGIN  " skip
+"        SET @SQLQuery = N''SELECT @Val = CONVERT(bigint,current_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+"        EXEC sp_executesql @SQLQuery, N''@Val bigint output'', @val output; RETURN     /* Success */  " skip
+"        SET @err = @@error  " skip
+"        if @err <> 0 goto Err  " skip
+"     END  " skip
+"   ELSE  " skip
+"      BEGIN  " skip
+"           EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART WITH '' + @strtval )   " skip
+"           EXEC(''SELECT NEXT VALUE FOR '' + @SeqName)   " skip
+"           SET @err = @@error  " skip
+"           if @err <> 0 goto Err  " skip
+"           SET @SQLQuery = N''SELECT @Val = CONVERT(bigint,current_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+"           EXEC sp_executesql @SQLQuery, N''@val bigint output'', @val output; RETURN     /* Success */  " skip
+"           SET @err = @@error  " skip
+"           if @err <> 0 goto Err  " skip
+"      END  " skip
+"  END  " skip
+"  ELSE " skip
+"    BEGIN " skip
+"     SET @SQLQuery = ''SELECT @Val = NEXT VALUE FOR '' + @SeqName ;  " skip
+"     Execute sp_executesql @SQLQuery,N''@val bigint output'', @val output  " skip
+"      SET @err = @@error  " skip
+"         IF @err <> 0 goto Err  " skip
+"       RETURN   " skip
+"        END  " skip
+"    END  " skip
+"        ELSE IF @op = 2 /* Set-Value function */   " skip
+"        BEGIN  " skip
+/*
+"           DECLARE @maxlimit  bigint  " skip
+"           SET @SQLQuery = N''SELECT @maxlimit = CONVERT(bigint,maximum_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+"           EXEC sp_executesql @SQLQuery, N''@maxlimit bigint output'', @maxlimit output; " skip
+"           SET @err = @@error  " skip
+"           if @err <> 0 goto Err  " skip
+"             BEGIN TRANSACTION   " skip
+"               IF ( @val > @maxlimit ) " skip
+"                  EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART '') " skip
+"               ELSE  " skip
+"               BEGIN  " skip
+*/
+"                  EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART WITH '' + @val )  " skip
+"                  EXEC(''SELECT NEXT VALUE FOR '' + @SeqName)   " skip
+"                  SET @err = @@error  " skip
+"                  IF  @err <> 0 goto Err  " skip
+/*
+"               END  " skip
+"             COMMIT TRANSACTION   " skip
+*/
+"            RETURN   " skip
+"        END  " skip
+"   Err:  " skip
+"     return @err  " skip
+"   END ')  " skip
+"  END " skip
+ " ELSE " skip
+ "    IF not exists (select * from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+ "           and OBJECTPROPERTY(id, 'IsTable') = 1)" skip
+ "    CREATE TABLE _SEQT_REV_SEQTMGR (" skip
+ "         seq_name varchar(30) not null, " skip
+ "         initial_value bigint, " skip
+ "         increment_value bigint, " skip
+ "         upper_limit bigint, " skip
+ "         cycle bit not null )" skip
+ " GO " skip 
+ " " skip.
+ END.
+   /* creating _SEQT_REV_SEQTMGR table for revised sequence generator for MSS if one does not exist. */
+ ELSE IF lnewSeq = TRUE THEN
+    PUT STREAM CODE UNFORMATTED
+     "  IF not exists (select * from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+     "    and OBJECTPROPERTY(id, 'IsTable') = 1)" skip
+     "      CREATE TABLE _SEQT_REV_SEQTMGR (" skip
+     "         seq_name varchar(30) not null, " skip
+     "         initial_value bigint, " skip
+     "         increment_value bigint, " skip
+     "         upper_limit bigint, " skip
+     "         cycle bit not null )" skip
+     "  " skip 
+     "       " skip.
 
+IF doseq THEN DO:
   /* find out if source db supports large sequences */
-  FIND FIRST  DICTDB._Db WHERE RECID(_Db) = drec_db.
+  FIND FIRST DICTDB._Db WHERE RECID(_Db) = drec_db.
   IF DICTDB._DB._Db-res1[1] = 1 THEN
      large_seq = YES.
 
@@ -2687,75 +2849,123 @@ IF doseq THEN DO:
     
     IF (dbtyp = "SYBASE" or dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7") THEN DO: 
      IF (dbtyp = "SYBASE" or dbtyp = "MS SQL Server")  THEN DO:
-        PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '_SEQT_" n1 "' and" skip
-           "    uid = (select uid from sysusers " SKIP
-           "where suid = (select suid from master.dbo.syslogins" skip 
-           "where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           "is not NULL" skip
-           "drop table _SEQT_" n1 skip. 
-        IF skptrm THEN 
-           put stream code unformatted skip.
-           
-        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
 
-        PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '_SEQP_" n1 "' and" skip
-           "           uid = (select uid from sysusers " SKIP
-           "                  where suid = (select suid from master.dbo.syslogins" skip 
-           "                  where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           " is not NULL" skip
-           "    drop procedure _SEQP_" n1 skip. 
-           
-        IF skptrm THEN 
-           PUT STREAM code UNFORMATTED SKIP.
+        PUT STREAM code UNFORMATTED
+           " IF (select isVersion from ##Globals) >= 11 " skip 
+           "  EXEC(' " skip
+           "   IF (select name from sysobjects where name = ''" n1 "'' and" skip
+           "          uid = (select uid from sysusers " SKIP
+           "                where suid = (select suid from master.dbo.syslogins" skip 
+           "                        where UPPER(name) = UPPER(''" user_env[26] "''))))" skip
+           "                        is not NULL" skip
+           "     DROP SEQUENCE " n1 skip
+           " ') " skip
+           "  " skip.
+
+         PUT STREAM code UNFORMATTED
+	   "  IF (select name from sysobjects where name = '_SEQT_" n1 "' and" skip
+           "      uid = (select uid from sysusers " SKIP
+           "        where suid = (select suid from master.dbo.syslogins" skip 
+           "         where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "          is not NULL" skip
+           "  DROP TABLE _SEQT_" n1 skip
+           "  " skip.
+
+         IF skptrm THEN PUT STREAM code UNFORMATTED skip.
+
+         PUT STREAM code UNFORMATTED comment_chars user_env[5] skip.
+
+         PUT STREAM code UNFORMATTED
+           "   IF (select name from sysobjects where name = '_SEQP_" n1 "' and" skip
+           "      uid = (select uid from sysusers " SKIP
+           "             where suid = (select suid from master.dbo.syslogins" skip 
+           "                            where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "                            is not NULL" skip
+           " DROP PROCEDURE _SEQP_" n1 skip. 
+
+         IF skptrm THEN PUT STREAM code UNFORMATTED SKIP.
      END.
      ELSE IF dbtyp = "MSSQLSRV7" THEN DO:
 
-       PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '"seqt_prefix n1 "' and" skip
-           "    uid = (select uid from sysusers " SKIP
-           "           where sid = (select sid from master.dbo.syslogins" skip 
-           "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           "is not NULL" skip
-           "drop table " seqt_prefix n1 skip.  /* OE00170729 */
+	 PUT STREAM code UNFORMATTED
+           " IF (select isVersion from ##Globals) >= 11 " skip
+           "  EXEC(' " skip
+           "   IF (select name from sysobjects where name = ''" n1 "'' and" skip
+           "     uid = (select uid from sysusers " SKIP
+           "      where sid = (select sid from master.dbo.syslogins" skip 
+           "       where UPPER(name) = UPPER(''" user_env[26] "''))))" skip
+           "        is not NULL " skip
+           "   DROP SEQUENCE " n1 skip
+           " ') " skip.
+
+         PUT STREAM code UNFORMATTED
+           " IF (select name from sysobjects where name = '"seqt_prefix n1 "' and" skip
+           "     uid = (select uid from sysusers " SKIP
+           "       where sid = (select sid from master.dbo.syslogins" skip 
+           "         where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "           is not NULL " skip
+           " DROP TABLE " seqt_prefix n1 skip.  /* OE00170729 */
 	
 	IF seqt_prefix = "_SEQT_REV_" THEN 
 	   ASSIGN other-seq-tab = "_SEQT_".
         ELSE 
            ASSIGN other-seq-tab = "_SEQT_REV_".
 	
-	IF seqt_prefix = "_SEQT_" THEN
-	   PUT STREAM code UNFORMATTED 
-            "if exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
-            "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
-            "      if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
-            "         is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
-    
-            "if exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
-            "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
-    	    "       if (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR " skip.
+        IF (seqt_prefix = "_SEQT_" ) THEN 
+             PUT STREAM code UNFORMATTED 
+                "  IF exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+                "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+                "      IF (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
+                "      is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
 
-	PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '"other-seq-tab n1 "' and" skip
-           "    uid = (select uid from sysusers " SKIP
-           "           where sid = (select sid from master.dbo.syslogins" skip 
-           "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           "is not NULL" skip
-           "drop table " other-seq-tab n1 skip.
+                "  IF exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+                "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+            /*  "      IF (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR " skip */
+                "      IF NOT EXISTS (select seq_name from _SEQT_REV_SEQTMGR) DROP table _SEQT_REV_SEQTMGR " skip
+                "  " skip.
 
-        IF skptrm THEN 
-           put stream code unformatted skip.
-           
-        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+/*
+	IF (lnativeseq = FALSE ) THEN 
+         PUT STREAM code UNFORMATTED
+	   " IF  (select name from sysobjects where name = '_SEQP_NAT_SEQUENCE' and" skip
+           "       uid = (select uid from sysusers " SKIP
+           "          where sid = (select sid from master.dbo.syslogins" skip 
+           "            where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "        is not NULL" skip
+           " DROP PROCEDURE  _SEQP_NAT_SEQUENCE " skip. 
+*/
+
+        IF lnativeseq = TRUE THEN
+         PUT STREAM code UNFORMATTED 
+          " IF (select isVersion from ##Globals) >= 11 " skip
+          " EXEC(' IF EXISTS (SELECT * FROM sys.sequences WHERE name = ''" n1 "'') " skip
+          "   DROP SEQUENCE " n1 skip
+          " ') " skip
+          "  " skip.
 
         PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '"seqp_prefix n1 "' and" skip
-           "           uid = (select uid from sysusers " SKIP
-           "                  where sid = (select sid from master.dbo.syslogins" skip 
-           "                               where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           " is not NULL" skip
-           "    drop procedure " seqp_prefix n1 skip.  /* OE00170729 */
+	   "  IF (select name from sysobjects where name = '"other-seq-tab n1 "' and" skip
+           "      uid = (select uid from sysusers " SKIP
+           "        where sid = (select sid from master.dbo.syslogins" skip 
+           "          where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "       is not NULL" skip
+           "  DROP TABLE " other-seq-tab n1 skip.
+
+        IF skptrm THEN PUT STREAM code UNFORMATTED skip.
+           
+        PUT STREAM code UNFORMATTED comment_chars user_env[5] skip.
+
+        PUT STREAM code UNFORMATTED 
+	   " IF  (select name from sysobjects where name = '"seqp_prefix n1 "' and" skip
+           "       uid = (select uid from sysusers " SKIP
+           "          where sid = (select sid from master.dbo.syslogins" skip 
+           "            where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "        is not NULL" skip
+           " DROP PROCEDURE " seqp_prefix n1 skip.  /* OE00170729 */
+
+        IF skptrm THEN PUT STREAM code UNFORMATTED skip.
+
+        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
 
 	IF seqp_prefix = "_SEQP_REV_" THEN 
 	     ASSIGN other-seq-proc = "_SEQP_".
@@ -2763,34 +2973,181 @@ IF doseq THEN DO:
 	     ASSIGN other-seq-proc = "_SEQP_REV_".
         
 	PUT STREAM code UNFORMATTED 
-           "if (select name from sysobjects where name = '"other-seq-proc n1 "' and" skip
-           "           uid = (select uid from sysusers " SKIP
-           "                  where sid = (select sid from master.dbo.syslogins" skip 
-           "                               where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           " is not NULL" skip
-           "    drop procedure " other-seq-proc n1 skip. 
+	   " IF (select name from sysobjects where name = '"other-seq-proc n1 "' and" skip
+           "      uid = (select uid from sysusers " SKIP
+           "        where sid = (select sid from master.dbo.syslogins" skip 
+           "            where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+           "     is not NULL" skip
+           " DROP PROCEDURE " other-seq-proc n1 skip. 
            
-        IF skptrm THEN 
-           PUT STREAM code UNFORMATTED SKIP.
-     END.
+        IF skptrm THEN PUT STREAM code UNFORMATTED skip.
      PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
 
-    IF NOT lnewSeq THEN 
+       IF (lnativeseq = TRUE ) THEN 
+             PUT STREAM code UNFORMATTED
+               " IF (select isVersion from ##Globals) >= 11 " skip
+	       "  BEGIN " skip
+                "  IF exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+                "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+                "      IF (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
+                "      is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
+
+                "  IF exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+                "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+                "      IF NOT EXISTS (select seq_name from _SEQT_REV_SEQTMGR) DROP table _SEQT_REV_SEQTMGR " skip
+		" END " skip
+                "  " skip.
+
+/*
+ IF (lnativeseq = TRUE ) THEN 
+       PUT STREAM code UNFORMATTED
+ "IF (select isVersion from ##Globals) >= 11 " skip
+   "exec (' IF exists (select name from dbo.sysobjects where id = object_id(''_SEQT_REV_SEQTMGR'') " skip
+   " and OBJECTPROPERTY(id, ''IsTable'') = 1) " skip
+     " IF (select seq_name from _SEQT_REV_SEQTMGR where seq_name = ''" n1 " '') " skip
+    "  is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = ''" n1 "'' ')" skip.
+
+        IF skptrm THEN PUT STREAM code UNFORMATTED skip.
+     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+
+ IF (lnativeseq = TRUE ) THEN 
+       PUT STREAM code UNFORMATTED
+ " IF (select isVersion from ##Globals) >= 11 " skip
+" exec ('IF exists (select name from dbo.sysobjects where id = object_id(''_SEQT_REV_SEQTMGR'') " skip
+    "and OBJECTPROPERTY(id, ''IsTable'') = 1) "
+     " IF (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR ') " skip
+                "  " skip.
+*/
+	IF skptrm THEN PUT STREAM code UNFORMATTED skip.
+
+     END.
+
+     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+
+     IF lnativeseq = TRUE AND lnewSeq = TRUE THEN DO:
+
+         start = (IF DICTDB._Sequence._Seq-Num >= 0  
+                   THEN (crnt-vals [_Seq-Num + 1]  + _Seq-Incr  )
+                   ELSE (crnt-vals [l_seq-num]  + _Seq-Incr  )
+                  ).
+       ASSIGN 
+             i =  ( IF DICTDB._Sequence._Seq-Min <> ?
+                   THEN DICTDB._Sequence._Seq-Min
+                   ELSE -9223372036854775808
+                  )
+        limit =  ( IF DICTDB._Sequence._Seq-Max <> ?
+                   THEN STRING(DICTDB._Sequence._Seq-Max)
+                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                 ).
+   /*
+        PUT STREAM CODE UNFORMATTED
+            " IF (select isVersion from ##Globals) >= 11 " skip
+            "  BEGIN " skip
+            "   CREATE SEQUENCE " n1 " START WITH " 
+                STRING (start)
+            "   INCREMENT BY " + STRING (_Seq-Incr) 
+            "   MAXVALUE " limit " MINVALUE " STRING (i)
+                (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE " ELSE " NO CYCLE " )  
+       	        ( IF lcachesize EQ "?" THEN " NO CACHE " ELSE IF INTEGER(lcachesize) <> 0 THEN " CACHE " + STRING(lcachesize) ELSE " "  ) skip.
+        PUT STREAM CODE UNFORMATTED
+            "  END " skip
+            " ELSE " skip
+            "  BEGIN " skip
+	    "   CREATE TABLE _SEQT_REV_" n1 " ( " skip 
+            "    current_value bigint identity(" _Seq-Init ", " _Seq-Incr ")" skip
+            "    primary key, " skip
+            "    seq_val int) " skip 
+            "   END" skip.
+  */
+
+        PUT STREAM CODE UNFORMATTED
+            " IF (select isVersion from ##Globals) >= 11 " skip
+            "   EXEC(' CREATE SEQUENCE " n1 " START WITH " 
+                STRING (start)
+            "   INCREMENT BY " + STRING (_Seq-Incr) 
+            "   MAXVALUE " limit " MINVALUE " STRING (i)
+                (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE " ELSE " NO CYCLE " )  
+       	        ( IF lcachesize EQ "?" THEN " NO CACHE " ELSE IF INTEGER(lcachesize) <> 0 THEN " CACHE " + STRING(lcachesize) ELSE " "  ) 
+           " ') " skip.
+        PUT STREAM CODE UNFORMATTED
+            " ELSE " skip
+	    "   CREATE TABLE _SEQT_REV_" n1 " ( " skip 
+            "    current_value bigint identity(" _Seq-Init ", " _Seq-Incr ")" skip
+            "    primary key, " skip
+            "    seq_val int) " skip. 
+     END.
+     ELSE IF lnewSeq = TRUE THEN
         PUT STREAM code UNFORMATTED 
-           "create table _SEQT_" n1 " ( " skip 
+            "   CREATE TABLE _SEQT_REV_" n1 " ( " skip 
+            "    current_value bigint identity(" _Seq-Init ", " _Seq-Incr ")" skip
+            "    primary key, " skip
+            "    seq_val int) " skip 
+            "  " skip.
+
+     IF lnativeseq = TRUE AND lnewSeq = FALSE THEN DO:
+
+          start = (IF DICTDB._Sequence._Seq-Num >= 0  
+                   THEN (crnt-vals [_Seq-Num + 1] + _Seq-Incr)
+                   ELSE (crnt-vals [l_seq-num] + _Seq-Incr)
+                  ).
+       ASSIGN 
+            i =   ( IF DICTDB._Sequence._Seq-Min <> ?
+                   THEN DICTDB._Sequence._Seq-Min
+                   ELSE -9223372036854775808
+                  )
+          limit = ( IF DICTDB._Sequence._Seq-Max <> ?
+                   THEN STRING(DICTDB._Sequence._Seq-Max)
+                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+                 ).
+
+        PUT STREAM CODE UNFORMATTED
+            " IF (select isVersion from ##Globals) >= 11 " skip
+            "  EXEC(' CREATE SEQUENCE " n1 " START WITH " 
+                STRING (start)
+            "   INCREMENT BY " + STRING (_Seq-Incr) 
+            "   MAXVALUE " limit " MINVALUE " STRING (i)
+                (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE " ELSE " NO CYCLE " )  
+       	        ( IF lcachesize EQ "?" THEN " NO CACHE " ELSE IF INTEGER(lcachesize) <> 0 THEN " CACHE " + STRING(lcachesize) ELSE " "  ) skip
+           " ')" skip.
+        PUT STREAM CODE UNFORMATTED
+            " ELSE " skip
+            "    CREATE TABLE _SEQT_" n1 " ( " skip 
+            "    initial_value    bigint null," skip
+            "    increment_value  bigint null," skip
+            "    upper_limit      bigint null," skip
+            "    current_value    bigint null," skip
+            "    cycle            bit not null) " skip 
+            "   " skip.
+     END.
+     ELSE IF lnewSeq = FALSE THEN 
+        PUT STREAM code UNFORMATTED 
+            "   CREATE TABLE _SEQT_" n1 " ( " skip 
+            "    initial_value    bigint null," skip
+            "    increment_value  bigint null," skip
+            "    upper_limit      bigint null," skip
+            "    current_value    bigint null," skip
+            "    cycle            bit not null) " skip 
+            "  "  skip.
+
+/*
+    IF NOT lnewSeq AND lnativeseq = FALSE THEN 
+        PUT STREAM code UNFORMATTED 
+           "CREATE TABLE _SEQT_" n1 " ( " skip 
            "    initial_value    bigint null," skip
            "    increment_value  bigint null," skip
            "    upper_limit      bigint null," skip
-           "    current_value    bigint null," skip
+           ".
+	   current_value    bigint null," skip
            "    cycle            bit not null) " skip 
            "  " skip.
      ELSE 
         PUT STREAM code UNFORMATTED 
-     	  "create table _SEQT_REV_" n1 " ( " skip 
+	  "CREATE TABLE _SEQT_REV_" n1 " ( " skip 
            "    current_value bigint identity(" _Seq-Init ", " _Seq-Incr ")" skip
            "    primary key, " skip
 	   "    seq_val int) " skip 
            "  " skip.
+*/
 
        /* If the increment is positive, get the sequence's maximum.
           Otherwise, get its minimum. This will be stored as the
@@ -2809,8 +3166,10 @@ IF doseq THEN DO:
 
      IF NOT lnewSeq then DO:
        IF DICTDB._Sequence._Seq-Num >= 0
-        then put stream code unformatted 
-           "insert into _SEQT_" n1 skip
+        then put stream code unformatted
+           "  IF exists (select name from dbo.sysobjects where id = object_id('_SEQT_" n1 "' ) " skip
+           "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
+           "  insert into _SEQT_" n1 skip
            "       (initial_value, increment_value, upper_limit, current_value, cycle)" skip 
            "       values(" STRING(_Seq-Init) ", "
            STRING(_Seq-Incr) ", " limit ", " 
@@ -2827,23 +3186,45 @@ IF doseq THEN DO:
            " " skip.  
        END.
        ELSE DO:
-         PUT STREAM code UNFORMATTED 
-           "if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
+        IF lnativeseq = TRUE THEN DO:
+	 PUT STREAM code UNFORMATTED
+           "IF (select isVersion from  ##Globals ) < 11 " skip
+           " IF OBJECT_ID('_SEQT_REV_SEQTMGR ') IS NOT NULL " skip
+	   " BEGIN " skip
+           " IF (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
            " is not NULL" skip
-           "    delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "' " skip
+           "  DELETE FROM _SEQT_REV_SEQTMGR where seq_name = '" n1 "' " skip
 	   " " skip 
-           "insert into _SEQT_REV_SEQTMGR " skip
+           " INSERT INTO _SEQT_REV_SEQTMGR " skip
            "       (seq_name, initial_value, increment_value, upper_limit, cycle)" skip 
            "       values('" n1 "', "
 	       STRING(_Seq-Init) ", "
                STRING(_Seq-Incr) ", " limit ", " 
                (if DICTDB._Sequence._Cycle-Ok then "1" else "0") ") " skip 
+           " END " skip
            " " skip.
-       END.
+        END. 
+        ELSE DO:
+          PUT STREAM code UNFORMATTED
+           " IF OBJECT_ID('_SEQT_REV_SEQTMGR ') IS NOT NULL " skip
+	   " BEGIN " skip
+           " IF (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
+           " is not NULL" skip
+           "  DELETE FROM _SEQT_REV_SEQTMGR where seq_name = '" n1 "' " skip
+	   " " skip 
+           " INSERT INTO _SEQT_REV_SEQTMGR " skip
+           "       (seq_name, initial_value, increment_value, upper_limit, cycle)" skip 
+           "       values('" n1 "', "
+	       STRING(_Seq-Init) ", "
+               STRING(_Seq-Incr) ", " limit ", " 
+               (if DICTDB._Sequence._Cycle-Ok then "1" else "0") ") " skip 
+           " END " skip
+           " " skip.
+        END. 
+    END.
+         IF skptrm THEN PUT STREAM code UNFORMATTED skip.
 
-       if skptrm then 
-           put stream code unformatted skip.
-       put stream code unformatted comment_chars user_env[5] skip.
+         PUT STREAM code UNFORMATTED comment_chars user_env[5] skip.
 
        /* 
         * Create the procedure to keep sequence numbers 
@@ -2853,17 +3234,22 @@ IF doseq THEN DO:
           only get here with lnewSeq = TRUE for MSS, but just in case, check the
           db type.
        */
+
        IF NOT lnewSeq OR dbtyp NE "MSSQLSRV7" THEN DO:
+          IF lnativeseq = TRUE THEN DO:
            /* this is the default version of the sequence generator */
-           put stream code unformatted 
-               "create procedure _SEQP_" n1 " (@op int, @val bigint output) as " skip
+           PUT STREAM code UNFORMATTED 
+               "IF (select isVersion from  ##Globals ) < 11 " skip
+               "EXEC (' " skip   
+               "CREATE PROCEDURE _SEQP_" n1 " (@op int, @val bigint output) as " skip
                "begin" skip 
                "    /* " skip 
                "     * Current-Value function " skip 
                "     */" skip.
            if dbtyp NE "SYBASE" THEN 
-                put stream code unformatted "   SET XACT_ABORT ON " skip.
-           put stream code unformatted
+                PUT STREAM code UNFORMATTED  
+		"   SET XACT_ABORT ON " skip.
+            PUT STREAM code UNFORMATTED
                "    declare @err int " skip
                "    if @op = 0 " skip 
                "    begin" skip 
@@ -2886,7 +3272,7 @@ IF doseq THEN DO:
                " " skip 
                "        begin transaction" skip 
                " " skip 
-               "        /* perform a 'no-op' update to ensure exclusive lock */" skip 
+               "        " skip 
                "        update _SEQT_" n1 " set initial_value = initial_value" skip
                "        SET @err = @@error " skip
                "        if @err <> 0 goto Err " skip
@@ -2953,12 +3339,242 @@ IF doseq THEN DO:
                "       rollback " skip
                "       return @err " skip
                "end" skip 
-               " "   skip. 
+               " ') "   skip. 
        END.
        ELSE DO:
-           /* here we will create the revised version of the sequence generator procedure */
-	put stream code unformatted 
-           "create procedure _SEQP_REV_" n1 " (@op int, @val bigint output) as " skip
+           PUT STREAM code UNFORMATTED 
+               "CREATE PROCEDURE _SEQP_" n1 " (@op int, @val bigint output) as " skip
+               "begin" skip 
+               "    /* " skip 
+               "     * Current-Value function " skip 
+               "     */ " skip.
+           if dbtyp NE "SYBASE" THEN 
+                PUT STREAM code UNFORMATTED  "   SET XACT_ABORT ON " skip.
+            PUT STREAM code UNFORMATTED
+               "    declare @err int " skip
+               "    if @op = 0 " skip 
+               "    begin" skip 
+               "        begin transaction" skip
+               "        select @val = (select current_value from _SEQT_" n1 ")" skip 
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               "        commit transaction " skip
+               "        return 0" skip
+               "    end" skip 
+               "    " skip 
+               "    /*" skip  
+               "     * Next-Value function " skip 
+               "     */" skip 
+               "    else if @op = 1" skip 
+               "    begin" skip 
+               "        declare @cur_val  bigint" skip 
+               "        declare @last_val bigint" skip 
+               "        declare @inc_val  bigint" skip 
+               " " skip 
+               "        begin transaction" skip 
+               " " skip 
+               "        " skip 
+               "        update _SEQT_" n1 " set initial_value = initial_value" skip
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               " " skip 
+               "        select @cur_val = (select current_value from _SEQT_" n1 ")" skip
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               "        select @last_val = (select upper_limit from _SEQT_" n1 ")" skip
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               "        select @inc_val  = (select increment_value from _SEQT_" n1 ")" skip
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               " " skip 
+               "        /*" skip 
+               "         * if the next value will pass the upper limit, then either" skip
+               "         * wrap or return a range violation" skip 
+               "         */ " skip 
+               "        if  @inc_val > 0 and @cur_val > @last_val - @inc_val  or @inc_val < 0 and @cur_val < @last_val - @inc_val " skip  
+               "        begin" skip 
+               "            if (select cycle from _SEQT_" n1 ") = 0 /* non-cycling sequence */" skip 
+               "            begin " skip 
+               "                SET @err = @@error " skip
+               "                if @err <> 0 goto Err " skip
+               "                select @val = @cur_val" skip
+               "                commit transaction" skip 
+               "                return -1" skip 
+               "            end" skip 
+               "            else " skip 
+               "            BEGIN " skip
+               "                 select @val = (select initial_value from _SEQT_" n1 ")" skip
+               "                 SET @err = @@error " skip
+               "                 if @err <> 0 goto Err " skip
+               "            END " skip
+               "        end" skip 
+               "        else " skip 
+               "             select @val = @cur_val + @inc_val" skip 
+               " " skip 
+               " " skip 
+               "        update _SEQT_" n1 " set current_value = @val" skip 
+               "        SET @err = @@error " skip
+               "        if @err <> 0 goto Err " skip
+               " " skip 
+               " " skip 
+               "        commit transaction" skip 
+               "        return 0" skip 
+               "    end" skip 
+               "    else " SKIP
+               "    /*" skip  
+               "     * Set Current-Value function " skip 
+               "     */" skip
+               "    if @op = 2 " SKIP
+               "    begin " SKIP
+               "      begin transaction " SKIP
+               "      update _SEQT_" n1 " set current_value = @val" SKIP
+               "      SET @err = @@error " skip
+               "      if @err <> 0 goto Err " skip
+               "      commit transaction " SKIP
+               "      return 0 " SKIP
+               "   end " SKIP           
+               "    else " skip 
+               "        return -2" skip 
+               "   Err: " skip
+               "       rollback " skip
+               "       return @err " skip
+               "end" skip. 
+       END.
+  END.
+      /* Support of Native Sequence Generator */
+  /*
+      ELSE IF (lnativeseq = TRUE ) THEN DO:
+
+       start = (IF DICTDB._Sequence._Seq-Num >= 0  
+                   THEN (crnt-vals [_Seq-Num + 1] + _Seq-Incr)
+                   ELSE (crnt-vals [l_seq-num] + _Seq-Incr)
+                  ).
+
+       ASSIGN
+          i = ( IF DICTDB._Sequence._Seq-Min <> ?
+                  THEN DICTDB._Sequence._Seq-Min
+                  ELSE 0
+              )
+          limit = ( IF DICTDB._Sequence._Seq-Max <> ?
+                  THEN STRING(DICTDB._Sequence._Seq-Max)
+                  ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+              ).
+
+         PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP
+           "CREATE SEQUENCE " n1 " START WITH " 
+           STRING (start)
+           " INCREMENT BY " + STRING (_Seq-Incr) 
+           " MAXVALUE " limit " MINVALUE " STRING (i)
+	   (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE " ELSE " NO CYCLE " )  
+          /* ( IF INTEGER(lcachesize) <> 0 THEN " CACHE " + STRING(lcachesize) ELSE " NO CACHE " ) skip. */
+	  ( IF lcachesize EQ "?" THEN " NO CACHE " ELSE IF INTEGER(lcachesize) <> 0 THEN " CACHE " + STRING(lcachesize) ELSE " "  ) skip.
+      END.
+  */
+	  /* here we will create the revised version of the sequence generator procedure */
+   ELSE DO:
+    IF lnativeseq = TRUE THEN
+      PUT STREAM code UNFORMATTED 
+           "IF (select isVersion from  ##Globals ) < 11 " skip
+           "EXEC (' " skip
+           "CREATE PROCEDURE _SEQP_REV_" n1 " (@op int, @val bigint output) as " skip
+           " begin " skip 
+           "    DECLARE @err int " skip
+           "    /* " skip 
+           "     * Current-Value function " skip 
+           "     */" skip
+           "    if @op = 0 " skip 
+           "    begin" skip
+           "     BEGIN TRAN " skip
+           "       set @val = ident_current(''_SEQT_REV_" n1 "'')" skip 
+           "       SET @err = @@error " skip
+           "       if @err <> 0 goto Err " skip
+           "       commit transaction " skip
+           "       return " skip
+           "    end" skip
+           "    " skip  
+           "    /*" skip  
+           "     * Next-Value function " skip 
+           "     */" skip 
+           "    else if @op = 1" skip 
+           "    begin" skip 
+           "     BEGIN TRAN " skip
+           "        declare @ini_val  bigint" skip 
+           "        declare @inc_val  bigint" skip 
+           "        declare @upper_limit  bigint" skip 
+           "        declare @cycle  bit" skip
+           "        /* get upper limit and cycle info from _seqt_rev_seqtmgr */" skip 
+           " " skip 
+           "   select @upper_limit = upper_limit, " skip
+           "          @inc_val = increment_value, " skip 
+           "          @cycle = cycle, " skip
+           "          @ini_val = initial_value " skip 
+           "          from _seqt_rev_seqtmgr where seq_name = ''" n1 "''" skip
+           "    SET @err = @@error " skip
+           "    if @err <> 0 goto Err " skip
+           " " skip 
+           "        /*" skip 
+           "         * get current value from sequence table " skip
+           "         */" skip 
+           " " skip
+           "       set @val = ident_current(''_SEQT_REV_" n1 "'')" skip 
+           "       SET @err = @@error " skip
+           "       if @err <> 0 goto Err " skip
+           "        if (@inc_val > 0 and @upper_limit - @val < @inc_val) or (@inc_val < 0 and @upper_limit + @val > @inc_val) " skip  
+           "     begin " skip 
+           "         if @cycle != 0 " skip 
+           "           begin " skip 
+           "             DBCC CHECKIDENT (''_SEQT_REV_" n1 "'', RESEED, @ini_val) " SKIP
+           "             SET @err = @@error " skip
+           "             if @err <> 0 goto Err " skip
+           "             set @val = ident_current(''_SEQT_REV_" n1 "'')" skip
+           "             SET @err = @@error " skip
+           "             if @err <> 0 goto Err " skip
+           "           end" skip 
+           "         else " skip 
+           "          BEGIN  " skip
+           "           commit transaction " skip
+           "           return -1" skip
+           "          END " skip
+           "     end" skip 
+           "        else " skip 
+           "     begin" skip
+           "        insert into _SEQT_REV_" n1 " (seq_val) values (@val) " skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
+           "        set @val = scope_identity() " skip
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
+           "        delete from _SEQT_REV_" n1 skip 
+           "        SET @err = @@error " skip
+           "        if @err <> 0 goto Err " skip
+           "     end" skip 
+           "   commit transaction " skip
+           "   return " skip
+           "   end" skip
+           "    else " skip
+           "    /*" skip  
+           "     * Set Current-Value function: Reseed the identity with passed value " skip 
+           "     */" skip
+           "    if @op = 2 " skip
+           "    begin " skip
+           "     BEGIN TRAN " skip
+           "      DBCC CHECKIDENT (''_SEQT_REV_" n1 "'', RESEED, @val) " skip
+           "      SET @err = @@error " skip
+           "      if @err <> 0 goto Err " skip
+           "     COMMIT TRAN " skip
+           "     return  " skip
+           "    end " skip           
+           "    else " skip 
+           "        return -2" skip 
+           " Err: " skip
+           "   rollback " skip
+           "   return @err "
+           " end " skip          
+           " ') "   skip. 
+    ELSE
+          PUT STREAM code UNFORMATTED 
+           "CREATE PROCEDURE _SEQP_REV_" n1 " (@op int, @val bigint output) as " skip
            " begin " skip 
            "    DECLARE @err int " skip
            "    /* " skip 
@@ -3053,14 +3669,13 @@ IF doseq THEN DO:
            "   return @err "
            " end " skip          
            " "   skip. 
-
        END.
 
-       if skptrm then 
-           put stream code unformatted skip.
-       put stream code unformatted comment_chars user_env[5] skip.
+	 IF skptrm THEN PUT STREAM code UNFORMATTED skip.
 
-    end. /* (dbtyp = "SYBASE" or dbtyp = "MS SQL Server") */
+         PUT STREAM code UNFORMATTED comment_chars user_env[5] skip.
+
+    END. /* (dbtyp = "SYBASE" or dbtyp = "MS SQL Server") */
     ELSE DO:
       IF dbtyp = "Informix" THEN
         PUT STREAM code UNFORMATTED
@@ -3105,7 +3720,7 @@ IF doseq THEN DO:
           STRING (start)
          " INCREMENT BY " + STRING (_Seq-Incr) 
          " MAXVALUE " limit " MINVALUE " STRING (i)
-         (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE" ELSE " NOCYCLE").
+         (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE " ELSE " NOCYCLE").
 
       IF skptrm THEN
         PUT STREAM code UNFORMATTED SKIP.
@@ -3159,6 +3774,14 @@ PROCEDURE setMSSOptions:
                 seqt_prefix = "_SEQT_REV_"
                 seqp_prefix = "_SEQP_REV_".
        END.
+
+       IF ENTRY(4,user_env[25]) BEGINS "Y" THEN
+        ASSIGN lnativeSeq = TRUE.
+
+       lcachesize =  (IF (NUM-ENTRIES(user_env[25]) >= 5) THEN 
+                        ENTRY(5,user_env[25])
+                      ELSE ?
+		     ). 
    END.
 
    ASSIGN lUniExpand = (user_env[35] = "y").

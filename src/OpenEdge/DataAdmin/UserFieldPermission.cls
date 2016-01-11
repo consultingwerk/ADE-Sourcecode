@@ -1,4 +1,11 @@
 /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Entity.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ITable.
+USING OpenEdge.DataAdmin.IUser.
+USING OpenEdge.DataAdmin.IUserFieldPermission.
+USING Progress.Lang.*.
 /* Copyright (c) 2011 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
@@ -15,13 +22,6 @@
     Notes       : 
   ----------------------------------------------------------------------*/
   
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.Entity from propath.
-using OpenEdge.DataAdmin.IUser from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.IUserFieldPermission from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-
 class OpenEdge.DataAdmin.UserFieldPermission inherits Entity implements IUserFieldPermission: 
 	
     define public property CanRead as logical no-undo 
@@ -40,12 +40,16 @@ class OpenEdge.DataAdmin.UserFieldPermission inherits Entity implements IUserFie
                 return CanWrite. 
         end.
 	
-	constructor public UserFieldPermission ( cntxt as IDataAdminContext ):
+	constructor public UserFieldPermission ( cntxt as IDataAdminModel ):
         super (cntxt).
     end constructor.
     
+    constructor public UserFieldPermission ( cntxt as IDataAdminModel,preq as IRequestInfo ):
+        super (cntxt,pReq).
+    end constructor.
+    
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
      

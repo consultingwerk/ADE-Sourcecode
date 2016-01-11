@@ -38,6 +38,7 @@ DEFINE PRIVATE VARIABLE myStorage     AS Storage   NO-UNDO.
 DEFINE PRIVATE VARIABLE seq           AS INTEGER   NO-UNDO.
 DEFINE PRIVATE VARIABLE hDB           AS HANDLE    NO-UNDO.
 DEFINE PRIVATE VARIABLE m_hasMTEnabledTables AS LOGICAL NO-UNDO.
+DEFINE PRIVATE VARIABLE m_hasTPEnabledTables AS LOGICAL NO-UNDO.
 
 DEFINE PUBLIC PROPERTY FillAreaNum AS LOGICAL
     GET.
@@ -51,6 +52,11 @@ DEFINE PUBLIC PROPERTY BufferPoolNames AS CHARACTER
 DEFINE PUBLIC PROPERTY hasMTEnabledTables AS LOGICAL
     GET():
         RETURN m_hasMTEnabledTables.
+    END GET.
+    
+DEFINE PUBLIC PROPERTY hasTPEnabledTables AS LOGICAL
+    GET():
+        RETURN m_hasTPEnabledTables.
     END GET.
 
 DEFINE PRIVATE PROPERTY nextSeqNum AS INTEGER
@@ -186,6 +192,12 @@ METHOD PUBLIC VOID getTableList(OUTPUT DATASET dsObjAttrs):
           m_hasMTEnabledTables = YES.
           NEXT.
        END.
+       
+       /* don't do Partitioned tables */
+       IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(3) = YES THEN DO:
+          m_hasTPEnabledTables = YES.
+          NEXT.
+       END.
 
        getBufferPool(INPUT hFile::_File-number,
                      INPUT hFile::_File-name,
@@ -305,6 +317,12 @@ METHOD PUBLIC VOID getObjectList(INPUT cTableName AS CHARACTER,
        /* don't do multi-tenant tables */
        IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN DO:
            m_hasMTEnabledTables = YES.
+           NEXT.
+       END.
+       
+       /* don't do Partitioned tables */
+       IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(3) = YES THEN DO:
+           m_hasTPEnabledTables = YES.
            NEXT.
        END.
 
@@ -789,10 +807,12 @@ METHOD PRIVATE VOID findAndAdd(INPUT numMode AS LOGICAL, INPUT objNum AS INT,
                      + " AND _Owner = 'PUB'" 
                      + (IF numMode THEN "" ELSE " USE-INDEX _File-name"), NO-LOCK) NO-ERROR.
 
-    /* don't do multi-tenant tables */
-    IF hFile:AVAILABLE AND 
-        hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN DO:
-        m_hasMTEnabledTables = YES.
+    /* don't do multi-tenant and partitioned tables */
+    IF hFile:AVAILABLE THEN DO: 
+        IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN
+            m_hasMTEnabledTables = YES.
+        IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(3) = YES THEN
+            m_hasTPEnabledTables = YES.
     END.
     ELSE IF hFile:AVAILABLE AND (hFile::_File-name BEGINS "_aud-" OR
           (hFile::_File-number > 0 AND hFile::_file-number < 32000)) THEN DO:

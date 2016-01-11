@@ -29,6 +29,7 @@ function hideArea returns logical(phAreaField as handle):
      if phAreaField:type  = "fill-in" then
          phAreaField:screen-value = "".
      else do:
+     if phAreaField:entry(1) NE " " then
          phAreaField:add-first (" ").
          phAreaField:screen-value = "".
          

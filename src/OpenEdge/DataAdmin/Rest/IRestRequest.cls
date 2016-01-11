@@ -24,7 +24,7 @@ interface OpenEdge.DataAdmin.Rest.IRestRequest inherits IRestRequestFileInfo:
     define public property NumLevels as int no-undo get. 
     
     /** query of url  */
-    define public property Query as char no-undo  get. 
+    define public property Query as char no-undo  get. set.
  
     /** rest collections - NumLevels extents  */
     define public property CollectionName as char no-undo extent get. 
@@ -41,9 +41,6 @@ interface OpenEdge.DataAdmin.Rest.IRestRequest inherits IRestRequestFileInfo:
     /** connection name - logical name db  */
     define public property ConnectionName as char no-undo get. set.
  
-    /** upload or download file    */     
-    define public property FileName2 as char no-undo  get.
-    
     /** validate data/properties */ 
     method public void Validate().
     

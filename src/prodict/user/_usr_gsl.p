@@ -65,6 +65,8 @@ define variable               cBestRowid as   character initial "Select 'Best' R
                                               FORMAT "x(27)" NO-UNDO.
 define variable               isClobEnabled   as   logical init yes .
 define variable               isBlobEnabled   as   logical init yes .
+define variable               recid_verify    as   logical init false .
+define variable               tmp_str         as   character.
 
 DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL NO       NO-UNDO.
 
@@ -240,6 +242,14 @@ ELSE IF (p_frame NE "frm_as400" AND USERID("DICTDBG") NE "")
         OR (p_frame = "frm_as400" AND (p_owner = "*" OR p_owner = "" OR p_owner = ? )) THEN 
 	     ASSIGN  p_owner = USERID("DICTDBG").
 
+IF OS-GETENV("RECIDONLY") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("RECIDONLY").
+  IF tmp_str BEGINS "Y" THEN 
+     ASSIGN  recid_verify = TRUE.
+  ELSE 
+     ASSIGN  recid_verify = FALSE.
+END.
+
 IF DBTYPE("DICTDBG") EQ "ORACLE" AND p_owner = "" THEN
    RUN prodict/ora/_get_orauser.p (OUTPUT p_owner).
 
@@ -303,6 +313,9 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
 	      p_lob = FALSE
 	      p_clobtype = TRUE
 	      p_blobtype = TRUE.
+
+    if not recid_verify then 
+      ASSIGN p_recidcompat:HIDDEN IN FRAME frm_ntoq = TRUE.
 
     if not l_verify then 
       ASSIGN p_outf:HIDDEN IN FRAME frm_ntoq = TRUE
@@ -426,7 +439,7 @@ ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
       p_primary  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       cBestRowid  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_best  WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"      
-      p_recidcompat WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_recidcompat WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS" AND recid_verify 
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

@@ -44,14 +44,13 @@ class OpenEdge.DataAdmin.Binding.CreateContext inherits AbstractFilteredContext 
     define variable mDelete as logical no-undo. 
     
 	/*** constructors *******************************************/    
-	constructor public CreateContext (pparent as IDataAdminContext):
-		super (pparent).
-		this-object:Parent = pparent.
+	constructor public CreateContext (pModel as IDataAdminModel):
+		super (pModel).
 		CreateQuery().
 		 /* open empty - must be open for create-result-list to work */
         QueryHandle:query-prepare ("preselect each " + TableHandle:name + " where false").
         QueryHandle:query-open( ).
-        cast(parent,IDataAdminModel):BeforeDelete:subscribe(BeforeDelete).
+        cast(Model,IDataAdminModel):BeforeDelete:subscribe(BeforeDelete).
     end constructor.
     
     method private void BeforeDelete(prid as rowid).       
@@ -143,11 +142,11 @@ class OpenEdge.DataAdmin.Binding.CreateContext inherits AbstractFilteredContext 
     end method.
     
     method public override void CreateRow(entity as IDataAdminElement).   
-/*        Parent:RowCreated:Subscribe(RowCreated).*/
+/*        Model:RowCreated:Subscribe(RowCreated).*/
         mAdd = true.
         super:CreateRow(entity).
         mAdd = false.
-/*        Parent:RowCreated:Unsubscribe(RowCreated).*/
+/*        Model:RowCreated:Unsubscribe(RowCreated).*/
     end method.
         
     method public override void AddTreeTo(tree as IContextTree).
@@ -167,14 +166,14 @@ class OpenEdge.DataAdmin.Binding.CreateContext inherits AbstractFilteredContext 
     end method.
     
     method public override void Copy(cntxt as IDataAdminContext):
-/*        Parent:RowCreated:Subscribe(RowCreated).*/
+/*        Model:RowCreated:Subscribe(RowCreated).*/
         mAdd = true.
 
         super:Copy(cntxt).
-/*        Parent:RowCreated:Unsubscribe(RowCreated).*/
+/*        Model:RowCreated:Unsubscribe(RowCreated).*/
         mAdd = false.
-  
-    end method.    
+
+    end method.
     
     method public override void TableRefreshed(msg as ITableResponse):
         /* nothing - keep query intact with only our own changes  */
@@ -182,6 +181,11 @@ class OpenEdge.DataAdmin.Binding.CreateContext inherits AbstractFilteredContext 
     
     /* single table import of the entity (flat - no tree)*/
     method public override void Import(pcfile as char,pcMode as char):
+        undo, throw new UnsupportedOperationError("Import to CreateContext").
+    end method.
+    
+    /* single table import of the entity (flat - no tree)*/
+    method public override void Import(pJson as JsonObject,pcMode as char):
         undo, throw new UnsupportedOperationError("Import to CreateContext").
     end method.
     

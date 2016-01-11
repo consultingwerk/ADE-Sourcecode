@@ -40,25 +40,6 @@ class OpenEdge.DataAdmin.DataAccess.TenantData inherits DataAccess :
     define buffer b_LobArea   for dictdb._Area.
     define query qTenant for dictdb._tenant,b_dataArea,b_indexArea,b_LobArea.  
     define data-source dTenant for query qTenant.
-    define protected property FieldMap as char no-undo 
-        init "Id,_Tenantid,Name,_Tenant-name,Description,_Tenant-Description,ExternalId,_Tenant-Extid,IsDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2],DefaultAllocation,_Tenant-Allocation-default,DefaultDataAreaName,b_dataarea._Area-name,DefaultIndexAreaName,b_indexarea._Area-name,DefaultLobAreaName,b_lobarea._Area-name"
-        get.
-    
-    define private variable RequestURL      as character no-undo. 
-    define private variable TenantURL      as character no-undo.
-    define private variable areaURL  as character no-undo.
-    define private variable areasURL as character no-undo.
-    
-        
-    /* temporary  */
-    define public property BaseQuery as character no-undo
-        get():
-            return "for each _Tenant no-lock," 
-                +  " each b_dataArea no-lock outer-join where b_dataArea._area-number = _tenant._Tenant-DataArea-default,"
-                +  " each b_indexArea no-lock outer-join where b_indexArea._area-number = _tenant._Tenant-IndexArea-default,"
-                +  " each b_LobArea no-lock outer-join where b_LobArea._area-number = _tenant._Tenant-LobArea-default".
-        end get.     
-        set.
     
     /** @todo remove and use dataaccess dynamic new ?
         NOTE: As of current not all datasources are prepared to save(buffer,row-state)
@@ -94,15 +75,8 @@ class OpenEdge.DataAdmin.DataAccess.TenantData inherits DataAccess :
          end.  
     end method.    
         
-    method protected override void SetUrl(pcUrl as char):
-        RequestURL = pcUrl.
-        Tenanturl =  pcurl + "/tenants/".
-        areaURL = pcurl + "/areas/".
-        areasURL = pcurl + "/areas".
-    end method.
-        
     method public override void FetchData(msg as IFetchRequest):
-        SetUrl(msg:url).
+        Url = msg:url.
         DatasetHandle = msg:DataHandle.       
         FillData(msg).
     end method.
@@ -123,7 +97,7 @@ class OpenEdge.DataAdmin.DataAccess.TenantData inherits DataAccess :
              
                  detailSource = new TenantGroupMemberDataSource().
                  detailSource:FillMode = "Replace".
-                 detailSource:Url = RequestURL.
+                 detailSource:Url = URL.
                  tableRequest = msg:GetTableRequest("ttTenantGroupMember").
                   
                  if valid-object(tableRequest) then 
@@ -139,12 +113,12 @@ class OpenEdge.DataAdmin.DataAccess.TenantData inherits DataAccess :
                      /* used to map in detail, so start first */
                      tenantSource = New TenantDataSource().   
                      tenantSource:FillMode = "Replace".
-                     tenantSource:Url = RequestURL.
+                     tenantSource:Url = URL.
                      /* tenant critera is added to parent detail */
                      tenantSource:Prepare(hTenantBuffer).      
                      detailSource = new TenantGroupMemberDataSource().
                      detailSource:FillMode = "Append".
-                     detailSource:Url = RequestURL.
+                     detailSource:Url = URL.
                      
                      /* get tenant critera (join with detail) and add to parent detail */
                      tableRequest = msg:GetTableRequest("ttTenant").
@@ -165,7 +139,7 @@ class OpenEdge.DataAdmin.DataAccess.TenantData inherits DataAccess :
       
                 tenantSource = New TenantDataSource().   
                 tenantSource:FillMode = "Replace".
-                tenantSource:Url = RequestURL.
+                tenantSource:Url = URL.
                 tableRequest = msg:GetTableRequest("ttTenant").
       
                 if valid-object(tableRequest) then 

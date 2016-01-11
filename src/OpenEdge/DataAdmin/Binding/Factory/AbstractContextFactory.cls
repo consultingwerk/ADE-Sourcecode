@@ -14,23 +14,24 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.IDataAdminService  from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError  from propath.
-using OpenEdge.DataAdmin.Error.NotFoundError  from propath.
-
 using OpenEdge.DataAdmin.Binding.* from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
+using OpenEdge.DataAdmin.Binding.LocalIndexContext from propath.
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-
+using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.NotFoundError from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.IDataAdminService from propath.
+using Progress.Lang.* from propath.
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract implements IContextFactory: 
     define public property ServiceAdapter as ServiceAdapter no-undo get. private set. 
     define public property Service as IDataAdminService no-undo get. private set. 
-    define public abstract property IsLocal as logical no-undo get.    
-          
+    define public abstract property IsLocal as logical no-undo get. 
+    /* pretend this is a constant */   
+    define private variable CLASS_NAMES_THAT_ENDS_WITH_E as char init "tables,sequences" no-undo.
+    
     define public property ExtentContext as ExtentContext no-undo 
         get():
             if not valid-object(ExtentContext) then 
@@ -110,7 +111,17 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
             return IndexContext.   
         end. 
         set.   
-    
+        
+     define public property IndexFieldContext as IndexFieldContext no-undo 
+        get():
+            if not valid-object(IndexFieldContext) then 
+            do:
+                IndexFieldContext = new IndexFieldContext(this-object).       
+            end.
+            return IndexFieldContext.   
+        end. 
+        set.  
+        
      define public abstract property PartitionContext as PartitionContext no-undo 
         get. set. 
               
@@ -173,7 +184,47 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
             return TenantContext.   
         end. 
         set.
-  
+        
+    define public property LocalIndexContext as LocalIndexContext no-undo 
+        get():
+            if not valid-object(LocalIndexContext) then 
+            do:
+                LocalIndexContext = new LocalIndexContext(this-object).       
+            end.
+            return LocalIndexContext.   
+        end. 
+        set.
+        
+    define public property PartitionPolicyContext as PartitionPolicyContext no-undo 
+        get():
+            if not valid-object(PartitionPolicyContext) then 
+            do:
+                PartitionPolicyContext = new PartitionPolicyContext(this-object).       
+            end.
+            return PartitionPolicyContext.   
+        end. 
+        set.
+    
+    define public property PartitionPolicyFieldContext as PartitionPolicyFieldContext no-undo 
+        get():
+            if not valid-object(PartitionPolicyFieldContext) then 
+            do:
+                PartitionPolicyFieldContext = new PartitionPolicyFieldContext(this-object).       
+            end.
+            return PartitionPolicyFieldContext.   
+        end. 
+        set.
+     
+     define public property PartitionPolicyDetailContext as PartitionPolicyDetailContext no-undo
+        get():
+            if not valid-object(PartitionPolicyDetailContext) then
+            do:
+                PartitionPolicyDetailContext = new PartitionPolicyDetailContext(this-object).
+            end.
+            return PartitionPolicyDetailContext.
+        end.
+        set.
+    
     define public property SchemaContext as SchemaContext no-undo 
         get():
             if not valid-object(SchemaContext) then 
@@ -184,8 +235,6 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         end. 
         set.
     
-   
-  
    /*------------------------------------------------------------------------------
             Purpose:                                                                      
             Notes:                                                                        
@@ -206,8 +255,21 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         define variable filteredcontext as FilteredContext no-undo.
         filteredcontext = new FilteredContext(GetContext(cntxtname),filter).     
     end method.
-        
-    method public IDataAdminContext GetContext(pname as char):
+    
+    /* override in local context to allow joins for many to many for new objects 
+       to use service for the other end of the relation  */        
+    method public IDataAdminModel GetLookupContext(pname as char):
+        return GetContext(pname).
+    end method.
+    
+    /* override in local context to allow joins for many to many for new objects 
+       to use service for the other end of the relation  */        
+    method public IDataAdminModel GetLookupContextBySerializeName(pname as char):
+        return GetContextBySerializeName(pname).
+    end method.
+    
+    method public IDataAdminModel GetContext(pname as char):
+        define variable cname as character no-undo.
         case pname:
             when "UserFieldPermission" or when "UserTablePermission" then
             do:
@@ -227,8 +289,52 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         	undo, throw e2.	
         end catch.        
     end method.
-       
-    method protected IDataAdminContext GetInternalContext(pname as char):
+    
+    method protected character GetNameFromTableName(pname as char):
+        case pname:
+            when "_Area" then
+                return "Area".
+            when "_sec-authentication-domain" then
+                 return "Domain".
+            when "_sec-authentication-system" then
+                return "AuthenticationSystem".
+            when "_AreaExtent" then
+                return "Extent".
+            when "_Field" then
+                return "Field".
+            when "_Index" then
+                return "Index".
+            when "_StorageObject" then
+                return "Partition".
+            when "_Partition-Policy" then
+                return "PartitionPolicy".
+            when "_Partition-Policy-Detail" then
+                return "PartitionPolicyDetail".
+            when "_Partition-Set" then
+                return "TenantGroup".
+            when "_Partition-Set-Detail" then
+                return "TenantGroupMember".
+/*            when "Schema" then          */
+/*                return "Schema".              */
+/*            when "SchemaDefinition" then*/
+/*                return "SchemaDefinition".              */
+            when "_sequence" then
+                return "Sequence".
+/*            when "SequenceValue" then  */
+/*                return "SequenceValue".*/
+            when "_file" then
+                return "Table".
+/*            when "_File" then     */
+/*                return "AllTable".*/
+            when "_tenant" then
+                return "Tenant".
+            when "_user" then
+                return "User".
+         end.
+         return ""  .      
+    end method.
+      
+    method protected IDataAdminModel GetInternalContext(pname as char):
         case pname:
             when "Area" then
                 return AreaContext.
@@ -242,8 +348,16 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return FieldContext.
             when "Index" then
                 return IndexContext.
+            when "LocalIndex" then
+                return LocalIndexContext.
             when "Partition" then
                 return PartitionContext.
+            when "PartitionPolicy" then
+                return PartitionPolicyContext.
+            when "PartitionPolicyDetail" then
+                return PartitionPolicyDetailContext.
+            when "PartitionPolicyField" then
+                return PartitionPolicyFieldContext.
             when "TenantGroup" then
                 return TenantGroupContext.
             when "TenantGroupMember" then
@@ -268,5 +382,55 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         undo, throw new NotFoundError("Internal context " + quoter(pname) + " does not exist.").    
     end method.    
     
-   
+    method public IDataAdminModel GetContextBySerializeName(pname as char):
+        define variable cname as character no-undo.
+        if lookup(pname,CLASS_NAMES_THAT_ENDS_WITH_E) > 0 then 
+            cName = substr(pname,1,length(pname) - 1).
+        else if pname matches "*ies" then
+            cName = substr(pname,1,length(pname) - 3) + "y".
+        else if pname matches "*es" then
+            cName = substr(pname,1,length(pname) - 2).
+        else if pname matches "*s" then
+            cName = substr(pname,1,length(pname) - 1).
+        else 
+            undo, throw new NotFoundError(pname).    
+        return GetContext(cName).
+        /* catch notfound from lower evel to return passed name and term that corresponds to api */
+        catch e1 as NotFoundError :
+            undo, throw new NotFoundError("Collection " + quoter(pname) + " was not found.").    
+        end catch.
+        catch e2 as Progress.Lang.Error :
+            undo, throw e2. 
+        end catch.
+    end method.
+    
+    method public IDataAdminModel GetContextByAnyName(pname as char):
+        define variable cname as character no-undo.
+        /* support use of physical name (integration with dump and load) */ 
+        if pname begins "_" then
+        do: 
+            cname = GetNameFromTableName(pname).
+            if cname = "" then
+               undo, throw new notfoundError(pName).
+        end.
+        /* NOTE: if we add a class that ends in s then this needs to avoid this call to byserializename */
+        else if pname matches "*s" /* and pcname <> "entitynamethatendswiths"  */  then
+        do:
+            return GetContextBySerializeName(pname).
+        end.  
+        else 
+           cname = pname.   
+        
+        return GetContext(cName).
+       
+          /* catch notfound from lower evel to return passed name and term that corresponds to api */
+        catch e1 as NotFoundError :
+            undo, throw new NotFoundError("Collection " + quoter(pname) + " was not found.").    
+        end catch.
+        catch e2 as Progress.Lang.Error :
+            undo, throw e2. 
+        end catch.
+        
+    end method.
+    
 end class.

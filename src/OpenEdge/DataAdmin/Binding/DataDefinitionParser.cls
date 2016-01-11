@@ -144,11 +144,17 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
         define variable lMt      as logical no-undo.
         define variable lMtChange      as logical no-undo.
         define variable lKeep    as logical no-undo.
+        define variable lPart as logical no-undo.
         define variable cArea as character no-undo.
         define variable cRename  as character no-undo.
-        lMt   =  h:buffer-field("_File-attributes"):buffer-value(1). 
-        lKeep =  h:buffer-field("_File-attributes"):buffer-value(2). 
-        
+        define variable hAttr as handle no-undo.
+        define variable cDesc as character no-undo.
+        assign
+            hAttr = h:buffer-field("_File-attributes")
+            lMt   =  hAttr:buffer-value(1) 
+            lKeep =  hAttr:buffer-value(2) 
+            lPart =  hAttr:buffer-value(3)
+            cDesc = h::_Desc.
         if pcAction = "a" then
         do:
             if MultiTenantOnly and not lMt then
@@ -158,6 +164,7 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
             assign
                ttTable.SchemaName = h::_Owner
                ttTable.Name = h::_File-name
+               ttTable.IsPartitioned = lPart
                ttTable.AreaName  = cArea
                ttTable.AreaUrl   = mAreaUrl + WebUtil:URLEncode(cArea,"") 
                lMtChange = lMt.
@@ -206,9 +213,12 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
                 ttFieldChange.IsMultitenantchange = lMtChange.
             end.    
         end.
-        assign          
+        assign     
+            ttTable.Description = if cDesc = ? then "" else cDesc
+            ttTable.IsPartitioned = lPart     
             ttTable.IsMultiTenant   = lMt
-            ttTable.KeepDefaultArea = lKeep.
+            ttTable.KeepDefaultArea = lKeep
+            ttTable.Description = if cDesc = ? then "" else cDesc.
         
         if pcAction > "" then
         do:
@@ -319,9 +329,12 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
           
     end method.
      
-     method public override void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int):
+     method public override void AddIndex(pcAction as char, pcTable as char, h as handle, piArea as int,plPrimary as log):
         define variable cArea as character no-undo.
         define variable cRename as character no-undo.
+        define variable hAttr as handle no-undo.
+        
+      
         if pcAction = "a" and pcTable = ? then
         do:
             pcTable = mCurrentTable.
@@ -358,9 +371,17 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
             find ttIndex where ttIndex.TableName = pcTable 
                            and ttIndex.Name = h::_index-name.  
         end.
-        
-        ttIndex.IsMultiTenant = ttTable.IsMultitenant.
-        
+ 
+        assign
+            hAttr = h:buffer-field("_Index-attributes")
+            ttIndex.IsLocal  = hAttr:buffer-value (1) 
+            ttIndex.IsWordIndex = h::_Wordidx > 0 
+            ttIndex.IsUnique = h::_Unique 
+            ttIndex.IsActive = h::_Active  
+            ttIndex.IsPrimary = plPrimary
+            ttIndex.Description = if h::_Desc = ? then "" else h::_Desc
+            ttIndex.IsMultiTenant = ttTable.IsMultitenant.
+      
         if pcAction > "" then
         do:
             CreateIndexChange(pcaction, ttIndex.TableName,ttIndex.Name).
@@ -415,7 +436,7 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
             end.
                     
             ttField.IsMultiTenant = ttTable.IsMultitenant.
-            
+            ttField.Description = if h::_Desc = ? then "" else h::_Desc.
             if pcAction > "" then
             do:
                 CreateFieldChange(pcaction, ttField.TableName,ttField.Name).
@@ -627,6 +648,23 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
         return false.
     end method.
     
+     /* does current parent need area 
+       (this should ideally/really return ITable...) */
+   method public override logical extent CurrentTableAttributes():
+        define variable lreturn as logical extent no-undo.
+        find ttTable where ttTable.Name = mCurrentTable no-error. 
+        if avail ttTable then 
+        do:
+            extent(lreturn) = 3.
+            assign    
+                lreturn[1]   = ttTable.IsMultitenant 
+                lreturn[2]   = ttTable.KeepDefaultArea 
+                lreturn[3]   = ttTable.IsPartitioned .
+        end.        
+        return lreturn.
+    end method.
+    
+    
     method private void RenameTableAndChildren(pcold as char,pcnew as char):
         find ttTable where ttTable.Name = pcold no-error.
         define variable cc as character no-undo.
@@ -741,19 +779,20 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
     
     method private char FetchAreaName(piArea as int):
         define variable cQuery as character no-undo. 
-       
-        find ttArea where ttArea.number = piArea   no-error.
-        if not avail ttArea then
+        if piArea > 0  then
         do:
-            cQuery = "for each ttArea where ttArea.Number = " + quoter(piArea).
-            AreaRequest:SetTableQuery("ttArea",cQuery).
-            AreaAccess:FetchData(AreaRequest).
             find ttArea where ttArea.number = piArea   no-error.
-        end.    
-        if avail ttArea then
-           return ttArea.Name. 
-        else 
-           return "".   
+            if not avail ttArea then
+            do:
+                cQuery = "for each ttArea where ttArea.Number = " + quoter(piArea).
+                AreaRequest:SetTableQuery("ttArea",cQuery).
+                AreaAccess:FetchData(AreaRequest).
+                find ttArea where ttArea.number = piArea   no-error.
+            end.    
+            if avail ttArea then
+               return ttArea.Name. 
+        end. 
+        return "".   
     end method.
     
     method private char GetAction(imod as char):  

@@ -1,4 +1,13 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.UtilityContext.
+USING OpenEdge.DataAdmin.Error.IllegalArgumentError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ITenantGroup.
+USING OpenEdge.DataAdmin.Internal.Util.UtilityTenantGroupSet.
+USING Progress.Lang.*.
  /* Copyright (c) 2012 by Progress Software Corporation.      */
  /*                                                           */
  /* All rights reserved.  No part of this program or document */
@@ -14,15 +23,6 @@
     Created     : Wed May 09 22:32:23 EDT 2012
     Notes       : 
   ----------------------------------------------------------------------*/
-
-using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminElement.
-using OpenEdge.DataAdmin.IDataAdminCollection.
-using OpenEdge.DataAdmin.ITenantGroup.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext.
-using OpenEdge.DataAdmin.Binding.UtilityContext.
-using OpenEdge.DataAdmin.Internal.Util.UtilityTenantGroupSet.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError.
 
 routine-level on error undo, throw.
 
@@ -68,11 +68,11 @@ class OpenEdge.DataAdmin.Binding.UtilityTenantGroupContext inherits UtilityConte
         return new UtilityTenantGroupSet(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+     method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
         if valid-object(TargetService) then
         do:
-            if this-object:Find(cntxt:TableHandle::name) then 
-                return TargetService:GetTenantGroup(cntxt:TableHandle::name).
+            if this-object:Find(this-object:TableHandle::name) then 
+                return TargetService:GetTenantGroup(this-object:TableHandle::name).
         end.   
     end method.
     

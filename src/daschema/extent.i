@@ -21,6 +21,7 @@
     field Path          as character serialize-name "path"
     field IsFixed       as logical   serialize-name "isFixed"
     field Size          as integer   serialize-name "size"
+    field SizeUsed      as integer   serialize-name "sizeUsed" init ?
     {daschema/entity.i}
     index idxInternal  as primary unique AreaNumber Number 
     index idxName     as unique AreaName Number.

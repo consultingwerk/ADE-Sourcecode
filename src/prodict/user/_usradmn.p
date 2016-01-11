@@ -246,5 +246,8 @@ HIDE FRAME security NO-PAUSE.
 IF canned THEN
   user_path = "".
 RETURN.
+finally:
+    delete object service no-error.		
+end finally.
 
 

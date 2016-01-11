@@ -106,7 +106,7 @@ class OpenEdge.DataAdmin.Binding.Query.TenantGroupTenantQuery inherits ManyToMan
        
         AddTableTo(tree).
         hds = tree:GetReadHandle().
-        msg = new FetchRequest(Name,Id,hds). 
+        msg = new FetchRequest(Name,Id,hds,no). 
  
         return msg.                 
     end method.

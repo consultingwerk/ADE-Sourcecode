@@ -61,9 +61,7 @@ class OpenEdge.DataAdmin.TenantGroupSet inherits DataAdminCollection implements 
     method public logical Add(pGroup as ITenantGroup).  
         if Contains(pGroup) then
             return false.   
-        pGroup:Attach(Context).
-        
-        return true.
+        return Context:AddEntity(pGroup).
     end method.  
     
     method public override logical Remove(o as Object):
@@ -108,14 +106,24 @@ class OpenEdge.DataAdmin.TenantGroupSet inherits DataAdminCollection implements 
         return Context:CanFind(groupid).    
     end method.    
      
-    method public override void ExportTree(pcfile as char):
-        define variable writer as IDataAdminExporter no-undo.
-        define variable codewriter as CodeWriter no-undo.
-        writer = GetExporter(pcfile).
-        writer:WriteToFile(this-object,pcfile,"All").
-    end method.      
+    method public override void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        define variable iPos as integer no-undo.
+         /* The code writer actually support this, but it writes tenants, so externally 
+             we give error if actually asking for it (see below) */ 
+        iPos = lookup("TenantGroupMembers",pcCollectionList).
+        if iPos > 0 then
+           undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
+               
+        /*  we generate code for TenantGroups when passing TenantGroupMembers, 
+            so we just fix the list internally. */
+        iPos = lookup("TenantGroups",pcCollectionList).
+        if iPos > 0 then 
+            entry(iPos,pcCollectionList) = "TenantGroupMembers".
+            
+        super:ExportAsProcedure(pcfile,pcCollectionlist).     
+    end.     
     
-     method public override void  ExportTree(pcfile as char,pcCollectionlist as char):
+    method public override void  ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
         define variable codewriter as CodeWriter no-undo.
         define variable fileext as character no-undo.
@@ -123,25 +131,15 @@ class OpenEdge.DataAdmin.TenantGroupSet inherits DataAdminCollection implements 
         fileExt = GetFileExtension(pcFile).
         case fileExt:
             /* deal with current limitations that does not handle the TenantGroups collection */  
-            when "p" or when "download" then 
+            when "p" or when CodeExtension then 
             do:
-                /* The code writer actually support this, but it writes tenants, so externally 
-                   we give error if actually asking for it (see below) */ 
-                iPos = lookup("TenantGroupMembers",pcCollectionList).
-                if iPos > 0 then
-                    undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use Tenants instead.").
-                /* for .p we generate code for Tenants when passing TenantGroupMembers, 
-                   so we just fix the list internally. */
-                iPos = lookup("Tenants",pcCollectionList).
-                if iPos > 0 then 
-                   entry(iPos,pcCollectionList) = "TenantGroupMembers".
+                ExportAsProcedure(pcfile,pcCollectionlist).
             end.
             otherwise 
             do:
                iPos = lookup("Tenants",pcCollectionList).
                if iPos > 0 then
-                    undo, throw new UnsupportedOperationError("Export of Tenants collection. Use TenantGroupMembers instead.").
-               
+                   undo, throw new UnsupportedOperationError("Export of Tenants collection. Use TenantGroupMembers instead.").
             end.
         end.
             
@@ -168,59 +166,6 @@ class OpenEdge.DataAdmin.TenantGroupSet inherits DataAdminCollection implements 
         	return false.	
         end catch.    
     end method.
-    
-    /**
-     * 
-     * @param context 
-     */
-     /*
-    method public override void Attach(cntxt as IDataAdminContext).
-    
-        define variable oldcontext as IDataAdminContext no-undo.
-        if not valid-object(cntxt) then
-            undo, throw new UnknownValueError("Attach","context").  
-        
-        cntxt:Copy(this-object:Context).                     
-        if valid-object(mpartitions) then 
-        do:
-            cntxt:Service:AttachPartitions(mpartitions).
-        end.        
-        oldcontext = this-object:Context.  
-        this-object:Context = cntxt.
-        OnContextChanged().
-        if not oldcontext:IsShared then
-            delete object oldcontext.        
-  
-    end method.
-    */
-       
-    /* All - expand collections */
-/*    method public override void WriteAllTo(writer as IDataAdminWriter):                                 */
-/*        undo, throw new UnsupportedOperationError("WriteAllTo TenantSet.").                             */
-/*                                                                                                        */
-/*        writer:WriteContext(Context).                                                                   */
-/*        if not valid-object(Service) then                                                               */
-/*        do:                                                                                             */
-/*            if not valid-object(mpartitions) then                                                       */
-/*                mpartitions = new PartitionSchemaMap().                                                 */
-/*            writer:WriteChild(cast(mpartitions,IDataAdminSerializable),SerializeName,"Name,TenantName").*/
-/*/*            writer:WriteChild(cast(domains,IDataAdminSerializable),SerializeName,"Name,TenantName").*/*/
-/*        end.                                                                                            */
-/*        else do:                                                                                        */
-/*            if not valid-object(mPartitions) then                                                       */
-/*                mpartitions = Service:GetTenantPartitions().                                            */
-/*            writer:WriteChild(cast(mpartitions,IDataAdminSerializable),SerializeName,"Name,TenantName").*/
-/*/*            writer:WriteChild("domains",SerializeName,"Name,TenantName").*/                           */
-/*        end.                                                                                            */
-/*/*        partitions = Service:GetPartitions().*/                                                       */
-/*        /* the domains will write users, so we don't call that from here  */                            */
-/*                                                                                                        */
-/*    end method.                                                                                         */
-
-/*    /* write a short list of the data with url to details */            */
-/*    method public override void WriteListTo(writer as IDataAdminWriter):*/
-/*        writer:WriteContextList(Context,"Name,Id,Description,AreasUrl").*/
-/*    end method.                                                         */
     
     method override protected void PrepareExportList():
         TableHandle:default-buffer-handle:buffer-field("TableUrl"):serialize-hidden = true.

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2012 by progress Software Corporation. */
+/* Copyright (c) 2011-2013 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -47,7 +47,7 @@ define stream acceptstream.
 
  
 /* to be deprecated */
-{darest/restbase.i post definitions} 
+{darest/restbase.i post definitions upload} 
   
 procedure Execute :
     define input parameter restRequest as IRestRequest  no-undo.   
@@ -59,7 +59,7 @@ procedure Execute :
     service:URL = restRequest:ConnectionUrl.
     
     /* reads the definitions (creates objects/data from .df) */
-    definitions = service:GetSchemaChanges(restRequest:FileName2). 
+    definitions = service:GetSchemaChanges(restRequest:UploadFileName). 
     
     cFile = restRequest:FileName.
     cFileOut = restRequest:OutFileName.

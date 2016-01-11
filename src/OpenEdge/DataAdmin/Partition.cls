@@ -16,6 +16,7 @@
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 using Progress.Lang.* from propath.
+using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.* from propath.
 
 using OpenEdge.DataAdmin.Binding.* from propath.
@@ -42,13 +43,21 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             return true. /* non case.. partitions should always have mbuffer. */
         end.           
     
+    define public property IsPartitioned  as logical no-undo    
+        get():
+            if valid-handle(mBuffer) then
+               return  (mBuffer::PartitionPolicyDetailName <> "" 
+                        and mBuffer::PartitionPolicyDetailName <> ?).
+            return true. /* non case.. partitions should always have mbuffer. */
+        end.        
+    
     /** defines the context (or scope?) for the instance.
         Used in Equals() to check entities with the same keys not 
         are equals if different context */
        
-    define protected property Context   as IDataAdminContext no-undo 
+    define protected property Context   as IDataAdminModel no-undo 
         get. 
-        private set(cntxt as IDataAdminContext ):     
+        private set(cntxt as IDataAdminModel ):     
             mDefaultBuffer = cntxt:TableHandle:default-buffer-handle.
             if not valid-handle(mBuffer) then
             do:                
@@ -99,7 +108,8 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
                  return mBuffer:row-state = row-modified.
             return false.
         end.
-            
+        
+    define public property CodeExtension as char no-undo init "download" get. set.  
              
     define public property Service as IDataAdminService no-undo 
         get():
@@ -132,8 +142,8 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
              return Area.
         end.
         set(parea as IArea).
-            if IsMultiTenant = false then    
-                undo, throw new ReadOnlyPropertyError(GetName(),"","Area","The " + ObjectType +  " is not multi-tenant enabled").         
+            if IsMultiTenant = false and isPartitioned = false then    
+                undo, throw new ReadOnlyPropertyError(GetName(),"","Area","The " + ObjectType +  " is not multi-tenant enabled or partitioned").         
             if not valid-object(parea) then
             do:
                undo, throw new UnknownValueError("Partition Area").
@@ -161,8 +171,8 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             if ObjectType <> "Table" then
                 undo, throw new ReadOnlyPropertyError(lc(ObjectType) + " " + lc(Context:name),"","AllocationState","Allocation state can only be changed in table partitions").
             
-            if IsMultiTenant = false then    
-                undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The " + ObjectType +  " is not multi-tenant enabled").         
+            if IsMultiTenant = false and isPartitioned = false then    
+                undo, throw new ReadOnlyPropertyError(GetName(),"","AllocationState","The " + ObjectType +  " is not multi-tenant enabled or partitioned").         
             
             SetProperty("AllocationState",pAllocationState).
 
@@ -270,21 +280,46 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     
     define public property RequestInfo as IRequestInfo no-undo get. protected set.
      
-    constructor public Partition (cntxt as IDataAdminContext):
+    constructor public Partition (cntxt as IDataAdminModel,preq as IRequestInfo):
         super ().     
         Context = cntxt.
+        RequestInfo = preq.
     end constructor.
       
+    method public logical CanAttach(cntxt as IDataAdminContext):   
+        if valid-object(cntxt) then
+        do: 
+            /* no context - assume transition ok - collection:Add will deal with type checking */
+            if ContextId = "" then
+                return true.
+                
+            return cntxt:CanCopy(Context).     
+        
+        end.
+        return false.
+    end method.  
+      
     method public void Attach(cntxt as IDataAdminContext):   
-        define variable oldcntxt as IDataAdminContext no-undo.
+        define variable oldcntxt as IDataAdminModel no-undo.
+        define variable newcntxt as IDataAdminModel no-undo.
         define variable lLocal as logical no-undo.
+
         if not valid-object(cntxt) then
             undo, throw new UnknownValueError("Attach","context").  
+        
+        if type-of(cntxt,IFilteredContext) then
+            newcntxt = cast(cntxt,IFilteredContext):Model. 
+        else if type-of(cntxt,IDataAdminModel) then
+            newcntxt = cast(cntxt,IDataAdminModel).
+        else      
+            undo, throw new IllegalArgumentError("Context passed to attach must be model or filter.").  
+        
+      
         if ContextId = "" then
         do: 
-            mchild = true.
+            mChild = true.
             cntxt:CreateRow(this-object).
-            Context = cntxt.
+            Context = newcntxt.          
         end.
         else do:
             oldcntxt = Context.
@@ -297,21 +332,21 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
             if not mChild then 
                 cntxt:Copy(Context).    
             else 
-                Context = cntxt.          
+                Context = newcntxt.          
             
             mChild = true.           
         end.
-         /* this is not handled in newcontext since root id always goes through here */    
-        
-        if valid-object(oldcntxt) 
-        and llocal then 
+  
+        /* this is not handled in newcontext since root id always goes through here */    
+        if valid-object(oldcntxt) and llocal then
             delete object oldcntxt.
-        
-    end method.
+       
+    end method.  
+    
     
     
     /* the context we attached to changed */
-    method protected void NewContext(cntxt as IDataAdminContext):
+    method protected void NewContext(cntxt as IDataAdminModel):
         define variable hNewDefaultBuffer as handle no-undo. 
         define variable hNewBuffer as handle no-undo. 
         hNewDefaultbuffer = cntxt:TableHandle:default-buffer-handle.
@@ -350,7 +385,7 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     */
     method public logical Allocate():
        
-        if IsMultiTenant = false then    
+        if IsMultiTenant = false and IsPartitioned = false then    
             undo, throw new IllegalOperationError("Allocate non multi-tenant partition.").         
        
         if ObjectType = "Table" then
@@ -417,7 +452,15 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     method public void WriteTree(tree as IContextTree):
         undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
     end method.
-     
+    
+    method public void ExportAsProcedure(pcfile as char ):
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
+    end method. 
+    
+    method public void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
+    end method. 
+    
     method public void ExportTree(pcfile as char):
         this-object:Export(pcFile).
     end method.     
@@ -511,8 +554,12 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
     
     method protected logical SetProperty(pcPropName as char, pcValue as char):
         return context:SetProperty(mBuffer:rowid,pcPropName,pcValue).  
-    end method.    
+    end method.  
       
+    method public int Serialize(phHandle as Handle). 
+        undo, throw new UnsupportedOperationError("Serialize to stream handle for " + this-object:GetClass():TypeName).
+    end method.
+    
     method public final override char ToString():
         define variable cKeyFields as character no-undo.
         define variable i as integer no-undo.
@@ -540,4 +587,12 @@ class OpenEdge.DataAdmin.Partition implements IPartition,IDataAdminElement,IData
         end.
         return cout.
     end method.    
+    
+       /* optional call back from context tree. 
+        called when parse is complete
+         override to return json  to export instead  of dataset
+         returns unknown to use standard dataset. write-json  */
+    method public JSONObject GetJSONExport(tree as IContextTree):
+        return Context:GetJSONExport(tree).
+    end.   
 end class.

@@ -195,6 +195,7 @@ PROCEDURE unique :
 END PROCEDURE.
 
 PROCEDURE unique_save:
+
  IF index(trim(temp.uni),"I") = 0 THEN
     MESSAGE "Only Unique indexes are eligible candidates." VIEW-AS ALERT-BOX ERROR.
  ELSE DO:

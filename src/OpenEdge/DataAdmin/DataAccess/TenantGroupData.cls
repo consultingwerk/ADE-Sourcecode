@@ -38,7 +38,6 @@ using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.DataAccess.TenantGroupData inherits DataAccess implements IDataAccess : 
         
-    define private variable Url as character no-undo.
     
     define public property BaseQuery as character no-undo
         get():
@@ -73,9 +72,6 @@ class OpenEdge.DataAdmin.DataAccess.TenantGroupData inherits DataAccess implemen
              datasource:Refresh(hBuffer).
          end.  
     end method.    
-    method protected override void SetUrl(pcUrl as char):
-        Url = pcurl.
-    end method.       
    
     method public override void FetchData(msg as IFetchRequest):
         define variable hBuffer as handle no-undo.

@@ -52,6 +52,7 @@ History:
                         details after alert-box is dismissed
   kmcintos  09/08/05    Added support for Oracle 10 20050318-015                      
   fernando  09/14/07    Allow ORACLE version 11
+  sbehera   02/03/14    Support ORACLE version 12 and changed default version to 11
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -100,7 +101,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 8, 9, 10 or 11."
+  /*14*/ "Oracle version must be either 10, 11 or 12."
 ].
 
 FORM
@@ -186,10 +187,11 @@ ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:
 
 /* -----LEAVE of Oracle Version on add oraver ------------- */
 ON LEAVE OF oraver IN FRAME userschg DO:
-  IF INPUT oraver <> 8 AND 
-     INPUT oraver <> 9 AND
-     INPUT oraver <> 10 AND
-     INPUT oraver <> 11 THEN DO:
+     IF INPUT oraver <> 8 AND
+        INPUT oraver <> 9 AND
+        INPUT oraver <> 10 AND
+        INPUT oraver <> 11 AND
+        INPUT oraver <> 12 THEN DO:
     MESSAGE new_lang[14] 
        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     APPLY "ENTRY" TO oraver IN FRAME userschg.
@@ -283,7 +285,7 @@ ASSIGN
   f_addr = (IF AVAILABLE DICTDB._Db THEN DICTDB._Db._Db-addr ELSE "")
   f_comm = (IF AVAILABLE DICTDB._Db THEN DICTDB._Db._Db-comm ELSE "")
   oraver = (IF AVAILABLE DICTDB._Db AND DICTDB._Db._Db-Type = "ORACLE"
-                THEN DICTDB._Db._Db-misc1[3] ELSE 8).
+                THEN DICTDB._Db._Db-misc1[3] ELSE 11).
 
 DO FOR DICTDB._File:
   FIND DICTDB._File "_Db" WHERE _File._Owner = "PUB" NO-LOCK.

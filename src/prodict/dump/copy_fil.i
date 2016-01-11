@@ -30,7 +30,9 @@ IF {&all} THEN
     {&to}._numkey       = {&from}._numkey
     {&to}._numkfld      = {&from}._numkfld
     {&to}._File-Attributes[1] = {&from}._File-Attributes[1]
-    {&to}._File-Attributes[2] = {&from}._File-Attributes[2].
+    {&to}._File-Attributes[2] = {&from}._File-Attributes[2]
+    {&to}._File-Attributes[3] = {&from}._File-Attributes[3].
+
 
 ASSIGN
   {&to}._File-Name     = {&from}._File-Name

@@ -15,19 +15,20 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.FieldPermission from propath.
-using OpenEdge.DataAdmin.FieldPermissionSet from propath. 
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
 
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.FieldPermission.
+using OpenEdge.DataAdmin.FieldPermissionSet.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Lang.*. 
 
 class OpenEdge.DataAdmin.Binding.FieldPermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -37,10 +38,6 @@ class OpenEdge.DataAdmin.Binding.FieldPermissionContext inherits DataAdminContex
     define buffer bFieldPermission for ttFieldPermission.
     define temp-table copyFieldPermission reference-only like ttFieldPermission .  
  
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsFieldPermission:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -71,8 +68,12 @@ class OpenEdge.DataAdmin.Binding.FieldPermissionContext inherits DataAdminContex
         super ("FieldPermission",pscope).
     end constructor.
     
-   
-	method public override void CopyTable(cntxt as IDataAdminContext).
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsFieldPermission:handle. 
+    end method.
+    
+	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy FieldPermission").
     end method. 
      
@@ -88,10 +89,6 @@ class OpenEdge.DataAdmin.Binding.FieldPermissionContext inherits DataAdminContex
         return "".
     end.
     
-    method override public void WriteTo( input writer as IContextWriter ):
-        super:WriteTo(input writer).
-    end method.
-   
 	method public override logical CanFind(name as character):
         undo, throw new UnsupportedOperationError("CanFind of FieldPermission with single key.").
     end.    
@@ -116,8 +113,8 @@ class OpenEdge.DataAdmin.Binding.FieldPermissionContext inherits DataAdminContex
         return new FieldPermissionSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new FieldPermission(cntxt).
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
+        return new FieldPermission(this-object,pReq).
     end method.
 
 /*    method public override void DataRefreshed(pResponse as OpenEdge.DataAdmin.Message.IFetchResponse):*/

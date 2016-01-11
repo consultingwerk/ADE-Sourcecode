@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2006,2014 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -32,16 +32,14 @@ Define {1} var s_Idx_Primary as logical NO-UNDO.
 Define {1} var s_Idx_Abbrev  as logical NO-UNDO.
 Define {1} var s_Idx_Word    as logical NO-UNDO.  
 Define {1} var s_lst_IdxFlds as char    NO-UNDO. 
+Define {1} var s_Idx_Local   as logical NO-UNDO
+    view-as radio-set horizontal
+    radio-buttons "&Global", false, "&Local", true.
 Define {1} var index-area-number as integer format ">>>9" INIT 6 NO-UNDO.
 
 /* variables used for Area name select for creating new indexes */
-Define {1} var idx-area-name as character format "x(32)" NO-UNDO.
 DEFINE {1} var s_Area_mttext AS CHARACTER FORMAT "x(20)" NO-UNDO.
-Define button  s_btn_Idx_Area IMAGE-UP FILE "btn-down-arrow".
-Define {1} var s_lst_Idx_Area as char view-as  SELECTION-LIST SINGLE   
-   INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
-
-
+Define {1} var s_Idx_Area    as character view-as COMBO-BOX format "x(32)".    
 
 /* Variables needed for the add index dialog only. */
 Define {1} var s_lst_IdxFldChoice as char NO-UNDO.

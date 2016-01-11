@@ -30,7 +30,7 @@
 /* ***************************  Definitions  ************************** */
 
 DEFINE NEW GLOBAL SHARED VARIABLE web-utilities-hdl AS HANDLE    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS CHARACTER NO-UNDO FORMAT "x(50)".
+DEFINE NEW GLOBAL SHARED VARIABLE HTTP_COOKIE       AS CHARACTER NO-UNDO FORMAT "x(50)":U.
 
 DEFINE VARIABLE lProPathReset           AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cRealProPath            AS CHARACTER  NO-UNDO.
@@ -108,8 +108,8 @@ PROCEDURE end-request :
       ASSIGN 
         PROPATH       = cRealProPath
         lPropathReset = FALSE.  
-      DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "NOTE":U,
-                                    "Propath restored") NO-ERROR.    
+      DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "NOTE":U,
+                                    "Propath restored":U) NO-ERROR.    
     END.
   END.
 END PROCEDURE.
@@ -140,12 +140,12 @@ PROCEDURE init-config :
      MultiDevPropath=developer1=/usr/dev1/apps/test;/usr/dev1/apps/test2 |
                      developer2=/usr/dev2/apps/test;/usr/dev2/apps/test2
   */
-  ASSIGN c1 = REPLACE(OS-GETENV("MULTI_DEV_PROPATH":U),";",",").
+  ASSIGN c1 = REPLACE(OS-GETENV("MULTI_DEV_PROPATH":U),";":U,",":U).
   IF c1 NE ? AND c1 GT "" THEN
-  DO i1 = 1 TO NUM-ENTRIES(c1,"|"):
+  DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN
-      c2      = TRIM(ENTRY(i1,c1,"|"))
-      lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"MultiDevPath":U,"",TRIM(ENTRY(1,c2,"=")),TRIM(ENTRY(2,c2,"="))).
+      c2      = TRIM(ENTRY(i1,c1,"|":U))
+      lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"MultiDevPath":U,"",TRIM(ENTRY(1,c2,"=":U)),TRIM(ENTRY(2,c2,"=":U))).
   END.
    
   RUN SUPER.
@@ -174,24 +174,24 @@ PROCEDURE init-request :
   /* Check for devuser value, and prepend propath with developer's custom 
      propath. */
   IF lDevMode THEN DO:
-    ASSIGN cDevUser = DYNAMIC-FUNCTION("GET-VALUE" IN web-utilities-hdl,"DEVUSER").
+    ASSIGN cDevUser = DYNAMIC-FUNCTION("GET-VALUE":U IN web-utilities-hdl,"DEVUSER":U).
     IF cDevUser NE "" THEN DO:
       /* Set a cookie so the developer doesn't have to set this query value on
          every request. Cookie expires when web browser is closed. */
       IF INDEX(HTTP_COOKIE,"DEVUSER=":U) EQ 0 THEN  
-        DYNAMIC-FUNCTION("set-cookie" IN web-utilities-hdl,"DEVUSER",cDevUser,?,?,?,?,?). 
+        DYNAMIC-FUNCTION("set-cookie":U IN web-utilities-hdl,"DEVUSER":U,cDevUser,?,?,?,?,?). 
     
-      ASSIGN cDevPath = DYNAMIC-FUNCTION("getAgentSetting" IN web-utilities-hdl,
-                       "MultiDevPath", "", cDevUser).
+      ASSIGN cDevPath = DYNAMIC-FUNCTION("getAgentSetting":U IN web-utilities-hdl,
+                       "MultiDevPath":U, "", cDevUser).
     
       /* store the original propath so we can put it back later, and then
          update the current propath with any changes */
       IF cDevPath NE "" THEN DO:
         ASSIGN cRealProPath  = (IF cRealProPath GT "" THEN cRealPropath ELSE PROPATH)
                lProPathReset = TRUE
-               PROPATH       = cDevPath + "," + PROPATH.
-        DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "NOTE",
-                            SUBSTITUTE ("Propath modified for &1: &2", cDevUser, cDevPath )).    
+               PROPATH       = cDevPath + ",":U + PROPATH.
+        DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "NOTE":U,
+                            SUBSTITUTE ("Propath modified for &1: &2":U, cDevUser, cDevPath )).    
       END.
     END. /* devuser */
   END.
@@ -216,7 +216,7 @@ PROCEDURE init-session :
                if development is not set.
 ------------------------------------------------------------------------------*/
   
-  lDevMode = DYNAMIC-FUNCTION("devCheck" IN web-utilities-hdl).
+  lDevMode = DYNAMIC-FUNCTION("devCheck":U IN web-utilities-hdl).
 
   RUN SUPER.
 END PROCEDURE.

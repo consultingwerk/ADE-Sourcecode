@@ -15,10 +15,12 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.* from propath.
+using OpenEdge.DataAdmin.DataAccess.IDataAccess from propath.
 using OpenEdge.DataAdmin.Message.ITableRequest from propath.
- 
-interface OpenEdge.DataAdmin.DataSource.IDataSource:  
+using Progress.Lang.* from propath.
+using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
+
+interface OpenEdge.DataAdmin.DataSource.IDataSource inherits IQueryMap:  
     define public property Url            as character no-undo get. set.
     define public property BatchSize      as integer   no-undo get. set.
     define public property NumRecords     as integer   no-undo get. set.
@@ -31,9 +33,19 @@ interface OpenEdge.DataAdmin.DataSource.IDataSource:
     /*
     define public property NumRecords   as integer   no-undo get.
       */
-    
+    define public property  Tables          as char      no-undo get.  
+    define public property  PhysicalTables  as char      no-undo get.   
+       
+    /* set from DataAccess save use  to getsource for children 
+       @todo - improve - pass to save or constructor  */ 
+    define public property DataAccess as IDataAccess no-undo get. set. 
+ 
     define public property FillMode     as character no-undo get. set.
     define public property FillError    as Error no-undo get. set.
+    
+    /* optional list of datasource table names that is managed by the source 
+       and not to be saved from the IDataAccess container  */
+    define public property SaveChildNames   as character no-undo get.  
     
     /**  save all changes */
     method public logical Save(bufferHandle as handle).
@@ -42,6 +54,9 @@ interface OpenEdge.DataAdmin.DataSource.IDataSource:
          @param state use compiler constants row-created, row-modified or row-deleted */
     
     method public logical Save(bufferHandle as handle,piState as integer).
+    
+    method public logical Save(phparentbuffer as handle,bufferHandle as handle,piState as integer).
+ 
     /** refresh row-state 0 data */
     method public logical Refresh(bufferHandle as handle).
     

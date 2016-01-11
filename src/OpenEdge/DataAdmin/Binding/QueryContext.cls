@@ -14,21 +14,21 @@
     Created     :  
     Notes       : 
   ----------------------------------------------------------------------*/
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext.
+using OpenEdge.DataAdmin.Lang.QueryString.
+using OpenEdge.DataAdmin.Message.ITableResponse.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
-using OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Message.ITableResponse from propath.
-using OpenEdge.DataAdmin.Lang.QueryString from propath.
- 
 class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext: 
     
     define private variable mTableNum as integer no-undo.
     define private variable mBuffer as handle extent no-undo.
-	constructor public QueryContext ( pparent as IDataAdminContext,pcQuery as char, phBuffer as handle extent):	
-		super (input pparent).
+	constructor public QueryContext ( pModel as IDataAdminModel,pcQuery as char, phBuffer as handle extent):	
+		super (input pModel).
 		BaseQuery  = pcQuery.
         mBuffer = phBuffer.
 	    CreateQuery().
@@ -38,8 +38,8 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
         return mBuffer.
     end method.  
 	
-    constructor public QueryContext ( pparent as IDataAdminContext,pcQuery as char, phBuffer as handle):        
-        this-object(pparent,pcQuery,SingleExtent(phBuffer)).
+    constructor public QueryContext ( pModel as IDataAdminModel,pcQuery as char, phBuffer as handle):        
+        this-object(pModel,pcQuery,SingleExtent(phBuffer)).
     end constructor.
     
     method protected override void CreateQuery():
@@ -102,7 +102,7 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
     method public override logical CanFind(i as int):
         define variable lok as logical no-undo.
         define variable rid as rowid   no-undo.   
-        if parent:Find(i) then 
+        if Model:Find(i) then 
         do:
             rid = QueryHandle:get-buffer-handle (1):rowid.     
             lok = QueryHandle:reposition-to-rowid(TableHandle:default-buffer-handle:rowid) no-error. 
@@ -116,7 +116,7 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
     method public override logical Find(i as int):
         define variable lok as logical no-undo.
         define variable hbuf as handle no-undo.
-        if parent:Find(i) then 
+        if Model:Find(i) then 
         do: 
             hBuf = QueryHandle:get-buffer-handle(1).
             lok = TableHandle:default-buffer-handle:rowid = hBuf:rowid.
@@ -134,7 +134,7 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
         define variable lok as logical no-undo.
         define variable rid as rowid   no-undo.   
         
-        if parent:Find(c) then 
+        if Model:Find(c) then 
         do:
         
             rid = QueryHandle:get-buffer-handle (1):rowid.     
@@ -147,7 +147,7 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
     method public override logical Find(c as char):
         define variable lok as logical no-undo.   
         define variable hbuf as handle no-undo. 
-        if Parent:Find(c) then 
+        if Model:Find(c) then 
         do: 
             hBuf = QueryHandle:get-buffer-handle(1).
             lok = TableHandle:default-buffer-handle:rowid = hBuf:rowid.
@@ -163,26 +163,32 @@ class OpenEdge.DataAdmin.Binding.QueryContext inherits AbstractFilteredContext:
      
     /* single table import of the entity (flat - no tree)*/
     method public override void Import(pcfile as char,pcMode as char):
-        Parent:Import(pcfile,pcMode).
+        Model:Import(pcfile,pcMode).
+        QueryHandle:query-open(). 
+    end method.
+    
+     /* single table import of the entity (flat - no tree)*/
+    method public override void Import(pJson as JsonObject,pcMode as char):
+        Model:Import(pJson,pcMode).
         QueryHandle:query-open(). 
     end method.
     
     /* single row import of the entity (flat no tree) */     
     method public override void ImportRow(pcfile as char, i as int).
-        Parent:ImportRow(pcfile,i).
+        Model:ImportRow(pcfile,i).
     end method.
     
     /* single row import of the entity (flat no tree) */     
     method public override void ImportRow(pcfile as char, c as char).
-        Parent:Importrow(pcfile,c).
+        Model:Importrow(pcfile,c).
     end method.
     
 /*    method public override void ImportTree(pcfile as char).*/
-/*        Parent:ImportTree(pcfile).                         */
+/*        Model:ImportTree(pcfile).                         */
 /*    end method.                                            */
     
     method public override void ReadChild(pParentrow as IRow, pjson as JSONObject).
-        Parent:ReadChild(pParentrow, pjson).
+        Model:ReadChild(pParentrow, pjson).
     end method.
     
     method public override void TableRefreshed(msg as ITableResponse):

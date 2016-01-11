@@ -184,7 +184,11 @@ DEFINE VARIABLE TagLine       AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE cSuperEvent   AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE lEmpty        AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE ctempFile     AS CHARACTER                             NO-UNDO.
-define variable lAllowEmptyTriggers as logical no-undo.
+define variable lAllowEmptyTriggers as logical                         no-undo.
+/* hack to handle compile error from ide wizard  */
+define variable lNewIDEObj    as logical                               no-undo.
+
+/* used when there is a pearate code path to call ide */
 define variable cErrMsg          as character no-undo.
 DEFINE BUFFER x_U  FOR _U.
 DEFINE BUFFER xx_U FOR _U.
@@ -305,7 +309,7 @@ DO ON STOP  UNDO, RETRY
      IF SEARCH(sdo_tmp_file) <> ? THEN
      DO:
         if OEIDE_CanShowMessage() then
-            lok = ShowMessageInIDE(SUBSTITUTE("&1 already exists. Do you want to replace it?:^^&2",sdo_tmp_file,cReturnValue),
+            lok = ShowMessageInIDE(SUBSTITUTE("&1 already exists. Do you want to replace it?&2",sdo_tmp_file,cReturnValue),
                               "information":U,?,"yes-no":U,lok).
         
         else 
@@ -2387,18 +2391,51 @@ PROCEDURE compile-and-load:
                 "However, the source file was saved successfully." 
                 VIEW-AS ALERT-BOX ERROR.
             ELSE DO:
+              
+              if OEIDEIsRunning then 
+              do:
+                 run isNewInIDE(output lNewIDEObj).
+              end.    
+              
               ASSIGN
-                can_run = NO.
-              MESSAGE
-                _save_file SKIP
-                "The file was saved. However, it did not compile successfully." SKIP (1)
-                "Would you like to view the compilation errors?"
-                VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
-                UPDATE ok2continue.  
-              IF ok2continue
-              THEN
-                RUN report-compile-errors (_save_file).
-
+                can_run = NO
+                cErrMsg = _save_file + "~n" 
+                        + "The file was saved. However, it did not compile successfully.~n~n"
+                        +  if lNewIDEObj then
+                            "Select Check Syntax to view the compilation errors." 
+                           else
+                            "Would you like to view the compilation errors?".
+                 
+              if OEIDEIsRunning then
+              do: 
+                  if OEIDE_CanShowMessage() then 
+                  do:
+                      if not lNewIDEObj then
+                         ok2Continue = ShowMessageInIDE(cErrMsg,"question",?,"yes-no",ok2Continue).
+                      else do:
+                         ShowOkMessageInIDE(cErrMsg,"warning",?).
+                         ok2Continue = false. 
+                      end. 
+                  end.
+                  else do:
+                      if not lNewIDEObj then
+                         MESSAGE cErrMsg VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
+                                 UPDATE ok2continue.  
+                      else do:
+                         MESSAGE cErrMsg VIEW-AS ALERT-BOX WARNING. 
+                         ok2Continue = false. 
+                      end.
+                  end.
+                  if ok2continue then 
+                      run choose_check_syntax in _h_uib.
+              end.
+              else do:
+                  MESSAGE
+                      cErrMsg VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO 
+                      UPDATE ok2continue.  
+                  IF ok2continue THEN
+                      RUN report-compile-errors (_save_file).
+              end. 
             END. /* saved, but did not compile. */
 
           END. /* IF compiler:error ... */
@@ -2901,6 +2938,27 @@ PROCEDURE Put_Proc_Desc:
   PUT STREAM P_4GL UNFORMATTED
     SKIP "*/" SKIP.
 END PROCEDURE.     
+
+/* hackety hack 
+@todo return that a compile error occured from the entry point in the stack instead */
+PROCEDURE isNewInIDE: 
+    define output parameter pnewinide as logical no-undo.
+    define variable i as integer no-undo.
+    define variable cProg as character no-undo.
+    if OEIDEISrunning then  
+    do while true:
+        i = i + 1.
+        cProg = program-name(i).
+        if cProg = ? then 
+            leave.
+        if cProg begins "openNewFile adeuib/_oeideuib.p":U then 
+        do:
+            pnewinide = true.
+            leave.
+        end.          
+    end.        
+END PROCEDURE.  
+
 
 {adeuib/_genpro2.i}    
 

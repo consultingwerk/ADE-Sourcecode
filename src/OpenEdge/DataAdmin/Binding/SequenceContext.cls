@@ -1,4 +1,27 @@
  /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.ContextTree.
+USING OpenEdge.DataAdmin.Binding.DataAdminContext.
+USING OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+USING OpenEdge.DataAdmin.Binding.Factory.IContextScope.
+USING OpenEdge.DataAdmin.Binding.Factory.ISchemaScope.
+USING OpenEdge.DataAdmin.Binding.Factory.ISchemaScope.
+USING OpenEdge.DataAdmin.Binding.IContextTree.
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Binding.ServiceAdapter.
+USING OpenEdge.DataAdmin.Binding.ServiceAdapter.
+USING OpenEdge.DataAdmin.DataAdminService.
+USING OpenEdge.DataAdmin.Error.DataContextError.
+USING OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+USING OpenEdge.DataAdmin.IDataAdminCollection.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ISequence.
+USING OpenEdge.DataAdmin.Message.ISaveRequest.
+USING OpenEdge.DataAdmin.Message.SaveRequest.
+USING OpenEdge.DataAdmin.Sequence.
+USING OpenEdge.DataAdmin.SequenceSet.
+USING Progress.Lang.*.
  /* Copyright (c) 2010 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -15,34 +38,9 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
 
-using OpenEdge.DataAdmin.Sequence from propath.
-using OpenEdge.DataAdmin.ISequence from propath.
-using OpenEdge.DataAdmin.SequenceSet from propath. 
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath. 
 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-using OpenEdge.DataAdmin.Error.DataContextError  from propath.
-
-using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.ISchemaScope from propath. 
  
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-
 class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/sequence.i}
@@ -53,10 +51,6 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
     define variable SchemaName as character no-undo init "PUB".
     define private variable mSaveDataset as handle no-undo.
       
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsSequence:handle.
-        end get.
     
 	define public override property TableHandle as handle no-undo 
     	get():
@@ -94,7 +88,12 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
            SkipList = "sequenceValues".
         end.
     end constructor.
-	
+    
+	    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsSequence:handle. 
+    end method.
+    
 	 /**  Create row with key - used by CreateRootRow */
     method protected override void InitRow(pName as char):
         create ttSequence.
@@ -113,7 +112,7 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
         return tree:GetReadHandle().
     end method.
 	
-	method public override void CopyTable(cntxt as IDataAdminContext).
+	method public override void CopyTable(cntxt as IDataAdminModel).
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
@@ -229,10 +228,6 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
         return new SequenceSet(cntxt). 
     end method.
-    
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Sequence(cntxt).
-    end method. 
     
     method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
         return new Sequence(this-object,pReq).

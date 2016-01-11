@@ -13,20 +13,21 @@
   ----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-define temp-table ttField no-undo serialize-name "lobFields" {1}
+define temp-table ttField no-undo serialize-name "fields" {1}
     field Name          as character serialize-name "name"
     field TableName     as character serialize-name "tableName"
     field Description   as character serialize-name "description"
     field AreaName      as character serialize-name "areaName"
     field AreaUrl       as character serialize-name "area_url"
     field IsMultitenant as logical   serialize-name "isMultitenant"
+    field IsLob         as logical   serialize-name "isLob" 
  
 /*     field IsMandatory     as logical  */
 /*     field IsCaseSensitive as logical  */
     field tRowid          as rowid     serialize-hidden
     field DataType        as character serialize-name "dataType"
 /*     field DisplayFormat   as character*/
-/*     field SideLabel       as character*/
+/*     field Label       as character*/
 /*     field ColumnLabel     as character*/
 /*     field initialValue    as character*/
 /*     field Order           as integer  */

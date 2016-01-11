@@ -70,6 +70,11 @@ DEFINE VARIABLE sqltables-seqpre AS CHARACTER NO-UNDO. /* sequence prefix- new s
 DEFINE BUFFER gate-buff FOR gate-work.
 DEFINE stream s_stm_errors.
 
+DEFINE VARIABLE SeqHdl AS HANDLE.
+DEFINE VARIABLE sqlstr AS CHAR.
+DEFINE VARIABLE owner AS CHAR.
+SeqHdl=TEMP-TABLE s_ttb_ntvseq:HANDLE.
+
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
 DEFINE VARIABLE err-msg AS CHARACTER NO-UNDO EXTENT 4 INITIAL [
@@ -254,6 +259,7 @@ for each s_ttb_fld: delete s_ttb_fld. end.
 for each s_ttb_idx: delete s_ttb_idx. end.
 for each s_ttb_idf: delete s_ttb_idf. end.
 for each s_ttb_con: delete s_ttb_con. end.
+for each s_ttb_ntvseq: delete s_ttb_ntvseq. end.
 
 /*------------------------------------------------------------------*/
 /*                        get driver-bug-info                       */
@@ -507,7 +513,6 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
           TRIM(DICTDBG.SQLTables_buffer.name) @ hint 
           WITH FRAME gate_wait.
 
-
     CREATE gate-work.
     ASSIGN
       lim = lim + 1
@@ -534,6 +539,7 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                                THEN DICTDB._File._File-name 
                                ELSE ?
                             ).
+
      /* assigning gate-work.gate-seqpre value to either "_SEQT_REV_" or "_SEQT_" )- OE157473 */
 	IF (object-type = "SEQUENCE") THEN DO:
 	  IF (sqltables-seqpre = "_SEQT_REV_")
@@ -635,7 +641,7 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
 
     CREATE gate-work.
-    ASSIGN
+     ASSIGN
       lim = lim + 1
       gate-work.gate-type = TRIM(STRING((AVAILABLE DICTDB._File 
                                     AND DICTDB._File._Frozen),"FROZEN:/"
@@ -658,9 +664,74 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
   END. /* DO TRANSACTION */
 
+/*-------------------------- NATIVE SEQUENCES -----------------------------*/
+
+  IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 11 THEN
+     hasNativeSeqSupport = YES.
+  
+ IF ( nativeseq = TRUE OR user_env[37] = "IP" ) AND hasNativeSeqSupport = TRUE THEN DO:
+   FIND DICTDB._Db where _Db-name  = LDBNAME("DICTDBG") AND _Db-type = 'MSS' NO-ERROR.
+       IF AVAILABLE DICTDB._Db THEN DO:
+            IF user_env[25] BEGINS "AUTO" THEN 
+                  ASSIGN owner = "%" . 
+            ELSE 
+                  ASSIGN owner = l_owner_f /* s_owner */.
+
+             ASSIGN sqlstr = "SELECT CAST(DB_NAME() AS VARCHAR (20)),
+                                     CAST (T0.SEQUENCE_SCHEMA AS VARCHAR (20)), T2.TYPE, 
+                                     CAST (T0.SEQUENCE_NAME AS VARCHAR (50)),
+                                     CAST( T0.DATA_TYPE AS VARCHAR (20)),
+                                     T0.NUMERIC_PRECISION, T0.NUMERIC_SCALE, 
+                                     CAST(T0.START_VALUE AS BIGINT), 
+                                     CAST(T0.MINIMUM_VALUE AS BIGINT), 
+                                     CAST(T0. MAXIMUM_VALUE AS BIGINT), 
+                                     CAST(T0.INCREMENT AS BIGINT), 
+                                     T0.CYCLE_OPTION, T2.CACHE_SIZE
+                             FROM
+                                     INFORMATION_SCHEMA.SEQUENCES AS T0
+                                     INNER JOIN sys.schemas AS T1 ON T1.NAME = T0.SEQUENCE_SCHEMA
+                                     INNER JOIN sys.sequences AS T2 ON T1.schema_id = T2.schema_id 
+                                                                          AND T0.SEQUENCE_NAME = T2.NAME
+                             WHERE
+                                     T2.type = 'SO' AND 
+                                     T0.SEQUENCE_CATALOG LIKE  '" + l_qual_f /* owner */ +
+                                     "' AND T0.SEQUENCE_SCHEMA LIKE '" + l_owner_f + "'" .
+
+             RUN STORED-PROC DICTDBG.send-sql-statement LOAD-RESULT-INTO SeqHdl NO-ERROR (sqlstr). 
+
+             FOR EACH gate-work where gate-type = "SEQUENCE":
+              /* native seq and rev/old seq of same name if exist in MS SQL,
+               * native seq will take precedence. rev/old will not be pulled 
+               * in the schema holder 
+               */
+              FIND s_ttb_ntvseq WHERE  s_ttb_ntvseq.seqname = gate-work.gate-name NO-LOCK NO-ERROR.
+                 IF AVAILABLE s_ttb_ntvseq /* gate-work */ THEN DO: 
+                   DELETE gate-work.
+                 END. 
+             END. 
+
+              FOR EACH s_ttb_ntvseq: 
+                CREATE gate-work.
+                   ASSIGN
+                      lim = lim + 1
+
+                      gate-work.gate-type = "SEQUENCE"
+                      gate-work.gate-name = s_ttb_ntvseq.seqname
+                      gate-work.gate-qual = s_ttb_ntvseq.fdbname
+                      gate-work.gate-user = s_ttb_ntvseq.schname
+                      gate-work.gate-prog = s_ttb_ntvseq.seqname
+                   /* gate-work.gate-prog = gate-work.gate-prog = ( IF AVAILABLE DICTDB._File
+                               THEN DICTDB._File._File-name 
+                               ELSE ? )*/ .
+              END.
+
+       END. /* End of AVAILABLE DICTDB._Db */
+END. /* End of Nativeseq */
+
+/*--------------------------------END NATIVE SEQUENCES--------------------------*/
+
 IF NOT SESSION:BATCH-MODE THEN
    HIDE FRAME gate_wait no-pause.
-
 
 {prodict/gate/gat_get.i
   &block     = "presel"
@@ -672,7 +743,7 @@ IF NOT SESSION:BATCH-MODE THEN
   &where     = "gate-work.gate-type <> ""STABLE"""
   }
 
-/*------------------------------------------------------------------*/
+
 
 
 

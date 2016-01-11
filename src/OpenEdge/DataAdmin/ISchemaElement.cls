@@ -37,7 +37,7 @@ interface OpenEdge.DataAdmin.ISchemaElement inherits IDataAdminElement:
     /** Collection of partitions mapped by tenant or tenantgroup */  
     define public property Partitions  as ISchemaPartitionMap no-undo get.
    
-    /** Description   */ 
-    define public property Description   as character no-undo get.  
+    /** Description (set may give error if not yet supported)  */ 
+    define public property Description   as character no-undo get. set.
 
 end interface.

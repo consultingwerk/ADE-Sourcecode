@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation       */
+ /* Copyright (c) 2011-2013 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -14,29 +14,33 @@
     Created     : Thu Aug 05 01:10:52 EDT 2010
     Notes       : 
   ----------------------------------------------------------------------*/
-
-using Progress.Lang.* from propath .
-using Progress.Json.ObjectModel.JSONObject from propath.
-using OpenEdge.DataAdmin.IDataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.IRow from propath.
-using OpenEdge.DataAdmin.Binding.IContextWriter from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IRowChange from propath.
-using OpenEdge.DataAdmin.Binding.IIterable from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
-using OpenEdge.DataAdmin.Message.ITableResponse from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Lang.IQueryMap from propath.
-
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IIterable.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.IRowChange.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminService.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Lang.IQueryMap.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using OpenEdge.DataAdmin.Message.ITableResponse.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
+ 
 interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQueryMap: 
      define public event RowCreated signature void (). 
      define public event RowDeleted signature void (). 
-     define public event AddedToContext signature void (newContext as IDataAdminContext). 
+     
+     /* defined in context and not model since entities added with no context will subscribe to the query 
+        and need to be refreshed 
+        (DataAdminCollection Context setter does not subscribe from query ) */
+     
+     define public event AddedToContext signature void (newContext as IDataAdminModel). 
      define public event ContextDeleted signature void (). 
      define public event ContextRefreshed signature void (tblResponse as ITableResponse). 
     
@@ -82,11 +86,16 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
      define public property LastSavedDataset as handle no-undo get. set.
      define public property Name          as char    no-undo  get. 
      define public property Count         as integer no-undo  get. 
-     define public property Total         as integer no-undo  get.
+     define public property Total         as int64 no-undo  get.
      define public property ReadOnly      as logical  no-undo  get.   
      
      define public property RootId        as rowid no-undo  get.   
      
+     /** currently root is default (dataset did not support this in first release - UI need to support old versions) */
+     define public property ExportWithRoot       as logical no-undo  get. set.   
+     /** can genarate code  */
+     define public property CanGenerateCode      as logical no-undo  get. set.   
+  
      define public property Lazy          as logical  no-undo  get.  set.
      
      method public logical HasChanges().
@@ -95,6 +104,12 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
      
      method public ISaveRequest GetSaveRequest().
      
+     /* optional call back from context tree. 
+        called when parse is complete
+         return json  to export instead  of dataset
+         return unknown to use standard dataset. write-json  */
+     method public JSONObject GetJSONExport(tree as IContextTree).
+   
 /*     method public void ValidateChanges(pchngh as IDataChanges):*/
      
      method public void ValidateChanges(phDs as handle ):
@@ -109,55 +124,55 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
      method public void SaveRow(entity as IDataAdminElement).
      method public void SaveCollection(entity as IDataAdminCollection).
      */
-     method public void CreateRow(entity as IDataAdminElement).
      
+     /* returns true if the context can use copy (same table and local context) 
+        (if copy is false then createRow is used (collection AddAll - collection Add - context AddEntity)) 
+        Note - this should not check if data is valid , only check if TT is the same and context state allows transfer  
+        */
+     method public logical CanCopy(cntxt as IDataAdminContext).
+     
+     /* a physical copy, but logically a transfer of local (new) context to another context 
+       - the objects will become attached - publish AddedToContext -> NewContext */
      method public void Copy(cntxt as IDataAdminContext).
-       
-     method public void MoveQueries(cntxt as IDataAdminContext).
+     
+     method public void CreateRow(entity as IDataAdminElement).
      
      method public character TransformQuery(pQuery as char).
      
      method public void TransferMatchingRequests(pReq as IRequestInfo extent,pmsg as IFetchRequest):
      method public void TransferMatchingRequests(pReq as IRequestInfo,pmsg as IFetchRequest):
      
-     /*
-     
-    /* resolve query columns for QueryString parsing */
-     method public character ColumnSource(pcColumn as char).
-     
-     /* resolve query columnExpression for QueryString parsing - unknown = use as-is */
-     method public character ColumnExpression(pcColumn as char,pcOperator as char,pcValue as char):
-        
-       */
-   
-/*     method public void CopyTable(cntxt as IDataAdminContext).*/
-     
-     /** GetChild context  
-       @param serializeName */
-     method public IDataAdminContext GetChild(name as char).
-     
-     /** GetContext get a context from the scope/factory  
-       @param serializeName */
-/*     method public IDataAdminContext GetContext(name as char).*/
+     /*** Add* visitor methods that adds context information to the context tree and traverses children 
+          to create datasets for all purposes - export, import, request  */
+     method public void AddRowTo(tree as IContextTree,prid as rowid).
      
      method public void AddTableTo(tree as IContextTree).
-     method public void AddRowTo(tree as IContextTree,prid as rowid).
+     method public void AddTableTo(tree as IContextTree,pReq as IRequestInfo).
+     
+     method public void AddChildrenTo(tree as IContextTree,pReq as IRequestInfo).
+     method public void AddChildrenTo(tree as IContextTree,pcCollections as char,pReq as IRequestInfo).
+ 
      method public void AddTreeTo(tree as IContextTree).
-     method public void AddTreeTo(tree as IContextTree,parent as IDataAdminContext).
-     method public void AddTreeTo(tree as IContextTree,parent as IDataAdminContext,pcCollections as char).
+     method public void AddTreeTo(tree as IContextTree,pReq as IRequestInfo).
+ 
      method public void AddTreeTo(tree as IContextTree,pcCollections as char).
-      
-     method public void WriteTo(writer as IContextWriter).
-     method public void WriteRowTo(writer as IContextWriter,pcKey as char).
-     method public void WriteRowTo(writer as IContextWriter,piKey as int).
-/*                                                                  */
+     method public void AddTreeTo(tree as IContextTree,pcCollections as char,pReq as IRequestInfo).
+    
+     method public void AddTreeTo(tree as IContextTree,parent as IDataAdminContext,pReq as IRequestInfo).
+     method public void AddTreeTo(tree as IContextTree,parent as IDataAdminContext,pcCollections as char,pReq as IRequestInfo).
+    
+     /* receives response for all data requests */ 
      method public void DataRefreshed(response as IFetchResponse).
 
-     
      /* returns the join field names (comma separated) from the passed serializename
         parameter ot serializename.propertyname that is passed in. 
         the fields are ordered parent,child  */ 
      method public character GetJoinFields(parentid as char).
+     
+     /* shorthand to get the parent fields from joinfields ( implement as final, only GetJoinFields should be override ) */
+     method public character GetChildJoinFields(parentid as char).
+     /* shorthand to get the child fields from joinfields (  implement as final, only GetJoinFields should be override ) */
+     method public character GetParentJoinFields(parentid as char).   
      
      method public character extent GetKeyValues(pBuffer as handle).
      
@@ -173,33 +188,9 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
      method public character GetServerJoinFields(parentid as char).
      **/
      
-     /** return a new collection - empty except defaults
-         Only used once in the lifetime to create a local context (in a service). */
-     method public IDataAdminCollection NewCollection().
-     
-     method public IDataAdminCollection GetCollection().    
-     method public IDataAdminCollection GetCollection(filter as char).    
-     method public IDataAdminCollection GetCollection(preq as IRequestInfo).
-         
-     method public IDataAdminCollection GetCollection(pParentRow as IRow,pReq as IRequestInfo).    
-     method public IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char).    
-     method public IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char extent).
-     method public IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char,preq as IRequestInfo).    
-/*     method public IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as int,preq as IRequestInfo).*/
-     method public IDataAdminCollection GetCollection(pcParentSerializename as char,pKey as char extent,preq as IRequestInfo).    
-     /** get a child collection 
-         @todo move to IDataAdminModel  */
-     method public IDataAdminCollection GetChildCollection(pParent as IRow,preq as IRequestInfo).    
-     method public IDataAdminCollection GetChildCollection(pParent as IRow,serializename as char).    
-       /*  @todo deprecate the overlaods below  */
-     method public IDataAdminCollection GetChildCollection(ckey as char,serializename as char).    
-     method public IDataAdminCollection GetChildCollection(ikey as int,serializename as char).    
-     method public IDataAdminCollection GetChildCollection(cKey as char extent,serializename as char).
-     method public IDataAdminCollection GetChildCollection(pcKey as char,preq as IRequestInfo).
-     method public IDataAdminCollection GetChildCollection(piKey as int,preq as IRequestInfo).
-     method public IDataAdminCollection GetChildCollection(pcKey as char extent,preq as IRequestInfo).
-     
-    
+     /** add an entity to the context (wrapper for IDataAdminElement.attach(IDataAdminModel)   which will call createRow or copy in model again )  */
+     method public logical AddEntity(i as IDataAdminElement).
+      
      /** get a standalone entity - optional if int key - default to unsupported
          @param id integer key
          will be requested from server if necessary and can retrieve single table or 
@@ -277,16 +268,24 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
          in local context (in a service). */
      method public void CreateRootRow(pReq as IRequestInfo).
    
- 
      method public void ReadChild(parentRow as IRow,json as JSONObject).
-    
-     /** import single table for a single parent (used by FilteredContext) */
-     method public void ImportForParent(pcparent as char, pckey as char,pcfile as char).
-     /** import single new table for a single parent (used by FilteredContext) */
-     method public void ImportNewForParent(pcparent as char, pckey as char,pcfile as char).
      
+     /** read the root of the json file - (really a utility)
+         This is either a node named "root" (prodataset format) or the real json root    */
+     method public JsonObject ReadJsonRoot(pcFile as char).
+ 
+     /* allow caller to pass json object */    
+     method public void Import(pjsonRoot as JsonObject,pcMode as char).     
+    
+    /* allow caller to pass json object */    
+     method public void ImportTree(pjsonRoot as JsonObject,pcMode as char).     
+    
      /** import of the entity (flat no tree) */     
      method public void Import(pcfile as char,pcMode as char).
+     
+     /** import delete entity (flat no tree) */     
+     method public void ImportDelete(pcfile as char).
+ 
      /** import of the entity as tree with root node */     
      method public void ImportTree(pcfile as char,pcMode as char).
      
@@ -297,6 +296,11 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
      method public void ImportRowTree(pcfile as char, cKeyValues as char extent).           
      method public void ImportRowTree(pcfile as char, i as int).
      method public void ImportRowTree(pcfile as char, c as char).
+     
+     /*serialize the context to a stream */
+     method public int Serialize(phStream as handle).
+     /* deserialize specified num rows context from a stream  */
+     method public int Deserialize(phStream as handle,piMaxnum as int,pcmode as char).
     
      method public void Export(pcfile as char,pchidefields as char).
      method public void ExportLastSaved(pcfile as char).

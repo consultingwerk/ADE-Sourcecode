@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2010,2014 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -59,6 +59,9 @@ DEFINE VARIABLE curr_value AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE c_not_largeseq AS CHARACTER        NO-UNDO.
 DEFINE VARIABLE ctemp          AS CHARACTER            NO-UNDO.
 define variable multitenantdb as logical no-undo.
+DEFINE VARIABLE IsMultitenant  AS LOGICAL              NO-UNDO.
+DEFINE VARIABLE IsPartitioned  AS LOGICAL              NO-UNDO.
+
 /* Recid of sequence whose properties are showing (disp) and recid of
    the selected sequence in the list (rec). */
 DEFINE VARIABLE qbf_disp AS RECID   INITIAL ?     NO-UNDO.
@@ -466,7 +469,9 @@ RUN prodict/user/_usrinf3.p
        OUTPUT cTemp, 
        OUTPUT cTemp,
        OUTPUT large_seq,
-       OUTPUT answer).
+       OUTPUT answer,
+       OUTPUT isMultitenant,
+       OUTPUT isPartitioned).
 
 /* dbs running with pre-10.01B servers will have no knowledge of 64-bit sequences,
    so don't need to display message (in which case large_seq = ?)

@@ -1,5 +1,6 @@
  /*************************************************************/
- /* Copyright (c) 2011,2012 by progress Software Corporation  */
+
+ /* Copyright (c) 2011-2013 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -14,43 +15,40 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
 
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.Tenant from propath.
-using OpenEdge.DataAdmin.TenantSet from propath.
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath. 
-
-using OpenEdge.DataAdmin.Binding.IContextTree from propath. 
-using OpenEdge.DataAdmin.Binding.ContextTree from propath. 
-using OpenEdge.DataAdmin.Binding.PartitionContext from propath. 
-using OpenEdge.DataAdmin.Binding.NewPartitionContext from propath. 
-using OpenEdge.DataAdmin.Binding.TenantGroupContext from propath. 
-using OpenEdge.DataAdmin.Binding.UserContext from propath. 
-using OpenEdge.DataAdmin.Binding.TenantGroupMemberContext from propath. 
-using OpenEdge.DataAdmin.Binding.DomainContext from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
- 
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath. 
-using OpenEdge.DataAdmin.Binding.Query.TenantGroupTenantQuery  from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
-
-using OpenEdge.DataAdmin.Error.* from propath.
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath.
-using OpenEdge.DataAdmin.Message.SaveRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
-using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
-using OpenEdge.DataAdmin.Message.FetchRequest from propath.
-using OpenEdge.DataAdmin.Support.TenantGroupTenantSet  from propath. 
-
-using OpenEdge.DataAdmin.Support.TenantGroupTenantSet  from propath. 
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.DomainContext.
+using OpenEdge.DataAdmin.Binding.Factory.IContextFactory.
+using OpenEdge.DataAdmin.Binding.Factory.IMultiTenantScope.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.TenantGroupTenantQuery.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.TenantGroupContext.
+using OpenEdge.DataAdmin.Binding.TenantGroupMemberContext.
+using OpenEdge.DataAdmin.Binding.UserContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.*.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ITenant.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchResponse.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using OpenEdge.DataAdmin.Message.SaveRequest.
+using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
+using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
+using OpenEdge.DataAdmin.Tenant.
+using OpenEdge.DataAdmin.TenantSet.
+using Progress.Lang.*.
 
 class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -72,14 +70,6 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     define private variable ValidDefaultAllocationList as char init "Immediate,Delayed,None" no-undo.
     define private variable ValidDefaultAllocationString as char init "~"Immediate~", ~"Delayed~" and ~"None~"" no-undo.
    
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            if not valid-handle(DatasetHandle) then 
-                DatasetHandle  = dataset dsTenant:handle.
-            return DatasetHandle.
-        end get.
-        private set.
-        
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttTenant:handle.
@@ -103,7 +93,6 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
             return Count.
         end.
         protected set.
-    
    
     define private variable ContextFactory as IMultiTenantScope no-undo.
     define private variable TenantGroupContext as TenantGroupContext no-undo.
@@ -114,7 +103,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         define variable tenantgroupmembercntxt as TenantGroupMemberContext no-undo.
         
         super ("Tenant").
-        
+        CanGenerateCode = true.
         users = new UserContext().
         /* users is not part of default tree (users on domain is) */
         SkipList = "users".
@@ -134,7 +123,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
   
     constructor public TenantContext (pScope as IMultiTenantScope):
         super ("Tenant",pScope).
-        
+        CanGenerateCode = true.
         AddChild(pScope:DomainContext).
         AddChild(pScope:UserContext).
         AddChild(pScope:PartitionContext).
@@ -152,7 +141,12 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         ContextFactory = pScope.
         CanEditKey = true.
     end method.
- 
+    
+        /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsTenant:handle. 
+    end method.
+    
 	method public override void CreateRow(entity as IDataAdminElement):
 	    /* the default syserror has all info */
 	    CreateRow(cast(entity,ITenant)).    
@@ -194,11 +188,108 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
 /*        Loaded = false.                                   */
 /*    end method.                                           */
               
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
         Loaded = false. 
+    end method. 
+    
+    method protected override void SerializeRow(phStream as handle):
+        export stream-handle phStream
+            ttTenant.Name
+            ttTenant.ExternalId
+            ttTenant.Description 
+            ttTenant.Type
+            ttTenant.DefaultDataAreaName
+            ttTenant.DefaultIndexAreaName 
+            ttTenant.DefaultLobAreaName
+            ttTenant.DefaultAllocation
+            ttTenant.IsDataEnabled 
+            .
+    end method. 
+    
+    method protected override logical DeserializeRow(phStream as handle, plReplace as log):
+        define variable lok as logical no-undo.
+        define variable lnew as logical no-undo.
+        define variable tname like ttTenant.Name no-undo.
+        define variable tExternalId like ttTenant.ExternalId no-undo.
+        define variable tDescription like ttTenant.Description no-undo.
+        define variable tType like ttTenant.Type no-undo.
+        define variable tDefaultDataAreaName like ttTenant.DefaultDataAreaName no-undo.
+        define variable tDefaultIndexAreaName like ttTenant.DefaultIndexAreaName no-undo.
+        define variable tDefaultLobAreaName like ttTenant.DefaultLobAreaName no-undo.
+        define variable tDefaultAllocation like ttTenant.DefaultAllocation no-undo.
+        define variable tIsDataEnabled like ttTenant.IsDataEnabled no-undo.
+        
+        do on endkey undo, leave:
+            import stream-handle phStream
+              tName
+              tExternalId
+              tDescription
+              tType
+              tDefaultDataAreaName
+              tDefaultIndexAreaName
+              tDefaultLobAreaName
+              tDefaultAllocation
+              tIsDataEnabled.
+            
+            if plReplace then
+            do: 
+                find ttTenant where ttTenant.name = tname no-error.
+            end.
+            
+            if not plReplace or not avail ttTenant then 
+            do:
+               create ttTenant. 
+               lnew = true.
+            end.        
+            assign 
+              ttTenant.Name = tName
+              ttTenant.ExternalId = tExternalId
+              ttTenant.Description = tDescription
+              ttTenant.Type = tType 
+              ttTenant.DefaultDataAreaName = tDefaultDataAreaName 
+              ttTenant.DefaultIndexAreaName = tDefaultIndexAreaName 
+              ttTenant.DefaultLobAreaName = tDefaultLobAreaName 
+              ttTenant.DefaultAllocation = tDefaultAllocation 
+              ttTenant.IsDataEnabled = tIsDataEnabled.
+            
+            lok = true.    
+            catch e as Progress.Lang.Error :
+                /* already exists - allow default tenant */
+                if e:GetMessageNum(1) = 132 then.
+                do:
+                    /* allow deserialize of default since it always exists */
+                    if ttTenant.type = "default" then
+                    do: 
+                        find btenant where bTenant.name = tname.
+                        btenant.Description = tDescription.
+/*           ??           btenant.IsDataEnabled = ttTenant.IsDataEnabled.*/
+                        delete ttTenant.    
+                      /* return - don't count and don't send oncreated*/
+                        return true.                       
+                    end.          
+           	    end.
+           	    undo, throw e.
+            end catch. 
+        end.
+        if not lok   then   
+        do:
+            if avail ttTenant and lnew then
+                delete ttTenant.
+        end.    
+        else if lok and lnew then     
+        do: 
+            Count = Count + 1.
+            OnRowCreated().
+        end.     
+        return lok.
+        catch e as Progress.Lang.Error :
+            if avail ttTenant and lnew then
+                delete ttTenant.
+            undo, throw e.
+        end catch.      
     end method. 
     
 	method private void CopyTable(input table copytable):
@@ -383,12 +474,12 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         
 	end method.    
 	
-	method public override FilteredContext CreateFilteredContext( pparent as character, pkey as character, pReq as IRequestInfo ):
-        if pparent = "tenantGroups" then
+	method public override FilteredContext CreateFilteredContext( pparent as IRow, pReq as IRequestInfo ):
+        if pparent:SerializeName = "tenantGroups" then
         do:
-            return new TenantGroupTenantQuery(this-object,pkey,pReq).          
+            return new TenantGroupTenantQuery(this-object,pparent:KeyValue,pReq).          
         end.
-        return super:CreateFilteredContext(pparent, pkey,pReq).
+        return super:CreateFilteredContext(pparent, pReq).
 
     end method.
 	
@@ -403,7 +494,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     end method.
     
 	 /* support many-to-many to tenants (tenants as child) */    
-    method public override IDataAdminContext GetChild(pname as char):
+    method protected override IDataAdminModel GetNamedChild(pname as char):
         define variable i as integer no-undo.
         if pName = "tenantGroups" then
         do:
@@ -414,17 +505,17 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
             end.
             return TenantGroupContext.
         end.
-        return super:GetChild(pname).
+        return super:GetNamedChild(pname).
      
     end method.    
     
-     method public override character  GetChildQuery(parentid as char,pcKeyValue as char).
+     method public override character  GetChildQuery(pParent as IRow).
         define variable cQuery as character no-undo.
         
-        case parentid:
+        case pParent:SerializeName:
             when "tenantGroups" then
             do:
-                cQuery = GetServerChildQuery(parentid,pcKeyValue) 
+                cQuery = GetServerChildQuery(pParent) 
                        + " where ttTenant.Name = ttTenantGroupMember.TenantName". 
                 cQuery = left-trim(cQuery).       
                 entry(1,cQuery," ") = "preselect".         
@@ -432,23 +523,23 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
                 return cQuery. 
             end.        
         end.    
-        return super:GetChildQuery(parentid,pcKeyValue). 
+        return super:GetChildQuery(pParent). 
         
     end method.
     
-    method public override character  GetServerChildQuery(parentid as char,pcKeyValue as char).
-        case parentid:
+    method public override character  GetServerChildQuery(pParent as IRow).
+        case pParent:SerializeName:
             when "tenantGroups" then
             do:
                 /* the left hand sisnde of the join is not transformed on server   
                    we manage the server relation in GetQueryRequest by defining a join in the request dataset()   */  
                 return  "for each ttTenantGroupMember where ttTenantGroupMember.TenantGroupName "  
                             + " = "    
-                            + quoter(pcKeyValue)
+                            + quoter(pParent:KeyValue)
                             + ", each ttTenant".
              end.    
          end. 
-         return super:GetserverChildQuery(parentid,pcKeyValue). 
+         return super:GetserverChildQuery(pParent). 
        
     end method.
     
@@ -466,7 +557,8 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     
 	method public void CreateRow(tenant as ITenant):
 	    define variable validateError as DataContextError no-undo.
-       
+        define variable lTrack as logical no-undo. 
+        lTrack = temp-table ttTenant:tracking-changes.
 	    temp-table ttTenant:tracking-changes = true.
 	    if valid-object(Service) then
 	       ValidateTenant(tenant).
@@ -501,7 +593,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
             end catch.  
         end.
         finally:
-            temp-table ttTenant:tracking-changes = false.        		
+            temp-table ttTenant:tracking-changes = lTrack.        		
         end finally.
     end method.
     
@@ -513,7 +605,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         find ttTenant where tttenant.name = name no-error.
         return avail tttenant.            
     end.    
-    
+          
     method public logical FindByExternalId(ExtId as character):
         find ttTenant where tttenant.ExternalId = ExtId no-error.
         return avail tttenant.            
@@ -534,7 +626,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     
     method public IDataAdminElement FindTenantByExternalId(ExtId as character):
         if this-object:FindByExternalId(ExtId) then
-            return CreateEntity(this-object).
+            return RealizeEntity().
         return ?.
     end method.
     
@@ -558,9 +650,6 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         return new Tenant(this-object,req).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Tenant(cntxt).
-    end method.
     /*
     method public ISaveRequest GetCreateRequest():
         define variable hchanges as handle no-undo.
@@ -799,7 +888,7 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         tree:Parse = true.        
         GetChild("partitions"):AddTableTo(tree).         
         
-        msg = new FetchRequest("Partition",Id,tree:GetReadHandle()).
+        msg = new FetchRequest("Partition",Id,tree:GetReadHandle(),no).
         msg:SetTableQuery("ttPartition","for each ttPartition where ttPartition.TenantName = " + quoter(pcGroup)).
         return msg.
    

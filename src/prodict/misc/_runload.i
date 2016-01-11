@@ -41,6 +41,7 @@ History:
 DEFINE INPUT PARAMETER p_Disable AS CHARACTER NO-UNDO.
 
 DEFINE SHARED STREAM   loaderr.
+DEFINE SHARED STREAM   loadread.
 DEFINE SHARED VARIABLE errs    AS INTEGER NO-UNDO.
 DEFINE SHARED VARIABLE recs    AS INT64. /*UNDO*/
 DEFINE SHARED VARIABLE xpos    AS INTEGER NO-UNDO.
@@ -55,7 +56,7 @@ DEFINE        VARIABLE err%    AS INTEGER NO-UNDO.
 DEFINE        VARIABLE ans999  AS LOGICAL NO-UNDO.
 DEFINE        VARIABLE stopped AS LOGICAL NO-UNDO INIT FALSE.
 DEFINE        VARIABLE j       AS INTEGER NO-UNDO.
-
+define        variable iread   as integer no-undo.
 DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 42.
 DEFINE SHARED VARIABLE drec_db     AS RECID     NO-UNDO.
 
@@ -70,6 +71,13 @@ DEFINE VARIABLE cDbDetail          AS CHARACTER NO-UNDO EXTENT 4.
     DEFINE STREAM run_load.
     OUTPUT STREAM run_load TO TERMINAL.
   END.
+&ENDIF
+
+&IF "{4}" = "<collection>" &THEN
+   DEFINE VARIABLE service AS OpenEdge.DataAdmin.IDataAdminService NO-UNDO.
+   DEFINE VARIABLE collection AS OpenEdge.DataAdmin.IDataAdminCollection NO-UNDO.
+   service = new OpenEdge.DataAdmin.DataAdminService(ldbname("dictdb2")).
+   collection = service:GetCollection("{1}").
 &ENDIF
 
 ASSIGN
@@ -87,12 +95,10 @@ IF p_Disable  = "y" THEN
 top:
 DO WHILE TRUE TRANSACTION:
   nxtstop = recs + {3}.
-
   /* Go through set of {3} at a time */
   bottom:
   REPEAT FOR DICTDB2.{1}
     WHILE recs < nxtstop ON ENDKEY UNDO,LEAVE top:
-
     IF RETRY THEN DO:
       errs = errs + 1.
       IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
@@ -124,7 +130,7 @@ DO WHILE TRUE TRANSACTION:
     END.
 
     ASSIGN
-      errbyte = SEEK(INPUT)
+      errbyte = SEEK(loadread)
       errline = errline + 1
       recs    = recs + 1.
     
@@ -138,19 +144,19 @@ DO WHILE TRUE TRANSACTION:
         FIND DICTDB2._db WHERE RECID(DICTDB2._db) = drec_db.
         CREATE DICTDB2._db-detail.
 	  
-        IMPORT DICTDB2._db-detail NO-ERROR.
+        IMPORT STREAM loadread DICTDB2._db-detail NO-ERROR.
         DICTDB2._db._db-guid = DICTDB2._db-detail._db-guid.
       END.
       ELSE DO:
         CREATE DICTDB2._db-detail.
-        IMPORT DICTDB2._db-detail NO-ERROR.
+        IMPORT STREAM loadread DICTDB2._db-detail NO-ERROR.
       END.
     &ELSEIF "{1}" = "_db-option" &THEN
         /* check if the record for this db option exists. If not, create the record,
            otherwise just update the option.
         */
         cDbDetail = "".
-        IMPORT cDbDetail NO-ERROR.
+        IMPORT STREAM loadread cDbDetail NO-ERROR.
 
         IF NOT ERROR-STATUS:ERROR THEN DO:
             /* if can't find the record for the db option imported, create it */
@@ -174,7 +180,7 @@ DO WHILE TRUE TRANSACTION:
       define temp-table ttdom like {1}. 
       
       create ttdom.
-      IMPORT ttdom {7} {6} NO-ERROR.
+      IMPORT STREAM loadread ttdom {7} {6} NO-ERROR.
       IF NOT ERROR-STATUS:ERROR THEN 
       DO:
           if ttdom._Domain-category <> 0 then
@@ -205,7 +211,7 @@ DO WHILE TRUE TRANSACTION:
       define temp-table ttSec like {1}. 
       
       create ttSec.
-      IMPORT ttSec {7} {6} NO-ERROR.
+      IMPORT STREAM loadread ttSec {7} {6} NO-ERROR.
       IF NOT ERROR-STATUS:ERROR THEN
       DO: 
           if ttSec._domain-type begins '_' then
@@ -230,10 +236,16 @@ DO WHILE TRUE TRANSACTION:
           end.
       END.
       delete ttSec.
-      
+    &ELSEIF "{4}" = "<collection>" &THEN
+       iRead =  collection:deserialize(STREAM loadread:handle,1) no-error.
+       /* 0 = endkey */
+       if (iRead = 0 or iRead = ? ) and not ERROR-STATUS:ERROR then
+       do:
+           undo bottom, leave top.
+       end.   
     &ELSE
       CREATE {1}.
-      IMPORT {4} {7} {6} NO-ERROR.
+      IMPORT STREAM loadread {4} {7} {6} NO-ERROR.
     &ENDIF
      
     
@@ -261,9 +273,11 @@ DO WHILE TRUE TRANSACTION:
         UNDO bottom, RETRY bottom.
       END.
     END.   /* ERROR raised */
-
-    VALIDATE {1} NO-ERROR . 
-
+    &IF "{4}" = "<collection>" &THEN
+         service:UpdateCollection(collection) no-error .
+    &ELSE
+         VALIDATE {1} NO-ERROR . 
+    &ENDIF
     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
       IF TERMINAL <> "" AND user_env[6] = "s" THEN DO:
          DO j = 1 TO  ERROR-STATUS:NUM-MESSAGES:
@@ -279,11 +293,47 @@ DO WHILE TRUE TRANSACTION:
       END.
       UNDO bottom, RETRY bottom.
     END.   /* ERROR raised */
-    
+ 
 /*     IF recs = {5} THEN LEAVE top. */
-  END. /* end bottom repeat */
-END. /* top */
 
+    /* as of current we do this only for service, since these tables 
+       fails in schema traps but it should probably be done for all tables */
+    &IF "{4}" = "<collection>" &THEN
+    /* without this empty catch transaction errors are not suppressed 
+       and the catch in the transaction block gets en error without message
+       (this catch is never called with an Error)  */
+    catch e as Progress.Lang.Error :
+    end catch.
+    &ENDIF 
+  END. /* end bottom repeat */
+  
+  /* as of current we do this only for service, since these tables 
+     fails in schema traps but it should probably be done for all tables */
+  &IF "{4}" = "<collection>" &THEN
+    
+  catch e as Progress.Lang.Error :
+      errs = errs + 1.
+      IF TERMINAL <> "" AND user_env[6] = "s" THEN 
+      DO:
+         DO j = 1 TO e:NumMessages:
+            MESSAGE e:GetMessage(j)
+               VIEW-AS ALERT-BOX ERROR .
+         END.
+      END.
+      DO j = 1 TO e:NumMessages:
+          PUT STREAM loaderr UNFORMATTED
+            ">> ERROR LOADING TABLE {1}: " e:GetMessage(j) 
+            SKIP.
+      END.
+      leave top.     
+  end catch.
+  &ENDIF 
+  
+END. /* top transaction */
+
+&IF "{4}" = "<collection>" &THEN
+   delete object service no-error.
+&ENDIF    
 IF stopped 
    THEN RETURN "stopped".
    ELSE RETURN.

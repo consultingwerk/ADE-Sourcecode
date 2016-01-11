@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /* Define preprocessors that allow this file to compile under WorkBench. */     
-&IF "{&OPSYS}" = "MSDOS" &THEN
+&IF "{&OPSYS}" = "MSDOS":U &THEN
   &SCOPED-DEFINE WEB-NOTIFY WINDOW-CLOSE
   &SCOPED-DEFINE WEB-CURRENT-ENVIRONMENT ""
   &SCOPED-DEFINE WEB-FORM-INPUT ""
@@ -159,7 +159,7 @@ PROCEDURE PrintAdminForm:
     '<LI>':U 'Set all options ':U '<A HREF="':U SelfURL '?debug=on">ON</A><BR>~n':U
 
     /* link for "off" */
-    '<LI>' 'Set all options ':U '<A HREF="':U SelfURL '?debug=off">OFF</A><BR>~n':U
+    '<LI>':U 'Set all options ':U '<A HREF="':U SelfURL '?debug=off">OFF</A><BR>~n':U
 
     '<FORM ACTION="':U SelfURL '" METHOD=POST>~n':U
 
@@ -220,7 +220,7 @@ PROCEDURE PrintAdminForm:
 
     /* Convenient way to reload the current page */
   {&OUT}
-    '<FORM ACTION="' SelfURL '" METHOD=GET>~n':U
+    '<FORM ACTION="':U SelfURL '" METHOD=GET>~n':U
     '<LI><P>Then <INPUT TYPE="submit" VALUE="reload"> this page with no form~n'
     'input and no arguments.  This will also syncronize the WSDebug~n'
     'Cookie with the current debug options.</P>~n'
@@ -250,7 +250,7 @@ END.  /* procedure PrintAdminForm */
 ****************************************************************************/
 PROCEDURE PrintAgent:
   /* Agent Specific Information */
-  DEFINE VARIABLE state-aware       AS LOGICAL    NO-UNDO FORMAT "YES/NO".
+  DEFINE VARIABLE state-aware       AS LOGICAL    NO-UNDO FORMAT "YES/NO":U.
   DEFINE VARIABLE transaction-state AS CHARACTER  NO-UNDO.
 
   RUN find-web-objects IN web-utilities-hdl (OUTPUT state-aware).
@@ -261,8 +261,8 @@ PROCEDURE PrintAgent:
     FILE-INFO:FILE-NAME = ".":U.
 
   {&OUT}
-    "<H2>Agent Specific Information</H2>~n"
-    "<UL>~n"
+    "<H2>Agent Specific Information</H2>~n":U
+    "<UL>~n":U
     "<LI><B>Any State-Aware Web objects?</B> "
       state-aware format "YES/NO " SKIP
     "<LI><B>Database Transaction</B> = "
@@ -273,8 +273,8 @@ PROCEDURE PrintAgent:
     "<LI><B>WEB-CONTEXT:EXCLUSIVE-ID</B> = " {&WEB-EXCLUSIVE-ID} SKIP
     "<LI><B>Default Directory</B> = " FILE-INFO:FULL-PATHNAME SKIP
     {&END}
-  RUN print-delimited-list ("<LI>", "<B>Web object path (PROPATH)</B> = ",
-                            PROPATH, ",", ?, "").
+  RUN print-delimited-list ("<LI>":U, "<B>Web object path (PROPATH)</B> = ":U,
+                            PROPATH, ",":U, ?, "").
   {&OUT}
     "</UL>~n~n":U
     {&END}
@@ -303,8 +303,8 @@ PROCEDURE PrintCookies:
       (IF i-cookie-list = "" THEN "none" ELSE i-cookie-list) '~n':U {&END}
 
   DO ix = 1 TO NUM-ENTRIES(i-cookie-list):
-    {&OUT} "<LI>" ENTRY(ix, i-cookie-list) " = "
-      html-encode(get-cookie(ENTRY(ix, i-cookie-list))) "~n" {&END}
+    {&OUT} "<LI>":U ENTRY(ix, i-cookie-list) " = ":U
+      html-encode(get-cookie(ENTRY(ix, i-cookie-list))) "~n":U {&END}
   END.
 
   {&OUT} "</UL>~n~n":U {&END}
@@ -327,33 +327,33 @@ PROCEDURE PrintVars:
 
   /* HTTP Headers */
   {&OUT}
-    "<H2>HTTP Headers Sent</H2>~n"
+    "<H2>HTTP Headers Sent</H2>~n":U
     {&END}
-  IF available-messages("http") THEN
-    output-messages("group","http", "HTTP Headers sent by this application").  
+  IF available-messages("http":U) THEN
+    output-messages("group":U,"http":U, "HTTP Headers sent by this application":U).  
   ELSE
-    {&OUT} '<P>None or not tracing headers</P>~n' {&END}
+    {&OUT} '<P>None or not tracing headers</P>~n':U {&END}
 
   /* Miscellaneous Variables */
   {&OUT}
-    "<H2>Miscellaneous Variables</H2>~n"
+    "<H2>Miscellaneous Variables</H2>~n":U
     "<UL>~n":U
-    "<LI>debug-options = " debug-options SKIP
-    "<LI>HostURL = " HostURL SKIP
-    "<LI>AppURL = " AppURL SKIP
-    "<LI>SelfURL = " SelfURL SKIP
-    "<LI>AppProgram = " AppProgram SKIP
-    "<LI>SelDelim = " SelDelim SKIP
-    "<LI>utc-offset = " utc-offset SKIP
+    "<LI>debug-options = ":U debug-options SKIP
+    "<LI>HostURL = ":U HostURL SKIP
+    "<LI>AppURL = ":U AppURL SKIP
+    "<LI>SelfURL = ":U SelfURL SKIP
+    "<LI>AppProgram = ":U AppProgram SKIP
+    "<LI>SelDelim = ":U SelDelim SKIP
+    "<LI>utc-offset = ":U utc-offset SKIP
     "</UL>~n~n":U
     {&END}
 
   /* Environment Variables */
   {&OUT}
-    "<H2>Environment Variables</H2>~n"
+    "<H2>Environment Variables</H2>~n":U
     "<DL>~n":U
     /* NOTE: this method is not recommended for new applications */
-    "<DT><B>WEB-CONTEXT:CURRENT-ENVIRONMENT</B> =~n"
+    "<DT><B>WEB-CONTEXT:CURRENT-ENVIRONMENT</B> =~n":U
     {&END}
 
   RUN print-delimited-list ("<DD>":U, "", {&WEB-CURRENT-ENVIRONMENT},
@@ -386,24 +386,24 @@ PROCEDURE PrintFields:
   /* If no form fields ... */
   /** if FieldList = "" then do: **/
   IF {&WEB-FORM-INPUT} = ? THEN DO:
-    {&OUT} "<P>No form information available</P>~n" {&END}
+    {&OUT} "<P>No form information available</P>~n":U {&END}
     RETURN.
   END.
 
   /* Get a list of all the form field and argument names */
   field-list = get-field(?).
 
-  {&OUT} "<DL>~n" {&END}
+  {&OUT} "<DL>~n":U {&END}
 
   {&OUT}
     /* NOTE: this method is not recommended for new applications */
-    "<DT><B>Raw input from WEB-CONTEXT:FORM-INPUT</B> =~n"
+    "<DT><B>Raw input from WEB-CONTEXT:FORM-INPUT</B> =~n":U
     {&END}
 
   RUN print-delimited-list ("<DD>":U, "", {&WEB-FORM-INPUT}, "&":U, 
                             "<BR>~n":U, "</DD>":U).
 
-  {&OUT} "<DT><B>List of fields</B> =~n" {&END}
+  {&OUT} "<DT><B>List of fields</B> =~n":U {&END}
 
   RUN print-delimited-list ("<DD>":U, "", field-list, ",":U, ?, "</DD>":U).
 
@@ -483,7 +483,7 @@ PROCEDURE print-delimited-list:
   END.
 
   /* Output HTML trailer */
-  {&OUT} p-trailer "~n" {&END}
+  {&OUT} p-trailer "~n":U {&END}
 
 END.  /* print-delimited-list */
 

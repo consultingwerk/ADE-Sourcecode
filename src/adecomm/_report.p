@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000,2009 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2009,2013 by Progress Software Corporation. All *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -598,13 +598,20 @@ ASSIGN
    edit_widg:PFCOLOR IN FRAME report = 0
    edit_widg:READ-ONLY IN FRAME report = yes
    edit_widg:SENSITIVE IN FRAME report = yes /* need this due to a GUI bug */  
-   FRAME report:TITLE = p_Title
+   FRAME report:TITLE = p_Title.
+
+DO ON ERROR UNDO, LEAVE:
    stat = edit_widg:READ-FILE(tmpfile) IN FRAME report.
+   CATCH ProgressError AS Progress.Lang.Error:  
+       IF ProgressError:GetMessageNum(1) EQ 5903 THEN
+           message "The report is too big to fit into the editor. The report has been written out to " + tmpfile view-as alert-box.
+        ELSE
+           MESSAGE ProgressError:GetMessage(1) VIEW-AS ALERT-BOX BUTTONS OK.  
+   END CATCH.
+END.
 
 /* display frame only if report could be read into the editor-widget (TH) */
-
-IF stat
- THEN DO:
+IF stat THEN DO:
   display p_Flags with frame report.
   ENABLE edit_widg 
        btn_Switch when show_switch
@@ -625,7 +632,8 @@ IF stat
 END.
 
 /* Close up shop. */
-OS-DELETE VALUE(tmpfile).
+IF stat THEN
+    OS-DELETE VALUE(tmpfile).
 HIDE FRAME report NO-PAUSE.
 HIDE MESSAGE NO-PAUSE.
 

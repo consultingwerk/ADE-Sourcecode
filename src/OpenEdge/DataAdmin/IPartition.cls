@@ -26,6 +26,9 @@ interface OpenEdge.DataAdmin.IPartition inherits IDataAdminElement:
     
     /** returns true if the partition belongs to a multi-tenant enabled table */
     define public property IsMultiTenant  as logical no-undo  get.
+
+    /** returns true if the partition belongs to a partition enabled table */
+    define public property IsPartitioned as logical no-undo  get.
     
     /** The TenantGroup of the partition - unknown if this is a tenant partition */
     define public property TenantGroup as ITenantGroup no-undo get.  

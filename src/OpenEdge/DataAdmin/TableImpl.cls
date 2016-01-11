@@ -25,9 +25,11 @@ using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.IIndexSet from propath.
 using OpenEdge.DataAdmin.IFieldSet from propath.
 using OpenEdge.DataAdmin.ITable from propath.
+using OpenEdge.DataAdmin.IPartitionPolicy from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.RequestInfo from propath.
 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
@@ -49,6 +51,8 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
             return IsMultiTenant.
         end.    
         set(plMulti as log):
+            /*  @todo - disallow true if IsPartitioned                                                       */
+    
             if IsMultiTenant and not plMulti then
                 undo, throw new AppError("Cannot set IsMultiTenant to false.").
             if valid-handle(mBuffer) then
@@ -60,11 +64,30 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
             /* this need to change if support of create */
             SetKeepDefaultTrue(). 
         end.     
-         
+        
+     /** is the table partitioned.   */
+    define public property IsPartitioned as logical no-undo  
+           get():
+            if valid-handle(mBuffer) then
+                return mBuffer::IsPartitioned.
+            return IsPartitioned.
+        end.    
+        set(plIsPartitioned as log):
+     /*  @todo - disallow true if IsMultiTenant                                                       */
+     /*            if IsMultiTenant and IsPartitioned then                          */
+     /*                undo, throw new AppError("Cannot set MultiTenant to false.").*/
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::IsPartitioned = plIsPartitioned.
+            end.
+            IsPartitioned = plIsPartitioned.    
+        end.
+        
     define public property KeepDefaultArea as logical no-undo  
         get():
             if valid-handle(mBuffer) then
-               return mBuffer::KeepDefaultArea.
+                return mBuffer::KeepDefaultArea.
             return KeepDefaultArea.
         end.    
         set(plKeep as log):
@@ -86,7 +109,6 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
             if valid-handle(mBuffer) then
             do:
                 mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-                hBefore = mbuffer:before-buffer.
                 mdefaultbuffer::KeepDefaultArea = plKeep.
                
             end.
@@ -94,11 +116,31 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
             KeepDefaultArea = plKeep.    
         end.     
     
+    define public property PartitionPolicy as IPartitionPolicy no-undo 
+        get():
+            if not valid-object(this-object:PartitionPolicy) and valid-handle(mBuffer) and valid-object(Service) then
+            do:
+                 this-object:PartitionPolicy = service:GetPartitionPolicy(mBuffer::PartitionPolicyName). 
+            end.
+            return this-object:PartitionPolicy.
+        end.
+        set. 
+    
+    define public property Fields as IFieldSet no-undo    
+        get():
+            if not valid-object( this-object:Fields) then
+                this-object:Fields = cast(GetChildCollection("fields"),IFieldSet).
+            return this-object:Fields.
+        end.
+        protected set.
+        
     /** Returns a set of the table's LOBs */ 
     define public property LOBFields as IFieldSet no-undo     
         get():
             if not valid-object(LOBfields) then
-                LOBFields = cast(Context:GetChildCollection(name,"lobFields"),IFieldSet).
+            do:
+                 LOBFields = cast(GetChildCollection("lobFields"),IFieldSet).
+            end.
             return LOBFields.
         end.
         protected set.
@@ -108,7 +150,7 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
     define public property Indexes as IIndexSet no-undo   
         get():
             if not valid-object(Indexes) then
-                Indexes = cast(Context:GetChildCollection(name,"indexes"),IIndexSet).
+                Indexes = cast(GetChildCollection("indexes"),IIndexSet).
             return Indexes.     
         end.
         protected set.
@@ -123,11 +165,11 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
 	------------------------------------------------------------------------------*/
  
     
-	constructor public TableImpl ( cntxt as IDataAdmincontext ):
+	constructor public TableImpl ( cntxt as IDataAdminModel ):
 		super (cntxt).
 	end constructor.
 	
-	constructor public TableImpl ( cntxt as IDataAdmincontext,pReq as IRequestInfo ):
+	constructor public TableImpl ( cntxt as IDataAdminModel,pReq as IRequestInfo ):
         super (cntxt,pReq).
     end constructor.
     
@@ -142,6 +184,7 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
     
     /** Allocate tenant partitions for table   
         Does not allocate partitions belonging to a tenantgroup  
+        Does not allocate partitions belonging to a PartitionPolicy
         @param AllocationState Specify state of partitions to allocate - All, Delayed or None 
         @return true if any partition was allocated 
         @throw IllegalArgumentError  */     
@@ -165,7 +208,7 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
     end method.
     
     /* No local context needed - not   used to create    */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     

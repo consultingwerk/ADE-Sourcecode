@@ -15,26 +15,27 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.  
-using Progress.Lang.* from propath.
-
-using OpenEdge.DataAdmin.IDataAdminService.
-using OpenEdge.DataAdmin.IExtent.
-using OpenEdge.DataAdmin.IDataAdminElement.
-using OpenEdge.DataAdmin.IDataAdminSerializable.
-using OpenEdge.DataAdmin.IArea.
-using OpenEdge.DataAdmin.IExtent.
-using OpenEdge.DataAdmin.IRequestInfo.
-using OpenEdge.DataAdmin.Core.JSONLoader.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-
 using OpenEdge.DataAdmin.Binding.AreaContext.
 using OpenEdge.DataAdmin.Binding.ExtentContext.
+using OpenEdge.DataAdmin.Binding.IContextTree.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IFilteredContext.
+using OpenEdge.DataAdmin.Core.JSONLoader.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError.
 using OpenEdge.DataAdmin.Error.UnknownValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IArea.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IDataAdminService.
+using OpenEdge.DataAdmin.IExtent.
+using OpenEdge.DataAdmin.IExtent.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 
-class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdminSerializable:
+class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdminSerializable  use-widget-pool:
     
     define private variable mDefaultBuffer as handle no-undo.
     define private variable mBuffer       as handle  no-undo. 
@@ -47,13 +48,13 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
             return "".       
         end.        
         
-    define protected property Context   as IDataAdminContext no-undo 
+    define protected property Context   as IDataAdminModel no-undo 
         get. 
-        private set(cntxt as IDataAdminContext ):  
+        private set(cntxt as IDataAdminModel ):  
             mDefaultBuffer = cntxt:TableHandle:default-buffer-handle.
             if not valid-handle(mBuffer) then
             do:
-                 if mDefaultBuffer:avail then
+                if mDefaultBuffer:avail then
                 do:       
                     create buffer mBuffer for table mDefaultBuffer.
                     mBuffer:serialize-name = mDefaultBuffer:serialize-name.
@@ -64,7 +65,9 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
             end.
             if valid-object(Context) then 
                 Context:AddedToContext:Unsubscribe(NewContext).
+            
             Context = cntxt.  
+            
             Context:AddedToContext:Subscribe(NewContext). 
         end.
    
@@ -96,6 +99,8 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
             return true.
         end.
         
+    define public property CodeExtension as char no-undo init "download" get. set.  
+     
     /** Tells whether an instance is modified after it was read from the service. 
         Always false if New. Can only be true for an Attached object. */
     define public property Modified as logical no-undo            
@@ -211,15 +216,26 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
             Size = pSize.
             Isfixed = pSize > 0.
         end. 
+        
+    /** The Size used (High water mark) of the extent in KB */
+    define public property SizeUsed  as int no-undo  
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::SizeUsed.
+            else
+                return SizeUsed. 
+        end.  
+         
     define public property RequestInfo as IRequestInfo no-undo get. protected set.
        
     constructor Extent():
         super().
     end method.
     
-    constructor Extent(cntxt as ExtentContext):
+    constructor Extent(cntxt as ExtentContext,pReq as IRequestInfo):
         super().
-        Context = cntxt.      
+        Context = cntxt.     
+        RequestInfo =  pReq.
     end method.
     
     constructor Extent(pArea as IArea,cntxt as AreaContext):
@@ -228,20 +244,43 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
         Context = cntxt.
     end method.
     
+    method public logical CanAttach(cntxt as IDataAdminContext):   
+        if valid-object(cntxt) then
+        do: 
+            /* no context - assume transition ok - collection:Add will deal with type checking */
+            if ContextId = "" then
+                return true.
+                
+            return cntxt:CanCopy(Context).     
+        
+        end.
+        return false.
+    end method.
+    
     method public void Attach(cntxt as IDataAdminContext):   
-        define variable oldcntxt as IDataAdminContext no-undo.
+        define variable oldcntxt as IDataAdminModel no-undo.
+        define variable newcntxt as IDataAdminModel no-undo.
         define variable lLocal as logical no-undo.
+
         if not valid-object(cntxt) then
             undo, throw new UnknownValueError("Attach","context").  
+        
+        if type-of(cntxt,IFilteredContext) then
+            newcntxt = cast(cntxt,IFilteredContext):Model. 
+        else if type-of(cntxt,IDataAdminModel) then
+            newcntxt = cast(cntxt,IDataAdminModel).
+        else      
+            undo, throw new IllegalArgumentError("Context passed to attach must be model or filter.").  
+        
         if ContextId = "" then
         do: 
-            mchild = true.
+            mChild = true.
             cntxt:CreateRow(this-object).
-            Context = cntxt.
+            Context = newcntxt.          
         end.
         else do:
             oldcntxt = Context.
-            llocal = mbuffer:rowid = oldcntxt:Rootid.
+            llocal = (mbuffer:rowid = oldcntxt:Rootid).
             /* only once - after this we are managed by collection or added to service
                the mchild deals with only copying this into a context once 
                From the first copy the data is managed by its collection or service.
@@ -249,21 +288,21 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
              */
             if not mChild then 
                 cntxt:Copy(Context).    
-            else 
-                Context = cntxt.          
+            else
+                Context = newcntxt.          
             
             mChild = true.           
         end.
-         /* this is not handled in newcontext since root id always goes through here */    
-        
-        if valid-object(oldcntxt) 
-        and llocal then 
+  
+        /* this is not handled in newcontext since root id always goes through here */    
+        if valid-object(oldcntxt) and llocal then
+        do:
             delete object oldcntxt.
-        
-    end method.
+        end.  
+    end method.  
     
     /* the context we attached to changed */
-    method protected void NewContext(cntxt as IDataAdminContext):
+    method protected void NewContext(cntxt as IDataAdminModel):
         define variable hNewDefaultBuffer as handle no-undo. 
         define variable hNewBuffer as handle no-undo. 
         hNewDefaultbuffer = cntxt:TableHandle:default-buffer-handle.
@@ -303,7 +342,15 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
     method public void WriteTree(tree as IContextTree,pcCollections as char):
         undo, throw new UnsupportedOperationError("WriteTree to ContextTree").        
     end method.
-       
+    
+    method public void ExportAsProcedure(pcfile as char ):
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
+    end method. 
+    
+    method public void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
+        undo, throw new UnsupportedOperationError("Generation of code for " + Context:Name). 
+    end method. 
+        
     method public void ExportTree(pcfile as char):
         this-object:Export(pcFile).
     end method.     
@@ -313,7 +360,7 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
     end method.     
     
     method public void Export():
-        Export("extent.json").
+        export("extent.json").
     end method.          
     
     method public void Export(cFile as char):
@@ -324,9 +371,9 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
         end.
         create temp-table htbl.
         htbl:create-like(mDefaultBuffer).
-        htbl:temp-table-prepare ("ttTenant").
+        htbl:temp-table-prepare ("ttExtent").
         htbl:default-buffer-handle:buffer-copy (mBuffer).
-        htbl:default-buffer-handle:serialize-name = "tenant".     
+        htbl:default-buffer-handle:serialize-name = "extents".     
         htbl:default-buffer-handle:write-json ("File",cFile,yes).   
     end method.
         
@@ -350,16 +397,19 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
         
 /*   oops does not compile due to name conflict
         extent(cValues) = num-entries(Context:KeyFields).*/
-           
         do i = 1 to num-entries(Context:KeyFields):
            hFld = mBuffer:buffer-field (entry(i,Context:KeyFields)).
            cValues[i] = string(hfld:buffer-value).
         end. 
         return cValues.
         catch e as Progress.Lang.Error :
-            undo, throw new IllegalArgumentError("KeyFields does not match buffer" + e:GetMessage(1)).  
+            undo, throw new IllegalArgumentError("KeyFields does not match buffer ~n" + e:GetMessage(1)).  
         end catch. 
-    end method. 
+    end method.
+    
+    method public int Serialize(phHandle as handle). 
+        undo, throw new UnsupportedOperationError("Serialize to stream handle for " + this-object:GetClass():TypeName).
+    end method.
     
     method override final logical Equals(obj as Object):
         define variable lOk as logical no-undo.
@@ -394,10 +444,17 @@ class OpenEdge.DataAdmin.Extent implements IExtent, IDataAdminElement, IDataAdmi
                        .
               end.
               else
-                  undo, throw New IllegalArgumentError("KeyFields does not match object.").  
+                  undo, throw new IllegalArgumentError("KeyFields does not match object.").  
             end.  
         end.
         return cout.
     end method.   
-      
+     
+       /* optional call back from context tree. 
+        called when parse is complete
+         override to return json  to export instead  of dataset
+         returns unknown to use standard dataset. write-json  */
+    method public JSONObject GetJSONExport(tree as IContextTree):
+        return Context:GetJSONExport(tree).
+    end.      
 end class.

@@ -14,22 +14,21 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
+
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminService.
+using OpenEdge.DataAdmin.ITable.
+using OpenEdge.DataAdmin.ITenant.
+using OpenEdge.DataAdmin.ITenantGroup.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.ITable from propath.
-using OpenEdge.DataAdmin.ITenantGroup from propath.
-using OpenEdge.DataAdmin.IDataAdminService from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 
 class OpenEdge.DataAdmin.Binding.UtilityContext abstract inherits DataAdminContext: 
-    define public override property DatasetHandle as handle no-undo 
-        get.
-        private set.
     
     define public override property TableHandle as handle no-undo 
         get.
@@ -51,7 +50,7 @@ class OpenEdge.DataAdmin.Binding.UtilityContext abstract inherits DataAdminConte
 		cTablename = if pcName = "TenantGroup" then "ttGroupData" 
 		             else "tt" + pcname + "Data". 
 		TableHandle = ds:get-buffer-handle (cTableName):table-handle.
-	    Bind(TableHandle).	
+	    bind(TableHandle).	
 		catch e as Progress.Lang.Error :
         	if not valid-handle(TableHandle) then 
         	    undo, throw new IllegalArgumentError("Invalid dataset or table name passed to UtilityContext",e).	
@@ -65,7 +64,7 @@ class OpenEdge.DataAdmin.Binding.UtilityContext abstract inherits DataAdminConte
         return "".
     end.
     
-    method public override void CopyTable(cntxt as IDataAdminContext).
+    method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Utility context").
     end method. 
     

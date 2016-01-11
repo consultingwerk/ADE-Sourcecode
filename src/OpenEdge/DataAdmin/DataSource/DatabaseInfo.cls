@@ -1,11 +1,11 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
- /*------------------------------------------------------------------------
+/* Copyright (c) 2011-2013 by progress Software Corporation. */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
+/*------------------------------------------------------------------------
     File        : DatabaseInfo
     Purpose     : 
     Syntax      : 
@@ -13,7 +13,7 @@
     Author(s)   : hdaniels
     Created     : Sat Oct 30 2010
     Notes       : 
-  ----------------------------------------------------------------------*/
+ ----------------------------------------------------------------------*/
 routine-level on error undo, throw.      
 using Progress.Lang.*.
 
@@ -23,12 +23,29 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
         get.
         private set.
    
-    define public property CodePage as char no-undo 
+    define public property CodePage as char init ? no-undo 
         get.
         private set.
         
-    define public property IsMultiTenant as logical no-undo 
-        get.
+    define public property IsMultiTenant as logical init ? no-undo 
+         get():
+             if IsMultiTenant = ? then
+             do:
+                  IsMultiTenant = can-find(first dictdb._tenant).
+             end.
+             return IsMultiTenant.    
+        end.
+        private set.
+    
+    define public property IsPartitionEnabled as logical init ? no-undo 
+        get():
+            if IsPartitionEnabled = ? then 
+            do:
+                find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Table Partitioning" no-lock no-error.
+                isPartitionEnabled = avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled = "1".
+            end. 
+            return isPartitionEnabled.           
+        end.
         private set.
     
     define public property IsUserSuperTenant as logical no-undo 
@@ -78,14 +95,11 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
 		
 	constructor public DatabaseInfo (  ):
 		define buffer bdb  for dictdb._db.
-        define buffer btnt for dictdb._tenant.
-        
 		super ().
 	    find first bdb where bdb._db-local = true no-lock.  
         this-object:DatabaseRecid = recid(bdb).      
-	    this-object:IsMultiTenant = can-find(first btnt).
+	   
         this-object:CodePage = bdb._db-xl-name.
-  
 	end constructor.
 
                

@@ -159,8 +159,8 @@ DEFINE VARIABLE dyn_object    AS     LOGICAL                           NO-UNDO. 
 DEFINE VARIABLE dyn_temp_file AS     CHARACTER                         NO-UNDO. /* jep-icf */
 DEFINE VARIABLE isRyObject    AS     LOGICAL                           NO-UNDO. /* jep-icf */
 DEFINE VARIABLE import_unnamedframe  AS LOGICAL                        NO-UNDO.
-DEFINE VARIABLE notVisual     AS     LOGICAL                           NO-UNDO.
-
+DEFINE VARIABLE notVisual      AS     LOGICAL                          NO-UNDO.
+DEFINE VARIABLE ideSynchSilent AS LOGICAL                              NO-UNDO.
 DEFINE NEW SHARED VARIABLE def_found  AS LOGICAL INITIAL FALSE         NO-UNDO.
 DEFINE NEW SHARED VARIABLE main_found AS LOGICAL INITIAL FALSE         NO-UNDO.
 DEFINE NEW SHARED VARIABLE cur_sect   AS INTEGER INITIAL {&TOPOFFILE}  NO-UNDO.
@@ -196,11 +196,15 @@ ASSIGN
   web_file               = (web_temp_file <> "").
   
 
-/* If import mode is Window-Silent turn notVisual to true.  This supports */
-/* the reading in of windows that don't visualize for batch processing of */
-/* multiple windows.                                                      */
-IF import_mode = "Window-Silent":U THEN DO:
-  ASSIGN import_mode = "Window"
+/* If import mode is Window-Silent or Synch-Silent turn notVisual to true.  */
+/* This supports the reading in of windows that don't visualize for batch */
+/* processing of multiple windows. */
+/* Synch-Silent is set to also avoid database connect check when opening */
+/* as part of _uibmain.p ide_syncFromAppbuilder (when not open in design)  */
+IF import_mode = "Window-Silent":U or import_mode = "Synch-Silent":U THEN 
+DO:
+  ASSIGN ideSynchSilent = (import_mode = "Synch-Silent":U)
+         import_mode = "Window"
          notVisual   = TRUE.
 END.
 

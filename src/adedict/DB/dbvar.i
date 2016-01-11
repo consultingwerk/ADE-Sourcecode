@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2013 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -37,6 +37,7 @@ define {1} var s_Db_Add_Details    as char NO-UNDO.
 define {1} var s_Db_Large_Sequence as char NO-UNDO.
 define {1} var s_Db_Large_Keys     as char NO-UNDO.
 define {1} var s_Db_Multi_Tenancy  as char NO-UNDO.
+define {1} var s_Db_Partition_Enabled  as char NO-UNDO.
 
 /* This is the form for the database properties window. */
 {adedict/DB/dbprop.f} 

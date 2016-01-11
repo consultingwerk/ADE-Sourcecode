@@ -15,27 +15,30 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using Progress.Json.ObjectModel.JsonObject from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath. 
-using OpenEdge.DataAdmin.IDataAdminCollection from propath. 
-using OpenEdge.DataAdmin.Domain from propath. 
-using OpenEdge.DataAdmin.DomainSet from propath. 
-using OpenEdge.DataAdmin.IDomain from propath. 
-using OpenEdge.DataAdmin.IRequestInfo from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath. 
-using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath. 
-using OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery from propath. 
-using OpenEdge.DataAdmin.Binding.UserContext from propath. 
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.IRow from propath. 
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope from propath. 
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError  from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError  from propath.
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError  from propath.
+
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.Factory.IIdentityScope.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IRow.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
+using OpenEdge.DataAdmin.Binding.Query.TenantDomainQuery.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.UserContext.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Domain.
+using OpenEdge.DataAdmin.DomainSet.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDomain.
+using OpenEdge.DataAdmin.IRequestInfo.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
+
 class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
 
     {daschema/domain.i} 
@@ -43,11 +46,6 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
     define buffer bdomain for ttDomain.
     define temp-table copytable reference-only like ttDomain .  
    
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsDomain:handle.
-        end get.
-    
 	define public override property TableHandle as handle no-undo 
     	get():
     		return temp-table ttDomain:handle.
@@ -87,6 +85,11 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         AddChild(pscope:UserContext).
         CanEditKey = true.
     end constructor.
+            
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsDomain:handle. 
+    end method.
         
 	method public override character GetJoinFields(parentid as char):
         case parentid:
@@ -114,7 +117,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
 	    CreateRow(cast(entity,IDomain)).    
 	end method.
 
-    method protected override void CopyTableForParent(pRow as IRow,cntxt as IDataAdminContext):
+    method protected override void CopyTableForParent(pRow as IRow,cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         case pRow:SerializeName:          
@@ -127,7 +130,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         Loaded = false.
     end method.    
     
-    method protected override void CopyTable(cntxt as IDataAdminContext):
+    method protected override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference). 
@@ -308,20 +311,21 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
     end.     
     */
     
-    /* called with tracking-changes */
-    method protected override void ReadNewForParent(pcParent as char, pcValue as char,phTbl as handle):       
-        case pcParent:
+        /* called with tracking-changes */
+    method protected override void CopyNewTableForParent(pRow as IRow,phTbl as handle):       
+        case pRow:SerializeName:
             when "tenants" then
             do:
-                ReadNewForTenant(pcValue,table-handle phtbl by-reference).
+                CopyNewForTenant(pRow:KeyValue,table-handle phtbl by-reference).
             end.   
             otherwise 
-                undo, throw new IllegalArgumentError("DomainContext:ImportNewTableForParent parent" + quoter(pcParent)).
+                undo, throw new IllegalArgumentError("UserContext:ImportNewTableForParent parent " + quoter(pRow:SerializeName)).
      
         end.     
     end method.
     
-    method private void ReadNewForTenant(pcVal as char,input table copytable ):
+    
+    method private void CopyNewForTenant(pcVal as char,input table copytable ):
         define variable dataerror as DataContextError no-undo.      
         for each copytable on error undo, throw:  
             
@@ -339,10 +343,6 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
     
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
         return new DomainSet(cntxt).
-    end method.
-    
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Domain(cntxt).
     end method.
     
     method protected override IDataAdminElement CreateEntity(req as IRequestInfo):

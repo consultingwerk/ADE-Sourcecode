@@ -115,6 +115,8 @@ DEFINE VARIABLE file_version          AS CHAR       NO-UNDO.
 DEFINE VARIABLE h_xml                 AS HANDLE     NO-UNDO.
 DEFINE VARIABLE i                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE notVisual             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE ideSynchSilent        AS LOGICAL    NO-UNDO.
+
 DEFINE VARIABLE pressed-ok            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE temp_file             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE web_file              AS LOGICAL    NO-UNDO.

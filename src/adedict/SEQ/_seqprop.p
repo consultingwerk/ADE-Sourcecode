@@ -154,12 +154,17 @@ if NOT s_Seq_ReadOnly then
       s_Seq_ReadOnly = true.
    end.
 
+IF b_Sequence._Seq-misc[6] = ? THEN b_Sequence._Seq-misc[6] = "n/a" .
+IF b_Sequence._Seq-misc[7] = ? THEN b_Sequence._Seq-misc[7] = "n/a" .
+
 display b_Sequence._Seq-Name  
         b_Sequence._Seq-Attributes[1]
         b_Sequence._Seq-Init    
         b_Sequence._Seq-Incr
         s_Seq_Limit
         b_Sequence._Cycle-Ok
+        b_Sequence._Seq-misc[6]
+        b_Sequence._Seq-misc[7] 
         s_Seq_Current_Value
         (IF INDEX(capab,{&CAPAB_OWNER})    = 0 
           then "n/a" else b_Sequence._Seq-misc[2]) @ b_Sequence._Seq-misc[2]

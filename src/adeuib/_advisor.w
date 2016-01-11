@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f_dlg
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f_dlg 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -104,11 +101,8 @@ DEFINE VARIABLE adjust      AS INTEGER          NO-UNDO.
 DEFINE VARIABLE h_options   AS WIDGET-HANDLE    NO-UNDO.
 DEFINE VARIABLE h_parent    AS WIDGET-HANDLE    NO-UNDO.
 DEFINE VARIABLE winTitle    AS CHARACTER        NO-UNDO INITIAL "PROGRESS Advisor".
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -124,8 +118,6 @@ DEFINE VARIABLE winTitle    AS CHARACTER        NO-UNDO INITIAL "PROGRESS Adviso
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -186,18 +178,12 @@ DEFINE FRAME f_dlg
 
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f_dlg
                                                                         */
 ASSIGN 
@@ -215,7 +201,6 @@ ASSIGN
        tg_never_again:HIDDEN IN FRAME f_dlg           = TRUE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
  
 
@@ -224,7 +209,6 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME Btn_Help
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Help f_dlg
 ON CHOOSE OF Btn_Help IN FRAME f_dlg /* Help */
 OR HELP OF FRAME {&FRAME-NAME}
 DO: 
@@ -232,13 +216,10 @@ DO:
   RUN adecomm/_adehelp.p (pc_help_tool, "CONTEXT", pc_help_context, ""). 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK f_dlg 
 
 
 /* ***************************  Main Block  *************************** */
@@ -280,7 +261,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   &if DEFINED(IDE-IS-RUNNING) = 0  &then
     WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS btn_OK.
   &ELSE
-     WAIT-FOR GO OF FRAME {&FRAME-NAME} or "u2" of this-procedure FOCUS btn_OK.   
+     WAIT-FOR GO OF FRAME {&FRAME-NAME} or "u2" of FRAME {&FRAME-NAME} FOCUS btn_OK.   
      if cancelDialog THEN UNDO, LEAVE.  
   &endif 
   /* Return the value of the "never again" toggle if it was asked for. */
@@ -299,13 +280,10 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 END.
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE create_options f_dlg 
 PROCEDURE create_options :
 /*------------------------------------------------------------------------------
   Purpose: Create a radio-set to show the list of options that this instance
@@ -358,10 +336,7 @@ PROCEDURE create_options :
     END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -375,10 +350,7 @@ PROCEDURE disable_UI :
   HIDE FRAME f_dlg.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -395,10 +367,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-f_dlg}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setup-ui f_dlg 
 PROCEDURE setup-ui :
 /*------------------------------------------------------------------------------
   Purpose:   Adjust the size of the frame based on what will be displayed in it.
@@ -469,10 +438,7 @@ PROCEDURE setup-ui :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE show-toggle f_dlg 
 PROCEDURE show-toggle :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -486,10 +452,7 @@ PROCEDURE show-toggle :
     
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE size-editor f_dlg 
 PROCEDURE size-editor :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -505,6 +468,4 @@ PROCEDURE size-editor :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

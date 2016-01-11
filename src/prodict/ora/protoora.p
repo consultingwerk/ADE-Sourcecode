@@ -26,6 +26,7 @@
              fernando 09/14/07 Allow ORACLE version 11
              fernando 08/28/08 Commented out references to lExpandClob - not supported yet.
              kmayur   06/21/11 screen split for constraint migration
+             sbehera  02/03/14 Support for oracle 12 version and changed default version to 11
 */            
 
 
@@ -69,11 +70,12 @@ FORM
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Logical name for ORACLE Database" colon 38 SKIP({&VM_WID})
   ora_version  FORMAT ">9" 
-      validate(INPUT ora_version = 8 OR 
+      validate(INPUT ora_version = 8 OR
                INPUT ora_version = 9 OR
-               INPUT ora_version = 10 OR
-               INPUT ora_version = 11,
-               "Oracle Version must be 8, 9, 10 or 11") 
+               INPUT ora_version = 10 OR 
+               INPUT ora_version = 11 OR
+               INPUT ora_version = 12,
+               "Oracle Version must be 10, 11 or 12") 
       view-as fill-in size 23 by 1
     LABEL "What version of ORACLE" colon 38 SKIP ({&VM_WID})  
   ora_username FORMAT "x(32)"  view-as fill-in size 32 by 1 
@@ -253,7 +255,7 @@ IF OS-GETENV("ORADBNAME")   <> ? THEN
 IF OS-GETENV("ORAVERSION")   <> ? THEN
   ora_version   = INTEGER(OS-GETENV("ORAVERSION")). 
 ELSE
-  ora_version = 8.       
+  ora_version = 11.       
 IF OS-GETENV("ORAUSERNAME") <> ? THEN
   ora_username = OS-GETENV("ORAUSERNAME").
 IF OS-GETENV("ORAPASSWORD") <> ? THEN

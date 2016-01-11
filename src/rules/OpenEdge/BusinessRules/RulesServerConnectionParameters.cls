@@ -56,7 +56,7 @@ routine-level on error undo, throw.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.ServerConnection.WebServiceConnectionParameters.
 using OpenEdge.Core.ServerConnection.FormatMaskEnum.
-using OpenEdge.Lang.Assert.
+using OpenEdge.Core.Assert.
 
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.JsonArray.
@@ -89,7 +89,7 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
     end constructor.
     
     constructor public RulesServerConnectionParameters(input poOptions as JsonObject):
-        Assert:ArgumentNotNull(poOptions, 'Options').        
+        Assert:NotNull(poOptions, 'Options').        
         ShadowConstructor(poOptions).
     end constructor.
     
@@ -173,7 +173,7 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
         end.    /* URL */
         
         /* We need at least a connection parameters for the decision service to continue. */
-        Assert:ArgumentNotNull(oDecisionServiceOptions, 'DecisionServiceConnectionParameters').
+        Assert:NotNull(oDecisionServiceOptions, 'DecisionServiceConnectionParameters').
 
         this-object:DecisionServiceConnectionParameters = new WebServiceConnectionParameters(oDecisionServiceOptions).
         if valid-object(oAdminOptions) then
@@ -191,8 +191,8 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
         define variable iMax as integer no-undo.
         define variable oQuery as JsonArray no-undo.
         
-        Assert:ArgumentNotNullOrEmpty(pcServiceName, 'Service name').
-        Assert:ArgumentNotNull(poOptions, 'Connection options').
+        Assert:NotNullOrEmpty(pcServiceName, 'Service name').
+        Assert:NotNull(poOptions, 'Connection options').
                                            
         if poOptions:GetType('URL') eq JsonDataType:STRING then
         do:

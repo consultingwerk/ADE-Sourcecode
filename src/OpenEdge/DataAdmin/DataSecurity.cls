@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011,2013 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -15,23 +15,20 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw. 
-using Progress.Lang.Object from propath.
-
-using OpenEdge.DataAdmin.Entity from propath.  
-using OpenEdge.DataAdmin.DataAdminService from propath.  
-using OpenEdge.DataAdmin.IDataSecurity from propath.
-using OpenEdge.DataAdmin.ITablePermissionSet from propath.
-using OpenEdge.DataAdmin.TablePermissionSet from propath.
  
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
- 
-
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataDefinitionOptions from propath.
- 
-  
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IDataDefinitionOptions.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IDataSecurity.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ITablePermissionSet.
+using OpenEdge.DataAdmin.TablePermissionSet.
+using Progress.Lang.Object.
 class OpenEdge.DataAdmin.DataSecurity inherits Entity implements IDataSecurity, IDataAdminElement, IDataAdminSerializable:  
         
     define public property TablePermissions as ITablePermissionSet     no-undo 
@@ -39,7 +36,7 @@ class OpenEdge.DataAdmin.DataSecurity inherits Entity implements IDataSecurity, 
             define variable h as handle no-undo.
             if not valid-object(TablePermissions) then
             do:
-                TablePermissions = cast(Context:GetChildCollection(name,"tablePermissions"),ITablePermissionSet).
+                TablePermissions = cast(GetChildCollection("tablePermissions"),ITablePermissionSet).
             end.
 /*            if not mTablesLoaded then*/
 /*                FetchTables().       */
@@ -47,16 +44,20 @@ class OpenEdge.DataAdmin.DataSecurity inherits Entity implements IDataSecurity, 
         end.
         protected set.
    
-	constructor public DataSecurity ( cntxt as IDataAdminContext ):
+	constructor public DataSecurity ( cntxt as IDataAdminModel ):
 		super (input cntxt).
 	end constructor.
-		
+	
+    constructor public DataSecurity ( cntxt as IDataAdminModel, pReq as IRequestInfo ):
+        super (input cntxt).
+    end constructor.	
+    
 	constructor public DataSecurity ( name as character ):
 		super (input name).		
 	end constructor.
     
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     
@@ -67,9 +68,6 @@ class OpenEdge.DataAdmin.DataSecurity inherits Entity implements IDataSecurity, 
     method public override void WriteTree(tree as IContextTree):
          Context:AddTreeTo(tree). 
     end method. 
-   
-    method private character GetFileExtension(pcfile as char):
-        return entry(num-entries(pcfile,"."),pcfile,".").
-    end method.
+  
  
 end class.

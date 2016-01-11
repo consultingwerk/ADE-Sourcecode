@@ -64,7 +64,7 @@ class OpenEdge.DataAdmin.Internal.Util.UtilityTableSet inherits DataAdminCollect
     
     method public override logical Add(pobj as Object):
         define variable tbl as ITable no-undo. 
-        AssertNotNull(pOBJ,"Table").
+        AssertNotNull(pOBJ,"Object").
         tbl = cast(pobj,ITable).
         this-object:Add(tbl).
         catch e as Progress.Lang.Error :

@@ -4287,7 +4287,7 @@ PROCEDURE userLoginOrganisations :
     /* if there ARE specific login companies to which this user has restricted access, list only those login companies they have access to */
     ELSE DO:
         FOR EACH bgsm_login_company NO-LOCK:
-            IF  CAN-FIND(FIRST bgsm_user_allocation
+            IF CAN-FIND(FIRST bgsm_user_allocation
                             WHERE bgsm_user_allocation.USER_obj = pdUserObj
                               AND bgsm_user_allocation.login_organisation_obj = 0
                               AND bgsm_user_allocation.owning_entity_mnemonic = 'GSMLG':U

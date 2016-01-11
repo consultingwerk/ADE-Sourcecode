@@ -1,6 +1,6 @@
 /********************************************************************* *
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2000-2010,2013 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -12,6 +12,7 @@
 DESCRIPTION:
 ------------
   Table Name: ______________________________     Table Type: _________ 
+ Partitioned: ___   
 Multi-tenant: ___  Keep Area for Default Tenant: __ 
         Area: _____________________________________         
    Dump File: _____________________________________         Hidden: ___
@@ -47,8 +48,10 @@ FORM
   /* progress is longest db type name */  
   wfil._For-Type  FORMAT "x(10)"  colon 64 LABEL "Table Type"
   skip
+  wfil._File-attributes[3]  colon 13 label "Partitioned" 
+  skip
   wfil._File-attributes[1]  colon 13 label "Multi-tenant" 
-  wfil._File-attributes[2]  label "Keep Area for Default Tenant"
+  wfil._File-attributes[2]  label "Support Default Tenant"
   SKIP
   areaname  colon 13 VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
                                      LABEL "Area" SKIP
@@ -67,7 +70,7 @@ FORM
   wfil._Fil-misc2[8] FORMAT "x(45)"  colon 19  LABEL "DB Link"   SKIP
  
   wfil._Desc      colon 13 VIEW-AS EDITOR
-                           INNER-CHARS 63 INNER-LINES 3
+                           INNER-CHARS 63 INNER-LINES 2
                            BUFFER-LINES 4     LABEL "Description"    SKIP
 
   button-v AT 12 SPACE(2) button-f SPACE(2) 
@@ -80,6 +83,7 @@ FORM
 
 /*----- GO or OK -----*/
 ON GO OF FRAME frame-d DO:
+
   RUN check_file_name (OUTPUT isbad).
   IF isbad THEN DO:
     ASSIGN
@@ -96,8 +100,9 @@ ON GO OF FRAME frame-d DO:
     RETURN NO-APPLY.
   END.
 
-  IF adding THEN DO:   
+  IF adding and input wfil._File-attributes[3] = FALSE THEN DO:   
     ASSIGN filearea = areaname:SCREEN-VALUE IN FRAME FRAME-d.    
+
     RUN check_area_name (INPUT-OUTPUT s_In_Schema_Area).
     IF NOT s_In_Schema_Area THEN 
     DO:
@@ -108,9 +113,15 @@ ON GO OF FRAME frame-d DO:
   END.
   ELSE DO:
     if input wfil._File-attributes[1] and not wfil._File-attributes[1] then
-    do:    
-        /*  input input...   */
-        RUN check_multi_tenant (input input wfil._File-attributes[2],OUTPUT isBad).
+    do:  
+        if input wfil._File-attributes[3] then
+        do:
+            message "Partitioning of a multi-tenant table is not supported"
+            view-as alert-box error.
+            isBad = true.
+        end.    
+        else /* yes - input input...   */
+            RUN check_multi_tenant (input input wfil._File-attributes[2],OUTPUT isBad).
         IF isBad THEN DO:
           ASSIGN
             go_field = no
@@ -132,7 +143,8 @@ ON VALUE-CHANGED OF areaname IN FRAME frame-d DO :
 END.
 
 ON any-printable OF wfil._File-attribute[1] IN FRAME frame-d,
-                    wfil._File-attribute[2] IN FRAME frame-d
+                    wfil._File-attribute[2] IN FRAME frame-d,
+                    wfil._File-attribute[3] IN FRAME frame-d
 DO :
    if last-event:label = "?" then
     do: 
@@ -157,6 +169,20 @@ DO :
                  
 END.
 
+ON VALUE-CHANGED OF wfil._File-attributes[3] IN FRAME frame-d
+DO :
+   if adding then do:
+      if wfil._File-Attributes[3]:screen-value in frame frame-d eq "yes" then do:
+            hideArea(areaname:handle in frame frame-d). 
+	    areaname:handle:sensitive in frame frame-d = false.       
+      end.
+      else do:
+            showArea(areaname:handle in frame frame-d, areaname,adding).
+	    areaname:handle:sensitive in frame frame-d = true.
+      end.
+    end.
+    
+END.
 
 /*----- CHOOSE OF FIELD EDITOR BUTTON-----*/
 ON CHOOSE OF btn_flds IN FRAME frame-d 
@@ -203,6 +229,7 @@ END.
 ON   GET OF wfil._File-name  IN FRAME frame-d
   OR GET OF wfil._File-attribute[1]  IN FRAME frame-d
   OR GET OF wfil._File-attribute[2]  IN FRAME frame-d
+  OR GET OF wfil._File-attribute[3]  IN FRAME frame-d
   OR GET OF areaname         IN FRAME frame-d
   OR GET OF wfil._For-Type   IN FRAME frame-d
   OR GET OF wfil._Hidden     IN FRAME frame-d
@@ -233,11 +260,11 @@ PROCEDURE check_dump_name:
     OR INPUT FRAME frame-d wfil._Dump-name = "" THEN
     DISPLAY LC(INPUT FRAME frame-d wfil._File-name)
       @ wfil._Dump-name WITH FRAME frame-d.
-  FIND FIRST _File
-    WHERE _File._Dump-name = INPUT FRAME frame-d wfil._Dump-name
-      AND (adding OR RECID(_File) <> dbkey) 
-      AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-  IF AVAILABLE _File THEN DO:
+  FIND FIRST DICTDB._File
+    WHERE DICTDB._File._Dump-name = INPUT FRAME frame-d wfil._Dump-name
+      AND (adding OR RECID(DICTDB._File) <> dbkey) 
+      AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN") NO-ERROR.
+  IF AVAILABLE DICTDB._File THEN DO:
     MESSAGE "That dump name is not unique within this database."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     isbad = TRUE.
@@ -258,12 +285,11 @@ PROCEDURE check_file_name:
        RETURN.
     END.
   END.
-
-  FIND FIRST _File OF _Db
-    WHERE _File._File-name = INPUT FRAME frame-d wfil._File-name
-      AND (adding OR RECID(_File) <> dbkey) 
-      AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-  isbad = (AVAILABLE _File).
+  FIND FIRST DICTDB._File OF DICTDB._Db
+    WHERE DICTDB._File._File-name = INPUT FRAME frame-d wfil._File-name
+      AND (adding OR RECID(DICTDB._File) <> dbkey) 
+      AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN") NO-ERROR.
+  isbad = (AVAILABLE DICTDB._File).
   IF isbad THEN DO:
     MESSAGE "This table name is already used within this database."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.

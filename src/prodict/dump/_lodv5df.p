@@ -14,7 +14,7 @@
 { prodict/user/uservar.i }
 
 /* user_env[2] = name of .df file */
- 
+DEFINE NEW SHARED STREAM   loadread. 
 DEFINE NEW SHARED STREAM   loaderr.
 DEFINE NEW SHARED VARIABLE errs   AS INTEGER NO-UNDO.
 DEFINE NEW SHARED VARIABLE recs   AS INT64. /*UNDO*/
@@ -320,11 +320,11 @@ DO ON ERROR UNDO, LEAVE:
 	DOWN WITH FRAME nme.
 	/*   message "Loading " + view-files[i] + " ...".   */
 	OUTPUT STREAM loaderr TO VALUE(view-files[i] + ".e") NO-ECHO.
-	INPUT FROM VALUE(view-files[i] + ".d") NO-ECHO NO-MAP.
+	INPUT STREAM loadread FROM VALUE(view-files[i] + ".d") NO-ECHO NO-MAP.
 	CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
 	RUN "prodict/misc/_runload.i" (INPUT "n")
 	  VALUE(view-files[i]) 0 100 VALUE(view-files[i]) 0.
-	INPUT CLOSE.
+	INPUT STREAM loadread CLOSE.
 	OUTPUT STREAM loaderr CLOSE.
 	/* delete temporary files */
 	IF errs = 0 THEN OS-DELETE VALUE(view-files[i] + ".e").

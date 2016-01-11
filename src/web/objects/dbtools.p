@@ -106,13 +106,13 @@ PROCEDURE dbCheck :
      RUN dbDisconnect.
    
    FOR EACH ttAgentSetting NO-LOCK WHERE 
-        ttAgentSetting.cKey  = "DbObject" AND
+        ttAgentSetting.cKey  = "DbObject":U AND
         ttAgentSetting.cSub  = "":
      c1 = ttAgentSetting.cVal.
      IF CAN-DO(c1,pcFilename)  
      THEN DO:
-       DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"RUN":U,"DbGroup:" + ttAgentSetting.cName + " = " + ttAgentSetting.cVal).
-       cDbList = cDbList + (IF cDbList > "" THEN "," ELSE "") 
+       DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"RUN":U,"DbGroup:":U + ttAgentSetting.cName + " = ":U + ttAgentSetting.cVal).
+       cDbList = cDbList + (IF cDbList > "" THEN ",":U ELSE "") 
                + DYNAMIC-FUNCTION("getAgentSetting":U IN web-utilities-hdl,"DbGroup":U,"":U,ttAgentSetting.cName) NO-ERROR.
      END. 
    END.
@@ -121,17 +121,17 @@ PROCEDURE dbCheck :
    IF cDbList GT "" THEN DO:                                      /*there is a default set of databases*/
      RUN webutil/dbcheck.p.
      ASSIGN cConnected = RETURN-VALUE.
-     DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"RUN":U,"dbCheck:" + cDbList + "=>" + cConnected).
+     DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"RUN":U,"dbCheck:":U + cDbList + "=>":U + cConnected).
      
      IF ERROR-STATUS:ERROR THEN
-        DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"Error":U,SUBSTITUTE ("Could not run proactive database check: &1",ERROR-STATUS:GET-MESSAGE(1))).
+        DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"Error":U,SUBSTITUTE ("Could not run proactive database check: &1":U,ERROR-STATUS:GET-MESSAGE(1))).
      
      DO i1 = 1 TO NUM-ENTRIES(cDbList):                    /*each database in the list*/
        ASSIGN c1 = ENTRY(i1,cDBlist).
        IF c1 <> "" AND NOT CAN-DO(cConnected,c1) THEN DO:
-          DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"Error":U,SUBSTITUTE (" Proactive database connection check shows that &1 was not connected. Attempting reconnect.",c1)).
+          DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"Error":U,SUBSTITUTE (" Proactive database connection check shows that &1 was not connected. Attempting reconnect.":U,c1)).
           RUN dbConnect (c1).
-          IF RETURN-VALUE = "no" THEN lRetVal = FALSE.
+          IF RETURN-VALUE = "no":U THEN lRetVal = FALSE.
        END. /*NOT CONNECTED*/
      END. /* default databases */
    END.
@@ -162,31 +162,31 @@ PROCEDURE dbConnect :
    DEFINE        VARIABLE  cConnect       AS CHARACTER NO-UNDO.
 
    ASSIGN
-     cConnect = DYNAMIC-FUNCTION("getAgentSetting" IN web-utilities-hdl,"Databases",gcDBset,p_databasename).
+     cConnect = DYNAMIC-FUNCTION("getAgentSetting":U IN web-utilities-hdl,"Databases":U,gcDBset,p_databasename).
    IF cConnect = ? THEN DO:
-     DYNAMIC-FUNCTION("logNote" IN web-utilities-hdl,"WARNING"," Database not defined!").
+     DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U," Database not defined!":U).
      RETURN "".
    END.
 
    
-   DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"CONNECT":U,"Connect:" + p_databasename + " --> " + cConnect).
-   IF NUM-ENTRIES(cConnect," ") > 1 THEN 
+   DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"CONNECT":U,"Connect:":U + p_databasename + " --> ":U + cConnect).
+   IF NUM-ENTRIES(cConnect," ":U) > 1 THEN 
      RUN webutil/dbConnect.p(p_databasename,cConnect) NO-ERROR.
    ELSE DO:
      cConnect = SEARCH(cConnect).
      IF cConnect = ? 
      THEN DO:
-       DYNAMIC-FUNCTION("logNote" IN web-utilities-hdl,"WARNING"," Unable to attempt a reconnect to " + P_databasename + "!").
+       DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U," Unable to attempt a reconnect to ":U + P_databasename + "!":U).
        RETURN "".
      END.
      RUN VALUE(cConnect) NO-ERROR.
    END.
          
    IF ERROR-STATUS:ERROR 
-   THEN DYNAMIC-FUNCTION("logNote" IN web-utilities-hdl,"WARNING"," Unable to reconnect " + P_databasename + " with " + cConnect + ", because it either the connection procedure could not be found, or there was an error running it!)").
-   IF RETURN-VALUE = "yes" 
-   THEN DYNAMIC-FUNCTION("logNote" IN web-utilities-hdl,"Recovery"," " + P_databasename + " was successfully reconnected.)").
-   ELSE DYNAMIC-FUNCTION("logNote" IN web-utilities-hdl,"WARNING"," " + P_databasename + " could not be reconnected.)").
+   THEN DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U," Unable to reconnect ":U + P_databasename + " with ":U + cConnect + ", because it either the connection procedure could not be found, or there was an error running it!)":U).
+   IF RETURN-VALUE = "yes":U 
+   THEN DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"Recovery":U," ":U + P_databasename + " was successfully reconnected.)":U).
+   ELSE DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U," ":U + P_databasename + " could not be reconnected.)":U).
    RETURN RETURN-VALUE.
 END PROCEDURE.
 
@@ -205,7 +205,7 @@ PROCEDURE dbDisconnect :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE c1 AS CHARACTER  NO-UNDO.
-  c1 = DYNAMIC-FUNCTION("getGlobal" IN web-utilities-hdl,"DBset").
+  c1 = DYNAMIC-FUNCTION("getGlobal":U IN web-utilities-hdl,"DBset":U).
   IF gcDBset <> c1 THEN DO:
     gcDBset  = c1.
     RUN webutil/dbDisconnect.p NO-ERROR.
@@ -226,9 +226,9 @@ PROCEDURE dbFailover :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U,"Failover!").
+  DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl,"WARNING":U,"Failover!":U).
   IF gcDBset > '' THEN RETURN. /* only run when not already in failover mode */
-  DYNAMIC-FUNCTION("setGlobal" IN web-utilities-hdl,'DBset','failover').
+  DYNAMIC-FUNCTION("setGlobal":U IN web-utilities-hdl,'DBset':U,'failover':U).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -257,11 +257,11 @@ PROCEDURE init-config :
   */
   ASSIGN c1 = OS-GETENV("DATABASES":U).
   IF c1 NE ? AND c1 > "" THEN
-  DO i1 = 1 TO NUM-ENTRIES(c1,"|"):
+  DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN 
-      c2 = ENTRY(i1,c1, "|")
-      cDatabases = cDatabases + "," + ENTRY(1,c2, "=")
-      lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"Databases":U,"":U,ENTRY(1,c2, "="),TRIM(ENTRY(2,c2,"="))).
+      c2 = ENTRY(i1,c1, "|":U)
+      cDatabases = cDatabases + ",":U + ENTRY(1,c2, "=":U)
+      lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"Databases":U,"":U,ENTRY(1,c2, "=":U),TRIM(ENTRY(2,c2,"=":U))).
   END.
   
   /* dbGroup -- Organizes connected DBs into logical association sets.  
@@ -270,17 +270,17 @@ PROCEDURE init-config :
      
      c1=Default=webstate|sports=sports;webstate
   */
-  ASSIGN c1 = REPLACE(OS-GETENV("DB_GROUP":U),";",",").
+  ASSIGN c1 = REPLACE(OS-GETENV("DB_GROUP":U),";":U,",":U).
   IF c1 NE ? AND c1 > "" THEN
   c1-Block:
-  DO i1 = 1 TO NUM-ENTRIES(c1,"|"):
+  DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN 
-      c2      = ENTRY(i1,c1,"|").
-      lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"dbGroup":U,"",TRIM(ENTRY(1,c2,"=")),TRIM(ENTRY(2,c2,"="))).
+      c2      = ENTRY(i1,c1,"|":U).
+      lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"dbGroup":U,"",TRIM(ENTRY(1,c2,"=":U)),TRIM(ENTRY(2,c2,"=":U))).
   END. /* c1 block */
   ELSE DO:
     IF cDatabases > "" THEN cDatabases = substring(cDatabases,2).  
-    lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"dbGroup":U,"","Default",cDatabases).
+    lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"dbGroup":U,"","Default":U,cDatabases).
   END.
 
   /* DbOject.  Associate code objects with their required DB(s).  When a code 
@@ -292,16 +292,16 @@ PROCEDURE init-config :
      [DbOject] Default=login|sports=c:/usr/apps/cart/ *;/app2/collect|sports2=c:/usr/apps/other/ *
   */
   
-  ASSIGN c1 = REPLACE(OS-GETENV("DB_OBJECT":U),";",",").
+  ASSIGN c1 = REPLACE(OS-GETENV("DB_OBJECT":U),";":U,",":U).
   IF c1 NE ? AND c1 GT "" THEN
-  DO i1 = 1 TO NUM-ENTRIES(c1,"|"):
+  DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN 
-      c2      = ENTRY(i1,c1,"|")
-      lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"DbObject":U,"",ENTRY(1,c2,"="),TRIM(ENTRY(2,c2,"="))).
+      c2      = ENTRY(i1,c1,"|":U)
+      lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"DbObject":U,"",ENTRY(1,c2,"=":U),TRIM(ENTRY(2,c2,"=":U))).
   END.
 
   IF cDatabases > "" THEN
-    lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"DbObject":U,"","Default":U,"*":U).
+    lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"DbObject":U,"","Default":U,"*":U).
 
    
    /* Failover Databases in case the real DBset cannot connect...
@@ -309,10 +309,10 @@ PROCEDURE init-config :
   ASSIGN c1 = OS-GETENV("DB_FAILOVER":U).
   IF c1 NE ? AND c1 > "" THEN DO:
     ASSIGN cfg-failover = TRUE.
-    DO i1 = 1 TO NUM-ENTRIES(c1,"|"):
+    DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
       ASSIGN 
-        c2 = ENTRY(i1,c1, "|")
-        lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,"Databases":U,"failover":U,ENTRY(1,c2, "="),TRIM(ENTRY(2,c2,"="))).
+        c2 = ENTRY(i1,c1, "|":U)
+        lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,"Databases":U,"failover":U,ENTRY(1,c2, "=":U),TRIM(ENTRY(2,c2,"=":U))).
     END.
   END.
 

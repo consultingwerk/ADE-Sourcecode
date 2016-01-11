@@ -94,7 +94,7 @@ class adeuib._dialogservice inherits _abstractdialogservice implements idialogse
         assign
             FrameHandle:scrollable = false
             WindowHandle:width  = FrameHandle:virtual-width 
-            WindowHandle:height = FrameHandle:virtual-width 
+            WindowHandle:height = FrameHandle:virtual-height 
             FrameHandle:width   = FrameHandle:virtual-width 
             FrameHandle:height = FrameHandle:virtual-height  .
     end method.

@@ -27,7 +27,7 @@
 
 /* Name of the program we're about to run */
 DEFINE NEW GLOBAL SHARED VARIABLE web-utilities-hdl AS HANDLE    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE AppProgram        AS CHARACTER NO-UNDO FORMAT "x(40)".
+DEFINE NEW GLOBAL SHARED VARIABLE AppProgram        AS CHARACTER NO-UNDO FORMAT "x(40)":U.
 DEFINE NEW GLOBAL SHARED VARIABLE REQUEST_METHOD    AS CHARACTER NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE gscSessionId      AS CHARACTER NO-UNDO.
 
@@ -139,11 +139,11 @@ PROCEDURE end-batch :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  logNote("BATCH":U, "End batch: " + 
-             STRING(YEAR(TODAY),"9999":U) + "/" +
-             STRING(MONTH(TODAY),"99":U) + "/" +
-             STRING(DAY(TODAY),"99":U) + " " +
-             STRING(TIME,"HH:MM:SS":U) + "~n").
+  logNote("BATCH":U, "End batch: ":U + 
+             STRING(YEAR(TODAY),"9999":U) + "/":U +
+             STRING(MONTH(TODAY),"99":U) + "/":U +
+             STRING(DAY(TODAY),"99":U) + " ":U +
+             STRING(TIME,"HH:MM:SS":U) + "~n":U).
   logWrite().
 END PROCEDURE.
 
@@ -162,11 +162,11 @@ PROCEDURE end-request :
   Notes:       
 ------------------------------------------------------------------------------*/
   RUN SUPER.
-  logNote("RUN":U, "End webrequest: " +              
-             STRING(YEAR(TODAY),"9999":U) + "/" +
-             STRING(MONTH(TODAY),"99":U) + "/" +
-             STRING(DAY(TODAY),"99":U) + " " +
-             STRING(TIME,"HH:MM:SS":U) + "~n").
+  logNote("RUN":U, "End webrequest: ":U +              
+             STRING(YEAR(TODAY),"9999":U) + "/":U +
+             STRING(MONTH(TODAY),"99":U) + "/":U +
+             STRING(DAY(TODAY),"99":U) + " ":U +
+             STRING(TIME,"HH:MM:SS":U) + "~n":U).
   logWrite().
 END PROCEDURE.
 
@@ -189,13 +189,13 @@ PROCEDURE init-batch :
     iEtime = ETIME(TRUE) 
     iEtime = 0.
 
-  IF CAN-DO(cLogTypes,"BATCH") AND cLogPath NE "" THEN  
+  IF CAN-DO(cLogTypes,"BATCH":U) AND cLogPath NE "" THEN  
     cRunLog = " ~n":U + 
-             STRING(YEAR(TODAY),"9999":U) + "/" +
-             STRING(MONTH(TODAY),"99":U) + "/" +
-             STRING(DAY(TODAY),"99":U) + " " +
-             STRING(TIME,"HH:MM:SS":U) + " " + 
-             " BATCH ~n".
+             STRING(YEAR(TODAY),"9999":U) + "/":U +
+             STRING(MONTH(TODAY),"99":U) + "/":U +
+             STRING(DAY(TODAY),"99":U) + " ":U +
+             STRING(TIME,"HH:MM:SS":U) + " ":U + 
+             " BATCH ~n":U.
 
 END PROCEDURE.
 
@@ -221,9 +221,9 @@ PROCEDURE init-config :
   /* Logging.  Not just a canadian thing anymore
   */ 
   ASSIGN 
-    c1      = REPLACE(OS-GETENV("LOG_TYPES":U),";",",")
-    c1      = (IF c1 EQ "" OR c1 = ? THEN "*" ELSE c1)
-    lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,
+    c1      = REPLACE(OS-GETENV("LOG_TYPES":U),";":U,",":U)
+    c1      = (IF c1 EQ "" OR c1 = ? THEN "*":U ELSE c1)
+    lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,
                 "Logging":U,"","LogTypes":U,c1).
 
   ASSIGN 
@@ -232,8 +232,8 @@ PROCEDURE init-config :
   IF FILE-INFO:FULL-PATHNAME         EQ ? OR 
     INDEX(FILE-INFO:FILE-TYPE,"D":U) LT 1 THEN
     ASSIGN c1 = SESSION:TEMP-DIR.
-  lRetVal = DYNAMIC-FUNCTION("setAgentSetting" IN web-utilities-hdl,
-              "Logging":U,"","LogDir":U, REPLACE (c1,"~\","~/")).
+  lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,
+              "Logging":U,"","LogDir":U, REPLACE (c1,"~\":U,"~/":U)).
 
   RUN SUPER.
 
@@ -261,17 +261,17 @@ PROCEDURE init-request :
 
   RUN SUPER.
 
-  IF CAN-DO(cLogTypes,"RUN") AND cLogPath NE "" THEN  
+  IF CAN-DO(cLogTypes,"RUN":U) AND cLogPath NE "" THEN  
     cRunLog = " ~n":U + 
-             STRING(YEAR(TODAY),"9999":U) + "/" +
-             STRING(MONTH(TODAY),"99":U) + "/" +
-             STRING(DAY(TODAY),"99":U) + " " +
+             STRING(YEAR(TODAY),"9999":U) + "/":U +
+             STRING(MONTH(TODAY),"99":U) + "/":U +
+             STRING(DAY(TODAY),"99":U) + " ":U +
              STRING(TIME,"HH:MM:SS":U) + " ":U + 
-             " Program ("       +
+             " Program (":U       +
              ENTRY(1,appProgram,".":U)       + 
              ", METHOD = ":U                 +
              REQUEST_METHOD                  + ") ":U + 
-             WEB-CONTEXT:EXCLUSIVE-ID        + "~n".
+             WEB-CONTEXT:EXCLUSIVE-ID        + "~n":U.
   
 END PROCEDURE.
 
@@ -293,7 +293,7 @@ PROCEDURE init-session :
    ASSIGN 
      cLogTypes = DYNAMIC-FUNCTION ("getAgentSetting":U IN web-utilities-hdl,"Logging":U, "":U, "LogTypes":U)
      cLogPath  = DYNAMIC-FUNCTION ("getAgentSetting":U IN web-utilities-hdl,"Logging":U, "":U, "LogDir":U)
-     lNoCache  = CAN-DO(cLogtypes,'NoCache').
+     lNoCache  = CAN-DO(cLogtypes,'NoCache':U).
    RUN SUPER.
 
 END PROCEDURE.
@@ -318,10 +318,10 @@ FUNCTION getLogFile RETURNS CHARACTER
   DEFINE VARIABLE cLogName   AS CHARACTER NO-UNDO.
 
   ASSIGN 
-    cLogName   = cLogPath + "/" + gscSessionId + ".log":U.
+    cLogName   = cLogPath + "/":U + gscSessionId + ".log":U.
 
   IF OPSYS = "win32":U THEN
-    RETURN REPLACE(cLogName, "/", "~\").
+    RETURN REPLACE(cLogName, "/":U, "~\":U).
   ELSE
     RETURN cLogName.   /* Function return value. */
 

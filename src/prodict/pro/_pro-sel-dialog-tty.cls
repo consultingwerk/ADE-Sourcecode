@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
+  /* Copyright (c) 2011,2014 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -58,13 +58,8 @@ class prodict.pro._pro-sel-dialog-tty inherits _pro-sel-dialog:
        
       
          /* set frame height to take all available space 
-            and adjust buttons and browse accordingly */
-         /* If tty screen is maximised, adjust the frame height to display the records */
-         if Presenter:Row GT 6 then
-             frame Dialog-Frame:height = 35 - Presenter:Row.
-	 else 
-	     frame Dialog-Frame:height = 21 - Presenter:Row.
-
+            and adjust buttons and browse accordingly- use SCREEN-LINES */
+         frame Dialog-Frame:height = SCREEN-LINES - Presenter:Row.
          mb:Height = frame Dialog-Frame:height - 4.
          btnOk:row = frame Dialog-Frame:height - 2.
          btnCancel:row = frame Dialog-Frame:height - 2.

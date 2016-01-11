@@ -371,6 +371,16 @@ class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
       SetPosition(KeyWhere).
   end method.
   
+   /* remove for or preselect from query - duplicated in DataAdminContext - belongs in utility  */
+  method protected char TrimQuery(pcQuery as char):
+      define variable i as integer no-undo.
+      if pcQuery begins "for " then 
+           return trim(substr(pcQuery,5)).  
+      if pcQuery begins "preselect " then 
+           return trim(substr(pcQuery,11)). 
+      return pcQuery .
+  end. 
+    
   /* set position as returned from GetPosition */
   method public logical SetPosition (pcPosition as char extent):
       define variable hBuffer    as handle  no-undo.

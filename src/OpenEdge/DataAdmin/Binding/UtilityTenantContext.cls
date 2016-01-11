@@ -1,4 +1,5 @@
  /*************************************************************/
+
  /* Copyright (c) 2012 by Progress Software Corporation.      */
  /*                                                           */
  /* All rights reserved.  No part of this program or document */
@@ -15,17 +16,16 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
-using OpenEdge.DataAdmin.IDataAdminElement.
-using OpenEdge.DataAdmin.IDataAdminCollection.
-using OpenEdge.DataAdmin.ITenant.
+routine-level on error undo, throw.
 using OpenEdge.DataAdmin.Binding.IDataAdminContext.
 using OpenEdge.DataAdmin.Binding.UtilityContext.
-using OpenEdge.DataAdmin.Internal.Util.UtilityTenantSet.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError.
-
-routine-level on error undo, throw.
-
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ITenant.
+using OpenEdge.DataAdmin.Internal.Util.UtilityTenantSet.
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.Binding.UtilityTenantContext inherits UtilityContext: 
 	{daschema/tenantdata.i reference-only}
     
@@ -49,7 +49,7 @@ class OpenEdge.DataAdmin.Binding.UtilityTenantContext inherits UtilityContext:
 	end constructor.
     
     method public override void Bind(pHdl as handle).
-        Bind(table-handle phdl bind).
+        bind(table-handle phdl bind).
     end method.    
     
     method private void Bind(table ttTenantData bind):
@@ -69,11 +69,11 @@ class OpenEdge.DataAdmin.Binding.UtilityTenantContext inherits UtilityContext:
         return new UtilityTenantSet(cntxt). 
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
+    method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
         if valid-object(TargetService) then
         do:
-            if this-object:Find(cntxt:TableHandle::name) then 
-               return TargetService:GetTenant(cntxt:TableHandle::name).
+            if this-object:Find(this-object:TableHandle::name) then 
+               return TargetService:GetTenant(this-object:TableHandle::name).
         end.   
     end method.
     

@@ -10,7 +10,7 @@
 routine-level on error undo, throw.
 
 using OpenEdge.BusinessRules.SeverityEnum.
-using OpenEdge.Lang.EnumMember.
+using OpenEdge.Core.EnumMember.
 
 class OpenEdge.BusinessRules.SeverityEnum final inherits EnumMember: 
 

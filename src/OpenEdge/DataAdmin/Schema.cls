@@ -1,4 +1,30 @@
 /*************************************************************/
+USING OpenEdge.DataAdmin.Binding.IContextTree.
+USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
+USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
+USING OpenEdge.DataAdmin.Binding.IDataDefinitionOptions.
+USING OpenEdge.DataAdmin.Binding.OptionContext.
+USING OpenEdge.DataAdmin.Binding.PartitionQueryContext.
+USING OpenEdge.DataAdmin.Binding.SchemaChanges.
+USING OpenEdge.DataAdmin.Binding.SchemaContext.
+USING OpenEdge.DataAdmin.Core.JSONLoader.
+USING OpenEdge.DataAdmin.Core.JSONWriter.
+USING OpenEdge.DataAdmin.DataAdminService.
+USING OpenEdge.DataAdmin.Entity.
+USING OpenEdge.DataAdmin.Error.UnknownValueError.
+USING OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+USING OpenEdge.DataAdmin.IDataAdminElement.
+USING OpenEdge.DataAdmin.IDataAdminExporter.
+USING OpenEdge.DataAdmin.IDataAdminSerializable.
+USING OpenEdge.DataAdmin.IPartitionCollection.
+USING OpenEdge.DataAdmin.IRequestInfo.
+USING OpenEdge.DataAdmin.ISchema.
+USING OpenEdge.DataAdmin.ISequenceSet.
+USING OpenEdge.DataAdmin.ITableSet.
+USING OpenEdge.DataAdmin.Message.LoadDefinitions.
+USING OpenEdge.DataAdmin.PartitionCollection.
+USING OpenEdge.DataAdmin.TableSet.
+USING Progress.Lang.Object.
 /* Copyright (c) 2010 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
@@ -15,35 +41,8 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw. 
-using Progress.Lang.Object from propath.
-
-using OpenEdge.DataAdmin.Entity from propath.  
-using OpenEdge.DataAdmin.DataAdminService from propath.  
-using OpenEdge.DataAdmin.ITableSet from propath.
-using OpenEdge.DataAdmin.TableSet from propath.
-using OpenEdge.DataAdmin.ISequenceSet from propath.
 /*using OpenEdge.DataAdmin.SequenceSet from propath.*/
-using OpenEdge.DataAdmin.ISchema from propath.
-
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
-using OpenEdge.DataAdmin.IPartitionCollection from propath.
-using OpenEdge.DataAdmin.PartitionCollection from propath.
 /*using OpenEdge.DataAdmin.PartitionMap from propath.*/
-
-using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
-
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IDataDefinitionOptions from propath.
-using OpenEdge.DataAdmin.Binding.OptionContext from propath.
-using OpenEdge.DataAdmin.Binding.SchemaContext from propath.
-using OpenEdge.DataAdmin.Binding.PartitionQueryContext from propath.
-using OpenEdge.DataAdmin.Core.JSONLoader from propath.
-using OpenEdge.DataAdmin.Message.LoadDefinitions from propath.
-using OpenEdge.DataAdmin.Error.UnknownValueError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-  
 class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminElement, IDataAdminSerializable:  
     
     /** SchemaState is "NEW" for unloaded schema, 
@@ -69,11 +68,8 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
                 undo, throw new UnsupportedOperationError("Tables collection is not accessible in unsaved schema changes.").
             if not valid-object(Tables) then
             do:
-                
-                Tables = cast(GetChildCollection(name,"tables"),ITableSet).
+                Tables = cast(GetChildCollection("tables"),ITableSet).
             end.
-/*            if not mTablesLoaded then*/
-/*                FetchTables().       */
             return Tables.     
         end.
         protected set.
@@ -105,7 +101,7 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
             
             if not valid-object(Partitions) then
             do:
-                Partitions = cast(GetChildCollection(name,"partitions"),IPartitionCollection).
+                Partitions = cast(GetChildCollection("partitions"),IPartitionCollection).
             end.     
             return Partitions.
         end.
@@ -128,7 +124,7 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
                 undo, throw new UnsupportedOperationError("Sequences collection is not accessible in unsaved schema changes.").
             if not valid-object(Sequences) then
             do:
-                Sequences = cast(GetChildCollection(name,"sequences"),ISequenceSet).
+                Sequences = cast(GetChildCollection("sequences"),ISequenceSet).
             end.
             return Sequences.     
         end.
@@ -146,15 +142,21 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
           
         set.
     
-	constructor public Schema ( cntxt as IDataAdminContext ):
-		super (input cntxt).
+	constructor public Schema ( cntxt as IDataAdminModel ):
+		super (cntxt).
 /*		message "schema constructor  context: " cntxt*/
 /*        view-as alert-box.                     */
 	end constructor.
-		
+	
+	constructor public Schema ( cntxt as IDataAdminModel, preq as IRequestInfo  ):
+        super (cntxt,preq).
+/*      message "schema constructor  context: " cntxt*/
+/*        view-as alert-box.                     */
+    end constructor.	
     
+   
     /* No local context needed - no child collections in local mode   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     
@@ -181,24 +183,81 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
             if valid-object(partitionQuery) then
                 Partitions:Attach(partitionQuery).
        
-            Context = cntxt.   
+            Context = schemaContext.   
           end.        
         else super:Attach(cntxt).
     end method.
     
-    /* write specified collections (default all) */
+    /** override to handle collections for this */
+    method public override void ExportTree(pcfile as char):
+        define variable hds as handle no-undo.
+        define variable writer as IDataAdminExporter no-undo.
+        if SchemaState = "NEW" then
+        do: 
+            hds = Context:DatasetHandle. 
+            hds:write-json ("File",pcFile,yes,"UTF-8",no). 
+        end.
+        else do:
+            writer = new JSONWriter().
+            writer:WriteToFile(this-object,pcfile,"tables,sequences").
+        end.  
+    end method.    
+     
+    
+    /** override to handle collections for this */
+    method public override void ExportTree(pcfile as char,pcCollectionlist as char):
+        define variable writer as IDataAdminExporter no-undo.
+        if SchemaState = "NEW" then
+              undo, throw new UnsupportedOperationError("Cannot Export selected collections for schema changes. Use ExportTree(file).").
+              
+        
+        writer = new JSONWriter().
+        writer:WriteToFile(this-object,pcfile,pcCollectionlist).
+    end method.    
+    
+    method public override void WriteTree(tree as IContextTree):
+        tree:SetJoin(SerializeName,"tables","Name,SchemaName").
+        Tables:WriteTree(tree,"lobFields,indexes").  
+        
+        tree:SetJoin(SerializeName,"sequences","Name,SchemaName").
+        Sequences:WriteTree(tree).  
+          
+    end method.
+     
+    /* write specified collections  */
     method public override void WriteTree(tree as IContextTree,pcCollections as char):
+        define variable lparse as logical no-undo.
         if lookup("options",pcCollections) > 0 then
         do:
             OptionContext:AddTableTo(tree). 
         end.
+        /** backward support load of options with no parent   */
+        else do:
+            tree:SetHandle(SerializeName,mDefaultBuffer,mDefaultBuffer:rowid).   
+        end.     
+        
         if lookup("partitions",pcCollections) > 0 then
         do:
             Partitions:WriteTree(tree,"").
-        end.    
+        end.
+        lparse = tree:Parse.
+        
+        /* tables and sequences were loaded with the entity, so set parse to apoid new load*/ 
+        tree:Parse = true.
+        if lookup("tables",pcCollections) > 0 then
+        do:
+            /* default to export lobFields and not fields */ 
+            tree:SetJoin(SerializeName,"tables","Name,SchemaName").
+            Tables:WriteTree(tree,"lobFields,indexes").  
+        end.
+        if lookup("sequences",pcCollections) > 0 then
+        do:
+            tree:SetJoin(SerializeName,"sequences","Name,SchemaName").
+            Sequences:WriteTree(tree).  
+        end.
+        tree:Parse = lparse.
     end method.
     
-     
     /* write specified collections (default all) */
 /*    method public override void WriteTree(writer as IDataAdminWriter,pcCollections as char):*/
 /*        if lookup("options",pcCollections) > 0 then                                         */
@@ -234,9 +293,7 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
         end.   
     end method.     
         
-    method private character GetFileExtension(pcfile as char):
-        return entry(num-entries(pcfile,"."),pcfile,".").
-    end method.
+  
     
     method private void SetOptions():
         define variable hbuffer as handle no-undo.
@@ -251,7 +308,7 @@ class OpenEdge.DataAdmin.Schema inherits Entity implements ISchema, IDataAdminEl
             ForceAllocation = hbuffer::ForceAllocation.
     end method.
         
-    
+   
     /*
     method public override void Import(pcFile as char). 
         

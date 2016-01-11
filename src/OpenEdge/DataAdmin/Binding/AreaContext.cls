@@ -15,32 +15,32 @@
    Notes       : 
  ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAdminService from propath.
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminCollection from propath.
-using OpenEdge.DataAdmin.Area from propath. 
-using OpenEdge.DataAdmin.IArea from propath.
-using OpenEdge.DataAdmin.AreaSet from propath.  
-using OpenEdge.DataAdmin.IExtent from propath. 
-using OpenEdge.DataAdmin.IRequestInfo from propath. 
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.IContextTree from propath.
-using OpenEdge.DataAdmin.Binding.ContextTree from propath.
-using OpenEdge.DataAdmin.Binding.DataAdminContext from propath.
-using OpenEdge.DataAdmin.Binding.ExtentContext from propath.
-using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath. 
-using OpenEdge.DataAdmin.Binding.Factory.IAreaScope from propath. 
-using OpenEdge.DataAdmin.Message.FetchRequest from propath. 
-using OpenEdge.DataAdmin.Message.IFetchRequest from propath. 
-using OpenEdge.DataAdmin.Message.ISaveRequest from propath. 
-
-using OpenEdge.DataAdmin.Error.DataError from propath.
-using OpenEdge.DataAdmin.Error.DataContextError from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
-using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath.
-using OpenEdge.DataAdmin.Error.ValidationError from propath.
-
+using OpenEdge.DataAdmin.Area.
+using OpenEdge.DataAdmin.AreaSet.
+using OpenEdge.DataAdmin.Binding.ContextTree.
+using OpenEdge.DataAdmin.Binding.DataAdminContext.
+using OpenEdge.DataAdmin.Binding.ExtentContext.
+using OpenEdge.DataAdmin.Binding.Factory.IAreaScope.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Error.DataContextError.
+using OpenEdge.DataAdmin.Error.DataError.
+using OpenEdge.DataAdmin.Error.InvalidPropertyValueError.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
+using OpenEdge.DataAdmin.Error.ValidationError.
+using OpenEdge.DataAdmin.IArea.
+using OpenEdge.DataAdmin.IDataAdminCollection.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IExtent.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.Message.FetchRequest.
+using OpenEdge.DataAdmin.Message.IFetchRequest.
+using OpenEdge.DataAdmin.Message.ISaveRequest.
+using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.*.
 class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/area.i}
@@ -59,11 +59,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
     define protected variable ValidTypeValues as char no-undo
         init "Recovery,Transaction log,Event log,Data,Rollforward recovery". 
  
-           
-    define public override property DatasetHandle as handle no-undo 
-        get():
-            return dataset dsArea:handle.
-        end get.
+ 
     
     define public override property TableHandle as handle no-undo 
         get():
@@ -105,6 +101,11 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         AddChild(extcntxt).
     end constructor.
     
+    /*   temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsArea:handle. 
+    end method.
+    
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
@@ -114,14 +115,14 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         assign ttArea.Name = pName .  
     end method.
     
-    method public override void CopyTable(cntxt as IDataAdminContext):
+    method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
         CopyTable(table-handle hTbl by-reference,cntxt). 
         Loaded = false.
     end method.    
        
-    method private void CopyTable(input table copytable,pCntxt as IDataAdminContext):
+    method private void CopyTable(input table copytable,pCntxt as IDataAdminModel):
         define variable dataerror as DataContextError no-undo.   
         define variable extentcntxt as ExtentContext no-undo.  
         define variable cHeader    as character no-undo init "Create failed.".
@@ -207,10 +208,10 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
     end method.
     
     method protected override void ValidateBuffer(phArea as handle):
-        ValidateAreaName(phArea::Name).
-        ValidateClusterSize(phArea::Name,string(phArea::ClusterSize)).
-        ValidateRecordsPerBlock(phArea::Name,string(phArea::RecordsPerBlock)).     
-        ValidateAreaType(phArea::Name,phArea::Type).      
+        ValidateAreaName(phArea::name).
+        ValidateClusterSize(phArea::name,string(phArea::ClusterSize)).
+        ValidateRecordsPerBlock(phArea::name,string(phArea::RecordsPerBlock)).     
+        ValidateAreaType(phArea::name,phArea::type).      
         if pharea:row-state = row-created then 
         do:
             ValidateExtent(phArea::name).
@@ -360,7 +361,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         hDs = tree:GetReadHandle().
 /*        h = CreateDataSet().*/
         
-        return new FetchRequest(Name,Id,hDs).
+        return new FetchRequest(Name,Id,hDs,no).
         
     end method.
     
@@ -368,16 +369,11 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         return new AreaSet(cntxt).
     end method.
     
-    method protected override IDataAdminElement CreateEntity(cntxt as IDataAdminContext):
-        return new Area(cntxt).
-    end method.
-    
     method protected override IDataAdminElement CreateEntity(pReq as IRequestInfo):
         return new Area(this-object,pReq).
     end method.
     
-    /** refresh partitions for create 
-       NewPartitionContext retrieved these */
+    /** refresh partitions for create   */
     method override public void MergeChanges( pResponse as ISaveRequest ):
         RefreshAreas(pResponse:DataHandle).
         super:MergeChanges(pResponse).
@@ -414,6 +410,15 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
             end.
             hQuery:get-next.
         end.
+    end method.
+    
+    /** override to not import area number 
+      @TODO find a better way. (set serialize-hidden?)
+     */
+    method protected override void ReadRow(json as JSONObject,pcExceptColumns as char).
+        pcExceptcolumns = (if pcExceptcolumns <> "" then pcExceptcolumns + "," else "")
+                        + "number".
+        super:ReadRow(json,pcExceptColumns).
     end method.
     
     method protected override logical ValidValue(pccolumn as character,piValue as int): 

@@ -34,9 +34,6 @@ Date Created: 05/03/92
 {adedict/TBL/tblvar.i shared}
 {adedict/SEQ/seqvar.i shared}
 {adedict/FLD/fldvar.i shared}
-{adedict/IDX/idxvar2.i shared}
-{adedict/IDX/idxvar.i shared}
-
 
 Define INPUT PARAMETER p_Obj  as integer NO-UNDO.
 Define INPUT PARAMETER p_Next as logical NO-UNDO.

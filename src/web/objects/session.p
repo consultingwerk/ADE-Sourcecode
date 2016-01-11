@@ -302,7 +302,7 @@ PROCEDURE init-batch :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  gscSessionId   = "batch".  
+  gscSessionId   = "batch":U.  
   RUN SUPER NO-ERROR.
 END PROCEDURE.
 
@@ -330,7 +330,7 @@ PROCEDURE init-request :
       c1 = DYNAMIC-FUNCTION("get-value":U IN web-utilities-hdl, ?)
       i1 = INDEX(c1,cSessionCookie).
     IF i1 > 0 THEN
-      gscSessionId = DYNAMIC-FUNCTION("get-value" IN web-utilities-hdl,entry(1,substring(c1,i1))).
+      gscSessionId = DYNAMIC-FUNCTION("get-value":U IN web-utilities-hdl,entry(1,substring(c1,i1))).
   END.
   IF gscSessionId = "" THEN
     gscSessionId = IF SESSION:SERVER-CONNECTION-ID > "" THEN ENCODE(SESSION:SERVER-CONNECTION-ID) ELSE "SYS":U.
@@ -369,9 +369,9 @@ PROCEDURE init-session :
                           "Session":U, "":U, "Cookie":U)
     cLogPath = DYNAMIC-FUNCTION ("getAgentSetting":U IN web-utilities-hdl,
                           "Session":U, "":U, "StorePath":U)
-    cGlobalFile = cLogPath + "/" + WEB-CONTEXT:CONFIG-NAME + ".tmp".
+    cGlobalFile = cLogPath + "/":U + WEB-CONTEXT:CONFIG-NAME + ".tmp":U.
   IF OPSYS = "win32":U THEN
-    cGlobalFile = REPLACE(cGlobalFile, "/", "~\").
+    cGlobalFile = REPLACE(cGlobalFile, "/":U, "~\":U).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -615,7 +615,7 @@ FUNCTION setGlobal RETURNS LOGICAL
   IF GlobalNames = ? THEN 
     initGlobal().
   
-  iNameCount = NUM-ENTRIES(cName, ",").
+  iNameCount = NUM-ENTRIES(cName, ",":U).
 
   DO i3 = 1 TO iNameCount:
     ASSIGN 
@@ -627,7 +627,7 @@ FUNCTION setGlobal RETURNS LOGICAL
     IF i1 = 0 THEN
       ASSIGN
         GlobalValues = GlobalValues + (IF GlobalNames > "" THEN CHR(3) ELSE "") + cWorkValue
-        GlobalNames  = GlobalNames  + (IF GlobalNames > "" THEN "," ELSE "") + cWorkName.
+        GlobalNames  = GlobalNames  + (IF GlobalNames > "" THEN ",":U ELSE "") + cWorkName.
     ELSE 
       ASSIGN
         ENTRY(i1,GlobalValues,CHR(3)) = cWorkValue.
@@ -661,7 +661,7 @@ FUNCTION setSession RETURNS LOGICAL
   IF SessionNames = ? THEN 
     initSession().
   
-  iNameCount = NUM-ENTRIES(cName, ",").
+  iNameCount = NUM-ENTRIES(cName, ",":U).
 
   DO i3 = 1 TO iNameCount:
     ASSIGN 
@@ -673,7 +673,7 @@ FUNCTION setSession RETURNS LOGICAL
     IF i1 = 0 THEN
       ASSIGN
         SessionValues = SessionValues + (IF SessionNames > "" THEN CHR(3) ELSE "") + cWorkValue
-        SessionNames  = SessionNames  + (IF SessionNames > "" THEN "," ELSE "") + cWorkName.
+        SessionNames  = SessionNames  + (IF SessionNames > "" THEN ",":U ELSE "") + cWorkName.
     ELSE 
       ASSIGN
         ENTRY(i1,SessionValues,CHR(3)) = cWorkValue.

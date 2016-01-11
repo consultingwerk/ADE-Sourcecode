@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2010,2013 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -40,13 +40,15 @@ form
    b_File._File-Name 	label "Table &Name"   colon {&col1}   
                         view-as fill-in size 42 by 1
                         {&STDPH_FILL}                        
+   b_File._File-attributes[3]   label "&Partitioned"    colon {&col1} 
+                        view-as toggle-box SKIP({&VM_WID})  
    b_File._File-attributes[1]   label "&Multi-tenant"   colon {&col1}   
-                        view-as toggle-box              
-                                                                SKIP({&VM_WID})       
-   b_File._File-attributes[2]   label "&Keep Area for Default Tenant"   colon {&col1} 
-                        view-as toggle-box                   
-                        SKIP({&VM_WID}) 
-                        
+                        view-as toggle-box            space(1.5)
+   			
+   b_File._File-attributes[2]   label "&Support Default Tenant"
+                        view-as toggle-box                                                                      
+			SKIP({&VM_WID})      			
+
    s_Tbl_Area           label "&Area" colon {&col1} s_btn_File_Area
     SKIP({&VM_WID})
  

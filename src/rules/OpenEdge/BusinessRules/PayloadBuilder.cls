@@ -14,8 +14,8 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
 routine-level on error undo, throw.
 
 using OpenEdge.BusinessRules.DecisionServiceSelectorEnum.
-using OpenEdge.Lang.TimeStamp.
-using OpenEdge.Lang.Assert.
+using OpenEdge.Core.TimeStamp.
+using OpenEdge.Core.Assert.
 
 class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
     
@@ -45,8 +45,8 @@ class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
         define variable lcPayload as longchar no-undo.
         define variable cAttributeName as character no-undo.
         
-        Assert:ArgumentNotNull(pcDecisionServiceName, 'Decision Service Name').
-        Assert:ArgumentNotNull(poDecisionServiceSelector, 'Decision Service Selector'). 
+        Assert:NotNull(pcDecisionServiceName, 'Decision Service Name').
+        Assert:NotNull(poDecisionServiceSelector, 'Decision Service Selector'). 
         
         mhSaxWriter:reset().
         mhSaxWriter:set-output-destination('longchar', lcPayload).

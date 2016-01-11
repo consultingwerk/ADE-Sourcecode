@@ -14,15 +14,23 @@
 
 /* ***************************  Definitions  ************************** */
  define temp-table ttTable no-undo serialize-name "tables"  {1} before-table ttTableCopy
-     field SchemaName      as character serialize-name "schemaName"
-     field Name            as character serialize-name "name"
-     field Description     as character serialize-name "description"
-     field IsMultitenant   as logical   serialize-name "isMultitenant"
+     field SchemaName            as character serialize-name "schemaName"
+     field Name                  as character serialize-name "name"
+     field Id                    as integer  serialize-hidden
+     field Description           as character serialize-name "description"
+     field IsMultitenant         as logical   serialize-name "isMultitenant"
+     field IsPartitioned         as logical   serialize-name "isPartitioned"
+     field HasType1Area          as logical   serialize-hidden
+     field PartitionPolicyName   as character serialize-name "partitionPolicyName"
      field KeepDefaultArea as logical   serialize-name "keepDefaultArea"
      field tRowid          as rowid     serialize-hidden
      field AreaName        as character serialize-name "areaName"
      field AreaUrl         as character serialize-name "area_url"
+     field PartitionPolicyUrl   as character serialize-name "partitionPolicy_url"
      field PartitionsUrl   as character serialize-name "partitions_url"
+     field IndexUrl        as character serialize-name "indexes_url"
+     field FieldUrl        as character serialize-name "fields_url"
+     field Url             as character serialize-name "url"
      field Hidden          as logical   serialize-hidden 
     
 /*    field DumpName      as character*/

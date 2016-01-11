@@ -15,23 +15,19 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw. 
-using Progress.Lang.Object from propath.
-
-using OpenEdge.DataAdmin.Entity from propath.  
-using OpenEdge.DataAdmin.DataAdminService from propath.  
  
-/*using OpenEdge.DataAdmin.SequenceSet from propath.*/
-using OpenEdge.DataAdmin.ISequenceValue from propath.
-
-using OpenEdge.DataAdmin.IDataAdminElement from propath.
-using OpenEdge.DataAdmin.IDataAdminSerializable from propath. 
-
-using OpenEdge.DataAdmin.Binding.IDataAdminContext from propath.
-using OpenEdge.DataAdmin.ITenant from propath.
-using OpenEdge.DataAdmin.ISequence from propath. 
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.DataAdminService.
+using OpenEdge.DataAdmin.Entity.
+using OpenEdge.DataAdmin.Error.InvalidPropertyValueError.
+using OpenEdge.DataAdmin.IDataAdminElement.
+using OpenEdge.DataAdmin.IDataAdminSerializable.
+using OpenEdge.DataAdmin.IRequestInfo.
+using OpenEdge.DataAdmin.ISequence.
+using OpenEdge.DataAdmin.ISequenceValue.
+using OpenEdge.DataAdmin.ITenant.
+using Progress.Lang.Object.
  
-using OpenEdge.DataAdmin.Error.InvalidPropertyValueError from propath.
-  
 class OpenEdge.DataAdmin.SequenceValue inherits Entity implements ISequenceValue, IDataAdminElement, IDataAdminSerializable:  
     
     define public property Tenant as ITenant no-undo 
@@ -97,17 +93,19 @@ class OpenEdge.DataAdmin.SequenceValue inherits Entity implements ISequenceValue
             CurrentValue = pVal.
         end.    
     
-    constructor public SequenceValue ( cntxt as IDataAdminContext ):
+    constructor public SequenceValue ( cntxt as IDataAdminModel ):
 		super (input cntxt).
 	end constructor.
 	
+	constructor public SequenceValue ( cntxt as IDataAdminModel ,preq as IRequestInfo):
+        super (input cntxt,preq).
+    end constructor.
+    
     /* No local context needed - no child collections   */ 
-    method protected  override IDataAdminContext CreateLocalContext():
+    method protected  override IDataAdminModel CreateLocalContext():
         return ?.
     end method.
     	
-    method private character GetFileExtension(pcfile as char):
-        return entry(num-entries(pcfile,"."),pcfile,".").
-    end method.
+    
         
 end class.

@@ -57,9 +57,7 @@ class OpenEdge.DataAdmin.DomainSet inherits DataAdminCollection implements IDoma
             domain:Tenant = Tenant.     
         end.
         */
-        domain:Attach(Context).
-       
-        return true.
+        return Context:AddEntity(domain).
     end method.  
     
 	method override public void Import(pcFile as character ):	
