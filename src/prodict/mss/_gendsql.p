@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2005-2006,2008-2010,2011 by Progress Software        *
+* Corporation. All rights reserved.  Prior versions of this work may *
+* contain portions contributed by participants of Possenet.          *
 *                                                                    *
 *********************************************************************/
 /* Procedure: prodict/mss/_gendsql.p
@@ -48,6 +48,7 @@
               09/23/09 Nagaraju Implementation of Computed columns for RECID (OE00186593)
               02/11/10 fernando Fix issue with sql generated for old sequence generator
               06/16/10 rkumar   Fix issue with incorrect sql generated when _For-owner is ?
+			  08/11/11 rkamboj  Fix issue assigment error with data direct driver for MSS.
               
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -152,7 +153,9 @@ DEFINE VARIABLE isSQLNCLI     AS LOGICAL               NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE blankdefault  AS LOGICAL               NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE maxValue      AS INTEGER               NO-UNDO.
-DEFINE VARIABLE useComputedColumn AS LOGICAL            NO-UNDO.
+DEFINE VARIABLE useComputedColumn AS LOGICAL           NO-UNDO.
+define variable bug7              as logical           no-undo.
+define variable quote             as character         no-undo.
 
 DEFINE TEMP-TABLE df-info NO-UNDO
     FIELD df-seq  AS INTEGER
@@ -1842,6 +1845,10 @@ PROCEDURE process-sql-width.
   DEFINE VARIABLE cWidth            AS CHARACTER NO-UNDO.
   DEFINE VARIABLE defInfo           AS CHARACTER NO-UNDO.
   DEFINE VARIABLE defInfoOff        AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE has_default_in_field_name AS LOGICAL   NO-UNDO.
+
+    if pfieldname matches "*default_*" or pfieldname matches "*_default*" then
+     assign has_default_in_field_name = TRUE.
 
   FIND FIRST new-obj WHERE new-obj.add-type = "F"
                  AND new-obj.tbl-name = ptablename
@@ -1888,7 +1895,7 @@ PROCEDURE process-sql-width.
                       AND a-fldname = pfieldname 
                       AND NOT a-line BEGINS "ALTER":
 
-        IF INDEX(alt-info.a-line,"DEFAULT") <> 0 THEN
+        IF has_default_in_field_name EQ FALSE and INDEX(alt-info.a-line,"DEFAULT") <> 0 THEN
            ASSIGN defInfoOff = INDEX(alt-info.a-line,"DEFAULT")
                defInfo = SUBSTRING(alt-info.a-line, defInfoOff).
         ELSE
@@ -1930,7 +1937,7 @@ PROCEDURE process-sql-width.
                       AND fldname = pfieldname 
                       AND LINE BEGINS pfieldname:
       
-        IF INDEX(line,"DEFAULT") <> 0 THEN 
+        IF has_default_in_field_name EQ FALSE and INDEX(line,"DEFAULT") <> 0 THEN 
             ASSIGN defInfoOff = INDEX(sql-info.line,"DEFAULT")
                    defInfo = SUBSTRING(sql-info.line, defInfoOff).
           ELSE
@@ -2058,7 +2065,12 @@ IF AVAILABLE DICTDB._File THEN DO:
          RETURN.
       END.
   END.
-
+  assign bug7  = can-do(_Db._Db-misc2[4], "7")
+         quote = SUBSTRING(_Db._Db-misc2[3],2,1, "character")
+         quote = ( if (quote = " " OR bug7)
+                then ""
+                else quote
+          ).
   IF ( _Db._db-misc2[1] BEGINS "SQLNCLI") THEN 
       ASSIGN isSQLNCLI = YES.
 
@@ -3060,12 +3072,15 @@ DO ON STOP UNDO, LEAVE:
                  dfseq = dfseq + 1
                  df-info.df-tbl = tablename
                  df-line = '  FOREIGN-NAME "' + LOWER(fieldname) + '"'. 
-
-          CREATE df-info.
-          ASSIGN df-info.df-seq = dfseq
-                 dfseq = dfseq + 1
-                 df-info.df-tbl = tablename
-                 df-line = '  QUOTED-NAME """' + CAPS(fieldname) + '"""'.
+          if (LENGTH(quote, "character") = 1) THEN 
+          DO:
+             CREATE df-info.
+             ASSIGN df-info.df-seq = dfseq
+                    dfseq = dfseq + 1
+                    df-info.df-tbl = tablename
+                    df-line = '  QUOTED-NAME ' + quote + CAPS(fieldname) + quote.
+                    /* df-line = '  QUOTED-NAME """' + CAPS(fieldname) + '"""'. */
+          END.
         END. /* End first line of add field */                      
         ELSE DO:
           CASE ilin[1]:

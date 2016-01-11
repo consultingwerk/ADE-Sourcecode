@@ -63,6 +63,7 @@ DEFINE VARIABLE first_str  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE second_str AS CHARACTER NO-UNDO.
 DEFINE VARIABLE third_str  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE has_default AS CHARACTER NO-UNDO.
+DEFINE VARIABLE is_identity AS CHARACTER NO-UNDO.
 
 ASSIGN
   pnam = TRIM(DICTDBG.SQLColumns_buffer.Column-name).
@@ -231,6 +232,27 @@ IF (INDEX(UPPER(_Db._Db-misc2[5]), "DB2/400") <> 0 OR INDEX(UPPER(_Db._Db-misc2[
  END. /* END of IF (dtyp EQ 3 or dtyp EQ 4 or dtyp EQ 5) */
 END.
 
+/* OE00210200: To identify whether the column has 'GENERATED' property. */
+IF (INDEX(UPPER(_Db._Db-misc2[5]), "UDB") <> 0 OR INDEX(UPPER(_Db._Db-misc2[5]), "UDB DB") <> 0) THEN DO:
+	ASSIGN sqlq = "select GENERATED from syscat.columns where " + 
+	   " TABNAME = '" + DICTDBG.SQLColumns_buffer.NAME +
+	   "' and COLNAME  = '" + DICTDBG.SQLColumns_buffer.column-name +
+	   "' and USER = '" + DICTDBG.SQLColumns_buffer.OWNER +
+	   "' ".
+
+	RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlq ).
+
+	IF ERROR-STATUS:ERROR THEN
+	   ASSIGN is_identity = ?.
+	ELSE DO:
+		FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
+			ASSIGN is_identity = proc-text.
+		END.
+		is_identity = TRIM(SUBSTRING(is_identity,1,3),"'").
+		CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+	END.
+END.
+
 CREATE s_ttb_fld.
 
 assign
@@ -260,8 +282,21 @@ assign
                               + {&order-offset}
   s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
                                 then false
+                                ELSE IF (is_identity EQ 'A' OR is_identity EQ 'D')
+                                THEN FALSE
                                 else (DICTDBG.SQLColumns_buffer.Nullable = 0)
                           ).
+						  
+/* OE00210200: Check field to see if generated field and mark _field-Misc2[4] as appropriately. */
+IF (INDEX(UPPER(_Db._Db-misc2[5]), "UDB") <> 0 OR INDEX(UPPER(_Db._Db-misc2[5]), "UDB DB") <> 0) THEN DO:
+ IF (is_identity EQ 'A') THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "ALWAYS"
+          s_ttb_fld.ds_itype = 1. 
+ ELSE IF (is_identity EQ 'D') THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "BY_DEFAULT"
+          s_ttb_fld.ds_itype = 1.
+END.
+   
  IF s_ttb_Fld.ds_scale = ? THEN 
    ASSIGN s_ttb_Fld.ds_scale = 0.
    

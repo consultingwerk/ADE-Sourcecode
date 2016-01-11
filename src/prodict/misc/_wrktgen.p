@@ -1438,6 +1438,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     IF skptrm THEN
       PUT STREAM code UNFORMATTED SKIP.
     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+    PUT STREAM code UNFORMATTED
+        comment_chars "sp_settriggerorder @triggername = '" n2 "', " SKIP
+        comment_chars "       @order='first', @stmttype = 'INSERT' " SKIP.
+    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
   END. /* dbtyp = "SYBASE" OR "MS SQL Server" and compatible */
 
   IF user_env[3] <> "" THEN DO:

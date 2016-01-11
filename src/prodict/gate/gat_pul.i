@@ -914,8 +914,8 @@ for each gate-work
          ds_objects-2.name MATCHES "*##_PROGRESS_ROWID" 
          then NEXT.
 
-      if ds_objects-2.NAME BEGINS "SYS_" THEN NEXT.
-
+   /* OE00210415: Modified the code to remove the restriction of pulling index object name begins with "SYS_" for oracle dataserver */
+      if ds_objects-2.NAME BEGINS "SYS_" AND NOT "{&db-type}" = "oracle"  THEN NEXT. 
 
       {prodict/gate/gat_puli.i
         &for-idx-name = "{&for-idx-name}"

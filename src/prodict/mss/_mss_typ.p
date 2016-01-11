@@ -62,7 +62,7 @@ To get the MSS-to-PROGRESS tables copied to the environment:
            knavneet   05/27/09  OE00185197            
            sgarg      05/22/09  ROWGUID support for MSS
 */ 
-&SCOPED-DEFINE GATE_CONFIG_ENTRIES 58
+&SCOPED-DEFINE GATE_CONFIG_ENTRIES 59
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT {&GATE_CONFIG_ENTRIES} NO-UNDO.
 /* from prodict/dictvar.i */
 DEFINE SHARED VARIABLE is-pre-101b-db  AS LOGICAL NO-UNDO.
@@ -232,62 +232,63 @@ ASSIGN
   gate-config[21] = "Integer, Integer, 0, 33, decimal, 3, |#"
   gate-config[22] = "Integer, Integer, 0, 33, logical, 3, |?"
   gate-config[23] = "Integer, Integer, 0, 33, int64, 3, |i"
-  gate-config[24] = "Smallint, Smallint, 0, 32, integer, 4, |i"
-  gate-config[25] = "Smallint, Smallint, 0, 32, decimal, 4, |#"
-  gate-config[26] = "Smallint, Smallint, 0, 32, logical, 4, |l"
-  gate-config[27] = "Smallint, Smallint, 0, 32, int64, 4, |i"
-  gate-config[28] = "Float, Float, 0, 34, decimal, 5, |#"
-  gate-config[29] = "Float, Float, 0, 34, integer, 5, |i"
-  gate-config[30] = "Float, Float, 0, 34, int64, 5, |i"
-  gate-config[31] = "Real, Real, 0, 48, decimal, 6, |#"
-  gate-config[32] = "Real, Real, 0, 48, integer, 6, |i"
-  gate-config[33] = "Real, Real, 0, 48, int64, 6, |i"
-  gate-config[34] = "Double, Double, 0, 134,decimal, 7, |#"
-  gate-config[35] = "Double, Double, 0, 134,integer, 7, |i"
-  gate-config[36] = "Double, Double, 0, 134,int64, 7, |i"
-  gate-config[37] = "Bigint, Bigint, 0, 234,int64, 8, |i"
-  gate-config[38] = "Bigint, Bigint, 0, 234,decimal, 8, |#"
-  gate-config[39] = "Bigint, Bigint, 0, 234,integer, 8, |i"
-  gate-config[40] = "Tinyint, Tinyint, 0, 31, integer, 9, |->>9"
-  gate-config[41] = "Tinyint, Tinyint, 0, 31, decimal, 9, |->>>>9"
-  gate-config[42] = "Tinyint, Tinyint, 0, 31, logical, 9, |l"
-  gate-config[43] = "Tinyint, Tinyint, 0, 31, int64, 9, |i"
-  gate-config[44] = "Bit, Bit, 0, 41, logical, 0, |l"
-  gate-config[45] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime-tz, d,|dtz"
-  gate-config[46] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime, d,|dt"
-  gate-config[47] = "Timestamp-tz, Timestamp-tz, 0, 54 ,date, d,|d"
-  gate-config[48] = "Timestamp-tz, Timestamp-tz, 0, 54 ,character, d,|x(34)".
+  gate-config[24] = "Integer, Integer, 0, 33, recid, 3, |i" 
+  gate-config[25] = "Smallint, Smallint, 0, 32, integer, 4, |i"
+  gate-config[26] = "Smallint, Smallint, 0, 32, decimal, 4, |#"
+  gate-config[27] = "Smallint, Smallint, 0, 32, logical, 4, |l"
+  gate-config[28] = "Smallint, Smallint, 0, 32, int64, 4, |i"
+  gate-config[29] = "Float, Float, 0, 34, decimal, 5, |#"
+  gate-config[30] = "Float, Float, 0, 34, integer, 5, |i"
+  gate-config[31] = "Float, Float, 0, 34, int64, 5, |i"
+  gate-config[32] = "Real, Real, 0, 48, decimal, 6, |#"
+  gate-config[33] = "Real, Real, 0, 48, integer, 6, |i"
+  gate-config[34] = "Real, Real, 0, 48, int64, 6, |i"
+  gate-config[35] = "Double, Double, 0, 134,decimal, 7, |#"
+  gate-config[36] = "Double, Double, 0, 134,integer, 7, |i"
+  gate-config[37] = "Double, Double, 0, 134,int64, 7, |i"
+  gate-config[38] = "Bigint, Bigint, 0, 234,int64, 8, |i"
+  gate-config[39] = "Bigint, Bigint, 0, 234,decimal, 8, |#"
+  gate-config[40] = "Bigint, Bigint, 0, 234,integer, 8, |i"
+  gate-config[41] = "Tinyint, Tinyint, 0, 31, integer, 9, |->>9"
+  gate-config[42] = "Tinyint, Tinyint, 0, 31, decimal, 9, |->>>>9"
+  gate-config[43] = "Tinyint, Tinyint, 0, 31, logical, 9, |l"
+  gate-config[44] = "Tinyint, Tinyint, 0, 31, int64, 9, |i"
+  gate-config[45] = "Bit, Bit, 0, 41, logical, 0, |l"
+  gate-config[46] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime-tz, d,|dtz"
+  gate-config[47] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime, d,|dt"
+  gate-config[48] = "Timestamp-tz, Timestamp-tz, 0, 54 ,date, d,|d"
+  gate-config[49] = "Timestamp-tz, Timestamp-tz, 0, 54 ,character, d,|x(34)".
 
 IF isDatetimeDefault THEN 
     ASSIGN
-      gate-config[49] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt"
-      gate-config[50] = "Timestamp, Timestamp, 0, 44, date, a, |d".
+      gate-config[50] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt"
+      gate-config[51] = "Timestamp, Timestamp, 0, 44, date, a, |d".
 ELSE
     ASSIGN
-      gate-config[49] = "Timestamp, Timestamp, 0, 44, date, a, |d"
-      gate-config[50] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt".
+      gate-config[50] = "Timestamp, Timestamp, 0, 44, date, a, |d"
+      gate-config[51] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt".
 
 ASSIGN
-  gate-config[51] = "Timestamp, Timestamp, 0, 44, datetime-tz, a, |dtz"
-  gate-config[52] = "Timestamp, Timestamp, 0, 44, character, a, |x(27)".
+  gate-config[52] = "Timestamp, Timestamp, 0, 44, datetime-tz, a, |dtz"
+  gate-config[53] = "Timestamp, Timestamp, 0, 44, character, a, |x(27)".
 
 
 IF isLobDefault THEN 
     ASSIGN
-      gate-config[53] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
-      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
-      gate-config[55] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
-      gate-config[56] = "Varbinary, Varbinary, 0, 39, character,f, |c".
+      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[55] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[56] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
+      gate-config[57] = "Varbinary, Varbinary, 0, 39, character,f, |c".
 ELSE
     ASSIGN
-      gate-config[53] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
-      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
-      gate-config[55] = "Varbinary, Varbinary, 0, 39, character,f, |c"
-      gate-config[56] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c".
+      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[55] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[56] = "Varbinary, Varbinary, 0, 39, character,f, |c"
+      gate-config[57] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c".
 
 /* Add any other entries here */
 ASSIGN
-  gate-config[57] = "ROWGUID, ROWGUID, 0, 55, character, 0, |x(36)". /* OE00196270 */
+  gate-config[58] = "ROWGUID, ROWGUID, 0, 55, character, 0, |x(36)". /* OE00196270 */
 ASSIGN 
    gate-config[{&GATE_CONFIG_ENTRIES}] = ?. /* Please note that this should be the last value */
 

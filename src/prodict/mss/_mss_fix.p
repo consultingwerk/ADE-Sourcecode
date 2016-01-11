@@ -385,9 +385,9 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
 	         DICTDB._Field._View-As         = DICTDB2._Field._View-As
 	         DICTDB._Field._Extent          = DICTDB2._Field._Extent.
 
-      IF DICTDB._Field._Data-type = "RECID" THEN
+/*      IF DICTDB._Field._Data-type = "RECID" THEN
           DICTDB._Field._Data-type = "INTEGER".
-
+*/
 	  DO cext = 1 TO DICTDB._Field._Extent:
 	    ASSIGN asfldn = sfldn + "#" + STRING (cext).
 
@@ -437,9 +437,9 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
             DICTDB._Field._Help         = DICTDB2._Field._Help.
 
 
-    IF DICTDB._Field._Data-type = "RECID" THEN
+/*    IF DICTDB._Field._Data-type = "RECID" THEN
        DICTDB._Field._Data-type = "INTEGER".
-
+*/
  /*------------------------------------------------------------------*/
 /*------------------------  FIELD-TRIGGERS  ------------------------*/
 /*------------------------------------------------------------------*/

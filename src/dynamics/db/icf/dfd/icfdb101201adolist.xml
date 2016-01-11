@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="101201">
+		<PatchStage Stage="ADOLoad">
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscem.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscem.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscer.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscer.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscot.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscot.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gscsp.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gscsp.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmmi.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmmi.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmms.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmms.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmpy.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmpy.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmse.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmse.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/rycat.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/rycat.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/rycso.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/rycso.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/cod2/gsmpyfol2w.ado</FileName>
+				<Description>Loading ADO for af/cod2/gsmpyfol2w.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>af/obj2/gsmusdyn1v.ado</FileName>
+				<Description>Loading ADO for af/obj2/gsmusdyn1v.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gscltreplc.ado</FileName>
+				<Description>Loading ADO for icf/trg/gscltreplc.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gscltrepld.ado</FileName>
+				<Description>Loading ADO for icf/trg/gscltrepld.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>icf/trg/gscltreplw.ado</FileName>
+				<Description>Loading ADO for icf/trg/gscltreplw.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/obj/dbselviewv.ado</FileName>
+				<Description>Loading ADO for ry/obj/dbselviewv.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>ry/tem/templatecontainer.ado</FileName>
+				<Description>Loading ADO for ry/tem/templatecontainer.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+	</Patch>
+</SetupInclude>

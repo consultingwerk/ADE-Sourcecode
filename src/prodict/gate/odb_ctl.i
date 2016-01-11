@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2006,2008,2009 by Progress Software Corporation.*
+* Copyright (C) 2005,2006,2008,2009,2011 by Progress Software Corporation.*
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                           *
 *                                                                    *
@@ -251,6 +251,7 @@ DEFINE VARIABLE odbc-certify-list AS CHARACTER NO-UNDO.
 		 rkumar 06/26/08 Added DataDirect 5.3 64-bit drivers for 10.2A release
 		 rkumar 03/20/09 Added DataDirect 6.0 32-bit and 64-bit drivers 
 				 for 10.2B release
+                 musingh 08/09/11 Added ODBC Wire Protocol driver for DB2 in BUG-33
 */ 
 DEFINE VARIABLE odbc-bug-list AS CHARACTER EXTENT 80 NO-UNDO.
 DEFINE VARIABLE odbc-bug-excld AS CHARACTER EXTENT 80 NO-UNDO.
@@ -376,10 +377,10 @@ odbc-bug-list[33] = "SQLSRV32.DLL,SQLNCLI.DLL,SQLNCLI10.DLL,IVMSSS16.DLL,IVMSSS1
                     + "P1DB218.DLL,IVDB218.DLL,P1MSSS18.DLL,IVMSSS18.DLL,P1SS618.DLL,IVSS618.DLL,"
                     + "P1DB219.DLL,IVDB219.DLL,P1MSSS19.DLL,IVMSSS19.DLL,P1SS619.DLL,IVSS619.DLL,"
                     + "P1ASE18.DLL,IVASE18.DLL,P1ASE19.DLL,IVASE19.DLL,P1MSSS21.DLL,IVMSSS21.DLL,P1ASE21.DLL,IVASE21.DLL," 
-                    + "P1ASE23.DLL,IVASE23.DLL,P1MSSS23.DLL,IVMSSS23.DLL,"
-		    + "P2ASE23.DLL,DDASE23.DLL,P2MSSS23.DLL,DDMSSS23.DLL,"
-		    + "P1ASE24.DLL,IVASE24.DLL,P2ASE24.DLL,DDASE24.DLL,"
-		    + "P1MSSS24.DLL,IVMSSS24.DLL,P2MSSS24.DLL,DDMSSS24.DLL"
+                    + "P1DB223.DLL,P1ASE23.DLL,IVASE23.DLL,P1MSSS23.DLL,IVMSSS23.DLL,"
+		    + "P2DB223.DLL,P2ASE23.DLL,DDASE23.DLL,P2MSSS23.DLL,DDMSSS23.DLL,"
+		    + "P1DB224.DLL,P1ASE24.DLL,IVASE24.DLL,P2ASE24.DLL,DDASE24.DLL,"
+		    + "P2DB224.DLL,P1MSSS24.DLL,IVMSSS24.DLL,P2MSSS24.DLL,DDMSSS24.DLL"
 odbc-bug-list[34] = "IVINF508.DLL,IVINF709.DLL,IVINF16.DLL,P1INF16.DLL,"
                     + "IVINF14.DLL,P1INF14.DLL,P1IFCL18.DLL,IVIFCL18.DLL,IVINF18.DLL,P1INF18.DLL," 
                     + "P1IFCL19.DLL,IVIFCL19.DLL,IVINF19.DLL,P1INF19.DLL"

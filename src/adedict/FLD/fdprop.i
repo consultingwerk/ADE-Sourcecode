@@ -291,8 +291,13 @@ do:
       	    /* The list entry has the format: "gatetype (pro type)". */
       	    assign
       	       gate_type = ENTRY(num, user_env[11])
-      	       pro_type = ENTRY(num, user_env[15])
-	       s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + 
+      	       pro_type = ENTRY(num, user_env[15]).
+      	  
+               IF ( b_field._dtype <> {&DTYPE_RECID} AND pro_type = "RECID" AND
+                                      s_DbCache_type[s_DbCache_ix] = "MSS" )  
+               THEN NEXT. 
+	         assign
+	            s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + 
       	       	     	      	              "(" + pro_type + ")")
       	       	       in {&Frame}.
       	 end.

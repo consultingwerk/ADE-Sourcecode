@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,6 +29,7 @@
 {src/web2/htmoff.i NEW}
 
 DEFINE VARIABLE hDataSource  AS HANDLE NO-UNDO.
+DEFINE VARIABLE cCharType    AS CHARACTER NO-UNDO.
 
 DEFINE STREAM InStream.
 
@@ -711,7 +712,7 @@ PROCEDURE getNextHtmlField :
   /* Adjust the starting byte offset to account for any preceding text we
      may have already 'stripped' off and sent to the web. */
   ASSIGN
-    org-line-len      = LENGTH(next-line,"CHARACTER":U)
+    org-line-len      = LENGTH(next-line,cCharType)
     start-line-offset = start-line-offset - clip-bytes.
 
   /* We read up to start-seek-offset and then some */
@@ -723,10 +724,10 @@ PROCEDURE getNextHtmlField :
       clip-bytes = clip-bytes + start-line-offset - 1.
   
     IF clip-bytes > 0 THEN DO:
-      {&OUT} SUBSTRING(next-line,1,start-line-offset - 1,"CHARACTER":U).  
+      {&OUT} SUBSTRING(next-line,1,start-line-offset - 1,cCharType).  
       ASSIGN 
-        next-line    = SUBSTRING(next-line,start-line-offset,-1,"CHARACTER":U)
-        org-line-len = LENGTH(next-line,"CHARACTER":U).
+        next-line    = SUBSTRING(next-line,start-line-offset,-1,cCharType)
+        org-line-len = LENGTH(next-line,cCharType).
     END.
   END.
   
@@ -738,13 +739,13 @@ PROCEDURE getNextHtmlField :
     ASSIGN
       line-no      = line-no + 1
       clip-bytes   = 0
-      org-line-len = LENGTH(next-line,"CHARACTER":U)
+      org-line-len = LENGTH(next-line,cCharType)
 
       /* If we're looking at the last line of a multi-line field definition, only 
          add that part that pertains to this field, otherwise add the whole line. */
       field-def    = field-def + CHR(10) + 
         (IF line-no < end-line-no THEN next-line ELSE
-         SUBSTRING(next-line,1,end-line-offset,"CHARACTER":U)).
+         SUBSTRING(next-line,1,end-line-offset,cCharType)).
   END.
 
   /* Adjust the ending byte offset to account for any preceding text we
@@ -755,15 +756,15 @@ PROCEDURE getNextHtmlField :
 
   IF (org-line-len > end-line-offset) AND num-lines = 1 THEN
     ASSIGN
-      field-def = SUBSTRING(field-def,1,end-line-offset,"CHARACTER":U).
+      field-def = SUBSTRING(field-def,1,end-line-offset,cCharType).
 
   /* Adjust clip-bytes to account for the last line of the field-def we're sending 
      to the web */ 
   ASSIGN clip-bytes = clip-bytes + 
-    LENGTH(ENTRY(num-lines,field-def,CHR(10)),"CHARACTER":U).
+    LENGTH(ENTRY(num-lines,field-def,CHR(10)),cCharType).
 
   IF (org-line-len - end-line-offset >= 0) THEN
-    ASSIGN next-line = SUBSTRING(next-line,end-line-offset + 1,-1,"CHARACTER":U).
+    ASSIGN next-line = SUBSTRING(next-line,end-line-offset + 1,-1,cCharType).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1062,6 +1063,9 @@ PROCEDURE outputFields :
       LEAVE.
     END.
 
+    cCharType = IF (SESSION:CPINTERNAL = "UTF-8":U) THEN "RAW":U
+                ELSE "CHARACTER":U.
+                
     /* Snip the field definition out of the file using the offsets */
     RUN getNextHtmlField (INPUT-OUTPUT next-line,
                           INPUT-OUTPUT line-no,
