@@ -1,5 +1,5 @@
- /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+/************************************************
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DigestAuthenticationFilter
@@ -12,30 +12,22 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.Credentials.
-using OpenEdge.Net.HTTP.Filter.Auth.AuthFilter.
-using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
-using OpenEdge.Net.HTTP.HttpMessage.
-using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter.
-using OpenEdge.Net.HTTP.ConcreteHttpRequest.
+using OpenEdge.Net.HTTP.IAuthenticatedRequest.
+using OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 
-class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilter:
+class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthenticationRequestFilter: 
     /* Incremented counter for Digest auth */
     define static private variable miNonceCount as integer no-undo.
     
-	constructor public DigestAuthenticationFilter():
-		super (input AuthenticationMethodEnum:Digest).
-	end constructor.
-	
-    /** The worker/filter method that each filter type impements.       
-        
-        @param  HttpRequest The requeste being challenged/filtered
-        @return FilterActionEnum Status of the fitler action. The caller decides
-                                 what to do with this information. Filters will
-                                 typically return Stop or OK */ 
-    method override public FilterActionEnum ExecuteFilter(input poMessage as HttpMessage):
+    constructor public DigestAuthenticationFilter ( input poRequest as IAuthenticatedRequest ):
+        super (input poRequest).
+    end constructor.
+
+    /** Build the actual authentication. To be implemented by concrete classes. */
+    method override protected void AddAuthentication():
         define variable cDomain as character no-undo.
         define variable cRealm as character no-undo.
         define variable cURI as character no-undo.
@@ -56,7 +48,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilt
         define variable lServerSentQoP as logical no-undo.
         define variable cChallenge as character no-undo.
         define variable oCredentials as Credentials no-undo.
-        define variable oRequest as HttpRequest no-undo.
+        define variable oRequest as IAuthenticatedRequest no-undo.
         
         /* challenge        =  "Digest" digest-challenge
 
@@ -79,7 +71,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilt
 
         
         /* cast for comfort */
-        assign oRequest = cast(poMessage, HttpRequest) 
+        assign oRequest = cast(this-object:Message, IAuthenticatedRequest)
                cChallenge = entry(2, oRequest:AuthenticationChallenge, ' ')
                /* After the 'digest' token, the challenge is comma-delimited */
                iMax = num-entries(cChallenge)
@@ -88,64 +80,63 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilt
         do iLoop = 1 to iMax:
             assign cEntry = entry(iLoop, cChallenge).
                         
-            case entry(1, cEntry, '='):
-                when 'realm' then cRealm = trim(entry(2, cEntry, '='), '"').
-                when 'domain' then cDomain = trim(entry(2, cEntry, '='), '"').
-                when 'nonce' then cNonce = trim(entry(2, cEntry, '='), '"').
-                when 'opaque' then cOpaque = trim(entry(2, cEntry, '='), '"').
-                when 'stale' then lStale = logical(entry(2, cEntry, '=')).
-                when 'algorithm' then cAlgorithm = entry(2, cEntry, '=').
-                when 'qop' then 
-                    assign cQualityOfProtection = trim(entry(2, cEntry, '='), '"')
+            case entry(1, cEntry, '=':u):
+                when 'realm':u then cRealm = trim(entry(2, cEntry, '=':u), '"':u).
+                when 'domain':u then cDomain = trim(entry(2, cEntry, '=':u), '"':u).
+                when 'nonce':u then cNonce = trim(entry(2, cEntry, '=':u), '"':u).
+                when 'opaque':u then cOpaque = trim(entry(2, cEntry, '=':u), '"':u).
+                when 'stale':u then lStale = logical(entry(2, cEntry, '=':u)).
+                when 'algorithm':u then cAlgorithm = entry(2, cEntry, '=':u).
+                when 'qop':u then 
+                    assign cQualityOfProtection = trim(entry(2, cEntry, '=':u), '"':u)
                            lServerSentQoP = true.
             end case.
         end.
         
-        Assert:NotNullOrEmpty(cRealm, 'Realm').
+        Assert:NotNull(cRealm, 'Realm').
         
-        assign oCredentials = GetCredentials(oRequest, cRealm).
+        assign oCredentials = GetCredentials(cRealm).
         Assert:NotNull(oCredentials, 'Credentials').
         
         assign cClientNonce = GenerateClientNonce().
         
         case cAlgorithm:
-            when 'MD5-sess' then
-                assign rHash1 = md5-digest(substitute('&1:&2:&3',
-                                    md5-digest(substitute('&1:&2:&3',
+            when 'MD5-sess':u then
+                assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
+                                    md5-digest(substitute('&1:&2:&3':u,
                                                     oCredentials:UserName,
-                                                    oCredentials:Domain,
+                                                    cRealm,
                                                     oCredentials:Password)),
                                     cNonce,
                                     cClientNonce)).
-            when 'MD5' or when '' then
-                assign rHash1 = md5-digest(substitute('&1:&2:&3',
+            when 'MD5':u or when '':u then
+                assign rHash1 = md5-digest(substitute('&1:&2:&3':u,
                                                     oCredentials:UserName,
-                                                    oCredentials:Domain,
+                                                    cRealm,
                                                     oCredentials:Password)).
         end case.
         Assert:IsPositive(length(rHash1), 'First hash').
         
         case cQualityOfProtection:
-            when '' then
-                assign rHash2 =  md5-digest(substitute('&1:&2',
-                                                oRequest:Method:Name,
+            when '':u then
+                assign rHash2 =  md5-digest(substitute('&1:&2':u,
+                                                oRequest:Method,
                                                 oRequest:URI:RelativeURI))
-                       rResponse = md5-digest(substitute('&1:&2:&3',
+                       rResponse = md5-digest(substitute('&1:&2:&3':u,
                                                 rHash1, cNonce, rHash2 )).
-            when 'auth' then
-                assign rHash2 =  md5-digest(substitute('&1:&2', 
-                                                oRequest:Method:Name, oRequest:URI:RelativeURI))
-                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6',
+            when 'auth':u then
+                assign rHash2 =  md5-digest(substitute('&1:&2':u, 
+                                                oRequest:Method, oRequest:URI:RelativeURI))
+                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
                                                 rHash1, cNonce, DigestAuthenticationFilter:miNonceCount, cClientNonce, cQualityOfProtection, rHash2)).
-            when 'auth-int' then
+            when 'auth-int':u then
             do:
-                assign rHash2 =  md5-digest(substitute('&1:&2:&3',
-                                                oRequest:Method:Name,
+                assign rHash2 =  md5-digest(substitute('&1:&2:&3':u,
+                                                oRequest:Method,
                                                 oRequest:URI:RelativeURI,
-                                                cast(oRequest, ConcreteHttpRequest):GetMessageBodyDigest()
-                                                /*md5-digest(oRequest:MessageBody:GetBytes():Value)*/
+                                                oRequest:ContentMD5
                                                 ))
-                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6',
+                       rResponse = md5-digest(substitute('&1:&2:&3:&4:&5:&6':u,
                                                 rHash1, cNonce, DigestAuthenticationFilter:miNonceCount, cClientNonce, cQualityOfProtection, rHash2 )).
             end.
         end case.
@@ -175,24 +166,23 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilt
                            "8" | "9" | "a" | "b" |
                            "c" | "d" | "e" | "f"
                            */
-        assign cCredentials = substitute('Digest username="&1"; realm="&2"; nonce="&3"; uri="&4"; response=&5"',
+        assign cCredentials = substitute('Digest username="&1"; realm="&2"; nonce="&3"; uri="&4"; response=&5"':u,
                                     oCredentials:UserName,
-                                    oCredentials:Domain,
+                                    cRealm,
                                     cNonce,
                                     oRequest:URI:RelativeURI,                                    
                                     hex-encode(rResponse)    ) .
         
         if lServerSentQoP then
             assign put-long(rNonceCount,1) = DigestAuthenticationFilter:miNonceCount 
-                   cCredentials = substitute('&1 ;cnonce="&2"; nc=&3',
+                   cCredentials = substitute('&1 ;cnonce="&2"; nc=&3':u,
                                         cClientNonce,
                                         hex-encode(rNonceCount)).
             
-        poMessage:AddHeader('Authorization', cCredentials).
-                    
-        return FilterActionEnum:Stop.
-	end method.
-	
+        oRequest:SetHeader(
+            HttpHeaderBuilder:Build('Authorization':u):Value(cCredentials):Header).
+    end method.
+    
     method private character GenerateClientNonce():
         define variable cNonce as character no-undo.
         
@@ -201,5 +191,5 @@ class OpenEdge.Net.HTTP.Filter.Auth.DigestAuthenticationFilter inherits AuthFilt
         
         return cNonce.
     end method.
-
+  
 end class.

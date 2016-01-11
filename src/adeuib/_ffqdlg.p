@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2015 by Progress Software Corporation. All rights*
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -84,9 +84,11 @@ IF ok-cancel = "Freeform":U THEN DO:
      this assumption is that this is to replace the colon at end as this will not compile (11.4).
      not sure if it is always there so also remove period to avoid double period   
   */
-   
-  assign  _4GLQury = right-trim(_4GLQury,":.":U) + ".":U  
-          _4GLQury = REPLACE(_4GLQury," ~~":U + CHR(10) , CHR(10)).
+  
+  if _4GLQury ne "" then
+      assign  _4GLQury = right-trim(_4GLQury,":.":U) + ".":U 
+              _4GLQury = REPLACE(_4GLQury," ~~":U + CHR(10) , CHR(10)).
+
   CREATE _TRG.
   ASSIGN _TRG._pRECID   = RECID(_P)
          _TRG._tSECTION = "_CONTROL":U

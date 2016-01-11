@@ -12,8 +12,8 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Core.EnumMember.
+using OpenEdge.Net.HTTP.TransferEncodingEnum.
 
 class OpenEdge.Net.HTTP.TransferEncodingEnum inherits EnumMember:
     &global-define EnumMembers 
@@ -24,10 +24,28 @@ class OpenEdge.Net.HTTP.TransferEncodingEnum inherits EnumMember:
     {Consultingwerk/EnumMember.i Gzip       3   TransferEncodingEnum}
     {Consultingwerk/EnumMember.i Compress   4   TransferEncodingEnum} 
     {Consultingwerk/EnumMember.i Deflate    5   TransferEncodingEnum}
-    
+        
 	constructor protected TransferEncodingEnum ( input piValue as integer, input pcName as character ):
 		super (input piValue, input pcName).
 	end constructor.
 
-    {Consultingwerk/EnumFromString.i OpenEdge.Net.HTTP.TransferEncodingEnum}
+    method public static TransferEncodingEnum FromString (input pcMemberName as character):
+        define variable iEntry as integer no-undo.
+        
+        /* Http spec says that x-gzip and otehrs are equivalent to gzip and others */
+        if pcMemberName begins 'X-':u then
+            assign pcMemberName = entry(2, pcMemberName, '-':u).
+        
+        assign iEntry = lookup(pcMemberName, '{&EnumMembers}':u) .
+        
+        OpenEdge.Core.Assert:IsPositive(iEntry, 'entry').
+        
+        return get-class(TransferEncodingEnum):GetPropertyValue(pcMemberName) .
+        
+        /* Error handling, when invalid member name was passed in */
+        catch err as Progress.Lang.Error:
+            return ? .  
+        end catch.
+    end method .
+    
 end class.

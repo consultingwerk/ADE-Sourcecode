@@ -2877,6 +2877,7 @@ FUNCTION getPhysicalSessionType RETURNS CHARACTER
   IF cPhysSessType = ? THEN
   DO:
     CASE SESSION:CLIENT-TYPE:
+      WHEN "MULTI-SESSION-AGENT":U OR
       WHEN "APPSERVER" THEN
         cPhysSessType = "APP":U.
       WHEN "4GLCLIENT" THEN

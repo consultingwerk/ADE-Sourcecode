@@ -296,7 +296,7 @@ DO:
 END.    /* cached version stored on ttMasterObjectCache  */
 
 /* Determine whether to return the buffer or handle. */
-ASSIGN lReturnTable = SESSION:CLIENT-TYPE = "APPSERVER":U AND (PROGRAM-NAME(2) = "":U OR PROGRAM-NAME(2) = ?).
+ASSIGN lReturnTable = (SESSION:CLIENT-TYPE = "APPSERVER":U OR SESSION:CLIENT-TYPE = "MULTI-SESSION-AGENT":U) AND (PROGRAM-NAME(2) = "":U OR PROGRAM-NAME(2) = ?).
 
 /* Stuff is now in the client-side (with user customisations, etc) cache.
  * We need to return this data to the calling procedure.                  */

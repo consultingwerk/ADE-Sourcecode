@@ -259,7 +259,8 @@ DEFINE INPUT PARAMETER pcPartitionName AS CHARACTER NO-UNDO.
 DEFINE VARIABLE hAppserver          AS HANDLE  NO-UNDO.
 
     /* don't do this when running on the AppServer */
-    IF SESSION:CLIENT-TYPE = "APPSERVER" THEN
+    IF (SESSION:CLIENT-TYPE = "APPSERVER":u OR
+        SESSION:CLIENT-TYPE = "MULTI-SESSION-AGENT":u ) THEN
         RETURN.
      
     /* we only do AppServer if there is a partition with the name specified

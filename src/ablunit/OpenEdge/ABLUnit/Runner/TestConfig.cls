@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    File        : TestConfig
@@ -65,7 +65,7 @@ CLASS OpenEdge.ABLUnit.Runner.TestConfig:
          IF outputLocation = "PWD" THEN 
             resFileName = ResultsFileName + ".xml".
         ELSE 
-            resFileName = outputLocation + "~\" + ResultsFileName + ".xml".
+            resFileName = outputLocation + "/" + ResultsFileName + ".xml".
         RETURN resFileName.
 
     END METHOD.

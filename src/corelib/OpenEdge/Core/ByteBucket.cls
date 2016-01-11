@@ -21,6 +21,7 @@ using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Util.MathUtil.
 using OpenEdge.Core.String.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.HashAlgorithmEnum.
 
 class OpenEdge.Core.ByteBucket:
     /** The backing collection of memptr objects */
@@ -400,6 +401,19 @@ class OpenEdge.Core.ByteBucket:
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
+        return GetString(piStartPos, piSliceSize, 'UTF-8').                                         
+    end method.
+                                         
+    /** Returns a string/character representation a particular number of bytes,
+        from a given start position.
+    
+        @param  int64 The start potision
+        @param  int64 The size of the data (in bytes) to return 
+        @param  character The codepage for the character data
+        @return longchar The character/string data requested     */
+    method public longchar GetString(input piStartPos as int64,
+                                     input piSliceSize as int64,
+                                     input pcCodepage as character):                                         
         define variable lcData as longchar no-undo.
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
@@ -410,6 +424,9 @@ class OpenEdge.Core.ByteBucket:
         
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
+        Assert:NotNullOrEmpty(pcCodepage, 'Codepage').
+        
+        fix-codepage(lcData) = pcCodepage.
         
         /* return an empty Memptr */        
         if this-object:Size eq 0 then
@@ -461,7 +478,7 @@ class OpenEdge.Core.ByteBucket:
     method public longchar GetString(input piSliceSize as int64):
         return GetString(this-object:Position, piSliceSize).
     end method.
-    
+
     /** Returns the entire contents of this bucket as a Memptr instance.
     
         @return Memptr The complete bucket data */
@@ -485,7 +502,7 @@ class OpenEdge.Core.ByteBucket:
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
     method public class Memptr GetBytes(input piStartPos as int64,
-                                        input piSliceSize as int64):
+                                         input piSliceSize as int64):
         define variable oData as class Memptr no-undo.
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
@@ -549,6 +566,26 @@ class OpenEdge.Core.ByteBucket:
         do iLoop = 1 to miArraySize:
             copy-lob from moMemptrArray[iLoop]:Value to file session:temp-dir + 'bytebucket-memptr-' + string(iLoop) + '.txt'.        
         end.
+    end method.
+    
+    /** Returns a hash of the current contents of the memptr. This can be used
+        for comparing memptr values quickly.  
+        
+        @return raw The hashed value of the memptr. */
+    method public raw GetHash():
+        return GetHash(HashAlgorithmEnum:MD5).
+    end method.
+
+    /** Returns a hash of the current contents of the memptr. This can be used
+        for comparing memptr values quickly.  
+        
+        @param HashAlgorithmEnum The algorithm to use for the message
+        @return raw The hashed value of the memptr. */
+    method public raw GetHash(input poAlgorithm as HashAlgorithmEnum):
+        Assert:NotNull(poAlgorithm, 'Algorithm').
+        
+        /* hash of all the bytes */
+        return GetBytes():GetHash(poAlgorithm). 
     end method.
     
 end class.

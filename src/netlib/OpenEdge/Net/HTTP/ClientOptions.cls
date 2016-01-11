@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientOptions
@@ -21,4 +21,9 @@ class OpenEdge.Net.HTTP.ClientOptions:
     
     /** Defines the maximum time a request must take */
     define public property RequestTimeout as integer initial 0 no-undo get. set.
+    
+    /** Constructor. */
+    constructor public ClientOptions():
+    end constructor.
+    
 end class.

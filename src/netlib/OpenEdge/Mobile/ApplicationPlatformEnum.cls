@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ApplicationPlatformEnum
@@ -16,10 +16,28 @@ using OpenEdge.Core.EnumMember.
 using OpenEdge.Mobile.ApplicationPlatformEnum.
 
 class OpenEdge.Mobile.ApplicationPlatformEnum inherits EnumMember: 
+    define public static property WindowsPhone as ApplicationPlatformEnum no-undo 
+    get:
+        if not valid-object (ApplicationPlatformEnum:WindowsPhone) then 
+            ApplicationPlatformEnum:WindowsPhone = new ApplicationPlatformEnum (1, "WP":U) .
+            
+        return ApplicationPlatformEnum:WindowsPhone.
+    end get . 
+    private set. 
+
+    define public static property Windows8 as ApplicationPlatformEnum no-undo 
+    get:
+        if not valid-object (ApplicationPlatformEnum:Windows8) then 
+            ApplicationPlatformEnum:Windows8 = new ApplicationPlatformEnum (2, "W8":U) .
+            
+        return ApplicationPlatformEnum:Windows8.           
+    end get . 
+    private set. 
+
     define public static property Android as ApplicationPlatformEnum no-undo 
     get:
         if not valid-object (ApplicationPlatformEnum:Android) then 
-            ApplicationPlatformEnum:Android= new ApplicationPlatformEnum (1, "A":U) .
+            ApplicationPlatformEnum:Android= new ApplicationPlatformEnum (3, "A":U) .
             
         return ApplicationPlatformEnum:Android.           
     end get . 
@@ -28,13 +46,13 @@ class OpenEdge.Mobile.ApplicationPlatformEnum inherits EnumMember:
     define public static property IOS as ApplicationPlatformEnum no-undo 
     get:
         if not valid-object (ApplicationPlatformEnum:IOS) then 
-            ApplicationPlatformEnum:IOS = new ApplicationPlatformEnum (2, "I":U) .
+            ApplicationPlatformEnum:IOS = new ApplicationPlatformEnum (4, "I":U) .
             
         return ApplicationPlatformEnum:IOS.           
     end get . 
     private set. 
 
-    &global-define EnumMembers A,I
+    &global-define EnumMembers WP,W8,A,I
 
 	constructor protected ApplicationPlatformEnum ( input piValue as integer, input pcName as character ):
 		super (input piValue, input pcName).

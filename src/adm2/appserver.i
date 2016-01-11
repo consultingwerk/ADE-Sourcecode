@@ -100,7 +100,7 @@
   
   /* May have been retrieved from repository */ 
   {get AppService cAppService}.
-
+  
   /* NOTE: If REMOTE = true, we are running on an AppServer, so ignore the 
      AppService (partition) value, which is meaningful only to the client. 
      Also set the ASDivision property to Server.
@@ -110,7 +110,7 @@
   DO:
     ASSIGN cAppService          = '':U
            cASDivision          = 'Server':U
-           cServerOperatingMode = CAPS(SESSION:SERVER-OPERATING-MODE).
+           cServerOperatingMode = {fn mapServerOperatingMode}.
   END.  /* remote */
   ELSE IF cAppService = '':U THEN 
     ASSIGN cAppService  = '{&APPLICATION-SERVICE}':U.

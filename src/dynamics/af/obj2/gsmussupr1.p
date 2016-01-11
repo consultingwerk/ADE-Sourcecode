@@ -22,7 +22,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -764,6 +764,6 @@ procedure setAllowedCompany:
            cLoginCompanyObject = cLoginCompanyObject + entry(Cntr,cAllowedCompany).
     end.
            
-    {set ParentField 'fiAllowedCompany' h_default_login_company_obj}.
-    {set ParentFilterQuery '"lookup(string(gsm_login_company.login_company_obj), ""' + cLoginCompanyObject + '"","","")  > 0"' h_default_login_company_obj}.
+    {set ParentField 'fiAllowedCompany' h_default_login_company_obj}.    
+    {set ParentFilterQuery '"lookup(string(gsm_login_company.login_company_obj), ""' + cLoginCompanyObject + '"","","")  > 0"' h_default_login_company_obj}. 
 end procedure.    

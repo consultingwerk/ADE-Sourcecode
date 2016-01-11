@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpMessage
@@ -8,240 +8,296 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
     Description : 
     Author(s)   : pjudge
     Created     : Mon Feb 17 14:34:39 EST 2014
-    Notes       : 
+    Notes       : * Most properties mutators and associated 'set' methods are 
+                    PROTECTED in this class. The ConcreteHttpResponse or HttpRequest 
+                    implementations should either provide public overrides or
+                    a public mutator method.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.IStringStringMap.
-using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.CookieCollection.
-using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterList.
-using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterNode.
-using OpenEdge.Net.HTTP.Filter.Header.IHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
-using OpenEdge.Net.HTTP.Filter.Message.MessageFilterList.
-using OpenEdge.Net.HTTP.Filter.Message.MessageFilterNode.
+using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
-using Progress.Lang.AppError.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.Filter.Header.ContentTypeHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.ContentLengthHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.TransferEncodingHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.CookieHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.GeneralHeaderFilter.
+using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
+using OpenEdge.Net.HTTP.IHttpMessageWriter.
 
-class OpenEdge.Net.HTTP.HttpMessage abstract:
-    define protected property Sealed as logical no-undo get. private set.
-    
-    /* Holds filters for processing headers */
-    define protected property HeaderFilters as HeaderFilterList no-undo get. private set.
+class OpenEdge.Net.HTTP.HttpMessage 
+            implements IHttpMessage, ISupportInitialize
+            abstract:
     
     /* Stores header name/value pairs */
-    define protected property Headers as IStringStringMap no-undo get. private set.
+    define static protected temp-table Headers no-undo
+        field ParentMessage as integer
+        field HeaderName as character
+        field HttpHeader as Object
+        index idx1 as primary unique ParentMessage HeaderName. 
     
-    /** The cookies only relevant to only this message (request or response) */    
+    /** The cookies only relevant to only this message (request or response) */
     define protected property Cookies as CookieCollection no-undo get. private set.
     
+    /** The HTTP version supported. Typically HTTP/1.1  */
     define public property Version as character no-undo
         get.
         set(input pcVersion as character):
-            CheckSeal().
+            Assert:NotNullOrEmpty(pcVersion, 'Version').
             assign this-object:Version = pcVersion.
         end set.
     
+    /** The message's content type (eg text/html). For more detail, see
+        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
     define public property ContentType as character no-undo
         get.
         set(input pcContentType as character):
-            CheckSeal().
+            Assert:NotNull(pcContentType, 'Content Type').
             assign this-object:ContentType = pcContentType.
+        end set.
+     
+    /** The message's content type encoding (eg charset='utf-8'). For more detail, see
+        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
+    define public property CharacterEncoding as character no-undo
+        get.
+        set(input pcCharacterEncoding as character):
+            Assert:NotNull(pcCharacterEncoding, 'Character Encoding').
+            assign this-object:CharacterEncoding = pcCharacterEncoding.
         end set.
     
     /** Object containing the response body/entity.
         The object can be of any type, which may depend on the content type
         and the body filters it passes through. */
-    define abstract public property Entity as Object no-undo get. protected set.
+    define public property Entity as Object no-undo get. set.
     
-    /** ByteBucket containing the message body/entity for passing to the request
-        or response. */
-    define abstract protected property MessageBody as ByteBucket no-undo get. set.
-    
+    /**  The length (in bytes/characters) of the payload/entity. */    
     define public property ContentLength as integer no-undo
-        get. 
-        set(input piContentLength as integer):
-            CheckSeal().
-            assign this-object:ContentLength = piContentLength.
-        end set.
- 
-     define public property ContentTypeEncoding as character no-undo
         get.
-        set(input pcContentTypeEncoding as character):
-            CheckSeal().
-            assign this-object:ContentTypeEncoding = pcContentTypeEncoding.
+        set (input piContentlength as integer):
+            Assert:IsZeroOrPositive(piContentlength, 'Content Length').
+            assign this-object:ContentLength = piContentlength.
         end set.
-
-    define public property TransferEncoding as TransferEncodingEnum no-undo
+    
+    /** The message's Transfer-Encoding. For more detail, see
+        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */ 
+    define public property TransferEncoding as character no-undo
         get.
-        set(input poTransferEncoding as TransferEncodingEnum):
-            CheckSeal().
-            assign this-object:TransferEncoding = poTransferEncoding.
+        set(input pcTransferEncoding as character):
+            Assert:NotNull(pcTransferEncoding, 'Transfer encoding').
+            assign this-object:TransferEncoding = pcTransferEncoding.
         end set.
+    
+    /**  An MD5 hash of the message's content. */    
+    define public property ContentMD5 as raw no-undo get. set.
+        
+    /** Default constructor. */
+    constructor protected HttpMessage():
+    end constructor.
     
     method public void Initialize():
-        assign this-object:TransferEncoding = TransferEncodingEnum:None
-               this-object:Headers = new StringStringMap()
-               this-object:Cookies = new CookieCollection()
-               this-object:Sealed  =  false.
-        
-        /* Header filters */
-        InitializeHeaderFilters().
+        assign this-object:TransferEncoding = TransferEncodingEnum:None:Name
+               this-object:Cookies          = new CookieCollection().
     end method.
  
     method public void Destroy():
-        DestroyHeaderFilters().
+        assign this-object:Entity = ?.
         
-        assign this-object:Entity = ?
-               this-object:Headers = ?
-               this-object:Cookies = ?.
-        if valid-object(MessageBody) then
-            MessageBody:Clear().
+        ClearHeaders().
+        ClearCookies().
     end method.
     
-    /* BODY FILTERS */
-    method protected void InitializeHeaderFilters():
-        this-object:HeaderFilters = new HeaderFilterList().
-        
-        AddHeaderFilter(this-object:HeaderFilters, get-class(ContentTypeHeaderFilter)).
-        AddHeaderFilter(this-object:HeaderFilters, get-class(ContentLengthHeaderFilter)).
-        AddHeaderFilter(this-object:HeaderFilters, get-class(TransferEncodingHeaderFilter)).
-        AddHeaderFilter(this-object:HeaderFilters, get-class(CookieHeaderFilter)).
-        AddHeaderFilter(this-object:HeaderFilters, get-class(GeneralHeaderFilter)).
-    end method.
-    
-    
-    /* HEADERS &  FILTERS */
-    method protected void AddHeaderFilter(input poFilterList as HeaderFilterList,
-                                          input poFilterType as class Progress.Lang.Class):
-        define variable oFilter as IHeaderFilter no-undo.
-        
-        Assert:NotNull(poFilterList, 'Header filter list').
-        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
-        
-        Assert:NotNull(oFilter, 'Header filter').
-        
-        poFilterList:InsertLast(new HeaderFilterNode(oFilter)).
-    end method.
-    
-    method protected void AddMessageFilter(input poFilterList as MessageFilterList,
-                                           input poFilterType as class Progress.Lang.Class):
-        define variable oFilter as IMessageFilter no-undo.
-        
-        Assert:NotNull(poFilterList, 'Message filter list').
-        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
-        
-        Assert:NotNull(oFilter, 'Message filter').
-        poFilterList:InsertLast(new MessageFilterNode(oFilter)).
-    end method.
-    
-    method protected void DestroyHeaderFilters():
-        assign this-object:HeaderFilters = ?.
-    end method.
-    
-    /** Adds header info to this message's collection of headers. This is 
-        the correct method in the HttpMessage class to call for adding headers,
-        since it passes the new header into the filter chain to be processed.
+    /** Adds header info to this message's collection of headers.
         
         @param character The header name
         @param character The complete header value  */
-    method public void AddHeader(input pcName as character, input pcValue as character):
-        CheckSeal().
-                
-        this-object:HeaderFilters:Filter(pcName, pcValue, this-object).
+    method public void SetHeader(input poHeader as HttpHeader):
+        define variable oWriter as IHttpMessageWriter no-undo.
+        Assert:NotNull(poHeader, 'Http Header').
+        
+        assign oWriter = SetHeaderMessageWriterBuilder:Build(this-object, poHeader).
+        
+        if valid-object(oWriter) then
+        do:
+            oWriter:Open().
+            oWriter:Write(poHeader).
+            oWriter:Close(). 
+        end.
+        else
+            UpdateHeaderRecord(poHeader).
     end method.
     
-    method public longchar GetHeaderEntry(input pcName as character):
-        return this-object:Headers:Get(pcName).
-    end method.
+    /** Internal helper method to perform the find. 
     
-    /** Adds header info to this message's collection of headers. Should only be 
-        called from a GeneralHeaderFilter or a similar descendant of HeaderFilter.
-        
-        The correct method in the HttpMessage class to call is AddHeader(), which
-        passes the new header into the filter chain to be processed.
-        
+        @param handle    The buffer handle of the Headers table.
         @param character The header name
-        @param character The complete header value  */
-    method public void SetHeaderEntry(input pcName as character, input pcValue as character):
-        CheckSeal().
-        this-object:Headers:Put(pcName, pcValue).
-    end method.
-    
-    method public void RemoveHeaderEntry(input pcName as character):
-        CheckSeal().
-        if this-object:Headers:ContainsKey(pcName) then
-            this-object:Headers:Remove(pcName).
-    end method.    
-    
-    method public void RemoveHeader(input pcName as character):
-        CheckSeal().
+        @return logical True if a header record was found. */ 
+    method private logical FindHeaderRecord(input phBuffer as handle, input pcName as character):
+        phBuffer:find-unique(substitute('where &1.ParentMessage eq &2 and &1.HeaderName eq &3',
+                               phBuffer:name,
+                               integer(this-object),
+                               quoter(pcName))) no-error.
         
-        this-object:HeaderFilters:Filter(pcName, ?, this-object).    
-    end method.
-    
-    method public IIterator GetHeaderIterator():
-        return this-object:Headers:EntrySet:Iterator().
-    end method.
-    
-    /** COOKIES AND FILTERS **/
-    method public void SetCookieEntry(input poCookie as Cookie):
-        CheckSeal().
-        
-        Assert:NotNull(poCookie, 'Cookie').
-        this-object:Cookies:Add(poCookie).
+        return phBuffer:available.
     end method.
 
-    method public void RemoveCookieEntry(input poCookie as Cookie):
-        CheckSeal().
+    /** Internal helper method to perform the find. 
+    
+        @param character The header name
+        @return logical True if a header record was found. */ 
+    method private logical FindHeaderRecord(input pcName as character):
+        return FindHeaderRecord(buffer Headers:handle, pcName).
+    end method.
+     
+    /** Private method for updating the value of a header record
         
+        @param character The header name
+        @param character the header value. */
+    method private void UpdateHeaderRecord(input poHeader as HttpHeader):
+        define buffer lbHeader for Headers.
+        
+        find lbHeader where
+             lbHeader.ParentMessage eq integer(this-object) and
+             lbHeader.HeaderName eq poHeader:Name
+             no-error.
+        if not available lbHeader then
+        do:
+            create lbHeader.
+            assign lbHeader.ParentMessage = integer(this-object)
+                   lbHeader.HeaderName = poHeader:Name.
+        end.
+        assign lbHeader.HttpHeader = poHeader.
+    end method.
+
+    /** Private method for removing a header record
+        
+        @param character The header name  */
+    method private void DeleteHeaderRecord(input pcName as character):
+        define buffer lbHeader for Headers.
+        
+        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
+            delete lbHeader.
+    end method.
+    
+    /** Returns a named header
+
+        @param  character The name of the header to retrieve
+        @return HttpHeader The header object. Null if not exists. */
+    method public HttpHeader GetHeader(input pcName as character).
+        define buffer lbHeader for Headers.
+        
+        Assert:NotNullOrEmpty(pcName, 'Header name').
+        
+        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
+            return cast(lbHeader.HttpHeader, HttpHeader).
+        else
+            return ?.
+    end method.
+    
+    /** Returns all the headers (Names and values)
+        
+        @param HttpHeader[] An array of headers
+        @return integer The number of headers returned */
+    method public integer GetHeaders(output poHeaders as HttpHeader extent):
+        define variable iCount as integer no-undo.
+        define buffer lbHeader for Headers.
+        
+        define query qryHeader for lbHeader.
+        open query qryHeader preselect each lbHeader where 
+                                            lbHeader.ParentMessage eq integer(this-object).
+        
+        assign iCount = query qryHeader:num-results.
+        if iCount ne 0 then
+            assign extent(poHeaders) = iCount.
+        
+        get first qryHeader.
+        do while available lbHeader:
+            assign poHeaders[query qryHeader:current-result-row] = cast(lbHeader.HttpHeader, HttpHeader)
+                   .
+            get next qryHeader.
+        end.
+        
+        return iCount.
+        finally:
+            close query qryHeader.
+        end finally.
+    end method.
+        
+    /** Indicates whether a header exists for this message or not. 
+        
+        @param character The name of a header to check
+        @return logical True if this message contains the header */
+    method public logical HasHeader(input pcName as character):
+        Assert:NotNullOrEmpty(pcName, 'Header name').
+        
+        return FindHeaderRecord(pcName).
+    end method.
+    
+    /** Removes a header from the collection of message headers.
+        No-op if none exists.
+        
+        This implementation sets the value of the header to ?/unknown,
+        passes it down the filter chain, and then removes it from the 
+        header collection.
+        
+        @param character The name of the header to remove */    
+    method public void RemoveHeader(input pcName as character):
+        Assert:NotNullOrEmpty(pcName, 'Header name').
+        
+        DeleteHeaderRecord(pcName).
+    end method.
+    
+    /** COOKIES **/
+    /** Removes a cookie from this request 
+    
+        @param Cookie The cookie to remove. */
+    method public void RemoveCookie(input poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
+        
         this-object:Cookies:Remove(poCookie).
     end method.
     
-    method public IIterator GetCookiesIterator():
-        return this-object:Cookies:Iterator().
-    end method.
-    
-    method public void AddCookies(input poCookies as CookieCollection):
-        CheckSeal().
-        Assert:NotNull(poCookies, 'Cookies').
+    /** Indicates whether a cookie exists for this message
         
-        if this-object:Cookies:IsEmpty() then
-            assign this-object:Cookies = poCookies.
-        else
-            this-object:Cookies:AddAll(poCookies).
+        @param Cookie The cookie to check 
+        @return logical True if this message contains the cookie */
+    method public logical HasCookie(input poCookie as Cookie):
+        Assert:NotNull(poCookie, 'Cookie').
+        
+        return this-object:Cookies:Contains(poCookie).
     end method.
     
+    /** Returns all the cookies for this message
+        
+        @param Cookie[] An array of cookies 
+        @return integer The number of cookies returned */
+    method public integer GetCookies(output poCookies as Cookie extent):
+        assign poCookies = cast(this-object:Cookies:ToArray(), Cookie).
+        
+        return this-object:Cookies:Size.
+    end method.
+    
+    /** Adds a cookie to this request 
+    
+        @param Cookie The cookie to add. */
+    method public void SetCookie(input poCookie as Cookie):
+        Assert:NotNull(poCookie, 'Cookie').
+        this-object:Cookies:Add(poCookie).
+    end method.
+    
+    /** Removes all cookies from this message */ 
     method public void ClearCookies():
-        CheckSeal().
         this-object:Cookies:Clear().
     end method.
     
-    method protected void CheckSeal():
-        if this-object:Sealed then
-            undo, throw new AppError(
-                    substitute('&1 sealed: read-only access',
-                                entry(num-entries(this-object:GetClass():TypeName, '.'), this-object:GetClass():TypeName, '.')),
-                     0).
-    end method.
- 
-    method public void Seal():
-        Assert:NotNullOrEmpty(this-object:Version, 'Version').
-        Assert:NotNull(this-object:Headers, 'Headers').
+    /** Removes all headers from this message */ 
+    method public void ClearHeaders().
+        define buffer lbHeader for Headers.
         
-        assign this-object:Sealed = true.
+        for each lbHeader where
+                 lbHeader.ParentMessage eq integer(this-object):
+            delete lbHeader.
+        end.                     
     end method.
     
 end class.

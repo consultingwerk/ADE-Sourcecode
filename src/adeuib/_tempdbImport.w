@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000,2014 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2015 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -796,6 +796,9 @@ DEFINE VARIABLE cSegment AS CHARACTER   NO-UNDO.
 
 DEFINE VARIABLE iSegment AS INTEGER     NO-UNDO.
 
+/* PSC00325642- make ttFile ready to update the file list with new content */
+EMPTY TEMP-TABLE ttFile.
+
 RUN readDir  (INPUT        pcDirectory,
               INPUT        pcFilter,
               INPUT        plRecurse,
@@ -925,6 +928,11 @@ PROCEDURE loadSegment :
   DEFINE INPUT  PARAMETER piStartFile AS INTEGER     NO-UNDO.
   DEFINE INPUT  PARAMETER piLastFile  AS INTEGER     NO-UNDO.
 
+  /* PSC00325642-Not a segmented load. */
+  IF piStartFile EQ ? THEN
+    ASSIGN piStartFile = 0
+           piLastFile  = 999999999.
+  
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN seAll:LIST-ITEM-PAIRS      = ?
            seSelected:LIST-ITEM-PAIRS = ?. 
@@ -1038,7 +1046,7 @@ PROCEDURE rebuildFromList :
  DEFINE VARIABLE lInclude    AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cValue      AS CHARACTER  NO-UNDO.
 
-  {Get ContainerSource hContainer}.
+  {get ContainerSource hContainer}.
   GET-KEY-VALUE SECTION  "ProAB":U KEY "TempDBUseInclude":U VALUE cValue.
   lInclude = IF cValue EQ ? THEN TRUE
              ELSE CAN-DO ("true,yes,on",cValue).

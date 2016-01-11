@@ -57,7 +57,6 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 &endif
 
 class {&FullType} {&serializable} inherits {&ParentCollectionType} {&Interfaces}:
-/*    constructor public {&MapType}(input poMap as {&FullType}):*/
     constructor public {&MapType}(input poMap as {&ImplementsType}):
         super(poMap).
     end constructor.

@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2008-2012,2013 by Progress Software         */
+/* Copyright (c) 2008-2015 by Progress Software         */
 /* Corporation                                               */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -1056,6 +1056,7 @@ procedure InsertTrigger:
     define variable cName   as character no-undo.
     define variable cEvent  as character no-undo.
     define variable cParent as character no-undo.
+    define variable  lUseTempfile as logical no-undo.
     define variable ihwnd as int64 no-undo. 
     define variable hwin  as handle no-undo. 
     define variable lok   as logical no-undo.
@@ -1066,32 +1067,45 @@ procedure InsertTrigger:
         cfile = replace(cfile, "~\":U, "/":U)    
         cType  = entry(2,pcParam,PARAMETER_DELIMITER)
         cName  = entry(3,pcParam,PARAMETER_DELIMITER)
-        cEvent = entry(4,pcParam,PARAMETER_DELIMITER).
+        cEvent = entry(4,pcParam,PARAMETER_DELIMITER)
         cParent =  if(num-entries(pcParam,PARAMETER_DELIMITER) > 4 ) 
                    then entry(5,pcParam,PARAMETER_DELIMITER)
-                   else "".
-    
-    ihwnd = getDesignHwnd(cfile).
-    hwin = getDesignWindow(ihwnd).
-    /* hwin = ? means the file is not opened in AppBuilder. 
-       create a linked file and pass to uib for the new trigger to be saved  */
-    if hwin = ? then
+                   else ""
+        lUseTempfile =  if(num-entries(pcParam,PARAMETER_DELIMITER) > 5 ) 
+                       then logical(entry(6,pcParam,PARAMETER_DELIMITER))
+                       else false.
+    if not lUseTempfile then
     do: 
-        run adecomm/_tmpfile.p("newtrigger",".tmp",output cLinkedFile).
+        ihwnd = getDesignHwnd(cfile).
+        hwin = getDesignWindow(ihwnd).
+        /* hwin = ? means the file is not opened in AppBuilder.
+           (if text editor is not dirty PDS does not set use lUseTempfile )
+           probably somewhat unnecessary optimization, but prior to 11.6t his logic 
+           was always used when file not open in PDS designer, so this also protects for 
+           for the theoretical case introduced by moving the temp logic to client 
+           that the file was closed after pds sent this message
+           (may actually be impossible due to sync call)
+         */
+        if hwin = ? then
+        do: 
+            run adecomm/_tmpfile.p("newtrigger",".tmp",output cLinkedFile).
+        end.
     end.
-   
+    
     run ide_insert_trigger in fUIB (cfile,cLinkedFile,hwin,ctype,cName,cEvent,cParent,output lok).
     
     if lok then 
     do: 
-        /* if no AppBuilder return the file name to load text editor from */
-        if cLinkedFile > "" then 
+        /* if no AppBuilder design found  -  see above)
+          - return the file name to load text editor from */
+        if cLinkedFile > "" and luseTempfile = false then 
             return "FILE:" + cLinkedFile.
         
         return "OK".
     end.
     else /* use period as cancel (blank may pick up wrong error from error-status) */
         return ".".
+    
     /* return unexpected errors with ERROR:  This will be shown as reason for add trigger failed  */    
     catch e1 as Progress.Lang.AppError :
         if e1:ReturnValue <> ? and e1:ReturnValue <> "" then 

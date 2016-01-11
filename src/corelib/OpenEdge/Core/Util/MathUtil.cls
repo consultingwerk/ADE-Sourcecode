@@ -47,15 +47,14 @@ class OpenEdge.Core.Util.MathUtil:
             assign cHex = "0":u + cHex.
         
         assign rHex = hex-decode( cHex )
-               iMax = length( rHex ).
+               iMax = length( rHex, 'raw').
      
         do iLoop = 1 to iMax.
           assign iResult = iResult * 256
                  iResult = iResult + get-byte(rHex, iLoop)
                  .
        end.
-     
-        return iResult.  
+       return iResult.  
     end method.
     
 end class.

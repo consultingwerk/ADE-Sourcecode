@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME h_sewin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS h_sewin 
 /*************************************************************/
-/* Copyright (c) 1984-2013 by Progress Software Corporation  */
+/* Copyright (c) 1984-2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -515,7 +515,7 @@ DEFINE BUFFER buf_P FOR _P.
     /* Save in-memory OCX properties to a temporary OCX file at the location of the linked file. */
     RUN saveOCXFile(phOldWindow, pcLinkedFile).       
     /* Load .w file. Use OCX properties from temporary location if file is available. */
-    RUN adeuib/_qssuckr.p (pcLinkedFile, "", "WINDOW-SILENT":U, FALSE).
+    RUN adeuib/_qssuckr.p (pcLinkedFile, "", "Synch-Silent":U, FALSE).
 
     /* Delete temporary OCX file */
     ocxFileName = substr(pcLinkedFile, 1, r-index(pcLinkedFile, ".":u) - 1) + ".wrx".

@@ -31,6 +31,8 @@ class OpenEdge.Mobile.PushNotificationFilterOperandEnum inherits EnumMember:
     {Consultingwerk/EnumMember.i Near           10       PushNotificationFilterOperandEnum}
     {Consultingwerk/EnumMember.i NearSphere     11       PushNotificationFilterOperandEnum}
     {Consultingwerk/EnumMember.i Within         12       PushNotificationFilterOperandEnum}
+    {Consultingwerk/EnumMember.i And            13       PushNotificationFilterOperandEnum}
+    {Consultingwerk/EnumMember.i Or             14       PushNotificationFilterOperandEnum}
 
     constructor protected PushNotificationFilterOperandEnum( input piValue as integer, input pcName as character ):
         super (input piValue, input pcName).

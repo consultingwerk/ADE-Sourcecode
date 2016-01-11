@@ -863,7 +863,8 @@ ACCESS_LEVEL=PRIVATE
     END.    /* loop through tables */
 
     /* Determine whether to return the buffer or handle. */
-    IF SESSION:CLIENT-TYPE = "APPSERVER":U AND
+    IF (SESSION:CLIENT-TYPE = "APPSERVER":U OR
+        SESSION:CLIENT-TYPE = "MULTI-SESSION-AGENT":U )AND
        (PROGRAM-NAME(2) EQ "":U OR PROGRAM-NAME(2) EQ ? OR PROGRAM-NAME(2) EQ "invokeCall adm2/caller.p")  THEN
         ASSIGN phTableFieldTable  = phTableFieldBuffer:TABLE-HANDLE
                phTableFieldBuffer = ?.

@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge/Core/Collections/typedsetclass.i
@@ -28,9 +28,9 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
         &scoped-define FullType {&MapType}
     &else
         &if substring("{&Package}", length("{&Package}"), 1) eq '.' &then
-            &scoped-define FullType {&Package}{&MapType}
+            &scoped-define FullType {&Package}{&CollectionType}
         &else
-            &scoped-define FullType {&Package}.{&MapType}
+            &scoped-define FullType {&Package}.{&CollectionType}
         &endif
     &endif                
 &endif

@@ -87,6 +87,19 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-mapServerOperatingMode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mapServerOperatingMode Procedure
+FUNCTION mapServerOperatingMode RETURNS CHAR 
+  (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-getAppService) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAppService Procedure 
@@ -1246,6 +1259,49 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-mapServerOperatingMode) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION mapServerOperatingMode Procedure
+function mapServerOperatingMode returns character 
+  (  ):
+/*------------------------------------------------------------------------------
+ Purpose: Returns one of the following server operating modes, which are used
+          by the ADM.   
+              'Stateless',
+              'State-Reset',
+              'State-Aware' or 
+              'none' (running locally)
+           PAS for OE introduces new SESSION-FREE and SESSION-MANAGED values, 
+           which are mapped by this function to a value the ADM can handle.
+ Notes:
+------------------------------------------------------------------------------*/
+    define variable cAdmOperatingMode as character no-undo.
+    
+    assign cAdmOperatingMode = CAPS(SESSION:SERVER-OPERATING-MODE).
+    
+    case cAdmOperatingMode:
+        when 'SESSION-MANAGED':u then 
+        do:
+            if session:server-connection-bound-request then
+                /* best-guess. could be state-reset but we have no way of discovering this */        
+                assign cAdmOperatingMode = 'STATE-AWARE':u.
+            else
+                assign cAdmOperatingMode = 'STATELESS':u.
+        end.
+        when 'SESSION-FREE':u then
+            assign cAdmOperatingMode = 'STATELESS':u.
+    end case.
+    
+    return cAdmOperatingMode.     
+end function.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-getAppService) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAppService Procedure 
@@ -1742,6 +1798,7 @@ END FUNCTION.
 
 &ENDIF
 
+
 &IF DEFINED(EXCLUDE-runServerProcedure) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION runServerProcedure Procedure 
@@ -2068,7 +2125,7 @@ Parameter: pcScope - A character string defining the scope
     END.
     OTHERWISE RETURN FALSE. 
   END.
- 
+    
   &UNDEFINE xpBindScope
   
  

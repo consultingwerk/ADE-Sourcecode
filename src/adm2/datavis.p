@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2015 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -3688,7 +3688,13 @@ PROCEDURE updateState :
                3. Published from the GASource when received from GaTarget.
              - 9.1C always goes through setDataModified, which only 
                publishes when a change has happened. 
-             
+             - 11.6 the publish from GaSource (addRecord, copyRecord ..) 
+                    would set DataModified true incorrectly based on published state.   
+                    We now only set and republish if publishing gasource 
+                    is modified. (Could alternatively made publish in setDataModified 
+                    for GAtarget publish a new name, like "modified" and checked that here, 
+                    but it's theoretically possible that someone could depend on the current 
+                    state name)    
              9.1B setdataModified, however did run 'updateState' in GaSource 
              probably to avoid this.
              
@@ -3732,6 +3738,7 @@ PROCEDURE updateState :
                This is checked here to avoid resetTablieo if we are the 
                originator. The browser's override does the same check and 
                returns immediately.  
+               
 Note date: 2002/02/11                           
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
@@ -3750,8 +3757,14 @@ Note date: 2002/02/11
   /* If this is this an internal change of data, publish to everyone */
   IF CAN-DO(cGaTarget,STRING(SOURCE-PROCEDURE)) THEN
   DO:
-    lModified = (pcState = 'Update':U).
-    {set DataModified lModified}.
+      if pcState = "Update":U then
+      do:
+          {get DataModified lModified source-procedure}. 
+          if lModified then
+          do: 
+              {set DataModified lModified}.
+          end.
+      end.
   END.
 
   ELSE DO:

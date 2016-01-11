@@ -1,9 +1,9 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
-    Purpose     : 
+    Purpose     : Public HttpClient. All client code should be written against this class. 
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -13,86 +13,109 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Assertion.AssertJson.
-using OpenEdge.Core.DataTypeEnum.
-using OpenEdge.Core.IOModeEnum.
-using OpenEdge.Core.JsonDataTypeEnum.
+using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Core.String.
+using OpenEdge.Net.HTTP.ClientBuilder.
 using OpenEdge.Net.HTTP.ClientOptions.
-using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
-using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
-using OpenEdge.Net.HTTP.Filter.Message.MessageFilterList.
-using OpenEdge.Net.HTTP.Filter.Message.MessageFilterNode.
+using OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder.
 using OpenEdge.Net.HTTP.HttpClient.
-using OpenEdge.Net.HTTP.HttpRequest.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.HttpRequestError.
-using OpenEdge.Net.HTTP.HttpResponse.
+using OpenEdge.Net.HTTP.IAuthenticatedRequest.
+using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
+using OpenEdge.Net.HTTP.IHttpMessageWriter.
+using OpenEdge.Net.HTTP.IHttpRequest.
+using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.ResponseBuilder.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
-using Progress.Json.ObjectModel.JsonObject.
-using Progress.Lang.ParameterList.
-using OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter.
-using OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter.
-using OpenEdge.Net.HTTP.Filter.Status.OKStatusFilter.
 
-class OpenEdge.Net.HTTP.HttpClient:
+class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
+    /** (mandatory) A free-text name for this http client. Used for the USER-AGENT
+        string. */
+    define public property ClientName as character no-undo get. private set.
+    
+    /** (mandatory) A free-text semantic version string for this http client. Used for the USER-AGENT
+        string. */
+    define public property ClientVersion as character no-undo get. private set.
+    
     /** Miscellanous options (like timeouts) for this client */
     define public property Options as ClientOptions no-undo get. private set.
     
     /* Reference to the library that does the actual work. */
     define private variable moWwwLib as IHttpClientLibrary no-undo.
     
-    /* Holds filter for processing status codes on return */
-    define protected variable moStatusFilter as MessageFilterList no-undo.
-    
-    /* Holds configuration */
-    define private variable moConfig as JsonObject no-undo.
-    
-    constructor public HttpClient():
-        this-object(new JsonObject()).
-    end constructor.
-    
-    constructor public HttpClient(input poConfig as JsonObject):
-        Assert:NotNull(poConfig, 'Client Config').
+    /** Factory method for instantiating a new http client client.
+        This "Instance" method remains because it's already used elsewhere.
+        The ClientBuilder() should be called directly in most cases.
         
-        assign moConfig = poConfig.
-    end constructor.
-    
-    method static public HttpClient Instance(input poConfig as JsonObject):
-        define variable oHttpClient as HttpClient no-undo.
-        
-        oHttpClient = new HttpClient(poConfig). 
-        oHttpClient:Initialize().
-        
-        return oHttpClient.
-    end method.
-
+        @return HttpClient A useful, constructed HttpClient. */
     method static public HttpClient Instance():
-        define variable oHttpClient as HttpClient no-undo.
-        
-        oHttpClient = new HttpClient(). 
-        oHttpClient:Initialize().
-        
-        return oHttpClient.
+        /* assumption is that the default client is this type: OpenEdge.Net.HTTP.HttpClient */
+        return cast(ClientBuilder:Build():Client, HttpClient).
     end method.
+    
+    /** Constructor.
+    
+        @param character The name of this Http Client
+        @param character The (semantic: major.minor.patch) version of this Http Client
+        @param IHttpClientLibrary The library performing the actual work */
+    constructor public HttpClient(input pcClientName    as character,
+                                  input pcClientVersion as character,                                  
+                                  input poLibrary as IHttpClientLibrary ):
+        Assert:NotNullOrEmpty(pcClientName, 'Client name').
+        Assert:NotNullOrEmpty(pcClientVersion, 'Client version').
+        Assert:NotNull(poLibrary, 'Http library').
+        
+        assign this-object:ClientName = pcClientName
+               this-object:ClientVersion = pcClientVersion
+               this-object:Options = new ClientOptions()
+               
+               moWwwLib = poLibrary
+               .
+    end constructor.
+
+    destructor HttpClient():
+        Destroy().
+    end destructor. 
     
     /** Executes an HTTP request.
+    
+        If this code changes, the code in HttpClientDecorator should 
+        too, to preserve the 'wrapper' nature of this method. 
         
-        @param HttpRequest Request parameters (URL, method, etc)  
-        @param HttpResponse Includes status and payload*/
-    method public HttpResponse Execute(input poRequest as HttpRequest):
-        define variable oResponse as HttpResponse no-undo.
+        @param  HttpRequest Request parameters (URL, method, etc)  
+        @return HttpResponse Includes status and payload */
+    method public IHttpResponse Execute(input poRequest as IHttpRequest):
+        define variable oResponse as IHttpResponse no-undo.
+        
+        assign oResponse = ResponseBuilder:Build():Response.
+        
+        Execute(poRequest, oResponse).
+        
+        return oResponse.
+    end method.
+            
+    /** Executes an HTTP request.
+        
+        @param IHttpRequest Request parameters (URL, method, etc)  
+        @param IHttpResponse Includes status and payload*/
+    method public void Execute(input poRequest  as IHttpRequest,
+                               input poResponse as IHttpResponse):
         define variable iTimeout as integer no-undo.
         define variable iNumRetries as integer no-undo.
-        define variable oStatusAction as FilterActionEnum no-undo.
         define variable rRequestHash as raw extent 2 no-undo.
+        
+        Assert:NotNull(poRequest,  'Http request').
+        Assert:NotNull(poResponse, 'Http response'). 
         
         assign iTimeout = this-object:Options:RequestTimeout.
         
         /* Use looping instead of recursion to avoid deeping the call stack */
         repeat on stop undo, return error new HttpRequestError(
                                                     string(StatusCodeEnum:RequestTimeOut:Value),
-                                                    poRequest:Method:Name,
-                                                    poRequest:URI:URI)
+                                                    poRequest:Method,
+                                                    poRequest:URI:ToString())
                stop-after iTimeout:
             
             if rRequestHash[1] eq rRequestHash[2] then
@@ -104,146 +127,81 @@ class OpenEdge.Net.HTTP.HttpClient:
             else
                 assign iNumRetries = 0.
             
-            assign rRequestHash[2] = rRequestHash[1]
-                   /* make the request */
-                   oResponse       = moWwwLib:Execute(poRequest)
-                   rRequestHash[1] = poRequest:Hash.
+            /* Update the request as needed */
+            AddUserAgent(poRequest).
+            
+            if type-of(poRequest, IAuthenticatedRequest) then
+                cast(poRequest, IAuthenticatedRequest):AddAuthentication().
+            
+            assign rRequestHash[2] = rRequestHash[1].
+            
+            /* make the request */
+            moWwwLib:Execute(poRequest, poResponse).
+            
+            assign rRequestHash[1] = poRequest:ContentMD5.
             
             /* Check for redirects, auth and friends */
-            oStatusAction = moStatusFilter:Filter(input oResponse).
-            
-            if ProcessStatusAction(input oStatusAction, input oResponse) then
+            if ProcessStatusAction(poRequest, poResponse) then
                 leave.
             
             if this-object:Options:NumRetries gt 0 and
                iNumRetries gt this-object:Options:NumRetries then
                 leave.
         end.
-        
-        return oResponse.
     end method.
     
     /** Process the action resulting from the status evaluation
         
-        @param FilterActionEnum The evaluation's action
         @param HttpResponse The response in question
         @return logical Returns TRUE if the loop is complete */
-    method protected logical ProcessStatusAction(input poStatusAction as FilterActionEnum,
-                                                 input poResponse as HttpResponse):
-        define variable lOK as logical no-undo.
+    method protected logical ProcessStatusAction(input poRequest  as IHttpRequest,
+                                                 input poResponse as IHttpResponse):
+        define variable oStatusCodeWriter as IHttpMessageWriter no-undo.
         
-        case poStatusAction:
-            when FilterActionEnum:OK    then lOK = true.
-            when FilterActionEnum:Abort then lOK = true.
-            when FilterActionEnum:Retry then lOK = false.
-            when FilterActionEnum:Stop  then lOK = false.
-            when FilterActionEnum:Error then
-                undo, throw new HttpRequestError(poResponse:StatusCode:Name,
-                                        poResponse:Request:Method:Name,
-                                        poResponse:Request:URI:URI).
-        end case.
-        
-        return lOK. 
-    end method.
-    
-    method public void Initialize():
-        define variable oLibType as Progress.Lang.Class no-undo.
-        define variable oConfig as JsonObject no-undo.
-        define variable oParams as ParameterList no-undo.
-        define variable cClientLibName as character no-undo.
-        define variable cClientLibVersion as character no-undo.
-        
-        LoadConfig().
-        
-        if valid-object(moConfig) and moConfig:Has('httpClientLib') then
+        assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).
+        if valid-object(oStatusCodeWriter) then
         do:
-            AssertJson:PropertyIsType(oConfig, 'httpClientLib', JsonDataTypeEnum:Object).
-            oConfig = moConfig:GetJsonObject('httpClientLib').
+            oStatusCodeWriter:Open().
+            oStatusCodeWriter:Write(poResponse).
+            oStatusCodeWriter:Close().
             
-            AssertJson:PropertyIsType(oConfig, 'type', JsonDataTypeEnum:String).
-            oLibType = Progress.Lang.Class:GetClass(oConfig:GetCharacter('type')).
-            
-            AssertJson:PropertyIsType(oConfig, 'name', JsonDataTypeEnum:String).
-            cClientLibName = oConfig:GetCharacter('name').
-            
-            AssertJson:PropertyIsType(oConfig, 'version', JsonDataTypeEnum:String).
-            cClientLibVersion = oConfig:GetCharacter('version').
+            /* the writer may have changed the message (auth in particular), so use the
+               writer's message in place of the input message. */
+            assign poRequest = cast(oStatusCodeWriter:Message, IHttpRequest).
+                        
+            /* status changes will require a retry */
+            return false.
         end.
-        else
-            /* default/standard library */
-            assign oLibType          = get-class(OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient)
-                   cClientLibName    = 'OpenEdge-HttpClient'
-                   cClientLibVersion = '0.1.0'.
-        
-        Assert:IsType(oLibType, get-class(IHttpClientLibrary)).
 
-        oParams = new ParameterList(3).
-        oParams:SetParameter(1,
-                             DataTypeEnum:Character:Name,
-                             IOModeEnum:Input:Name,
-                             cClientLibName).
-        oParams:SetParameter(2,
-                             DataTypeEnum:Character:Name,
-                             IOModeEnum:Input:Name,
-                             cClientLibVersion).
-        oParams:SetParameter(3,
-                             DataTypeEnum:ProgressLangObject:Name,
-                             IOModeEnum:Input:Name,
-                             this-object).
-        
-        /* start */                                                          
-        moWwwLib = cast(oLibType:New(oParams), IHttpClientLibrary).
-        moWwwLib:Initialize().
-        
-        InitializeStatusFilters().
+        /* with no status code processing, all done */
+        return true.
     end method.
     
-    method protected void LoadConfig():
-        define variable oObject as JsonObject no-undo.
-
-        /* load ClientOptions from "options" property */
-        assign this-object:Options = new ClientOptions().
-        
-        if valid-object(moConfig) and
-            moConfig:Has('options') then
-        do:            
-            oObject = moConfig:GetJsonObject('options').
-            if oObject:Has('numRetries') then
-                this-object:Options:NumRetries = oObject:GetInteger('numRetries').
-            if oObject:Has('pauseBetweenRetry') then
-                this-object:Options:NumRetries = oObject:GetDecimal('pauseBetweenRetry').
-            if oObject:Has('requestTimeout') then
-                this-object:Options:NumRetries = oObject:GetDecimal('requestTimeout').
-        end.
+    /* Initializer/Startup */
+    method public void Initialize():
     end method.
     
-    method protected void InitializeStatusFilters():
-        assign moStatusFilter = new MessageFilterList().
-        
-        AddMessageFilter(moStatusFilter, get-class(RedirectStatusFilter)).
-        AddMessageFilter(moStatusFilter, get-class(AuthorizationStatusFilter)).
-        AddMessageFilter(moStatusFilter, get-class(OKStatusFilter)).
-    end method.
-    
+    /* Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
-        RemoveStatusFilters().
-        
-        moWwwLib:Destroy().
+        if type-of(moWwwLib, ISupportInitialize) then
+            cast(moWwwLib, ISupportInitialize):Destroy().
     end method.
     
-    method protected void AddMessageFilter(input poFilterList as MessageFilterList,
-                                           input poFilterType as class Progress.Lang.Class):
-        define variable oFilter as IMessageFilter no-undo.
-        
-        Assert:NotNull(poFilterList, 'Message filter list').
-        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
-        
-        Assert:NotNull(oFilter, 'Message filter').
-        poFilterList:InsertLast(new MessageFilterNode(oFilter)).
-    end method.
+    /** Adds a User-Agent string relevant to this client.
     
-    method protected void RemoveStatusFilters():
-        assign moStatusFilter = ?.
+        @param HttpRequest The request to which to add the user-agent string */
+    method protected void AddUserAgent(input poRequest as IHttpRequest):
+        /* Set the User-Agent string. Will look something like 
+                OpenEdge-HttpClient/0.2.0 (WIN32/64) OpenEdge/11.5.0.0.1108 */
+        poRequest:SetHeader(
+            HttpHeaderBuilder:Build('User-Agent':u)
+                    :Value(substitute('&1/&2 (&4/&5) OpenEdge/&3':u, 
+                                this-object:ClientName,
+                                this-object:ClientVersion,
+                                proversion(1),
+                                '{&OPSYS}':u,
+                                '{&PROCESS-ARCHITECTURE}':u))
+                    :Header).
     end method.
     
 end class.

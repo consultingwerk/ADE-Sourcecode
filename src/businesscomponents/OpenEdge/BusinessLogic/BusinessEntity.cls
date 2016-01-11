@@ -1,6 +1,11 @@
  
  
-    
+/**************************************************************************************************************
+*    Copyright (C) 2014-2015 by Progress Software Corporation. All rights reserved.                           *
+*    Prior versions of this work may contain portions contributed by participants of Possenet.                *
+*                                                                                                             *
+***************************************************************************************************************/
+
 
 /*-------------------------------------------------------------------------------------------------------------
     File        : BusinessEntity.cls
@@ -450,6 +455,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE hAfterQuery AS HANDLE NO-UNDO.
         DEFINE VARIABLE lAvailable AS LOGICAL NO-UNDO.
         DEFINE VARIABLE lReturnValue AS LOGICAL NO-UNDO.
+        DEFINE VARIABLE lCreatedBeforeRows AS LOGICAL INIT FALSE NO-UNDO.
         
         hBeforeBuffer = hBuffer:BEFORE-BUFFER.
         
@@ -472,6 +478,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         
         /* If before-table has no rows, call MARK-ROW-STATE() to create them. */
         IF lAvailable EQ FALSE THEN DO:
+            lCreatedBeforeRows = TRUE.
             CREATE QUERY hAfterQuery.
             hAfterQuery:SET-BUFFERS(hBuffer).
             lReturnValue = hAfterQuery:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBuffer:NAME)).
@@ -491,11 +498,20 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         /* Once we get here, we have have before-table rows, with first row in before-buffer */
         DO WHILE lAvailable:
             hBeforeBuffer:SAVE-ROW-CHANGES(1, cSkip) NO-ERROR .
-                
+                   
             IF hBeforeBuffer:ERROR THEN DO:
                 IF ERROR-STATUS:NUM-MESSAGES >= 1 THEN DO:
                     hBeforeBuffer:ERROR-STRING = ERROR-STATUS:GET-MESSAGE(1).
-                END. 
+                END.
+                
+                /* Check to see if RETURN-VALUE is set. This is possible if error was returned from DB trigger */
+                IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
+                     hBeforeBuffer:ERROR-STRING = RETURN-VALUE.
+                     
+                /* If there is no Before-Image data, then throw the error */
+                IF lCreatedBeforeRows THEN
+                    UNDO, THROW NEW Progress.Lang.AppError(hBeforeBuffer:ERROR-STRING).
+
             END.
            
            lAvailable = hBeforeQuery:GET-NEXT().

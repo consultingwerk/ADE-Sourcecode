@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : URI
@@ -12,92 +12,61 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.URI.
-using OpenEdge.Net.UriSchemeEnum.
-using OpenEdge.Net.UriEncodingTypeEnum.
-using OpenEdge.Core.Collections.IStringStringMap.
-using OpenEdge.Core.Collections.StringStringMap.
-using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.MapEntry.
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.String.
-using OpenEdge.Net.HTTP.Credentials.
+using OpenEdge.Core.Collections.IIterator.
+using OpenEdge.Core.Collections.IStringStringMap.
+using OpenEdge.Core.Collections.MapEntry.
+using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Net.URI.
+using OpenEdge.Net.UriEncodingTypeEnum.
+using OpenEdge.Net.UriSchemeEnum.
 
 class OpenEdge.Net.URI:
+    /* internal string representation of this object. we don't really want to build it 
+       every time we need it */
+    define private variable mcUri as character no-undo.
+    
     /** (mandatory) The schema of the URI (ie http, https etc) */
-    define public property Scheme as UriSchemeEnum no-undo get. private set.
+    define public property Scheme as character no-undo get. private set.
+    
     /** (mandatory) The host */
     define public property Host as character no-undo get. private set.
-    
-    /** (optional) A set of credentials for this URI.
-        Setting properties on this object will not flag the URI as changed;
-        to do that, use the individual User/Password/Domain properties instead */
-    define public property Credentials as Credentials no-undo get.
-        set(input poCredentials as Credentials):
-            /* flag URI as changed */
-            assign this-object:URI = ?
-                   this-object:Credentials = poCredentials.
-        end set.
-    
+
     /** (optional) A user for this URI */
-    define public property User as character no-undo
-        get():
-            if not valid-object(this-object:Credentials) then
-                return ?.
-            return this-object:Credentials:UserName.
-        end get.
+    define public property User as character no-undo get.
         set(input pcUser as character):
-            if not valid-object(this-object:Credentials) then
-                assign this-object:Credentials = new Credentials().
-            
             /* flag URI as changed */
-            assign this-object:URI = ?
-                   this-object:Credentials:UserName = pcUser.
+            assign mcURI = ?
+                   this-object:User = pcUser.
         end set.
     
     /** (optional) The user's password */
-    define public property Password as character no-undo
-        get():
-            if not valid-object(this-object:Credentials) then
-                return ?.
-            return this-object:Credentials:Password.
-        end get.
+    define public property Password as character no-undo get.
         set(input pcPassword as character):
-            if not valid-object(this-object:Credentials) then
-                assign this-object:Credentials = new Credentials().
-            
             /* flag URI as changed */
-            assign this-object:URI = ?
-                   this-object:Credentials:Password = pcPassword.
-        end set.
-
-    /** (optional) The domain in which the user resides */
-    define public property Domain as character no-undo
-        get():
-            if not valid-object(this-object:Credentials) then
-                return ?.
-            return this-object:Credentials:Domain.
-        end get.
-        set(input pcDomain as character):
-            if not valid-object(this-object:Credentials) then
-                assign this-object:Credentials = new Credentials().
-            /* no URI change needed, since the domain is not part of the URI */
-            assign this-object:Credentials:Domain = pcDomain.
+            assign mcURI = ?
+                   this-object:Password = pcPassword.
         end set.
     
     /** (optional) The port for this URI. Some schemes assume a default (ie 80 for http) */
     define public property Port as integer no-undo get.
         set(input piPort as integer):
             /* flag URI as changed */
-            assign this-object:URI = ?
+            assign mcUri = ?
                    this-object:Port = piPort.
         end set.
         
-    /** (optional) The URI path. Contains parameters */        
+    /** (optional) The URI path. May contain parameters.
+        Must be empty or begin with a / */
     define public property Path as character no-undo get.
         set(input pcPath as character):
+            Assert:NotNull(pcPath, 'path').
+            if pcPath ne '':u and
+               not pcPath begins '/':u then
+                assign pcPath = '/':u + pcPath.
+                
             /* flag URI as changed */
-            assign this-object:URI = ?
+            assign mcUri = ?
                    this-object:Path = pcPath.
         end set.
         
@@ -105,111 +74,111 @@ class OpenEdge.Net.URI:
     define public property Fragment as character no-undo get. 
         set(input pcFragment as character):
             /* flag URI as changed */
-            assign this-object:URI = ?
+            assign mcUri = ?
                    this-object:Fragment = pcFragment.
         end set.
-    
-    /** Returns the complete URI (scheme, host, path et al) */
-    define public property URI as character no-undo
-        get():
-            if this-object:URI eq ? then
-                BuildUri().
-            
-            return this-object:URI.
-        end get.
-        private set.
     
     /** Returns a base URI (scheme, host, etc) */
     define public property BaseURI as character no-undo 
         get():
-            if this-object:URI eq ? then
+            if mcUri eq ? then
                 BuildUri().
             
             return this-object:BaseURI.
         end get.
         private set.
 
-    /** Returns a relative URI (path, query et al) */
+    /** Returns a relative URI (path, QueryMap et al) */
     define public property RelativeURI as character no-undo 
         get():
-            if this-object:URI eq ? then
+            if mcUri eq ? then
                 BuildUri().
             
             return this-object:RelativeURI.
         end get.
         private set.
-
-    /**  A map of query arguments. Set these value via AddQuery() */
-    define protected property Query as IStringStringMap no-undo get. private set.
+        
+    /** Returns the Query string, if any */    
+    define public property QueryString as character no-undo
+        get():
+            if mcUri eq ? then
+                BuildUri().
+            
+            return this-object:QueryString.
+        end get.
+        private set.
+    
+    /**  A map of QueryMap arguments. Set these value via AddQueryMap() */
+    define protected property QueryMap as IStringStringMap no-undo get. private set.
 
     /** Constructor. Defaults to HTTP scheme.
      
-        @param character The host name. */
-    
+        @param character The host name. */    
     constructor public URI(input pcHost as character):
-        this-object(UriSchemeEnum:Http, pcHost).
+        this-object(UriSchemeEnum:http:Name, pcHost).
     end constructor.
     
     /** Constructor.
       
-        @param UriSchemeEnum The scheme for this URI.
+        @param character The scheme for this URI.
         @param character The host name. */
-    constructor public URI(input poScheme as UriSchemeEnum,
+    constructor public URI(input pcScheme as character,
                            input pcHost as character):
-        this-object(poScheme,
+        this-object(pcScheme,
                     pcHost,
                     ?,
-                    ?,
+                    '':u,
                     new StringStringMap(),
                     ?).
     end constructor.
 
     /** Constructor.
       
-        @param UriSchemeEnum The scheme for this URI.
+        @param character The scheme for this URI.
         @param character The host name.
         @param integer The port to use. */
-    constructor public URI(input poScheme as UriSchemeEnum,
+    constructor public URI(input pcScheme as character,
                            input pcHost as character,
                            input piPort as integer):
-        this-object(poScheme,
+        this-object(pcScheme,
                     pcHost,
                     piPort,
-                    ?,
+                    '':u,
                     new StringStringMap(),
                     ?).
     end constructor.
 
     /** Constructor.
       
-        @param UriSchemeEnum The scheme for this URI.
+        @param character The scheme for this URI.
         @param character The host name.
         @param integer The port to use.
         @param character The path
-        @param IStringStringMap the query arguments
+        @param IStringStringMap the QueryMap arguments
         @param character The fragment, if any */
-    constructor public URI(input poScheme as UriSchemeEnum,
+    constructor public URI(input pcScheme as character,
                            input pcHost as character,
                            input piPort as integer,
                            input pcPath as character,
-                           input poQuery as IStringStringMap,
+                           input poQueryMap as IStringStringMap,
                            input pcFragment as character):
-        Assert:NotNull(poScheme, 'Scheme').
+        Assert:NotNullOrEmpty(pcScheme, 'Scheme').
         Assert:NotNullOrEmpty(pcHost, 'Host').
-        Assert:NotNull(poQuery, 'Query').
+        Assert:NotNull(poQueryMap, 'QueryMap').
         
-        assign this-object:Scheme = poScheme
+        assign this-object:Scheme = pcScheme
                this-object:Host = pcHost
-               this-object:Query = poQuery
+               this-object:QueryMap = poQueryMap
                
                this-object:Port = piPort
                this-object:Path = pcPath
                this-object:Fragment = pcFragment
         
-               this-object:Credentials = ?
+               this-object:User = ?
+               this-object:Password = ?
                
                this-object:RelativeURI = ?
-               this-object:URI  = ?
+               mcUri  = ?
                .
     end constructor.
     
@@ -219,7 +188,7 @@ class OpenEdge.Net.URI:
         @return URI A URI representation of the string. */
     method static public URI Parse(input pcURI as character):
         define variable oURI as URI no-undo.
-        define variable oScheme as UriSchemeEnum no-undo.
+        define variable cScheme as character no-undo.
         define variable cHost as character no-undo.
         define variable iPort as integer no-undo.
         define variable cPath as character no-undo.
@@ -233,82 +202,84 @@ class OpenEdge.Net.URI:
         
         Assert:NotNullOrEmpty(pcURI, 'URI string').
         
-        iMax = num-entries(pcURI, '/').
-        oScheme = UriSchemeEnum:FromString(right-trim(entry(1, pcURI, '/'), ':')).
-        Assert:NotNull(oScheme, 'URI scheme').
+        assign iMax = num-entries(pcURI, '/':u).
+        /* we need at least 3 entries for this to be a decent URL:
+             1  - scheme (eg http:)
+             2  - the space between the 2 /'s
+             3  - the host, port amnd optionally user/password 
+             4+ - the path and other slugs */
+        if iMax ge 3 then
+            assign cScheme = right-trim(entry(1, pcURI, '/':u), ':':u).
+        Assert:NotNullOrEmpty(cScheme, 'URI scheme').
         
         /* entry 2 is the 'space' between the double slashes */
-        cHost = entry(3, pcURI, '/').
+        assign cHost = entry(3, pcURI, '/':u).
         
         /* get username/password out of real host */
-        if index(cHost, '@') eq 0 then
+        if index(cHost, '@':u) eq 0 then
             assign cUser = ?
                    cPassword = ?.
         else
         do:
-            assign cUser = entry(1, cHost, '@')
-                   cUser = entry(1, cUser, ':')
+            assign cUser = entry(1, cHost, '@':u)
+                   cUser = entry(1, cUser, ':':u)
                    cPassword = ?
                    
-                   cHost = entry(2, cHost, '@').
-            if index(cUser, ':') gt 0 then
-                cPassword = entry(2, cUser, ':').    
+                   cHost = entry(2, cHost, '@':u).
+            if index(cUser, ':':u) gt 0 then
+                cPassword = entry(2, cUser, ':':u).    
         end.
 
-        if index(cHost, ':') eq 0 then
+        if index(cHost, ':':u) eq 0 then
             assign iPort = ?.
         else
             /* port first, else we lose it */
-            assign iPort = integer(entry(2, cHost, ':'))
-                   cHost = entry(1, cHost, ':').
+            assign iPort = integer(entry(2, cHost, ':':u))
+                   cHost = entry(1, cHost, ':':u).
         
-        assign oURI = new URI(oScheme, cHost)
-               oURI:Port = iPort.
+        assign oURI = new URI(cScheme, cHost, iPort).
         
         if cUser ne ? then
                /* no domain string in the URL */
             assign oURI:User     = cUser
                    oURI:Password = cPassword.
         
-        /* get path, query. fragments */
+        /* get path, querystring, fragments */
         /* entry 2 is the 'space' between the double slashes, so we start after the host, at 4 */
-        assign cDelimiter = ''.
+        assign cDelimiter = '/':u
+               cPath      = '':u.
         do iLoop = 4 to iMax:
             assign cPath = cPath
                          + cDelimiter
-                         + entry(iLoop, pcURI, '/')
-                   cDelimiter = '/'.
+                         + entry(iLoop, pcURI, cDelimiter).
         end.
-        if num-entries(cPath, '?') gt 1 then
-            assign cQuery = entry(2, cPath, '?')
-                   cPath = entry(1, cPath, '?').
-        else
-        if cPath eq '' then
-            assign cPath = ?.
+        if num-entries(cPath, '?':u) gt 1 then
+            assign cQuery = entry(2, cPath, '?':u)
+                   cPath = entry(1, cPath, '?':u).
             
         assign oURI:Path = cPath.
         
-        /* query and fragment */            
-        if num-entries(cQuery, '#') gt 1 then
-            assign oURI:Fragment = entry(2, cQuery, '#')
-                   cQuery = entry(1, cQuery, '#').
+        /* QueryMap and fragment */            
+        if num-entries(cQuery, '#':u) gt 1 then
+            assign oURI:Fragment = entry(2, cQuery, '#':u)
+                   cQuery = entry(1, cQuery, '#':u).
         
-        assign iMax = num-entries(cQuery, '&').
+        assign iMax = num-entries(cQuery, '&':u).
         do iLoop = 1 to iMax:
-            assign cQueryPart = entry(iLoop, cQuery, '&').
-            if index(cQueryPart, '=') eq 1 then
+            assign cQueryPart = entry(iLoop, cQuery, '&':u).
+            if index(cQueryPart, '=':u) eq 1 then
                 oURI:AddQuery(cQueryPart).
             else
-                oURI:AddQuery(entry(1, cQueryPart, '='), entry(2, cQueryPart, '=')).
+                oURI:AddQuery(entry(1, cQueryPart, '=':u), entry(2, cQueryPart, '=':u)).
         end.
         
         return oURI.
     end method.
     
-    /** Adds a name-only query argument. Equivalent to calling 
-        AddQuery(pcname, ?).
+    /** Adds a name-only QueryMap argument. Equivalent to calling 
+        AddQueryMap(pcname, ?).
     
-        @param character The query name */
+        @param character The QueryMap name */
     method public void AddQuery(input pcName as character):
         AddQuery(pcName, ?).
     end method.
@@ -316,11 +287,13 @@ class OpenEdge.Net.URI:
     /** Adds a query argument
         @param character The query name 
         @param character The query value */
-    method public void AddQuery(input pcName as character, input pcValue as character):
-        /* flag URI as changed */
-        assign this-object:URI = ?.
+    method public void AddQuery (input pcName as character, input pcValue as character):
+        Assert:NotNullOrEmpty(pcName, 'Query name').
         
-        this-object:Query:Put(pcName, pcValue).
+        /* flag URI as changed */
+        assign mcUri = ?.
+        
+        this-object:QueryMap:Put(pcName, pcValue).
     end method.
 
     /* constructs a string representation */
@@ -328,59 +301,64 @@ class OpenEdge.Net.URI:
         define variable cRootURI as character no-undo.
         define variable cRelativeURI as character no-undo.
         define variable cPath as character no-undo.
-        define variable cQuery as character no-undo.
         define variable oIterator as IIterator no-undo.
         define variable oEntry as MapEntry no-undo.
         define variable cDelimiter as character no-undo.
+        define variable cQueryString as character no-undo.
         
-        assign cRootURI = substitute('&1://', this-object:Scheme:Name).
+        assign cRootURI = substitute('&1://':u, this-object:Scheme).
         
-        if valid-object(this-object:Credentials) and 
-           this-object:Credentials:UserName ne ? then
+        if this-object:User ne ? then
         do: 
-            assign cRootURI = cRootURI + this-object:Credentials:UserName.
-            if this-object:Credentials:Password ne ? then
-                assign cRootURI = cRootURI + substitute(':&1', this-object:Credentials:Password).
-            assign cRootURI = cRootURI + '@'.
+            assign cRootURI = cRootURI + this-object:User.
+            if this-object:Password ne ? then
+                assign cRootURI = cRootURI + substitute(':&1':u, this-object:Password).
+            assign cRootURI = cRootURI + '@':u.
         end.
-        
+                
         assign cRootURI = cRootURI + this-object:Host.
         if this-object:Port ne ? then
-            assign cRootURI = cRootURI + substitute(':&1', this-object:Port).
+            assign cRootURI = cRootURI + substitute(':&1':u, this-object:Port).
         
-        if this-object:Path ne ? then
-            assign cPath = this-object:Path
-                   /* we re-add the leading / when building the URL */
-                   cPath = left-trim(cPath, '/').
-
-        if this-object:Query:Size gt 0  then
+        assign cPath = this-object:Path.
+        if this-object:QueryMap:Size gt 0  then
         do:
-            assign cDelimiter = '?'
-                   oIterator = this-object:Query:EntrySet:Iterator(). 
+            assign cDelimiter = '?':u
+                   oIterator = this-object:QueryMap:EntrySet:Iterator()
+                   cQueryString = '':u. 
             do while oIterator:HasNext():
                 assign oEntry = cast(oIterator:Next(), MapEntry)
-                       cQuery = cQuery + substitute('&1&2', cDelimiter, oEntry:Key:ToString())
-                       cDelimiter = '&'.
+                       cQueryString = cQueryString + substitute('&1&2':u, cDelimiter, oEntry:Key:ToString())
+                       cDelimiter = '&':u.
                 if valid-object(oEntry:Value) then 
-                    assign cQuery = cQuery + substitute('=&1', oEntry:Value:ToString()).
+                    assign cQueryString = cQueryString + substitute('=&1':u, oEntry:Value:ToString()).
             end.
+            
+            if cPath eq '':u then
+                assign cPath = '/':u.
         end.
-        
-        /* if there's no query string, then cQuery will be blank. */
-        assign cRelativeURI = substitute('/&1&2', cPath, cQuery).
+                    
+        /* if there's no QueryMap string, then cQuery will be blank. */
+        if cPath ne '':u or cQueryString ne '':u then 
+            assign cRelativeURI = substitute('&1&2':u, cPath, cQueryString).
         
         if this-object:Fragment ne ? then
-            assign cRelativeURI = substitute('&1#&2', cRelativeURI, this-object:Fragment).
+            assign cRelativeURI = substitute('&1#&2':u, cRelativeURI, this-object:Fragment).
         
         assign this-object:BaseURI     = cRootURI
                this-object:RelativeURI = cRelativeURI
-               this-object:URI         = substitute('&1&2', cRootURI, cRelativeURI).
+               this-object:QueryString = cQueryString
+               
+               mcUri = substitute('&1&2':u, cRootURI, cRelativeURI).
     end method.
     
     /** Returns a string representation of this URI 
         @return character The string URI */
     method override public character ToString():
-        return this-object:URI.
+        if mcUri eq ? then
+            BuildUri().
+        
+        return mcUri.
     end.
     
     /** Encodes this URI
@@ -397,7 +375,7 @@ class OpenEdge.Net.URI:
     method static public character Encode(input poURI as URI):
         Assert:NotNull(poURI, 'URI').
         
-        return substitute('&1&2',
+        return substitute('&1&2':u,
                         OpenEdge.Net.URI:Encode(poURI:BaseURI,     UriEncodingTypeEnum:Default),
                         OpenEdge.Net.URI:Encode(poURI:RelativeURI, UriEncodingTypeEnum:Query)).
     end method.
@@ -409,7 +387,7 @@ class OpenEdge.Net.URI:
         @return character the encoded string */
     method static public character Encode(input pcString       as character, 
                                           input poEncodingType as UriEncodingTypeEnum):
-        define variable iLoop as integer   no-undo.
+        define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable rChar as raw no-undo.
         define variable iAsc as integer no-undo.
@@ -417,21 +395,21 @@ class OpenEdge.Net.URI:
         
         /* Unsafe characters that must be encoded in URL's.  See RFC 1738 Sect 2.2. */
         define variable cUrlUnsafe as character no-undo 
-            initial " <>~"#%~{}|~\^~~[]`".
+            initial " <>~"#%~{}|~\^~~[]`":u.
         
         /* Reserved characters that normally are not encoded in URL's */
         define variable cUrlReserved as character no-undo 
-            initial "~;/?:@=&".
+            initial "~;/?:@=&":u.
         
         /* Don't bother with blank or unknown  */
         if length(pcString) eq 0 or pcString = ? then
-            return "".
+            return '':u.
 
         Assert:NotNull(poEncodingType, 'Encoding Type').            
         
         /* What kind of encoding should be used? */
         case poEncodingType:
-            when UriEncodingTypeEnum:Query then     /* QUERY_STRING name=value parts */
+            when UriEncodingTypeEnum:Query then     /* Query_STRING name=value parts */
                 assign cEncodeList = cUrlUnsafe + cUrlReserved + "+":U.
             when UriEncodingTypeEnum:Cookie then    /* Persistent Cookies */
                 assign cEncodeList = cUrlUnsafe + " ,~;":U.
@@ -441,7 +419,7 @@ class OpenEdge.Net.URI:
         
         /* Loop through entire input string */
         assign iloop = 0
-               iMax = length(pcString, 'raw')
+               iMax = length(pcString, 'raw':u)
                length(rChar) = 1.
         do iLoop = 1 to iMax:
             assign /* ASCII value of character using single byte codepage */

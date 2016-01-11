@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -18,9 +18,7 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.Array.
-using OpenEdge.Core.String.
 using OpenEdge.Core.Assert.
-
 using Progress.Lang.Class.
 using Progress.Lang.Object.
 
@@ -36,7 +34,7 @@ class OpenEdge.Core.String serializable:
     /** Returns the size of the contained string, in bytes */
     define public property Size as int64 no-undo
         get():
-            return length(this-object:Value, 'raw').
+            return length(this-object:Value, 'raw':u).
         end get.
     
     constructor public String():
@@ -45,12 +43,12 @@ class OpenEdge.Core.String serializable:
 
     constructor public String(pcString as longchar):
         super().
-        this-object:Value = pcString.
+        assign this-object:Value = pcString.
     end constructor.
     
     constructor public String(pcString as char):
         super().
-        this-object:Value = pcString.
+        assign this-object:Value = pcString.
     end constructor.
     
     method public void Trim():
@@ -61,7 +59,7 @@ class OpenEdge.Core.String serializable:
     
     method static public OpenEdge.Core.String Empty ():
         if not valid-object(moEmptyString) then
-            moEmptyString = new OpenEdge.Core.String('').
+            assign moEmptyString = new OpenEdge.Core.String('':u).
         
         return moEmptyString.
     end method.
@@ -83,7 +81,7 @@ class OpenEdge.Core.String serializable:
     end method.
         
     method static public Array Split(input poValue as OpenEdge.Core.String):
-        return OpenEdge.Core.String:Split(poValue, ',').
+        return OpenEdge.Core.String:Split(poValue, ',':u).
     end method.
         
     method static public Array Split(input poValue as OpenEdge.Core.String,
@@ -92,11 +90,11 @@ class OpenEdge.Core.String serializable:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         
-        iMax = num-entries(poValue:Value, pcDelimiter).
-        oArray = new Array(iMax).
+        assign iMax = num-entries(poValue:Value, pcDelimiter)
+               oArray = new Array(iMax).
         
         do iLoop = 1 to iMax:
-            oArray:Add(new String(entry(iLoop, poValue:Value, pcDelimiter))).
+            oArray:Add(new OpenEdge.Core.String(entry(iLoop, poValue:Value, pcDelimiter))).
         end. 
         
         return oArray.
@@ -104,7 +102,7 @@ class OpenEdge.Core.String serializable:
 
     /* Splits: ABL primitives */        
     method static public character extent Split(input pcValue as longchar):
-        return OpenEdge.Core.String:Split(pcValue, ',').
+        return OpenEdge.Core.String:Split(pcValue, ',':u).
     end method.
             
     method static public character extent Split(input pcValue as longchar,
@@ -113,11 +111,11 @@ class OpenEdge.Core.String serializable:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         
-        iMax = num-entries(pcValue, pcDelimiter).
-        extent(cArray) = iMax.
+        assign iMax = num-entries(pcValue, pcDelimiter)
+               extent(cArray) = iMax.
         
         do iLoop = 1 to iMax:
-            cArray[iLoop] = entry(iLoop, pcValue, pcDelimiter).
+            assign cArray[iLoop] = entry(iLoop, pcValue, pcDelimiter).
         end. 
         
         return cArray.
@@ -139,9 +137,9 @@ class OpenEdge.Core.String serializable:
         iMax = extent(poValue).
         do iLoop = 1 to iMax:
             if iLoop eq 1 then
-                cJoinedString = poValue[iLoop]:Value.
+                assign cJoinedString = poValue[iLoop]:Value.
             else
-                cJoinedString = cJoinedString + pcDelimiter + poValue[iLoop]:Value.
+                assign cJoinedString = cJoinedString + pcDelimiter + poValue[iLoop]:Value.
         end.
         
         return new OpenEdge.Core.String(cJoinedString).
@@ -157,9 +155,9 @@ class OpenEdge.Core.String serializable:
         iMax = extent(pcValue).
         do iLoop = 1 to iMax:
             if iLoop eq 1 then
-                cJoinedString = pcValue[iLoop].
+                assign cJoinedString = pcValue[iLoop].
             else
-                cJoinedString = cJoinedString + pcDelimiter + pcValue[iLoop].
+                assign cJoinedString = cJoinedString + pcDelimiter + pcValue[iLoop].
         end.
 
         return cJoinedString.
@@ -167,17 +165,26 @@ class OpenEdge.Core.String serializable:
     
     method override public character ToString():
         define variable cValue as character no-undo.
-        cValue = this-object:Value.
-        
+        define variable iLength as integer no-undo.
+
+        assign iLength = length(this-object:Value, 'raw':u).
+        /* characters are nominally 32k long, but not always in practice. for values that approach
+           exceeding 'about 32k' we'll take the first 30000 bytes or so. the entire value is available
+           through the :Value property anyway. */
+        if iLength ge 30000 then
+            assign cValue = substring(this-object:Value, 1, 29985) + ' <<...MORE...>>':u.
+        else
+            assign cValue = this-object:Value.
+
         return cValue.
     end method.
     
     method public void Append(input pcValue as longchar):
-        this-object:Value = this-object:Value + pcValue. 
+        assign this-object:Value = this-object:Value + pcValue. 
     end method.
 
     method public void Append(input poValue as OpenEdge.Core.String):
-        this-object:Value = this-object:Value + poValue:Value. 
+        assign this-object:Value = this-object:Value + poValue:Value. 
     end method.
     
 end class.

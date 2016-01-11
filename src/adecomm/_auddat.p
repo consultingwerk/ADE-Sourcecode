@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006,2008-2010 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008-2010,2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -2436,7 +2436,13 @@ PROCEDURE audDataAfterRowFill:
   hADBuff::_event-context           = REPLACE(hADBuff::_event-context,
                                               CHR(6),
                                               "CHR(6)").
-
+  hADBuff::_formatted-event-context = REPLACE(hADBuff::_formatted-event-context,
+                                              CHR(7),
+                                              "CHR(7)").
+  hADBuff::_formatted-event-context = REPLACE(hADBuff::_formatted-event-context,
+                                              CHR(6),
+                                              "CHR(6)").
+  
   /* check if we need to process the _Event-detail field for streamed fields on db events */
   /* only do it if doing detailed report or XML (XML is always detailed) */
   IF plDetail OR glWriteXml THEN

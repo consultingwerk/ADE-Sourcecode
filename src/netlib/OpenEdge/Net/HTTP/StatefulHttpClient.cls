@@ -3,7 +3,7 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StatefulHttpClient
-    Purpose     : 
+    Purpose     : Http client with support for cookies
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -12,34 +12,74 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Net.HTTP.CookieJar.
-using OpenEdge.Net.HTTP.HttpClient.
-using OpenEdge.Net.HTTP.HttpRequest.
-using OpenEdge.Net.HTTP.HttpResponse.
-using OpenEdge.Net.HTTP.ICookieJar.
+using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.HttpClientDecorator.
+using OpenEdge.Net.HTTP.ICookieJar.
+using OpenEdge.Net.HTTP.IHttpClient.
+using OpenEdge.Net.HTTP.IHttpRequest.
+using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.ISupportCookies.
 
-class OpenEdge.Net.HTTP.StatefulHttpClient inherits HttpClient: 
-    define private variable moCookieJar as ICookieJar no-undo.
+class OpenEdge.Net.HTTP.StatefulHttpClient inherits HttpClientDecorator
+        implements ISupportCookies:
+    
+	define public property CookieJar as ICookieJar no-undo get. set. 
 
-    constructor public StatefulHttpClient():
-        assign moCookieJar = CookieJar:Instance().
+    constructor public StatefulHttpClient(input poClient    as IHttpClient,
+                                          input poCookieJar as ICookieJar):
+        this-object(poClient).
+        
+        Assert:NotNull(poCookieJar).
+        assign this-object:CookieJar = poCookieJar.
+    end constructor.
+    
+    constructor public StatefulHttpClient(input poClient    as IHttpClient):
+        super(poClient).
     end constructor.
 
-    method override public HttpResponse Execute(input poRequest as HttpRequest):
-        define variable oResponse as HttpResponse no-undo.
-        define variable oIterator as IIterator no-undo.
+    method override public void Execute(input poRequest  as IHttpRequest,
+                                        input poResponse as IHttpResponse):
+        define variable iNumCookies as integer no-undo.
+        define variable oCookies as Cookie extent no-undo.
+        define variable iLoop  as integer no-undo.
+        define variable cDomain as character no-undo.
+        define variable cPath as character no-undo.
         
-        poRequest:AddCookies(moCookieJar:GetCookies(poRequest:URI)).
-        
-        oResponse = super:Execute(poRequest).
-        
-        assign oIterator = oResponse:GetCookiesIterator().
-        do while oIterator:HasNext():
-            moCookieJar:AddCookie(cast(oIterator:Next(), Cookie)).
+        assign iNumCookies = this-object:CookieJar:GetCookies(poRequest:URI, output oCookies).
+
+        do iLoop = 1 to iNumCookies:
+            poRequest:SetCookie(oCookies[iLoop]).
         end.
         
-        return oResponse.
-    end method.    
+        super:Execute(poRequest, poResponse).
+        
+        assign extent(oCookies) = ?
+               iNumCookies = poResponse:GetCookies(output oCookies).
+
+        do iLoop = 1 to iNumCookies:
+            
+            /* Make sure we have a domain and path for these cookies. */
+            assign cDomain = oCookies[iLoop]:Domain
+                   cPath   = oCookies[iLoop]:Path.
+            if not cDomain begins '.':u then
+                assign cDomain = '.':u + cDomain.
+            
+            /* blank domain/path means it applies only to this request.
+               do NOT add a '.' to it */
+            if cDomain eq '.':u then
+                assign cDomain = poRequest:URI:Host.
+            
+            if cPath eq '':u then
+                assign cPath = poRequest:URI:Path.
+            
+            /* cookie domain must match request host */
+            if not poRequest:URI:Host matches '*':u + left-trim(oCookies[iLoop]:Domain, '.':u) then
+                next.
+            
+            /* add to the jar */
+            this-object:CookieJar:AddCookie(cDomain, cPath, oCookies[iLoop]).
+        end.
+    end method.
+    
 end class.

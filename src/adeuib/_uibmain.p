@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2007-2012 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2015 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -4038,9 +4038,12 @@ PROCEDURE ide_syncFromFile :
 /*    end.                                                                                       */
     
     IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+    do:
+       run setSendFocustoUI(false).
        RUN syncFromIDE IN OEIDE_ABSecEd (phHandle,pcLinkedFileName).
-    
-/*    finally:                                                                                                                */
+    end.  
+     finally: 
+         run setSendFocustoUI(true).    
 /*        /** close if silent open                                                                                            */
 /*           To keep this around we would need to be able to make it visible and embedd in eclipse if                         */
 /*           design window is opened while it is alive                                                                        */
@@ -4048,7 +4051,7 @@ PROCEDURE ide_syncFromFile :
 /*        if lSilentOpen then                                                                                                 */
 /*           run wind-close (phhandle).                                                                                       */
 /*                                                                                                                            */
-/*    end finally.                                                                                                            */
+     end finally.     
    
 END PROCEDURE.
 
@@ -4153,7 +4156,7 @@ PROCEDURE ide_insert_trigger  :
     define input  parameter pcType      as character no-undo.
     define input  parameter pcName      as character no-undo.
     define input  parameter pcNewEvent  as character no-undo. 
-    define input  parameter pcBrowseName  as character no-undo. 
+    define input  parameter pcParenteName  as character no-undo. 
     define output parameter plok        as logical   no-undo.
     
     define variable lSilentOpen    as logical no-undo.
@@ -4161,19 +4164,23 @@ PROCEDURE ide_insert_trigger  :
     
     if phHandle = ? then
     do:
+        
         /* No window open -  run the _qssucker to open the file silently */       
         run adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
         phhandle = _h_win.
+        if not valid-handle(phhandle) then
+           undo, throw new AppError("Could not open the edited file in Appbuilder"). 
         lSilentOpen = true.
     end.
     if valid-handle(OEIDE_ABSecEd) then
     do:
-        run insertTriggerBlock IN OEIDE_ABSecEd (phhandle,pcType,pcName,pcNewEvent,pcBrowseName,output plok).
+        run insertTriggerBlock IN OEIDE_ABSecEd (phhandle,pcType,pcName,pcNewEvent,pcParenteName,output plok).
         if plok and lSilentOpen then
         do:
-            /* save the appbuilder to the temp file if specified */ 
-            if pcReturnFile > "" then
-                run syncFromAppbuilder IN OEIDE_ABSecEd (phHandle,pcReturnFile).
+            /* save the appbuilder to the  file unless temp-file is specified */ 
+            if pcReturnFile = "" then
+               pcReturnFile = pcfile.
+            run syncFromAppbuilder IN OEIDE_ABSecEd (phHandle,pcReturnFile).
         end.
     end.
     catch e as Progress.Lang.Error :

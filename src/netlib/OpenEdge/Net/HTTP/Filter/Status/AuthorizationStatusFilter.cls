@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File       : AuthorizationStatusFilter
@@ -8,66 +8,109 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
     Description:
     Author(s)  : pjudge
     Created    : Mon Feb 17 13:06:38 EST 2014
-    Notes      :  
+    Notes       : - The Message for this writer is the REQUEST since it 
+                    will retrieve data from the request (Location header) and
+                    write a new URI to the request.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
-using OpenEdge.Net.HTTP.AuthenticationRequestEventArgs.
-using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
-using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
-using OpenEdge.Net.HTTP.HttpMessage.
-using OpenEdge.Net.HTTP.HttpRequest.
-using OpenEdge.Net.HTTP.StatusCodeEnum.
-using OpenEdge.Net.HTTP.HttpResponse.
+using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Net.HTTP.IAuthenticatedRequest.
+using OpenEdge.Net.HTTP.IHttpMessage.
+using OpenEdge.Net.HTTP.IHttpMessageWriter.
+using OpenEdge.Net.HTTP.IHttpRequest.
+using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.RequestBuilder.
+using Progress.Lang.Object.
 
-class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter implements IMessageFilter:
-    constructor public AuthorizationStatusFilter():
-    end constructor.
+class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
+                implements IHttpMessageWriter, ISupportInitialize:
+                    
+    /* This writer requires an Authenticated request; either we accept on or turn the 
+       input request into one */
+    define private variable moAuthRequest as IAuthenticatedRequest no-undo.
     
-    /** Indicates whether this filter applies to the current message. 
-        
-        @param HttpMessage The message to check
-        @return logical True if the current filter can be used. */
-    method public logical CanFilter(input poMessage as HttpMessage):
-        define variable lCanFilter as logical no-undo.
-        
-        lCanFilter = type-of(poMessage, HttpResponse) and
-                     cast(poMessage, HttpResponse):StatusCode:Equals(StatusCodeEnum:Unauthorized).
-        
-        return lCanFilter.
+    /* contents of the WWW-Authenticate header */
+    define private variable mcChallenge as character no-undo.
+    
+    /** (mandatory) The message that's being written to. The values passed in to the Write() methods
+        will be parsed/processed and writted to this message. */  
+    define public property Message as IHttpMessage no-undo get. private set.
+    
+    constructor public AuthorizationStatusFilter(input poMessage as IHttpRequest):
+        Assert:NotNull(poMessage, 'Http request').
+        assign this-object:Message = poMessage.
+    end constructor.
+
+    method public void Initialize():
+        assign moAuthRequest       = cast(RequestBuilder:DecorateRequest(get-class(IAuthenticatedRequest),
+                                                                         cast(this-object:Message, IHttpRequest))
+                                          , IAuthenticatedRequest)
+               this-object:Message = moAuthRequest.
     end method.
     
-    /** Performs implementation-specific filtering for a message.
+    method public void Destroy():
+    end method.
+
+    method public void Close():
+        Flush().
+    end method.
+    
+    method public void Flush():
+        define variable cAuthMethod as character no-undo.
         
-        @param HttpMessage The message to filter
-        @return FilterActionEnum Status of the fitler action. The caller decides
-                                 what to do with this information. Filters will
-                                 typically return Stop or OK. */
-    method public FilterActionEnum ExecuteFilter(input poMessage as HttpMessage):
-        define variable cChallenge as character no-undo.
-        define variable oAuthMethod as AuthenticationMethodEnum no-undo.
-        define variable oAuthRequestArgs as AuthenticationRequestEventArgs no-undo.
-        define variable oRequest as HttpRequest no-undo.
+        Assert:NotNullOrEmpty(mcChallenge, 'Challenge').
         
-        assign cChallenge = poMessage:GetHeaderEntry('WWW-Authenticate')
-               oRequest = cast(poMessage, HttpResponse):Request.
-        Assert:NotNullOrEmpty(cChallenge, 'WWW-Authenticate Header').
-        
-        assign oAuthMethod = AuthenticationMethodEnum:FromString(entry(1, cChallenge, ' ')).
-        Assert:NotNull(oAuthMethod, 'Authentication method').
+        /* The challenge type is the first SPACE-delimited entry */
+        assign cAuthMethod = entry(1, mcChallenge, ' ':u).
+        Assert:NotNullOrEmpty(cAuthMethod, 'Authentication method').
         
         /* The Request takes care of creating the correct value for the 
            header, based off the string we pass in. It knows how to translate
            'Basic' or 'Digest' into something useful */
-        oRequest:SetChallenge(
-                oAuthMethod,
-                oRequest:Credentials,
-                cChallenge).
+        cast(this-object:Message, IAuthenticatedRequest):SetChallenge(
+                cAuthMethod,
+                mcChallenge).
+    end method.
+
+    method public void Open():
+        assign mcChallenge = '':u.
+    end method.
+
+    method public void Write(input-output pcData as longchar):
+        Assert:NotNullOrEmpty(pcData, 'Challenge').
         
-        /* try again, with the (hopefully) correct credentials */
-        return FilterActionEnum:Retry.
+        assign mcChallenge = string(pcData).
+    end method.
+
+    method public void Write(input pmData as memptr):
+        Assert:IsPositive(get-size(pmData), 'Data size').       
+        assign mcChallenge = get-string(pmData, 1).
+    end method.
+
+    method public void Write(input poData as Object):
+        Assert:IsType(poData, get-class(IHttpResponse)).
+        
+        /* the value of the Location header is the new host/path */
+        if cast(poData, IHttpResponse):HasHeader('WWW-Authenticate':u) then
+            assign mcChallenge = cast(poData, IHttpResponse):GetHeader('WWW-Authenticate':u):Value.
     end method.
     
+    /** Write data to/from the message
+
+        @param handle Data to write */
+    method public void Write(input phData as handle):    
+        /* no-op */
+    end method.
+
+    /** Write data to/from the message
+
+        @param character Data to write */
+    method public void Write(input-output pcData as character):    
+        Assert:NotNullOrEmpty(pcData, 'Challenge').
+        
+        assign mcChallenge = pcData.
+    end method.    
+
 end class.

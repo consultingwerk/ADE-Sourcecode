@@ -1,5 +1,5 @@
- /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+/************************************************
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BasicAuthenticationFilter
@@ -12,47 +12,41 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.Credentials.
-using OpenEdge.Net.HTTP.Filter.Auth.AuthFilter.
-using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
-using OpenEdge.Net.HTTP.HttpMessage.
-using OpenEdge.Net.HTTP.HttpRequest.
+using OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
+using OpenEdge.Net.HTTP.IAuthenticatedRequest.
+using Progress.Lang.AppError.
 
-class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits AuthFilter:
-		
-	constructor public BasicAuthenticationFilter():
-		super (input AuthenticationMethodEnum:Basic).
-	end constructor.
+class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits AuthenticationRequestFilter: 
+    constructor public BasicAuthenticationFilter (input poRequest as IAuthenticatedRequest ):
+        super (input poRequest).
+    end constructor.
 
-    /** The worker/filter method that each filter type impements.       
-        
-        @param  HttpRequest The requeste being challenged/filtered
-        @return FilterActionEnum Status of the fitler action. The caller decides
-                                 what to do with this information. Filters will
-                                 typically return Stop or OK */ 
-    method override public FilterActionEnum ExecuteFilter(input poMessage as HttpMessage):
+    /** Build the actual authentication. To be implemented by concrete classes. */
+    method override protected void AddAuthentication():
         define variable cRealm as character no-undo.
         define variable cCredentials as character no-undo.
         define variable mCredentials as memptr no-undo.
         define variable mShortCredentials as memptr no-undo.
         define variable oCredentials as Credentials no-undo.
         define variable ilength as integer no-undo.
-        define variable oRequest as HttpRequest no-undo.
+        define variable oRequest as IAuthenticatedRequest no-undo.
         
         /* cast for comfort */
-        assign oRequest = cast(poMessage, HttpRequest) 
-               cRealm = entry(2, oRequest:AuthenticationChallenge, '=')
-               cRealm = trim(cRealm, '"').
-        Assert:NotNullOrEmpty(cRealm, 'Realm').
+        assign oRequest = cast(this-object:Message, IAuthenticatedRequest) 
+               cRealm = entry(2, oRequest:AuthenticationChallenge, '=':u)
+               cRealm = trim(cRealm, '"':u).
+        Assert:NotNull(cRealm, 'Realm').
         
-        assign oCredentials = GetCredentials(oRequest, cRealm).
-        Assert:NotNull(oCredentials, 'Credentials').
+        assign oCredentials = GetCredentials(cRealm).
+        if not valid-object(oCredentials) then
+            return error new AppError(substitute('Missing credentials for realm ~"&1~"', cRealm), 0).
         
-        assign cCredentials = substitute('&1:&2',
+        assign cCredentials = substitute('&1:&2':u,
                                 oCredentials:UserName,
                                 oCredentials:Password)
-               iLength = length(cCredentials, 'RAW').
+               iLength = length(cCredentials, 'RAW':u).
 
         set-size(mCredentials) = iLength + 1. /* for the null terminator */
         put-string(mCredentials, 1) = cCredentials.
@@ -61,15 +55,15 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits AuthFilte
         set-size(mShortCredentials) = iLength.
         put-bytes(mShortCredentials, 1) = get-bytes(mCredentials, 1, iLength). 
         
-        assign cCredentials = 'Basic ' + string(base64-encode(mShortCredentials)).
+        assign cCredentials = substitute('Basic &1':u, base64-encode(mShortCredentials)).
         /* add to the request */
-        poMessage:AddHeader('Authorization', cCredentials).
+        oRequest:SetHeader(
+            HttpHeaderBuilder:Build('Authorization':u):Value(cCredentials):Header).
         
-        return FilterActionEnum:Stop.
         finally:
             set-size(mShortCredentials) = 0.
             set-size(mCredentials) = 0.
         end finally.
-	end method.
-
+    end method.
+            
 end class.

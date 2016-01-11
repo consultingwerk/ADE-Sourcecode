@@ -1,5 +1,5 @@
  /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : NoAuthenticationFilter
@@ -12,28 +12,17 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
-using OpenEdge.Net.HTTP.Filter.Auth.AuthFilter.
-using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
-using OpenEdge.Net.HTTP.HttpMessage.
+using OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter.
+using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 
-class OpenEdge.Net.HTTP.Filter.Auth.NoAuthenticationFilter inherits AuthFilter:
-		
-	constructor public NoAuthenticationFilter():
-		super (input AuthenticationMethodEnum:None).
-	end constructor.
-	
-    /** The worker/filter method that each filter type impements.       
-        
-        @param  HttpRequest The requeste being challenged/filtered
-        @return FilterActionEnum Status of the fitler action. The caller decides
-                                 what to do with this information. Filters will
-                                 typically return Stop or OK */ 
-    method override public FilterActionEnum ExecuteFilter(input poMessage as HttpMessage):
-        /* Remove the header with the credentials (in case it already exists) */
-        poMessage:RemoveHeader('Authorization').
-        
-        return FilterActionEnum:OK.
+class OpenEdge.Net.HTTP.Filter.Auth.NoAuthenticationFilter inherits AuthenticationRequestFilter: 
+    constructor public NoAuthenticationFilter ( input poRequest as IAuthenticatedRequest ):
+        super (input poRequest).
+    end constructor.
+
+    /** Build the actual authentication. To be implemented by concrete classes. */
+    method override protected void AddAuthentication():
+        this-object:Message:RemoveHeader('Authorization':u).
     end method.
-	
+            
 end class.

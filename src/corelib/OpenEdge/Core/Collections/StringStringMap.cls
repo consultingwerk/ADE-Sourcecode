@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.String.
+using Progress.Lang.Object.
 
 {OpenEdge/Core/Collections/typedmapclass.i
     &Package        = OpenEdge.Core.Collections
@@ -48,7 +49,13 @@ using OpenEdge.Core.String.
         @param character The key value
         @return longchar The associated value */
     method public longchar Get(input pcKey as character):
-        return this-object:Get(new String(pcKey)):Value.
+        define variable oValue as Object no-undo.
+        
+        assign oValue = this-object:Get(new String(pcKey)).
+        if valid-object(oValue) then
+            return cast(oValue, String):Value.
+        else
+            return ?.
     end method.
     
     /** Removes the value for a particular key
@@ -56,7 +63,13 @@ using OpenEdge.Core.String.
         @param character The key value
         @return longchar The associated value */
     method public longchar Remove(input pcKey as character):
-        return this-object:Remove(new String(pcKey)):Value.
+        define variable oValue as Object no-undo.
+        
+        assign oValue = this-object:Remove(new String(pcKey)).
+        if valid-object(oValue) then
+            return cast(oValue, String):Value.
+        else
+            return ?.
     end method.
     
     /** Indicates whether a map exists for this key

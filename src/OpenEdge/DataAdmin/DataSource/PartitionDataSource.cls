@@ -511,7 +511,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                 do:
                     /* as of current the partitions for a new detail exists for all indexes 
                        ignore  global indexes */    
-                    if pistate = row-created then
+                    if cType = "P" and pistate = row-created then
                     do:
                         find dictdb._file where dictdb._file._db-recid = dbRecid
                                          and   dictdb._file._file-name = phBuffer::TableName 

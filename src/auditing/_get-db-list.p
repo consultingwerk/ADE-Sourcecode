@@ -50,6 +50,22 @@ DEFINE OUTPUT PARAMETER cList           AS CHAR    NO-UNDO.
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
 
+/* ************************  Function Prototypes ********************** */
+
+
+&IF DEFINED(EXCLUDE-isAppServerSession) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isAppServerSession Procedure
+function isAppServerSession returns logical private
+  (  ) forward.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
 
 
 /* *********************** Procedure Settings ************************ */
@@ -113,11 +129,11 @@ DEFINE VARIABLE hBuffer     AS HANDLE  NO-UNDO.
     DO WHILE iLoop <= NUM-DBS:
         ASSIGN name-string = LDBNAME(iLoop) + ",":U.
 
-        IF SESSION:CLIENT-TYPE = "APPSERVER" THEN
+        IF isAppServerSession() THEN
             ASSIGN name-string = name-string + {&DB-APPSERVER}.
 
         IF INDEX (DBRESTRICTIONS(LDBNAME(iLoop)), "READ-ONLY":U) > 0 THEN DO:
-            IF SESSION:CLIENT-TYPE = "APPSERVER" THEN
+            IF isAppServerSession() THEN
                 ASSIGN name-string = name-string + ",".
 
             ASSIGN name-string = name-string + {&DB-READ-ONLY}.
@@ -188,11 +204,11 @@ DEFINE VARIABLE hAudit       AS HANDLE    NO-UNDO.
 
             ASSIGN name-string = cDbName + ",":U.
 
-            IF SESSION:CLIENT-TYPE = "APPSERVER":U THEN
+            IF isAppServerSession()  THEN
                 ASSIGN name-string = name-string + {&DB-APPSERVER}.
 
             IF INDEX (DBRESTRICTIONS(LDBNAME(iLoop)), "READ-ONLY":U) > 0 THEN DO:
-                IF SESSION:CLIENT-TYPE = "APPSERVER":U THEN
+                IF isAppServerSession() THEN
                     ASSIGN name-string = name-string + ",".
 
                 ASSIGN name-string = name-string + {&DB-READ-ONLY}.
@@ -201,7 +217,7 @@ DEFINE VARIABLE hAudit       AS HANDLE    NO-UNDO.
                 /* if we got this far, check if the user can't write to table, add read-only entry.
                 */
                 IF NOT hAudit:CAN-WRITE THEN DO:
-                   IF SESSION:CLIENT-TYPE = "APPSERVER":U THEN
+                   IF isAppServerSession() THEN
                       ASSIGN name-string = name-string + ",".
 
                    ASSIGN name-string = name-string + {&DB-READ-ONLY}.
@@ -239,6 +255,27 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
+
+
+
+/* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-isAppServerSession) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isAppServerSession Procedure
+function isAppServerSession returns logical private
+  (  ):
+/*------------------------------------------------------------------------------
+ Purpose: Indicates whether we're running on an appserver or not.
+ Notes:
+------------------------------------------------------------------------------*/
+    return (session:client-type eq 'APPSERVER':u or session:client-type eq 'MULTI-SESSION-AGENT':u).
+end function.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &ENDIF
 
