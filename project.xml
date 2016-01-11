@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="1.7.0_02" class="java.beans.XMLDecoder">
+ <object class="java.util.HashMap">
+  <void method="put">
+   <string>Linux Fields</string>
+   <object class="java.util.HashMap"/>
+  </void>
+  <void method="put">
+   <string>Common Fields</string>
+   <object class="java.util.HashMap">
+    <void method="put">
+     <string>webspeed_source_location</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>bld_rcodesave</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>bld_buildnew</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>web_aliases</string>
+     <string>webtools,@{DLC}/tty,webspeed,@{DLC}/webspeed</string>
+    </void>
+    <void method="put">
+     <string>pvm_connections</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>bld_xcode</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_use_workspace_avm</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>generated_abl_location</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_devconfig</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>pvm_startup</string>
+     <string>-zn</string>
+    </void>
+    <void method="put">
+     <string>web_broker_url</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_xcode_session_key</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>web_use_remote_webserver</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>static_source_location</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>generate_w_file</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>bld_gen_esboe_key</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>bld_writexrefxml</string>
+     <string>false</string>
+    </void>
+   </object>
+  </void>
+  <void method="put">
+   <string>Windows Fields</string>
+   <object class="java.util.HashMap">
+    <void method="put">
+     <string>bld_rcodepath</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>ve_use_global_toolbox</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>bld_customdbpath</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>bld_customapppath</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>bld_xrefxmlpath</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_workdir</string>
+     <string>@{ROOT}</string>
+    </void>
+    <void method="put">
+     <string>pvm_hidetty</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>pvm_usetty</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>pvm_autostartrestrict</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>pvm_dynsesstype</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>bld_esboe_key</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_useabview</string>
+     <string>true</string>
+    </void>
+    <void method="put">
+     <string>pvm_usedynamics</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>pvm_tempdir</string>
+     <string>c:/work/OpenEdge113</string>
+    </void>
+    <void method="put">
+     <string>pvm_dynconfig</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_autostartab</string>
+     <string>false</string>
+    </void>
+    <void method="put">
+     <string>pvm_assemblies_directory</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>export_path</string>
+     <string>c:/work/OpenEdge113\build.dir</string>
+    </void>
+    <void method="put">
+     <string>bld_staticpath</string>
+     <string></string>
+    </void>
+    <void method="put">
+     <string>pvm_use_default_assemblies_directory</string>
+     <string>true</string>
+    </void>
+   </object>
+  </void>
+ </object>
+</java>
