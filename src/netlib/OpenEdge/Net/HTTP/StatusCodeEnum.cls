@@ -1,3 +1,6 @@
+/************************************************
+Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
     File        : StatusCodeEnum
     Purpose     : 
@@ -72,14 +75,14 @@ class OpenEdge.Net.HTTP.StatusCodeEnum inherits EnumMember:
         super (input piValue, input pcName).
     end constructor.
 
-    method static public StatusCodeEnum EnumFromName (input pcName as character):
+    method static public StatusCodeEnum FromString (input pcName as character):
         /* The HTTP response names have spaces. Remove them for the enum names */
         if lookup(replace(pcName, ' ', ''), "{&EnumMembers}") gt 0 then
             return cast(get-class(StatusCodeEnum):GetPropertyValue(pcName), StatusCodeEnum).
     end method.
 
-    method static public StatusCodeEnum EnumFromValue (input piValue as integer):
-        return StatusCodeEnum:EnumFromName(entry(lookup(string(piValue), "{&EnumValues}"), "{&EnumMembers}")).
+    method static public StatusCodeEnum FromValue (input piValue as integer):
+        return StatusCodeEnum:FromString(entry(lookup(string(piValue), "{&EnumValues}"), "{&EnumMembers}")).
     end method.
     
 end class.

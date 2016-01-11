@@ -18,4 +18,5 @@ using OpenEdge.Core.Collections.ListNode.
     &Package    = OpenEdge.Core.Collections
     &ListType   = LinkedList
     &NodeType   = ListNode
+    &IsSerializable = true
 }

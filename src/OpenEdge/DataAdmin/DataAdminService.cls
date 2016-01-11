@@ -29,6 +29,8 @@ using OpenEdge.DataAdmin.Binding.RowImpl from propath.
 using OpenEdge.DataAdmin.Binding.SchemaChanges from propath.
 using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
 using OpenEdge.DataAdmin.Core.FileLogger from propath.
+using OpenEdge.DataAdmin.Core.IPasswordPolicy from propath.
+using OpenEdge.DataAdmin.Core.PasswordPolicy from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
@@ -104,6 +106,17 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         get. 
         set.  
  
+    /** PasswordPolicy with password rule properties (pre-encode password and/or passcode)   */
+    define public property PasswordPolicy as IPasswordPolicy no-undo 
+        get():
+             if not valid-object(PasswordPolicy) then
+             do:
+                 PasswordPolicy = new PasswordPolicy().
+             end.    
+             return PasswordPolicy.
+        end. 
+        set.    
+    
     define public property Name as character no-undo 
         get(): 
             return ServiceAdapter:ServiceName.
@@ -116,12 +129,12 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         
        /**utility factory - read-only */
     define public property UtilityFactory as IUtilityFactory no-undo 
-       get():
-           if not valid-object(UtilityFactory) then
-               UtilityFactory = new UtilityFactory(). 
-           return UtilityFactory.    
-       end get.
-       private set.
+        get():
+            if not valid-object(UtilityFactory) then
+                UtilityFactory = new UtilityFactory(). 
+            return UtilityFactory.    
+        end get.
+        private set.
        
     constructor public DataAdminService (  ):
         super ().

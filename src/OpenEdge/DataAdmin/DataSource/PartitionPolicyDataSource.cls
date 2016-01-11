@@ -178,7 +178,9 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
         define variable cIdx        as character no-undo.
         define variable cIdxMsg     as character no-undo.
         define variable iNumFlds    as integer no-undo.                  
-        define variable partitionobj as Storage no-undo.                  
+        define variable partitionobj as Storage no-undo.         
+        define variable lReadOnly   as logical no-undo.         
+       
         if not valid-object(DataAccess) then
             undo, throw new AppError("PartitionPolicyDataSource:Save called with unknown DataAccess property",? ).
       
@@ -210,7 +212,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
             do while hBeforebuff:avail:
                 if hBeforeBuff:row-state <> 0 then 
                 do:
-                   
+                    
                     if hBeforeBuff:row-state = row-deleted then 
                     do:
                         find dictdb._Partition-Policy where dictdb._Partition-Policy._Partition-Policy-Name =  hBeforeBuff::name 
@@ -238,7 +240,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
                          
                     end.    
                     else do :    
-                       
+                        lReadOnly = ?. /* use unknwon to detect change to both true or false whihc needs to be stored in pStroage class  */
                         phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
                         /* avoid merge changes if not success set to false at end */ 
                         phBuffer:error = true.
@@ -281,7 +283,11 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
                                  dictdb._Partition-Policy._Partition-Policy-name = phBuffer::Name
                                  dictdb._Partition-Policy._Object-Number = dictdb._file._file-number
                                  dictdb._Partition-Policy._Has-Range = phBuffer::HasRange.
-                             
+                                 
+                             if phBuffer::IsCompositeReadOnly = true then
+                             do:
+                                 undo, throw new DataAccessError("PartitionPolicy IsCompositeReadOnly cannot be set to true when the policy is created.").
+                             end. 
                              do i = 1 to 15:     
                                  if phBuffer::FieldNames(i) > "" then
                                  do:
@@ -356,10 +362,16 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
                             if dictdb._Partition-Policy._Partition-Policy-name <> phBuffer::Name then 
                                 dictdb._Partition-Policy._Partition-Policy-name = phBuffer::Name. 
                             
+                            if hBeforeBuff::IsCompositeReadOnly <> phBuffer::IsCompositeReadOnly then
+                            do:
+                                lReadOnly = phBuffer::IsCompositeReadOnly.
+                            end.
+                            
                             if dictdb._Partition-Policy._Has-Range <> phBuffer::HasRange then
                             do:
                                 undo, throw new DataAccessError("Cannot change has range of an existing PartitionPolicy").
                             end.
+                            
                             /* allocated only makes sense when not new */
 /*                            if dictdb._Partition-Policy._Partition-Policy-attributes[2] <> phBuffer::isAllocated  */
 /*                            and phBuffer::isAllocated = true then                                                 */
@@ -418,11 +430,38 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
                         if dictdb._Partition-Policy._Allocation-default <> phBuffer::DefaultAllocation then
                              dictdb._Partition-Policy._Allocation-default = phBuffer::DefaultAllocation.     
                         
-                      
                         
                         /* ensure partitions are created and partition changes are seen (IsAllocated)*/
                         validate dictdb._Partition-Policy.
-                        
+                       
+                        /* We currently validate that this is only set when modify due to a core limiation 
+                           both in UI and higher up in this method. 
+                           NOTE: if the core limitation is lifted then this is probably too early 
+                                 as details are not validated yet (?) 
+                         */
+                        if lReadOnly <> ? then                           
+                        do:
+                         
+                            /* The first call to DatabaseInfo may call the constructor which
+                                     has a find that will give error 7254 in where clause  */
+                            dbRecid = DatabaseInfo:DatabaseRecid. 
+                            find dictdb._file where dictdb._file._db-recid = dbRecid
+                                               and dictdb._file._file-name = phBuffer::TableName 
+                                               and dictdb._file._owner = "PUB" no-lock no-error. 
+                            
+                            do on error undo, throw:                                              
+                                partitionobj = DBConfig:GetTable(dictdb._file._file-name,"initial","C"). 
+                                catch e as Progress.Lang.Error :
+                                    if lReadOnly then
+                                        undo, throw new DataAccessError("Cannot set composite partition to read-only. The Policy has no composite partition.",e).             
+                                end catch.
+                            end.     
+                            if valid-object(partitionobj) then 
+                            do:
+                                 partitionobj:readOnly = lReadOnly.
+                            end. 
+                        end.  
+                         
                         hdataset = phBuffer:dataset.
                         AfterRow(dataset-handle hdataset by-reference).    
                                
@@ -499,9 +538,40 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
     method public override  void AfterRow(dataset-handle hds):
         define variable hbuffer       as handle no-undo.
         define variable cEncodeName   as character no-undo.
-        
+        define variable dbRecid       as recid no-undo.
+        define variable partitionobj  as Storage no-undo.  
         hBuffer =  hds:get-buffer-handle("ttPartitionPolicy").
- 
+          /* The first call to DatabaseInfo may call the constructor which
+                                     has a find that will give error 7254 in where clause  */
+        
+        
+        dbRecid = DatabaseInfo:DatabaseRecid. 
+        find dictdb._file where dictdb._file._db-recid = dbRecid
+                          and dictdb._file._file-name = hBuffer::TableName 
+                          and dictdb._file._owner = "PUB" no-lock no-error. 
+        
+        find first dictdb._partition-policy-detail where dictdb._partition-policy-detail._object-number =  dictdb._file._file-number 
+                                                   and   dictdb._partition-policy-detail._partition-id = 0  no-lock no-error.
+                                                   
+        if avail dictdb._partition-policy-detail then
+        do on error undo, throw:                                    
+             hBuffer::HasComposite = true.
+             
+             /* Cannot access inital composite during creation - it is always false for this reason. */     
+             if hBuffer:row-state <> row-created then 
+             do:
+                 partitionobj = DBConfig:GetTable(dictdb._file._file-name,"initial","C").
+                 hBuffer::IsCompositeReadOnly = partitionobj:readOnly. 
+             end.      
+             else 
+                 hBuffer::IsCompositeReadOnly = false. 
+        end.                
+        
+        if valid-object(partitionobj) then 
+        do:
+            hBuffer::IsCompositeReadOnly = partitionobj:readOnly.
+        end. 
+                           
         assign
             cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  
             hBuffer::Url  = PolicyURL + cEncodeName

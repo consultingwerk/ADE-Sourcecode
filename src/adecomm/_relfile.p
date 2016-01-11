@@ -80,6 +80,7 @@ DEFINE VARIABLE lQuestion       AS LOG       NO-UNDO.
 DEFINE VARIABLE lOk             AS LOG       NO-UNDO.
 DEFINE VARIABLE i               AS INTEGER   NO-UNDO.
 DEFINE VARIABLE cOptionEntry    AS CHARACTER NO-UNDO.
+define variable clastentry       as character no-undo. 
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -167,6 +168,8 @@ ELSE
 
 IF pcRelName = ? THEN
 DO:
+ 
+    
   /* look for the options for file don't exist */ 
   DO i = 1 To NUM-ENTRIES(pcOptions):   
     cOptionEntry = ENTRY(i,pcOptions).
@@ -184,30 +187,36 @@ DO:
   IF cNoFileOption <> "":U THEN     
   DO:
     ASSIGN    /* if "message:<text>" then use <text> */ 
-      lQuestion = cNoFileOption BEGINS "YES-NO":U
-      cMsg =  IF cOptionEntry BEGINS "MESSAGE":U 
-              AND NUM-ENTRIES(cOptionEntry,":":U) > 1 
-              THEN ENTRY(2,cOptionEntry,":":U)            
-              ELSE "&2 is missing&1."
+        lQuestion = cNoFileOption BEGINS "YES-NO":U
+    /* the : delimiter could be a directory  */
+        clastentry = if NUM-ENTRIES(cOptionEntry,":":U) > 2 
+                     then entry(2,cOptionEntry,":") + ":" + ENTRY(3,cOptionEntry,":":U)
+                     else if NUM-ENTRIES(cOptionEntry,":":U) > 1
+                     then entry(2,cOptionEntry,":")  
+                     else ""
+    
+        cMsg =  IF cOptionEntry BEGINS "MESSAGE":U 
+                AND clastentry > "" 
+                THEN clastentry            
+                ELSE "&2 is missing&1."
                    + CHR(10)                   
                    + (IF lQuestion THEN "Do you wish to continue?":U 
                       ELSE "Please enter correct path and filename.":U)   
             
-      cFile = /* If there is a : after verbose or yes-no use that instead
+        cFile = /* If there is a : after verbose or yes-no use that instead
                  of 'file' in the message  */
-              (IF (cOptionEntry BEGINS "VERBOSE":U OR lQuestion) 
-               AND NUM-ENTRIES(cOptionEntry,":":U) > 1 
-               THEN ENTRY(2,cOptionEntry,":":U) + " ":U
-               ELSE "File ":U)   
+                (IF (cOptionEntry BEGINS "VERBOSE":U OR lQuestion) 
+                 AND clastentry > "" 
+                 THEN clastentry  + " ":U
+                 ELSE "File ":U)    
                + pcFilename
-             
-             /* substitute the URL and the filename into the message */  
+              /* substitute the URL and the filename into the message */  
       cMsg  = SUBSTITUTE(cMsg,
                          IF lRemote 
                          THEN " on URL: " + cBrokerURL
                          ELSE "",
                          cFile).           
-   
+    
     IF lQuestion THEN 
     DO:
       MESSAGE 

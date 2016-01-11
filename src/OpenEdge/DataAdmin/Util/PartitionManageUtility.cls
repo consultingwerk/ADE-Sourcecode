@@ -30,51 +30,11 @@ using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 class OpenEdge.DataAdmin.Util.PartitionManageUtility abstract implements IPartitionManageUtility: 
     
-     define protected abstract property ReadOnlyReason as character no-undo get.  
-     define public abstract property Name as character no-undo get. set.
-  
+     define public abstract property Name as character no-undo get. set. 
+     define public abstract property Table as ITable no-undo get. set.  
     
      define protected variable IsReadOnly as logical no-undo. 
    
-     define public property PartitionPolicyDetail as IPartitionPolicyDetail no-undo
-         get.   
-         set(pdtl as IPartitionPolicyDetail):
-             if IsReadOnly then
-                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","PartitionPolicyDetail",ReadOnlyReason). 
-             /* allow  null */   
-             if valid-object(pdtl) then
-             do:
-                 AssertPolicyDetail(pdtl).
-                 NullTable(). /* set table to null - the getter will derrive it from the detail */ 
-             end.   
-             PartitionPolicyDetail = pdtl.
-         end. 
-         
-     define public property Table as ITable no-undo 
-         get():
-             if valid-object(PartitionPolicyDetail) then 
-             do:
-                 if valid-object(PartitionPolicyDetail:PartitionPolicy) then
-                 do:
-                     return PartitionPolicyDetail:PartitionPolicy:Table.
-                 end.    
-             end.    
-             return this-object:Table.    
-         end.      
-         set(ptbl as ITable):
-            if IsReadOnly then
-                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","Table",ReadOnlyReason). 
-            
-            if valid-object(PartitionPolicyDetail) then
-                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","Table","This is defined indirectly by the PartitionPolicyDetail"). 
-            
-            if valid-object(ptbl)  and not  ptbl:IsPartitioned then
-                undo ,throw new IllegalArgumentError("Table " + quoter(ptbl:name ) + " is not a partitioned table"). 
-         
-            this-object:Table = ptbl.
-           
-         end. 
-        
      define public property Index as IIndex no-undo 
          get.  
          set.
@@ -161,8 +121,5 @@ class OpenEdge.DataAdmin.Util.PartitionManageUtility abstract implements IPartit
     
     method public void SetResponse(resp as IUtilityResponse):
     end method. 
-    
-    method private void NullTable():
-        this-object:Table = ?.
-    end method. 
+     
 end class.

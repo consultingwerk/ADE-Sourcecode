@@ -28,6 +28,9 @@ interface OpenEdge.DataAdmin.IPartitionPolicyDetail inherits IPartitionOwner :
     /** true if the partition is a split-target (waiting for split merge)  */
     define public property IsSplitTarget as logical  no-undo  get. set.
     
+    /** IsReadOnly 
+          <b>true</b> if the detail is read-only    */    
+    define public property IsReadOnly  as logical no-undo      get. set.
        
     /** Array of values as char. Dates according to session dmy and decimals according to session numeric-format  
         Note: This is not a direct map to the database, which stores dates and decimals in american formats 

@@ -36,13 +36,13 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 &endif
 
 &if defined(IsSerializable) &then
-    &if "{&IsSerializable}" eq "true" &then    
-        &scoped-define Serializable serializable    
-    &endif
+&if keyword-all('serializable') eq 'serializable' &then
+    &scoped-define serializable serializable
 &endif 
+&endif
 
-class {&FullType} {&Serializable}: 
-    define public property Next as class {&NodeType} no-undo get. set.
+class {&FullType} {&serializable}: 
+    define public property Next as class {&FullType} no-undo get. set.
     define public property Data as class {&ValueType} no-undo get. set.
     
     constructor public {&NodeType}(input poData as class {&ValueType}):

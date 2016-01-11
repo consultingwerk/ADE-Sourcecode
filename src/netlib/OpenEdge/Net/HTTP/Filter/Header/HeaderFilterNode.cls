@@ -12,11 +12,11 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.HTTP.Filter.Header.HeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.IHeaderFilter.
 using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterNode.
 
 {OpenEdge/Core/Collections/typedlistnode.i
     &Package    = OpenEdge.Net.HTTP.Filter.Header
     &NodeType   = HeaderFilterNode
-    &ValueType  = HeaderFilter
+    &ValueType  = IHeaderFilter
 }

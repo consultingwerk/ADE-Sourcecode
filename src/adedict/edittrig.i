@@ -817,6 +817,42 @@ do:
        INPUT false). 
 end.
 
+on value-changed of b_Field._mandatory in frame fldprops 
+do:
+   IF b_Field._mandatory:screen-value in frame fldprops eq "no" THEN DO:
+     /* A table (_file) will always have one active primary constraint. 
+        Active is indicated by DICTDB._Constraint._Con-Active. Primary 
+        constraint type is checked by  .DICTDB._constraint._con-type = P/PC/MP.
+        Also, sometimes user might have created constraint and then deleted them.
+        Unlike _index table, we maintain deleted records in _constraint table with
+        status as DICTDB._Constraint._Con-Status = D (deleted) or O(obsolete)
+        A Primary constraint of _constraint record always has a one-o-one record
+        in _Index table so no exceptions/availability check required.
+     */
+      FIND DICTDB._constraint where DICTDB._Constraint._Con-Active AND 
+           DICTDB._Constraint._File-Recid = b_Field._File-Recid AND
+           ( DICTDB._Constraint._Con-Status <> "D" OR DICTDB._Constraint._Con-Status <> "O") AND      
+           ( DICTDB._constraint._con-type = "P" OR DICTDB._constraint._con-type = "PC" OR
+             DICTDB._constraint._con-type = "MP" ) NO-LOCK NO-ERROR.
+
+      IF AVAILABLE (DICTDB._Constraint) THEN
+      DO:
+          FIND DICTDB._INDEX of DICTDB._constraint NO-LOCK.
+          FIND DICTDB._INDEX-Field of DICTDB._INDEX 
+                             WHERE DICTDB._INDEX-Field._Field-Recid = RECID(b_Field) 
+                                   NO-LOCK NO-ERROR.
+          IF AVAILABLE (DICTDB._INDEX-Field) THEN DO:
+             MESSAGE "This field is part of Primary Constraint of the table. " +
+                      TRIM(b_Field._field-name:SCREEN-VALUE IN FRAME fldprops) "cannot be set to Non-mandatory." 
+                      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+	    /* set _mandatory attribute back to its current value */
+            b_Field._mandatory:SCREEN-VALUE IN FRAME fldprops = STRING(b_Field._mandatory).
+            RETURN NO-APPLY.
+          END.
+      END.
+   END.
+end.
+
 /*----- HIT of FORMAT EXAMPLES BUTTON -----*/
 on choose of s_btn_Fld_Format in frame fldprops
  	     /* s_btn_Fld_Format in frame domprops */

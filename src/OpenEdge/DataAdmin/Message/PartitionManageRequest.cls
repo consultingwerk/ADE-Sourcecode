@@ -6,7 +6,7 @@
 /* permission in writing from progress Software Corporation. */
 /*************************************************************/ 
  /*------------------------------------------------------------------------
-    Purpose     : request for proutil partitionmanage split
+    Purpose     : request for proutil partitionmanage split/merge
     Syntax      : 
     Description : 
     Author(s)   : hdaniels
@@ -28,6 +28,10 @@ class OpenEdge.DataAdmin.Message.PartitionManageRequest abstract implements IUti
     define property NumRows as int no-undo get. set.
     define property TableName as character no-undo get. set.
     define property IndexName as character no-undo get. set.
+    
+    define property FromSourceName as character no-undo get. set.
+    define property ToSourceName as character no-undo get. set.
+    define property TargetDetail as character no-undo get. set.
   
     define property DatabaseName as character no-undo get. set.
     define property Service as IDataAdminService no-undo get. set.
@@ -49,6 +53,12 @@ class OpenEdge.DataAdmin.Message.PartitionManageRequest abstract implements IUti
     define public property Url as character no-undo 
         get.
         set.
+    
+    define property dbusername as character no-undo 
+    	get. 
+    
+    define property dbpassword as character no-undo 
+    	get.
     
     method public ITableResponse GetTableResponse(pcName as char):
         return ?.

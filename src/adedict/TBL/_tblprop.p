@@ -49,6 +49,8 @@ define var isDBMultiTenant  as logical     no-undo.
 define variable isPartitionEnabled as logical no-undo.
 define variable canEnablePartitionOptions as logical no-undo. 
 define variable isType2    as logical no-undo.
+define variable fldIsType2    as logical no-undo.
+define variable idxIsType2    as logical no-undo.
 find dictdb._File WHERE dictdb._File._File-name = "_File"
              AND dictdb._File._Owner = "PUB"
              NO-LOCK.
@@ -232,7 +234,7 @@ do:
     END.
     ELSE do:
         if b_File._ianum <> 0 then 
-            FIND dictdb._Area WHERE dictdb._Area._Area-number = b_File._ianum NO-LOCK.
+            FIND dictdb._Area WHERE dictdb._Area._Area-number = b_File._ianum NO-LOCK no-error. 
     end.
     if AVAILABLE dictdb._Area then
     do:    
@@ -323,10 +325,46 @@ else do:
       name_editable = true.
       canEnablePartitionOptions = isType2 and b_File._File-Attributes[1] = false and b_File._File-Attributes[3] = false.
    end.
+   
+    /* mkondra- PSC00279093:added below code to disable MT or TP option in table prop when index or lob field area is of type-1 */
+    FOR EACH DICTDB._Index WHERE _file-recid = RECID(b_File) NO-LOCK:
+        IF NOT b_File._File-Attributes[3] THEN DO:
+            FIND dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = _File._Db-recid
+                                     AND dictdb._StorageObject._Object-type = 2
+                                     AND dictdb._StorageObject._Object-number = dictdb._Index._Idx-num
+                                     AND dictdb._StorageObject._partitionid = 0
+                                     NO-LOCK NO-ERROR.
+
+            FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.
+            IF AVAILABLE DICTDB._Area THEN
+                ASSIGN idxIsType2 = dictdb._Area._Area-clustersize EQ 8 OR  dictdb._Area._Area-clustersize EQ 64 OR  dictdb._Area._Area-clustersize EQ 512. 
+		    IF idxIsType2 = FALSE THEN
+		        LEAVE.
+        END.
+    END.
+    
+    FOR EACH dictdb._Field where dictdb._Field._File-recid = recid(b_File) NO-LOCK:
+        IF (dictdb._field._Data-type = "BLOB" OR dictdb._Field._Data-type = "CLOB") then do:
+            FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = _File._Db-recid
+                                              AND dictdb._Storageobject._Object-type = 3
+                                              AND dictdb._Storageobject._Object-number = dictdb._Field._Fld-stlen
+                                              and dictdb._Storageobject._Partitionid = 0
+                                              NO-LOCK NO-ERROR.
+                                              
+            FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.
+            IF AVAILABLE DICTDB._Area THEN
+                ASSIGN fldIsType2 = dictdb._Area._Area-clustersize EQ 8 OR  dictdb._Area._Area-clustersize EQ 64 OR  dictdb._Area._Area-clustersize EQ 512. 
+            IF fldIsType2 = FALSE THEN
+		        LEAVE.
+         END.
+         else 
+            fldIsType2 = true.
+     END.
+     
    /* Note: the order of enables will govern the TAB order. */
    enable  b_File._File-Name   when name_editable
-          b_File._File-Attributes[1] when isDBMultiTenant    and canEnablePartitionOptions
-          b_File._File-Attributes[3] when isPartitionEnabled and canEnablePartitionOptions
+          b_File._File-Attributes[1] when isDBMultiTenant    and canEnablePartitionOptions and fldIsType2 and idxIsType2 
+          b_File._File-Attributes[3] when isPartitionEnabled and canEnablePartitionOptions and fldIsType2 and idxIsType2
           b_File._Dump-Name
           b_File._Hidden
 	   	  s_Tbl_Type          when INDEX(capab, {&CAPAB_TBL_TYPE_MOD}) > 0

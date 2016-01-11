@@ -26,6 +26,7 @@ History: Copied _odb_get.p for MS Sql Server 7 DataServer
          05/27/08 Fixing code that looks for existing stored-proc - OE00130417
          04/06/09 Changed for batch mode migration
          10/20/09 support for computed columns in MSSDS for PROGRESS_RECID - OE00186593
+         10/29/14 Fix for native sequences pull with a pattern match.
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -675,7 +676,7 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
             IF user_env[25] BEGINS "AUTO" THEN 
                   ASSIGN owner = "%" . 
             ELSE 
-                  ASSIGN owner = l_owner_f /* s_owner */.
+                   ASSIGN owner = l_owner_f /* s_owner */.
 
              ASSIGN sqlstr = "SELECT CAST(DB_NAME() AS VARCHAR (20)),
                                      CAST (T0.SEQUENCE_SCHEMA AS VARCHAR (20)), T2.TYPE, 
@@ -695,9 +696,11 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                              WHERE
                                      T2.type = 'SO' AND 
                                      T0.SEQUENCE_CATALOG LIKE  '" + l_qual_f /* owner */ +
-                                     "' AND T0.SEQUENCE_SCHEMA LIKE '" + l_owner_f + "'" .
+                                     "' AND T0.SEQUENCE_SCHEMA LIKE '" + l_owner_f +
+                                     "' AND T0.SEQUENCE_NAME LIKE '" + l_name_f + "'" .
 
              RUN STORED-PROC DICTDBG.send-sql-statement LOAD-RESULT-INTO SeqHdl NO-ERROR (sqlstr). 
+
 
              FOR EACH gate-work where gate-type = "SEQUENCE":
               /* native seq and rev/old seq of same name if exist in MS SQL,
@@ -705,8 +708,8 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                * in the schema holder 
                */
               FIND s_ttb_ntvseq WHERE  s_ttb_ntvseq.seqname = gate-work.gate-name NO-LOCK NO-ERROR.
-                 IF AVAILABLE s_ttb_ntvseq /* gate-work */ THEN DO: 
-                   DELETE gate-work.
+                  IF AVAILABLE s_ttb_ntvseq /* gate-work */ THEN DO: 
+                   DELETE gate-work. 
                  END. 
              END. 
 
@@ -724,7 +727,6 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                                THEN DICTDB._File._File-name 
                                ELSE ? )*/ .
               END.
-
        END. /* End of AVAILABLE DICTDB._Db */
 END. /* End of Nativeseq */
 

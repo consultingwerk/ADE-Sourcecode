@@ -21,6 +21,8 @@ using OpenEdge.DataAdmin.ServerCommand.IServerCommand from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
 using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.DataSource.DatabaseInfo from propath.
+using OpenEdge.DataAdmin.Error.NetworkClientOperationError from propath.
       
 class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCommand: 
     
@@ -28,6 +30,14 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
 			Purpose:  																	  
 			Notes:  																	  
 	------------------------------------------------------------------------------*/
+	define protected property DatabaseInfo as DatabaseInfo no-undo 
+        get():
+            if not valid-object(DatabaseInfo) then
+                DatabaseInfo = new DatabaseInfo().
+            return DatabaseInfo.     
+        end. 
+        set.
+        
 	define protected property DatabaseName as char no-undo get. set.
 	
 	/* name of utility/command without path */ 
@@ -60,6 +70,9 @@ class OpenEdge.DataAdmin.ServerCommand.ProCommand abstract implements IServerCom
 	end constructor.
 
     method public void Execute(prequest as IUtilityRequest):
+        if DatabaseInfo:IsNetworkClient then
+            undo, throw new NetworkClientOperationError("The " + CommandName + " utility").
+    
         RunCommand(GetCommandParameters(pRequest)).  
         mResponse = cast(pRequest,IUtilityResponse).
     end method.

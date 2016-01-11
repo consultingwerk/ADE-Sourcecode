@@ -35,12 +35,16 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 &endif
 
 &if defined(IsSerializable) &then
-    &if "{&IsSerializable}" eq "true" &then    
-        &scoped-define Serializable serializable    
-    &endif
+&if keyword-all('serializable') eq 'serializable' &then
+    &scoped-define serializable serializable
 &endif 
+&endif
 
-class {&FullType} {&Serializable}:
+&if defined(ImplementsType) gt 0 &then
+    &scoped-define Interfaces implements {&ImplementsType}
+&endif
+
+class {&FullType} {&serializable} {&Interfaces}:
     /** The first node in this list */
     define public property First as class {&NodeType} no-undo get. private set.
     

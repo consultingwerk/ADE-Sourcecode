@@ -1,4 +1,7 @@
- /*------------------------------------------------------------------------
+/************************************************
+Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
+/*------------------------------------------------------------------------
     File        : ResponseBuilder
     Purpose     : 
     Syntax      : 
@@ -14,24 +17,17 @@ using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Util.MathUtil.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.HttpResponse.
+using OpenEdge.Net.HTTP.ResponseBuilder.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
+using Progress.Lang.AppError.
+using OpenEdge.Net.HTTP.ConcreteHttpResponse.
 
 class OpenEdge.Net.HTTP.ResponseBuilder:
      
-    constructor public ResponseBuilder():
+    constructor private ResponseBuilder():
     end constructor.
     
-    destructor ResponseBuilder():
-        this-object:Destroy().
-    end method.
-    
-    method public void Initialize():
-    end method.
-    
-    method public void Destroy():
-    end method.
-
     /** Parses the entire document returned.
         Per the HTTP 1.1 spec at http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6,
         it has the following format.
@@ -47,7 +43,7 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
     */
     method static public HttpResponse Build(input poHttpRequest as HttpRequest,
                                             input poData as ByteBucket):
-        define variable oHttpResponse as HttpResponse no-undo.
+        define variable oHttpResponse as ConcreteHttpResponse no-undo.
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable iByte as integer no-undo.
@@ -64,8 +60,9 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
         define variable iContentLength as integer no-undo.
         define variable oTempData as class Memptr no-undo. 
         
-        assign oHttpResponse = HttpResponse:Instance(poHttpRequest)
-        
+        assign oHttpResponse = cast(HttpResponse:Instance(poHttpRequest), 
+                                    ConcreteHttpResponse)
+
                iMax = poData:Size
                iByte = ?
                iPrevByte = ?
@@ -73,8 +70,8 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
                iMessageBodyWritePos = 1
                iContentLength = 0.
 
-    if session:debug-alert then
-        copy-lob poData:GetBytes():Value to file session:temp-dir + 'response-raw.txt'.
+        if session:debug-alert then
+            copy-lob poData:GetBytes():Value to file session:temp-dir + 'response-raw.txt'.
         
         /* we know that the first 14 character are a fixed format per the HTTP spec.
         
@@ -86,7 +83,7 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
         */
         assign oHttpResponse:Version  = poData:GetString(1, 8)
                oHttpResponse:StatusCode = 
-                    StatusCodeEnum:EnumFromValue(integer(poData:GetString(10, 3)))
+                    StatusCodeEnum:FromValue(integer(poData:GetString(10, 3)))
                 lIsStatusLine = true
                 lIsHeaders = false
                 iStartByte = 14.
@@ -110,7 +107,7 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
                                            + 1 byte: space */
                            iStartByte = iStartByte + 8 + 1
                            oHttpResponse:StatusCode = 
-                                StatusCodeEnum:EnumFromValue(integer(poData:GetString(iStartByte, 3)))
+                                StatusCodeEnum:FromValue(integer(poData:GetString(iStartByte, 3)))
                                         /* start pos 
                                            + 3 bytes: code                                        
                                            + 1 byte: space */
@@ -225,8 +222,8 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
                                     assign iLoop                = iLoop + iChunkSize + 2 /*CRLF*/
                                            iMessageBodyWritePos = iMessageBodyWritePos + iChunkSize
                                            oTempData            = ?
-                                           /* Update the ContentLength value with the size of bytes in body */
-                                           oHttpResponse:ContentLength = oHttpResponse:MessageBody:Size.
+                                           oHttpResponse:ContentLength = oHttpResponse:MessageBody:Size
+                                           .
                                 end.
                             end.    /* LF */
                         end case.   /* chunked bytes */
@@ -268,6 +265,10 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
             
             assign iPrevByte = iByte.
         end. /* byte loop */
+    
+        case oHttpResponse:ContentEncoding:
+            when TransferEncodingEnum:Gzip then ResponseBuilder:UnzipBody(oHttpResponse).
+        end case.
         
         return oHttpResponse.
         finally:
@@ -275,23 +276,8 @@ class OpenEdge.Net.HTTP.ResponseBuilder:
         end finally.
     end method.
     
-    method private integer HexToInt(input pcHexValue as character):
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable iValue as integer no-undo.
-        define variable iDigit as integer no-undo.
-        
-        iMax = length(pcHexValue).
-        do iLoop = 1 to iMax:
-            
-            iDigit = integer(substring(pcHexValue, iLoop, 1)) no-error.
-            if error-status:error then
-                /* make sure we use either caps or lower, but no mixing */
-                iDigit = asc(caps(substring(pcHexValue, iLoop, 1))) - asc('A') + 10 .
-            iValue = iValue
-                   + (iDigit * exp(16, iMax - iLoop )).
-        end.
-        return iValue.
+    method static private void UnzipBody(input poResponse as HttpResponse):
+        undo, throw new AppError('OpenEdge.Net.HTTP.ResponseBuilder:UnzipBody not implemented', 0).
     end method.
     
 end class.

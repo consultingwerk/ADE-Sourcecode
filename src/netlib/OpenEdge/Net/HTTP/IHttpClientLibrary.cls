@@ -9,12 +9,11 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
                   to the underlying DLL/implementations.
                   
                   The OpenEdge.Net.Http.* classes should be used for all client
-                  programmning purposes.
+                  programming purposes.
     Author(s)   : pjudge
     Created     : Wed Apr 02 09:44:33 EDT 2014
     Notes       : 
   ----------------------------------------------------------------------*/
-
 using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.HttpResponse.
@@ -34,7 +33,7 @@ interface OpenEdge.Net.HTTP.IHttpClientLibrary:
         string. */
     define public property LibraryVersion as character no-undo get.
     
-    /** Miscellanous options (like timeouts) for this library */
+    /** (mandatory) Miscellanous options (like timeouts) for this library */
     define public property Options as ClientOptions no-undo get.
     
     /** Generic HTTP Request execution

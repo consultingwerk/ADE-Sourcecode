@@ -19,6 +19,7 @@
 routine-level on error undo, throw.
 
 using OpenEdge.DataAdmin.Core.FileLogger from propath.
+using OpenEdge.DataAdmin.Core.IPasswordPolicy from propath.
 using OpenEdge.DataAdmin.IAdministrator from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
@@ -76,6 +77,10 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** TransactionLogger - set a FileLogger that will receive a log entry before and after 
                             each transaction (Create orUpdate ) or command (EcecuteUtiltiy) call */
     define public property TransactionLogger as FileLogger no-undo get. set.    
+    
+    /** PasswordService - PasswordPolicy with password rule properties 
+        (pre-encode password or passcode)   */
+    define public property PasswordPolicy as IPasswordPolicy no-undo get. set.    
     
     /** Service name - currently database name - read-only */
     define public property Name as character no-undo get.

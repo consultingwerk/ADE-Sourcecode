@@ -205,7 +205,7 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   sgarg    10/23/13   Default INITIAL value for character field w/ env. variable (OE00241307)
   sdash    01/22/13   Include Default Apply Default as Constraint option was not generating default constraints in MSS(PSC00284588)
   sdash    05/04/14   Support for native sequence generator for MSS.
-  sgarg    07/09/14   PSC00307888 - Fix issue with MS SQL Server native sequence qualifier and owner
+  sdash    08/04/14   PSC00307888 - Fix issue with MS SQL Server native sequence qualifier and owner
 */
 
 { prodict/dictvar.i }
@@ -218,6 +218,7 @@ DEFINE VARIABLE ConType            AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE ConName            AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE dfltconname        AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE AllCons            AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE PKCons            AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE DefCons            AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE CheckField         AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE uncons             AS CHARACTER   NO-UNDO.
@@ -254,6 +255,7 @@ DEFINE VARIABLE PKCreated           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE uniqueness          AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE useNewRanking       AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE comment_pk          AS CHARACTER  NO-UNDO INITIAL "".
 
 DEFINE VARIABLE n3                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE n4                  AS CHARACTER  NO-UNDO.
@@ -313,6 +315,7 @@ DEFINE VARIABLE maxidxcollen        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE blankdefault        AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE useoedflt           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE allFldMand          AS LOGICAL    NO-UNDO INITIAL FALSE.
 
 DEFINE VARIABLE tmpfile             AS CHARACTER  NO-UNDO.
 
@@ -1497,13 +1500,14 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 /******************************** generation of constraint **************************************/
 /************************************************************************************************/
 
-
    /* 195067 begins */ /* Code for generating the constriants in foreign DB at table level. */
      IF migConstraint and (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE") then  
      DO:
        ASSIGN AllCons = ""
+                  PKCons = ""
 	          DefCons = ""
-	          ClustCons = "".
+	          ClustCons = ""
+		  comment_pk = "".
       FOR EACH DICTDB._constraint where DICTDB._constraint._file-recid =  recid(DICTDB._File) exclusive-lock:
 	  IF( DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._constraint._con-status = "N" OR DICTDB._constraint._con-status = "C" 
 	                                                                             OR DICTDB._constraint._con-status = "M"))
@@ -1511,7 +1515,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 	  THEN DO:
 	   ASSIGN ConType = DICTDB._constraint._con-type
               ConName = DICTDB._constraint._con-name. 
-	   
        trunc_name = FALSE.
        IF xlat THEN DO:
          if max_con_length <> 0 and length(ConName) > max_con_length
@@ -1554,90 +1557,118 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           END.
          END.    
        END.  
-        
-	   IF (ConType <> "D" or ConType <> "C") THEN
-	   DO:
-	     FIND FIRST DICTDB._INDEX of DICTDB._Constraint NO-LOCK NO-ERROR.
-         ASSIGN AllConsFields = "". 
+
+   IF (ConType <> "D" or ConType <> "C") THEN
+   DO:
+     FIND FIRST DICTDB._INDEX of DICTDB._Constraint NO-LOCK NO-ERROR.
+     ASSIGN AllConsFields = "". 
+     ASSIGN allFldMand = TRUE.   
                       
-         FOR EACH DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK,
-	      first DICTDB._Field of DICTDB._INDEX-Field no-lock:
-	      FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
-               verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
-              IF AllConsFields <> "" THEN 
-                 AllConsFields = AllConsFields + "," .
-                 Assign AllConsFields = AllConsFields + verify-name.new-name.  
-         END. /* FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK, */
-	     
-         IF  (ConType = "P" AND dbtyp = "MSSQLSRV7") THEN                  
-         DO:
-	   if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	   AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
-           PKCreated = TRUE.    
-         END. /* IF ConType = "P" */
+     FOR EACH DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK,
+               first DICTDB._Field of DICTDB._INDEX-Field no-lock:
+         FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
+              verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+         IF AllConsFields <> "" THEN 
+            AllConsFields = AllConsFields + "," .
+            Assign AllConsFields = AllConsFields + verify-name.new-name.  
+            IF NOT DICTDB._Field._MANDATORY THEN allFldMand = FALSE. 
+     END. /* FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK, */
+
+     IF ( ConType = "P" OR ConType = "PC" OR ConType = "MP" ) AND NOT allFldMand 
+     THEN DO:
+        comment_pk = " /** ".
+        IF dbtyp = "MSSQLSRV7" THEN   comment_pk =  comment_pk + ",".
+     END.
+
+     IF  (ConType = "P" AND dbtyp = "MSSQLSRV7") THEN                  
+     DO:
+
+            AllCons = AllCons + "~n" + comment_pk.
+	   IF comment_pk <> "" THEN DO:
+	      PUT STREAM logfile UNFORMATTED 
+                  "WARNING: Constraint " ConName  " on table " n1 " Not created because it has Non-mandatory fields. " skip.
+	   END.
+           AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
+           IF comment_pk  <> "" THEN    AllCons = AllCons + " **/" .
+	   ELSE  PKCreated = TRUE.
+     END. /* IF ConType = "P" */
 	        
-	 IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
-         DO:
-	     if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	     AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
-         END. /* IF ConType = "P" */
+     IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
+     DO:
+        IF comment_pk <> "" THEN DO:
+           PUT STREAM logfile UNFORMATTED 
+                     "WARNING: Constraint " ConName  " on table " n1 " Not created because it has Non-mandatory fields. " skip.
+        END.
+        PKCons = " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
+        IF comment_pk  = "" THEN  PKCreated = TRUE.
+     END. /* IF ConType = "P" */
 	        
-	 IF  (ConType = "PC" OR ConType = "MP") THEN                  
-         DO:
-	    if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	    AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
-            PKCreated = TRUE.    
-         END. /* IF ConType = "PC" */
+     IF  (ConType = "PC" OR ConType = "MP") THEN                  
+     DO:
+            AllCons = AllCons + "~n" + comment_pk.
+	   IF comment_pk <> "" THEN DO:
+	      PUT STREAM logfile UNFORMATTED 
+                  "WARNING: Constraint " ConName  " on table " n1 " Not created because it has Non-mandatory fields. " skip.
+	   END.
+	   AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
+           IF comment_pk  <> "" THEN    AllCons = AllCons + " **/" .
+	   ELSE  PKCreated = TRUE.
+     END. /* IF ConType = "PC" */
                     
-         IF  (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
-         DO:
+     IF  (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
+     DO:
 	    if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
 	    ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
 	             + AllConsFields + ")".
-         END. /* IF ConType = "M" */
+     END. /* IF ConType = "M" */
             
-	 IF ConType = "U" THEN
-         DO:	       
-	   if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-           AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
-         END. /* IF ConType = "U" */
+     IF ConType = "U" THEN
+     DO:       
+       if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+       AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
+     END. /* IF ConType = "U" */
 	       	      
-       END. /* IF ConType <> "D" or ConType <> "C" */
+   END. /* IF ConType <> "D" or ConType <> "C" */
        	  
-	   IF ConType = "D" THEN
-	   DO:
-             FIND FIRST DICTDB._Field WHERE RECID(DICTDB._Field) = DICTDB._Constraint._Field-Recid NO-LOCK NO-ERROR.
-		     IF AVAIL(DICTDB._Field) THEN 
-		     DO:
-               FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
-                      verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
-	           if DefCons <> "" then DefCons = DefCons + ",~n" + comment_chars .
+   IF ConType = "D" THEN
+   DO:
+         FIND FIRST DICTDB._Field WHERE RECID(DICTDB._Field) = DICTDB._Constraint._Field-Recid NO-LOCK NO-ERROR.
+         IF AVAIL(DICTDB._Field) THEN 
+	 DO:
+           FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
+                verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+           if DefCons <> "" then DefCons = DefCons + ",~n" + comment_chars .
                DefCons = DefCons +  " CONSTRAINT " +  ConName  + " DEFAULT " +  replace(DICTDB._constraint._Con-Expr,"-","_")   
-		       + " FOR  " +   verify-name.new-name. 
-            END.
-	   END.  /* IF DICTDB._constraint._con-type = "D" */
+                         + " FOR  " +   verify-name.new-name. 
+         END.
+   END.  /* IF DICTDB._constraint._con-type = "D" */
 	   	   
        IF DICTDB._constraint._con-type = "C" THEN
-	   DO:
+       DO:
 	        if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
 		    AllCons = AllCons +  " CONSTRAINT  " +  ConName  + " CHECK( " +  replace(DICTDB._constraint._Con-Expr,"-","_")  + ")" .
-	   END.
-	   
-	   ASSIGN DICTDB._constraint._con-status = "M".
-	   ASSIGN DICTDB._constraint._For-Name = ConName.
-   
+       END.
+
+      IF ( ConType = "P" OR ConType = "PC" OR ConType = "MP" ) THEN  /* PK gets migrated status only when all fields are mandatory */
+      DO:
+        IF allFldMand THEN 
+           ASSIGN DICTDB._constraint._con-status = "M".
+      END.
+      ELSE ASSIGN DICTDB._constraint._con-status = "M".
+
+      ASSIGN DICTDB._constraint._For-Name = ConName.
      END.  /*IF( DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._constraint._con-status = "N" */   
     END.    /* for each DICTDB._constraint where DICTDB._constraint.DICTDB._file-recid */    
 
-    IF dbtyp = "MSSQLSRV7" THEN DO:
-        IF AllCons <> "" AND AllCons <> ? THEN
-	    PUT STREAM code UNFORMATTED  " , ".  
+    IF dbtyp = "MSSQLSRV7" THEN DO:    
+        IF AllCons <> "" AND AllCons <> ? AND comment_pk = "" THEN
+           PUT STREAM code UNFORMATTED  " , ".  
         PUT STREAM code UNFORMATTED  AllCons. 
         IF DefC <> "" THEN DO:
           IF DefCons <> "" THEN DefCons = DefCons + ",~n" + comment_chars + DefC.
           ELSE DefCons = DefC.
         END.  
-    END.
+    END. 
     
    END.   /* IF migConstraint*/
 
@@ -2421,10 +2452,18 @@ END.
 
 
      /* 195067 begins */
-    IF AllCons <> "" and dbtyp = "ORACLE" THEN
+    IF dbtyp = "ORACLE"  THEN
     DO:
-        PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " + user_library dot n1  +  " ADD (" +  AllCons + ")" skip.
-	    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+      AllCons = REPLACE(AllCons,"~n":U, "~n":u + comment_chars).
+      IF PKCons <> "" AND  comment_pk = "" THEN DO:
+        PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " + user_library dot n1  +  " ADD (" SKIP.
+        PUT STREAM code UNFORMATTED comment_chars + PKCons + ")" + user_env[5]  SKIP.
+      END.
+      IF AllCons <> "" THEN DO:
+       PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " + user_library dot n1  +  " ADD (" SKIP.
+       PUT STREAM code UNFORMATTED comment_chars +  AllCons + ")" + user_env[5]  SKIP.
+      END.
+      PUT STREAM code UNFORMATTED SKIP(1).
     END.
     IF DefC <> "" and (dbtyp = "MSSQLSRV7") THEN
 	DO:

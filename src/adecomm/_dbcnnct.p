@@ -60,7 +60,7 @@ do:
     do:         
        if OEIDE_CanShowMessage() then
        do: 
-           po_OK =  OpenDBConnectionDialog(pi_msg). 
+           run ShowDBConnectionDialog in hOEIDEService(pi_msg, output po_ok).
            if po_ok = ? then 
               po_ok = no.
            luseide = true.
@@ -82,7 +82,7 @@ IF po_OK and not luseide THEN
 DO:
      if pi_msg eq ? and OEIDE_CanShowMessage() then
      do: 
-           po_OK =  OpenDBConnectionDialog(?). 
+           run ShowDBConnectionDialog in hOEIDEService(pi_msg, output po_ok).
            if po_ok = ? then 
               po_ok = no.
      end. 

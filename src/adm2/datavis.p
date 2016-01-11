@@ -667,6 +667,19 @@ FUNCTION setFieldHandles RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setGroupAssignNewRecord) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setGroupAssignNewRecord Procedure
+function setGroupAssignNewRecord returns logical 
+  (pcMode as char) forward.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-setGroupAssignSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setGroupAssignSource Procedure 
@@ -2278,7 +2291,7 @@ PROCEDURE isUpdateActive :
 
   DEFINE VARIABLE lModified  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cNewRecord AS CHARACTER  NO-UNDO.
-
+  
   IF NOT plActive THEN 
   DO:
     &SCOPED-DEFINE xp-assign
@@ -3505,12 +3518,12 @@ PROCEDURE updateRecord :
        on the PUBLISH allows each target to add its values to the list. */
     PUBLISH 'collectChanges':U FROM TARGET-PROCEDURE (INPUT-OUTPUT cValues,
       INPUT-OUTPUT cChangeInfo).
-    {get NewRecord cNewRecord}.  /* Log Add/Copy flag  */
+    {get NewRecord cNewRecord}.  /* Log Add/Copy flag  for undo below */
   
-    /* DataAvailable checks this to avoid redisplay on add, so set it to 'no'
+    /* DataAvailable checks NewRecord to avoid redisplay on add, so set it to 'no'
        in case it was 'add' or' copy' before we call the datasource that 
        publishes DataAvailable  */
-    {set NewRecord 'No':U}.   /* Note: this is character 'no', not logical*/  
+    {set GroupAssignNewRecord 'No':U}.   /* Note: this is character 'no', not logical*/  
     IF VALID-HANDLE(hUpdateTarget) THEN
     DO:
       ghTargetProcedure = TARGET-PROCEDURE.
@@ -3556,7 +3569,7 @@ PROCEDURE updateRecord :
       /*
       cErrorField = {fn showDataMessages}.  /* Get the first field in error. */
       */
-      {set NewRecord cNewRecord}.  /* Keep Add/Copy as it was before submit*/
+      {set GroupAssignNewRecord cNewRecord}.  /* Keep Add/Copy as it was before submit*/
       /* Make sure the toolbar also gets it (SBOs may publish while newRecored is NO) */
       IF cNewRecord <> 'NO':U THEN
       DO:
@@ -6026,6 +6039,40 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setGroupAssignNewRecord) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setGroupAssignNewRecord Procedure
+function setGroupAssignNewRecord returns logical 
+  (pcMode as char ):
+/*------------------------------------------------------------------------------
+ Purpose: used when NewRecord needs to be set in all grouped viewers 
+ Notes: The new record is mostly managed with publish to targets in add, cancel 
+        But updateRecord uses this to reach the targets 
+        Some logic checks NewRecord only on GASource, but 
+        isUpdateAtive and isUpdatePending checks NewRecord directly   
+------------------------------------------------------------------------------*/
+    define variable cGATargets as character no-undo.
+    define variable iGA as integer no-undo.
+    define variable hGATarget as handle no-undo.
+    {get GroupAssignTarget cGATargets}.
+          
+    {set NewRecord pcMode}.
+  
+    do iGa = 1 TO NUM-ENTRIES(cGATargets):
+        hGATarget = WIDGET-HANDLE(ENTRY(iGa,cGaTargets)).  
+        {set NewRecord pcMode hGATarget}.
+    end.
+    
+    return true.  
+end function.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
 &IF DEFINED(EXCLUDE-setGroupAssignSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setGroupAssignSource Procedure 
@@ -6220,7 +6267,6 @@ Parameter:  pcMode
   &SCOPED-DEFINE xpNewRecord
   {set NewRecord pcMode}.
   &UNDEFINE xpNewRecord
-
   PUBLISH 'UpdateActive':U FROM TARGET-PROCEDURE (pcMode <> 'NO':U).
   RETURN TRUE.
 END FUNCTION.

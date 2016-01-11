@@ -16,13 +16,14 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Net.HTTP.ClientOptions.
+using OpenEdge.Net.HTTP.HttpClient.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.HttpResponse.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.ResponseBuilder.
+using OpenEdge.Net.UriSchemeEnum.
 using Progress.Lang.AppError.
 using com.dotr.socket.BaseSocket.
-using OpenEdge.Net.UriSchemeEnum.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient implements IHttpClientLibrary:
     /* Error numbers for errors returned in this class. Private since this class
@@ -33,7 +34,12 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient implements IHttpClientLibrary:
     define private property miErrorNo_RequestWriteTimeout   as integer initial 103 no-undo get.
     define private property miErrorNo_RequestReadTimeout    as integer initial 104 no-undo get.
     
+    /** (mandatory) A free-text name for this library. Used for the USER-AGENT
+        string. */
     define public property LibraryName as character no-undo get. private set.
+
+    /** (mandatory) A free-text semantic version string for this library. Used for the USER-AGENT
+        string. */
     define public property LibraryVersion as character no-undo get. private set.
 
     /** Miscellanous options (like timeouts) for this library */
@@ -47,16 +53,17 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient implements IHttpClientLibrary:
 
     constructor public HttpClient(input pcAppName as character,
                                   input pcAppVersion as character,
-                                  input poOptions as ClientOptions):
+                                  input poClient as HttpClient):
         super ().
         
         Assert:NotNullOrEmpty(pcAppName, 'Library Name').
         Assert:NotNullOrEmpty(pcAppVersion, 'Library Version').
-        Assert:NotNull(poOptions, 'Client Options').
+        Assert:NotNull(poClient, 'Http Client').
         
         assign this-object:LibraryName = pcAppName
                this-object:LibraryVersion = pcAppVersion
-               this-object:Options = poOptions.
+               this-object:Options = poClient:Options
+               .
 	end constructor.
 	
 	method public void Initialize():
@@ -82,8 +89,16 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient implements IHttpClientLibrary:
     
     method public void DataReceivedHandler(input poObject as BaseSocket, input pmData as memptr):
         if session:debug-alert then
-            copy-lob pmData to file session:temp-dir + 'response-raw-whole.txt' append.
-
+        do:
+            output to value(session:temp-dir + 'response-data-received.txt') append.
+            put unformatted                        skip(2)
+                '================================' skip
+                'NEW CHUNK (' get-size(pmData) ')' skip
+                '================================' skip.
+            output close.
+            copy-lob pmData to file session:temp-dir + 'response-data-received.txt' append.
+        end.
+        
         /* Dump the response data into a bucket. We will parse it later. */ 
         moResponseData:PutBytes(get-pointer-value(pmData),
                                 get-size(pmData)).
@@ -153,5 +168,4 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient implements IHttpClientLibrary:
             moResponseData:Clear().
         end finally.
     end method.
-    
 end class.

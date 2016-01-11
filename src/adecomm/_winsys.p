@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2000,2007,2012 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions           *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2000,2007,2012,2014 by Progress Software Corporation.  *
+* All rights reserved. Prior versions of this work may contain         *
+* portions contributed by participants of Possenet.                    *
 *                                                                      *
 ***********************************************************************/
 /*
@@ -34,20 +34,24 @@ IF OPSYS EQ "WIN32" THEN DO:
   DEFINE VARIABLE lpVersionInfo  AS MEMPTR.
   DEFINE VARIABLE MajorVersion   AS INTEGER   NO-UNDO.
   DEFINE VARIABLE MinorVersion   AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE BuildNumber    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE PlatformId     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE ProductType    AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE BuildNumber    AS INTEGER   NO-UNDO INIT ?.
   DEFINE VARIABLE Other          AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE OSstr          AS CHARACTER NO-UNDO.
-
-&SCOPED-DEFINE VER_PLATFORM_WIN32_NT      2
-&SCOPED-DEFINE VER_NT_WORKSTATION         1
+  DEFINE VARIABLE OSstr          AS CHARACTER NO-UNDO INIT "".
+  DEFINE VARIABLE lpOSName       AS MEMPTR.
 
   /* set up pointers */
   SET-SIZE(lpmemorystatus)   = 64.  /* sizeof(MEMORYSTATUSEX) */
   PUT-LONG(lpmemorystatus,1) = 64.  /* dwLength */
   SET-SIZE(lpVersionInfo)    = 156. /* sizeof(OSVERSIONINFOEX) */
   PUT-LONG(lpVersionInfo,1)  = 156. /* dwOSVersionInfoSize */
+
+  /* Get the OS version info struct */
+  RUN proGetVersionExA (INPUT-OUTPUT lpVersionInfo).
+
+  /* Get the OS name */
+  SET-SIZE(lpOSName) = 32.
+  RUN proGetVersionNameA (INPUT lpVersionInfo, INPUT-output lpOSName, 32).
+  OSstr = GET-STRING(lpOSName, 1).
 
   CASE PROCESS-ARCHITECTURE :
       WHEN 32 THEN
@@ -59,8 +63,7 @@ IF OPSYS EQ "WIN32" THEN DO:
   /* Call Windows API */
   RUN GlobalMemoryStatusEx (INPUT-OUTPUT lpmemorystatus).
   RUN GetNativeSystemInfo (INPUT-OUTPUT lpsysteminfo).
-  RUN GetVersionExA (INPUT-OUTPUT lpVersionInfo).
- 
+
   /* Extract data from pointers */
   ASSIGN
     TotPhysMem   = GET-INT64(lpmemorystatus,9)  / 1024  /* ullTotalPhys */
@@ -76,32 +79,20 @@ IF OPSYS EQ "WIN32" THEN DO:
 
   ASSIGN
     MajorVersion = GET-LONG(lpVersionInfo,5)     /* dwMajorVersion */
-    MinorVersion = GET-LONG(lpVersionInfo,9)     /* dwMinorVersion */
-    BuildNumber  = GET-LONG(lpVersionInfo,13)    /* dwBuildNumber */
-    PlatformId   = GET-LONG(lpVersionInfo,17)    /* dwPlatformId */
-    ProductType  = GET-BYTE(lpVersionInfo,155)   /* wProductType */
-    Other        = GET-STRING(lpVersionInfo,21). /* szCSDVersion */
+    MinorVersion = GET-LONG(lpVersionInfo,9)     /* dwMinorVersion */.
 
-  CASE MajorVersion:
-      WHEN 4 THEN ASSIGN OSstr = "WinNT ":U.
-      WHEN 5 THEN
-        CASE MinorVersion:
-          /* Values 1 and 2 can be one of several versions of Windows but
-          ** we have always just reported XP and it's not worth doing all
-          ** of the work required to identify each one individually.
-          */
-          WHEN 0 THEN ASSIGN OSstr = "Windows 2000 ":U.
-          WHEN 1 OR WHEN 2 THEN ASSIGN OSstr = "Windows XP ":U.
-        END CASE.
-      WHEN 6 THEN
-        CASE MinorVersion:
-          WHEN 0 THEN ASSIGN OSstr = IF ProductType = {&VER_NT_WORKSTATION} THEN "Windows Vista ":U ELSE "Windows Server 2008 ":U.
-          WHEN 1 THEN ASSIGN OSstr = IF ProductType = {&VER_NT_WORKSTATION} THEN "Windows 7 ":U ELSE "Windows Server 2008 R2 ":U.
-          WHEN 2 THEN ASSIGN OSstr = IF ProductType = {&VER_NT_WORKSTATION} THEN "Windows 8 ":U ELSE "Windows Server 2012 ":U.
-        END CASE.
-  END CASE.
+  /* If this is a pre-Windows 8.1 version get the build number and
+  ** service pack description. Windows 8.1 and later don't provide
+  ** accurate information so we can't display it.
+  */ 
+  IF MajorVersion < 6 OR (MajorVersion = 6 AND MinorVersion <= 2) THEN
+  DO:
+    ASSIGN
+      BuildNumber  = GET-LONG(lpVersionInfo,13)    /* dwBuildNumber */
+      Other        = GET-STRING(lpVersionInfo,21). /* szCSDVersion */
+  END.
 
-  ASSIGN  OSstr = OSstr + "(" + 
+  ASSIGN  OSstr = OSstr + " (" + 
           STRING(MajorVersion) + "." + 
           STRING(MinorVersion) + 
           (IF STRING(BuildNumber) NE ? THEN "." + STRING(BuildNumber) ELSE "").
@@ -117,6 +108,7 @@ IF OPSYS EQ "WIN32" THEN DO:
   SET-SIZE(lpmemorystatus) = 0.
   SET-SIZE(lpsysteminfo)   = 0.
   SET-SIZE(lpVersionInfo)  = 0.  
+  SET-SIZE(lpOSName)       = 0.
 
 END.
 
@@ -124,11 +116,17 @@ END.
 ** Procedures ..............
 */
 
-/* Win32 API calls */
-PROCEDURE GetVersionExA EXTERNAL "kernel32.dll":
+PROCEDURE proGetVersionExA EXTERNAL "proosver.dll":
   DEFINE INPUT-OUTPUT PARAMETER lpVersionInfo AS MEMPTR.
 END.
 
+PROCEDURE proGetVersionNameA EXTERNAL "proosver.dll":
+  DEFINE INPUT        PARAMETER lpVersionInfo AS MEMPTR.
+  DEFINE INPUT-output PARAMETER osName AS memptr.
+  DEFINE INPUT        PARAMETER buffLen AS LONG.
+END.
+
+/* Win32 API calls */
 PROCEDURE GlobalMemoryStatusEx EXTERNAL "kernel32.dll":
   DEFINE INPUT-OUTPUT PARAMETER lpmemorystatus AS MEMPTR.
 END.

@@ -19,4 +19,5 @@ using Progress.Lang.Object.
     &Package    = OpenEdge.Core.Collections
     &NodeType   = ListNode
     &ValueType  = Object
+    &IsSerializable = true
 }

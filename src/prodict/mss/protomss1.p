@@ -217,10 +217,13 @@ DO:
    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
        ASSIGN long-length = 4000
               unicodeTypes = TRUE.
-   ELSE 
-   ASSIGN  long-length = 8000
-           unicodeTypes = FALSE.
-   
+   ELSE IF longlength <> 4000 THEN 
+       ASSIGN unicodeTypes = FALSE
+              long-length = longlength.
+   ELSE
+       ASSIGN  unicodeTypes = FALSE
+               long-length = 8000.
+
    APPLY "CLOSE":U TO THIS-PROCEDURE.
    APPLY "END-ERROR" TO FRAME DEFAULT-FRAME.
 END.
@@ -453,7 +456,7 @@ IF NOT batch_mode THEN
         ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").
         ASSIGN lUniExpand = (lUniExpand:SCREEN-VALUE ="yes").
         ASSIGN iFmtOption = INTEGER(iFmtOption:SCREEN-VALUE).
-   
+        	
         IF iFmtOption = 1 THEN
             ASSIGN lFormat = ?
                    iFmtOption = 1.
@@ -465,6 +468,6 @@ IF NOT batch_mode THEN
             ASSIGN long-length = 4000
                    unicodeTypes = TRUE.
         ELSE 
-             ASSIGN long-length = 8000
-                    unicodeTypes = FALSE.
+             ASSIGN unicodeTypes = FALSE.
+         
  END.

@@ -85,6 +85,7 @@ define BUFFER   S_col            FOR  DICTDBG.SQLSpecialColumns_buffer.
 define variable A_proc_handle    as integer.
 define variable P_proc_handle    as integer.
 define variable S_proc_handle    as integer.
+define variable C_proc_handle    as integer.
 
 define variable array_name 	     as character no-undo. 
 define variable batch-mode	     as logical.
@@ -217,6 +218,7 @@ DEFINE VARIABLE err_sp_flag      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE mssrecidCompat   AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE mapmssdatetime   AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE callerid         AS INTEGER    NO-UNDO INITIAL 2.
+DEFINE VARIABLE Coninfosql       AS CHARACTER  NO-UNDO.
 
 
 define TEMP-TABLE column-id
@@ -486,6 +488,9 @@ RUN prodict/mss/_mss_typ.p
 
 find DICTDB._Db where RECID(_Db) = drec_db NO-LOCK.
 
+/* Create a procedure for pulling constraints */
+RUN prodict/mss/procbfrpul.p.
+
 assign
   bug1  = can-do(_Db._Db-misc2[4], "1")
   bug4  = can-do(_Db._Db-misc2[4], "4")
@@ -610,7 +615,8 @@ for each gate-work
 
      END.
       ELSE DO: 
-          FIND s_ttb_ntvseq where TRIM(s_ttb_ntvseq.seqname) = trim(namevar) AND trim(s_ttb_ntvseq.schname) = trim(uservar) NO-LOCK NO-ERROR. 
+          FIND s_ttb_ntvseq where TRIM(s_ttb_ntvseq.seqname) = trim(namevar)  
+                       AND  trim(s_ttb_ntvseq.schname) = trim(uservar) NO-LOCK NO-ERROR. 
           DO i = 1 TO 9999 WHILE can-find(FIRST s_ttb_seq where s_ttb_seq.pro_name = progvar):
              progvar = SUBSTRING(s,1,32 - LENGTH(STRING(- i),"character"),"character") + STRING(- i).
       	  end.
@@ -1106,7 +1112,18 @@ for each gate-work
                 AND DICTDBG.SQLStatistics_buffer.non-unique = 1 THEN 
                     rowid_idx_name = DICTDBG.SQLStatistics_buffer.index-name. 
           END.
-
+          ELSE DO:
+             /* flag proxy_key for surrogate key present in an index.
+              * If the flag is ON, the the index cannot serve as 
+              * RECID compatible index.
+              */ 
+             IF useLegacyRanking <> TRUE THEN DO:
+                IF DICTDBG.SQLStatistics_buffer.Column-name MATCHES 
+                                                 '*progress_recid*' THEN
+                   /* ASSIGN s_ttb_idx.ds_msc21 = "v". */ /*force uniqueness*/
+                   ASSIGN s_ttb_idx.proxy_key = TRUE.
+             END.
+          END.
           NEXT.
       END.
 .
@@ -1724,6 +1741,18 @@ if change-dict-ver THEN do:
                           + ",".
 end.
 
+Coninfosql = "IF EXISTS (SELECT * FROM sysobjects WHERE type = 'P' AND name = '_Constraint_Info') ".
+Coninfosql = Coninfosql + "BEGIN ".
+Coninfosql = Coninfosql + "DROP Procedure _Constraint_Info ".
+Coninfosql = Coninfosql + "END ".
+RUN STORED-PROC DICTDBG.send-sql-statement C_proc_handle = PROC-HANDLE NO-ERROR (Coninfosql).
+IF ERROR-STATUS:ERROR THEN .
+ELSE IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+      CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = C_proc_handle.
+    END.
+    ELSE DO:
+      CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = C_proc_handle.
+    END.
 
 IF NOT batch-mode
  then SESSION:IMMEDIATE-DISPLAY = no.

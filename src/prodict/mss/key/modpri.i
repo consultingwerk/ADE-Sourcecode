@@ -139,6 +139,23 @@ ON VALUE-CHANGED OF BROWSE-PRIMARY IN FRAME frame_primary
           RUN fetch_pri.
   END.   
 
+ON VALUE-CHANGED OF active IN FRAME frame_primary
+DO:
+  IF active:screen-value in frame frame_primary eq "yes" THEN DO:
+    FIND DICTDB._INDEX of DICTDB._constraint NO-LOCK.
+    FOR EACH DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK:
+      FIND DICTDB._Field WHERE RECID(DICTDB._Field) = DICTDB._Index-field._Field-recid NO-LOCK.
+      IF NOT DICTDB._Field._mandatory THEN DO:
+         MESSAGE "This Primary Constraint cannot be activated. It has a non-mandatory field " +
+                    TRIM(DICTDB._Field._field-name) "." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        /* set active attribute back to its current value */
+        active:SCREEN-VALUE IN FRAME frame_primary = "no".
+        RETURN NO-APPLY.
+      END.
+    END.
+  END.
+END.   
+
 ON ENTRY OF DESC_EDIT2 IN FRAME frame_primary
  DO:
   &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN

@@ -33,13 +33,15 @@ class OpenEdge.DataAdmin.Rest.Connection:
     define public property IsMultiTenancyEnabled as logical no-undo get. private set.
     define public property IsSecurityAdministrator   as logical no-undo get. private set.
     define public property isHorizontalPartitionEnabled   as logical  no-undo get. private set.
+    define public property isReadOnlyPartitionsEnabled    as logical  no-undo get. private set.
+ 
  
     define public property Name            as char no-undo get. private set.
     define public property URL             as char no-undo get. private set.
     define public property ProgressVersion as char no-undo get. private set. 
     define public property DatabaseVersion as char no-undo get. private set. 
     define public property Version         as int  no-undo 
-       init 3 /* from 11.4 */
+       init 4 /* from 11.5 */
        get. 
     
     define variable ans as logical no-undo.
@@ -71,6 +73,10 @@ class OpenEdge.DataAdmin.Rest.Connection:
         if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
             isHorizontalPartitionEnabled = true.
               
+        find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Read-only Partitions" no-lock no-error.
+        if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+            isReadOnlyPartitionsEnabled = true.
+                                  
         RUN prodict/_dctadmn.p (DatabaseUser,OUTPUT ans).
         
         assign IsSecurityAdministrator = ans. 
@@ -90,7 +96,9 @@ class OpenEdge.DataAdmin.Rest.Connection:
         AddProp("definitions").
         AddProp("domains").
         AddProp("authenticationsystems").
+/*        AddProp("features").*/
         AddProp("groups","tenantgroups").
+        
         AddProp("permissions").
         AddProp("partitionpolicies").
         AddProp("sequences").
@@ -150,7 +158,8 @@ class OpenEdge.DataAdmin.Rest.Connection:
         json:Add("databaseVersion",DatabaseVersion).  
         json:Add("databaseUser",DatabaseUser).  
         json:Add("isMultiTenancyEnabled",IsMultiTenancyEnabled).    
-        json:Add("isHorizontalPartitionEnabled",isHorizontalPartitionEnabled).    
+        json:Add("isHorizontalPartitionEnabled",isHorizontalPartitionEnabled).
+        json:Add("isReadOnlyPartitionsEnabled",isReadOnlyPartitionsEnabled).
         json:Add("tenantName",TenantName).  
         json:Add("tenantType",TenantType).  
         json:Add("domainName",DomainName).

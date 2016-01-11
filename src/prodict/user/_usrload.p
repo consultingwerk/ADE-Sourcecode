@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2009,2014 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -1282,6 +1282,13 @@ on HELP of frame read-df or CHOOSE of btn_Help in frame read-df
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
                              INPUT {&Load_Data_Definitions_Dlg_Box},
                              INPUT ?).
+
+ON HELP OF FRAME read-d-seq-mt OR 
+   CHOOSE OF btn_Help IN FRAME read-d-seq-mt
+  RUN "adecomm/_adehelp.p" ( INPUT "admn", 
+                             INPUT "CONTEXT", 
+                             INPUT {&Load_Data_Contents_Dlg_Box},
+                             INPUT ? ).
 
 ON HELP OF FRAME read-d-file OR 
    CHOOSE OF btn_Help IN FRAME read-d-file
@@ -2632,6 +2639,7 @@ ELSE IF io-frame = "d" THEN DO:
                 inclob
                 user_env[30]
                 user_env[34] 
+                err% 
                 .
            
             /* 

@@ -45,28 +45,33 @@ class OpenEdge.DataAdmin.Binding.SchemaChanges inherits DataAdminContext impleme
     {daschema/change.i}
     
    define private dataset dsSchema serialize-name "root"
-    for ttSchema,ttTable,ttIndex,ttField,ttSequence,
-        ttTableChange,ttIndexChange,ttFieldChange,ttSequenceChange
+        for ttSchema,ttTable,ttIndex,ttField,ttSequence,ttTableChange,ttIndexChange,ttFieldChange,ttSequenceChange
        
        data-relation schematable  for ttSchema,ttTable
            relation-fields(name,schemaname) nested foreign-key-hidden
+    
        data-relation tableindex   for ttTable,ttIndex
            relation-fields(name,tablename) nested foreign-key-hidden           
+
        data-relation tableindex   for ttTable,ttField
            relation-fields(name,tablename) nested foreign-key-hidden 
+
        data-relation chemasequence for ttSchema,ttSequence
            relation-fields(name,schemaname) nested foreign-key-hidden
         
        data-relation tablechange  for ttTable,ttTableChange
            relation-fields(name,tablename) nested foreign-key-hidden
+
        data-relation indexchange for ttIndex,ttIndexChange
            relation-fields(TableName,TableName,name,Indexname) nested foreign-key-hidden           
+
        data-relation fieldchange for ttField,ttFieldChange
            relation-fields(TableName,TableName,name,Fieldname) nested foreign-key-hidden           
+      
        data-relation sequencechange for ttSequence,ttSequenceChange
            relation-fields(name,SequenceName) nested foreign-key-hidden
        .
-     
+       
     define variable mCount as integer no-undo.
       
     define public override property TableHandle as handle no-undo 

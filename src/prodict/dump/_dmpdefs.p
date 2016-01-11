@@ -864,21 +864,29 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     PUT STREAM ddl UNFORMATTED
           "ADD INDEX """ _Index._Index-Name """ "
           "ON """ _File._File-name """ " SKIP.
-    if lNoArea = false then 
+    /* not multi-tenant or keep area */
+    if (_File._File-attributes[1] = false or  _File._File-attributes[2] = true) then
     do:
-        /* first for collation */
-        FIND FIRST _StorageObject
-          WHERE _StorageObject._Db-recid = _File._Db-recid
-            AND _StorageObject._Object-Number = _Index._Idx-num 
-            AND _StorageObject._Object-type = 2 
-            AND _Storageobject._Partitionid = 0
-            NO-LOCK NO-ERROR.
-        IF AVAILABLE _StorageObject THEN
-            FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
-        
-        ELSE
-            FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
-        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+        /* if partitioned and local index just put is-local */
+        if (_File._File-Attributes[3] and _Index._index-attributes[1]) then
+        do: 
+            put stream ddl unformatted "  IS-LOCAL" skip.
+        end.
+        else do:
+            /* first for collation */
+            FIND FIRST _StorageObject
+              WHERE _StorageObject._Db-recid = _File._Db-recid
+                AND _StorageObject._Object-Number = _Index._Idx-num 
+                AND _StorageObject._Object-type = 2 
+                AND _Storageobject._Partitionid = 0
+                NO-LOCK NO-ERROR.
+            IF AVAILABLE _StorageObject THEN
+                FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
+            
+            ELSE
+                FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
+            PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+        end.
     end.
     IF _Index._Unique THEN
       PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
@@ -906,17 +914,6 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
       PUT STREAM ddl CONTROL "  RECID-INDEX ".
       EXPORT STREAM ddl _Index._I-misc2[1].
     END.
-    /* dump only if table is partitioned */
-    if (_Db._Db-type = "PROGRESS" and _File._File-Attributes[3]) then
-    do:
-        put stream ddl control "  IS-LOCAL ".
-        export stream ddl if _Index._index-attributes[1] then "TRUE" else "FALSE".
-	if _Index._index-attributes[1] = false then do:
-            FIND _Area WHERE _Area._Area-number = _Index._ianum NO-LOCK.
-	    PUT STREAM ddl CONTROL "  AREA ".
-            EXPORT STREAM ddl _Area._Area-name.
-	end.
-    end.
     FOR EACH _Index-field OF _Index NO-LOCK,
       _Field OF _Index-field NO-LOCK
       BY _Index-field._Index-seq:     

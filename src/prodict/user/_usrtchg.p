@@ -85,6 +85,8 @@ define variable multitenantdb              as logical               no-undo.
 define variable isPartitionEnabled         as logical no-undo.
 define variable canEnablePartitionOptions  as logical no-undo.
 define variable isType2                    as logical no-undo.
+define variable fldIsType2                    as logical no-undo.
+define variable idxIsType2                    as logical no-undo.
 DEFINE VARIABLE events   AS CHARACTER EXTENT    7 NO-UNDO 
    init ["Create","Delete","Find","Write",
          "Replication-Create","Replication-Delete","Replication-Write"].
@@ -427,14 +429,54 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
    canEnablePartitionOptions = adding 
                              or (isType2 and  wfil._File-Attributes[1] = false and wfil._File-Attributes[3] = false).
 
+/* mkondra- PSC00279093:added below code to disable MT or TP option in table prop when index or lob field area is of type-1 */ 
+if not adding then do:
+    find dictdb._file where dictdb._file._file-name = user_filename.
+      
+    FOR EACH dictdb._Field where dictdb._Field._File-recid = recid(_File) NO-LOCK:
+        IF (dictdb._field._Data-type = "BLOB" OR dictdb._Field._Data-type = "CLOB") then do:
+            FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = _File._Db-recid
+                                              AND dictdb._Storageobject._Object-type = 3
+                                              AND dictdb._Storageobject._Object-number = dictdb._Field._Fld-stlen
+                                              and dictdb._Storageobject._Partitionid = 0
+                                              NO-LOCK NO-ERROR.
+                                              
+            FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.
+            IF AVAILABLE DICTDB._Area THEN
+                ASSIGN fldIsType2 = dictdb._Area._Area-clustersize EQ 8 OR  dictdb._Area._Area-clustersize EQ 64 OR  dictdb._Area._Area-clustersize EQ 512. 
+            IF fldIsType2 = FALSE THEN
+		        LEAVE.
+         END.
+         else
+            fldIsType2 = true.
+     END.
+
+     FOR EACH DICTDB._Index WHERE _file-recid = RECID(dictdb._file) NO-LOCK:
+        IF NOT _File._File-Attributes[3] THEN DO:
+            FIND dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = _File._Db-recid
+                                     AND dictdb._StorageObject._Object-type = 2
+                                     AND dictdb._StorageObject._Object-number = dictdb._Index._Idx-num
+                                     AND dictdb._StorageObject._partitionid = 0
+                                     NO-LOCK NO-ERROR.
+
+            FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK NO-ERROR.     
+	        IF AVAILABLE DICTDB._Area THEN
+                ASSIGN idxIsType2 = dictdb._Area._Area-clustersize EQ 8 OR  dictdb._Area._Area-clustersize EQ 64 OR  dictdb._Area._Area-clustersize EQ 512. 
+		    IF idxIsType2 = FALSE THEN
+		        LEAVE.
+        END.
+    END.
+end.
+
   /* use enable and wait-for in order to control wfil._File-attributes[2] tab order
      even if it is not enabled and the area is not sensitive (the SetAreaState
      is fired from value changed on the File-attributes and set [2] tab order 
-     before the Area */   
+     before the Area */ 
+if adding then do:  
   ENABLE 
     wfil._File-name  WHEN newnam
-    wfil._File-attributes[3] when romode = 0 and isPartitionEnabled and canEnablePartitionOptions  
-    wfil._File-attributes[1] when romode = 0 and multitenantdb and canEnablePartitionOptions  /* disabled below if necessary */
+    wfil._File-attributes[3] when romode = 0 and isPartitionEnabled and canEnablePartitionOptions 
+    wfil._File-attributes[1] when romode = 0 and multitenantdb and canEnablePartitionOptions /* disabled below if necessary */
     /* enable here for tab order - senistive is set false below and enabling is managed in triggers */  
     wfil._File-attributes[2] when romode = 0 and multitenantdb and canEnablePartitionOptions  
     areaname when ierror EQ 0  /* disabled below if necessary  */
@@ -454,6 +496,33 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
     btn_Cancel 
     btn_flds         WHEN NOT adding AND fldeditor
     WITH FRAME frame-d.
+end.
+
+if not adding then do:  
+  ENABLE 
+    wfil._File-name  WHEN newnam
+    wfil._File-attributes[3] when romode = 0 and isPartitionEnabled and canEnablePartitionOptions and fldIsType2 and idxIsType2
+    wfil._File-attributes[1] when romode = 0 and multitenantdb and canEnablePartitionOptions and fldIsType2 and idxIsType2 /* disabled below if necessary */
+    /* enable here for tab order - senistive is set false below and enabling is managed in triggers */  
+    wfil._File-attributes[2] when romode = 0 and multitenantdb and canEnablePartitionOptions  
+    areaname when ierror EQ 0  /* disabled below if necessary  */
+    wfil._Dump-name  WHEN romode = 0
+	     VALIDATE(INDEX(INPUT wfil._Dump-name, " ") = 0, "Invalid character in Dump Name")
+    wfil._For-Type   WHEN romode = 0 AND capabs[5]
+    wfil._Hidden     WHEN romode = 0
+    wfil._File-label WHEN romode = 0
+    wfil._Fil-misc2[6] WHEN romode < 4   /* replication procedure name */
+    wfil._For-Size   WHEN romode = 0 AND capabs[4]
+    wfil._For-name   WHEN romode = 0 AND capabs[2]
+    wfil._Desc       WHEN romode = 0
+    button-v button-f button-s
+    button-d         WHEN can-do(odbtyp + ",ORACLE", user_dbtype)
+                            and not adding
+    btn_OK           WHEN romode = 0
+    btn_Cancel 
+    btn_flds         WHEN NOT adding AND fldeditor
+    WITH FRAME frame-d.
+end.
 
      
   if ierror EQ 0 THEN

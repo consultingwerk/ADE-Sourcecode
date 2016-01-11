@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2014 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -472,7 +472,9 @@ DO: /* desktop.p */
                 END.
            END TRIGGERS.
 
-    ok = Desktop_Window:LOAD-ICON({&ADEICON-DIR} + "progress").
+    IF NOT Desktop_Window:LOAD-ICON({&ADEICON-DIR} + "desktop.ico":U) THEN
+		Desktop_Window:LOAD-ICON({&ADEICON-DIR} + "progress.ico":U).
+
     ok = Desktop_Window:LOAD-MOUSE-POINTER("WAIT":U).
     
     /* If there is a Windows 95 Taskbar, adjust the position of

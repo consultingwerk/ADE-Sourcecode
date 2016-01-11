@@ -200,20 +200,21 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
         return this-object:GetCreateError(cast(domain,IDataAdminElement),domain:Name). 
     end method.
     
-   /* method protected override void ValidateBuffer(phDomain as handle):
+    method protected override void ValidateBuffer(phDomain as handle):
         define variable hBefore as handle no-undo.
-/*        ValidateGroup(phTenant::Name,phTenant::Type).*/
-    
-        if phDomain:row-state = row-modified then
+       
+        if phDomain:row-state = row-modified or phDomain:row-state = row-created and valid-object(Service) then
         do:
             hBefore = phDomain:before-buffer.
-            hbefore:find-by-rowid(phDomain:before-rowid).
-            if phDomain::Name <> hBefore::Name then
-               undo, throw new ReadOnlyPropertyError(Name,phDomain::Name,"Name").
+            hBefore:find-by-rowid(phDomain:before-rowid).
+            if phDomain::AccessCode <> hBefore::AccessCode then
+            do:
+                if valid-object(Service:PasswordPolicy) then
+                    phDomain::PreEncodeAccessCode = Service:PasswordPolicy:PreEncodeDomainAccessCode.
+            end. 
         end.    
-        
-    end method. */     
-    
+         
+    end method. 
          
 	method private void ValidateDomain(domain as IDomain):
 	    define variable validateError as DataContextError no-undo.

@@ -30,6 +30,9 @@ define  temp-table ttDomain no-undo  serialize-name "domains" {1} before-table t
          field TenantURL       as character               serialize-name "tenant_url"  format "x(20)" label "Tenant url"
          field AuditingContext as character               serialize-name "auditingContext" format "x(16)" label "Auditing context"
          field AccessCode      as character               serialize-name "accessCode" label "Access code"
+         /* Not a real property -  used to carry PasswordPolicy:PreEncodeDomainAccessCode to server
+            to be removed if a better mechansim is used to pass preferences */
+         field PreEncodeAccessCode as logical    serialize-hidden   
          field SystemOptions   as character               serialize-name "systemOptions"  format "x(13)" label "Runtime options"
          field RuntimeOptions  as character               serialize-name "runtimeOptions"  format "x(13)" label "Runtime options"
          field UsersUrl        as character               serialize-name "users_url" format "x(20)" label "Users url"

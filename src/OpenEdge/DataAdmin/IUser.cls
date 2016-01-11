@@ -48,7 +48,11 @@ interface OpenEdge.DataAdmin.IUser inherits IDataAdminElement:
      /** The surname (familyname, lastname) of the user. (optional) */
      define public property SurName       as character no-undo get. set.  
      
-     /** The password. Can only be edited by the actual user  */
+     /** The password. Can only be edited by the actual user.  
+         The default behavior is to ENCODE the password on server. 
+         Setting the IDataAdminService PasswordPolicy:PreEncodeUserPassword to true 
+         will tell the server side to avoid the ENCODE  
+     */
      define public property Password      as character no-undo get. set.
      
      /** A telephone number for the user (optional) */

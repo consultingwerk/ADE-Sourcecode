@@ -97,8 +97,19 @@ END.
 
 header_str = "Database: " + p_PName + " (" + p_DbType + ")" +
       	     STRING("", "x(8)") + "Table: " + p_TblName.
+      	     
 flags = "Flags: <p>rimary, <u>nique, <w>ord, <a>bbreviated, <i>nactive, " +
-      	"+ asc, - desc".
+      	     "+ asc, - desc".
+      	     
+FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Table Partitioning" NO-LOCK NO-ERROR.
+IF dictdb._Database-feature._dbfeature_enabled EQ "1" AND P_TblName EQ "ALL" THEN
+    flags = "Flags: <g>lobal, <l>ocal, <p>rimary, <u>nique, <w>ord, <a>bbreviated, " +
+            "<i>nactive, + asc, - desc".
+ELSE IF dictdb._Database-feature._dbfeature_enabled EQ "1" AND P_TblName NE "ALL" and _file._file-attribute[3] THEN
+    flags = "Flags: <g>lobal, <l>ocal, <p>rimary, <u>nique, <w>ord, <a>bbreviated, " +
+            "<i>nactive, + asc, - desc".
+
+
 
 RUN adecomm/_report.p 
    (INPUT p_DbId, 

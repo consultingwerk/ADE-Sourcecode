@@ -30,11 +30,11 @@ DEFINE INPUT PARAMETER p_DbId  AS RECID NO-UNDO.
 DEFINE SHARED STREAM rpt.
 DEFINE VAR max_min AS INT64 NO-UNDO.
 DEFINE VAR large_seq AS LOGICAL NO-UNDO.
-define variable lMultitenant as logical no-undo.
+DEFINE VAR seq_flag as CHAR NO-UNDO.
 
 FORM
   dictdb._Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
-  lMultitenant                                      COLUMN-LABEL "Mlt-!tnt"
+  seq_flag                    FORMAT "x(4)"        COLUMN-LABEL "Seq!Flag"
   dictdb._Sequence._Seq-init  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Initial!Value"
   dictdb._Sequence._Seq-incr  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Increment"
   max_min              FORMAT "->>>>>>>>>9" COLUMN-LABEL "Max/Min!Value"
@@ -44,7 +44,7 @@ FORM
 
 FORM
   dictdb._Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
-  lMultitenant                                      COLUMN-LABEL "Multi-tenant"
+  seq_flag                    FORMAT "x(4)"         COLUMN-LABEL "Seq!Flag"
   dictdb._Sequence._Seq-init  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  COLUMN-LABEL "Initial Value" SKIP
   dictdb._Sequence._Seq-incr  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  
                        COLUMN-LABEL "Increment"
@@ -52,6 +52,16 @@ FORM
   dictdb._Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?" SKIP(1)
   WITH FRAME shoseqsl
   DOWN USE-TEXT STREAM-IO.
+  
+FORM
+  dictdb._Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
+  dictdb._Sequence._Seq-init  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Initial!Value"
+  dictdb._Sequence._Seq-incr  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Increment"
+  max_min              FORMAT "->>>>>>>>>9" COLUMN-LABEL "Max/Min!Value"
+  dictdb._Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?"
+  WITH FRAME shoseqtp
+  DOWN USE-TEXT STREAM-IO.
+
 
 FIND FIRST dictdb._db WHERE RECID(dictdb._Db) = p_DbId.
 
@@ -75,31 +85,56 @@ FOR EACH dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
                                   AND NOT dictdb._Sequence._Seq-name BEGINS "$":
    max_min = (IF dictdb._Sequence._Seq-incr > 0 THEN dictdb._Sequence._Seq-max
       	       	     	      	       	 ELSE dictdb._Sequence._Seq-min).
-   if integer(dbversion("dictdb")) > 10 then 
-       lMultitenant = dictdb._Sequence._Seq-attributes[1].
-   else 
-       lMultitenant = false.  	       	     	      	       	   
+    IF integer(dbversion("dictdb")) > 10 THEN DO: 
+       IF dictdb._Sequence._Seq-attributes[1] THEN
+           seq_flag = "m".
+       ELSE 
+           seq_flag = "".  	   
+    END.
+  	       	     	      	       	   
    IF large_seq THEN DO:
-       DISPLAY STREAM rpt
+       IF CAN-FIND(FIRST dictdb._tenant) THEN DO:
+         DISPLAY STREAM rpt
           dictdb._Sequence._Seq-Name 
-          lMultitenant
+          seq_flag
           dictdb._Sequence._Seq-init 
           dictdb._Sequence._Seq-incr 
           max_min
           dictdb._Sequence._Cycle-Ok 
           WITH FRAME shoseqsl.
-      DOWN STREAM rpt WITH FRAME shoseqsl.
-   END.
-   ELSE DO:
+         DOWN STREAM rpt WITH FRAME shoseqsl.      
+       END.
+      ELSE
        DISPLAY STREAM rpt
           dictdb._Sequence._Seq-Name 
-          lMultitenant
+          dictdb._Sequence._Seq-init 
+          dictdb._Sequence._Seq-incr 
+          max_min
+          dictdb._Sequence._Cycle-Ok 
+          WITH FRAME shoseqtp.
+       DOWN STREAM rpt WITH FRAME shoseqtp.
+   END.
+   ELSE DO:
+       IF CAN-FIND(FIRST dictdb._tenant) THEN DO:
+         DISPLAY STREAM rpt
+          dictdb._Sequence._Seq-Name 
+          seq_flag
           dictdb._Sequence._Seq-init 
           dictdb._Sequence._Seq-incr 
           max_min
           dictdb._Sequence._Cycle-Ok 
           WITH FRAME shoseqs.
-      DOWN STREAM rpt WITH FRAME shoseqs.
+         DOWN STREAM rpt WITH FRAME shoseqs.
+       END.
+      ELSE
+         DISPLAY STREAM rpt
+          dictdb._Sequence._Seq-Name 
+          dictdb._Sequence._Seq-init 
+          dictdb._Sequence._Seq-incr 
+          max_min
+          dictdb._Sequence._Cycle-Ok 
+          WITH FRAME shoseqtp.
+         DOWN STREAM rpt WITH FRAME shoseqtp. 
+       END.
    END.
-END.
 

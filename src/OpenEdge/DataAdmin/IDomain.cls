@@ -63,9 +63,14 @@ interface OpenEdge.DataAdmin.IDomain inherits IDataAdminElement:
         with a null terminator (including embedded spaces and tabs).  
         The pass phrase is case sensitive and will be used to generate and validate 
         [MD5] MAC seals in CLIENT-PRINCIPAL objects.
+        
         Note that this field is encrypted for security purposes and the encryption 
         method used must be understood by the 4GL / PVM as it must know how to decrypt 
-        the access code to validate it. */
+        the access code to validate it. The server will default to use 
+        AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(AccessCode). 
+        Setting the IDataAdminService PasswordPolicy:PreEncodeDomainAccessCode to true 
+        will tell the server side to avoid the encryption Assuming it is done by the user 
+        before being assigned to this property */
     define public property AccessCode      as char      no-undo get. set.
     
     /** Defines SystemOptions (PAM options) applicable to the Authentication System */

@@ -18,6 +18,8 @@ using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
 using OpenEdge.DataAdmin.Util.IPartitionManageUtility from propath.
 
 interface OpenEdge.DataAdmin.Util.IPartitionMergeUtility inherits IPartitionManageUtility: 
-     define public property SourcePartitionPolicyDetail as IPartitionPolicyDetail no-undo get.  set. 
+     define public property FromSourceDetail as IPartitionPolicyDetail no-undo get.  set. 
+     define public property ToSourceDetail as IPartitionPolicyDetail no-undo get.  set. 
+     define public property TargetDetail as IPartitionPolicyDetail no-undo get.  set. 
     
 end interface.

@@ -15,12 +15,15 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
+using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.URI.
 using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.Class.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.RequestBuilder: 
@@ -109,6 +112,10 @@ HttpResponse = HttpClient:Execute(HttpRequest).
     method static public RequestBuilder Delete(input pcURI as character):
         return RequestBuilder:Delete(URI:Parse(pcUri)).
     end method.
+
+    method static public RequestBuilder Delete(input pcURI as character, input poEntity as Object):
+        return RequestBuilder:Delete(URI:Parse(pcUri), poEntity).
+    end method.
             
     method static public RequestBuilder Delete(input poURI as URI):
         return RequestBuilder:Delete(poURI, ?).
@@ -194,6 +201,8 @@ HttpResponse = HttpClient:Execute(HttpRequest).
     end method.
     
     method public RequestBuilder AddHeader(input pcName as character, input pcValue as character):
+        Assert:NotNullOrEmpty(pcName, 'Header name').
+        
         this-object:Request:AddHeader(pcName, pcValue).
         return this-object.
     end method.
@@ -241,5 +250,60 @@ HttpResponse = HttpClient:Execute(HttpRequest).
         
         return this-object.
     end method.
+    
+    /** Add credentials for HTTP Basic authentication is required for the request.
+        
+        @param Credentials The credentials for the basic auth
+        @return RequestBuilder This builder object */
+    method public RequestBuilder UsingBasicAuthentication(input poCredentials as Credentials):
+        Assert:NotNull(poCredentials, 'Credentials').
+        this-object:Request:SetChallenge(
+                    AuthenticationMethodEnum:Basic,
+                    poCredentials,
+                    substitute('realm="&1"', poCredentials:Domain)).
+        return this-object.
+    end method.
+       
+    /** Add credentials for HTTP Digest authentication is required for the request.
+        
+        @param Credentials The credentials for the basic auth
+        @return RequestBuilder This builder object */
+    method public RequestBuilder UsingDigestAuthentication(input poCredentials as Credentials):
+        Assert:NotNull(poCredentials, 'Credentials').
+        this-object:Request:SetChallenge(
+                    AuthenticationMethodEnum:Digest,
+                    poCredentials,
+                    substitute('realm="&1"', poCredentials:Domain)).
+        return this-object.
+    end method.
+
+    /** Add credentials to the HTTP Request 
+        
+        @param Credentials The credentials for the basic auth
+        @return RequestBuilder This builder object */
+    method public RequestBuilder UsingCredentials(input poCredentials as Credentials):
+        Assert:NotNull(poCredentials, 'Credentials').
+        
+        this-object:Request:SetChallenge(
+                    AuthenticationMethodEnum:None,
+                    poCredentials,
+                    '').
+        return this-object.
+    end method.
+        
+    /** Adds a listener to events from the Request.
+    
+        @param Progress.Lang.Class The type of events the EventProviders is capable of 
+                        listening to
+        @param Progress.Lang.Object The listening object. Must conform to the type  */
+    method public RequestBuilder AddCallback(input poEventListenerType as class Class,
+                                             input poListener as Object):
+        Assert:NotNull(poEventListenerType, 'Event listener type').
+        Assert:NotNull(poListener, 'Event listener').
+        
+        this-object:Request:AddFilterCallback(poEventListenerType, poListener).
+        
+        return this-object.
+    end method. 
     
 end class.

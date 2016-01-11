@@ -132,7 +132,7 @@ CLASS com.dotr.socket.BaseSocket:
    ==========================================================================*/ 
   METHOD PRIVATE VOID StartUp():
 
-    RUN com/dotr/socket/helper/BaseSocketHelper.p PERSISTENT SET Helper1 (CAST(THIS-OBJECT,"com.dotr.socket.BaseSocket")) . 
+    RUN com/dotr/socket/helper/BaseSocketHelper.p PERSISTENT SET Helper1 (THIS-OBJECT) . 
     
   END METHOD. 
 
@@ -242,14 +242,14 @@ CLASS com.dotr.socket.BaseSocket:
   END METHOD.
   
   
+  METHOD PUBLIC VOID WaitForResponse():
+    wait-for read-response of Socket1. 
+  END METHOD.
+
 /* ==========================================================================
    WaitForResponse 
    use this when you don't have a WAIT-FOR in your session, like in an appserver. 
    ==========================================================================*/ 
-  METHOD PUBLIC VOID WaitForResponse():
-      WaitForResponse(0).      
-  END METHOD.
-
   METHOD PUBLIC VOID WaitForResponse(INPUT timeout_seconds AS INTEGER):
       DEFINE VARIABLE readbuffer AS MEMPTR NO-UNDO.
       DEFINE VARIABLE filledbuffer AS MEMPTR NO-UNDO.

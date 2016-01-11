@@ -32,6 +32,9 @@ define temp-table ttPartitionPolicy no-undo serialize-name "partitionPolicies" {
      field URL   as character                  serialize-name "url"
      field HasRange as logical serialize-name "hasRange" 
      field Type     as character serialize-name "type" 
+     field HasComposite  as logical serialize-name "hasComposite" 
+     field isCompositeReadOnly  as logical serialize-name "isCompositeReadOnly" 
+    
      field PartitionPolicyDetailsUrl as character   serialize-name "partitionPolicyDetails_url" 
      /* link to list ALL areas for lookup purposes doen't belong here*/ 
 /*     field AreasUrl as character  serialize-name "areas_url"*/

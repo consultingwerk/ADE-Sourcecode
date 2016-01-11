@@ -3,8 +3,8 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2014 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -39,19 +39,18 @@ DEFINE VARIABLE gcSelectedListItems AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcDelimiter         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glDynamicsIsRunning AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glIsInPropath       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE giFileNum           AS INTEGER    NO-UNDO.
+DEFINE VARIABLE growLastFile        AS ROWID      NO-UNDO.
+DEFINE VARIABLE glCleanRead         AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE giLongestFilename   AS INTEGER    NO-UNDO.
 
-ASSIGN gcDelimiter = CHR(3).
-/* Used to store list of directories when recurse subdirectories option
-   is used. */
-DEFINE TEMP-TABLE ttDirectory NO-UNDO
-  FIELD cDirPath         AS CHARACTER
-  FIELD iStackLevel      AS INTEGER
-  INDEX pudx IS UNIQUE PRIMARY
-    cDirPath
-  INDEX udx IS UNIQUE
-    iStackLevel
-    cDirPath
-  .
+gcDelimiter = CHR(3).
+
+DEFINE TEMP-TABLE ttFile NO-UNDO
+    FIELD tcFileName AS CHARACTER
+    FIELD tcFullPath AS CHARACTER
+    FIELD tiFileNum  AS INT64
+    INDEX idxFile IS PRIMARY UNIQUE tiFileNum.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -69,9 +68,9 @@ DEFINE TEMP-TABLE ttDirectory NO-UNDO
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS RECTBottom fiDir btnDir toRecurse btnFetch ~
-coFilter seAll seSelected fiAll fiSelected 
-&Scoped-Define DISPLAYED-OBJECTS fiDir toRecurse coFilter seAll seSelected ~
-fiAll fiSelected 
+coFilter cbSegment seAll seSelected fiAll fiSelected 
+&Scoped-Define DISPLAYED-OBJECTS fiDir toRecurse coFilter cbSegment seAll ~
+seSelected fiAll fiSelected 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -88,38 +87,46 @@ fiAll fiSelected
 DEFINE BUTTON btnAllLeft 
      LABEL "<< all-Left" 
      CONTEXT-HELP-ID 0
-     SIZE 15 BY 1.14 TOOLTIP "Remove all files".
+     SIZE 15 BY 1.15 TOOLTIP "Remove all files".
 
 DEFINE BUTTON btnAllRight 
      LABEL "all-Right >>" 
      CONTEXT-HELP-ID 0
-     SIZE 15 BY 1.14 TOOLTIP "Add all files".
+     SIZE 15 BY 1.15 TOOLTIP "Add all files".
 
 DEFINE BUTTON btnDir 
      IMAGE-UP FILE "adeicon/open.bmp":U
      LABEL "Button" 
      CONTEXT-HELP-ID 0
-     SIZE 6 BY 1.14.
+     SIZE 6 BY 1.15.
 
 DEFINE BUTTON btnFetch 
      LABEL "Fe&tch Files" 
      CONTEXT-HELP-ID 0
-     SIZE 14 BY 1.14.
+     SIZE 14 BY 1.08.
 
 DEFINE BUTTON btnLeft 
      LABEL "< Left" 
      CONTEXT-HELP-ID 0
-     SIZE 15 BY 1.14 TOOLTIP "Remove selected files".
+     SIZE 15 BY 1.15 TOOLTIP "Remove selected files".
 
 DEFINE BUTTON btnRebuild 
      LABEL "Rebuild TEMP-DB" 
      CONTEXT-HELP-ID 0
-     SIZE 19 BY 1.14.
+     SIZE 19 BY 1.15.
 
 DEFINE BUTTON btnRight 
      LABEL "Right >" 
      CONTEXT-HELP-ID 0
-     SIZE 15 BY 1.14 TOOLTIP "Add selected files".
+     SIZE 15 BY 1.15 TOOLTIP "Add selected files".
+
+DEFINE VARIABLE cbSegment AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Segment" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     LIST-ITEM-PAIRS "Item 1","Item 1"
+     DROP-DOWN-LIST
+     SIZE 52 BY 1
+     FONT 6 NO-UNDO.
 
 DEFINE VARIABLE coFilter AS CHARACTER INITIAL "*.i" 
      LABEL "Filter" 
@@ -147,17 +154,17 @@ DEFINE VARIABLE fiSelected AS CHARACTER FORMAT "X(50)":U INITIAL "Selected Files
 
 DEFINE RECTANGLE RECTBottom
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 83 BY .1.
+     SIZE 83 BY .12.
 
 DEFINE VARIABLE seAll AS CHARACTER 
      CONTEXT-HELP-ID 0
      VIEW-AS SELECTION-LIST MULTIPLE SORT SCROLLBAR-VERTICAL 
-     SIZE 14 BY 3.1 NO-UNDO.
+     SIZE 14 BY 3.12 NO-UNDO.
 
 DEFINE VARIABLE seSelected AS CHARACTER 
      CONTEXT-HELP-ID 0
      VIEW-AS SELECTION-LIST MULTIPLE SCROLLBAR-VERTICAL 
-     SIZE 19 BY 2.86 NO-UNDO.
+     SIZE 19 BY 2.85 NO-UNDO.
 
 DEFINE VARIABLE toRecurse AS LOGICAL INITIAL no 
      LABEL "Recurse subdirectories" 
@@ -170,16 +177,17 @@ DEFINE VARIABLE toRecurse AS LOGICAL INITIAL no
 
 DEFINE FRAME F-Main
      fiDir AT ROW 1 COL 12 COLON-ALIGNED
-     btnDir AT ROW 1 COL 48.6
+     btnDir AT ROW 1 COL 48.57
      toRecurse AT ROW 1 COL 57
-     btnFetch AT ROW 1 COL 84.6
+     btnFetch AT ROW 1 COL 84.57
      coFilter AT ROW 2.19 COL 12 COLON-ALIGNED
+     cbSegment AT ROW 2.19 COL 43 COLON-ALIGNED WIDGET-ID 2
      btnAllRight AT ROW 3.62 COL 18
-     seAll AT ROW 4.33 COL 2 NO-LABEL
-     seSelected AT ROW 4.33 COL 35 NO-LABEL
-     btnRight AT ROW 4.57 COL 18
-     btnLeft AT ROW 5.76 COL 18
-     btnAllLeft AT ROW 6.71 COL 18
+     seAll AT ROW 4.35 COL 2 NO-LABEL
+     seSelected AT ROW 4.35 COL 35 NO-LABEL
+     btnRight AT ROW 4.58 COL 18
+     btnLeft AT ROW 5.77 COL 18
+     btnAllLeft AT ROW 6.69 COL 18
      btnRebuild AT ROW 7.19 COL 36
      fiAll AT ROW 3.62 COL 2 NO-LABEL
      fiSelected AT ROW 3.62 COL 35 COLON-ALIGNED NO-LABEL
@@ -215,8 +223,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 10.71
-         WIDTH              = 98.6.
+         HEIGHT             = 10.69
+         WIDTH              = 98.57.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -238,7 +246,7 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME F-Main
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME  Size-to-Fit                                              */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE
        FRAME F-Main:HIDDEN           = TRUE.
@@ -253,6 +261,8 @@ ASSIGN
    NO-ENABLE                                                            */
 /* SETTINGS FOR BUTTON btnRight IN FRAME F-Main
    NO-ENABLE                                                            */
+   ASSIGN 
+       cbSegment:HIDDEN IN FRAME F-Main           = TRUE.
 /* SETTINGS FOR FILL-IN fiAll IN FRAME F-Main
    ALIGN-L                                                              */
 /* _RUN-TIME-ATTRIBUTES-END */
@@ -355,6 +365,7 @@ DO:
     DO:
         fiDir:SCREEN-VALUE = cdir.
         APPLY "VALUE-CHANGED":U TO fiDir.
+        glCleanRead = FALSE.
     END.
 END.
 
@@ -368,32 +379,29 @@ ON CHOOSE OF btnFetch IN FRAME F-Main /* Fetch Files */
 DO:
   DEFINE VARIABLE lAbort AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cValue AS CHARACTER  NO-UNDO.
-  /* Set the list-items for the filter */
-  cValue = coFilter:SCREEN-VALUE.
-  IF LOOKUP(coFilter:SCREEN-VALUE,coFilter:LIST-ITEMS) = 0  THEN
-      ASSIGN
-       coFilter:LIST-ITEMS   = coFilter:SCREEN-VALUE + coFilter:DELIMITER 
-                                 + coFilter:LIST-ITEMS
-       coFilter:SCREEN-VALUE = cvalue.
-  ELSE
-       /* Put selected value at beginning of list-items */
-       ASSIGN 
-        coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,"," + cValue,"")
-        coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,cValue + ",","")
-        coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,cValue ,"")
-        coFilter:LIST-ITEMS   = cvalue + (IF coFilter:LIST-ITEMS = "" THEN "" ELSE ",")
-                                       + coFilter:LIST-ITEMS  
-        coFilter:SCREEN-VALUE = cvalue.   .
+  DEFINE VARIABLE iLength   AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cSegments AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE iSegments AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE iSegment  AS INTEGER     NO-UNDO.
+  DEFINE VARIABLE cSegment  AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cRelname  AS CHARACTER   NO-UNDO.
 
+  ASSIGN seAll:LIST-ITEM-PAIRS      = ?
+         seSelected:LIST-ITEM-PAIRS = ?
+         cbSegment:LIST-ITEM-PAIRS  = ?
+         cbSegment:HIDDEN           = TRUE
+         btnAllLeft:SENSITIVE       = FALSE
+         btnAllRight:SENSITIVE      = FALSE 
+         btnLeft:SENSITIVE          = FALSE 
+         btnRight:SENSITIVE         = FALSE.
 
-  ASSIGN gcSelectedListItems = "".
-  SESSION:SET-WAIT-STATE("GENERAL":U).
-  ASSIGN glIsInPropath = FALSE.
-  RUN fetchFiles IN THIS-PROCEDURE 
-      (fiDir:SCREEN-VALUE,toRecurse:CHECKED,0, OUTPUT lAbort).
-  SESSION:SET-WAIT-STATE("":U).
-  IF NOT lAbort AND NOT glIsInPropath THEN
-  DO:
+  /* Check that the directory is contained in the Propath. Add dummy file
+     to use the relname tool */
+  RUN adecomm/_relname.p (INPUT REPLACE(fiDir:SCREEN-VALUE,"~\":U, "~/":U) + "~/@dummyfile.ab", 
+                          INPUT "", 
+                          OUTPUT cRelname).
+  glIsInPropath = (NOT (cRelname BEGINS fiDir:SCREEN-VALUE)).
+  IF NOT glIsInPropath THEN DO:
     IF toRecurse:CHECKED THEN
        MESSAGE "The directory and/or sub-directories you have specified are not contained in the Propath" SKIP
                "Please enter a directory that is contained in the Propath, or whose sub-directories are contained in the Propath"
@@ -406,15 +414,61 @@ DO:
     RETURN.
 
   END.
-  IF gcSelectedListItems = "" THEN
-      gcSelectedListItems = ?.
-  ASSIGN seAll:LIST-ITEM-PAIRS = gcSelectedListItems NO-ERROR.
-  
-  IF gcSelectedListItems > "" THEN
-      ASSIGN btnAllRight:SENSITIVE = TRUE.
+    /* Set the list-items for the filter */
+  cValue = coFilter:SCREEN-VALUE.
+  IF LOOKUP(coFilter:SCREEN-VALUE,coFilter:LIST-ITEMS) = 0  THEN
+      ASSIGN coFilter:LIST-ITEMS   = coFilter:SCREEN-VALUE + 
+                                     coFilter:DELIMITER    + 
+                                     coFilter:LIST-ITEMS
+             coFilter:SCREEN-VALUE = cValue.
   ELSE
-      ASSIGN btnAllRight:SENSITIVE = FALSE
-             btnRIght:SENSITIVE    = FALSE.
+    /* Put selected value at beginning of list-items */
+    ASSIGN coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,"," + cValue,"")
+           coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,cValue + ",","")
+           coFilter:LIST-ITEMS   = REPLACE(coFilter:LIST-ITEMS,cValue ,"")
+           coFilter:LIST-ITEMS   = cValue + (IF coFilter:LIST-ITEMS = "" THEN "" ELSE ",") + 
+                                   coFilter:LIST-ITEMS  
+           coFilter:SCREEN-VALUE = cValue.   
+
+  SESSION:SET-WAIT-STATE("GENERAL").
+  RUN fetchFiles ( INPUT  fiDir:SCREEN-VALUE,
+                   INPUT  coFilter:SCREEN-VALUE,
+                   INPUT  toRecurse:CHECKED,
+                   OUTPUT iLength,
+                   OUTPUT cSegments ).
+  SESSION:SET-WAIT-STATE("").
+
+  iSegments   = NUM-ENTRIES(cSegments,CHR(1)).
+  IF iSegments GT 1 THEN DO:
+    ASSIGN cbSegment:LIST-ITEM-PAIRS = ?
+           cbSegment:HIDDEN          = FALSE
+           cbSegment:VISIBLE         = TRUE
+           cbSegment:SENSITIVE       = TRUE
+           cbSegment:WIDTH           = giLongestFileName + 10 NO-ERROR.
+
+    DO iSegment = 1 TO NUM-ENTRIES(cSegments,CHR(1)):
+      cSegment = ENTRY(iSegment,cSegments,CHR(1)).
+      IF (cSegment GT "") NE TRUE THEN LEAVE.
+
+      cbSegment:ADD-LAST(ENTRY(1,ENTRY(1,cSegment,"|")) + " - " + ENTRY(1,ENTRY(2,cSegment,"|")),
+                         ENTRY(2,ENTRY(1,cSegment,"|")) + "," + ENTRY(2,ENTRY(2,cSegment,"|"))).
+    END.
+      
+    MESSAGE "The total length of all filenames in the selected range are too long to be " +
+            "processed in one shot.~n~n"                                                  + 
+            "A list of segments has been provided in the Segment combo-box.~n~n"          + 
+            "Please choose a segment of files to load."
+        VIEW-AS ALERT-BOX WARNING BUTTONS OK TITLE "Too many files".
+  END.
+  /* If the files can be loaded all at once, hide the segment combo and load them */
+  ELSE DO:
+    ASSIGN cbSegment:HIDDEN    = TRUE
+           cbSegment:VISIBLE   = FALSE
+           cbSegment:SENSITIVE = FALSE.
+    RUN loadSegment ( INPUT INTEGER(TRIM(ENTRY(1,cbSegment:SCREEN-VALUE))),
+                      INPUT INTEGER(TRIM(ENTRY(2,cbSegment:SCREEN-VALUE))) ).
+  END.
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -532,6 +586,28 @@ END.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&Scoped-define SELF-NAME cbSegment
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cbSegment sObject
+ON VALUE-CHANGED OF cbSegment IN FRAME F-Main /* Segment */
+DO:
+  RUN loadSegment ( INPUT INTEGER(TRIM(ENTRY(1,cbSegment:SCREEN-VALUE))),
+                    INPUT INTEGER(TRIM(ENTRY(2,cbSegment:SCREEN-VALUE))) ).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME coFilter
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coFilter sObject
+ON VALUE-CHANGED OF coFilter IN FRAME F-Main /* Filter */
+DO:
+  glCleanRead = FALSE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &Scoped-define SELF-NAME fiDir
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiDir sObject
@@ -546,6 +622,7 @@ DO:
   ELSE
     ASSIGN SELF:FGCOLOR       = ?
            btnFetch:SENSITIVE = TRUE.
+  glCleanRead = FALSE.         
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -598,6 +675,16 @@ END.
 ON MOUSE-SELECT-DBLCLICK OF seSelected IN FRAME F-Main
 DO:
    APPLY "CHOOSE" TO btnLeft.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&Scoped-define SELF-NAME toRecurse
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toRecurse sObject
+ON VALUE-CHANGED OF toRecurse IN FRAME F-Main /* Recurse subdirectories */
+DO:
+  glCleanRead = FALSE.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -678,110 +765,57 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchFiles sObject 
 PROCEDURE fetchFiles :
 /*------------------------------------------------------------------------------
-  Purpose:     Fetches all files from the specified directory. 
-  Parameters:  pcDirectory   Name of directory from which to fetch files
-               plRecurse     Flag to indicate recursing subdirectories
-               piStackLevel  Stack level of the recursing call
-  Notes:       If the 'Fetch new files only' flag is selected, the list will
-               exclude files previously used.
+  Purpose:     Read the selected directory and import the names of all files
+               that match the user's selection criteria into a temp-table
+  Parameters:  INPUT pcDirectory  CHARACTER - Folder to start reading from
+               INPUT pcFilter     CHARACTER - Filter used to ensure only select
+                                              files are read and stored in the
+                                              temp-table
+               INPUT plRecurse    LOGICAL   - Whether to recursively search all 
+                                              sub-folders of the selected folder
+               OUTPUT piDirLength INTEGER   - Total length of the names of all 
+                                              selected files
+               OUTPUT pcSegments  CHARACTER - If piDirLength is larger than what
+                                              will easily fit in a selection list
+                                              to allow string manipulation of 
+                                              its LIST-ITEM-PAIRS string, it is
+                                              broken into segments to be read in
+                                              one at a time. 
+                                              {e.g. a-f, g-m, etc...}
+  Notes:       
 ------------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER pcDirectory  AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER pcFilter     AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER plRecurse    AS LOGICAL    NO-UNDO.
-DEFINE INPUT  PARAMETER piStackLevel AS INTEGER    NO-UNDO.
-DEFINE OUTPUT PARAMETER plAbort      AS LOGICAL    NO-UNDO.
-
-DEFINE VARIABLE cRootFile   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFullPath   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFlags      AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cRelName    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFilter     AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER piDirLength  AS INTEGER     NO-UNDO.
+DEFINE OUTPUT PARAMETER pcSegments   AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cDir        AS CHARACTER  NO-UNDO.
 
-DEFINE BUFFER bttDirectory FOR ttDirectory.
+DEFINE VARIABLE cRelname AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cSegment AS CHARACTER   NO-UNDO.
 
-/* This must be set or recursive calls raise the error flag */
-ERROR-STATUS:ERROR = NO.
-FETCH-FILES:
-DO ON STOP UNDO FETCH-FILES, RETRY FETCH-FILES
-   ON ERROR UNDO FETCH-FILES, RETRY FETCH-FILES 
-   ON ENDKEY UNDO FETCH-FILES, RETRY FETCH-FILES:
-  IF RETRY THEN
-  DO:
-      ASSIGN plAbort = TRUE.
-      RETURN.
+DEFINE VARIABLE iSegment AS INTEGER     NO-UNDO.
+
+RUN readDir  (INPUT        pcDirectory,
+              INPUT        pcFilter,
+              INPUT        plRecurse,
+              INPUT-OUTPUT iSegment,
+              OUTPUT       piDirLength,
+              INPUT-OUTPUT pcSegments ).
+  /* If the files have been broken into multiple segments, the last file of the segment
+     is always left off.  Find the last file read and add it to the end of the segments. */
+  IF NUM-ENTRIES(pcSegments,CHR(1)) GT 1  THEN DO:
+    cSegment = ENTRY(NUM-ENTRIES(pcSegments,CHR(1)),pcSegments,CHR(1)).
+    /* This is for the case where we read exactly the number of files deemed to be able
+       to fit in the selection list.  Rare event if it ever happens*/
+    IF NUM-ENTRIES(cSegment,"|") EQ 2 THEN LEAVE.
+
+    FIND ttFile WHERE ROWID(ttFile) EQ growLastFile NO-LOCK NO-ERROR.
+    IF AVAILABLE ttFile THEN
+      pcSegments = pcSegments + "|" + 
+                   ttFile.tcFileName + "," + 
+                   STRING(ttFile.tiFileNum).
   END.
-
-  INPUT FROM OS-DIR(pcDirectory).
-  IF ERROR-STATUS:ERROR THEN
-  DO:
-    ERROR-STATUS:ERROR = NO.
-    RETURN.
-  END.
-
-  /* Check that the directory is contained in the Propath. Add dummy file
-     to use the relname tool */
-  ASSIGN pcDirectory = REPLACE(pcDirectory,"~\":U, "~/":U)
-	 cDir        = pcDirectory + "~/@dummyfile.ab".          
-
-  RUN adecomm/_relname.p (INPUT cDir , INPUT "", OUTPUT cRelname).
-  IF NOT cRelname  BEGINS pcDirectory THEN 
-     glIsInPropath = true.
-
-  REPEAT:
-     IMPORT cRootFile cFullPath cFlags
-	    NO-LOBS NO-ERROR.    
-
-
-     IF ERROR-STATUS:ERROR THEN
-	NEXT.
-     IF cRootFile = ".":U OR cRootFile = "..":U THEN
-	NEXT.
-
-
-     /* Only "F" (File) and "D"(Directory) flags are consided.*/
-     IF INDEX(cFlags,"D":U) <> 0 AND plRecurse THEN
-     DO:
-	DO FOR bttDirectory:
-	  FIND FIRST bttDirectory 
-	    WHERE bttDirectory.cDirPath = cFullPath
-	    NO-ERROR.
-	  IF NOT AVAILABLE(bttDirectory) THEN
-	  DO:
-	    CREATE bttDirectory.
-	    ASSIGN
-	      bttDirectory.cDirPath    = cFullPath
-	      bttDirectory.iStackLevel = piStackLevel .
-	  END.
-	END.
-     END.
-     ELSE IF INDEX(cFlags,"F":U) <> 0 THEN
-     DO:
-	/* Exclude files not meeting the filter */
-	ASSIGN cFilter = REPLACE(coFilter:SCREEN-VALUE IN FRAME {&FRAME-NAME}," ",",").
-	IF NOT CAN-DO(cFilter,cFullPath) THEN
-	  NEXT.
-	RUN adecomm/_relname.p (INPUT cFullPath, INPUT "MUST-BE-REL", OUTPUT cRelname).
-	IF cRelName <> ? THEN
-	   gcSelectedListItems = gcSelectedListItems + (IF gcSelectedListItems > "" THEN CHR(3) ELSE "" )
-						     + cRelName + CHR(3) + cFullPath.
-
-
-     END.
-  END.
-  INPUT CLOSE.
-
-  /* Directories are run outside of the repeat loop since only one input stream
-     is opened */
-  IF plRecurse THEN
-  DO:
-    FOR EACH bttDirectory WHERE bttDirectory.iStackLevel = piStackLevel:
-       RUN fetchFiles (bttDirectory.cDirPath, YES, piStackLevel + 1, OUTPUT plAbort).
-       IF plAbort THEN
-	  RETURN.
-       DELETE bttDirectory.
-    END.
-  END.
-END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -869,10 +903,123 @@ PROCEDURE initializeObject :
         seALL:DELIMITER         = CHR(3)
         seALL:LIST-ITEM-PAIRS    = ?
         seSelected:DELIMITER    = CHR(3)
-        seSelected:LIST-ITEM-PAIRS = ?. 
+        seSelected:LIST-ITEM-PAIRS = ?
+        cbSegment:SIDE-LABEL-HANDLE:FONT = 6. 
 
   /* Code placed here will execute AFTER standard behavior.    */
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadSegment sObject 
+PROCEDURE loadSegment :
+/*------------------------------------------------------------------------------
+  Purpose:     Loads a segment of files into the selection list, to be imported
+               into the db.
+  Parameters:  INPUT piStartFile INTEGER - First file in the segment
+               INPUT piLastFile  INTEGER - Last file in the segment
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER piStartFile AS INTEGER     NO-UNDO.
+  DEFINE INPUT  PARAMETER piLastFile  AS INTEGER     NO-UNDO.
+
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN seAll:LIST-ITEM-PAIRS      = ?
+           seSelected:LIST-ITEM-PAIRS = ?. 
+
+    FOR EACH ttFile WHERE ttFile.tiFileNum GE piStartFile AND
+                          ttFile.tiFileNum LE piLastFile:
+      seAll:ADD-LAST(ttFile.tcFileName,ttFile.tcFullPath).
+    END.
+  
+    IF seAll:NUM-ITEMS GT 0 THEN
+      ASSIGN btnAllRight:SENSITIVE = TRUE.
+    ELSE                                      
+      ASSIGN btnAllRight:SENSITIVE = FALSE  
+             btnRIght:SENSITIVE    = FALSE. 
+  END.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE readDir sObject 
+PROCEDURE readDir :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT        PARAMETER pcDirectory AS CHARACTER   NO-UNDO.
+  DEFINE INPUT        PARAMETER pcFilter    AS CHARACTER   NO-UNDO.
+  DEFINE INPUT        PARAMETER plRecurse   AS LOGICAL     NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER piSegment   AS INTEGER     NO-UNDO.
+  DEFINE OUTPUT       PARAMETER piDirLength AS INTEGER     NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcSegments  AS CHARACTER   NO-UNDO.
+
+  DEFINE VARIABLE cFile      AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cRelname   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cFileName  AS CHARACTER   NO-UNDO EXTENT 3.
+  DEFINE VARIABLE cFirstFile AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cSegment   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE cFilter    AS CHARACTER   NO-UNDO.
+
+  DEFINE VARIABLE iDirLength AS INTEGER     NO-UNDO.
+
+  INPUT FROM OS-DIR(pcDirectory).
+  REPEAT:
+    IMPORT cFileName.
+
+    IF cFileName[1] EQ "." OR
+       cFileName[1] EQ ".." THEN NEXT.
+
+    IF INDEX(cFileName[3],"D") GT 0 AND
+       plRecurse EQ TRUE THEN DO:
+      RUN readDir ( INPUT        cFileName[2],
+                    INPUT        pcFilter,
+                    INPUT        plRecurse,
+                    INPUT-OUTPUT piSegment,
+                    OUTPUT       iDirLength,
+                    INPUT-OUTPUT pcSegments ).
+      piDirLength = piDirLength + iDirLength.
+      NEXT.
+    END.
+    
+    /* Exclude files not meeting the filter */
+    cFilter = REPLACE(pcFilter," ",",").
+    IF NOT CAN-DO(cFilter,cFileName[2]) THEN NEXT.
+    
+    cFile = cFileName[2].
+    RUN adecomm/_relname.p (INPUT cFile, INPUT "MUST-BE-REL", OUTPUT cRelname).
+
+    CREATE ttFile.
+    ASSIGN ttFile.tcFileName = cRelName
+           ttFile.tcFullPath = cFileName[2]
+           giFileNum         = giFileNum + 1
+           ttFile.tiFileNum  = giFileNum
+           growLastFile      = ROWID(ttFile)
+           piDirLength       = piDirLength + LENGTH(cRelname) + LENGTH(cFileName[2])
+           piSegment         = piSegment   + LENGTH(cRelname) + LENGTH(cFileName[2])
+           giLongestFilename = (IF LENGTH(cRelname) GT giLongestFileName THEN 
+                                  LENGTH(cRelname)
+                                ELSE giLongestFileName).
+
+    /* If the first entry of the last CHR(1) delimited entry is empty, this is the first file in the segment */
+    IF (pcSegments GT "") NE TRUE OR
+       ((pcSegments GT "") EQ TRUE AND
+        (ENTRY(1,ENTRY(NUM-ENTRIES(pcSegments,CHR(1)),pcSegments,CHR(1)),"|") GT "") NE TRUE) THEN
+      pcSegments = pcSegments + cRelname + "," + STRING(ttFile.tiFileNum).
+    
+    IF piSegment GE 18000 THEN DO:
+      ASSIGN pcSegments = pcSegments   + "|" + 
+                          cRelName     + "," + 
+                          STRING(ttFile.tiFileNum) + CHR(1)
+             piSegment  = 0.
+    END.
+  END.
+  INPUT CLOSE.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -959,6 +1106,9 @@ PROCEDURE resizeObject :
         btnRebuild:COL        = seSelected:COL + (seSelected:WIDTH / 2) - (btnRebuild:WIDTH / 2)
         btnRebuild:ROW        = seSelected:ROW + seSelected:HEIGHT + .2
         hFrame:SCROLLABLE     = FALSE
+        cbSegment:X           = coFilter:X + coFilter:WIDTH-PIXELS + 95
+        cbSegment:SIDE-LABEL-HANDLE:X = cbSegment:X - (LENGTH(cbSegment:LABEL) + 3)
+        
        NO-ERROR.
 
                        

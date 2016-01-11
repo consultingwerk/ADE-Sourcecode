@@ -13,6 +13,7 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.CookieCollection.
 
 {OpenEdge/Core/Collections/typedcollectionclass.i
     &CollectionType = CookieCollection

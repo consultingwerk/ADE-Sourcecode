@@ -49,7 +49,7 @@ DEFINE VARIABLE descrip     AS CHAR    INITIAL ""  NO-UNDO.
 DEFINE VARIABLE flags       AS CHAR                   NO-UNDO.
 DEFINE VARIABLE flags1       AS CHAR                   NO-UNDO.
 DEFINE VARIABLE flags2       AS CHAR                   NO-UNDO.
-DEFINE VARIABLE fldcnt      AS INTEGER INITIAL -1  NO-UNDO.
+DEFINE VARIABLE fldcnt      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE idx_primary AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE check_crc   AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE word_idx    AS LOGICAL                   NO-UNDO.
@@ -458,7 +458,13 @@ FOR EACH bFile NO-LOCK
       {&SEP_TBLEND} @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
-   flags = " Table Flags: ""m""=multi-tenant, ""p""=partitioned, ""f""=frozen, ""s""=a SQL table".
+   IF bFile._file-attributes[1] THEN
+       flags = " Table Flags: ""m""=multi-tenant, ""f""=frozen, ""s""=a SQL table".
+   ELSE IF bFile._file-attributes[3] THEN
+       flags = " Table Flags: ""p""=partitioned, ""f""=frozen, ""s""=a SQL table".
+   ELSE
+       flags = " Table Flags: ""f""=frozen, ""s""=a SQL table".
+   
    DISPLAY STREAM rpt flags @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
@@ -468,19 +474,18 @@ FOR EACH bFile NO-LOCK
       flags = (flags + IF bFile._File-Attributes[3] then "p" else "")
       flags = (flags + IF bFile._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF bFile._Frozen THEN "f" ELSE "").
+   
+   /* find field count for a table */ 
+   assign fldcnt = 0. 
+   for each bfield of bfile no-lock:
+      assign fldcnt = fldcnt + 1. 
+   end.
 
    DISPLAY STREAM rpt
       bFile._File-name
       flags
-      bFile._numkey
-      /* Progress Db's have an extra hidden field that holds the table # 
-               which gateway Db's don't have.
-      */
-      (IF dictdb._Db._Db-type = "PROGRESS"
-       OR dictdb._Db._Db-type = "AS400" 
-       OR CAN-DO(odbtyp,dictdb._Db._Db-type)
-       THEN bFile._numfld - 1 
-       ELSE bFile._numfld) @ fldcnt
+      bFile._numkey     
+      fldcnt
       bFile._File-label
       WITH FRAME sumtable.
 
@@ -624,10 +629,16 @@ FOR EACH bFile NO-LOCK
       {&SEP_TBLEND} @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
-   flags1 = "Flags: <g>lobal, <l>ocal, <p>rimary, <u>nique, <w>ord, <a>bbreviated, ".
+   IF bFile._File-Attributes[3] THEN
+       flags1 = "Flags: <g>lobal, <l>ocal, <p>rimary, <u>nique, <w>ord, <a>bbreviated,".
+   ELSE 
+       flags1 = "Flags: <p>rimary, <u>nique, <w>ord, <a>bbreviated, <i>nactive, + asc, - desc".
+
    flags2 = "       <i>nactive, + asc, - desc".
+   
    DISPLAY STREAM rpt flags1 @ line WITH FRAME rptline.
    DOWN STREAM rpt WITH FRAME rptline.
+   IF bFile._File-Attributes[3] THEN
    DISPLAY STREAM rpt flags2 @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
@@ -635,8 +646,8 @@ FOR EACH bFile NO-LOCK
    FOR EACH dictdb._Index OF bFile NO-LOCK BREAK BY dictdb._Index._Index-name:
       FIND LAST dictdb._Index-field OF dictdb._Index NO-LOCK NO-ERROR.
       flags = 
-           ( (IF dictdb._Index._index-attributes[1]   
-               THEN "l" ELSE "g")
+           ( (IF NOT bFile._File-Attributes[3]
+               THEN "" ELSE IF dictdb._Index._index-attributes[1] AND bFile._File-Attributes[3] THEN "l" ELSE "g")
            + (IF bFile._Prime-index = RECID(dictdb._Index) 
               THEN "p" ELSE "")
            + (IF dictdb._Index._Unique   
@@ -754,6 +765,15 @@ DO:
    DOWN STREAM rpt 2 WITH FRAME rptline.
    DISPLAY STREAM rpt separators[{&SEP_SEQUENCE}] @ line WITH FRAME rptline.
    DOWN STREAM rpt WITH FRAME rptline.
+   
+   /* added multi-tenant flag for sequences */
+   IF CAN-FIND(FIRST dictdb._tenant) THEN
+       flags = "Flags: 'm'=multi-tenant".
+   ELSE
+       flags = "".
+   DISPLAY STREAM rpt flags @ line WITH FRAME rptline.
+   DOWN STREAM rpt WITH FRAME rptline.
+   
    RUN adecomm/_qseqdat.p (INPUT p_DbId).
 
    HIDE FRAME working_on NO-PAUSE.

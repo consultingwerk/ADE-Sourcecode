@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2013 by progress Software Corporation       */
+/* Copyright (c) 2013,2014 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,8 +14,9 @@
 /* ***************************  Definitions  ************************** */
  define temp-table ttPartitionPolicyDetail no-undo serialize-name "partitionPolicyDetails" {1} before-table ttPartitionPolicyDetailCopy
      field Id                   as integer         serialize-hidden
-     field Name                 as character       serialize-name "name"
-     field IsDataEnabled        as logical         serialize-name "isDataEnabled"
+     field Name                 as character       serialize-name "name" 
+     field IsDataEnabled        as logical         serialize-hidden   init true /* not in use , but shipped public IPartitionPolicyDetail in 11.4 */
+     field IsReadOnly           as logical         serialize-name "isReadOnly"
      field IsAllocated          as logical         serialize-name "isAllocated" 
      field IsSplitTarget        as logical         serialize-name "isSplitTarget"  
      field IsComposite          as logical         serialize-name "isComposite"  

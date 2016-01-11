@@ -184,7 +184,7 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           FIELD increment       AS  INT64 
           FIELD iscycle         AS  LOGICAL
           FIELD cachesize       AS  INTEGER
-          index uinatseq        is unique primary   seqname schname.
+          INDEX uinatseq        is unique primary   seqname schname.
   
   define {&new} shared TEMP-TABLE s_ttb_tbl
           field ds_msc13         as integer   initial ? 
@@ -338,6 +338,8 @@ DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
           field pro_uniq_bkp     as logical   initial FALSE
           field hlp_idxsize#     as integer   initial 0
           field key_wt#          as integer   initial 0
+          field proxy_key        as logical   initial FALSE
+                               /* TRUE indicate PROGRESS_RECID_UNIQUE present as surrogate key */
           index upi              is unique primary
                                     ttb_tbl pro_name
           index idsname       /* is NON-unique */

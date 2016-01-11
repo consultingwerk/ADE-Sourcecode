@@ -12,7 +12,11 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
+using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
 using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterNode.
+using OpenEdge.Net.HTTP.HttpMessage.
+using OpenEdge.Net.HTTP.Filter.Header.IHeaderFilter.
 
 {OpenEdge/Core/Collections/typedlinkedlist.i
     &Package    = OpenEdge.Net.HTTP.Filter.Header
@@ -21,52 +25,45 @@ using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterNode.
     &NoEndClass = true
 }
 
-    /** Filter for adding headers
+    /** Filter for  headers
         
         @param character The header name 
-        @param character The header value */
-    method public void Add(input pcName as character,
-                           input pcValue as character):
-        define variable lStopFilter as logical no-undo.
+        @param character The header value 
+        @param HttpMessage The filter data to use */
+    method public void Filter(input pcName as character,
+                              input pcValue as character,
+                              input poMessage as HttpMessage):
+        define variable oFilterAction as FilterActionEnum no-undo.
         define variable oNode as HeaderFilterNode no-undo.
         
-        assign oNode       = this-object:First
-               lStopFilter = false.
+        assign oNode = this-object:First
+               oFilterAction = FilterActionEnum:Continue.
                
         do while valid-object(oNode):
-            if pcName matches oNode:Data:HeaderName then
-                assign lStopFilter = oNode:Data:AddHeader(pcName, pcValue).
-            
-            if lStopFilter then
+            /* validate that we can perform the filter */
+            if oNode:Data:CanFilter(pcName) then
+            do:
+                assign oFilterAction = oNode:Data:ExecuteFilter(pcName, pcValue, poMessage).
                 leave.
+            end.
             
-            /* pass it on */
-            assign oNode = oNode:Next.
+            if oFilterAction:Equals(FilterActionEnum:Stop) then
+                assign oNode = ?.
+            else            
+                /* pass it on */
+                assign oNode = oNode:Next.
         end.
     end method.
     
-    /** Filter for removing headers
+    /** Factory method for getting filters. Allows reuse of filters.
+        Future: filters can be singletons.
         
-        @param character The header name 
-        @param character The header value */
-
-    method public void Remove(input pcName as character):
-        define variable lStopFilter as logical no-undo.
-        define variable oNode as HeaderFilterNode no-undo.
+        @param Progress.Lang.Class The type (class) of filter
+        @return IHeaderFilter A filter instance. */
+    method public IHeaderFilter GetFilterInstance(input poType as class Progress.Lang.Class):
+        Assert:IsType(poType, get-class(IHeaderFilter)).
         
-        assign oNode       = this-object:First
-               lStopFilter = false.
-        
-        do while valid-object(oNode):
-            if pcName matches oNode:Data:HeaderName then
-                assign lStopFilter = oNode:Data:RemoveHeader(pcName).
-            
-            if lStopFilter then
-                leave.
-            
-            /* pass it on */
-            assign oNode = oNode:Next.
-        end.
+        return cast(poType:New(), IHeaderFilter).        
     end method.
     
 end class.

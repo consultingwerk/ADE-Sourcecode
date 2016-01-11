@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2013 by Progress Software Corporation       */
+/* Copyright (c) 2013,2014 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -65,7 +65,7 @@ class OpenEdge.DataAdmin.PartitionPolicyDetail inherits AbstractPartitionOwner i
                 return IsComposite. 
         end. 
     
-    /** true if the partition are in transition (waiting for split merge)  */
+    /** true if the partitions are in transition (waiting for split merge)  */
     define public property IsSplitTarget as logical  no-undo  
         get():
             if valid-handle(mBuffer) then
@@ -81,7 +81,23 @@ class OpenEdge.DataAdmin.PartitionPolicyDetail inherits AbstractPartitionOwner i
             end.
             IsSplitTarget = pIsSplitTarget.
         end.
-        
+   
+    define public property IsReadOnly  as logical  no-undo  
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::IsReadOnly.
+            else
+                return IsReadOnly. 
+        end. 
+        set(pIsReadOnly as log):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::IsReadOnly = pIsReadOnly.
+            end.
+            IsReadOnly = pIsReadOnly.
+        end. 
+           
     define public property NumFields as int no-undo    
          get() :
              if valid-object(Service) then 
@@ -184,13 +200,16 @@ class OpenEdge.DataAdmin.PartitionPolicyDetail inherits AbstractPartitionOwner i
             return IsDataEnabled. 
     end.
     set(pIsDataEnabled as logical):
-        if valid-handle(mBuffer) then
-        do:
-            mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-            mdefaultbuffer::IsDataEnabled = pIsDataEnabled.
-        end.
-        else
-            IsDataEnabled = pIsDataEnabled.
+        
+        undo, throw new ReadOnlyPropertyError("PartitionPolicyDetail",Name,"IsDataEnabled"  ).   
+        
+/*        if valid-handle(mBuffer) then                      */
+/*        do:                                                */
+/*            mDefaultBuffer:find-by-rowid(mBuffer:rowid).   */
+/*            mdefaultbuffer::IsDataEnabled = pIsDataEnabled.*/
+/*        end.                                               */
+/*        else                                               */
+/*            IsDataEnabled = pIsDataEnabled.                */
     end. 
     
 	define public property Values as character extent no-undo 

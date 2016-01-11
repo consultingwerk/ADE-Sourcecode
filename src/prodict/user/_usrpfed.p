@@ -168,31 +168,6 @@ DO:
       END.
     END.
     ELSE f = pf_file.
-    
-    IF CAN-DO("MSDOS,WIN32",OPSYS) THEN DO: /* Check 8.3 requirement */
-      IF R-INDEX(f,".") > 0 THEN DO:
-        IF (LENGTH(SUBSTRING(f,1,R-INDEX(f,".") - 1)) > 8)                OR
-           (LENGTH(SUBSTRING(f,R-INDEX(f,".") + 1,-1,"CHARACTER":U)) > 3) OR
-           (LENGTH(f) = 0 )                                                     THEN DO:
-          MESSAGE "Invalid filename specified." VIEW-AS ALERT-BOX ERROR.
-          APPLY "ENTRY" TO pf_file.
-          RETURN NO-APPLY.
-        END.
-      END.
-      ELSE IF LENGTH(f) > 8 THEN DO:
-        MESSAGE "A filename cannot exceed 8 characters on MSDOS." VIEW-AS ALERT-BOX ERROR.
-        APPLY "ENTRY" TO pf_file.
-        RETURN NO-APPLY.
-      END.
-    END.
-    IF LENGTH(f) < 1        OR 
-       LENGTH(f) > 59       OR
-       LENGTH(pf_file) < 1  OR
-       LENGTH(pf_file) > 59 THEN DO:
-      MESSAGE "Invalid filename specified." VIEW-AS ALERT-BOX ERROR.
-      APPLY "ENTRY" TO pf_file.
-      RETURN NO-APPLY.
-    END.
   END.     
 END.
 

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2014 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -21,7 +21,14 @@ DEFINE VARIABLE lvar      AS CHARACTER EXTENT 10 NO-UNDO.
 DEFINE VARIABLE lvar#     AS INTEGER             NO-UNDO.
 DEFINE VARIABLE tmpfile   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE newAppCtx AS LOGICAL   INIT NO   NO-UNDO.
- 
+
+/* check if LDBNAME(dbname) is a keyword; if yes, throw error and return */
+IF  KEYWORD(LDBNAME(user_dbname)) <> ? THEN DO:
+    message QUOTER(LDBNAME(user_dbname)) " used as logical database name is a reserved keyword. Please try again. "
+            VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    RETURN.
+END.    
+
 RUN adecomm/_setcurs.p ("WAIT").
 RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
 OUTPUT TO VALUE(tmpfile) NO-MAP NO-ECHO NO-MAP.

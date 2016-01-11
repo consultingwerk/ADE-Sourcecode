@@ -31,7 +31,7 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
     define private variable mfile as character no-undo.
     define private variable mCannotSetImmediate as logical no-undo.
     define variable mreadonly as character no-undo init 
-"ttPartitionPolicy.Type,ttPartitionPolicyDetail.IsComposite,ttpartitionPolicyDetail.IsDataEnabled,ttPartitionPolicyDetail.DefaultAllocation".    
+"ttPartitionPolicy.Type,ttPartitionPolicy.HasComposite,ttPartitionPolicy.IsCompositeReadOnly,ttPartitionPolicyDetail.IsComposite,ttpartitionPolicyDetail.IsDataEnabled,ttPartitionPolicyDetail.DefaultAllocation".    
    define variable mNOVariable as character no-undo init "ttLocalIndex,ttPartitionPolicyField".    
 
    define variable mAddEarly as character no-undo init "ttPartitionPolicyDetail".    

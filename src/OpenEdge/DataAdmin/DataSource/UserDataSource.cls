@@ -28,6 +28,7 @@ class OpenEdge.DataAdmin.DataSource.UserDataSource inherits DataSource :
    
     define variable msave as logical no-undo.
     define buffer b_domain for dictdb._Sec-Authentication-Domain.
+    define buffer b_tenant for dictdb._tenant.
     define private property TenantURL  as character no-undo get. set.
     define protected variable mBuffer as handle no-undo.
 	define private variable mMapping as char
@@ -44,6 +45,8 @@ Telephone,_Telephone,~
 Email,_Email"
 /*DomainId,_sec-authentication-domain._domain-id,~*/
      no-undo.
+    define query dquery for b_domain . 
+    define query dtenant for dictdb._tenant. 
     
     constructor public UserDataSource (cParent as char,cWhere as char):      
         super (cParent + ",_user","dictdb." + cparent + ",dictdb.user", mMapping). 
@@ -125,13 +128,12 @@ Email,_Email"
     method protected void SaveUser(phbuffer as handle,pistate as int):
      
         define variable hBeforeBuff as handle    no-undo.
-        define variable lnew        as logical   no-undo. 
         define variable hquery      as handle    no-undo.
         define variable iType       as integer   no-undo.
         define variable cType       as character no-undo.
         define variable hDataset as handle no-undo.
         define variable isMultiTenant as logical   no-undo. 
-                
+        define variable preEncode  as logical no-undo.                
         isMultiTenant = can-find(first DICTDB._tenant ). 
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
@@ -163,11 +165,7 @@ Email,_Email"
                 if hBeforeBuff:row-state = row-created then           
                 do:
                     create dictdb._user.
-                    assign
-                        dictdb._user._userid = phBuffer::Name  
-                        dictdb._user._password = ENCODE(phBuffer::PassWord).     
-            
-                    lnew = true. /* use NEW buffer ? */
+                    dictdb._user._userid = phBuffer::Name. 
                 end. 
                 else do:
                     find dictdb._user where dictdb._user._domain-name = phBuffer::DomainName 
@@ -192,8 +190,13 @@ Email,_Email"
                     dictdb._user._Telephone = phBuffer::Telephone       
                     dictdb._user._email = phBuffer::Email.
                   
-                if hBeforeBuff::password <> phBuffer::password then
-                   dictdb._user._password = ENCODE(phBuffer::PassWord).
+                if hBeforeBuff::password <> phBuffer::password 
+                or hBeforeBuff:row-state = row-created then
+                do:
+                    assign preEncode = phBuffer::PreEncodePassword /* set from Service:PasswordPolicy */
+                           dictdb._user._password = if preEncode = true then phBuffer::Password else ENCODE(phBuffer::Password)
+                           phBuffer::PreEncodePassword = false. /* turn off the flag */    
+                end.
                 
                 if isMultiTenant then 
                 do:   
@@ -224,47 +227,51 @@ Email,_Email"
         define variable userurl as character no-undo. 
         define variable iusersrc   as integer no-undo.
         define variable husersrc as handle no-undo. 
-        define buffer b_domain for dictdb._sec-authentication-domain.
+      
+      
         hBuffer = hds:get-buffer-handle("ttUser").
-             /* TODO join in query faster? */
+      
         if mSave = false then 
         do:
             if hBuffer::DomainId = 0 or hBuffer::DomainId = ? then 
             do:
-                find b_domain where b_domain._domain-name = hBuffer::DomainName no-lock no-error. 
-                /* there should always be a tenant... but */ 
-                if avail b_domain then
-                    hBuffer::DomainId = b_domain._domain-id.         
+                /* use fields to speed up for remote connections */
+                for each b_domain fields (_domain-name _domain-id) where b_domain._domain-name = hBuffer::DomainName  : 
+                    hBuffer::DomainId = b_domain._domain-id.   
+                    leave. 
+                end.    
+                    
             end.    
                        
             if hBuffer::TenantId <> ? then 
             do:           
-                find dictdb._tenant where dictdb._tenant._tenantid = hBuffer::TenantId no-lock no-error. 
-                /* there should always be a tenant... but */ 
-                if avail dictdb._tenant then
+                /* use fields to speed up for remote connections */
+                for each b_tenant fields( _tenant-name _tenantid) where b_tenant._tenantid = hBuffer::TenantId no-lock: 
                     assign
-                        hBuffer::TenantName = dictdb._tenant._tenant-name     
-                        hBuffer::TenantId   = dictdb._tenant._tenantid.                     
+                        hBuffer::TenantName = b_tenant._tenant-name     
+                        hBuffer::TenantId   = b_tenant._tenantid.     
+                    leave.                    
+                end.
             end.
         end. 
         
         assign
-            hBuffer::DomainUrl  = url + "/domains/" 
-                                + if hBuffer::DomainName = "" 
-                                  then WebUtil:UrlEncode(" ") 
-                                  else WebUtil:UrlEncode(hBuffer::DomainName) 
+            hBuffer::DomainUrl  = url + "/domains/"
+                                + if hBuffer::DomainName = ""
+                                  then WebUtil:UrlEncode(" ")
+                                  else WebUtil:UrlEncode(hBuffer::DomainName)  when url > ''
         
             hBuffer::Id        = hbuffer::Name  
                                  + if hBuffer::DomainName > "" 
                                    then "@" + hBuffer::DomainName 
                                    else ""            
             hBuffer::Password  = "********"
-            hBuffer::url = url + "/users/" + WebUtil:UrlEncode(hBuffer::Id)
-            hBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(hBuffer::Id)
+            hBuffer::url = url + "/users/" + WebUtil:UrlEncode(hBuffer::Id) when url > ''
+            hBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(hBuffer::Id) when url > ''
              .  
          
-         if hBuffer::TenantName > "" then
-             hBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(hBuffer::TenantName).
+        if hBuffer::TenantName > "" and url > '' then
+            hBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(hBuffer::TenantName).
        
         if hbuffer::Description = ? then       
             hbuffer::Description = "".

@@ -112,7 +112,7 @@ procedure runApi:
          /* use no-error - if connection failed the request will not be valid */  
         disconnect value(cDb) no-error.
         if useLongChar and search(requestInfo:OutFileName ) <> ? then 
-            copy-lob from file requestInfo:OutFileName to resOutput convert target codepage "UTF-8". 
+            copy-lob from file requestInfo:OutFileName to resOutput convert source codepage "UTF-8". 
         if session:batch-mode then                                                                         
             output close. 
         		

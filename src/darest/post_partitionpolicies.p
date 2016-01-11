@@ -55,6 +55,9 @@ procedure Execute :
        
     If restRequest:KeyValue[1] > "" then
     do: 
+        if restRequest:NumLevels = 1 then 
+            undo, throw new UnsupportedOperationError("Cannot pass key in url for POST: " + restRequest:RequestUrl).  
+        
         if restRequest:CollectionName[2] = "partitionpolicydetails" then
         do:
             policy = service:GetPartitionPolicy(restRequest:KeyValue[1]).

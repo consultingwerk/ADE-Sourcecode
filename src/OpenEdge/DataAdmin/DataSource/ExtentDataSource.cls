@@ -27,6 +27,8 @@ using OpenEdge.DataAdmin.Message.ProstrctAddOnlineRequest from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.NetworkClientOperationError from propath.
+
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.ExtentDataSource inherits DataSource: 
@@ -79,6 +81,9 @@ Size,_Extent-size"
         define variable lokext  as logical no-undo.
         define variable hBefore as handle no-undo.
         
+        if DatabaseInfo:IsNetworkClient then
+            undo, throw new NetworkClientOperationError("Create of Area or Extent").
+            
         /* check for invalid state 
          - Area is checked in WriteNewAreas 
          - checks that can be done on Extent after buffer is done in WriteExtents */

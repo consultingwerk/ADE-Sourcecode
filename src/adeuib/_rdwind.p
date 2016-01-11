@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2005-2006,2009-2013 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2005-2006,2009-2014 by Progress Software Corporation.  *
+* All rights reserved.  Prior versions of this work may contain        *
+* portions contributed by participants of Possenet.                    *
 *                                                                      *
 ***********************************************************************/
 /*----------------------------------------------------------------------------
@@ -27,6 +27,8 @@ Modified by GFS on 3/11/96 - added support for small-icon
             GFS on 1/27/98 - added new attrs. for v9
             JEP on 09/28/98 - Support restoring treeviews/design window sizes.
             TSM on 06/04/99 - added support for context-sensitive help
+            RKUMAR on 11/12/14- display warning when opening .w in 64-bit AppBuilder
+            
 ---------------------------------------------------------------------------- */
 DEFINE INPUT PARAMETER pp-recid AS RECID NO-UNDO.
 {adecomm/oeideservice.i}
@@ -327,23 +329,27 @@ THEN ASSIGN _L._BGCOLOR        = ?
 ** the treeview. A window will be created for the object so the user can give
 ** this window focus and bring up the Section Editor to modify the procedure.
 */
-IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) 
-AND (PROCESS-ARCHITECTURE = 32 or OEIDEIsRunning)  THEN
-DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
-  /* Create Treeview design window for code-only files. */
-  DEFINE VAR h_TreeProc AS HANDLE NO-UNDO.
-  
-  if OEIDEIsRunning then
-  do:
-      RUN adeuib/ide/_treeview.p PERSISTENT SET h_TreeProc.
-      /* we RUN createTree below after sizing */ 
-  end.    
-  else do:   
-      RUN adeuib/_tview.w PERSISTENT SET h_TreeProc. 
-  
-      RUN createTree IN h_TreeProc (RECID(_P)).
-  end.
-  ASSIGN _h_win = DYNAMIC-FUNCTION("getWinHandle" IN h_TreeProc).
+IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) THEN DO:
+    if (PROCESS-ARCHITECTURE = 64 and not OEIDEIsRunning)  THEN DO:
+                 RUN adeuib/_c64tv.p. 
+    end.
+    else if (PROCESS-ARCHITECTURE = 32 or OEIDEIsRunning)  THEN
+    DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+	  /* Create Treeview design window for code-only files. */
+	  DEFINE VAR h_TreeProc AS HANDLE NO-UNDO.
+	  
+	  if OEIDEIsRunning then
+	  do:
+	      RUN adeuib/ide/_treeview.p PERSISTENT SET h_TreeProc.
+	      /* we RUN createTree below after sizing */ 
+	  end.    
+	  else do:   
+	      RUN adeuib/_tview.w PERSISTENT SET h_TreeProc. 
+	  
+	      RUN createTree IN h_TreeProc (RECID(_P)).
+	  end.
+	  ASSIGN _h_win = DYNAMIC-FUNCTION("getWinHandle" IN h_TreeProc).
+	end.
 END.
 
 /* If not creating a Treeview window or something went wrong creating one, create

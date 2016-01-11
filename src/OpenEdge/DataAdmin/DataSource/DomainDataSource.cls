@@ -91,7 +91,7 @@ SystemPath,_PAM-library-path"
         define variable lSaveOther   as logical  no-undo.
         define variable cChanges     as character no-undo.
         define variable logged_in_domain as character no-undo.
-        
+        define variable preEncode    as logical no-undo.
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
         
@@ -142,11 +142,11 @@ SystemPath,_PAM-library-path"
                 do:
                     create b_domain.
                     assign
+                        preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */
                         b_domain._Domain-name = phBuffer::Name
                         cAccess = phBuffer::AccessCode
-                        b_domain._Domain-access-code = AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess)
-                        .
-             
+                        b_domain._Domain-access-code = if preEncode = true then cAccess else AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess)
+                        phBuffer::PreEncodeAccessCode = false. /* turn off the flag */    .
                 end. 
                 else do:
                     
@@ -156,8 +156,11 @@ SystemPath,_PAM-library-path"
                     
                     if phBuffer::AccessCode <> mAccessDisp then
                     do:
-                        cAccess = phBuffer::AccessCode.
-                        b_domain._Domain-access-code = AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess).
+                        assign
+                            preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */
+                            cAccess = phBuffer::AccessCode 
+                            b_domain._Domain-access-code = if preEncode = true then cAccess else AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess)
+                            phBuffer::PreEncodeAccessCode = false. /* turn off the flag */    .
                     end.  
                 end.
                  

@@ -19,34 +19,32 @@ using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.StringStringMap.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.CookieCollection.
-using OpenEdge.Net.HTTP.Filter.Body.BodyFilterList.
-using OpenEdge.Net.HTTP.Filter.Body.BodyFilterNode.
-using OpenEdge.Net.HTTP.Filter.Body.FormDataBodyFilter.
-using OpenEdge.Net.HTTP.Filter.Body.HtmlBodyFilter.
-using OpenEdge.Net.HTTP.Filter.Body.JsonBodyFilter.
-using OpenEdge.Net.HTTP.Filter.Body.MessageBodyFilter.
-using OpenEdge.Net.HTTP.Filter.Body.XmlBodyFilter.
-using OpenEdge.Net.HTTP.Filter.Header.ContentLengthHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.ContentTypeHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.CookieHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.GeneralHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.HeaderFilter.
 using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterList.
 using OpenEdge.Net.HTTP.Filter.Header.HeaderFilterNode.
-using OpenEdge.Net.HTTP.Filter.Header.TransferEncodingHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.IHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
+using OpenEdge.Net.HTTP.Filter.Message.MessageFilterList.
+using OpenEdge.Net.HTTP.Filter.Message.MessageFilterNode.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
+using OpenEdge.Net.HTTP.Filter.Header.ContentTypeHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.ContentLengthHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.TransferEncodingHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.CookieHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Header.GeneralHeaderFilter.
 
 class OpenEdge.Net.HTTP.HttpMessage abstract:
-    define private variable mlSealed as logical no-undo.
+    define protected property Sealed as logical no-undo get. private set.
     
-    define protected variable moHeaderFilter as HeaderFilterList no-undo.
-    define protected variable moBodyFilter as BodyFilterList no-undo.
-    define protected variable moHeaders as IStringStringMap no-undo.
+    /* Holds filters for processing headers */
+    define protected property HeaderFilters as HeaderFilterList no-undo get. private set.
+    
+    /* Stores header name/value pairs */
+    define protected property Headers as IStringStringMap no-undo get. private set.
     
     /** The cookies only relevant to only this message (request or response) */    
-    define protected variable moCookies as CookieCollection no-undo.
+    define protected property Cookies as CookieCollection no-undo get. private set.
     
     define public property Version as character no-undo
         get.
@@ -65,13 +63,11 @@ class OpenEdge.Net.HTTP.HttpMessage abstract:
     /** Object containing the response body/entity.
         The object can be of any type, which may depend on the content type
         and the body filters it passes through. */
-    define protected variable moEntity as Object no-undo.
-    define abstract public property Entity as Object no-undo get.
+    define abstract public property Entity as Object no-undo get. protected set.
     
-    /** Memptr containing the message body/entity for passing to the request
+    /** ByteBucket containing the message body/entity for passing to the request
         or response. */
-    define protected variable moMessageBody as class ByteBucket no-undo.
-    define public property MessageBody as class ByteBucket no-undo get. protected set.
+    define abstract protected property MessageBody as ByteBucket no-undo get. set.
     
     define public property ContentLength as integer no-undo
         get. 
@@ -96,64 +92,62 @@ class OpenEdge.Net.HTTP.HttpMessage abstract:
     
     method public void Initialize():
         assign this-object:TransferEncoding = TransferEncodingEnum:None
-               moHeaders = new StringStringMap()
-               moCookies = new CookieCollection()
-               mlSealed  =  false
-               moBodyFilter   = new BodyFilterList()
-               moHeaderFilter = new HeaderFilterList().
+               this-object:Headers = new StringStringMap()
+               this-object:Cookies = new CookieCollection()
+               this-object:Sealed  =  false.
         
         /* Header filters */
         InitializeHeaderFilters().
-        
-        /* Body filters */
-        InitializeBodyFilters().
     end method.
  
     method public void Destroy():
-        RemoveHeaderFilter().
-        RemoveBodyFilter().
+        DestroyHeaderFilters().
         
-        assign moEntity = ?
-               moHeaders = ?
-               moCookies = ?.
+        assign this-object:Entity = ?
+               this-object:Headers = ?
+               this-object:Cookies = ?.
+        if valid-object(MessageBody) then
+            MessageBody:Clear().
     end method.
-        
+    
     /* BODY FILTERS */
-    method protected void InitializeBodyFilters(): 
-        AddBodyFilter(new JsonBodyFilter(this-object)).
-        AddBodyFilter(new FormDataBodyFilter(this-object)).
-        AddBodyFilter(new XmlBodyFilter(this-object)).
-        AddBodyFilter(new HtmlBodyFilter(this-object)).
-    end method.
-    
     method protected void InitializeHeaderFilters():
-        AddHeaderFilter(new ContentTypeHeaderFilter(this-object)).
-        AddHeaderFilter(new ContentLengthHeaderFilter(this-object)).
-        AddHeaderFilter(new CookieHeaderFilter(this-object)).
-        AddHeaderFilter(new TransferEncodingHeaderFilter(this-object)).
-        AddHeaderFilter(new GeneralHeaderFilter(this-object)).
-    end method.
-    
-    method protected void AddBodyFilter(input poFilter as MessageBodyFilter):
-        Assert:NotNull(poFilter, 'Body filter').
-        Assert:NotNull(moBodyFilter, 'Body filter list').
+        this-object:HeaderFilters = new HeaderFilterList().
         
-        moBodyFilter:InsertLast(new BodyFilterNode(poFilter)).
+        AddHeaderFilter(this-object:HeaderFilters, get-class(ContentTypeHeaderFilter)).
+        AddHeaderFilter(this-object:HeaderFilters, get-class(ContentLengthHeaderFilter)).
+        AddHeaderFilter(this-object:HeaderFilters, get-class(TransferEncodingHeaderFilter)).
+        AddHeaderFilter(this-object:HeaderFilters, get-class(CookieHeaderFilter)).
+        AddHeaderFilter(this-object:HeaderFilters, get-class(GeneralHeaderFilter)).
     end method.
     
-    method protected void RemoveBodyFilter():
-        assign moBodyFilter = ?.
-    end method.
     
     /* HEADERS &  FILTERS */
-    method protected void AddHeaderFilter(input poFilter as HeaderFilter):
-        Assert:NotNull(poFilter, 'Header filter').
-        Assert:NotNull(moHeaderFilter, 'Header filter list').
-        moHeaderFilter:InsertLast(new HeaderFilterNode(poFilter)).
+    method protected void AddHeaderFilter(input poFilterList as HeaderFilterList,
+                                          input poFilterType as class Progress.Lang.Class):
+        define variable oFilter as IHeaderFilter no-undo.
+        
+        Assert:NotNull(poFilterList, 'Header filter list').
+        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
+        
+        Assert:NotNull(oFilter, 'Header filter').
+        
+        poFilterList:InsertLast(new HeaderFilterNode(oFilter)).
     end method.
     
-    method protected void RemoveHeaderFilter():
-        assign moHeaderFilter = ?.
+    method protected void AddMessageFilter(input poFilterList as MessageFilterList,
+                                           input poFilterType as class Progress.Lang.Class):
+        define variable oFilter as IMessageFilter no-undo.
+        
+        Assert:NotNull(poFilterList, 'Message filter list').
+        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
+        
+        Assert:NotNull(oFilter, 'Message filter').
+        poFilterList:InsertLast(new MessageFilterNode(oFilter)).
+    end method.
+    
+    method protected void DestroyHeaderFilters():
+        assign this-object:HeaderFilters = ?.
     end method.
     
     /** Adds header info to this message's collection of headers. This is 
@@ -164,12 +158,12 @@ class OpenEdge.Net.HTTP.HttpMessage abstract:
         @param character The complete header value  */
     method public void AddHeader(input pcName as character, input pcValue as character):
         CheckSeal().
-        
-        moHeaderFilter:Add(pcName, pcValue).
+                
+        this-object:HeaderFilters:Filter(pcName, pcValue, this-object).
     end method.
     
     method public longchar GetHeaderEntry(input pcName as character):
-        return moHeaders:Get(pcName).
+        return this-object:Headers:Get(pcName).
     end method.
     
     /** Adds header info to this message's collection of headers. Should only be 
@@ -182,71 +176,72 @@ class OpenEdge.Net.HTTP.HttpMessage abstract:
         @param character The complete header value  */
     method public void SetHeaderEntry(input pcName as character, input pcValue as character):
         CheckSeal().
-        moHeaders:Put(pcName, pcValue).
+        this-object:Headers:Put(pcName, pcValue).
     end method.
     
     method public void RemoveHeaderEntry(input pcName as character):
         CheckSeal().
-        moHeaders:Remove(pcName).
+        if this-object:Headers:ContainsKey(pcName) then
+            this-object:Headers:Remove(pcName).
     end method.    
     
     method public void RemoveHeader(input pcName as character):
-        CheckSeal().        
-        moHeaderFilter:Remove(pcName).    
+        CheckSeal().
+        
+        this-object:HeaderFilters:Filter(pcName, ?, this-object).    
     end method.
     
     method public IIterator GetHeaderIterator():
-        return moHeaders:EntrySet:Iterator().
-    end method. 
+        return this-object:Headers:EntrySet:Iterator().
+    end method.
     
     /** COOKIES AND FILTERS **/
     method public void SetCookieEntry(input poCookie as Cookie):
         CheckSeal().
         
-        Assert:NotNull(poCookie, 'Cookie').                        
-        moCookies:Add(poCookie).
+        Assert:NotNull(poCookie, 'Cookie').
+        this-object:Cookies:Add(poCookie).
+    end method.
+
+    method public void RemoveCookieEntry(input poCookie as Cookie):
+        CheckSeal().
+        
+        Assert:NotNull(poCookie, 'Cookie').
+        this-object:Cookies:Remove(poCookie).
     end method.
     
     method public IIterator GetCookiesIterator():
-        return moCookies:Iterator().
+        return this-object:Cookies:Iterator().
     end method.
     
     method public void AddCookies(input poCookies as CookieCollection):
         CheckSeal().
         Assert:NotNull(poCookies, 'Cookies').
         
-        if moCookies:IsEmpty() then
-            assign moCookies = poCookies.
+        if this-object:Cookies:IsEmpty() then
+            assign this-object:Cookies = poCookies.
         else
-            moCookies:AddAll(poCookies).
+            this-object:Cookies:AddAll(poCookies).
     end method.
     
     method public void ClearCookies():
         CheckSeal().
-        moCookies:Clear().
+        this-object:Cookies:Clear().
     end method.
     
     method protected void CheckSeal():
-        if mlSealed then
+        if this-object:Sealed then
             undo, throw new AppError(
                     substitute('&1 sealed: read-only access',
                                 entry(num-entries(this-object:GetClass():TypeName, '.'), this-object:GetClass():TypeName, '.')),
                      0).
     end method.
  
-     method public void Seal():
+    method public void Seal():
         Assert:NotNullOrEmpty(this-object:Version, 'Version').
-        Assert:NotNull(moHeaders, 'Headers').
+        Assert:NotNull(this-object:Headers, 'Headers').
         
-        assign mlSealed = true.
-    end method.
-    
-    method protected void ExtractEntity():
-        moBodyFilter:Extract(input-output moEntity).
-    end method.
-    
-    method protected void ExtractMessageBody():
-        moBodyFilter:Insert(input-output moMessageBody).
+        assign this-object:Sealed = true.
     end method.
     
 end class.

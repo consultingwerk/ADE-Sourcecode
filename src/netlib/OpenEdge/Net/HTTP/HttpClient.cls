@@ -13,20 +13,26 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Assertion.AssertJson.
+using OpenEdge.Core.DataTypeEnum.
+using OpenEdge.Core.IOModeEnum.
+using OpenEdge.Core.JsonDataTypeEnum.
 using OpenEdge.Net.HTTP.ClientOptions.
-using OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter.
-using OpenEdge.Net.HTTP.Filter.Status.OKStatusFilter.
-using OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter.
-using OpenEdge.Net.HTTP.Filter.Status.StatusCodeFilter.
-using OpenEdge.Net.HTTP.Filter.Status.StatusCodeFilterList.
-using OpenEdge.Net.HTTP.Filter.Status.StatusCodeFilterNode.
+using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
+using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
+using OpenEdge.Net.HTTP.Filter.Message.MessageFilterList.
+using OpenEdge.Net.HTTP.Filter.Message.MessageFilterNode.
 using OpenEdge.Net.HTTP.HttpClient.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.HttpRequestError.
 using OpenEdge.Net.HTTP.HttpResponse.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
-using OpenEdge.Net.HTTP.StatusActionEnum.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.ParameterList.
+using OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter.
+using OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter.
+using OpenEdge.Net.HTTP.Filter.Status.OKStatusFilter.
 
 class OpenEdge.Net.HTTP.HttpClient:
     /** Miscellanous options (like timeouts) for this client */
@@ -36,15 +42,10 @@ class OpenEdge.Net.HTTP.HttpClient:
     define private variable moWwwLib as IHttpClientLibrary no-undo.
     
     /* Holds filter for processing status codes on return */
-    define protected variable moStatusFilter as StatusCodeFilterList no-undo.
+    define protected variable moStatusFilter as MessageFilterList no-undo.
     
     /* Holds configuration */
     define private variable moConfig as JsonObject no-undo.
-    
-    define private temp-table Credentials no-undo
-        field Realm as character        
-        field Credentials as handle        
-        index idx1 as primary unique Realm.
     
     constructor public HttpClient():
         this-object(new JsonObject()).
@@ -53,7 +54,7 @@ class OpenEdge.Net.HTTP.HttpClient:
     constructor public HttpClient(input poConfig as JsonObject):
         Assert:NotNull(poConfig, 'Client Config').
         
-        assign moConfig            = poConfig.
+        assign moConfig = poConfig.
     end constructor.
     
     method static public HttpClient Instance(input poConfig as JsonObject):
@@ -74,26 +75,48 @@ class OpenEdge.Net.HTTP.HttpClient:
         return oHttpClient.
     end method.
     
+    /** Executes an HTTP request.
+        
+        @param HttpRequest Request parameters (URL, method, etc)  
+        @param HttpResponse Includes status and payload*/
     method public HttpResponse Execute(input poRequest as HttpRequest):
         define variable oResponse as HttpResponse no-undo.
         define variable iTimeout as integer no-undo.
-        define variable oStatusAction as StatusActionEnum no-undo.
+        define variable iNumRetries as integer no-undo.
+        define variable oStatusAction as FilterActionEnum no-undo.
+        define variable rRequestHash as raw extent 2 no-undo.
         
         assign iTimeout = this-object:Options:RequestTimeout.
         
         /* Use looping instead of recursion to avoid deeping the call stack */
         repeat on stop undo, return error new HttpRequestError(
-                                                    '408' /*reqwuest timeout */,
+                                                    string(StatusCodeEnum:RequestTimeOut:Value),
                                                     poRequest:Method:Name,
                                                     poRequest:URI:URI)
-                stop-after iTimeout:
+               stop-after iTimeout:
             
-            assign oResponse = moWwwLib:Execute(poRequest).
+            if rRequestHash[1] eq rRequestHash[2] then
+            do:
+                assign iNumRetries = iNumRetries + 1.
+                if this-object:Options:PauseBetweenRetry gt 0 then
+                    pause this-object:Options:PauseBetweenRetry no-message.
+            end.
+            else
+                assign iNumRetries = 0.
+            
+            assign rRequestHash[2] = rRequestHash[1]
+                   /* make the request */
+                   oResponse       = moWwwLib:Execute(poRequest)
+                   rRequestHash[1] = poRequest:Hash.
             
             /* Check for redirects, auth and friends */
             oStatusAction = moStatusFilter:Filter(input oResponse).
             
             if ProcessStatusAction(input oStatusAction, input oResponse) then
+                leave.
+            
+            if this-object:Options:NumRetries gt 0 and
+               iNumRetries gt this-object:Options:NumRetries then
                 leave.
         end.
         
@@ -102,18 +125,19 @@ class OpenEdge.Net.HTTP.HttpClient:
     
     /** Process the action resulting from the status evaluation
         
-        @param StatusActionEnum The evaluation's action
+        @param FilterActionEnum The evaluation's action
         @param HttpResponse The response in question
         @return logical Returns TRUE if the loop is complete */
-    method protected logical ProcessStatusAction(input poStatusAction as StatusActionEnum,
+    method protected logical ProcessStatusAction(input poStatusAction as FilterActionEnum,
                                                  input poResponse as HttpResponse):
         define variable lOK as logical no-undo.
         
         case poStatusAction:
-            when StatusActionEnum:OK    then lOK = true.
-            when StatusActionEnum:Abort then lOK = true.
-            when StatusActionEnum:Retry then lOK = false.
-            when StatusActionEnum:Error then
+            when FilterActionEnum:OK    then lOK = true.
+            when FilterActionEnum:Abort then lOK = true.
+            when FilterActionEnum:Retry then lOK = false.
+            when FilterActionEnum:Stop  then lOK = false.
+            when FilterActionEnum:Error then
                 undo, throw new HttpRequestError(poResponse:StatusCode:Name,
                                         poResponse:Request:Method:Name,
                                         poResponse:Request:URI:URI).
@@ -123,14 +147,55 @@ class OpenEdge.Net.HTTP.HttpClient:
     end method.
     
     method public void Initialize():
+        define variable oLibType as Progress.Lang.Class no-undo.
+        define variable oConfig as JsonObject no-undo.
+        define variable oParams as ParameterList no-undo.
+        define variable cClientLibName as character no-undo.
+        define variable cClientLibVersion as character no-undo.
+        
         LoadConfig().
         
-        InitializeStatusFilters().
+        if valid-object(moConfig) and moConfig:Has('httpClientLib') then
+        do:
+            AssertJson:PropertyIsType(oConfig, 'httpClientLib', JsonDataTypeEnum:Object).
+            oConfig = moConfig:GetJsonObject('httpClientLib').
+            
+            AssertJson:PropertyIsType(oConfig, 'type', JsonDataTypeEnum:String).
+            oLibType = Progress.Lang.Class:GetClass(oConfig:GetCharacter('type')).
+            
+            AssertJson:PropertyIsType(oConfig, 'name', JsonDataTypeEnum:String).
+            cClientLibName = oConfig:GetCharacter('name').
+            
+            AssertJson:PropertyIsType(oConfig, 'version', JsonDataTypeEnum:String).
+            cClientLibVersion = oConfig:GetCharacter('version').
+        end.
+        else
+            /* default/standard library */
+            assign oLibType          = get-class(OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient)
+                   cClientLibName    = 'OpenEdge-HttpClient'
+                   cClientLibVersion = '0.1.0'.
         
-        assign moWwwLib = new OpenEdge.Net.HTTP.Lib.ABLSockets.HttpClient(
-                                    'OpenEdge.Net.HTTP.HttpClient','0.1', 
-                                    this-object:Options).
+        Assert:IsType(oLibType, get-class(IHttpClientLibrary)).
+
+        oParams = new ParameterList(3).
+        oParams:SetParameter(1,
+                             DataTypeEnum:Character:Name,
+                             IOModeEnum:Input:Name,
+                             cClientLibName).
+        oParams:SetParameter(2,
+                             DataTypeEnum:Character:Name,
+                             IOModeEnum:Input:Name,
+                             cClientLibVersion).
+        oParams:SetParameter(3,
+                             DataTypeEnum:ProgressLangObject:Name,
+                             IOModeEnum:Input:Name,
+                             this-object).
+        
+        /* start */                                                          
+        moWwwLib = cast(oLibType:New(oParams), IHttpClientLibrary).
         moWwwLib:Initialize().
+        
+        InitializeStatusFilters().
     end method.
     
     method protected void LoadConfig():
@@ -150,74 +215,35 @@ class OpenEdge.Net.HTTP.HttpClient:
             if oObject:Has('requestTimeout') then
                 this-object:Options:NumRetries = oObject:GetDecimal('requestTimeout').
         end.
-        
     end method.
     
     method protected void InitializeStatusFilters():
-        assign moStatusFilter = new StatusCodeFilterList().
+        assign moStatusFilter = new MessageFilterList().
         
-        AddStatusFilter(new RedirectStatusFilter(this-object)).
-        AddStatusFilter(new AuthorizationStatusFilter(this-object)).
-        AddStatusFilter(new OKStatusFilter(this-object)).
+        AddMessageFilter(moStatusFilter, get-class(RedirectStatusFilter)).
+        AddMessageFilter(moStatusFilter, get-class(AuthorizationStatusFilter)).
+        AddMessageFilter(moStatusFilter, get-class(OKStatusFilter)).
     end method.
     
     method public void Destroy():
-        RemoveStatusFilter().
+        RemoveStatusFilters().
         
         moWwwLib:Destroy().
     end method.
     
-    method protected void AddStatusFilter(input poFilter as StatusCodeFilter):
-        Assert:NotNull(poFilter, 'Status Code Filter').
-        moStatusFilter:InsertLast(new StatusCodeFilterNode(poFilter)).
+    method protected void AddMessageFilter(input poFilterList as MessageFilterList,
+                                           input poFilterType as class Progress.Lang.Class):
+        define variable oFilter as IMessageFilter no-undo.
+        
+        Assert:NotNull(poFilterList, 'Message filter list').
+        assign oFilter = poFilterList:GetFilterInstance(poFilterType).
+        
+        Assert:NotNull(oFilter, 'Message filter').
+        poFilterList:InsertLast(new MessageFilterNode(oFilter)).
     end method.
     
-    method protected void RemoveStatusFilter():
+    method protected void RemoveStatusFilters():
         assign moStatusFilter = ?.
-    end method.
-    
-    method public handle GetCredentials(input pcRealm as character):
-        define variable hCredentials as handle no-undo.
-        
-        define buffer lbCredentials for Credentials.
-        
-        Assert:NotNullOrEmpty(pcRealm, 'Realm').
-        
-        find lbCredentials where
-             lbCredentials.Realm eq pcRealm
-             no-error.
-        
-        if available lbCredentials then
-            assign hCredentials = lbCredentials.Credentials.
-        
-        return hCredentials.                                            
-    end method.
-    
-    /** Stores/sets the credentials for a particular realm.
-        
-        @param character The identifying realm
-        @param character The username
-        @param chracter  The password/passphrase for the user */
-    method public void SetCredentials(input pcRealm as character,
-                                      input pcUserName as character,
-                                      input pcPassphrase as character):
-        define buffer lbCredentials for Credentials.
-        
-        Assert:NotNullOrEmpty(pcRealm, 'Realm').
-        
-        find lbCredentials where
-             lbCredentials.Realm eq pcRealm
-             no-error.
-        if not available lbCredentials then
-        do:
-            create lbCredentials.
-            assign lbCredentials.Realm = pcRealm.
-                         
-            create client-principal lbCredentials.Credentials.
-            assign lbCredentials.Credentials:user-id = pcUserName
-                   lbCredentials.Credentials:primary-passphrase = pcPassphrase
-                   lbCredentials.Credentials:domain-name = pcRealm.
-        end.
     end method.
     
 end class.

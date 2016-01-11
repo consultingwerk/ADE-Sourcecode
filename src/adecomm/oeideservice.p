@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2012 by Progress Software Corporation  */
+/* Copyright (c) 1984-2014 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -35,6 +35,10 @@ using Progress.Lang.*.
 &SCOPED-DEFINE VIEW_VISIBLE  2
 &SCOPED-DEFINE VIEW_CREATE   3
 
+ define frame Dialog-Frame
+     with view-as dialog-box keep-tab-order 
+         side-labels no-underline three-d scrollable.  
+         
 /** must match definitions in com.openedge.pdt.oestudio.input.ICommandHandlerConstants 
     and have a corresponding input handler   */
 define variable  GET_IDE_PREFERENCES        as integer init 1 no-undo.  
@@ -83,6 +87,7 @@ define variable fContextHandle as handle no-undo.
 define variable PARAMETER_DELIMITER as char no-undo init "|".
 
 function getAppbuilderMode returns character       () in fContextHandle.
+function getApplicationWait returns logical        () in fContextHandle.
 function getDesignFileName returns character       (piHwnd as int64) in fContextHandle.
 function getDesignHwnd returns int64             (pcFile as char) in fContextHandle.  
 function getLinkFileFileName returns char          (pcLinkFile as char) in fContextHandle.   
@@ -384,6 +389,7 @@ function viewSource returns logical
          (phParent as handle) forward.
 &ENDIF
 
+
 &IF DEFINED(EXCLUDE-SetWindowSize) = 0 &THEN
 function  SetWindowSize return logical
          (phwin as handle ) forward.          
@@ -460,13 +466,28 @@ function OpenDBConnectionDialog return logical
 
 
 /* *************************  Create Window  ************************** */
-
-/* DESIGN Window definition (used by the UIB) 
-  CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 15
-         WIDTH              = 60.
-/* END WINDOW DEFINITION */
-                                                                        */
+function  createWindow  returns handle private () : 
+    define variable hWin as handle no-undo.
+    create window hWin assign
+         hidden             = yes
+         width = 20
+         height = 4
+/*         width-p            = iwidth */
+/*         height-p           = iheight*/
+         x  = 0 
+         y   = 0
+         resize             = no
+         status-area        = no
+         three-d            = yes
+         message-area       = no
+         status-area        = no
+         sensitive          = yes.
+    hWin:IDE-WINDOW-MODE = 1. 
+     /*  realize window  */
+    hWin:hidden = false. 
+    return hwin.     
+end function.
+                             
 
 /* ************************* Included-Libraries *********************** */
 
@@ -801,6 +822,67 @@ end procedure.
 
 &ENDIF
  
+&IF DEFINED(EXCLUDE-enterModal) = 0 &THEN
+
+procedure enterModal:
+/*------------------------------------------------------------------------------
+  Purpose: Set ABL to modal 
+           To workaround calls that has non-modal waits for Eclispe resposne with 
+           function or non-void methods in call stack when there already is a wait for
+           System.Windows.Forms.Application:run
+------------------------------------------------------------------------------*/
+   define variable iresult as int64 no-undo.
+   define variable hDialog  as handle no-undo.
+   define variable hParent as handle no-undo.
+
+  /*  use modal frame to workaround waiting inside function when application run wait is active */
+   hDialog = frame Dialog-Frame:handle .
+   if hDialog:parent = ? then 
+   do:
+       hParent = createWindow().
+       hDialog:parent = hParent.
+   end.
+   
+   /* the frame has to be visible for a while so move it out of sight (the corner will be visible) */
+   /* NOTE: use exact session dimension - increasing it auto positions and makes it more visible*/
+   hDialog:row = session:height.
+   hDialog:col = session:width.
+   
+   /* the frame need to be visible for the wait to be modal 
+      NOTE: use of hidden  (vs visible/view) ensures the dialog is only visible once per session  */
+   hDialog:hidden = false. 
+   &IF DEFINED(EXCLUDE-Win32APIs) = 0 &THEN
+   if opsys = "win32" then
+   do:
+       /* make it invisible - wait is still allowed since ABL thinks it is visible */
+       run ShowWindow(hDialog:hwnd, 0, output iresult). 
+   end.
+   &ENDIF
+end procedure.
+
+
+&ENDIF
+  
+&IF DEFINED(EXCLUDE-exitModal) = 0 &THEN
+
+procedure exitModal :
+/*------------------------------------------------------------------------------
+  Purpose: Set ABL to non modal again after makeModal 
+           (from finally block to call to enterModal)
+------------------------------------------------------------------------------*/
+
+    /* NOTE: use of hidden  (vs visible/view) ensures the dialog is only visible once per session
+             (Not sure if it really is necessary here or only enterModal)  */
+  
+    frame Dialog-Frame:hidden = true. 
+end procedure.
+
+
+&ENDIF
+
+
+ 
+ 
 &IF DEFINED(EXCLUDE-getViewHwnd) = 0 &THEN
 
 procedure getViewHwnd :
@@ -893,6 +975,151 @@ end procedure.
 
 
 &ENDIF
+
+&IF DEFINED(EXCLUDE-ShowOkMessage) = 0 &THEN
+
+procedure ShowOkMessage :
+    define input  parameter msgText  as character no-undo.  
+    define input  parameter MsgType  as character no-undo.
+    define input  parameter MsgTitle  as character no-undo.   
+    
+    define variable ldummy as logical no-undo.    
+    run ShowMessage in target-procedure(msgText,MsgType,MsgTitle,"OK",input-output ldummy).    
+    
+end procedure.
+
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-ShowMessage) = 0 &THEN
+
+procedure ShowMessage :
+    define input  parameter msgText  as character no-undo.  
+    define input  parameter MsgType  as character no-undo.
+    define input  parameter MsgTitle  as character no-undo.
+    define input  parameter MsgButtons  as character no-undo.
+    define input-output parameter ButtonValue as logical no-undo.
+    
+    define variable cResult as character  no-undo.
+    define variable ButtonFocus as character no-undo.
+    define variable iReturn as integer no-undo.
+     
+    If msgtitle = ? or msgTitle = "?" then 
+        msgTitle = upper(substring(MsgType,1,1)) 
+                 + lower(substring(MsgType,2,length(MsgType))).
+    
+    case msgType:
+        when "Information" then msgType = "0".
+        when "Warning"     then msgType = "1".
+        when "Error"       then msgType = "2".
+        when "Question"    then msgType = "3".
+        otherwise msgType = "2".
+    end.
+    
+    /* Possible button values are: YES-NO,YES-NO-CANCEL,OK,OK-CANCEL,RETRY-CANCEL. */
+    case MsgButtons:
+        when "OK" then 
+            Assign ButtonFocus = "OK"
+                  MsgButtons = "OK". /* get right case */
+        when "OK-Cancel" then
+        do:
+            if ButtonValue then ButtonFocus = "OK".
+            else ButtonFocus = "Cancel".
+            MsgButtons = "OK-Cancel". /* get right case */
+        end.
+        when "YES-NO" then
+        do:
+            if ButtonValue then ButtonFocus = "Yes".
+            else ButtonFocus = "No".
+            MsgButtons = "Yes-No". /* get right case */
+        end.
+        when "YES-NO-CANCEL" then
+        do:
+            if ButtonValue then ButtonFocus = "Yes".
+            else if not ButtonValue then ButtonFocus = "No".
+            else ButtonFocus = "Cancel".
+            MsgButtons = "Yes-No-Cancel". /* get right case */
+        end.
+        when "RETRY-CANCEL" then
+        do:
+            if ButtonValue then ButtonFocus = "Retry".
+            else ButtonFocus = "Cancel".
+            MsgButtons = "Retry-Cancel". /* get right case */
+       end.
+    end case.
+    run sendWaitRequest in getSocketClient()               
+                 (SHOW_MESSAGE_IN_IDE,
+                  "IDE ShowMessageInIDE ":U
+                  + QUOTER(msgText)      + PARAMETER_DELIMITER
+                  + QUOTER(MsgType)    + PARAMETER_DELIMITER
+                  + QUOTER(MsgTitle)   + PARAMETER_DELIMITER
+                  + QUOTER(MsgButtons) + PARAMETER_DELIMITER
+                  + QUOTER(ButtonFocus),
+                  output cResult).
+    
+    iReturn =lookup(cResult,MsgButtons,"-").
+    /* bad return - assume last button  (cancel if possible)*/
+    if not (iReturn > 0) then
+        iReturn = num-entries(MsgButtons).
+   
+    case iReturn:
+        when 1 then ButtonValue = true. 
+        when 2 then ButtonValue = false.
+        when 3 then ButtonValue = ?. 
+    end.     
+                         
+end procedure.
+
+&ENDIF
+
+
+&IF DEFINED(EXCLUDE-ShowDBConnectionDialog) = 0 &THEN
+
+procedure ShowDBConnectionDialog :
+ 
+    define input  parameter pmessage  as character no-undo.  
+    define output parameter presponse as logical no-undo.       
+    
+    define variable pcOk as character no-undo.        
+    if pmessage = ? then 
+        pmessage = "".    
+    run sendWaitRequest in getSocketClient()
+          (OPEN_DB_CONNECTION,
+          "IDE OpenDBConnectionDialog ":U 
+          +  quoter(GetProjectName()) + PARAMETER_DELIMITER
+          +  quoter(pmessage) ,
+          output pcOk).  
+    presponse = logical(pcOk) .            
+ 
+end procedure.
+
+
+&ENDIF
+
+
+
+&IF DEFINED(EXCLUDE-checkHasHelp) = 0 &THEN
+
+procedure checkHasHelp :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the project properties from the ide
+  Parameters:
+  Notes: 
+------------------------------------------------------------------------------*/
+   define input  parameter pcContextId as character no-undo.
+   define output parameter plExists as logical no-undo.
+   define variable cExists as character no-undo.
+   run sendWaitRequest in getSocketClient()
+          (CHECK_HELP,
+          "IDE CheckHelp ":U
+          +  quoter(pcContextId),
+            output cExists ).
+    plExists = logical(cExists).
+end procedure.
+
+
+&ENDIF
+ 
 
 &IF DEFINED(EXCLUDE-getProjectProperties) = 0 &THEN
 
@@ -1082,7 +1309,6 @@ end procedure.
 &IF DEFINED(EXCLUDE-appbuilderConnection) = 0 &THEN
 
 procedure appbuilderConnection :
-/*    define input  parameter pReply as longchar no-undo.*/
     run sendRequest in getSocketClient()(
                         APPBUILDER_CONNECTION, 
                         "IDE appbuilderConnection ":U 
@@ -1603,13 +1829,8 @@ end function.
 
 function checkHelp returns logical
          (pcContextId as char) :
-    define variable cExists as character no-undo.
-    run sendWaitRequest in getSocketClient()
-          (CHECK_HELP,
-          "IDE CheckHelp ":U
-          +  quoter(pcContextId),
-            output cExists ).
-    return logical(cExists).
+    undo, throw new AppError("The checkHelp function is deprecated. Use the checkHasHelp procedure instead.").         
+             
 end function.
 
 &ENDIF
@@ -2029,7 +2250,6 @@ end function.
 &ENDIF
 
 &IF DEFINED(EXCLUDE-ShowMessageInIDE) = 0 &THEN
-
 function ShowMessageInIDE returns logical
          (msgText      as character,
           MsgType      as character,
@@ -2039,7 +2259,7 @@ function ShowMessageInIDE returns logical
    define variable cResult as character  no-undo.
    define variable ButtonFocus as character no-undo.
    define variable iReturn as integer no-undo.
-   
+
    If msgtitle = ? or msgTitle = "?" then 
       msgTitle = upper(substring(MsgType,1,1)) 
                + lower(substring(MsgType,2,length(MsgType))).
@@ -2083,6 +2303,10 @@ function ShowMessageInIDE returns logical
             MsgButtons = "Retry-Cancel". /* get right case */
        end.
    end case.
+  
+   if getApplicationWait() then
+       run enterModal.
+   
    run sendWaitRequest in getSocketClient()               
                  (SHOW_MESSAGE_IN_IDE,
                   "IDE ShowMessageInIDE ":U
@@ -2092,7 +2316,6 @@ function ShowMessageInIDE returns logical
                   + QUOTER(MsgButtons) + PARAMETER_DELIMITER
                   + QUOTER(ButtonFocus),
                   output cResult).
-    
    iReturn =lookup(cResult,MsgButtons,"-").
     /* bad return - assume last button  (cancel if possible)*/
    if not (iReturn > 0) then
@@ -2103,13 +2326,35 @@ function ShowMessageInIDE returns logical
         when 2 then return false.
         when 3 then return ?. 
    end.     
-                      
+   finally:
+       if getApplicationWait() then
+          run exitModal.
+   end finally.                   
 end function.
+
+
+/*function ShowMessageInIDE returns logical                                                                  */
+/*         (msgText      as character,                                                                       */
+/*          MsgType      as character,                                                                       */
+/*          MsgTitle     as character,                                                                       */
+/*          MsgButtons   as character,                                                                       */
+/*          ButtonValue  as logical):                                                                        */
+/*    define variable lalert as logical no-undo.                                                             */
+/*                                                                                                           */
+/*    lalert =  session:debug-alert.                                                                         */
+/*    if lalert then                                                                                         */
+/*        session:debug-alert = false.                                                                       */
+/*    run adecomm/_showmessage.p(msgText,MsgType,MsgTitle,MsgButtons,ACTIVE-WINDOW,input-output ButtonValue).*/
+/*    return ButtonValue.                                                                                    */
+/*    finally:                                                                                               */
+/*        if lalert then                                                                                     */
+/*            session:debug-alert = lalert.                                                                  */
+/*    end.                                                                                                   */
+/*end function.                                                                                              */
 
 &ENDIF
 
-
-&IF DEFINED(EXCLUDE-hasDdialog) = 0 &THEN
+&IF DEFINED(EXCLUDE-hasDialog) = 0 &THEN
 /** Utility. used by CanLaunchDialog to check if we can call ide. If a ide supported procedure is used by a dialog for example
     when being called from an unsupported wizard it cannot launch through IDE, since the IDE hosted
     dialog is a window from the ABL perpsective. oeideservice.i OEIDE_CanLaunch() is external api 
@@ -2322,15 +2567,16 @@ end function.
 &IF DEFINED(EXCLUDE-OpenDBConnectionDialog) = 0 &THEN
 function OpenDBConnectionDialog return logical
          (pmessage as character):
-    define variable pcOk as character no-undo.        
-    if pmessage = ? then 
-        pmessage = "".    
-    run sendWaitRequest in getSocketClient()
-          (OPEN_DB_CONNECTION,
-          "IDE OpenDBConnectionDialog ":U 
-          +  quoter(GetProjectName()) + PARAMETER_DELIMITER
-          +  quoter(pmessage) ,
-          output pcOk).  
-    return logical(pcOk) .            
+    undo, throw new AppError("The OpenDBConnectionDialog function is deprecated. Use the ShowDBConnectionDialog procedure instead.").         
+/*    define variable pcOk as character no-undo.             */
+/*    if pmessage = ? then                                   */
+/*        pmessage = "".                                     */
+/*    run sendWaitRequest in getSocketClient()               */
+/*          (OPEN_DB_CONNECTION,                             */
+/*          "IDE OpenDBConnectionDialog ":U                  */
+/*          +  quoter(GetProjectName()) + PARAMETER_DELIMITER*/
+/*          +  quoter(pmessage) ,                            */
+/*          output pcOk).                                    */
+/*    return logical(pcOk) .                                 */
 end function.                               
 &endif             

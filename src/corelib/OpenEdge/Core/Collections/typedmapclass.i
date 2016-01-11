@@ -48,9 +48,15 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
     &scoped-define Interfaces implements {&ImplementsType}
 &else
     &scoped-define ImplementsType OpenEdge.Core.Collections.IMap
-&endif    
+&endif
+    
+&if defined(IsSerializable) &then
+&if keyword-all('serializable') eq 'serializable' &then
+    &scoped-define serializable serializable
+&endif 
+&endif
 
-class {&FullType} serializable inherits {&ParentCollectionType} {&Interfaces}:
+class {&FullType} {&serializable} inherits {&ParentCollectionType} {&Interfaces}:
 /*    constructor public {&MapType}(input poMap as {&FullType}):*/
     constructor public {&MapType}(input poMap as {&ImplementsType}):
         super(poMap).

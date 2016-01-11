@@ -1346,6 +1346,34 @@
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11806">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11807">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11808">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11809">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11810">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11811">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11812">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
   </Policy>
   <Policy GUID="kyuAW8cenLzZEVPCzRhVbw" Name="Application">
     <policy-properties>
@@ -1420,4 +1448,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=qAQMRtssT50T5mKUQFHhEA;AKL1zvORJp9q6hnQh2HPcg== -->
+<!-- SealID=jDa9eImD1Z4T7ZLPRlGxaA;xghlIUVfb7oOnnBcPJ5Erw== -->

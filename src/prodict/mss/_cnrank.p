@@ -34,6 +34,25 @@ Included in:
 History:
     Anil Shukla  05/29/13   Created
     Sachin Garg  06/09/13   OE00225738: Exclusions for RECID function support
+    Sachin Garg  10/27/14   OE00259833: Support for RECID for unique, mandatory
+                                        index with 2 adjacent 4 byte integer 
+                                        component 
+    Sachin Garg  11/05/2014 PSC00318549 RECID compatibility issue
+---------------------------------------------------------------------
+multi-comp but not 2-int OR 
+more than 2 comp OR 
+2-int but no surrogate key 
+(options that add surrogate key like "v", "p" and if present 
+ due to some other reason for that proxy_key flag is set)
+
+s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
+                         s_ttb_idx.hlp_dtype# <> 2) or
+                         s_ttb_idx.hlp_dtype# > 2  or
+                         (s_ttb_idx.hlp_dtype# = 2 and
+                         INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
+                         INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
+                         s_ttb_idx.proxy_key))
+---------------------------------------------------------------------
 
 --------------------------------------------------------------------*/
 /*h-*/
@@ -141,7 +160,6 @@ END PROCEDURE.
 		s_ttb_idx.ds_msc21 = ""
 		s_ttb_idx.key_wt# = 0.
        end.
-
 /* Calculate field sizes of the table fields */
      IF callerid = 2 THEN DO:
        FOR EACH s_ttb_fld WHERE s_ttb_fld.ttb_tbl = tbl_recid:
@@ -239,23 +257,14 @@ END PROCEDURE.
                                         + entry(s_ttb_idx.hlp_level,l_matrix)
                     s_ttb_tbl.ds_recid = s_ttb_idx.hlp_fstoff
                     s_ttb_tbl.ds_msc23 = s_ttb_idx.hlp_msc23
-                    s_ttb_tbl.ds_msc16 = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                               s_ttb_idx.hlp_dtype# > 1)
+                    s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
+                                                 s_ttb_idx.hlp_dtype# <> 2) or
+                                                 s_ttb_idx.hlp_dtype# > 2)
                                            then 1
+                                           else if (s_ttb_idx.hlp_dtype# = 2)
+                                           then 2
                                            else ?
                                          )
-/*
-                    s_ttb_tbl.ds_recid = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                                s_ttb_idx.hlp_dtype# > 1)
-                                           then 0
-                                           else s_ttb_idx.hlp_fstoff
-                                          )
-                    s_ttb_tbl.ds_msc23 = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                                s_ttb_idx.hlp_dtype# > 1)
-                                           then ?
-                                           else s_ttb_idx.hlp_msc23
-                                          )
-*/
                     s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
           else DO:
                assign n_matrix = ( if ( ( s_ttb_idx.hlp_level >= 12 and
@@ -280,9 +289,13 @@ END PROCEDURE.
             assign s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "c".  /* RECID compatible index */
 
             IF s_ttb_idx.pro_uniq THEN DO:
-             IF s_ttb_idx.hlp_mand AND NOT pkfound THEN
+             IF s_ttb_idx.hlp_mand AND NOT pkfound THEN DO:
                 assign pkfound = TRUE
                        s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "p". /* Primary key candidate */
+                /* 2-int ROWID, but not RECID compatible due to surrogate PROGRESS_RECID_UNIQUE */
+                IF (s_ttb_idx.hlp_dtype# = 2) THEN 
+                    assign s_ttb_tbl.ds_msc16 = 1.
+             END.
              IF s_ttb_idx.pro_prim AND s_ttb_idx.pro_uniq_bkp <> s_ttb_idx.pro_uniq AND
                 s_ttb_idx.ds_idx_typ = 1 AND index(s_ttb_idx.ds_msc21,"v") = 0 THEN 
                   s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "v". /*enforced uniqness on OE PK */
@@ -299,7 +312,21 @@ END PROCEDURE.
        
        IF mssrecidCompat THEN DO:
           IF substring(s_ttb_idx.ds_msc21,1,1) = "r" THEN DO:
-             IF INDEX(s_ttb_idx.ds_msc21,"c") <> 0 THEN  LEAVE. /* RECID comaptible */
+             IF INDEX(s_ttb_idx.ds_msc21,"c") <> 0 THEN  DO:
+                assign s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
+                                                 s_ttb_idx.hlp_dtype# <> 2) or
+                                                 s_ttb_idx.hlp_dtype# > 2  or
+                                                 (s_ttb_idx.hlp_dtype# = 2 and
+                                                 INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
+                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
+                                                 s_ttb_idx.proxy_key))
+                                           then 1
+                                           else if (s_ttb_idx.hlp_dtype# = 2)
+                                           then 2
+                                           else ?
+                                         ).
+                LEAVE. /* RECID comaptible */
+             END.
              ELSE DO:
                  /* ---- Remove "r" and Replace 'a' with 'u'*/
                 assign s_ttb_idx.ds_msc21 = substring(s_ttb_idx.ds_msc21,2,LENGTH(s_ttb_idx.ds_msc21)).
@@ -318,6 +345,18 @@ END PROCEDURE.
                  assign s_ttb_idx.ds_msc21 = "r" + s_ttb_idx.ds_msc21
                         s_ttb_tbl.ds_recid = s_ttb_idx.hlp_fstoff
                         s_ttb_tbl.ds_msc23 = s_ttb_idx.hlp_msc23
+                        s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
+                                                 s_ttb_idx.hlp_dtype# <> 2) or
+                                                 s_ttb_idx.hlp_dtype# > 2  or
+                                                 (s_ttb_idx.hlp_dtype# = 2 and
+                                                 INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
+                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
+                                                 s_ttb_idx.proxy_key))
+                                           then 1
+                                           else if (s_ttb_idx.hlp_dtype# = 2)
+                                           then 2
+                                           else ?
+                                         )
                         s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
                /*
                  IF INDEX(s_ttb_idx.ds_msc21,"u") <> 0 THEN 
@@ -336,23 +375,19 @@ END PROCEDURE.
              assign s_ttb_idx.ds_msc21 = "r" + s_ttb_idx.ds_msc21
                     s_ttb_tbl.ds_recid = s_ttb_idx.hlp_fstoff
                     s_ttb_tbl.ds_msc23 = s_ttb_idx.hlp_msc23
-                    s_ttb_tbl.ds_msc16 = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                               s_ttb_idx.hlp_dtype# > 1)
+                    s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
+                                                 s_ttb_idx.hlp_dtype# <> 2) or
+                                                 s_ttb_idx.hlp_dtype# > 2  or
+                                                 (s_ttb_idx.hlp_dtype# = 2 and
+                                                 INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
+                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
+                                                 s_ttb_idx.proxy_key))
                                            then 1
+                                           else if (s_ttb_idx.hlp_dtype# = 2 and
+                                                    INDEX(s_ttb_idx.ds_msc21,"v") = 0 )
+                                           then 2
                                            else ?
                                          )
-/*
-                    s_ttb_tbl.ds_recid = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                                s_ttb_idx.hlp_dtype# > 1)
-                                           then 0
-                                           else s_ttb_idx.hlp_fstoff
-                                          )
-                    s_ttb_tbl.ds_msc23 = ( if (s_ttb_idx.hlp_fld# > 1 or
-                                                s_ttb_idx.hlp_dtype# > 1)
-                                           then ?
-                                           else s_ttb_idx.hlp_msc23
-                                          )
-*/
                     s_ttb_tbl.ds_rowid = s_ttb_idx.pro_idx#.
              IF INDEX(s_ttb_idx.ds_msc21,"u") <> 0 THEN
                 assign s_ttb_idx.ds_msc21 = replace(s_ttb_idx.ds_msc21, "u","a").

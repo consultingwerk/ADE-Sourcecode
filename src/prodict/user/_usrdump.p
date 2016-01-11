@@ -1564,6 +1564,11 @@ ON HELP OF FRAME write-dump-file-mt OR
                              INPUT "CONTEXT", 
                              INPUT {&Dump_Data_Contents_for_Some_Tables_Multi_tenant_enabled_Dialog_Box},
                              INPUT ? ). 
+on HELP of frame write-dump-seq-mt 
+   or CHOOSE of btn_Help in frame write-dump-seq-mt
+   RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
+                             INPUT {&Dump_Stuff_Dlg_Box},
+                             INPUT ?).
 
 ON CHOOSE OF btn_dir in frame write-dump-file
   RUN "prodict/misc/_dirbtn.p"
@@ -2881,7 +2886,7 @@ IF user_env[1] <> "" AND
   FIND _File WHERE _Db-recid = drec_db AND _File-name = user_env[1]
                AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" ).
   dump-as = (IF _File._Dump-name = ?
-            THEN SUBSTRING(_File._File-name,1,8)
+            THEN _File._File-name
             ELSE _File._Dump-name).
 END.
  
@@ -2966,8 +2971,8 @@ ELSE IF class = "f" THEN DO FOR _File:
      Otherwise, it is already set to file list.
   */
   IF is-all THEN FOR EACH _File
-    WHERE _File._File-number > 0
-      AND (IF NOT fHidden THEN NOT _File._Hidden ELSE _File._File-Number > 0)
+    WHERE _File._File-number <> 0
+      AND (IF NOT fHidden THEN NOT _File._Hidden ELSE _File._File-Number <> 0)
       AND _File._Tbl-Type <> "V"
       AND _File._Db-recid = drec_db
       AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" )

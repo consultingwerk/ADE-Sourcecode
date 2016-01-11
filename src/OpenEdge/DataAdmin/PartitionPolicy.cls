@@ -32,6 +32,7 @@ using OpenEdge.DataAdmin.IPartitionPolicyDetailSet.
 using OpenEdge.DataAdmin.IRequestInfo.
 using OpenEdge.DataAdmin.ITable.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 
 routine-level on error undo, throw.
 
@@ -167,21 +168,41 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
             return Type. 
     end.  
 
-	define public property IsReadOnly as logical no-undo 
+    /** HasComposite  read only */    
+    define public property HasComposite    as logical no-undo         
+        get():
+        if valid-handle(mBuffer) then
+            return mBuffer::HasComposite.
+        else
+            return HasComposite. 
+    end.  
+    
+    define public property IsCompositeReadOnly as logical no-undo 
     get():
         if valid-handle(mBuffer) then
-            return mBuffer::IsReadOnly.
+            return mBuffer::isCompositeReadOnly.
         else
-            return IsReadOnly. 
+            return isCompositeReadOnly. 
     end.
-    set(pIsReadOnly as log):
+    set(pisCompositeReadOnly as log):
+        if this-object:Created then
+            undo, throw new ReadOnlyPropertyError("PartitionPolicy",Name,"IsCompositeReadOnly",PartitionPolicyContext:CreateReadOnlyError).
+        
         if valid-handle(mBuffer) then
         do:
             mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
-            mdefaultbuffer::IsReadOnly = pIsReadOnly.
+            mdefaultbuffer::isCompositeReadOnly = pisCompositeReadOnly.
         end.
         else
-            IsReadOnly = pIsReadOnly.
+            isCompositeReadOnly = pisCompositeReadOnly.
+    end.    
+        
+    /* mistake 11.4 .. would always give error */ 
+	define public property IsReadOnly as logical no-undo 
+    get.
+  
+    set(pIsReadOnly as log):
+        undo, throw new ReadOnlyPropertyError("PartitionPolicy",Name,"IsReadOnly").   
     end.    
     
 	define public property NumFields as integer no-undo 

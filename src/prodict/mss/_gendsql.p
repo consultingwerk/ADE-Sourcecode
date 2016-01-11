@@ -872,12 +872,12 @@ PROCEDURE write-idx-sql:
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
            df-info.df-tbl = s-tbl-name
-           df-line = '  SHADOW-COL "' + string(tmp_df_line_int) + '"'.
+           df-line = '  SHADOW-COL "' + string(col-num) + '"'.
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
            df-info.df-tbl = s-tbl-name
-           df-line = "  FIELD-MISC15 " + string(tmp_df_line_int).
+           df-line = "  FIELD-MISC15 " + string(col-num).
     DELETE shad-col.
   END.                                 
 END PROCEDURE.
@@ -1424,7 +1424,7 @@ PROCEDURE new-obj-idx:
       ASSIGN shw-col = shw-col + 1.
     END.
     IF pcompatible AND NOT addtable THEN
-      ASSIGN shw-col = shw-col + 2.
+      ASSIGN shw-col = shw-col + 3.
     ELSE  
       ASSIGN shw-col = shw-col + 1.
                                                                                               

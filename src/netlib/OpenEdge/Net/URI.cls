@@ -21,6 +21,7 @@ using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.MapEntry.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.String.
+using OpenEdge.Net.HTTP.Credentials.
 
 class OpenEdge.Net.URI:
     /** (mandatory) The schema of the URI (ie http, https etc) */
@@ -28,20 +29,60 @@ class OpenEdge.Net.URI:
     /** (mandatory) The host */
     define public property Host as character no-undo get. private set.
     
-    /** (optional) A user for this URI */
-    define public property User as character no-undo get.
-        set(input pcUser as character):
+    /** (optional) A set of credentials for this URI.
+        Setting properties on this object will not flag the URI as changed;
+        to do that, use the individual User/Password/Domain properties instead */
+    define public property Credentials as Credentials no-undo get.
+        set(input poCredentials as Credentials):
             /* flag URI as changed */
             assign this-object:URI = ?
-                   this-object:User = pcUser.
+                   this-object:Credentials = poCredentials.
+        end set.
+    
+    /** (optional) A user for this URI */
+    define public property User as character no-undo
+        get():
+            if not valid-object(this-object:Credentials) then
+                return ?.
+            return this-object:Credentials:UserName.
+        end get.
+        set(input pcUser as character):
+            if not valid-object(this-object:Credentials) then
+                assign this-object:Credentials = new Credentials().
+            
+            /* flag URI as changed */
+            assign this-object:URI = ?
+                   this-object:Credentials:UserName = pcUser.
         end set.
     
     /** (optional) The user's password */
-    define public property Password as character no-undo get.
+    define public property Password as character no-undo
+        get():
+            if not valid-object(this-object:Credentials) then
+                return ?.
+            return this-object:Credentials:Password.
+        end get.
         set(input pcPassword as character):
+            if not valid-object(this-object:Credentials) then
+                assign this-object:Credentials = new Credentials().
+            
             /* flag URI as changed */
             assign this-object:URI = ?
-                   this-object:Password = pcPassword.
+                   this-object:Credentials:Password = pcPassword.
+        end set.
+
+    /** (optional) The domain in which the user resides */
+    define public property Domain as character no-undo
+        get():
+            if not valid-object(this-object:Credentials) then
+                return ?.
+            return this-object:Credentials:Domain.
+        end get.
+        set(input pcDomain as character):
+            if not valid-object(this-object:Credentials) then
+                assign this-object:Credentials = new Credentials().
+            /* no URI change needed, since the domain is not part of the URI */
+            assign this-object:Credentials:Domain = pcDomain.
         end set.
     
     /** (optional) The port for this URI. Some schemes assume a default (ie 80 for http) */
@@ -104,6 +145,7 @@ class OpenEdge.Net.URI:
     /** Constructor. Defaults to HTTP scheme.
      
         @param character The host name. */
+    
     constructor public URI(input pcHost as character):
         this-object(UriSchemeEnum:Http, pcHost).
     end constructor.
@@ -164,8 +206,7 @@ class OpenEdge.Net.URI:
                this-object:Path = pcPath
                this-object:Fragment = pcFragment
         
-               this-object:User = ?
-               this-object:Password = ?
+               this-object:Credentials = ?
                
                this-object:RelativeURI = ?
                this-object:URI  = ?
@@ -222,9 +263,12 @@ class OpenEdge.Net.URI:
                    cHost = entry(1, cHost, ':').
         
         assign oURI = new URI(oScheme, cHost)
-               oURI:Port = iPort
-               oURI:User = cUser
-               oURI:Password = cPassword.
+               oURI:Port = iPort.
+        
+        if cUser ne ? then
+               /* no domain string in the URL */
+            assign oURI:User     = cUser
+                   oURI:Password = cPassword.
         
         /* get path, query. fragments */
         /* entry 2 is the 'space' between the double slashes, so we start after the host, at 4 */
@@ -289,19 +333,20 @@ class OpenEdge.Net.URI:
         define variable oEntry as MapEntry no-undo.
         define variable cDelimiter as character no-undo.
         
-        cRootURI = substitute('&1://', this-object:Scheme:Name).
+        assign cRootURI = substitute('&1://', this-object:Scheme:Name).
         
-        if this-object:User ne ? then
+        if valid-object(this-object:Credentials) and 
+           this-object:Credentials:UserName ne ? then
         do: 
-            cRootURI = cRootURI + this-object:User.
-            if this-object:Password ne ? then
-                cRootURI = cRootURI + substitute(':&1', this-object:Password).
-            cRootURI = cRootURI + '@'.
+            assign cRootURI = cRootURI + this-object:Credentials:UserName.
+            if this-object:Credentials:Password ne ? then
+                assign cRootURI = cRootURI + substitute(':&1', this-object:Credentials:Password).
+            assign cRootURI = cRootURI + '@'.
         end.
         
-        cRootURI = cRootURI + this-object:Host.
+        assign cRootURI = cRootURI + this-object:Host.
         if this-object:Port ne ? then
-            cRootURI = cRootURI + substitute(':&1', this-object:Port).
+            assign cRootURI = cRootURI + substitute(':&1', this-object:Port).
         
         if this-object:Path ne ? then
             assign cPath = this-object:Path

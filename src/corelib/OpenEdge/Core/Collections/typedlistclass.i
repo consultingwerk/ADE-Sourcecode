@@ -50,7 +50,13 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
     &scoped-define ImplementsType OpenEdge.Core.Collections.IList
 &endif    
 
-class {&FullType} serializable inherits {&ParentCollectionType} {&Interfaces}:
+&if defined(IsSerializable) &then
+&if keyword-all('serializable') eq 'serializable' &then
+    &scoped-define serializable serializable
+&endif 
+&endif
+
+class {&FullType} {&serializable} inherits {&ParentCollectionType} {&Interfaces}:
     constructor public {&CollectionType}():
         super().        
     end constructor.

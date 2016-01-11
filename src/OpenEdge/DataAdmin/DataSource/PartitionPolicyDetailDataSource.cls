@@ -45,9 +45,14 @@ ObjectNumber,_Object-Number,~
 Description,_description,~
 StringValues,_Partition-Column-Value,~
 InternalValue,_Partition-Internal-Value,~
-isDataEnabled,_Attributes[1],~
 IsSplitTarget,_Attributes[2]"
     no-undo.
+    
+ /*   ?? mapped in 11.4  - always false and  never updatable 
+      Was exported in .d - replaced by readonly in 11.5 
+       - safe since it was false in .d and thus can never be used for enabled...... 
+isDataEnabled,_Attributes[1],~
+*/
 
     define protected property DBConfig as DBConfig no-undo
     get():
@@ -191,7 +196,7 @@ IsSplitTarget,_Attributes[2]"
         define variable dbRecid      as recid no-undo.
         define variable partitionobj as Storage no-undo.
         define variable lAllocate    as logical no-undo.
-        
+        define variable lReadOnly    as logical no-undo.
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
       
@@ -209,6 +214,7 @@ IsSplitTarget,_Attributes[2]"
             do while hBeforebuff:avail:
                 assign
                     lAllocate = false
+                    lReadOnly = ? /* use unknwon to detect change to both true or false whihc needs to be stored in pStroage class  */
                     lSplit    = false.    
                 if hBeforeBuff:row-state <> 0 then 
                 do:
@@ -234,42 +240,59 @@ IsSplitTarget,_Attributes[2]"
                                  dictdb._Partition-Policy-Detail._Partition-Column-value = phBuffer::StringValues
                                  phBuffer::DefaultAllocation = bPolicy._Allocation-Default 
                                  phBuffer::ObjectNumber      = bPolicy._Object-Number.   
+                                
                              
+                             if phBuffer::IsAllocated 
                              /* if immediate the language takes care of the allocation, 
-                                so just set the state for client */
-                             if bPolicy._Allocation-Default  = "Immediate" then
-                                 phBuffer::IsAllocated = true.
-                             /* no point allocating a composite partiton 
+                                (The correct state will be returned to client from after row) */
+                             and bPolicy._Allocation-Default  <> "Immediate"  
+                              /* no point allocating a composite partiton (already is)  
                                 @todo - ? find better way to check if composite =- seems a bit scary to rely 
-                                        on UI/client (supposedly read-only though) */     
-                             else if phBuffer::IsAllocated and phBuffer::IsComposite = false then 
+                                        on getting this from UI/client (supposedly read-only though) */     
+                             and phBuffer::IsComposite = false then  
                                  lAllocate = true.
+                                 
+                             if phBuffer::IsReadOnly = true then
+                                 lReadOnly = true.
                              
                              if phBuffer::IsSplitTarget = true then
                                  dictdb._Partition-Policy-Detail._Attributes[2] = true.  
                         end. 
                         else do: 
-                            /*  Core requirement - exclusive lock policy if we're setting split-target  */
-                            if hBeforeBuff::IsSplitTarget = false and phBuffer::IsSplitTarget = true then 
+                            if hBeforeBuff::IsSplitTarget <> phBuffer::IsSplitTarget then 
                             do:
-                                find bPolicy where bPolicy._Partition-Policy-Name =  phBuffer::PartitionPolicyName
-                                exclusive no-wait. 
-                                lSplit = true. /* use flag to avoid checking the condition twice */
+                                /*  Core requirement - exclusive lock policy if we're setting split-target  */
+                                if phBuffer::IsSplitTarget = true then 
+                                do:
+                                    
+                                    find bPolicy where bPolicy._Partition-Policy-Name =  phBuffer::PartitionPolicyName
+                                    exclusive no-wait. 
+                                    lSplit = true. /* use flag to avoid checking the condition twice */
+                                end.
+                                else
+                                    undo, throw new DataAccessError("SplitTarget cannot be set to false").
+                                
                             end.
-
+                            
                             find dictdb._Partition-Policy-Detail where dictdb._Partition-Policy-Detail._Partition-Name = hBeforeBuff::name 
                             exclusive no-wait. 
                             
                             if dictdb._Partition-Policy-Detail._Partition-name <> phBuffer::Name then 
                                 dictdb._Partition-Policy-Detail._Partition-name = phBuffer::Name. 
-                       
+                     
                             if hBeforeBuff::isAllocated <> phBuffer::isAllocated
                             and phBuffer::isAllocated = true 
                             and dictdb._Partition-Policy-Detail._partition-id <> 0 then
                             do:
                                 lAllocate = true.
                             end.
-                            
+                    
+                            if hBeforeBuff::isReadOnly <> phBuffer::isReadOnly
+                            and dictdb._Partition-Policy-Detail._partition-id <> 0 then
+                            do:
+                                lReadOnly = phBuffer::isReadOnly.
+                            end.
+                           
                             /* lSplit flag is set above (since we need to lock the parent policy for this operation) */
                             if lSplit then 
                             do:
@@ -278,10 +301,11 @@ IsSplitTarget,_Attributes[2]"
                                 do:
                                     dictdb._Partition-Policy-Detail._Attributes[2] = true.
                                 end.
-                                /* @todo move after validate or in Afterrow and set based on true state */
-                                phBuffer::isAllocated = lAllocate. /* true is wrong , but means we actively 
-                                                                      changed it so keep it */
-                                phBuffer::isComposite = false.
+/*                                /* @todo move after validate or in Afterrow and set based on true state */ */
+/*                                                                                                           */
+/*                                phBuffer::isAllocated = lAllocate. /* true is wrong , but means we actively*/
+/*                                                                      changed it so keep it  */            */
+/*                                phBuffer::isComposite = false.                                             */
                             end.
                         end. 
                        
@@ -303,6 +327,7 @@ IsSplitTarget,_Attributes[2]"
                                  end.
                              end.
                         end.
+                        
                         if phbuffer::DefaultIndexAreaName > "" then
                         do on error undo, throw:
                             find b_indexarea where b_indexarea._area-name = phbuffer::DefaultIndexAreaName
@@ -340,10 +365,13 @@ IsSplitTarget,_Attributes[2]"
  
                         /* ensure partitions are created and partition changes are seen (IsAllocated)*/
                         validate dictdb._Partition-Policy-Detail.
+                        if hBeforeBuff:row-state = row-created then
+                            phBuffer::Id = dictdb._Partition-Policy-Detail._partition-id.
                         
-                        If lAllocate then                           
+                        If lAllocate or lReadOnly <> ? then                           
                         do:
-                            /* partition 0 is allocated per definition, so skip when new for now */  
+                            /* partition 0 applies to multiple details and is allocated per definition, 
+                               so skip when new   */  
                             if dictdb._Partition-Policy-Detail._Partition-id <> 0 or 
                             hBeforeBuff:row-state = row-modified  then
                             do: 
@@ -353,14 +381,19 @@ IsSplitTarget,_Attributes[2]"
                                 find dictdb._file where dictdb._file._db-recid = dbRecid
                                                   and dictdb._file._file-number = phBuffer::ObjectNumber 
                                                   and dictdb._file._owner = "PUB" no-lock. 
-                                
+                               
                                 partitionobj = DBConfig:GetTable(dictdb._file._file-name,phBuffer::Name,"P").
-                                partitionobj:AllocationState = "Allocated".
+                               
+                                if lAllocate then
+                                    partitionobj:AllocationState = "Allocated".
+                                IF lReadOnly <> ? then
+                                    partitionobj:readOnly = lReadOnly.
+                                
                                 RefreshPartitionState(phBuffer::name,phBuffer:dataset). 
                             end.
                         end.
-                        
                         hdataset = phBuffer:dataset.
+                       
                         AfterRow(dataset-handle hdataset by-reference).    
                                
                         phBuffer:error = false.
@@ -406,9 +439,9 @@ IsSplitTarget,_Attributes[2]"
         define variable cAreaUrl as character no-undo.
         define variable partitionobj as Storage no-undo.
         define variable dbRecid     as recid no-undo.
-  
         mcount = mcount + 1.
         hBuffer =  hds:get-buffer-handle("ttPartitionPolicyDetail").
+        
         if not mSave then
         do:
             find bPolicy where bPolicy._Object-Number =  hBuffer::ObjectNumber no-lock no-error.
@@ -416,25 +449,42 @@ IsSplitTarget,_Attributes[2]"
             do:
                 hBuffer::PartitionPolicyName =  bPolicy._Partition-Policy-name.
                 hBuffer::DefaultAllocation = bPolicy._Allocation-Default.   
-            end.                
-            if hBuffer::Id = 0 then 
-            do:
-               assign
-                   hBuffer::IsAllocated = true
-                   hBuffer::IsComposite = true.
+            end.   
+        end.    
+        
+        if hBuffer::Id = 0 and hBuffer:row-state = row-created then 
+        do:
+            assign 
+                hBuffer::IsComposite = true
+                hBuffer::IsReadOnly  = false
+                hBuffer::IsAllocated = true.
+        end.
+        else do:
+           /* The first call to DatabaseInfo may call the constructor which
+                has a find that will give error 7254 in where clause  */
+           dbRecid = DatabaseInfo:DatabaseRecid. 
+           find dictdb._file where dictdb._file._db-recid = dbRecid
+                               and dictdb._file._file-number = hBuffer::ObjectNumber 
+                               and dictdb._file._owner = "PUB" no-lock. 
+        
+        
+            if hBuffer::Id = 0 then
+            do:           
+                assign
+                    hBuffer::IsComposite = true
+                    /* find composite partition - initial - C */
+                    partitionobj = DBConfig:GetTable(dictdb._file._file-name,"initial","C" ).
             end.       
             else do:
-                 /* The first call to DatabaseInfo may call the constructor which
-                    has a find that will give error 7254 in where clause  */
-                dbRecid = DatabaseInfo:DatabaseRecid. 
-                find dictdb._file where dictdb._file._db-recid = dbRecid
-                                  and dictdb._file._file-number = hBuffer::ObjectNumber 
-                                  and dictdb._file._owner = "PUB" no-lock. 
-       
-                partitionobj = DBConfig:GetTable(dictdb._file._file-name,hBuffer::Name,"P") .
+                assign 
+                    hBuffer::IsComposite = false 
+                    partitionobj = DBConfig:GetTable(dictdb._file._file-name,hBuffer::Name,"P" ).
+            end.
+            assign 
+                hBuffer::IsReadOnly = partitionobj:ReadOnly
                 hBuffer::IsAllocated = partitionobj:AllocationState = "Allocated".
-            end. 
-        end.    
+        end. 
+        
         assign
             cAreaUrl = url + "/areas/"
             cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  

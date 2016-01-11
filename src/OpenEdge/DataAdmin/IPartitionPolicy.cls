@@ -36,7 +36,15 @@ interface OpenEdge.DataAdmin.IPartitionPolicy inherits IPartitionParent :
           <b>true</b> if the partition is read-only    */    
     define public property IsReadOnly  as logical no-undo      get. set.
     
-      /** Num Fields          */    
+    /** HasComposite 
+          <b>true</b> if the partition has a composite partition   */    
+    define public property HasComposite  as logical no-undo    get. 
+    
+    /** IsCompositeReadOnly 
+          <b>true</b> if the partition policy composite partition is read-only    */    
+    define public property IsCompositeReadOnly  as logical no-undo    get. set.
+    
+       /** Num Fields          */    
     define public property NumFields   as integer no-undo      get.
    
     /** The Table of the policy */

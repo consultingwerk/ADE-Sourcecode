@@ -53,6 +53,8 @@ DEFINE VARIABLE trgr          AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE cmptdcol      AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE wdth          AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE ablfmt        AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE cmptble       AS CHARACTER              NO-UNDO.
+DEFINE VARIABLE crtdflt       AS CHARACTER              NO-UNDO.
 
 batch_mode = SESSION:BATCH-MODE.
 
@@ -311,9 +313,33 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
   END.
 END.
 
-ASSIGN pcompatible = TRUE
-       long-length = 8000
-       iRecidOption = 1.       
+
+IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
+   cmptble  = OS-GETENV("COMPATIBLE").
+     IF ((cmptble = "1") OR (cmptble BEGINS "Y")) THEN
+       ASSIGN pcompatible=TRUE
+              iRecidOption = 1. 
+     ELSE IF (cmptble = "2")  THEN
+          ASSIGN pcompatible=TRUE
+          iRecidOption = 2.
+     ELSE IF (cmptble BEGINS "N") THEN DO:
+       ASSIGN  pcompatible=FALSE
+               pcompatible:SCREEN-VALUE = "NO"
+               iRecidOption:SCREEN-VALUE = "1". 
+     END.
+ END.
+ ELSE
+    ASSIGN pcompatible = TRUE
+           iRecidOption = 1.       
+
+IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
+  ASSIGN crtdflt = OS-GETENV("CRTDEFAULT").
+  IF crtdflt BEGINS "Y" THEN ASSIGN dflt = TRUE.
+  ELSE dflt = FALSE.
+END. 
+ELSE ASSIGN dflt = FALSE.
+
+ASSIGN long-length = 8000.
 
 DISPLAY cFormat lFormat mapMSSDatetime cRecid WITH FRAME read-df.
 
@@ -365,7 +391,7 @@ ELSE
        "Delta df to MS SQL Server Conversion Parameters" skip(2)
        "Delta DF File:                          " df-file skip
        "Schema Holder Database:                 " osh_dbname skip
-       "Connect Parameters fo Schema:           " mss_conparms skip
+       "Connect Parameters for Schema:          " mss_conparms skip
        "Logical Name for MSS Database:          " mss_dbname SKIP
        "MSS Object Owner Name:                  " mss_username SKIP
        "Maximum Varchar Length:                 " long-length skip

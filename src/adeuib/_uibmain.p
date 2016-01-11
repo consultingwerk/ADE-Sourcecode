@@ -783,9 +783,9 @@ PROCEDURE initialize_uib:
     IF _uib_prefs._user_dfltwindow THEN DO:
       FIND FIRST _custom WHERE _custom._type = "Container" NO-ERROR.
       IF AVAILABLE (_custom) THEN DO:
-        FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(_custom._attr),13,-1,"CHARACTER")).
         RUN setstatus ("WAIT":U, "Opening container template...").
-        RUN adeuib/_open-w.p (FILE-INFO:PATHNAME, "", "UNTITLED":U).
+        /* PSC00316840:Error 293 on dynamics startup */
+        RUN adeuib/_open-w.p (_custom._design_template_file, "", "UNTITLED":U).
         RUN display_current.
         APPLY "ENTRY":U TO cur_widg_name IN FRAME action_icons.
         RUN setstatus ("":U, "":U).

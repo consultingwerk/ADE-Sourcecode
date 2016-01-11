@@ -196,7 +196,7 @@ DO WITH FRAME {&FRAME-NAME}:
   DEFINE VARIABLE cCommercialVer  AS CHAR NO-UNDO.                        
   
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-     cCopyRight = "Copyright ¸".
+     cCopyRight = "¸". /* According to Legal- 11.5 */
   &ELSE
      cCopyRight = "Copyright". /* According to Legal 10/14/2009 */
   &ENDIF
@@ -217,13 +217,13 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    cCopyright + " 1984-2014 Progress Software Corporation and/or its subsidiaries or affiliates. "
+    cCopyright + " 1984-2014 Progress Software Corporation. "
     + "All rights reserved.".
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2014 Vol 1. " +  
-        cCopyright + " 2003-2014 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2014 Vol 2. " +  
+        cCopyright + " 2014 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

@@ -171,7 +171,7 @@ DEFINE NEW SHARED TEMP-TABLE df-info NO-UNDO
 
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 62 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 63 NO-UNDO INITIAL [
   /* 1*/ "(initializing)",
   /* 2*/ "", /* See Below */
   /* 3*/ "WARNING: The ",
@@ -218,7 +218,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 62 NO-UNDO INITIAL [
   /*44*/ " multi-tenant database but ",
   /*45*/ " database is non multi-tenant. The generated incremental df will not be uploaded in the non multi-tenant database.",
   /*46*/ " defined as non multi-tenant in ",
-  /*47*/ " database. Multi-tenant table can not be changed into non multi-tenant table.",
+  /*47*/ " database. A multi-tenant table cannot be changed into non multi-tenant table.",
   /*48*/ " sequence is defined as multi-tenant in ",
   /*49*/ " database but defined as non multi-tenant in  ",
   /*50*/ " database is defined as non multi-tenant database. Multi-tenant sequence feature has been ignored while generating incremental df.",
@@ -233,7 +233,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 62 NO-UNDO INITIAL [
   /*59*/ " is partition-enabled database. As a result some partitioning features have been ignored while generating incremental df.",
   /*60*/ " index is defined as global in ", 
   /*61*/ " database but defined as local in ",
-  /*62*/ " database. As a result some partitioned features have been ignored while generating incremental df."
+  /*62*/ " database. As a result some partitioned features have been ignored while generating incremental df.",
+  /*63*/ " database. A partitioned table cannot be changed into non partitioned table."
            
 ]. 
 
@@ -1115,11 +1116,12 @@ DO ON STOP UNDO, LEAVE
     do:
         If not DICTDB._File._File-Attributes[3] and DICTDB2._File._File-Attributes[3] then
         do:
+            ASSIGN s_errorsLogged = TRUE.
             OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
                 PUT STREAM err-log UNFORMATTED new_lang[3] +
                         '"' + DICTDB._File._File-name + '"' + new_lang[53]     SKIP
                         '"' + LDBNAME("DICTDB")       + '"' + new_lang[54]     SKIP
-                        '"' + LDBNAME("DICTDB2")      + '"' + new_lang[55]     SKIP(1).
+                        '"' + LDBNAME("DICTDB2")      + '"' + new_lang[63]     SKIP(1).
             OUTPUT STREAM err-log CLOSE.    
         end.  
         else if DICTDB._File._File-Attributes[3] then do : 
@@ -2634,7 +2636,7 @@ DO ON STOP UNDO, LEAVE
              OUTPUT STREAM err-log CLOSE.
  
          END.
-         ELSE
+         ELSE IF (DICTDB._Db._Db-type = "PROGRESS" and DICTDB._Sequence._Seq-attributes[1]) THEN
          ASSIGN j = j + 1
                 ddl[j] = " MULTITENANT "  + STRING(DICTDB._Sequence._Seq-attributes[1]).
       END.

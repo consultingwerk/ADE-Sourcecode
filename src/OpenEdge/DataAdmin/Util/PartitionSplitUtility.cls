@@ -24,7 +24,8 @@
 
 block-level on error undo, throw.
 
-using OpenEdge.DataAdmin.IIndex from propath.
+using OpenEdge.DataAdmin.IIndex from propath. 
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
 using OpenEdge.DataAdmin.ITable from propath.
 using OpenEdge.DataAdmin.Message.IUtilityRequest from propath.
@@ -39,15 +40,7 @@ using OpenEdge.DataAdmin.IPartitionPolicy from propath.
 
 class OpenEdge.DataAdmin.Util.PartitionSplitUtility inherits PartitionManageUtility implements IPartitionSplitUtility: 
     
-    define protected override property ReadOnlyReason as char no-undo 
-        get():
-            if not valid-object(PartitionPolicyDetail) then
-                return "Table was passed to constructor.".
-            else
-                return "PartitionPolicyDetail was passed to constructor.".
-        end.  
-        
-	define override public property Name as character no-undo 
+    define override public property Name as character no-undo 
 	init "PartitionSplit"
 	get.
 	set. 
@@ -55,7 +48,53 @@ class OpenEdge.DataAdmin.Util.PartitionSplitUtility inherits PartitionManageUtil
 	 Purpose:
 	 Notes:
 	------------------------------------------------------------------------------*/
-		
+	
+	method private char ReadOnlyReason(pdetail as IPartitionPolicyDetail):
+        if not valid-object(pdetail) then
+           return "Table was passed to constructor.".
+        else
+           return "PartitionPolicyDetail was passed to constructor.".
+    end method.
+	
+	define public property PartitionPolicyDetail as IPartitionPolicyDetail no-undo
+         get.   
+         set(pdtl as IPartitionPolicyDetail):
+             if IsReadOnly then
+                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","PartitionPolicyDetail",ReadOnlyReason(PartitionPolicyDetail)). 
+             /* allow  null */   
+             if valid-object(pdtl) then
+             do:
+                 AssertPolicyDetail(pdtl).
+                 NullTable(). /* set table to null - the getter will derrive it from the detail */ 
+             end.   
+             PartitionPolicyDetail = pdtl.
+         end.
+	
+	define override public property Table as ITable no-undo 
+         get():
+             if valid-object(PartitionPolicyDetail) then 
+             do:
+                 if valid-object(PartitionPolicyDetail:PartitionPolicy) then
+                 do:
+                     return PartitionPolicyDetail:PartitionPolicy:Table.
+                 end.    
+             end.  
+             return this-object:Table.    
+         end.      
+         set(ptbl as ITable):
+            if IsReadOnly then
+                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","Table",ReadOnlyReason(PartitionPolicyDetail)). 
+            
+            if valid-object(PartitionPolicyDetail) then
+                undo ,throw new ReadOnlyPropertyError("PartitionManageUtility","","Table","This is defined indirectly by the PartitionPolicyDetail"). 
+            
+            if valid-object(ptbl)  and not  ptbl:IsPartitioned then
+                undo ,throw new IllegalArgumentError("Table " + quoter(ptbl:name ) + " is not a partitioned table"). 
+         
+            this-object:Table = ptbl.
+           
+         end.
+         
 	constructor public PartitionSplitUtility (  ):
 		super ().
 	end constructor.
@@ -230,4 +269,9 @@ class OpenEdge.DataAdmin.Util.PartitionSplitUtility inherits PartitionManageUtil
             undo, throw new IllegalArgumentError("The split PartitionPolicyDetail source " + quoter(pdetail:Name) + "  is in a composite partition").
     
     end method.
+    
+    method private void NullTable():
+        this-object:Table = ?.
+    end method. 
+    
 end class.

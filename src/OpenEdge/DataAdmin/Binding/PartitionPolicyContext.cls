@@ -103,6 +103,9 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
         end.
         protected set.
  
+    define public property CreateReadOnlyError as char 
+          init "The property can only be edited after the policy has been created." no-undo get.  
+    
     constructor public PartitionPolicyContext ():
         define variable policyFieldcontext  as PartitionPolicyFieldContext no-undo.
         define variable policydetailcontext as PartitionPolicyDetailContext no-undo.
@@ -344,37 +347,6 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
         end finally.
     end method.
     
-/*    method protected override handle CreateSaveDataset():                 */
-/*        define variable tree as IContextTree no-undo.                     */
-/*        define variable idccntxt as IDataAdminContext no-undo.            */
-/*        tree = new ContextTree().                                         */
-/*        tree:Parse = true.                                                */
-/*                                                                          */
-/*        AddTreeTo(tree).                                                  */
-/*        idccntxt = GetChild('indexes').                                   */
-/*        tree:SetHandle('indexes',idccntxt:TableHandle).                   */
-/*        tree:SetJoin('partitionpolicies','indexes','TableName,TableName').*/
-/*                                                                          */
-/*        return tree:GetReadHandle().                                      */
-/*    end method.                                                           */
-    
-    
-/*    method public void LoadInstances().                   */
-/*        if not Loaded then                                */
-/*        for each ttTenant:                                */
-/*            if not valid-object(ttTenant.Entity) then     */
-/*                ttTenant.Entity = new Tenant(this-object).*/
-/*        end.                                              */
-/*        Loaded = true.                                    */
-/*    end method.                                           */
-/*                                                          */
-/*    method protected void UnLoadInstances().              */
-/*        for each ttTenant:                                */
-/*            ttTenant.Entity = ?.                          */
-/*        end.                                              */
-/*        Loaded = false.                                   */
-/*    end method.                                           */
-              
     method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
         hTbl = cntxt:TableHandle.
@@ -445,19 +417,29 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
     
     method protected override void ValidateBuffer(phPolicy as handle):
         define variable hBefore as handle no-undo.
-       
+        define variable cName as character no-undo.
         if phPolicy:row-state = row-modified then
         do:
+            cName = phPolicy::name.
+            if cname = ? then cName = "<unknown>".
             hBefore = phPolicy:before-buffer.
             hbefore:find-by-rowid(phPolicy:before-rowid).
             if phPolicy::HasRange <> hBefore::HasRange then
-               undo, throw new CreateOnlyPropertyError(Name,phPolicy::name,"HasRange").
+               undo, throw new CreateOnlyPropertyError(Name,cName,"HasRange").
                
             /* OEM 449- allow rename   */
             /*if phPolicy::Name <> hBefore::Name then
                undo, throw new ReadOnlyPropertyError(Name,phPolicy::Name,"Name").*/
         end. 
-      
+        else if phPolicy:row-state = row-created then
+        do:
+            if phPolicy::IsCompositeReadOnly = true then
+            do:
+                cName = phPolicy::name.
+                if cname = ? then cName = "<unknown>".
+                undo, throw new ReadOnlyPropertyError("PartitionPolicy",cName,"IsCompositeReadOnly",CreateReadOnlyError).
+            end.
+        end.          
     end method.      
     
 	method private void ValidatePolicy(policy as IPartitionPolicy):
@@ -684,6 +666,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
         return new PartitionPolicy(this-object,req).
     end method.
     
+    
     /*
     method public ISaveRequest GetCreateRequest():
         define variable hchanges as handle no-undo.
@@ -824,6 +807,9 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
             ttPartitionPolicy.HasRange 
             ttPartitionPolicy.FieldNames
             /*** end 11.4 **/   
+ /* new in 11.5 - not exported since it requires details in same transaction  */
+/*            ttPartitionPolicy.IsCompositeReadOnly*/
+            /*** end 11.5 **/  
             .
     end method. 
     
@@ -839,6 +825,8 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
         define variable tDefaultAllocation like ttPartitionPolicy.DefaultAllocation no-undo.
         define variable tFieldNames like ttPartitionPolicy.FieldNames no-undo.
         define variable tHasRange like ttPartitionPolicy.HasRange no-undo.
+/* future - requires details in same trans  
+        define variable tIsCompositeReadOnly like  ttPartitionPolicy.IsCompositeReadOnly no-undo.*/
         define variable tDescription like ttPartitionPolicy.Description no-undo.
         define variable currentService as IDataAdminService  no-undo.
         define variable tbl as ITable  no-undo.
@@ -855,6 +843,9 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
               tDefaultAllocation
               tHasRange
               tFieldNames
+              /** 11.5 nothing...  */
+             /*   to be true this must handle details in same transaction   
+              tIsCompositeReadOnly*/
               .
             if plReplace then
             do: 
@@ -875,7 +866,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
               ttPartitionPolicy.DefaultAllocation = tDefaultAllocation 
               ttPartitionPolicy.FieldNames = tFieldNames
               ttPartitionPolicy.HasRange = tHasRange
-              ttPartitionPolicy.Description = tDescription
+/*   see above           ttPartitionPolicy.IsCompositeReadOnly = tIsCompositeReadOnly*/
              .
              
             currentService = if valid-object(Service)  then Service else TargetService.

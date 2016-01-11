@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2013 by progress Software Corporation       */
+/* Copyright (c) 2013,2014 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -125,12 +125,18 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
             if cDatatype = "recid" then
                   cDatatype = "integer". 
         
-            cSort = cSort + " by " 
-                  + (if cDatatype = "character" then "" else cDatatype + "(")
-                  + "ttPartitionPolicyDetail.StringValues[" + String(i)  + "]"
-                  + (if cDatatype = "character" then "" else ")").
+            cSort = cSort + " by "
+                  + if cDatatype = "date" then 
+                     ("substr(ttPartitionPolicyDetail.StringValues[" + String(i)  + "],7,4) 
+                       + substr(ttPartitionPolicyDetail.StringValues[" + String(i)  + "],1,2) 
+                       + substr(ttPartitionPolicyDetail.StringValues[" + String(i)  + "],4,2)") 
+                    else 
+                         (if cDatatype = "character" then "" else cDatatype + "(")
+                          + "ttPartitionPolicyDetail.StringValues[" + String(i)  + "]"
+                          + (if cDatatype = "character" then "" else ")").
         
-        end.    
+        end.  
+         
         return cQuery + cSort. 
     end method.
     
@@ -304,6 +310,8 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
                 ttPartitionPolicyDetail.Name          = policyDetail:name
                 ttPartitionPolicyDetail.Description   = policyDetail:Description  
                 ttPartitionPolicyDetail.IsDataEnabled = policyDetail:IsDataEnabled
+                ttPartitionPolicyDetail.IsReadOnly    = policyDetail:IsReadOnly
+                ttPartitionPolicyDetail.IsSplitTarget = policyDetail:IsSplitTarget
                 ttPartitionPolicyDetail.IsAllocated   = policyDetail:IsAllocated.
             if valid-object(policyDetail:DefaultDataArea) then
                 ttPartitionPolicyDetail.DefaultDataAreaName  = policyDetail:DefaultDataArea:Name.
@@ -745,7 +753,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
             ttPartitionPolicyDetail.DefaultDataAreaName
             ttPartitionPolicyDetail.DefaultIndexAreaName 
             ttPartitionPolicyDetail.DefaultLobAreaName
-            ttPartitionPolicyDetail.IsDataEnabled 
+            ttPartitionPolicyDetail.IsReadOnly
             /*  not in db          ttPartitionPolicyDetail.DefaultAllocation*/
           
             /*** end 11.4 **/   
@@ -762,7 +770,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
         define variable tDefaultIndexAreaName like ttPartitionPolicyDetail.DefaultIndexAreaName no-undo.
         define variable tDefaultLobAreaName   like ttPartitionPolicyDetail.DefaultLobAreaName no-undo.
         define variable tDefaultAllocation    like ttPartitionPolicyDetail.DefaultAllocation no-undo.
-        define variable tIsDataEnabled        like ttPartitionPolicyDetail.IsDataEnabled no-undo.
+        define variable tIsReadOnly           like ttPartitionPolicyDetail.IsReadOnly no-undo.
         define variable lnew                  as logical no-undo. 
         do on endkey undo, leave:
             import stream-handle phStream
@@ -773,7 +781,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
                 tDefaultDataAreaName
                 tDefaultIndexAreaName
                 tDefaultLobAreaName
-                tIsDataEnabled
+                tisReadOnly
                 /*      not in db        tDefaultAllocation*/
             
                 .
@@ -796,7 +804,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
                 ttPartitionPolicyDetail.DefaultIndexAreaName = tDefaultIndexAreaName 
                 ttPartitionPolicyDetail.DefaultLobAreaName   = tDefaultLobAreaName 
                 /*              ttPartitionPolicyDetail.DefaultAllocation = tDefaultAllocation*/
-                ttPartitionPolicyDetail.IsDataEnabled        = tIsDataEnabled
+                ttPartitionPolicyDetail.IsReadOnly        = tisReadOnly
                 .
             lok = true.    
           

@@ -20,8 +20,6 @@ using OpenEdge.DataAdmin.ITable from propath.
 using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
 
 interface OpenEdge.DataAdmin.Util.IPartitionManageUtility inherits IDataAdminUtility: 
-     define public property PartitionPolicyDetail as IPartitionPolicyDetail no-undo get.  set. 
-     define public property Table as ITable no-undo get.  set.
      define public property Index as IIndex no-undo get.  set.
      define public property TransactionSize as int no-undo get.  set.
      

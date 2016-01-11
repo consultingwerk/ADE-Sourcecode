@@ -251,6 +251,8 @@ _outer: DO WHILE TRUE:
         SET
           _Field._Can-read _Field._Can-write
           WITH FRAME fld EDITING:
+            ON RETURN OF FRAME fld ANYWHERE
+	        NEXT.            
             READKEY.
             APPLY (IF CAN-DO("PAGE-UP,PAGE-DOWN,GET,PUT",KEYFUNCTION(LASTKEY))
               THEN KEYCODE(KBLABEL("GO")) ELSE LASTKEY).
@@ -275,6 +277,8 @@ _outer: DO WHILE TRUE:
           _File._Can-create _File._Can-delete
           _File._Can-dump   _File._Can-load
           WITH FRAME fil EDITING:
+            ON RETURN OF FRAME fil ANYWHERE
+	        NEXT.
             READKEY.
             APPLY (IF CAN-DO("PAGE-UP,PAGE-DOWN,GET,PUT",KEYFUNCTION(LASTKEY))
               THEN KEYCODE(KBLABEL("GO")) ELSE LASTKEY).

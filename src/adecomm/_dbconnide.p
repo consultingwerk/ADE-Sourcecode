@@ -43,7 +43,7 @@ inum = NUM-DBS.
 p_LName = ?. 
 p_PName = ?.
  /* ? = no prompt do you want to connect*/
-lOK =  OpenDBConnectionDialog(?). 
+run ShowDBConnectionDialog in hOEIDEService(?, output lok).           
 if lok = true then 
 do:
     if NUM-DBS > 0 then

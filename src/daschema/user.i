@@ -20,6 +20,9 @@
 define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUserCopy
     field Name          as character      serialize-name "name"
     field Password      as character      serialize-name "password"
+    /* not a real property -  used to carry PasswordPolicy:PreEncodeUserPassword to server
+       to be removed if a better mechansim is used to pass preferences */
+    field PreEncodePassword as logical    serialize-hidden   
     field Id            as character      serialize-name "id" format "x(30)"
     field Description   as character      serialize-name "description"
     field IsSqlOnly     as logical        serialize-name "isSqlOnly"  

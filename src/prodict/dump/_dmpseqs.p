@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2007,2014 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -26,6 +26,13 @@ routine-level on error undo, throw.
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
 define variable lApplAlertBox as logical no-undo.
 DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
+
+/* check if LDBNAME(dbname) is a keyword; if yes, throw error and return */
+IF  KEYWORD(LDBNAME(user_dbname)) <> ? THEN DO:
+    message QUOTER(LDBNAME(user_dbname)) " used as logical database name is a reserved keyword. Please try again. "
+            VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    RETURN.
+END.    
 
 lApplAlertBox = SESSION:APPL-ALERT-BOXES.
 

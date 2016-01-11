@@ -26,6 +26,31 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
     define public property CodePage as char init ? no-undo 
         get.
         private set.
+    
+    define public property IsNetworkClient as logical no-undo init ? 
+        get():
+            define variable cParams as character no-undo.
+            define variable cParam  as character no-undo.
+            define variable cOption as character no-undo.
+            define variable i as integer no-undo.
+            if IsNetworkClient = ? then
+            do:
+                IsNetworkClient = false.
+                cParams = dbparam("dictdb").
+                loop:
+                do i = 1 to num-entries(cParams):
+                    cParam = entry(i,cParams).
+                    coption = left-trim(entry(1,cParam," "),"-").
+                    if compare(coption,"=","S","case-sensitive") then
+                    do:
+                        IsNetworkClient = true.
+                        leave loop. 
+                    end.  
+                end.
+            end.
+            return IsNetworkClient.
+        end.
+        private set. 
         
     define public property IsMultiTenant as logical init ? no-undo 
          get():

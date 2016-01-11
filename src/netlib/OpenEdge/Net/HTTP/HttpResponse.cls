@@ -1,3 +1,6 @@
+/************************************************
+Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpResponse
     Purpose     : 
@@ -19,14 +22,25 @@
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.ByteBucket.
+using OpenEdge.Net.HTTP.ConcreteHttpResponse.
+using OpenEdge.Net.HTTP.Filter.Message.MessageFilterList.
 using OpenEdge.Net.HTTP.HttpMessage.
 using OpenEdge.Net.HTTP.HttpRequest.
 using OpenEdge.Net.HTTP.HttpResponse.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using Progress.Lang.Object.
+using OpenEdge.Net.HTTP.Filter.Header.ContentEncodingHeaderFilter.
+using OpenEdge.Net.HTTP.Filter.Payload.JsonExtractBodyFilter.
+using OpenEdge.Net.HTTP.Filter.Payload.HtmlExtractBodyFilter.
+using OpenEdge.Net.HTTP.Filter.Payload.DefaultExtractBodyFilter.
+using OpenEdge.Net.HTTP.Filter.Payload.XmlExtractBodyFilter.
 
-class OpenEdge.Net.HTTP.HttpResponse inherits HttpMessage:
+class OpenEdge.Net.HTTP.HttpResponse inherits HttpMessage
+        abstract:
+    /* Holds filters for creating an entity from a message body */
+    define private variable moExtractBodyFilters as MessageFilterList no-undo.
+    
     define public property StatusCode as StatusCodeEnum no-undo
         get.
         set(input poStatusCode as StatusCodeEnum):
@@ -48,10 +62,18 @@ class OpenEdge.Net.HTTP.HttpResponse inherits HttpMessage:
     define override public property Entity as Object no-undo
         get():
             /* lazy load, if there's data */
-            if not valid-object(moEntity) then
-                this-object:ExtractEntity().
-            return moEntity.
+            if not valid-object(this-object:Entity) then
+                this-object:PopulateEntity().
+            return this-object:Entity.
         end get.
+        set.
+    
+    define public property ContentEncoding as TransferEncodingEnum no-undo
+        get.
+        set(input poContentEncoding as TransferEncodingEnum):
+            CheckSeal().
+            assign this-object:ContentEncoding = poContentEncoding.
+        end set.
     
     /** (mandatory) The Request that this object is in response to. */
     define public property Request as HttpRequest no-undo get. private set.
@@ -61,13 +83,46 @@ class OpenEdge.Net.HTTP.HttpResponse inherits HttpMessage:
         this-object:Request = poRequest.
     end constructor.
     
+    /** Factory method to create a new response object. */
     method static public HttpResponse Instance(input poRequest as HttpRequest):
         define variable oResponse as HttpResponse no-undo.
         
-        oResponse = new HttpResponse(poRequest).
+        oResponse = new ConcreteHttpResponse(poRequest).
         oResponse:Initialize().
         
         return oResponse.
+    end method.
+    
+	method override public void Destroy(  ):
+		super:Destroy().
+		
+        DestroyBodyFilters().
+	end method.
+	
+	method override public void Initialize(  ):
+		super:Initialize().
+
+        InitializeBodyFilters().
+	end method.    
+            
+    method override protected void InitializeHeaderFilters():
+        super:InitializeHeaderFilters().
+        
+        AddHeaderFilter(this-object:HeaderFilters, 
+                        get-class(ContentEncodingHeaderFilter)).
+    end method.
+    
+    method protected void InitializeBodyFilters(): 
+        moExtractBodyFilters = new MessageFilterList().
+        
+        AddMessageFilter(moExtractBodyFilters, get-class(JsonExtractBodyFilter)).
+        AddMessageFilter(moExtractBodyFilters, get-class(HtmlExtractBodyFilter)).
+        AddMessageFilter(moExtractBodyFilters, get-class(XmlExtractBodyFilter)).
+        AddMessageFilter(moExtractBodyFilters, get-class(DefaultExtractBodyFilter)).
+    end method.
+    
+    method protected void DestroyBodyFilters():
+        assign moExtractBodyFilters = ?.
     end method.
     
     method override public void Seal():
@@ -77,30 +132,11 @@ class OpenEdge.Net.HTTP.HttpResponse inherits HttpMessage:
         super:Seal().
     end method.
     
-    method public void AddMessageBody(input piCapacity as int64):
-        CheckSeal().
-        Assert:IsPositive(piCapacity, 'Capacity').
-        
-        this-object:MessageBody = ByteBucket:Instance(piCapacity).
-    end method.
-    
-    method public void AddMessageBody(input poBody as ByteBucket):
-        CheckSeal().
-        Assert:NotNull(poBody, 'Message Body').
-        
-        this-object:MessageBody = poBody.
+    method protected void PopulateEntity():
+        /* We can only be sure that there's a complete message
+           body once the response has been sealed. */
+        if this-object:Sealed then
+            moExtractBodyFilters:Filter(this-object).
     end method.
 
-    method public void AddMessageBody():
-        CheckSeal().
-        
-        this-object:MessageBody = ByteBucket:Instance().
-    end method.
-        
-    method public void RemoveMessageBody():
-        CheckSeal().
-        
-        assign this-object:MessageBody = ?
-               this-object:ContentLength = 0.
-    end method.
 end class.

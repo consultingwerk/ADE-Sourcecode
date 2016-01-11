@@ -32,7 +32,7 @@ DEFINE INPUT PARAMETER p_DbId AS RECID NO-UNDO.
 DEFINE SHARED STREAM rpt.
 
 DEFINE VARIABLE flags   AS CHARACTER               NO-UNDO.
-DEFINE VARIABLE fldcnt  AS INTEGER                 NO-UNDO INITIAL -1.
+DEFINE VARIABLE fldcnt  AS INTEGER                 NO-UNDO.
 DEFINE VARIABLE odbtyp  AS CHARACTER               NO-UNDO. /* list of ODBC-types */
 DEFINE VARIABLE starea  AS CHARACTER FORMAT "x(4)" NO-UNDO.
 
@@ -92,19 +92,18 @@ FOR EACH dictdb._File WHERE dictdb._File._Db-recid = p_DbId AND NOT dictdb._File
    ELSE
       ASSIGN starea = "N/A".
  
+   /* find field count for each table */
+   fldcnt = 0.
+   for each dictdb._Field of dictdb._File no-lock:
+       fldcnt = fldcnt + 1.
+   end.
+ 
    DISPLAY STREAM rpt
       dictdb._File._File-name
       starea
       dictdb._File._File-label
       flags
-      /* Progress Db's have an extra hidden field that holds the table # 
-      	 which gateway Db's don't have.
-      */
-      (IF dictdb._Db._Db-type = "PROGRESS"
-       OR dictdb._Db._Db-type = "AS400" 
-       OR CAN-DO(odbtyp,dictdb._Db._Db-type)
-				    THEN dictdb._File._numfld - 1
-      	       	    ELSE dictdb._File._numfld) @ fldcnt
+      fldcnt
       dictdb._File._numkey
       dictdb._File._Dump-name
       WITH FRAME shotable.

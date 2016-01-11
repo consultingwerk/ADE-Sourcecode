@@ -46,6 +46,8 @@ DEFINE VARIABLE old-dictdb    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
+DEFINE VARIABLE prelCharSem AS LOGICAL NO-UNDO.
+DEFINE VARIABLE preuniTypes AS LOGICAL NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                            INITIAL "For field widths use:"
                            FORMAT "x(20)" NO-UNDO.
@@ -55,10 +57,10 @@ DEFINE VARIABLE disp_msg1      AS LOGICAL INITIAL TRUE     NO-UNDO.
 DEFINE VARIABLE disp_msg2      AS LOGICAL INITIAL TRUE     NO-UNDO.
 DEFINE button s_btn_Advanced SIZE 24 by 1.125.
 DEFINE STREAM   strm.
+DEFINE VARIABLE varlen      AS INTEGER NO-UNDO.
 
 ASSIGN redo = FALSE
        batch_mode = SESSION:BATCH-MODE.
-
 
 FORM
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
@@ -90,9 +92,8 @@ FORM
   ora_collname FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
      LABEL "Collation Name" COLON 38 SKIP({&VM_WID})
   ora_varlen FORMAT ">>>9" 
-    VALIDATE (INPUT ora_varlen > 0 AND
-              INPUT ora_varlen <= 4000,
-              "Maximum length must not be greater than 4000") 
+    VALIDATE (INPUT ora_varlen > 0,
+              "Maximum char length must be a positive value.") 
          LABEL "Maximum char length"  COLON 38
  /* space(1) lExpandClob view-as toggle-box label "Expand to CLOB"*/ SKIP({&VM_WID})
   " ORACLE tablespace name for:" view-as text SKIP({&VM_WID})   
@@ -160,15 +161,29 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
 END.  
 
 PROCEDURE fill_utf:
- IF ora_varlen = 2000 
- THEN
-       ASSIGN  ora_codepage = 'UTF-8'
-               ora_codepage:SCREEN-VALUE in frame x= 'UTF-8'
-               ora_varlen:SCREEN-VALUE in frame x= "2000".
- ELSE
-       ASSIGN  ora_codepage = session:cpinternal
-               ora_codepage:SCREEN-VALUE in frame x= session:cpinternal
-               ora_varlen:SCREEN-VALUE in frame x= "4000". 
+
+ IF unicodeTypes = YES THEN DO:
+   IF SUBSTR(trim(ora_codepage:SCREEN-VALUE in frame x),1,4) = "UTF-" THEN DO:
+      IF INTEGER(ora_varlen:SCREEN-VALUE in frame x) <> 2000  THEN 
+         ASSIGN ora_varlen:SCREEN-VALUE in frame x = "2000".
+   END.
+ END.  
+ ELSE  IF lCharSemantics = YES THEN DO: 
+   IF SUBSTR(Trim(ora_codepage:SCREEN-VALUE in frame x),1,4) = "UTF-" THEN DO:
+      IF INTEGER(ora_varlen:SCREEN-VALUE in frame x) > 1000  THEN 
+         ASSIGN ora_varlen:SCREEN-VALUE in frame x = "1000".
+   END.
+ END.
+ ELSE DO:
+     IF prelCharSem <> lCharSemantics OR preuniTypes <> unicodeTypes THEN DO:  /* PSC00321497 */
+     /*  UTF- codepage without UseUnicode or CharSemantics is a valid scenario */
+       IF ora_varlen:SCREEN-VALUE in frame x <> "4000" THEN DO:
+          ASSIGN ora_varlen:SCREEN-VALUE in frame x= "4000".
+          MESSAGE "Without Char Semantics OR Use Unicode Types, the Maximum char length has been reset to 4000 with Codepage: " ora_codepage:SCREEN-VALUE in frame x SKIP
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+       END.
+     END. 
+ END.
 END PROCEDURE.
 
 ON VALUE-CHANGED OF ora_version IN FRAME x DO:
@@ -197,42 +212,78 @@ ON VALUE-CHANGED OF ora_codepage IN FRAME x DO:
  IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
 
     /* if utf-8, we make character semantics the default */
-    IF TRIM(SELF:SCREEN-VALUE) = "UTF-8" 
-      AND unicodeTypes = FALSE THEN DO:
-
+    IF ( TRIM(SELF:SCREEN-VALUE) = "UTF-8" OR  TRIM(SELF:SCREEN-VALUE) = "UTF-16")
+    THEN DO:
+      IF unicodeTypes = FALSE THEN DO:
         ASSIGN lCharSemantics = TRUE
+               lcsemantic = TRUE
                ora_varlen = 1000
                ora_varlen:SCREEN-VALUE = "1000".
 
         IF disp_msg2 = TRUE THEN DO:
-           disp_msg2 = FALSE.
-           MESSAGE "To accommodate for data expansion depending on the database character set, the " SKIP
-                   "maximum char length default was automatically modified. Character semantics" SKIP
-                   "was also selected. You may have to change them if they do not apply for your" SKIP
-                   "configuration or data."
+        /*   disp_msg2 = FALSE. */
+           MESSAGE "To accommodate for data expansion depending on the database character set, the 
+maximum char length default was automatically modified. Character semantics was also selected." SKIP(1)
+		   "You may have to change them if they do not apply for your configuration or data." SKIP
                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
         END.
-
+      END.
+      ELSE DO:
+        ASSIGN lCharSemantics = FALSE
+               lcsemantic = FALSE
+               ora_varlen = 2000
+               ora_varlen:SCREEN-VALUE = "2000".
+        IF disp_msg2 = TRUE THEN DO:
+           MESSAGE "To accommodate for data expansion depending on the database character set, the 
+maximum char length default was automatically modified." SKIP(1)
+           "You may have to change them if they do not apply for your configuration or data." SKIP
+               VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        END.
+      END. 
     END.
  END.
 
 END.
 
 ON LEAVE OF ora_codepage IN FRAME X DO:
-
     IF unicodeTypes = TRUE THEN DO:
-        IF ora_codepage:SCREEN-VALUE NE "UTF-8" THEN
-            MESSAGE "It is recommended that you set the schema codepage to UTF-8 when selecting" SKIP
-                    "Unicode Types."
+        IF SUBSTR(trim(ora_codepage:SCREEN-VALUE),1,4) NE "UTF-" THEN 
+            MESSAGE "It is recommended that you set the schema codepage to UTF when selecting Unicode Types." SKIP
                 VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-
     END.
 END.
+
+
+ON LEAVE OF ora_varlen IN FRAME X DO:
+
+ IF unicodeTypes = YES THEN DO:
+   IF SUBSTR(trim(ora_codepage:SCREEN-VALUE in frame x),1,4) = "UTF-" THEN DO:
+      IF INTEGER(ora_varlen:SCREEN-VALUE in frame x) > 2000  THEN DO:
+         MESSAGE "Max Char Length cannot exceed 2000 for UTF when selecting" SKIP
+                    "Unicode Types."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+         RETURN NO-APPLY.
+      END.
+   END.
+ END.  
+ ELSE  IF lCharSemantics = YES THEN DO: 
+   IF SUBSTR(Trim(ora_codepage:SCREEN-VALUE in frame x),1,4) = "UTF-" THEN DO:
+      IF INTEGER(ora_varlen:SCREEN-VALUE in frame x) > 1000  THEN  DO:
+         MESSAGE "Max Char Length cannot exceed 1000 for UTF when selecting" SKIP
+                    "Char Semantics."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+         RETURN NO-APPLY.
+      END.
+   END.
+ END.
+END.
+
 
 IF LDBNAME ("DICTDB") <> ? THEN
   ASSIGN pro_dbname = LDBNAME ("DICTDB").
 
 IF NOT batch_mode THEN DO:
+
    {adecomm/okrun.i  
        &FRAME  = "FRAME x" 
        &BOX    = "rect_Btns"
@@ -344,7 +395,7 @@ IF OS-GETENV("CHARSEMANTICS")  <> ? AND ora_version >= 9 THEN DO:
   IF tmp_str BEGINS "Y" THEN
       ASSIGN lCharSemantics = TRUE.
 END.
-ELSE IF ora_version >= 9 AND ora_codepage = "utf-8" THEN
+ELSE IF ora_version >= 9 AND substr(ora_codepage,1,4) = "utf-" THEN
      ASSIGN lCharSemantics = TRUE.
 
 /*
@@ -371,15 +422,14 @@ IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 9 THEN DO:
 END.
 
 IF OS-GETENV("VARLENGTH") <> ? THEN DO:
-   ASSIGN ora_varlen = integer(OS-GETENV("VARLENGTH")).
-   IF ora_varlen < 1000 OR ora_varlen > 4000 THEN
-      ora_varlen = 4000.
+   ASSIGN varlen = integer(OS-GETENV("VARLENGTH")).
+   IF varlen < 0 OR varlen > 4000 THEN
+    ASSIGN ora_varlen = 4000.
 END.
 ELSE DO:
-
    IF unicodeTypes THEN
       ASSIGN ora_varlen = 2000.
-   ELSE IF ora_codepage = "utf-8" THEN
+   ELSE IF SUBSTR(ora_codepage,1,4) = "utf-" THEN
       ASSIGN ora_varlen = 1000.
    ELSE
       ASSIGN ora_varlen = 4000.
@@ -431,8 +481,14 @@ ELSE
 
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" then 
   assign pro_conparms = "<current working database>".
+
+ ASSIGN var_len = INTEGER(ora_varlen:screen-value).
 ON CHOOSE OF s_btn_Advanced in frame X
 DO:
+     ASSIGN var_len = INTEGER(ora_varlen:screen-value)
+            ora_codepage = ora_codepage:SCREEN-VALUE
+            prelCharSem = lCharSemantics
+            preuniTypes = unicodeTypes.
      run prodict/ora/_protoora.p.
      run fill_utf.
 END.
@@ -474,7 +530,6 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
      RETURN.
   END.
 
-            
   /*
    * if this is not batch mode, allow override of environment variables.
    */
@@ -638,7 +693,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       END.
     END.  
     IF err-rtn THEN RETURN.    
-  END. 
+  END.
+
+ IF varlen < 0 OR varlen > 4000 THEN DO:
+      IF batch_mode THEN  
+         PUT STREAM logfile UNFORMATTED "Maximum length must not be smaller then 0 or bigger than 4000,Default set to 4000." skip.
+ END.
+
   ASSIGN redo = TRUE.
   RUN prodict/ora/protoor1.p.
   IF RETURN-VALUE = "indb" THEN DO:

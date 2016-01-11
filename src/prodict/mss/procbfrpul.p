@@ -84,9 +84,9 @@ sql2 = sql2 + "INSERT INTO #tmp
 	    and c.TABLE_NAME = @table_name
 	    and	c.CONSTRAINT_NAME = pk.CONSTRAINT_NAME  ".
 
-sql2 = sql2 + "create table _prgrstmptable(Parent_tab varchar(80),Unique_key varchar(80),col_name varchar(80), constr_name varchar(120))  ".
+sql2 = sql2 + "create table #prgrstmptable(Parent_tab varchar(80),Unique_key varchar(80),col_name varchar(80), constr_name varchar(120))  ".
  
-sql2 = sql2 + "INSERT INTO _prgrstmptable   
+sql2 = sql2 + "INSERT INTO #prgrstmptable   
         select tt.name,rc.UNIQUE_CONSTRAINT_NAME    , c.name, rc.CONSTRAINT_NAME from
         sysindexes i 
         inner join sysindexkeys ic on i.indid = ic.indid
@@ -97,15 +97,16 @@ sql2 = sql2 + "INSERT INTO _prgrstmptable
 
 sql2 =  sql2 + " INSERT INTO #tmp
         select distinct c.TABLE_NAME  , c.COLUMN_NAME  ,pk.CONSTRAINT_NAME ,
-        pk.CONSTRAINT_TYPE , NULL,  _prgrstmptable.Unique_key ,NULL ,NULL ,NULL , _prgrstmptable.Parent_tab
-        from 	INFORMATION_SCHEMA.TABLE_CONSTRAINTS pk,INFORMATION_SCHEMA.KEY_COLUMN_USAGE c,_prgrstmptable
+        pk.CONSTRAINT_TYPE , NULL,  #prgrstmptable.Unique_key ,NULL ,NULL ,NULL , #prgrstmptable.Parent_tab
+        from 	INFORMATION_SCHEMA.TABLE_CONSTRAINTS pk,INFORMATION_SCHEMA.KEY_COLUMN_USAGE c,#prgrstmptable
         where pk.TABLE_NAME = c.TABLE_NAME 
-        and  pk.TABLE_NAME = @table_name
-        and  pk.CONSTRAINT_TYPE = 'FOREIGN KEY'  
+        and  pk.TABLE_NAME COLLATE SQL_Latin1_General_CP1_CI_AS = @table_name COLLATE SQL_Latin1_General_CP1_CI_AS
+        and  pk.CONSTRAINT_TYPE COLLATE SQL_Latin1_General_CP1_CI_AS = 'FOREIGN KEY' COLLATE SQL_Latin1_General_CP1_CI_AS 
 	    and	 c.CONSTRAINT_NAME = pk.CONSTRAINT_NAME 
-	    and  _prgrstmptable.constr_name = c.CONSTRAINT_NAME  ".
+	    and  #prgrstmptable.constr_name COLLATE SQL_Latin1_General_CP1_CI_AS = 
+                                                                 c.CONSTRAINT_NAME COLLATE SQL_Latin1_General_CP1_CI_AS ".
 
-sql2 =  sql2 + " DROP TABLE _prgrstmptable ".
+sql2 =  sql2 + " DROP TABLE #prgrstmptable ".
 	    
 sql2 = sql2 + "SELECT * FROM #tmp ".
 sql2 = sql2 + "go ".

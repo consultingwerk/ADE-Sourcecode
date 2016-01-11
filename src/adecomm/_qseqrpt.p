@@ -35,6 +35,7 @@ DEFINE INPUT PARAMETER p_PName 	 AS CHAR  NO-UNDO.
 DEFINE INPUT PARAMETER p_DbType  AS CHAR  NO-UNDO.
 
 DEFINE VAR header_str AS CHAR NO-UNDO.
+DEFINE VAR flag AS CHAR NO-UNDO INIT "".
 
 FIND _Db WHERE RECID(_Db) = p_DbId NO-LOCK.
 IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
@@ -57,12 +58,16 @@ IF NOT AVAILABLE _Sequence THEN DO:
   RETURN.
 END.
 
+IF CAN-FIND(FIRST dictdb._tenant) THEN
+   flag = "Flags: 'm'=multi-tenant".
+
+
 header_str = "Database: " + p_PName + " (" + p_DbType + ")".
 RUN adecomm/_report.p 
    (INPUT p_DbId, 
     INPUT header_str,
     INPUT "Sequence Report",
-    INPUT "",
+    INPUT flag,
     INPUT "",
     INPUT "adecomm/_qseqdat.p",
     INPUT "",

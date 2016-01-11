@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2007,2010 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2010,2014 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -252,9 +252,10 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 
 &IF '{&WINDOW-SYSTEM}' NE 'TTY' &THEN
-IF NOT wWin:LOAD-ICON("adeicon/progress.ico":U) THEN
-    MESSAGE "Unable to load icon: adeicon/progress.ico"
-            VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+IF NOT wWin:LOAD-ICON("adeicon/audit.ico":U) THEN
+    IF NOT wWin:LOAD-ICON("adeicon/progress.ico":U) THEN
+		MESSAGE "Unable to load icon: adeicon/audit.ico"
+				VIEW-AS ALERT-BOX WARNING BUTTONS OK.
 &ENDIF
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME

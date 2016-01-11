@@ -3,7 +3,7 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientOptions
-    Purpose     : 
+    Purpose     : A set of options for the HttpClient
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -13,9 +13,12 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 class OpenEdge.Net.HTTP.ClientOptions:
+    /** How many retries of the same request should be attempted */
+    define public property NumRetries as integer initial 10  no-undo get. set.
     
-    define public property NumRetries as integer initial 0  no-undo get. set.
-    define public property PauseBetweenRetry as integer initial 0 no-undo get. set.
+    /** The number of seconds (incl. fractions of seconds) between retries */
+    define public property PauseBetweenRetry as decimal initial 0 no-undo get. set.
+    
+    /** Defines the maximum time a request must take */
     define public property RequestTimeout as integer initial 0 no-undo get. set.
-
 end class.

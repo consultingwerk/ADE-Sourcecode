@@ -158,7 +158,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder:
     /** Tells the notification to use the device's timezone (not the timezone
         of the scheduled time). No-op for a send-immediate message.
     
-        @parma logical TRUE if we are to use the device time zone.
+        @param logical TRUE if we are to use the device time zone.
         @return PushNotificationMessageBuilder  The current builder */
     method public PushNotificationMessageBuilder UseDeviceTimeZone(input plUseDeviceTimeZone as logical):
         if not this-object:SendImmediate then

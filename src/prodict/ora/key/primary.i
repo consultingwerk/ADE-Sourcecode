@@ -202,7 +202,7 @@ PROCEDURE primary_save:
     THEN DO:
            num = num + 1.
            CREATE DICTDB._Constraint.
-           ASSIGN _Con-Type = "PC".
+           ASSIGN _Con-Type = "P".
            ASSIGN   _Con-Name = name:SCREEN-VALUE IN FRAME frame_primary
                     _For-Name = "".
            IF ACTIVE:SCREEN-VALUE IN FRAME frame_primary = "yes" THEN

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /**********************************************************************************/
-/* Copyright (C) 2005-2007 by Progress Software Corporation. All rights reserved. */
+/* Copyright (C) 2005-2007,2014 by Progress Software Corporation. All rights reserved. */
 /* Prior versions of this work may contain portions contributed by                */
 /* participants of Possenet.                                                      */             
 /**********************************************************************************/
@@ -4912,7 +4912,7 @@ DEFINE VARIABLE cLargeColumns     AS CHARACTER  NO-UNDO.
                                     hField,'=',hField2,'RAW').
 
         ELSE IF hField:DATA-TYPE = 'CHARACTER':U THEN
-          lSame = COMPARE(hField:BUFFER-VALUE,
+          lSame = COMPARE(right-trim(hField:BUFFER-VALUE),
                           "=":U,
                           right-trim(hField2:BUFFER-VALUE(iExt)),
                           "RAW":U).
@@ -4946,7 +4946,7 @@ DEFINE VARIABLE cLargeColumns     AS CHARACTER  NO-UNDO.
                                         hField,'=',hField2,'RAW').
 
             ELSE IF hField:DATA-TYPE = 'CHARACTER':U THEN
-              lSame = COMPARE(hField:BUFFER-VALUE,
+              lSame = COMPARE(right-trim(hField:BUFFER-VALUE),
                               "=":U,
                               right-trim(hField2:BUFFER-VALUE(iExt)),
                               "RAW":U).

@@ -36,6 +36,7 @@ DEFINE VARIABLE wait          AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE create_h      AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE db_exist      AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL NO       NO-UNDO.
+DEFINE VARIABLE preuniTypes   AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE old-dictdb    AS CHARACTER                NO-UNDO.  
 DEFINE VARIABLE output_file   AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE tmp_str       AS CHARACTER                NO-UNDO.
@@ -50,9 +51,10 @@ DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
+DEFINE VARIABLE ExtendedMsg   AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE cRecid        AS CHARACTER INITIAL "For Create RECID use:"
                                            FORMAT "x(22)" NO-UNDO.
-
+DEFINE VARIABLE len           AS INTEGER                  NO-UNDO.
 DEFINE STREAM   strm.
 
 batch_mode = SESSION:BATCH-MODE.
@@ -75,7 +77,10 @@ FORM
         LABEL "User's Password" colon 36 SKIP({&VM_WID})
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
      LABEL "Connect Parameters" colon 36 SKIP({&VM_WID})
-      long-length LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WID})
+  long-length FORMAT ">>>9" 
+    VALIDATE (INPUT long-length > 0,
+              "Maximum Varchar Length must be a positive value.") 
+     LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WID})
   mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
      LABEL "Codepage"  COLON 36 SKIP({&VM_WID}) 
   mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
@@ -116,17 +121,36 @@ PROCEDURE cleanup:
 END PROCEDURE.
 
 PROCEDURE fill_long_length:
-
- IF long-length = 8000 THEN
-     ASSIGN long-length:SCREEN-VALUE IN FRAME x = "8000"
-            mss_codepage = session:cpinternal
-            mss_codepage:SCREEN-VALUE IN FRAME x= session:cpinternal.
-            
- ELSE
-     ASSIGN long-length:SCREEN-VALUE IN FRAME x = "4000"
-            mss_codepage = "utf-8"
-            mss_codepage:SCREEN-VALUE IN FRAME x = "utf-8".
-            
+   IF unicodeTypes = TRUE THEN DO:
+     IF mss_codepage:SCREEN-VALUE IN FRAME x = "utf-8" THEN DO:
+        IF INTEGER(long-length:SCREEN-VALUE IN FRAME x) >  4000 THEN DO:
+         ASSIGN long-length:SCREEN-VALUE IN FRAME x = "4000".
+         MESSAGE "Resetting the default maximum char length for Unicode Types (UTF codepage) to its max limit of 4000." SKIP
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        END.
+        ELSE IF INTEGER(long-length:SCREEN-VALUE IN FRAME x) < 4000 THEN 
+            MESSAGE "It is recommended that you set the default maximum char length for Unicode Types (UTF codepage) to its max limit of 4000." SKIP
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+     END.
+     ELSE DO:
+         ASSIGN long-length:SCREEN-VALUE IN FRAME x = "4000"
+                mss_codepage = "utf-8"
+                mss_codepage:SCREEN-VALUE IN FRAME x = "utf-8".
+         MESSAGE "Resetting the Codepage to UTF-8 and default maximum char length for Unicode Types (UTF codepage) to its max limit of 4000." SKIP
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+     END.
+   END.
+   ELSE DO:  /* UTF-8 without UnicodeTypes is a valid scenario, so do not reset codepage  */
+      IF long-length:SCREEN-VALUE IN FRAME x <> "4000" AND long-length:SCREEN-VALUE IN FRAME x <> "8000" THEN 
+         ASSIGN long-length:SCREEN-VALUE IN FRAME x = STRING(longlength).
+      ELSE DO:
+         IF unicodeTypes <> preuniTypes THEN DO:
+            long-length:SCREEN-VALUE IN FRAME x = "8000".
+            MESSAGE "Without Use Unicode Types, the Maximum char length has been reset to 8000 with Codepage: " mss_codepage:SCREEN-VALUE in frame x SKIP
+             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+         END.
+      END.
+   END.
 END PROCEDURE.
 
 ON WINDOW-CLOSE of FRAME x
@@ -163,16 +187,62 @@ DO:
     END.
 END.
 
+ON VALUE-CHANGED OF mss_codepage IN FRAME x DO:
+    /* if utf-8, we reset unicode types to default TRUE and max varchar length to default 4000 */
+
+    IF ( TRIM(SELF:SCREEN-VALUE) = "UTF-8" OR  TRIM(SELF:SCREEN-VALUE) = "UTF-16")
+    THEN DO:
+        ExtendedMsg = "".
+        IF unicodeTypes = FALSE THEN 
+           ASSIGN ExtendedMsg = "To accommodate for data expansion the Unicode types has been automatically reset to default TRUE."
+                  unicodeTypes = TRUE.
+
+        IF INTEGER(long-length:SCREEN-VALUE IN FRAME x) > 4000 
+        THEN DO:
+             Assign long-length = 4000
+                    long-length:SCREEN-VALUE = "4000".
+             IF ExtendedMsg = "" THEN
+	        ASSIGN ExtendedMsg = "To accommodate for data expansion for Unicode types".
+             ExtendedMsg = ExtendedMsg + " Maximum char length is reset to default 4000.".
+        END.
+        IF ExtendedMsg <> "" THEN
+           MESSAGE ExtendedMsg SKIP(1)
+              "You may have to change Unicode Types and Maximum char length if they do not apply for your configuration or data." SKIP
+               VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+    END.
+END.
+
+ON LEAVE OF mss_codepage IN FRAME X DO:
+    IF unicodeTypes = TRUE THEN DO:
+        IF SUBSTR(trim(mss_codepage:SCREEN-VALUE),1,4) NE "UTF-" THEN 
+            MESSAGE "It is recommended that you set the schema codepage to UTF when selecting" SKIP
+                    "Unicode Types."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+    END.
+END.
+
 ON LEAVE OF long-length IN FRAME X DO:
    IF unicodeTypes = FALSE AND INTEGER(long-length:SCREEN-VALUE IN FRAME x) > 8000 THEN DO:  
-    MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
+    MESSAGE "The maximum length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
+   ELSE IF unicodeTypes = FALSE AND INTEGER(long-length:SCREEN-VALUE IN FRAME x) EQ 4000 
+   AND mss_codepage NE "UTF-8" THEN DO:
+     MESSAGE  "It is recommended that you set the Maximum Varchar Length to 8000 
+when schema codepage is" session:cpinternal skip VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+          /*  ASSIGN long-length:SCREEN-VALUE IN FRAME x = "8000". */
+   END.
   ELSE IF unicodeTypes = TRUE AND INTEGER(long-length:SCREEN-VALUE IN FRAME x) > 4000 THEN DO: 
-    MESSAGE "The maximun length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
+    MESSAGE "The maximum length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
+    END.
+  ELSE IF unicodeTypes = TRUE AND mss_codepage EQ "UTF-8" AND 
+       INTEGER(long-length:SCREEN-VALUE IN FRAME x) < 4000 THEN DO:
+            MESSAGE "It is recommended that you set the Maximum Varchar Length to 4000 
+when schema codepage is UTF-8 and selecting Unicode Types." skip
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+      /*      ASSIGN long-length:SCREEN-VALUE IN FRAME x = "4000". */
   END.
-
 END.
 
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
@@ -254,14 +324,21 @@ END.
 ELSE
   ASSIGN shadowcol = FALSE.
 
-IF OS-GETENV("VARLENGTH") <> ? THEN
-  long-length = integer(OS-GETENV("VARLENGTH")).
-ELSE
-  long-length = 8000.
+IF OS-GETENV("VARLENGTH") <> ? THEN DO:
+  len = integer(OS-GETENV("VARLENGTH")).
+    IF len < 0 OR len > 8000 THEN
+         ASSIGN long-length = 8000.
+    ELSE
+         ASSIGN long-length = len.
+ END.
 
-IF OS-GETENV("MOVEDATA")    <> ? THEN
+IF OS-GETENV("MOVEDATA")    <> ? THEN DO:
   tmp_str      = OS-GETENV("MOVEDATA").
-IF tmp_str BEGINS "Y" THEN movedata = TRUE.
+  IF tmp_str BEGINS "Y" THEN movedata = TRUE.
+  ELSE  movedata = FALSE.
+END.
+ELSE
+   movedata = FALSE.
 
 IF OS-GETENV("LOADSQL") <> ? THEN DO:
   tmp_str      = OS-GETENV("LOADSQL").
@@ -272,9 +349,7 @@ ELSE
   loadsql = TRUE.
 
 IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
-
-  tmp_str      = OS-GETENV("UNICODETYPES").
-
+  tmp_str = OS-GETENV("UNICODETYPES").
   IF tmp_str BEGINS "Y" THEN DO:
       ASSIGN unicodeTypes = TRUE.
       /* for unicode support, maximum length is 4000 */
@@ -486,8 +561,10 @@ ELSE
 
 ON CHOOSE OF s_btn_Advanced in frame x
 DO:
-  run prodict/mss/protomss1.p. 
-  RUN fill_long_length.
+   ASSIGN longlength = integer((long-length:SCREEN-VALUE))
+          preuniTypes = unicodeTypes.
+   run prodict/mss/protomss1.p. 
+   RUN fill_long_length.
 END. 
 
 main-blk:
@@ -535,7 +612,6 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   /*
    * if this is not batch mode, allow override of environment variables.
    */
-  
 IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
@@ -642,6 +718,11 @@ IF NOT batch_mode THEN
       ELSE
         ASSIGN old-dictdb = LDBNAME("DICTDB").
   END.
+
+ IF len < 0 OR len > 8000 THEN DO:
+  IF batch_mode THEN  
+  PUT STREAM logfile UNFORMATTED "Maximum length must not be smaller then 0 or bigger than 8000,Default set to 8000." skip.
+ END.
 
   IF loadsql THEN DO:
     IF Osh_dbname = "" OR osh_dbname = ? THEN DO:

@@ -173,10 +173,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
 	    define variable cDomain as character no-undo.
 	    define variable dmn as IDomain no-undo.
         for each copytable on error undo, throw:  
-            if valid-object(Service) and valid-object(copytable.Entity) then 
-            do:
-                ValidateUser(cast(copytable.Entity,IUser)).
-            end.
+            
             if pcType = "T" then
             do:
                 if copytable.tenantname > "" and copytable.tenantname <> pcValue then 
@@ -265,35 +262,6 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return this-object:GetCreateError(cast(userImpl,IDataAdminElement),userImpl:Name). 
     end method.
          
-	method private void ValidateUser(userImpl as IUser):
-	    define variable validateError as DataContextError no-undo.
-	    define variable e1 as logical no-undo.
-	    define variable e2 as logical no-undo.
-        define variable e3 as logical no-undo.
-        define variable e11 as logical no-undo.
-        define variable e12 as logical no-undo.
-        define variable e13 as logical no-undo.
-        
-/*        if valid-object(Service) then                                                                                      */
-/*            assign                                                                                                         */
-/*                e1 = user:Tenant:Service <> Service.                                                                       */
-/*        assign                                                                                                             */
-/*            e11 = not valid-object(user:Tenant)                                                                            */
-/*            .                                                                                                              */
-/*                                                                                                                           */
-/*        if e1 or e11 /*or e2 or e3 or e11 or e12 or e13 */ then                                                            */
-/*        do:                                                                                                                */
-/*           validateError = new DataContextError(GetCreateError(user)).                                                     */
-/*           if e1 then                                                                                                      */
-/*               validateError:AddMessage("- The Tenant " + quoter(user:Tenant:Name) + " is not created in this service.",?).*/
-/*           if e11 then                                                                                                     */
-/*               validateError:AddMessage("- Tenant is undefined.",?).                                                       */
-/*                                                                                                                           */
-/*           undo, throw validateError.                                                                                      */
-/*        end.                                                                                                               */
-        
-	end method.    
-	
 	/* called with tracking-changes */
     method protected override void CopyNewTableForParent(pRow as IRow,phTbl as handle):       
         case pRow:SerializeName:
@@ -342,7 +310,6 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         define variable newdomain as IDomain no-undo.
 	    define variable cDomain as character no-undo.
 	    temp-table ttUser:tracking-changes = true.
-	    ValidateUser(userImpl).
 	    newdomain = userImpl:Domain.
          
 	    if pcdomain <> ? then 
@@ -453,6 +420,22 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return new UserSet(cntxt).
     end method.
     
+    method protected override void ValidateBuffer(phUser as handle):
+        define variable hBefore as handle no-undo.
+         
+        if phUser:row-state = row-modified or phUser:row-state = row-created and valid-object(Service) then
+        do:
+            hBefore = phUser:before-buffer.
+            hBefore:find-by-rowid(phuser:before-rowid).
+            if phUser::Password <> hBefore::Password then
+            do:
+                if valid-object(Service:PasswordPolicy) then
+                    phUser::PreEncodePassword = Service:PasswordPolicy:PreEncodeUserPassword.
+            end. 
+        end.    
+         
+    end method. 
+        
     method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
         return new User(this-object,pReq).
     end method.

@@ -1,6 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2011,2014 by Progress Software Corporation. All *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 **********************F***********************************************/
@@ -1259,6 +1258,8 @@ ASSIGN
   cache_dirty = TRUE
   user_dbname = user_env[8]. /* for backwards compatibility with _lodsddl.p */
 
+DO ON ERROR UNDO, LEAVE: 
+/* catch all warnings; not correcting indentation */
 DO FOR _Db:
   FIND FIRST _Db
     WHERE _Db._Db-name = ( IF user_dbtype = "PROGRESS":u
@@ -3066,6 +3067,12 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
       run showLoadError(e).
   end catch.
 END.     /* do for ... transaction */
+
+  catch e as Progress.Lang.Error:
+      run showLoadError(e).
+  end catch.
+end. /* end of new DO ON ERROR UNDO LEAVE */
+
 IF (xerror OR NOT main_trans_success) THEN 
 DO:
    ASSIGN user_path = "9=h,4=error,_usrload":u.

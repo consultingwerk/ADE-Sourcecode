@@ -14,6 +14,7 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.HashAlgorithmEnum.
 
 class OpenEdge.Core.Memptr:
     /**  the actual memptr under management here */
@@ -90,6 +91,24 @@ class OpenEdge.Core.Memptr:
         assign iOldSize = this-object:Size
                set-size(mmValue) = 0
                set-size(mmValue) = iOldSize.
+    end method.
+    
+    /** Returns a hash of the current contents of the memptr. This can be used
+        for comparing memptr values quickly.  
+        
+        @return raw The hashed value of the memptr. */
+    method public raw GetHash():
+        return GetHash(HashAlgorithmEnum:MD5).
+    end method.
+
+    /** Returns a hash of the current contents of the memptr. This can be used
+        for comparing memptr values quickly.  
+        
+        @param HashAlgorithmEnum The algorithm to use for the message
+        @return raw The hashed value of the memptr. */
+    method public raw GetHash(input poAlgorithm as HashAlgorithmEnum):
+        Assert:NotNull(poAlgorithm, 'Algorithm').
+        return message-digest(poAlgorithm:Name, mmValue).
     end method.
     
 end class.

@@ -149,15 +149,21 @@ DO:
     ASSIGN lCharSemantics = (lCharSemantics:SCREEN-VALUE = "yes").
     ASSIGN crtdefault = (crtdefault:SCREEN-VALUE = "YES").
     Assign nls_up = (nls_up:SCREEN-VALUE = "yes").
-	ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
+    ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
 
     oralang = IF oralang:screen-value = "" THEN "" ELSE oralang:screen-value.    
+
     IF unicodeTypes = TRUE 
     THEN
-         ASSIGN ora_varlen = 2000. 
-    ELSE 
-         ASSIGN ora_varlen = 4000.
-           
+         ASSIGN ora_varlen = 2000.
+    ELSE IF var_len  <> 0 AND var_len  <> 2000 then
+         ASSIGN ora_varlen = var_len
+	        unicodeTypes = FALSE.
+         ELSE
+	 ASSIGN ora_varlen = 4000.
+ 
+    IF lCharSemantics = TRUE THEN ASSIGN uctype = TRUE.
+
     IF iFmtOption:SCREEN-VALUE = "1" THEN
       ASSIGN lFormat = ?
              iFmtOption = 1.
@@ -167,9 +173,11 @@ DO:
 
     IF ora_version >= 9 THEN DO: 
         IF unicodeTypes:SCREEN-VALUE = "yes" THEN
-           ASSIGN unicodeTypes = YES.
+           ASSIGN unicodeTypes = YES
+                  uctype = YES.
         IF lCharSemantics:SCREEN-VALUE = "yes" THEN
-           ASSIGN lCharSemantics = YES.
+           ASSIGN lCharSemantics = YES
+                  lcsemantic = YES.
     END.
     ELSE
         ASSIGN unicodeTypes = NO
@@ -207,21 +215,30 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME DEFAULT-FRAME DO:
                lCharSemantics:SCREEN-VALUE = "NO"
                lcsemantic = FALSE.
         IF disp_msg1 = TRUE THEN DO:
-
-            ASSIGN disp_msg1 = FALSE.
-
-            MESSAGE "The maximum char length default value is assuming AL16UTF16 encoding for the national" SKIP
-                    "character set on the ORACLE database. For UTF8 encoding, you may have to set it to a" SKIP
-                    "lower value depending on the data."
+           /* ASSIGN disp_msg1 = FALSE. */
+            MESSAGE "The maximum char length default value is assuming AL16UTF16 encoding for the national
+ character set on the ORACLE database.Resetting it to default 2000." skip(1) 
+            "For ORACLE database Servers UTF8 encoding for the national character set, you may have to set it to a lower value depending on the data." skip
                 VIEW-AS ALERT-BOX WARNING BUTTONS OK.
         END.
     END.
-    ELSE DO:
-        ASSIGN lCharSemantics:SENSITIVE = YES.
-
-    END.
+    ELSE ASSIGN lCharSemantics:SENSITIVE = YES.
 END.
 
+ON VALUE-CHANGED OF lCharSemantics IN FRAME DEFAULT-FRAME DO:
+    IF SELF:screen-value = "yes" THEN DO:
+        ASSIGN unicodeTypes:SENSITIVE = NO
+	       unicodeTypes:SCREEN-VALUE = "NO"
+               uctype = FALSE.
+        IF disp_msg1 = TRUE AND var_len  > 1000 AND SUBSTR(trim(ora_codepage),1,4) = "UTF-" THEN DO:
+         /*   ASSIGN disp_msg1 = FALSE. */
+            MESSAGE "To accommodate the data expansion, the maximum char length is modified, 
+you may choose differently based on your configuration." skip
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        END.
+    END.
+    ELSE ASSIGN unicodeTypes:SENSITIVE = YES.
+END.
 
 ON VALUE-CHANGED OF iFmtOption IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "1" THEN
@@ -267,6 +284,8 @@ ON LEAVE OF oralang IN FRAME DEFAULT-FRAME DO:
 END.
 
 IF NOT batch_mode THEN 
+   IF UPPER(SUBSTR(trim(ora_codepage),1,4)) <> "UTF-" AND NOT unicodeTypes:SENSITIVE THEN 
+      unicodeTypes:SENSITIVE = YES.
 _updtvar: 
   DO WHILE TRUE:
   ASSIGN oralang:SCREEN-VALUE in frame DEFAULT-FRAME = oralang.
@@ -288,7 +307,7 @@ _updtvar:
             butt-help
         &ENDIF               	        
         WITH FRAME DEFAULT-FRAME. 
-
+       
     IF nls_up:SCREEN-VALUE in frame DEFAULT-FRAME = "YES" 
     THEN DO:
         IF oralang:SCREEN-VALUE in frame DEFAULT-FRAME = "BINARY" THEN DO:

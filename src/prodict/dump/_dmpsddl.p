@@ -266,7 +266,7 @@ DO ON STOP UNDO, LEAVE:
       WHERE DICTDB._File._Db-recid = drec_db
         AND ( if user_filename = "ALL"
               then (IF NOT fHidden THEN NOT DICTDB._File._Hidden
-	      	    	    	   ELSE DICTDB._File._File-Number > 0 )
+	      	    	    	   ELSE DICTDB._File._File-Number <> 0 )
              else if user_filename begins "SOME" 
                   THEN CAN-DO(c, DICTDB._File._File-name)
                   ELSE RECID(DICTDB._File) = drec_file

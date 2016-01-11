@@ -25,7 +25,7 @@ DEFINE {1} SHARED VARIABLE mss_codepage   AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE mss_collname   AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE mss_incasesen  AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE mss_conparms   AS CHARACTER NO-UNDO.
-DEFINE {1} SHARED VARIABLE long-length    AS INTEGER   NO-UNDO.
+DEFINE {1} SHARED VARIABLE long-length    AS INTEGER   INITIAL 8000.
 DEFINE {1} SHARED VARIABLE movedata       AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE pcompatible    AS LOGICAL   NO-UNDO  INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE sqlwidth       AS LOGICAL   NO-UNDO.
@@ -52,6 +52,7 @@ DEFINE {1} SHARED VARIABLE unicodeTypes   AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE lUniExpand     AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE newseq         AS LOGICAL   NO-UNDO INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE mapMSSDatetime AS LOGICAL   NO-UNDO INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE longlength     AS INTEGER   NO-UNDO.
 
 DEFINE {1} SHARED STREAM dbg_stream.
 
@@ -82,11 +83,11 @@ DEFINE {1} SHARED VARIABLE recid_verify        AS LOGICAL NO-UNDO.
 define {1} shared variable mss_create_sql	  as integer   initial 1.
 define {1} shared variable mss_dump_data   	  as integer   initial 2.
 define {1} shared variable mss_create_sh 	  as integer   initial 3. 
-define {1} shared variable mss_create_objects as integer   initial 4.
+define {1} shared variable mss_create_objects     as integer   initial 4.
 define {1} shared variable mss_build_schema	  as integer   initial 5.
 define {1} shared variable mss_fixup_schema	  as integer   initial 6.
 define {1} shared variable mss_load_data	  as integer   initial 7. 
-define {1} shared variable s_file-sel         as character initial "*". 
+define {1} shared variable s_file-sel             as character initial "*". 
      
 
 DEFINE {1} SHARED VARIABLE osh_conparms     AS CHARACTER NO-UNDO.

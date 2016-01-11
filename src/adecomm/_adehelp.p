@@ -213,7 +213,7 @@ DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   IF OEIDEIsRunning THEN
   DO:
       
-      DEFINE VARIABLE cResult      AS CHARACTER   NO-UNDO.
+      DEFINE VARIABLE pResponse        AS LOGICAL   NO-UNDO.
       DEFINE VARIABLE newContextNumber AS CHARACTER NO-UNDO.
 
       /* Use lower case for consistent casing */
@@ -221,8 +221,10 @@ DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
 
       IF newContextNumber <> ? then
       do:
+          run checkHasHelp in hOEIDEService ( newContextNumber, output pResponse).
+          
           /** return if help was found in Eclipse other wise continue and use help here */
-          if checkHelp(newContextNumber) then
+          if pResponse then
           do:
               showHelp(newContextNumber).
               return. 

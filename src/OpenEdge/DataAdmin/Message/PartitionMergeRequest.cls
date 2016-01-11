@@ -20,8 +20,7 @@ using Progress.Lang.* from propath.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.Message.PartitionMergeRequest inherits PartitionManageRequest implements IUtilityRequest,IUtilityResponse : 
-    define property SourceName as character no-undo get. set.
+class OpenEdge.DataAdmin.Message.PartitionMergeRequest inherits PartitionManageRequest implements IUtilityRequest,IUtilityResponse :     
      /* identifier for the service adapter (directly to data access) */
     define public override property EntityName as character no-undo
         init "PartitionMerge" 

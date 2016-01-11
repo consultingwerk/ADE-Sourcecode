@@ -12,29 +12,39 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.HTTP.Filter.Status.StatusCodeFilter.
-using OpenEdge.Net.HTTP.HttpClient.
-using OpenEdge.Net.HTTP.HttpResponse.
-using OpenEdge.Net.HTTP.StatusActionEnum.
+using OpenEdge.Net.HTTP.Filter.FilterActionEnum.
+using OpenEdge.Net.HTTP.Filter.Message.IMessageFilter.
+using OpenEdge.Net.HTTP.HttpMessage.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Net.HTTP.HttpResponse.
 
-class OpenEdge.Net.HTTP.Filter.Status.OKStatusFilter inherits StatusCodeFilter: 
+class OpenEdge.Net.HTTP.Filter.Status.OKStatusFilter implements IMessageFilter: 
     
-    constructor public OKStatusFilter(input poClient as HttpClient):
-        define variable oTypes as StatusCodeENum extent 1 no-undo.
-        
-		super(poClient).
-		
-		assign oTypes[1] = StatusCodeEnum:OK
-		       this-object:StatusCode = oTypes.
+    constructor public OKStatusFilter():
     end constructor.
     
-    /** Process a particular set of status codes.  
+    /** Indicates whether this filter applies to the current message. 
         
-        @param HttpResponse The response whose status code is being evaulated
-        @return StatusActionEnum  Action required from this evaluation */ 
-    method override public StatusActionEnum EvaluateStatus(input poResponse as HttpResponse):
-        return StatusActionEnum:OK.
-    end method.
-    
+        @param HttpMessage The message to check
+        @return logical True if the current filter can be used. */
+	method public logical CanFilter(input poMessage as HttpMessage):
+	    define variable lCanFilter as logical no-undo.
+	    
+	    lCanFilter = type-of(poMessage, HttpResponse) and
+	                 cast(poMessage, HttpResponse):StatusCode:Equals(StatusCodeEnum:OK).
+	    
+	    return lCanFilter.
+	end method.
+
+
+    /** Performs implementation-specific filtering for a message.
+        
+        @param HttpMessage The message to filter
+        @return FilterActionEnum Status of the fitler action. The caller decides
+                                 what to do with this information. Filters will
+                                 typically return Stop or OK. */
+	method public FilterActionEnum ExecuteFilter(input poMessage as HttpMessage):
+        return FilterActionEnum:OK.
+	end method.
+	
 end class.

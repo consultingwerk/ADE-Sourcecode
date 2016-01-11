@@ -70,7 +70,17 @@ ELSE DO:
 END.  
 
 header_str = "Database: " + p_PName + " (" + p_DbType + ")".
-flags = "Flags: 'm'=multi-tenant, 'p'=partitioned, 'f'=frozen, 's'=a SQL table".
+
+FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Table Partitioning" NO-LOCK NO-ERROR.
+IF dictdb._Database-feature._dbfeature_enabled EQ "1" AND CAN-FIND(FIRST dictdb._tenant) THEN
+    flags = "Flags: 'p'=partitioned, 'm'=multi-tenant, 'f'=frozen, 's'=a SQL table".
+ELSE IF _File._file-attributes[1] THEN
+    flags = "Flags: 'm'=multi-tenant, 'f'=frozen, 's'=a SQL table".
+ELSE IF _File._file-attributes[3] THEN
+    flags = "Flags: 'p'=partitioned, 'f'=frozen, 's'=a SQL table".
+ELSE
+    flags = "Flags: 'f'=frozen, 's'=a SQL table".
+
 RUN adecomm/_report.p 
    (INPUT p_DbId, 
     INPUT header_str,
