@@ -1,22 +1,17 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/**************************************************************************
+* Copyright (C) 2000,2006-2007 by Progress Software Corporation.          * 
+* All rights reserved.  Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+***************************************************************************/
 /*--------------------------------------------------------------------------
     File        : sbo.p
     Purpose     : Super procedure for sbo class.
 
     Syntax      : RUN start-super-proc("adm2/sbo.p":U).
-
-    Modified    : December 8, 2000 -- Version 9.1B+
-    Modified    : 16/11/2001    Mark Davies (MIP)
-                  Added new property FilterAvailable
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -1418,7 +1413,8 @@ PROCEDURE bufferCommitTransaction :
   DEFINE VARIABLE hBuf           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hFld           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hQry           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSaveDO        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cNewParentList AS character  NO-UNDO.
+  DEFINE VARIABLE cNewTableList  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSaveTable     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSource        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cForeignFields AS CHARACTER  NO-UNDO.
@@ -1440,7 +1436,8 @@ PROCEDURE bufferCommitTransaction :
   DEFINE VARIABLE cDOHandles     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cUpdateOrder   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lStop          AS LOGICAL    NO-UNDO.
- 
+  DEFINE VARIABLE iParent        AS INTEGER    NO-UNDO.
+  
   &SCOPED-DEFINE xp-assign
   {get ContainedDataObjects cDOHandles}
   {get UpdateOrder cUpdateOrder}
@@ -1525,6 +1522,7 @@ PROCEDURE bufferCommitTransaction :
   END.         /* END DO iDO -- for each contained SDO */
   
    /* Use on STOP to control undo with LOB in trans  */
+    
   DO ON STOP UNDO,LEAVE:
     lStop = TRUE. 
     DO TRANSACTION ON ERROR UNDO, LEAVE:
@@ -1556,13 +1554,15 @@ PROCEDURE bufferCommitTransaction :
                *after* running serverCommit in the parent (so that the key values
                will have been assigned for it), and *before* running it for
                the child SDO. */
-            IF VALID-HANDLE(hSaveDO) THEN
+            IF cNewParentList > '' THEN
             DO:
-            /* We have saved off keys from the previous table. See if that's
-               a Data-Source for the current table. */
-               {get DataSource hSource hDO}.
-               IF hSource = hSaveDO THEN
+               /* We have saved off keys from the previous table. See if that's
+                  a Data-Source for the current table. */
+               {get DataSource hSource hDO}.  
+               iParent = lookup(string(hSource),cNewParentList).        
+               IF iParent > 0 THEN
                DO:
+                 hSaveTable = widget-handle(entry(iParent,cNewTableList)).
                  /* The previous SDO was the current SDO's data-source,
                     so look for key values to assign. */
                  {get ForeignFields cForeignFields hDO}.
@@ -1621,7 +1621,7 @@ PROCEDURE bufferCommitTransaction :
                        END.      /* END DO iCol == for each foreign field */ 
                        /* ForeignValues will be returned to the client and 
                           ensure that the query is not reopened as they will 
-                          match the data on the client */ 
+                          match the data on the client */
                        {set ForeignValues cForeignValues hDO}.
                        hQry:GET-NEXT().
                      END.          /* END DO WHILE AVAIL == for each child. */
@@ -1632,7 +1632,6 @@ PROCEDURE bufferCommitTransaction :
                  END.              /* END DO if foreign fields */
                END.                /* END DO IF SaveDO is DataSource */
             END.                   /* END DO IF ValidHandle SaveDO */
-  
             /* no need to copy the table if DynSBO */
             IF lDynamicData THEN
               RUN bufferCommit IN hDO (OUTPUT pcMessages, OUTPUT cUndoIds).
@@ -1679,17 +1678,18 @@ PROCEDURE bufferCommitTransaction :
                                 + '.RowMod = "C"':U).
             hQry:QUERY-OPEN().
             hQry:GET-FIRST().
-            ASSIGN
-              hSaveDO = ?
-              hSaveTable = ?.
             IF hBuf:AVAILABLE THEN
             DO:
               hCol = hBuf:BUFFER-FIELD('RowMod':U).
               hQry:GET-NEXT(). 
               /* Only if one 'A' add record  */
               IF hQry:QUERY-OFF-END THEN
-                ASSIGN hSaveDO    = hDO
-                       hSaveTable = hTable.
+                ASSIGN cNewParentList = cNewParentList 
+                                      + (if cNewParentList = '' then '' else ',')
+                                      + string(hDO)
+                       cNewTableList  = cNewTableList
+                                      + (if cNewTableList = '' then '' else ',')
+                                      + string(hTable).             
             END.
             hQry:QUERY-CLOSE().
             DELETE OBJECT hQry.
@@ -6377,13 +6377,15 @@ PROCEDURE serverFetchDOProperties :
                this as it is initialized here if required.  
              - See FetchDOProperties about usage.   
 ------------------------------------------------------------------------------*/
-   DEFINE OUTPUT PARAMETER pcContext   AS CHARACTER NO-UNDO.
+   DEFINE OUTPUT PARAMETER pcContext   AS CHARACTER  NO-UNDO.
    
-   DEFINE VARIABLE lInitialized        AS LOGICAL  NO-UNDO.
-   DEFINE VARIABLE lFirstCall          AS LOGICAL  NO-UNDO.
-
-   {get ObjectInitialized lInitialized}.
+   DEFINE VARIABLE lInitialized        AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE lFirstCall          AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE cContained          AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE iSDO                AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE hSDO                AS HANDLE     NO-UNDO.
    
+   {get ObjectInitialized lInitialized}. 
    IF NOT lInitialized THEN
    DO:
      {set OpenOnInit FALSE}.
@@ -6391,7 +6393,17 @@ PROCEDURE serverFetchDOProperties :
    END. /* if not initialized */
 
    /* This is a dedicated 'first time' call, so set ServerFirstCall = true*/ 
-   {set ServerFirstCall TRUE}.
+   &scop xp-assign
+   {set ServerFirstCall TRUE}
+   {get ContainedDataObjects cContained}
+   .
+   &undefine xp-assign
+   /* ensure that the SDOs also return the first time properties */
+   do iSDO = 1 to num-entries(cContained):
+     hSDO = WIDGET-HANDLE(ENTRY(iSDO, cContained)).
+     {set ServerFirstCall TRUE hSDO}.
+   end.  
+   
    pcContext = {fn obtainContextForClient}.
 
 END PROCEDURE.
@@ -9137,18 +9149,18 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
   END.
   pcTargetNames = cExpandedTargetNames.
 
- /* We add in the SBOs object order, this also enablkes us to return the rowident 
+ /* We add in the SBOs object order, this also enables us to return the rowident 
     in submitRow order */
   {get DataObjectNames cObjectNames}.
 
   /* Check if operating in a One-to-Zero situation. If so, reject... for now */
+  if pcMode = 'Copy':U then
   DO iEntry = 1 TO NUM-ENTRIES(cObjectNames):
     cObjectName = ENTRY(iEntry,cObjectNames).
-    
-    /* Is this an updateTarget  */
+     /* Is this an updateTarget  */
     IF CAN-DO(pcTargetNames,cObjectName) THEN
     DO:      
-      hTarget  = {fnarg DataObjectHandle cObjectName}.        
+      hTarget  = {fnarg DataObjectHandle cObjectName}.     
       IF VALID-HANDLE(hTarget) THEN
       DO:
         {get RowObject hRow hTarget}.
@@ -9158,7 +9170,8 @@ FUNCTION newDataObjectRow RETURNS CHARACTER
           IF hQuery:IS-OPEN THEN           /* ... and the query is open */
           DO:
             {get UpdateFromSource lOne2One hTarget}. /* check for 1to1 */
-            IF lOne2One THEN DO:
+            IF lOne2One THEN 
+            DO:
               RUN addMessage IN TARGET-PROCEDURE ({fnarg messageNumber 73},
                                                   ?,{fn getTables hTarget}).
               RETURN ?. /* ERROR */
@@ -9622,6 +9635,7 @@ FUNCTION submitRow RETURNS LOGICAL
          (qualifiers were removed further up)*/
       IF NUM-ENTRIES(TRIM(pcRowIdent,';':U),';':U) = 1 THEN
       DO:
+        
         lSuccess = DYNAMIC-FUNCTION('submitRow':U IN hSDO,
                                    cRowIdent, 
                                    pcValueList).
@@ -9649,7 +9663,7 @@ FUNCTION submitRow RETURNS LOGICAL
 
           lSuccess  = DYNAMIC-FUNCTION('submitRow':U IN hSDO,
                                         cRowIdent,
-                                        cValueList[iSDO]).              
+                                        cValueList[iSDO]). 
           /* Keep track of which to return to add mode if a later submit fails */ 
           IF lSuccess AND lNewMode THEN
             cNewObjects = cNewObjects 

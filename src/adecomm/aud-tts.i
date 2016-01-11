@@ -34,6 +34,7 @@ DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO
     FIELD _Client-session-uuid           AS CHARACTER 
                                             LABEL "Client session uuid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Client-name                   AS CHARACTER 
                                             LABEL "Client name" 
                                             FORMAT "X(35)"
@@ -47,6 +48,7 @@ DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO
     FIELD _Server-uuid                   AS CHARACTER 
                                             LABEL "Server uuid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Authentication-domain-type    AS CHARACTER 
                                             LABEL "Authentication domain type" 
                                             FORMAT "X(35)"
@@ -56,6 +58,7 @@ DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO
     FIELD _Db-guid                       AS CHARACTER 
                                             LABEL "Database guid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Db-description                AS CHARACTER 
                                             LABEL "Database description" 
                                             FORMAT "X(70)"
@@ -88,6 +91,7 @@ DEFINE {1} SHARED TEMP-TABLE audDataValue NO-UNDO
     FIELD _Audit-data-guid               AS CHARACTER 
                                             LABEL "Audit data guid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Field-name                    AS CHARACTER 
                                             LABEL "Field name" 
                                             FORMAT "X(32)"
@@ -179,18 +183,21 @@ DEFINE {1} SHARED TEMP-TABLE audData NO-UNDO
     FIELD _Audit-event-group             AS CHARACTER 
                                             LABEL "Audit event group" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Audit-event-group-name         AS CHARACTER 
                                             LABEL "Event group name" 
                                             FORMAT "X(70)"
     FIELD _Application-context-id        AS CHARACTER 
                                             LABEL "Application context id" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Application-context-summary    AS CHARACTER 
                                             LABEL "Application context summary" 
                                             FORMAT "X(70)" 
     FIELD _Audit-data-guid               AS CHARACTER 
                                             LABEL "Audit data guid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Database-connection-id        AS CHARACTER 
                                             LABEL "Database connection id" 
                                             FORMAT "X(28)"
@@ -221,9 +228,11 @@ DEFINE {1} SHARED TEMP-TABLE audData NO-UNDO
     FIELD _Client-session-uuid           AS CHARACTER 
                                             LABEL "Client session uuid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Db-guid                       AS CHARACTER 
                                             LABEL "Database guid" 
                                             FORMAT "X(28)"
+                                            CASE-SENSITIVE
     FIELD _Event-context                 AS CHARACTER 
                                             LABEL "Event context" 
                                             FORMAT "X(200)"

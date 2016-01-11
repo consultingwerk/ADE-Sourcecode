@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -51,6 +35,8 @@ History:
     mcmann      06/05/03    Changed p_owner default to user doing selection of object.
     kmcintos    04/13/04    Added support for ODBC type DB2/400 by changing "Object Owner"
                             label to "Owner/Library"
+    knavneet    02/21/07    Changed the label from Owner/Library to Collection/Library in case of DB2/400
+                            Changed the label from Owner/Library to Owner in case of other data sources.  
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -72,13 +58,12 @@ define variable               canned     as   logical init yes.
 define variable               l_link     as   character format "x(30)".
 define variable               l_verify   as   logical.
 
-
 form
                                                           skip({&VM_WIDG})
   l_link    label "Link-Path  "  format "x(30)" colon 18  skip({&VM_WIDG})
   p_name    label "Object &Name"                 colon 18  skip({&VM_WIDG})
   p_type    label "Object &Type"                 colon 18  skip({&VM_WIDG})
-  p_owner   label "&Owner/Library"                colon 18  skip({&VM_WIDG})
+  p_owner   label "&Owner"                colon 18  skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
@@ -93,7 +78,7 @@ form
                                              skip({&VM_WIDG})
   p_name    label "Object &Name"   colon 18   skip({&VM_WIDG})
 /*  p_type    label "Object &Type"  colon 18   skip({&VM_WIDG})*/
-  p_owner   label "&Owner/Library"  colon 18   skip({&VM_WIDG})
+  p_owner   label "&Owner"  colon 18   skip({&VM_WIDG})
   p_qual    label "&Qualifier  "   colon 18   skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX skip({&VM_WIDG})
@@ -109,7 +94,7 @@ form
                                              skip({&VM_WIDG})
   p_name    label "Object &Name"   colon 18   skip({&VM_WIDG})
   p_type    label "Object &Type"   colon 18   skip({&VM_WIDG})
-  p_owner   label "&Owner/Library"  colon 18   skip({&VM_WIDG})
+  p_owner   label "&Owner"  colon 18   skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
@@ -120,6 +105,21 @@ form
   view-as dialog-box default-button btn_ok cancel-button btn_cancel
   TITLE " Pre-Selection Criteria For Schema Pull ".
 
+form
+                                             skip({&VM_WIDG})
+  p_name    label "Object &Name"   colon 20   skip({&VM_WIDG})
+  p_owner   label "&Collection/Library"  colon 20   skip({&VM_WIDG})
+  p_qual    label "&Qualifier  "   colon 20   skip({&VM_WIDG})
+  SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
+            view-as TOGGLE-BOX skip({&VM_WIDG})
+  SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
+  {prodict/user/userbtns.i}
+ with frame frm_as400
+  centered row 3 attr-space
+  overlay side-labels
+  view-as dialog-box default-button btn_ok cancel-button btn_cancel
+  TITLE " Pre-Selection Criteria For Schema Pull ".
+  
 
 /*---------------------------  TRIGGERS  ---------------------------*/
 
@@ -138,6 +138,11 @@ form
 			      INPUT ?).
   on HELP of frame frm_nto
     or CHOOSE of btn_Help in frame frm_nto
+    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
+			      INPUT {&Presel_Schema_Pull_Dlg_Box},
+			      INPUT ?).
+  on HELP of frame frm_as400
+    or CHOOSE of btn_Help in frame frm_as400
     RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
 			      INPUT {&Presel_Schema_Pull_Dlg_Box},
 			      INPUT ?).
@@ -167,6 +172,14 @@ on GO of frame frm_nto do:
     .
   end.
 
+on GO of frame frm_as400 do:
+  assign
+    p_name  = p_name:screen-value  in frame frm_as400
+    p_owner = p_owner:screen-value in frame frm_as400
+    p_qual  = p_qual:screen-value  in frame frm_as400
+    .
+  end.
+
 on WINDOW-CLOSE of frame frm_link
    apply "END-ERROR" to frame frm_link.
     
@@ -175,6 +188,9 @@ on WINDOW-CLOSE of frame frm_ntoq
 
 on WINDOW-CLOSE of frame frm_nto
    apply "END-ERROR" to frame frm_nto.
+
+on WINDOW-CLOSE of frame frm_as400
+   apply "END-ERROR" to frame frm_as400.
     
 /*------------------------  INT.-PROCEDURES  -----------------------*/
 
@@ -237,7 +253,7 @@ do on ENDKEY undo,leave:
 
     end.     /* frame frm_link */
   
-  else if p_frame = "frm_ntoq":U
+  else if p_frame = "frm_ntoq":U 
    then do:  /* frame frm_ntoq */
  
     if not l_verify then 
@@ -267,6 +283,37 @@ do on ENDKEY undo,leave:
     assign canned = false.
 
     end.     /* frame frm_ntoq */
+
+  else if p_frame = "frm_as400":U 
+   then do:  /* frame frm_as400 */
+ 
+    if not l_verify then 
+      ASSIGN p_outf:HIDDEN IN FRAME frm_as400 = TRUE
+             p_vrfy:hidden in frame frm_as400 = TRUE.
+
+    {adecomm/okrun.i  
+      &FRAME  = "FRAME frm_as400" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+      }
+
+    update
+      p_name
+      p_owner
+      p_qual
+      p_vrfy when l_verify
+      p_outf WHEN l_verify
+      btn_OK 
+      btn_Cancel
+      {&HLP_BTN_NAME}
+     with frame frm_as400.
+  
+    hide frame frm_as400 no-pause.
+    assign canned = false.
+
+    end.     /* frame frm_as400 */ 
   
   else if p_frame = "frm_nto":U
    then do:  /* frame frm_nto */
@@ -300,7 +347,6 @@ do on ENDKEY undo,leave:
     end.     /* frame frm_nto */
     
   end.  /* do on endkey undo, leave */
- 
 RETURN if canned then "cancel":U else "ok":U.
   
 /*------------------------------------------------------------------*/        

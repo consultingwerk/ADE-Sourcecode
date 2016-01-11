@@ -23,6 +23,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
+&SCOPED-DEFINE BUFFER_SIZE         1024
 &SCOPED-DEFINE NO_EMBEDDED_WINDOWS NO
 DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABEmbedded AS LOGICAL NO-UNDO INITIAL TRUE.
 DEFINE SHARED VARIABLE cLinkedResources  AS CHARACTER.
@@ -719,13 +720,21 @@ DEFINE VARIABLE lStatus AS LOGICAL     NO-UNDO.
 
    IF plWait THEN
    DO:
-        SET-SIZE(mReadBuffer)      = 1024.
-        WAIT-FOR READ-RESPONSE OF hSocket.
+        SET-SIZE(mReadBuffer)      = {&BUFFER_SIZE}.
         IF hSocket:CONNECTED() THEN
         DO:
-            lStatus = NOT hSocket:READ(mReadBuffer, 1, 1024, READ-AVAILABLE).
-            IF hSocket:BYTES-READ > 0 THEN
-                pcResult = GET-STRING(mReadBuffer, 1).
+            lStatus = NOT hSocket:READ(mReadBuffer, 1, {&BUFFER_SIZE} - 1, READ-AVAILABLE) NO-ERROR.
+            IF hSocket:BYTES-READ > 0 OR lStatus THEN
+                pcResult = "".                
+                
+            DO WHILE hSocket:BYTES-READ > 0:                
+                PUT-BYTE(mReadBuffer, hSocket:BYTES-READ + 1) = 0.
+                pcResult = pcResult + GET-STRING(mReadBuffer, 1).
+                IF hSocket:GET-BYTES-AVAILABLE() <= 0 THEN
+                    LEAVE.
+                lStatus = NOT hSocket:READ(mReadBuffer, 1, {&BUFFER_SIZE} - 1, READ-AVAILABLE) NO-ERROR.
+            END.
+            
         END.
         SET-SIZE(mReadBuffer) = 0.        
    END.

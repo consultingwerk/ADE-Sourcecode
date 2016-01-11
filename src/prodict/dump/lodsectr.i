@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -31,6 +31,7 @@ Included in:
   
 History:
   Nov 04, 2005 fernando    Try to find trailer info if byte count is incorrect. 20051104-046
+  Mar 05, 2007 fernando    Check if trailer start seems correct - OE00135015
 */
 
 RUN readTrailer.
@@ -64,12 +65,27 @@ PROCEDURE readTrailer.
   SEEK INPUT TO SEEK(INPUT) - 11. /* position to beginning of last line */
 
   IMPORT UNFORMATTED cInput.
-  
+
   {3} = INTEGER(cInput).
 
   SEEK INPUT TO {3}.
 
   m = SEEK(INPUT).
+
+  /* OE00135015
+     If the location of the trailer seems ok based on the size of the file, still want to
+     check if bytecount was incorrect due to carriage return difference between Windows
+     and UNIX. If we are not looking at the beginning of the trailer info, set m = ?
+     so that we run the code below that will try to find the trailer.
+  */
+  IF m NE ? AND m < EndPos THEN DO:
+      DO ON ENDKEY UNDO, LEAVE:
+          IMPORT UNFORMATTED cInput.
+          cInput = TRIM(cInput).
+      END.
+      IF cInput NE "PSC" THEN
+          ASSIGN m = ?.
+  END.
 
   /* 20051104-046 
      Check if we can find the trailer info in case the bytecount is incorrect.
@@ -86,7 +102,7 @@ PROCEDURE readTrailer.
              LEAVE.
      END.
   END.
-
+  
 
   REPEAT ON ERROR UNDO, LEAVE:
     {1} = TRUE.

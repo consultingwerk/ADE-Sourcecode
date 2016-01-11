@@ -3998,12 +3998,54 @@ FUNCTION getHideOnInit RETURNS LOGICAL
            at initialization.
     Notes: Also used for non visual object in order to publish LinkState 
            correctly for activation and deactivation of links.   
-           Defaults to no, set to yes from the container when it runs initPages 
-           to initialize non visible pages 
+         - PendingPage is used as "visiblePage" in this logic to ensure that 
+           this returns true for object's that are on a hidden page so they 
+           remain hidden during initilization without depending on a 
+           setHideOnInit that messes with customers use of HideOnInit. 
+         - containr.p initPages sets PendingPage to the current visible page 
+           when initializing hidden objects. Old behavior dictates that 
+           CurrentPage must be the initted page also when hidden.              
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lHideOnInit AS LOGICAL    NO-UNDO.
-  {get HideOnInit lHideOnInit}.
-  RETURN lHideOnInit.
+  DEFINE VARIABLE lHideOnInit      AS LOGICAL   NO-UNDO.
+  define variable hContainerSource as handle    no-undo.
+  define variable iCurrentPage     as integer   no-undo.
+  define variable iPendingPage     as integer   no-undo.
+  define variable iObjectPage      as integer   no-undo.
+  define variable lQueryObject     as logical   no-undo.
+  
+  &scop xpHideOnInit
+  &scop xp-assign
+  {get HideOnInit lHideOnInit}
+  {get QueryObject lQueryObject}
+  {get ObjectPage iObjectPage}
+  {get ContainerSource hContainerSource}
+  .
+  &undefine xp-assign
+  &undefine xpHideOnInit
+  
+  /* if we're on a page than can be hidden and we're not a Query 
+    (data-source) and not already defined to be hidden then check 
+     PendingPage */ 
+  if iObjectPage <> 0 
+  and not lQueryObject 
+  and not lHideOnInit 
+  and valid-handle(hContainerSource) then
+  do:
+    &scop xp-assign
+    {get PendingPage iPendingPage hContainerSource}    
+    {get CurrentPage iCurrentPage hContainerSource}
+    .    
+    &undefine xp-assign
+    /* if pendingpage is set and not current then keep the object hidden 
+       (no need to check if CurrentPage is 0 - as it is never hidden) */
+    if  iCurrentPage <> 0 
+    and iPendingPage <> ? 
+    and iCurrentPage <> iPendingPage then
+      lHideOnInit  = true.
+  end.
+    
+  return lHideOnInit.
+  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -5999,7 +6041,9 @@ Parameters: plHideOnInit - logical
            Defaults to no, set to yes from the container when it runs initPages 
            to initialize non visible pages 
 ------------------------------------------------------------------------------*/
+  &scop xpHideOnInit
   {set HideOnInit plHideOnInit}.
+  &undefine xpHideOnInit
   RETURN TRUE.
 END FUNCTION.
 

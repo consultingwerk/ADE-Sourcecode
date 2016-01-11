@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,7 +25,7 @@ History
                         use _file-name when blank and generally made the
                         procedure more readable 20050930-008. 
     fernando   03/16/06 Handle case with too many tables selected - bug 20050930-006.    
-
+    fernando   02/27/07 Support for long dump name - OE00146586
 
 Multi-DB-Support:
     the syntax of file-name is:
@@ -51,6 +51,7 @@ DEFINE VARIABLE l_int       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_item      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_list      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE save_ab     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 DEFINE TEMP-TABLE ttb_dump
         FIELD db        AS CHARACTER
@@ -59,6 +60,9 @@ DEFINE TEMP-TABLE ttb_dump
         
 
 /****** general initialisations ***********************************/
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
 
 ASSIGN save_ab                   = SESSION:APPL-ALERT-BOXES
        SESSION:APPL-ALERT-BOXES  = NO
@@ -110,7 +114,8 @@ FOR EACH DICTDB._Db NO-LOCK:
 
   ASSIGN l_db-name   = (IF DICTDB._DB._DB-Type = "PROGRESS" THEN 
                           LDBNAME("DICTDB") ELSE _DB._DB-name)
-         user_longchar = ""
+         user_env[1] = ""
+         user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
          l_for-type  = (IF CAN-DO("PROGRESS",DICTDB._DB._DB-Type) THEN 
                           ? ELSE "TABLE,VIEW").
 /* to generate the list of tables of this _db-record to be loaded and
@@ -118,7 +123,7 @@ FOR EACH DICTDB._Db NO-LOCK:
  * a) try to use all tables WITHOUT db-specifyer
  */
   FOR EACH ttb_dump WHERE ttb_dump.db = "" 
-                    WHILE user_longchar <> ",all":
+                    WHILE user_env[1] <> ",all":
     IF ttb_dump.tbl <> "all" THEN DO:
       IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
         FIND FIRST DICTDB._File OF DICTDB._Db 
@@ -131,22 +136,27 @@ FOR EACH DICTDB._Db NO-LOCK:
 
       IF AVAILABLE DICTDB._File THEN DO: 
         IF CAN-DO(l_for-type,DICTDB._File._For-type) OR
-           l_for-type = ? THEN
+           l_for-type = ? THEN DO:
+        
           ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                   DICTDB._File._dump-name 
-                                ELSE LC(DICTDB._File._file-name))
-                 user_longchar = user_longchar + "," + ttb_dump.tbl.
+                                ELSE LC(DICTDB._File._file-name)).
+          IF isCpUndefined THEN
+              user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+          ELSE
+              user_longchar = user_longchar + "," + ttb_dump.tbl.
+        END.
       END.
       ELSE
         MESSAGE "Table " + ttb_dump.tbl + " does not exist in this database!".
     END.
     ELSE 
-      ASSIGN user_longchar = ",all".
+      ASSIGN user_env[1] = ",all".
   END.
 
 /* b) try to use all tables WITH db-specifyer */
   FOR EACH ttb_dump WHERE ttb_dump.db = l_db-name
-                    WHILE user_longchar <> ",all":
+                    WHILE user_env[1] <> ",all":
     IF ttb_dump.tbl <> "all" THEN DO:
       IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
         FIND FIRST DICTDB._File OF DICTDB._Db 
@@ -158,23 +168,33 @@ FOR EACH DICTDB._Db NO-LOCK:
                 WHERE DICTDB._File._File-name = ttb_dump.tbl NO-LOCK NO-ERROR.                                         
       IF AVAILABLE DICTDB._File THEN DO: 
         IF CAN-DO(l_for-type,DICTDB._File._For-type) OR
-           l_for-type = ? THEN 
+           l_for-type = ? THEN DO:
+        
           ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                   DICTDB._File._dump-name 
-                                ELSE LC(DICTDB._File._file-name))
-                 user_longchar = user_longchar + "," + ttb_dump.tbl.
+                                ELSE LC(DICTDB._File._file-name)).
+          IF isCpUndefined THEN
+              user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+          ELSE
+              user_longchar = user_longchar + "," + ttb_dump.tbl.
+        END.
       END.
       ELSE
         MESSAGE "Table " + ttb_dump.tbl + " does not exist in this database!".
     END.
     ELSE 
-      ASSIGN user_longchar = ",all".
+      ASSIGN user_env[1] = ",all".
   END.
     
 /* c) if either "all" or "all of this db" then we take every file
  *    of the current _Db
  */
-  IF user_longchar = ",all" THEN DO:  /* all files of this _Db */
+  IF user_env[1] = ",all" THEN DO:  /* all files of this _Db */
+
+    assign user_env[1] = "".
+    IF NOT isCpUndefined THEN
+       assign user_longchar = "".
+
     FOR EACH DICTDB._File WHERE DICTDB._File._File-number > 0 AND   
                                 DICTDB._File._Db-recid    = RECID(_Db) AND   
                                 NOT DICTDB._File._Hidden
@@ -184,41 +204,53 @@ FOR EACH DICTDB._Db NO-LOCK:
           DICTDB._File._Owner <> "_FOREIGN") THEN NEXT.
       
       IF l_for-type = ? OR 
-         CAN-DO(l_for-type,DICTDB._File._For-type) THEN  
+         CAN-DO(l_for-type,DICTDB._File._For-type) THEN   DO:
+      
         ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                 DICTDB._File._dump-name 
-                              ELSE LC(DICTDB._File._file-name))
-               user_longchar = user_longchar + "," + DICTDB._File._File-name.
+                              ELSE LC(DICTDB._File._file-name)).
+        IF isCpUndefined THEN
+            user_env[1] = user_env[1] + "," + DICTDB._File._File-name.
+        ELSE
+            user_longchar = user_longchar + "," + DICTDB._File._File-name.
+      END.
     END.
-    ASSIGN user_longchar = SUBSTRING(user_longchar,6,-1,"character").
+    IF isCpUndefined THEN
+        ASSIGN user_env[1] = SUBSTRING(user_env[1],2,-1,"character").
+    ELSE 
+        ASSIGN user_longchar = SUBSTRING(user_longchar,2,-1,"character").
   END.     /* all files of this _Db */
-  ELSE 
-    ASSIGN user_longchar = SUBSTRING(user_longchar,2,-1,"character").
-   
+  ELSE DO:
+    IF isCpUndefined THEN
+        ASSIGN user_env[1] = SUBSTRING(user_env[1],2,-1,"character").
+    ELSE
+        ASSIGN user_longchar = SUBSTRING(user_longchar,2,-1,"character").
+  END.
+
   /* is there something to load into this _db? */
-  IF user_longchar = "" THEN NEXT.
+  if NOT isCpUndefined AND user_longchar = "" then next.
+  if     isCpUndefined AND user_env[1] = ""   then next.
 
     
 
 /****** 3. step: prepare user_env[2] and user_env[5] **************/
   
   /* if one file => .d-name otherwise path */
-  IF NUM-ENTRIES(user_longchar) > 1 OR 
+  IF NUM-ENTRIES((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) > 1 OR 
      dot-d-dir MATCHES "*" + ".d" OR
      dot-d-dir MATCHES "*" + ".ad" THEN 
     ASSIGN user_env[2] = dot-d-dir.  /* just path or .d-file-name */
   ELSE 
     ASSIGN user_env[2] = dot-d-dir + 
-                         SUBSTRING((IF l_Dump-name = ? THEN 
-                                      STRING(user_longchar) ELSE l_Dump-name), 
-                                   1,8,"character") + 
+                         (IF l_Dump-name = ? THEN 
+                                      STRING((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) ELSE l_Dump-name) + 
                          (IF l_Dump-name BEGINS "_aud" THEN 
                             ".ad" ELSE ".d"). 
                          /* full path and name of .d-file */
 
   /* Indicate "y"es to disable triggers for dump of all files */
   ASSIGN user_env[5] = "y".
-  DO i = 2 TO NUM-ENTRIES(user_longchar):
+  DO i = 2 TO NUM-ENTRIES((IF isCpUndefined THEN user_env[1] ELSE user_longchar)):
     ASSIGN user_env[5] = user_env[5] + ",y".
   END.
 
@@ -231,13 +263,15 @@ FOR EACH DICTDB._Db NO-LOCK:
 
 /****** 4. step: the actual loading-process ***********************/
 
-  /* see if we can put user_longchar into user_env[1] */
-  ASSIGN user_env[1] = user_longchar NO-ERROR.
-  IF NOT ERROR-STATUS:ERROR THEN
-     /* ok to use user_env[1] */
-     ASSIGN user_longchar = "". 
-  ELSE
-     ASSIGN user_env[1] = "".
+  IF NOT isCpUndefined THEN DO:
+      /* see if we can put user_longchar into user_env[1] */
+      ASSIGN user_env[1] = user_longchar NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN
+         /* ok to use user_env[1] */
+         ASSIGN user_longchar = "". 
+      ELSE
+         ASSIGN user_env[1] = "".
+  END.
 
   RUN "prodict/dump/_loddata.p".
 

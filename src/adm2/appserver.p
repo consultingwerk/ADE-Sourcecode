@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2000,2005-2007 by Progress Software Corporation.          * 
+* All rights reserved.  Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+***************************************************************************/
 /*--------------------------------------------------------------------------
     File        : appserver.p
     Purpose     : Super procedure for appserver class.
@@ -852,16 +852,21 @@ Note date:  2002/02/05
     IF lNeedContext THEN 
     DO:
       cContext = {fn obtainContextForServer}.  
-      /* synchronizeProperties does not currently exist in SBO, so the SBO 
-         overrides this and calls super only if hasStarted  */
-      IF NOT lHasStarted THEN
-      DO:
-        RUN synchronizeProperties IN hASHandle (INPUT  cContext,
-                                                OUTPUT cContext).
-        {fnarg applyContextFromServer cContext}.
-      END.
-      ELSE 
-        RUN setContextAndInitialize IN hAsHandle(cContext).
+      /* certain getters called from obtainContextForServer may have finalized 
+         connection already  */
+      if valid-handle(hAsHandle) then
+      do:
+        /* synchronizeProperties does not currently exist in SBO, so the SBO 
+	         overrides this and calls super only if hasStarted  */
+        IF NOT lHasStarted THEN
+        DO:
+          RUN synchronizeProperties IN hASHandle (INPUT  cContext,
+                                                  OUTPUT cContext).
+          {fnarg applyContextFromServer cContext}.
+        END.
+        ELSE  
+          RUN setContextAndInitialize IN hAsHandle(cContext).
+      end. /* valid ashandle */  
     END.
     ELSE 
     DO:
@@ -1393,7 +1398,6 @@ FUNCTION getASHandle RETURNS WIDGET-HANDLE
   &SCOPED-DEFINE xpAsHandle
   {get AsHandle hAs}.
   &UNDEFINE xpAsHandle
-  
   IF NOT VALID-HANDLE(hAS) THEN 
   DO: /* Perhaps it needs to be re-established */        
      /* Store the caller info that unbindServer uses to unbind conditionally 

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /************************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                              *
 ************************************************************************/
@@ -743,20 +743,20 @@ Modified:
 
   CASE _F._DATA-TYPE:
     WHEN "CHARACTER" OR WHEN "LONGCHAR" THEN
-      ASSIGN _F._INITIAL-DATA = _F._INITIAL-DATA.
+      ASSIGN _F._INITIAL-DATA = IF _F._INITIAL-DATA = ? THEN "" ELSE _F._INITIAL-DATA.
     WHEN "LOGICAL"   THEN 
       ASSIGN _F._INITIAL-DATA = "No".
     WHEN "DECIMAL"   THEN DO:
       ASSIGN _F._INITIAL-DATA = STRING(DECIMAL(TRIM(_F._INITIAL-DATA))) NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
+      IF ERROR-STATUS:ERROR OR _F._INITIAL-DATA = ? THEN _F._INITIAL-DATA = "0".
     END.
     WHEN "INTEGER"   THEN DO:
       ASSIGN _F._INITIAL-DATA = STRING(INTEGER(TRIM(_F._INITIAL-DATA))) NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
+      IF ERROR-STATUS:ERROR OR _F._INITIAL-DATA = ? THEN _F._INITIAL-DATA = "0".
     END.
     WHEN "INT64" THEN DO:
       ASSIGN _F._INITIAL-DATA = STRING(INT64(TRIM(_F._INITIAL-DATA))) NO-ERROR.
-      IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
+      IF ERROR-STATUS:ERROR OR _F._INITIAL-DATA = ? THEN _F._INITIAL-DATA = "0".
     END.
     WHEN "RECID" THEN
       ASSIGN _F._INITIAL-DATA = "?".

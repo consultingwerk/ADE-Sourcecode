@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -183,6 +183,10 @@ DEFINE VARIABLE tmp_str          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE isUnicodeType    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE warn_tablename   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE warn_codepage    AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE esc-idx1         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE esc-idx2         AS INTEGER   NO-UNDO.
+DEFINE VARIABLE ch1              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ch2              AS CHARACTER  NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive

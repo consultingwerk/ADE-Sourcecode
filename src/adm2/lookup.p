@@ -3003,7 +3003,8 @@ PROCEDURE valueChanged :
   DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
 
   {get LookupHandle hLookup}.
-  IF VALID-HANDLE(hLookup) AND hLookup:INPUT-VALUE = ? THEN
+  
+  IF VALID-HANDLE(hLookup) AND hLookup:SCREEN-VALUE = ? THEN
   DO:
     /* Fix for issue #7076 */
     hLookup:SCREEN-VALUE = "":U.

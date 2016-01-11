@@ -3440,6 +3440,8 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cPanelType       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTableioTarget   AS CHARACTER  NO-UNDO.
 
+
+
   &SCOPED-DEFINE xp-assign
   {get TableioType cTableioType}
   {get HiddenActions cHidden}
@@ -3564,10 +3566,11 @@ PROCEDURE initializeObject :
     END.
   END.
   
-  {get HideOnInit lHideOnInit}. 
-  IF NOT lHideOnInit THEN 
-  DO:
-    RUN viewObject IN TARGET-PROCEDURE.
+  {get HideOnInit lHideOnInit}.
+   
+  IF NOT lHideOnInit then
+  DO: 
+    RUN viewObject IN TARGET-PROCEDURE.   
     IF cUIBmode = "DESIGN":U AND ERROR-STATUS:GET-NUMBER(1) = 6491 THEN
     DO:      
       MESSAGE 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,6 +16,7 @@
                                 supported in MS SQL Server
              fernando  04/14/06 Unicode support
              fernando  07/19/06 Unicode support - restrict UI
+             moloney   03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
 */            
 
 
@@ -325,7 +326,12 @@ main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF redo THEN
      RUN cleanup.
-  
+ 
+  IF logfile_open THEN DO:
+     OUTPUT STREAM logfile CLOSE.
+     logfile_open = FALSE.
+  END.
+
   IF wrg-ver THEN DO:
    IF NOT unicodeTypes THEN
     MESSAGE "The DataServer for MS SQL Server was designed to work with Versions 7 " SKIP

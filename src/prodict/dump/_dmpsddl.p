@@ -324,7 +324,8 @@ then do:  /* output WITHOUT alert-box */
 if TERMINAL <> ""
  then HIDE FRAME working NO-PAUSE.
 
-ASSIGN user_longchar = "".
+IF SESSION:CPINTERNAL NE "undefined":U THEN
+   ASSIGN user_longchar = "".
 
 RETURN.
 

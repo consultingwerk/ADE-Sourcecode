@@ -1,294 +1,260 @@
-<?xml version = "1.0" encoding = "UTF-8"?>
-
-<!-- ********************************************************************** -->
-
-<!-- * Copyright (C) 2001 by Progress Software Corporation ("PSC"),       * -->
-
-<!-- * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   * -->
-
-<!-- * below.  All Rights Reserved.                                       * -->
-
-<!-- *                                                                    * -->
-
-<!-- * The Initial Developer of the Original Code is PSC.  The Original   * -->
-
-<!-- * Code is Progress IDE code released to open source December 1, 2000.* -->
-
-<!-- *                                                                    * -->
-
-<!-- * The contents of this file are subject to the Possenet Public       * -->
-
-<!-- * License Version 1.0 (the "License"); you may not use this file     * -->
-
-<!-- * except in compliance with the License.  A copy of the License is   * -->
-
-<!-- * available as of the date of this notice at                         * -->
-
-<!-- * http://www.possenet.org/license.html                               * -->
-
-<!-- *                                                                    * -->
-
-<!-- * Software distributed under the License is distributed on an "AS IS"* -->
-
-<!-- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You* -->
-
-<!-- * should refer to the License for the specific language governing    * -->
-
-<!-- * rights and limitations under the License.                          * -->
-
-<!-- *                                                                    * -->
-
-<!-- * Contributors:                                                      * -->
-
-<!-- *                                                                    * -->
-
-<!-- ********************************************************************** -->
-<POSSE>
-	<Version> 2.0 </Version>
-	<PROJECTS>
-		<Project>                        
-			<ProjectName> adebuild </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName>John Palazzo</OwnerName>      
-				<OwnerEMail>jep@progress.com</OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>                       
-			<ProjectName> adecomp </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> John Palazzo </OwnerName>      
-				<OwnerEMail> jep@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adedesk </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Gerry Seidl  </OwnerName>      
-				<OwnerEMail> gfs@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adedict </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Donna McMann </OwnerName>      
-				<OwnerEMail> mcmann@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adeedit </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> John Palazzo     </OwnerName>      
-				<OwnerEMail> jep@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adeicon </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName>Gerry Seidl </OwnerName>      
-				<OwnerEMail> gfs@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> aderes </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Terry Jackson </OwnerName>      
-				<OwnerEMail> jackson@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adeshar </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> John Palazzo     </OwnerName>      
-				<OwnerEMail> jep@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adetran </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Terry Jackson </OwnerName>      
-				<OwnerEMail> jackson@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adeuib </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName>Julian Lyndon Smith</OwnerName>      
-				<OwnerEMail>jmls@dotr.com</OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> adm2 </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> John Sadd </OwnerName>      
-				<OwnerEMail> john@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> as4dict </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Donna McMann  </OwnerName>      
-				<OwnerEMail> mcmann@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> docs </ProjectName>
-			<ProjectVersion> TBD </ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Melissa Spurr </OwnerName>      
-				<OwnerEMail> spurr@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>                
-		<Project>                        
-			<ProjectName> ICF </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>        
-                
-		<Project>                
-                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Session Management </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                        
-				<OwnerName>Bruce Gruenbaum</OwnerName>      
-                                
-				<OwnerEMail>bgruenba@progress.com</OwnerEMail>                                
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Business/Process Logic </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Globalization </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                         
-			<ParentProject> ICF </ParentProject>                         
-			<ProjectName> Reporting </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Repository </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName>Anthony Swindells</OwnerName>      
-                                
-				<OwnerEMail>aswindel@progress.com</OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Security </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Test </ProjectName>                        
-			<ProjectVersion>1.0</ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName> John Sadd </OwnerName>      
-                                
-				<OwnerEMail> john@progress.com </OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>                
-		<Project>                        
-			<ParentProject> ICF </ParentProject>                        
-			<ProjectName> Web UI </ProjectName>                        
-			<ProjectVersion> TBD </ProjectVersion>                        
-			<ProjectOwner>                                
-				<OwnerName>Doug Adams</OwnerName>      
-                                
-				<OwnerEMail>adams@progress.com</OwnerEMail>                        
-			</ProjectOwner>                
-		</Project>
-		<Project>
-			<ProjectName> prodict </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Donna McMann </OwnerName>      
-				<OwnerEMail> mcmann@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> prores </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Terry Jackson </OwnerName>      
-				<OwnerEMail> jackson@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> protools </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName> Gerry Seidl </OwnerName>      
-				<OwnerEMail> gfs@progress.com </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>
-			<ProjectName> webspeed </ProjectName>
-			<ProjectVersion>2.0</ProjectVersion>
-			<ProjectOwner>
-				<OwnerName>Doug Adams</OwnerName>      
-				<OwnerEMail> dev@webspeed.possenet.org </OwnerEMail>
-			</ProjectOwner>
-		</Project>
-		<Project>        
-			<ProjectName> webtools </ProjectName>        
-			<ProjectVersion>2.0</ProjectVersion>        
-			<ProjectOwner>                
-				<OwnerName>Geoff Crawford</OwnerName>      
-		                
-				<OwnerEMail>geoff@innov8cs.com</OwnerEMail>        
-			</ProjectOwner>
-		</Project>
-		<Project>        
-			<ProjectName> utilities </ProjectName>        
-			<ProjectVersion>2.0</ProjectVersion>        
-			<ProjectOwner>                
-				<OwnerName> Julian Lyndon-Smith </OwnerName>   
-				<OwnerEMail> jmls@dotr.com </OwnerEMail>        
-			</ProjectOwner>
-		</Project>
-	</PROJECTS>
-</POSSE>
+<?xml version = "1.0" encoding = "UTF-8"?>
+
+<!-- ********************************************************************** -->
+
+* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                           *
+
+<!-- *                                                                    * -->
+
+<!-- ********************************************************************** -->
+<POSSE>
+	<Version> 2.0 </Version>
+	<PROJECTS>
+		<Project>                        
+			<ProjectName> adebuild </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName>John Palazzo</OwnerName>      
+				<OwnerEMail>jep@progress.com</OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>                       
+			<ProjectName> adecomp </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adedesk </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Gerry Seidl  </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adedict </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeedit </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo     </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeicon </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName>Gerry Seidl </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> aderes </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeshar </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo     </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adetran </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeuib </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName>Julian Lyndon Smith</OwnerName>      
+				<OwnerEMail>jmls@dotr.com</OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adm2 </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Sadd </OwnerName>      
+				<OwnerEMail> john@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> as4dict </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann  </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> docs </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Melissa Spurr </OwnerName>      
+				<OwnerEMail> spurr@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>                
+		<Project>                        
+			<ProjectName> ICF </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>        
+                
+		<Project>                
+                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Session Management </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                        
+				<OwnerName>Bruce Gruenbaum</OwnerName>      
+                                
+				<OwnerEMail>bgruenba@progress.com</OwnerEMail>                                
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Business/Process Logic </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Globalization </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                         
+			<ParentProject> ICF </ParentProject>                         
+			<ProjectName> Reporting </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Repository </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName>Anthony Swindells</OwnerName>      
+                                
+				<OwnerEMail>aswindel@progress.com</OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Security </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Test </ProjectName>                        
+			<ProjectVersion>1.0</ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName> John Sadd </OwnerName>      
+                                
+				<OwnerEMail> john@progress.com </OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>                
+		<Project>                        
+			<ParentProject> ICF </ParentProject>                        
+			<ProjectName> Web UI </ProjectName>                        
+			<ProjectVersion> TBD </ProjectVersion>                        
+			<ProjectOwner>                                
+				<OwnerName>Doug Adams</OwnerName>      
+                                
+				<OwnerEMail>adams@progress.com</OwnerEMail>                        
+			</ProjectOwner>                
+		</Project>
+		<Project>
+			<ProjectName> prodict </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> prores </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> protools </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Gerry Seidl </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> webspeed </ProjectName>
+			<ProjectVersion>2.0</ProjectVersion>
+			<ProjectOwner>
+				<OwnerName>Doug Adams</OwnerName>      
+				<OwnerEMail> dev@webspeed.possenet.org </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>        
+			<ProjectName> webtools </ProjectName>        
+			<ProjectVersion>2.0</ProjectVersion>        
+			<ProjectOwner>                
+				<OwnerName>Geoff Crawford</OwnerName>      
+		                
+				<OwnerEMail>geoff@innov8cs.com</OwnerEMail>        
+			</ProjectOwner>
+		</Project>
+		<Project>        
+			<ProjectName> utilities </ProjectName>        
+			<ProjectVersion>2.0</ProjectVersion>        
+			<ProjectOwner>                
+				<OwnerName> Julian Lyndon-Smith </OwnerName>   
+				<OwnerEMail> jmls@dotr.com </OwnerEMail>        
+			</ProjectOwner>
+		</Project>
+	</PROJECTS>
+</POSSE>

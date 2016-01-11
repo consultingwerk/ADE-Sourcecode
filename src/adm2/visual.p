@@ -912,17 +912,6 @@ FUNCTION setFont RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-setHideOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setHideOnInit Procedure 
-FUNCTION setHideOnInit RETURNS LOGICAL
-  ( plHide AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-setLayoutOptions) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLayoutOptions Procedure 
@@ -1447,8 +1436,6 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE iFrame             AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lIsContainer       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lCreated           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iPage              AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCurrentPage       AS INTEGER    NO-UNDO.
   define variable cObjectType            as character                no-undo.
     
   /* createObjects for visual mainly class builds property lists 
@@ -1535,21 +1522,8 @@ PROCEDURE initializeObject :
   /* See comments above. */
   if not can-do('SmartWindow,SmartFrame,SmartDialog':U, cObjectType) then      
   DO:
-    &SCOPED-DEFINE xp-assign
-    {get ContainerSource hContainerSource}
-    {get HideOnInit lHideOnInit}
-    {get ObjectPage iPage}
-    .
-    &UNDEFINE xp-assign
-    
-    IF iPage > 0 AND VALID-HANDLE(hContainerSource) THEN
-      {get CurrentPage iCurrentPage hContainersource}. 
-    ELSE /* should not really have page and no container,
-            but just in case make it visible */
-      iCurrentPage = iPage.
-
-    IF NOT lHideOnInit 
-    AND (iPage = 0 OR iPage = iCurrentPage) THEN 
+    {get HideOnInit lHideOnInit}.
+    IF NOT lHideOnInit THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
@@ -4736,28 +4710,6 @@ FUNCTION setFont RETURNS LOGICAL
  IF VALID-HANDLE(hFrame) THEN
     hFrame:FONT = piFont.
  
- RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setHideOnInit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setHideOnInit Procedure 
-FUNCTION setHideOnInit RETURNS LOGICAL
-  ( plHide AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Sets a flag indicating whether the object should be hidden when
-            it's first realized.
-   Params:  plHide AS LOGICAL -- true if the object should hidden when first
-            initialized.
-    Notes:  basic Visual Object property.
-------------------------------------------------------------------------------*/
-  {set HideOnInit plHide}.
   RETURN TRUE.
 
 END FUNCTION.

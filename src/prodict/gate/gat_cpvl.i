@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* gat_cpvl.i   
 
@@ -37,6 +21,7 @@ included in:
     
 history:
     semeniuk    94/08/18    creation
+    moloney     07/03/21    
     
 */
 
@@ -51,6 +36,19 @@ ON LEAVE OF {&variable} in frame {&frame} do:
     assign
       {&variable} = TRIM({&variable}:screen-value in frame {&frame})
       {&variable}:screen-value in frame {&frame} = {&variable}.
+
+    if ( UPPER(TRIM( {&variable} ) ) = "UTF-8" AND {&adbtype} = "MSS") 
+      then do:
+        FIND FIRST _Db WHERE _Db._Db-local AND _Db._Db-type = "PROGRESS".
+        IF ( AVAILABLE(_Db) AND UPPER( _Db._Db-xl-name ) <> UPPER(TRIM( {&variable} ) ) ) 
+          THEN DO:
+
+            MESSAGE "Logical DataServer schema and physical schema holder " skip
+                    "codepages must both be 'utf-8'." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
+            RETURN NO-APPLY.
+          END.
+      END.  /* {&adbtype} = "MSS" */
 
     if ( {&adbtype} = "SYB10" or {&adbtype} = "MSSQLSRV")
       then do:

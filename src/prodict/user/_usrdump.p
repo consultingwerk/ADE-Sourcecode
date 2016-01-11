@@ -106,6 +106,7 @@ DEFINE VARIABLE s_res    AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
 DEFINE VARIABLE cItem      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 {prodict/misc/filesbtn.i}
 
@@ -1061,12 +1062,14 @@ on WINDOW-CLOSE of frame write-output-file
    apply "END-ERROR" to frame write-output-file.
 on END-ERROR of frame write-output-file
    assign user_env[1] = ?
-          user_longchar = ?.
+          user_longchar = (IF isCpUndefined THEN user_longchar ELSE ?).
+
 on WINDOW-CLOSE of frame write-output-file-nocp
    apply "END-ERROR" to frame write-output-file-nocp.
 on END-ERROR of frame write-output-file-nocp
    ASSIGN user_env[1] = ?
-          user_longchar = ?.
+          user_longchar = (IF isCpUndefined THEN user_longchar ELSE ?).
+
 on WINDOW-CLOSE of frame write-boutput-file
    apply "END-ERROR" to frame write-boutput-file.
 on WINDOW-CLOSE of frame write-dump-file
@@ -1087,7 +1090,7 @@ on WINDOW-CLOSE of frame write-dump-dir-cdpg
    apply "END-ERROR" to frame write-dump-dir-cdpg.
 ON END-ERROR OF FRAME write-dump-dir-cdpg
    ASSIGN user_env[1] = ?
-          user_longchar = ?.
+          user_longchar = (IF isCpUndefined THEN user_longchar ELSE ?).
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[2] IN FRAME write-output-file
@@ -1399,6 +1402,9 @@ END. /* ON "VALUE-CHANGED" OF io-mapl IN write-dump-dir-nobl */
 &ENDIF
 /*============================Mainline code===============================*/
 
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
+
 ASSIGN
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
   io-mapc  = "NO-MAP"
@@ -1482,9 +1488,15 @@ ELSE IF class = "f" THEN DO FOR _File:
   FIND _File "_File".
   IF NOT CAN-DO(_Can-read,USERID("DICTDB")) THEN msg-num = 3.
 
-  /* using base_lchar to make code below simplier */
   IF is-one OR is-some THEN
-     base_lchar = user_env[1].
+  DO:
+      IF isCpUndefined THEN
+         base = user_env[1].
+      ELSE
+         base_lchar = user_env[1].
+  END.
+  ELSE
+      base = "".
 
   ASSIGN
     user_env[2] = prefix + (IF is-all OR is-some THEN "" ELSE dump-as + ".d")
@@ -1494,7 +1506,7 @@ ELSE IF class = "f" THEN DO FOR _File:
                   ELSE IF is-some THEN "Some Tables"
                   ELSE "Table" + ' "' + user_env[1] + '"')
     user_env[1] = ""
-    user_longchar = ""
+    user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
     comma       = ""
     i           = 1.
 
@@ -1511,8 +1523,10 @@ ELSE IF class = "f" THEN DO FOR _File:
       AND CAN-DO(_File._Can-dump,USERID(user_dbname))
       AND (nodump = "" OR NOT CAN-DO(nodump,_File._For-type))
     BY _File._File-name:
-
-       base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + _File._File-name.
+       IF (isCpUndefined) THEN
+           base = base + (IF base = "" THEN "" ELSE ",") + _File._File-name.
+       ELSE
+           base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + _File._File-name.
   END.
 
   /* Run through the file list and cull out the ones that the user
@@ -1520,13 +1534,19 @@ ELSE IF class = "f" THEN DO FOR _File:
   */
   user_env[4] = "".
 
-  ASSIGN numCount = NUM-ENTRIES(base_lchar).
+  IF isCpUndefined THEN
+      ASSIGN numCount = NUM-ENTRIES(base).
+  ELSE
+      ASSIGN numCount = NUM-ENTRIES(base_lchar).
 
   DO i = 1 TO numCount:
     err = ?.
     dis_trig = "y".
 
-    cItem = ENTRY(i,base_lchar).
+    IF isCpUndefined THEN
+        cItem = ENTRY(i,base).
+    ELSE
+        cItem = ENTRY(i,base_lchar).
 
     FIND _File
       WHERE _File._Db-recid = drec_db AND _File._File-name = cItem
@@ -1564,13 +1584,18 @@ ELSE IF class = "f" THEN DO FOR _File:
     IF err = ? THEN DO:
 
       ASSIGN
-        user_env[4] = user_env[4] + comma + dis_trig
-        user_longchar = user_longchar + comma + _File._File-name
-        comma       = ",".
+        user_env[4] = user_env[4] + comma + dis_trig.
+
+      IF isCpUndefined THEN
+         user_env[1] = user_env[1] + comma + _File._File-name.
+      ELSE
+         user_longchar = user_longchar + comma + _File._File-name.
+
+      ASSIGN comma       = ",".
     END.
     ELSE IF err <> "" THEN DO:
       answer = TRUE.
-      IF NUM-ENTRIES(base_lchar) = 1 THEN DO:
+      IF NUM-ENTRIES(IF isCpUndefined THEN base ELSE base_lchar) = 1 THEN DO:
          MESSAGE err VIEW-AS ALERT-BOX ERROR BUTTONS OK.
          user_path = "".
          RETURN.
@@ -1584,13 +1609,15 @@ ELSE IF class = "f" THEN DO FOR _File:
          END.
       END.
     END.
-  END.  /* end of DO i = 2 TO NUM-ENTRIES(base_lchar) */
+  END.  /* end of DO i = 2 TO numCount */
 
   /* subsequent removal of files changed from many to one, so reset ui stuff */
   IF (is-some OR is-all) AND 
-     NUM-ENTRIES(user_longchar) = 1 THEN DO:
-    assign user_env[1] = user_longchar
-           user_longchar ="".
+     NUM-ENTRIES((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) = 1 THEN DO:
+
+    IF NOT isCpUndefined THEN
+       assign user_env[1] = user_longchar
+              user_longchar ="".
 
     FIND _File
       WHERE _File._Db-recid = drec_db
@@ -1608,12 +1635,14 @@ ELSE IF class = "f" THEN DO FOR _File:
       base        = user_env[1].
   END. /* IF is-some OR is-all */
   ELSE DO:
-      /* see if we can put user_longchar into user_env[1] */
-      ASSIGN user_env[1] = user_longchar NO-ERROR.
-      IF NOT ERROR-STATUS:ERROR THEN
-         ASSIGN user_longchar = "".
-      ELSE
-         ASSIGN user_env[1] = "".
+      IF NOT isCpUndefined THEN DO:
+          /* see if we can put user_longchar into user_env[1] */
+          ASSIGN user_env[1] = user_longchar NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR THEN
+             ASSIGN user_longchar = "".
+          ELSE
+             ASSIGN user_env[1] = "".
+      END.
   END.
 
 END. /* IF class = "f" */

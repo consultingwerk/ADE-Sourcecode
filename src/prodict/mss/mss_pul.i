@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -68,17 +68,31 @@ assign
   l_dcml  = 0.
 
 /* To get the default value for the field, we need to see if one has been created in SQL Server */
-ASSIGN sqlstate = "select CAST(text AS varchar(60)) from syscomments where id = (select cdefault from syscolumns " + 
+ASSIGN sqlstate = "select CAST(text AS nvarchar(60)) from syscomments where id = (select cdefault from syscolumns " + 
        "where syscolumns.id = (OBJECT_ID('" + DICTDBG.SQLColumns_buffer.OWNER + "." + 
        DICTDBG.SQLColumns_buffer.NAME + "')) and syscolumns.name = '" + 
        DICTDBG.SQLColumns_buffer.column-name + "')".
+
+esc-idx1 = 0.
 
 RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
 
 IF ERROR-STATUS:ERROR THEN. /*Don't do anything inital value already set to unknown */
 ELSE DO:
   FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
-     ASSIGN l_init = proc-text.
+
+     esc-idx1 = INDEX(proc-text, "'(N''").
+     IF esc-idx1 = 1 THEN DO:
+         esc-idx1 = esc-idx1 + 5.
+         esc-idx2 = R-INDEX(proc-text, "'')'").
+         IF esc-idx1 > 0  AND esc-idx2 > esc-idx1 THEN 
+                 l_init = SUBSTR(proc-text, esc-idx1, esc-idx2 - esc-idx1, "character").
+     END. 
+     ELSE DO:
+         ASSIGN l_init = proc-text. 
+         esc-idx1 = 0.
+     END.
+
   END.
   CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
 END.
@@ -89,19 +103,23 @@ IF l_init <> ? THEN DO:
   IF ntyp = "DATE" THEN 
       ASSIGN l_init = "TODAY".
   ELSE DO: 
-      /* if this is a function based default (in which case it won't contain
-         parenthesis), we will not take it. We will
-         assign the unknow value like we did in previous version 
-      */
-      IF INDEX(l_init, "(") > 0 THEN DO:
-          IF ntyp = "character" THEN 
-            ASSIGN l_init = SUBSTRING(l_init, (INDEX(l_init, "(") + 3))
-                   l_init = SUBSTRING(l_init, 1, (INDEX(l_init, ')') - 3)) .
+
+      IF esc-idx1 = 0 THEN DO:
+
+          /* if this is a function based default (in which case it won't contain
+             parenthesis), we will not take it. We will
+             assign the unknow value like we did in previous version 
+          */
+          IF INDEX(l_init, "(") > 0 THEN DO:
+              IF ntyp = "character" THEN 
+                ASSIGN l_init = SUBSTRING(l_init, (INDEX(l_init, "(") + 3))
+                       l_init = SUBSTRING(l_init, 1, (INDEX(l_init, ')') - 3)) .
+              ELSE
+                ASSIGN l_init = TRIM(TRIM(TRIM(TRIM(l_init,'~''),'('),')'),'~'').
+          END.
           ELSE
-            ASSIGN l_init = TRIM(TRIM(TRIM(TRIM(l_init,'~''),'('),')'),'~'').
+              ASSIGN l_init = ?.
       END.
-      ELSE
-          ASSIGN l_init = ?.
   END.
 END.
 

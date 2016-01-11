@@ -123,6 +123,8 @@ DEFINE VAR message_displayed AS LOGICAL NO-UNDO INIT NO.
 DEFINE VAR cLongSize         AS INTEGER NO-UNDO.
 DEFINE VAR numCount          AS INTEGER NO-UNDO.
 
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
+
 /*================================Forms====================================*/
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
 
@@ -255,7 +257,7 @@ do:
       assign
       	 user_env[1] = "ALL"  
       	 user_filename = "ALL"
-         user_longchar = "".
+         user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
    else do:
       user_env[1] = chosen.
 
@@ -421,6 +423,13 @@ on window-close of frame tbl_patt
 
 /*============================Mainline code=============================*/
 
+&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
+
+&ENDIF
+
 /* Check for read permissions */
 find DICTDB._File WHERE DICTDB._File._File-name = "_File"
                     AND DICTDB._File._Owner = "PUB".
@@ -433,7 +442,7 @@ do:
       user_path     = ""
       user_filename = ""
       user_env[1]   = ""
-      user_longchar = "".
+      user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
    return.
 end.
 
@@ -507,7 +516,8 @@ else
       frame tbl_get:title = "Select Table".
 
 /* clear it out */
-assign user_longchar = "".
+IF NOT isCpUndefined THEN
+   assign user_longchar = "".
 
 
 /* Run time layout for button areas. */

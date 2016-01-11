@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/*************************************************************************
+* Copyright (C) 2000,2005-2007 by Progress Software Corporation.         *
+* All rights reserved.  Prior versions of this work may contain portions *  
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataext.p
     Purpose     : Support procedure for Data Object.  This is an extension
@@ -2416,13 +2416,14 @@ Parameters:  <none>
      Notes: This override is just in case the property is referrenced before
             the sdo or sbo has copied the property from the server.           
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cDBNames    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hAsHandle   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cAsDivision AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cContAsdiv  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lQueryObject AS LOGICAL   NO-UNDO.
-
+  DEFINE VARIABLE cDBNames      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAsHandle     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAsDivision   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContAsdiv    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryObject  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lAsHasStarted AS LOGICAL    NO-UNDO.
+  
   cDBNames = SUPER().  
   IF cDBNames = ? THEN
   DO: 
@@ -2431,32 +2432,40 @@ Parameters:  <none>
     {get queryObject lQueryObject hContainer} NO-ERROR.
     IF lQueryObject THEN
       {get ASDivision cContASDiv hContainer} NO-ERROR.
-
-    IF cContASDiv = 'Client':U THEN
-       RUN startServerObject IN hContainer.
-    ELSE DO:
+    ELSE 
       {get ASDivision cASDivision}.  
-      IF cASDivision = 'Client':U THEN
-        {get ASHandle hAsHandle}.
-    END.
-    
+     
     IF cContAsdiv = 'client':U OR cASDivision = 'Client':U THEN
     DO:
-      /* Check again as this is should be retrieved at start up from the calls 
-        above */
-      cDBNames = SUPER().  
-      /* Just in case something went wrong go and get it */
-      IF cDbNames = ? THEN
-      DO:
-        {get Ashandle hAsHandle}.
-        IF VALID-HANDLE(hAsHandle) AND hAsHandle NE TARGET-PROCEDURE THEN 
-        DO:
-          cDBNames = DYNAMIC-FUNCTION("getDBNames":U IN hAsHandle).
-          {set DBNames cDBNames}.
+      /* This is one of the "first-time" properties, so there is no point 
+         in attempting to retrieve this AGAIN if AsHasStarted is true.
+         This will also retrieve the IndexInformation, which is needed to 
+         derive the key if not defined in entity control  */
+      {get AsHasStarted lAsHasStarted}.
+      if not lAsHasStarted then
+      do:        
+        IF cContASDiv = 'Client':U THEN
+          RUN startServerObject IN hContainer.
+        ELSE DO:
+          IF cASDivision = 'Client':U THEN
+            {get ASHandle hAsHandle}.
         END.
-      END.
-      /* We may need to unbind if this call did the bind (getASHandle) */
-      RUN unbindServer IN TARGET-PROCEDURE (?). 
+        /* Check again as this is should be retrieved at start up from the calls 
+	        above */
+        cDBNames = SUPER().  
+        /* Just in case something went wrong go and get it */
+        IF cDbNames = ? THEN
+        DO:
+          {get Ashandle hAsHandle}.
+          IF VALID-HANDLE(hAsHandle) AND hAsHandle NE TARGET-PROCEDURE THEN 
+          DO:
+            cDBNames = DYNAMIC-FUNCTION("getDBNames":U IN hAsHandle).
+            {set DBNames cDBNames}.
+          END.
+        END.
+        /* We may need to unbind if this call did the bind (getASHandle) */
+        RUN unbindServer IN TARGET-PROCEDURE (?).
+      end. /* not ashasstarted */ 
     END. /* client */
   END. /* IF DBNames not yet defined locally. */
 
@@ -2638,7 +2647,8 @@ FUNCTION getIndexInformation RETURNS CHARACTER
   DEFINE VARIABLE hAppServer    AS HANDLE NO-UNDO.
   DEFINE VARIABLE hContainer    AS HANDLE NO-UNDO.
   DEFINE VARIABLE lQueryObject  AS LOGICAL NO-UNDO.
-
+  DEFINE VARIABLE lAsHasStarted AS LOGICAL NO-UNDO.
+  
   &SCOPED-DEFINE xpIndexInformation
   {get IndexInformation cInfo}.
   &UNDEFINE xpIndexInformation
@@ -2651,32 +2661,40 @@ FUNCTION getIndexInformation RETURNS CHARACTER
     {get queryObject lQueryObject hContainer} NO-ERROR.
     IF lQueryObject THEN
       {get ASDivision cContASDiv hContainer} NO-ERROR.
-   
-    IF cContASDiv = 'Client':U THEN
-       RUN startServerObject IN hContainer.
-    
-    ELSE DO:
+    ELSE 
       {get ASDivision cASDivision}.  
-      IF cASDivision = 'Client':U THEN
-        {get ASHandle hAppServer}.
-    END.
-    
+        
     IF cContAsdiv = 'client':U OR cASDivision = 'Client':U THEN
     DO:
-      /* This property should be retrieved by the above logic */
-      &SCOPED-DEFINE xpIndexInformation
-      {get IndexInformation cInfo}.
-      &UNDEFINE xpIndexInformation
-      /* It should have been found above, but in case not go and get it */  
-      IF cInfo = ? THEN
-      DO:
-        {get ASHandle hAppServer}.
-        IF VALID-HANDLE(hAppServer) AND hAppserver <> TARGET-PROCEDURE THEN 
-           {get IndexInformation cInfo hAppServer}. 
-      END.
-   
-      /* We may need to unbind if this call did the bind (getASHandle) */
-      RUN unbindServer IN TARGET-PROCEDURE (?). 
+      /* This is one of the "first-time" properties, so there is no point 
+         in attempting to retrieve this AGAIN if AsHasStarted is true.
+         This will also retrieve the IndexInformation, which is needed to 
+         derive the key if not defined in entity control  */
+      {get AsHasStarted lAsHasStarted}.
+      if not lAsHasStarted then
+      do:
+        IF cContASDiv = 'Client':U THEN
+          RUN startServerObject IN hContainer.
+      
+        ELSE DO:
+          IF cASDivision = 'Client':U THEN
+            {get ASHandle hAppServer}.
+        END.
+        
+        /* This property should be retrieved by the above logic */
+        &SCOPED-DEFINE xpIndexInformation
+        {get IndexInformation cInfo}.
+        &UNDEFINE xpIndexInformation
+        /* It should have been found above, but in case not go and get it */  
+        IF cInfo = ? THEN
+        DO:
+          {get ASHandle hAppServer}.
+          IF VALID-HANDLE(hAppServer) AND hAppserver <> TARGET-PROCEDURE THEN 
+             {get IndexInformation cInfo hAppServer}. 
+        END.
+        /* We may need to unbind if this call did the bind (getASHandle) */
+        RUN unbindServer IN TARGET-PROCEDURE (?).
+      end.
     END. /* do if client */
     ELSE DO: 
       &SCOPED-DEFINE xp-assign
@@ -3461,40 +3479,29 @@ FUNCTION getQueryWhere RETURNS CHARACTER
 
     IF cQuery = ? THEN
     DO:
-      /* If not Appserver has not started return the default query */ 
-      {get AsHasStarted lAsHasStarted}.
-      
-      /* This code block has never been in use, but was almost added when the 
-         logic to avoid server hits if not AsHasStarted was added, so it's kept 
-         here for information and possible future considerations:
-          ---------------  
-          All code should currently handle queryWhere = ?, so this is probably
-          not necessary (maybe even wrong since the query is not opened and 
-         the querywhere is unknown )       
-      IF NOT lAsHasStarted THEN
-      DO:
-        {get OpenQuery cQuery}. 
-      END.  */
-
-      /* This should never happen as this is part of the context, but 
-         just in case let's support a direct appserver call */
-      IF lAsHasStarted THEN
-      DO: 
-          
-        {get ASHandle hAppServer}.
-        IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
-        DO:
-          cQuery = DYNAMIC-FUNCTION("getQueryWhere":U IN hAppServer).
-          {get serverOperatingMode cOperatingMode}.
-          /* We store the query locally for next time for stateless SDOs */
-          IF cOperatingMode = 'STATELESS':U THEN
+      {get BaseQuery cQuery}.
+      if cQuery = ? or cQuery = '' then 
+      do:  
+        /* If Appserver has started return the default query 
+           (should not get here unless an error somewhere else..) */ 
+        {get AsHasStarted lAsHasStarted}.
+        IF lAsHasStarted THEN
+        DO:       
+          {get ASHandle hAppServer}.
+          IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
           DO:
-            /* unbind if this call did the bind (getASHandle) */
-            RUN unbindServer IN TARGET-PROCEDURE (?). 
-          END.
-          {set QueryContext cQuery}.
-        END. /* valid appServer */
-      END.
+            cQuery = DYNAMIC-FUNCTION("getQueryWhere":U IN hAppServer).
+            {get serverOperatingMode cOperatingMode}.
+            /* We store the query locally for next time for stateless SDOs */
+            IF cOperatingMode = 'STATELESS':U or cOperatingMode = 'NONE':U THEN
+            DO:
+              /* unbind if this call did the bind (getASHandle) */
+              RUN unbindServer IN TARGET-PROCEDURE (?). 
+            END.
+            {set QueryContext cQuery}.
+          END. /* valid appServer */
+        END.
+      end.
     END.  /* IF QueryWhere not yet defined locally. */
     
     RETURN cQuery.

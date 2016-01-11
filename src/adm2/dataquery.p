@@ -2430,8 +2430,7 @@ PROCEDURE updateQueryPosition :
         {get QueryPosition cParentPos hDataSource}.
         IF cParentPos BEGINS 'NoRecordAvailable':U THEN
           cQueryPos = 'NoRecordAvailableExt':U.
-
-        IF cQueryPos = '':U THEN
+        else 
         DO:
           /* Check if dataSource has an unsaved new record */
           {get NewMode lNew hDataSource}.
@@ -2603,7 +2602,7 @@ FUNCTION addForeignKey RETURNS LOGICAL
                       /* 2nd of each pair is parent fld  */
       cField         = ENTRY(iField + 1, cForeignFields)
       cForeignValues = cForeignValues 
-                     + (IF iField = 1 THEN "":U ELSE ",":U)
+                     + (IF iField = 1 THEN "":U ELSE CHR(1))
                        /* unknown is dealt with below */
                      + {fnarg columnValue cField hDataSource}
       cLocalFields   = cLocalFields 
@@ -3474,9 +3473,7 @@ FUNCTION getBufferHandles RETURNS CHARACTER
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cBufferHandles AS CHARACTER  NO-UNDO.
                      
-  &SCOPED-DEFINE xpBufferHandles 
   {get BufferHandles cBufferHandles}.
-  &UNDEFINE xpbufferHandles 
   
   RETURN cBufferHandles.
 
@@ -4415,18 +4412,32 @@ FUNCTION getQueryPosition RETURNS CHARACTER
   Parameters:  <none>
   
   Notes:       Valid return values are:
-                 FirstRecord, LastRecord, NotFirstOrLast or NoRecordAvailable
-------------------------------------------------------------------------------*/
-
-  /* The property does not have a field preprocessor to prevent it from being
-     "set" directly, because it must also publish an event. So the code below
-     must not use the {get} syntax. */
-
-  DEFINE VARIABLE cPosition AS CHARACTER NO-UNDO.
-
+               FirstRecord, LastRecord, NotFirstOrLast,OnlyRecord 
+               NoRecordAvailable and NoRecordAvailableExt
+             - Because the set publishes an event, this property is 
+               overridable (no xp defined globally)
+ -----------------------------------------------------------------------------*/
+  DEFINE VARIABLE cPosition   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE hDataSource AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cParentPos  AS CHARACTER  NO-UNDO.
+  
   &SCOPED-DEFINE xpQueryPosition
   {get QueryPosition cPosition}.
   &UNDEFINE xpQueryPosition
+  
+  /* If Queryposition is not set yet then no record is available (yet)
+     (We trust that an open with positioning runs updateQueryPosition) */ 
+  if cPosition = '' then  
+  do:
+    {get DataSource hDataSource}.
+    if valid-handle(hDataSource) then
+    do: 
+      {get QueryPosition cParentPos hDataSource}.
+      if cParentPos begins "NoRecordAvailable":U then        cPosition = "NoRecordAvailableExt":U.
+    end.  
+    if cPosition = '' then  
+      cPosition = "NoRecordAvailable":U.  
+  end.  
   
   RETURN cPosition.
 
@@ -6348,9 +6359,7 @@ FUNCTION setBufferHandles RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
 
-  &SCOPED-DEFINE xpBufferHandles
   {set BufferHandles pcBufferHandles}.
-  &UNDEFINE xpBufferHandles
   
   RETURN TRUE.   /* Function return value. */
 

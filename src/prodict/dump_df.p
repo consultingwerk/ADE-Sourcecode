@@ -103,6 +103,7 @@ DEFINE VARIABLE l_list        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE save_ab       AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE l_dmp-files   AS CHARACTER NO-UNDO format "x(256)":u
     INITIAL ["_file,_field,_index,_index-field,_file-trig,_field-trig" ].
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 define temp-table ttb_dump
         field db        as character
@@ -152,7 +153,7 @@ PROCEDURE doDump:
 
     /* make sure these are clear */
     ASSIGN user_env = ""
-           user_longchar = "".
+           user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
     
     if      code-page = ?  
      then assign code-page = "<internal defaults apply>".
@@ -239,7 +240,7 @@ PROCEDURE doDump:
                          ELSE _DB._DB-name
                       )
         user_env[1] = ""
-        user_longchar = ""
+        user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
         l_for-type  = ( if CAN-DO("PROGRESS",DICTDB._DB._DB-Type)
                          THEN ?
                          ELSE "TABLE,VIEW"
@@ -250,7 +251,7 @@ PROCEDURE doDump:
      */
       for each ttb_dump
         where ttb_dump.db = ""
-        while user_longchar <> ",all":
+        while user_env[1] <> ",all":
         if ttb_dump.tbl <> "*ALL*"
          then do:
           FOR EACH DICTDB._File of DICTDB._Db
@@ -267,17 +268,22 @@ PROCEDURE doDump:
           if available DICTDB._File
            and ( can-do(l_for-type,DICTDB._File._For-type)
            or    l_for-type = ? )
-           then assign
-             user_longchar = user_longchar + "," + ttb_dump.tbl
+           then do:
+              IF isCpUndefined THEN
+                 user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+              ELSE
+                 user_longchar = user_longchar + "," + ttb_dump.tbl.
+
              drec_file   = RECID(DICTDB._File).
+          END.
           end.
-         else assign user_longchar = ",all".
+         else assign user_env[1] = ",all".
         end.
     
-    /* b) try to use all tables WITH db-specifyer */
+    /* b) try to use all tables WITH db-specifier */
       for each ttb_dump
         where ttb_dump.db = l_db-name
-        while user_longchar <> ",all":
+        while user_env[1] <> ",all":
         if ttb_dump.tbl <> "*ALL*"
          then do:
           FOR EACH DICTDB._File of DICTDB._Db
@@ -294,20 +300,28 @@ PROCEDURE doDump:
           if available DICTDB._File
            and ( can-do(l_for-type,DICTDB._File._For-type)
            or    l_for-type = ? )
-           then assign
-             user_longchar = user_longchar + "," + ttb_dump.tbl
+           then do:
+              IF isCpUndefined THEN
+                 user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+              ELSE
+                 user_longchar = user_longchar + "," + ttb_dump.tbl.
+
              drec_file   = RECID(DICTDB._File).
+           END.
           end.
-         else assign user_longchar = ",all".
+         else assign user_env[1] = ",all".
         end.
         
     /* c) if either "all" or "all of this db" then we take every file
      *    of the current _Db
      */
     
-      IF user_longchar = ",all"
+      IF user_env[1] = ",all"
        then do:  /* all files of this _Db */
-        assign user_longchar = "".
+        assign user_env[1] = "".
+        IF NOT isCpUndefined THEN
+           assign user_longchar = "".
+
         for each DICTDB._File
           WHERE DICTDB._File._File-number > 0
           AND   DICTDB._File._Db-recid = RECID(_Db)
@@ -322,15 +336,29 @@ PROCEDURE doDump:
                
           if l_for-type = ?
            or can-do(l_for-type,DICTDB._File._For-type)
-           then assign user_longchar = user_longchar + "," + DICTDB._File._File-name.
+           then do:
+              IF isCpUndefined THEN
+                 assign user_env[1] = user_env[1] + "," + DICTDB._File._File-name.
+              ELSE
+                 assign user_longchar = user_longchar + "," + DICTDB._File._File-name.
           END.
-        assign user_longchar = substring(user_longchar,2,-1,"character").
+        END.
+        IF isCpUndefined THEN
+            assign user_env[1] = substring(user_env[1],2,-1,"character").
+        ELSE
+            assign user_longchar = substring(user_longchar,2,-1,"character").
         END.     /* all files of this _Db */
-       else assign
-        user_longchar = substring(user_longchar,2,-1,"character").
+      else do:
+
+         IF isCpUndefined THEN
+            user_env[1] = substring(user_env[1],2,-1,"character").
+         ELSE
+            user_longchar = substring(user_longchar,2,-1,"character").
+      END.
        
       /* is there something to dump in this _db? */
-      if user_longchar = "" then next.
+      if NOT isCpUndefined AND user_longchar = "" then next.
+      if     isCpUndefined AND user_env[1] = ""   then next.
       
       /* remaining needed assignments */
       ASSIGN
@@ -343,19 +371,20 @@ PROCEDURE doDump:
         user_env[9]   = "d"
         user_filename = ( if file-name = "ALL"
                            then "ALL"
-                          else if index(user_longchar,",") = 0
+                          else if index((IF isCpUndefined THEN user_env[1] ELSE user_longchar),",") = 0
                            then "ONE"  + string(l_first-db,"/ MORE")
                            else "SOME" + string(l_first-db,"/ MORE")
                         ).
-        
-      /* see if we can put user_longchar into user_env[1] */
-      ASSIGN user_env[1] = user_longchar NO-ERROR.
-      IF NOT ERROR-STATUS:ERROR THEN
-         /* ok to use user_env[1] */
-         ASSIGN user_longchar = "". 
-      ELSE
-         ASSIGN user_env[1] = "".
-    
+      IF NOT isCpUndefined THEN DO:
+          /* see if we can put user_longchar into user_env[1] */
+          ASSIGN user_env[1] = user_longchar NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR THEN
+             /* ok to use user_env[1] */
+             ASSIGN user_longchar = "". 
+          ELSE
+             ASSIGN user_env[1] = "".
+      END.
+
       DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
         RUN "prodict/dump/_dmpsddl.p".
       END.
@@ -382,6 +411,9 @@ END PROCEDURE.
 
 
 /*---------------------------  MAIN-CODE  --------------------------*/
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
 
 /* if not running persistenty, go ahead and dump the definitions */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN

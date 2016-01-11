@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,11 +37,14 @@
             04/14/06 Unicode support
             07/19/06 Unicode support - support only MSS 2005
             08/24/06 Add warning about non utf-8 codepage and unicode columns - 20060802-024
+            03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
             
 */    
 
-&SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the schema holder's codepage is not 'utf-8'"
+&SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
 &SCOPED-DEFINE UNICODE-MSG-2 "It is recommended that you set the codepage to utf-8 in this case to avoid data loss!"
+&SCOPED-DEFINE UNICODE-MSG-3 "You have chosen to use Unicode data types but the schema holder database codepage is not 'utf-8'"
+&SCOPED-DEFINE UNICODE-MSG-4 "You must build your schema holder database with a 'utf-8' code page"
 
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -56,6 +59,8 @@ DEFINE VARIABLE tmp_str       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE l_i           AS INTEGER             NO-UNDO.
 DEFINE VARIABLE run_time      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE schname       AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE dlc_utf_edb   AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE schdbcp       AS CHARACTER           NO-UNDO.
 
 DEFINE STREAM strm.
 
@@ -99,8 +104,8 @@ IF loadsql THEN DO:
   IF not batch_mode THEN
      HIDE MESSAGE NO-PAUSE.
   ASSIGN schname = osh_dbname + ".db".
-  IF search (osh_dbname) <> ? THEN do:
-    connect osh_dbname -1 no-error.
+  IF search (schname) <> ? THEN do:
+    connect VALUE(osh_dbname) -1 no-error.
     if ERROR-STATUS:ERROR then do:
       IF not batch_mode THEN DO:
         &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
@@ -109,7 +114,7 @@ IF loadsql THEN DO:
             MESSAGE "Can't connect to Database " osh_dbname
               VIEW-AS ALERT-BOX ERROR.
         &ENDIF.
-      END.       
+      END.      
       ELSE 
           PUT STREAM logfile UNFORMATTED 
                "Can't connect to Database " osh_dbname skip(2).
@@ -118,6 +123,14 @@ IF loadsql THEN DO:
   end.
 
   IF CONNECTED (osh_dbname) THEN DO:
+
+    /* Get the physical schema holder database codepage */
+    REPEAT l_i = 1 TO NUM-DBS:
+
+      IF LDBNAME(l_i) = osh_dbname THEN
+          schdbcp = UPPER(TRIM(DBCODEPAGE(l_i))).
+    END. 
+
     ASSIGN rmvobj   = FALSE
            create_h = FALSE
            stages[mss_create_sh] = FALSE.
@@ -255,8 +268,25 @@ IF loadsql THEN DO:
               "-- -- " skip(2).
     END.
 
-    CREATE DATABASE osh_dbname FROM "EMPTY".
+    IF unicodeTypes THEN DO:
+        dlc_utf_edb = OS-GETENV("DLC").
+        dlc_utf_edb = dlc_utf_edb + "/prolang/utf/empty".
+        CREATE DATABASE osh_dbname FROM dlc_utf_edb. 
+    END.
+    ELSE
+        CREATE DATABASE osh_dbname FROM "EMPTY".
   END.
+  ELSE DO:
+    IF unicodeTypes THEN DO:
+      IF ( schdbcp <> "UTF-8" ) THEN DO:
+        IF batch_mode THEN
+          PUT STREAM logfile UNFORMATTED {&UNICODE-MSG-3} SKIP {&UNICODE-MSG-4} SKIP.
+        ELSE
+          MESSAGE {&UNICODE-MSG-3} SKIP {&UNICODE-MSG-4} VIEW-AS ALERT-BOX INFO BUTTONS OK.
+        UNDO, RETURN "undo".
+      END.
+    END.
+  END.  
 
   IF NOT batch_mode THEN
     HIDE FRAME table-wait NO-PAUSE.

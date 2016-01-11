@@ -97,7 +97,7 @@ DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
 DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE has_aud   AS LOGICAL      NO-UNDO.
-
+DEFINE VARIABLE isCpUndefined AS LOGICAL  NO-UNDO.
 
 DEFINE STREAM dsfile.
 
@@ -119,36 +119,52 @@ DEFINE FRAME loaddata
   &THEN VIEW-AS DIALOG-BOX THREE-D SCROLLABLE WIDTH 84 TITLE "Load Table Contents"
   &ENDIF.  /* Move this here to scope above the internal procedure */
 
-IF user_longchar <> "" AND user_longchar <> ? THEN
-   ASSIGN has_lchar = TRUE.
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
 
-/* The only Audit table that can be loaded through this program is the
-   _audit-event table, so we remove it from the templist and check for 
-   instances of the _aud string in the table list. */
+IF NOT isCpUndefined THEN DO:
+    IF user_longchar <> "" AND user_longchar <> ? THEN
+       ASSIGN has_lchar = TRUE.
+    
+    /* The only Audit table that can be loaded through this program is the
+       _audit-event table, so we remove it from the templist and check for 
+       instances of the _aud string in the table list. */
+    
+    IF NOT has_lchar THEN
+       user_longchar = user_env[1].
+END.
 
-IF NOT has_lchar THEN
-   user_longchar = user_env[1].
+IF (isCpUndefined AND user_env[1] NE "" AND user_env[1] NE ?)
+   OR (NOT isCpUndefined AND user_longchar NE "" AND user_longchar NE ?) THEN DO:
 
-IF user_longchar NE "" AND 
-   user_longchar NE ? THEN DO:
-
-   ASSIGN ix = INDEX(user_longchar,",_aud").
+   ASSIGN ix = (IF isCpUndefined 
+                THEN INDEX(user_env[1],",_aud")
+                ELSE INDEX(user_longchar,",_aud")).
 
    IF user_env[9] = "e" THEN DO:
-        ASSIGN iLast = INDEX(user_longchar,"_aud-event").
+
+       ASSIGN iLast = (IF isCpUndefined 
+                       THEN INDEX(user_env[1],"_aud-event")
+                       ELSE INDEX(user_longchar,"_aud-event")).
 
        /* check if there is another aud table other than _aud-event */
         IF iLast NE 0 AND ix NE 0 AND ix = (iLast - 1) THEN
-           ix = INDEX(user_longchar,",_aud",ix + 1).
+           ix = (IF isCpUndefined 
+                 THEN INDEX(user_env[1],",_aud",ix + 1) 
+                 ELSE INDEX(user_longchar,",_aud",ix + 1)).
    END.
    
-   IF ix NE 0 AND
-       NOT user_longchar BEGINS "_aud" THEN
-       has_aud = TRUE.
+   IF ix NE 0 THEN DO:
+      IF NOT isCpUndefined AND NOT user_longchar BEGINS "_aud" THEN
+         has_aud = TRUE.
+
+      IF isCpUndefined AND NOT user_env[1] BEGINS "_aud" THEN
+         has_aud = TRUE.
+   END.
 END.
 
 /* free longchar if we don't need it */
-IF NOT has_lchar THEN
+IF NOT isCpUndefined AND NOT has_lchar THEN
    user_longchar = ?.
 
 IF has_aud THEN DO:
@@ -693,5 +709,6 @@ HIDE FRAME loaddata NO-PAUSE.
 /* Make sure to turn on the suppress warnings again */
 SESSION:SUPPRESS-WARNINGS = YES.
 SESSION:IMMEDIATE-DISPLAY = no.
-ASSIGN user_longchar = "".
+IF NOT isCpUndefined THEN
+   ASSIGN user_longchar = "".
 RETURN.

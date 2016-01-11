@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -793,7 +793,6 @@ DO:
       IF AVAILABLE X_C THEN X_C._CUSTOM-SUPER-PROC = ?.
    END.
 END.
-
 IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type chg */
   IF _F._DATA-TYPE = "DATE":U AND
     (_F._INITIAL-DATA = ? OR _F._INITIAL-DATA = "") THEN LEAVE BIG-TRANS-BLK.
@@ -802,24 +801,6 @@ IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type 
     RUN adeuib/_sim_lbl.p (INPUT h_self).
     
   ELSE IF _U._TYPE NE "COMBO-BOX":U THEN DO:
-    
-    IF CAN-DO("DECIMAL,INTEGER,INT64":U,_F._DATA-TYPE) AND 
-       h_format:SCREEN-VALUE NE "?" AND 
-       h_format:SCREEN-VALUE NE "" AND notAmerican THEN
-    DO:
-      RUN adecomm/_convert.p ("N-TO-A", h_format:SCREEN-VALUE, 
-                              _numeric_separator, _numeric_decimal, 
-                              OUTPUT conv_fmt).
-      IF h_self:FORMAT NE conv_fmt AND 
-            h_self:SCREEN-VALUE NE "?" AND h_self:SCREEN-VALUE NE ? 
-        THEN h_self:FORMAT = conv_fmt.
-    END.                
-    ELSE IF h_format:SCREEN-VALUE NE "?" AND h_format:SCREEN-VALUE NE "" AND
-            h_self:SCREEN-VALUE NE "?" AND h_self:SCREEN-VALUE NE ? AND
-            NOT (_F._DATA-TYPE EQ "CHARACTER" AND h_format:SCREEN-VALUE BEGINS "9" AND
-                 NOT _L._WIN-TYPE) THEN
-      ASSIGN h_self:FORMAT = h_format:SCREEN-VALUE.
-
     IF sav-dt eq _F._DATA-TYPE THEN /* Not if data-type has changed */
       ASSIGN h_self:SCREEN-VALUE = IF _F._INITIAL-DATA = "?" THEN ? ELSE
                                    _F._INITIAL-DATA.

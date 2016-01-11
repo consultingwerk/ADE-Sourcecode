@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -4228,8 +4228,6 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lUseRepository   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hWidget          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iPage            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCurrentPage     AS INTEGER    NO-UNDO.
 
   DEFINE VARIABLE hContainingWindow             AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE lParentInitted                AS LOGICAL                NO-UNDO.
@@ -4439,22 +4437,13 @@ PROCEDURE initializeObject :
     &SCOPED-DEFINE xp-assign
     {get DisableOnInit lDisableOnInit}
     {get HideOnInit lHideOnInit}
-    {get ObjectPage iPage}.
+    .
     &UNDEFINE xp-assign
     
     IF NOT lDisableOnInit THEN
       RUN enableObject IN TARGET-PROCEDURE.
 
-    /* note: container source is not set for queryobjects, so this 
-             is not done for SBOs (which is correct) */ 
-    IF iPage > 0 AND VALID-HANDLE(hContainerSource) THEN
-      {get CurrentPage iCurrentPage hContainersource}. 
-    ELSE /* should not really have page and no container,
-            but just in case make it visible */
-      iCurrentPage = iPage.
-    
-    IF NOT lHideOnInit 
-    AND (iPage = 0 OR iPage = iCurrentPage) THEN 
+    IF NOT lHideOnInit THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
@@ -4699,20 +4688,29 @@ PROCEDURE initPages :
              Set currentpage to get all objects on page created */
           {set CurrentPage iPage}.
           RUN createObjects IN TARGET-PROCEDURE.
-          {set CurrentPage iCurrentPage}.
           
-          IF lInitted THEN
+          IF lInitted then
+          do:
           /* If the current container object has been initialized already,
              then initialize the new objects. Otherwise wait to let it 
-             happen when the container is init'ed. */
+             happen when the container is init'ed.              
+             PendingPage is used as "visiblePage" to ensure that 
+             getHideOnInit returns true, without depending on a setHideOnInit, 
+             which would interfere with users setting of HideOnInit.
+             (This use of PendingPage is not that far of a stretch 
+             - its original use was while notifying hide in selectPage. 
+              Incidentally GroupAssignHidden, which depended on this is 
+              now also ok if called from here...) */
+            {set PendingPage iCurrentPage}.
             RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
+            {set PendingPage ?}.
+          end.
+          {set CurrentPage iCurrentPage}.           
         END.
       END.
     END.
-
-    {set CurrentPage iCurrentPage}.
   RETURN.
-END PROCEDURE.
+END PROCEDURE. /* initPages */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4878,6 +4876,7 @@ PROCEDURE notifyPage :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcProc AS CHARACTER NO-UNDO.
   
+  DEFINE VARIABLE iPage        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iVar         AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cObjects     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hObject      AS HANDLE    NO-UNDO.
@@ -4886,8 +4885,8 @@ PROCEDURE notifyPage :
   DEFINE VARIABLE lHide        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
   
-  {get CurrentPage iVar}.
-  cObjects = pageNTargets(TARGET-PROCEDURE, iVar).
+  {get CurrentPage iPage}. 
+  cObjects = pageNTargets(TARGET-PROCEDURE,iPage).
   
   /* If intitializing ensure that SDOs are initialized first. This is important 
      since dynamic SDOs create the TT during initialization and visual objects 

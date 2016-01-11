@@ -829,7 +829,6 @@ Parameters:  pcFieldList  - List of fields to display.
   
   IF VALID-HANDLE(phDataSource) THEN
   DO:
-    {get LargeColumns cLargeColumns phDataSource}.
     {get QueryPosition cQueryPosition phDataSource}.
     lClear = cQueryPosition BEGINS 'NoRecordAvail':U. 
     IF phDataSource <> hDataSource THEN
@@ -844,16 +843,21 @@ Parameters:  pcFieldList  - List of fields to display.
     IF NOT VALID-HANDLE(phDataSource) THEN
       pcFromSource = '':U.
   END.
-
-  CASE pcFromSource:
-    WHEN '(Large)':U OR WHEN '' OR WHEN ? THEN
-      pcFromSource = cLargeColumns.
-    WHEN '(All)':U THEN
-      pcFromSource = cDisplayedFields.
-    WHEN '(None)':U THEN
-      pcFromSource = '':U.
-  END.
- 
+  
+  if valid-handle(phDataSource) then
+  do: 
+    {get LargeColumns cLargeColumns phDataSource}.
+  
+    CASE pcFromSource:
+      WHEN '(Large)':U OR WHEN '' OR WHEN ? THEN
+        pcFromSource = cLargeColumns.
+      WHEN '(All)':U THEN
+        pcFromSource = cDisplayedFields.
+      WHEN '(None)':U THEN
+        pcFromSource = '':U.
+    END.
+  end.
+  
   DO iField = 1 TO NUM-ENTRIES(pcFieldList):
     ASSIGN
       cFieldName = ENTRY(iField,pcFieldList)    
@@ -861,7 +865,7 @@ Parameters:  pcFieldList  - List of fields to display.
       /* The field may be a SmartObject procedure handle. */
       hField  = WIDGET-HANDLE(ENTRY(iFieldPos,cFieldHandles))
     .
-
+    
     /* As of 10.1a01 we don't rely on allfieldnames for the main loop 
       logic due to the fact that the viewer histroically always have used
       displayedFields for display and other logic, so we use a second 

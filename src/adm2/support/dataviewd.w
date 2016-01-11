@@ -1189,14 +1189,14 @@ FUNCTION cancelDataView RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hCurrentDataset AS HANDLE     NO-UNDO.
   hCurrentDataset = {fn getDatasetSource p_hSMO}.
-
+  /* call destroyView while datasetsource is valid to destroy buffers */
+  {fn destroyView p_hSMO}.  
   IF hCurrentDataset <> ghSourceOld THEN
   DO:
     {set DatasetSource ghSourceOld p_hSMO}.
     IF VALID-HANDLE(hCurrentDataset) THEN
       RUN destroyObject IN hCurrentDataset.  
   END.
-  {fn destroyView p_hSMO}.  
   {fnarg setBusinessEntity gcBeOld p_hSMO}.
   {fnarg setDatasetName gcSetOld p_hSMO}.
   {fnarg setDataTable gcTableOld p_hSMO}.

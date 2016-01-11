@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,6 +32,7 @@ Other-settings:
     map-option              : "MAP <name>" or "NO-MAP" OR ""
         
 History
+    fernando   02/27/07 Support for long dump name - OE00146586    
     fernando    10/12/06 Allow this to be called persistently
     fernando    03/16/06 Handle case with too many tables selected - bug 20050930-006.
     mcmann      10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
@@ -98,6 +99,7 @@ DEFINE VARIABLE l_int       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_item      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_list      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE save_ab     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 define temp-table ttb_dump
         field db        as character
@@ -148,7 +150,7 @@ PROCEDURE doDump:
     
     /* make sure these are clear */
     ASSIGN user_env = ""
-           user_longchar = "".
+           user_longchar = (IF isCpUndefined THEN user_longchar ELSE "").
 
     if      code-page = ?  
      then assign code-page = "<internal defaults apply>".
@@ -210,7 +212,8 @@ PROCEDURE doDump:
                          THEN LDBNAME("DICTDB")
                          ELSE _DB._DB-name
                       )
-        user_longchar = ""
+        user_env[1] = ""
+        user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
         l_for-type  = ( if CAN-DO("PROGRESS",DICTDB._DB._DB-Type) 
                          THEN ?
                          ELSE "TABLE,VIEW"
@@ -221,7 +224,7 @@ PROCEDURE doDump:
      */
       for each ttb_dump
         where ttb_dump.db = ""
-        while user_longchar <> ",all":
+        while user_env[1] <> ",all":
         if ttb_dump.tbl <> "all"
          then do:
            IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
@@ -234,15 +237,20 @@ PROCEDURE doDump:
           if available DICTDB._File
            and ( can-do(l_for-type,DICTDB._File._For-type)
            or    l_for-type = ? )
-           then assign user_longchar = user_longchar + "," + ttb_dump.tbl.
+           then do:
+              IF isCpUndefined THEN
+                 assign user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+              ELSE
+                 assign user_longchar = user_longchar + "," + ttb_dump.tbl.
+          END.
           end.
-         else assign user_longchar = ",all".
+         else assign user_env[1] = ",all".
         end.
     
     /* b) try to use all tables WITH db-specifyer */
       for each ttb_dump
         where ttb_dump.db = l_db-name
-        while user_longchar <> ",all":
+        while user_env[1] <> ",all":
         if ttb_dump.tbl <> "all"
          then do:
            IF INTEGER(DBVERSION("DICTDB")) > 8 THEN     
@@ -255,18 +263,27 @@ PROCEDURE doDump:
           if available DICTDB._File
            and ( can-do(l_for-type,DICTDB._File._For-type)
            or    l_for-type = ? )
-           then assign user_longchar = user_longchar + "," + ttb_dump.tbl.
+           then do:
+              IF isCpUndefined THEN
+                 assign user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+              ELSE
+                 assign user_longchar = user_longchar + "," + ttb_dump.tbl.
+           END.
           end.
-         else assign user_longchar = ",all".
+         else assign user_env[1] = ",all".
         end.
         
     /* c) if either "all" or "all of this db" then we take every file
      *    of the current _Db
      */
     
-      IF user_longchar = ",all"
+      IF user_env[1]  = ",all"
        then do:  /* all files of this _Db */
-        assign user_longchar = "".
+
+        assign user_env[1] = "".
+        IF NOT isCpUndefined THEN
+           assign user_longchar = "".
+
         for each DICTDB._File
           WHERE DICTDB._File._File-number > 0
           AND   DICTDB._File._Db-recid = RECID(_Db)
@@ -280,25 +297,40 @@ PROCEDURE doDump:
                   
           if l_for-type = ?
            or can-do(l_for-type,DICTDB._File._For-type)
-           then assign user_longchar = user_longchar + "," + DICTDB._File._File-name.
+           then do:
+              IF isCpUndefined THEN
+                 assign user_env[1] = user_env[1] + "," + DICTDB._File._File-name.
+              ELSE
+                 assign user_longchar = user_longchar + "," + DICTDB._File._File-name.
+           END.
           END.
-        assign user_longchar = substring(user_longchar,2,-1,"character").
+        IF isCpUndefined THEN
+           assign user_env[1] = substring(user_env[1],2,-1,"character").
+        ELSE
+           assign user_longchar = substring(user_longchar,2,-1,"character").
         END.     /* all files of this _Db */
-       else assign
-        user_longchar = substring(user_longchar,2,-1,"character").
+       else do:
+           IF isCpUndefined THEN
+              user_env[1] = substring(user_env[1],2,-1,"character").
+           else
+              user_longchar = substring(user_longchar,2,-1,"character").
+       END.
        
       /* is there something to dump in this _db? */
-      if user_longchar = "" then next.
+       if NOT isCpUndefined AND user_longchar = "" then next.
+       if     isCpUndefined AND user_env[1] = ""   then next.
       
       /* where to put the dump? */
-      IF   INDEX(user_longchar,",") = 0
+      IF (isCpUndefined AND INDEX(user_env[1],",") = 0)
+          OR (NOT isCpUndefined AND INDEX(user_longchar,",") = 0)
        then do:  /* ev. get dump-name */
         if  dot-d-dir matches "*/"
          or dot-d-dir = ""
          then user_env[2] = dot-d-dir.
          else user_env[2] = dot-d-dir + "/".
     
-       ASSIGN user_env[1] = user_longchar.
+       IF NOT isCpUndefined THEN
+          ASSIGN user_env[1] = user_longchar.
     
        IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
           FIND _File OF _Db WHERE _File._File-name = user_env[1]
@@ -311,12 +343,9 @@ PROCEDURE doDump:
                            or dot-d-dir = ""
                            then dot-d-dir
                            else dot-d-dir + "/"
-                         ) + SUBSTRING
-                         (      ( if _Dump-name = ?
+                         ) +  ( if _Dump-name = ?
                                       THEN _File-name 
-                                      ELSE _Dump-name
-                                ), 1, 8, "character"
-                         ) + ".d".
+                                      ELSE _Dump-name ) + ".d".
         END.     /* ev. get dump-name */
        else assign
         user_env[2] = ( if  dot-d-dir matches "*" + "/"
@@ -342,19 +371,22 @@ PROCEDURE doDump:
     
       /* Indicate "y"es to disable triggers for dump of all files */
       assign
-        user_env[4] = substring(fill(",y",num-entries(user_longchar))
+        user_env[4] = substring(fill(",y",
+                                     num-entries((IF isCpUndefined THEN user_env[1] ELSE user_longchar)))
                                ,2
                                ,-1
                                ,"character"
                                ).
     
-      /* see if we can put user_longchar into user_env[1] */
-      ASSIGN user_env[1] = user_longchar NO-ERROR.
-      IF NOT ERROR-STATUS:ERROR THEN
-         /* ok to use user_env[1] */
-         ASSIGN user_longchar = "". 
-      ELSE
-         ASSIGN user_env[1] = "".
+      IF NOT isCpUndefined THEN DO:
+          /* see if we can put user_longchar into user_env[1] */
+          ASSIGN user_env[1] = user_longchar NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR THEN
+             /* ok to use user_env[1] */
+             ASSIGN user_longchar = "". 
+          ELSE
+             ASSIGN user_env[1] = "".
+      END.
     
       RUN "prodict/dump/_dmpdata.p".
     
@@ -366,6 +398,9 @@ PROCEDURE doDump:
 END PROCEDURE.
 
 /*---------------------------  MAIN-CODE  --------------------------*/
+
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
 
 /* if not running persistenty, go ahead and dump the definitions */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN

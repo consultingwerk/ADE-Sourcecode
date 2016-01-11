@@ -9614,28 +9614,20 @@ FUNCTION refreshQuery RETURNS LOGICAL
   &SCOPED-DEFINE xp-assign
   {get Rowident cRowIdent}
   {get QueryOpen lOpen}
-  {get QueryOpen lOpen}
   .
   &UNDEFINE xp-assign
   
   IF lOpen THEN
   DO:
     {fn closeQuery}.
-
     IF cRowIdent > "":U THEN
-      {fnarg fetchRowWhere cRowIdent}.
-
-    /* fetchRowWhere() doesn't reset the recordAvailable() property in Data targets,
-       which causes funky behaviour with toolbars (nav, tableio). We thus always need
-       to run it (it won't re-run sendRows).
-     */
-    RUN fetchFirst IN TARGET-PROCEDURE. 
-    
-    /* Reposition to the previously selected row. The fetchFirst call above messes up
-       the reposition done by the fetchRowWhere().
-     */
-    IF cRowIdent > '':U THEN
-      {fnarg findRowObjectUseRowident cRowident}.
+      lOk =  {fnarg fetchRowWhere cRowIdent}.
+   
+    if lok then  /* different, since we refresh children repositions to first 
+                  (server only reads children for one parent record) */
+      publish "dataAvailable" from target-procedure ('different').
+    else     
+      RUN fetchFirst IN TARGET-PROCEDURE. 
     
     RETURN TRUE.
   END.

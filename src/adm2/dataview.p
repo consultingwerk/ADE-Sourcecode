@@ -954,6 +954,17 @@ FUNCTION isDataQueryComplete RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isFetchedByParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isFetchedByParent Procedure 
+FUNCTION isFetchedByParent RETURNS logical
+        (  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-keyWhere) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD keyWhere Procedure 
@@ -1945,7 +1956,7 @@ PROCEDURE createObjects :
   DEFINE VARIABLE hDataContainer AS HANDLE     NO-UNDO.
   
   DEFINE VARIABLE cDataTable          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hBuffer             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDatasetSource      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDataHandle         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cColumns            AS CHARACTER  NO-UNDO.
@@ -1956,20 +1967,22 @@ PROCEDURE createObjects :
   DEFINE VARIABLE cViewTables         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCol                AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cTable              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTables             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryTables        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTableColumns       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cContext            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hBuffer             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cBufferHandles      AS CHARACTER  NO-UNDO.
 
   &SCOPED-DEFINE xp-assign 
   {get DatasetSource hDatasetSource}
   {get DataTable cDataTable}
-  {get RowObject hBuffer}
+  {get RowObject hRowObject}
   .
   &UNDEFINE xp-assign
   
   /* The intention is to support any TT by just setting the Rowobject 
      (as of current not supported as other logic still require a dataset) */
-  IF NOT VALID-HANDLE(hBuffer) THEN  
+  IF NOT VALID-HANDLE(hRowObject) THEN  
   DO:
     IF NOT VALID-HANDLE(hDatasetSource) AND {fn addDatasetSource} THEN
       {get DatasetSource hDatasetSource}.
@@ -1980,20 +1993,23 @@ PROCEDURE createObjects :
       IF cContext > '' THEN
         {fnarg applyContextFromServer cContext}.
 
-      hBuffer = {fnarg createBuffer cDataTable hDatasetSource}.
-      {set RowObject hBuffer}.
+      assign 
+        hRowObject     = {fnarg createBuffer cDataTable hDatasetSource}
+        cBufferHandles = string(hRowObject).
+      {set RowObject hRowObject}.
+      
     END.
   END.
 
-  IF VALID-HANDLE(hBuffer) AND VALID-HANDLE(hDatasetSource) THEN
+  IF VALID-HANDLE(hRowObject) AND VALID-HANDLE(hDatasetSource) THEN
   DO:
-    {get QueryTables cTables}.
+    {get QueryTables cQueryTables}.
     CREATE QUERY hDataHandle.
-    hDataHandle:ADD-BUFFER(hBuffer).
+    hDataHandle:ADD-BUFFER(hRowObject).
     /* Start on 2nd, the 1st table is the Datatable and is added above */
-    DO iTable = 2 TO NUM-ENTRIES(cTables):
+    DO iTable = 2 TO NUM-ENTRIES(cQueryTables):
       ASSIGN
-        cChild = ENTRY(iTable,cTables)
+        cChild = ENTRY(iTable,cQueryTables)
         hChild = {fnarg createBuffer cChild hDatasetSource}
         .
       IF VALID-HANDLE(hChild) THEN
@@ -2017,16 +2033,26 @@ PROCEDURE createObjects :
         cColumns     = cColumns 
                       + (IF cColumns <> '' AND cTableColumns <> '' THEN ',' ELSE '') 
                       + cTableColumns.
+      
+      if lookup(cTable,cQueryTables) > 0 then 
+        hBuffer = hDataHandle:get-buffer-handle(cTable).
+      else 
+        hBuffer = {fnarg createBuffer cTable hDatasetSource}.
+      
+      cBufferHandles = cBufferHandles + ",":U
+                     + string(hBuffer).   
+                            
     END. /* do itable = 2 to num-entries */
     
     &SCOPED-DEFINE xp-assign
     {set DataColumns cColumns}
+    {set BufferHandles cBufferHandles}
     {set DataHandle hDataHandle}
     .
     &UNDEFINE xp-assign
     
-    IF hBuffer:TABLE-HANDLE:DYNAMIC OR VALID-HANDLE(hBuffer:TABLE-HANDLE:BEFORE-TABLE) THEN
-      hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
+    IF hRowObject:TABLE-HANDLE:DYNAMIC OR VALID-HANDLE(hRowObject:TABLE-HANDLE:BEFORE-TABLE) THEN
+      hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
   END. /* valid buffer and datasetsource */
   
   RETURN.
@@ -2065,10 +2091,11 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE lDataIsFetched      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lClose              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lQueryOpen          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cForeignValues      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lFetchedByParent    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFetchTree          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParentPos          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lReset              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lResort             AS LOGICAL    NO-UNDO.
+  define variable cDataTable          as character  no-undo.
 
   &SCOPED-DEFINE xp-assign
   {get DataTarget cTarget}
@@ -2087,26 +2114,20 @@ PROCEDURE dataAvailable :
   IF pcMode <> 'VALUE-CHANGED':U THEN
   DO:
     ASSIGN
-      lOpen  = TRUE
-      lReset = LOOKUP(pcMode,'RESET,RESORT':U) > 0.
+      lOpen  = true 
+      lReset = pcMode <> ? and lookup(pcMode,'RESET,RESORT':U) > 0.
  
     {get DataSource hDataSource}.
     IF VALID-HANDLE(hDataSource)  THEN
     DO: 
-      /* builddatarequest will applyforeignkey for standalone child 
-         request, but removes foreign key otherwise, so an unknown value 
-         means that the parent has retrieved the data 
-         (used when dataisfetched is false below) */                                               
-      {get ForeignValues cForeignValues}.
-      lFetchedByParent = (cForeignValues = ?).
-         
-      {get QueryOpen lOpen hDataSource}.
+      {get QueryPosition cParentPos hDataSource}.
+      lOpen = not (cParentPos begins "NoRecordAvailable":U).
       IF lOpen THEN
       DO:
         /* if parent is in newmode set close flag */ 
-        {get NewMode lClose hDataSource}. 
+        {get NewMode lClose hDataSource}.
         IF NOT lClose THEN
-        DO:
+        DO:          
           IF lReset THEN
           DO:
             IF {fn hasForeignKeyChanged} THEN
@@ -2117,11 +2138,13 @@ PROCEDURE dataAvailable :
           IF NOT lReset OR NOT lQueryOpen THEN 
             {fn addForeignKey}.
         END.
-      END. 
-      /* set close flag if parent is closed (probably because its parent is new ) */
-      ELSE IF lQueryOpen THEN
-        lClose = TRUE.
-    END.
+      END. /* if lOpen (parent avail) */
+      /* set close flag if parent is new or not avail */
+      ELSE do:
+        lClose = lQueryOpen.
+        {fn removeForeignKey}.
+      end.  
+    END. /* valid datasource */
   END. /* mode <> 'value-changed' */  
 
   /* This OpenOnInit flag is set to true unconditionally in opendataView, 
@@ -2145,11 +2168,22 @@ PROCEDURE dataAvailable :
     {get DataIsFetched lDataIsFetched}   
     {get ObjectInitialized lInitialized}
     {get DatasetSource hDatasetSource}
-    .
+    {get DataTable cDataTable}
+    . 
     &UNDEFINE xp-assign  
-
-    IF (lDataIsFetched = FALSE AND lFetchedByParent = FALSE AND NOT lReset) 
-    OR NOT VALID-HANDLE(hDatasetSource) THEN
+    
+    if valid-handle(hDatasetSource) 
+    and lDataIsFetched = false 
+    and lReset = false then
+    do:
+      if valid-handle(hDataSource) then
+        /* don't open if this query has been fetched with the parent */ 
+        lOpen = NOT {fn isFetchedByParent}.
+    end.
+    else 
+      lOpen = not valid-handle(hDatasetSource).
+    
+    IF lOpen THEN
       {fn openQuery}.                                                 
     ELSE IF NOT lReset OR NOT lQueryOpen THEN
       {fn openDataView}.
@@ -2942,7 +2976,7 @@ PROCEDURE processSubmitException :
   DEFINE VARIABLE cTargets        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iTarget         AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cUndoOnConflict AS CHARACTER  NO-UNDO.
-  
+            
   &SCOPED-DEFINE xp-assign
   {get DatasetSource hDatasetSource}
   {get DataTable cDataTable}
@@ -2950,7 +2984,7 @@ PROCEDURE processSubmitException :
   {get AutoCommit lAutoCommit}
   .
   &UNDEFINE xp-assign
-
+  
   CREATE BUFFER hAfter FOR TABLE hRowObject. 
 
   hChgAfter = {fnarg tableExceptionBuffer cDataTable hDatasetSource}.
@@ -2968,8 +3002,7 @@ PROCEDURE processSubmitException :
       hQuery:GET-FIRST.
 
       DO WHILE hChgBefore:AVAIL:
-        lMerge = FALSE.
-
+        
         IF hChgBefore:DATA-SOURCE-MODIFIED THEN
         DO:
           hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
@@ -3025,43 +3058,54 @@ PROCEDURE processSubmitException :
           cMessage = SUBSTITUTE({fnarg messageNumber 8},cChangedFields).
           RUN addMessage IN TARGET-PROCEDURE(cMessage,?,cDataTable).
         END.
-        ELSE
-        IF hChgBefore:ERROR OR hChgBefore:REJECTED THEN
-        DO:
-          ASSIGN
-            lMerge = lAutoCommit
-            cMessage = hChgBefore:ERROR-STRING.
-
-          /* Undo the deletion if it caused an error and keep the deletion if 
-             it is only rejected, since it is likely to be another error that 
-             caused the rejections */ 
-          IF NOT lAutoCommit AND hChgBefore:ROW-STATE = ROW-DELETED THEN
+        else do:  
+          IF hChgBefore:ERROR OR hChgBefore:REJECTED THEN
           DO:
-            {get UndoDeleteOnSubmitError cUndoDelete}.
-            CASE cUndoDelete:
-              WHEN 'ERROR':U THEN
-                lMerge = hChgBefore:ERROR.
-              WHEN 'ALL':U THEN
-                lMerge = TRUE.
+            /* if rejected the record typically does not have an error-string 
+	             (at least one error is expected to have error-string) */
+            IF hChgBefore:ERROR-STRING > '' THEN 
+              RUN addMessage IN TARGET-PROCEDURE(hChgBefore:ERROR-STRING,
+                                                 ?,
+                                                 cDataTable).
+            /* if not AutoCommit then undo the deletion if it caused an error 
+               and keep the deletion if it is only rejected, since it is likely
+                to be another error that caused the rejections */ 
+            IF NOT lAutoCommit AND hChgBefore:ROW-STATE = ROW-DELETED THEN
+            DO:
+              {get UndoDeleteOnSubmitError cUndoDelete}.
+              CASE cUndoDelete:
+                WHEN 'ERROR':U THEN
+                  lMerge = hChgBefore:ERROR.
+                WHEN 'ALL':U THEN
+                  lMerge = TRUE.
+                otherwise 
+                  lMerge = false.
+              END.
             END.
+            else if lAutoCommit and hChgBefore:row-state = row-created then
+            do transaction:
+              hRowObject:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
+              hBefore:BUFFER-RELEASE.
+              hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
+              hAfter:FIND-BY-ROWID(hBefore:AFTER-ROWID).
+              hAfter:buffer-copy(hBefore).
+              hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
+            end.
+            else 
+              lMerge = lAutoCommit.
+          END. /* error */
+          ELSE 
+            lMerge = TRUE.
+  
+          IF lMerge THEN
+          DO TRANSACTION: /* avoid row-updated trigger when out of scope later */
+            hRowObject:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
+            hBefore:BUFFER-RELEASE.
+            hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
+            hChgBefore:MERGE-ROW-CHANGES(hBefore).
+            hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
           END.
-
-          /* if rejected the record typically not have an error-string 
-             (at least one error is expected to have error-string) */
-          IF cMessage > '' THEN 
-            RUN addMessage IN TARGET-PROCEDURE(cMessage,?,cDataTable).
-        END.
-        ELSE 
-          lMerge = TRUE.
-
-        IF lMerge THEN
-        DO TRANSACTION: /* avoid row-updated trigger when out of scope later */
-          hRowObject:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
-          hBefore:BUFFER-RELEASE.
-          hBefore:FIND-BY-ROWID(hChgBefore:ORIGIN-ROWID).
-          hChgBefore:MERGE-ROW-CHANGES(hBefore).
-          hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
-        END.
+        end. /* else ( not lock conflict ) */
         hQuery:GET-NEXT.  
       END.
     END. /* valid rowobject:before */
@@ -3099,7 +3143,7 @@ PROCEDURE processSubmitException :
       */   
     
   END.
-
+ 
   {fnarg removeTableExceptionBuffer cDataTable hDatasetSource}.
   
   /* this will be ignored if not true.. */
@@ -3116,8 +3160,7 @@ PROCEDURE processSubmitException :
         RUN processSubmitException IN hTarget.
     END.
   END.
-
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3466,6 +3509,7 @@ PROCEDURE rowChanged :
   DEFINE VARIABLE cQueryTables    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cTable          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cBufferHandles  AS character   NO-UNDO.
   
   /* Set QueryPosition from FirstRowNum, LastRowNum  */
   RUN updateQueryPosition IN TARGET-PROCEDURE.
@@ -3475,6 +3519,7 @@ PROCEDURE rowChanged :
   {get QueryTables cQueryTables}
   {get ViewTables cViewTables}
   {get RowObject hRowObject}
+  {get BufferHandles cBufferHandles}
   {get DatasetSource hDatasetSource}
    .
   &UNDEFINE xp-assign
@@ -3485,7 +3530,7 @@ PROCEDURE rowChanged :
     cTable = ENTRY(iTable,cViewTables).
     IF LOOKUP(cTable,cQueryTables) = 0 THEN
     DO:
-      hBuffer = {fnarg dataTableHandle cTable hDatasetSource}.
+      hBuffer = widget-handle(entry(iTable,cBufferHandles)).
       IF hRowObject:AVAILABLE THEN
       DO:
         cRelationFields = DYNAMIC-FUNCTION("relationFields":U IN hDatasetSource,
@@ -3515,7 +3560,7 @@ PROCEDURE rowChanged :
         hBuffer:BUFFER-RELEASE().
     END.  /* table not in query */
   END. /* do itable = 2 to num-entires viewtables */
-
+  
   PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE (pcMode).
 
 END PROCEDURE.
@@ -4034,7 +4079,7 @@ FUNCTION addRow RETURNS CHARACTER
       END.  /* END DO iCol */
     END.    /* END DO IF cForFields NE "" */
 
-    PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('DIFFERENT':U).    
+    run rowChanged in target-procedure("different":U).
  
     RETURN {fnarg colValues pcViewColList}.
   END. /* rRowid */
@@ -4445,11 +4490,7 @@ FUNCTION canNavigate RETURNS LOGICAL
   ( ) :
 /*------------------------------------------------------------------------------
   Purpose: Check if this object or its children has any updates   
-    Notes: You can navigate an object that has uncommiited changes, but not 
-           if the children has uncommitted changes, so this publishes 
-           IsUpdatePending to check children as this includes rowObjectState 
-           in the check.
-         - Navigating objects will typically call this to check if the object
+    Notes: Navigating objects will typically call this to check if the object
            that they are navigating can be navigated. Nav objects receives
            updateState from the objects they navigate and will perform this 
            check in the source of any 'updateComplete' message. This is required
@@ -4706,15 +4747,17 @@ FUNCTION columnHandle RETURNS HANDLE
                - qualified temp-table column name. 
        Notes: Used by other column functions and the browse.  
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hColumn      AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cDataTable   AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE cTable       AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE hBuffer      AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hDataset     AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hQuery       AS HANDLE     NO-UNDO.
- DEFINE VARIABLE cViewTables  AS CHARACTER  NO-UNDO.
-
+ DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hColumn        AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cDataTable     AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cTable         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hDataset       AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hQuery         AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cViewTables    AS CHARACTER  NO-UNDO. 
+ DEFINE VARIABLE iBuffer        AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cBufferHandles AS CHARACTER  NO-UNDO.
+ 
  {get RowObject hBuffer}.
  IF NOT VALID-HANDLE(hBuffer) THEN
    RETURN ?.
@@ -4740,11 +4783,15 @@ FUNCTION columnHandle RETURNS HANDLE
          hBuffer = hQuery:GET-BUFFER-HANDLE(cTable) NO-ERROR.
          IF NOT VALID-HANDLE(hBuffer) THEN
          DO:
-           {get ViewTables cViewTables}.
-           IF LOOKUP(cTable,cViewTables) > 0 THEN
-           DO:
-             hBuffer = {fnarg dataTableHandle cTable hDataset}.
-           END.
+           &scoped-define xp-assign
+           {get ViewTables cViewTables}
+           {get BufferHandles cBufferHandles}
+           .
+           &undefine xp-assign 
+           iBuffer = LOOKUP(cTable,cViewTables).
+           if iBuffer > 0 then 
+             hBuffer = widget-handle(entry(iBuffer,cBufferHandles)).
+           
          END. /* not in query */
        END.
      END. /* DataTable > '' */
@@ -5486,7 +5533,9 @@ FUNCTION copyRow RETURNS CHARACTER
 
   IF VALID-HANDLE(hFromBuffer) THEN 
     DELETE OBJECT hFromBuffer NO-ERROR. 
-
+  
+  run rowChanged in target-procedure("different":U).
+  
   RETURN cDispValues.
 
 END FUNCTION.
@@ -5678,14 +5727,12 @@ FUNCTION deleteRow RETURNS LOGICAL
   END.  /* IF Success  */
   ELSE DO:
     cDeleteMsg = {fnarg messageNumber 23}.
-    RUN addMessage IN TARGET-PROCEDURE (cDeleteMsg,?,{fn getDataTable}).
+    RUN addMessage IN TARGET-PROCEDURE (cDeleteMsg,?,'').
     /* newdeleted can only be stopped at the actual delete */
     IF NOT lNewDeleted THEN
     DO:
-      hRowObject:BEFORE-BUFFER:FIND-UNIQUE('WHERE ':U + cBIKeyWhere).
-      DO TRANSACTION:
-        hRowObject:BEFORE-BUFFER:REJECT-ROW-CHANGES.
-      END.
+      RUN processSubmitException IN TARGET-PROCEDURE.
+
       /* the record was deleted and the reincarnation must be added to the query */
       {fnarg  openDataQuery "'WHERE ':U + cKeyWhere"}.
       /* rowid has changed..currently used by visual objects
@@ -5716,11 +5763,12 @@ FUNCTION destroyView RETURNS LOGICAL
   DEFINE VARIABLE hQuery           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iTable           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hBuffer          AS HANDLE     NO-UNDO.
-
+  DEFINE VARIABLE cBufferHandles   AS CHARACTER  NO-UNDO.
   &SCOPED-DEFINE xp-assign
   
   {get DatasetSource hDatasetSource}
   {get ContainerSource hContainerSource}
+  {get BufferHandles cBufferHandles}
   {get DataHandle hQuery}
 
   {set DataColumns '':U}
@@ -5731,14 +5779,14 @@ FUNCTION destroyView RETURNS LOGICAL
   {set QueryColumns '':U}
   {set DataQueryString '':U}
   {set Tables '':U}
+  {set BufferHandles '':U}
   /* destroy and reinitialize is not really supported, but not prevented */
   {set ObjectInitialized FALSE}
   .
   &UNDEFINE xp-assign
 
-  IF VALID-HANDLE(hQuery) THEN
-  DO iTable = 1 TO hQuery:NUM-BUFFERS:
-    hBuffer = hQuery:GET-BUFFER-HANDLE(iTable).
+  DO iTable = 1 TO num-entries(cBufferHandles):
+    hBuffer = widget-handle(entry(iTable,cBufferHandles)).
     {fnarg destroyBuffer hBuffer hDatasetSource}.
   END.
 
@@ -6993,14 +7041,14 @@ FUNCTION getRowParentChanged RETURNS LOGICAL
   /* if there's no datasource then the foreignvalues does not matter */  
   IF VALID-HANDLE(hDataSource) THEN 
   DO:  
-    DO iField = 1 TO NUM-ENTRIES(cForeignFields) BY 2:
-      ASSIGN
-        cField        = ENTRY(iField,cForeignFields)
+    DO iField = 1 TO NUM-ENTRIES(cForeignValues,CHR(1)):
+      assign    /* local name is 1st of pair */       
+        cField        = ENTRY((iField * 2) - 1,cForeignFields)
         cOldValue     = ENTRY(iField,cForeignValues,CHR(1))
         cCurrentValue = {fnarg columnValue cField}. 
       IF NOT COMPARE(cOldValue,"EQ":U,cCurrentValue,"RAW":U) THEN 
         RETURN TRUE.
-    END. /* do ifield to num foreignfields by 2*/
+    END. /* do ifield to num foreignvalues  */
   END. /* valid source */
   
   RETURN FALSE.  
@@ -7501,6 +7549,125 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isFetchedByParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isFetchedByParent Procedure 
+FUNCTION isFetchedByParent RETURNS logical
+	(  ):
+/*------------------------------------------------------------------------------
+    Purpose: Check if current parent has fetched this object's data 
+    Notes: This is only called from dataAvailable when dataisfetched is false
+------------------------------------------------------------------------------*/
+  define variable lDataIsFetched  as logical   no-undo.
+  define variable hParent         as handle    no-undo.
+  define variable hDatasetSource  as handle    no-undo.
+  define variable cParentPos      as character no-undo.
+  define variable cFetchParentPos as character no-undo.
+  define variable cDataTable      as character no-undo.
+  define variable cFetchTree      as character no-undo.
+  define variable iParent         as integer   no-undo.
+  define variable iStart          as integer   no-undo.
+  define variable cParentKeyWhere as character no-undo.
+  define variable lIsFetched      as logical   no-undo.
+  define variable lPropChanged    as logical   no-undo.
+  
+  &scop xp-assign 
+  {get DataIsFetched lDataIsfetched}
+  {get DataSource hParent}
+  {get DatasetSource hDatasetSource}
+  .
+  &undefine xp-assign
+  
+  lIsFetched = valid-handle(hParent).
+  
+  if lDataIsFetched = false 
+  and valid-handle(hParent)  
+  and valid-handle(hDatasetSource) then 
+  do:
+    {get DataTable cDataTable}.
+    /* We're currently only using this as a flag and turn it off below 
+       (The positions of parent tree that fetched this table
+        could be checked against parents querypos in future) */ 
+    cFetchTree = {fnarg tableFetchTree cDataTable hDatasetSource}.    
+    
+    if cFetchTree = '' or cFetchTree = ? then
+      lIsFetched = false. 
+    
+    /* FetchTree has the position of parents that this was received for 
+       including its own */
+    else
+    /* check if position matches - replace with keywhere for resort */ 
+    ParentLoop:
+    do iParent = num-entries(cFetchTree,chr(1)) - 1 to 1 by -1:        
+      cFetchParentPos = entry(iParent,cFetchTree,chr(1)).
+      if cFetchParentPos = 'ALL':U then 
+        cFetchParentPos = 'FIRST':U.  
+        
+      /* something is wrong */
+      if not valid-handle(hParent) then 
+      do: 
+        lIsfetched = false.
+        LEAVE ParentLoop.
+      end.  
+        
+      {get QueryPosition cParentPos hParent}.
+      cParentKeyWhere = 'WHERE (':U + {fn getKeyWhere hParent} + ')':U.          
+      case cFetchParentPos:
+        when 'FIRST':U then
+        do:
+          if lookup(cParentPos,'FirstRecord,OnlyRecord':U) = 0 then  
+            lIsFetched = false.
+        end.    
+        when 'LAST':U then
+        do:
+          if lookup(cParentPos,'LastRecord,OnlyRecord':U) = 0 then  
+            lIsFetched = false.
+        end.    
+        otherwise
+          do:
+            /* This is mainly a protection for non-default positioning. 
+             we do not check next prev - batching is batching, 
+             so we assume true */
+          
+          /* check position */
+          if cFetchParentPos begins 'WHERE' then
+          do:
+            if cFetchParentPos <> cParentKeyWhere then
+              lIsFetched = false. 
+            else /* no need to check higher if key */
+              leave ParentLoop.               
+          end.  
+        end.            
+      end case.  
+      
+      if lIsfetched = false then
+      do:
+        if cFetchTree > '' then
+          dynamic-function('assignTableFetchTree':U in hDatasetSource,
+                            cDataTable,'').               
+        leave ParentLoop.
+      end.  
+      else 
+      do:
+        entry(iParent,cFetchTree,chr(1)) = cParentKeyWhere.
+        lPropChanged = true. 
+      end.  
+      {get DataSource hParent hParent}.
+    end. /* do iParent */
+    if lIsFetched and lPropChanged then
+      dynamic-function('assignTableFetchTree':U in hDatasetSource,
+                        cDataTable,cFetchTree).               
+  end. /* lDataIsFetched = false and valid hParent and valid hDatasetSource */ 
+ 
+  return lIsFetched.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-keyWhere) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION keyWhere Procedure 
@@ -7635,7 +7802,7 @@ Parameters: pcPosition -
      cQuery = {fn getQueryStringDefault}.
      {set QueryString cQuery}.
    END.
-
+   
    IF cQuery <> hDataQuery:PREPARE-STRING THEN
      hDataQuery:QUERY-PREPARE(cQuery).
 
@@ -7797,7 +7964,7 @@ FUNCTION openQueryAtPosition RETURNS LOGICAL
                             
 ------------------------------------------------------------------------------*/    
   DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lParentOpen     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cParentPos      AS character   NO-UNDO.
   DEFINE VARIABLE lIsFetched      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lOk             AS LOGICAL    NO-UNDO.
 
@@ -7813,8 +7980,8 @@ FUNCTION openQueryAtPosition RETURNS LOGICAL
 
   IF VALID-HANDLE(hDataSource) THEN
   DO:
-    {get QueryOpen lParentOpen hDataSource}. 
-    IF NOT lParentOpen THEN
+    {get QueryPosition cParentPos hDataSource}. 
+    IF cParentPos begins "NoRecordAvailable":U THEN
       RETURN FALSE. 
     
     /* Default retrieval for child is by parent, so set to yes if unknown and
@@ -8294,7 +8461,7 @@ parameter: pcMode - Tells where to start retrieving in relation to current
   DEFINE VARIABLE cReopen    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hQuery     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
-
+  
   CASE pcMode:
     WHEN 'PREV':U OR WHEN 'NEXT':U THEN
     DO:
@@ -8330,7 +8497,7 @@ parameter: pcMode - Tells where to start retrieving in relation to current
     hQuery:GET-NEXT.
   ELSE IF pcMode = 'PREV':U THEN
     hQuery:GET-PREV.
-
+    
   {get RowObject hRowObject}.
 
   RETURN hRowObject:AVAIL.
@@ -9165,7 +9332,7 @@ FUNCTION submitRow RETURNS LOGICAL
             IF hParentDsSource <> hDatasetSource THEN
               LEAVE ParentLoop.
             IF NOT {fn getDataModified hParent} THEN
-              RUN RowChanged IN hParent('SAME':U).        
+              RUN rowChanged IN hParent('SAME':U).        
             {get SubmitParent lSubmitParent hParent}.
           END.
           ELSE 
@@ -9206,7 +9373,7 @@ FUNCTION submitRow RETURNS LOGICAL
           END.
  
           /* no point in positioning if parent changed as the record 
-             will be outside the quewry criteria, but we need to reopen  */
+             will be outside the query criteria, but we need to reopen  */
           {fnarg openDataQuery ''}.
         END.
                                                

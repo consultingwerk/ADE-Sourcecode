@@ -451,7 +451,12 @@ PROCEDURE retrieveData :
   DEFINE VARIABLE hDS           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lEmptySearch  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hBuffer       AS HANDLE     NO-UNDO.
-
+  define variable cFetchTree    as character  no-undo. 
+  define variable iParentEntity as integer    no-undo.
+  define variable iParentTable  as integer    no-undo.
+  define variable cParentRef    as character  no-undo.
+  define variable cParentTable  as character  no-undo.
+  define variable cParentFetch  as character no-undo.  
   DEFINE BUFFER bDataset   FOR TEMP-TABLE ttDataset.
   DEFINE BUFFER bDataTable FOR TEMP-TABLE ttDataTable.
 
@@ -731,7 +736,7 @@ PROCEDURE retrieveData :
             cTableContext = (IF NUM-ENTRIES(cContextLists[iEntity],cDlmRequest) >= iTable 
                              THEN ENTRY(iTable,cContextLists[iEntity],cDlmRequest)
                              ELSE '':U).
-          
+            
           IF lUseCopy  THEN
           DO:
             {get DatasetHandle hDS hDSProcedure[iEntity]}.
@@ -745,14 +750,18 @@ PROCEDURE retrieveData :
             IF NOT plRefresh THEN
               {fnarg mergeBatch cTable hDSProcedure[iEntity]}.
           END.       
+          
           IF cRequest <> 'DEFS':U THEN
           DO:
             /* refresh=no and append=no is a find independent of/ignoring batch and cannot change context */
             IF plRefresh = YES OR plAppend = YES THEN 
             DO:
+              assign 
+                cForeignField = ENTRY(iTable,cJoins[iEntity],cDlmRequest)
+                cFetchTree    = ''.
               /* 'ALL' = default dataset child retrieval, 
-	              if scrollable asssume we have all otherwise we don't know  */  
-              IF cRequest = 'ALL':U THEN
+	                if scrollable asssume we have all otherwise we don't know  */
+	            IF cRequest = 'ALL':U THEN
               DO:
                 IF {fnarg isScrollable cTable hDSProcedure[iEntity]} THEN
                   ASSIGN
@@ -762,17 +771,44 @@ PROCEDURE retrieveData :
                   ASSIGN
                     cPrev = ?
                     cNext = ?. 
-              END.
-              ELSE
+              END. 
+              else do:  
                 ASSIGN
                   cPrev = IF NUM-ENTRIES(cStartPos[iEntity],cDlmTable) >= iTable 
                           THEN ENTRY(iTable,cStartPos[iEntity],cDlmTable)
                           ELSE '':U
                   cNext = IF NUM-ENTRIES(cEndPos[iEntity],cDlmTable) >= iTable 
                           THEN ENTRY(iTable,cEndPos[iEntity],cDlmTable)
-                          ELSE '':U.
+                          ELSE '':U.   
+                /* parent tree for dataavailable isFetchedByCurrentPareent */         
+                if cForeignField > '' then
+                do:          
+                  assign        
+                    cParentRef    = entry(2,cForeignField)
+                    iParentEntity = if num-entries(cParentRef,".") = 3
+                                    then integer(entry(1,cParentRef,"."))  
+                                    else iEntity 
+                    cParentTable  = if iParentEntity = iEntity
+                                    then entry(1,cParentRef,".")  
+                                    else entry(2,cParentRef,".")
+                    iParentTable  = lookup(cParentTable,
+                                           cDataTables[iParentEntity],
+                                           cDlmTable)
+                    cParentFetch  = {fnarg tableFetchTree cParentTable hDSProcedure[iParentEntity]}
+                    cFetchTree    = (if cParentFetch = '' 
+                                     then entry(iParentTable,
+                                                cRequests[iParentEntity],
+                                                cDlmRequest)
+                                     else cFetchTree)
+                                   + cDlmAdm + cRequest.
+                end.                  
+              end.                            	                         
               iNumRecords = INT(ENTRY(iTable,cNumRecords[iEntity],cDlmTable)). 
-              
+          
+              /* log paretn retrieval info if dataisfeched = false  */ 
+              DYNAMIC-FUNCTION('assignTableFetchTree':U IN hDSProcedure[iEntity],
+                                    cTable,
+                                    if cRequest <> 'ALL' then cFetchTree else '').
               DYNAMIC-FUNCTION('assignTableInformation':U IN hDSProcedure[iEntity],
                            cTable,
                            cTableContext,
@@ -927,7 +963,8 @@ PROCEDURE submitDataset :
   ELSE 
   DO:  
     IF cContext[1] > '' THEN
-      DYNAMIC-FUNCTION('assignTableContext':U IN phDatasetSource,cContext[1]).
+      DYNAMIC-FUNCTION('assignTableContext':U IN phDatasetSource,
+                        pcDataTable,cContext[1]).
     
     /* If any error the error buffers are stored per table to be handled by
        the dataviews later (and false is returned)  */

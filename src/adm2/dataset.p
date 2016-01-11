@@ -99,6 +99,18 @@ FUNCTION assignTableExceptionBuffer RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-assignTableFetchTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableFetchTree Procedure 
+FUNCTION assignTableFetchTree RETURNS LOGICAL
+         ( pcTable     AS CHAR,
+           pcFetchedBy AS CHAR ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignTableInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableInformation Procedure 
@@ -532,6 +544,17 @@ FUNCTION TableExceptionBuffer RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-tableFetchTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableFetchTree Procedure 
+FUNCTION tableFetchTree RETURNS CHARACTER
+        ( pcTable as CHAR ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-tableIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableIndexInformation Procedure 
@@ -778,7 +801,7 @@ PROCEDURE destroyObject :
    {get DatasetHandle hDataset}.
    RUN SUPER.
    DELETE OBJECT hDataset NO-ERROR. 
-  
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -922,7 +945,7 @@ PROCEDURE obtainBufferExpressions :
       END.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
     
-    /* check parent of buffer if buffer not in list (top) */
+    /* check parent of buffer if buffer not in list (meaning top table) */
     IF LOOKUP(phBuffer:NAME,pcTables) = 0 AND NOT plCheckAvail THEN 
     DO: 
       hRelation = phBuffer:PARENT-RELATION.
@@ -931,7 +954,7 @@ PROCEDURE obtainBufferExpressions :
         ASSIGN 
           cParent = hRelation:PARENT-BUFFER:NAME
           iEntry  = LOOKUP(cParent,pcTables).
-        IF iEntry > 1 THEN 
+        IF iEntry > 0 THEN 
         DO:  
           cWhere = DYNAMIC-FUNCTION('relationHandleFields' IN TARGET-PROCEDURE,
                                      hRelation,
@@ -940,8 +963,8 @@ PROCEDURE obtainBufferExpressions :
           IF cWhere > '' THEN 
             ENTRY(iEntry,pcExpressions,CHR(1)) = cWhere.
         END. 
-      END.
-    END.        
+      END. /* valid relation */ 
+    END. /* parent of phBuffer in list and not phbuffer */       
   END.  /* valid hbuffer */
   RETURN. 
 END PROCEDURE.
@@ -1142,6 +1165,33 @@ FUNCTION assignTableExceptionBuffer RETURNS LOGICAL
   
   RETURN FALSE.
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableFetchTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableFetchTree Procedure 
+FUNCTION assignTableFetchTree RETURNS LOGICAL
+         ( pcTable     AS CHAR,
+           pcFetchTree AS CHAR ):
+/*------------------------------------------------------------------------------
+    Purpose: Set fetch information for table retrieval 
+             Retrieved by parent - grandparent (tree) when table also are 
+             retrieving itself - Dataisfetched = false.
+    Notes:   Used indirectly in dataAvailable to avoid retrieving 
+             if parent positions matches retrieved position   
+------------------------------------------------------------------------------*/
+  DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                    TARGET-PROCEDURE, 
+                    pcTable,
+                    'FetchTree':U,
+                    /* both adm and table prop currently uses chr(1)  */
+                    replace(pcFetchTree,chr(1),chr(2))).
+  RETURN TRUE.    
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1542,7 +1592,7 @@ FUNCTION dataQueryString RETURNS CHARACTER
                   + cRelTable
                   + " WHERE ":U
                   + ENTRY(iRel,cExpressions,CHR(1)).     
-    END.    
+    END.                          
                         
   END.
   
@@ -2259,6 +2309,15 @@ FUNCTION mergeChangeDataset RETURNS LOGICAL
                             cBuffer, hChangeBuffer).
       END. /* valid buffer */
     END.
+    /* Catch deleted rows only. only before record in the changed dataset */
+    else  
+    if valid-handle(hChangeBuffer:before-buffer)  
+    and hChangeBuffer:before-buffer:table-handle:has-records   THEN
+    do:
+      assign cBuffer = hChangeBuffer:table-handle:origin-handle:name.
+      dynamic-function('assignTableExceptionBuffer':U in target-procedure ,
+                        cBuffer, hChangeBuffer).
+    end.
   END. /* else ibuffer = 1 to dataset:num-buffers */
   
   RETURN lComplete.
@@ -2702,7 +2761,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-TableExceptionBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION TableExceptionBuffer Procedure 
-FUNCTION TableExceptionBuffer RETURNS HANDLE
+FUNCTION tableExceptionBuffer RETURNS HANDLE
   ( pcTable AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose: Returns the buffer that has the failed changes frm previous submit.
@@ -2711,6 +2770,32 @@ FUNCTION TableExceptionBuffer RETURNS HANDLE
   RETURN WIDGET-HANDLE(getTableProperty(TARGET-PROCEDURE,pcTable,'ErrorBuffer':U)).
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableFetchTree) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableFetchTree Procedure 
+FUNCTION tableFetchTree RETURNS CHARACTER
+        ( pcTable as CHAR ):
+/*------------------------------------------------------------------------------
+    Purpose: Return fetched by info for tables that also need to 
+             do their own retrieval.      
+    Notes:   This is set in the case where a child that needs to handle 
+             its own retrieval was retrieved by the parent. 
+             The dataAvaialble can then avoid going to the server  
+             when the current tree-position matches the retrieved tree.            
+------------------------------------------------------------------------------*/
+  define variable cFetchTree as character no-undo.
+  cFetchTree = getTableProperty(TARGET-PROCEDURE,pcTable,'FetchTree':U).
+  /* both adm and table prop currently uses chr(1)  */
+  if cFetchTree > '' then  
+    return replace(cFetchTree,chr(2),chr(1)).
+  return ''. 
+end function.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

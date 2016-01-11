@@ -174,7 +174,6 @@ FUNCTION getObjectType RETURNS CHARACTER
  &GLOB xpLogicalObjectName
  &GLOB xpObjectVersion 
  &GLOB xpObjectType
- &GLOB xpHideOnInit 
  &GLOB xpContainerType  
  &GLOB xpPropertyDialog  
  &GLOB xpQueryObject    

@@ -125,6 +125,7 @@ DEFINE VARIABLE oldsession    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
 DEFINE VARIABLE cItem      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
@@ -997,6 +998,9 @@ END PROCEDURE.
   {&HLP_BTN}
   }
 
+IF SESSION:CPINTERNAL EQ "undefined":U THEN
+    isCpUndefined = YES.
+
 ASSIGN
   class    = SUBSTRING(user_env[9],1,-1,"character")
   io-file  = TRUE
@@ -1127,8 +1131,11 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
                         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").
   
   /* using base_lchar to make code below simplier */
-  IF is-one OR is-some THEN
+  IF NOT isCpUndefined AND (is-one OR is-some) THEN
      base_lchar = user_env[1].
+  ELSE
+     base = (IF is-one OR is-some THEN user_env[1] ELSE "").
+
 
   ASSIGN
     user_env[2] = prefix + (IF is-all OR is-some THEN "" ELSE
@@ -1143,7 +1150,7 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
                   ELSE  IF is-some THEN "Some Tables" /*somefiles*/
                   ELSE "Table ~"" + user_env[1] + "~"")
     user_env[1] = ""
-    user_longchar = ""
+    user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
     comma       = ""
     i           = 1.
 
@@ -1161,7 +1168,11 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
     BY DICTDB._File._File-name:
     IF DICTDB._File._Owner = "_FOREIGN" AND DICTDB._File._For-Type <> "TABLE" THEN
         NEXT.
-    base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + DICTDB._File._File-name.
+
+    IF isCpUndefined THEN
+       base = base + (IF base = "" THEN "" ELSE ",") + DICTDB._File._File-name.
+   ELSE
+       base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + DICTDB._File._File-name.
   END.
 
   /* Run through the file list and cull out the ones that the user
@@ -1169,12 +1180,13 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
   */
   user_env[5] = "".
 
-  ASSIGN numCount = NUM-ENTRIES(base_lchar).
+  ASSIGN numCount = (IF isCpUndefined THEN NUM-ENTRIES(base)
+                     ELSE NUM-ENTRIES(base_lchar)).
 
   DO i = 1 TO numCount:
     err = ?.
     dis_trig = "y".
-    cItem = ENTRY(i,base_lchar).
+    cItem = ENTRY(i,(IF isCpUndefined THEN base ELSE base_lchar)).
 
     FIND DICTDB._File
       WHERE _Db-recid = drec_db AND _File-name = cItem
@@ -1214,11 +1226,16 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
       END.
     END.
 
-    IF err = ? THEN
+    IF err = ? THEN DO:
+      IF isCpUndefined THEN
+         user_env[1] = user_env[1] + comma + DICTDB._File._File-name.
+      ELSE
+         user_longchar = user_longchar + comma + DICTDB._File._File-name.
+
       ASSIGN
-        user_longchar = user_longchar + comma + DICTDB._File._File-name
         user_env[5] = user_env[5] + comma + dis_trig
         comma       = ",".
+    END.
     ELSE IF err <> "" THEN DO:
       MESSAGE err SKIP "Do you want to continue?"
          VIEW-AS ALERT-BOX ERROR BUTTONS YES-NO UPDATE answer.
@@ -1231,9 +1248,12 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
   END.
 
   /* subsequent removal of files changed from many to one, so reset ui stuff */
-  IF (is-some OR is-all) AND NUM-ENTRIES(user_longchar) = 1 THEN DO:
-    ASSIGN user_env[1] = user_longchar
-           user_longchar ="".
+  IF (is-some OR is-all) AND
+      NUM-ENTRIES((IF isCpUndefined THEN user_env[1] ELSE user_longchar)) = 1 THEN DO:
+
+    IF NOT isCpUndefined THEN
+       ASSIGN user_env[1] = user_longchar
+              user_longchar ="".
 
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid = drec_db
@@ -1251,12 +1271,14 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
       base        = user_env[1].
   END.
   ELSE DO:
-      /* see if we can put user_longchar into user_env[1] */
-      ASSIGN user_env[1] = user_longchar NO-ERROR.
-      IF NOT ERROR-STATUS:ERROR THEN
-         ASSIGN user_longchar = "".
-      ELSE
-         ASSIGN user_env[1] = "".
+      IF NOT isCpUndefined THEN DO:
+          /* see if we can put user_longchar into user_env[1] */
+          ASSIGN user_env[1] = user_longchar NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR THEN
+             ASSIGN user_longchar = "".
+          ELSE
+             ASSIGN user_env[1] = "".
+      END.
   END.
 
 END.

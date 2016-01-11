@@ -1646,7 +1646,7 @@ FUNCTION columnName RETURNS CHARACTER
   
   /* Ensure the reference is valid. ('rowobject,' needed to avoid db resolution)*/
   hColumn = {fnarg columnHandle "'RowObject.':U + phHandle:NAME"}.
-  IF VALID-HANDLE(hColumn) AND phHandle = hColumn THEN
+  IF VALID-HANDLE(hColumn) THEN
     /* if managed by SBO then SDO name is needed as qualifier externally.*/ 
     RETURN (IF lQueryContainer THEN cObjectName + '.':U ELSE '':U)
             + phHandle:NAME.
