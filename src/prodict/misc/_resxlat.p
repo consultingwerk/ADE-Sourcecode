@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2011 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -97,7 +97,7 @@ assign
                  + "IMAGE,IMMEDIATE,IN,INCREMENT,INDEX,INDEXED,"
                  + "INDEXPAGES,INITIAL,INSERT,INTEGER,INTERSEC,"
                  + "INTERSECT,INTO,IS,ISOLATION,KEY,KILL,LEVEL,LIKE,"
-                 + "LINENO,LIST,LOAD,LOCK,LONG,MAX,MAXEXTENTS,MIN,"
+                 + "LINENO,LIST,LOAD,LOCK,LONG,MAX,MAXEXTENTS,MERGE,MIN,"
                  + "MINUS,MIRROR,MIRROREXIT,MODE,MODIFY,MOVE"
                  + "NATIONAL,NEW,NOAUDIT,NOCOMPRESS,NOHOLDLOCK,"
                  + "NONCLUSTERED,NOSYSSORT,NOT,NOWAIT,NULL,NUMBER,"

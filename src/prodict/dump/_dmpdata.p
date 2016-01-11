@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007,2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -38,6 +38,7 @@ History:
     fernando    Mar 14, 2006  Handle case with too many tables selected - bug 20050930-006. 
     fernando    Jun 19, 2007  Support for large files
     fernando    Dec 12, 2007  Improved how we use user_env[4].
+    rkamboj 	11/11/2011 Fixed issue of dump data for Lob field. bug OE00214956.
 */
 /*h-*/
 
@@ -57,14 +58,15 @@ DEFINE VARIABLE lots        AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE mdy         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE msg         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE stamp       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE useix       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE tableexpression       AS CHARACTER NO-UNDO.
+define variable exceptfields as character no-undo.
 DEFINE VARIABLE yy          AS INTEGER   NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL   NO-UNDO init true.
 DEFINE VARIABLE CodeOut     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lobdir      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cTemp       AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cSlash      AS CHARACTER   NO-UNDO.
-
+ 
 DEFINE VARIABLE phdbname    AS CHARACTER   NO-UNDO.
 
 DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
@@ -76,6 +78,8 @@ DEFINE VARIABLE isCpUndefined AS LOGICAL  NO-UNDO.
 DEFINE VARIABLE cRecords  AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE dis_trig     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE old_dis_trig AS LOGICAL   NO-UNDO.
+
+define variable isSuperTenant as logical no-undo. 
 
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
@@ -96,6 +100,7 @@ IF SESSION:CPINTERNAL EQ "undefined":U THEN
 &ELSE 
   cSlash = "~\".
 &ENDIF
+ 
   
 IF NOT isCpUndefined THEN DO:
 
@@ -168,11 +173,6 @@ run adecomm/_setcurs.p ("WAIT").
 IF  user_env[5] = " "  
  OR user_env[5] = ?  THEN assign user_env[5] = "<internal defaults apply>".
 
-IF user_env[30] = "" OR user_env[30]= ? THEN
-    ASSIGN lobdir = "".
-ELSE
-    ASSIGN lobdir = user_env[30].
-
 /* Used in numformat output */
 CodeOut = IF user_env[5] = "<internal defaults apply>" THEN
              SESSION:CPINTERNAL
@@ -199,6 +199,28 @@ ELSE
 IF ENTRY(1, user_env[4]) = "y" OR ENTRY(1, user_env[4]) = "n" THEN
   ASSIGN old_dis_trig = YES.
 
+if int(dbversion("dictdb")) > 10 then
+do:
+   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   
+   /* if tenant was explicitly set by the tool then verify that it still matches
+      the effective tenant also set there.
+      The UI sets this and dump_d.p sets this when setEffectiveTenant is used 
+      It is allowed to set-effective-tenant before running dump_d though (user_env[32]).
+      */
+   if isSuperTenant
+   and user_env[32] <> ""
+   and user_env[32] <> get-effective-tenant-name("dictdb") then
+   do:
+      MESSAGE "Dump Aborted!" SKIP(1)
+       "The ABL get-effective-tenant-name returns" quoter(get-effective-tenant-name("dictdb")) 
+       "while the effective tenant that was last selected in the Data Administration dump dialog or utility is" quoter(user_env[32])
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      
+      RETURN.
+   end.
+end.
+ 
 DO ON STOP UNDO, LEAVE:
   /* if not the no-convert case, check utf-8 case */
   IF  user_env[5] NE "<internal defaults apply>" THEN DO:
@@ -225,30 +247,54 @@ DO ON STOP UNDO, LEAVE:
           END.
       END.
   END.
-
+  
   DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
 
     ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
-
+    
     IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
        FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
                   DICTDB._File._File-name = cTemp AND
                  (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
     ELSE
-      FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
+       FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
                   DICTDB._File._File-name = cTemp.
-                  
+            
     IF loop THEN .
     ELSE IF FRAME-LINE(dumpdata) = FRAME-DOWN(dumpdata) THEN
       UP FRAME-LINE(dumpdata) - 1 WITH FRAME dumpdata.
     ELSE
       DOWN 1 WITH FRAME dumpdata.
   
-    ASSIGN
-      fil  = ( IF lots
+    /* if super tenant dumps multiple tables the tenant dir is in user_env[33]
+       and tenant lob dir in user_env[34] */ 
+    if user_env[32] > "" 
+    and issupertenant 
+    and int(dbversion("dictdb")) > 10 
+    and dictdb._file._file-attributes[1] and lots then
+    do:  
+        
+        fil = (IF user_env[33] EQ "" OR user_env[33] EQ "." THEN ""
+               ELSE RIGHT-TRIM(user_env[33],cSlash) + cSlash) 
+            + ( IF DICTDB._File._Dump-name = ?
+                THEN DICTDB._File._File-name
+                ELSE DICTDB._File._Dump-name
+              ) + ".d".         
+        
+        IF user_env[34] = "" OR user_env[34]= ? THEN
+           ASSIGN lobdir = "".
+        ELSE
+           ASSIGN lobdir = user_env[34].
+        
+        
+    end.
+    else do:
+      ASSIGN
+ 
+         fil  = ( IF lots
                       /* Don't count on a slash being at the end of the 
                          directory.  Always trim it off and add one. */
-                 THEN (IF user_env[2] EQ "" OR 
+                  THEN (IF user_env[2] EQ "" OR 
                           user_env[2] EQ "." THEN ""
                        ELSE RIGHT-TRIM(user_env[2],cSlash) + cSlash) +
                       ( IF DICTDB._File._Dump-name = ?
@@ -256,10 +302,18 @@ DO ON STOP UNDO, LEAVE:
                           ELSE DICTDB._File._Dump-name
                       ) + ".d"
                  ELSE user_env[2]
-             )
-      loop = FALSE
-      recs = 0.
-  
+             ).
+      IF user_env[30] = "" OR user_env[30]= ? THEN
+         ASSIGN lobdir = "".
+      ELSE
+         ASSIGN lobdir = user_env[30].
+    
+    
+    end.        
+    assign
+         loop = FALSE
+         recs = 0.
+   
     DISPLAY DICTDB._File._File-name fil "Dumping" @ msg WITH FRAME dumpdata.
     COLOR DISPLAY MESSAGES DICTDB._File._File-name fil msg
       WITH FRAME dumpdata.
@@ -272,7 +326,8 @@ DO ON STOP UNDO, LEAVE:
             + STRING(DAY(  TODAY),"99"  ) + "-"
             + STRING(TIME,"HH:MM:SS")
       cerr  = TRUE
-      useix = " NO-LOCK".
+      exceptfields = ""
+      tableexpression = " NO-LOCK".
   
     IF DICTDB._File._Prime-Index <> ? AND user_dbtype = "PROGRESS" THEN DO:
       FIND DICTDB._Index WHERE RECID(DICTDB._Index) = DICTDB._File._Prime-Index.
@@ -285,10 +340,23 @@ DO ON STOP UNDO, LEAVE:
             "Cannot dump {&PRO_DISPLAY_NAME} data when all indexes for a table are inactive.".
           NEXT.
         END.
-        useix = "USE-INDEX " + DICTDB._Index._Index-name + useix.
+        tableexpression = "USE-INDEX " + DICTDB._Index._Index-name + tableexpression.
       END.
     END.
- 
+    if dictdb._file._file-name = "_user" then
+    do:
+      exceptfields = "EXCEPT _Tenantid".  
+    end.    
+    else if dictdb._file._file-name = "_sec-authentication-domain" then
+    do:
+      tableexpression = "WHERE DICTDB2._sec-authentication-domain._Domain-category = 0 " + tableexpression.
+      exceptfields = "EXCEPT _Domain-id".  
+    end.    
+    else if dictdb._file._file-name = "_sec-authentication-system" then
+    do:
+      tableexpression = "WHERE (DICTDB2._sec-authentication-system._domain-type begins '_') = false "  + tableexpression.
+    end.    
+    RUN CheckLobDirpath.
     DO ON ERROR UNDO,LEAVE:      /* code-page-stuf <hutegger> 94/02 */
       IF  user_env[3] = "" OR user_env[3] = "NO-MAP" THEN DO:
         IF  user_env[5] = "<internal defaults apply>" THEN DO:
@@ -351,9 +419,12 @@ DO ON STOP UNDO, LEAVE:
         ELSE 
            ASSIGN dis_trig = "y".
     END.
-
+    
     RUN "prodict/misc/_rundump.i" (INPUT dis_trig)
-                VALUE(_File._File-name) VALUE(useix) VALUE(user_env[31]).
+                VALUE(_File._File-name) 
+                VALUE(tableexpression) 
+                VALUE(user_env[31])
+                VALUE(exceptfields).
                                        
     /* move on to the next one in the list */
     IF old_dis_trig OR (dis_trig = "n") THEN
@@ -459,4 +530,23 @@ IF NOT isCpUndefined THEN
 HIDE FRAME dumpdata NO-PAUSE.
 SESSION:IMMEDIATE-DISPLAY = no.
 RETURN.
-
+PROCEDURE CheckLobDirpath:
+  DEFINE VARIABLE WrkDir As character    no-undo.
+  DEFINE VARIABLE LocLobDir As character no-undo.
+  DEFINE VARIABLE LobDirN   As character no-undo.
+  DEFINE VARIABLE LocSlash  AS CHARACTER no-undo.
+  if lobdir <> "" then
+  do:
+     if index(lobdir,"/") <> 0 then LocSlash = "/".
+     else if index(lobdir,"~\") <> 0 then LocSlash = "~\".
+     else LocSlash = "".
+     Assign LocLobDir = lobdir
+            File-info:file-name = "." 
+            WrkDir = File-info:FULL-PATHNAME
+            LobDirN = wrkdir + if lobdir <> "" then LocSlash else "" 
+            LobDirN = LobDirN + LocLobDir.
+     FILE-INFO:FILE-NAME = LobDirN. 
+     IF SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D" Then 
+     Assign lobdir = LobDirN.
+  end.
+end.

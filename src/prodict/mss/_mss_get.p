@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008,2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006,2008,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -253,7 +253,7 @@ for each s_ttb_tbl: delete s_ttb_tbl. end.
 for each s_ttb_fld: delete s_ttb_fld. end.
 for each s_ttb_idx: delete s_ttb_idx. end.
 for each s_ttb_idf: delete s_ttb_idf. end.
-
+for each s_ttb_con: delete s_ttb_con. end.
 
 /*------------------------------------------------------------------*/
 /*                        get driver-bug-info                       */
@@ -581,7 +581,9 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
     IF DICTDBG.SQLProcs_Buffer.name BEGINS "_SEQP_" THEN
         NEXT.
-
+    
+    IF DICTDBG.SQLProcs_Buffer.name BEGINS "_Constraint_Info" THEN
+        NEXT.
     /* if from migration utility, don't need to pull system objects */
     IF fromProto AND UPPER(TRIM(DICTDBG.SQLProcs_Buffer.owner)) = "SYS" THEN
         NEXT.

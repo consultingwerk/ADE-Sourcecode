@@ -38,6 +38,8 @@ history:
     D. McMann 02/21/03  Replaced GATEWAYS with DATASERVERS
     kmcintos   04/03/05 Added "Security" (_sec) and "Auditing" (_aud)
                         file-types
+    kmayur     08/05/11 Added "Constraints for mss and oracle
+                        (/mss/key) and (/ora/key)                        
 */
 /*h-*/
 /*---------------------------------------------------------------------*/
@@ -232,6 +234,8 @@ DO WHILE user_path <> "":
     else if z BEGINS "_odb"  then z = "odb/"  + z.  /* ODBC */
     ELSE IF z BEGINS "_aud"  THEN z = "aud/"  + z.  /* Auditing */
     ELSE IF z BEGINS "_sec"  THEN z = "sec/"  + z.  /* Security */
+    ELSE IF z BEGINS "_msc"  THEN z = "mss/key/"  + z. /* MSS constraint */
+    ELSE IF z BEGINS "_orc"  THEN z = "ora/key/"  + z. /* ORA constraint */
     /*--------------------------------------------------------------------*
        This had to be changed to allow the "protoxxx" utilities to be 
        called from the DataServer menu (tsn 7/96).  Before, it was just

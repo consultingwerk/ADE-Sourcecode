@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,7 +23,8 @@
              fernando  03/20/09 Support for 2008 datetime types
              Nagaraju  09/18/09 Support for Computed columns
              Nagaraju  11/12/09 Remove numbers for radio-set options in MSSDS
-             sgarg     07/29/10 Disallow ? as case-insesitive entry (OE00198732)
+             sgarg     07/12/10 Disallow ? as case-insesitive entry (OE00198732)
+             kmayur    06/21/11 screen chnages for constraint migration - OE00195067
 */            
 
 
@@ -38,6 +39,7 @@ DEFINE VARIABLE batch_mode    AS LOGICAL INITIAL NO       NO-UNDO.
 DEFINE VARIABLE old-dictdb    AS CHARACTER                NO-UNDO.  
 DEFINE VARIABLE output_file   AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE tmp_str       AS CHARACTER                NO-UNDO.
+DEFINE VARIABLE tmp_str1      AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE run_time      AS INTEGER                  NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER                  NO-UNDO.
 DEFINE VARIABLE err-rtn       AS LOGICAL INITIAL FALSE    NO-UNDO.
@@ -50,7 +52,6 @@ DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE cRecid        AS CHARACTER INITIAL "For Create RECID use:"
                                            FORMAT "x(22)" NO-UNDO.
-DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -74,32 +75,15 @@ FORM
         LABEL "User's Password" colon 36 SKIP({&VM_WID})
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
      LABEL "Connect Parameters" colon 36 SKIP({&VM_WID})
-      long-length LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WIDG})
-  SPACE (2) mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
-     LABEL "Codepage" SPACE(2)  SPACE(2)
+      long-length LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WID})
+  mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
+     LABEL "Codepage"  COLON 36 SKIP({&VM_WID}) 
   mss_collname FORMAT "x(32)"  view-as fill-in size 15 by 1
-     LABEL "Collation"   SPACE(2) mss_incasesen  LABEL "Insensitive"  
-    SKIP({&VM_WIDG}) 
-  SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field"   
-  loadsql   view-as toggle-box label "Load SQL" AT 34
-  movedata  view-as toggle-box label "Move Data" AT 55 SKIP({&VM_WID})
-  SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"
-  dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 34 
-  unicodeTypes view-as toggle-box label "Use Unicode Types" AT 55 SKIP({&VM_WID})
-  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand Width (utf-8)" 
-  newseq   view-as toggle-box label "Use Revised Sequence Generator" AT 34 SKIP({&VM_WID})
-  SPACE(2) mapMSSDatetime VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type" SKIP({&VM_WID})
-  cFormat VIEW-AS TEXT NO-LABEL AT 4
-  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "ABL Format", 2
-                             HORIZONTAL NO-LABEL 
-  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 53 
-    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG}) 
-    &ELSE SKIP({&VM_WID}) &ENDIF
-  cRecid VIEW-AS TEXT NO-LABEL AT 4
-  iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
-                                             "Computed column", 2
-                             HORIZONTAL NO-LABEL SKIP({&VM_WID})
+  LABEL "Collation"  COLON 36 SKIP({&VM_WID})  
+  mss_incasesen  LABEL "Insensitive" COLON 36 SKIP({&VM_WID})
+  loadsql   view-as toggle-box label "Load SQL" AT 5 SKIP({&VM_WID})
+  movedata  view-as toggle-box label "Move Data" AT 5 
+  s_btn_Advanced label "Advanced..." AT 50 SKIP({&VM_WID})
 
         {prodict/user/userbtns.i}
   WITH FRAME x ROW 1 CENTERED SIDE-labels OVERLAY
@@ -130,6 +114,20 @@ PROCEDURE cleanup:
   END.
 END PROCEDURE.
 
+PROCEDURE fill_long_length:
+
+ IF long-length = 8000 THEN
+     ASSIGN long-length:SCREEN-VALUE IN FRAME x = "8000"
+            mss_codepage = session:cpinternal
+            mss_codepage:SCREEN-VALUE IN FRAME x= session:cpinternal.
+            
+ ELSE
+     ASSIGN long-length:SCREEN-VALUE IN FRAME x = "4000"
+            mss_codepage = "utf-8"
+            mss_codepage:SCREEN-VALUE IN FRAME x = "utf-8".
+            
+END PROCEDURE.
+
 ON WINDOW-CLOSE of FRAME x
    APPLY "END-ERROR" to FRAME x.
    
@@ -143,25 +141,16 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
   END.   
 END. 
 
-ON VALUE-CHANGED OF iFmtOption IN FRAME x DO:
-  IF SELF:SCREEN-VALUE = "2" THEN
-    ASSIGN lExpand:SENSITIVE = TRUE
-           lExpand:CHECKED   = TRUE
-           lFormat           = FALSE.
-  ELSE ASSIGN lExpand:SENSITIVE = FALSE
-              lExpand:CHECKED   = FALSE
-              lFormat           = TRUE. 
-END.
-
 ON VALUE-CHANGED of mss_incasesen IN FRAME x DO:
-  IF SELF:screen-value = "no" THEN
+  IF SELF:screen-value = "no" THEN DO:
     ASSIGN  
-           shadowcol:sensitive in frame x = YES
-           s_res = shadowcol:MOVE-BEFORE-TAB-ITEM(dflt:HANDLE).
-  ELSE 
-     ASSIGN shadowcol:screen-value in frame x = "no"
-            shadowcol:SENSITIVE IN FRAME X = NO.  
-END. 
+           shdcol = TRUE.
+    END.       
+  ELSE DO:
+     ASSIGN 
+           shdcol =FALSE.
+  END.           
+END.
 
 ON ANY-PRINTABLE OF mss_incasesen IN FRAME x 
 DO:
@@ -174,41 +163,15 @@ DO:
 END.
 
 ON LEAVE OF long-length IN FRAME X DO:
-  IF unicodeTypes:SCREEN-VALUE = "no" AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
+   IF unicodeTypes = FALSE AND INTEGER(long-length:SCREEN-VALUE IN FRAME x) > 8000 THEN DO:  
     MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
-  ELSE IF unicodeTypes:SCREEN-VALUE = "yes" AND INTEGER(long-length:SCREEN-VALUE) > 4000 THEN DO:  
+  ELSE IF unicodeTypes = TRUE AND INTEGER(long-length:SCREEN-VALUE IN FRAME x) > 4000 THEN DO: 
     MESSAGE "The maximun length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
 
-END.
-
-ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
- IF SELF:screen-value = "no" THEN
-     ASSIGN long-length:SCREEN-VALUE = "8000"
-            mss_codepage = session:cpinternal
-            mss_codepage:SCREEN-VALUE = session:cpinternal
-            lUniExpand:SCREEN-VALUE = "no"
-            lUniExpand:SENSITIVE = NO.
- ELSE
-     ASSIGN long-length:SCREEN-VALUE = "4000"
-            mss_codepage = "utf-8"
-            mss_codepage:SCREEN-VALUE = "utf-8"
-            lUniExpand:SENSITIVE = YES
-            s_res = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
-END.
-
-
-/* Initialize RECID logic */
-ON VALUE-CHANGED OF pcompatible IN FRAME x DO:
- IF SELF:screen-value = "no" THEN
-     ASSIGN iRecidOption:SCREEN-VALUE in frame x = "1"
-            iRecidOption:SENSITIVE in frame x = FALSE.
- ELSE
-     ASSIGN iRecidOption:SCREEN-VALUE in frame x = "1"
-            iRecidOption:SENSITIVE in frame x = TRUE.
 END.
 
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
@@ -281,30 +244,14 @@ ELSE
 IF NOT mss_incasesen AND OS-GETENV("SHADOWCOL") <> ? THEN DO:
   ASSIGN tmp_str  = OS-GETENV("SHADOWCOL").
   IF tmp_str BEGINS "Y" then 
-     shadowcol = TRUE.
+    ASSIGN shadowcol = TRUE
+           shdcol = TRUE.
   ELSE 
-     shadowcol = FALSE.
+   ASSIGN  shadowcol = FALSE
+           shdcol = FALSE.
 END. 
 ELSE
   ASSIGN shadowcol = FALSE.
-
-IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
-  ASSIGN tmp_str  = OS-GETENV("CRTDEFAULT").
-  IF tmp_str BEGINS "Y" then
-     dflt = TRUE.
-  ELSE
-     dflt = FALSE.
-END. 
-ELSE 
-  ASSIGN dflt = FALSE.
-  
-tmp_str = OS-GETENV("MSSREVSEQGEN").
-IF tmp_str <> ? AND tmp_str BEGINS "Y" THEN
-   newseq = TRUE.
-
-tmp_str = OS-GETENV("MAPMSSDATETIME").
-IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
-   mapMSSDatetime = FALSE.
 
 IF OS-GETENV("VARLENGTH") <> ? THEN
   long-length = integer(OS-GETENV("VARLENGTH")).
@@ -315,21 +262,6 @@ IF OS-GETENV("MOVEDATA")    <> ? THEN
   tmp_str      = OS-GETENV("MOVEDATA").
 IF tmp_str BEGINS "Y" THEN movedata = TRUE.
 
-IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
-   tmp_str      = OS-GETENV("COMPATIBLE").
-   IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:
-       pcompatible = TRUE.
-       iRecidOption = 1. 
-   END.
-   ELSE IF tmp_str = "2"  THEN DO:
-       pcompatible = TRUE.
-       iRecidOption = 2. 
-   END.
-   ELSE 
-       pcompatible = FALSE.
-END. 
-
-
 IF OS-GETENV("LOADSQL") <> ? THEN DO:
   tmp_str      = OS-GETENV("LOADSQL").
   IF tmp_str BEGINS "Y" then loadsql = TRUE.
@@ -337,30 +269,6 @@ IF OS-GETENV("LOADSQL") <> ? THEN DO:
 END. 
 ELSE 
   loadsql = TRUE.
-
-/* Initialize width choice */
-IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
-  tmp_str = OS-GETENV("SQLWIDTH").
-  IF tmp_str BEGINS "Y" THEN 
-    iFmtOption = 1. 
-  ELSE 
-    iFmtOption = 2.
-END. 
-ELSE 
-  iFmtOption = 2.
-
-IF OS-GETENV("EXPANDX8") <> ? THEN DO:
-  ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
-  IF tmp_str BEGINS "Y" THEN 
-    ASSIGN lExpand = TRUE
-           lFormat = FALSE.
-  ELSE 
-    ASSIGN lExpand = FALSE
-           lFormat = TRUE.
-END. 
-ELSE
-  ASSIGN lExpand = TRUE
-         lFormat = FALSE.
 
 IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
 
@@ -378,9 +286,153 @@ IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
       IF tmp_str BEGINS "Y" THEN
           lUniExpand = YES.
   END.
+END.  
+ASSIGN  descidx = TRUE.
+
+
+
+
+IF OS-GETENV("MIGRATECONSTR")   <> ? 
+  THEN DO:
+   tmp_str = OS-GETENV("MIGRATECONSTR").
+   IF tmp_str BEGINS "y" 
+     THEN migConstraint = yes.
+     ELSE migConstraint = no.
+  END.
+  ELSE migConstraint = yes.
+
+IF OS-GETENV("UNIQUECONSTR")   <> ?
+ THEN DO:
+  tmp_str      = OS-GETENV("UNIQUECONSTR").
+  IF tmp_str BEGINS "y" 
+    THEN choiceUniquness = "2".
+    ELSE choiceUniquness = "1".
+ END.   
+    ELSE  choiceUniquness = "1".
+    
+IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("CRTDEFAULT").
+  IF tmp_str BEGINS "Y" then
+     dflt = TRUE.
+  ELSE
+     dflt = FALSE.
+END. 
+ELSE 
+  ASSIGN dflt = FALSE.
+
+IF OS-GETENV("DFLTCONSTR") <> ? AND dflt
+  THEN DO:
+  tmp_str      = OS-GETENV("DFLTCONSTR").
+  IF tmp_str BEGINS "y"
+  THEN choiceDefault = "2".
+    ELSE choiceDefault = "1".
+ END.   
+  ELSE  choiceDefault = "1".
+    
+tmp_str = OS-GETENV("MSSREVSEQGEN").
+IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
+   newseq = FALSE.
+
+tmp_str = OS-GETENV("MAPMSSDATETIME").
+IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
+   mapMSSDatetime = FALSE.
+
+IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
+  tmp_str = OS-GETENV("SQLWIDTH").
+  IF tmp_str BEGINS "Y" THEN 
+    iFmtOption = 1. 
+  ELSE 
+    iFmtOption = 2.
+END. 
+ELSE 
+  iFmtOption = 2.
+  
+IF OS-GETENV("EXPANDX8") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
+  IF tmp_str BEGINS "Y" THEN 
+    ASSIGN lExpand = TRUE
+           lFormat = FALSE.
+  ELSE 
+    ASSIGN lExpand = FALSE
+           lFormat = TRUE.
+END. 
+ELSE
+  ASSIGN lExpand = TRUE
+         lFormat = FALSE.  
+
+IF OS-GETENV("MAPOEPRIMARY") <> ? THEN DO:       
+  ASSIGN tmp_str  = OS-GETENV("MAPOEPRIMARY").
+  IF tmp_str BEGINS "Y" THEN 
+     ASSIGN  tryPimaryForRowid = TRUE.
+  ELSE 
+     ASSIGN  tryPimaryForRowid = FALSE. 
 END.
 
-ASSIGN  descidx = TRUE.
+IF OS-GETENV("EXPLICITCLUSTERED") <> ? THEN DO:       
+  ASSIGN tmp_str  = OS-GETENV("EXPLICITCLUSTERED").
+  IF tmp_str BEGINS "Y" THEN 
+     ASSIGN  mkClusteredExplict = TRUE.
+  ELSE 
+     ASSIGN  mkClusteredExplict = FALSE. 
+END.
+IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
+   tmp_str      = OS-GETENV("COMPATIBLE").
+   IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:
+       iRecidOption = 1. 
+   END.
+   ELSE IF tmp_str = "2"  THEN DO:
+       iRecidOption = 2. 
+   END.
+   
+   IF ((tmp_str = "1") OR (tmp_str BEGINS "Y") OR (tmp_str = "2")) THEN DO:      
+     selBestRowidIdx = FALSE.
+     IF OS-GETENV("GENROWID") <> ?  THEN DO:
+        tmp_str1      = OS-GETENV("GENROWID").
+        IF ((tmp_str1 = "1") OR (tmp_str1 BEGINS "Y")) THEN DO:
+            ForRow = TRUE.
+            choiceRowid = 1. 
+        END.
+        ELSE IF tmp_str1 = "2"  THEN DO:
+            ForRow = TRUE.
+            choiceRowid = 2. 
+        END.
+     END.
+     ELSE IF OS-GETENV("GENUNIQROWID") <> ? THEN DO:       
+        ASSIGN tmp_str1  = OS-GETENV("GENUNIQROWID").
+        IF tmp_str1 BEGINS "Y" THEN DO: 
+             forRowidUniq = TRUE.
+             ForRow = FALSE.
+        END.     
+        ELSE 
+             forRowidUniq = FALSE. 
+     END.
+     ELSE DO:
+             ForRow = TRUE.
+             choiceRowid = 1.      
+     END.        
+   END.
+   ELSE DO:
+         pcompatible = FALSE.
+         ForRow = FALSE.
+         forRowidUniq = FALSE.
+         selBestRowidIdx = TRUE.
+         choiceSchema = 1.
+   END.
+END. 
+
+IF OS-GETENV("GETBESTROWID") <> ?  THEN DO:
+   tmp_str      = OS-GETENV("GETBESTROWID").
+   IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:
+       selBestRowidIdx = TRUE.
+       choiceSchema = 1. 
+   END.
+   ELSE IF tmp_str = "2"  THEN DO:
+       selBestRowidIdx = TRUE.
+       choiceSchema = 2. 
+   END.
+   ELSE 
+       selBestRowidIdx = FALSE.
+END.
 
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" THEN
   assign pro_conparms = "<current working database>".
@@ -389,6 +441,12 @@ IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
     ASSIGN mvdta = FALSE.
 ELSE
     ASSIGN mvdta = TRUE.
+
+ON CHOOSE OF s_btn_Advanced in frame x
+DO:
+  run prodict/mss/protomss1.p. 
+  RUN fill_long_length.
+END. 
 
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
@@ -439,9 +497,9 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
-     lUniExpand:SENSITIVE = NO.
+  /*   lUniExpand:SENSITIVE = NO.
 
-     DISPLAY cFormat lExpand cRecid WITH FRAME X.
+     DISPLAY cFormat lExpand cRecid WITH FRAME X. */
      UPDATE pro_dbname
         pro_conparms
         osh_dbname
@@ -454,40 +512,17 @@ IF NOT batch_mode THEN
         mss_codepage
         mss_collname
         mss_incasesen
-        pcompatible
         loadsql
         movedata WHEN mvdta = TRUE
-        shadowcol WHEN mss_incasesen = FALSE      
-        dflt
-        unicodeTypes
-        lUniExpand WHEN unicodeTypes
-        newseq
-        mapMSSDatetime
-        iFmtOption
-        lExpand WHEN iFmtOption = 2
-        iRecidOption
+        s_btn_Advanced
         btn_OK btn_Cancel 
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
         &ENDIF
         WITH FRAME x.     
 
-    IF iFmtOption = 1 THEN
-      lFormat = ?.
-    ELSE 
-      lFormat = (NOT lExpand).
-
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
-
-    IF shadowcol:SCREEN-VALUE = "yes" THEN
-      ASSIGN shadowcol = TRUE.
-
-    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
-       ASSIGN unicodeTypes = YES.
-
-    IF lUniExpand:SCREEN-VALUE ="yes" THEN
-       ASSIGN lUniExpand = YES.
 
     IF loadsql THEN DO:
       IF Osh_dbname = "" OR osh_dbname = ? THEN DO:

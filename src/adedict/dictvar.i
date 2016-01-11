@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008-2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -185,7 +185,7 @@ Define {1} var drec_db     as recid    NO-UNDO.
       user_env[16] - the gateway type family - to indicate what data types
       	       	     can be modified to what other data types.
 */
-Define {1} var user_env        as char  extent 35 NO-UNDO.
+Define {1} var user_env        as char  extent 41 NO-UNDO.
 
 /* for bug fix 20050930-006 */
 DEFINE {1} VARIABLE user_longchar         AS LONGCHAR NO-UNDO.

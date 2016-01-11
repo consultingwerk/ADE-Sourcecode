@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -79,21 +79,21 @@ CASE p_Obj:
 
    when {&OBJ_TBL} then
    do:
-      find _File WHERE _File._File-name = "_File"
-                   AND _File._Owner = "PUB" NO-LOCK.
-      if NOT can-do(_File._Can-delete, USERID("DICTDB")) then
+      find dictdb._File WHERE dictdb._File._File-name = "_File"
+                          AND dictdb._File._Owner = "PUB" NO-LOCK.
+      if NOT can-do(dictdb._File._Can-delete, USERID("DICTDB")) then
       do:
       	 message s_NoPrivMsg "delete table definitions."
       	    view-as ALERT-BOX ERROR buttons OK.
       	 return.
       end.
    
-      find _File where RECID(_File) = s_TblRecId.
+      find dictdb._File where RECID(dictdb._File) = s_TblRecId.
     
       /* Do some more checking to see if this file is deletable */
-      if can-find (FIRST _View-ref
-      	       	   where _View-ref._Ref-Table = _File._File-Name)
-	 OR _File._Frozen then
+      if can-find (FIRST dictdb._View-ref
+      	       	   where dictdb._View-ref._Ref-Table = dictdb._File._File-Name)
+	  OR dictdb._File._Frozen then
       do:
 	 message
 	    "Frozen tables and tables participating in views cannot be deleted."
@@ -101,7 +101,7 @@ CASE p_Obj:
 	 return.
       end.   
    
-      if _File._Db-lang >= {&TBLTYP_SQL} then
+      if dictdb._File._Db-lang >= {&TBLTYP_SQL} then
       do:
 	 message "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use DROP TABLE."
       	       	  view-as ALERT-BOX ERROR buttons OK.
@@ -111,13 +111,13 @@ CASE p_Obj:
       /* In Progress, we need an active primary index to delete a file. */
       if {adedict/ispro.i} then
       do:
-	 find _Index where RECID(_Index) = _File._Prime-Index NO-ERROR.
-	 if AVAILABLE _Index AND NOT _Index._Active then
-	 do:
-	    message "Tables without an active primary index cannot be deleted."
-      	       	     view-as ALERT-BOX ERROR buttons OK.
-	    return.
-	 end.
+    	 find dictdb._Index where RECID(dictdb._Index) = dictdb._File._Prime-Index NO-ERROR.
+    	 if AVAILABLE dictdb._Index AND NOT dictdb._Index._Active then
+    	 do:
+    	    message "Tables without an active primary index cannot be deleted."
+          	       	     view-as ALERT-BOX ERROR buttons OK.
+    	    return.
+    	 end.
       end.
       
       do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
@@ -129,9 +129,9 @@ CASE p_Obj:
 
       	 if confirmed then
       	 do:
-	    /* delete tbl, it's indexes, fields and triggers */
+	       /* delete tbl, it's indexes, fields and triggers */
       	    run adecomm/_setcurs.p ("WAIT").
-	    {adecomm/deltable.i}
+	        {adecomm/deltable.i}
 
       	    run CleanupDisplay (INPUT s_lst_Tbls:HANDLE in frame browse,
       	       	     	        INPUT s_CurrTbl,
@@ -153,9 +153,9 @@ CASE p_Obj:
       	 return.
       end.
 
-      find _File WHERE _File._File-name = "_Sequence"
-                   AND _File._Owner = "PUB" NO-LOCK.
-      if NOT can-do(_File._Can-delete, USERID("DICTDB")) then
+      find dictdb._File WHERE dictdb._File._File-name = "_Sequence"
+                          AND dictdb._File._Owner = "PUB" NO-LOCK.
+      if NOT can-do(dictdb._File._Can-delete, USERID("DICTDB")) then
       do:
       	 message s_NoPrivMsg "delete sequence definitions."
       	    view-as ALERT-BOX ERROR buttons Ok.
@@ -172,9 +172,9 @@ CASE p_Obj:
       	 if confirmed then
       	 do:
       	    run adecomm/_setcurs.p ("WAIT").
-      	    find _Sequence where _Sequence._Db-recid = s_DbRecId
-                             AND _Sequence._Seq-Name = s_CurrSeq.
-      	    delete _Sequence.
+      	    find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
+                                    AND dictdb._Sequence._Seq-Name = s_CurrSeq.
+      	    delete dictdb._Sequence.
 
       	    run CleanupDisplay (INPUT s_lst_Seqs:HANDLE in frame browse,
       	       	     	        INPUT s_CurrSeq,
@@ -187,23 +187,23 @@ CASE p_Obj:
 
    when {&OBJ_FLD} then
    do:
-      find _File WHERE _File._File-name = "_Field"
-                   AND _File._Owner = "PUB" NO-LOCK.
-      if NOT can-do(_File._Can-delete, USERID("DICTDB")) then
+      find dictdb._File WHERE dictdb._File._File-name = "_Field"
+                          AND dictdb._File._Owner = "PUB" NO-LOCK.
+      if NOT can-do(dictdb._File._Can-delete, USERID("DICTDB")) then
       do:
       	 message s_NoPrivMsg "delete field definitions."
       	    view-as ALERT-BOX ERROR buttons Ok.
       	 return.
       end.
    
-      find _File where RECID(_File) = s_TblRecId.
-      if _File._Db-lang >= {&TBLTYP_SQL} then
+      find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+      if dictdb._File._Db-lang >= {&TBLTYP_SQL} then
       do:
-	 message "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/DROP COLUMN."
-      	       	  view-as ALERT-BOX ERROR buttons OK.
-	 return.
+    	 message "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/DROP COLUMN."
+          	       	  view-as ALERT-BOX ERROR buttons OK.
+    	 return.
       end.
-      if _File._Frozen then
+      if dictdb._File._Frozen then
       do:
       	 message "This field belongs to a frozen table." SKIP
       	       	 "It cannot be deleted"
@@ -211,22 +211,22 @@ CASE p_Obj:
       	 return.
       end.
       
-      find _Field of _File where _Field._Field-Name = s_CurrFld.
+      find dictdb._Field of dictdb._File where dictdb._Field._Field-Name = s_CurrFld.
    
       /* Determine if this field participates in an index or view definition. */
-      if can-find (FIRST _Index-field OF _Field) then
+      if can-find (FIRST dictdb._Index-field OF dictdb._Field) then
       do:
-	 message "This field is used in an Index - cannot delete."
+	      message "This field is used in an Index - cannot delete."
       	       	  view-as ALERT-BOX ERROR buttons OK.
-	 return.
+	      return.
       end.
-      if can-find (FIRST _View-ref where
-		     _View-ref._Ref-Table = s_CurrTbl AND
-		     _View-ref._Base-Col = _Field._Field-name) then
+      if can-find (FIRST dictdb._View-ref 
+                   where dictdb._View-ref._Ref-Table = s_CurrTbl 
+                     and dictdb._View-ref._Base-Col = dictdb._Field._Field-name) then
       do:
-	 message "This field is used in a View - cannot delete."
+	      message "This field is used in a View - cannot delete."
       	       	  view-as ALERT-BOX ERROR buttons OK.
-	 return.
+	      return.
       end.
    
       do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
@@ -240,10 +240,18 @@ CASE p_Obj:
       	 do:
 	    /* Delete associated triggers, then the field record. */
       	    run adecomm/_setcurs.p ("WAIT").
-	    for each _Field-trig of _Field:
-	       delete _Field-trig.
-	    end.
-	    delete _Field.
+    	 /* delete the associated constraints */
+    	    
+    	    for each dictdb._Constraint where dictdb._Constraint._Field-Recid = integer(recid(dictdb._Field)):
+    	       for each dictdb._Constraint-Keys WHERE recid(dictdb._Constraint) = dictdb._Constraint-Keys._con-recid:
+    	           delete dictdb._Constraint-Keys.
+    	       end.
+    	       delete dictdb._Constraint.
+    	    end.    
+    	    for each dictdb._Field-trig of dictdb._Field:
+    	       delete dictdb._Field-trig.
+    	    end.
+    	    delete _Field.
 
       	    run CleanupDisplay (INPUT s_lst_Flds:HANDLE in frame browse,
       	       	     	        INPUT s_CurrFld,
@@ -265,36 +273,36 @@ CASE p_Obj:
       	 return.
       end.
 
-      find _File WHERE _File._File-name = "_Index"
-                   AND _File._Owner = "PUB" NO-LOCK.
-      if NOT can-do(_File._Can-delete, USERID("DICTDB")) then
+      find dictdb._File WHERE dictdb._File._File-name = "_Index"
+                          AND dictdb._File._Owner = "PUB" NO-LOCK.
+      if NOT can-do(dictdb._File._Can-delete, USERID("DICTDB")) then
       do:
-      	 message s_NoPrivMsg "delete index definitions."
-      	    view-as ALERT-BOX ERROR buttons Ok.
-      	 return.
+          message s_NoPrivMsg "delete index definitions."
+      	      view-as ALERT-BOX ERROR buttons Ok.
+      	  return.
       end.
    
-      find _File where RECID(_File) = s_TblRecId.
-      if _File._Db-lang >= {&TBLTYP_SQL} then
+      find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+      if dictdb._File._Db-lang >= {&TBLTYP_SQL} then
       do:
-	 message "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use the DROP INDEX statement."
-      	       	  view-as ALERT-BOX ERROR buttons OK.
-	 return.
+	     message "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use the DROP INDEX statement."
+      	     view-as ALERT-BOX ERROR buttons OK.
+	     return.
       end.
-      if _File._Frozen then
+      if dictdb._File._Frozen then
       do:
-      	 message "This index belongs to a frozen table." SKIP
+      	  message "This index belongs to a frozen table." SKIP
       	       	 "It cannot be deleted"
       	       	  view-as ALERT-BOX ERROR buttons OK.
-      	 return.
+      	  return.
       end.
    
-      find _Index of _File where _Index._Index-Name = s_CurrIdx.
-      if _File._Prime-Index = RECID(_Index) then
+      find dictdb._Index of dictdb._File where dictdb._Index._Index-Name = s_CurrIdx.
+      if dictdb._File._Prime-Index = RECID(dictdb._Index) then
       do:
-	 message "You cannot delete the primary index of a table."
+	      message "You cannot delete the primary index of a table."
       	       	  view-as ALERT-BOX ERROR buttons OK.
-	 return.
+	      return.
       end.
    
       do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
@@ -306,19 +314,25 @@ CASE p_Obj:
 
       	 if confirmed then
       	 do:
-	    /* First delete the index fields, then the _Index record itself. */
-      	    run adecomm/_setcurs.p ("WAIT").
-	    for each _Index-Field of _Index:
-	       delete _Index-Field.
-	    end.
-	    delete _Index.
+	         /* First delete the index fields, then the _Index record itself. */
+      	     run adecomm/_setcurs.p ("WAIT").
+             for each dictdb._Constraint where dictdb._Constraint._Index-Recid = integer(recid(dictdb._Index)):
+                for each dictdb._Constraint-Keys WHERE recid(dictdb._Constraint) = dictdb._Constraint-Keys._con-recid:
+    	           delete dictdb._Constraint-Keys.
+    	        end.
+    	        delete dictdb._Constraint.
+    	     end.    
+	         for each dictdb._Index-Field of dictdb._Index:
+	             delete dictdb._Index-Field.
+	         end.
+	         delete dictdb._Index.
 
       	    run CleanupDisplay (INPUT s_lst_Idxs:HANDLE in frame browse,
       	       	     	        INPUT s_CurrIdx,
       	       	     	        INPUT {&OBJ_IDX}).
       	    obj_str = "Index".
       	    current-window = s_win_Browse.  /* cleanup may have changed it */
-	 end.
+	     end.
       end.
    end.
 

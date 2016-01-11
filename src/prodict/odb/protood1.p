@@ -345,6 +345,9 @@ ELSE
 IF (odb_type = "DB2/400" and pcompatible) THEN 
      ASSIGN user_env[27] = user_env[27] + "," + STRING(iRidOption).
 
+ASSIGN user_env[36] = "n,n,n,n,n"
+       user_env[38] = "1"
+       user_env[39] = "1".
 IF movedata THEN
   ASSIGN stages[odb_dump_data] = TRUE
          stages[odb_load_data] = TRUE.

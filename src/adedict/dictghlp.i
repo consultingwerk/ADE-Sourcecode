@@ -158,9 +158,8 @@
 /* Specific Fields dialog box */
 &Global-define MSS_Specific_Flds_Dlg_Box 20 
 
-/* Blob Fields dialog box */
-&Global-define Blob_Field_Att_Dlg_Box 19 
+/* Select Area dialog box */
+&Global-define Select_Area_Dialog_Box 19 
 
-/* Clob Fields dialog box */
-&Global-define Clob_Field_Att_Dlg_Box 26 
-
+/* Confirm Multi-tenancy dialog box */
+&Global-define Confirm_Multi_tenancy 26 

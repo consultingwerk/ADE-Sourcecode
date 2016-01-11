@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -37,8 +37,14 @@ DEFINE VARIABLE user_env_save22 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save25 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save28 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE user_env_save29 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save5 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save26 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save31 AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE connection_string as CHARACTER NO-UNDO.
+
+DEFINE STREAM code.
+OUTPUT STREAM code TO VALUE("enable.sql") NO-ECHO NO-MAP.
 
 PROCEDURE connect-schdb:
 
@@ -99,8 +105,11 @@ END.
 ASSIGN
     user_env_save22 = user_env[22]
     user_env_save28 = user_env[28]
-    user_env_save29 = user_env[29]. 
-
+    user_env_save29 = user_env[29]
+    user_env_save5  = user_env[5]
+    user_env_save26 = user_env[26]
+    user_env_save31 = user_env[31].
+        
 IF not stages[mss_create_objects] THEN RETURN.
 
 /* connect to MSS database ----------------------------------------------*/
@@ -152,7 +161,6 @@ END.
 stages_complete[mss_create_objects] = TRUE.
 IF not stages[mss_build_schema] THEN RETURN.
 
-
 IF SESSION:BATCH-MODE AND logfile_open THEN 
 
    PUT STREAM logfile UNFORMATTED
@@ -182,6 +190,12 @@ IF SESSION:BATCH-MODE AND logfile_open THEN
        "-- Importing Objects into the {&PRO_DISPLAY_NAME} Schema Holder" skip
        "-- -- " skip(2).
 
+
+/* 
+** Create a procedure for pulling constraints
+*/
+RUN prodict/mss/procbfrpul.p.
+
 /*
 ** Pull objects from sybase schema.
 */
@@ -191,7 +205,6 @@ RUN prodict/mss/_mss_pul.p.
 ** Create objects in the schema holder to match objects in sybase.
 */
 RUN prodict/gate/_gat_cro.p.
-
 
 stages_complete[mss_build_schema] = TRUE.
 
@@ -205,7 +218,18 @@ ASSIGN
     user_env[28]    = user_env_save28 
     user_env[29]    = user_env_save29
     user_env_save25 = user_env[25]
-    user_env[25]    = "**all**".
+    user_env[25]    = "**all**"
+    user_env[5]     = user_env_save5  
+    user_env[26]    = user_env_save26 
+    user_env[31]    = user_env_save31.
+    
+    
+IF movedata THEN DO:
+   FOR EACH s_ttb_tbl WHERE s_ttb_tbl.ds_type = "TABLE":
+        PUT STREAM code UNFORMATTED "ALTER TABLE " + s_ttb_tbl.ds_name + " CHECK CONSTRAINT ALL" SKIP. 
+        PUT STREAM code UNFORMATTED user_env[5] SKIP.
+   END.
+END.
 
 IF SESSION:BATCH-MODE and logfile_open THEN
     PUT STREAM logfile UNFORMATTED

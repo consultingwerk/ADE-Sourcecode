@@ -45,6 +45,7 @@
 {prodict/admnhlp.i}
 
 /* ***************************  Definitions  ************************** */
+CREATE WIDGET-POOL.
 
 IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
   MESSAGE "You do not have permission to run this tool!"
@@ -54,8 +55,6 @@ END.
 
 IF checkReadOnly("DICTDB","_Db-option") NE "" THEN
    RETURN "No Permission".
-
-CREATE WIDGET-POOL.
 
 /* Parameters Definitions ---                                           */
 
@@ -131,7 +130,7 @@ DEFINE VARIABLE tbAudInsrt AS LOGICAL INITIAL no
      &ELSE SIZE 44 BY .81 &ENDIF NO-UNDO.
                     
 DEFINE VARIABLE tbNoBlank AS LOGICAL INITIAL no 
-     LABEL "Disallow Blank UserId" 
+     LABEL "Disallow Blank UserId Connections" 
      VIEW-AS TOGGLE-BOX
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 41 BY 1
      &ELSE SIZE 41 BY .81 &ENDIF NO-UNDO.
@@ -149,7 +148,7 @@ DEFINE VARIABLE tbRuntime AS LOGICAL INITIAL no
      &ELSE SIZE 41 BY .81 &ENDIF NO-UNDO.
 
 DEFINE VARIABLE tbTrustDomain AS LOGICAL INITIAL no 
-     LABEL "Trust Application Domain Registry" 
+     LABEL "Use Application Domain Registry" 
      VIEW-AS TOGGLE-BOX
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 41 BY 1
      &ELSE SIZE 40.8 BY .81 &ENDIF NO-UNDO.

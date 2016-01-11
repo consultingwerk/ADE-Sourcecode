@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (C) 2006,2008-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2006,2008-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions               *
 * contributed by participants of Possenet.                                  *
 *****************************************************************************/
@@ -40,6 +40,8 @@ History:
     fernando   02/25/08 Added parameter for datetime
     rohit      04/30/08 Added new field gate-seqpre to gate-work
     knavneet   04/28/09 BLOB support for MSS (OE00178319)
+    sgarg      04/28/09 Added s_ttb_fld.ds_msc17. (OE00193877)
+    kmayur     06/21/11 Added s_ttb_con for constraint pull OE00195067    
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -77,7 +79,12 @@ DEFINE {&selVarType}_vrfy       AS logical   no-undo.
 DEFINE {&selVarType}_outf       AS logical   no-undo.
 DEFINE {&selVarType}_datetime   AS logical   no-undo.
 DEFINE {&selVarType}_lob        AS logical   no-undo.
+DEFINE {&selVarType}_clobtype   AS logical   no-undo initial TRUE.
+DEFINE {&selVarType}_blobtype   AS logical   no-undo initial TRUE.
+DEFINE {&selVarType}_primary    AS logical   no-undo.
+DEFINE {&selVarType}_best       AS integer   no-undo initial 1.
 DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
+DEFINE {&new} SHARED variable proc_obj	 as logical. /* OE00195067 */
 
 /* NOTES:
  * + if an object exists on the PROGRESS-Side but doesn't exist on the
@@ -216,6 +223,9 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
           field ds_radix         as integer   initial ?
                                               /*    misc1[4]    */
                                               /* ODB: radix     */
+          field ds_msc17         as integer   initial ?
+                                              /*    misc1[7]    */
+                                              /* ODB: "EXTATTR" or ?  */
           field ds_msc23         as character initial ?
                                               /*    misc2[3]    */
                                               /* ODB: "<name>" or ?  */
@@ -272,6 +282,8 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
                                               /*    misc2[1]    */
                                               /* ODB: "{a,u,?}" */
                                               /* ORA: "{a,u,?}" */
+          field ds_idx_typ       as integer   initial 0
+                                              /* 1 indicates Clustered idx */
           field hlp_dtype#       as integer   initial 0
           field hlp_fld#         as integer   initial 0
           field hlp_fstoff       as integer   initial ?
@@ -305,6 +317,24 @@ DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
                                     ttb_idx pro_order
           index ifld             is unique
                                     ttb_fld ttb_idx.
-          
+  /* OE00195067 BEGIN */
+
+  DEFINE {&new} shared TEMP-TABLE s_ttb_con
+
+          field tab_name AS CHAR
+          field col_name AS CHAR
+          field const_name AS CHAR
+          field cons_type AS CHAR
+          field expre AS CHAR
+          field par_key AS CHAR
+          field par_key_num AS INTEGER
+          field index_num AS INTEGER
+          field index_name AS CHAR
+          field par_tab AS CHAR.
+  
+  
+  /* OE00195067 END */
+  DEFINE {&new} shared TEMP-TABLE s_ttb_splfld        
+          field name AS CHAR.
   &ENDIF
  

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2010 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -167,10 +167,10 @@ DEFINE VARIABLE hAudit       AS HANDLE    NO-UNDO.
     /* loop through the db's connected */
     REPEAT iLoop = 1 TO NUM-DBS:
 
-        ASSIGN cDbName =LDBNAME(iLoop).
+        ASSIGN cDbName = LDBNAME(iLoop).
 
         /* check if the db is enabled for auditing */
-        IF AUDIT-ENABLED(cDbName) THEN DO:
+        IF AUDIT-ENABLED(cDbName) AND INTEGER(DBVERSION(cDbName)) > 10 THEN DO:
 
             /* create a buffer for the _aud-audit-policy so we can check
                the user's permissions

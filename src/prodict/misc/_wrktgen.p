@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All      *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -200,10 +200,60 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   rkumar   08/25/09   Fix RECID implementation issues (OE00189366)
   Nagaraju 09/22/09   Implement Computed column solution for MSS DS (OE00189563)
   fernando 02/11/10   Fix issue with sql generated for old sequence generator
+  sgarg    06/03/10   Support for CLOB for MSS (OE00193877)
+  kmayur   06/21/11   Support for migration of constraint - OE00195067
 */
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
+/* 195067 */
+DEFINE VARIABLE AllConsFields      AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE ClustCons          AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE AllForeignFields   AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE ConType            AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE ConName            AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE dfltconname        AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE AllCons            AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE DefCons            AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE CheckField         AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE uncons             AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE uniconname         AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE defaultfld         AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE uniqueindx         AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE DefC               AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE part_of_primary    AS LOGICAL     NO-UNDO.
+DEFINE VARIABLE max_con_length     AS INTEGER     NO-UNDO.
+DEFINE VARIABLE cnstrpt_name       AS CHARACTER   NO-UNDO.
+DEFINE BUFFER   buff-file for DICTDB._FILE.
+DEFINE BUFFER   buff-Index for DICTDB._INDEX.
+DEFINE STREAM   constlog.
+DEFINE VARIABLE migConstraint       AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mvdata              AS LOGICAL    NO-UNDO.
+
+DEFINE VARIABLE FieldList           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE userPKexist         AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE msstryp             AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mssclus_explct      AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mssselBestRowidIdx  AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE msschoiceSchema     AS INTEGER    NO-UNDO.
+DEFINE VARIABLE mssOptRowid         AS CHARACTER  NO-UNDO INITIAL "".
+DEFINE VARIABLE mandatory           AS LOGICAL    NO-UNDO INITIAL TRUE. 
+DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE uniqCompat          AS LOGICAL    NO-UNDO INITIAL TRUE. 
+DEFINE VARIABLE keyCreated          AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE uniqueness          AS CHARACTER  NO-UNDO INITIAL "".
+DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
+
+DEFINE VARIABLE n3                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE n4                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE n5                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ora_lang            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ora_lang1           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE nls_upp             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE nlsflag             AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE flag                AS LOGICAL    NO-UNDO INITIAL FALSE.
+
+/* 195067 end. */
 
 DEFINE VARIABLE a                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE c                   AS CHARACTER  NO-UNDO.
@@ -238,6 +288,8 @@ DEFINE VARIABLE db2type             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE idbtyp              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE afldn               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE pindex              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE pindex2             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE pclst_name          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE uc_col              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE uc_tmp              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE max_idx_len         AS INTEGER    NO-UNDO.
@@ -266,6 +318,7 @@ DEFINE VARIABLE trunc_name          AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE left_paren          AS INTEGER    NO-UNDO.
 DEFINE VARIABLE right_paren         AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lngth               AS INTEGER    NO-UNDO.
+DEFINE VARIABLE wdth                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE z                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE nbrchar             AS INTEGER    NO-UNDO.
 DEFINE VARIABLE slash               AS INTEGER    NO-UNDO.
@@ -287,12 +340,21 @@ DEFINE NEW SHARED VARIABLE crnt-vals AS INT64 EXTENT 2000 init 0 NO-UNDO.
 DEFINE TEMP-TABLE verify-name NO-UNDO
   FIELD new-name LIKE _Field._Field-name
   FIELD prog-name LIKE _Field._Field-name
+  FIELD rec-fld  AS   RECID 
   INDEX trun-name IS UNIQUE new-name
   INDEX prog-name IS UNIQUE prog-name.
+  
+DEFINE TEMP-TABLE verify-field NO-UNDO
+  FIELD new-name LIKE _Field._Field-name
+  FIELD prog-name LIKE _Field._Field-name
+  FIELD rec-fld  AS   RECID 
+  INDEX rec-fd IS UNIQUE rec-fld.
         
 DEFINE TEMP-TABLE verify-table NO-UNDO
   FIELD new-name LIKE _File._File-name
-  INDEX trun-name IS UNIQUE new-name.
+  FIELD rec-fld  AS   RECID 
+  INDEX trun-name IS UNIQUE new-name
+  INDEX rec_tab   IS UNIQUE rec-fld.
   
 DEFINE TEMP-TABLE verify-index NO-UNDO
   FIELD new-name LIKE _index._index-name
@@ -337,7 +399,14 @@ ASSIGN
   doseq  = (user_env[22] = "ORACLE" and user_env[25] BEGINS "y") OR
            (user_env[32] <> ?   and user_env[25] BEGINS "y")
   doseq  = doseq and user_env[1] = "ALL".
-
+  defaultfld = user_env[39].   /* default as fld attr  */
+  uniqueindx = user_env[38].
+  migConstraint = (ENTRY(1,user_env[36]) = "y").
+  mvdata        = (ENTRY(5,user_env[36]) = "y").
+  nls_upp = user_env[40].
+  ora_lang1 = user_env[41].
+  ora_lang = UPPER(ora_lang1).
+  
 IF user_env[33] = "y" THEN
   sqlwidth = TRUE. /* Use _Width field for size */
 ELSE IF user_env[33] = "?" THEN
@@ -451,6 +520,11 @@ IF user_env[28] <> ? THEN
 ELSE
   max_idx_len = 0.  /* Since a max length of 0 is silly, this implies no max */
 
+IF user_env[28] <> ? THEN
+  max_con_length = INTEGER(user_env[28]).
+ELSE
+  max_con_length = 0. 
+  
 IF user_env[29] <> ? THEN 
   max_id_length = INTEGER(user_env[29]).
 ELSE
@@ -469,7 +543,12 @@ IF INDEX(user_env[2],".", 1) > 0 THEN
 ELSE ASSIGN logfile_name  = user_env[2] + ".log"
             codefile_name = user_env[2] + ".sql".
 
-
+/* 195067 */
+  IF (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE")
+  THEN DO:
+    ASSIGN cnstrpt_name = "constraint.lg".
+    OUTPUT STREAM constlog TO VALUE(cnstrpt_name) UNBUFFERED APPEND NO-ECHO NO-MAP.
+  END.
 OUTPUT STREAM code    TO VALUE(codefile_name) NO-ECHO NO-MAP.
 
 /* 
@@ -503,7 +582,11 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop.
 
   /* Clear temp table for new file */                            
-  FOR EACH verify-name:
+  FOR EACH verify-name: 
+    CREATE verify-field.
+    ASSIGN verify-field.new-name  = verify-name.new-name
+           verify-field.prog-name = verify-name.prog-name
+           verify-field.rec-fld   = verify-name.rec-fld.
      DELETE verify-name.
   END. 
 
@@ -531,7 +614,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
    
    * Verify that no unsupport datatypes are present
  */
-    
+   
   ASSIGN column_count = 0
          col_long_count = 0.
 
@@ -557,7 +640,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF DICTDB._Field._Extent = 0 THEN 
           ASSIGN z = DICTDB._Field._Width.
         ELSE DO:
-          ASSIGN z = ((DICTDB._Field._Width - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
+          ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width 
+                            ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
+          ASSIGN z = (( wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
           /* OE00172253 - check if value is negative, then assign it the width value unless it's too
              big, in which case we assign the max value allowed for this type.
           */
@@ -613,6 +698,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                DICTDB._Field._Dtype EQ 40 /*datetime-tz*/ THEN 
           /*ok*/ .
       ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 18 /*BLOB*/ THEN
+          /*ok*/ .
+      ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 19 /*CLOB*/ THEN
           /*ok*/ .
       ELSE IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
         ASSIGN unsprtdt = TRUE.
@@ -736,7 +823,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     FIND verify-table WHERE verify-table.new-name = n1 NO-ERROR.
     IF NOT AVAILABLE verify-table THEN DO:
       CREATE verify-table.
-      ASSIGN verify-table.new-name = n1.
+      ASSIGN verify-table.new-name = n1
+             verify-table.rec-fld  = RECID (DICTDB._File).
       LEAVE _verify-table.
     END.
     ELSE DO:
@@ -746,7 +834,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF CAN-FIND(verify-table WHERE verify-table.new-name = n1) THEN NEXT.
         ELSE DO:
           CREATE verify-table.
-          ASSIGN verify-table.new-name = n1.
+          ASSIGN verify-table.new-name = n1
+                 verify-table.rec-fld  = RECID (DICTDB._File).
           LEAVE _verify-table.
         END.
       END.
@@ -812,7 +901,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
  
   PUT STREAM code UNFORMATTED comment_chars "CREATE TABLE " user_library dot.
   PUT STREAM code UNFORMATTED n1 " (" SKIP.
- 
+  
+  DefC = "".
   FOR EACH DICTDB._Field OF DICTDB._File BREAK BY DICTDB._Field._Order:
    
     IF DICTDB._Field._For-type = "TIME" THEN NEXT.
@@ -859,6 +949,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
               "         legal identifier length of " max_id_length "." skip.
              trunc_name = TRUE.
         end.
+        
         n2 = n2 + "," + idbtyp + "," + string (max_id_length).
         RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT n2).
     end.
@@ -877,7 +968,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       IF NOT AVAILABLE verify-name THEN DO:
         CREATE verify-name.
         ASSIGN verify-name.new-name = n2
-               verify-name.prog-name = DICTDB._Field._Field-name.
+               verify-name.prog-name = DICTDB._Field._Field-name
+               verify-name.rec-fld   = RECID (DICTDB._Field).
         LEAVE _verify-name.
       END.
       ELSE DO:
@@ -888,7 +980,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           ELSE DO:
             CREATE verify-name.
             ASSIGN verify-name.new-name = n2
-                   verify-name.prog-name = DICTDB._Field._Field-name.
+                   verify-name.prog-name = DICTDB._Field._Field-name
+                   verify-name.rec-fld   = RECID (DICTDB._Field).
             LEAVE _verify-name.
           END.
         END.
@@ -913,8 +1006,11 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF sqlwidth THEN DO:
           IF DICTDB._Field._Extent = 0 THEN 
             ASSIGN j = DICTDB._Field._Width.
-          ELSE
-            ASSIGN j = ((DICTDB._Field._Width - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
+          ELSE DO:
+            ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width
+                            ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
+            ASSIGN j = ((wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent).
+           END.
 
             /* OE00172253 - check if value is negative, then assign it the width value unless it's too
                big, in which case we assign the max value allowed for this type.
@@ -994,7 +1090,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                   ASSIGN j = DICTDB._Field._Width.
               END.              
               ELSE DO:              
-                ASSIGN j = ((DICTDB._Field._Width - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent). 
+                ASSIGN wdth = (IF DICTDB._Field._fld-res1[3] EQ ? THEN DICTDB._Field._Width
+                               ELSE MAXIMUM(DICTDB._Field._Fld-Misc3[1],DICTDB._Field._fld-res1[3])).
+
+                ASSIGN j = ((wdth - (DICTDB._Field._Extent * 2)) / DICTDB._Field._Extent). 
                 IF dbtyp = "MSSQLSRV7" AND j > 28 THEN 
                   ASSIGN j = 28.
                 ELSE IF dbtyp = "ORACLE" AND j > 38 THEN
@@ -1148,6 +1247,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
             PUT STREAM CODE UNFORMATTED
             comment_chars "  " n2 " varbinary(max)".
         END.
+        ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 19 /* CLOB */ THEN DO:
+            PUT STREAM CODE UNFORMATTED
+            comment_chars "  " n2  (IF user_env[18] = "nvarchar(max)" THEN " nvarchar(max)" ELSE " varchar(max)").
+        END.
         ELSE
            PUT STREAM CODE UNFORMATTED
                comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.       
@@ -1179,7 +1282,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         END.
       END.
 
-      IF DICTDB._Field._Data-type = "character" AND sdef AND 
+      IF DICTDB._Field._Data-type = "character" AND sdef AND defaultfld eq "1" AND
           (dbtyp = "ORACLE" OR dbtyp = "MSSQLSRV7") AND blankdefault AND
          (DICTDB._Field._Initial = ? OR Dictdb._field._Initial = " " OR DICTDB._Field._Initial = "?") THEN
             PUT STREAM code UNFORMATTED " DEFAULT ' ' ".
@@ -1240,13 +1343,95 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          END.
          IF DICTDB._Field._Data-type = "character" THEN DO:
            RUN "prodict/_dctquot.p" (_Initial,"'",OUTPUT c).        
-           IF c <> " "  AND c <> "0" THEN         
-              PUT STREAM code UNFORMATTED " DEFAULT " c.  
+       IF c <> " " AND defaultfld eq "1" AND c <> "0"
+          THEN DO:
+              IF (migConstraint AND dbtyp = "MSSQLSRV7") 
+              THEN DO:
+                   IF NOT CAN-FIND (DICTDB._constraint where DICTDB._constraint._file-recid = recid(DICTDB._File) AND DICTDB._Constraint._Con-Active = TRUE
+                     AND DICTDB._constraint._con-type = "D" AND DICTDB._constraint._Field-Recid = integer(RECID(DICTDB._Field))) THEN
+                   PUT STREAM code UNFORMATTED " DEFAULT " c.
+                   ELSE PUT STREAM constlog UNFORMATTED " FIELD " + n2 + " HAS CONSTRAINT; DEFAULT VALUE NOT ADDED "  SKIP. 
+              END.
+              ELSE PUT STREAM code UNFORMATTED " DEFAULT " c.
+           END.
          END.    
-         ELSE IF c <> " " AND CAN-DO("logical,date,datetime,datetime-tz",DICTDB._Field._Data-type) THEN
-              PUT STREAM code UNFORMATTED " DEFAULT " c. 
-         ELSE IF  c <> " " AND c <> ? THEN
-             PUT STREAM code UNFORMATTED " DEFAULT " c.    
+         ELSE IF c <> " " AND defaultfld eq "1" AND CAN-DO("logical,date,datetime,datetime-tz",DICTDB._Field._Data-type)
+         THEN DO:
+              IF (migConstraint AND dbtyp = "MSSQLSRV7") 
+              THEN DO:         
+                   IF NOT CAN-FIND (DICTDB._constraint where DICTDB._constraint._file-recid = recid(DICTDB._File) AND DICTDB._Constraint._Con-Active = TRUE
+                     AND DICTDB._constraint._con-type = "D" AND DICTDB._constraint._Field-Recid = integer(RECID(DICTDB._Field))) THEN         
+                   PUT STREAM code UNFORMATTED " DEFAULT " c.
+                   ELSE PUT STREAM constlog UNFORMATTED " FIELD " + n2 + " HAS CONSTRAINT; DEFAULT VALUE NOT ADDED "  SKIP. 
+              END.
+              ELSE PUT STREAM code UNFORMATTED " DEFAULT " c.                   
+         END.     
+         ELSE IF c <> " " AND defaultfld eq "1" AND c <> ? 
+         THEN DO:
+              IF (migConstraint AND dbtyp = "MSSQLSRV7") 
+              THEN DO:             
+                   IF NOT CAN-FIND (DICTDB._constraint where DICTDB._constraint._file-recid = recid(DICTDB._File) AND DICTDB._Constraint._Con-Active = TRUE
+                     AND DICTDB._constraint._con-type = "D" AND DICTDB._constraint._Field-Recid = integer(RECID(DICTDB._Field))) THEN         
+                   PUT STREAM code UNFORMATTED " DEFAULT " c. 
+                   ELSE PUT STREAM constlog UNFORMATTED " FIELD " + n2 + " HAS CONSTRAINT; DEFAULT VALUE NOT ADDED "  SKIP. 
+              END.
+              ELSE PUT STREAM code UNFORMATTED " DEFAULT " c.                      
+         END.
+      END.
+      IF sdef  AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )
+            AND c <> " " AND defaultfld eq "2" AND dbtyp = "MSSQLSRV7"
+      THEN DO:
+         IF NOT CAN-FIND (DICTDB._constraint where DICTDB._constraint._file-recid = recid(DICTDB._File) AND DICTDB._Constraint._Con-Active = TRUE
+                     AND DICTDB._constraint._con-type = "D" AND DICTDB._constraint._Field-Recid = integer(RECID(DICTDB._Field)))
+         THEN DO:
+            dfltconname = "DC_" + n1 + "_" + n2.
+
+            IF xlat THEN DO:
+               if max_con_length <> 0 and length(dfltconname) > max_con_length
+               then do:
+                    /*  _resxlat will truncate name  */
+                   put stream logfile unformatted
+                   "WARNING: Field name " dfltconname " is longer than the maximum " skip
+                   "         legal identifier length of " max_id_length "." skip.
+                   trunc_name = TRUE.
+               end.
+               dfltconname = dfltconname + "," + idbtyp + "," + string (max_con_length).
+               RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT dfltconname).
+            END.
+            ELSE if max_con_length <> 0 and  length(dfltconname) > max_con_length THEN
+             /*  need to truncate name  */
+               ASSIGN dfltconname = substring(dfltconname,1,max_con_length)
+               trunc_name = TRUE.
+  
+            _verify-con-name:
+            DO WHILE TRUE:
+                FIND verify-name WHERE verify-name.new-name = dfltconname NO-ERROR.
+                IF NOT AVAILABLE verify-name
+                THEN DO:
+                CREATE verify-name.
+                   ASSIGN verify-name.new-name = dfltconname.
+                   LEAVE _verify-con-name.
+                END.
+                ELSE DO:
+                DO a = 1 TO 999:
+                   ASSIGN dfltconname = SUBSTRING(dfltconname, 1, LENGTH(dfltconname) - LENGTH(STRING(a))) + STRING(a).
+                 IF CAN-FIND(verify-name WHERE verify-name.new-name = dfltconname) THEN NEXT.
+                 ELSE DO:
+                   CREATE verify-name.
+                   ASSIGN verify-name.new-name = dfltconname.
+                   LEAVE _verify-con-name.
+                 END.
+                END.
+             END.    
+            END.
+
+	        IF DefC <> "" then  DefC = DefC + ",~n" + comment_chars .
+            DefC = DefC +  "  CONSTRAINT  " +  dfltconname  + "  DEFAULT " +  c   
+		                + " FOR  " +   n2 + (IF e = 0 THEN "" ELSE unik + STRING(e)) . 
+            PUT STREAM constlog UNFORMATTED " DEFAULT CONSTRAINT " + dfltconname + " FOR FIELD " + n2 +
+                       (IF e = 0 THEN "" ELSE unik + STRING(e)) + " FILE " + n1 + " CREATED "  SKIP.                  
+         END.
+         ELSE PUT STREAM constlog UNFORMATTED " FIELD " + n2 + " HAS CONSTRAINT; DEFAULT VALUE NOT ADDED "  SKIP.        
       END.
      
       IF dbtyp = "ORACLE" OR dbtyp = "PROGRESS" THEN DO:
@@ -1281,6 +1466,160 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     END.     
   END. /* FOR EACH DICTDB._Field OF DICTDB._File BREAK BY DICTDB._Field._Order */
 
+/************************************************************************************************/
+/******************************** generation of constraint **************************************/
+/************************************************************************************************/
+
+
+   /* 195067 begins */ /* Code for generating the constriants in foreign DB at table level. */
+     IF migConstraint and (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE") then  
+     DO:
+       ASSIGN AllCons = ""
+	          DefCons = ""
+	          ClustCons = "".
+      FOR EACH DICTDB._constraint where DICTDB._constraint._file-recid =  recid(DICTDB._File) exclusive-lock:
+	  IF( DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._constraint._con-status = "N" OR DICTDB._constraint._con-status = "C" 
+	                                                                             OR DICTDB._constraint._con-status = "M"))
+	                                                                           
+	  THEN DO:
+	   ASSIGN ConType = DICTDB._constraint._con-type
+              ConName = DICTDB._constraint._con-name. 
+	   
+       trunc_name = FALSE.
+       IF xlat THEN DO:
+         if max_con_length <> 0 and length(ConName) > max_con_length
+         then do:
+           /*  _resxlat will truncate name  */
+           put stream logfile unformatted
+              "WARNING: Field name " ConName " is longer than the maximum " skip
+              "         legal identifier length of " max_id_length "." skip.
+             trunc_name = TRUE.
+         end.
+         ConName = ConName + "," + idbtyp + "," + string (max_con_length).
+         RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT ConName).
+       /*  ConName = "_" + ConName. */
+       END.
+       ELSE if max_con_length <> 0 and  length(ConName) > max_con_length THEN
+          /*  need to truncate name  */
+               ASSIGN ConName = substring(ConName,1,max_con_length)
+              trunc_name = TRUE.
+   
+       _verify-con-name:
+       DO WHILE TRUE:
+         FIND verify-name WHERE verify-name.new-name = ConName NO-ERROR.
+         IF NOT AVAILABLE verify-name
+         THEN DO:
+           CREATE verify-name.
+           ASSIGN verify-name.new-name = ConName.
+           LEAVE _verify-con-name.
+         END.
+         ELSE DO:
+          DO a = 1 TO 999:
+            ASSIGN ConName = SUBSTRING(ConName, 1, LENGTH(ConName) - LENGTH(STRING(a))) + STRING(a).
+            IF CAN-FIND(verify-name WHERE verify-name.new-name = ConName) THEN NEXT.
+            IF CAN-FIND(verify-table WHERE verify-name.new-name = ConName) THEN NEXT.
+            IF CAN-FIND(verify-index WHERE verify-name.new-name = ConName) THEN NEXT.            
+            ELSE DO:
+               CREATE verify-name.
+               ASSIGN verify-name.new-name = ConName.
+               LEAVE _verify-con-name.
+            END.
+          END.
+         END.    
+       END.  
+        
+        
+	   IF (ConType <> "D" or ConType <> "C") THEN
+	   DO:
+	     FIND FIRST DICTDB._INDEX of DICTDB._Constraint NO-LOCK NO-ERROR.
+         ASSIGN AllConsFields = "". 
+                      
+         FOR EACH DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK,
+	      first DICTDB._Field of DICTDB._INDEX-Field no-lock:
+	      FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
+               verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+              IF AllConsFields <> "" THEN 
+                 AllConsFields = AllConsFields + "," .
+                 Assign AllConsFields = AllConsFields + verify-name.new-name.  
+         END. /* FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK, */
+	     
+            IF  (ConType = "P" AND dbtyp = "MSSQLSRV7") THEN                  
+            DO:
+	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
+            
+            END. /* IF ConType = "P" */
+	        
+	        IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
+            DO:
+	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
+            
+            END. /* IF ConType = "P" */
+	        
+	        IF  (ConType = "PC" OR ConType = "MP") THEN                  
+            DO:
+	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
+	            
+            END. /* IF ConType = "PC" */
+                    
+            IF  (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
+            DO:
+            
+	            if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
+	            ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
+	             + AllConsFields + ")".
+
+            END. /* IF ConType = "M" */
+            
+	        IF ConType = "U" THEN
+            DO:	       
+	              if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+                  AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
+            END. /* IF ConType = "U" */
+	       	      
+       END. /* IF ConType <> "D" or ConType <> "C" */
+       	  
+	   IF ConType = "D" THEN
+	   DO:
+             FIND FIRST DICTDB._Field WHERE RECID(DICTDB._Field) = DICTDB._Constraint._Field-Recid NO-LOCK NO-ERROR.
+		     IF AVAIL(DICTDB._Field) THEN 
+		     DO:
+               FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
+                      verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+	           if DefCons <> "" then DefCons = DefCons + ",~n" + comment_chars .
+               DefCons = DefCons +  " CONSTRAINT " +  ConName  + " DEFAULT " +  replace(DICTDB._constraint._Con-Expr,"-","_")   
+		       + " FOR  " +   verify-name.new-name. 
+            END.
+	   END.  /* IF DICTDB._constraint._con-type = "D" */
+	   	   
+       IF DICTDB._constraint._con-type = "C" THEN
+	   DO:
+	        if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+		    AllCons = AllCons +  " CONSTRAINT  " +  ConName  + " CHECK( " +  replace(DICTDB._constraint._Con-Expr,"-","_")  + ")" .
+	   END.
+	   
+	   ASSIGN DICTDB._constraint._con-status = "M".
+	   ASSIGN DICTDB._constraint._For-Name = ConName.
+   
+     END.  /*IF( DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._constraint._con-status = "N" */   
+    END.    /* for each DICTDB._constraint where DICTDB._constraint.DICTDB._file-recid */    
+
+    IF dbtyp = "MSSQLSRV7" THEN DO:
+        IF AllCons <> "" AND AllCons <> ? THEN
+	    PUT STREAM code UNFORMATTED  " , ".  
+        PUT STREAM code UNFORMATTED  AllCons. 
+        IF DefC <> "" THEN DO:
+          IF DefCons <> "" THEN DefCons = DefCons + ",~n" + comment_chars + DefC.
+          ELSE DefCons = DefC.
+        END.  
+    END.
+    
+   END.   /* IF migConstraint*/
+
+  /* 195067 ends.*/
+  
   FOR EACH DICTDB._Index of DICTDB._File WHERE DICTDB._Index._Index-name BEGINS "sql-uniq":
     PUT STREAM code UNFORMATTED "," SKIP "  UNIQUE (".
     FOR EACH DICTDB._Index-field OF DICTDB._Index,DICTDB._Field OF DICTDB._Index-field
@@ -1310,18 +1649,38 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         PUT STREAM code UNFORMATTED n2 (IF LAST(_Index-seq) THEN ")" ELSE ",").
     END. /* end of each _index_field */
   END. /* FOR EACH DICTDB._Index of DICTDB._File WHERE DICTDB._Index._Index-name BEGINS "sql-uniq" */
+  
+  IF (dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" ) THEN DO: 
+    keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
+                               (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR 
+                                DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M")). 
+    IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index
+                    AND DICTDB._Index._Unique = TRUE ) THEN 
+       ASSIGN pk_unique = TRUE.
 
-  IF compatible THEN DO: 
+    IF ( migConstraint AND keyExist) THEN ASSIGN uniqCompat = FALSE.
+    ELSE  IF (msstryp) THEN DO:
+       IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN DO:
+          ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE".
+          IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index 
+                         AND DICTDB._Index._Index-name = "default" ) THEN
+             ASSIGN uniqCompat = FALSE.
+       END.
+       IF pk_unique THEN ASSIGN uniqCompat = FALSE. else ASSIGN uniqueness = " UNIQUE ".
+    END.
+  END.
+  
+  IF compatible AND uniqCompat THEN DO: 
     IF dbtyp = "Informix" THEN  
       PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " " user_env[14] " default null".      
     ELSE IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN DO:
       IF ((NUM-ENTRIES(user_env[27]) < 2) OR (entry(2,user_env[27]) EQ "1")) THEN 
         PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " bigint null". 
       ELSE IF entry(2,user_env[27]) EQ "2" THEN DO: 
-        PUT STREAM code UNFORMATTED "," SKIP comment_chars "  "   prowid_col " AS  " skip
-               "      CASE WHEN PROGRESS_RECID_ALT_ is null " skip 
-               "        THEN  PROGRESS_RECID_IDENT_ " skip
-               "        ELSE  PROGRESS_RECID_ALT_   " skip
+        PUT STREAM code UNFORMATTED "," SKIP comment_chars "  "   prowid_col " AS  " skip comment_chars
+               "      CASE WHEN " + prowid_col + "_ALT_" + " is null " skip comment_chars
+               "        THEN  " + prowid_col + "_IDENT_ " skip comment_chars
+               "        ELSE  " + prowid_col + "_ALT_   " skip comment_chars
                "      END PERSISTED not null". 
       END. /* END of entry(2,user_env[27]) EQ "2"  */
     END. /* END of dbtyp is MSS/SYBASE */
@@ -1395,7 +1754,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
      the value of the progress_recid and fill out any case insensitive 
      shadow columns.
   */ 
-  IF (dbtyp = "SYBASE" OR dbtyp = "MS SQL Server") and compatible THEN DO:
+  IF (dbtyp = "SYBASE" OR dbtyp = "MS SQL Server") and uniqCompat and compatible  THEN DO:
     n2 = "_TI_" + n1.
     
     PUT STREAM code UNFORMATTED
@@ -1416,7 +1775,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       PUT STREAM code UNFORMATTED SKIP.
     PUT STREAM code UNFORMATTED  comment_chars user_env[5] SKIP.
   END.
-  ELSE  IF dbtyp = "MSSQLSRV7" and compatible and (entry(2,user_env[27]) EQ "1") THEN DO:
+  ELSE  IF dbtyp = "MSSQLSRV7" and compatible and uniqCompat and (entry(2,user_env[27]) EQ "1") THEN DO:
     n2 = "_TI_" + n1.
     
     PUT STREAM code UNFORMATTED
@@ -1438,9 +1797,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     IF skptrm THEN
       PUT STREAM code UNFORMATTED SKIP.
     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
-    PUT STREAM code UNFORMATTED
-        comment_chars "sp_settriggerorder @triggername = '" n2 "', " SKIP
-        comment_chars "       @order='first', @stmttype = 'INSERT' " SKIP.
+    PUT STREAM code UNFORMATTED 
+      comment_chars "sp_settriggerorder @triggername = '" n2 "', " SKIP
+      comment_chars "       @order='first', @stmttype = 'INSERT' " SKIP.
     PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
   END. /* dbtyp = "SYBASE" OR "MS SQL Server" and compatible */
 
@@ -1451,7 +1810,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 
   /* Create unique progress_recid index */
  
-  IF  compatible THEN DO:
+  IF  compatible AND uniqCompat THEN DO:
     IF dbtyp = "ORACLE"  THEN DO:
       IF LENGTH(n1) < 15 THEN
         ASSIGN n2 = n1 + unik + prowid_col.
@@ -1727,11 +2086,87 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 
       IF DICTDB._File._Prime-index = RECID (DICTDB._Index) THEN
          pindex = comment_chars + "sp_primarykey " + n1.
+      
+      /* Primary key code */
 
+      IF DICTDB._File._Prime-index = RECID (DICTDB._Index)
+      THEN DO:  
+         Assign userPKexist = TRUE.
+         FOR EACH DICTDB._Index-field OF DICTDB._Index,
+                DICTDB._Field OF DICTDB._Index-field:
+          FOR EACH DICTDB._Field WHERE RECID(DICTDB._Field)  = DICTDB._Index-field._Field-Recid:
+               FIND verify-name WHERE verify-name.rec-fld = RECID(DICTDB._Field) AND 
+                                      verify-name.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+               IF FieldList <> "" THEN ASSIGN FieldList = FieldList + ", ".
+                  FieldList = FieldList + verify-name.new-name.
+               IF NOT DICTDB._Field._Mandatory THEN ASSIGN mandatory = FALSE.
+           END.
+         END.
+         IF NOT migConstraint OR (migConstraint AND NOT keyExist) THEN RUN createKey.
+         if keyCreated THEN NEXT  _idxloop.
+      END.
+      
+      IF (uniqueindx eq "1") 
+      THEN DO:
+       IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7"
+       THEN          
+        PUT STREAM code UNFORMATTED
+           comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
+           " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+      ELSE       
       PUT STREAM code UNFORMATTED
         comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
         " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
-      
+      END.
+      ELSE DO:
+        IF DICTDB._Index._Unique 
+        THEN DO:
+         FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
+              AND DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
+              DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "U" )NO-LOCK NO-ERROR.
+           IF AVAILABLE (DICTDB._Constraint) 
+           THEN DO:
+            IF DICTDB._Constraint._Con-Type = "M" 
+            THEN PUT STREAM code UNFORMATTED
+             comment_chars "CREATE UNIQUE CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+            ELSE PUT STREAM code UNFORMATTED
+             comment_chars "CREATE UNIQUE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+           END.
+           ELSE DO: 
+             ASSIGN flag = FALSE.
+             IF dbtyp = "ORACLE" THEN DO:
+                     FOR EACH DICTDB._Index-field OF DICTDB._Index,
+                         DICTDB._Field OF DICTDB._Index-field 
+                         BREAK BY DICTDB._Index-field._Index-seq:
+                       
+                       IF DICTDB._Field._Dtype = 1 THEN ASSIGN flag = TRUE.                        
+                     END.
+                 IF flag THEN PUT STREAM code UNFORMATTED
+                           comment_chars "CREATE UNIQUE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+                 ELSE   
+                     PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " user_library dot n1 " ADD CONSTRAINT "
+                            user_library dot n2 " UNIQUE (".        
+             END.
+             ELSE DO:         
+             PUT STREAM code UNFORMATTED
+             comment_chars "ALTER TABLE " user_library dot n1 " ADD CONSTRAINT "
+             user_library dot n2 " UNIQUE (".
+             END.
+           END.
+        END.
+        ELSE DO:
+        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7"
+        THEN          
+        PUT STREAM code UNFORMATTED
+           comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
+           " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+        ELSE     
+        PUT STREAM code UNFORMATTED
+          comment_chars "CREATE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+        END.
+      END.      
       FOR EACH DICTDB._Index-field OF DICTDB._Index,
              DICTDB._Field OF DICTDB._Index-field 
              BREAK BY DICTDB._Index-field._Index-seq:
@@ -1769,10 +2204,26 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         ELSE     
           IF LOOKUP(n2, uc_col) > 0 THEN 
              ASSIGN n2 = "U" + unik + n2.
-        
+          
         IF dbtyp = "ORACLE" THEN DO:
-            IF NOT shadow AND DICTDB._Field._Dtype = 1 /*AND longwid = 4000*/ AND NOT DICTDB._Field._fld-case THEN
-                ASSIGN n2 = "upper(" + n2 + ") ".
+        
+        IF NOT shadow AND DICTDB._Field._Dtype = 1  /*AND longwid = 4000*/ AND NOT DICTDB._Field._fld-case THEN DO:
+	         IF  nls_upp = "y" and ora_lang NE "BINARY" then DO:
+		     ASSIGN  
+ 		          n2 = "NLS_UPPER(" + n2 + "," + "'NLS_SORT = " + ora_lang + " ')". 
+ 		          nlsflag = true.  				
+            END.
+ 		    ELSE   
+            ASSIGN n2 = "upper(" + n2 + ") ".
+        END.
+	    IF dbtyp = "ORACLE" THEN DO:
+           IF NOT shadow AND DICTDB._Field._Dtype = 1  /*AND longwid = 4000*/ AND  DICTDB._Field._fld-case THEN DO:
+	         IF  nls_upp = "y" and ora_lang NE "BINARY" then DO:
+		    ASSIGN
+		          n2 = "NLSSORT(" + n2 + "," + "'NLS_SORT = " + ora_lang + " ')". 
+             END.
+           END.
+        END.
             IF NOT DICTDB._Index-field._Ascending THEN
                 ASSIGN n2 = n2 + " DESC".
         END.
@@ -1801,7 +2252,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           ELSE IF compatible THEN DO:
              IF DICTDB._File._Prime-index = RECID (DICTDB._Index) THEN
                 pindex = pindex + ", " + prowid_col.
+           IF uniqCompat THEN
              PUT STREAM code UNFORMATTED ", " prowid_col ")".
+           ELSE PUT STREAM code UNFORMATTED ")". 
           END. /* compatible */ 
         END. /* last (_Index-seq) */
         ELSE
@@ -1812,22 +2265,196 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       IF dbtyp = "ORACLE" AND user_env[35] <> ? AND user_env[35] <> "" THEN
          PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[35].         
       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+      /* re-initialize */
+      ASSIGN mandatory = TRUE 
+             uniqueness = "".
     END.  /* Index Block */ 
 
+  END.  /* _idxloop */
+  IF NOT keyCreated AND ( compatible AND  (mssOptRowid EQ "P") ) AND uniqCompat THEN DO:
+     ASSIGN FieldList = prowid_col
+            pindex2 = user_library + dot + "PKCE_" + n1 + "#PRGS_RECID".
+     IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
+     ELSE DO:
+         ASSIGN pclst_name = user_library + dot + "CKCE_" + n1 + "#PRGS_RECID"
+                uniqueness = " UNIQUE".
+         RUN  createPrimaryKey (INPUT pindex2).
+         RUN  createClusteredKey (INPUT pclst_name).
+     END.
+         PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
   END.
 
   IF user_env[3] <> "" THEN DO:
     OUTPUT STREAM code CLOSE.
     OUTPUT STREAM code TO VALUE(user_env[2]) NO-ECHO APPEND NO-MAP.
   END.
+  /* re-initialize */
+  ASSIGN pk_unique = FALSE
+         userPKexist = FALSE
+         keyCreated = FALSE
+         FieldList  = ""
+         keyExist   = FALSE
+         uniqCompat = TRUE.
 
+
+     /* 195067 begins */
+    IF AllCons <> "" and dbtyp = "ORACLE" THEN
+    DO:
+        PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " + user_library dot n1  +  " ADD (" +  AllCons + ")" skip.
+	    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+    END.
+    IF DefCons <> "" and (dbtyp = "MSSQLSRV7") THEN
+	DO:
+	    PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " +  user_library dot n1  +  " ADD " +  DefCons skip.
+	    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+	END.
+	
+/* 195067 ends */
 END. /* for each DICTDB._File */
+
+/************************************************/
+/****** loop2 for creating foreign constraints***/
+/************************************************/
+
+IF migConstraint and (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE")
+THEN DO:
+_fileloop2:
+FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
+                         AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
+                         AND (IF user_env[1] = "ALL"  THEN 
+                              NOT DICTDB._File._Hidden AND 
+                             (CAN-DO(_File._Can-read, user_env[9]) OR user_env[9] = "ALL")
+                               ELSE
+                                  DICTDB._File._File-name = user_filename
+                              ):
+                                                            
+IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop2.
+            
+  FOR EACH DICTDB._constraint where DICTDB._constraint._file-recid =  recid(DICTDB._File) exclusive-lock:
+  IF( DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._constraint._con-status = "N" OR DICTDB._constraint._con-status = "C" 
+	                                                                             OR DICTDB._constraint._con-status = "M"))
+  THEN DO:
+    IF DICTDB._constraint._con-type  = "F" THEN
+	DO:
+	  ASSIGN AllCons = "".
+	  FIND first DICTDB._INDEX of DICTDB._constraint NO-LOCK NO-ERROR.
+      ASSIGN AllConsFields = ""
+             ConType = DICTDB._constraint._con-type
+             ConName = DICTDB._constraint._con-name.
+
+
+        FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK,
+	           first DICTDB._Field of DICTDB._INDEX-Field no-lock:
+	             FIND verify-field WHERE verify-field.rec-fld = RECID(DICTDB._Field) AND 
+                   verify-field.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.
+               IF AllConsFields <> "" THEN 
+               AllConsFields = AllConsFields + "," .
+               Assign AllConsFields = AllConsFields + verify-field.new-name.               
+        END. /* FOR each DICTDB._INDEX-Field of DICTDB._INDEX NO-LOCK, */
+          
+       
+	  trunc_name = FALSE.
+      IF xlat THEN DO:
+         if max_con_length <> 0 and length(ConName) > max_con_length
+         then do:
+           /*  _resxlat will truncate name  */
+           put stream logfile unformatted
+              "WARNING: Field name " ConName " is longer than the maximum " skip
+              "         legal identifier length of " max_id_length "." skip.
+             trunc_name = TRUE.
+         end.
+         ConName = ConName + "," + idbtyp + "," + string (max_con_length).
+         RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT ConName).
+      END.
+      ELSE if max_con_length <> 0 and  length(ConName) > max_con_length THEN
+          /*  need to truncate name  */
+               ASSIGN ConName = substring(ConName,1,max_con_length)
+              trunc_name = TRUE.
+   
+      _verify-con-name:
+      DO WHILE TRUE:
+         FIND verify-name WHERE verify-name.new-name = ConName NO-ERROR.
+         IF NOT AVAILABLE verify-name
+         THEN DO:
+           CREATE verify-name.
+           ASSIGN verify-name.new-name = ConName.
+           LEAVE _verify-con-name.
+        END.
+        ELSE DO:
+          DO a = 1 TO 999:
+            ASSIGN ConName = SUBSTRING(ConName, 1, LENGTH(ConName) - LENGTH(STRING(a))) + STRING(a).
+            IF CAN-FIND(verify-name WHERE verify-name.new-name = ConName) THEN NEXT.
+            IF CAN-FIND(verify-table WHERE verify-name.new-name = ConName) THEN NEXT.
+            IF CAN-FIND(verify-index WHERE verify-name.new-name = ConName) THEN NEXT.            
+            ELSE DO:
+               CREATE verify-name.
+               ASSIGN verify-name.new-name = ConName.
+               LEAVE _verify-con-name.
+            END.
+          END.
+        END.    
+      END.  
+	        
+      FIND FIRST buff-Index WHERE RECID(buff-Index) = DICTDB._constraint._Index-parent-recid NO-LOCK NO-ERROR.
+	  IF AVAIL(buff-Index) 
+	  THEN DO:
+		   FIND FIRST buff-file where recid(buff-file) = buff-Index._file-recid no-lock no-error.
+      END.
+		AllForeignFields = "".
+		FOR each DICTDB._INDEX-Field of buff-Index NO-LOCK,
+	        first DICTDB._Field of DICTDB._INDEX-Field no-lock:
+	         FIND verify-field WHERE verify-field.rec-fld = RECID(DICTDB._Field) AND 
+                   verify-field.prog-name = DICTDB._Field._Field-name NO-LOCK NO-ERROR.	        
+            IF AllForeignFields <> "" THEN 
+               AllForeignFields = AllForeignFields + "," .
+                       
+               Assign AllForeignFields =  AllForeignFields  + verify-field.new-name.
+        END. /* FOR each DICTDB._INDEX-Field of buff-Index NO-LOCK, */
+        
+        FIND verify-table WHERE verify-table.rec-fld = RECID(buff-file) NO-LOCK NO-ERROR.
+        AllCons = AllCons +  " CONSTRAINT " +  ConName  + " FOREIGN KEY( " + AllConsFields + ")" 
+		           + "  REFERENCES  " + verify-table.new-name + "(" +  AllForeignFields   + ")".
+    
+      ASSIGN DICTDB._constraint._con-status = "M".
+	  ASSIGN DICTDB._constraint._For-Name = ConName.
+	  IF ( dbtyp = "ORACLE" AND DICTDB._constraint._con-misc2[1] <> "SET DEFAULT" AND DICTDB._constraint._con-misc2[1] <> "NONE" 
+	                    AND DICTDB._constraint._con-misc2[1] <> ""  AND DICTDB._constraint._con-misc2[1] <> ?) THEN
+	    Allcons = Allcons + " ON DELETE  " + DICTDB._constraint._con-misc2[1].
+	  IF ( dbtyp = "MSSQLSRV7" AND DICTDB._constraint._con-misc2[1] <> "NONE"
+	                    AND DICTDB._constraint._con-misc2[1] <> ""  AND DICTDB._constraint._con-misc2[1] <> ?) THEN
+	      Allcons = Allcons + " ON DELETE  " + DICTDB._constraint._con-misc2[1].	    
+	  
+	 IF AllCons <> "" AND AllCons <> ? THEN
+     DO:
+       FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
+	   PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name +  " ADD " +  replace(AllCons,"-","_") skip.
+       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+     END. 
+     
+     IF mvdata AND dbtyp = "ORACLE" THEN DO:
+       FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
+       PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name +  " DISABLE CONSTRAINT " + ConName SKIP.
+       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+     END.
+    END. /* IF ConType = "F" */
+    
+  END. /* IF( DICTDB._Constraint._Con-Active = TRUE) */           
+  END. /* FOR EACH _Constraint */              
+ 
+  IF mvdata AND dbtyp = "MSSQLSRV7" THEN DO:
+       FIND verify-table WHERE verify-table.rec-fld = RECID(DICTDB._File) NO-LOCK NO-ERROR.
+       PUT STREAM code UNFORMATTED "ALTER TABLE " +  user_library dot verify-table.new-name + " NOCHECK CONSTRAINT ALL " SKIP.
+       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.          
+  END.
+
+END.   /*  FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db  */
+END.  /* THEN */
 
 /* creating SEQT_REV_SEQTMGR table for revised sequence generator for MSS if one does not exist. */
 IF lnewSeq THEN DO:
 put stream code unformatted 
-    " if not exists (select * from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
-    "    and OBJECTPROPERTY(id, N'IsTable') = 1)" skip
+    " if not exists (select * from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+    "    and OBJECTPROPERTY(id, 'IsTable') = 1)" skip
            "create table _SEQT_REV_SEQTMGR (" skip
            "        seq_name varchar(30) not null, " skip
 	   "        initial_value bigint, " skip
@@ -1973,13 +2600,13 @@ IF doseq THEN DO:
 	
 	IF seqt_prefix = "_SEQT_" THEN
 	   PUT STREAM code UNFORMATTED 
-            "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
-            "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+            "if exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+            "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
             "      if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" n1 "') " skip
             "         is not NULL delete from _SEQT_REV_SEQTMGR where seq_name = '" n1 "'" skip
     
-            "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
-            "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
+            "if exists (select name from dbo.sysobjects where id = object_id('_SEQT_REV_SEQTMGR') " skip
+            "   and OBJECTPROPERTY(id, 'IsTable') = 1) " skip
     	    "       if (select seq_name from _SEQT_REV_SEQTMGR) is NULL drop table _SEQT_REV_SEQTMGR " skip.
 
 	PUT STREAM code UNFORMATTED 
@@ -2360,11 +2987,12 @@ IF doseq THEN DO:
     END.
   END. /* for each DICTDB._Sequence */
 END. /* if doseq */
+
 IF ( dbtyp <> "PROGRESS" ) and ( user_env[30] begins "y") THEN 
     PUT STREAM code UNFORMATTED "exit" SKIP.
 
 OUTPUT STREAM code CLOSE.
-
+OUTPUT STREAM constlog  CLOSE.
 /* Close the logfile if it wasn't open before we started. */
 IF NOT logfile_open THEN DO:
    OUTPUT STREAM logfile CLOSE.
@@ -2407,4 +3035,82 @@ PROCEDURE setMSSOptions:
    END.
 
    ASSIGN lUniExpand = (user_env[35] = "y").
+   ASSIGN msstryp = (ENTRY(2,user_env[36]) = "y").
+   IF compatible THEN ASSIGN mssOptRowid = ENTRY(3,user_env[27]).
+   ASSIGN mssclus_explct = (ENTRY(3,user_env[36]) = "y").
+   ASSIGN mssselBestRowidIdx = (ENTRY(4,user_env[36]) = "y").
+   IF mssselBestRowidIdx THEN  ASSIGN msschoiceSchema = INTEGER(ENTRY(5,user_env[36])).   
 END.
+
+PROCEDURE createKey:
+
+/* Primary/clustered statement code */
+  
+  ASSIGN pindex2 = ( IF mssclus_explct THEN "PKCE_"
+                      ELSE "PKCI_"
+                      ).
+  ASSIGN pindex2 = user_library + dot + pindex2 + n2 
+         pclst_name = user_library + dot + n2. 
+
+  IF msstryp AND userPKexist THEN DO:
+     IF DICTDB._Index._Unique THEN  ASSIGN uniqueness = " UNIQUE".
+     IF pk_unique THEN DO: 
+       IF mandatory THEN DO:
+          IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
+          ELSE DO:
+            RUN  createPrimaryKey (INPUT pindex2).
+            RUN  createClusteredKey (INPUT pclst_name). 
+          END.
+       END.
+       ELSE DO:
+          RUN  createClusteredKey (INPUT pclst_name). 
+       END.
+       keyCreated = TRUE.
+     END.
+     ELSE DO: /* not unique */
+       IF compatible AND (mssOptRowid EQ "U") THEN DO: /* For ROWID uniqueness */
+          ASSIGN FieldList = FieldList + ", " + prowid_col.
+          IF mandatory THEN DO:
+            IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
+            ELSE DO:
+              RUN  createPrimaryKey (INPUT pindex2).
+              RUN  createClusteredKey (INPUT pclst_name). 
+            END.
+          END.
+          ELSE DO:
+            RUN  createClusteredKey (INPUT pclst_name). 
+          END.
+            ASSIGN keyCreated = TRUE.
+       END. /* For ROWID uniqueness */
+
+   END. /* else-part -i.e. not unique */
+ END. /* Try Primary */
+
+IF keyCreated THEN
+    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+END.
+
+PROCEDURE createPrimaryKey:
+   DEFINE INPUT PARAMETER pindex2  AS CHARACTER  NO-UNDO.
+
+      /* Generate Alter table add PK constraint */
+      PUT STREAM code UNFORMATTED
+          comment_chars "ALTER TABLE " user_library dot n1 SKIP. 
+      PUT STREAM code UNFORMATTED 
+          comment_chars "ADD CONSTRAINT " pindex2 " PRIMARY KEY".
+      IF mssclus_explct THEN PUT STREAM code UNFORMATTED " NONCLUSTERED ".
+      PUT STREAM code UNFORMATTED SKIP
+          comment_chars "(" + FieldList + ")" SKIP.
+END PROCEDURE.
+
+PROCEDURE createClusteredKey:
+   DEFINE INPUT PARAMETER pclst_name AS CHARACTER  NO-UNDO.
+
+/* clustered index statement code */
+      PUT STREAM code UNFORMATTED
+          comment_chars "CREATE " uniqueness " CLUSTERED INDEX " pclst_name SKIP. 
+      PUT STREAM code UNFORMATTED 
+          comment_chars "ON " user_library dot n1 SKIP.
+      PUT STREAM code UNFORMATTED SKIP
+          comment_chars "(" + FieldList + ")" SKIP.
+END PROCEDURE.

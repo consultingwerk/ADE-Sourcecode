@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,6 +21,7 @@ Created 02/02/00
          
    History
    fernando    06/20/07  Support for large files      
+   kmayur      06/21/11  increased extent of user_env - OE00195067
 */
    
 /* Will be "y" or "n" to indicate whether to disable triggers or not */
@@ -43,7 +44,7 @@ DEFINE        VARIABLE h1      AS INTEGER NO-UNDO.
 DEFINE        VARIABLE h2      AS INTEGER NO-UNDO.
 DEFINE        VARIABLE gave-err AS LOGICAL NO-UNDO INITIAL FALSE.
 
-DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 35.
+DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 41.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   IF TERMINAL <> "" THEN DO:

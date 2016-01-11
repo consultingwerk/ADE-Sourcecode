@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -17,7 +17,11 @@ Description:
 Author: Ravi-Chandar Ramalingam
 
 Date Created: 12/28/92, for revision history, see RCS record.
-
+/*
+Modified    : 
+10/24/11 rkamboj  Replaced " http://www.progress.com/services/techsupport " link 
+                      with "http://progresslink.progress.com/supportlink"
+*/
 ***************************************************************************/
 
 /*-----------------------------------------------------------------------------
@@ -185,7 +189,8 @@ PROCEDURE GetMessageDescription.
         "3. Search the on-line Progress knowledgebase for information on the"     + eol +
         "   error.  The kbase can be accessed via the Progress web site at:"      + eol +
         "   http://www.progress.com   or"                                         + eol +
-        "   http://www.progress.com/services/techsupport/online.html"             + eol +
+      /*  "   http://www.progress.com/services/techsupport/online.html"             + eol + */
+        "   http://progresslink.progress.com/supportlink"                         + eol +
         "4. If the above does not lead to resolution, please contact your"        + eol +
         "   dealer (VAR) who sold you PROGRESS, or the Progress Technical"        + eol +
         "   Support center for your region.".

@@ -25,7 +25,7 @@ ELSE
         tinydict._db._db-type = pcDBType NO-LOCK NO-ERROR. /* foreign */
 rDB = RECID(tinydict._db).
 
-IF DBVERSION(pcDBName) < "9":U THEN DO:
+IF INT(DBVERSION(pcDBName)) < 9 THEN DO:
   FOR EACH tinydict._File WHERE RECID(tinydict._db) = rDB AND
     NOT tinydict._File._Hidden NO-LOCK BY tinydict._File._File-Name:
       

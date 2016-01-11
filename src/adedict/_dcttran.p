@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 
 /*----------------------------------------------------------------------------
@@ -49,9 +49,10 @@ Date Created: 04/14/92
 Define var answer    as logical  NO-UNDO.
 
 /*=============================== Triggers ===================================*/
+/* include file contains function for area label */
+{prodict/pro/arealabel.i}
 
 {adedict/edittrig.i} /* triggers for the edit (properties) windows */
-
 
 /* include file contains trigger for s_lob_size and s_clob_cp */
 {prodict/pro/fldfuncs.i}

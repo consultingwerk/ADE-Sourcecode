@@ -75,7 +75,7 @@ for each s_ttb_tbl:  delete s_ttb_tbl.  end.
 for each s_ttb_fld:  delete s_ttb_fld.  end.
 for each s_ttb_idx:  delete s_ttb_idx.  end.
 for each s_ttb_idf:  delete s_ttb_idf.  end.
-
+for each s_ttb_con:  delete s_ttb_con.  end.
 
 /* initialize preselection-criteria and link for local db */  
 create s_ttb_link.

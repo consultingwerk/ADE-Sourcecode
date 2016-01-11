@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : router.p
     Purpose     : Super procedure for router class.
@@ -382,8 +382,6 @@ PROCEDURE routeDocument :
  IF cSchemaName <> '':U THEN
    cSchemaFile = {fnarg internalSchemaFile cSchemaName}.
 
-     /* DTD support requires 9.1C */
-    &IF {&CompileOn91C} &THEN  
  /* No xmlns or no match.. probably no use to check for dtd if xmlns, but..*/
  IF cSchemaFile = "":U THEN 
  DO:
@@ -400,8 +398,7 @@ PROCEDURE routeDocument :
    IF cSchemaName <> '':U THEN
      cSchemaFile = {fnarg internalSchemaFile cSchemaName}. 
  END.
-    &ENDIF  /*CompileOn91C*/       
-
+ 
  IF cSchemaName = '':U THEN
  DO:
    DYNAMIC-FUNCTION ('showMessage':U IN TARGET-PROCEDURE,27).

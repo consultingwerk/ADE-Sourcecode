@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -59,6 +59,10 @@ Define var cpy_lst_Flds as char NO-UNDO
    view-as SELECTION-LIST MULTIPLE INNER-CHARS 28 INNER-LINES 8 
    SCROLLBAR-V SCROLLBAR-H.
 
+Define var cmbArea as char NO-UNDO
+   view-as COMBO-BOX size 40 by 1.  
+ 
+
 Define button btn_Copy_AsIs label "&Copy As Is" 	      	
    SIZE 15 by {&H_OKBTN} MARGIN-EXTRA DEFAULT AUTO-GO.
 Define button btn_Copy_Mod  label "&Modify First" 
@@ -74,7 +78,12 @@ Define var cpy_Recid as RECID NO-UNDO.
 Define var cpy_Name     as char    NO-UNDO.
 Define var cpy_Order    as integer NO-UNDO.
 Define var cpy_Skipped  as logical NO-UNDO init false.
+define var cpy_NoArea   as logical no-undo.
+Define var AreaList     as char    NO-UNDO.
+define var dataType     as character no-undo.
 Define var stat         as char    NO-UNDO.
+define variable CopyArea as logical no-undo.
+define variable NoArea as logical no-undo.
 
 
 /*===============================Forms===================================*/
@@ -115,7 +124,7 @@ FORM
    "press the Skip button.      "                            at 2
        view-as TEXT
    skip({&VM_WIDG})
-
+   
    cpy_Name label "&Field name"  format "x(32)"        at 2 {&STDPH_FILL}
 
    {adecomm/okform.i
@@ -130,6 +139,32 @@ FORM
         DEFAULT-BUTTON s_btn_OK  CANCEL-BUTTON btn_Skip
         title "Rename Field" view-as DIALOG-BOX 
         SIDE-LABELS.
+
+
+/* Form which allows user to select an area. */
+FORM
+    skip({&TFM_WID})
+    "You are copying a lob field from a table with no default area. " at 2
+       view-as TEXT 
+    "Select an Area and press OK or press the Skip button." at 2    
+       view-as TEXT skip({&VM_WIDG})
+    cpy_Name label "Field name" colon 12 format "x(32)" 
+    dataType label "Data type"  colon 12 format "x(11)"
+    cmbArea label "&Area"       colon 12 format "x(32)" {&STDPH_FILL}
+
+   {adecomm/okform.i
+      &BOX    = s_rect_btns
+      &STATUS = no
+      &OK     = s_btn_OK
+      &CANCEL = s_btn_Cancel
+      &OTHER  = "SPACE({&HM_DBTNG}) btn_Skip"
+      &HELP   = s_btn_Help}
+
+   with frame selectarea 
+        DEFAULT-BUTTON s_btn_OK  CANCEL-BUTTON btn_Skip
+        title "Select Area" view-as DIALOG-BOX  
+        SIDE-LABELS.
+
 
 
 /* Status frame */
@@ -155,7 +190,7 @@ PROCEDURE Fill_Field_List:
         _File._DB-recid = s_DbRecId AND
         (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN").
    cpy_Recid = RECID(_File).
-
+   cpy_NoArea = _File._File-attributes[1] and _File._File-attributes[2] = false.
    if NOT cpy_lst_Flds:visible in frame fldcopy then
       cpy_lst_Flds:visible in frame fldcopy = yes.
 
@@ -217,11 +252,23 @@ end.
 on choose of btn_Skip in frame rename
    cpy_Skipped = true.
 
-
 /*----- HELP -----*/
 on HELP of frame rename OR choose of s_btn_Help in frame rename
    RUN "adecomm/_adehelp.p" ("dict", "CONTEXT", {&Rename_Field_Dlg_Box}, ?).
 
+/*========================Frame selectframe Triggers==============================*/
+
+/*-----WINDOW-CLOSE (frame rename)-----*/
+on window-close of frame selectarea
+   apply "END-ERROR" to frame selectarea.
+
+/*----- HIT of SKIP button (frame rename) -----*/
+on choose of btn_Skip in frame selectarea
+   cpy_Skipped = true.
+
+/*----- HELP -----*/
+on HELP of frame selectarea OR choose of s_btn_Help in frame selectarea
+   RUN "adecomm/_adehelp.p" ("dict", "CONTEXT", {&Select_Area_Dialog_Box}, ?).
       	 
 /*========================Frame fldcopy Triggers==============================*/
 
@@ -241,7 +288,7 @@ do:
    Define var ins_name  as char     NO-UNDO.
    Define var success   as logical  NO-UNDO init false.
    Define var canned    as logical  NO-UNDO.
-   
+  
    Define buffer cpy_Field for _Field.
 
    run adecomm/_setcurs.p ("WAIT").
@@ -298,10 +345,54 @@ do:
             end.
          end.
          hide frame rename.
-
+        
+         find _File where RECID(_File) = s_TblRecId.
+         assign
+             NoArea  = (_File._File-attributes[1] and _File._File-attributes[2] = false)
+             cmbArea = "" 
+             CopyArea = true.
+         if (cpy_Field._Data-type = "BLOB" or cpy_Field._Data-type = "CLOB") then
+         do:
+             /* tell prodict/dump/copy_fld.i to not copy _Fld-stlen */
+             CopyArea = false.
+             /* if we copy lob with no area to file with area then prompt for area */ 
+             if (cpy_NoArea and not NoArea) then
+             do with frame selectarea:
+                 if AreaList = "" then
+                 do:
+                     cmbArea:delimiter  = chr(1).
+                     run prodict/pro/_pro_area_list(s_TblRecId,{&INVALID_AREAS},cmbArea:delimiter, output  AreaList).
+                     cmbArea:list-items = AreaList.
+                     cmbArea:inner-lines = min(cmbArea:num-items ,10).
+                     cmbArea:screen-value = cmbArea:entry(1).
+                 end.
+                 canned = true.
+                 display cpy_name cpy_Field._Data-type @ dataType.
+                 do ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+                     update cmbArea
+                            s_btn_Ok 
+                            s_btn_Cancel
+                            btn_Skip 
+                            s_btn_Help.
+                   
+                     canned = false.
+                     assign cmbArea. 
+                end.
+                
+                hide frame selectarea.
+                if cpy_Skipped then 
+                do:
+                   cpy_Skipped = false.  /* reset flag */
+                   next cpy_loop.
+                end.
+                /* fields already copied are NOT undone */
+                if canned then leave cpy_loop.
+             end.  /* from lob has no area  */
+         end. /* lob */
       	 display cpy_Field._Field-Name @ stat with frame copying.
 
          create b_Field.
+        
       	 assign
             b_Field._File-recid = s_TblRecId
       	    b_Field._Field-name = cpy_Name
@@ -310,26 +401,40 @@ do:
       	    b_Field._Initial    = cpy_Field._Initial
       	    b_Field._Order      = (if cpy_Order = ? then cpy_Field._Order
       	       	     	      	       	     	    else cpy_Order).
-      	 {prodict/dump/copy_fld.i &from=cpy_Field &to=b_Field &all=false}
-
-         IF b_field._Data-type = "BLOB" AND cpy_Field._Field-rpos <> ? THEN DO:
-           FIND _storageobject WHERE _Storageobject._Db-recid = s_DbRecId
-                                 AND _Storageobject._Object-type = 3
-                                 AND _Storageobject._Object-number = b_Field._Fld-stlen
-                                 NO-LOCK.
-           ASSIGN b_field._Fld-stlen = _StorageObject._Area-number.
-         END.
-         ELSE IF b_field._Data-type = "CLOB" THEN DO:
-           IF cpy_Field._Field-rpos <> ? THEN DO:
-             FIND _storageobject WHERE _Storageobject._Db-recid = s_DbRecId
-                                   AND _Storageobject._Object-type = 3
-                                   AND _Storageobject._Object-number = b_Field._Fld-stlen
-                                   NO-LOCK.
-             ASSIGN b_field._Fld-stlen = _StorageObject._Area-number.
-           END.
-           ASSIGN b_field._Charset   = cpy_Field._Charset
-                  b_Field._Collation = cpy_Field._Collation.
-         END.
+      	      	 
+      	 {prodict/dump/copy_fld.i &from=cpy_Field &to=b_Field &all=false &copyarea=CopyArea}
+      
+         IF b_field._Data-type = "BLOB" or b_field._Data-type = "CLOB" then
+         do:
+             IF cpy_Field._Field-rpos <> ? THEN 
+             DO:
+                 if cmbArea > "" then 
+                 do:
+                     FIND _Area where _Area._area-name = cmbArea no-lock.
+               
+                     ASSIGN b_field._Fld-stlen = _Area._Area-Number.
+                 end.    
+                 else if NoArea then 
+                 do:
+                 
+                     assign b_field._Fld-stlen = 0.
+                 end.
+                 else do:    
+                     FIND _storageobject WHERE _Storageobject._Db-recid    = s_DbRecId
+                                         AND _Storageobject._Object-type   = 3
+                                         AND _Storageobject._Object-number = cpy_Field._Fld-stlen
+                                         AND _Storageobject._Partitionid   = 0
+                                         NO-LOCK.
+             
+                     ASSIGN b_field._Fld-stlen = _StorageObject._Area-number.
+                 end.
+             END.
+             IF b_field._Data-type = "CLOB" THEN DO:
+                 ASSIGN b_field._Charset   = cpy_Field._Charset
+                        b_Field._Collation = cpy_Field._Collation.
+             END.
+      	 end. /* lob */
+              	 
       	 /* Reset offset as if it was a new field to put at the end. */
       	 b_Field._Fld-stoff = ?.
       	 RUN adedict/FLD/_dfltgat.p (TRUE).
@@ -431,6 +536,15 @@ cpy_lst_Flds:sensitive in frame fldcopy = yes.
    &HELP  = "s_btn_Help"
 }
 
+/* Run time layout for button area. */
+{adecomm/okrun.i  
+   &FRAME = "frame selectarea" 
+   &BOX   = "s_rect_Btns"
+   &OK    = "s_btn_OK" 
+   &HELP  = "s_btn_Help"
+}
+
+
 enable cpy_lst_Tbls
        btn_Copy_AsIs
        btn_Copy_Mod
@@ -465,7 +579,6 @@ do ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
       	       	      btn_Copy_AsIs in frame fldcopy,
       	       	      btn_Copy_Mod  in frame fldcopy.
 end.
-
 hide frame fldcopy.
 return.
 

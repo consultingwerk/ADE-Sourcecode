@@ -66,7 +66,7 @@
      05/12/08 Handle duplicate field names being added - OE00166402
      12/08/08 Handle case where index is re-added - OE00177558
      04/14/09 Handle update of new object
-                     
+     09/25/11 Delta sql support for constraint feature by kmayur               
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
 put the DEFAULT ' ' syntax on the definition for a new field. D. McMann 11/27/02                 
@@ -168,6 +168,34 @@ DEFINE VARIABLE index_df_start  AS INTEGER             NO-UNDO.
 DEFINE VARIABLE index_sql_start AS INTEGER             NO-UNDO.
 DEFINE VARIABLE origName      AS CHARACTER             NO-UNDO.
 
+DEFINE VARIABLE conline       AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE conline1      AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE conline2      AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE conname       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE conline3      AS CHARACTER INITIAL ?   NO-UNDO.
+DEFINE VARIABLE conidx        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE fldcon        AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE is_check      AS LOGICAL INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE con-number    AS INTEGER               NO-UNDO.
+DEFINE VARIABLE pos-comma     AS INTEGER               NO-UNDO.
+DEFINE VARIABLE df-con        AS CHARACTER EXTENT 7    NO-UNDO.
+DEFINE VARIABLE con-fld-name  AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE con-ty        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE par-tab       AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE par-index     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE con-actn      AS CHARACTER             NO-UNDO.
+
+
+DEFINE TEMP-TABLE con-index NO-UNDO
+  FIELD con-table    LIKE _file._File-name
+  FIELD idx-name     LIKE _Index._Index-name
+  FIELD idx-fld-name LIKE _field._Field-name.
+
+DEFINE TEMP-TABLE con-type NO-UNDO  
+  FIELD con-tab      LIKE _file._File-name  
+  FIELD idx-nam      LIKE _Index._Index-name
+  FIELD type     LIKE _Constraint._Con-type.
+  
 DEFINE TEMP-TABLE upt-blob NO-UNDO
     FIELD upt-line AS CHARACTER
     FIELD upt-seq  AS INTEGER
@@ -266,6 +294,10 @@ DEFINE TEMP-TABLE verify-index NO-UNDO
 DEFINE TEMP-TABLE warnlong NO-UNDO
    FIELD wname AS CHARACTER
    INDEX wnamel wname.
+
+DEFINE TEMP-TABLE verify-con NO-UNDO
+  FIELD cnew-name LIKE _constraint._con-name
+  INDEX trun-name IS UNIQUE cnew-name.
 
 DEFINE BUFFER n-obj FOR new-obj.
     
@@ -755,6 +787,19 @@ PROCEDURE write-idx-sql:
   END.                                 
 END PROCEDURE.
 
+PROCEDURE write-con-sql:
+    IF conline = ? OR conline = "" THEN LEAVE.
+    IF fldcon = TRUE THEN
+       PUT STREAM tosql UNFORMATTED comment_chars conline ";" SKIP.
+    ELSE
+       PUT STREAM tosql UNFORMATTED comment_chars conline ");"  SKIP.
+    PUT STREAM tosql UNFORMATTED comment_chars " " SKIP.
+   
+    ASSIGN conline = ?
+            fldcon = FALSE.      
+           
+END.    
+
 PROCEDURE write-seq-sql:
   IF seq-line = ? OR seq-line = "" THEN LEAVE.
   IF seq-type = "d"  THEN 
@@ -901,7 +946,15 @@ PROCEDURE create-new-obj:
             tbl-name = ilin[5]
             for-name = forname
             prg-name = ilin[3].
-  END.       
+  END.
+  ELSE IF atype = "C" THEN DO:
+     CREATE new-obj.
+     ASSIGN add-type = "C"
+            tbl-name = ilin[5]
+            for-name = forname
+            prg-name = ilin[3].
+  END.         
+         
 END PROCEDURE. 
 
 PROCEDURE create-view:
@@ -1377,6 +1430,7 @@ PROCEDURE create-idx-field:
       END.
 
       IF NOT shadowcol THEN DO:
+          ASSIGN con-fld-name = DICTDB._Field._For-name.      
           IF DICTDB._Field._Data-type <> "Character" THEN DO:
             IF INDEX(idxline, "(") = 0 THEN
               ASSIGN idxline = idxline + "( " + DICTDB._Field._For-name.
@@ -1392,7 +1446,8 @@ PROCEDURE create-idx-field:
       END.     
       ELSE DO: /* shadowcol */
 
-          IF DICTDB._Field._Data-type <> "Character" THEN DO: 
+          IF DICTDB._Field._Data-type <> "Character" THEN DO:
+              ASSIGN con-fld-name = DICTDB._Field._For-name.           
               IF INDEX(idxline, "(") = 0 THEN
                 ASSIGN idxline = idxline + "( " + DICTDB._Field._For-name.
               ELSE
@@ -1404,7 +1459,7 @@ PROCEDURE create-idx-field:
                     CAN-FIND(new-obj where new-obj.add-type = "F"
                                        AND new-obj.tbl-name = tablename
                                        AND new-obj.fld-name = "U##" + ilin[2]) THEN DO: /* shawdow column exists in file */
-    
+                  ASSIGN con-fld-name = "U##" + DICTDB._Field._For-name.    
                   IF INDEX(idxline, "(") = 0 THEN
                     ASSIGN idxline = idxline + "(U##" + DICTDB._Field._For-name.
                   ELSE
@@ -1473,13 +1528,14 @@ PROCEDURE create-idx-field:
                                  ASSIGN new-obj.for-type = /*"LONG"*/ longType.
                              END.     
                              */
-
+                             ASSIGN con-fld-name = new-obj.fld-name.
                              IF INDEX(idxline, "(") = 0 THEN
                                ASSIGN idxline = idxline + "(" + new-obj.fld-name.
                              ELSE
                                ASSIGN idxline = idxline + ", " + new-obj.fld-name.                                                  
                       END.
                       ELSE DO: /* Available new-obj for shawdow */
+                             ASSIGN con-fld-name = new-obj.fld-name.                    
                              IF INDEX(idxline, "(") = 0 THEN
                                ASSIGN idxline = idxline + "(" + new-obj.fld-name.
                              ELSE
@@ -1513,12 +1569,14 @@ PROCEDURE create-idx-field:
 
             IF NOT shadowcol THEN DO:
                   IF DICTDB._Field._Data-type <> "Character" THEN DO:
+                    ASSIGN con-fld-name = DICTDB._Field._For-name.                 
                     IF INDEX(idxline, "(") = 0 THEN
                       ASSIGN idxline = idxline + "( " + DICTDB._Field._For-name.
                     ELSE
                       ASSIGN idxline = idxline + ", " + DICTDB._Field._For-name.  
                   END.
                   ELSE DO:
+                    ASSIGN con-fld-name = DICTDB._Field._For-name.                  
                     IF INDEX(idxline, "(") = 0 THEN
                       ASSIGN idxline = idxline + "(UPPER(" + DICTDB._Field._For-name + ")".
                     ELSE
@@ -1531,7 +1589,8 @@ PROCEDURE create-idx-field:
                       IF (DICTDB._Field._Fld-misc2[2] <> ? and DICTDB._Field._Fld-misc2[2] <> "") OR
                          CAN-FIND(new-obj where new-obj.add-type = "F"
                                             AND new-obj.tbl-name = tablename
-                                            AND new-obj.fld-name = "U##" + DICTDB._Field._For-name) THEN DO:                     
+                                            AND new-obj.fld-name = "U##" + DICTDB._Field._For-name) THEN DO:   
+                            ASSIGN con-fld-name = "U##" + dsv-name.                                   
                             IF INDEX(idxline, "(") = 0 THEN
                               ASSIGN idxline = idxline + "(U##" + dsv-name.
                             ELSE
@@ -1596,13 +1655,14 @@ PROCEDURE create-idx-field:
                                     ASSIGN new-obj.for-type = /*"LONG"*/ longType.
                               END.     
                               */
-
+                            ASSIGN con-fld-name = new-obj.fld-name.
                             IF INDEX(idxline, "(") = 0 THEN
                               ASSIGN idxline = idxline + "(" + new-obj.fld-name.
                             ELSE
                               ASSIGN idxline = idxline + ", " + new-obj.fld-name.                                                  
                           END.                                 
                           ELSE DO: /* Available new-obj for shawdow */
+                                ASSIGN con-fld-name = new-obj.fld-name.                          
                                 IF INDEX(idxline, "(") = 0 THEN
                                   ASSIGN idxline = idxline + "(" + new-obj.fld-name.
                                 ELSE
@@ -1611,6 +1671,7 @@ PROCEDURE create-idx-field:
                     END. /* shawdow not in existing file */
                   END. /* End available field that is a character. */
                   ELSE DO:
+                        ASSIGN con-fld-name = DICTDB._Field._For-name.               
                         IF INDEX(idxline, "(") = 0 THEN
                           ASSIGN idxline = idxline + "( " + DICTDB._Field._For-name.
                         ELSE
@@ -1640,6 +1701,7 @@ PROCEDURE create-idx-field:
             ASSIGN fortype = new-obj.for-type
                    forname = new-obj.for-name.
             IF NOT shadowcol THEN DO:
+                ASSIGN con-fld-name = new-obj.for-name.          
                 IF INDEX(idxline, "(") = 0 THEN
                   ASSIGN idxline = idxline + "(UPPER(" + new-obj.for-name + ")".
                 ELSE
@@ -1698,7 +1760,7 @@ PROCEDURE create-idx-field:
         
                         PUT STREAM tosql UNFORMATTED comment_chars " ADD " + new-obj.for-name + " " + new-obj.for-type + ";" SKIP(1).                                                          
                   END.                 
-
+                  ASSIGN con-fld-name = IF AVAILABLE n-obj THEN n-obj.for-name ELSE new-obj.for-name.  
                   IF INDEX(idxline, "(") = 0 THEN
                     ASSIGN idxline = idxline + "(" + (IF AVAILABLE n-obj THEN n-obj.for-name ELSE new-obj.for-name).
                   ELSE
@@ -1707,6 +1769,7 @@ PROCEDURE create-idx-field:
 
           END.
           ELSE DO:
+            ASSIGN con-fld-name =  new-obj.for-name.
             IF INDEX(idxline, "(") = 0 THEN
               ASSIGN idxline = idxline + "(" + new-obj.for-name.
             ELSE
@@ -1734,6 +1797,7 @@ PROCEDURE create-idx-field:
       IF SUBSTRING(new-obj.for-type,2,7) = "VARCHAR" 
           OR SUBSTRING(new-obj.for-type,2,8) = "NVARCHAR" THEN DO:
           IF NOT shadowcol THEN DO:
+                ASSIGN con-fld-name =  new-obj.for-name.          
                 IF INDEX(idxline, "(") = 0 THEN
                   ASSIGN idxline = idxline + "(UPPER(" + new-obj.for-name + ")".
                  ELSE
@@ -1741,6 +1805,7 @@ PROCEDURE create-idx-field:
           END.
           ELSE DO: /* shadowcol */
                   RUN new-obj-idx.
+                  ASSIGN con-fld-name =  new-obj.for-name.                  
                   IF INDEX(idxline, "(") = 0 THEN
                     ASSIGN idxline = idxline + "(" + new-obj.for-name.
                   ELSE
@@ -1749,6 +1814,7 @@ PROCEDURE create-idx-field:
 
       END.       
       ELSE DO:
+        ASSIGN con-fld-name =  new-obj.for-name.        
         IF INDEX(idxline, "(") = 0 THEN
           ASSIGN idxline = idxline + "(" + new-obj.for-name.
         ELSE
@@ -1758,6 +1824,7 @@ PROCEDURE create-idx-field:
               ASSIGN idxline = idxline + " DESC".
     END. 
   END.
+  IF conline = ? THEN DO:  
   CREATE df-info.
   ASSIGN df-info.df-seq = dfseq
          dfseq = dfseq + 1
@@ -1768,7 +1835,148 @@ PROCEDURE create-idx-field:
       ASSIGN df-info.df-line = df-info.df-line + ilin[j] + " ".
     ELSE 
       ASSIGN j = 6. 
+  END.  
+    CREATE  con-index.
+    ASSIGN  con-table = tablename
+            idx-name  = idxname
+            idx-fld-name = con-fld-name.    
   END.                                                 
+END PROCEDURE.
+
+PROCEDURE create-con-field:
+  FIND DICTDB._File WHERE DICTDB._File._File-name = tablename NO-ERROR.
+  IF NOT AVAILABLE DICTDB._FILE THEN DO:               
+    FIND rename-obj WHERE rename-type = "T"   
+                      AND new-name = tablename
+                      NO-ERROR.
+    IF AVAILABLE rename-obj THEN 
+      FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR.            
+  END.        
+
+  IF AVAILABLE DICTDB._File THEN DO:        
+    FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = conidx NO-ERROR.
+    IF NOT AVAILABLE DICTDB._Index THEN DO:               
+      FIND rename-obj WHERE rename-type = "I"
+                      AND t-name = tablename   
+                      AND new-name = conidx
+                      NO-ERROR.
+      IF AVAILABLE rename-obj THEN 
+      FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = old-name NO-ERROR.            
+    END.        
+    IF AVAILABLE DICTDB._Index THEN DO:
+      FOR EACH DICTDB._Index-Field OF DICTDB._Index:
+        FIND DICTDB._Field OF DICTDB._Index-Field NO-ERROR.
+        IF AVAILABLE DICTDB._Field THEN DO:
+               IF INDEX(conline, "(") = 0 THEN
+                   conline = conline + "(" + DICTDB._Field._For-Name.
+               ELSE
+                   conline = conline + ", " + DICTDB._Field._For-Name.           
+        END.                          
+      END.
+    END.  
+    ELSE DO:
+     FIND FIRST new-obj WHERE new-obj.add-type = "I"
+                             AND new-obj.tbl-name = tablename
+                             AND new-obj.prg-name = conidx
+                                        NO-ERROR.
+       IF AVAILABLE new-obj THEN DO:
+           FOR EACH con-index WHERE con-table = tablename AND idx-name = conidx:    
+               IF INDEX(conline, "(") = 0 THEN
+                   conline = conline + "(" + idx-fld-name.
+               ELSE
+                   conline = conline + ", " + idx-fld-name.              
+           END.                                 
+       END. 
+       ELSE MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+    END.
+  END.
+  ELSE DO:
+     FIND FIRST new-obj WHERE new-obj.add-type = "I"
+                             AND new-obj.tbl-name = tablename
+                             AND new-obj.prg-name = conidx
+                                        NO-ERROR.
+       IF AVAILABLE new-obj THEN DO:
+           FOR EACH con-index WHERE con-table = tablename AND idx-name = conidx:    
+               IF INDEX(conline, "(") = 0 THEN
+                   conline = conline + "(" + idx-fld-name.
+               ELSE
+                   conline = conline + ", " + idx-fld-name.              
+           END.                                 
+       END. 
+       ELSE MESSAGE "Parent index for the Foreign constraint is not available " VIEW-AS ALERT-BOX ERROR.
+   END. 
+END PROCEDURE.
+
+PROCEDURE create-for-con:
+  ASSIGN tablename = par-tab.
+  
+  FIND DICTDB._File WHERE DICTDB._File._File-name = par-tab NO-ERROR.      
+  IF AVAILABLE DICTDB._File THEN 
+      ASSIGN conline = conline + ") REFERENCES " + DICTDB._File._For-name + "(".
+  ELSE DO:
+    FIND FIRST rename-obj WHERE rename-type = "T"
+         AND rename-obj.new-name = par-tab
+         NO-ERROR.
+    IF AVAILABLE rename-obj THEN 
+       ASSIGN conline = conline + ") REFERENCES " + dsv-name + "(".
+       FIND DICTDB._File WHERE DICTDB._File._File-name = old-name NO-ERROR.                      
+  END.
+
+  IF AVAILABLE DICTDB._File THEN DO:
+    FIND DICTDB._Constraint OF DICTDB._File WHERE DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC"
+               OR DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "U" NO-ERROR.
+    IF AVAILABLE DICTDB._Constraint THEN DO:
+            FIND DICTDB._Index OF DICTDB._Constraint WHERE DICTDB._Index._Index-Name = par-index  NO-ERROR.
+            IF AVAILABLE DICTDB._Index THEN DO:
+               ASSIGN conidx = DICTDB._Index._Index-Name.               
+               RUN create-con-field.
+            END.   
+    END.
+    
+    ELSE DO:
+           FIND FIRST new-obj WHERE new-obj.add-type = "C"
+                      AND new-obj.tbl-name = par-tab
+                      NO-ERROR.  
+           IF AVAILABLE new-obj THEN DO:
+              FIND con-type WHERE con-type.con-tab = par-tab AND con-type.idx-nam = par-index
+                            AND  (con-type.type = "P" OR con-type.type = "U") NO-ERROR.
+               IF AVAILABLE con-type THEN DO:
+                  ASSIGN conidx = con-type.idx-nam.
+                  RUN create-con-field.      
+               END.               
+           END.            
+           ELSE DO:
+              MESSAGE "parent table does not have a primary constraint " view-as alert-box.
+              RETURN.
+           END.   
+    END.   
+  
+  END.
+  ELSE DO:
+           FIND FIRST new-obj WHERE new-obj.add-type = "T"
+                     AND new-obj.tbl-name = par-tab
+                      NO-ERROR.
+           IF AVAILABLE new-obj THEN
+               ASSIGN conline = conline + ") REFERENCES " + new-obj.for-name + "(". 
+
+           FIND FIRST new-obj WHERE new-obj.add-type = "C"
+                      AND new-obj.tbl-name = par-tab
+                      NO-ERROR.  
+           IF AVAILABLE new-obj THEN DO:
+              FIND con-type WHERE con-type.con-tab = par-tab AND con-type.idx-nam = par-index
+                            AND  (con-type.type = "P" OR con-type.type = "U") NO-ERROR.
+               IF AVAILABLE con-type THEN DO:
+                  ASSIGN conidx = con-type.idx-nam.
+                  RUN create-con-field.      
+               END.               
+           END.            
+           ELSE
+              MESSAGE "parent table does not have a primary constraint " view-as alert-box.                                     
+  END.
+  assign conline1 = substring(conline, 1, index(conline,"REFERENCES") + 10).
+  assign conline2 = substring(conline, index(conline,"REFERENCES") + 11, -1).
+  pos-comma = index(conline2,",").
+  assign conline = conline1 + " " + substring(conline2, 1, pos-comma - 1) + substring(conline2,pos-comma + 2, -1).  
 END PROCEDURE.
 
 /* skip an index if it contains a long or clob column */
@@ -2317,7 +2525,8 @@ DO ON STOP UNDO, LEAVE:
         WHEN "FILE":u     OR WHEN "TABLE":u   THEN ASSIGN iobj = "t":u.                  
         WHEN "FIELD":u    OR WHEN "COLUMN":u THEN ASSIGN iobj = "f":u.        
         WHEN "INDEX":u    OR WHEN "KEY":u THEN ASSIGN iobj = "i":u.                      
-        WHEN "SEQUENCE":u                 THEN ASSIGN iobj = "s":u.        
+        WHEN "SEQUENCE":u                 THEN ASSIGN iobj = "s":u.
+        WHEN "CONSTRAINT":u               THEN ASSIGN iobj = "c":u.          
       END CASE.
     END.
     /* This code is here only for when the index syntax is
@@ -2364,7 +2573,10 @@ DO ON STOP UNDO, LEAVE:
 
        IF seq-line <> ? THEN
           RUN write-seq-sql.
-
+       
+       IF conline <> ? THEN
+          RUN write-con-sql.
+          
        IF tablename <> ilin[3] THEN
          ASSIGN tablename = ilin[3]
                  comment_chars = ""
@@ -2404,7 +2616,10 @@ DO ON STOP UNDO, LEAVE:
         
         IF seq-line <> ? THEN
           RUN write-seq-sql. 
-
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+          
         IF tablename <> ilin[5] THEN
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
@@ -2465,7 +2680,10 @@ DO ON STOP UNDO, LEAVE:
 
           IF seq-line <> ? THEN
             RUN write-seq-sql.
-         
+       
+          IF conline <> ? THEN
+            RUN write-con-sql.
+                   
           ASSIGN addtable = TRUE
                  tablename = ilin[3]
                  fldnum = 0
@@ -2685,7 +2903,10 @@ DO ON STOP UNDO, LEAVE:
           
           IF seq-line <> ? THEN
             RUN write-seq-sql.
-          
+       
+          IF conline <> ? THEN
+            RUN write-con-sql.
+                    
           IF tablename <> ilin[3] THEN
             ASSIGN tablename = ilin[3]
                    comment_chars = ""
@@ -2759,7 +2980,10 @@ DO ON STOP UNDO, LEAVE:
 
         IF seq-line <> ? THEN
           RUN write-seq-sql.
-     
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+               
         IF tablename <> ilin[5] THEN
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
@@ -2865,7 +3089,10 @@ DO ON STOP UNDO, LEAVE:
         
         IF seq-line <> ? THEN
           RUN write-seq-sql.
-
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+          
         IF tablename <> ilin[5] THEN
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
@@ -2975,7 +3202,10 @@ DO ON STOP UNDO, LEAVE:
           
           IF seq-line <> ? THEN
             RUN write-seq-sql.
-
+       
+          IF conline <> ? THEN
+            RUN write-con-sql.
+          
           IF tablename <> ilin[5] THEN
             ASSIGN tablename = ilin[5]
                    comment_chars = ""
@@ -3870,7 +4100,10 @@ DO ON STOP UNDO, LEAVE:
  
           IF seq-line <> ? THEN
             RUN write-seq-sql.
-
+       
+          IF conline <> ? THEN
+            RUN write-con-sql.
+          
           IF tablename <> ilin[5] THEN
             ASSIGN tablename = ilin[5]
                    comment_chars = ""
@@ -4107,7 +4340,10 @@ DO ON STOP UNDO, LEAVE:
 
         IF seq-line <> ? THEN
           RUN write-seq-sql.
-
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+          
         IF tablename <> ilin[5] THEN 
           ASSIGN tablename = ilin[5]
                  comment_chars = ""
@@ -4248,7 +4484,10 @@ DO ON STOP UNDO, LEAVE:
             
           IF seq-line <> ? THEN
             RUN write-seq-sql.
-
+       
+          IF conline <> ? THEN
+            RUN write-con-sql.
+          
           ASSIGN wordidx = FALSE
                  wordfile = ?
                  is-unique = FALSE
@@ -4573,7 +4812,10 @@ DO ON STOP UNDO, LEAVE:
         
         IF seq-line <> ? THEN
           RUN write-seq-sql.
-
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+          
         ASSIGN tablename = ilin[7]
                comment_chars = ""
                comment-out = FALSE
@@ -4632,7 +4874,10 @@ DO ON STOP UNDO, LEAVE:
 
         IF seq-line <> ? THEN
           RUN write-seq-sql.
-
+       
+        IF conline <> ? THEN
+          RUN write-con-sql.
+          
         /* only update if primary is changing since word indexes can't be primary */
         IF ilin[2] = "PRIMARY" THEN DO:   
           FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[6] NO-ERROR.  
@@ -4696,7 +4941,10 @@ DO ON STOP UNDO, LEAVE:
         RUN write-tbl-sql.
    
       RUN write-idx-sql.
-
+       
+      IF conline <> ? THEN
+          RUN write-con-sql.
+          
       ASSIGN tablename = ?
              comment_chars = ""
              comment-out = FALSE.
@@ -4840,7 +5088,357 @@ DO ON STOP UNDO, LEAVE:
                            ilin[4] + ' "' + ilin[5] + '"'.
         END.  
       END.
-    END.  
+    END.
+    ELSE IF iobj = "c" THEN DO:  
+      /* Drop a constraint */
+      IF imod = "d" THEN DO:
+        RUN write-tbl-sql.
+       
+        IF idxline <> ? THEN 
+          RUN write-idx-sql.
+
+        IF seq-line <> ? THEN
+          RUN write-seq-sql.
+        
+        IF conline <> ? THEN
+          RUN write-con-sql.  
+
+        IF tablename <> ilin[5] THEN 
+          ASSIGN tablename = ilin[5]
+                 conname = ilin[3]
+                 comment_chars = ""
+                 comment-out = FALSE.
+       
+ 
+        FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[5]
+                                  AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.                                  
+        IF AVAILABLE DICTDB._File THEN DO:
+          FIND DICTDB._Constraint OF DICTDB._File WHERE DICTDB._Constraint._Con-name = ilin[3] NO-ERROR.
+          IF AVAILABLE DICTDB._Constraint THEN DO:
+            PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " DICTDB._File._For-name " DROP CONSTRAINT "  DICTDB._Constraint._For-name ";" SKIP.
+            PUT STREAM tosql UNFORMATTED comment_chars " " SKIP.
+            CREATE df-info.
+            ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-line =  "DROP CONSTRAINT " + '"' + DICTDB._Constraint._Con-name +
+                              '"' + " ON " + '"' + ilin[5] + '"'.           
+          END.
+          ELSE DO:
+              MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                          "and constraint does not exist in the schema holder." SKIP
+                          "This process is being aborted."  SKIP (1)
+                  VIEW-AS ALERT-BOX ERROR.
+              RETURN.
+          END.
+        END.
+        ELSE DO:
+          FIND FIRST rename-obj WHERE rename-type = "T"
+                                  AND new-name = ilin[5]
+                                  NO-ERROR.
+                                                                 
+          IF AVAILABLE rename-obj THEN DO:
+            FIND DICTDB._File WHERE DICTDB._File._File-name = old-name
+                                  AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
+            IF NOT AVAILABLE DICTDB._File THEN DO:
+              MESSAGE "The Delta DF File contains DROP CONSTRAINT for table" ilin[5] SKIP
+                      "and constraint does not exist in the schema holder." SKIP
+                      "This process is being aborted."  SKIP (1)
+                  VIEW-AS ALERT-BOX ERROR.
+              RETURN.
+            END.
+            IF AVAILABLE DICTDB._File THEN DO:
+               FIND DICTDB._Constraint OF DICTDB._File WHERE DICTDB._Constraint._Con-name = ilin[3] NO-ERROR.
+               IF AVAILABLE DICTDB._Constraint THEN DO:
+                  PUT STREAM tosql UNFORMATTED comment_chars " ALTER TABLE " DICTDB._File._For-name " DROP CONSTRAINT "  DICTDB._Constraint._For-name ";" SKIP.
+                  PUT STREAM tosql UNFORMATTED comment_chars " " SKIP.
+                 CREATE df-info.
+                 ASSIGN df-info.df-seq = dfseq
+                        dfseq = dfseq + 1
+                        df-info.df-tbl = tablename
+                        df-line =  "DROP CONSTRAINT " + '"' + DICTDB._Constraint._Con-name +
+                                   '"' + " ON " + '"' + ilin[5] + '"'.           
+               END.
+               ELSE DO:
+                    MESSAGE "The Delta DF File contains DROP CONSTRAINT" ilin[3] "for table" ilin[5] SKIP
+                            "and constraint does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1)
+                         VIEW-AS ALERT-BOX ERROR.
+                    RETURN.
+               END.
+
+            END.  
+          END.
+        END.        
+        ASSIGN conline = ?.
+      END. /* End delete constraint */ 
+      IF imod = "a" THEN DO:
+        IF ilin[1] = "ADD" and ilin[2] = "CONSTRAINT" THEN DO:     
+
+          RUN write-tbl-sql.
+                                 
+          IF idxline <> ? THEN 
+            RUN write-idx-sql.
+            
+          IF seq-line <> ? THEN
+            RUN write-seq-sql.
+
+          IF conline <> ? THEN
+            RUN write-con-sql.
+          IF tablename <> ilin[5] THEN
+            ASSIGN tablename = ilin[5]
+                   comment_chars = ""
+                   comment-out = FALSE.
+
+          ASSIGN transname = ilin[3]
+                 conname = ilin[3].
+          IF xlate THEN DO:          
+            ASSIGN transname = transname  + "," + idbtyp + "," + user_env[28].          
+            RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT transname).
+          END. 
+          ASSIGN transname = transname.              
+          IF user_env[6] = "Y" THEN DO:
+            FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[5] NO-ERROR.
+            IF AVAILABLE DICTDB._File THEN DO:  
+              ASSIGN con-number = 0.
+              FOR EACH DICTDB._Constraint OF DICTDB._File:
+                IF con-number < DICTDB._Constraint._Con-num THEN
+                  ASSIGN con-number = DICTDB._Constraint._Con-num.
+              END.
+              FOR EACH n-obj WHERE n-obj.tbl-name = ilin[5]
+                               AND n-obj.add-type = "C":
+                  ASSIGN con-number = con-number + 1.
+              END.
+              ASSIGN con-number = con-number + 1.          
+                     forname = transname.
+         
+               _verify-con:
+              DO WHILE TRUE:
+                FIND FIRST verify-con WHERE verify-con.cnew-name = forname NO-ERROR.
+                FIND FIRST DICTDB._Constraint WHERE CAPS(DICTDB._Constraint._For-name) = CAPS(forname)
+                                           AND DICTDB._Constraint._File-recid = RECID(DICTDB._File) NO-ERROR.
+
+                IF AVAILABLE verify-con OR AVAILABLE DICTDB._Constraint THEN DO:
+                  DO a = 1 TO 999:
+                    IF a = 1 THEN
+                      ASSIGN forname = forname + STRING(a).
+                    ELSE
+                      ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - LENGTH(STRING(a))) + STRING(a). 
+                    IF CAN-FIND(FIRST DICTDB._Constraint WHERE DICTDB._Constraint._File-recid = RECID(DICTDB._File)
+                                                  AND DICTDB._Constraint._For-name = forname) THEN NEXT.
+                    ELSE IF CAN-FIND(FIRST verify-con WHERE verify-con.cnew-name = forname) THEN NEXT.
+                    ELSE DO:
+                      CREATE verify-con.
+                      ASSIGN verify-con.cnew-name = forname.
+                      LEAVE _verify-con.
+                    END.
+                  END.
+                END.
+                ELSE DO:
+                  CREATE verify-con.
+                  ASSIGN verify-con.cnew-name = forname.
+                  LEAVE _verify-con.
+                END.
+              END.
+            END. 
+            ELSE DO:
+              FIND FIRST new-obj WHERE new-obj.add-type = "T"
+                                 AND new-obj.tbl-name = ilin[5]
+                                 NO-ERROR.
+              IF AVAILABLE new-obj THEN DO:
+              ASSIGN forname = transname.                 
+                _verify-new-con:
+                DO WHILE TRUE:
+                  FIND FIRST verify-con WHERE verify-con.cnew-name = forname NO-ERROR.
+                  FIND FIRST n-obj WHERE n-obj.for-name = forname 
+                                       AND n-obj.tbl-name = ilin[5]
+                                       AND n-obj.add-type = "C" NO-ERROR.
+                  IF AVAILABLE verify-con OR AVAILABLE n-obj THEN
+                    ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - 1).
+                  ELSE DO:
+                    CREATE verify-con.
+                    ASSIGN verify-con.cnew-name = forname.
+                    LEAVE _verify-new-con.
+                  END.
+                END.
+              END.
+              ELSE DO:
+                FIND FIRST rename-obj WHERE rename-type = "T"
+                                        AND rename-obj.new-name = ilin[5]
+                                        NO-ERROR.
+                IF AVAILABLE rename-obj THEN DO: 
+                  FIND DICTDB._File WHERE DICTDB._File._File-name = rename-obj.old-name.
+                  IF AVAILABLE DICTDB._File THEN DO:
+                    ASSIGN con-number = 0.
+                    FOR EACH DICTDB._Constraint OF DICTDB._File:
+                      IF con-number < DICTDB._Constraint._Con-num THEN
+                        ASSIGN con-number = DICTDB._Constraint._Con-num.
+                    END.
+                    FOR EACH n-obj WHERE n-obj.tbl-name = ilin[5]
+                                    AND n-obj.add-type = "C":
+                       ASSIGN con-number = con-number + 1.
+                    END.
+                    ASSIGN con-number = con-number + 1.
+                  END.
+                END.
+              END.                                       
+            END. 
+          END.
+          ELSE
+            ASSIGN forname = transname.
+          
+          IF AVAILABLE DICTDB._File THEN 
+              ASSIGN conline = "ALTER TABLE " + DICTDB._File._For-name + " ADD CONSTRAINT " + forname.
+          ELSE DO:
+            FIND FIRST new-obj WHERE new-obj.add-type = "T"
+                                 AND new-obj.tbl-name = ilin[5]
+                                 NO-ERROR.
+            IF AVAILABLE new-obj THEN
+               ASSIGN conline = "ALTER TABLE " + new-obj.for-name + " ADD CONSTRAINT " + forname. 
+            ELSE DO:
+              FIND FIRST rename-obj WHERE rename-type = "T"
+                                      AND rename-obj.new-name = ilin[5]
+                                      NO-ERROR.
+              IF AVAILABLE rename-obj THEN 
+                   ASSIGN conline = "ALTER TABLE " + dsv-name + " ADD CONSTRAINT " + forname.                      
+            END.
+          END.
+          ASSIGN df-con[1] = 'ADD CONSTRAINT "' + ilin[3] + '" ON "' + ilin[5] + '"'
+                 con-number = con-number + 1.
+
+          IF NOT AVAILABLE DICTDB._File AND NOT AVAILABLE rename-obj AND NOT AVAILABLE new-obj THEN DO:
+            MESSAGE "The Delta DF File contains ADD CONSTRAINT for table" ilin[5] SKIP
+                    "and table information does not exist." SKIP
+                    "This process is being aborted."  SKIP (1)
+                    VIEW-AS ALERT-BOX ERROR.
+            RETURN.
+          END.
+
+          RUN create-new-obj (INPUT "C", INPUT ?). 
+          ASSIGN ilin = ?.
+        END.  /* End of add constraint line */
+        ELSE DO:           
+          CASE ilin[1]:
+            WHEN "PRIMARY" OR WHEN "PRIMARY-CLUSTERED" THEN 
+              ASSIGN conline = conline + " PRIMARY KEY "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "P".
+            WHEN "UNIQUE" THEN 
+              ASSIGN conline = conline + " UNIQUE "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "U".
+            WHEN "CLUSTERED" THEN
+              ASSIGN conline = conline + " CLUSTERED "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "CL".                     
+            WHEN "FOREIGN-KEY" THEN 
+              ASSIGN conline = conline + " FOREIGN KEY "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "F".
+            WHEN "CHECK" THEN 
+              ASSIGN conline = conline + " CHECK "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "C".
+            WHEN "DEFAULT" THEN 
+              ASSIGN conline = conline + " DEFAULT "
+                     df-con[2] = "  " + ilin[1]
+                     con-ty = "D".                                                                          
+            WHEN "INACTIVE" THEN 
+              ASSIGN conline = ?
+                     df-con[3] = "  " + ilin[1].
+            WHEN "ACTIVE" THEN 
+              ASSIGN df-con[3] = "  " + ilin[1].              
+            WHEN "CONSTRAINT-INDEX" THEN DO:
+              ASSIGN df-con[4] = "  " + ilin[1] + " " + '"' + ilin[2] + '"'
+                     conidx = ilin[2]
+                     fldcon = FALSE.
+                     CREATE con-type.
+                     ASSIGN con-type.con-tab = tablename   
+                            con-type.idx-nam = ilin[2] 
+                            con-type.type    = con-ty.   
+                     RUN create-con-field.
+                     
+                     IF df-con[1] <> ? AND con-ty <> "F" AND con-ty <> "CL" THEN DO:
+                       DO i = 1 TO 4:
+                          IF df-con[i] <> ? THEN DO:
+                            CREATE df-info.
+                            ASSIGN df-info.df-seq = dfseq
+                                   dfseq = dfseq + 1
+                                   df-info.df-tbl = tablename
+                                   df-line = df-con[i].
+                           END.
+                       END.
+                       ASSIGN df-con = ?.
+                     END. 
+               IF con-ty = "CL"  THEN 
+                              ASSIGN conline = ?
+                                      df-con = ? .
+            END.                
+          
+            WHEN "CONSTRAINT-FIELD" THEN DO:
+              ASSIGN df-con[4] = "  " + ilin[1] + " " + '"' + ilin[2] + '"'.
+              RUN create-idx-field. /* this procedure is being used to fetch the field name for constraint definition */
+              ASSIGN idxline = ?.                         
+            END.
+           
+            WHEN "CONSTRAINT-EXPR" THEN DO:
+              IF con-ty = "C" THEN
+                  ASSIGN conline = conline + " (" + replace(ilin[2],"-","_") + ")".
+              ELSE
+                  ASSIGN conline = conline + " " + replace(ilin[2],"-","_") + " FOR " + con-fld-name.                  
+              
+              ASSIGN df-con[5] = "  " + ilin[1] + ' "' + ilin[2] + '"'                     
+                     fldcon = TRUE.                   
+            
+               IF df-con[1] <> ? AND con-ty <> "D" THEN DO:
+                 DO i = 1 TO 5:
+                   IF df-con[i] <> ? THEN DO:
+                    CREATE df-info.
+                    ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-info.df-tbl = tablename
+                           df-line = df-con[i].
+                   END.
+                 END.
+               END. 
+                     ASSIGN df-con = ?.   
+               IF con-ty = "D"  THEN ASSIGN conline = ?.                    
+            END.        
+
+            WHEN "PARENT-TABLE" THEN DO:          
+                 ASSIGN par-tab = ilin[2].
+                 ASSIGN df-con[5] = "  " + ilin[1] + ' "' + ilin[2] + '"'.           
+            END.
+
+            WHEN "PARENT-INDEX" THEN DO:
+              ASSIGN df-con[6] = "  " + ilin[1] + ' "' + ilin[2] + '"'
+                     par-index = ilin[2].
+              RUN create-for-con.
+            END.
+            WHEN "CONSTRAINT-ACTION" THEN DO:
+              ASSIGN df-con[7] = "  " + ilin[1] + ' "' + ilin[2] + '"'
+                     con-actn  = ilin[2]
+                     fldcon = TRUE.
+              IF df-con[1] <> ? THEN DO:
+                 DO i = 1 TO 7:
+                    IF df-con[i] <> ? THEN DO:
+                     CREATE df-info.
+                     ASSIGN df-info.df-seq = dfseq
+                           dfseq = dfseq + 1
+                           df-info.df-tbl = tablename
+                           df-line = df-con[i].
+                    END.
+                 END.
+               END. 
+               IF (con-actn <> "NONE" AND con-actn <> "SET DEFAULT") THEN ASSIGN conline = conline + ") ON DELETE " + con-actn.
+               ELSE ASSIGN conline = conline + ")".
+                 ASSIGN df-con = ?.
+            END.            
+          END CASE.
+        END. /* End of other attributes of add constraint */ 
+      END. /* End of add constraint */
+    END.                
+      
   END.
 END.
 
@@ -4852,7 +5450,7 @@ IF view-created THEN DO:
   RUN write-view.
 END.
 RUN write-seq-sql.
-
+RUN write-con-sql.
 IF user_env[2] = "yes" THEN DO:    
   FOR EACH df-info:     
     IF SUBSTRING(df-line,1,1) <> " " THEN

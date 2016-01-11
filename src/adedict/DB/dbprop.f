@@ -36,6 +36,8 @@ form
                  FORMAT "x(12)" view-as TEXT        SKIP
    s_Db_Cp       LABEL "Codepage"        colon 17
                  FORMAT "x(32)" view-as TEXT    SKIP      
+   s_Db_Multi_Tenancy label "Multi-tenancy"  colon 17
+                 FORMAT "x(32)" view-as TEXT    SKIP      
    s_Db_Large_Sequence LABEL "64-bit Sequences" colon 17
                  FORMAT "x(12)" view-as TEXT SKIP
    s_Db_Large_Keys LABEL "Large Key Entries"     colon 17 

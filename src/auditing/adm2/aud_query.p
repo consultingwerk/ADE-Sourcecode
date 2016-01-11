@@ -2464,13 +2464,15 @@ PROCEDURE fetchDBRowForUpdate :
   DEFINE VARIABLE cAsDivision      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE rRowidList       AS ROWID    EXTENT {&maxtables} NO-UNDO.
   DEFINE VARIABLE lOneToOne        AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE lOk              AS LOGICAL    NO-UNDO.
+ 
   &SCOPED-DEFINE xp-assign
   {get BufferHandles cBuffers}     /* DB Buffer handles. */
   {get RowObjUpd hRowObjUpd} 
   {get Tables cTables}             /* DB Table names. */
   {get UpdatableColumnsByTable cUpdTbls}.
   &UNDEFINE xp-assign
+  
   ASSIGN hRowIdent = hRowObjUpd:BUFFER-FIELD('RowIdent':U)
          cRowIdent = hRowIdent:BUFFER-VALUE
          hRowMod   = hRowObjUpd:BUFFER-FIELD('RowMod':U).
@@ -2556,11 +2558,13 @@ PROCEDURE fetchDBRowForUpdate :
       {get QueryHandle hQuery}.
       IF hQuery:IS-OPEN THEN
       DO:
-        DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
-          rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
-        END.
-        IF hQuery:REPOSITION-TO-ROWID(rRowidList) THEN
-          hQuery:DELETE-RESULT-LIST-ENTRY().
+          DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
+            IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/no rec*/
+               rRowIDList[iTable] = TO-ROWID(ENTRY(iTable, cRowIdent)) NO-ERROR.
+          END.
+          lOk = hQuery:REPOSITION-TO-ROWID(rRowidList) no-error.
+          if lOk THEN
+              hQuery:DELETE-RESULT-LIST-ENTRY().
       END.
     END.
   END.

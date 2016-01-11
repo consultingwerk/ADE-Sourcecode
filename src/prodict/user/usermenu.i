@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -89,6 +89,8 @@ fernando 01/04/06   Changes for 20051230-006.
 fernando 06/09/06   Support for large key entries
 fernando 06/23/08   Support for encryption
 fernando 04/07/09   Added Alternate Buffer Pool utilities
+kmayur   06/21/11   Added options for constraint creation (Server Attributes in Dataserver) OE00195067
+rkamboj  08/16/11   Added new terminology for security items and windows. 
 
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
@@ -168,12 +170,14 @@ Define var Gray_Table as char extent 32 NO-UNDO init /*###*/
    /*Export    */ "F-----,F-----,F-----,F-----",          
    /*Import    */ "F-----,F-----,F-----,F-----,F-----,F-----",    
    /*AltBufPool*/ "FCX--M",
-   /*DataServer*/ "", 
-   /*MSSQL Util*/ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
-   /*MSSQL Tool*/ "FCX---,FCX---,FCX---", 
+   /*DataServer*/ "",
+   /*MSSQL Util*/ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
+   /*OE00195067 MSSQL Server Attributes */ "FCX---,FCX---,FCX---,FCX---",  
+   /*MSSQL Tool*/ "FCX---,FCX---,FCX---",    
    /*Odb Util  */ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
    /*Odb Tools */ "FCX---,FCX---",
    /*ORA Util  */ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
+   /*OE00195067 ORACLE Server Attributes */ "FCX---,FCX---,FCX---",
    /*ORA Tools */ "FCX---,FCX---,FCX---,FCX---",
    /*Utilities */ "FCXQ-N,------,FCX---,FCX---,FCX---,------,FCXQ-N",
    /*Quoter    */ "FCXQ-N,FCXQ-N,FCXQ-N,FCXQ-N", 
@@ -293,7 +297,7 @@ Define sub-menu mnu_Dump
    menu-item mi_Dump_Views    label "SQL &Views..."
    RULE
    menu-item mi_Dump_User     label "&User Table Contents..."
-   MENU-ITEM mi_Dump_Sec_Auth LABEL "Security Aut&hentication Records..."
+   MENU-ITEM mi_Dump_Sec_Auth LABEL "Securit&y Domains..." /* Security Aut&hentication Records..." */
    MENU-ITEM mi_Dump_Sec_Perm LABEL "Security Per&missions..."
    RULE
    menu-item mi_Dump_AutoConn label "Auto-Conn&ect Records only..."
@@ -321,7 +325,7 @@ Define sub-menu mnu_Load
    menu-item mi_Load_Views    label "SQL &Views..."
    RULE
    menu-item mi_Load_User     label "&User Table Contents..."
-   MENU-ITEM mi_Load_Sec_Auth LABEL "Security Aut&hentication Records..."
+   MENU-ITEM mi_Load_Sec_Auth LABEL "Securit&y Domains..." /* "Security Aut&hentication Records..." */
    MENU-ITEM mi_Load_Sec_Perm LABEL "Security Per&missions..."
    RULE
    menu-item mi_Load_SeqVals  label "&Sequences Current Values..."
@@ -339,8 +343,8 @@ DEFINE SUB-MENU mnu_dbid
    .
 
 DEFINE SUB-MENU mnu_auth_maint
-    MENU-ITEM mi_auth_sys       LABEL "Security Authentication &Systems..."
-    MENU-ITEM mi_auth_dom       LABEL "Authentication System &Domains...".
+    MENU-ITEM mi_auth_sys       LABEL "&Authentication Systems..." /* "Security Authentication &Systems..." */
+    MENU-ITEM mi_auth_dom       LABEL "&Domains..." /* Authentication System &Domains..." */ .
 
 DEFINE SUB-MENU mnu_Enc_Policies
     MENU-ITEM mi_encpol_edit     LABEL "&Edit Encryption Policy..."
@@ -356,7 +360,7 @@ Define sub-menu mnu_Security
    menu-item mi_Sec_BlankId   label "Disallow &Blank Userid Access..."
    menu-item mi_Sec_UserRpt   label "&User Report..."
    RULE
-   SUB-MENU  mnu_auth_maint   LABEL "Authentication System &Maintenance"
+   SUB-MENU  mnu_auth_maint   LABEL "Domain &Maintenance" /* "Authentication System &Maintenance" */
    SUB-MENU  mnu_Enc_Policies LABEL "En&cryption Policies"
    .
         
@@ -394,6 +398,14 @@ Define sub-menu mnu_Admin
    .
 
 /*== Pop-up menus for "protoxxx" tools -  MS-SQL ==*/
+/* OE00195067 */
+Define sub-menu mnu_mss_srv_attr  
+   menu-item mi_mss_viw_mnt_cnst         label "View/Maintain Foreign Constraints..."
+   menu-item mi_mss_active_all_cnst      label "Active/Deactivate Constraints..."
+   menu-item mi_mss_delete_all_cns       label "Delete Constraints..."
+   menu-item mi_mss_gen_cnst_frm_rowid   label "Generate Constraints from ROWID..."
+   .
+/* OE00195067 */
 
 Define sub-menu mnu_mss_tools 
    menu-item mi_mss_Migrate   label "&OpenEdge DB to MS SQL Server..."
@@ -409,6 +421,13 @@ Define sub-menu mnu_odb_tools
 
 /*== Pop-up menus for "protoxxx" tools -  Oracle ==*/
 
+/* OE00195067 */
+Define sub-menu mnu_ora_srv_attr  
+   menu-item mi_ora_viw_mnt_cnst         label "View/Maintain Foreign Constraints..."
+   menu-item mi_ora_active_all_cnst      label "Active/Deactivate Constraints..."
+   menu-item mi_ora_delete_all_cns       label "Delete Constraints..."
+   .
+
 Define sub-menu mnu_ora_tools
    menu-item mi_ora_DBtoORA   label "&OpenEdge DB to ORACLE..."
    menu-item mi_ora_Incre     label "&Generate Delta.sql OpenEdge to ORACLE..." 
@@ -422,6 +441,7 @@ Define sub-menu mnu_MSSQL
    menu-item mi_MSSQL_VerFile   label "&Verify Table Definition..."
    menu-item mi_MSSQL_ConnInfo  label "&Edit Connection Information..."
    menu-item mi_MSSQL_ChgCP     label "C&hange DataServer Schema Code Page..."
+   sub-menu mnu_mss_srv_attr    label "Server Attributes"  /* OE00195067 */
    menu-item mi_MSSQL_Delete    label "&Delete DataServer Schema..."
    RULE
    sub-menu mnu_mss_tools       label "Schema &Migration Tools"
@@ -445,6 +465,7 @@ Define sub-menu mnu_ORACLE
    menu-item mi_ORA_ConnInfo  label "&Edit Connection Information..."
    menu-item mi_ORA_ChgCP     label "C&hange DataServer Schema Code Page..."
    menu-item mi_ORA_Delete    label "&Delete DataServer Schema..."
+   sub-menu  mnu_ora_srv_attr label "Server Attributes"    /* OE00195067 */
    menu-item mi_ORA_SQLPlus   label "&Run ORACLE SQL*Plus..."
    RULE
    sub-menu mnu_ora_tools     label "Schema &Migration Tools"
@@ -952,7 +973,7 @@ Procedure Perform_Func:
    Define var ampersand   as integer NO-UNDO.
    Define var lbl         as char    NO-UNDO.
    DEFINE VAR lError      AS LOGICAL NO-UNDO.
-   DEFINE VAR inTrans1    AS LOGICAL /*UNDO*/.
+   DEFINE VAR inTrans1    AS LOGICAL NO-UNDO /*UNDO*/.
 
    hide message NO-PAUSE.
 
@@ -1937,17 +1958,17 @@ END.
      /*----- Create Schema -----*/
      on choose of menu-item mi_MSSQL_Create    in menu mnu_MSSQL
         run Perform_Func
-           ("?MSS,1=add,3=MSS,_mssschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,_mss_pul,_gat_cro").
+           ("?MSS,1=add,3=MSS,_mssschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_mss_get,mss/procbfrpul,_mss_pul,_gat_cro").
 
      /*----- Update File Def -----*/
      on choose of menu-item mi_MSSQL_UpdFile   in menu mnu_MSSQL
         run Perform_Func
-           ("!MSS,1=upd,_gat_ini,*C,_gat_con,_mss_get,_mss_pul,_gat_cro").
+           ("!MSS,1=upd,_gat_ini,*C,_gat_con,_mss_get,mss/procbfrpul,_mss_pul,_gat_cro").
 
      /*----- Verify File Def -----*/
      on choose of menu-item mi_MSSQL_VerFile   in menu mnu_MSSQL
         run Perform_Func
-          ("!MSS,1=,_gat_ini,*C,_gat_con,25=compare,_mss_get,_mss_pul,_gat_cmp,_gat_cro").
+          ("!MSS,1=,_gat_ini,*C,_gat_con,25=compare,_mss_get,mss/procbfrpul,_mss_pul,_gat_cmp,_gat_cro").
 
      /*----- Edit Connect Info -----*/
      on choose of menu-item mi_MSSQL_ConnInfo  in menu mnu_MSSQL
@@ -1957,7 +1978,19 @@ END.
      on choose of menu-item mi_MSSQL_ChgCP     in menu mnu_MSSQL   
         run Perform_Func ("!MSS,_gat_cp,_gat_cp1").
 
+     /* OE00195067 */ 
+     /*----- "Server Attributes" pop-up menu: Migrate DB to MS-SQL -----*/
+     on choose of menu-item mi_mss_viw_mnt_cnst in menu  mnu_mss_srv_attr
+        run Perform_Func("_msc_viw"). 
+     on choose of menu-item  mi_mss_active_all_cnst in menu  mnu_mss_srv_attr
+        run Perform_Func("_msc_act"). 
+     on choose of menu-item  mi_mss_delete_all_cns in menu  mnu_mss_srv_attr
+        run Perform_Func("_msc_del"). 
+     on choose of menu-item  mi_mss_gen_cnst_frm_rowid in menu  mnu_mss_srv_attr  
+        run Perform_Func("_mss_gid").
 
+     /* OE00195067 */
+     
      /*----- Delete Schema -----*/
      on choose of menu-item mi_MSSQL_Delete    in menu mnu_MSSQL
         &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -2051,6 +2084,17 @@ on choose of menu-item mi_ORA_ChgCP     in menu mnu_ORACLE
    &ELSE
    run Perform_Func ("!ORACLE,_gat_cp,_gat_cp1").
    &ENDIF
+
+/* OE00195067 */ 
+/*----- "Server Attributes" pop-up menu: Migrate DB to ORACLE -----*/
+on choose of menu-item mi_ora_viw_mnt_cnst in menu  mnu_ora_srv_attr
+    run Perform_Func("_orc_viw"). 
+on choose of menu-item  mi_ora_active_all_cnst in menu  mnu_ora_srv_attr
+    run Perform_Func("_orc_act"). 
+on choose of menu-item  mi_ora_delete_all_cns in menu  mnu_ora_srv_attr
+    run Perform_Func("_orc_del"). 
+
+/* OE00195067 */
 
 /*----- Delete Schema -----*/
 on choose of menu-item mi_ORA_Delete    in menu mnu_ORACLE

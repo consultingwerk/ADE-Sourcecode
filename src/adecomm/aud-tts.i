@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2011 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -253,7 +253,7 @@ DEFINE {1} SHARED TEMP-TABLE audData NO-UNDO
                          _Client-session-uuid
     INDEX _Data-guid IS UNIQUE _audit-data-guid
     INDEX _main-idx IS PRIMARY UNIQUE _audit-date-time DESC _event-id DESC _Audit-data-guid
-    INDEX _Event-context _Event-context
+   /* INDEX _Event-context _Event-context */
     INDEX _Event-group _Audit-event-group
                        _Db-guid
                        _Transaction-id

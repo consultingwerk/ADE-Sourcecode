@@ -19,6 +19,12 @@ DEFINE VARIABLE msg-num AS INTEGER INITIAL 0    NO-UNDO.
 DEFINE VARIABLE nuxi    AS LOGICAL INITIAL TRUE NO-UNDO.
 DEFINE VARIABLE scrap   AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE canned  AS LOGICAL INITIAL TRUE NO-UNDO.
+/* used for super-tenant multi-tenant load */
+define variable isSuperTenant as logical no-undo.
+define variable isMultiTenant as logical no-undo.
+define variable gTenant  as character no-undo.
+define button btnTenant size 18 by 1 label "Select Tenant...".
+
 {prodict/misc/filesbtn.i &NAME = btn_File1}
 {prodict/misc/filesbtn.i &NAME = btn_File4}
 {prodict/misc/filesbtn.i &NAME = btn_File5}
@@ -38,53 +44,70 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 3 NO-UNDO INITIAL [
   /* 3*/ "You do not have permission to use this option."
 ].
 &IF "{&WINDOW-SYSTEM}" begins "MS-Win" &THEN
-&GLOBAL-DEFINE LINEUP 14
+&GLOBAL-DEFINE LINEUP 18
+&GLOBAL-DEFINE FILLWIDTH 49
+&GLOBAL-DEFINE TENANTWIDTH 42
+&GLOBAL-DEFINE TEXTLINEUP 11
+&GLOBAL-DEFINE LOCAL_WIDG {&VM_WIDG}
 &ELSE
-&GLOBAL-DEFINE LINEUP 16
+&GLOBAL-DEFINE LINEUP 18
+&GLOBAL-DEFINE TENANTWIDTH 37
+&GLOBAL-DEFINE FILLWIDTH 45
+&GLOBAL-DEFINE TEXTLINEUP 2
+&GLOBAL-DEFINE LOCAL_WIDG {&VM_WID}
 &ENDIF
 FORM
-  SKIP({&TFM_WID})
-  user_env[1] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+   SKIP({&TFM_WID})
+  &ENDIF
+  
+  gTenant COLON {&LINEUP} label "Effective Tenant" format "x(32)"    
+         view-as fill-in size {&TENANTWIDTH} by 1
+  btntenant skip ({&VM_WID})
+  user_env[1] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "&dBASE File"
-  btn_File1 SKIP({&VM_WIDG})
-  user_env[4] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  btn_File1 SKIP({&LOCAL_WIDG})
+  user_env[4] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "Index File #&1"
   btn_File4 SKIP ({&VM_WID})
-  user_env[5] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  user_env[5] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "Index File #&2"
   btn_File5 SKIP ({&VM_WID})
-  user_env[6] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  user_env[6] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "Index File #&3"
   btn_File6 SKIP ({&VM_WID})
-  user_env[7] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  user_env[7] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP}  LABEL "Index File #&4"
   btn_File7 SKIP ({&VM_WID})
-  user_env[8] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  user_env[8] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "Index File #&5"
   btn_File8 SKIP ({&VM_WID})
-  user_env[9] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE 49 BY 1 
+  user_env[9] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN SIZE {&FILLWIDTH} BY 1 
         COLON {&LINEUP} LABEL "Index File #&6"
   btn_File9 SKIP ({&VM_WID})
   user_env[10] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN 
-        SIZE 49 BY 1 LABEL "Index File #&7" COLON {&LINEUP}
+        SIZE {&FILLWIDTH} BY 1 LABEL "Index File #&7" COLON {&LINEUP}
   btn_File10 SKIP ({&VM_WID})
   user_env[11] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN 
-        SIZE 49 BY 1 LABEL "Index File #&8" COLON {&LINEUP}
+        SIZE {&FILLWIDTH} BY 1 LABEL "Index File #&8" COLON {&LINEUP}
   btn_File11 SKIP ({&VM_WID})
   user_env[12] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN 
-        SIZE 49 BY 1 LABEL "Index File #&9" COLON {&LINEUP}
+        SIZE {&FILLWIDTH} BY 1 LABEL "Index File #&9" COLON {&LINEUP}
   btn_File12 SKIP ({&VM_WID})
   user_env[13] {&STDPH_FILL} FORMAT "x(80)" VIEW-AS FILL-IN 
-        SIZE 49 BY 1 LABEL "Index File #1&0" COLON {&LINEUP}
+        SIZE {&FILLWIDTH} BY 1 LABEL "Index File #1&0" COLON {&LINEUP}
   btn_File13 SKIP({&VM_WIDG})
-  "If there are more than 10 index files, this dialog           "
-                                                                     COLON {&LINEUP} VIEW-AS TEXT 
-  "can be used again to import the additional indexes           "
-                                                                      COLON {&LINEUP}  VIEW-AS TEXT 
-  "(this will not harm the existing definition).            " 
-                                        COLON {&LINEUP} VIEW-AS TEXT
+  "If there are more than 10 index files, this dialog can be used again to"
+                                                                    AT {&TEXTLINEUP} VIEW-AS TEXT 
+  "import the additional indexes (this will not harm the existing definition)."
+                                                                     AT {&TEXTLINEUP} VIEW-AS TEXT 
   {prodict/user/userbtns.i}
   WITH FRAME dbdefs 
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+  width 83
+  &ELSE
+  size 78 by 19 row 1 
+  &ENDIF
   CENTERED SIDE-LABELS 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX 
@@ -92,6 +115,68 @@ FORM
 
 /* LANGUAGE DEPENDENCIES END */ /*-----------------------------------------*/
 
+/*===============================Functions=================================*/
+function selectTenant return logical (hTenant as handle):
+    define variable tenantdlg as prodict.pro._tenant-sel-presenter no-undo.
+    tenantdlg = new  prodict.pro._tenant-sel-presenter ().
+    do with frame write-dump-dir-mt:
+           &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN
+        /* adjust the browse aligned and under field (at least try...) */   
+        if  hTenant:frame:row < 0 then  /* this does not really work with large negative */                  
+            tenantdlg:Row = (hTenant:row + hTenant:height) + 2.
+        else 
+            tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row + 0.5.
+        tenantdlg:Col = hTenant:col + hTenant:frame:col .
+           &ELSE
+        
+        tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row.
+       
+           &ENDIF
+    end.
+    tenantdlg:QueryString = "for each ttTenant where ttTenant.type <> 'super'".
+    tenantdlg:Title = "Select Tenant".
+  
+/*    glInSelect = true. /* stop end-error anywhere trigger */*/ 
+    if tenantdlg:Wait() then
+    do: 
+        hTenant:screen-value = tenantdlg:ColumnValue("ttTenant.name").
+        apply "value-changed" to hTenant.
+    end.
+/*    glInSelect = false.*/
+ 
+end.  
+/* the use of name is somewhat weird here (copied from elsewhere where it doesn't 
+make much sense either... (but in anticipaton of lower case when used in file names) */
+function getTenantName returns char(pctenant as char):
+    define variable lok     as logical no-undo.
+    define variable hbuffer as handle no-undo. 
+    define variable cValue   as character no-undo.
+    
+    CREATE BUFFER hbuffer FOR TABLE "DICTDB._tenant".
+    lok = hbuffer:find-unique ("where _tenant._Tenant-name = " + quoter(pcTenant)) no-error.
+    if lok then 
+        cValue = hBuffer::_tenant-name.
+    
+    delete object hbuffer.    
+    return cValue.
+end function. 
+
+function validateTenantName returns logical(ctenant as char):
+    define variable lok as logical no-undo.
+    if cTenant = "" then
+    do:
+        MESSAGE "Please specify which Tenant to dump data for."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false. 
+    end.
+    if getTenantName(cTenant) = "" then 
+    do:
+        MESSAGE "There is no Tenant with name " +  ctenant + " in the database."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false.
+    end.
+    return true.
+end function. 
 
 /*===============================Triggers=================================*/
 
@@ -104,11 +189,26 @@ on HELP of frame dbdefs
                                                INPUT ?).
 &ENDIF
 
+on choose of btnTenant in frame dbdefs
+do:
+     selectTenant(gTenant:handle in frame dbdefs).
+end. 
+
 
 ON GO OF FRAME dbdefs
 DO:
   DEFINE VAR in_fil AS CHAR NO-UNDO.
   DEFINE VAR fil    AS CHAR NO-UNDO.
+
+  if isMultiTenant then 
+  do:
+       if not validateTenantName(gtenant:screen-value) then
+       do:
+           apply "entry" to gtenant.
+           return no-apply.
+       end.        
+  end.    
+   
 
   fil_loop:
   DO i = 1 TO 13:
@@ -295,13 +395,27 @@ IF msg-num > 0 THEN DO:
   RETURN.
 END.
 
+if int(dbversion("dictdb")) > 10 then
+do:
+   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   if isSuperTenant then
+   do:
+      isMultiTenant = true. 
+      gTenant = get-effective-tenant-name("dictdb").
+   end.    
+end.
+
 user_env = "".
 
 PAUSE 0.
+/* just messes with stuff and sets row to high on tty and seems to serve 
+  no purpose in gui (okrun ?). 
 /* Adjust the graphical rectangle and the ok and cancel buttons */
 {prodict/user/userctr.i
     &FRAME = "FRAME dbdefs"
 }
+*/
+ 
 {adecomm/okrun.i  
     &FRAME  = "FRAME dbdefs" 
     &BOX    = "rect_Btns"
@@ -309,8 +423,26 @@ PAUSE 0.
     {&CAN_BTN}
     {&HLP_BTN}
 }
+ 
+if not isMultiTenant then
+do:
+    gTenant:hidden in frame dbdefs = true. 
+    btnTenant:hidden in frame dbdefs = true.    
+    if session:window-system = "tty" then
+    do:
+          user_env[1]:row = 1 . 
+          user_env[1]:side-label-handle:row = 1.
+          btn_File1:row = 1.
+       
+    end.    
+    else
+       run adjustframe(FRAME dbdefs:handle).
+    
+end.    
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
-  UPDATE user_env[1] /*nuxi*/ btn_File1
+  UPDATE gTenant when isMultiTenant 
+         btnTenant when isMultiTenant  
+         user_env[1] /*nuxi*/ btn_File1
          user_env[4] btn_File4
          user_env[5] btn_File5
          user_env[6] btn_File6
@@ -327,9 +459,29 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
 END.
 
 user_env[2] = STRING(nuxi,"y/n").
+
 if canned THEN 
   user_path = "".
+else if isMultiTenant then 
+    set-effective-tenant(gTenant,"dictdb").
 
 HIDE FRAME dbdefs NO-PAUSE.
 RETURN.
-
+/*==========================Internal Procedures=========================*/
+/* this is really adjust frame after hide  of tenant */ 
+procedure adjustFrame:      
+    define input  parameter pframe  as handle no-undo.
+    define variable hWidget  as handle no-undo.
+    define variable deAdjust as decimal no-undo.
+    
+    deAdjust =  1 . 
+    hwidget = pframe:first-child.
+    hwidget = hwidget:first-child.
+    do while valid-handle(hwidget):
+        if hwidget:hidden = false then
+           hwidget:row = hwidget:row - deAdjust.
+        hwidget= hwidget:next-sibling.
+    end.   
+    pframe:scrollable = false. 
+    pframe:height = pframe:height - deAdjust. 
+end.    

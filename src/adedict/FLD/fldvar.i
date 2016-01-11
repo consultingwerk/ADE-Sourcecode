@@ -27,10 +27,10 @@ Date Created: 02/04/92
 ----------------------------------------------------------------------------*/
 
 
-Define {1} buffer   b_Field for _Field. 
+Define {1} buffer   b_Field for DICTDB._Field. 
 Define {1} frame newfld.    /* for create field dialog box */
 Define {1} frame fldprops.  /* field properties */
-
+  
 
 /* The main field properties - mostly we user the record buffer. 
    Note: We can't use the data type or format field of the record buffer 
@@ -48,6 +48,7 @@ DEFINE BUTTON s_btn_toint64 LABEL "-> in&t64" {&STDPH_OKBTN}.
 DEFINE BUTTON s_btn_lob_Area IMAGE-UP FILE "btn-down-arrow".
 
 DEFINE {1} VARIABLE s_lob_Area AS CHARACTER FORMAT "x(32)" NO-UNDO.
+DEFINE {1} VARIABLE s_lob_Area_mttext AS CHARACTER FORMAT "x(32)" NO-UNDO.
 DEFINE {1} VARIABLE s_lst_lob_Area AS CHARACTER
       VIEW-AS SELECTION-LIST SINGLE
       INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.
@@ -75,6 +76,7 @@ Define {1} var s_Fld_InIndex   as logical NO-UNDO
    format "Member of an Index: yes/Member of an Index: no". 
 Define {1} var s_Fld_InView    as logical NO-UNDO
    format "Member of a View: yes/Member of a View: no". 
+
 
 Define button s_btn_Fld_Copy   label "Copy Fiel&d..." SIZE 17 by 1.125.
 

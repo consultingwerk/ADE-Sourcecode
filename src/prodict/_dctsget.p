@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,6 +32,7 @@ Author: Tom Hutegger
 History:
     hutegger    94/06    creation (derived from & replacing old version)
     mcmann      11/26/02 Changed adecomm/_dictdb.p to prodict/_dictdb.p
+    fernando    09/30/10 Support for OE11
 
                             
 --------------------------------------------------------------------*/
@@ -70,8 +71,8 @@ for each s_ttb_db:
   assign
     cache_db#             = cache_db# + 1
     cache_db_e[cache_db#] = s_ttb_db.dbtyp
-                          + ( if INTEGER(s_ttb_db.vrsn) < 10 
-                                then "/V" + s_ttb_db.vrsn
+                          + ( if INTEGER(s_ttb_db.vrsn) < 11 
+                                then "/R" + s_ttb_db.vrsn
                                 else ""
                             )
     cache_db_l[cache_db#] = s_ttb_db.ldbnm
@@ -85,9 +86,10 @@ for each s_ttb_db:
                                &from-type = "s_ttb_db.dbtyp"
                             }
     cache_db_t[cache_db#] = cache_db_t[cache_db#]
-                          + ( if integer(s_ttb_db.vrsn) < 10 
-                                then "/V" + s_ttb_db.vrsn
+                          + ( if integer(s_ttb_db.vrsn) < 11 
+                                then "/R" + s_ttb_db.vrsn
                                 else ""
                             ).
   end.
+
 

@@ -15,6 +15,9 @@ History:
     mcmann      08/08/02    Eliminated any sequences whose name begins "$" - Peer Direct
     fernando    06/19/07    Support for large files    
 */
+using Progress.Lang.*.
+routine-level on error undo, throw.
+
 /*h-*/
 
 { prodict/user/uservar.i }
@@ -22,6 +25,7 @@ History:
 
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
 define variable lApplAlertBox as logical no-undo.
+DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
 
 lApplAlertBox = SESSION:APPL-ALERT-BOXES.
 
@@ -36,8 +40,12 @@ FIND FIRST _Db WHERE RECID(_Db) = drec_db NO-LOCK.
 
 IF NOT CAN-FIND(FIRST DICTDB._Sequence OF _Db WHERE NOT
                 DICTDB._Sequence._Seq-name BEGINS "$") THEN DO:
-   MESSAGE "There are no sequences to dump." SKIP
-      	   "The output file has not been modified.".
+   cMsg =  "There are no sequences to dump." + "~n" +
+           "The output file has not been modified." .           
+   if user_env[6] = "dump-silent" then
+              undo, throw new AppError(cMsg).
+   else
+              MESSAGE cMsg.
    RETURN.
 END.
 
@@ -46,7 +54,14 @@ run adecomm/_setcurs.p ("WAIT").
 RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
 OUTPUT TO VALUE(tmpfile) NO-MAP NO-ECHO.
 
-FOR EACH _Sequence OF _Db WHERE NOT _Sequence._Seq-name BEGINS "$":
+FOR EACH _Sequence OF _Db WHERE NOT _Sequence._Seq-name BEGINS "$"
+                          and (   user_env[33] = ""
+                               or (user_env[33] = "Tenant" and
+                                   _Sequence._Seq-attributes[1])
+                               or (user_env[33] = "Shared" and
+                                   _Sequence._Seq-attributes[1] = false)
+                               ):
+                             
   PUT UNFORMATTED
     'EXPORT '
     _Sequence._Seq-Num
@@ -82,8 +97,15 @@ AUDIT-CONTROL:LOG-AUDIT-EVENT(10213,
 
 run adecomm/_setcurs.p ("").
 
-MESSAGE "Dump of sequence values completed." .
+cMsg = "Dump of sequence values completed." .
+if user_env[6] = "dump-silent" then 
+   .
+else
+MESSAGE cMsg .
 
-session:appl-alert-boxes = lApplAlertBox.
 
 RETURN.
+finally:
+    session:appl-alert-boxes = lApplAlertBox.
+    user_env[33] = "".
+end.    

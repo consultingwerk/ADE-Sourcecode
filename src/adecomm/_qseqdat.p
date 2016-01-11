@@ -30,65 +30,74 @@ DEFINE INPUT PARAMETER p_DbId  AS RECID NO-UNDO.
 DEFINE SHARED STREAM rpt.
 DEFINE VAR max_min AS INT64 NO-UNDO.
 DEFINE VAR large_seq AS LOGICAL NO-UNDO.
+define variable lMultitenant as logical no-undo.
 
 FORM
-  _Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
-  _Sequence._Seq-init  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Initial!Value"
-  _Sequence._Seq-incr  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Increment"
+  dictdb._Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
+  lMultitenant                                      COLUMN-LABEL "Mlt-!tnt"
+  dictdb._Sequence._Seq-init  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Initial!Value"
+  dictdb._Sequence._Seq-incr  FORMAT "->>>>>>>>9"  COLUMN-LABEL "Increment"
   max_min              FORMAT "->>>>>>>>>9" COLUMN-LABEL "Max/Min!Value"
-  _Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?"
+  dictdb._Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?"
   WITH FRAME shoseqs 
   DOWN USE-TEXT STREAM-IO.
 
 FORM
-  _Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
-  _Sequence._Seq-init  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  COLUMN-LABEL "Initial Value" SKIP
-  _Sequence._Seq-incr  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  
+  dictdb._Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
+  lMultitenant                                      COLUMN-LABEL "Multi-tenant"
+  dictdb._Sequence._Seq-init  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  COLUMN-LABEL "Initial Value" SKIP
+  dictdb._Sequence._Seq-incr  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  
                        COLUMN-LABEL "Increment"
   max_min              AT 30 FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" COLUMN-LABEL "Max/Min Value"
-  _Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?" SKIP(1)
+  dictdb._Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?" SKIP(1)
   WITH FRAME shoseqsl
   DOWN USE-TEXT STREAM-IO.
 
-FIND FIRST _db WHERE RECID(_Db) = p_DbId.
+FIND FIRST dictdb._db WHERE RECID(dictdb._Db) = p_DbId.
 
 /* let's see if we can use the old format based on the values */
-IF _Db._db-res1[1] = 1 THEN DO: 
+IF dictdb._Db._db-res1[1] = 1 THEN DO: 
     /* large sequence support is turned on */
 
-    FIND FIRST _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId
-                                 AND NOT _Sequence._Seq-name BEGINS "$" AND
-         (_Sequence._Seq-incr > 999999999 OR
-          _Sequence._Seq-max  > 999999999 OR
-          _Sequence._Seq-min  > 999999999 OR
-          _Sequence._Seq-init > 999999999) NO-ERROR.
+    FIND FIRST dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
+                                 AND NOT dictdb._Sequence._Seq-name BEGINS "$" AND
+         (dictdb._Sequence._Seq-incr > 999999999 OR
+          dictdb._Sequence._Seq-max  > 999999999 OR
+          dictdb._Sequence._Seq-min  > 999999999 OR
+          dictdb._Sequence._Seq-init > 999999999) NO-ERROR.
 
-    IF AVAILABLE _Sequence THEN
+    IF AVAILABLE dictdb._Sequence THEN
        /* we will need the expanded report format */
        ASSIGN large_seq = YES.
 END.
-
-FOR EACH _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId
-                             AND NOT _Sequence._Seq-name BEGINS "$":
-   max_min = (IF _Sequence._Seq-incr > 0 THEN _Sequence._Seq-max
-      	       	     	      	       	 ELSE _Sequence._Seq-min).
+ 
+FOR EACH dictdb._Sequence NO-LOCK WHERE dictdb._Sequence._Db-recid = p_DbId
+                                  AND NOT dictdb._Sequence._Seq-name BEGINS "$":
+   max_min = (IF dictdb._Sequence._Seq-incr > 0 THEN dictdb._Sequence._Seq-max
+      	       	     	      	       	 ELSE dictdb._Sequence._Seq-min).
+   if integer(dbversion("dictdb")) > 10 then 
+       lMultitenant = dictdb._Sequence._Seq-attributes[1].
+   else 
+       lMultitenant = false.  	       	     	      	       	   
    IF large_seq THEN DO:
        DISPLAY STREAM rpt
-          _Sequence._Seq-Name 
-          _Sequence._Seq-init 
-          _Sequence._Seq-incr 
+          dictdb._Sequence._Seq-Name 
+          lMultitenant
+          dictdb._Sequence._Seq-init 
+          dictdb._Sequence._Seq-incr 
           max_min
-          _Sequence._Cycle-Ok 
+          dictdb._Sequence._Cycle-Ok 
           WITH FRAME shoseqsl.
       DOWN STREAM rpt WITH FRAME shoseqsl.
    END.
    ELSE DO:
        DISPLAY STREAM rpt
-          _Sequence._Seq-Name 
-          _Sequence._Seq-init 
-          _Sequence._Seq-incr 
+          dictdb._Sequence._Seq-Name 
+          lMultitenant
+          dictdb._Sequence._Seq-init 
+          dictdb._Sequence._Seq-incr 
           max_min
-          _Sequence._Cycle-Ok 
+          dictdb._Sequence._Cycle-Ok 
           WITH FRAME shoseqs.
       DOWN STREAM rpt WITH FRAME shoseqs.
    END.

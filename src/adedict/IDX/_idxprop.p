@@ -40,6 +40,8 @@ Last modified on:
 {adedict/IDX/idxvar.i shared}
 
 {adedict/capab.i}
+/* include file contains function for area label */
+{prodict/pro/arealabel.i}
 
 Define var err 	     as logical NO-UNDO.
 Define var capab     as char    NO-UNDO.
@@ -51,26 +53,26 @@ DEFINE VAR canAudDeact AS LOGICAL NO-UNDO.
 
 /*============================Mainline code==================================*/
 
-find _File WHERE _file._File-name = "_Index"
-             AND _File._Owner = "PUB" NO-LOCK.
-if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+find dictdb._File WHERE dictdb._file._File-name = "_Index"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
+if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "see index definitions."
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
-if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-write, USERID("DICTDB")) then
    ASSIGN idx_mod = NO.
 
-find _File WHERE _File._File-name = "_Index-Field"
-             AND _File._Owner = "PUB" NO-LOCK.
-if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+find dictdb._File WHERE dictdb._File._File-name = "_Index-Field"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
+if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "see index definitions."
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
-if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-write, USERID("DICTDB")) then
    ASSIGN idx_mod = NO.
 
 /* Don't want Cancel if moving to next index - only when window opens */
@@ -108,37 +110,42 @@ end.
 /* First clear the select list in case it had stuff in it from the last time. */
 s_lst_IdxFlds:LIST-ITEMS = "".
 
-find _File where RECID(_File) = s_TblRecId.
+find dictdb._File where RECID(dictdb._File) = s_TblRecId.
 find b_Index of _File where b_Index._Index-Name = s_CurrIdx.
-if _File._Prime-Index = RECID(b_Index) then
+if dictdb._File._Prime-Index = RECID(b_Index) then
    s_Idx_Primary = yes.
 else
    s_Idx_Primary = no.
 
 s_Idx_Word = (if b_Index._Wordidx = 0 OR b_Index._Wordidx = ? then no else yes).
 
-IF _File._For-type <> ? THEN
-  ASSIGN idx-area-name = "N/A".
+IF dictdb._File._For-type <> ? then
+    ASSIGN idx-area-name = "N/A".
+/* could possibly have shown N/A for this also, but we don't do that for the table or field */     
+else if (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) THEN
+    ASSIGN idx-area-name = "".
 ELSE DO:
   IF b_Index._Idx-num <> ? THEN DO:
-    FIND _StorageObject WHERE _StorageObject._Db-recid = _File._Db-recid
-                          AND _StorageObject._Object-type = 2
-                          AND _StorageObject._Object-number = b_Index._Idx-num
-                          NO-LOCK NO-ERROR.
-    IF AVAILABLE _StorageObject THEN                                              
-      FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
+    /* first - cna have one per collation (not sure if it applies to the default ?)*/  
+    FIND first dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = _File._Db-recid
+                                     AND dictdb._StorageObject._Object-type = 2
+                                     AND dictdb._StorageObject._Object-number = b_Index._Idx-num
+                                     AND dictdb._StorageObject._partitionid = 0
+                                     NO-LOCK NO-ERROR.
+    IF AVAILABLE dictdb._StorageObject THEN                                              
+      FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
     ELSE
-      FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.  
+      FIND dictdb._Area WHERE dictdb._Area._Area-number = 6 NO-LOCK.  
   END.
   ELSE 
-    FIND _Area WHERE _Area._Area-number = b_Index._ianum NO-LOCK.
+    FIND dictdb._Area WHERE dictdb._Area._Area-number = b_Index._ianum NO-LOCK.
     
-  ASSIGN idx-area-name = _Area._Area-name.
+  ASSIGN idx-area-name = dictdb._Area._Area-name.
 END.  
 
-find LAST _Index-Field of b_Index NO-ERROR.
-if AVAILABLE _Index-Field then /* the default index has no fields */
-   s_Idx_Abbrev = _Index-Field._Abbreviate.
+find LAST dictdb._Index-Field of b_Index NO-ERROR.
+if AVAILABLE dictdb._Index-Field then /* the default index has no fields */
+   s_Idx_Abbrev = dictdb._Index-Field._Abbreviate.
 
 IF s_dbCache_type[s_dbCache_ix] <> "PROGRESS" THEN DO: /* Foreign DB */
    ASSIGN ActRec:LABEL = "R&OWID".
@@ -159,7 +166,7 @@ END.
 ELSE ASSIGN ActRec:LABEL = "Ac&tive"
             ActRec       = b_Index._Active.
         
-IF _File._For-type = ? AND NOT is-pre-101b-db THEN DO:
+IF dictdb._File._For-type = ? AND NOT is-pre-101b-db THEN DO:
     /* for Progress db's, check if large key entries is not enabled, and display
        information. We only have to do this for 10.1B and later dbs
     */
@@ -180,7 +187,7 @@ END.
    deactivated. The primary index and the _audit-time index cannot be
    deactivated.
 */
-IF (NOT s_Idx_Primary) AND (_file-name BEGINS "_aud-audit-data") AND
+IF (NOT s_Idx_Primary) AND (dictdb._file._file-name BEGINS "_aud-audit-data") AND
    (b_Index._Index-Name NE "_audit-time") THEN
    ASSIGN canAudDeact = YES.
 
@@ -188,6 +195,9 @@ IF (NOT s_Idx_Primary) AND (_file-name BEGINS "_aud-audit-data") AND
 display "" @ s_Status s_msg ActRec with frame idxprops. /* clears from last time */
 
 s_Idx_ReadOnly = (s_DB_ReadOnly OR s_ReadOnly).
+
+find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+
 if NOT s_Idx_ReadOnly then
 do:
    if NOT idx_mod then
@@ -197,8 +207,8 @@ do:
       s_Idx_ReadOnly = true.
    end.
 
-   find _File where RECID(_File) = s_TblRecId.
-   if _File._Frozen then
+   
+   if dictdb._File._Frozen then
    do:
        IF NOT canAudDeact THEN DO:
           s_Status:screen-value in frame idxprops =
@@ -206,7 +216,7 @@ do:
           s_Idx_ReadOnly = true.
        END.
    end.
-   ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
+   ELSE IF dictdb._File._Db-lang > {&TBLTYP_SQL} THEN DO:
       s_Status:screen-value in frame idxprops =
    	 "Note: {&PRO_DISPLAY_NAME}/SQL92 table cannot be modified.".
       s_Idx_ReadOnly = true.
@@ -224,22 +234,28 @@ for each b_idx-list.
    delete b_idx-list.
 end.
 
-for each _Index-Field of b_Index:
-   find _Field where RECID(_Field) = _Index-Field._Field-recid.
+for each dictdb._Index-Field of b_Index:
+   find dictdb._Field where RECID(dictdb._Field) = dictdb._Index-Field._Field-recid.
    create b_idx-list.
-   assign b_idx-list.fld-nam = _Field._Field-name
-          b_idx-list.fld-typ = _field._Data-type
-          b_idx-list.asc-desc = if _Index-Field._Ascending then "A"
+   assign b_idx-list.fld-nam = dictdb._Field._Field-name
+          b_idx-list.fld-typ = dictdb._field._Data-type
+          b_idx-list.asc-desc = if dictdb._Index-Field._Ascending then "A"
                              else "D"
-          b_idx-list.comp-seq = _Index-seq.
+          b_idx-list.comp-seq = dictdb._Index-field._Index-seq.
  
    if frstfld = "" then
       frstfld = lst_item.
 end.
+
 s_lst_IdxFlds:screen-value = frstfld.  /* set selection to the first fld */
+if dictdb._File._File-Attributes[1] and dictdb._File._File-Attributes[2] then 
+    assign
+        s_Area_mttext:screen-value in frame idxprops = "(for default tenant)"
+        s_Area_mttext:hidden in frame idxprops = false.     
+else
+    s_Area_mttext:hidden in frame idxprops = true.     
 
 open query q-idx-list for each b_idx-list no-lock.
-
 
 display b_Index._Index-Name	 
         idx-area-name

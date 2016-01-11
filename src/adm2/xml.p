@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : xml.p
     Purpose     : Super procedure for xml class.
@@ -1001,7 +1001,6 @@ Parameters: pdParent: NodeId of Parent.
       hDocument:CREATE-NODE(tNode.NodeHandle,pcName,pcType).
       hDocument:APPEND-CHILD(tNode.NodeHandle).
     END.
-       &IF {&CompileOn91C} &THEN
     ELSE /* Create a DTD and root node (we willnot get here in 9.1B) */
     DO: 
       {get DTDPublicId cDTDPublicId}.  /* returns blank on 9.1B */  
@@ -1010,7 +1009,7 @@ Parameters: pdParent: NodeId of Parent.
       /* Get the root element that was created and appended to the document */  
       hDocument:GET-DOCUMENT-ELEMENT(tNode.NodeHandle).
     END.
-      &ENDIF /* {&CompileOn91C} */
+ 
   END.
   ELSE DO:
 
@@ -1210,11 +1209,7 @@ Parameters: <none>
   IF lInitialized THEN 
   DO:
     {get DocumentHandle hDoc}.
-     &IF {&CompileOn91C} &THEN 
     RETURN hDoc:PUBLIC-ID.
-     &ELSE 
-    RETURN '':U.  
-     &ENDIF
   END.
 
   &SCOPED-DEFINE xpDTDPublicID
@@ -1252,11 +1247,7 @@ Parameters: <none>
   IF lInitialized THEN 
   DO:
     {get DocumentHandle hDoc}.
-       &IF {&CompileOn91C} &THEN 
     RETURN hDoc:SYSTEM-ID.
-       &ELSE
-    RETURN '':U.
-       &ENDIF       
   END.
 
   &SCOPED-DEFINE xpDTDSystemID

@@ -24,9 +24,12 @@
 
 DEFINE {1} SHARED VARIABLE currentdb AS CHAR VIEW-AS TEXT FORMAT "x(32)" NO-UNDO.
 
-DEFINE {1} SHARED VARIABLE id        AS CHAR FORMAT "x(16)" LABEL "User Id" 
+DEFINE {1} SHARED VARIABLE id        AS CHAR FORMAT "x(255)" view-as fill-in size 50 by 1 LABEL "User id" 
     {&STDPH_FILLIN}.
-DEFINE {1} SHARED VARIABLE password  AS CHAR FORMAT "x(16)" LABEL "Password"
+DEFINE {1} SHARED VARIABLE domain    AS CHAR FORMAT "x(255)" view-as fill-in size 50 by 1 LABEL "Domain" 
+    {&STDPH_FILLIN}.
+
+DEFINE {1} SHARED VARIABLE password  AS CHAR FORMAT "x(255)" view-as fill-in size 50 by 1 LABEL "Password"
     {&STDPH_FILLIN}.
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
@@ -43,10 +46,10 @@ END TRIGGERS.
 
 DEFINE {1} SHARED FRAME login_frame.
 DEFINE {1} SHARED FRAME logindb_frame.
-
+ 
 FORM
     skip({&TFM_WID})
-    SPACE({&HFM_WID}) "Please enter a User Id and Password for" VIEW-AS TEXT
+    SPACE({&HFM_WID}) "Please enter User id, Password and Domain for" VIEW-AS TEXT
     SKIP
     SPACE({&HFM_WID}) "database:" VIEW-AS TEXT 
     currentdb NO-LABEL
@@ -54,6 +57,8 @@ FORM
     id       COLON 12 
     SKIP({&VM_WID})
     password COLON 12 PASSWORD-FIELD
+    SKIP({&VM_WID})
+    domain   COLON 12 
     { adecomm/okform.i 
           &BOX="ok_box" 
           &OK="ok_btn" 
@@ -63,7 +68,7 @@ FORM
     WITH FRAME login_frame CENTERED SIDE-LABELS ATTR-SPACE 
        DEFAULT-BUTTON ok_btn CANCEL-BUTTON cancel_btn
        &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-           ROW 2 TITLE " Login "
+           ROW 2 TITLE " Login"
        &ELSE
            NO-BOX
        &ENDIF
@@ -77,8 +82,10 @@ FORM
     currentdb NO-LABEL
     SKIP({&VM_WIDG})
     id       COLON 12 
-    SKIP({&VM_WID})
+    SKIP({&VM_WIDG})
     password COLON 12 PASSWORD-FIELD
+    SKIP({&VM_WID})
+    domain       COLON 12 
     { adecomm/okform.i 
           &BOX="ok_box" 
           &OK="ok_btn" 
@@ -87,10 +94,9 @@ FORM
     }
     WITH FRAME logindb_frame CENTERED SIDE-LABELS ATTR-SPACE 
        DEFAULT-BUTTON ok_btn CANCEL-BUTTON cancel_btn
-       ROW 2 TITLE " Login "
+       ROW 2 TITLE " Login"
        VIEW-AS DIALOG-BOX
     .
-
 
 &IF "{1}" = "NEW" &THEN
 { adecomm/okrun.i 

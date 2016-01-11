@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2009,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -55,6 +55,7 @@ history
     fernando    Jun 20, 2007  Support for large files
     fernando    Dec 12, 2007  Improved use of user_env[5]
     fernando    Nov  4, 2008  Output number of records to .ds file
+    rkamboj     Nov 15, 2011  Fixed lod directory upload issue.
 */
 
 { prodict/dictvar.i }
@@ -111,6 +112,8 @@ DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
 DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE has_aud   AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE isCpUndefined AS LOGICAL  NO-UNDO.
+define variable exceptList as character no-undo.
+define variable isSuperTenant as logical no-undo. 
 
 DEFINE STREAM dsfile.
 
@@ -307,11 +310,6 @@ ASSIGN
               )
   cerrors   = 0 - integer(NOT use_ds).
 
-IF user_env[30] = "" OR user_env[30] = ? THEN
-  ASSIGN lobdir = "".
-ELSE
-  ASSIGN lobdir = user_env[30].
-
 IF index(dsname,".db") > 0
  THEN SUBSTRING(dsname,INDEX(dsname,".db"),3,"RAW") = "".
 
@@ -338,12 +336,35 @@ ELSE
 IF ENTRY(1, user_env[5]) = "y" OR ENTRY(1, user_env[5]) = "n" THEN
    ASSIGN old_dis_trig = YES.
 
+if int(dbversion("dictdb")) > 10 then
+do:
+   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   
+   /* if tenant was explicitly set by the tool then verify that it still matches
+      the effective tenant also set there.
+      The UI sets this and load_d.p sets this when setEffectiveTenant is used 
+      It is allowed to set-effective-tenant before running loadd though (user_env[32]).
+      */
+   if isSuperTenant
+   and user_env[32] <> ""
+   and user_env[32] <> get-effective-tenant-name("dictdb") then
+   do:
+      MESSAGE "Dump Aborted!" SKIP(1)
+       "The ABL get-effective-tenant-name returns" quoter(get-effective-tenant-name("dictdb")) 
+       "while the effective tenant that was last selected in the Data Administration dump dialog or utility is" quoter(user_env[32])
+      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      
+      RETURN.
+   end.
+end.
+
+
 stoploop:
 DO ON STOP UNDO, LEAVE:
   DO ix = 1 to numCount /*WHILE ENTRY(1,user_env[1]) <> ""*/ :
 
    ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
-
+   
    IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
       FIND DICTDB._File WHERE DICTDB._File._File-name = cTemp
                           AND DICTDB._File._Db-recid = drec_db
@@ -371,16 +392,47 @@ DO ON STOP UNDO, LEAVE:
       irecs    = ?
       crecs    = STRING(irecs,{&MAX_RECS_FORMAT})
       d-was    = ?
-      maptype  = ""
-      fil-d    = (IF NOT use_ds THEN lpath
-                 ELSE lpath + (IF DICTDB._File._Dump-name = ?
-                 OR SEARCH(lpath + DICTDB._File._Dump-name + ".d") = ?
-                 THEN DICTDB._File._File-name ELSE DICTDB._File._Dump-name)
-               + (IF DICTDB._File._File-name BEGINS "_aud" THEN ".ad" ELSE ".d")).
+      exceptList = ""
+      maptype  = "".
+    
+    define variable lsuper as logical no-undo init true.
+     /* if super tenant dumps multiple tables the tenant dir is in user_env[33]
+       and tenant lob dir in user_env[34] */ 
+    if user_env[32] > "" 
+    and issupertenant 
+    and int(dbversion("dictdb")) > 10 
+    and dictdb._file._file-attributes[1] and use_ds then
+    do:  
+        fil-d = (user_env[33] 
+                 + (IF DICTDB._File._Dump-name = ?
+                    OR SEARCH(lpath + DICTDB._File._Dump-name + ".d") = ?
+                 THEN DICTDB._File._File-name 
+                 ELSE DICTDB._File._Dump-name)
+               + ".d").
+            
+        IF user_env[34] = "" OR user_env[34]= ? THEN
+           ASSIGN lobdir = "".
+        ELSE
+           ASSIGN lobdir = user_env[34].
+        
+    end.
+    else do: 
+    
+        fil-d    = (IF NOT use_ds THEN lpath
+                    ELSE lpath + (IF DICTDB._File._Dump-name = ?
+                    OR SEARCH(lpath + DICTDB._File._Dump-name + ".d") = ?
+                    THEN DICTDB._File._File-name ELSE DICTDB._File._Dump-name)
+                    + (IF DICTDB._File._File-name BEGINS "_aud" THEN ".ad" ELSE ".d")).
+        IF user_env[30] = "" OR user_env[30] = ? THEN
+            ASSIGN lobdir = "".
+        ELSE
+            ASSIGN lobdir = user_env[30].
+    end.
+    run CheckLobDirpath.    
     IF SEARCH(fil-d) <> ? THEN fil-d = SEARCH(fil-d).
   
     fil-e = SUBSTRING(fil-d,1,LENGTH(fil-d,"character") - 1,"character") + "e".
-  
+
     DISPLAY DICTDB._File._File-name fil-d new_lang[1] @ msg
       WITH FRAME loaddata. /* loading */
     COLOR DISPLAY MESSAGES DICTDB._File._File-name fil-d msg errs crecs
@@ -419,7 +471,7 @@ DO ON STOP UNDO, LEAVE:
       OUTPUT STREAM loaderr CLOSE.
       ASSIGN terrors = terrors + 1.
       next. /* skip that file */
-      END.
+    END.
          
     /* if we can't fit the value in the format, display asterisks */
     crecs = STRING(irecs,{&MAX_RECS_FORMAT}) NO-ERROR.
@@ -511,7 +563,7 @@ DO ON STOP UNDO, LEAVE:
       end.
     END.     /* conversion not needed OR needed and possible */
 
-    /* check for nummeric format (-E set or not) and error out if wrong */
+    /* check for numeric format (-E set or not) and error out if wrong */
     IF numformat <> "" THEN
     DO:
        IF LENGTH(numformat) = 1 THEN
@@ -563,7 +615,16 @@ DO ON STOP UNDO, LEAVE:
           END.
        END.
     END.
-
+    
+    if dictdb._file._file-name = "_user" then
+    do:
+        exceptList = "EXCEPT _Tenantid".  
+    end.    
+    else if dictdb._file._file-name = "_sec-authentication-domain" then
+    do:
+        exceptList = "EXCEPT _Domain-id".  
+    end.    
+    
     ASSIGN
       c    = DICTDB._File._File-name
       &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
@@ -621,7 +682,8 @@ DO ON STOP UNDO, LEAVE:
                                     load_size 
                                     c 
                                     (IF irecs = ? THEN 100 else irecs)
-                                     user_env[31].
+                                     user_env[31]
+                                     exceptList.
 
       IF RETURN-VALUE = "stopped" THEN UNDO stoploop, LEAVE stoploop.
 
@@ -764,3 +826,23 @@ SESSION:IMMEDIATE-DISPLAY = no.
 IF NOT isCpUndefined THEN
    ASSIGN user_longchar = "".
 RETURN.
+PROCEDURE CheckLobDirpath:
+  DEFINE VARIABLE WrkDir As character    no-undo.
+  DEFINE VARIABLE LocLobDir As character no-undo.
+  DEFINE VARIABLE LobDirN   As character no-undo.
+  DEFINE VARIABLE LocSlash  AS CHARACTER no-undo.
+  if lobdir <> "" then
+  do:
+     if index(lobdir,"/") <> 0 then LocSlash = "/".
+     else if index(lobdir,"~\") <> 0 then LocSlash = "~\".
+     else LocSlash = "".
+     Assign LocLobDir = lobdir
+            File-info:file-name = "." 
+            WrkDir = File-info:FULL-PATHNAME
+            LobDirN = wrkdir + if lobdir <> "" then LocSlash else "" 
+            LobDirN = LobDirN + LocLobDir.
+     FILE-INFO:FILE-NAME = LobDirN. 
+     IF SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D" Then 
+     Assign lobdir = LobDirN.
+  end.
+end.

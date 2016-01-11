@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -25,7 +25,8 @@ Returns: "error" if the save is not complete for any reason, otherwise "".
 Author: Laura Stern
 
 Date Created: 10/19/92
-History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
+History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" 
+- Peer Direct
           fernando  05/25/06 Added support for large sequences
 
 ----------------------------------------------------------------------------*/
@@ -37,11 +38,12 @@ History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Pe
 {adedict/uivar.i shared}
 {adedict/SEQ/seqvar.i shared}
 
-Define INPUT PARAMETER p_NameHdl as widget-handle NO-UNDO.
-Define INPUT PARAMETER p_Incr 	 as int64  	  NO-UNDO.
-Define INPUT PARAMETER p_Limit   as int64       NO-UNDO.
-Define INPUT PARAMETER p_Init    as widget-handle NO-UNDO.
-Define INPUT PARAMETER p_Cycle   as logical   	  NO-UNDO.
+Define INPUT PARAMETER p_NameHdl     as widget-handle NO-UNDO.
+Define INPUT PARAMETER p_Incr 	     as int64  	  NO-UNDO.
+Define INPUT PARAMETER p_Limit       as int64       NO-UNDO.
+Define INPUT PARAMETER p_Init        as widget-handle NO-UNDO.
+Define INPUT PARAMETER p_Cycle       as logical   	  NO-UNDO.
+Define INPUT PARAMETER p_Multitenant as logical       NO-UNDO.
 
 Define var incr     as INT64 NO-UNDO.
 Define var limit    as INT64 NO-UNDO.
@@ -59,12 +61,12 @@ PROCEDURE Add_to_List:
    Define INPUT PARAMETER p_name   as char NO-UNDO.  /* name to insert */
    Define var  	     	  ins_name as char NO-UNDO.
    
-   find FIRST _Sequence where _Sequence._Db-recid = s_DbRecId AND
-                          NOT _Sequence._Seq-name BEGINS "$"  AND
-     	     	      	      _Sequence._Seq-Name > p_name 
+   find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId AND
+                          NOT dictdb._Sequence._Seq-name BEGINS "$"  AND
+     	     	      	      dictdb._Sequence._Seq-Name > p_name 
       NO-ERROR.
 
-   ins_name = (if AVAILABLE _Sequence then _Sequence._Seq-name else "").
+   ins_name = (if AVAILABLE dictdb._Sequence then dictdb._Sequence._Seq-name else "").
    run adedict/_newobj.p
       (INPUT s_lst_Seqs:HANDLE in frame browse,
        INPUT p_name,
@@ -104,17 +106,30 @@ do:
 end.
 
 if NOT s_Adding then
-   oldname = b_Sequence._Seq-Name.
+do with frame tblprops:
+    oldname = b_Sequence._Seq-Name.
+    /** cannot currently change existing sequence to be multi-tenant 
+    if input b_Sequence._Seq-Attributes[1] and not b_Sequence._Seq-Attributes[1] then
+    do:
+        run adedict/SEQ/_okmtseq.p. 
+        if return-value = "error" then
+        do:
+            return return-value.
+        end.    
+    end.
+    **/     
+end.
 newname = p_NameHdl:screen-value.
 
 do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    run adecomm/_setcurs.p ("WAIT").
    if s_Adding then 
       assign
-      	 b_Sequence._Db-recid = s_DbRecId.
-
+      	 b_Sequence._Db-recid = s_DbRecId
+         b_Sequence._Seq-Attributes[1] = p_Multitenant.
+    
    assign
-      b_Sequence._Seq-Name = newname
+      b_Sequence._Seq-Name = newname  
       b_Sequence._Seq-Init = initval
       b_Sequence._Seq-Incr = p_Incr
       b_Sequence._Cycle-Ok = p_Cycle
@@ -166,10 +181,20 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       release b_Sequence.
 
    {adedict/setdirty.i &Dirty = "true"}.
+   
    if s_Adding then
       display "Sequence Created" @ s_Status with frame newseq. 
-   else
-      display "Sequence Modified" @ s_Status with frame seqprops.
+   else do with frame seqprops:
+      /*
+      if b_Sequence._Seq-Attributes[1]:sensitive and b_Sequence._Seq-Attributes[1] then
+      do:
+          b_Sequence._Seq-Attributes[1]:sensitive = false.
+          s_Seq_Current_Value = "n/a".
+          display s_Seq_Current_Value.
+      end.
+      */  
+      display "Sequence Modified" @ s_Status.
+   end.   
    stat = "".  /* success (not "error") */
 end.
 

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -65,6 +65,32 @@ rename field support
        F,<table-name>,<old-field-name>,<new-field-name>
        S,<old-sequence-name>,<new-sequence-name>
 
+
+Silent Icremental dump process:
+  FOR OE Architect: CR# OE00198400
+
+  This is an example on how to call this proc persistently to set the
+  newly added option of silent dump and to catch any errors:
+    
+routine-level on error undo, throw.
+define variable h as handle no-undo.
+
+CONNECT -1 t1 NO-ERROR.
+CREATE ALIAS "DICTDB2":U FOR DATABASE t1.
+run prodict/dump_inc.p PERSISTENT SET h .
+run setFileName in h("inc7.df").
+run setCodePage in h("ibm850").
+run setIndexMode in h("active").
+run setRenameFilename in h("r.rf").
+run setDebugMode in h(1).
+run setSilent in h(yes).
+RUN doDumpIncr IN h.
+delete procedure h. 
+
+catch e as Progress.Lang.AppError :
+    message e:ReturnValue
+    view-as  alert-box .  
+end catch.
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -83,6 +109,7 @@ DEFINE VARIABLE index-mode   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE debug-mode   AS INTEGER   NO-UNDO.
 
 DEFINE VARIABLE foo          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE setincrdmpSilent        AS LOGICAL   NO-UNDO INIT NO.
 
 DEFINE STREAM err-log. 
 
@@ -92,7 +119,7 @@ DEFINE STREAM err-log.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 06 NO-UNDO INITIAL [
-  /*01*/ "ERROR: ~"&1~" only runs in batch mode." ,
+  /*01*/ "ERROR: ~"&1~" only runs persistent or in batch mode." ,
   /*02*/ "ERROR: You must have at least 2 databases connected." ,
   /*03*/ ?  /* see below */ ,
   /*04*/ "Using default value of ~"&1~" for &2." ,
@@ -114,21 +141,37 @@ FUNCTION getEnvironment RETURNS CHARACTER (
 FUNCTION getEnvironmentInt RETURNS INTEGER (
   INPUT pcVariableName AS CHARACTER) FORWARD.
 
-/* mainline code **********************************************************/
+PROCEDURE setSilent:
+    DEFINE INPUT PARAMETER setsilent AS LOGICAL NO-UNDO.
+    ASSIGN setincrdmpSilent = setsilent.
+END.
 
-IF NOT SESSION:BATCH-MODE THEN DO:
-  MESSAGE SUBSTITUTE(new_lang[01], "{0}":U) 
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-  RETURN.
-END.  /* NOT SESSION:BATCH-MODE */
+PROCEDURE setFileName:
+    DEFINE INPUT PARAMETER inc_dffile AS CHARACTER NO-UNDO.
+    ASSIGN df-file-name   =  inc_dffile.
+END.
 
+PROCEDURE setCodePage:
+    DEFINE INPUT PARAMETER inc_codepage AS CHARACTER NO-UNDO.
+    ASSIGN code-page   =  inc_codepage.
+END.
 
-ASSIGN debug-mode   = getEnvironmentInt("{&VAR_PREFIX}_DEBUG":U)
-       rename-file  = getEnvironment("{&VAR_PREFIX}_RENAMEFILE":U)
-       df-file-name = getEnvironment("{&VAR_PREFIX}_DFFILE":U)
-       code-page    = getEnvironment("{&VAR_PREFIX}_CODEPAGE":U)
-       index-mode   = getEnvironment("{&VAR_PREFIX}_INDEXMODE":U).
+PROCEDURE setIndexMode:
+    DEFINE INPUT PARAMETER inc_indexmode AS CHARACTER NO-UNDO.
+    ASSIGN index-mode   =  inc_indexmode.
+END.
 
+PROCEDURE setRenameFilename:
+    DEFINE INPUT PARAMETER inc_renamefile AS CHARACTER NO-UNDO.
+    ASSIGN rename-file   =  inc_renamefile.
+END.
+
+PROCEDURE setDebugMode:
+    DEFINE INPUT PARAMETER inc_debug AS INTEGER NO-UNDO.
+    ASSIGN debug-mode   =  inc_debug.
+END.
+
+Procedure doDumpIncr:
 IF debug-mode GT 0 THEN
   OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.
 
@@ -136,7 +179,6 @@ IF NUM-DBS LT 2 THEN DO:
   PUT STREAM err-log UNFORMATTED new_lang[02].
   RETURN.
 END.  /* NUM-DBS LT 2 */
-
 
 /* test, if `rename-file' exists */
 IF rename-file NE "":U THEN DO:
@@ -188,7 +230,7 @@ END.  /* index-mode EQ "":U */
 
 /* user_env[19] will be changed BY _dmpincr.p */
 ASSIGN user_env[19] = rename-file + ",":U + index-mode + ",":U + 
-                      STRING(debug-mode)
+                      STRING(debug-mode) + ",":U + STRING(setincrdmpSilent)
        user_env[02] = df-file-name
        user_env[05] = code-page.
 
@@ -205,15 +247,37 @@ IF debug-mode GT 0 THEN DO:
   OUTPUT STREAM err-log CLOSE.
 END.
 
-FIND FIRST DICTDB._Db NO-LOCK.
+FIND FIRST DICTDB._Db where DICTDB._db._db-local = true NO-LOCK.
 ASSIGN drec_db = RECID(DICTDB._Db).
 
-DELETE ALIAS "DICTDB2":U.
-CREATE ALIAS "DICTDB2":U FOR DATABASE VALUE(LDBNAME(2)).
+if not this-procedure:persistent then DO:
+  DELETE ALIAS "DICTDB2":U.
+  CREATE ALIAS "DICTDB2":U FOR DATABASE VALUE(LDBNAME(2)).
+END.
 
 RUN prodict/dump/_dmpincr.p.
 
 RETURN.
+END. /* end of doDumpIncr */
+
+/* mainline code **********************************************************/
+
+IF NOT SESSION:BATCH-MODE THEN DO:
+ if not THIS-PROCEDURE:persistent THEN 
+  MESSAGE SUBSTITUTE(new_lang[01], "{0}":U) 
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  RETURN.
+END.  /* NOT SESSION:BATCH-MODE */
+
+if not this-procedure:persistent then DO:
+  ASSIGN debug-mode   = getEnvironmentInt("{&VAR_PREFIX}_DEBUG":U)
+         rename-file  = getEnvironment("{&VAR_PREFIX}_RENAMEFILE":U)
+         df-file-name = getEnvironment("{&VAR_PREFIX}_DFFILE":U)
+         code-page    = getEnvironment("{&VAR_PREFIX}_CODEPAGE":U)
+         index-mode   = getEnvironment("{&VAR_PREFIX}_INDEXMODE":U).
+
+  run doDumpIncr.
+end.
 
 /* functions **************************************************************/
 

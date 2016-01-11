@@ -369,7 +369,7 @@ PROCEDURE loadDetailTT :
            ttDetail.tlHasMacKey    = (STRING(hDbDetail::_db-mac-key) NE "020000")
            ttDetail.tlModified     = FALSE NO-ERROR.
   END.
-
+  IF hDb::_db-guid <> ? THEN DO:
   CREATE QUERY hQuery.
   hQuery:SET-BUFFERS(hDbDetail).
 
@@ -397,6 +397,7 @@ PROCEDURE loadDetailTT :
   DELETE OBJECT hQuery.
   DELETE OBJECT hDb.
   DELETE OBJECT hDbDetail.
+  END.
 END PROCEDURE.
 
 PROCEDURE writeChanges :

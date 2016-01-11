@@ -53,6 +53,7 @@ form
    
    s_lob_Area           LABEL "&Area"      AT col 18 ROW-OF b_Field._Format COLON-ALIGNED {&STDPH_FILL}
    s_btn_lob_Area
+   s_lob_area_mttext no-label 
    SKIP({&VM_WID}) 
 
    /* we will show either the label or the code page (for clob), so keep them at the same location */

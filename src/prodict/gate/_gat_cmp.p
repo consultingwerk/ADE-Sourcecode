@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -863,11 +863,11 @@ for each gate-work
          or  DICTDB._File._File-name begins "SQL"
          or  LOOKUP(DICTDB._File._File-name,"CloseAllProcs,GetFieldIds,"
                    + "GetFieldIds_buffer,GetInfo,GetInfo_Buffer,"
-                   + "SEND-SQL-STATEMENT,SendInfo")      <> 0
+                   + "DS-Close-Cursor,SEND-SQL-STATEMENT,SendInfo")      <> 0
         )  )
      or ( user_dbtype = "ORACLE"
        and ( LOOKUP(DICTDB._File._File-Name,"PROC-TEXT-BUFFER,"
-                   + "SEND-SQL-STATEMENT")    <> 0
+                   + "SEND-SQL-STATEMENT," + "DS-Close-Cursor" )    <> 0
          or  DICTDB._File._File-name begins "oracle"
         )  )
      then next.  /* system-table or pseudo-object */

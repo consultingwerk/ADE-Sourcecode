@@ -23,7 +23,7 @@
           must have permissions to query the schema information.
 
   History:  
- 
+         kmayur  06/28/11  added procbfrpul.p for constraint feature. 
 */
  
 &SCOPED-DEFINE DATASERVER YES
@@ -102,7 +102,10 @@ END.
 
 /* Pull */
 IF DBTYPE(p_db_name) = "MSS" THEN
+DO:   
+   RUN prodict/mss/procbfrpul.p.
    RUN prodict/mss/_mss_pul.p.
+END.   
 ELSE
    RUN prodict/odb/_odb_pul.p.
 

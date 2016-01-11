@@ -9,6 +9,9 @@
 
 /* useradmn - set Security Administrators */
 
+using OpenEdge.DataAdmin.DataAdminService from propath.
+using OpenEdge.DataAdmin.IAdministrator from propath.
+ 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 
@@ -26,6 +29,9 @@ DEFINE VARIABLE instrSecu1 AS CHAR VIEW-AS EDITOR NO-BOX INNER-CHARS 20 INNER-LI
 DEFINE VARIABLE instrSecu2 AS CHAR VIEW-AS EDITOR NO-BOX INNER-CHARS 52 INNER-LINES 7 NO-UNDO.
 DEFINE VARIABLE instrSecu3 AS CHAR VIEW-AS EDITOR NO-BOX INNER-CHARS 72 INNER-LINES 1 NO-UNDO.
 DEFINE VARIABLE cr AS CHARACTER NO-UNDO.
+
+define variable administrator       as  IAdministrator no-undo.
+define variable service             as  DataAdminService no-undo.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 7 NO-UNDO INITIAL [
@@ -138,25 +144,7 @@ DO:
   DO WHILE (LENGTH(mass) > 0) AND SUBSTRING(mass,LENGTH(mass),1) = ",":
     mass = SUBSTRING(mass,1,LENGTH(mass) - 1).
   END.
-
-  IF NOT CAN-DO(mass,USERID(user_dbname)) THEN DO:
-    /* cannot exclude self */
-    MESSAGE new_lang[4] VIEW-AS ALERT-BOX ERROR BUTTONS OK. 
-    APPLY "ENTRY" TO security[1] IN FRAME security.
-    RETURN NO-APPLY.
-  END.
-
-  FOR EACH DICTDB._User:
-    user-exists = CAN-DO(mass,DICTDB._User._Userid).
-    IF user-exists THEN LEAVE.
-  END.
-  IF NOT user-exists THEN DO:
-    /* Need at least one security admin as a user if user records exist. */
-    MESSAGE new_lang[5] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    APPLY "ENTRY" TO security[1] IN FRAME security.
-    RETURN NO-APPLY.
-  END.
-
+  
   IF mass <> orig THEN 
   DO:
     ans = FALSE.
@@ -164,54 +152,24 @@ DO:
       VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE ans.
     IF NOT ans THEN RETURN NO-APPLY.
   END.
-
-  DO ON ERROR UNDO, LEAVE:
-    FIND DICTDB._File  "_File".
-    FIND DICTDB._Field "_Can-read"   OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-    FIND DICTDB._Field "_Can-write"  OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-    FIND DICTDB._Field "_Can-create" OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-    FIND DICTDB._Field "_Can-delete" OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-
-    FIND DICTDB._File  "_Field".
-    FIND DICTDB._Field "_Can-read"   OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-    FIND DICTDB._Field "_Can-write"  OF DICTDB._File.
-    DICTDB._Field._Can-write = mass.
-    
-    /* OE00170630 - protect security tables. Note that they will not be 
-       available in pre-10.1A databases that have not had their schemas updated.
-    */
-    FIND DICTDB._File "_Db-Option" NO-ERROR.
-    IF AVAILABLE DICTDB._File THEN DO:
-       ASSIGN DICTDB._File._Can-create = mass
-              DICTDB._File._Can-write = mass
-              DICTDB._File._Can-delete = mass.
-    END.
-
-    FIND DICTDB._File "_Db-Detail" NO-ERROR.
-    IF AVAILABLE DICTDB._File THEN DO:
-       ASSIGN DICTDB._File._Can-create = mass
-              DICTDB._File._Can-write = mass
-              DICTDB._File._Can-delete = mass.
-    END.
-
-    FIND DICTDB._File "_Db".
-    FIND DICTDB._Field "_Db-guid" OF DICTDB._File NO-ERROR.
-    IF AVAILABLE DICTDB._Field THEN
-       DICTDB._Field._Can-write = mass.
-
-    /* user record */
-    FIND DICTDB._File  "_User".
-    DICTDB._File._Can-create = mass.
-    DICTDB._File._Can-delete = mass.
-    RETURN.
-  END. 
-
-  RETURN NO-APPLY.  /* Only get here if error */
+  
+  administrator:Administrators = mass.
+  service:UpdateAdministrator(administrator).
+  
+  catch e as Progress.Lang.Error :
+        
+      if  e:GetMessageNum(1) > 0 and e:GetMessageNum(1) < 8 then
+           message
+               new_lang[e:GetMessageNum(1)] 
+               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      else  
+          message               
+                e:GetMessageNum(1)
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+                
+      APPLY "ENTRY" TO security[1] IN FRAME security.
+      RETURN NO-APPLY.          
+  end catch.
 END.
 
 ON WINDOW-CLOSE OF FRAME security
@@ -223,32 +181,35 @@ ON WINDOW-CLOSE OF FRAME security
   ENABLE msgSecuAdm instrSecu1 instrSecu2 InstrSecu3 WITH FRAME security.
 &ENDIF
 
-RUN "prodict/_dctadmn.p" (INPUT USERID(user_dbname),OUTPUT ans).
-DEFINE VARIABLE istrans AS LOGICAL INITIAL TRUE. /*UNDO (not no-undo!) */
-DO ON ERROR UNDO:
-  istrans = FALSE.
-  UNDO,LEAVE.
-END.
+service = new DataAdminService(ldbname("DICTDB")).
+do on error undo, throw:
+    
+    /* note: can probably be removed as the AdministratorSource checks dbtype("dictdb") */
+    IF user_dbtype <> "PROGRESS" THEN 
+        undo, throw new Progress.Lang.AppError(new_lang[1],1). /* dbtype okay */
+
+    administrator = service:GetAdministrator().
+   
+    catch e as Progress.Lang.Error :
+        
+        if  e:GetMessageNum(1) > 0 and e:GetMessageNum(1) < 8 then
+            message
+                new_lang[e:GetMessageNum(1)] 
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        else  
+            message               
+                e:GetMessageNum(1)
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        user_path = "".
+        RETURN.            
+    end catch.
  
-RUN "prodict/_dctadmn.p" (INPUT USERID(user_dbname),OUTPUT ans).
-IF istrans OR PROGRESS = "Run-Time"
-  OR CAN-DO("READ-ONLY",DBRESTRICTIONS(user_dbname))
-                             THEN msg-num = 7. /* r/o mode */
-IF NOT ans                   THEN msg-num = 3. /* secu admin? */
-IF USERID(user_dbname) = ""  THEN msg-num = 2. /* userid set? */
-IF user_dbtype <> "PROGRESS" THEN msg-num = 1. /* dbtype okay */
-
-IF msg-num <> 0 THEN DO:
-  MESSAGE new_lang[msg-num] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-  user_path = "".
-  RETURN.
-END.
-
-FIND DICTDB._File  "_User".
+end.
+ 
 ASSIGN
   security    = ""
-  security[1] = DICTDB._File._Can-create
-  orig        = DICTDB._File._Can-create.
+  security[1] = administrator:Administrators
+  orig        = administrator:Administrators.
 DO j = 1 TO 3:
   IF LENGTH(security[j]) > 63 THEN DO:
     IF SUBSTRING(security[j],64,1) = "," THEN
@@ -285,3 +246,5 @@ HIDE FRAME security NO-PAUSE.
 IF canned THEN
   user_path = "".
 RETURN.
+
+

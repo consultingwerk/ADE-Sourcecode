@@ -29,7 +29,7 @@ Used/Modified Shared Objects:
 History:
     D. McMann 06/18/01  Based on _usrschg.p 20010615-001
     moloney   07/21/21  Unicode requirements for schema holder database - added to CR#OE00147991
-    sgarg     07/29/10  Disallow ? as case-insesitive entry (OE00198732)
+    sgarg     07/12/10  Disallow ? as case-insesitive entry (OE00198732)
                         
 
 ----------------------------------------------------------------------------*/
@@ -121,7 +121,6 @@ FORM
 /* LANGUAGE DEP  END.ENCIES   END. */ /*------------------------------------------*/
 
 /*================================Triggers=================================*/
-
 ON ANY-PRINTABLE OF casesen IN FRAME userschg 
 DO:
     /* Disallow ? KEY EVENT in case-insensitive entry box during PULL */
@@ -247,7 +246,7 @@ else
                              ELSE SESSION:CPCOLL)
          casesen = (IF DICTDB._Db._Db-misc1[1] = 1 THEN TRUE ELSE FALSE).
 
-    
+
 
 IF i > 0 THEN DO:
   MESSAGE new_lang[i] VIEW-AS ALERT-BOX ERROR BUTTONS OK.

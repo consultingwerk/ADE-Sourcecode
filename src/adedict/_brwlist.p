@@ -98,16 +98,16 @@ case p_Obj:
    do:
       if NOT s_Seqs_Cached then
       do:
-      	 find _File WHERE _File._File-name = "_Sequence"
-      	              AND _File._Owner = "PUB"
+      	 find dictdb._File WHERE dictdb._File._File-name = "_Sequence"
+      	              AND dictdb._File._Owner = "PUB"
       	              NO-LOCK.
-      	 if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+      	 if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
       	    message s_NoPrivMsg "see any sequence information."
       	       view-as ALERT-BOX ERROR buttons OK.
       	 else
-	    for each _Sequence where _Sequence._Db-recid = s_DbRecId
-                             AND NOT _Sequence._Seq-name BEGINS "$":
-	       s_Res = s_lst_Seqs:add-last(_Sequence._Seq-name) in frame browse.
+	    for each dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
+                             AND NOT dictdb._Sequence._Seq-name BEGINS "$":
+	       s_Res = s_lst_Seqs:add-last(dictdb._Sequence._Seq-name) in frame browse.
 	    end.
       end.
    
@@ -144,15 +144,15 @@ case p_Obj:
    
       if NOT s_Idxs_Cached then
       do:
-      	 find _File WHERE _File._File-name = "_Index"
-      	              AND _File._Owner = "PUB"
+      	 find dictdb._File WHERE dictdb._File._File-name = "_Index"
+      	              AND dictdb._File._Owner = "PUB"
       	              NO-LOCK.
-      	 if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+      	 if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
       	    message s_NoPrivMsg "see any index information."
       	       view-as ALERT-BOX ERROR buttons OK.
       	 else
-	    for each _Index where _Index._File-recid = s_TblRecId:
-	       s_Res = s_lst_Idxs:add-last(_Index._Index-name) in frame browse.
+	    for each dictdb._Index where dictdb._Index._File-recid = s_TblRecId:
+	       s_Res = s_lst_Idxs:add-last(dictdb._Index._Index-name) in frame browse.
 	    end.
       end.
 

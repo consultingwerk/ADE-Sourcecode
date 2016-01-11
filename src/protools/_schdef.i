@@ -16,6 +16,8 @@
 DEFINE TEMP-TABLE TableDetails
   FIELD name AS CHARACTER
   FIELD storarea AS CHARACTER
+  FIELD multitenant AS LOGICAL
+  FIELD keepdefaultarea AS LOGICAL
   FIELD tlabel AS CHARACTER
   FIELD tdesc AS CHARACTER
   FIELD replproc AS CHARACTER

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,36 +41,74 @@ DEFINE VARIABLE fldrpos  AS INTEGER   NO-UNDO.
 DEFINE VARIABLE i        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE gotError AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE freeOrder AS INT      NO-UNDO.
+define variable lnewparent  as logical no-undo.
 
+define variable dictLoader as OpenEdge.DataAdmin.Binding.IDataDefinitionLoader no-undo.
 
-FIND _File WHERE RECID(_File) = drec_file NO-ERROR.
-IF NOT AVAILABLE _File THEN RETURN.
-IF _File._Frozen THEN
-  ierror = 14. /* "Cannot alter field from frozen file" */
-IF _File._Db-lang = 1 AND imod <> "m" THEN
-  ierror = 15. /* "Use SQL ALTER TABLE to change field" */
-IF ierror > 0 THEN RETURN.
+/* dictLoadOptions - could have options only or be a logger/loader or reader/parser  */
+
+if valid-object(dictLoadOptions) then
+do:
+    /* the code below use valid-object(dictLoader) as flag to logg data and return */
+    dictLoader = dictLoadOptions:Logger.
+end.
+
+if valid-object(dictLoader) and dictLoader:isReader and imod = "a" then
+    lnewparent = dictLoader:AddingChildToNewTable.
+
+if not lnewParent then
+do:  
+    FIND _File WHERE RECID(_File) = drec_file NO-ERROR.
+
+    IF NOT AVAILABLE _File THEN
+      RETURN.
+    IF _File._Frozen THEN
+      ierror = 14. /* "Cannot alter field from frozen file" */
+    IF _File._Db-lang = 1 AND imod <> "m" THEN
+      ierror = 15. /* "Use SQL ALTER TABLE to change field" */
+    IF ierror > 0 THEN 
+       RETURN.
+end.
 
 DO ON ERROR UNDO, LEAVE: /* OE00158774 */
 
 ASSIGN gotError = YES.
 
 FIND FIRST wfld.
+ 
 IF imod <> "a" THEN
   FIND _Field OF _File
     WHERE _Field._Field-name = wfld._Field-name. /* proven to exist */
 
 IF imod = "a" THEN DO: /*---------------------------------------------------*/
-  IF CAN-FIND(_Field WHERE _Field._File-recid = drec_file
-    AND _Field._Field-name = wfld._Field-name) THEN
-    ierror = 7. /* "&2 already exists with name &3" */
+  if not lnewparent then
+  do:
+      IF CAN-FIND(_Field WHERE _Field._File-recid = drec_file
+                           AND _Field._Field-name = wfld._Field-name) THEN
+      do:  
+          if valid-object(dictLoader) and dictLoader:isReader then
+          do:   
+             /* this is not an error if parsing and the existing field is renamed */
+              if dictLoader:IndexNewName(_File._File-name,wfld._Field-name) = "" then
+                 ierror = 7. /* "&2 already exists with name &3" */
+              
+          end. 
+          else   
+             ierror = 7. /* "&2 already exists with name &3" */
+      end.  
+  end.
+  
   IF wfld._Data-type = "CLOB" AND
     (wfld._Charset = ? OR wfld._Collation = ?) THEN
     ierror = 46.
 
   /* OE00177533 - make sure attributes1 is correct based on column and db codepage */
-  IF wfld._Data-type = "CLOB" AND wfld._Attributes1 = 1 THEN DO:
-     FIND _Db WHERE RECID(_Db)= _File._Db-recid.
+  IF  wfld._Data-type = "CLOB" AND wfld._Attributes1 = 1 THEN DO:
+     if not lnewParent then
+        FIND _Db WHERE RECID(_Db)= _File._Db-recid.
+     else
+        FIND _Db WHERE RECID(_Db)= drec_db.
+     
      /* if codepages don't match, then this must be 2 in spite of what the .df has */
      IF UPPER(wfld._Charset) NE UPPER(_Db._db-xl-name) THEN
         wfld._Attributes1 = 2.
@@ -86,12 +124,19 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
       ierror = 55.
 
   IF ierror > 0 THEN RETURN.
-
+  
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddField(iMod,if lnewparent then ? else _File._file-name,buffer wfld:handle,wfld._Fld-stlen).
+      return.   
+  end.
+  
   IF wfld._Order = ? THEN DO:
     FIND LAST _Field WHERE _Field._File-recid = drec_file
       USE-INDEX _field-position NO-ERROR.
     wfld._Order = (IF AVAILABLE _Field THEN _Field._Order ELSE 0) + 10.
   END.
+  
   /* existing order! */
   IF CAN-FIND(_Field WHERE _Field._File-recid = drec_file
     AND _Field._Order = wfld._Order) THEN
@@ -156,6 +201,11 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF _Field._Extent <> wfld._Extent THEN
     ierror = 11. /* "Cannot change extent of existing field" */
   IF ierror > 0 THEN RETURN.
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddField(iMod,_File._file-name,buffer wfld:handle,?).
+      return.   
+  end.
 
   /* OE00177533 - make sure attributes1 is correct based on column and db codepage */
   IF _Field._Data-type = "CLOB" AND 
@@ -290,6 +340,12 @@ IF imod = "r" THEN DO: /*---------------------------------------------------*/
     ierror = 7. /* "&2 already exists with name &3" */
   IF ierror > 0 THEN RETURN.
   
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:RenameField(_File._file-name,_Field._Field-Name, irename).
+      return.   
+  end.
+  
   /* OE00166224 - if this field is in the list of fields to be reordered,
      change its name in the temp-table too.
   */
@@ -309,6 +365,11 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
     AND _View-ref._Base-Col = _Field._Field-name) THEN
     ierror = 20. /* "Cannot &1 &2 referenced in SQL view" */
   IF ierror > 0 THEN RETURN.
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddField(iMod,_File._file-name,buffer wfld:handle,?).
+      return.   
+  end.
 
   /* This moves the primary index if the field being deleted is */
   /* part of the primary index. */
@@ -343,6 +404,12 @@ IF imod = "d" THEN DO: /*---------------------------------------------------*/
   /* and remove associated triggers */
   FOR EACH _Field-trig OF _Field:
     DELETE _Field-trig.
+  END.
+  FOR EACH _Constraint OF _Field:
+    FOR EACH _Constraint-Keys WHERE _Constraint-Keys._Con-Recid = RECID(_Constraint):
+       DELETE _Constraint-Keys.
+    END.  
+    DELETE _Constraint.
   END.
 
   freeOrder = _Field._Order.

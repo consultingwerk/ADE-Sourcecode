@@ -97,9 +97,25 @@ FOR EACH _File NO-LOCK WHERE _File._Db-recid = p_DbId AND
                  + (IF AVAILABLE _Index-field AND _Index-field._Abbreviate
                      THEN "a" ELSE "") ).
                      
-      IF _Db._Db-type = "PROGRESS" THEN DO:       
-         FIND FIRST _StorageObject WHERE _StorageObject._Object-Number = _Index._Idx-num 
-                                     AND _StorageObject._Object-type = 2 NO-LOCK NO-ERROR.
+      IF _Db._Db-type = "PROGRESS" THEN DO:    
+         /* note: this check may not be needed, but just in case reports need to work against old versions  */
+         if INTEGER(DBVERSION("DICTDB")) > 10 then
+         do:
+             FIND _StorageObject WHERE _StorageObject._DB-recid      = _File._DB-recid  
+                                   and _StorageObject._Object-Number = _Index._Idx-num 
+                                   AND _StorageObject._Object-type   = 2 
+                                   AND _StorageObject._Partitionid   = 0
+                                   NO-LOCK NO-ERROR.
+             
+             
+         end.
+         else do:
+             FIND _StorageObject WHERE _StorageObject._DB-recid      = _File._DB-recid  
+                                   and _StorageObject._Object-Number = _Index._Idx-num 
+                                   AND _StorageObject._Object-type   = 2 
+                                   NO-LOCK NO-ERROR.  
+         end.    
+         
          IF AVAILABLE _StorageObject THEN
            ASSIGN starea = STRING(_StorageObject._Area-number).
          ELSE

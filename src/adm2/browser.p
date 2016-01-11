@@ -2768,11 +2768,9 @@ PROCEDURE enableFields :
       end.  /* do while valid-handle hColumn */
       /* avoid error 4517 setting read-only when browse has focus */
       if focus = hBrowse then  
-        hBrowse:sensitive = no.
-      hBrowse:READ-ONLY = NO.
-      if hBrowse:sensitive = false then
-        hBrowse:sensitive = yes.
-      
+        APPLY "ENTRY":U TO hFrame.  /*hBrowse:sensitive = no.*/
+      hBrowse:READ-ONLY = no.
+       
       IF lSelected THEN 
         hBrowse:SELECT-FOCUSED-ROW() NO-ERROR.
       

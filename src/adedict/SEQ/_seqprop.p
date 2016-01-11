@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2011 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -29,22 +29,27 @@ Date Created: 02/21/92
 Define var capab  AS CHAR NO-UNDO.
 DEFINE VAR l       AS LOGICAL   NO-UNDO.
 DEFINE VAR cTemp   AS CHARACTER NO-UNDO.
+/* 11.0  doesn't care as it canot change an existing sequence... 
+define variable lMultitenantdb as logical no-undo.
+*/
 
 /*----------------------------Mainline code----------------------------------*/
 
 /* Get the sequence type */
 s_Seq_Type = s_DbCache_Type[s_DbCache_ix].  
 
-find _File WHERE _File._File-name = "_Sequence"
-             AND _File._Owner = "PUB" NO-LOCK.
+find dictdb._File WHERE dictdb._File._File-name = "_Sequence"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
              
-if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "see sequence definitions."
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
-
+/* 11.0 doesn not care about this (see commented out code below)
+lMultitenantdb = can-find(first dictdb._tenant). 
+*/
 /* Get gateway capabilities */
 run adedict/_capab.p (INPUT {&CAPAB_SEQ}, OUTPUT capab).
 
@@ -125,14 +130,16 @@ IF s_Large_Seq NE YES THEN DO:
            b_Sequence._Seq-Incr:FORMAT IN FRAME seqprops = "->,>>>,>>>,>>9".
 END.
 
-/* find current value for Progress db only*/
-IF INDEX(capab,{&CAPAB_FOR_NAME}) = 0 THEN DO:
+/* find current value for non multi-tenant Progress db only*/
+IF not b_Sequence._Seq-Attributes[1] and INDEX(capab,{&CAPAB_FOR_NAME}) = 0 THEN DO:
    /* if the sequence was just created and not saved yet, the above statement will fail */
    s_Seq_Current_Value = TRIM(STRING(DYNAMIC-CURRENT-VALUE(s_CurrSeq, s_CurrDb),"->,>>>,>>>,>>>,>>>,>>>,>>9")) NO-ERROR.
    IF ERROR-STATUS:ERROR THEN
        s_Seq_Current_Value = "".
 END.
-ELSE 
+ELSE if b_Sequence._Seq-Attributes[1] then
+    s_Seq_Current_Value = "<one value per tenant>".
+ELSE
     s_Seq_Current_Value = "n/a".
 
 /* Set status line */
@@ -147,8 +154,12 @@ if NOT s_Seq_ReadOnly then
       s_Seq_ReadOnly = true.
    end.
 
-display b_Sequence._Seq-Name  b_Sequence._Seq-Init    b_Sequence._Seq-Incr
-        s_Seq_Limit 	      b_Sequence._Cycle-Ok
+display b_Sequence._Seq-Name  
+        b_Sequence._Seq-Attributes[1]
+        b_Sequence._Seq-Init    
+        b_Sequence._Seq-Incr
+        s_Seq_Limit
+        b_Sequence._Cycle-Ok
         s_Seq_Current_Value
         (IF INDEX(capab,{&CAPAB_OWNER})    = 0 
           then "n/a" else b_Sequence._Seq-misc[2]) @ b_Sequence._Seq-misc[2]
@@ -177,7 +188,16 @@ do:
    apply "entry" to s_btn_Close in frame seqprops.
 end.
 else do:
+   /* This code was added (and worked) before it was decided that v11.0 will not allow making 
+      existing sequences multi-tenant 
+   disable b_Sequence._Seq-Attributes[1] when not lMultitenantdb 
+      or b_Sequence._Seq-Attributes[1]
+      with frame seqprops.
+   */
    enable b_Sequence._Seq-Name WHEN  INDEX(capab,{&CAPAB_RENAME}) <> 0
+/* This line was added (and worked) before it was decided that v11.0 will not allow 
+   making existing sequences multi-tenant 
+          b_Sequence._Seq-Attributes[1] when lMultitenantdb and not b_Sequence._Seq-Attributes[1]*/
           b_Sequence._Seq-Init WHEN  INDEX(capab,{&CAPAB_MODIFY}) <> 0
           b_Sequence._Seq-Incr WHEN  INDEX(capab,{&CAPAB_MODIFY}) <> 0
 	  s_Seq_Limit          WHEN  INDEX(capab,{&CAPAB_MODIFY}) <> 0

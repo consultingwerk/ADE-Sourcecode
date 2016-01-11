@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2007,2009 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2007,2009,2011 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -105,6 +105,9 @@ Define var tfill    as char    NO-UNDO init "".
 Define var tlist    as char    NO-UNDO.
 Define var pattern  as char    NO-UNDO initial "*".
 Define var thidden  as logical NO-UNDO.
+DEFINE VARIABLE tblslcn AS CHARACTER   INITIAL "A" NO-UNDO.
+DEFINE VAR ismultitenant     AS LOGICAL NO-UNDO INIT FALSE.
+DEFINE VAR issupertenant     AS LOGICAL NO-UNDO INIT FALSE.
 
 Define button btn_select   label "&Select Some...".
 Define button btn_deselect label "&Deselect Some...".
@@ -132,8 +135,12 @@ FORM
 
    btn_select     at 2    SPACE(1) btn_deselect    SKIP({&VM_WID})
    tfill       	  at row 3 col 3 FORMAT "x(32)"    SKIP({&VM_WID})
-   tlist       	  at 3 view-as SELECTION-LIST SINGLE 
-      	       	  SIZE 32 by 12 SCROLLBAR-V  	    SKIP({&VM_WID})
+   tlist       	  at 3 view-as SELECTION-LIST   SINGLE  
+      	       	  SIZE 32 by 10 SCROLLBAR-V  	    SKIP({&VM_WID})
+   tblslcn        at 2 VIEW-AS RADIO-SET RADIO-BUTTONS "All", "A",
+                                               "Multi-tenant", "MT",
+                                               "Shared", "SH"
+                                 HORIZONTAL NO-LABEL  SKIP({&VM_WID})
    thidden        at 2 view-as TOGGLE-BOX
                        LABEL "&Show Hidden"
    {prodict/user/userbtns.i}
@@ -149,10 +156,14 @@ FORM
    btn_deselect    
    tfill       	  at row 3 col 2 FORMAT "x(32)" 
       	       	       {&STDPH_FILL} NO-LABEL
-   tlist       	  at 2 view-as SELECTION-LIST SINGLE 
-      	       	       INNER-CHARS 32 INNER-LINES 12
+   tlist       	  at 2 view-as SELECTION-LIST   SINGLE 
+      	       	       INNER-CHARS 32 INNER-LINES 10
       	       	       SCROLLBAR-V SCROLLBAR-H
       	       	       NO-LABEL                    SKIP({&VM_WID})
+   tblslcn          at 2 VIEW-AS RADIO-SET RADIO-BUTTONS "All", "A",
+                                               "Multi-tenant", "MT",
+                                               "Shared", "SH"
+                                 HORIZONTAL NO-LABEL  SKIP({&VM_WID})
    thidden     	  at 2 view-as TOGGLE-BOX 
       	       	       LABEL "&Show Hidden"
    {prodict/user/userbtns.i}
@@ -313,8 +324,9 @@ END.
 /*----- CHOOSE of SELECT SOME BUTTON-----*/
 on choose of btn_select in frame tbl_get
 do:
+    
    Define var choice as char NO-UNDO init "".
-   
+ 
    ASSIGN FRAME tbl_patt:TITLE = "Select Tables by Pattern Match".
    
    pprompt = "Enter name of table to select.".
@@ -327,7 +339,7 @@ do:
 
    do ON ENDKEY UNDO, LEAVE:
       update pattern btn_OK btn_Cancel {&HLP_BTN_NAME} with frame tbl_patt.
-
+ 
       /* Find the list of files that matches the pattern and are
          not selected yet; -> set choice accordingly.
       */
@@ -342,44 +354,97 @@ do:
 
          IF l_cache_tt AND choice = "*ALL*" THEN
             ASSIGN choice = "".
-
+         
          IF l_cache_tt THEN DO:
              /* look for tables in the temp-table */
-            FOR EACH tt_cache_file NO-LOCK:
+          
+            FOR EACH tt_cache_file NO-LOCK:              
                  if CAN-DO(pattern, tt_cache_file.cName) 
-                     AND NOT LOOKUP( tt_cache_file.cName, choice) > 0 THEN DO:
+                 AND NOT LOOKUP( tt_cache_file.cName, choice) > 0 THEN 
+                 DO:
                      IF choice = "" THEN
-                        ASSIGN choice = tt_cache_file.cName.
-                     ELSE
-                        ASSIGN choice = choice + "," + tt_cache_file.cName NO-ERROR.
-                     IF ERROR-STATUS:ERROR THEN DO:
-                        MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
-                                 SKIP ERROR-STATUS:GET-MESSAGE(1)
-                                 VIEW-AS ALERT-BOX ERROR.
-                        LEAVE.
-                     END.
+                         ASSIGN choice = tt_cache_file.cName.
+                     ELSE DO:
+                         ASSIGN choice = choice + "," + tt_cache_file.cName NO-ERROR.
+                         IF ERROR-STATUS:ERROR THEN 
+                         DO:
+                            MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                     SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                     VIEW-AS ALERT-BOX ERROR.
+                            LEAVE.
+                         END.
+                     END.   
                  END.
             END.
          END.
          ELSE do ix = 1 to cache_file#:
-          if   CAN-DO(pattern, cache_file[ix]) 
-       	   AND NOT LOOKUP(cache_file[ix], choice) > 0
-             then do:
+           if   CAN-DO(pattern, cache_file[ix]) 
+       	   AND NOT LOOKUP(cache_file[ix], choice) > 0 then 
+       	   do:
+             FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix].
+
+             if  tblslcn:SCREEN-VALUE in frame tbl_get = "A"  THEN DO:
                 /* the assign below used to be one statement, but I separated it
                    in two to handle selecting lots of tables so we don't run
                    out of stack space.
                 */
                 IF choice = "" THEN
-                   ASSIGN choice = cache_file[ix].
-                ELSE
-                   ASSIGN choice = choice + "," + cache_file[ix] NO-ERROR.
-                IF ERROR-STATUS:ERROR THEN DO:
-                   MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
-                            SKIP ERROR-STATUS:GET-MESSAGE(1)
-                            VIEW-AS ALERT-BOX ERROR.
-                   LEAVE.
+                    ASSIGN choice = cache_file[ix].
+                ELSE DO:
+                    ASSIGN choice = choice + "," + cache_file[ix] NO-ERROR.
+                    IF ERROR-STATUS:ERROR THEN 
+                    DO:
+                       MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                VIEW-AS ALERT-BOX ERROR.
+                       LEAVE.
+                    END.
                 END.
-              end.
+             END.
+
+              if  tblslcn:SCREEN-VALUE in frame tbl_get = "MT"  THEN DO:
+                /* the assign below used to be one statement, but I separated it
+                   in two to handle selecting lots of tables so we don't run
+                   out of stack space.
+                */
+               if DICTDB._File._File-attributes[1] EQ TRUE THEN DO:
+                IF choice = "" THEN
+                    ASSIGN choice = cache_file[ix].
+                ELSE DO:
+                    ASSIGN choice = choice + "," + cache_file[ix] NO-ERROR.
+                    IF ERROR-STATUS:ERROR THEN 
+                    DO:
+                       MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                VIEW-AS ALERT-BOX ERROR.
+                       LEAVE.
+                    END.
+                END.
+             END.
+            END.
+
+              if  tblslcn:SCREEN-VALUE in frame tbl_get = "SH"  THEN DO:
+                /* the assign below used to be one statement, but I separated it
+                   in two to handle selecting lots of tables so we don't run
+                   out of stack space.
+                */
+               if DICTDB._File._File-attributes[1] NE TRUE THEN DO:
+                IF choice = "" THEN
+                    ASSIGN choice = cache_file[ix].
+                ELSE DO:
+                    ASSIGN choice = choice + "," + cache_file[ix] NO-ERROR.
+                    IF ERROR-STATUS:ERROR THEN 
+                    DO:
+                       MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                VIEW-AS ALERT-BOX ERROR.
+                       LEAVE.
+                    END.
+                END.
+             END.
+            END.
+
+           end.
       	 end.     	     
       end.
 
@@ -425,33 +490,16 @@ DO:
    
    thidden = INPUT frame tbl_get thidden.
 
-   /* Re-fill the list with or without hidden tables. */
-   ASSIGN selsave = tlist:SCREEN-VALUE. /* Save off selected items */
-   ASSIGN tlist:LIST-ITEMS IN frame tbl_get = "".  /* Clear first */
-
    run "prodict/_dctcach.p" (thidden).
+   run BuildList(INPUT tblslcn:SCREEN-VALUE in frame tbl_get).
 
-   /* 20050930-006 - check if we are caching the table names in the temp-table */
-   IF l_cache_tt THEN DO:
-
-       IF p_some THEN
-         stat =  tlist:ADD-LAST("*ALL*") in frame tbl_get.
-
-       FOR EACH tt_cache_file NO-LOCK:
-          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
-       end.
-   END.
-   ELSE do ix = 1 to cache_file#:
-          stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
-   end.
-
-   ASSIGN tlist:SCREEN-VALUE = selsave. /* put 'em back */
-   IF tlist:SCREEN-VALUE = "" or tlist:SCREEN-VALUE = ? THEN DO:
-      tlist:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) IN frame tbl_get.
-      if tfill:SENSITIVE in frame tbl_get then
-         tfill:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) in frame tbl_get.
-   END.
 END.
+
+
+/*----- ON VALUE-CHANGED of all, MT or shared radio-set -----*/
+ON VALUE-CHANGED OF tblslcn IN FRAME tbl_get DO:
+   run BuildList(INPUT tblslcn:SCREEN-VALUE  in frame tbl_get).
+END. 
 
 /*----- WINDOW-CLOSE of dialog -----*/
 on window-close of frame tbl_get
@@ -469,7 +517,7 @@ IF SESSION:CPINTERNAL EQ "undefined":U THEN
     isCpUndefined = YES.
 
 &ENDIF
-
+ 
 /* Check for read permissions */
 find DICTDB._File WHERE DICTDB._File._File-name = "_File"
                     AND DICTDB._File._Owner = "PUB".
@@ -486,6 +534,11 @@ do:
    return.
 end.
 
+ismultitenant = can-find(first DICTDB._tenant ). /* Is DB multitenant */
+if ismultitenant then 
+     assign issupertenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+else
+    issupertenant = no.
 
 if cache_dirty then do:
    /* if current table is schema table, then include them by default */
@@ -544,7 +597,7 @@ else if p_some then
    assign
       tprompt = "Select one or more tables."
       tfill:visible in frame tbl_get = no
-      tlist:multiple = yes
+      tlist:multiple = yes 
       tlist:drag-enabled in frame tbl_get = no
       frame tbl_get:title = "Select Tables".
 else 
@@ -558,8 +611,6 @@ else
 /* clear it out */
 IF NOT isCpUndefined THEN
    assign user_longchar = "".
-
-
 /* Run time layout for button areas. */
 {adecomm/okrun.i  
    &FRAME  = "FRAME tbl_patt" 
@@ -576,6 +627,12 @@ IF NOT isCpUndefined THEN
    {&HLP_BTN}
 }
 tfill:width in frame tbl_get = tlist:width in frame tbl_get.
+
+if ismultitenant and issupertenant THEN 
+       tblslcn:visible in frame tbl_get = TRUE.
+else
+       ASSIGN tblslcn:visible in frame tbl_get = FALSE
+              tblslcn:screen-value in frame tbl_get = "A".
 
 if NOT p_gotname then
 do:
@@ -615,6 +672,7 @@ do:
       	  btn_deselect 	when p_some
       	  tfill	     	when NOT p_some
       	  tlist 
+          tblslcn       WHEN ismultitenant and issupertenant
       	  thidden 
       	  btn_OK
       	  btn_Cancel
@@ -626,15 +684,16 @@ do:
       	  btn_deselect 	when p_some
       	  tfill	     	when NOT p_some
       	  tlist 
+          tblslcn       WHEN ismultitenant and issupertenant
           thidden
           btn_OK
           btn_Cancel
       	  with frame tbl_get.
    &ENDIF
-   
+ 
   do ON ENDKEY UNDO, LEAVE:
       wait-for GO of frame tbl_get.  /* Or OK - due to auto-go */
-   end.
+  end.
 end.
 
 if p_gotname then
@@ -661,4 +720,59 @@ if user_filename = "" THEN user_path = "".
          fhidden = thidden.
 return.
 
+
+
+PROCEDURE BuildList:
+    DEFINE INPUT PARAMETER ttype AS CHARACTER NO-UNDO.
+    DEFINE VAR selsave AS CHAR NO-UNDO.
+
+    /*ASSIGN selsave = tlist:SCREEN-VALUE in frame tbl_get. */ /* Save off selected items */
+    ASSIGN tlist:LIST-ITEMS IN frame tbl_get = "".  /* Clear first */
+
+   IF l_cache_tt THEN DO:
+       IF p_some THEN
+         stat =  tlist:ADD-LAST("*ALL*") in frame tbl_get.
+
+    IF ttype = "A" THEN 
+       FOR EACH tt_cache_file NO-LOCK:
+          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
+       end.
+
+    ELSE IF ttype = "MT" THEN 
+       FOR EACH tt_cache_file NO-LOCK where  tt_cache_file.multitenant = TRUE:
+          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
+       end.
+
+
+    ELSE IF ttype = "SH" THEN 
+       FOR EACH tt_cache_file NO-LOCK where  tt_cache_file.multitenant NE TRUE:
+          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
+       end.
+   end.
+   ELSE
+     do ix = 1 to cache_file#:
+     FIND DICTDB._File where DICTDB._File._File-name EQ cache_file[ix].
+
+       if  ttype = "A"  THEN DO:
+           stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+       END.
+       if  ttype = "MT"  THEN DO:
+         if DICTDB._File._File-attributes[1] EQ TRUE THEN 
+           stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+       END.
+       else if ttype = "SH"  THEN DO:
+         if DICTDB._File._File-attributes[1] NE TRUE THEN 
+           stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+       END.
+   end.
+
+
+   /*ASSIGN tlist:SCREEN-VALUE = selsave. */ /* put 'em back */
+   IF tlist:SCREEN-VALUE = "" or tlist:SCREEN-VALUE = ? THEN DO:
+      tlist:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) IN frame tbl_get.
+      if tfill:SENSITIVE in frame tbl_get then
+         tfill:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) in frame tbl_get.
+   END.
+
+END PROCEDURE.
 

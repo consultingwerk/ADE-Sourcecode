@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -12,6 +12,7 @@ history:
     D. McMann 04/11/01 Added warning for SQL Table Updates ISSUE 310
    fernando   08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)
    fernando   04/30/08 Adding ttFldOrder temp-table
+   kmayur     06/21/11 Added wcon table for constraint dump OE00195067
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} SHARED VARIABLE iarg AS CHARACTER NO-UNDO. /* usually = ilin[2] */
@@ -35,14 +36,15 @@ DEFINE {1} SHARED VARIABLE file-area-number AS INTEGER INITIAL 6 NO-UNDO.
 
 /* 20060413-001 - making wdbs a temp-table */
 DEFINE {1} SHARED TEMP-TABLE wdbs NO-UNDO LIKE _Db.
-
-DEFINE {1} SHARED WORKFILE wfil NO-UNDO LIKE _File.
-DEFINE {1} SHARED WORKFILE wfit NO-UNDO LIKE _File-trig.
-DEFINE {1} SHARED WORKFILE wfld NO-UNDO LIKE _Field.
-DEFINE {1} SHARED WORKFILE wflt NO-UNDO LIKE _Field-trig.
-DEFINE {1} SHARED WORKFILE widx NO-UNDO LIKE _Index.
-DEFINE {1} SHARED WORKFILE wixf NO-UNDO LIKE _Index-field.
-DEFINE {1} SHARED WORKFILE wseq NO-UNDO LIKE _Sequence.
+ 
+DEFINE {1} SHARED TEMP-TABLE wfil NO-UNDO LIKE _File.
+DEFINE {1} SHARED TEMP-TABLE wfit NO-UNDO LIKE _File-trig.
+DEFINE {1} SHARED TEMP-TABLE wfld NO-UNDO LIKE _Field.
+DEFINE {1} SHARED TEMP-TABLE wflt NO-UNDO LIKE _Field-trig.
+DEFINE {1} SHARED TEMP-TABLE widx NO-UNDO LIKE _Index.
+DEFINE {1} SHARED TEMP-TABLE wixf NO-UNDO LIKE _Index-field.
+DEFINE {1} SHARED TEMP-TABLE wseq NO-UNDO LIKE _Sequence.
+DEFINE {1} SHARED TEMP-TABLE wcon NO-UNDO LIKE _Constraint.
 
 DEFINE {1} SHARED TEMP-TABLE ttFldOrder NO-UNDO
     FIELD FILE-NAME  AS CHAR
@@ -67,3 +69,5 @@ DEFINE {1} SHARED VARIABLE frozencache AS CHARACTER NO-UNDO.
 /* logical used to check the validity of the area-number in a .df file */
 
 DEFINE VARIABLE is-area AS LOGICAL NO-UNDO.
+DEFINE STREAM   constlog.
+DEFINE VARIABLE cnstrpt_name       AS CHARACTER   NO-UNDO.

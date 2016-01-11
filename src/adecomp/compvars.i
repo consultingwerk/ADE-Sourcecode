@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2006,2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*
     File        : compvars.i
@@ -20,19 +20,6 @@
 */
 
 &GLOBAL-DEFINE COMP_NAME "Application Compiler"
-
-/* MinVersion is definded temporarily in order to global-def CompileOn91C */
-&SCOPED-DEFINE MinVersion "9.1C"
-&GLOBAL-DEFINE CompileOn91C~
-    DECIMAL(SUBSTRING(PROVERSION,1,R-INDEX(PROVERSION,".":U) + 1)) >~
-    DECIMAL(SUBSTRING({&MinVersion},1,R-INDEX({&MinVersion},".":U) + 1))~
-    OR~
-   (DECIMAL(SUBSTRING(PROVERSION,1,R-INDEX(PROVERSION,".":U) + 1)) =~
-    DECIMAL(SUBSTRING({&MinVersion},1,R-INDEX({&MinVersion},".":U) + 1))~
-    AND~
-    SUBSTRING(PROVERSION,R-INDEX(PROVERSION,".":U) + 1,2) >=~
-    SUBSTRING({&MinVersion},R-INDEX({&MinVersion},".":U) + 1,2))
-&UNDEFINE MinVersion
 
 /* Default ("Factory") settings for Compiler Options. */
 &GLOBAL-DEFINE def_fspecSaved  "*.p *.w *.cls"

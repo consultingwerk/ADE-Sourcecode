@@ -18,20 +18,28 @@
 { prodict/user/userhue.i }
 { prodict/user/userpik.i NEW }
 
-DEFINE VARIABLE a           AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE fldExist    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE hold        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE maxpos      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE new-name    AS CHARACTER NO-UNDO.
-DEFINE VARIABLE o           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE fldOrder    AS INTEGER   NO-UNDO.
 DEFINE VARIABLE canned      AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE answer	    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE skip_fld    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE any_copied  AS LOGICAL   NO-UNDO init no.
-
+define variable NoArea      as logical   no-undo.
+define variable CopyNoArea  as logical   no-undo.
+define variable CopyArea    as logical   no-undo.
+define variable Arealist    as character no-undo.
+define variable cmsg        as character no-undo.    
+ 
+define variable dataType    as character no-undo.
+ 
 DEFINE BUFFER   copy_fld  FOR _Field.
-DEFINE BUFFER   ref_fld   FOR _Field.  /* extra buf for reference */
-DEFINE BUFFER   ref_fil   FOR _File.   
+
+Define var cmbArea as char NO-UNDO
+   view-as COMBO-BOX size 32 by 1.  
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 7 NO-UNDO INITIAL [
@@ -63,6 +71,19 @@ FORM SKIP(1)
   "to copy using" hold FORMAT "x(20)" SKIP(1)
   WITH FRAME copy-note OVERLAY ROW 4 COLUMN 2 NO-LABELS NO-ATTR-SPACE
        USE-TEXT.
+
+/* Form which allows user to select an area. */
+DEFINE FRAME selectarea    
+   "You are copying a lob field from a table with no default Area." at 2 skip
+   cmsg format "x(60)" view-as text no-label skip(1)
+   new-Name format "x(32)" colon 12 label "Field Name" skip
+   dataType format "x(11)" colon 12 label "Data Type" skip
+   cmbArea  FORMAT "x(32)" colon 12 label "Area" skip
+   {prodict/user/userbtns.i}
+   WITH 
+   ROW 5 CENTERED side-labels ATTR-SPACE DEFAULT-BUTTON btn_OK
+   VIEW-AS DIALOG-BOX.
+   
 
 /* LANGUAGE DEPENDENCIES END */ /*-----------------------------------------*/
 
@@ -121,11 +142,17 @@ END.
 
 EMPTY TEMP-TABLE ttpik NO-ERROR.
 
+FIND _file where recid(_file) = drec_File.
+/* we need to know if the TO table requires area in case the FROM does not have one */
+NoArea = _file._file-attributes[1] and _file._file-attributes[2] = false.
+
 FIND _File WHERE _File._Db-recid = drec_db 
              AND _File._File-name = pik_first
              AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN").
 
 ASSIGN
+/* we need to know if the FROM table does not have area in case the TO requires one */
+  CopyNoArea = _file._file-attributes[1] and _file._file-attributes[2] = false
   pik_column = 38
   pik_hide   = TRUE
   pik_init   = ""
@@ -170,26 +197,36 @@ ASSIGN
    &FRAME  = "FRAME rename-me"
    &OK     = "btn_OK"
    &CANCEL = "btn_Cancel"}
-
+ 
+ /* Adjust the ok and cancel buttons */
+{adecomm/okrun.i  
+   &BOX    = "rect_Btns"
+   &FRAME  = "FRAME selectarea"
+   &OK     = "btn_OK"
+   &CANCEL = "btn_Cancel"}
+ 
+ 
 _copy:
 DO TRANSACTION i = 1 TO pik_return:
   FIND copy_fld OF _File
     WHERE copy_fld._Field-name = pik_list[pik_chosen[i]].
   ASSIGN
-    o        = (IF CAN-FIND(_Field
+    fldOrder  = (IF CAN-FIND(_Field
                WHERE _Field._File-recid = drec_file
                  AND _Field._Order = copy_fld._Order)
                THEN maxpos
                ELSE copy_fld._Order)
-    a        = CAN-FIND(_Field
+    fldExist = CAN-FIND(_Field
                WHERE _Field._File-recid = drec_file
                  AND _Field._Field-name = copy_fld._Field-name)
     new-name = copy_fld._Field-name
-    maxpos   = TRUNCATE(MAXIMUM(maxpos,o) / 10 + 1,0) * 10
+    maxpos   = TRUNCATE(MAXIMUM(maxpos,fldOrder) / 10 + 1,0) * 10
     skip_fld = FALSE
-    canned   = FALSE.
-
-  IF a THEN DO:
+    canned   = FALSE
+    cmbArea = "" 
+    CopyArea = true. 
+ 
+  IF fldExist THEN DO:
     DISPLAY "[" + KBLABEL("CLEAR") + "]" @ hold new-name WITH FRAME rename-me.
 
     /*----- ON CLEAR (SKIP) -----*/
@@ -220,7 +257,7 @@ DO TRANSACTION i = 1 TO pik_return:
       END.
     END.
   
-     canned = TRUE.  /* assume we won't finish -for now */
+    canned = TRUE.  /* assume we won't finish -for now */
     DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
       SET new-name btn_OK btn_Cancel WITH FRAME rename-me.
       canned = FALSE.
@@ -228,42 +265,105 @@ DO TRANSACTION i = 1 TO pik_return:
   END.
 
   HIDE FRAME rename-me NO-PAUSE.
+  
   IF canned THEN LEAVE _copy.
   IF skip_fld THEN NEXT _copy.
-
+   
+  if (copy_fld._Data-type = "BLOB" or copy_fld._Data-type = "CLOB") then
+  do:
+      /* tell prodict/dump/copy_fld.i to not copy _Fld-stlen */
+      CopyArea = false.
+       
+      /* if we copy lob with no area to file with area then prompt for area */ 
+      if (CopyNoArea and not NoArea) then
+      do with frame selectarea:
+         
+          if AreaList = "" then
+          do:
+              cmbArea:delimiter  = chr(1).
+              cmsg = "Select an Area and press OK or press" + " [" + KBLABEL("CLEAR") + "] " + "to skip it.".
+              /*----- ON CLEAR (SKIP) -----*/
+          
+              ON "CLEAR" OF cmbArea IN FRAME selectarea DO:
+                  skip_fld = TRUE.
+                  APPLY "GO" TO FRAME selectarea.
+              END.
+              
+              run prodict/pro/_pro_area_list(drec_file,{&INVALID_AREAS},cmbArea:delimiter, output  AreaList).
+          
+              cmbArea:list-items = AreaList.
+              cmbArea:screen-value = cmbArea:entry(1).
+          end.
+          canned = true.
+          
+          display  cmsg 
+                   new-name
+                   copy_fld._data-type @ dataType. 
+          /* set each time - see bug workaround below */         
+          cmbArea:inner-lines = min(cmbArea:num-items,10).          
+          do ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+              update cmbArea
+                     btn_Ok 
+                     btn_Cancel.
+              assign cmbArea.  /* update doesn't work with combo */          
+              canned = false.
+          end.
+          
+          hide frame selectarea.  
+          /* bug workaround - innerlines is taken into account when viewing again and causes error */
+          cmbArea:inner-lines = 1.        
+          
+          IF canned THEN LEAVE _copy.
+          IF skip_fld THEN NEXT _copy.
+           
+      end.  /* from lob has no area  */
+  end. /* lob */  
+   
   PAUSE 0.
   MESSAGE new_lang[3] copy_fld._Field-Name.
   CREATE _Field.
+ 
   ASSIGN
     _Field._Field-Name   = new-name
-    _Field._Order        = o
+    _Field._Order        = fldOrder
     _Field._File-recid   = drec_file
     _Field._Data-type    = copy_fld._Data-type
     _Field._Format       = copy_fld._Format
     _Field._Initial      = copy_fld._Initial.
-  { prodict/dump/copy_fld.i &from=copy_fld &to=_Field &all=false}
+  { prodict/dump/copy_fld.i &from=copy_fld &to=_Field &all=false &copyarea=CopyArea}
+  
+  IF _field._Data-type = "BLOB" or _Field._Data-type = "CLOB" then
+  do:
 
-  IF _field._Data-type = "BLOB" AND copy_fld._Field-rpos <> ? THEN DO:
-     FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                           AND _Storageobject._Object-type = 3
-                           AND _Storageobject._Object-number = _Field._Fld-stlen
-                           NO-LOCK.
-      ASSIGN _field._Fld-stlen = _StorageObject._Area-number.
-  END.
-  IF _Field._Data-type = "CLOB" THEN DO:
-    IF copy_fld._Field-rpos <> ? THEN DO:
-      FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                           AND _Storageobject._Object-type = 3
-                           AND _Storageobject._Object-number = _Field._Fld-stlen
-                           NO-LOCK.
-      ASSIGN _field._Fld-stlen = _StorageObject._Area-number.
-    END.
-    ASSIGN _Field._Charset = copy_fld._Charset
-           _Field._Collation = copy_fld._Collation
-           _Field._Attributes1 = copy_fld._Attributes1.
-  END.
+      if copy_fld._Field-rpos <> ? THEN 
+      DO:
+          if cmbArea > "" then 
+          do:
+              FIND _Area where _Area._area-name = cmbArea no-lock.
+              ASSIGN _field._Fld-stlen = _Area._Area-Number.
+          end.    
+          else if NoArea then 
+          do:     
+              assign _field._Fld-stlen = 0.
+          end.
+          else do:   
+              FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
+                                    AND _Storageobject._Object-type = 3
+                                    AND _Storageobject._Object-number = copy_fld._Fld-stlen
+                                    AND _Storageobject._Partitionid    = 0
+                                    NO-LOCK.
+              ASSIGN _field._Fld-stlen = _StorageObject._Area-number.
+          end. 
+      end. 
+      IF _Field._Data-type = "CLOB" THEN 
+      DO:
+          ASSIGN _Field._Charset = copy_fld._Charset
+                 _Field._Collation = copy_fld._Collation
+                 _Field._Attributes1 = copy_fld._Attributes1.
+      END.
+  end. /* LOB */
   any_copied = yes.
-
+  
 END. /* for each copy_fld */
 
 PAUSE 0.
@@ -271,4 +371,4 @@ IF any_copied THEN
    MESSAGE new_lang[6]. /* all done */
 RETURN.
 
-
+  

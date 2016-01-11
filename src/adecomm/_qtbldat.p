@@ -37,13 +37,13 @@ DEFINE VARIABLE odbtyp  AS CHARACTER               NO-UNDO. /* list of ODBC-type
 DEFINE VARIABLE starea  AS CHARACTER FORMAT "x(4)" NO-UNDO.
 
 FORM
-   _File._File-name  FORMAT "x(29)"  COLUMN-LABEL "Table!Name" 
+   dictdb._File._File-name  FORMAT "x(29)"  COLUMN-LABEL "Table!Name" 
    starea                            COLUMN-LABEL "St!Area"   
-   _File._Dump-name  FORMAT "x(13)"   COLUMN-LABEL "Dump!Name"
+   dictdb._File._Dump-name  FORMAT "x(13)"   COLUMN-LABEL "Dump!Name"
    flags             FORMAT "x(3)"   COLUMN-LABEL "Tbl!Flg" 
    fldcnt            FORMAT ">>>>9"  COLUMN-LABEL "Field!Count"
-   _File._numkey     FORMAT ">>>>9"  COLUMN-LABEL "Index!Count"
-   _File._File-label FORMAT "x(11)"  COLUMN-LABEL "Table!Label" 
+   dictdb._File._numkey     FORMAT ">>>>9"  COLUMN-LABEL "Index!Count"
+   dictdb._File._File-label FORMAT "x(11)"  COLUMN-LABEL "Table!Label" 
    WITH FRAME shotable USE-TEXT STREAM-IO DOWN.
 
 ASSIGN
@@ -52,40 +52,58 @@ ASSIGN
                   &from-type = "flags"
                   }.
                   
-FIND _Db WHERE RECID(_Db) = p_DbId NO-LOCK.
-FOR EACH _File WHERE _File._Db-recid = p_DbId AND NOT _File._Hidden:
+FIND dictdb._Db WHERE RECID(dictdb._Db) = p_DbId NO-LOCK.
+FOR EACH dictdb._File WHERE dictdb._File._Db-recid = p_DbId AND NOT dictdb._File._Hidden:
    IF INTEGER(DBVERSION("DICTDB")) > 8 AND
-      (_File._Owner <> "PUB" AND _File._Owner <> "_FOREIGN") THEN NEXT.
+      (dictdb._File._Owner <> "PUB" AND dictdb._File._Owner <> "_FOREIGN") THEN NEXT.
+   
+   IF INTEGER(DBVERSION("DICTDB")) > 10 THEN
+      flags = (IF dictdb._File._File-Attributes[1] THEN "m" ELSE "").  
    ASSIGN
-      flags = (IF _File._Db-lang > 0 THEN "s" ELSE "")
-      flags = (flags + IF _File._Frozen THEN "f" ELSE "").
+      flags = (flags + IF dictdb._File._Db-lang > 0 THEN "s" ELSE "")
+      flags = (flags + IF dictdb._File._Frozen THEN "f" ELSE "").
     
-   IF _Db._Db-type = "PROGRESS" AND INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:  
-     FIND FIRST _StorageObject WHERE _StorageObject._Object-Number = _File._File-number 
-                                 AND _StorageObject._Object-type = 1 NO-LOCK NO-ERROR.
-     IF AVAILABLE _StorageObject THEN
-        ASSIGN starea = STRING(_StorageObject._Area-number). 
+   IF dictdb._Db._Db-type = "PROGRESS" AND INTEGER(DBVERSION("DICTDB")) > 8 THEN 
+   DO:  
+     
+     /* note: this check may not be needed, but just in case reports need to work against old versions  */
+     if INTEGER(DBVERSION("DICTDB")) > 10 then
+     do:
+         FIND dictdb._StorageObject WHERE dictdb._StorageObject._DB-recid    = dictdb._File._DB-recid  
+                                    and dictdb._StorageObject._Object-Number = dictdb._File._File-number 
+                                    AND dictdb._StorageObject._Object-type   = 1 
+                                    AND dictdb._StorageObject._Partitionid   = 0
+                                    NO-LOCK NO-ERROR.
+     end.
+     else do:
+         FIND dictdb._StorageObject WHERE dictdb._StorageObject._DB-recid    = dictdb._File._DB-recid  
+                                    and dictdb._StorageObject._Object-Number = dictdb._File._File-number 
+                                    AND dictdb._StorageObject._Object-type   = 1 
+                                    NO-LOCK NO-ERROR.  
+     end.
+     IF AVAILABLE dictdb._StorageObject THEN
+        ASSIGN starea = STRING(dictdb._StorageObject._Area-number). 
      ELSE 
-        ASSIGN starea = STRING(_File._ianum).
+        ASSIGN starea = STRING(dictdb._File._ianum).
    END.
    ELSE
       ASSIGN starea = "N/A".
  
    DISPLAY STREAM rpt
-      _File._File-name
+      dictdb._File._File-name
       starea
-      _File._File-label
+      dictdb._File._File-label
       flags
       /* Progress Db's have an extra hidden field that holds the table # 
       	 which gateway Db's don't have.
       */
-      (IF _Db._Db-type = "PROGRESS"
-       OR _Db._Db-type = "AS400" 
-       OR CAN-DO(odbtyp,_Db._Db-type)
-				    THEN _File._numfld - 1
-      	       	     	      	    ELSE _File._numfld) @ fldcnt
-      _File._numkey
-      _File._Dump-name
+      (IF dictdb._Db._Db-type = "PROGRESS"
+       OR dictdb._Db._Db-type = "AS400" 
+       OR CAN-DO(odbtyp,dictdb._Db._Db-type)
+				    THEN dictdb._File._numfld - 1
+      	       	    ELSE dictdb._File._numfld) @ fldcnt
+      dictdb._File._numkey
+      dictdb._File._Dump-name
       WITH FRAME shotable.
    DOWN STREAM rpt WITH FRAME shotable.
 END.

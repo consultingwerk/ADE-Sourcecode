@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006,2010 by Progress Software Corporation. All      * 
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -302,10 +302,10 @@ PROCEDURE GetSetUp.ip.
   s_stream_io   = v NE ? AND v BEGINS "Y".
   GET-KEY-VALUE SECTION {&CompSect} KEY "MinRcodeSize" VALUE v.
   s_minsize     = v NE ? AND v BEGINS "Y".
-  &IF {&CompileOn91C} &THEN
+ 
   GET-KEY-VALUE SECTION {&CompSect} KEY "GenerateMD5" VALUE v.
   s_gen_md5     = v NE ? AND v BEGINS "Y".
-  &ENDIF  /* {&CompileOn91C} */
+ 
 
   ASSIGN Settings_NotRead = FALSE.
 
@@ -372,9 +372,8 @@ PROCEDURE PutSetUp.ip.
     RUN PutKeyVal.ip ("EncryptKey",s_encrkey).
     RUN PutKeyVal.ip ("MinRcodeSize",STRING (s_minsize)).
     RUN PutKeyVal.ip ("DebugFile",s_debuglist).
-    &IF {&CompileOn91C} &THEN
     RUN PutKeyVal.ip ("GenerateMD5",STRING (s_gen_md5)).
-    &ENDIF  /* {&CompileOn91C} */
+ 
     
     ASSIGN Settings_NotSaved = FALSE.
 
@@ -429,9 +428,9 @@ PROCEDURE DlgOptions .
     s_xref       COLON 23 {&STDPH_FILL} s_xappend             SKIP( {&VM_WID} )
     s_debuglist  COLON 23 {&STDPH_FILL} SKIP( {&VM_WID} )
     s_encrkey    COLON 23 {&STDPH_FILL} SKIP( {&VM_WID} )
-    s_minsize    COLON 23 {&STDPH_FILL} &IF {&CompileOn91C} &THEN SKIP( {&VM_WID} )
+    s_minsize    COLON 23 {&STDPH_FILL} SKIP( {&VM_WID} )
     s_gen_md5    COLON 23 {&STDPH_FILL}
-    &ENDIF  /* {&CompileOn91C} */    
+  
     { adecomm/okform.i
         &BOX    ="DLG_Btn_Box"
         &OK     ="b_OK"
@@ -560,10 +559,8 @@ PROCEDURE DlgOptions .
       s_xappend:SCREEN-VALUE    = string( {&def_xappend} )
       s_debuglist:SCREEN-VALUE  = {&def_debuglist}
       s_encrkey:SCREEN-VALUE    = {&def_encrkey}
-      s_minsize:SCREEN-VALUE    = string( {&def_minsize} )
-      &IF {&CompileOn91C} &THEN
+      s_minsize:SCREEN-VALUE    = string( {&def_minsize} )  
       s_gen_md5:SCREEN-VALUE    = STRING( {&def_gen_md5} )
-      &ENDIF  /* {&CompileOn91C} */
       .  
     ASSIGN s_xappend:sensitive = yes
            s_xref:label = {&LABEL_XREF}.
@@ -595,10 +592,7 @@ PROCEDURE DlgOptions .
       s_debuglist
       s_encrkey
       s_minsize
-      &IF {&CompileOn91C} &THEN
-      s_gen_md5
-      &ENDIF  /* {&CompileOn91C} */
-      
+      s_gen_md5     
       b_ok b_cancel b_reset b_help {&WHEN_HELP}
       WITH FRAME options.
       
@@ -613,10 +607,9 @@ PROCEDURE DlgOptions .
     IF s_minsize = ? THEN
         s_minsize = {&def_minsize}.
 
-    &IF {&CompileOn91C} &THEN
     IF s_gen_md5 = ? THEN
         s_gen_md5 = {&def_gen_md5}.
-    &ENDIF  /* {&CompileOn91C} */
+    
   end. /* do */ 
   
   RUN SetDefaults ( INPUT win_Promake ).

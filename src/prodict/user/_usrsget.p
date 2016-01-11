@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,7 @@ History:
                             1. commit transaction; 
                             2. call this routine again
     fernando    02/17/06    Handle V9 db's - don't let user select them - 20050510-008
+    fernando    10/04/10    Support for OE 11
 
 */
 
@@ -126,7 +127,7 @@ END.
 DO i = 1 TO cache_db#:
   IF cache_db_l[i] = user_dbname AND old_db = ? THEN old_db = i.
   IF  isOlderDBVersion(i) THEN oldbs = oldbs + 1.
-  old_dbver = "V" + DBVERSION(cache_db#).
+  old_dbver = "R" + DBVERSION(cache_db#).
 END.
 
 ASSIGN
@@ -323,8 +324,8 @@ DO WHILE choice = ?:
     l = KEYFUNCTION(LASTKEY) = "END-ERROR".
     IF NOT l AND NOT is_dis
       AND isOlderDBVersion(rpos)   THEN DO:
-      /*old_dbver = "V" + DBVERSION(cache_db#).*/
-	  old_dbver = "V" + DBVERSION(cache_db_l[rpos]).
+      /*old_dbver = "R" + DBVERSION(cache_db#).*/
+	  old_dbver = "R" + DBVERSION(cache_db_l[rpos]).
       MESSAGE new_lang[15] PROVERSION new_lang[16] old_dbver new_lang[17] VIEW-AS ALERT-BOX. /* cannot use V5/V6/V7/V8 db and V9 dict together */
       NEXT.
     END.
@@ -425,12 +426,7 @@ RETURN.
 
 FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
 
-  IF index(cache_db_t[pos],"/V5") <> 0
-   or index(cache_db_t[pos],"/V6") <> 0
-   or index(cache_db_t[pos],"/V7") <> 0
-   or index(cache_db_t[pos],"/V8") <> 0
-   or index(cache_db_t[pos],"/V9") <> 0 THEN  
-   /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[pos])*/
+  IF index(cache_db_t[pos],"/R10") <> 0  THEN  
      RETURN YES.
    ELSE 
      RETURN NO.

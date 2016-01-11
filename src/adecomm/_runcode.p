@@ -634,7 +634,7 @@ PROCEDURE DeleteClass :
     DEFINE VARIABLE rObj AS Progress.Lang.Object NO-UNDO.
     DEFINE VARIABLE rDel AS Progress.Lang.Object NO-UNDO.
 
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+&IF "{&OPSYS}" <> "UNIX" &THEN
     /* OE00190506: Force .NET garbage collection if the CLR has been loaded */
     IF SESSION:DOTNET-CLR-LOADED = TRUE THEN
     DO:
@@ -642,7 +642,7 @@ PROCEDURE DeleteClass :
         System.GC:WaitForPendingFinalizers().
         System.GC:Collect().
     END.
-&ENDIF    
+&ENDIF 
 
     ASSIGN rObj = SESSION:FIRST-OBJECT.
     

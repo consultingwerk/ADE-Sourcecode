@@ -1212,17 +1212,17 @@ PROCEDURE createBrowseBC :
           _BC._VIEW-AS-ITEMS           = IF gcBrwsColItems = ? OR gcBrwsColItems = "" THEN ?
                                          ELSE ENTRY(inumCol, gcBrwsColItems, CHR(5))
           _BC._VIEW-AS-ITEM-PAIRS      = IF gcBrwsColItemPairs = ? OR gcBrwsColItemPairs = "" THEN ?
-                                         ELSE ENTRY(inumCol, gcBrwsColItemPairs, CHR(5)).
+                                         ELSE ENTRY(inumCol, gcBrwsColItemPairs, CHR(5))
           _BC._VIEW-AS-INNER-LINES     = IF gcBrwsColInnerLines = ? OR gcBrwsColInnerLines = "" THEN 5
-                                         ELSE ENTRY(inumCol, gcBrwsColInnerLines, CHR(5)).
+                                         ELSE INTEGER(ENTRY(inumCol, gcBrwsColInnerLines, CHR(5)))
           _BC._VIEW-AS-SORT            = IF gcBrwsColSorts = ? OR gcBrwsColSorts = "" THEN NO
                                          ELSE IF ENTRY(inumCol, gcBrwsColSorts, CHR(5)) BEGINS "Y":U THEN YES
-                                         ELSE NO.
+                                         ELSE NO
           _BC._VIEW-AS-MAX-CHARS       = IF gcBrwsColMaxChars = ? OR gcBrwsColMaxChars = "" THEN 0
-                                         ELSE ENTRY(inumCol, gcBrwsColMaxChars, CHR(5)).
+                                         ELSE INTEGER(ENTRY(inumCol, gcBrwsColMaxChars, CHR(5)))
           _BC._VIEW-AS-AUTO-COMPLETION = IF gcBrwsColAutoCompletions = ? OR gcBrwsColAutoCompletions = "" THEN NO
                                          ELSE IF ENTRY(inumCol, gcBrwsColAutoCompletions, CHR(5)) BEGINS "Y":U THEN YES
-                                         ELSE NO.
+                                         ELSE NO
           _BC._VIEW-AS-UNIQUE-MATCH    = IF gcBrwsColUniqueMatches = ? OR gcBrwsColUniqueMatches = "" THEN NO
                                          ELSE IF ENTRY(inumCol, gcBrwsColUniqueMatches, CHR(5)) BEGINS "Y":U THEN YES
                                          ELSE NO.

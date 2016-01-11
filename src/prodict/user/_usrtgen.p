@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2007,2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2007,2009,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -1024,6 +1024,9 @@ IF alltables THEN
     user_env[28] = entry(l_i,l_ue-28)
     user_env[29] = entry(l_i,l_ue-29)
     user_env[31] = "-- **"           /*comment-character*/
+    user_env[38] = "1"            /* OE00209275 */
+    user_env[39] = "1"            /* OE00209275 */
+    user_env[36] = "n,n,n,n,n"    /* OE00211502 */
     .
 
   IF user_env[22] = "ORACLE" OR user_env[22] = "MSS" THEN
@@ -1150,6 +1153,9 @@ ELSE /*Single table*/
     user_env[28] = entry(l_i,l_ue-28)
     user_env[29] = entry(l_i,l_ue-29)
     user_env[31] = "-- **"           /*comment-character*/
+    user_env[38] = "1"            /* OE00209275 */
+    user_env[39] = "1"            /* OE00209275 */
+    user_env[36] = "n,n,n,n,n"    /* OE00211502 */
     .
 
   IF user_env[22] = "ORACLE" OR user_env[22] = "MSS" THEN

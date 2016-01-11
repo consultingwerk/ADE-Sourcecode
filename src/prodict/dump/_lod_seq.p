@@ -19,6 +19,15 @@
 { prodict/user/uservar.i }
 
 DEFINE VARIABLE scrap AS CHARACTER NO-UNDO.
+define variable dictLoader as OpenEdge.DataAdmin.Binding.IDataDefinitionLoader no-undo.
+
+/* dictLoadOptions - could have options only or be a logger/loader or reader/parser  */
+
+if valid-object(dictLoadOptions) then
+do:
+    /* the code below use valid-object(dictLoader) as flag to logg data and return */
+    dictLoader = dictLoadOptions:Logger.
+end.
 
 FIND FIRST wseq.
 IF imod <> "a" THEN /* already proven to exist */
@@ -29,18 +38,46 @@ IF imod <> "a" THEN /* already proven to exist */
 IF imod = "a" THEN crt-blk: DO ON ERROR UNDO, LEAVE: 
   
   IF CAN-FIND(_Sequence WHERE _Sequence._Db-recid = drec_db
-     AND _Sequence._Seq-name = wseq._Seq-name) THEN
-     ierror = 7. /* "&2 already exists with name &3" */
-      
+                        AND _Sequence._Seq-name = wseq._Seq-name) THEN
+  do:   
+      if valid-object(dictLoader) and dictLoader:isReader then
+      do:   
+          /* this is not an error if parsing and the existing field is renamed */
+          if dictLoader:SequenceNewName(wseq._Seq-name) = "" then
+              ierror = 7. /* "&2 already exists with name &3" */
+              
+      end. 
+      else   
+          ierror = 7. /* "&2 already exists with name &3" */  
+  end.
+  
+  if wseq._Seq-Attributes[1] = true then
+  do:
+      if not can-find(first _tenant) then
+      do:
+         /* db must be mt enabled to add mt sequence */
+         iError = 72.
+         RETURN.
+      end.     
+  end.    
+   
   IF ((wseq._Seq-Incr > 0) AND (wseq._Seq-Init >= wseq._Seq-Max)) THEN
       ierror = 57.
   ELSE IF ((wseq._Seq-Incr < 0) AND (wseq._Seq-Init <= wseq._Seq-Min)) THEN
       ierror = 58.
       
   IF ierror > 0 THEN RETURN.
+  
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddSequence(iMod,buffer wseq:handle).
+      return.
+  end.
+  
   CREATE _Sequence.
   ASSIGN
     _Sequence._Db-recid = drec_db
+    _Sequence._Seq-Attributes[1] = wseq._Seq-Attributes[1]
     _Sequence._Seq-Name = wseq._Seq-Name
     _Sequence._Seq-Init = wseq._Seq-Init
     _Sequence._Seq-Incr = wseq._Seq-Incr
@@ -64,6 +101,11 @@ IF imod = "a" THEN crt-blk: DO ON ERROR UNDO, LEAVE:
 END. /*crt-blk*/
 ELSE
 IF imod = "m" THEN DO: /*---------------------------------------------------*/
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddSequence(iMod,buffer wseq:handle).
+      return.
+  end.
   IF _Sequence._Seq-Name <> wseq._Seq-Name THEN
     _Sequence._Seq-Name = wseq._Seq-Name.
   IF _Sequence._Seq-Init <> wseq._Seq-Init THEN
@@ -83,10 +125,21 @@ IF imod = "r" THEN DO: /*---------------------------------------------------*/
     AND _Sequence._Seq-name = irename) THEN
     ierror = 7. /* "&2 already exists with name &3" */
   IF ierror > 0 THEN RETURN.
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:RenameSequence(_Sequence._Seq-name,irename).
+      return.
+  end.  
   _Sequence._Seq-name = irename.
 END. /*---------------------------------------------------------------------*/
 ELSE
 IF imod = "d" THEN DO: /*---------------------------------------------------*/
+  if valid-object(dictLoader) and dictLoader:isReader then
+  do:
+      dictLoader:AddSequence(iMod,buffer wseq:handle).
+      return.
+  end.
+  
   DELETE _Sequence.
 END. /*---------------------------------------------------------------------*/
 

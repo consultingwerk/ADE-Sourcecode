@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -42,6 +42,7 @@
             02/12/09 Fix output for batch log file
             09/22/09 Computed column implementation - Nagaraju
             11/12/09 Remove numbers for radio-set options in MSSDS - Nagaraju
+            06/21/11 Added screen variable for constraint migration - kmayur
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -236,9 +237,16 @@ ASSIGN user_dbname  = mss_dbname
        user_env[30] = "y"
        user_env[31] = "-- ** "
        user_env[32] = "MSSQLSRV7".
+       user_env[37] = "PP". /* PP - Pull as part of Push *
+                             * IP - Independent PULL operation */
+       user_env[38] = choiceUniquness . /* 195067 */
+       user_env[39] = choiceDefault . /* 195067 */       
+
 
 IF pcompatible THEN 
-   ASSIGN user_env[27] = "y" + "," + STRING(iRecidOption).
+   ASSIGN user_env[27] = "y" + "," + STRING(iRecidOption) +
+         (IF forRowidUniq THEN ',U' ELSE IF choiceRowid = 1 THEN ',D' ELSE ',P').
+/* D -> Default functionality "ROWID" ,P -> Prime ROWID ,U -> ROWID uniqueness */
 ELSE
    ASSIGN user_env[27] = "no".
 
@@ -258,6 +266,20 @@ IF lUniExpand THEN
    ASSIGN user_env[35] = "y".
 ELSE
    ASSIGN user_env[35] = "n".
+
+ /* first y is for Migrate Constraints.
+   second entry is Try Primary for ROWID.
+   third entry is Make Clustered Explicit.
+   fourth entry is Select 'BEST' ROWID index.
+ */
+ASSIGN user_env[36] = (IF migConstraint THEN "y" ELSE "n") +
+               (IF tryPimaryForRowid THEN ",y" ELSE ",n") +
+               (IF mkClusteredExplict THEN ",y" ELSE ",n"). 
+IF selBestRowidIdx THEN 
+    ASSIGN user_env[36] = user_env[36] + ",y" + "," + STRING(choiceSchema).
+ELSE ASSIGN user_env[36] = user_env[36] + ",n".
+IF movedata THEN ASSIGN user_env[36] = user_env[36] + ",y".
+            ELSE ASSIGN user_env[36] = user_env[36] + ",n".
 
 IF movedata THEN
   ASSIGN stages[mss_dump_data] = TRUE
@@ -410,7 +432,6 @@ IF loadsql THEN DO:
                "   Loading data into the MSS Database.  " SKIP(2)
         WITH FRAME ld-dt NO-LABELS THREE-D CENTERED ROW 5 
           TITLE "Moving Data".
-
     RUN "prodict/mss/_mss_md9.p".
 
     DISCONNECT VALUE (osh_dbname).

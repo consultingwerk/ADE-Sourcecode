@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2010 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -1647,7 +1647,7 @@ DEFINE VARIABLE cDbInfo  AS CHARACTER NO-UNDO INITIAL ?.
                 APPLY "value-changed":U TO coDatabase.
            END.
            ELSE
-               MESSAGE Db_Lname " is not enabled for auditing or you do not have the necessary permissions.~n~n"
+               MESSAGE Db_Lname " is not enabled for auditing, not a R11 database or you do not have the necessary permissions.~n~n"
                    "The database will remain connected but it will not appear in the combo-box." VIEW-AS ALERT-BOX INFO.
        END.
 

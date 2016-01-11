@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,7 +24,12 @@ Date Created: 02/24/92
 
 ----------------------------------------------------------------------------*/
 
-
+FOR EACH {&alias}_Constraint OF {&alias}_File:
+  FOR EACH {&alias}_Constraint-Keys WHERE recid({&alias}_Constraint) = {&alias}_Constraint-Keys._con-recid:
+    DELETE {&alias}_Constraint-Keys.
+  END.
+  DELETE {&alias}_Constraint.
+END.
 FOR EACH {&alias}_Index OF {&alias}_File:
   FOR EACH {&alias}_Index-field OF {&alias}_Index:
     DELETE {&alias}_Index-field.
@@ -40,4 +45,11 @@ FOR EACH {&alias}_Field OF {&alias}_File:
   END.
   DELETE {&alias}_Field.
 END.
+FOR EACH {&alias}_Partition-Set WHERE {&alias}_Partition-Set._Object-number = {&alias}_File._File-Num:
+  FOR EACH {&alias}_Partition-Set-Detail OF {&alias}_Partition-Set:
+    DELETE {&alias}_Partition-Set-Detail.
+  END.
+  DELETE {&alias}_Partition-Set.
+END.
+
 DELETE {&alias}_File.

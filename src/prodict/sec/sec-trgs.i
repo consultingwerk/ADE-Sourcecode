@@ -90,7 +90,7 @@ END.
       WHEN "_sec-sys.p" THEN
         giContextId = {&Authentication_Systems_Dialog_Box}.
       WHEN "_sec-dom.p" THEN
-        giContextId = {&Authentication_System_Domains_Dialog_Box}.
+        giContextId = {&Domains_Dialog_Box}.
       OTHERWISE
         giContextId = 0.
     END CASE.

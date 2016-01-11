@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -32,12 +32,12 @@ Date Created: 02/05/92
 {adedict/uivar.i shared}
 {adecomm/cbvar.i shared}
 {adedict/FLD/fldvar.i shared}
-
+{prodict/pro/arealabel.i}
 /*----------------------------Mainline code----------------------------------*/
 
-find _File where _File._File-name = "_Field"
-             and _File._Owner = "PUB" NO-LOCK.
-if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+find dictdb._File where dictdb._File._File-name = "_Field"
+             and dictdb._File._Owner = "PUB" NO-LOCK.
+if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "see field definitions."
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
@@ -65,29 +65,35 @@ RUN adedict/_brwgray.p (INPUT NO).
 s_Status:screen-value in frame fldprops = "". /* clears from last time */
 
 s_Fld_ReadOnly = (s_ReadOnly OR s_DB_ReadOnly).
+
+
 if NOT s_Fld_ReadOnly then
 do:
-   if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+   if NOT can-do(dictdb._File._Can-write, USERID("DICTDB")) then
    do:
       s_Status:screen-value in frame fldprops = 
       	 s_NoPrivMsg + " modify field definitions.".
       s_Fld_ReadOnly = true.
    end.
    else do:
-      find _File where RECID(_File) = s_TblRecId.
-      if _File._Frozen then
+      find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+       
+      if dictdb._File._Frozen then
       do:
       	 s_Status:screen-value in frame fldprops =
       	    "Note: This table is frozen and cannot be modified.".
       	 s_Fld_ReadOnly = true.
       end.
-      ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
+      ELSE IF dictdb._File._Db-lang > {&TBLTYP_SQL} THEN DO:
         s_Status:screen-value in frame fldprops =
       	    "Note: {&PRO_DISPLAY_NAME}/SQL92 table cannot be modified.".
       	 s_Fld_ReadOnly = true.
       END.
    end.
 end.
+else do:
+    find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+end.    
 
 {adedict/FLD/fdprop.i &Frame    = "frame fldprops"
       	       	       &ReadOnly = "s_Fld_ReadOnly"}

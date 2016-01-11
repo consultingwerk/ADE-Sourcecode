@@ -45,9 +45,9 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
   IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
      nam = SUBSTRING(nam,1,32,"character").
  
-    IF CAN-FIND(_File WHERE _File._Db-recid = drec_db
-                        AND _Dump-name = nam  
-              AND  (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")) THEN
+    IF CAN-FIND(DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
+                               AND DICTDB._File._Dump-name = nam  
+                               AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")) THEN
       ASSIGN pass = 1 /*ABSOLUTE(_File-num)*/
              nam  = SUBSTRING(nam + "-------"
                       ,1
@@ -57,9 +57,9 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
                        + STRING(pass).
 
     DO pass = 1 TO 9999 WHILE 
-        CAN-FIND(_File WHERE _File._Db-recid = drec_db
-                         AND _Dump-name = nam
-                         AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")):      
+        CAN-FIND(DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
+                                AND DICTDB._File._Dump-name = nam
+                                AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")):      
       ASSIGN nam = SUBSTRING(nam + "-------"
                    ,1
                    ,32 - LENGTH(STRING(pass),"character")
@@ -71,8 +71,8 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
   ELSE DO:
     nam = SUBSTRING(nam,1,8,"character").
 
-    IF CAN-FIND(_File WHERE _File._Db-recid = drec_db
-                        AND _Dump-name = nam) THEN
+    IF CAN-FIND(DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
+                               AND DICTDB._File._Dump-name = nam) THEN
       ASSIGN pass = 1 /*ABSOLUTE(_File-num)*/
              nam  = SUBSTRING(nam + "-------"
                       ,1
@@ -81,8 +81,8 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
                       )
                        + STRING(pass).
 
-    DO pass = 1 TO 9999 WHILE CAN-FIND(_File WHERE _File._Db-recid = drec_db
-                                               AND _Dump-name = nam):      
+    DO pass = 1 TO 9999 WHILE CAN-FIND(DICTDB._File WHERE DICTDB._File._Db-recid = drec_db
+                                                      AND DICTDB._File._Dump-name = nam):      
       ASSIGN nam = SUBSTRING(nam + "-------"
                    ,1
                    ,8 - LENGTH(STRING(pass),"character")

@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS s-object 
 /***********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -2407,7 +2407,7 @@ PROCEDURE _createSelectorTab PRIVATE :
            EDGE-PIXELS    = 1
            GRAPHIC-EDGE   = FALSE
            FILLED         = TRUE
-           FGCOLOR        = hTabRBla[1]:fgcolor
+           FGCOLOR        = hTabRBla[1]:fgcolor    
            Y              = IF lUpperTabs THEN 2 ELSE 0
            FRAME          = hSelFrame
            NAME           = "SelRBla"
@@ -2943,7 +2943,7 @@ PROCEDURE _selectTab PRIVATE :
        Progress insists on refreshing adjacent frames. The sequence of assignments 
        in this block is designed to minimise any flickering effect. The assigment
        order of X and Y co-ordinates is deliberate. */
-  
+ 
     IF iSelectedRow <> iCurrentRow AND VALID-HANDLE(hTabFrame[iSelectedRow]) THEN
       ASSIGN
           sx = hTabFrame[iSelectedRow]:X
@@ -2988,8 +2988,17 @@ PROCEDURE _selectTab PRIVATE :
       hSelRDot:X                      = hSelFrame:WIDTH-PIXELS - 2 
       hSelRBla:X                      = hSelFrame:WIDTH-PIXELS - 1
       hSelRGry:X                      = hSelFrame:WIDTH-PIXELS - 2
+      /*     
+      hSelRGry:FGCOLOR = if session:window-system eq 'MS-WINXP' and not lresult 
+                         then COLOR-ButtonShadow
+                         else hTabRGry[1]:FGCOLOR
+       */
       hSelFrame:X                     = IF gcVisualization = "TABS":U THEN 
-                                        (hTabLWht[ipTabNo]:X - {&TAB-PIXEL-OFFSET} + (if session:window-system eq 'MS-WINXP' then 1 else 0))
+                                        (hTabLWht[ipTabNo]:X - {&TAB-PIXEL-OFFSET}  
+                                        + (if session:window-system eq 'MS-WINXP'
+                                           and not lresult 
+                                           then 1 
+                                           else 0))
                                         ELSE 2
       hSelRBla:Y                      = IF lUpperTabs THEN hSelRBla:Y
                                                       ELSE IF NOT lResult THEN 1

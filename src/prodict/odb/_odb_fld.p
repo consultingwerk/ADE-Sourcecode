@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -54,6 +54,7 @@ HISTORY:
     08/25/08 fernando Adjusting format of _Initial - OE00168292
     03/24/09 fernando Datetime-tz support for MSS
     04/15/09 fernando BLOB support for MSS
+    06/09/10 sgarg    CLOB support for MSS
 !!!!!!!NOTE: this program is not yet suitable for adding fields!!!!!!!!
 
 */
@@ -296,15 +297,19 @@ on leave of dfields._data-type in frame odb_fld do:
       .
     end.
 
-  /* handle case where we don't support blob for varbinary(n) - MSS db */
-  IF edbtyp = "MSS" AND l_type-match AND l_dt-new = "BLOB" AND
-     (dfields._For-type = "varbinary" OR dfields._For-type = "longvarbinary") THEN DO:
-      /* varbinary(max) reported as varbinary with zero precision by MSS native driver
-         or as longvarchar for other drivers. But the schema pull sets precision
-         to 32000 in the schema for the native driver case.
-         We do not support varbinary(n) for blob support but (n) can only be
-         a number between 1 and 8000 inclusive  for varbinary(n). 
-         So let's check the varbinary(n) case.
+  /* handle case where we don't support blob or clob for varbinary(n) or
+   * varchar(n) respectively - MSS db */
+  IF edbtyp = "MSS" AND l_type-match AND 
+     (((l_dt-new = "BLOB") AND
+     (dfields._For-type = "varbinary" OR dfields._For-type = "longvarbinary")) OR 
+     ((l_dt-new = "CLOB") AND
+     (dfields._For-type = "varchar" OR dfields._For-type = "longvarchar"))) THEN DO:
+      /* varbinary(max)/varchar(max) reported as varbinary/varchar with zero precision
+         by MSS native driver or as longvarchar for other drivers. But the schema pull
+         sets precision to 32000 in the schema for the native driver case.
+         We do not support varbinary(n)/varchar(n) for blob/clob support but (n) can 
+         only be a number between 1 and 8000 inclusive  for varbinary(n)/varchar(n). 
+         So let's check the varbinary(n)/varchar(n) case.
          Also, if field has the filestream option set, we only support blob mapping.
       */
      IF (dfields._Fld-misc2[4] = "filestream") OR 
@@ -318,18 +323,18 @@ on leave of dfields._data-type in frame odb_fld do:
     RETURN NO-APPLY.
     end.     /* not a correct match */
 
-  IF l_dt-new = "blob" THEN DO:
+  IF l_dt-new = "blob" OR l_dt-new = "clob" THEN DO:
      dfields._Initial = ?.
      DISPLAY dfields._Initial WITH FRAME odb_fld.
   END.
 
-  IF l_dt-new = "BLOB" THEN 
+  IF l_dt-new = "BLOB" OR l_dt-new = "CLOB" THEN 
     ASSIGN islob = TRUE.
   ELSE
     ASSIGN islob = FALSE.
 
-  /* if moving from/to BLOB, need to adjust fields */
-  IF dfields._data-type = "blob" OR islob THEN DO:
+  /* if moving from/to BLOB/CLOB, need to adjust fields */
+  IF dfields._data-type = "blob" OR dfields._data-type = "clob" OR islob THEN DO:
 
      /* need to adjust these fields based on the data type */
      ASSIGN  dfields._Format:SENSITIVE IN FRAME odb_fld = NOT islob
@@ -537,7 +542,7 @@ ASSIGN
                 else dfields._Fld-misc1[1]
              ).
 
-IF dfields._data-type = "BLOB" THEN 
+IF dfields._data-type = "BLOB" OR dfields._data-type = "CLOB" THEN 
   ASSIGN islob = TRUE.
 ELSE
   ASSIGN islob = FALSE.

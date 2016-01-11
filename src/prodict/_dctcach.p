@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2006,2008-2009,2011 by Progress Software Corporation.*
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 /*
@@ -135,7 +135,8 @@ PROCEDURE addEntry:
            /* now create an entry for the current table name */
            CREATE tt_cache_file.
            ASSIGN tt_cache_file.nPos = cache_file#
-                  tt_cache_file.cName = DICTDB._File._File-name.
+                  tt_cache_file.cName = DICTDB._File._File-name
+                  tt_cache_file.multitenant = DICTDB._File._File-attributes[1].
 
            /* clear out cache_file */
            ASSIGN cache_file = ""
@@ -145,7 +146,8 @@ PROCEDURE addEntry:
     ELSE DO:
         CREATE tt_cache_file.
         ASSIGN tt_cache_file.nPos = cache_file#
-               tt_cache_file.cName = DICTDB._File._File-name.
+               tt_cache_file.cName = DICTDB._File._File-name
+               tt_cache_file.multitenant = DICTDB._File._File-attributes[1].
     END.
 
 END PROCEDURE.

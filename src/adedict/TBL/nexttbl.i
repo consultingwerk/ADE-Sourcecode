@@ -25,16 +25,16 @@ Date Created: 07/22/93
 ----------------------------------------------------------------------------*/
 
 if s_Show_Hidden_Tbls then
-   find FIRST _File where _File._Db-recid = s_DbRecId AND
-       		     	  _File._File-Name > {&Name} AND
-       		     	  (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")       		     	  
+   find FIRST dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+       		     	  dictdb._File._File-Name > {&Name} AND
+       		     	  (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN")       		     	  
       	     	          NO-ERROR.
 else
-   find FIRST _File where _File._Db-recid = s_DbRecId AND
-       		     	  _File._File-Name > {&Name} AND
-      	     	      	  NOT _File._Hidden AND
-       		     	  (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
+   find FIRST dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+       		     	 dictdb._File._File-Name > {&Name} AND
+      	     	      	  NOT dictdb._File._Hidden AND
+       		     	  (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN")
       	     	          NO-ERROR.
 
-{&Next} = (if AVAILABLE _File then _File._File-name else "").
+{&Next} = (if AVAILABLE dictdb._File then dictdb._File._File-name else "").
 

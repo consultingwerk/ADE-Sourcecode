@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -26,7 +26,13 @@ Date Created: 10/04/99
               01/29/02 vap       Added batch-mode support (IZ# 1525)
               09/16/05 kmcintos  Fixed problems with determining if fields 
                                  are members of an index 20040402-004.
+              07/12/11 rkamboj   Fixed no record found issue for _Area.
 -----------------------------------------------------------------------------*/
+
+
+using Progress.Lang.*.
+routine-level on error undo, throw.
+
 
 /*------------------------ D E C L A R A T I O N S --------------------------*/
 
@@ -54,6 +60,7 @@ DEFINE TEMP-TABLE ttRenameSequence                /* 02/01/29 vap (IZ# 1525) */
 DEFINE VARIABLE debug-mode  AS INTEGER   NO-UNDO. /* 02/01/29 vap (IZ# 1525) */
 DEFINE VARIABLE rename-file AS CHARACTER NO-UNDO  /* 02/01/29 vap (IZ# 1525) */
                             INITIAL ?.
+DEFINE VARIABLE setincrdmpSilent AS LOGICAL  NO-UNDO INITIAL FALSE.
 
 /* 02/01/29 vap (IZ# 1525) */
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
@@ -70,29 +77,38 @@ FUNCTION fileAreaMatch RETURNS LOGICAL (INPUT db1FileNo AS INT,
                                         INPUT db1recid  AS RECID,
                                         INPUT db2recid  AS RECID).
    /* Checks to see that the DICTDB2 file area exists in DICTDB */
-
-   FIND DICTDB._StorageObject WHERE
-        DICTDB._StorageObject._Db-recid = db1recid AND
-        DICTDB._StorageObject._Object-type = 1 AND
-        DICTDB._StorageObject._Object-number = db1FileNo NO-ERROR.
+   FIND DICTDB._StorageObject 
+        where DICTDB._StorageObject._Db-recid    = db1recid
+          and DICTDB._StorageObject._Object-type = 1 
+          and DICTDB._StorageObject._Object-number = db1FileNo 
+          and DICTDB._Storageobject._Partitionid = 0                       
+        NO-ERROR.
+   
    IF AVAILABLE DICTDB._StorageObject THEN
       FIND DICTDB._Area WHERE
          DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
       NO-ERROR.
                                       
-   FIND DICTDB2._StorageObject WHERE
-        DICTDB2._StorageObject._Db-recid = db2recid AND
-        DICTDB2._StorageObject._Object-type = 1 AND
-        DICTDB2._StorageObject._Object-number = db2FileNo
-   NO-ERROR.
+   FIND DICTDB2._StorageObject where DICTDB2._StorageObject._Db-recid    = db2recid
+          and DICTDB2._StorageObject._Object-type = 1 
+          and DICTDB2._StorageObject._Object-number = db2FileNo 
+          and DICTDB2._Storageobject._Partitionid = 0                       
+        NO-ERROR.
+    
    IF AVAILABLE DICTDB2._StorageObject THEN
       FIND DICTDB2._Area WHERE
            DICTDB2._Area._Area-number = DICTDB2._StorageObject._Area-number
       NO-ERROR.
-
-   IF DICTDB._Area._Area-Name = DICTDB2._Area._Area-Name THEN
+   IF AVAIL DICTDB._Area AND AVAIL DICTDB2._Area THEN
+   DO:
+      IF DICTDB._Area._Area-Name = DICTDB2._Area._Area-Name THEN
       RETURN TRUE.
-
+   END.
+   /* DICTDB._StorageObject._Area-number = 0 and DICTDB2._StorageObject._Area-number = 0 
+      but there is no record with _Area-number = 0 in _Area table */
+   IF AVAIL DICTDB._StorageObject AND AVAIL DICTDB2._StorageObject 
+      AND DICTDB._StorageObject._Area-number = 0 AND DICTDB2._StorageObject._Area-number = 0 THEN
+      RETURN TRUE.
    RETURN FALSE.
 
 END FUNCTION.
@@ -125,10 +141,16 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    ELSE
    FIND DICTDB2._Area WHERE
         DICTDB2._Area._Area-number = db2IndexNo NO-ERROR.
-
-   IF DICTDB._Area._Area-Name = DICTDB2._Area._Area-Name THEN
+   IF AVAIL DICTDB._Area AND AVAIL DICTDB2._Area THEN
+   DO:
+      IF DICTDB._Area._Area-Name = DICTDB2._Area._Area-Name THEN
+         RETURN TRUE.
+   END.
+   /* Assuming if nothing is available then dictdb and dictdb2 index areas are same */
+   IF NOT AVAIL DICTDB._StorageObject AND NOT AVAIL DICTDB2._StorageObject
+      AND NOT AVAIL DICTDB._Area AND NOT AVAIL DICTDB._Area THEN 
       RETURN TRUE.
-   
+      
    RETURN FALSE.
 
 END FUNCTION.
@@ -184,9 +206,14 @@ FUNCTION checkRenameTable RETURNS CHARACTER (
       ASSIGN cReturnValue = B_RenameTable.RenameTo.
     ELSE DO:
       ASSIGN cReturnValue = ?.
-      IF debug-mode GT 0 THEN
-        MESSAGE SUBSTITUTE(new_lang[03], "Table":U, B_RenameTable.RenameFrom,
+      IF debug-mode GT 0 THEN DO:
+          if setincrdmpSilent THEN 
+                undo, throw new AppError(SUBSTITUTE(new_lang[03], "Table":U, B_RenameTable.RenameFrom,
+                           B_RenameTable.RenameTo)). 
+          ELSE
+                MESSAGE SUBSTITUTE(new_lang[03], "Table":U, B_RenameTable.RenameFrom,
                            B_RenameTable.RenameTo).
+      END.
     END.
   END.  /* AVAILABLE(B_RenameTable) */
   RETURN cReturnValue.
@@ -214,9 +241,14 @@ FUNCTION checkRenameField RETURNS CHARACTER (
       ASSIGN cReturnValue = B_RenameField.RenameTo.
     ELSE DO:
       ASSIGN cReturnValue = ?.
-      IF debug-mode GT 0 THEN
-        MESSAGE SUBSTITUTE(new_lang[03], "Field":U, B_RenameField.RenameFrom,
+      IF debug-mode GT 0 THEN DO:
+         if setincrdmpSilent THEN 
+                undo, throw new AppError(SUBSTITUTE(new_lang[03], "Field":U, B_RenameField.RenameFrom,
+                           B_RenameField.RenameTo)). 
+         ELSE
+         MESSAGE SUBSTITUTE(new_lang[03], "Field":U, B_RenameField.RenameFrom,
                            B_RenameField.RenameTo).
+      END.
     END.
   END.  /* AVAILABLE(B_RenameField) */
   RETURN cReturnValue.
@@ -242,10 +274,15 @@ FUNCTION checkRenameSequence RETURNS CHARACTER (
       ASSIGN cReturnValue = B_RenameSequence.RenameTo.
     ELSE DO:
       ASSIGN cReturnValue = ?.
-      IF debug-mode GT 0 THEN
-        MESSAGE SUBSTITUTE(new_lang[03], "Sequence":U, 
+      IF debug-mode GT 0 THEN DO:
+         if setincrdmpSilent THEN 
+                undo, throw new AppError(SUBSTITUTE(new_lang[03], "Sequence":U, B_RenameSequence.RenameFrom,
+                           B_RenameSequence.RenameTo)). 
+         ELSE
+                MESSAGE SUBSTITUTE(new_lang[03], "Sequence":U, 
                            B_RenameSequence.RenameFrom,
                            B_RenameSequence.RenameTo).
+      END.
     END.
   END.  /* AVAILABLE(B_RenameSequence) */
   RETURN cReturnValue.
@@ -335,8 +372,10 @@ END PROCEDURE.
 PROCEDURE set_Variables:
   DEFINE INPUT PARAMETER pcRenameFile AS CHARACTER NO-UNDO.
   DEFINE INPUT PARAMETER piDebugMode  AS INTEGER   NO-UNDO.
+  DEFINE INPUT PARAMETER pcSilentincr AS LOGICAL   NO-UNDO.
   ASSIGN rename-file = pcRenameFile
-         debug-mode = piDebugMode.
+         debug-mode = piDebugMode
+	 setincrdmpSilent =  pcSilentincr.
   RETURN "":U.
 END PROCEDURE.  /* set_Variables */
 
@@ -379,8 +418,12 @@ PROCEDURE load_Rename_Definitions:
                  B_RenameTable.RenameFrom EQ cFrom
                  NO-ERROR.
             IF AVAILABLE(B_RenameTable) THEN DO:
-              IF debug-mode GT 0 THEN
-                MESSAGE SUBSTITUTE(new_lang[01], "Table":U, cFrom, cTo).
+              IF debug-mode GT 0 THEN DO:
+                 if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[01], "Table":U, cFrom, cTo)). 
+                 ELSE
+                   MESSAGE SUBSTITUTE(new_lang[01], "Table":U, cFrom, cTo).
+              END.
             END.
             ELSE DO:
               CREATE B_RenameTable.
@@ -388,8 +431,12 @@ PROCEDURE load_Rename_Definitions:
             END.
             ASSIGN B_RenameTable.RenameTo = cTo.
           END.
-          ELSE IF debug-mode GT 0 THEN
-            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          ELSE IF debug-mode GT 0 THEN DO:
+               if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[02], cInputLine)). 
+               ELSE
+                      MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          END.
         END.  /* Table */
         WHEN "F":U THEN DO:
           IF NUM-ENTRIES(cInputLine) EQ 4 THEN DO:
@@ -401,8 +448,12 @@ PROCEDURE load_Rename_Definitions:
                  B_RenameField.RenameFrom EQ cFrom
                  NO-ERROR.
             IF AVAILABLE(B_RenameField) THEN DO:
-              IF debug-mode GT 0 THEN
-                MESSAGE SUBSTITUTE(new_lang[01], "Field":U, cFrom, cTo).
+              IF debug-mode GT 0 THEN DO:
+                  if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[01], "Field":U, cFrom, cTo)). 
+                  ELSE
+                      MESSAGE SUBSTITUTE(new_lang[01], "Field":U, cFrom, cTo).
+              END.
             END.
             ELSE DO:
               CREATE B_RenameField.
@@ -411,8 +462,12 @@ PROCEDURE load_Rename_Definitions:
             END.         
             ASSIGN B_RenameField.RenameTo = cTo.
           END.
-          ELSE IF debug-mode GT 0 THEN
-            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          ELSE IF debug-mode GT 0 THEN DO:
+                if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[02], cInputLine)). 
+                ELSE
+                      MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          END.
         END.  /* Field */
         WHEN "S":U THEN DO:
           IF NUM-ENTRIES(cInputLine) EQ 3 THEN DO:
@@ -422,8 +477,12 @@ PROCEDURE load_Rename_Definitions:
                  B_RenameSequence.RenameFrom EQ cFrom
                  NO-ERROR.
             IF AVAILABLE(B_RenameSequence) THEN DO:
-              IF debug-mode GT 0 THEN
-                MESSAGE SUBSTITUTE(new_lang[01], "Sequence":U, cFrom, cTo).
+              IF debug-mode GT 0 THEN DO:
+                  if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[01], "Sequence":U, cFrom, cTo)). 
+                  ELSE
+                      MESSAGE SUBSTITUTE(new_lang[01], "Sequence":U, cFrom, cTo).
+              END.
             END.
             ELSE DO:
               CREATE B_RenameSequence.
@@ -431,12 +490,20 @@ PROCEDURE load_Rename_Definitions:
             END.  
             ASSIGN B_RenameSequence.RenameTo = cTo.
           END.
-          ELSE IF debug-mode GT 0 THEN
-            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          ELSE IF debug-mode GT 0 THEN DO:
+                if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[02], cInputLine)). 
+                ELSE
+                      MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          END.
         END.  /* Sequence */
         OTHERWISE DO:
-          IF debug-mode GT 0 THEN
-            MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          IF debug-mode GT 0 THEN DO:
+              if setincrdmpSilent THEN 
+                      undo, throw new AppError(SUBSTITUTE(new_lang[02], cInputLine)). 
+              ELSE
+                      MESSAGE SUBSTITUTE(new_lang[02], cInputLine).
+          END.
         END.  /* Unrecognized input */
       END CASE.  /* TRIM(ENTRY(1, cInputLine)) */
     END.  /* REPEAT: */

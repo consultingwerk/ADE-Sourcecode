@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007-2008,2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -44,6 +44,8 @@ Modified    :
     9/29/94  gfs      Added call to load xftrs
     6/15/94  tullmann Added profiler checkpoints and init
     12/7/93  RPR      Added combo box
+	10/24/11 rkamboj  Replaced http://www.progress.com/services/techsupport link 
+                      with "http://progresslink.progress.com/supportlink"
 ----------------------------------------------------------------------------*/
 DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 /* ===================================================================== */
@@ -960,7 +962,8 @@ PROCEDURE BrowseKBase :
   Notes:       
 ------------------------------------------------------------------------------*/
   IF _WebBrowser NE ? AND _WebBrowser NE "" THEN
-    RUN WinExec ( _WebBrowser + " http://www.progress.com/services/techsupport":U, 1).
+      RUN WinExec ( _WebBrowser + " http://progresslink.progress.com/supportlink":U, 1).
+    /* RUN WinExec ( _WebBrowser + " http://www.progress.com/services/techsupport":U, 1). */
   ELSE
     MESSAGE "Please define your web browser in Preferences" VIEW-AS ALERT-BOX ERROR.
 

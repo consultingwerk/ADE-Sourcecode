@@ -2718,7 +2718,7 @@ PROCEDURE viewRecord :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  RUN disableFields IN TARGET-PROCEDURE.
+  RUN disableFields IN TARGET-PROCEDURE ('ALL':U).
   PUBLISH 'updateState':U FROM TARGET-PROCEDURE ("view").
 END PROCEDURE.
 

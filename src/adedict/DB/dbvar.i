@@ -28,14 +28,15 @@ History:
 
 Define {1} frame dbprops.  /* database properties */
 
-Define {1} var s_Db_Pname  as char NO-UNDO.
-Define {1} var s_Db_Holder as char NO-UNDO.
-Define {1} var s_Db_Type   as char NO-UNDO.
-Define {1} var s_Db_Cp     as char NO-UNDO.
-Define {1} var s_Db_Description  as char NO-UNDO.
-Define {1} var s_Db_Add_Details as char NO-UNDO.
-DEFINE {1} VAR s_Db_Large_Sequence AS CHAR NO-UNDO.
-DEFINE {1} VAR s_Db_Large_Keys AS CHAR NO-UNDO.
+define {1} var s_Db_Pname  as char NO-UNDO.
+define {1} var s_Db_Holder as char NO-UNDO.
+define {1} var s_Db_Type   as char NO-UNDO.
+define {1} var s_Db_Cp     as char NO-UNDO.
+define {1} var s_Db_Description    as char NO-UNDO.
+define {1} var s_Db_Add_Details    as char NO-UNDO.
+define {1} var s_Db_Large_Sequence as char NO-UNDO.
+define {1} var s_Db_Large_Keys     as char NO-UNDO.
+define {1} var s_Db_Multi_Tenancy  as char NO-UNDO.
 
 /* This is the form for the database properties window. */
 {adedict/DB/dbprop.f} 

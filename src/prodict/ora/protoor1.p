@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2007,2009 by Progress Software Corporation.     *
+* Copyright (C) 2006-2007,2011 by Progress Software Corporation.     *
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -26,6 +26,7 @@
              10/17/05 KSM Fixed X8OVERRIDE funcionality. 
              06/11/07 fernando   Unicode support
              02/12/09 fernando   Fix output for batch log file
+             06/21/11 kmayur  user env set for constraint migration
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -210,7 +211,20 @@ ASSIGN user_env[1]  = "ALL"
        user_env[31] = "-- ** "
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
-    
+       user_env[36] =  (if migConstraint then "y" else "n"). /* 195067 */
+       user_env[38] =  choiceUniquness . /* 195067 */
+       user_env[39] =  choiceDefault . /* 195067 */        
+       user_env[40] =  (IF nls_up THEN "y" ELSE "n"). /* 195067 */
+
+IF movedata THEN 
+     ASSIGN user_env[36] = user_env[36] + ",n,n,n,y".
+ELSE
+     ASSIGN user_env[36] = user_env[36] + ",n,n,n,n".       
+IF user_env[40] = "y"  THEN 
+   ASSIGN user_env[41] = oralang.
+ELSE
+   ASSIGN user_env[41] = "?".
+
 IF pcompatible THEN 
    ASSIGN user_env[27] = "y".
 ELSE
@@ -224,9 +238,9 @@ ELSE
   ASSIGN user_env[33] = "?".
 
 /* Create shadow columns */
-IF shadowcol THEN
+IF iShadow = 2 THEN
   ASSIGN user_env[21] = "y".
-ELSE
+ELSE 
   ASSIGN user_env[21] = "n".
 
     /* md0: creates SQL and .d-files */
@@ -295,6 +309,8 @@ IF loadsql THEN DO:
     UNDO, RETURN ERROR.
   ELSE IF RETURN-VALUE = "3" THEN
     UNDO, RETURN "wrg-ver".
+  ELSE IF RETURN-VALUE = "4" THEN
+    UNDO, RETURN "wrng-collat".  
 
   IF batch_mode and NOT logfile_open THEN DO:
     OUTPUT TO VALUE(output_file) APPEND UNBUFFERED NO-ECHO NO-MAP.

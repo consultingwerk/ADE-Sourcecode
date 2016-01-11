@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,10 +35,11 @@ Used/Modified Shared Info:
     user_filename   unchanged
 
 History:
+    95/08    hutegger    new version created
+    97/12/18 laurief     Made V8 to "generic version" changes
     00/06/14 D.McMann    When new version created running _dctsset.p was
                          left off so dict_rog not being re-set 20000614001
-    97/12/18 laurief     Made V8 to "generic version" changes
-    95/08    hutegger    new version created
+    09/30/10 fernando     Support for OE 11
 
 --------------------------------------------------------------------*/
 /*h-*/
@@ -63,9 +64,9 @@ define variable old_dbver   as character NO-UNDO.
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 define variable l_msg as character no-undo extent 11 initial [
   /* 1*/ "You have been automatically switched to database",
- /*2,3*/ "There are no R10", "databases connected. This tool cannot",
-  /* 4*/ "be used with a PROGRESS", 
-  /* 5*/ "database. Use the tool under PROGRESS", 
+ /*2,3*/ "There are no R11", "databases connected. This tool cannot",
+  /* 4*/ "be used with a OpenEdge", 
+  /* 5*/ "database. Use the tool under OpenEdge", 
   /* 6*/ "to access such a database.",
 /*7-11*/ "" /* reserved */
   ].
@@ -116,7 +117,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDBG")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn)  > 9
+     and INTEGER(s_ttb_db.vrsn)  > 10
      and LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
      then assign
       drec_db     = s_ttb_db.dbrcd
@@ -136,7 +137,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDB")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn)  > 9
+     and INTEGER(s_ttb_db.vrsn)  > 10
      and s_ttb_db.empty  = FALSE
      then assign
       drec_db     = s_ttb_db.dbrcd
@@ -152,7 +153,7 @@ if NUM-DBS = 0
   if   user_dbtype = ""
    then do:  /* take anything NON-empty */
     find first s_ttb_db
-      where INTEGER(s_ttb_db.vrsn) > 9
+      where INTEGER(s_ttb_db.vrsn) > 10
       and s_ttb_db.empty  = FALSE
       and   LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
       no-error.
@@ -175,7 +176,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDB")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn) > 9
+     and INTEGER(s_ttb_db.vrsn) > 10
      then assign
       drec_db     = s_ttb_db.dbrcd
       user_dbname = s_ttb_db.ldbnm
@@ -190,7 +191,7 @@ if NUM-DBS = 0
   if   user_dbtype = ""
    then do:  /* take anything */
     find first s_ttb_db
-      where INTEGER(s_ttb_db.vrsn)  > 9
+      where INTEGER(s_ttb_db.vrsn)  > 10
       and   LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
       no-error.
     if available s_ttb_db
@@ -210,16 +211,16 @@ if NUM-DBS = 0
    then do:  /* We need to determine the database version here
                  in order to display this message correctly when
                  no current version database is connected */
-     find first s_ttb_db where integer(s_ttb_db.vrsn) < 10 no-error.
+     find first s_ttb_db where integer(s_ttb_db.vrsn) < 11 no-error.
       repeat:
         if available s_ttb_db then do:
-          old_dbver = "V" + s_ttb_db.vrsn.
+          old_dbver = "R" + s_ttb_db.vrsn.
           message l_msg[2] l_msg[3] skip
                    l_msg[4] old_dbver skip
                    l_msg[5] old_dbver skip
                    l_msg[6]
                    view-as alert-box. 
-          find next s_ttb_db where integer(s_ttb_db.vrsn) < 10 no-error.
+          find next s_ttb_db where integer(s_ttb_db.vrsn) < 11 no-error.
         end.
         else
           return.
@@ -252,73 +253,3 @@ if NUM-DBS = 0
 
 { prodict/user/usercon.i user_filename }
 
-
-/* here ends the new version */
-
-
-/* this is the original version! ----------------------------------------
- * it leaves the alias DICTDB pointing at a foreign schema, which is
- * wrong! DICTDB should always point at a PROGRESS-DB; DICTDBG could
- * point at a foreign schema.... (hutegger 95/08)
- * 
- * DEFINE VARIABLE i   AS INTEGER   NO-UNDO.
- * DEFINE VARIABLE j   AS INTEGER   NO-UNDO.
- * DEFINE VARIABLE non AS LOGICAL   NO-UNDO. /* any non-PRO dbs? */
- * DEFINE VARIABLE org AS CHARACTER NO-UNDO.
- * 
- * org = LDBNAME("DICTDB").
- * 
- * DO i = 1 TO cache_db# WHILE NOT non:
- *   non = cache_db_t[i] <> "PROGRESS".
- * END.
- * 
- * /* start optional code */
- * IF non AND org <> ? AND DBTYPE("DICTDB") = "PROGRESS" THEN DO:
- *   DO i = 1 TO cache_db# WHILE cache_db_l[i] <> LDBNAME("DICTDB"):
- *     /* empty loop */
- *   END.
- *   RUN "prodict/_dctscnt.p" (INPUT i,OUTPUT j).
- *   IF j = 0 THEN DELETE ALIAS "DICTDB".
- * END.
- * /* end optional code */
- * 
- * DO i = 1 TO cache_db# WHILE LDBNAME("DICTDB") = ?:
- *   IF CAN-DO("PROGRESS/V5,PROGRESS/V6",cache_db_t[i])
- *     OR NOT CAN-DO(GATEWAYS,cache_db_t[i]) THEN NEXT.
- *   CREATE ALIAS "DICTDB" FOR DATABASE VALUE(cache_db_s[i]) NO-ERROR.
- *   RUN "prodict/_dctscnt.p" (INPUT i,OUTPUT j).
- *   IF j = 0 THEN
- *     DELETE ALIAS "DICTDB".
- *   ELSE
- *     CREATE ALIAS "DICTDB" FOR DATABASE VALUE(cache_db_l[i]) NO-ERROR.
- * END.
- * DO i = 1 TO cache_db# WHILE LDBNAME("DICTDB") = ?:
- *   IF CAN-DO("PROGRESS/V5,PROGRESS/V6",cache_db_t[i])
- *     OR NOT CAN-DO(GATEWAYS,cache_db_t[i]) THEN NEXT.
- *   CREATE ALIAS "DICTDB" FOR DATABASE VALUE(cache_db_l[i]) NO-ERROR.
- * END.
- * 
- * /* cache_dirty = ? on first time in */
- * IF org <> LDBNAME("DICTDB") AND cache_dirty <> ? THEN
- *   MESSAGE new_lang[1] '"' + LDBNAME("DICTDB") + '"'. /* auto-switched */
- * 
- * ASSIGN
- *   user_dbname   = (IF LDBNAME("DICTDB") = ?   THEN "" ELSE LDBNAME("DICTDB"))
- *   user_dbtype   = (IF DBTYPE("DICTDB")  = ?   THEN "" ELSE DBTYPE("DICTDB"))
- *   user_filename = (IF LDBNAME("DICTDB") = org THEN user_filename ELSE "")
- *   cache_dirty   = (IF LDBNAME("DICTDB") = org THEN cache_dirty ELSE TRUE).
- * 
- * IF user_dbname <> "" AND (org <> LDBNAME("DICTDB") OR drec_db = ?) THEN DO:
- *   CREATE ALIAS "DICTDB" FOR DATABASE VALUE(SDBNAME(user_dbname)) NO-ERROR.
- *   RUN "prodict/_dctsset.p"
- *     (IF user_dbtype = "PROGRESS" THEN ? ELSE user_dbname).
- *   CREATE ALIAS "DICTDB" FOR DATABASE VALUE(user_dbname) NO-ERROR.
- * END.
- * 
- * { prodict/user/usercon.i user_filename }
- * 
- * DELETE ALIAS "DICTDB2".
- * 
- * RETURN.
- * this is the original version! ------------------------------------- */
-/*---------------------------------------------------------------------*/

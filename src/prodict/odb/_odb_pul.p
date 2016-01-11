@@ -788,7 +788,8 @@ for each gate-work
      */
      IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
         NEXT.
-
+		
+		
       IF DICTDBG.SQLColumns_buffer.column-name begins "PROGRESS_RECID" OR
          DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_RECID" OR
          DICTDBG.SQLColumns_buffer.column-name begins "_PROGRESS_ROWID"
@@ -806,9 +807,8 @@ for each gate-work
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
       IF NOT AVAILABLE column-id THEN NEXT.     
       assign field-position = column-id.col-id.
-      
-
-      assign
+    
+    assign
         fld-remark     = DICTDBG.SQLColumns_buffer.remarks
         fld-properties = "".
       if DICTDBG.SQLColumns_buffer.remarks MATCHES
@@ -929,7 +929,7 @@ for each gate-work
            &extent       = "m1"
         }
 
-      end. /* DO */  
+      end. /* DO */
 
       /* OE00210200: This code is specific to DB2 database, which has the special columns with 'GENERATED AS IDENTITY' property.
          If the column is of type, 'GENERATED ALWAYS AS IDENTITY', append the 'rpos' value of the column to the list of
@@ -949,7 +949,6 @@ for each gate-work
 			s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(field_position) + ",".
 		  end.
 	  END.
-	  
 
       if shadow_col > 0 then 
         assign s_ttb_fld.pro_case = FALSE  

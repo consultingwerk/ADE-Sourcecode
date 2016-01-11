@@ -3060,7 +3060,7 @@ PROCEDURE initializeObject :
           {get ServerFileName cSvrFileName}.
           {get DynamicSDOProcedure cDynamicSDO hContainer} NO-ERROR.
           cDynamicSDO = ENTRY(1, cDynamicSDO, ".":U).  /* Remove .r or .w */
-          IF (TARGET-PROCEDURE:FILE-NAME MATCHES '*_cl.*':U OR
+          IF (TARGET-PROCEDURE:FILE-NAME MATCHES '*_cl~~.*':U OR
               TARGET-PROCEDURE:FILE-NAME MATCHES '*':U + cDynamicSDO + '.*':U) THEN
           DO:
             IF lQueryContainer THEN DO:  /* if part of SBO make sure we have AppService */

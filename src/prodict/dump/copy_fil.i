@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/********************************************************************* *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*------------------------------------------------------------- 
 
@@ -28,7 +28,9 @@ IF {&all} THEN
     {&to}._numfld       = {&from}._numfld
     {&to}._numkcomp     = {&from}._numkcomp
     {&to}._numkey       = {&from}._numkey
-    {&to}._numkfld      = {&from}._numkfld.
+    {&to}._numkfld      = {&from}._numkfld
+    {&to}._File-Attributes[1] = {&from}._File-Attributes[1]
+    {&to}._File-Attributes[2] = {&from}._File-Attributes[2].
 
 ASSIGN
   {&to}._File-Name     = {&from}._File-Name

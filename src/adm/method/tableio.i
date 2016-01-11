@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*-------------------------------------------------------------------------
     File        : tableio.i  
     Purpose     : Basic ADM methods for record changes
@@ -1662,9 +1662,8 @@ DEFINE INPUT PARAMETER p-attr-value AS CHARACTER NO-UNDO.
              (p-attr-value NE "YES":U AND
            DBTYPE(LDBNAME(BUFFER {&adm-first-enabled-table})) EQ "PROGRESS":U)
           THEN no ELSE yes.
-      /* As of 9.0A (97-06-23-011) the browse widget needs to know if
-         create-on-add is set. */
-      &IF DEFINED(adm-browser) NE 0 AND INTEGER(SUBSTRING(PROVERSION,1,INDEX(PROVERSION,".":U) - 1)) >= 9 &THEN
+      /* the browse widget needs to know if create-on-add is set. */
+      &IF DEFINED(adm-browser) NE 0 &THEN
         IF adm-create-on-add THEN
           BROWSE {&BROWSE-NAME}:CREATE-ON-ADD = yes.
       &ENDIF

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -38,24 +38,27 @@ Date Created: 03/16/92
 {adedict/uivar.i shared}
 {adedict/TBL/tblvar.i shared}
 {adedict/capab.i}
-
-
+/* include file contains function for area label */
+{prodict/pro/arealabel.i}
 /*----------------------------Mainline code----------------------------------*/
-
 Define var name_editable    as logical     NO-UNDO.
 Define var capab            as char        NO-UNDO.
 Define var junk	            as logical     NO-UNDO.
 Define var junk-i           as integer     NO-UNDO.
+define var isDBMultiTenant  as logical     no-undo.
 
-find _File WHERE _File._File-name = "_File"
-             AND _File._Owner = "PUB"
+find dictdb._File WHERE dictdb._File._File-name = "_File"
+             AND dictdb._File._Owner = "PUB"
              NO-LOCK.
-if NOT can-do(_File._Can-read, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-read, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "see table definitions."
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
+
+/* a default tenantrecord is created when the database is enabled for multi-tenancy */
+isDBMultiTenant = can-find(first dictdb._tenant).
 
 /* Don't want Cancel if moving to next table - only when window opens */
 if s_win_Tbl = ? then
@@ -127,7 +130,7 @@ s_Tbl_Type =
 
 /* Count the number of indexes this table has */
 s_Tbl_IdxCnt = 0.
-for each _Index of b_File:
+for each dictdb._Index where _file-recid = recid(b_File) no-lock:
    s_Tbl_IdxCnt = s_Tbl_IdxCnt + 1.
 end.
 
@@ -203,35 +206,43 @@ do:
    END.
 end.
 
-IF b_File._For-type <> ? THEN
-  ASSIGN s_Tbl_Area = "N/A".
-ELSE DO:
-  IF b_File._File-number <> ? THEN DO:
-    FIND _StorageObject WHERE _StorageObject._Db-recid = b_File._Db-recid
-                          AND _StorageObject._Object-type = 1
-                          AND _StorageObject._Object-number = b_File._File-number
-                          NO-LOCK NO-ERROR.
-    IF AVAILABLE _StorageObject THEN                      
-       FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-     ELSE
-       FIND _Area WHERE _Area._Area-number = 6 NO-LOCK. 
-  END.
-  ELSE
-    FIND _Area WHERE _Area._Area-number = b_File._ianum NO-LOCK.
+IF b_File._For-type <> ? then 
+   ASSIGN s_Tbl_Area = "N/A".
+ELSE if (b_file._File-Attributes[1] and b_File._File-Attributes[2] = false) then 
+   ASSIGN s_Tbl_Area = "".
+ELSE 
+do:
+    IF b_File._File-number <> ? THEN DO:
+        FIND dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = b_File._Db-recid
+                                   AND dictdb._StorageObject._Object-type = 1
+                                   AND dictdb._StorageObject._Object-number = b_File._File-number
+                                   and dictdb._StorageObject._Partitionid = 0 
+                                   NO-LOCK NO-ERROR.
+        IF AVAILABLE dictdb._StorageObject THEN                      
+            FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+        ELSE
+            FIND dictdb._Area WHERE dictdb._Area._Area-number = 6 NO-LOCK. 
+    END.
+    ELSE
+        FIND dictdb._Area WHERE dictdb._Area._Area-number = b_File._ianum NO-LOCK.
       
-  ASSIGN s_Tbl_Area = _Area._Area-name. 
-END.   
-
+    ASSIGN s_Tbl_Area = dictdb._Area._Area-name.    
+end.
 s_btn_File_Area:visible in frame tblprops = false.
 s_lst_File_Area:visible in frame tblprops = false.
 
+/*setAreaLabel(s_Tbl_Area:handle in frame tblprops,b_File._File-Attributes[1]).*/
+setAreaState(b_File._File-Attributes[1],b_File._File-Attributes[2],no,no,b_File._File-Attributes[2]:handle in FRAME tblprops,s_tbl_Area:handle in FRAME tblprops,?,s_Tbl_Area).  
+
 display  b_File._File-Name
-        s_Tbl_Area 
+         b_File._File-Attributes[1]
+         b_File._File-Attributes[2]   
+         s_Tbl_Area 
       	 s_optional
-   	 s_Tbl_Type 
+   	     s_Tbl_Type 
       	 b_File._Dump-Name
       	 b_File._Hidden
-   	 b_File._Frozen
+   	     b_File._Frozen
       	 b_File._For-Size    when INDEX(capab, {&CAPAB_TBL_SIZE}) > 0
       	 b_File._File-label
          b_File._Desc 
@@ -284,31 +295,34 @@ else do:
    /* User is not allowed to modify the name of a SQL table or a view.  Also 
       some gateways don't allow rename. */
    if b_File._Db-lang >= {&TBLTYP_SQL} OR
-      CAN-FIND(FIRST _View-ref
-	       where _View-ref._Ref-Table = b_File._File-Name) then
+      CAN-FIND(FIRST dictdb._View-ref
+	       where dictdb._View-ref._Ref-Table = b_File._File-Name) then
       name_editable = false.
    else if INDEX(capab, {&CAPAB_RENAME}) = 0 then
       name_editable = false.
    else
       name_editable = true.
-   
+  
+   disable b_File._File-Attributes[1] when b_File._File-Attributes[1]
+           with frame tblprops.
    /* Note: the order of enables will govern the TAB order. */
    enable b_File._File-Name   when name_editable
+          b_File._File-Attributes[1] when isDBMultiTenant and b_File._File-Attributes[1] = false
+          b_File._Dump-Name  
           b_File._Hidden
-	  b_File._Dump-Name
-       	  s_Tbl_Type          when INDEX(capab, {&CAPAB_TBL_TYPE_MOD}) > 0
+	   	  s_Tbl_Type          when INDEX(capab, {&CAPAB_TBL_TYPE_MOD}) > 0
       	  b_File._File-label
-	  b_File._Desc
+	      b_File._Desc
           b_File._Fil-misc2[6]
-	  b_File._For-Size    when INDEX(capab, {&CAPAB_CHANGE_TBL_SIZE}) > 0
-	  b_file._For-Name    when INDEX(capab, {&CAPAB_CHANGE_FOR_NAME}) > 0
-	  s_btn_Tbl_Triggers
-	  s_btn_Tbl_Validation
-	  s_btn_Tbl_StringAttrs
-	  s_btn_Tbl_ds WHEN NOT s_btn_Tbl_ds:hidden
+    	  b_File._For-Size    when INDEX(capab, {&CAPAB_CHANGE_TBL_SIZE}) > 0
+    	  b_file._For-Name    when INDEX(capab, {&CAPAB_CHANGE_FOR_NAME}) > 0
+    	  s_btn_Tbl_Triggers
+    	  s_btn_Tbl_Validation
+    	  s_btn_Tbl_StringAttrs
+    	  s_btn_Tbl_ds WHEN NOT s_btn_Tbl_ds:hidden
       	  s_btn_OK
-	  s_btn_Save
-	  s_btn_Close
+    	  s_btn_Save
+    	  s_btn_Close
       	  s_btn_Prev
       	  s_btn_Next
       	  s_btn_Help
@@ -319,8 +333,9 @@ else do:
    else
       apply "entry" to b_File._Dump-Name in frame tblprops.
 end.
-
-
+ 
+ 
+ 
 
 
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000, 2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -18,6 +18,8 @@ DEFINE VARIABLE currentdb AS CHARACTER FORMAT "x(32)":u NO-UNDO.
 DEFINE VARIABLE qbf-i     AS INTEGER   NO-UNDO.
 DEFINE VARIABLE qbf-s     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tries     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE hCP       AS HANDLE  NO-UNDO.
+DEFINE VARIABLE setdbclnt AS LOGICAL NO-UNDO.
 
 DEFINE BUTTON ok_btn     LABEL "  OK  " AUTO-GO.
 DEFINE BUTTON cancel_btn LABEL "Cancel" AUTO-ENDKEY.
@@ -41,6 +43,7 @@ FORM
   .
 
 HIDE MESSAGE NO-PAUSE.
+create Client-Principal hCP. /* create a CLIENT-PRINCIPAL only once during login*/
 
 /* Prompt for userid and password in all connected Progress databases 
    (if not supplied as startup parameters).  Non-Progress databases 
@@ -71,8 +74,13 @@ ELSE DO qbf-i = 1 to NUM-DBS:
     UPDATE 
       id password ok_btn cancel_btn
       WITH FRAME login_frame.
-
-    IF SETUSERID(id,password,"DICTDB":u) <> TRUE THEN DO:
+	  
+    
+    /* Use SET-DB-CLIENT instead of SETUSERID */ 
+    hCP:Initialize(id,?,?,password).
+    
+    setdbclnt = Set-DB-Client(hCP,currentdb) NO-ERROR.
+    if not setdbclnt then do:
       MESSAGE "Userid/password is incorrect."
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
       IF tries > 1 THEN 
@@ -83,6 +91,8 @@ ELSE DO qbf-i = 1 to NUM-DBS:
   END.
   HIDE FRAME login_frame.
 END.
+Delete Object hCP.
+hCP = ?.
 IF qbf-s <> ? THEN
   CREATE ALIAS "DICTDB":u FOR DATABASE VALUE(qbf-s).
 HIDE MESSAGE NO-PAUSE.

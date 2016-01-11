@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2010 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,7 +28,8 @@ history:
                             
    fernando     10/04/07    Handle error modifying collation table
    fernando     12/06/07    Load collation name for DataServers
-   sgarg        07/29/10    Disallow ? as case-insesitive entry (OE00198732)
+   sgarg        07/12/10    Disallow ? as case-insesitive entry (OE00198732)
+   sgarg        08/30/11    Bug[17] should be OFF for MSS drivers (OE00198733)
    
 */
 /*h-*/
@@ -45,9 +46,10 @@ define shared temp-table s_ttb_fake-cp
     
 DEFINE VARIABLE scrap AS CHARACTER NO-UNDO.
 DEFINE VARIABLE canned AS LOGICAL NO-UNDO.
+DEFINE VARIABLE bugpos AS INTEGER NO-UNDO.
+DEFINE VARIABLE drvchrs AS CHARACTER NO-UNDO.
 
 /*---------------------------------------------------------------------*/
-
 FIND FIRST wdbs.
 if imod <> "a":u
  then if wdbs._Db-name = "?"/* Comparing to the string value "?" fails whereas
@@ -70,6 +72,20 @@ if imod = "a":u then do: /*--------------------------------------------*/
   if (wdbs._Db-type = "MSS") then do:
     if (wdbs._Db-misc1[1] <> 1) then
       wdbs._Db-misc1[1]  = 0.
+
+   /* _Db-misc2[4] should not contain bug[17] switch as 
+    * all the MS SQL Server drivers used by MSS DataServer
+    * support UPPER. Said that a definition file which has
+    * been dumped before this bug fix would have an erroenous 
+    * entry of bug switch 17 in the driver characteristics. 
+    * Loading such definition file should remove that entry.
+    */
+    bugpos = INDEX (wdbs._Db-misc2[4], "17").
+    if (bugpos <> 0) then do:
+       drvchrs = substring (wdbs._Db-misc2[4], 1, bugpos - 1) +
+                 substring (wdbs._Db-misc2[4], bugpos + 3).
+    end.
+    else drvchrs = wdbs._Db-misc2[4].
   end.
 
   CREATE DICTDB._Db.
@@ -90,7 +106,8 @@ if imod = "a":u then do: /*--------------------------------------------*/
     DICTDB._Db._Db-misc2[1] = wdbs._Db-misc2[1]
     DICTDB._Db._Db-misc2[2] = wdbs._Db-misc2[2]
     DICTDB._Db._Db-misc2[3] = wdbs._Db-misc2[3]
-    DICTDB._Db._Db-misc2[4] = wdbs._Db-misc2[4]
+    DICTDB._Db._Db-misc2[4] = (if wdbs._Db-type = "MSS" then drvchrs
+                                else wdbs._Db-misc2[4])
     DICTDB._Db._Db-misc2[5] = wdbs._Db-misc2[5]
     DICTDB._Db._Db-misc2[6] = wdbs._Db-misc2[6]
     DICTDB._Db._Db-misc2[7] = wdbs._Db-misc2[7]
@@ -195,6 +212,22 @@ else if imod = "m":u then do: /*---------------------------------------*/
   if DICTDB._Db._Db-coll-name <> wdbs._Db-coll-name then
      DICTDB._Db._Db-coll-name = wdbs._Db-coll-name.
      
+  /* _Db-misc2[4] should not contain bug[17] switch as 
+   * all the MS SQL Server drivers used by MSS DataServer
+   * support UPPER. Said that a definition file which has
+   * been dumped before this bug fix would have an erroenous 
+   * entry of bug switch 17 in the driver characteristics. 
+   * Loading such definition file should remove that entry.
+   */
+  if (wdbs._Db-type = "MSS") then do:
+    bugpos = INDEX (wdbs._Db-misc2[4], "17").
+    if (bugpos <> 0) then do:
+       drvchrs = substring (wdbs._Db-misc2[4], 1, bugpos - 1) +
+                 substring (wdbs._Db-misc2[4], bugpos + 3).
+    end.
+    else drvchrs = wdbs._Db-misc2[4].
+  end.
+
   ASSIGN
     DICTDB._Db._Db-xlate[1]   = wdbs._Db-xlate[1]
     DICTDB._Db._Db-xlate[2]   = wdbs._Db-xlate[2]
@@ -214,7 +247,8 @@ else if imod = "m":u then do: /*---------------------------------------*/
     DICTDB._Db._Db-misc2[1] = wdbs._Db-misc2[1]
     DICTDB._Db._Db-misc2[2] = wdbs._Db-misc2[2]
     DICTDB._Db._Db-misc2[3] = wdbs._Db-misc2[3]
-    DICTDB._Db._Db-misc2[4] = wdbs._Db-misc2[4]
+    DICTDB._Db._Db-misc2[4] = (if (wdbs._Db-type = "MSS") then drvchrs
+                                else wdbs._Db-misc2[4])
     DICTDB._Db._Db-misc2[5] = wdbs._Db-misc2[5]
     DICTDB._Db._Db-misc2[6] = wdbs._Db-misc2[6]
     DICTDB._Db._Db-misc2[7] = wdbs._Db-misc2[7]

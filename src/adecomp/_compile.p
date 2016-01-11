@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -252,9 +252,7 @@ PROCEDURE CompEncrypt.
                 V6FRAME   = (s_v6frame <> "NO")
                 MIN-SIZE  = s_minsize
                 STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
                 GENERATE-MD5 = s_gen_md5
-                &ENDIF
                 .
         WHEN "Reverse Video" THEN
             COMPILE VALUE(v_curfile)
@@ -264,9 +262,7 @@ PROCEDURE CompEncrypt.
                 V6FRAME USE-REVVIDEO
                 MIN-SIZE  = s_minsize
                 STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
                 GENERATE-MD5 = s_gen_md5
-                &ENDIF
                 .
         WHEN "Underline" THEN
             COMPILE VALUE(v_curfile)
@@ -276,9 +272,7 @@ PROCEDURE CompEncrypt.
                 V6FRAME USE-UNDERLINE
                 MIN-SIZE  = s_minsize
                 STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
                 GENERATE-MD5 = s_gen_md5
-                &ENDIF
                 .
         OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
             COMPILE VALUE(v_curfile)
@@ -288,9 +282,7 @@ PROCEDURE CompEncrypt.
                 V6FRAME   = (s_v6frame <> "NO")
                 MIN-SIZE  = s_minsize
                 STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
                 GENERATE-MD5 = s_gen_md5
-                &ENDIF
                 .
     END CASE.
 END PROCEDURE.
@@ -310,9 +302,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME   = (s_v6frame <> "NO")
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             WHEN "Reverse Video" THEN
                 COMPILE VALUE(v_curfile)
@@ -325,9 +315,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME USE-REVVIDEO
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             WHEN "Underline" THEN
                 COMPILE VALUE(v_curfile)
@@ -340,9 +328,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME USE-UNDERLINE
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
                 COMPILE VALUE(v_curfile)
@@ -355,9 +341,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME   = (s_v6frame <> "NO")
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
         END CASE.
     END.
@@ -374,9 +358,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME   = (s_v6frame <> "NO")
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             WHEN "Reverse Video" THEN
                 COMPILE VALUE(v_curfile)
@@ -389,9 +371,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME USE-REVVIDEO
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             WHEN "Underline" THEN
                 COMPILE VALUE(v_curfile)
@@ -404,9 +384,7 @@ PROCEDURE CompNoEncrypt.
 	                V6FRAME USE-UNDERLINE
 	                MIN-SIZE  = s_minsize
 	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
 	                .
             OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
                 COMPILE VALUE(v_curfile)
@@ -418,10 +396,9 @@ PROCEDURE CompNoEncrypt.
 	                DEBUG-LIST VALUE(s_debuglist)
 	                V6FRAME   = (s_v6frame <> "NO")
 	                MIN-SIZE  = s_minsize
-	                STREAM-IO = s_stream_io
-	                &IF {&CompileOn91C} &THEN
+	                STREAM-IO = s_stream_io	              
 	                GENERATE-MD5 = s_gen_md5
-	                &ENDIF
+	          
 	                .
         END CASE.
     END.

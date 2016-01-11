@@ -20,7 +20,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wiWin 
 /***********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -186,6 +186,13 @@ FUNCTION addHandle RETURNS LOGICAL
 FUNCTION displayConfigInfo RETURNS LOGICAL
     ( INPUT plLocalSession      AS LOGICAL,
       INPUT phDisplayWidget     AS HANDLE       )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fullVersion wiWin 
+FUNCTION fullVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -885,58 +892,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getPatchLevel wiWin 
-PROCEDURE getPatchLevel :
-/*------------------------------------------------------------------------------
-  Purpose:     Reads the Version file to see if there is a patch level
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  DEFINE OUTPUT PARAMETER patchLevel AS CHARACTER NO-UNDO.
-
-  DEFINE VARIABLE i        AS INTEGER             NO-UNDO.
-  DEFINE VARIABLE dlcValue AS CHARACTER           NO-UNDO. /* DLC */
-  DEFINE VARIABLE inp      AS CHARACTER           NO-UNDO. /* hold 1st line of version file */
-
-  IF OPSYS = "Win32":U THEN /* Get DLC from Registry */
-    GET-KEY-VALUE SECTION "Startup":U KEY "DLC":U VALUE dlcValue.
-
-  IF (dlcValue = "" OR dlcValue = ?) THEN DO:
-    ASSIGN dlcValue = OS-GETENV("DLC":U). /* Get DLC from environment */
-      IF (dlcValue = "" OR dlcValue = ?) THEN DO: /* Still nothing? */
-        ASSIGN patchLevel = "".
-        RETURN.
-      END.
-  END.
-  FILE-INFO:FILE-NAME = dlcValue + "/version":U.
-  IF FILE-INFO:FULL-PATHNAME NE ? THEN DO: /* Read the version file */
-    INPUT FROM VALUE(FILE-INFO:FULL-PATHNAME).
-      IMPORT UNFORMATTED inp. /* Get the first line */
-    INPUT CLOSE.
-    /* 
-     * There are three types of version files (e.g.)
-     *   PROGRESS version 9.1A as of Fri Apr 20 1999
-     *   PROGRESS PATCH version 9.1A01 as of Fri Apr 20 1999
-     *   PROGRESS UNOFFICIAL PATCH version 9.1A01 as of Fri Apr 20 1999
-     */
-    IF INDEX(inp,"PATCH":U) NE 0 THEN DO:
-      /* If it's a patch, then we want the number */
-      LEVEL:
-      DO i = 2 TO NUM-ENTRIES(inp," ":U):
-        IF ENTRY(i,inp," ") BEGINS PROVERSION THEN DO:
-          ASSIGN patchLevel = REPLACE(ENTRY(i,inp," "),PROVERSION,"").
-          LEAVE LEVEL.
-        END.
-      END.
-    END.
-  END.         
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getSystemInfo wiWin 
 PROCEDURE getSystemInfo :
 /*------------------------------------------------------------------------------
@@ -951,7 +906,6 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE cParentWindowTitle AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cObjectInformation AS CHARACTER NO-UNDO.
     DEFINE VARIABLE iLoop              AS INTEGER NO-UNDO.
-    DEFINE VARIABLE cPatchLevel        AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cSite              AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cDBList            AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cDBVersions        AS CHARACTER NO-UNDO.
@@ -975,8 +929,6 @@ PROCEDURE getSystemInfo :
     DEFINE VARIABLE hTTService          AS HANDLE                   NO-UNDO.
 
 DO WITH FRAME {&FRAME-NAME}:
-    RUN GetPatchLevel(OUTPUT cPatchLevel). /* Read patch level from version file */
-
     edSystemInformation:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "".
 
     hParentWindow = FRAME {&FRAME-NAME}:PARENT.
@@ -1061,7 +1013,7 @@ DO WITH FRAME {&FRAME-NAME}:
         "Date Format:                " + notNull(ENTRY(5,cProperties,CHR(3)))    + "~n" +  
         "System Name:                " + notNull(?)                              + "~n" +
         "System Version:             " + notNull(?)                              + "~n" + 
-        "Progress Version:           " + notNull(PROVERSION) + notNull(cPatchLevel) + "~n" + 
+        "Progress Version:           " + fullVersion()                           + "~n" + 
         "Progress License:           " + notNull(PROGRESS)                       + "~n" + 
         "Time Source:                " + notNull(SESSION:TIME-SOURCE)            + "~n" + 
         "Session Parameter:          " + notNull(SESSION:PARAMETER)              + "~n" +
@@ -1510,7 +1462,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectPage wiWin 
 PROCEDURE selectPage :
 /*------------------------------------------------------------------------------
@@ -1652,6 +1603,48 @@ FUNCTION displayConfigInfo RETURNS LOGICAL
     END.    /* each ttHandle. */
 
     RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fullVersion wiWin 
+FUNCTION fullVersion RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: show the full version number 
+    Notes: used in concatination - must not return unknown 
+           Reads the Version file to see if there is a patch level
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE i        AS INTEGER             NO-UNDO.
+  DEFINE VARIABLE dlcValue AS CHARACTER           NO-UNDO. /* DLC */
+  DEFINE VARIABLE inp      AS CHARACTER           NO-UNDO. /* hold 1st line of version file */
+  define variable cWord    as character           no-undo.
+
+  IF OPSYS = "Win32":U THEN /* Get DLC from Registry */
+    GET-KEY-VALUE SECTION "Startup":U KEY "DLC":U VALUE dlcValue.
+
+  IF (dlcValue = "" OR dlcValue = ?) THEN DO:
+      ASSIGN dlcValue = OS-GETENV("DLC":U). /* Get DLC from environment */
+      IF (dlcValue = "" OR dlcValue = ?) THEN DO: /* Still nothing? */
+        RETURN PROVERSION.
+      END.
+  END.
+  FILE-INFO:FILE-NAME = dlcValue + "/version":U.
+  IF FILE-INFO:FULL-PATHNAME NE ? THEN DO: /* Read the version file */
+    INPUT FROM VALUE(FILE-INFO:FULL-PATHNAME).
+      IMPORT UNFORMATTED inp. /* Get the first line */
+    INPUT CLOSE.
+  
+    do i = 1 to num-entries(inp," "):
+      cWord = entry(i,inp," ").
+      if cWord begins entry(1,PROVERSION,".") then 
+         return cWord.
+    end.  
+  END.         
+  
+  return proversion.  
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

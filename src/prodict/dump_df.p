@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2007,2009,2011 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -34,6 +34,7 @@ Other-settings:
     rcode-position           : yes or no
     
 History
+    fernando  05/14/09  Support for encryption/alternate buffer pool
     fernando  10/12/06  Allow this to be called persistently
     fernando  03/14/06  Handle case with too many tables selected - bug 20050930-006.    
     McMann    10/17/03  Add NO-LOCK statement to _Db find in support of on-line schema add
@@ -73,9 +74,34 @@ RUN prodict/dump_df.p PERSISTENT SET h
 RUN IncludeRcodePosition IN h (NO). /* this is optional */
 RUN doDump IN h.
 DELETE PROCEDURE h.
+
+FOR OE Architect: CR# OE00198400
+
+This is an example on how to call this proc persistently to set the
+newly added option of silent dump and to catch any errors:
+    
+routine-level on error undo, throw.
+define variable h as handle no-undo.
+
+run prodict/dump_df.p PERSISTENT SET h ("customer,order","C:\OpenEdge\WRK\110\dump12.df",?).
+run setSilent in h(yes).
+run doDump in h.
+delete procedure h. 
+
+catch e as Progress.Lang.AppError :
+    message e:ReturnValue
+    view-as  alert-box .  
+end catch.
+  
   
 --------------------------------------------------------------------*/        
+using Progress.Lang.*.
+routine-level on error undo, throw.
+
+
 /*h-*/
+
+
 /*----------------------------  DEFINES  ---------------------------*/
 
 DEFINE INPUT PARAMETER file-name    AS CHARACTER NO-UNDO.
@@ -88,8 +114,9 @@ DEFINE INPUT PARAMETER code-page    AS CHARACTER NO-UNDO.
    value.
 */
 DEFINE VARIABLE rcode-position      AS LOGICAL   NO-UNDO INIT YES.
-
-
+DEFINE VARIABLE dumpPol             AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE dumpAltBuf          AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE setdmpSilent        AS LOGICAL   NO-UNDO INIT NO.
 
 { prodict/user/uservar.i NEW }
 { prodict/dictvar.i NEW }
@@ -137,15 +164,29 @@ PROCEDURE IncludeRcodePosition:
     ASSIGN rcode-position = prcode-position.
 END.
 
-/* This is the meat of this procdure */
+PROCEDURE SetSilent:
+    DEFINE INPUT PARAMETER setsilent AS LOGICAL NO-UNDO.
+    ASSIGN setdmpSilent = setsilent.
+END.
+
+/* This is the meat of this procedure */
 PROCEDURE doDump:
     DEFINE VARIABLE l_tmp-file    AS CHARACTER NO-UNDO format "x(256)":u.
     DEFINE VARIABLE l_db-name     AS CHARACTER NO-UNDO.
     DEFINE VARIABLE l_for-type    AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
     
-    IF df-file-name = ? THEN DO:
-        MESSAGE "ERROR: You must specify the .df file name".
-        RETURN.
+    IF df-file-name = ? THEN 
+    DO on error undo, throw:
+        cMsg = "ERROR: You must specify the .df file name".
+        if setdmpSilent then 
+        do: 
+            undo, throw new AppError(cMsg).
+        end.
+        else do:   
+            MESSAGE cMsg.
+            RETURN.
+        end.
     END.
 
     /* make sure table is empty */
@@ -184,18 +225,18 @@ PROCEDURE doDump:
                            
     /****** 1. step: create temp-table from input file-list ***********/
     
-    if file-name = "ALL"
-     then do:  /* dump ALL file-definitions of ALL dbs */
-      for each DICTDB._DB NO-LOCK:
-        create ttb_dump.
-        assign
-          ttb_dump.db  = ( if DICTDB._DB._DB-Type = "PROGRESS" 
-                            THEN LDBNAME("DICTDB")
-                            ELSE DICTDB._DB._Db-name
-                         )
-          ttb_dump.tbl = "*ALL*".
+    if file-name = "ALL" then 
+    do:  /* dump ALL file-definitions of ALL dbs */
+        for each DICTDB._DB NO-LOCK:
+            create ttb_dump.
+            assign
+               ttb_dump.db  = ( if DICTDB._DB._DB-Type = "PROGRESS" 
+                                THEN LDBNAME("DICTDB")
+                                ELSE DICTDB._DB._Db-name
+                               )
+               ttb_dump.tbl = "*ALL*".
         end.    
-      end.     /* dump ALL file-definitions of ALL dbs */
+     end.     /* dump ALL file-definitions of ALL dbs */
       
      else do:  /* dump SOME file-definitions of SOME dbs */
      
@@ -225,11 +266,16 @@ PROCEDURE doDump:
                                           */
                                  
       /* check run-time read-privileges */
-      FOR EACH _File
-        WHERE _File._File-name begins "_":
-        IF  INDEX(l_dmp-files,_File._File-name) = 0 
-         OR CAN-DO(_File._Can-read,USERID("DICTDB")) 
+      FOR EACH DICTDB._File
+        WHERE DICTDB._File._File-name begins "_":
+        IF  INDEX(l_dmp-files,DICTDB._File._File-name) = 0 
+         OR CAN-DO(DICTDB._File._Can-read,USERID("DICTDB")) 
          THEN NEXT.
+        if setdmpSilent then 
+        do: 
+            undo, throw new AppError("You do not have permission to dump table definitions.").
+        end.
+        ELSE         
         MESSAGE "You do not have permission to dump table definitions.".
         NEXT.
       END.
@@ -237,7 +283,7 @@ PROCEDURE doDump:
       assign
         l_db-name   = ( if DICTDB._DB._DB-Type = "PROGRESS" 
                          THEN LDBNAME("DICTDB")
-                         ELSE _DB._DB-name
+                         ELSE DICTDB._DB._DB-name
                       )
         user_env[1] = ""
         user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
@@ -324,7 +370,7 @@ PROCEDURE doDump:
 
         for each DICTDB._File
           WHERE DICTDB._File._File-number > 0
-          AND   DICTDB._File._Db-recid = RECID(_Db)
+          AND   DICTDB._File._Db-recid = RECID(DICTDB._Db)
           AND   NOT DICTDB._File._Hidden
           USE-INDEX _File-name
           BY    DICTDB._File._File-name:
@@ -367,7 +413,7 @@ PROCEDURE doDump:
         drec_db       = RECID(_Db)
         user_env[2]   = l_tmp-file
         user_env[5]   = code-page
-        user_env[6]   = "no-alert-boxes"
+        user_env[6]   = if setdmpSilent then "dump-silent" else "no-alert-boxes"
         user_env[9]   = "d"
         user_filename = ( if file-name = "ALL"
                            then "ALL"
@@ -387,6 +433,12 @@ PROCEDURE doDump:
 
       DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
         RUN "prodict/dump/_dmpsddl.p".
+
+        IF LOOKUP("encpolicy", user_filename) > 0 THEN
+           dumpPol = YES.
+
+        IF LOOKUP("bufpool", user_filename) > 0 THEN
+           dumpAltBuf = YES.
       END.
       
       OS-APPEND value(l_tmp-file) VALUE(df-file-name).
@@ -399,7 +451,10 @@ PROCEDURE doDump:
     
     OUTPUT STREAM ddl TO VALUE(df-file-name) APPEND.
           {prodict/dump/dmptrail.i
-            &entries      = " "
+            &entries = "IF dumpPol THEN PUT STREAM ddl UNFORMATTED
+                        ""encpolicy=yes"" SKIP.
+                        IF dumpAltBuf THEN PUT STREAM ddl UNFORMATTED
+                        ""bufpool=yes"" SKIP."            
             &seek-stream  = "ddl"
             &stream       = "stream ddl"
             }  /* adds trailer with code-page-entrie to end of file */

@@ -36,17 +36,17 @@ DEFINE VAR header_str AS CHAR NO-UNDO.
 DEFINE VAR flags      AS CHAR NO-UNDO.
 
 IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
-  FIND _File WHERE _File._File-name = "_File"
-               AND _File._Owner = "PUB"
+  FIND dictdb._File WHERE dictdb._File._File-name = "_File"
+               AND dictdb._File._Owner = "PUB"
                NO-LOCK.
-  IF NOT CAN-DO(_File._Can-read,USERID("DICTDB")) THEN DO:
+  IF NOT CAN-DO(dictdb._File._Can-read,USERID("DICTDB")) THEN DO:
     MESSAGE "You do not have permission to use this option."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN.
   END.
 
-  FIND LAST _File WHERE (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
-                    AND NOT _File._Hidden NO-LOCK NO-ERROR.
+  FIND LAST dictdb._File WHERE (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN")
+                    AND NOT dictdb._File._Hidden NO-LOCK NO-ERROR.
   IF NOT AVAILABLE _File THEN DO:
     MESSAGE "There are no tables in this database to look at."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -54,15 +54,15 @@ IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
   END.
 END.
 ELSE DO:
-  FIND _File "_File".
-  IF NOT CAN-DO(_File._Can-read,USERID("DICTDB")) THEN DO:
+  FIND dictdb._File "_File".
+  IF NOT CAN-DO(dictdb._File._Can-read,USERID("DICTDB")) THEN DO:
     MESSAGE "You do not have permission to use this option."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN.
   END.
 
-  FIND LAST _File WHERE  NOT _File._Hidden NO-ERROR.
-  IF NOT AVAILABLE _File THEN DO:
+  FIND LAST dictdb._File WHERE  NOT dictdb._File._Hidden NO-ERROR.
+  IF NOT AVAILABLE dictdb._File THEN DO:
     MESSAGE "There are no tables in this database to look at."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN.
@@ -70,7 +70,7 @@ ELSE DO:
 END.  
 
 header_str = "Database: " + p_PName + " (" + p_DbType + ")".
-flags = "Flags: 'f' = frozen, 's' = a SQL table".
+flags = "Flags: 'm' = multi-tenant, 'f' = frozen, 's' = a SQL table".
 RUN adecomm/_report.p 
    (INPUT p_DbId, 
     INPUT header_str,

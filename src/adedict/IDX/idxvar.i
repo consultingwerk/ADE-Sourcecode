@@ -36,6 +36,7 @@ Define {1} var index-area-number as integer format ">>>9" INIT 6 NO-UNDO.
 
 /* variables used for Area name select for creating new indexes */
 Define {1} var idx-area-name as character format "x(32)" NO-UNDO.
+DEFINE {1} var s_Area_mttext AS CHARACTER FORMAT "x(20)" NO-UNDO.
 Define button  s_btn_Idx_Area IMAGE-UP FILE "btn-down-arrow".
 Define {1} var s_lst_Idx_Area as char view-as  SELECTION-LIST SINGLE   
    INNER-CHARS 32 INNER-LINES 5 SCROLLBAR-VERTICAL.

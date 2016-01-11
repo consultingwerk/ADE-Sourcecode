@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,6 +29,7 @@ History:
      mcmann        11/23/02    Changed adecomm/_dictdb.p to prodict/_dictdb.p
      mcmann        07/24/03    Changed for V10
      mcmann        09/23/03    Changed message to remove version of dictionary
+     fernando      09/30/10    Support for OE11
 -----------------------------------------------------------------------*/
 
 { adedict/dictvar.i shared }
@@ -65,7 +66,7 @@ for each s_ttb_db:
    * repeating this message to the user every time they connect
    * to a new database.
    */
-  if INTEGER(s_ttb_db.vrsn) < 10
+  if INTEGER(s_ttb_db.vrsn) < 11
    then do:
     if NOT CAN-DO (s_OldDbs, s_ttb_db.ldbnm)
      then do:
@@ -73,12 +74,12 @@ for each s_ttb_db:
         s_OldDbs = s_OldDbs
                  + (if s_OldDbs = "" then "" else ",")
                  + s_ttb_db.ldbnm.
-        l_strng  = "V" + s_ttb_db.vrsn.
+        l_strng  = "R" + s_ttb_db.vrsn.
       message 
         "Database" s_ttb_db.ldbnm "is a" l_strng "database." SKIP
         "This dictionary cannot be used with a" SKIP
-        "PROGRESS" l_strng "database.  Use the dictionary" SKIP
-        "under PROGRESS" l_strng "to access this database." SKIP(1)
+        "OpenEdge" l_strng "database.  Use the dictionary" SKIP
+        "under OpenEdge" l_strng "to access this database." SKIP(1)
         "(Note: Database" s_ttb_db.ldbnm "is still connected.)"
          view-as ALERT-BOX INFORMATION buttons OK.
       end.

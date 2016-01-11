@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2006,2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -155,9 +155,9 @@ do:
       eventually.  But let's check ourselves to give quicker feedback and to
       be consistent with the old dictionary.
    */
-   if can-find (_File where _File._Db-recid = s_DbRecId 
-                        and _File._File-Name = name
-                       and (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN"))
+   if can-find (dictdb._File where dictdb._File._Db-recid = s_DbRecId 
+                        and dictdb._File._File-Name = name
+                       and (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN"))
     then do:
       message "A table with this name already exists in this database."
       	 view-as ALERT-BOX ERROR
@@ -185,6 +185,31 @@ do:
    end.
 end.
 
+/*----- VALUE-CHANGED of MULTI-TENANT -----*/
+on value-changed of b_File._File-Attributes[1] in frame newtbl,
+                    b_File._File-Attributes[1] in frame tblprops,
+                    b_File._File-Attributes[2] in frame newtbl,
+                    b_File._File-Attributes[2] in frame tblprops
+do:
+    if s_Adding then 
+        SetAreaState(b_File._File-Attributes[1]:checked in frame newtbl,
+                     b_File._File-Attributes[2]:checked in frame newtbl,
+                     yes,
+                     s_Adding,
+                     b_File._File-Attributes[2]:handle in frame newtbl,
+                     s_Tbl_Area:handle in frame newtbl,
+                     s_btn_File_Area:handle  in frame newtbl,
+                     s_Tbl_Area).
+    else
+        SetAreaState(b_File._File-Attributes[1]:checked in frame tblprops,
+                     b_File._File-Attributes[2]:checked in frame tblprops,
+                     yes,
+                     s_Adding,
+                     b_File._File-Attributes[2]:handle in frame tblprops,
+                     s_Tbl_Area:handle in frame tblprops,
+                     ?,
+                     s_Tbl_Area).   
+end.    
 
 /*----- LEAVE of DUMP NAME -----*/
 on leave of b_File._Dump-name in frame newtbl,
@@ -221,11 +246,11 @@ do:
    END.
 
    /* Make sure the name is unique. */
-   find first _File
-      where _File._Db-recid = s_DbRecId
-        AND _File._Dump-name = dname 
-        AND RECID(_File) <> RECID(b_File)
-        AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
+   find first dictdb._File
+      where dictdb._File._Db-recid = s_DbRecId
+        AND dictdb._File._Dump-name = dname 
+        AND RECID(dictdb._File) <> RECID(b_File)
+        AND (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN")
       NO-ERROR.
    if AVAILABLE _File then
    do:
@@ -671,8 +696,8 @@ do:
       a unique index on Name/recid in _Field, this would be caught by Progress
       eventually.  But let's check ourselves to give quicker feedback.
    */
-   if can-find (_Field where _Field._File-recid = record_id AND
-			     _Field._Field-Name = name) then
+   if can-find (dictdb._Field where dictdb._Field._File-recid = record_id AND
+			     dictdb._Field._Field-Name = name) then
    do:
       if s_CurrObj = {&OBJ_FLD} then
 	 message "A field with this name already exists in this table."
@@ -747,11 +772,11 @@ DO:
       IF b_Field._Order = INT(b_Field._Order:SCREEN-VALUE IN FRAME fldprops)
          THEN LEAVE. 
       /* Is the new order number a duplicate?  Don't allow it.  */
-      IF CAN-FIND(FIRST _Field WHERE
-                        _Field._File-recid = s_TblRecId AND
-                        _Field._Order =
+      IF CAN-FIND(FIRST dictdb._Field WHERE
+                        dictdb._Field._File-recid = s_TblRecId AND
+                        dictdb._Field._Order =
 			 INT(b_Field._Order:SCREEN-VALUE IN FRAME fldprops) AND
-	                 _Field._Order <> b_Field._Order) THEN 
+	                 dictdb._Field._Order <> b_Field._Order) THEN 
       DO:
 	 MESSAGE "Order number " +
          TRIM(b_Field._Order:SCREEN-VALUE IN FRAME fldprops) "already exists." 
@@ -803,7 +828,8 @@ do:
        input frame seqprops b_Sequence._Seq-Incr,
        input frame seqprops s_Seq_Limit,
        b_Sequence._Seq-Init:HANDLE in frame seqprops,
-       input frame seqprops b_Sequence._Cycle-Ok).
+       input frame seqprops b_Sequence._Cycle-Ok,
+       input frame seqprops b_Sequence._Seq-Attributes[1]).
 
    if RETURN-VALUE = "error" then
       return NO-APPLY.
@@ -821,7 +847,8 @@ do:
        input frame seqprops b_Sequence._Seq-Incr,
        input frame seqprops s_Seq_Limit,
        b_Sequence._Seq-Init:HANDLE in frame seqprops,
-       input frame seqprops b_Sequence._Cycle-Ok).
+       input frame seqprops b_Sequence._Cycle-Ok,
+       input frame seqprops b_Sequence._Seq-Attributes[1]).
    IF (RETURN-VALUE <> "error" AND
        s_btn_Close:label in frame seqprops <> "Close") then
       s_btn_Close:label in frame seqprops = "Close".
@@ -874,7 +901,7 @@ do:
       eventually.  But let's check ourselves to give quicker feedback and to
       be consistent with the old dictionary.
    */
-   if can-find (_Sequence where _Sequence._Seq-Name = name) then
+   if can-find (dictdb._Sequence where dictdb._Sequence._Seq-Name = name) then
    do:
       message "A sequence with this name already exists in this database."
       	 view-as ALERT-BOX ERROR
@@ -972,8 +999,8 @@ do:
       a unique index on Name/recid in _Index, this would be caught by Progress
       eventually.  But let's check ourselves to give quicker, clearer feedback.
    */
-   if can-find (_Index where _Index._File-recid = s_TblRecId AND
-			     _Index._Index-Name = name) then
+   if can-find (dictdb._Index where dictdb._Index._File-recid = s_TblRecId AND
+			     dictdb._Index._Index-Name = name) then
    do:
       message "An index with this name already exists for this table."
 	       view-as ALERT-BOX ERROR

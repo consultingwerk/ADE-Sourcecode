@@ -1,12 +1,12 @@
 /***********************************************************************
-* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2000-2010,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
 
 /*----------------------------------------------------------------------------
-
+ 
 File: _newtbl.p
 
 Description:
@@ -33,7 +33,9 @@ Donna M. 04/23/02 Added assignment of new table recid variable
 10/01/02 DLM Changed check for SQL tables
 fernando 09/27/06 Use different delimiter for area name combo-box - 20051228-008
 fernando 06/26/08 Removed encryption area from list
+rkamboj  07/26/11 Fixed "keep default area" issue after creating new table with create button. 
 ----------------------------------------------------------------------------*/
+
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
 {adedict/brwvar.i shared}
@@ -42,15 +44,15 @@ fernando 06/26/08 Removed encryption area from list
 {adecomm/cbvar.i shared}
 {adedict/TBL/tblvar.i shared}
 {adedict/capab.i}
-
-
+ 
 DEFINE VARIABLE capab  AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE added  AS LOGICAL   INITIAL no NO-UNDO.
 DEFINE VARIABLE isodbc AS LOGICAL   INITIAL no NO-UNDO.
 DEFINE VARIABLE num    AS INTEGER              NO-UNDO.
 DEFINE VARIABLE curr_type as CHARACTER         NO-UNDO.
+define variable cAreaList as character no-undo.
 DEFINE VARIABLE ans AS LOGICAL NO-UNDO.
-
+define variable isDBMultiTenant as logical no-undo.
 /*===============================Triggers====================================*/
 
 /*-----WINDOW-CLOSE-----*/
@@ -77,7 +79,7 @@ do:
       s_OK_Hit = no.  /* in case ok was hit */
       return NO-APPLY.
    end.
- 
+   
    IF NOT s_In_Schema_Area THEN DO:
      APPLY "LEAVE" TO s_Tbl_Area.
      IF NOT ans THEN DO:
@@ -96,8 +98,14 @@ do:
       END.
 
       ASSIGN b_File._DB-recid = s_DbRecId
-             input frame newtbl b_File._File-name 
-	         input frame newtbl b_File._Dump-Name
+             input frame newtbl b_File._File-name
+             input frame newtbl b_File._File-Attributes[1] 
+                  when  input frame newtbl b_File._File-Attributes[1]
+                    and not b_File._File-Attributes[1]  
+	         input frame newtbl b_File._File-Attributes[2] 
+                  when (input frame newtbl b_File._File-Attributes[2]
+                        <>  b_File._File-Attributes[2])                          
+             input frame newtbl b_File._Dump-Name
 	         input frame newtbl b_File._Hidden
 	         input frame newtbl b_File._For-Size
       	     input frame newtbl b_File._File-label
@@ -105,10 +113,12 @@ do:
              input frame newtbl b_File._Fil-misc2[6]
              n_tblrecid = RECID(b_File).
       
-      FIND _Area WHERE _Area._Area-name = input frame newtbl s_Tbl_Area NO-LOCK.
-      ASSIGN b_File._ianum = _Area._Area-num
-             s_Tbl_Area = input frame newtbl s_tbl_area.
-             
+      FIND dictdb._Area WHERE dictdb._Area._Area-name = input frame newtbl s_Tbl_Area NO-LOCK NO-ERROR.
+      if avail dictdb._Area then
+      do: 
+          ASSIGN b_File._ianum = dictdb._Area._Area-num
+                 s_Tbl_Area = input frame newtbl s_tbl_area.
+      end.       
       if s_Tbl_Type:sensitive in frame newtbl then
       	 b_File._For-type = input frame newtbl s_Tbl_Type.
       if b_File._For-name:sensitive in frame newtbl then
@@ -193,15 +203,19 @@ END.
         
 /*============================Mainline code==================================*/
 
-find _File WHERE _File._File-name = "_File"
-             AND _File._Owner = "PUB" NO-LOCK.
+find DICTDB._File WHERE DICTDB._File._File-name = "_File"
+             AND DICTDB._File._Owner = "PUB" NO-LOCK.
              
-if NOT can-do(_File._Can-create, USERID("DICTDB")) then
+if NOT can-do(DICTDB._File._Can-create, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "create tables."
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
+
+/* a default tenantrecord is created when the database is enabled for multi-tenancy */
+isDBMultiTenant = can-find(first dictdb._tenant).
+ 
 
 /* Get gateway capabilities */
 run adedict/_capab.p (INPUT {&CAPAB_TBL}, OUTPUT capab).
@@ -264,19 +278,11 @@ ELSE DO:
   ASSIGN s_Tbl_Area = DICTDB._AREA._Area-name
          s_In_Schema_Area = TRUE.
 END.  
-  
-for each DICTDB._Area  FIELDS (_Area-num _Area-type _Area-name)
-            WHERE DICTDB._Area._Area-num > 6 
-               AND DICTDB._Area._Area-type = 6 
-               AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
-  s_res = s_lst_file_Area:add-last(DICTDB._Area._Area-name) in frame newtbl.
-END.
 
-FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-  ASSIGN s_res = s_lst_file_Area:add-last(DICTDB._Area._Area-name) in frame newtbl.
-  
+run prodict/pro/_pro_area_list(?,{&INVALID_AREAS},s_lst_file_Area:DELIMITER in frame newtbl, output  cAreaList).
+s_lst_file_area:list-items in frame newtbl = cAreaList.
 num = s_lst_File_Area:num-items in frame newtbl.
-s_Lst_File_Area:inner-lines in frame newtbl = (if num <= 5 then num else 5).  
+s_Lst_File_Area:inner-lines in frame newtbl = min(10,num).  
  assign
       s_Tbl_Area:font  in frame newtbl = 0
       s_lst_File_Area:font in frame newtbl = 0
@@ -315,6 +321,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
 
    enable   
        b_File._File-Name
+       b_File._File-Attributes[1] when isDBMultiTenant  
        s_Tbl_Area
        s_btn_File_area
        b_File._Dump-Name
@@ -333,6 +340,8 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
        s_btn_Done
        s_btn_Help
        with frame newtbl.
+       
+disable b_File._File-Attributes[2] when isDBMultiTenant  with frame newtbl.
 
 assign s_Res = s_lst_File_Area:move-after-tab-item
       	       (s_btn_File_Area:handle in frame newtbl) in frame newtbl.
@@ -340,6 +349,8 @@ assign s_Res = s_lst_File_Area:move-after-tab-item
    /* Have to display all fields, so on 2nd or 3rd add, any entered values
       will be cleared. */
    display "" @ b_File._File-Name   /* display blank instead of ? */
+           b_File._File-Attributes[1]
+           b_File._File-Attributes[2]
            s_Tbl_Area
            s_btn_File_Area
            s_optional
@@ -371,7 +382,7 @@ assign s_Res = s_lst_File_Area:move-after-tab-item
              b_File._Fil-misc2[8] @ b_File._Fil-misc2[8]
              
       	   with frame newtbl.
-
+    	   
    wait-for choose of s_btn_OK, s_btn_Add in frame newtbl OR
       	    GO of frame newtbl
       	    FOCUS b_File._File-Name in frame newtbl.

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2008,2011 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -47,6 +47,7 @@ History:
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
+{ prodict/pro/arealabel.i}
 
 DEFINE VARIABLE answer         AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE c              AS CHARACTER               NO-UNDO.
@@ -84,6 +85,9 @@ DEFINE VARIABLE lOk            AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE large_idx      AS LOGICAL                 NO-UNDO INIT ?.
 DEFINE VARIABLE ctemp          AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE canAudDeact    AS LOGICAL                 NO-UNDO.
+define variable cAreaLabel     as character               no-undo.
+define variable cAreaMTText    as character               no-undo.
+
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
@@ -195,9 +199,9 @@ FORM " " SKIP
   WITH FRAME idx_box OVERLAY
   ROW 1 COLUMN 1 SCREEN-LINES - 4 DOWN NO-LABELS NO-ATTR-SPACE
   WIDTH 80 USE-TEXT.
-
+ 
 FORM
-  _Index._Index-name FORMAT "x(32)"     LABEL "Name" 
+  _Index._Index-name FORMAT "x(32)" LABEL "Name" 
     HELP "Please enter the Index Name"         
   is_prime           FORMAT "PRIMARY"                 NO-LABEL   SPACE
   _Index._Unique     FORMAT "UNIQUE/Non-Unique"       NO-LABEL 
@@ -207,14 +211,17 @@ FORM
   word_index         FORMAT "Word/"                   NO-LABEL 
     HELP "Please enter W for WORD index or <BLANK> for standard index" SPACE
   recid_idx          FORMAT "ROWID"                   NO-LABEL          SKIP   
-    areaname  VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 LABEL "Area" 
-    HELP "Please select an area where to store the new index." SKIP
+    areaname  COLON 5 VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 NO-LABEL 
+    HELP "Please select an area where to store the new index."    
+    "Area:"  at col 1 row 3 view-as text size 5 by 1
+    cAreaMTText at col 44 row 3 no-label format "x(20)"
+
   WITH FRAME idx_top OVERLAY ROW 2 COLUMN 2 SIDE-LABELS ATTR-SPACE NO-BOX.
 
 FORM
   _Index._Index-name FORMAT "x(27)" SKIP
   WITH FRAME idx_lst USE-TEXT
-  OVERLAY ROW 6 COLUMN 2 NO-LABELS ATTR-SPACE SCREEN-LINES - 11 DOWN SCROLL 1.
+  OVERLAY ROW 6 COLUMN 1 NO-LABELS ATTR-SPACE SCREEN-LINES - 11 DOWN SCROLL 1.
 
 FORM
   _Index-field._Index-Seq  FORMAT ">>"       LABEL "Seq"
@@ -223,7 +230,7 @@ FORM
   _Index-field._Ascending  FORMAT "Asc/Desc" LABEL "Asc"
   _Index-field._Abbreviate FORMAT "Yes/No"   LABEL "Abbr"
   WITH FRAME idx_long OVERLAY USE-TEXT
-  ROW 6 COLUMN 31  SCREEN-LINES - 13 DOWN SCROLL 1.
+  ROW 6 COLUMN 32  SCREEN-LINES - 13 DOWN SCROLL 1.
 
 /*
 123456789012345678901234567890123456789012345678901234567890123456789012345678
@@ -277,6 +284,7 @@ END.
 /*---- VALIDATE area name ----*/
 ON LEAVE OF INPUT FRAME idx_top areaname
 DO:
+ If _File._File-attributes[1] = FALSE  OR _File._File-attributes[2] = TRUE THEN DO:
   DEFINE VARIABLE ans AS LOGICAL INITIAL FALSE NO-UNDO.
    IF user_dbtype = "PROGRESS" AND adding THEN DO:
      IF INPUT FRAME idx_top areaname:SCREEN-VALUE = ? THEN
@@ -318,6 +326,7 @@ DO:
       RETURN.
     END.
   END.
+ END. /* end of if _File._File-attributes[1] = FALSE  OR _File._File-attributes[2] = TRUE  */
 END.
 
 
@@ -420,7 +429,23 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
   PAUSE 0.
   IF NOT RETRY THEN VIEW FRAME idx_box.
   PAUSE 0.
+  
+  if _file._file-attributes[1] and _file._file-attributes[2] then
+  do:
+     cAreaMTText:screen-value in frame idx_top  = "(for default tenant)" .
+  end.
+  else
+     cAreaMTText:screen-value in frame idx_top  = "" .
+  
+/*  setAreaLabel(areaname:handle in frame idx_top,_file._file-attributes[1]).*/
+  /*
+  areaname:col = length(areaname:label) + 3.
+  areaname:side-label-handle:width  = length(areaname:label) + 1.
+  /* shrinking seems to work from left label */
+  areaname:side-label-handle:col  = 1.
+ */
   VIEW FRAME idx_top.
+
   PAUSE 0.
   VIEW FRAME idx_lst.
   VIEW FRAME idx_long.
@@ -468,11 +493,17 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           DISPLAY _Index._Index-name WITH FRAME idx_lst.
           IF user_dbtype = "PROGRESS" THEN DO:
 
+           if _File._File-attributes[1] = TRUE  AND _File._File-attributes[2] = FALSE THEN
+                ASSIGN arealist = ""
+                       areaname = "".  
+           ELSE DO:
             IF _Index._Idx-num <> ? AND _Index._Idx-num <> 0 THEN DO:
-               FIND _StorageObject WHERE _StorageObject._Db-recid = _File._Db-recid
-                                     AND _StorageObject._Object-type = 2
-                                     AND _Storageobject._Object-number =
+               /* first - could have one for each collation */ 
+               FIND first _StorageObject WHERE _StorageObject._Db-recid = _File._Db-recid
+                                         AND _StorageObject._Object-type = 2
+                                         AND _Storageobject._Object-number =
                                                           _Index._Idx-num
+                                         AND _Storageobject._Partitionid = 0
                                    NO-LOCK NO-ERROR.
                IF AVAILABLE _StorageObject THEN                    
                  FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-ERROR.
@@ -485,6 +516,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
               ASSIGN  arealist = _Area._Area-name.
             ELSE
               ASSIGN arealist = "N/A".  
+           END. /* end of  else loop for _File-attributes[1] = TRUE  AND _File-attributes[2] = FALSE */
           END.  
           ELSE
             ASSIGN arealist = "N/A".
@@ -521,12 +553,18 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                         ELSE FALSE
                      ).
       IF user_dbtype = "PROGRESS" THEN DO:
+
+       if _File._File-attributes[1] = TRUE  AND _File._File-attributes[2] = FALSE THEN
+                 ASSIGN arealist = ""
+                        areaname = "".  
+       ELSE DO:
         IF _Index._Idx-num <> ? AND _Index._Idx-num <> 0 THEN DO:
-          FIND _StorageObject WHERE _StorageObject._Db-recid = _File._Db-recid
-                                AND _StorageObject._Object-type = 2
-                                AND _StorageObject._Object-number = 
-                                                   _Index._Idx-num
-                                NO-LOCK.                     
+          /* first - could have one for each collation  */               
+          FIND first _StorageObject WHERE _StorageObject._Db-recid = _File._Db-recid
+                                    AND _StorageObject._Object-type = 2
+                                    AND _StorageObject._Object-number = _Index._Idx-num
+                                    AND _Storageobject._Partitionid = 0                   
+                                    NO-LOCK.                     
           FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number
                             NO-LOCK NO-ERROR.
         END.
@@ -535,6 +573,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
           
         ASSIGN arealist = (IF AVAILABLE _AREA THEN _Area._Area-name
                                ELSE "N/A").
+       END. /* if _File._File-attributes[1] = TRUE  AND _File._File-attributes[2] = FALSE */
       END.  
       ELSE
         ASSIGN arealist = "N/A".
@@ -556,6 +595,12 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       DISPLAY _Index._Index-name WITH FRAME idx_lst.
     END.
     ELSE DO:
+     
+     if _File._File-attributes[1] = TRUE  AND _File._File-attributes[2] = FALSE THEN
+              ASSIGN arealist = ""
+                     areaname:LIST-ITEMS  IN FRAME idx_top = ""
+                     indexarea = areaname:ENTRY(1) IN FRAME idx_top. 
+     else do:
       FIND FIRST _Area WHERE _Area._Area-number > 6
                          AND _Area._Area-type = 6 
                          AND NOT CAN-DO ({&INVALID_AREAS}, _Area._Area-name) NO-ERROR.
@@ -564,6 +609,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       ASSIGN areaname:LIST-ITEMS  IN FRAME idx_top = "" 
              areaname:LIST-ITEMS IN FRAME idx_top = arealist
              indexarea = areaname:ENTRY(1) IN FRAME idx_top.
+     END.
     END.                     
 
     IF qbf_disp <> RECID(_Index) THEN DO i = 1 TO FRAME-DOWN(idx_long):
@@ -711,22 +757,13 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       END. 
       ASSIGN areaname:LIST-ITEMS IN FRAME idx_top = ""
              arealist = ?.
-      FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
-                        AND DICTDB._Area._Area-type = 6
-                        AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
-                        NO-LOCK. 
-        IF arealist = ? THEN
-          ASSIGN arealist  = DICTDB._Area._Area-name
-                indexarea = DICTDB._Area._Area-name.
-        ELSE
-          ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
-      END.
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-      IF arealist = ? THEN 
-      ASSIGN arealist  = DICTDB._Area._Area-name
-            indexarea = DICTDB._Area._Area-name.
-      ELSE
-        ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
+
+     if _File._File-attributes[1] = TRUE  AND _File._File-attributes[2] = FALSE THEN
+               ASSIGN arealist = ""
+                      indexarea = "".  
+     else
+      run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top, output arealist).
+
       ASSIGN areaname:LIST-ITEMS IN FRAME idx_top = arealist.
 
       DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
@@ -748,7 +785,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                             OR   user_dbtype = "PROGRESS"
           _Index._Active    WHEN qbf_idx_deac
           word_index             WHEN qbf_idx_word
-          areaname          WHEN user_dbtype = "PROGRESS"
+          areaname          WHEN user_dbtype = "PROGRESS" and (_File._File-attributes[1] = false or _File._File-attributes[2] = TRUE)
           WITH FRAME idx_top.
 
         /* IF On-Line and index Active */
@@ -785,12 +822,19 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                     + (IF INPUT FRAME idx_top _Index._Active THEN ""  ELSE "i")
                     + (IF INPUT FRAME idx_top word_index     THEN "w" ELSE "")
         user_env[3] = "".
+
+      if _File._File-attributes[1] = true 
+        and _File._File-attributes[2] = FALSE THEN /* if no keep default area then assign ianum to 0 */
+           ASSIGN index-area-number = 0
+                  indexarea = "".
+      else do:
         IF indexarea <> "N/A" THEN DO:
           FIND _Area WHERE _Area._Area-name = indexarea.
           ASSIGN index-area-number = _Area._Area-number.
         END.
         ELSE
           ASSIGN index-area-number = 6.
+      END. /* end of if _File._File-attributes[2] = FALSE  */
 
       RUN "prodict/user/_usriadd.p".  /* get index key components */
       IF user_env[1] = "" THEN LEAVE _qbf6.

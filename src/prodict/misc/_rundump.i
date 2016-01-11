@@ -6,6 +6,12 @@
 *********************************************************************/
 
 /*
+
+Preprocessor parameters
+    1 - table name 
+    2 - where .. [use index] no-lock
+    3 -  no-lobs (trailing space)
+    4 -  except <fields>
 History:
  
   K McIntosh 04/25/05  Added code, when dumping _db-detail table, to ensure 
@@ -16,6 +22,7 @@ History:
                        compile lists of specific data not to dump.  Added
                        code to prevent system owned _sec-role records from
                        being dumped.
+                       
 */                       
 /* _rundump.i - Data Dictionary file dump module */
 DEFINE SHARED STREAM   dump.
@@ -56,8 +63,8 @@ recs = 0.
     EXPORT STREAM dump DICTDB2._db-detail {3}.
   END.
 &ENDIF
-
-for each DICTDB2.{1} {2}:
+ 
+for each DICTDB2.{1} {2}: 
 
   /* Here we prevent dumping the current record a second time. */
   &IF "{1}" = "_db-detail" &THEN
@@ -73,9 +80,9 @@ for each DICTDB2.{1} {2}:
   &IF "{1}" = "_aud-event" &THEN
     IF DICTDB2._aud-event._event-id < 32000 THEN NEXT.
   &ENDIF
-  
+ 
   assign recs = recs + 1.
-  export stream dump DICTDB2.{1} {3}.
+  export stream dump DICTDB2.{1} {4} {3}.
   
   if   terminal       <> ""
    and recs modulo 100 = 0

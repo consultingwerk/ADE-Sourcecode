@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
 * reserved.                                                          *
 *                                                                    *
 *********************************************************************/
@@ -37,6 +37,7 @@ DEFINE PRIVATE VARIABLE myDBConfig    AS DBConfig  NO-UNDO.
 DEFINE PRIVATE VARIABLE myStorage     AS Storage   NO-UNDO.
 DEFINE PRIVATE VARIABLE seq           AS INTEGER   NO-UNDO.
 DEFINE PRIVATE VARIABLE hDB           AS HANDLE    NO-UNDO.
+DEFINE PRIVATE VARIABLE m_hasMTEnabledTables AS LOGICAL NO-UNDO.
 
 DEFINE PUBLIC PROPERTY FillAreaNum AS LOGICAL
     GET.
@@ -45,6 +46,11 @@ DEFINE PUBLIC PROPERTY FillAreaNum AS LOGICAL
 DEFINE PUBLIC PROPERTY BufferPoolNames AS CHARACTER
     GET():
        RETURN "Alternate,Primary".
+    END GET.
+
+DEFINE PUBLIC PROPERTY hasMTEnabledTables AS LOGICAL
+    GET():
+        RETURN m_hasMTEnabledTables.
     END GET.
 
 DEFINE PRIVATE PROPERTY nextSeqNum AS INTEGER
@@ -157,6 +163,13 @@ METHOD PUBLIC VOID getTableList(OUTPUT DATASET dsObjAttrs):
        hQuery1:GET-NEXT(NO-LOCK).  
        IF hQuery1:QUERY-OFF-END THEN
           LEAVE.
+
+       /* don't do multi-tenant tables */
+       IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN DO:
+          m_hasMTEnabledTables = YES.
+          NEXT.
+       END.
+
        getBufferPool(INPUT hFile::_File-number,
                      INPUT hFile::_File-name,
                      INPUT hFile::_ianum,
@@ -271,6 +284,13 @@ METHOD PUBLIC VOID getObjectList(INPUT cTableName AS CHARACTER,
        hQuery1:GET-NEXT(NO-LOCK).  
        IF hQuery1:QUERY-OFF-END THEN
           LEAVE.
+
+       /* don't do multi-tenant tables */
+       IF hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN DO:
+           m_hasMTEnabledTables = YES.
+           NEXT.
+       END.
+
        getBufferPool(INPUT hFile::_File-number,
                      INPUT hFile::_File-name,
                      INPUT hFile::_ianum,
@@ -584,7 +604,7 @@ DEFINE VARIABLE cTmp    AS CHAR    NO-UNDO.
     END.
 END METHOD.
 
-/* For the load process - save attribute ettings that we cached from the .df */
+/* For the load process - save attribute settings that we cached from the .df */
 METHOD PUBLIC LOGICAL cacheSaveSettings(INPUT  callerProc     AS handle, 
                                         OUTPUT invalidObjName AS CHAR):
 
@@ -635,6 +655,7 @@ METHOD PUBLIC VOID getDbLock(INPUT lExclusive AS LOGICAL):
     END.
 
 END METHOD.
+
 
 /* This is called through the load process to fix up the object number on the records in the
    temp-table before going through with the update of the settings.
@@ -751,7 +772,12 @@ METHOD PRIVATE VOID findAndAdd(INPUT numMode AS LOGICAL, INPUT objNum AS INT,
                      + " AND _Owner = 'PUB'" 
                      + (IF numMode THEN "" ELSE " USE-INDEX _File-name"), NO-LOCK) NO-ERROR.
 
-    IF hFile:AVAILABLE AND (hFile::_File-name BEGINS "_aud-" OR
+    /* don't do multi-tenant tables */
+    IF hFile:AVAILABLE AND 
+        hFile:BUFFER-FIELD("_File-attributes"):BUFFER-VALUE(1) = YES THEN DO:
+        m_hasMTEnabledTables = YES.
+    END.
+    ELSE IF hFile:AVAILABLE AND (hFile::_File-name BEGINS "_aud-" OR
           (hFile::_File-number > 0 AND hFile::_file-number < 32000)) THEN DO:
 
     IF objectType = {&TABLE_TYPE} THEN

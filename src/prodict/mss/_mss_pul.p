@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All      *
+* Copyright (C) 2006,2011 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -63,6 +63,7 @@ History:
     10/29/09 Nagaraju  To update new format for version string
     02/23/10 Nagaraju  to avoid computed_column check if MSS vers 2000 or earlier
     09/16/10 knavneet  CR - OE00198360
+    06/21/11 kmayur    added support for constraint pull - OE00195067    
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -78,9 +79,11 @@ History:
 define BUFFER   hlp-work         FOR  gate-work.
 define BUFFER   A_col            FOR  DICTDBG.SQLColumns_buffer.
 define BUFFER   P_col            FOR  DICTDBG.SQLProcCols_buffer.
+define BUFFER   S_col            FOR  DICTDBG.SQLSpecialColumns_buffer.
 
 define variable A_proc_handle    as integer.
 define variable P_proc_handle    as integer.
+define variable S_proc_handle    as integer.
 
 define variable array_name 	     as character no-undo. 
 define variable batch-mode	     as logical.
@@ -201,7 +204,12 @@ DEFINE VARIABLE change-dict-ver  AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE ds_srvr_vers     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ds_clnt_vers     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE isOutput         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE rowid_idx_name   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ClustAsROWID     AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE mssselBestRowidIdx  AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE found            AS LOGICAL    NO-UNDO INITIAL TRUE.
+
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -398,14 +406,34 @@ IF NOT batch-mode then assign SESSION:IMMEDIATE-DISPLAY = yes.
 
 RUN adecomm/_setcurs.p ("WAIT").
 
+IF user_env[37] = "PP" THEN DO:
+    assign ClustAsROWID = TRUE.
+    ASSIGN mssselBestRowidIdx = (ENTRY(4,user_env[36]) = "y").
+    ASSIGN s_best = (IF mssselBestRowidIdx THEN  INTEGER(ENTRY(5,user_env[36])) ELSE 0 ).
+END.
+ELSE DO:
+    assign ClustAsROWID = s_primary.
+          /* s_best = 1 (OE Schema )
+                    = 2 (Foreign Schema)
+           */
+END.
+
 assign
   cache_dirty = TRUE
   user_env    = "" /* yes this is destructive, but we need the -l space */
   l_dt        = ?
   l_tmp       = (if s_datetime then "datetime_default" else ?).
 
-if s_lob then 
+if s_lob then do:
   assign l_tmp = (if s_datetime then l_tmp + ",lob_default" else ",lob_default").
+
+  if s_clobtype and s_blobtype then 
+    assign l_tmp = l_tmp + ",clob_default,blob_default" .
+  else if s_clobtype and not s_blobtype then 
+    assign l_tmp =  l_tmp + ",clob_default" .
+  else if s_blobtype and not s_clobtype then 
+    assign l_tmp =  l_tmp + ",blob_default" .
+end.
 
 RUN prodict/mss/_mss_typ.p
   ( INPUT-OUTPUT i,
@@ -460,6 +488,7 @@ for each s_ttb_tbl: delete s_ttb_tbl. end.
 for each s_ttb_fld: delete s_ttb_fld. end.
 for each s_ttb_idx: delete s_ttb_idx. end.
 for each s_ttb_idf: delete s_ttb_idf. end.
+for each s_ttb_con: delete s_ttb_con. end.
 
 _crtloop:
 for each gate-work
@@ -693,9 +722,9 @@ for each gate-work
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO: 
 
          IF s_ttb_tbl.ds_recid = 0 THEN DO:
-           ASSIGN s_ttb_tbl.ds_recid = i
-                  s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
-
+         IF (NOT DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID_UNIQUE')
+                  THEN s_ttb_tbl.ds_recid = i.
+           ASSIGN s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
            IF isComputed(full_table_name, DICTDBG.GetFieldIds_buffer.field-name) THEN DO:
              IF s_ttb_tbl.ds_msc22 = ? THEN 
                ASSIGN s_ttb_tbl.ds_msc22 = "".
@@ -978,8 +1007,10 @@ for each gate-work
       rowid_idx_name = ?.
 
     for each DICTDBG.SQLStatistics_buffer:
+      IF DICTDBG.SQLStatistics_buffer.index-name BEGINS 'PKCE_' THEN NEXT.   
       /* Eliminate recid index and recid field */
       IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' OR
+         DICTDBG.SQLStatistics_buffer.Column-name MATCHES '*prgs_recid*' OR      
          DICTDBG.SQLStatistics_buffer.Column-name MATCHES '*progress_recid*'  THEN DO:
           /* just remember if we've found the index for the recid field */
           IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' THEN DO:
@@ -1059,6 +1090,7 @@ for each gate-work
                           OR DICTDBG.SQLStatistics_buffer.non-unique = 0)"
             }                                  /* try to recreate index */
 
+           ASSIGN s_ttb_idx.ds_idx_typ = SQLStatistics_buffer.type.
         end.     /* index non-existent -> create new index */
 
 
@@ -1113,6 +1145,56 @@ for each gate-work
     end.   /* for each DICTDBG.SQLStatistics_buffer */
   
     CLOSE STORED-PROC DICTDBG.SQLStatistics.
+
+    /*-------------------------- SQLSpecialColumns ------------*/
+    find first s_ttb_idx 
+                where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl) NO-ERROR.
+    IF s_best = 2 AND AVAILABLE s_ttb_idx THEN               
+    DO:
+       FOR EACH s_ttb_splfld: DELETE s_ttb_splfld. END.
+       RUN STORED-PROC DICTDBG.SQLSpecialColumns(spclvar-1, uservar-1, namevar-1).
+        /* first argument - identifierType = 1 (SQL_BEST_ROWID)
+           Fifth argument - Scope =0 (SQL_SCOPE_CURROW)
+           Sixth argument - Nullable =0(SQL_NO_NULLS)
+        */
+
+       for each DICTDBG.SQLSpecialColumns_buffer:
+           CREATE s_ttb_splfld.
+           ASSIGN s_ttb_splfld.name  = DICTDBG.SQLSpecialColumns_buffer.Column-name.
+       end.    /* for each DICTDBG.SQLSpecialColumns_buffer */
+
+       CLOSE STORED-PROC DICTDBG.SQLSpecialColumns.
+
+     IF CAN-FIND(FIRST s_ttb_splfld) THEN DO:
+       for each s_ttb_idx
+                where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl):
+         assign found = true.
+         for each s_ttb_splfld:
+            find first s_ttb_fld
+                  where s_ttb_fld.ds_name = s_ttb_splfld.name AND
+                        s_ttb_fld.ttb_tbl = RECID(s_ttb_tbl) NO-ERROR.
+             
+             IF NOT AVAILABLE s_ttb_fld THEN               
+             DO:
+              assign found = false.
+              LEAVE. 
+             END.
+
+             find first s_ttb_idf 
+                  where s_ttb_idf.ttb_fld = RECID(s_ttb_fld) AND
+                        s_ttb_idf.ttb_idx = RECID(s_ttb_idx) NO-ERROR.
+             IF NOT AVAILABLE s_ttb_idf THEN               
+             DO:
+              assign found = false.
+              LEAVE. 
+             END.
+         END.
+         IF found THEN LEAVE.
+       END.
+       if found THEN ASSIGN s_ttb_idx.ds_idx_typ = 2.
+     END. /*  CAN-FIND(FIRST s_ttb_splfld)  */
+    end.
+/*-------------------------- SQLSpecialColumns -----End-------*/
 
     /* If there is a progress_recid without an index then we gently complain */
     if s_ttb_tbl.ds_recid > 0 AND NOT has_recid_idx /*and not has_id_ix*/ THEN DO:
@@ -1175,7 +1257,29 @@ for each gate-work
        end.     /* field is possible candidate */
 
     end.  /* for each s_ttb_fld */
-  
+    
+    /* OE00195067 BEGIN */
+    /*----------------------------- Constraints ------------------------------*/
+
+        DEFINE VARIABLE tt-handle1 AS HANDLE.
+        tt-handle1 = TEMP-TABLE s_ttb_con:HANDLE.
+     
+        RUN  prodict/mss/mss_fix.p (table_name, OUTPUT namevar-1, ?, no).
+        RUN STORED-PROC DICTDBG._Constraint_Info LOAD-RESULT-INTO tt-handle1 ( namevar-1).
+
+        FOR EACH s_ttb_con:
+           IF INDEX(const_name,"##") > 0 
+           THEN ASSIGN i = INDEX(const_name, "##") + 2.
+           ELSE i = 1.       
+             const_name        = substring(const_name,i,-1,"character").
+            
+           IF INDEX(par_key,"##") > 0 
+           THEN ASSIGN i = INDEX(par_key, "##") + 2.
+           ELSE i = 1.       
+            par_key        = substring(par_key,i,-1,"character"). 
+        END.
+
+     /* OE00195067 END */  
 
     /*--------------------------- RECID-INDEX ----------------------------*/
 
@@ -1222,15 +1326,21 @@ for each gate-work
                           integer(string((s_ttb_fld.pro_type = "date"   ),"2/0")),
                           integer(string((s_ttb_fld.ds_type  = "float"  ),"3/0")) 
                                      )
-              s_ttb_idx.hlp_mand   = s_ttb_idx.hlp_mand and s_ttb_fld.pro_mand
-              s_ttb_idx.hlp_fstoff = s_ttb_fld.ds_stoff * -1
+              s_ttb_idx.hlp_mand   = s_ttb_idx.hlp_mand and s_ttb_fld.pro_mand.
+              s_ttb_idx.hlp_fstoff = s_ttb_fld.ds_stoff * -1.
               s_ttb_idx.hlp_msc23  = ( if s_ttb_fld.ds_msc23 <> ?
                                       then s_ttb_fld.ds_msc23 
                                       else s_ttb_fld.ds_name
                                       ).
                                  
          end.  /* for each s_ttb_idfs of s_ttb_idx */
-
+         
+         if s_ttb_idx.ds_idx_typ = 1 AND
+            ClustAsROWID THEN  /* This is a clustered index */
+              assign s_ttb_idx.hlp_dtype# = 1
+                     s_ttb_idx.hlp_level  = 1.
+         ELSE DO:
+         IF s_best <> 2 THEN assign s_ttb_idx.ds_idx_typ = 3.  /* DANGER:manupulated statement  */
          assign
             s_ttb_idx.hlp_dtype# = ( if ( s_ttb_idx.hlp_dtype# = 0
                                     and s_ttb_idx.hlp_fld#   > 1 )
@@ -1243,12 +1353,13 @@ for each gate-work
                                     else 5
                                     ) 
                                     + s_ttb_idx.hlp_dtype#.
-
+          END.
        end. /* for each s_ttb_idx */
 
        /* assign correct i-misc2[1]-values and select index */
        for each s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
-             break by s_ttb_idx.hlp_slctd descending
+             break by s_ttb_idx.ds_idx_typ
+                   by s_ttb_idx.hlp_slctd descending
                    by s_ttb_idx.hlp_level:
 
           if s_ttb_idx.hlp_slctd   /* previousely selected RowID index */
@@ -1298,12 +1409,12 @@ for each gate-work
       delete column-id.
     end.
 
-    /* FORCESEEK Implementation- Passing non-unique ROWID name in _Fil-misc2[5] */
+   /* FORCESEEK Implementation- Passing non-unique ROWID name in _Fil-misc2[5] */
    IF foreign_dbms_version GE 10 THEN DO:
    
    /* In case _Fil-misc1[1] contains a value greater than 0, we can safely assume 
    PROGRESS_RECID index is being used for ROWID- assign "progress_recid"  to
-   _Fil-misc2[5] since we do not have any index# information for PROGRESS_RECID.
+   _Fil-misc2[4] since we do not have any index# information for PROGRESS_RECID.
    In case _Fil-misc1[1] contains ? and_Fil-misc1[2] contains a value greater 
    than 0, we can be sure that _Fil-misc1[2] contains the Index number found 
    by dictionary that is unique which is used as RECID when PROGRESS_RECID
@@ -1314,7 +1425,7 @@ for each gate-work
    ELSE
         assign s_ttb_tbl.ds_msc25 = ?.
 
-   IF s_ttb_tbl.ds_rowid GT 0 and s_ttb_tbl.ds_rowid NE ? and s_ttb_tbl.ds_msc25 NE ? THEN DO:
+   IF s_ttb_tbl.ds_rowid GT 0 and s_ttb_tbl.ds_rowid NE ? and s_ttb_tbl.ds_recid EQ 0  THEN DO:
        for each s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl): 
           if s_ttb_idx.pro_idx# = s_ttb_tbl.ds_rowid and s_ttb_idx.pro_uniq EQ FALSE THEN
              assign s_ttb_tbl.ds_msc25 = s_ttb_idx.ds_name.

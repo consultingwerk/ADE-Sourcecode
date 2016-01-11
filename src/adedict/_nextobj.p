@@ -68,19 +68,19 @@ case p_Obj:
       	 end.
       end.
       else do:
-	 find _File where _File._Db-recid = s_DbRecId AND
-			  _File._File-Name = s_CurrTbl AND
-			  (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN").
+	 find dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+			  dictdb._File._File-Name = s_CurrTbl AND
+			  (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN").
       	 if s_Show_Hidden_Tbls then
-	    find PREV _File use-index _File-name
-	      where _File._Db-recid = s_DbRecId 
-	        and (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
+	    find PREV dictdb._File use-index _File-name
+	      where dictdb._File._Db-recid = s_DbRecId 
+	        and (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN") NO-ERROR.
       	 else
 	    find PREV _File use-index _File-name 
-      	      where NOT _File._Hidden and _File._Db-recid = s_DbRecId 
-      	        and (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
+      	      where NOT dictdb._File._Hidden and dictdb._File._Db-recid = s_DbRecId 
+      	        and (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN") NO-ERROR.
       
-	 if AVAILABLE _File then
+	 if AVAILABLE dictdb._File then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
 	    s_lst_Tbls:screen-value in frame browse = _File._File-Name.
@@ -102,15 +102,15 @@ case p_Obj:
    do:	 
       if p_Next then
       do:
-	 find FIRST _Sequence where _Sequence._Db-recid = s_DbRecId 
-                            AND NOT _Sequence._Seq-Name BEGINS "$"
-                            AND _Sequence._Seq-Name > s_CurrSeq NO-ERROR.
+	 find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
+                            AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
+                            AND dictdb._Sequence._Seq-Name > s_CurrSeq NO-ERROR.
       
 	 if AVAILABLE _Sequence then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
-	    s_lst_Seqs:screen-value in frame browse = _Sequence._Seq-Name.
-      	    s_SeqFill:screen-value in frame browse = _Sequence._Seq-Name.
+	    s_lst_Seqs:screen-value in frame browse = dictdb._Sequence._Seq-Name.
+      	    s_SeqFill:screen-value in frame browse = dictdb._Sequence._Seq-Name.
       	    run adedict/_objsel.p (INPUT {&OBJ_SEQ}).
 	    run adecomm/_setcurs.p ("").
 	 end.
@@ -121,11 +121,11 @@ case p_Obj:
       	 end.
       end.
       else do:
-	 find _Sequence where _Sequence._Db-recid = s_DbRecId 
-                      AND NOT _Sequence._Seq-Name BEGINS "$"
-                      AND _Sequence._Seq-Name = s_CurrSeq.
-	 find PREV _Sequence where _Sequence._Db-recid = s_DbRecId 
-                      AND NOT _Sequence._Seq-Name BEGINS "$"
+	 find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
+                      AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
+                      AND dictdb._Sequence._Seq-Name = s_CurrSeq.
+	 find PREV dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
+                      AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
                       use-index _Seq-name NO-ERROR.
       
 	 if AVAILABLE _Sequence then
@@ -148,20 +148,20 @@ case p_Obj:
    do:	 
       if p_Next then
       do:
-      	 find _File where RECID(_File) = s_TblRecId.
-	 find _Field of _File where _Field._Field-Name = s_CurrFld.
+      	 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+	 find dictdb._Field of dictdb._File where dictdb._Field._Field-Name = s_CurrFld.
 	 if s_Order_By = {&ORDER_ALPHA} THEN
-	    find NEXT _Field of _File use-index _Field-name NO-ERROR.
+	    find NEXT dictdb._Field of dictdb._File use-index _Field-name NO-ERROR.
 	 ELSE
-	    find NEXT _Field of _File use-index _Field-position NO-ERROR.
+	    find NEXT dictdb._Field of dictdb._File use-index _Field-position NO-ERROR.
 	  
-	 if AVAILABLE _Field then
+	 if AVAILABLE dictdb._Field then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
       	    if s_Flds_Cached then
       	    do:
-	       s_lst_Flds:screen-value in frame browse = _Field._Field-Name.
-      	       s_FldFill:screen-value in frame browse = _Field._Field-Name.
+	       s_lst_Flds:screen-value in frame browse = dictdb._Field._Field-Name.
+      	       s_FldFill:screen-value in frame browse = dictdb._Field._Field-Name.
       	    end.
       	    run adedict/_objsel.p (INPUT {&OBJ_FLD}).
 	    run adecomm/_setcurs.p ("").
@@ -173,20 +173,20 @@ case p_Obj:
       	 end.
       end.
       else do:
-      	 find _File where RECID(_File) = s_TblRecId.
-	 find _Field of _File where _Field._Field-Name = s_CurrFld.
+      	 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+	 find dictdb._Field of dictdb._File where dictdb._Field._Field-Name = s_CurrFld.
 	 if s_Order_By = {&ORDER_ALPHA} THEN
-	    find PREV _Field of _File use-index _Field-name NO-ERROR.
+	    find PREV dictdb._Field of dictdb._File use-index _Field-name NO-ERROR.
 	 ELSE
-	    find PREV _Field of _File use-index _Field-position NO-ERROR.
+	    find PREV dictdb._Field of dictdb._File use-index _Field-position NO-ERROR.
       
-	 if AVAILABLE _Field then
+	 if AVAILABLE dictdb._Field then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
       	    if s_Flds_Cached then
       	    do:
-	       s_lst_Flds:screen-value in frame browse = _Field._Field-Name.
-      	       s_FldFill:screen-value in frame browse = _Field._Field-Name.
+	       s_lst_Flds:screen-value in frame browse = dictdb._Field._Field-Name.
+      	       s_FldFill:screen-value in frame browse = dictdb._Field._Field-Name.
       	    end.
 	    run adedict/_objsel.p (INPUT {&OBJ_FLD}).
 	    run adecomm/_setcurs.p ("").
@@ -203,8 +203,8 @@ case p_Obj:
    do:	 
       if p_Next then 
       do:
-      	 find _File where RECID(_File) = s_TblRecId.
-	 find FIRST _Index of _File where _Index._Index-name > s_CurrIdx 
+      	 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+	 find FIRST dictdb._Index of _File where dictdb._Index._Index-name > s_CurrIdx 
       	    NO-ERROR.
       
 	 if AVAILABLE _Index then
@@ -212,8 +212,8 @@ case p_Obj:
 	    run adecomm/_setcurs.p ("WAIT").
       	    if s_Idxs_Cached then
       	    do:
-	       s_lst_Idxs:screen-value in frame browse = _Index._Index-Name.
-      	       s_IdxFill:screen-value in frame browse = _Index._Index-Name.
+	       s_lst_Idxs:screen-value in frame browse = dictdb._Index._Index-Name.
+      	       s_IdxFill:screen-value in frame browse = dictdb._Index._Index-Name.
       	    end.
 	    run adedict/_objsel.p (INPUT {&OBJ_IDX}).
 	    run adecomm/_setcurs.p ("").
@@ -225,17 +225,17 @@ case p_Obj:
       	 end.
       end.
       else do:
-      	 find _File where RECID(_File) = s_TblRecId.
-	 find _Index of _File where _Index._Index-Name = s_CurrIdx.
-	 find PREV _Index of _File use-index _Index-name NO-ERROR.
+      	 find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+	 find dictdb._Index of dictdb._File where dictdb._Index._Index-Name = s_CurrIdx.
+	 find PREV dictdb._Index of dictdb._File use-index _Index-name NO-ERROR.
       
 	 if AVAILABLE _Index then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
       	    if s_Idxs_Cached then
       	    do:
-	       s_lst_Idxs:screen-value in frame browse = _Index._Index-Name.
-      	       s_IdxFill:screen-value in frame browse = _Index._Index-Name.
+	       s_lst_Idxs:screen-value in frame browse = dictdb._Index._Index-Name.
+      	       s_IdxFill:screen-value in frame browse = dictdb._Index._Index-Name.
       	    end.
 	    run adedict/_objsel.p (INPUT {&OBJ_IDX}).
 	    run adecomm/_setcurs.p ("").

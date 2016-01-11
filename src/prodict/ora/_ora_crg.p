@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -86,4 +86,50 @@ ASSIGN
   _File._ianum        = 6
   _File._Hidden       = TRUE.
 
+/* Stored procedures buffer DS-CLOSE-CURSOR. */
+FIND _File
+  WHERE _File._Db-recid = dbkey
+    AND _File._File-name = "DS-Close-Cursor" NO-ERROR.
+IF AVAILABLE _File THEN RETURN.
+
+CREATE _File.
+ASSIGN
+  _File._Db-recid     = dbkey
+  _File._File-name    = "DS-Close-Cursor"
+  _File._For-type     = "PROCEDURE"
+  _File._For-name     = "DS-Close-Cursor"
+  _File._Last-change  = 2146431
+  _File._ianum        = 6
+  _File._Hidden       = TRUE.
+
+CREATE _Field. 
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Find$"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(30)"
+  _Field._Order        = 10
+  _Field._Fld-stdtype  = 4096
+  _Field._Fld-stoff    = 1
+  _Field._For-name     = "Find$"
+  _Field._For-type     = "char".
+  
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "N#"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = ?
+  _Field._Mandatory    = no
+  _Field._Format       = "9999"
+  _Field._Order        = 20
+  _Field._Fld-stdtype  = 8192
+  _Field._Fld-stoff    = 2
+  _Field._For-Maxsize  = 4
+  _Field._For-name     = "N#"
+  _Field._For-type     = "number".
+
+  
 RETURN.

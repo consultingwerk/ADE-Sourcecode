@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : smrtprop.i
     Purpose     : Starts smart.p super procedure and defines general
@@ -75,26 +75,6 @@
 &ENDIF
 
 &endif
-
- /* MinVersion is definded temporarily in order to global-def CompileOn91C */
-&SCOPED-DEFINE MinVersion "9.1C"
-/* Used for conditional compile on 9.1C in order to compile on POSSSE 9.1B */  
-&GLOBAL-DEFINE CompileOn91C~
-    INTEGER(SUBSTRING(PROVERSION,1,INDEX(PROVERSION,".":U) - 1)) >~
-    INTEGER(SUBSTRING({&MinVersion},1,INDEX({&MinVersion},".":U) - 1))~
-    OR~
-   (INTEGER(SUBSTRING(PROVERSION,1,INDEX(PROVERSION,".":U) - 1)) =~
-    INTEGER(SUBSTRING({&MinVersion},1,INDEX({&MinVersion},".":U) - 1))~
-    AND~
-    (INTEGER(SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,1)) >~
-     INTEGER(SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,1))~
-     OR~
-     (INTEGER(SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,1)) =~
-      INTEGER(SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,1))~
-      AND~
-      SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,2) >=~
-      SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,2))))
-&UNDEFINE MinVersion
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

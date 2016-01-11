@@ -38,6 +38,7 @@
     kmcintos Oct 21, 2005  Set initial value of _PAM-plug-in field to FALSE
                            when it's set from this UI 20050926-003.
     fernando 11/30/07      Check if read-only mode.
+    rkamboj  08/16/11   Added new terminology for security items and windows. 
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -82,7 +83,7 @@ DEFINE BROWSE bSystem QUERY qSystem
       ENABLE dType &ENDIF
     WITH NO-ROW-MARKERS SEPARATORS 
          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 3 DOWN WIDTH 75 NO-BOX
-         &ELSE SIZE 77.6 BY 4.29 &ENDIF FIT-LAST-COLUMN.
+         &ELSE 4 DOWN WIDTH 77.6  &ENDIF FIT-LAST-COLUMN.
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -93,9 +94,9 @@ DEFINE BROWSE bSystem QUERY qSystem
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS bSystem fiType fiDescrip edDetails btnCreate btnSave btnCancel btnDelete btnDone
+&Scoped-Define ENABLED-OBJECTS bSystem fiType edDescrip edDetails btnCreate btnSave btnCancel btnDelete btnDone
 
-&Scoped-Define DISPLAYED-OBJECTS fiType fiDescrip edDetails lbldDetails 
+&Scoped-Define DISPLAYED-OBJECTS fiType edDescrip edDetails  
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -134,7 +135,7 @@ DEFINE BUTTON btnSave
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 11 BY 1
      &ELSE SIZE 11 BY .95 &ENDIF.
 
-DEFINE VARIABLE edDetails AS CHARACTER 
+DEFINE VARIABLE edDetails AS CHARACTER label "Comments"
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 61 BY 4
      &ELSE SIZE 62.4 BY 2.91 &ENDIF NO-UNDO.
@@ -145,17 +146,19 @@ DEFINE VARIABLE fiType AS CHARACTER FORMAT "X(256)":U
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 47 BY 1
      &ELSE SIZE 47 BY 1 &ENDIF NO-UNDO.
 
+DEFINE VARIABLE edDescrip AS CHARACTER label "Description"
+     VIEW-AS EDITOR SCROLLBAR-VERTICAL
+     &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 61 BY 4
+     &ELSE SIZE 62.4 BY 2.91 &ENDIF NO-UNDO.
+/*
+
 DEFINE VARIABLE fiDescrip AS CHARACTER FORMAT "X(256)":U 
      LABEL "Description" 
      VIEW-AS FILL-IN 
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 61 BY 1
      &ELSE SIZE 62.4 BY 1 &ENDIF NO-UNDO.
-
-DEFINE VARIABLE lbldDetails AS CHARACTER FORMAT "X(256)":U 
-      INITIAL "Comments:" 
-      VIEW-AS TEXT 
-     &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 9 BY 1
-     &ELSE SIZE 10.6 BY .62 &ENDIF NO-UNDO.
+*/
+ 
 
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -172,38 +175,35 @@ DEFINE FRAME Dialog-Frame
      fiType
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN COLON 14 SKIP
           &ELSE AT ROW 5.86 COL 14.6 COLON-ALIGNED &ENDIF
-     fiDescrip
+     edDescrip
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN COLON 14 SKIP
           &ELSE AT ROW 7 COL 14.6 COLON-ALIGNED &ENDIF
-     lbldDetails
-          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 6 
-          &ELSE AT ROW 8.14 COL 3.4 COLON-ALIGNED &ENDIF NO-LABEL
-     edDetails NO-LABEL
-          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 15 SKIP(1)
-          &ELSE AT ROW 8.14 COL 16.6 &ENDIF 
+     edDetails 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN  COLON 14  SKIP(1)
+          &ELSE AT ROW 10.05 COL 14.6 COLON-ALIGNED  &ENDIF 
      BtnDone
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 2
-          &ELSE AT ROW 12.48 COL 2.6 &ENDIF
+          &ELSE AT ROW 14.48 COL 2.6 &ENDIF
      btnCreate
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 23
-          &ELSE AT ROW 12.48 COL 17.8 &ENDIF
+          &ELSE AT ROW 14.48 COL 17.8 &ENDIF
      btnSave
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 35
-          &ELSE AT ROW 12.48 COL 29.2 &ENDIF
+          &ELSE AT ROW 14.48 COL 29.2 &ENDIF
      btnCancel
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 47
-          &ELSE AT ROW 12.48 COL 40.8 &ENDIF
+          &ELSE AT ROW 14.48 COL 40.8 &ENDIF
      btnDelete
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 59
-          &ELSE AT ROW 12.48 COL 52.4 &ENDIF
+          &ELSE AT ROW 14.48 COL 52.4 &ENDIF
      &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN               
-       BtnHelp AT ROW 12.48 COL 67.4 
-       RECT-1 AT ROW 12.25 COL 1.6 &ENDIF
+       BtnHelp AT ROW 14.48 COL 67.4 
+       RECT-1 AT ROW 14.25 COL 1.6 &ENDIF
      SPACE(0.00) SKIP(0.18)
     WITH &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN  
            VIEW-AS DIALOG-BOX &ENDIF KEEP-TAB-ORDER ROW 2 CENTERED
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Authentication Systems"
+         TITLE "Authentication Systems" 
          DEFAULT-BUTTON BtnDone.
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -213,7 +213,7 @@ DEFINE FRAME Dialog-Frame
   fiType:HELP IN FRAME {&FRAME-NAME} = 
                 "Enter Domain Type then hit " + KBLABEL("GO") +
                 " to Save or " + KBLABEL("CTRL-N") + " to Cancel".
-  fiDescrip:HELP IN FRAME {&FRAME-NAME} =
+  edDescrip:HELP IN FRAME {&FRAME-NAME} =
                 "Enter Description then hit " + KBLABEL("GO") +
                 " to Save or " + KBLABEL("CTRL-N") + " to Cancel".
   edDetails:HELP IN FRAME {&FRAME-NAME} =
@@ -228,6 +228,12 @@ DEFINE FRAME Dialog-Frame
 
 ASSIGN FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
+
+/* ************************  Functions  ************************ */
+
+function isReadOnly returns logical(phBuffer as handle):
+     return phBuffer:avail and phBuffer::dType begins "_". 
+end function.    
 
 /* ************************  Control Triggers  ************************ */
 
@@ -249,7 +255,7 @@ ON VALUE-CHANGED OF BROWSE bSystem DO:
       RUN setButtonState ( INPUT "DisableMode" ).
   END.
   ELSE DO:
-      RUN setFieldState  ( INPUT "DisableMode" ).
+      RUN setFieldState  ( INPUT "ResetMode" ).
       RUN setButtonState ( INPUT "ResetMode" ).
   END.
   
@@ -263,7 +269,7 @@ ON GO OF FRAME {&FRAME-NAME} DO:
   ELSE APPLY "CHOOSE" TO btnDone IN FRAME {&FRAME-NAME}.
 END.
 
-ON VALUE-CHANGED OF fiDescrip IN FRAME {&FRAME-NAME} DO:
+ON VALUE-CHANGED OF edDescrip IN FRAME {&FRAME-NAME} DO:
   IF glCreateMode THEN LEAVE.
   
   IF AVAILABLE saSys AND
@@ -290,10 +296,18 @@ END.
     DEFINE VARIABLE cCol AS CHARACTER   NO-UNDO.
 
     cCol = SELF:CURRENT-COLUMN:NAME.
+    self:clear-sort-arrows().
+    cCol = SELF:CURRENT-COLUMN:NAME.
     IF gcSort EQ cCol THEN
-      gcSort = cCol + " DESC".
-    ELSE gcSort = cCol.
-
+    do:
+       SELF:CURRENT-COLUMN:sort-ascending = false.
+       gcSort = cCol + " DESC".
+    end.
+    ELSE do:
+       SELF:CURRENT-COLUMN:sort-ascending = true. 
+       gcSort = cCol.
+    end.
+     
     RUN openQuery.
     APPLY "END-SEARCH" TO SELF.
   END.
@@ -488,11 +502,11 @@ PROCEDURE initializeUI :
   Notes:   
 ------------------------------------------------------------------------------*/
   ghBuffer   = BUFFER saSys:HANDLE.
-  gcFileName = "Security Authentication Systems".
+  gcFileName = "Domains" /* "Security Authentication Systems" */ .
 
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN gcFieldHandles      = STRING(fiType:HANDLE)  + "," + "&1," +
-                                 STRING(fiDescrip:HANDLE)  + "," + "&2," +
+                                 STRING(edDescrip:HANDLE)  + "," + "&2," +
                                  STRING(edDetails:HANDLE)  + "," + "&3"
            gcFieldInits        = SUBSTITUTE(gcFieldHandles,
                                             CHR(1) + "",
@@ -505,8 +519,8 @@ PROCEDURE initializeUI :
                                             "yes")
            gcResetModeFields   = SUBSTITUTE(gcFieldHandles,
                                             "no",
-                                            "iab",
-                                            "iab")
+                                            "yes",
+                                            "yes")
            gcDisableModeFields = SUBSTITUTE(gcFieldHandles,
                                             "no",
                                             "no",
@@ -691,6 +705,45 @@ PROCEDURE localTrig :
     END.
   END CASE.
 END PROCEDURE.
+
+procedure localFieldState:
+/*------------------------------------------------------------------------------
+        Purpose:                                                                      
+        Notes:                                                                        
+------------------------------------------------------------------------------*/
+  define input  parameter pcMode as character no-undo.
+  define variable lok as logical no-undo.
+  
+  if pcMode = "CreateMode":u then 
+  do with frame {&frame-name}:
+      /* use read-only for editors */
+      assign
+          edDescrip:read-only = false 
+          edDetails:read-only = false.           
+  end.
+  else if pcMode = "ResetMode":u then 
+  do:
+      /* don't enable fields for built-ins - category = 0 user defined
+         (finame is always disabled in edit mode   
+          tbEnabled is defined as "iab" and handled in ui-procs.i */
+      if ghbuffer:avail 
+      and not isReadOnly(ghBuffer) then
+      do with frame {&frame-name}:
+            /* use read-only for editors */
+          assign
+              edDescrip:read-only = false 
+              edDetails:read-only = false.         
+      end.
+      else do:
+            /* use read-only for editors */
+          assign
+              edDescrip:read-only = true 
+              edDetails:read-only = true.         
+      end. 
+     
+  end.
+end procedure.
+
 
 PROCEDURE openQuery:
   DEFINE VARIABLE hQuery AS HANDLE      NO-UNDO.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,6 +33,7 @@ Date Created: 02/05/92
               06/13/07 fernando  Support for Clob for DataServers
               02/22/08 fernando Adjust display data type length for Dsrv schemas
               04/15/09 fernando Support for BLOB for MSS
+              06/03/09 sgarg    Support for CLOB for MSS
 ----------------------------------------------------------------------------*/
 
 
@@ -131,10 +132,10 @@ find b_Field where b_Field._File-recid = record_id AND
 /* Determine if this field participates in an index or view definition. */
 if s_CurrObj = {&OBJ_FLD} then
 do:
-   s_Fld_InIndex = can-find (FIRST _Index-field OF b_Field).
-   s_Fld_InView = can-find (FIRST _View-ref where
-      	       	     	    _View-ref._Ref-Table = s_CurrTbl AND
-      	       	     	    _View-ref._Base-Col = b_Field._Field-name).
+   s_Fld_InIndex = can-find (FIRST dictdb._Index-field OF b_Field).
+   s_Fld_InView = can-find (FIRST dictdb._View-ref where
+      	       	     	    dictdb._View-ref._Ref-Table = s_CurrTbl AND
+      	       	     	    dictdb._View-ref._Base-Col = b_Field._Field-name).
 end.
 
 if {&ReadOnly} = false then
@@ -260,8 +261,9 @@ do:
    family = ENTRY(type_ix, user_env[16]).
 
    /* MSS doesn't allow varbinary(n) support for BLOB */
+   /* Avoid varchar (n)/nvarchar (n) mapping to CLOB */
    IF family <> "0" AND s_DbCache_Type[s_DbCache_ix] = "MSS" THEN DO:
-      IF CAN-DO("varbinary,longvarbinary",s_Fld_Gatetype) THEN DO:
+      IF CAN-DO("varbinary,longvarbinary,varchar,longvarchar,nvarchar,nlongvarchar",s_Fld_Gatetype) THEN DO:
          /* varbinary(max) reported as varbinary with zero precision by MSS native driver
             or as longvarchar for other drivers. But the schema pull sets precision
             to 32000 in the schema for the native driver case.
@@ -292,12 +294,12 @@ do:
       	    assign
       	       gate_type = ENTRY(num, user_env[11])
       	       pro_type = ENTRY(num, user_env[15]).
-      	  
+               
                IF ( b_field._dtype <> {&DTYPE_RECID} AND pro_type = "RECID" AND
                                       s_DbCache_type[s_DbCache_ix] = "MSS" )  
                THEN NEXT. 
 	         assign
-	            s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + 
+	           s_Res = s_lst_Fld_DType:add-last(STRING(gate_type, "x({&FOREIGN_DTYPE_DISPLAY})") + 
       	       	     	      	              "(" + pro_type + ")")
       	       	       in {&Frame}.
       	 end.
@@ -340,35 +342,44 @@ do:
    {adedict/FLD/dtwidth.i &Frame = "{&Frame}" &Only1 = "TRUE"}
 end.
 
+ 
 /* get some specific info for LOBs */
 IF ispro AND (b_field._dtype = {&DTYPE_BLOB} OR  b_field._dtype = {&DTYPE_CLOB}) THEN DO:
-
-    /* Find the storage object so that we can see which area the lob is stored
-       in and then find the area to display the name to the user if record has
-       been committed.  Else find area using number in _fld-stlen 
-       _Fld-stlen holds the object number once the field is created by the Progress client 
-    */
-    IF b_field._Field-rpos <> ? THEN DO: /* if the field was commited */
-        FIND _storageobject WHERE _Storageobject._Db-recid = s_DbRecId
-                             AND _Storageobject._Object-type = 3
-                             AND _Storageobject._Object-number = b_Field._Fld-stlen
-                             NO-LOCK.
-        FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-   END.
-   ELSE
-       FIND _Area WHERE _Area._Area-number =  b_Field._Fld-stlen NO-LOCK.
-
-  ASSIGN s_lob_size = b_Field._Fld-Misc2[1]
-         s_lob_wdth = b_Field._Width
-         s_lob_Area  = _Area._Area-name.
+    find dictdb._File of b_field no-lock.
+    
+    if dictdb._File._File-attributes[1] and dictdb._File._File-attributes[2] = false THEN 
+        s_lob_Area = "".
+    else do:       
+        /* Find the storage object so that we can see which area the lob is stored
+           in and then find the area to display the name to the user if record has
+           been committed.  Else find area using number in _fld-stlen 
+           _Fld-stlen holds the object number once the field is created by the Progress client 
+        */
+        IF b_field._Field-rpos <> ? THEN DO: /* if the field was commited */
+            FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = s_DbRecId
+                                         AND dictdb._Storageobject._Object-type = 3
+                                         AND dictdb._Storageobject._Object-number = b_Field._Fld-stlen
+                                         and dictdb._Storageobject._Partitionid = 0
+                                         NO-LOCK.
+            FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+        END.
+        ELSE
+            FIND dictdb._Area WHERE dictdb._Area._Area-number =  b_Field._Fld-stlen NO-LOCK.
+        
+        s_lob_Area  = _Area._Area-name.
   
-  RELEASE _Area.
-  RELEASE _storageobject.
-
-  /* specific codepage/collation information for CLOBs */
-  IF b_field._dtype = {&DTYPE_CLOB} THEN
-     ASSIGN s_clob_cp = b_Field._Charset
-            s_clob_col = b_Field._Collation.
+        RELEASE dictdb._Area.
+        RELEASE dictdb._storageobject.
+    end.
+    release dictdb._File. 
+    
+    ASSIGN s_lob_size = b_Field._Fld-Misc2[1]
+           s_lob_wdth = b_Field._Width.
+       
+    /* specific codepage/collation information for CLOBs */
+    IF b_field._dtype = {&DTYPE_CLOB} THEN
+        ASSIGN s_clob_cp = b_Field._Charset
+               s_clob_col = b_Field._Collation.
 END.
 
 display  b_Field._Field-Name  b_Field._Mandatory
@@ -433,14 +444,14 @@ do:
    END.
 end.
 else do:
-   find _File of b_field no-lock no-error.
+   find dictdb._File of b_field no-lock no-error.
    change_ext = (  b_Field._Extent > 0
             AND  (
                   ( INDEX(s_Fld_Capab, {&CAPAB_CHANGE_EXTENT}) <> 0
             AND     NOT s_Fld_InIndex
                   )
-            OR    ( available _File
-            AND     CAN-DO("PROCEDURE,FUNCTION,BUFFER",_File._For-type)
+            OR    ( available dictdb._File
+            AND     CAN-DO("PROCEDURE,FUNCTION,BUFFER",dictdb._File._For-type)
             AND     s_DbCache_Type[s_DbCache_ix] = "ORACLE"
                   )
                  )

@@ -39,6 +39,8 @@ IF AVAILABLE tinydict._File THEN DO:
     TableDetails.tlabel   = _File._File-Label
     TableDetails.valexp   = _File._Valexp
     TableDetails.valmsg   = _File._Valmsg
+    TableDetails.multitenant = _File._File-Attributes[1]
+    TableDetails.keepdefaultarea = _File._File-Attributes[2]
     TableDetails.replproc = _File._Fil-misc2[6].
   
   /* Schema triggers */
@@ -64,8 +66,9 @@ IF AVAILABLE tinydict._File THEN DO:
   /* Storage Area */
   IF tinydict._File._For-type <> ? THEN
     ASSIGN TableDetails.storarea = "n/a".
-  ELSE IF DBVERSION(pcDBName) >= "9":U THEN
+  ELSE IF INTEGER(DBVERSION(pcDBName)) >= 9 THEN
     RUN protools/_storarea.p (RECID(tinydict._File), OUTPUT TableDetails.storarea).
+ 
 END.  /* if avail _file */
 
 /* _gettbl.p - end of file */

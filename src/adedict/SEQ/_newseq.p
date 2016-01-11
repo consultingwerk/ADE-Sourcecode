@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -34,7 +34,7 @@ DEFINE VAR added     AS LOGICAL NO-UNDO INIT no.
 Define var capab     AS CHAR    NO-UNDO.
 DEFINE VAR l       AS LOGICAL   NO-UNDO.
 DEFINE VAR cTemp   AS CHARACTER NO-UNDO.
-
+define variable lMultitenantdb as logical no-undo.
 /*-------------------------------Triggers------------------------------------*/
 
 /* Triggers shared by create and edit triggers */
@@ -55,7 +55,8 @@ do:
        input frame newseq b_Sequence._Seq-Incr,
        input frame newseq s_Seq_Limit,
        b_Sequence._Seq-Init:HANDLE in frame newseq,
-       input frame newseq b_Sequence._Cycle-Ok).
+       input frame newseq b_Sequence._Cycle-Ok,
+       input frame newseq b_Sequence._Seq-Attributes[1]).
 
    if RETURN-VALUE = "error" then
    do:
@@ -77,15 +78,17 @@ on HELP of frame newseq OR choose of s_btn_Help in frame newseq
 
 /*----------------------------Mainline code----------------------------------*/
 
-find _File WHERE _File._File-name = "_Sequence"
-             AND _File._Owner = "PUB" NO-LOCK.
+find dictdb._File WHERE dictdb._File._File-name = "_Sequence"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
              
-if NOT can-do(_File._Can-create, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-create, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "create sequences."
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
+
+lMultitenantdb = can-find(first dictdb._tenant). 
 
 /* Get gateway capabilities */
 run adedict/_capab.p (INPUT {&CAPAB_SEQ}, OUTPUT capab).
@@ -126,8 +129,12 @@ display s_Status s_Large_Seq_info with frame newseq.
 s_btn_Done:label in frame newseq = "Cancel".
 
 /* Note: the order of enables will govern the TAB order. */
-enable b_Sequence._Seq-Name  b_Sequence._Seq-Init  b_Sequence._Seq-Incr
-       s_Seq_Limit   	     b_Sequence._Cycle-Ok
+enable b_Sequence._Seq-Name  
+       b_Sequence._Seq-Attributes[1] when lMultitenantdb  
+       b_Sequence._Seq-Init  
+       b_Sequence._Seq-Incr
+       s_Seq_Limit   	     
+       b_Sequence._Cycle-Ok
        s_btn_OK
        s_btn_Add     	     
        s_btn_Done
@@ -164,6 +171,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       s_Seq_Limit = ?.
 
    display "" @ b_Sequence._Seq-Name  /* blank instead of ? */
+           b_Sequence._Seq-Attributes[1]
       	   b_Sequence._Seq-Init  
       	   b_Sequence._Seq-Incr
            s_Seq_Limit           

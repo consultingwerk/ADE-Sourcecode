@@ -16,13 +16,13 @@ Use this template to create a new dialog-box. Alter this default template or cre
 *********************************************************************/
 /*----------------------------------------------------------------------------
 
-File: _dbconng.w
+File: _dbconng.w  
 
 Description:
    Display and handle the connect dialog box, doing the connection
    if the user presses OK. GUI only. adecomm/_dbconnc.p is called for
    character mode.
-
+ 
 Input Parameters:
    p_Connect - whether the CONNECT should be executed
    
@@ -69,6 +69,8 @@ Modified:
                         and/or physical dbname available
                         (sometimes people just enter pf-file. In this
                         case we need to ignore the other parameters)
+    rkamboj   08/08/11  fixed issue of login when special chracter in password 
+                        at the time of db connect. Applied set-db-client method.
 
 ----------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
@@ -130,7 +132,9 @@ Define variable  Dlg_FullH      as integer   NO-UNDO. /* Full Height of Dialog *
 Define variable  Dlg_ShortH     as integer   NO-UNDO. /* Short Height of Dialog */
 Define variable  Full_First_Time as logical  NO-UNDO initial TRUE.
 Define variable  h_parent_win   as handle    NO-UNDO.
-
+DEFINE VARIABLE hCP             AS HANDLE  NO-UNDO.
+DEFINE VARIABLE setdbclnt       AS LOGICAL NO-UNDO.
+DEFINE VARIABLE currentdb       AS CHAR VIEW-AS TEXT FORMAT "x(32)" NO-UNDO.
 /* Miscellaneous */
 Define variable  stat           as logical NO-UNDO.
 Define variable  ix             as integer NO-UNDO.
@@ -146,7 +150,7 @@ Define variable  ix             as integer NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Connect
 
 /* Standard List Definitions                                            */
@@ -156,12 +160,12 @@ btn_Options Btn_Help
 
 /* Custom List Definitions                                              */
 /* OPTIONAL-FIELDS,ENABLE-OPTIONAL,List-3,List-4,List-5,List-6          */
-&Scoped-define OPTIONAL-FIELDS Network Multi_User Pass_Phrase Host_Name Service_Name ~
-User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet Unix_Parms ~
-Unix_Label 
-&Scoped-define ENABLE-OPTIONAL Network Multi_User Pass_Phrase Host_Name Service_Name ~
-User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet Unix_Parms ~
-Unix_Label 
+&Scoped-define OPTIONAL-FIELDS Network Multi_User Pass_Phrase Host_Name ~
+Service_Name User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet ~
+Unix_Parms Unix_Label 
+&Scoped-define ENABLE-OPTIONAL Network Multi_User Pass_Phrase Host_Name ~
+Service_Name User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet ~
+Unix_Parms Unix_Label 
 
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
@@ -238,7 +242,7 @@ DEFINE VARIABLE Parm_File AS CHARACTER FORMAT "X(256)":U
 DEFINE VARIABLE Pass_word AS CHARACTER FORMAT "X(256)":U 
      LABEL "&Password" 
      VIEW-AS FILL-IN 
-     SIZE 22 BY 1 NO-UNDO.
+     SIZE 66 BY 1 NO-UNDO.
 
 DEFINE VARIABLE PName AS CHARACTER FORMAT "X(256)":U 
      LABEL "Physical &Name" 
@@ -263,7 +267,7 @@ DEFINE VARIABLE Unix_Label AS CHARACTER FORMAT "X(256)":U
 DEFINE VARIABLE User_Id AS CHARACTER FORMAT "X(256)":U 
      LABEL "&User ID" 
      VIEW-AS FILL-IN 
-     SIZE 22 BY 1 NO-UNDO.
+     SIZE 66 BY 1 NO-UNDO.
 
 DEFINE VARIABLE Multi_User AS LOGICAL INITIAL no 
      LABEL "&Multiple Users" 
@@ -274,6 +278,7 @@ DEFINE VARIABLE Pass_Phrase AS LOGICAL INITIAL no
      LABEL "Passphrase" 
      VIEW-AS TOGGLE-BOX
      SIZE 17 BY .76 NO-UNDO.
+
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -286,20 +291,20 @@ DEFINE FRAME Connect
      btn_Options AT ROW 4.29 COL 55
      Btn_Help AT ROW 4.29 COL 71
      DB_Type AT ROW 4.33 COL 18 COLON-ALIGNED
-     Network AT ROW 5.86 COL 18 COLON-ALIGNED
+     Network AT ROW 5.86 COL 18.2 COLON-ALIGNED
      Multi_User AT ROW 5.86 COL 44
      Pass_Phrase AT ROW 5.86 COL 64
      Host_Name AT ROW 7.19 COL 18 COLON-ALIGNED
      Service_Name AT ROW 7.19 COL 62 COLON-ALIGNED
      User_Id AT ROW 8.52 COL 18 COLON-ALIGNED
-     Pass_word AT ROW 8.52 COL 62 COLON-ALIGNED PASSWORD-FIELD
-     Trig_Loc AT ROW 9.86 COL 18 COLON-ALIGNED
-     btn_filep AT ROW 9.86 COL 71
-     Parm_File AT ROW 11.24 COL 18 COLON-ALIGNED
-     btn_filet AT ROW 11.24 COL 71
-     Unix_Parms AT ROW 13.38 COL 4 NO-LABEL
-     Unix_Label AT ROW 12.57 COL 2.6
-     SPACE(33.60) SKIP(3.56)
+     Pass_word AT ROW 9.86 COL 18 COLON-ALIGNED PASSWORD-FIELD 
+     Trig_Loc AT ROW 11.24 COL 18 COLON-ALIGNED
+     btn_filep AT ROW 11.24 COL 71
+     Parm_File AT ROW 12.67 COL 18 COLON-ALIGNED
+     btn_filet AT ROW 12.67 COL 71
+     Unix_Parms AT ROW 14.81 COL 4 NO-LABEL
+     Unix_Label AT ROW 14 COL 1
+     SPACE(35.99) SKIP(3.23)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Connect Database"
@@ -311,6 +316,7 @@ DEFINE FRAME Connect
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: DIALOG-BOX
+   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -320,7 +326,7 @@ DEFINE FRAME Connect
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Connect
-   L-To-R                                                               */
+   FRAME-NAME L-To-R                                                    */
 ASSIGN 
        FRAME Connect:SCROLLABLE       = FALSE.
 
@@ -346,11 +352,6 @@ ASSIGN
 ASSIGN 
        Multi_User:HIDDEN IN FRAME Connect           = TRUE.
 
-/* SETTINGS FOR TOGGLE-BOX Pass_Phrase IN FRAME Connect
-   NO-DISPLAY NO-ENABLE 1 2                                             */
-ASSIGN 
-       Pass_Phrase:HIDDEN IN FRAME Connect           = TRUE.
-
 /* SETTINGS FOR COMBO-BOX Network IN FRAME Connect
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
@@ -360,6 +361,11 @@ ASSIGN
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
        Parm_File:HIDDEN IN FRAME Connect           = TRUE.
+
+/* SETTINGS FOR TOGGLE-BOX Pass_Phrase IN FRAME Connect
+   NO-DISPLAY NO-ENABLE 1 2                                             */
+ASSIGN 
+       Pass_Phrase:HIDDEN IN FRAME Connect           = TRUE.
 
 /* SETTINGS FOR FILL-IN Pass_word IN FRAME Connect
    NO-DISPLAY NO-ENABLE 1 2                                             */
@@ -835,8 +841,11 @@ PROCEDURE Pressed_OK :
      if p_Network    <> None then assign args = args + " -N "  + p_Network.
      if p_Host_Name    <> "" then assign args = args + " -H "  + p_Host_Name.
      if p_Service_Name <> "" then assign args = args + " -S "  + p_Service_Name.
-     if p_UserId       <> "" then assign args = args + " -U "  + p_UserId.
-     if p_Password     <> "" then assign args = args + " -P "  + p_Password.
+     if DB_Type <> "PROGRESS" then
+     do:
+        if p_UserId       <> "" then assign args = args + " -U "  + p_UserId.
+        if p_Password     <> "" then assign args = args + " -P "  + p_Password.
+     end.    
      if p_Multi_User    = no then assign args = args + ' -1 '.
    end.
    
@@ -868,11 +877,9 @@ PROCEDURE Pressed_OK :
        return error.
        end.
       else do:
-
        IF NOT Pass_Phrase THEN DO:
           run adecomm/_setcurs.p ("WAIT").
           connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
-
           run adecomm/_setcurs.p ("").
        END.
 
@@ -896,17 +903,37 @@ PROCEDURE Pressed_OK :
               connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
           END.
        END.
-
+       if  NUM-DBS > num then ASSIGN currentdb = LDBNAME(num + 1).
+       if p_UserId <> "" and connected(currentdb) and DB_Type = "PROGRESS"then
+       do:
+           create client-principal hCP. /* create a CLIENT-PRINCIPAL only once during login*/
+           /* Use SET-DB-CLIENT instead of SETUSERID */ 
+           hCP:initialize(p_UserId,?,?,p_Password) no-error.
+           setdbclnt = set-db-client(hCP,currentdb) no-error.
+             
+           if NOT setdbclnt THEN 
+           DO:
+                MESSAGE "Userid/Password is incorrect."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK. 
+                disconnect value(currentdb).
+               
+           end.
+           delete object hCP.
+           hcp = ?.
+       end.
       end.
      end.
    
    /* This will be set from any errors or warnings. Merge all the warnings
       together and display them in one shot.  */
    IF error-status:NUM-MESSAGES > 0 THEN DO:
+     if lookup(string(error-status:GET-NUMBER(1)),'15944,13691,12710',',') = 0 then  
      cMsgs = error-status:get-message(1).
      do ix = 2 to error-status:num-messages:
-       cMsgs = cMsgs + CHR(10) + error-status:get-message(ix).
+        if lookup(string(error-status:GET-NUMBER(ix)),'15944,13691,12710',',') = 0 then
+        cMsgs = cMsgs + CHR(10) + error-status:get-message(ix).
      end.
+     if trim(cMsgs) <> "" then
      MESSAGE cMsgs VIEW-AS ALERT-BOX ERROR IN WINDOW ACTIVE-WINDOW.
    END.
 
@@ -1026,6 +1053,9 @@ PROCEDURE Set_Init_Values :
   END.
 END PROCEDURE.
 
+PROCEDURE seruser:
+    
+END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

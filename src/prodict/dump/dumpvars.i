@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -18,6 +18,7 @@ History:  kmcintos 04/29/2005  Added new dump streams for auditing
                                "STREAMS" defines stream information only.
           fernando 11/10/2005  Added streams for _client-session and _db-detail 20051110-020
           fernando 02/27/2007  Handle critical field change - OE00147106
+          kmayur   06/21/2011  Added variable for constraint dump OE00195067
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} STREAM ddl.
@@ -55,8 +56,14 @@ DEFINE {1} STREAM dumpDbDet.
     FIELD i1-comp AS CHARACTER INITIAL ""
     FIELD i2-name AS CHARACTER INITIAL ?
     FIELD i1-i2   AS LOGICAL.
+  DEFINE {1} WORKFILE constraint-list NO-UNDO
+    FIELD c1-name AS CHARACTER INITIAL ""
+    FIELD c1-comp AS CHARACTER INITIAL ""
+    FIELD c2-name AS CHARACTER INITIAL ?
+    FIELD c1-i2   AS LOGICAL.    
 
   DEFINE {1} BUFFER index-alt FOR index-list.
+  DEFINE {1} BUFFER const-alt FOR constraint-list.
   DEFINE {1} BUFFER old-field FOR DICTDB._Field.
   DEFINE {1} BUFFER new-field FOR DICTDB2._Field.
 

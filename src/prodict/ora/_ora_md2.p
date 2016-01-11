@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,6 +29,7 @@ IF NOT AVAILABLE _Db THEN DO TRANSACTION:
     _Db._Db-type    = "ORACLE"
     _Db._Db-slave   = TRUE
     _Db._Db-Misc1[3] = ora_version
+    _Db._Db-Misc2[1] = user_env[41]
     _Db._Db-xl-name = ora_codepage
     _Db._Db-coll-name = (IF ora_collname <> ? AND ora_collname <> "" THEN ora_collname
                          ELSE SESSION:CPCOLL).

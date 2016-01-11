@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *********************************************************************/
@@ -43,6 +43,7 @@ History:
                             unique-index-allowed to 
                             change-uniqueness-allowed   and
                             removed the "u" from the capab-string
+    06/21/11   kmayur       added support for constraint pull - OE00195067                            
 
 -----------------------------------------------------------------------*/
 /*h-*/
@@ -72,9 +73,10 @@ assign
               + "oracle_idxcols,oracle_indexes,oracle_objects,"
               + "oracle_procedures,oracle_sequences,oracle_users,"
               + "oracle_links,oracle_synonyms,oracle_views,"
-              + "oracle_tablespace"
+              + "oracle_tablespace,oracle_constraint,oracle_cons,"
+              + "oracle_cons_fld"
   l_sys-obj-f = "ARGUMENT$,COL$,COM$,ICOL$,IND$,OBJ$,"
-              + "PROCEDURE$,SEQ$,USER$,LINK$,SYN$,VIEW$".
+              + "PROCEDURE$,SEQ$,USER$,LINK$,SYN$,VIEW$,CON$,CDEF$,CCOL$".
 /* NOTE: If you add a new foreign-meta-schema table be sure to append
  *       its progress-name and foreign-name TO THE END of the lists
  *       above. This way we automatically upgrade old schemaholders
@@ -134,6 +136,7 @@ ELSE IF system BEGINS "a"
   RUN "prodict/ora/_ora_crs.p" (dbkey). /* sequences            */
   RUN "prodict/ora/_ora_crt.p" (dbkey). /* tablespaces          */
   RUN "prodict/ora/_ora_cru.p" (dbkey). /* users                */
+  RUN "prodict/ora/_ora_crn.p" (dbkey). /* constraint           */
   RUN adecomm/_setcurs.p ("").
   end.
 

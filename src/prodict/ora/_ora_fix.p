@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -44,7 +44,7 @@ History:
                         be determined if unique so make sure it matches Original
    DLM         05/09/02 Change length from 30 to 26 to match protoora.
    DLM         07/23/02 Added _OWNER = "Pub" on the delete for each _file section. 20020723-004
-                                
+   DLM         06/21/11 kmayur  added support for constraint - OE00195067                                
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -82,6 +82,15 @@ DEFINE VARIABLE max_name_size    AS CHARACTER INITIAL "26" NO-UNDO.
 DEFINE VARIABLE temp_dbtype-1    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE temp_size        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE cid              AS CHARACTER NO-UNDO.
+
+/* CR#00195067 */
+DEFINE VARIABLE sconn            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE con-fld_recid    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE con_indx_recid   AS INTEGER   NO-UNDO.
+DEFINE VARIABLE con_parnt_recid  AS INTEGER   NO-UNDO.
+DEFINE VARIABLE l_con-num        AS INTEGER   NO-UNDO.
+DEFINE BUFFER   f_DICTDB2         FOR DICTDB2._File.
+DEFINE BUFFER   f_DICTDB         FOR DICTDB._File.
 
 DEFINE TEMP-TABLE verify-fname NO-UNDO
   FIELD new-name LIKE _Field._Field-name
@@ -129,7 +138,7 @@ ASSIGN
               + "oracle_idxcols,oracle_indexes,oracle_objects,"
               + "oracle_procedures,oracle_sequences,oracle_users,"
               + "oracle_links,oracle_synonyms,oracle_views,"
-              + "oracle_tablespace".
+              + "oracle_tablespace,oracle_constraint,oracle_cons,oracle_cons_fld".
   
 IF NOT batch_mode
   then assign SESSION:IMMEDIATE-DISPLAY = yes.
@@ -823,6 +832,113 @@ end.
       END. /* AVAILABLE DICTDB._Index */
     END. /* opi <> ppi AND ppi <> ? */
 
+/*------------------------------------------------------------------*/
+/*------------------------  CONSTRAINTS    -------------------------*/
+/*------------------------------------------------------------------*/
+
+  ASSIGN l_con-num = 0.
+  FOR EACH DICTDB._Constraint:
+    IF l_con-num < DICTDB._Constraint._con-num THEN
+      ASSIGN l_con-num = DICTDB._Constraint._con-num.
+  END.
+  
+  _con-loop:
+  FOR EACH DICTDB2._Constraint OF DICTDB2._File:
+    IF DICTDB2._Constraint._Con-Status = "D" OR DICTDB2._Constraint._Con-Status = "O"
+       THEN NEXT _con-loop.
+    IF (DICTDB2._Constraint._Con-Type = "M" OR DICTDB2._Constraint._Con-Type = "D")   
+       THEN NEXT _con-loop.
+
+        IF (DICTDB2._Constraint._Con-Type = "C")
+        THEN DO:
+          FIND FIRST DICTDB2._Field OF DICTDB2._File WHERE RECID(DICTDB2._Field) = DICTDB2._Constraint._Field-Recid NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-Name = DICTDB2._Field._Field-Name NO-LOCK NO-ERROR.
+          ASSIGN con-fld_recid = RECID (DICTDB._Field).
+        END.   
+        
+        IF (DICTDB2._Constraint._Con-Type = "F" OR DICTDB2._Constraint._Con-Type = "U" OR DICTDB2._Constraint._Con-Type = "PC" 
+              OR DICTDB2._Constraint._Con-Type = "P" OR DICTDB2._Constraint._Con-Type = "MP")
+        THEN DO:     
+          FIND FIRST DICTDB2._Index OF DICTDB2._File WHERE RECID(DICTDB2._Index) = DICTDB2._Constraint._Index-Recid NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = DICTDB2._Index._Index-Name NO-LOCK NO-ERROR.
+          ASSIGN con_indx_recid = RECID (DICTDB._Index).
+        END.
+        
+        IF DICTDB2._Constraint._Con-Type = "F"
+        THEN DO:
+          FIND FIRST DICTDB2._Index WHERE RECID(DICTDB2._Index) = DICTDB2._Constraint._Index-Parent-Recid NO-LOCK NO-ERROR.
+          FIND first f_DICTDB2 WHERE RECID(f_DICTDB2) = DICTDB2._Index._File-Recid NO-LOCK NO-ERROR.
+          FIND FIRST f_DICTDB WHERE f_DICTDB._File-Name = f_DICTDB2._File-Name NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Index OF f_DICTDB WHERE DICTDB._Index._Index-Name = DICTDB2._Index._Index-Name NO-LOCK NO-ERROR.
+          ASSIGN con_parnt_recid = RECID(DICTDB._Index). 
+        END.  
+        
+        
+      FIND FIRST DICTDB._Constraint OF DICTDB._File WHERE DICTDB._Constraint._Con-Name = DICTDB2._Constraint._Con-Name EXCLUSIVE-LOCK NO-ERROR.
+          IF NOT AVAILABLE(DICTDB._Constraint) THEN
+      FIND FIRST DICTDB._Constraint OF DICTDB._File WHERE DICTDB._Constraint._Con-Name = DICTDB2._Constraint._For-Name EXCLUSIVE-LOCK NO-ERROR.
+          IF NOT AVAILABLE(DICTDB._Constraint) 
+      THEN DO: 
+      l_con-num                        = l_con-num + 1.
+     
+      CREATE DICTDB._Constraint.
+      ASSIGN
+        DICTDB._Constraint._File-recid   = RECID (DICTDB._File)
+        DICTDB._constraint._db-recid     = drec_db
+        DICTDB._Constraint._Con-Desc     = DICTDB2._Constraint._Con-Desc
+        DICTDB._Constraint._For-Name     = DICTDB2._Constraint._For-Name
+        DICTDB._Constraint._Con-Name     = DICTDB2._Constraint._Con-Name
+        DICTDB._Constraint._Con-Type     = DICTDB2._Constraint._Con-Type
+        DICTDB._Constraint._Con-Expr     = DICTDB2._Constraint._Con-Expr
+        DICTDB._Constraint._Con-Status   = DICTDB2._Constraint._Con-Status
+        DICTDB._Constraint._Con-Type     = DICTDB2._Constraint._Con-Type
+        DICTDB._constraint._con-num      = l_con-num
+        DICTDB._Constraint._Con-Active   = TRUE.
+        
+        IF (DICTDB2._Constraint._Con-Type = "C")
+        THEN
+           DICTDB._Constraint._Field-Recid = con-fld_recid.
+        ELSE 
+           DICTDB._Constraint._Index-Recid = con_indx_recid.
+        
+        IF DICTDB2._Constraint._Con-Type = "F"
+        THEN
+           DICTDB._Constraint._Index-Parent-Recid = con_parnt_recid.   
+        
+      END.
+      ELSE DO:
+      ASSIGN 
+        DICTDB._constraint._db-recid     = drec_db
+        DICTDB._Constraint._Con-Desc     = DICTDB2._Constraint._Con-Desc
+        DICTDB._Constraint._For-Name     = DICTDB2._Constraint._For-Name
+        DICTDB._Constraint._Con-Name     = DICTDB2._Constraint._Con-Name
+        DICTDB._Constraint._Con-Status   = DICTDB2._Constraint._Con-Status
+        DICTDB._Constraint._Con-Expr     = DICTDB2._Constraint._Con-Expr
+        DICTDB._Constraint._Con-Active   = TRUE.
+        
+        IF (DICTDB2._Constraint._Con-Type = "C" OR DICTDB2._Constraint._Con-Type = "D")
+        THEN
+           DICTDB._Constraint._Field-Recid = con-fld_recid.
+        ELSE 
+           DICTDB._Constraint._Index-Recid = con_indx_recid.
+        
+        IF DICTDB2._Constraint._Con-Type = "F"
+        THEN
+           DICTDB._Constraint._Index-Parent-Recid = con_parnt_recid.  
+   
+      END. 
+  END.
+  
+  _rmcon:
+  FOR EACH DICTDB._constraint OF DICTDB._File:
+   FIND FIRST DICTDB2._Constraint WHERE DICTDB2._Constraint._Con-Name = DICTDB._Constraint._Con-Name NO-LOCK NO-ERROR.
+   IF NOT AVAILABLE (DICTDB2._Constraint)
+   THEN do:
+      DELETE DICTDB._Constraint.
+   END.
+  END.
+  
+
 
 /*----------------------  Adjust File itself  ----------------------*/
 
@@ -868,6 +984,12 @@ IF del-cycle THEN DO:
       FIND DICTDB2._File WHERE DICTDB2._File._File-name = DICTDB._File._File-name 
                            AND DICTDB2._File._Owner = "PUB" NO-ERROR.
       IF NOT AVAILABLE DICTDB2._File THEN DO:
+        FOR EACH DICTDB._Constraint OF DICTDB._File:
+           FOR EACH DICTDB._Constraint-Keys WHERE recid(DICTDB._Constraint) = DICTDB._Constraint-Keys._con-recid:
+               DELETE DICTDB._Constraint-Keys.
+           END.
+           DELETE DICTDB._Constraint.
+        END.      
         FOR EACH DICTDB._INDEX OF DICTDB._File:
           FOR EACH DICTDB._Index-field of DICTDB._Index:
             DELETE DICTDB._Index-field.
@@ -892,5 +1014,3 @@ IF not batch_mode THEN
     HIDE FRAME ora_fix NO-PAUSE.
 
 RETURN.
-
-

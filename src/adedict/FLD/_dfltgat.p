@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -53,16 +53,16 @@ Procedure Set_FlatFile_Defaults:
 
    if b_Field._Fld-stoff = ? then
    do:
-      find LAST _Field USE-INDEX _Field-Position 
-      	 where _Field._File-recid = s_TblRecId AND
-      	       _Field._Field-name <> b_Field._Field-name.
+      find LAST dictdb._Field USE-INDEX _Field-Position 
+      	 where dictdb._Field._File-recid = s_TblRecId AND
+      	       dictdb._Field._Field-name <> b_Field._Field-name.
 
       b_Field._Fld-stoff = 
-      	 (if AVAILABLE _Field 
-      	     then _Field._Fld-stoff 
-                  + (if _Field._Fld-stlen < _Field._For-spacing
-                     then _Field._For-spacing else _Field._Fld-stlen)
-                  * (if _Field._Extent > 1 then _Field._Extent else 1)
+      	 (if AVAILABLE dictdb._Field 
+      	     then dictdb._Field._Fld-stoff 
+                  + (if dictdb._Field._Fld-stlen < dictdb._Field._For-spacing
+                     then dictdb._Field._For-spacing else dictdb._Field._Fld-stlen)
+                  * (if dictdb._Field._Extent > 1 then dictdb._Field._Extent else 1)
              else ?).
    end.
    
@@ -84,17 +84,17 @@ end.
 Procedure Set_ODBC_Defaults:
    if b_Field._Fld-stoff = ? then
    do:
-      define query qry for _Field.
+      define query qry for dictdb._Field.
       open query qry 
-        for each _Field 
-      	  where _Field._File-recid = s_TblRecId AND
-      	        _Field._Field-name <> b_Field._Field-name
-          by _Field._Fld-stoff.
+        for each dictdb._Field 
+      	  where dictdb._Field._File-recid = s_TblRecId AND
+      	        dictdb._Field._Field-name <> b_Field._Field-name
+          by dictdb._Field._Fld-stoff.
       get last qry.
 
       b_Field._Fld-stoff = 
-      	 (if AVAILABLE _Field 
-      	     then _Field._Fld-stoff + 1
+      	 (if AVAILABLE dictdb._Field 
+      	     then dictdb._Field._Fld-stoff + 1
              else 1
          ).
       close query qry.

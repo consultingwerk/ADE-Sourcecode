@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -100,6 +100,14 @@ IF l_init <> ? AND LENGTH(l_init) >= 3 THEN DO:
       ASSIGN l_init = SUBSTRING(l_init, 5, (LENGTH(l_init) - 5)).
   ELSE IF l_init BEGINS 'UPPER(' THEN
       ASSIGN l_init = SUBSTRING(l_init,8, (LENGTH(l_init) - 9)).
+  ELSE IF l_init BEGINS 'NLS_UPPER(' THEN DO:
+      ASSIGN l_init = ENTRY(1,l_init).
+      ASSIGN l_init = SUBSTRING(l_init,12, (LENGTH(l_init) - 12)).
+      END.
+      /*
+  ELSE IF l_init BEGINS 'NLS_UPPER(' THEN
+      ASSIGN l_init = ENTRY(1,l_init).
+      */ 
   ELSE IF l_init BEGINS '(' THEN
       ASSIGN l_init = SUBSTRING(l_init, 2, (LENGTH(l_init) - 2)).
 

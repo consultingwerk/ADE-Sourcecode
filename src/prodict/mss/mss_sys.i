@@ -21,6 +21,6 @@ Text-Parameters:
                                      
 --------------------------------------------------------------------*/
 /*h-*/
-"SQLTables,SQLTables_buffer,SQLColumns,SQLColumns_buffer,SQLStatistics,SQLStatistics_buffer,GetFieldIds,GetFieldIds_buffer,GetInfo,GetInfo_buffer,CloseAllProcs,SendInfo,PROC-TEXT-BUFFER,SEND-SQL-STATEMENT,SQLProcs_Buffer,SQLProcCols_Buffer,SQLProcedures,SQLProcColumns"
+"SQLTables,SQLTables_buffer,SQLColumns,SQLColumns_buffer,SQLStatistics,SQLStatistics_buffer,GetFieldIds,GetFieldIds_buffer,GetInfo,GetInfo_buffer,CloseAllProcs,SendInfo,PROC-TEXT-BUFFER,SEND-SQL-STATEMENT,SQLProcs_Buffer,SQLProcCols_Buffer,SQLSpecialColumns_buffer,SQLProcedures,SQLProcColumns,SQLSpecialColumns"
 
 /*------------------------------------------------------------------*/

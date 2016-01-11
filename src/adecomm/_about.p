@@ -1,5 +1,5 @@
 /**************************************************************************
-*Copyright (C) 2005,2008 by Progress Software Corporation.                *
+*Copyright (C) 2005,2010,2011 by Progress Software Corporation.           *
 *All rights reserved.  Prior versions of this work may contain portions   *
 *contributed by participants of Possenet.                                 *
 **************************************************************************/
@@ -42,10 +42,7 @@ DEFINE VARIABLE Workshop-only AS LOGICAL  NO-UNDO.
 DEFINE VARIABLE majorversion  AS INTEGER   NO-UNDO.
 DEFINE VARIABLE minorversion  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE dot           AS INTEGER   NO-UNDO.
-DEFINE VARIABLE patchlevel    AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cTextFile     AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cCommercialVer   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cLine         AS CHARACTER  NO-UNDO.
+ 
 DEFINE VARIABLE lICF          AS LOGICAL    NO-UNDO.
 
 
@@ -97,6 +94,8 @@ DEFINE FRAME Dialog-1
   WITH VIEW-AS DIALOG-BOX SIDE-LABELS DEFAULT-BUTTON BtnOK.
 &ENDIF
 
+/*----------- function prototy-types ---------------------*/
+function getVersion returns char (pcText as character) forward.
  
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT EQ ? THEN
   FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
@@ -130,8 +129,8 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
     IF ABLic = 2 THEN Workshop-Only = TRUE.
     ELSE Workshop-Only = FALSE.
   &ENDIF 
-
- RUN GetPatchLevel(OUTPUT patchLevel). /* Read patch level from version file */
+  
+ 
 
  IF Workshop-Only THEN
  DO:
@@ -139,7 +138,7 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
           majorversion = INT(SUBSTRING(PROVERSION,1,(dot - 1)))
           minorversion = SUBSTRING(PROVERSION,(dot + 1))
           ProName      = "WebSpeed Workshop ":U + 
-            STRING(majorversion - 6) + ".":U + minorversion + patchLevel.
+            STRING(majorversion - 6) + ".":U + minorversion.
  END.
  ELSE
  DO:
@@ -154,25 +153,11 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
     ProName      = IF ( OPSYS <> "WIN32" OR SESSION:DISPLAY-TYPE <> "TTY" OR SESSION:BATCH)
                       AND LENGTH(DBEtestvalue,"CHARACTER":u) <>
                           LENGTH(DBEtestvalue,"RAW":u) THEN
-                     "DBE PROGRESS ":u + pTitle
+                     "DBE OpenEdge ":u + pTitle
                    ELSE
-                     "PROGRESS ":u + pTitle.
+                     "OpenEdge ":u + pTitle.
   END.
   
-  /* Read the commercial version from the "version" text file */
-  /* This is going to pick up either Dynamics or DLC version  */
-  ASSIGN 
-      cTextFile = SEARCH("version":U)
-      cCommercialVer = "".
-  IF cTextFile <> "" AND ctextFile <> ? THEN DO:
-      INPUT FROM VALUE(cTextFile) NO-ECHO.
-      REPEAT:
-          IMPORT UNFORMATTED cLine.
-          ASSIGN cCommercialVer = cCommercialVer + cLine + CHR(10).
-      END.
-      INPUT CLOSE.
-  END.
-
   /* If this is MS-WINDOWS, go out and make some WIN API calls */
   IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":u THEN
     RUN adecomm/_winsys.p (OUTPUT Label1, OUTPUT Label2).
@@ -189,42 +174,62 @@ HIDE FRAME Dialog-1.
 
 RETURN.
 
-/*---------------------------------------------------------------------------*/
+/*------------- functions ------------------------------------------------------------*/
+/* get the version from the string read from the version file - or return proversion */ 
+function getVersion returns char (pcText as character):
+     define variable cWord as character no-undo.  
+     define variable i as integer no-undo.  
+     do i = 1 to num-entries(pcText," "):
+         cWord = entry(i,pcText," ").
+         if cWord begins entry(1,PROVERSION,".") then 
+             return cWord.
+     end.  
+     return proversion.  
+end.    
+
+/*--------------- procedures ------------------------------------------------------------*/
 PROCEDURE Realize:
     
 DO WITH FRAME {&FRAME-NAME}:
   DEFINE VARIABLE cCopyRight AS CHAR NO-UNDO.
-                      
+  DEFINE VARIABLE cVersion   AS CHAR NO-UNDO.
+  DEFINE VARIABLE cCommercialVer  AS CHAR NO-UNDO.                        
+  
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
      cCopyRight = "Copyright ¸".
   &ELSE
      cCopyRight = "Copyright". /* According to Legal 10/14/2009 */
   &ENDIF
-
+  
+  /* Read the commercial version from the "version" text file */
+  RUN GetVersionText(OUTPUT cCommercialVer).  
+  /* get the actual version from the text */
+  cVersion = getVersion(cCommercialVer).
+   
   AboutText1 =
     ProName + CHR(10) +
 
     (IF Workshop-Only
-     THEN pTitle + " (Build: ":U + PROVERSION + patchLevel + ")":U 
-     ELSE (IF INTEGER(ENTRY(1,PROVERSION,".")) > 9 THEN "Release ":U ELSE "Version ":U) + PROVERSION + patchLevel
+     THEN pTitle + " (Build: ":U + cVersion + ")":U 
+     ELSE "Release ":U + cVersion 
     ) + CHR(10) + CHR(10) +
     (IF cCommercialVer <> "" AND cCommercialVer <> ?
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    cCopyright + " 1984-2009 Progress Software Corporation and/or its subsidiaries or affiliates. "
+    cCopyright + " 1984-2011 Progress Software Corporation and/or its subsidiaries or affiliates. "
     + "All rights reserved.".
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2009 Vol 2. " +  
-        cCopyright + " 1996-2009 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2011 Vol 1. " +  
+        cCopyright + " 1992-2011 Infragistics, Inc., 2 Commerce Drive, Cranbury, NJ 08512. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 
   IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
       AboutText2 = AboutText2 +
-         "OpenEdge includes Imaging Technology copyrighted by Snowbound Software Corporation 1993 - 2003." + CHR(10) +
+         "OpenEdge includes Imaging Technology copyrighted by Snowbound Software Corporation 1993 - 2011." + CHR(10) +
          "www.snowbound.com" +
          CHR(10) + CHR(10).
 
@@ -272,9 +277,9 @@ END. /* DO WITH FRAME */
 
 END PROCEDURE.
   
-PROCEDURE GetPatchLevel:
-  /* Reads the Version file to see if there is a patch level */
-  DEFINE OUTPUT PARAMETER patchLevel AS CHARACTER NO-UNDO.
+PROCEDURE GetVersionText:
+  /*   Read the commercial version from the "version" text file */  
+  DEFINE OUTPUT PARAMETER cText AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE i        AS INTEGER             NO-UNDO.
   DEFINE VARIABLE dlcValue AS CHARACTER           NO-UNDO. /* DLC */
@@ -286,26 +291,18 @@ PROCEDURE GetPatchLevel:
   IF (dlcValue = "" OR dlcValue = ?) THEN DO:
     ASSIGN dlcValue = OS-GETENV("DLC":U). /* Get DLC from environment */
       IF (dlcValue = "" OR dlcValue = ?) THEN DO: /* Still nothing? */
-        ASSIGN patchLevel = "".
-        RETURN.
+         RETURN. 
       END.
   END.
   FILE-INFO:FILE-NAME = dlcValue + "/version":U.
   IF FILE-INFO:FULL-PATHNAME NE ? THEN DO: /* Read the version file */
     INPUT FROM VALUE(FILE-INFO:FULL-PATHNAME).
-      IMPORT UNFORMATTED inp. /* Get the first line */
-    INPUT CLOSE.
-    /* 
-     * As of version 9.1D just append everything from the version file
-     * after the version from PROVERSION property
-     */
-    LEVEL:
-    DO i = 2 TO NUM-ENTRIES(inp," ":U):
-      IF ENTRY(i,inp," ") BEGINS PROVERSION THEN DO:
-        ASSIGN patchLevel = REPLACE(ENTRY(i,inp," "),PROVERSION,"").
-        LEAVE LEVEL.
-      END.
+    REPEAT:
+        IMPORT UNFORMATTED inp.
+        ASSIGN cText = cText + inp + CHR(10).
     END.
+ 
+    INPUT CLOSE. 
   END.         
 END PROCEDURE.
 

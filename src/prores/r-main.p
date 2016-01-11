@@ -116,7 +116,8 @@ DO WHILE TRUE:
     PUT SCREEN ROW 21 COLUMN qbf-j ENTRY(qbf-i,qbf-lang[6]).
     qbf-j = qbf-j + 1 + LENGTH(ENTRY(qbf-i,qbf-lang[6])).
   END.
-
+  
+  if qbf-r-size < 0 then qbf-r-size = 0.
   PUT SCREEN ROW 21 COLUMN 76 STRING(qbf-r-size,"ZZ9").
   IF qbf-r-size > 78 THEN MESSAGE STRING(qbf-lang[7],"x(80)").
     /*"Use < and > to scroll report left/right"*/

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2007-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2011 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -64,6 +64,10 @@ if NOT user_env[25] begins "AUTO"
       INPUT-OUTPUT s_outf,
       INPUT-OUTPUT s_datetime,
       INPUT-OUTPUT s_lob,
+      INPUT-OUTPUT s_clobtype,
+      INPUT-OUTPUT s_blobtype,
+      INPUT-OUTPUT s_primary,
+      INPUT-OUTPUT s_best,
       INPUT-OUTPUT s_wildcard,
       INPUT        "{&frame}",
       INPUT        {&link},
@@ -71,6 +75,7 @@ if NOT user_env[25] begins "AUTO"
       
     ).
 
+  assign user_env[37] = "IP". /* This is an independent Pull */
   IF RETURN-VALUE = "cancel"
    then do:
     &IF "{&block}" <> ""

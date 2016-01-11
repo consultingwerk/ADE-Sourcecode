@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006,2008-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,7 +27,7 @@ DEFINE {1} SHARED VARIABLE mss_incasesen  AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE mss_conparms   AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE long-length    AS INTEGER   NO-UNDO.
 DEFINE {1} SHARED VARIABLE movedata       AS LOGICAL   NO-UNDO.
-DEFINE {1} SHARED VARIABLE pcompatible    AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE pcompatible    AS LOGICAL   NO-UNDO  INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE sqlwidth       AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE loadsql        AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE rmvobj         AS LOGICAL   NO-UNDO.
@@ -40,15 +40,31 @@ DEFINE {1} SHARED VARIABLE lFormat        AS LOGICAL   NO-UNDO
                                                     INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE iRecidOption   AS INTEGER   NO-UNDO
                                                     INITIAL 2.
-DEFINE {1} SHARED VARIABLE unicodeTypes   AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE unicodeTypes   AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE lUniExpand     AS LOGICAL   NO-UNDO INITIAL FALSE.
-DEFINE {1} SHARED VARIABLE newseq         AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE newseq         AS LOGICAL   NO-UNDO INITIAL TRUE.
 DEFINE {1} SHARED VARIABLE mapMSSDatetime AS LOGICAL   NO-UNDO INITIAL TRUE.
 
 DEFINE {1} SHARED STREAM dbg_stream.
 
 DEFINE {1} SHARED VARIABLE stages 		    AS LOGICAL EXTENT 7 NO-UNDO.
 DEFINE {1} SHARED VARIABLE stages_complete 	AS LOGICAL EXTENT 7 NO-UNDO.
+
+/* OE00195067 BEGIN : New variable defnition for child migration frame */
+DEFINE button s_btn_Advanced SIZE 24 by 1.125.
+DEFINE {1} SHARED VARIABLE choiceUniquness     AS CHARACTER NO-UNDO.
+DEFINE {1} SHARED VARIABLE choiceDefault       AS CHARACTER NO-UNDO.
+DEFINE {1} SHARED VARIABLE migConstraint       AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE choiceRowid         AS INTEGER NO-UNDO INITIAL 1.
+DEFINE {1} SHARED VARIABLE choiceSchema        AS INTEGER NO-UNDO.
+DEFINE {1} SHARED VARIABLE mkClusteredExplict  AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE {1} SHARED VARIABLE forRowidUniq        AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE {1} SHARED VARIABLE ForRow	           AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE selBestRowidIdx     AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE tryPimaryForRowid   AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE shdcol              AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE lExpand             AS LOGICAL NO-UNDO.
+/* OE00195067 END */
 
 /*
  * Constants describing stage we are at.

@@ -479,23 +479,19 @@ ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME}
        hList[1] = slRW:handle
        hList[2] = slRO:handle
        hList[3] = slEvents:handle.
-
-&if decimal(substr(proversion,1,index(proversion,".") + 1)) >= 9 &then
   cWidget:add-last("Buffer"       + cWidget:delimiter +
                    "Buffer-field" + cWidget:delimiter +
                    "Profiler"     + cWidget:delimiter +
                    "Query"        + cWidget:delimiter +
                    "Web-context").
-  &if decimal(substr(proversion,1,index(proversion,".") + 1)) >= 9.1 &then
-    cWidget:add-last("Async-request"   + cWidget:delimiter +
-                     "Server-Socket"   + cWidget:delimiter +
-                     "Socket"          + cWidget:delimiter +
-                     "Temp-table"      + cWidget:delimiter +
-                     "Transaction"     + cWidget:delimiter +
-                     "X-Document"      + cWidget:delimiter +
-                     "X-Noderef").
-  &endif
-&endif
+  
+  cWidget:add-last("Async-request"   + cWidget:delimiter +
+                   "Server-Socket"   + cWidget:delimiter +
+                   "Socket"          + cWidget:delimiter +
+                   "Temp-table"      + cWidget:delimiter +
+                   "Transaction"     + cWidget:delimiter +
+                   "X-Document"      + cWidget:delimiter +
+                   "X-Noderef").
 
 /* The CLOSE event can be used from inside or outside the procedure to  */
 /* terminate it.                                                        */
@@ -704,28 +700,25 @@ do with frame {&FRAME-NAME}:
         assign toggle-box = true.
       assign lDelIt = true.
     end.
-    &if decimal(substr(proversion,1,index(proversion,".") + 1)) >= 9 &then
-      when "buffer" or when "buffer-field" then do:
+    when "buffer" or when "buffer-field" then do:
         hWid = buffer ttJunk:handle.
         if cWidType = "buffer-field" then
           hWid = hWid:buffer-field(1).
-      end.
-      when "profiler" then do:
+    end.
+    when "profiler" then do:
         hWid = profiler:handle.
-      end.
-      when "web-context" then do:
+    end.
+    when "web-context" then do:
         hWid = web-context:handle.
-      end.
-      &if decimal(substr(proversion,1,index(proversion,".") + 1)) >= 9.1 &then
-        when "transaction" then do:
-          hWid = this-procedure:transaction.
-        end.
-        when "async-request" then do:
-          run JunkProc on session asynchronous set hWid.
-          lDelIt = true.
-        end.
-      &endif
-    &endif
+    end.
+    when "transaction" then do:
+        hWid = this-procedure:transaction.
+    end.
+    when "async-request" then do:
+        run JunkProc on session asynchronous set hWid.
+        lDelIt = true.
+    end.
+    
     otherwise
     do:
       create value(cWidType) hWid.
@@ -734,11 +727,7 @@ do with frame {&FRAME-NAME}:
   end case.
 
   assign slRW:list-items     = list-set-attrs(hWid)
-         /* some objects cause GPFs with some versions */
-         slRO:list-items     = (if (proversion begins "8." and
-                                    cWidType = "Server") then
-                                "***Out of Order***" else
-                                list-query-attrs(hWid))
+         slRO:list-items     = list-query-attrs(hWid) 
          slEvents:list-items = list-events(hWid).
 
   /* remove all R/W attrs from R/O list */

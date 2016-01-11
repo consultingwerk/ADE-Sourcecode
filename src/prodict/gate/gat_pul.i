@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -94,6 +94,7 @@ History:
     fernando    04/07/08  Datetime support for ORACLE
     ashukla     07/08/08  LDAP support (CR#OE00172458)
     knavneet    08/14/08  OE00170417 - Quoting object names if it has special chars.
+    kmayur      06/21/11  Added support for Oracle constraint pull - OE00195067
 */
 
 /*
@@ -197,6 +198,8 @@ DEFINE VARIABLE dsname          AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE isasc           AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE upperfld        AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE col-property	AS INTEGER                NO-UNDO.
+DEFINE VARIABLE nls_upp         AS CHARACTER              NO-UNDO.
+
 /* OE00170417 */
 FUNCTION scanSplCharacter RETURN INTEGER (INPUT name as CHARACTER)  FORWARD.
 /*------------------------------------------------------------------*/
@@ -681,9 +684,10 @@ for each gate-work
     no-lock
     by    ds_columns.{&colid}:
 
-    if ds_columns.name begins "PROGRESS_RECID" OR 
-       ds_columns.name begins "_PROGRESS_RECID" OR
-       ds_columns.name begins "_PROGRESS_ROWID" then do:
+  if (NOT ds_columns.name begins "PROGRESS_RECID_UNIQUE" ) AND
+       (ds_columns.name begins "PROGRESS_RECID" OR 
+        ds_columns.name begins "_PROGRESS_RECID" OR
+        ds_columns.name begins "_PROGRESS_ROWID" ) then do:
       IF s_ttb_tbl.ds_recid = 0 THEN 
         assign s_ttb_tbl.ds_recid = ds_columns.{&colid}.
       NEXT.
@@ -893,6 +897,52 @@ for each gate-work
    
     end.   /* each ds_columns */
    
+/*---------------------------- CONSTRAINTS -----------------------------*/
+
+   FOR EACH ds_cons WHERE ds_cons.OBJ# = onum:
+     FIND FIRST ds_constraint WHERE ds_constraint.CON# = ds_cons.CON# no-lock no-error. 
+    
+     FOR EACH ds_cons-fld WHERE ds_cons-fld.CON# = ds_cons.CON#:
+      
+       FOR EACH ds_columns
+       WHERE ds_columns.{&objid} = onum AND ds_columns.{&colid} = ds_cons-fld.COL#:
+    
+       CREATE s_ttb_con.
+       ASSIGN tab_name   = namevar
+           col_name   = ds_columns.NAME
+           const_name = ds_constraint.name
+           par_key_num= ds_cons.RCON#
+           expre      = ds_cons.condition
+           index_num  = ds_cons.enabled.
+       IF ds_cons.TYPE# = 1 
+           THEN cons_type = "C".
+       ELSE IF ds_cons.TYPE# = 2
+           THEN cons_type = "PRIMARY KEY".         
+       ELSE IF ds_cons.TYPE# = 3
+           THEN cons_type = "UNIQUE".
+       ELSE IF ds_cons.TYPE# = 4
+           THEN cons_type = "FOREIGN KEY".    
+       IF par_key_num <> ? THEN
+           FIND FIRST ds_constraint-2 WHERE ds_constraint-2.CON# = par_key_num NO-LOCK NO-ERROR.
+             IF AVAILABLE ds_constraint-2 THEN ASSIGN par_key = ds_constraint-2.NAME.
+           FIND FIRST ds_objects WHERE ds_objects.OBJ# = index_num NO-LOCK NO-ERROR.
+             IF AVAILABLE ds_objects 
+             THEN DO:  
+             assign user_env[1] = TRIM(ds_objects.NAME).
+             IF INDEX(user_env[1],"##") > 0 THEN
+                  ASSIGN i = INDEX(user_env[1], "##") + 2.
+             ELSE IF INDEX(user_env[1],"__") > 0 THEN
+                  ASSIGN i = INDEX(user_env[1], "__") + 2.  
+             ELSE
+                  i = 1.   
+    
+             user_env[1]        = substring(user_env[1],i,-1,"character").
+             ASSIGN index_name = user_env[1].
+             END.     
+       END.
+     END.   
+   END.  
+   
 /*---------------------------- INDEXES -----------------------------*/
 
   assign 
@@ -914,8 +964,9 @@ for each gate-work
          ds_objects-2.name MATCHES "*##_PROGRESS_ROWID" 
          then NEXT.
 
-   /* OE00210415: Modified the code to remove the restriction of pulling index object name begins with "SYS_" for oracle dataserver */
-      if ds_objects-2.NAME BEGINS "SYS_" AND NOT "{&db-type}" = "oracle"  THEN NEXT. 
+      /* OE00210415: Modified the code to remove the restriction of pulling index object name begins with "SYS_" for oracle dataserver */
+       if ds_objects-2.NAME BEGINS "SYS_" AND NOT "{&db-type}" = "oracle"  THEN NEXT. 
+
 
       {prodict/gate/gat_puli.i
         &for-idx-name = "{&for-idx-name}"
@@ -924,6 +975,7 @@ for each gate-work
         &frame        = "ds_make"
         &idx-uniq-cond = "{&idx-uniq-cond}"
       }                                  /* try to recreate index */
+
 
 
 /*-------------------------- INDEX-FIELDS --------------------------*/
@@ -966,7 +1018,7 @@ for each gate-work
         end.     /* repeat l_keycp = 1 to 8 */
     
       &ELSEIF "{&db-type}" = "oracle" &THEN 
-
+        assign nls_upp = user_env[40].
         assign i = 0.   /* i := number of date-time fields */
         for each ds_idx-cols fields({&objid} {&colid} pos#)
            where ds_idx-cols.{&objid} = ds_indexes.{&objid}
@@ -1001,9 +1053,12 @@ for each gate-work
                   ASSIGN dsname = s_ttb_fld.defaultname.
                   FIND FIRST DICTDBG.oracle_columns WHERE DICTDBG.oracle_columns.obj# = onum
                                                      AND DICTDBG.oracle_columns.NAME = s_ttb_fld.ds_name NO-ERROR.
-                  IF AVAILABLE DICTDBG.oracle_columns THEN
-                    ASSIGN upperfld = (IF DICTDBG.oracle_columns.default$ BEGINS "UPPER" THEN TRUE
+                  IF AVAILABLE DICTDBG.oracle_columns  and nls_upp = "y" THEN
+		     ASSIGN upperfld = (IF DICTDBG.oracle_columns.default$  BEGINS "NLS_UPPER" THEN TRUE
                                        ELSE FALSE).        
+		  ELSE
+		      ASSIGN upperfld = (IF DICTDBG.oracle_columns.default$  BEGINS "UPPER" THEN TRUE
+                                       ELSE FALSE).
 
                   find first s_ttb_fld where s_ttb_fld.ttb_tbl =  RECID(s_ttb_tbl)
                                  and s_ttb_fld.ds_name =  dsname

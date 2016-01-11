@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -88,12 +88,12 @@ case (p_Obj):
       DO:
          changed = no.
          chg-loop: FOR EACH w_Field NO-LOCK:  
-            FIND _Field WHERE _Field._File-Recid = w_Field._File-Recid AND
-                              _Field._Field-Name = w_Field._Field-Name 
+            FIND dictdb._Field WHERE dictdb._Field._File-Recid = w_Field._File-Recid AND
+                              dictdb._Field._Field-Name = w_Field._Field-Name 
             NO-LOCK NO-ERROR.
             IF AVAIL _Field THEN 
             DO:
-               changed = w_Field._Width <> _Field._Width.  
+               changed = w_Field._Width <> dictdb._Field._Width.  
                IF changed THEN LEAVE chg-loop.
             END.
          END.
@@ -141,6 +141,7 @@ case (p_Obj):
       name = b_File._File-Name.
       changed =
       	 input frame tblprops b_File._File-Name  <> name OR
+      	 input frame tblprops b_File._File-Attributes[1] <> b_File._File-Attributes[1] OR
       	 input frame tblprops b_File._Dump-Name  <> b_File._Dump-Name  OR
       	 input frame tblprops b_File._Hidden     <> b_File._Hidden     OR
       	 input frame tblprops b_File._File-label <> b_File._File-label OR
@@ -184,6 +185,7 @@ case (p_Obj):
       	    if p_Revert then
       	    do:
       	       display 	b_File._File-Name
+      	        b_File._File-Attributes[1]
 		     	b_File._Dump-Name
 			b_File._Hidden
 			b_File._Desc
@@ -205,6 +207,7 @@ case (p_Obj):
       name = b_Sequence._Seq-Name.
       changed =
       	 input frame seqprops b_Sequence._Seq-Name <> name OR
+      	 input frame seqprops b_Sequence._Seq-Attributes[1] <> b_Sequence._Seq-Attributes[1] OR
       	 input frame seqprops b_Sequence._Seq-Init <> b_Sequence._Seq-Init OR
       	 input frame seqprops b_Sequence._Seq-Incr <> b_Sequence._Seq-Incr OR
       	 input frame seqprops b_Sequence._Cycle-Ok <> b_Sequence._Cycle-Ok OR
@@ -221,19 +224,21 @@ case (p_Obj):
       	    run adedict/SEQ/_saveseq.p
       	       (b_Sequence._Seq-name:HANDLE in frame seqprops,
        	        input frame seqprops b_Sequence._Seq-Incr,
-		input frame seqprops s_Seq_Limit,
-		b_Sequence._Seq-Init:HANDLE in frame seqprops,
-		input frame seqprops b_Sequence._Cycle-Ok).
+		        input frame seqprops s_Seq_Limit,
+		        b_Sequence._Seq-Init:HANDLE in frame seqprops,
+		        input frame seqprops b_Sequence._Cycle-Ok,
+		        input frame seqprops b_Sequence._Seq-Attributes[1]).
       	    if RETURN-VALUE = "error" then p_Error = yes.
       	 end.
       	 else if p_Revert then
       	 do:
       	    /* Reset the widgets in the main display to show old values. */
       	    display b_Sequence._Seq-Name
-	       	    b_Sequence._Seq-Init
+      	            b_Sequence._Seq-Attributes[1] 
+	       	        b_Sequence._Seq-Init
       	       	    b_Sequence._Seq-Incr
       	       	    s_Seq_Limit
- 	       	    b_Sequence._Cycle-Ok
+ 	       	        b_Sequence._Cycle-Ok
       	       with frame seqprops.
 
 	    if b_Sequence._Seq-Incr < 0 then

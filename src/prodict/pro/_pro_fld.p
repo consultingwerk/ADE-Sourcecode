@@ -46,7 +46,7 @@ DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
 DEFINE INPUT  PARAMETER junk2   AS RECID                 NO-UNDO.
 DEFINE OUTPUT PARAMETER changed AS LOGICAL INITIAL FALSE NO-UNDO.
 
-DEFINE SHARED BUFFER dfields FOR _Field.
+DEFINE SHARED BUFFER dfields FOR dictdb._Field.
 
 DEFINE VARIABLE answer    AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE c         AS CHARACTER                 NO-UNDO.
@@ -60,6 +60,7 @@ DEFINE VARIABLE neworder  AS INTEGER                   NO-UNDO.
 DEFINE VARIABLE lobarea  AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE arealist  AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE areaname  AS CHARACTER INITIAL ?       NO-UNDO.
+DEFINE VARIABLE areaMtText AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE cpname    AS CHARACTER INITIAL ?       NO-UNDO.
 DEFINE VARIABLE cplist    AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE colname   AS CHARACTER INITIAL ?       NO-UNDO.
@@ -71,13 +72,14 @@ DEFINE VARIABLE hldcp     AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE allow_type_change AS LOGICAL           NO-UNDO INIT NO.
 DEFINE VARIABLE s_Dtype    AS CHARACTER                 NO-UNDO.
 DEFINE VARIABLE s_Initial  AS CHARACTER                 NO-UNDO.
-
+define variable lNoArea    as logical no-undo.
+define variable hLabel     as handle no-undo.
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 { prodict/user/userhue.i }
 { prodict/user/userpik.i NEW }
 { prodict/pro/fldfuncs.i }
-
+{ prodict/pro/arealabel.i }
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 12 NO-UNDO INITIAL [
   /* 1*/ "This field is used in a View or Index - cannot delete.",
@@ -133,14 +135,16 @@ FORM
   ROW (SCREEN-LINES - 19) COLUMN 1 SCROLLABLE.
 
 FORM
-    dfields._Field-name LABEL "Field Name" COLON 12 FORMAT "x(32)"
+    dfields._Field-name LABEL "Field Name" COLON 11 FORMAT "x(32)"
       VALIDATE(KEYWORD(dfields._Field-name) = ?,
         "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-             LABEL "Area" COLON 12 SKIP
-    lob-size LABEL "Max Size" COLON 12 SKIP
-    dfields._Order LABEL "Order" COLON 12 SKIP
-    dfields._Desc  LABEL "Desc" COLON 12  VIEW-AS EDITOR
+             LABEL "Area" COLON 11  
+    space areaMtText no-label format "x(20)"  skip(1)
+    skip(1)
+    lob-size LABEL "Max Size" COLON 11 SKIP
+    dfields._Order LABEL "Order" COLON 11 SKIP
+    dfields._Desc  LABEL "Desc" COLON 11  VIEW-AS EDITOR
                                              INNER-CHARS 58 INNER-LINES 3
                                              BUFFER-LINES 6 SKIP 
     WITH FRAME pro-blob VIEW-AS DIALOG-BOX
@@ -152,7 +156,8 @@ FORM
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-             LABEL "Area" COLON 11 SKIP
+             LABEL "Area" COLON 11  
+    space areaMtText no-label format "x(20)"  skip(1)
     lob-size LABEL "Max Size" COLON 11 SKIP
     dfields._Order LABEL "  Order" COLON 11 SKIP
     dfields._Desc  LABEL "Desc" COLON 11  VIEW-AS EDITOR
@@ -165,19 +170,22 @@ FORM
 FORM
     dfields._Field-name LABEL "Field Name" COLON 15 FORMAT "x(32)"
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-             LABEL "Area" COLON 15 SKIP
+             LABEL "Area" COLON 15 
+    space areaMtText no-label format "x(20)"  skip(1)
     lob-size LABEL "Max Size" COLON 15 SKIP
     dfields._Order LABEL "Order" COLON 15 SKIP
     dfields._fld-case LABEL "Case Sensitive" COLON 15 SKIP
     cpname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 SORT
-             LABEL "Code Page" COLON 15 SKIP
+           LABEL "Code Page" COLON 15 SKIP
+          
     colname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 SORT
-             LABEL "Collation" COLON 15 SKIP
+            LABEL "Collation" COLON 15 SKIP
+    
     dfields._Desc LABEL "Desc" COLON 15  VIEW-AS EDITOR
-                                             INNER-CHARS 56 INNER-LINES 3
+                                             INNER-CHARS 58 INNER-LINES 3
                                              BUFFER-LINES 6 SKIP 
     WITH FRAME pro-clob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 2 COLUMN 5 
+    SIDE-LABELS ROW 2 CENTERED 
     TITLE "Clob Field Attributes".
 
 FORM
@@ -185,19 +193,22 @@ FORM
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-             LABEL "Area" COLON 15 SKIP
+             LABEL "Area" COLON 15 
+    space areaMtText no-label format "x(20)"  skip(1)
     lob-size LABEL "Max Size" COLON 15 SKIP
     dfields._Order LABEL "Order" COLON 15 SKIP
     dfields._fld-case LABEL "Case Sensitive" COLON 15 SKIP
     cpname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1
-             LABEL "Code Page" COLON 15 SKIP
+           LABEL "Code Page" COLON 15 SKIP
+  
     colname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1
-             LABEL "Collation" COLON 15 SKIP
+            LABEL "Collation" COLON 15 SKIP
+   
     dfields._Desc LABEL "Desc" COLON 15 VIEW-AS EDITOR
-                                             INNER-CHARS 56 INNER-LINES 3
+                                             INNER-CHARS 58 INNER-LINES 3
                                              BUFFER-LINES 6 SKIP 
     WITH FRAME mod-clob VIEW-AS DIALOG-BOX
-    SIDE-LABELS ROW 2 COLUMN 5 
+    SIDE-LABELS ROW 2 CENTERED 
     TITLE "Clob Field Attributes".
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
@@ -232,13 +243,16 @@ ON GO OF FRAME pro-blob DO:
   IF NEW dfields THEN DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:  
     IF wdth = ? OR wdth = 0  THEN
       APPLY "leave" TO lob-size IN FRAME pro-blob.
-
-    IF areaname:SCREEN-VALUE IN FRAME pro-blob <> ? THEN
-     ASSIGN lobarea = areaname:SCREEN-VALUE IN FRAME pro-blob.
-  
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-name =  lobarea NO-LOCK.    
-    ASSIGN dfields._Fld-stlen = DICTDB._Area._Area-number
-           dfields._Format = "x(8)"
+    
+    if not lNoArea then
+    do:
+        IF areaname:SCREEN-VALUE IN FRAME pro-blob <> ? THEN
+            ASSIGN lobarea = areaname:SCREEN-VALUE IN FRAME pro-blob.
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-name =  lobarea NO-LOCK.          
+        dfields._Fld-stlen = DICTDB._Area._Area-number.           
+    end.  
+        
+    ASSIGN dfields._Format = "x(8)"
            dfields._Fld-Misc2[1] = CAPS(lob-size:SCREEN-VALUE) 
            dfields._Width = wdth
            dfields._Initial = ?
@@ -270,7 +284,7 @@ ON GO OF FRAME pro-clob DO:
     IF wdth = ? OR wdth = 0  THEN
       APPLY "leave" TO lob-size IN FRAME pro-clob.
 
-    IF lobarea = ? THEN
+    IF lobarea = ? AND lNoArea = FALSE THEN
       APPLY "value-changed" TO areaname IN FRAME pro-clob.
 
     IF cpname:SCREEN-VALUE IN FRAME pro-clob <> "*Use DB Code Page" AND
@@ -284,7 +298,6 @@ ON GO OF FRAME pro-clob DO:
        RETURN NO-APPLY.
     END.
       
-
     IF cpname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Code Page" AND DICTDB._Db._Db-xl-name = "undefined" THEN DO:
       MESSAGE "The database code page is 'undefined' " SKIP
               "A clob cannot be defined with this code page." SKIP(1)
@@ -292,11 +305,15 @@ ON GO OF FRAME pro-clob DO:
           VIEW-AS ALERT-BOX ERROR.
       RETURN NO-APPLY.
     END.
-  
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-name =  lobarea NO-LOCK.    
-  
-    ASSIGN dfields._Fld-stlen = DICTDB._Area._Area-number
-           dfields._Format = "x(8)"
+    if lNoArea = false then
+    do:
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-name =  lobarea NO-LOCK.    
+        ASSIGN dfields._Fld-stlen = DICTDB._Area._Area-number.
+    end.
+    else
+        assign dfields._Fld-stlen = 0.
+        
+    assign dfields._Format = "x(8)"
            dfields._Fld-Misc2[1] = CAPS(lob-size:SCREEN-VALUE IN FRAME pro-clob)
            dfields._Width = wdth
            dfields._Initial = ?
@@ -443,9 +460,9 @@ ON LEAVE OF lob-size IN FRAME pro-blob,
 END.
 
 ON LEAVE OF dfields._Order IN FRAME pro-blob DO:
-  IF CAN-FIND(FIRST _Field WHERE _Field._File-recid = drec_file 
-              AND _Field._Order = INPUT dfields._Order 
-              AND _Field._Order <> dfields._Order) THEN DO:
+  IF CAN-FIND(FIRST dictdb._Field WHERE dictdb._Field._File-recid = drec_file 
+              AND dictdb._Field._Order = INPUT dfields._Order 
+              AND dictdb._Field._Order <> dfields._Order) THEN DO:
             MESSAGE "Order number" TRIM(INPUT dfields._Order) "already exists." 
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
             /* set order number back to its current value */
@@ -455,9 +472,9 @@ ON LEAVE OF dfields._Order IN FRAME pro-blob DO:
 END.
 
 ON LEAVE OF dfields._Order IN FRAME mod-blob DO:
-  IF CAN-FIND(FIRST _Field WHERE _Field._File-recid = drec_file 
-              AND _Field._Order = INPUT dfields._Order 
-              AND _Field._Order <> dfields._Order) THEN DO:
+  IF CAN-FIND(FIRST dictdb._Field WHERE dictdb._Field._File-recid = drec_file 
+              AND dictdb._Field._Order = INPUT dfields._Order 
+              AND dictdb._Field._Order <> dfields._Order) THEN DO:
             
       MESSAGE "Order number" TRIM(INPUT dfields._Order) "already exists." 
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -650,24 +667,24 @@ END.
 copied = FALSE.
 IF AVAILABLE dfields THEN DO: /*---------------------------------------------*/
   ASSIGN
-    inindex    = CAN-FIND(FIRST _Index-field OF dfields)
-    inview     = CAN-FIND(FIRST _View-ref
-                 WHERE _View-ref._Ref-Table = user_filename
-                   AND _View-ref._Base-Col = dfields._Field-name)
+    inindex    = CAN-FIND(FIRST dictdb._Index-field 
+                          where dictdb._Index-field._Field-recid = recid(dfields))
+    inview     = CAN-FIND(FIRST dictdb._View-ref
+                 WHERE dictdb._View-ref._Ref-Table = user_filename
+                   AND dictdb._View-ref._Base-Col = dfields._Field-name)
     neworder   = dfields._Order
     wdth       = 0.
   
 END. /*---------------------------------------------------------------------*/
 ELSE DO: /*-----------------------------------------------------------------*/
-  FIND LAST _Field USE-INDEX _Field-Position
-    WHERE _Field._File-recid = drec_file NO-ERROR.
+  FIND LAST dictdb._Field USE-INDEX _Field-Position
+    WHERE dictdb._Field._File-recid = drec_file NO-ERROR.
   ASSIGN
     inindex    = FALSE
     inview     = FALSE
-    inother    = CAN-FIND(FIRST _Field
-                 WHERE _Field._Field-name =
-                 INPUT FRAME pro_fld dfields._Field-name)
-    neworder   = (IF AVAILABLE _Field THEN _Field._Order + 10 ELSE 10)
+    inother    = CAN-FIND(FIRST dictdb._Field 
+                          WHERE dictdb._Field._Field-name = INPUT FRAME pro_fld dfields._Field-name)
+    neworder   = (IF AVAILABLE _Field THEN dictdb._Field._Order + 10 ELSE 10)
     pik_column = 40
     pik_row    = SCREEN-LINES - 10
     pik_hide   = TRUE
@@ -689,12 +706,12 @@ ELSE DO: /*-----------------------------------------------------------------*/
                ttpik.c_name = pik_list[1].
     END.
 
-    FOR EACH _Field
-      WHERE _Field._Field-name = INPUT FRAME pro_fld dfields._Field-name:
-        FOR EACH _File OF _Field
-          WHERE _File._Db-recid = drec_db AND RECID(_File) <> drec_file
-            AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
-          BY _File._File-name:
+    FOR EACH dictdb._Field
+      WHERE dictdb._Field._Field-name = INPUT FRAME pro_fld dfields._Field-name:
+        FOR EACH dictdb._File OF _Field
+          WHERE dictdb._File._Db-recid = drec_db AND RECID(dictdb._File) <> drec_file
+            AND (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN")
+          BY dictdb._File._File-name:
           ASSIGN
             pik_count = pik_count + 1.
             /* 20060717-022
@@ -713,7 +730,7 @@ ELSE DO: /*-----------------------------------------------------------------*/
     END.
 
   END.
-
+ 
   /* since we can't tell if a field is in another (non-progress)
   schema, we have to wait until we attempt the join above to eliminate
   those candidates.  hence, the following test: */
@@ -728,52 +745,53 @@ ELSE DO: /*-----------------------------------------------------------------*/
     RUN "prodict/user/_usrpick.p".
     HIDE FRAME frm_top NO-PAUSE.
     IF pik_return = 0 OR pik_first BEGINS "<<" THEN LEAVE _in-other.
-    FIND _File WHERE _File._Db-recid = drec_db AND _File._File-name = pik_first
-                 AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" ).
-    FIND _Field OF _File WHERE _Field._Field-name =
-      INPUT FRAME pro_fld dfields._Field-name.
+    FIND dictdb._File WHERE dictdb._File._Db-recid = drec_db AND dictdb._File._File-name = pik_first
+                 AND (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN" ).
+    FIND dictdb._Field OF dictdb._File WHERE dictdb._Field._Field-name =
+                                                 INPUT FRAME pro_fld dfields._Field-name.
     ASSIGN
       copied     = TRUE.
 
     DISPLAY
-      _Field._Field-name @ dfields._Field-name /*match case*/
-      _Field._Data-type  @ dfields._Data-type
-      _Field._Format     @ dfields._Format
-      _Field._Label      @ dfields._Label
-      _Field._Col-label  @ dfields._Col-label
-      _Field._Initial    @ dfields._Initial
-      _Field._Extent     @ dfields._Extent
-      _Field._Decimals   @ dfields._Decimals
+      dictdb._Field._Field-name @ dfields._Field-name /*match case*/
+      dictdb._Field._Data-type  @ dfields._Data-type
+      dictdb._Field._Format     @ dfields._Format
+      dictdb._Field._Label      @ dfields._Label
+      dictdb._Field._Col-label  @ dfields._Col-label
+      dictdb._Field._Initial    @ dfields._Initial
+      dictdb._Field._Extent     @ dfields._Extent
+      dictdb._Field._Decimals   @ dfields._Decimals
       neworder           @ dfields._Order
-      _Field._Mandatory  @ dfields._Mandatory
-      _Field._Fld-case   @ dfields._Fld-case
-      _Field._Field-rpos @ dfields._Field-rpos
-      _Field._Valmsg     @ dfields._Valmsg
-      _Field._Help       @ dfields._Help
+      dictdb._Field._Mandatory  @ dfields._Mandatory
+      dictdb._Field._Fld-case   @ dfields._Fld-case
+      dictdb._Field._Field-rpos @ dfields._Field-rpos
+      dictdb._Field._Valmsg     @ dfields._Valmsg
+      dictdb._Field._Help       @ dfields._Help
             
       WITH FRAME pro_fld.
 
     /* Can't seem to do @ on a view-as editor widget so: */
-    ASSIGN dfields._Valexp:screen-value in frame pro_fld = _Field._Valexp
-           dfields._Desc:SCREEN-VALUE IN FRAME pro_fld = _Field._Desc.
+    ASSIGN dfields._Valexp:screen-value in frame pro_fld = dictdb._Field._Valexp
+           dfields._Desc:SCREEN-VALUE IN FRAME pro_fld = dictdb._Field._Desc.
 
     EMPTY TEMP-TABLE ttpik NO-ERROR.
   END.
-
+ 
   CREATE dfields.
   dfields._File-recid = drec_file.
 END. /*---------------------------------------------------------------------*/
 
 DISPLAY inview inindex /* WHEN copied*/ WITH FRAME pro_fld.
-
+ 
+ 
 NEXT-PROMPT dfields._Data-type WITH FRAME pro_fld.
 IF NEW dfields THEN DO:
   DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     SET
       dfields._Field-name
-        VALIDATE(NOT CAN-FIND(_Field
-          WHERE _Field._File-recid = drec_file
-            AND _Field._Field-name = INPUT dfields._Field-name),
+        VALIDATE(NOT CAN-FIND(dictdb._Field
+          WHERE dictdb._Field._File-recid = drec_file
+            AND dictdb._Field._Field-name = INPUT dfields._Field-name),
         "")
       dfields._Data-type
         VALIDATE(dfields._Data-type <> ?,"")
@@ -800,60 +818,117 @@ ELSE DO:
        ASSIGN allow_type_change = YES
               s_Dtype = dfields._Data-type.
 END.
+ 
+ 
+IF NOT copied THEN 
+    DISPLAY
+        dfields._Field-name /*match case*/
+        dfields._Data-type
+        dfields._Format
+        dfields._Label
+        dfields._Col-label
+        dfields._Initial
+        dfields._Extent
+        dfields._Decimals
+        neworder @ dfields._Order
+        dfields._Mandatory
+        dfields._Fld-case
+        dfields._Field-rpos
+        dfields._Valexp
+        dfields._Valmsg
+        dfields._Help
+        dfields._Desc
+    WITH FRAME pro_fld.
+ 
+find dictdb._file where recid(dictdb._file) = drec_file no-lock.
+lNoArea = dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2] = false.
 
-IF NOT copied THEN DISPLAY
-  dfields._Field-name /*match case*/
-  dfields._Data-type
-  dfields._Format
-  dfields._Label
-  dfields._Col-label
-  dfields._Initial
-  dfields._Extent
-  dfields._Decimals
-  neworder @ dfields._Order
-  dfields._Mandatory
-  dfields._Fld-case
-  dfields._Field-rpos
-  dfields._Valexp
-  dfields._Valmsg
-  dfields._Help
-  dfields._Desc
-  WITH FRAME pro_fld.
-
-IF ronly = "r/o" THEN DO:
-  IF dfields._Data-type = "BLOB" THEN DO:
-    IF dfields._Field-rpos <> ? THEN DO:
-      FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                            AND _Storageobject._Object-type = 3
-                            AND _Storageobject._Object-number = dfields._Fld-stlen
-                           NO-LOCK.
-      FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-     END.
-     ELSE
-       FIND _Area WHERE _Area._Area-number = dfields._Fld-stlen NO-LOCK.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = _Area._Area-name
-           lob-size = dfields._Fld-Misc2[1].
-    DISPLAY areaname lob-size dfields._Order dfields._Desc dfields._Field-name  WITH FRAME pro-blob. 
-  END.
-  IF dfields._Data-type = "CLOB" THEN DO:
-    IF dfields._Field-rpos <> ? THEN DO:
-      FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                            AND _Storageobject._Object-type = 3
-                            AND _Storageobject._Object-number = dfields._Fld-stlen
-                           NO-LOCK.
-      FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-     END.
-     ELSE
-       FIND _Area WHERE _Area._Area-number = dfields._Fld-stlen NO-LOCK.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME pro-clob = _Area._Area-name
-           cpname:LIST-ITEMS IN FRAME pro-clob = dfields._Charset
-           colname:LIST-ITEMS IN FRAME pro-clob = dfields._Collation
-           lob-size = dfields._Fld-Misc2[1].
+/* adjust lable to mid position - this is done to math up with for default tenant,
+   but we do it always for consistency */
+assign
+    hLabel = areaname:side-label-handle in frame pro-blob
+    hLabel:row = hLabel:row + 1
+    hLabel = areaname:side-label-handle in frame pro-clob
+    hLabel:row = hLabel:row + 1
+    hLabel = areaname:side-label-handle in frame mod-blob
+    hLabel:row = hLabel:row + 1
+    hLabel = areaname:side-label-handle in frame mod-clob
+    hLabel:row = hLabel:row + 1
+   /* Align other selection list labels as well for consistency */   
+   
+    hLabel = colname:side-label-handle in frame pro-clob
+    hLabel:row = hLabel:row + 1
+    hLabel = colname:side-label-handle in frame mod-clob
+    hLabel:row = hLabel:row + 1
+    hLabel = cpname:side-label-handle in frame pro-clob
+    hLabel:row = hLabel:row + 1
+    hLabel = cpname:side-label-handle in frame mod-clob
+    hLabel:row = hLabel:row + 1
+    .
   
-    DISPLAY areaname lob-size dfields._Order dfields._Fld-case
-            cpname colname dfields._Desc dfields._Field-name WITH FRAME pro-clob. 
+
+if dictdb._file._file-attributes[1] and dictdb._file._file-attributes[2] then
+do:
+    assign
+        areaMtText = "(for default tenant)":T20
+        areaMtText:row in frame pro-blob = 3
+        areaMtText:row in frame pro-clob = 3
+        areaMtText:row in frame mod-blob = 3
+        areaMtText:row in frame mod-clob = 3
+        areaMtText:screen-value in frame pro-blob = areaMtText
+        areaMtText:screen-value in frame pro-clob = areaMtText
+        areaMtText:screen-value in frame mod-blob = areaMtText
+        areaMtText:screen-value in frame mod-clob = areaMtText
+        .
+end.
+
+
+/*
+setAreaLabel(areaname:handle in FRAME pro-blob,dictdb._File._File-Attributes[1]). 
+setAreaLabel(areaname:handle in FRAME pro-clob,dictdb._File._File-Attributes[1]). 
+setAreaLabel(areaname:handle in FRAME mod-blob,dictdb._File._File-Attributes[1]). 
+setAreaLabel(areaname:handle in FRAME mod-clob,dictdb._File._File-Attributes[1]). 
+ */
+IF ronly = "r/o" THEN DO:
+  IF dfields._Data-type = "BLOB" OR dfields._Data-type = "CLOB" THEN 
+  DO:
+      if lnoArea then
+      do:
+          areaname = "".
+      end.
+      else do:    
+          IF dfields._Field-rpos <> ? THEN 
+          DO:
+              
+              FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = drec_db
+                                         AND dictdb._Storageobject._Object-type = 3
+                                         AND dictdb._Storageobject._Object-number = dfields._Fld-stlen
+                                         and dictdb._Storageobject._Partitionid = 0
+                                         NO-LOCK.
+              FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+          END.
+          ELSE
+              FIND dictdb._Area WHERE dictdb._Area._Area-number = dfields._Fld-stlen NO-LOCK.
+              
+          ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = dictdb._Area._Area-name
+                 lob-size = dfields._Fld-Misc2[1].
+      end.
+      DISPLAY areaname 
+              lob-size 
+              dfields._Order 
+              dfields._Desc 
+              dfields._Field-name  WITH FRAME pro-blob. 
+     
+      IF dfields._Data-type = "CLOB" THEN 
+      DO :
+          ASSIGN  
+                 cpname:LIST-ITEMS IN FRAME pro-clob = dfields._Charset
+                 colname:LIST-ITEMS IN FRAME pro-clob = dfields._Collation.
+            
+          DISPLAY dfields._Fld-case
+                  cpname 
+                  colname WITH FRAME pro-clob. 
+      END.
   END.
   { prodict/user/userpaus.i }
   HIDE FRAME pro_fld NO-PAUSE.
@@ -862,92 +937,113 @@ END.
 
 IF dfields._Data-type = "BLOB" THEN DO:
   IF NEW dfields THEN DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
+ 
     ASSIGN arealist = ?
            lobarea = ?.
-    FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
-                            AND DICTDB._Area._Area-type = 6
-                            AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
-                            NO-LOCK. 
-      IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
-                                       AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN
+    
+    if lnoArea then
+    do:
+        lobarea = "".
+    end.    
+    else do:    
+        FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
+                                AND DICTDB._Area._Area-type = 6
+                                AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
+                                NO-LOCK. 
+          IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
+                                           AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN
+              ASSIGN lobarea = DICTDB._Area._Area-name.
+          IF arealist = ? THEN
+            ASSIGN arealist = DICTDB._Area._Area-name.            
+          ELSE
+            ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
+        END.
+      
+        IF NUM-ENTRIES(arealist) = 1 THEN
+          ASSIGN arealist = arealist.
+        
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
+        
+        IF lobarea = ? THEN
           ASSIGN lobarea = DICTDB._Area._Area-name.
-      IF arealist = ? THEN
-        ASSIGN arealist = DICTDB._Area._Area-name.            
-      ELSE
-        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
-    END.
-  
-    IF NUM-ENTRIES(arealist) = 1 THEN
-      ASSIGN arealist = arealist.
     
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
+        IF arealist = ? THEN 
+          ASSIGN arealist = DICTDB._Area._Area-name.           
+        ELSE
+          ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
     
-    IF lobarea = ? THEN
-      ASSIGN lobarea = DICTDB._Area._Area-name.
-
-    IF arealist = ? THEN 
-      ASSIGN arealist = DICTDB._Area._Area-name.           
-    ELSE
-      ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = arealist.
+        ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = arealist.
+    end.
                   
-    DISPLAY areaname lob-size neworder @ dfields._Order dfields._Desc dfields._Field-name WITH FRAME pro-blob.
+    DISPLAY areaname  lob-size neworder @ dfields._Order dfields._Desc dfields._Field-name WITH FRAME pro-blob.
     ASSIGN areaname:SCREEN-VALUE = lobarea.
-    SET areaname lob-size dfields._Order dfields._Desc  dfields._Field-name WITH FRAME pro-blob.    
+    SET areaname when lNoArea = false lob-size dfields._Order dfields._Desc  dfields._Field-name WITH FRAME pro-blob.    
+  
   END.
   ELSE DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
-    IF dfields._Field-rpos <> ? THEN DO:
-      FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                            AND _Storageobject._Object-type = 3
-                            AND _Storageobject._Object-number = dfields._Fld-stlen
-                           NO-LOCK.
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = _StorageObject._Area-number NO-LOCK.
-    END.
-    ELSE
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dfields._Fld-stlen NO-LOCK.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME mod-blob = DICTDB._Area._Area-name
-           lob-size = dfields._Fld-Misc2[1]. 
+    if not lNoArea then
+    do:
+        IF dfields._Field-rpos <> ? THEN DO:
+          FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = drec_db
+                                AND dictdb._Storageobject._Object-type = 3
+                                AND dictdb._Storageobject._Object-number = dfields._Fld-stlen
+                                and dictdb._Storageobject._Partitionid = 0
+                               NO-LOCK.
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+        END.
+        ELSE
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dfields._Fld-stlen NO-LOCK.
     
+        ASSIGN areaname:LIST-ITEMS IN FRAME mod-blob = DICTDB._Area._Area-name
+               lob-size = dfields._Fld-Misc2[1]. 
+    end.
     DISPLAY  dfields._Field-name areaname lob-size dfields._Order dfields._Desc WITH FRAME mod-blob.
     UPDATE lob-size dfields._Order dfields._Desc dfields._Field-name WITH FRAME mod-blob. 
   END.   
 END.
 ELSE IF dfields._Data-type = "CLOB" THEN DO:
   IF NEW dfields THEN DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
+    
+    
     ASSIGN arealist = ?
            lobarea = ?
            cplist = ?
            collist = ?.
-    FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
-                            AND DICTDB._Area._Area-type = 6
-                            AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
-                            NO-LOCK. 
-      IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
-                                       AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN
+    if lNoarea then
+        lobarea = "".
+    else 
+    do:   
+        FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
+                                AND DICTDB._Area._Area-type = 6
+                                AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
+                                NO-LOCK. 
+          IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
+                                           AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN
+              ASSIGN lobarea = DICTDB._Area._Area-name.
+          IF arealist = ? THEN
+            ASSIGN arealist = DICTDB._Area._Area-name.            
+          ELSE
+            ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
+        END.
+      
+        IF NUM-ENTRIES(arealist) = 1 THEN
+          ASSIGN arealist = arealist.
+        
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
+        
+        IF lobarea = ? THEN
           ASSIGN lobarea = DICTDB._Area._Area-name.
-      IF arealist = ? THEN
-        ASSIGN arealist = DICTDB._Area._Area-name.            
-      ELSE
-        ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
-    END.
-  
-    IF NUM-ENTRIES(arealist) = 1 THEN
-      ASSIGN arealist = arealist.
     
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
+        IF arealist = ? THEN 
+          ASSIGN arealist = DICTDB._Area._Area-name.           
+        ELSE
+          ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
     
-    IF lobarea = ? THEN
-      ASSIGN lobarea = DICTDB._Area._Area-name.
-
-    IF arealist = ? THEN 
-      ASSIGN arealist = DICTDB._Area._Area-name.           
-    ELSE
-      ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME pro-clob = arealist.
+        ASSIGN areaname:LIST-ITEMS IN FRAME pro-clob = arealist.
+    end.
+    
     RUN set-code-page.
+    
     ASSIGN cplist = "*Use DB Code page" + "," + cplist
            collist = "*Use DB Collation"
            cpname:LIST-ITEMS IN FRAME pro-clob = cplist
@@ -960,28 +1056,32 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
            cpname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Code page"
            colname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Collation".
 
-    SET areaname lob-size dfields._Order 
+    SET areaname when lNoArea = false lob-size dfields._Order 
         dfields._Fld-case cpname colname dfields._Desc dfields._Field-name WITH FRAME pro-clob.
   END.
   ELSE DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
- 
-    IF dfields._Field-rpos <> ? THEN DO:
-      FIND _storageobject WHERE _Storageobject._Db-recid = drec_db
-                            AND _Storageobject._Object-type = 3
-                            AND _Storageobject._Object-number = dfields._Fld-stlen
-                           NO-LOCK.
+    if lNoArea then
+       areaname = "".
+    else do:
+        IF dfields._Field-rpos <> ? THEN DO:
+          FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = drec_db
+                                AND dictdb._Storageobject._Object-type = 3
+                                AND dictdb._Storageobject._Object-number = dfields._Fld-stlen
+                                and dictdb._Storageobject._Partitionid = 0
+                               NO-LOCK.
+        
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
     
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = _StorageObject._Area-number NO-LOCK.
-
-    END.
-    ELSE
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dfields._Fld-stlen NO-LOCK.
-
-    ASSIGN areaname:LIST-ITEMS IN FRAME mod-clob = DICTDB._Area._Area-name
-           lob-size = dfields._Fld-Misc2[1]
+        END.
+        ELSE
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = dfields._Fld-stlen NO-LOCK.
+    
+        ASSIGN areaname:LIST-ITEMS IN FRAME mod-clob = DICTDB._Area._Area-name.
+    end.
+    assign   
+          lob-size = dfields._Fld-Misc2[1]
            cpname:LIST-ITEMS IN FRAME mod-clob = dfields._Charset
            colname:LIST-ITEMS IN FRAME mod-clob = dfields._Collation.
-
     DISPLAY dfields._Field-name areaname lob-size dfields._Order dfields._Fld-case
             cpname colname dfields._Desc WITH FRAME mod-clob.
 
@@ -996,10 +1096,10 @@ ELSE DO:
 
   /* Dis-allow duplicate order numbers */
     ON LEAVE OF dfields._Order IN FRAME pro_fld DO:
-      IF CAN-FIND(FIRST _Field WHERE
-                        _Field._File-recid = drec_file AND
-                        _Field._Order = INPUT dfields._Order AND
-                        _Field._Order <> dfields._Order) THEN DO:
+      IF CAN-FIND(FIRST dictdb._Field WHERE
+                        dictdb._Field._File-recid = drec_file AND
+                        dictdb._Field._Order = INPUT dfields._Order AND
+                        dictdb._Field._Order <> dfields._Order) THEN DO:
             MESSAGE "Order number" TRIM(INPUT dfields._Order) "already exists." 
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
             /* set order number back to its current value */

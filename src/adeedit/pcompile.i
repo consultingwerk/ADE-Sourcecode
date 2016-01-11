@@ -534,15 +534,15 @@ PROCEDURE RunFile.
       END. /* IF NOT RETRY */
   
       OUTPUT CLOSE.
-      OS-DELETE VALUE( Compile_FileName ) NO-ERROR.
-      OS-DELETE VALUE( Compiler_Message_Log ) NO-ERROR.
+      OS-DELETE VALUE( Compile_FileName ).
+      OS-DELETE VALUE( Compiler_Message_Log ).
       /* .cls support - remove temp dir. 
        * TO DO: Make sure this does not delete stuff it shouldn't */      
       IF (Edit_Buffer.Class_TmpDir <> ?) THEN
           OS-DELETE VALUE( Edit_Buffer.Class_TmpDir) RECURSIVE.
       /* if a .cls, remove the Run_FileName as well */
       IF (isClass AND Run_Filename <> ?) THEN
-          OS-DELETE VALUE( Run_Filename ) NO-ERROR.
+          OS-DELETE VALUE( Run_Filename ).
 
       /* --- Begin SCM changes --- */
       ASSIGN scm_action = p_Mode. /* RUN, CHECK-SYNTAX, DEBUG */

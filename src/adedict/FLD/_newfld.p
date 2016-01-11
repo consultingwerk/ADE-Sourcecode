@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2008,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ Date Created: 02/05/92
 {adedict/FLD/fldvar.i shared}
 {adedict/capab.i}
 {prodict/pro/fldfuncs.i}
-
+{prodict/pro/arealabel.i}
 
 DEFINE VARIABLE Last_Order AS INTEGER INIT ?. /* YES-UNDO*//* to set _Order field */
 DEFINE VARIABLE Record_Id  AS RECID              NO-UNDO.  /* table record Id */
@@ -63,6 +63,8 @@ DEFINE VARIABLE isodbc     AS LOGICAL INIT FALSE NO-UNDO.
 DEFINE VARIABLE islob      AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE cObjList   AS CHARACTER          NO-UNDO.
 
+define variable NoDefaultArea as logical no-undo.
+define variable AreaList      as character no-undo.
 /* Reminder: Here's what's in user_env:
 
       user_env[11] - the long form of the gateway type (string), i.e., the
@@ -150,9 +152,11 @@ Procedure SetDefaults:
       ASSIGN b_field._Mandatory:SCREEN-VALUE IN FRAME newfld = "no".
     IF b_field._Fld-case:SCREEN-VALUE IN FRAME newfld = "yes" THEN
       ASSIGN b_Field._Fld-case:SCREEN-VALUE IN FRAME newfld = "no".
+    
     ASSIGN b_field._Mandatory:SENSITIVE IN FRAME newfld = NO
            b_field._Fld-case:SENSITIVE IN FRAME newfld = NO
-          s_Fld_array:SENSITIVE IN FRAME newfld = NO.
+           s_Fld_array:SENSITIVE IN FRAME newfld = NO
+           s_lob_Area_mttext:hidden = false.
   END.
   ELSE IF s_Fld_DType:SCREEN-VALUE IN FRAME newfld = "CLOB" THEN DO:
     IF s_Fld_array:SCREEN-VALUE IN FRAME newfld = "yes" THEN
@@ -160,12 +164,14 @@ Procedure SetDefaults:
     IF b_field._Mandatory:SCREEN-VALUE IN FRAME newfld = "yes" THEN
       ASSIGN b_field._Mandatory:SCREEN-VALUE IN FRAME newfld = "no".
     ASSIGN b_field._Mandatory:SENSITIVE IN FRAME newfld = NO
-           s_Fld_array:SENSITIVE IN FRAME newfld = NO.
+           s_Fld_array:SENSITIVE IN FRAME newfld = NO
+           s_lob_Area_mttext:hidden = false.
   END.
   ELSE 
     ASSIGN b_field._Mandatory:SENSITIVE IN FRAME newfld = YES
            b_field._Fld-case:SENSITIVE IN FRAME newfld = YES
-          s_Fld_array:SENSITIVE IN FRAME newfld = YES.
+           s_Fld_array:SENSITIVE IN FRAME newfld = YES
+           s_lob_Area_mttext:hidden = true.
 
   {adedict/FLD/setdflts.i &Frame = "frame newfld"} 
 
@@ -182,94 +188,97 @@ end.
 PROCEDURE setlob:
 
     IF s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "BLOB" OR
-       s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "CLOB" THEN  DO:
+       s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "CLOB" THEN     
+    DO with frame newfld:
 
       /* disable all the fields not applicable to LOBs */
-      ASSIGN s_lob_size:HIDDEN IN FRAME newfld = NO
-             s_lob_Area:HIDDEN IN FRAME newfld = NO
-             s_btn_lob_Area:HIDDEN IN FRAME newfld = NO
+      ASSIGN s_lob_size:HIDDEN  IN FRAME newfld  = NO
+             s_lob_Area:HIDDEN  IN FRAME newfld  = NO  
+             s_btn_lob_Area:HIDDEN  IN FRAME newfld  = NoDefaultArea
              /* all the other ones */
-             b_Field._Format:HIDDEN IN FRAME newfld = YES
-             s_btn_Fld_Format:HIDDEN IN FRAME newfld = YES
-             s_btn_Fld_ViewAs:SENSITIVE in frame newfld = FALSE
-             s_btn_Fld_Validation:SENSITIVE IN FRAME newfld = FALSE
-             s_btn_Fld_Triggers:SENSITIVE IN FRAME newfld = FALSE
-             s_btn_Fld_StringAttrs:SENSITIVE IN FRAME newfld = FALSE
-             b_Field._Label:SENSITIVE IN FRAME newfld = FALSE  	    
-             b_Field._Col-label:SENSITIVE IN FRAME newfld = FALSE   
-             b_Field._Initial:SENSITIVE IN FRAME newfld = FALSE
-             b_Field._Help:SENSITIVE IN FRAME newfld = FALSE 
-             b_Field._Mandatory:SENSITIVE IN FRAME newfld = FALSE
-             s_Fld_Array:SENSITIVE IN FRAME newfld = FALSE.  
+             b_Field._Format:HIDDEN  IN FRAME newfld  = YES
+             s_btn_Fld_Format:HIDDEN  IN FRAME newfld  = YES
+             s_lob_area:SENSITIVE IN FRAME newfld  = NoDefaultArea = false
+             s_btn_lob_Area:SENSITIVE IN FRAME newfld  = NoDefaultArea = false
+             s_btn_Fld_ViewAs:SENSITIVE  IN FRAME newfld  = FALSE
+             s_btn_Fld_Validation:SENSITIVE  IN FRAME newfld  = FALSE
+             s_btn_Fld_Triggers:SENSITIVE  IN FRAME newfld  = FALSE
+             s_btn_Fld_StringAttrs:SENSITIVE  IN FRAME newfld  = FALSE
+             b_Field._Label:SENSITIVE  IN FRAME newfld  = FALSE  	    
+             b_Field._Col-label:SENSITIVE  IN FRAME newfld  = FALSE   
+             b_Field._Initial:SENSITIVE  IN FRAME newfld  = FALSE
+             b_Field._Help:SENSITIVE  IN FRAME newfld  = FALSE 
+             b_Field._Mandatory:SENSITIVE  IN FRAME newfld  = FALSE
+             s_Fld_Array:SENSITIVE  IN FRAME newfld  = FALSE.  
 
       /* make sure the fields are enabled, if here for the first time */
-      IF s_lob_size:SENSITIVE = NO THEN
-         ASSIGN s_lob_size:SENSITIVE  = YES.
-
-      IF s_lob_area:SENSITIVE = NO THEN
-         ASSIGN s_lob_area:SENSITIVE = YES
-                s_btn_lob_Area:SENSITIVE = YES.
-
+      IF s_lob_size:SENSITIVE IN FRAME newfld  = NO THEN
+         ASSIGN s_lob_size:SENSITIVE  IN FRAME newfld  = YES.
+      
+      if NoDefaultArea then
+          s_lob_area:screen-value IN FRAME newfld  = "".
+       
+        
       /* some are specific to CLOBs */
-      IF s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "CLOB" THEN DO:
+      IF s_Fld_Dtype:SCREEN-VALUE  IN FRAME newfld  = "CLOB" THEN DO:
          ASSIGN
-               s_clob_cp:HIDDEN IN FRAME newfld = FALSE
-               s_clob_col:HIDDEN IN FRAME newfld = FALSE
-               s_btn_clob_cp:HIDDEN IN FRAME newfld = FALSE
-               s_btn_clob_col:HIDDEN IN FRAME newfld = FALSE
+               s_clob_cp:HIDDEN  IN FRAME newfld  = FALSE
+               s_clob_col:HIDDEN  IN FRAME newfld  = FALSE
+               s_btn_clob_cp:HIDDEN  IN FRAME newfld  = FALSE
+               s_btn_clob_col:HIDDEN  IN FRAME newfld  = FALSE
                /* the ones at the same position must be hidden */
-               b_Field._Label:HIDDEN IN FRAME newfld = TRUE
-               b_Field._Col-label:HIDDEN IN FRAME newfld = TRUE.
+               b_Field._Label:HIDDEN  IN FRAME newfld  = TRUE
+               b_Field._Col-label:HIDDEN  IN FRAME newfld  = TRUE.
 
-         IF s_clob_cp:SENSITIVE = NO THEN
-            ASSIGN s_clob_cp:SENSITIVE  = TRUE
-                   s_btn_clob_cp:SENSITIVE  = TRUE.
+         IF s_clob_cp:SENSITIVE IN FRAME newfld  = NO THEN
+            ASSIGN s_clob_cp:SENSITIVE  IN FRAME newfld  = TRUE
+                   s_btn_clob_cp:SENSITIVE  IN FRAME newfld  = TRUE.
 
-         IF s_clob_col:SENSITIVE = NO THEN
-            ASSIGN s_clob_col:SENSITIVE  = TRUE
-                   s_btn_clob_col:SENSITIVE  = TRUE.
+         IF s_clob_col:SENSITIVE IN FRAME newfld  = NO THEN
+            ASSIGN s_clob_col:SENSITIVE  IN FRAME newfld  = TRUE
+                   s_btn_clob_col:SENSITIVE  IN FRAME newfld  = TRUE.
 
       END.
       ELSE DO:   /* must be a BLOB */
           ASSIGN
-                s_clob_cp:HIDDEN IN FRAME newfld = TRUE
-                s_clob_col:HIDDEN IN FRAME newfld = TRUE
-                s_btn_clob_cp:HIDDEN IN FRAME newfld = TRUE
-                s_btn_clob_col:HIDDEN IN FRAME newfld = TRUE
+                s_clob_cp:HIDDEN  IN FRAME newfld  = TRUE
+                s_clob_col:HIDDEN  IN FRAME newfld  = TRUE
+                s_btn_clob_cp:HIDDEN  IN FRAME newfld  = TRUE
+                s_btn_clob_col:HIDDEN  IN FRAME newfld  = TRUE
                 /* the ones at the same position must be hidden */
-                b_Field._Label:HIDDEN IN FRAME newfld = FALSE
-                b_Field._Col-label:HIDDEN IN FRAME newfld = FALSE.
+                b_Field._Label:HIDDEN  IN FRAME newfld  = FALSE
+                b_Field._Col-label:HIDDEN  IN FRAME newfld  = FALSE.
       END.
     END.
-    ELSE  DO:
+    ELSE  DO with frame newfld:
         /* not a LOB field, enable all the fields except for the ones specific
           for LOBs
         */
-        ASSIGN s_lob_size:HIDDEN IN FRAME newfld = TRUE
-               s_lob_Area:HIDDEN IN FRAME newfld = TRUE
-               s_btn_lob_Area:HIDDEN IN FRAME newfld = TRUE
-               s_clob_cp:HIDDEN IN FRAME newfld = TRUE
-               s_clob_col:HIDDEN IN FRAME newfld = TRUE
-               s_btn_clob_cp:HIDDEN IN FRAME newfld = TRUE
-               s_btn_clob_col:HIDDEN IN FRAME newfld = TRUE
+        ASSIGN s_lob_size:HIDDEN  IN FRAME newfld  = TRUE
+               s_lob_Area:HIDDEN  IN FRAME newfld  = TRUE
+               s_btn_lob_Area:HIDDEN  IN FRAME newfld  = TRUE
+               s_clob_cp:HIDDEN  IN FRAME newfld  = TRUE
+               s_clob_col:HIDDEN  IN FRAME newfld  = TRUE
+               s_btn_clob_cp:HIDDEN  IN FRAME newfld  = TRUE
+               s_btn_clob_col:HIDDEN  IN FRAME newfld  = TRUE
                /* all the other ones */
-               b_Field._Format:HIDDEN IN FRAME newfld = FALSE
-               s_btn_Fld_Format:HIDDEN IN FRAME newfld = FALSE
-               b_Field._Label:HIDDEN IN FRAME newfld = FALSE  	    
-               b_Field._Col-label:HIDDEN IN FRAME newfld = FALSE   
-               s_btn_Fld_ViewAs:SENSITIVE in frame newfld = FALSE
-               s_btn_Fld_ViewAs:SENSITIVE in frame newfld = TRUE
-               s_btn_Fld_Validation:SENSITIVE IN FRAME newfld = TRUE
-               s_btn_Fld_Triggers:SENSITIVE IN FRAME newfld = TRUE
-               s_btn_Fld_StringAttrs:SENSITIVE IN FRAME newfld = TRUE
-               b_Field._Label:SENSITIVE IN FRAME newfld = TRUE  	    
-               b_Field._Col-label:SENSITIVE IN FRAME newfld = TRUE   
-               b_Field._Initial:SENSITIVE IN FRAME newfld = TRUE
-               b_Field._Help:SENSITIVE IN FRAME newfld = TRUE 
-               b_Field._Mandatory:SENSITIVE IN FRAME newfld = TRUE
-               s_Fld_Array:SENSITIVE IN FRAME newfld = TRUE.  
+               b_Field._Format:HIDDEN  IN FRAME newfld  = FALSE
+               s_btn_Fld_Format:HIDDEN  IN FRAME newfld  = FALSE
+               b_Field._Label:HIDDEN  IN FRAME newfld  = FALSE  	    
+               b_Field._Col-label:HIDDEN  IN FRAME newfld  = FALSE   
+               s_btn_Fld_ViewAs:SENSITIVE  IN FRAME newfld  = FALSE
+               s_btn_Fld_ViewAs:SENSITIVE  IN FRAME newfld  = TRUE
+               s_btn_Fld_Validation:SENSITIVE  IN FRAME newfld  = TRUE
+               s_btn_Fld_Triggers:SENSITIVE  IN FRAME newfld  = TRUE
+               s_btn_Fld_StringAttrs:SENSITIVE  IN FRAME newfld  = TRUE
+               b_Field._Label:SENSITIVE  IN FRAME newfld  = TRUE  	    
+               b_Field._Col-label:SENSITIVE  IN FRAME newfld  = TRUE   
+               b_Field._Initial:SENSITIVE  IN FRAME newfld  = TRUE
+               b_Field._Help:SENSITIVE  IN FRAME newfld  = TRUE 
+               b_Field._Mandatory:SENSITIVE  IN FRAME newfld  = TRUE
+               s_Fld_Array:SENSITIVE  IN FRAME newfld  = TRUE.  
     END.
-
+ 
 END.
 
 /*===============================Triggers====================================*/
@@ -373,22 +382,28 @@ do:
 
      /* for clob/blobs, we have some additional fields to populate */
      IF islob THEN DO:
-          FIND _Area WHERE _Area._Area-name = s_lob_area:SCREEN-VALUE IN FRAME newfld NO-ERROR.
-          IF AVAILABLE _Area THEN DO:
-            ASSIGN b_field._Fld-stlen = _Area._Area-number
-                   b_Field._Width = s_lob_wdth
-                   b_Field._Fld-Misc2[1] = CAPS(INPUT FRAME newfld s_lob_size).
-            IF b_field._Initial <> ? THEN
-              ASSIGN b_field._Initial = ?.
+         if NoDefaultArea then
+             b_field._Fld-stlen = 0.
+         else do:
+            FIND dictdb._Area WHERE dictdb._Area._Area-name = s_lob_area:SCREEN-VALUE IN FRAME newfld NO-ERROR.
+            IF AVAILABLE dictdb._Area THEN 
+            DO:
+                ASSIGN b_field._Fld-stlen = dictdb._Area._Area-number
+                       b_Field._Width = s_lob_wdth
+                       b_Field._Fld-Misc2[1] = CAPS(INPUT FRAME newfld s_lob_size).
+                IF b_field._Initial <> ? THEN
+                    ASSIGN b_field._Initial = ?.
             
-            RELEASE _Area.
+                RELEASE dictdb._Area.
 
-          END.
-          ELSE MESSAGE "Area " s_lob_area:SCREEN-VALUE IN FRAME newfld " is not valid"
-               VIEW-AS ALERT-BOX.
-
+            END.
+            ELSE MESSAGE "Area " s_lob_area:SCREEN-VALUE IN FRAME newfld " is not valid"
+                 VIEW-AS ALERT-BOX.
+         end.
+         
+            
           /* some are specific to CLOB fields */
-          IF s_Fld_Protype = "CLOB" THEN DO:
+         IF s_Fld_Protype = "CLOB" THEN DO:
 
               IF _Db._Db-xl-name = "undefined" AND 
                 s_clob_cp:SCREEN-VALUE = "*Use DB Code Page"  THEN DO:
@@ -434,6 +449,7 @@ do:
    /* Will only get here if there's an error. */
    run adecomm/_setcurs.p ("").
    s_OK_Hit = no.
+ 
    return NO-APPLY.
 end.
 
@@ -444,7 +460,7 @@ do:
      RUN setlob.    
 
      /*Assign s_fld_dtype to stop leave trigger from firing */
-   ASSIGN s_fld_dtype = s_Fld_Dtype:SCREEN-VALUE.
+   ASSIGN s_fld_dtype = s_Fld_Dtype:SCREEN-VALUE in frame newfld.
 end.
 
 
@@ -452,13 +468,13 @@ end.
 
 ON LEAVE OF s_Fld_DType IN FRAME newfld,
             s_btn_Fld_DType IN FRAME newfld,
-            s_lst_Fld_DType IN FRAME newfld
-DO:
+            s_lst_Fld_DType IN FRAME newfld 
+DO :
    DEFINE VARIABLE lob AS LOGICAL NO-UNDO.
 
-   ASSIGN cObjList = STRING(s_Fld_DType:HANDLE) + ',' +
-                     STRING(s_btn_Fld_DType:HANDLE) + ',' +
-                     STRING(s_lst_Fld_DType:HANDLE).
+   ASSIGN cObjList = STRING(s_Fld_DType:HANDLE in frame newfld) + ',' +
+                     STRING(s_btn_Fld_DType:HANDLE in frame newfld) + ',' +
+                     STRING(s_lst_Fld_DType:HANDLE in frame newfld).
 
    /* If the ENTRY and LEAVE fields are part of the mock combo-box then
       we don't want to fire the leave event. */
@@ -510,28 +526,33 @@ end.
 on choose of s_btn_Fld_Format in frame newfld
 do:
    Define var fmt as CHAR  NO-UNDO.
-   IF s_Fld_DType:SCREEN-VALUE = "BLOB" OR s_Fld_DType:SCREEN-VALUE = "CLOB" THEN RETURN NO-APPLY.
-   /* Allow user to pick a different format from examples */
-   fmt = input frame newfld b_Field._Format.
-   run adedict/FLD/_fldfmts.p (INPUT s_Fld_Typecode, INPUT-OUTPUT fmt).
-   b_Field._Format:SCREEN-VALUE in frame newfld = fmt .
+   
+   do with frame newfld:
+      IF s_Fld_DType:SCREEN-VALUE in frame newfld = "BLOB" OR s_Fld_DType:SCREEN-VALUE in frame newfld = "CLOB" THEN RETURN NO-APPLY.
+      /* Allow user to pick a different format from examples */
+      fmt = input frame newfld b_Field._Format.
+      run adedict/FLD/_fldfmts.p (INPUT s_Fld_Typecode, INPUT-OUTPUT fmt).
+      b_Field._Format:SCREEN-VALUE in frame newfld = fmt .
+   end.
 end.
 
 
 /*----- VALUE-CHANGED of ARRAY TOGGLE -----*/
 on value-changed of s_Fld_Array in frame newfld
 do:
-   IF s_Fld_DType:SCREEN-VALUE = "BLOB" OR s_Fld_DType:SCREEN-VALUE = "CLOB" THEN RETURN NO-APPLY.
-   if SELF:screen-value = "yes" then
-   do:
-      b_Field._Extent:sensitive in frame newfld = true.
-      b_Field._Extent:screen-value = "1".  /* default to non-zero value */
-      apply "entry" to b_Field._Extent in frame newfld.
+   do with frame newfld:
+       IF s_Fld_DType:SCREEN-VALUE in frame newfld = "BLOB" OR s_Fld_DType:SCREEN-VALUE in frame newfld = "CLOB" THEN RETURN NO-APPLY.
+       if SELF:screen-value = "yes" then
+       do:
+          b_Field._Extent:sensitive in frame newfld = true.
+          b_Field._Extent:screen-value in frame newfld  = "1".  /* default to non-zero value */
+          apply "entry" to b_Field._Extent in frame newfld.
+       end.
+       else 
+          assign
+          	 b_Field._Extent:sensitive in frame newfld = false
+          	 b_Field._Extent:screen-value in frame newfld = "0".
    end.
-   else 
-      assign
-      	 b_Field._Extent:sensitive in frame newfld = false
-      	 b_Field._Extent:screen-value in frame newfld = "0".
 end.
 
 
@@ -539,8 +560,8 @@ end.
 on choose of s_btn_Fld_Copy in frame newfld
 do:
    if INDEX(s_Fld_Capab, {&CAPAB_COPY}) = 0 THEN
-        IF NOT (isodbc AND _file._For-Type = "BUFFER" AND
-                _File._For-Owner = ? AND _File._For-Name = "NONAME") THEN
+        IF NOT (isodbc AND dictdb._file._For-Type = "BUFFER" AND
+                dictdb._File._For-Owner = ? AND dictdb._File._For-Name = "NONAME") THEN
         do:
             message "You may not copy fields for this database type."
       	         view-as ALERT-BOX ERROR buttons OK.
@@ -557,19 +578,21 @@ end.
 /*----- HIT of VIEW-AS BUTTON -----*/
 on choose of s_btn_Fld_ViewAs in frame newfld
 do:
-   Define var no_name as logical NO-UNDO.
-   Define var mod     as logical NO-UNDO.
-   
-   {adedict/forceval.i}  /* force leave trigger to fire */
-   IF s_Fld_DType:SCREEN-VALUE = "BLOB" OR s_Fld_DType:SCREEN-VALUE = "CLOB" THEN RETURN NO-APPLY.
-   run adedict/_blnknam.p
-      (INPUT b_Field._Field-name:HANDLE in frame newfld,
-       INPUT "field", OUTPUT no_name).
-   if no_name then return NO-APPLY.
-
-   run adecomm/_viewas.p (INPUT s_Fld_ReadOnly, INPUT s_Fld_Typecode,
-      	       	     	  INPUT s_Fld_ProType, 
-      	       	     	  INPUT-OUTPUT b_Field._View-as, OUTPUT mod).
+    Define var no_name as logical NO-UNDO.
+    Define var mod     as logical NO-UNDO.
+    do with frame newfld:
+        {adedict/forceval.i}  /* force leave trigger to fire */
+        IF s_Fld_DType:SCREEN-VALUE in frame newfld = "BLOB" OR s_Fld_DType:SCREEN-VALUE in frame newfld = "CLOB" THEN 
+            RETURN NO-APPLY.
+        run adedict/_blnknam.p
+          (INPUT b_Field._Field-name:HANDLE in frame newfld,
+           INPUT "field", OUTPUT no_name).
+        if no_name then return NO-APPLY.
+    
+        run adecomm/_viewas.p (INPUT s_Fld_ReadOnly, INPUT s_Fld_Typecode,
+          	       	     	  INPUT s_Fld_ProType, 
+          	       	     	  INPUT-OUTPUT b_Field._View-as, OUTPUT mod).
+    end. 
 end.
 
 /*---------- LEAVE OF ORDER FIELD ---------*/
@@ -579,11 +602,11 @@ DO:
       IF b_Field._Order = INT(b_Field._Order:SCREEN-VALUE IN FRAME newfld) THEN
          LEAVE. 
       /* Is the new order number a duplicate?  Don't allow it.  */
-      IF CAN-FIND(FIRST _Field WHERE
-                        _Field._File-recid = s_TblRecId AND
-                        _Field._Order =
+      IF CAN-FIND(FIRST dictdb._Field WHERE
+                        dictdb._Field._File-recid = s_TblRecId AND
+                        dictdb._Field._Order =
 			INT(b_Field._Order:SCREEN-VALUE IN FRAME newfld) AND
-			_Field._Order <> b_Field._Order) THEN 
+			dictdb._Field._Order <> b_Field._Order) THEN 
       DO:
 	 MESSAGE "Order number " +
 	 TRIM(b_Field._Order:SCREEN-VALUE IN FRAME newfld) "already exists." 
@@ -604,11 +627,11 @@ on HELP of frame newfld OR choose of s_btn_Help in frame newfld
 Define var msg     as char NO-UNDO.
 Define var copytbl as char NO-UNDO init "".
 Define var copyfld as char NO-UNDO init "".
-
-find _File WHERE _File._File-name =  "_Field"
-             AND _File._Owner = "PUB"
+ 
+find dictdb._File WHERE dictdb._File._File-name =  "_Field"
+             AND dictdb._File._Owner = "PUB"
              NO-LOCK.
-if NOT can-do(_File._Can-create, USERID("DICTDB")) then
+if NOT can-do(dictdb._File._Can-create, USERID("DICTDB")) then
 do:
    if s_CurrObj = {&OBJ_FLD} then
       msg = "create fields.".
@@ -618,11 +641,15 @@ do:
    return.
 end.
 
-find _File where RECID(_File) = s_TblRecId.
+find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+
+if dictdb._File._file-attributes[1] and dictdb._File._file-attributes[2] = false then
+    NoDefaultArea = true.
+     
 msg = "".
-if _File._Db-lang >= {&TBLTYP_SQL} then
+if dictdb._File._Db-lang >= {&TBLTYP_SQL} then
    msg = "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/ADD COLUMN.".
-else if _File._Frozen then  
+else if dictdb._File._Frozen then  
    msg = "This table is frozen and cannot be modified.".
 if msg <> "" then
 do:
@@ -634,6 +661,8 @@ end.
 odbtyp = { adecomm/ds_type.i
            &direction = "ODBC"
            &from-type = "odbtyp"}.
+
+ 
            
 /* See if this db is an ODBC db */      
 IF CAN-DO(odbtyp, s_DbCache_Type[s_DbCache_ix]) THEN ASSIGN isodbc = yes.
@@ -643,8 +672,8 @@ run adedict/_capab.p (INPUT {&CAPAB_FLD}, OUTPUT s_Fld_Capab).
 
 /* allow add if ODBC BUFFER table */
 if INDEX(s_Fld_Capab, {&CAPAB_ADD}) = 0 THEN
-    IF NOT (isodbc AND _file._For-Type = "BUFFER" AND
-            _File._For-Owner = ? AND _File._For-Name = "NONAME") THEN
+    IF NOT (isodbc AND dictdb._file._For-Type = "BUFFER" AND
+            dictdb._File._For-Owner = ? AND dictdb._File._For-Name = "NONAME") THEN
     do:
         message "You may not add a field definition for this database type."
             view-as ALERT-BOX ERROR buttons OK.
@@ -677,6 +706,7 @@ assign
    s_btn_Fld_Gateway:sensitive in frame newfld = 
       (if IsPro then no else yes)
     s_btn_toint64:HIDDEN in frame newfld = yes.
+ 
 
 /* specific to LOB fields */
 ASSIGN s_lob_size:HIDDEN IN FRAME newfld = YES
@@ -689,6 +719,7 @@ ASSIGN s_lob_size:HIDDEN IN FRAME newfld = YES
 
 /* Adjust the data type fill-in and list: font and width. */
 {adedict/FLD/dtwidth.i &Frame = "Frame newfld" &Only1 = "FALSE"}
+ 
 
 /* Run time layout for button area.  This defines eff_frame_width 
    Since this is a shared frame we have to avoid doing this code 
@@ -719,55 +750,37 @@ run SetDataTypes.
       	       	  &CBList = "s_lst_Fld_DType"
       	       	  &CBBtn  = "s_btn_Fld_DType"
      	       	  &CBInit = """"}
-                  
-
+ 
 /* FILL THE SELECTION LIST OF AREAS FOR BLOB / CLOB FIELDS */
 
-FIND DICTDB._Db WHERE RECID(_Db) = _File._Db-recid NO-LOCK.
+FIND DICTDB._Db WHERE RECID(_Db) = dictdb._File._Db-recid NO-LOCK.
 
 s_lst_lob_area:list-items in frame newfld = "".
+s_lob_Area_mttext:screen-value in frame newfld = "(for default tenant)".
+s_lob_Area_mttext:hidden in frame newfld  = true.
+/* use other delimiter in case area name has comma */
+s_lst_lob_area:DELIMITER in frame newfld = CHR(1).
 
-IF _File._For-type <> ? THEN
-  ASSIGN s_lob_Area = "N/A".
-ELSE DO:
-  IF _File._File-number <> ? THEN DO:
-    FIND _storageobject WHERE _Storageobject._Db-recid      = s_DbRecId AND 
-                              _Storageobject._Object-type   = 1         AND 
-                              _Storageobject._Object-number = _File._File-Number NO-LOCK.
-
-    IF AVAILABLE _StorageObject THEN
-      FIND DICTDB._Area 
-         WHERE DICTDB._Area._Area-number = _StorageObject._Area-number NO-LOCK.
-    ELSE
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 6 NO-LOCK.
-  END.
-  ELSE
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-num = _File._ianum.
-
-  ASSIGN s_lob_Area = DICTDB._Area._Area-name.
+IF dictdb._File._For-type <> ? 
+OR (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) THEN
+  ASSIGN s_lob_Area = "".
+ELSE DO with frame newfld:   
+   run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld , output AreaList).
+   assign
+       s_lst_lob_area:list-items in frame newfld = AreaList
+       /* NOTE: entry will realize fldprop unless in frame is used (in spite of do with frame)*/
+       s_lob_Area = s_lst_lob_area:entry(1) in frame newfld
+       bnum = s_lst_lob_area:num-items in frame newfld 
+       s_lst_lob_area:inner-lines in frame newfld = min(bnum,10). 
+ 
 END.
-
-FOR EACH DICTDB._Area FIELDS (_Area-num _Area-type _Area-name) WHERE DICTDB._Area._Area-num > 6 
-                    AND DICTDB._Area._Area-type = 6 
-                    AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
-
-    IF DICTDB._Area._Area-name = s_lob_Area THEN
-       s_res = s_lst_lob_area:ADD-FIRST(DICTDB._Area._Area-name) in frame newfld.
-    ELSE
-       s_res = s_lst_lob_area:add-last(DICTDB._Area._Area-name) in frame newfld.
-END.
-FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-ASSIGN s_res = s_lst_lob_area:add-last(DICTDB._Area._Area-name) in frame newfld
-     bnum = s_lst_lob_area:num-items in frame newfld
-     s_lst_lob_area:inner-lines in frame newfld = (if bnum <= 5 then bnum else 5). 
-
-
+ 
 /* fill Area combo box */
 {adecomm/cbdrop.i &Frame  = "frame newfld"
-                &CBFill = "s_lob_Area"
-                &CBList = "s_lst_lob_area"
-                &CBBtn  = "s_btn_lob_Area"
-                &CBInit = """"}
+                  &CBFill = "s_lob_Area"
+                  &CBList = "s_lst_lob_area"
+                  &CBBtn  = "s_btn_lob_Area"
+                  &CBInit = """"}
 
 /* FILL IN LIST OF CODE PAGES AND COLLATIONS FOR CLOB FIELDS */
 ASSIGN s_clob_cp = "*Use DB Code Page"
@@ -811,12 +824,16 @@ s_Status = "".
 display s_Status with frame newfld.
 ASSIGN s_btn_Done:label in frame newfld = "Cancel".      
 
+/*setAreaLabel(s_lob_Area:handle in FRAME newfld,dictdb._File._File-Attributes[1]).*/
+ 
 /* if this is a LOB field, we have less fields to enable now */
-IF islob THEN DO:
+IF islob THEN DO:  
+   if dictdb._File._File-Attributes[1] and dictdb._File._File-Attributes[2] then 
+       s_lob_Area_mttext:hidden  = false.        
    enable b_Field._Field-Name 
           s_Fld_DType
-          s_lob_area
-          s_btn_lob_Area
+          s_lob_area when NoDefaultarea = false
+          s_btn_lob_Area when NoDefaultarea = false
           b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
           s_lob_size
           b_Field._Desc
@@ -827,6 +844,8 @@ IF islob THEN DO:
          with frame newfld.   
 END.
 ELSE DO:
+s_lob_Area_mttext:hidden  = true.
+   
 enable b_Field._Field-Name  
        s_btn_Fld_Copy
        s_Fld_DType          
@@ -855,6 +874,7 @@ enable b_Field._Field-Name
        with frame newfld.
 
 END.
+ 
 
 /* The rule is ENABLE effects the TAB order but x:SENSITIVE = yes does not. 
    Now readjust tab orders for stuff not in the ENABLE set but
@@ -886,11 +906,13 @@ assign
    s_Res = s_btn_clob_col:MOVE-AFTER-TAB-ITEM
                 (s_clob_col:HANDLE IN FRAME newfld) IN FRAME newfld
    .
+ 
    
 /* Each add will be a subtransaction. */
 s_OK_Hit = no.
 add_subtran:
 repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
+   
    /* Do this up top here, to be sure we committed the last create */
    if s_OK_Hit then leave add_subtran.
 
@@ -902,6 +924,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       /* This will copy fields and end the sub-transaction so that "Done" 
       	 will not undo it. */
       Copy_Hit = false.  /* reset flag */
+      
       run adedict/FLD/_fldcopy.p (INPUT-OUTPUT Last_Order,
       	       	     	      	 OUTPUT copytbl, OUTPUT copyfld,
       	       	     	      	 OUTPUT copied).
@@ -910,6 +933,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	 display "Copy Completed" @ s_Status with frame newfld.
       	 added = yes.
       end.
+   
    end.
    else do:
       create b_Field.
@@ -917,114 +941,121 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       /* default a unique order # */
       if Last_Order = ? then
       do:
-	 find LAST _Field USE-INDEX _Field-Position 
-	    where _Field._File-recid = Record_Id NO-ERROR.
-	 Last_Order = (if AVAILABLE _Field then _Field._Order + 10 else 10).
+	      find LAST dictdb._Field USE-INDEX _Field-Position 
+	           where dictdb._Field._File-recid = Record_Id NO-ERROR.
+	      Last_Order = (if AVAILABLE dictdb._Field then dictdb._Field._Order + 10 else 10).
       end.
       else
-	 Last_Order = Last_Order + 10.
+	      Last_Order = Last_Order + 10.
 
       if copytbl = "" then
       do:
-      	 /* This is a brand new field */
+      	  /* This is a brand new field */
 
-	 b_Field._Order = Last_Order.
+	      b_Field._Order = Last_Order.
     
-	 /* Set defaults based on the current data type (either the first
-	    in the list or whatever was chosen last time).
-	 */
-	 run SetDefaults.
+    	 /* Set defaults based on the current data type (either the first
+    	    in the list or whatever was chosen last time).
+    	 */
+    	 run SetDefaults.
+        
+    	 /* Reset some other default values */
+    	 assign
+    	    s_Fld_Array = false
+    	    b_Field._Extent:screen-value in frame newfld  = "0"
+    	    b_Field._Extent:sensitive in frame newfld = no
+    	    b_Field._Fld-case:screen-value in frame newfld = "no".
     
-	 /* Reset some other default values */
-	 assign
-	    s_Fld_Array = false
-	    b_Field._Extent:screen-value in frame newfld  = "0"
-	    b_Field._Extent:sensitive in frame newfld = no
-	    b_Field._Fld-case:screen-value in frame newfld = "no".
-
-     /* defauts for lob fields */
-     ASSIGN  s_lob_size = "100M"
-             s_lob_size:SCREEN-VALUE IN FRAME newfld = s_lob_size
-             s_lob_wdth = 104857600.
-
-      	 /* Display any remaining attributes */
-	 display "" @ b_Field._Field-Name /* blank instead of ? */
-      	       	 s_Optional
-		 b_Field._Label     WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-		 b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-		 b_Field._Mandatory
-		 b_Field._Help
-		 b_Field._Desc 
-		 b_Field._Order
-		 s_Fld_Array
-		 with frame newfld.       
-      end.
+         /* defauts for lob fields */
+         ASSIGN  s_lob_size = "100M"
+                 s_lob_size:SCREEN-VALUE IN FRAME newfld = s_lob_size
+                 s_lob_wdth = 104857600.
+    
+          	 /* Display any remaining attributes */
+    	 display "" @ b_Field._Field-Name /* blank instead of ? */
+          	       	 s_Optional
+    		 b_Field._Label     WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+    		 b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+    		 b_Field._Mandatory
+    		 b_Field._Help
+    		 b_Field._Desc 
+    		 b_Field._Order
+    		 s_Fld_Array
+    		 with frame newfld.       
+      end. /* copytbl = "" */
       else do:  
       	 /* Set the field values based on a field chosen as a template
       	    in the Copy dialog box.
       	 */
-      	 find _File where _File._Db-recid = s_DbRecId AND
-      	       	     	  _File._File-name = copytbl AND
-                         ( _File._Owner = "PUB"  OR _File._Owner = "FOREIGN").
-      	 find _Field of _File where _Field._Field-name = copyfld.
+      	 find dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+      	       	     	   dictdb._File._File-name = copytbl AND
+                         ( dictdb._File._Owner = "PUB"  OR dictdb._File._Owner = "FOREIGN").
+      	 find dictdb._Field where dictdb._Field._File-recid = recid(dictdb._File) 
+      	                    and   dictdb._Field._Field-name = copyfld.
          
       	 assign
-      	    b_Field._Field-name = _Field._Field-name
-      	    b_Field._Data-type  = _Field._Data-type
-      	    b_Field._Format     = _Field._Format
-      	    b_Field._Initial    = _Field._Initial
+      	    b_Field._Field-name = dictdb._Field._Field-name
+      	    b_Field._Data-type  = dictdb._Field._Data-type
+      	    b_Field._Format     = dictdb._Field._Format
+      	    b_Field._Initial    = dictdb._Field._Initial
       	    b_Field._Order    	= Last_Order.
-      	 {prodict/dump/copy_fld.i &from=_Field &to=b_Field &all=false}
+      	 {prodict/dump/copy_fld.i &from=dictdb._Field &to=b_Field &all=false}
 
-         IF (b_field._Data-type = "BLOB" OR b_Field._Data-type = "CLOB") THEN DO:
-            DEFINE BUFFER b_Area FOR _Area.
-            
-            /* Find the storage object so that we can see which area the lob is stored
-               in and then find the area to display the name to the user if record has
-               been committed.  Else find area using number in _fld-stlen 
-               _Fld-stlen holds the object number once the field is created by the Progress client 
-            */
-            IF _Field._Field-rpos <> ? THEN DO: /* if the field was commited */
-               FIND _storageobject WHERE _Storageobject._Db-recid = s_DbRecId
-                                     AND _Storageobject._Object-type = 3
-                                     AND _Storageobject._Object-number = b_Field._Fld-stlen
-                                     NO-LOCK.
-
-               /* _Fld-stlen contains the unique object number once the field is created by the Progress
-                  client. For new fields, we pass the area number in _Fld-stlen, so reset it now. Once
-                  this field is created by the Progress client, it will reassign it to the object number
-               */
-               ASSIGN b_field._Fld-stlen = _StorageObject._Area-number.
-
-               FIND b_Area WHERE b_Area._Area-number = _StorageObject._Area-number NO-LOCK.
-            END.
-            ELSE
-               FIND b_Area WHERE b_Area._Area-number = b_Field._Fld-stlen NO-LOCK.
-
-           ASSIGN s_lob_size:SCREEN-VALUE IN FRAME newfld = _Field._Fld-Misc2[1]
-                  s_lob_wdth = _Field._Width
-                  s_lob_Area:SCREEN-VALUE IN FRAME newfld = b_Area._Area-name.
-
-           RELEASE _storageobject NO-ERROR.
-           RELEASE b_Area.
-
+         IF (b_field._Data-type = "BLOB" OR b_Field._Data-type = "CLOB") then
+         DO:
+            if not NoDefaultArea  THEN 
+                s_lob_Area:SCREEN-VALUE IN FRAME newfld = "".
+    
+            else do:
+                DEFINE BUFFER b_Area FOR dictdb._Area.
+                
+                /* Find the storage object so that we can see which area the lob is stored
+                   in and then find the area to display the name to the user if record has
+                   been committed.  Else find area using number in _fld-stlen 
+                   _Fld-stlen holds the object number once the field is created by the Progress client 
+                */
+                IF dictdb._Field._Field-rpos <> ? THEN DO: /* if the field was commited */
+                   FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = s_DbRecId
+                                              AND dictdb._Storageobject._Object-type = 3
+                                              AND dictdb._Storageobject._Object-number = b_Field._Fld-stlen
+                                              and dictdb._Storageobject._Partitionid = 0
+                                              NO-LOCK.
+    
+                   /* _Fld-stlen contains the unique object number once the field is created by the Progress
+                      client. For new fields, we pass the area number in _Fld-stlen, so reset it now. Once
+                      this field is created by the Progress client, it will reassign it to the object number
+                   */
+                   ASSIGN b_field._Fld-stlen = dictdb._StorageObject._Area-number.
+    
+                   FIND b_Area WHERE b_Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
+                END.
+                ELSE
+                   FIND b_Area WHERE b_Area._Area-number = b_Field._Fld-stlen NO-LOCK.
+    
+               ASSIGN s_lob_size:SCREEN-VALUE IN FRAME newfld = dictdb._Field._Fld-Misc2[1]
+                      s_lob_wdth = dictdb._Field._Width
+                      s_lob_Area:SCREEN-VALUE IN FRAME newfld = b_Area._Area-name.
+    
+               RELEASE dictdb._storageobject NO-ERROR.
+               RELEASE b_Area.
+           end.
          END.
 
          IF b_field._Data-type = "CLOB" THEN DO:
 
            /* set code page and collation just like copied field */
-           IF _Field._Charset = _Db._Db-xl-name THEN
+           IF dictdb._Field._Charset = _Db._Db-xl-name THEN
               ASSIGN s_clob_cp:SCREEN-VALUE IN FRAME newfld = "*Use DB Code Page".
            ELSE                                        
-              ASSIGN s_clob_cp:SCREEN-VALUE IN FRAME newfld =  _Field._Charset.
+              ASSIGN s_clob_cp:SCREEN-VALUE IN FRAME newfld =  dictdb._Field._Charset.
 
            IF b_Field._Collation = _Db._Db-coll-name THEN
               ASSIGN s_clob_col:SCREEN-VALUE IN FRAME newfld = "*Use DB Collation".
            ELSE
-              ASSIGN s_clob_col:SCREEN-VALUE IN FRAME newfld = _Field._Collation.
+              ASSIGN s_clob_col:SCREEN-VALUE IN FRAME newfld = dictdb._Field._Collation.
 
-           ASSIGN b_field._Charset   = _Field._Charset
-                  b_Field._Collation = _Field._Collation.
+           ASSIGN b_field._Charset   = dictdb._Field._Charset
+                  b_Field._Collation = dictdb._Field._Collation.
          END.
 
       	 assign
@@ -1032,34 +1063,34 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	    s_Fld_Array = (if b_Field._Extent > 0 then yes else no)
       	    s_Fld_Protype = b_Field._Data-type
 	        s_Fld_Gatetype = b_Field._For-type
-	        s_Fld_Typecode = _Field._dtype.        
+	        s_Fld_Typecode = dictdb._Field._dtype.        
 
       	 /* Make sensitive/label adjustments to fld-case and _Decimals based
       	    on data type chosen. */
-      	    run adedict/FLD/_dtcust.p 
+      	 run adedict/FLD/_dtcust.p 
       	       (INPUT b_Field._Fld-case:HANDLE in frame newfld,
       	       	INPUT b_Field._Decimals:HANDLE in frame newfld).
 
       	 display
-	    b_Field._Field-name
-        s_Fld_DType
-        s_Optional
-	    b_Field._Format  WHEN NOT islob
-	    s_lob_area       WHEN islob
-	    s_btn_lob_Area   WHEN islob
-	    b_Field._Label   WHEN s_Fld_Typecode <> {&DTYPE_CLOB}  
-	    b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-	    b_Field._Initial   
-
-	    b_Field._Order     
-	    b_Field._Fld-case 	 when s_Fld_Typecode = {&DTYPE_CHARACTER}
-	    b_Field._Decimals  	 when s_Fld_Typecode = {&DTYPE_DECIMAL}
-	    s_lob_size             WHEN islob
-	    b_Field._Mandatory 
-        s_Fld_Array
-	    b_Field._Extent      when b_Field._Extent > 0
-	    b_Field._Desc      
-	    b_Field._Help      
+    	    b_Field._Field-name
+            s_Fld_DType
+            s_Optional
+    	    b_Field._Format  WHEN NOT islob
+    	    s_lob_area       WHEN islob  
+    	    s_btn_lob_Area   WHEN islob  
+    	    b_Field._Label   WHEN s_Fld_Typecode <> {&DTYPE_CLOB}  
+    	    b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+    	    b_Field._Initial   
+    
+    	    b_Field._Order     
+    	    b_Field._Fld-case 	 when s_Fld_Typecode = {&DTYPE_CHARACTER}
+    	    b_Field._Decimals  	 when s_Fld_Typecode = {&DTYPE_DECIMAL}
+    	    s_lob_size             WHEN islob
+    	    b_Field._Mandatory 
+            s_Fld_Array
+    	    b_Field._Extent      when b_Field._Extent > 0
+    	    b_Field._Desc      
+    	    b_Field._Help      
       	    with frame newfld.
 
       	 /* Reset the drop down value for data types */
@@ -1084,14 +1115,14 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	       	     	 s_btn_Fld_Copy in frame newfld OR
       	       GO of frame newfld
       	       FOCUS b_Field._Field-Name in frame newfld.
-
+       
       /* Undo the create of b_Field so that when we repeat we don't end up
 	 with a bogus field with all unknown values. */
       if Copy_Hit then
 	 undo add_subtran, next add_subtran.
    end.
 end.
-
 hide frame newfld. 
+ 
 return.
 

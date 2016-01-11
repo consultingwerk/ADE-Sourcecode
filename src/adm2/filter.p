@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -1214,7 +1214,6 @@ PROCEDURE applyFilter :
                                     cValue).
     END.                             
 
-
       /* Should we add the rangefield screen-value  
          Note that blank is not supported */
     lRange = VALID-HANDLE(hRangeField) AND hRangeField:MODIFIED AND
@@ -1259,8 +1258,8 @@ PROCEDURE applyFilter :
     
     IF lRange THEN    
       ASSIGN
-        /*  We may gave blank entries so we cannot do 'if  = '' and 
-           this also is a problem when trying to trim, so we use a logical */ 
+        /*  We may have blank entries so we cannot do 'if  = '' and 
+            this also is a problem when trying to trim, so we use a logical */ 
          lFirst          = cFieldNames = "":U  
          cFieldNames     = (IF lFirst THEN cField 
                             ELSE           cFieldNames + ",":U + cField) 
@@ -1269,7 +1268,7 @@ PROCEDURE applyFilter :
          cFieldValues    = (IF lFirst 
                             THEN '':U
                             ELSE cFieldValues + CHR(1))
-                         + (IF hRangeField:SCREEN-VALUE = ? THEN '?':U ELSE hRangeField:SCREEN-VALUE).
+                         + (IF hRangeField:INPUT-VALUE = ? THEN '?':U ELSE hRangeField:INPUT-VALUE).
     
   END. /*  do iField = 1 to .. */
   

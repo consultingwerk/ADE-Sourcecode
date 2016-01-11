@@ -56,16 +56,16 @@ DEFINE INPUT PARAMETER hParentWin AS HANDLE NO-UNDO.
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS cname cdesc clabel creplproc cstorarea ~
-cvalexp cvalmsg crtrig repcrtrig deltrig repdeltrig fndtrig repwrtrig ~
-wrtrig bClose bHelp RECT-5 
-&Scoped-Define DISPLAYED-OBJECTS cname cdesc clabel creplproc cstorarea ~
-cvalexp cvalmsg crtrig repcrtrig deltrig repdeltrig fndtrig repwrtrig ~
-wrtrig 
+&Scoped-Define ENABLED-OBJECTS RECT-5 cname cdesc clabel lMultitenant ~
+lKeepDefault cstorarea creplproc cvalexp cvalmsg crtrig repcrtrig deltrig ~
+repdeltrig fndtrig repwrtrig wrtrig bClose bHelp 
+&Scoped-Define DISPLAYED-OBJECTS cname cdesc clabel lMultitenant ~
+lKeepDefault cstorarea creplproc cvalexp cvalmsg crtrig repcrtrig deltrig ~
+repdeltrig fndtrig repwrtrig wrtrig 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -91,120 +91,133 @@ DEFINE BUTTON bHelp
 
 DEFINE VARIABLE cdesc AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
-     SIZE 32 BY 3.33
+     SIZE 38.6 BY 4.95
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE clabel AS CHARACTER FORMAT "X(256)":U 
      LABEL "Label" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1
+     SIZE 34 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
-DEFINE VARIABLE cname AS CHARACTER FORMAT "X(256)":U 
+DEFINE VARIABLE cname AS CHARACTER FORMAT "X(256)":U INITIAL "abcdefghijklmnopqrstuvwxyz" 
      LABEL "Table Name" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1
+     SIZE 34 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE creplproc AS CHARACTER FORMAT "X(256)":U 
      LABEL "Replication" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1
+     SIZE 34 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE crtrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Create" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE cstorarea AS CHARACTER FORMAT "X(256)":U 
      LABEL "Storage Area" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1
+     SIZE 34 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE cvalexp AS CHARACTER FORMAT "X(256)":U 
      LABEL "ValExp" 
      VIEW-AS FILL-IN 
-     SIZE 68 BY 1
+     SIZE 76 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE cvalmsg AS CHARACTER FORMAT "X(256)":U 
      LABEL "ValMsg" 
      VIEW-AS FILL-IN 
-     SIZE 68 BY 1
+     SIZE 76 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE deltrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Delete" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE fndtrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Find" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
+
+DEFINE VARIABLE lKeepDefault AS LOGICAL FORMAT "yes/no":U INITIAL NO 
+     LABEL "Keep Default Area" 
+     VIEW-AS FILL-IN 
+     SIZE 6.8 BY 1
+     BGCOLOR 15  NO-UNDO.
+
+DEFINE VARIABLE lMultitenant AS LOGICAL FORMAT "yes/no":U INITIAL NO 
+     LABEL "Multi-tenant" 
+     VIEW-AS FILL-IN 
+     SIZE 6.8 BY 1
+     BGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE repcrtrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Replication-Create" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE repdeltrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Replication-Delete" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE repwrtrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Replication-Write" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE VARIABLE wrtrig AS CHARACTER FORMAT "X(256)":U 
      LABEL "Write" 
      VIEW-AS FILL-IN 
-     SIZE 27 BY 1
+     SIZE 30 BY 1
      BGCOLOR 15 FGCOLOR 0  NO-UNDO.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 86 BY 5.57.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 92 BY 5.57.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME DEFAULT-FRAME
-     cname AT ROW 1.38 COL 17.2 COLON-ALIGNED
-     cdesc AT ROW 2.57 COL 55 NO-LABEL
-     clabel AT ROW 2.67 COL 17.2 COLON-ALIGNED
-     creplproc AT ROW 4 COL 17.2 COLON-ALIGNED
-     cstorarea AT ROW 5.29 COL 17.2 COLON-ALIGNED
-     cvalexp AT ROW 6.62 COL 17.2 COLON-ALIGNED
-     cvalmsg AT ROW 7.95 COL 17.2 COLON-ALIGNED
-     crtrig AT ROW 9.76 COL 10.8 COLON-ALIGNED
-     repcrtrig AT ROW 9.76 COL 58.2 COLON-ALIGNED
-     deltrig AT ROW 11.05 COL 10.8 COLON-ALIGNED
-     repdeltrig AT ROW 11.05 COL 58.2 COLON-ALIGNED
-     fndtrig AT ROW 12.38 COL 10.8 COLON-ALIGNED
-     repwrtrig AT ROW 12.38 COL 58.2 COLON-ALIGNED
-     wrtrig AT ROW 13.67 COL 10.8 COLON-ALIGNED
-     bClose AT ROW 15.91 COL 20.4
-     bHelp AT ROW 15.91 COL 55.8
-     RECT-5 AT ROW 9.43 COL 3
-     "Triggers" VIEW-AS TEXT
-          SIZE 8.2 BY .62 AT ROW 9.1 COL 5.4
+     cname AT ROW 1.38 COL 17 COLON-ALIGNED
+     cdesc AT ROW 2.67 COL 56.4 NO-LABEL
+     clabel AT ROW 2.71 COL 17 COLON-ALIGNED
+     lMultitenant AT ROW 4 COL 17 COLON-ALIGNED WIDGET-ID 2
+     lKeepDefault AT ROW 4 COL 44 COLON-ALIGNED WIDGET-ID 4
+     cstorarea AT ROW 5.33 COL 17 COLON-ALIGNED
+     creplproc AT ROW 6.62 COL 17 COLON-ALIGNED
+     cvalexp AT ROW 7.91 COL 17 COLON-ALIGNED
+     cvalmsg AT ROW 9.24 COL 17 COLON-ALIGNED
+     crtrig AT ROW 11.14 COL 10.8 COLON-ALIGNED
+     repcrtrig AT ROW 11.14 COL 60.6 COLON-ALIGNED
+     deltrig AT ROW 12.43 COL 10.8 COLON-ALIGNED
+     repdeltrig AT ROW 12.43 COL 60.6 COLON-ALIGNED
+     fndtrig AT ROW 13.76 COL 10.8 COLON-ALIGNED
+     repwrtrig AT ROW 13.76 COL 60.6 COLON-ALIGNED
+     wrtrig AT ROW 15.05 COL 10.8 COLON-ALIGNED
+     bClose AT ROW 17.05 COL 20.4
+     bHelp AT ROW 17.05 COL 60.8
      "Description:" VIEW-AS TEXT
-          SIZE 13 BY .62 AT ROW 1.71 COL 55.8
+          SIZE 13 BY .62 AT ROW 1.76 COL 56.4
+     "Triggers" VIEW-AS TEXT
+          SIZE 8.2 BY .62 AT ROW 10.48 COL 5.4
+     RECT-5 AT ROW 10.81 COL 3
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 91.2 BY 19.05.
+         AT COL 1 ROW 1 SCROLLABLE .
 
 
 /* *********************** Procedure Settings ************************ */
@@ -224,12 +237,12 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW C-Win ASSIGN
          HIDDEN             = YES
          TITLE              = "Table Details"
-         HEIGHT             = 16.62
-         WIDTH              = 91.2
+         HEIGHT             = 18.81
+         WIDTH              = 96
          MAX-HEIGHT         = 20.48
-         MAX-WIDTH          = 92.4
+         MAX-WIDTH          = 101
          VIRTUAL-HEIGHT     = 20.48
-         VIRTUAL-WIDTH      = 92.4
+         VIRTUAL-WIDTH      = 101
          MAX-BUTTON         = no
          RESIZE             = yes
          SCROLL-BARS        = no
@@ -252,7 +265,10 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-                                                                        */
+   FRAME-NAME Size-to-Fit                                               */
+ASSIGN 
+       FRAME DEFAULT-FRAME:SCROLLABLE       = FALSE.
+
 ASSIGN 
        cdesc:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
@@ -282,6 +298,12 @@ ASSIGN
 
 ASSIGN 
        fndtrig:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
+
+ASSIGN 
+       lKeepDefault:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
+
+ASSIGN 
+       lMultitenant:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
 
 ASSIGN 
        repcrtrig:READ-ONLY IN FRAME DEFAULT-FRAME        = TRUE.
@@ -436,12 +458,13 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY cname cdesc clabel creplproc cstorarea cvalexp cvalmsg crtrig 
-          repcrtrig deltrig repdeltrig fndtrig repwrtrig wrtrig 
+  DISPLAY cname cdesc clabel lMultitenant lKeepDefault cstorarea creplproc 
+          cvalexp cvalmsg crtrig repcrtrig deltrig repdeltrig fndtrig repwrtrig 
+          wrtrig 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
-  ENABLE cname cdesc clabel creplproc cstorarea cvalexp cvalmsg crtrig 
-         repcrtrig deltrig repdeltrig fndtrig repwrtrig wrtrig bClose bHelp 
-         RECT-5 
+  ENABLE RECT-5 cname cdesc clabel lMultitenant lKeepDefault cstorarea 
+         creplproc cvalexp cvalmsg crtrig repcrtrig deltrig repdeltrig fndtrig 
+         repwrtrig wrtrig bClose bHelp 
       WITH FRAME DEFAULT-FRAME IN WINDOW C-Win.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
@@ -458,9 +481,14 @@ PROCEDURE refreshTable :
   Notes:       
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER TABLE FOR TableDetails.
-
+ 
   FIND FIRST TableDetails NO-LOCK NO-ERROR.
   IF AVAILABLE TableDetails THEN DO WITH FRAME {&FRAME-NAME}:
+    IF TableDetails.multitenant then
+        cstorarea:label = "Default Area".
+    else    
+        cstorarea:label = "Storage Area".
+        
     ASSIGN 
       cname:SCREEN-VALUE = TableDetails.name
       cdesc:SCREEN-VALUE = TableDetails.tdesc
@@ -474,9 +502,10 @@ DEFINE INPUT PARAMETER TABLE FOR TableDetails.
       repwrtrig:SCREEN-VALUE = TableDetails.repwrtrig
       cvalexp:SCREEN-VALUE = TableDetails.valexp
       cvalmsg:SCREEN-VALUE = TableDetails.valmsg
-      creplproc:SCREEN-VALUE = TableDetails.replproc
-      cstorarea:SCREEN-VALUE = TableDetails.storarea.
-      
+      creplproc:SCREEN-VALUE = TableDetails.replproc   
+      cstorarea:SCREEN-VALUE = TableDetails.storarea
+      lMultitenant:SCREEN-VALUE = string(TableDetails.multitenant)
+      lKeepDefault:SCREEN-VALUE = string(TableDetails.keepdefaultarea).       
     ASSIGN {&WINDOW-NAME}:TITLE = TableDetails.name + " Table Details".
   END.  /* do with frame */
   

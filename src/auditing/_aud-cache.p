@@ -1348,7 +1348,7 @@ DEFINE VARIABLE hBuffer    AS HANDLE    NO-UNDO.
         FIND ttAuditEvent WHERE ttAuditEvent._Event-id = event-id NO-ERROR.
         /* should not happen, but if it does, return an error */
         IF NOT AVAILABLE ttAuditEvent THEN DO:
-            RETURN "Could not find event id " + ENTRY(2, plcData,CHR(1)).
+            RETURN "Could not find event id " + STRING(ENTRY(2, plcData,CHR(1))).
         END.
 
         ASSIGN ttAuditEvent._Event-type = ENTRY(3, plcData,CHR(1))

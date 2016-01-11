@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,6 +29,7 @@ History:
                     will not be overwriting the size info with "?". 
     fernando 06/08/06 Added support for int64
     fernando 04/08/08 Remove time field for ORACLE if changing to datetime
+    sgarg    06/24/10 Reset _Fld-Misc1[7] to ? for MSS if changing from LOB to CHAR.
 
 ----------------------------------------------------------------------------*/
 
@@ -54,6 +55,7 @@ Define var stat     as logical 	       	   NO-UNDO.
 Define var num      as integer	       	   NO-UNDO.
 
 DEFINE BUFFER tmpField FOR DICTDB._Field.
+DEFINE BUFFER tmpFile  FOR DICTDB._File.
 
 current-window = s_win_Fld.
 
@@ -96,6 +98,20 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
              /* remove it from the browse view */
             stat = s_lst_Flds:delete(tmpField._field-name) in frame browse.
             DELETE tmpField. /* delete it */
+         END.
+      END.
+
+      /* if changing mapping for a field from LOB to CHAR in an MSS stored procedure,
+         reset _fld-misc1[7] from 1 to ?.
+      */
+      IF s_DbCache_Type[s_DbCache_ix] = "MSS" AND
+         (b_field._dtype = {&DTYPE_CLOB} OR b_field._dtype = {&DTYPE_BLOB})
+         AND s_Fld_Protype BEGINS "character" THEN DO:
+
+         FIND tmpFile of b_field WHERE tmpFile._For-type = "PROCEDURE" NO-LOCK NO-ERROR.
+         IF AVAILABLE tmpFile THEN DO:
+             if b_field._fld-misc1[7] = 1 then 
+                b_field._fld-misc1[7] = ?.
          END.
       END.
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -1056,6 +1056,35 @@ ASSIGN
   _File._For-name     = "CloseAllProcs"
   _File._For-Owner    = "".
 
+/* OE00195067 BEGIN: Stored procedure for SQLConstraintInfo ODBC call. */
+CREATE _File.
+ASSIGN
+  _File._Db-recid     = dbkey
+  _File._File-name    = "_Constraint_Info"
+  _File._ianum        = 6
+  _File._For-type     = "PROCEDURE"
+  _File._Last-change  = 2146431
+  _File._Hidden       = TRUE
+  _File._For-name     = "_Constraint_Info"
+  _File._For-Owner    = "".
+
+CREATE _Field. /* file: SQLConstraintInfo$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Qualifier"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 10
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 1
+  _Field._For-name     = "Qualifier"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "char".
+ 
+/* OE00195067 END */
+
 /* Generic Stored procedures buffer.					  */
 CREATE _File.
 ASSIGN
@@ -1504,7 +1533,140 @@ assign _Field._File-recid = RECID(_File)
        _Field._Fld-misc1[4] = ? 
        _Field._Fld-misc2[4] = ?.
 
+/* Stored procedure for SQLSpecialColumns_buffer ODBC call. */
+CREATE _File.
+ASSIGN
+  _File._Db-recid     = dbkey
+  _File._File-name    = "SQLSpecialColumns_buffer"
+  _File._ianum        = 6
+  _File._For-type     = "buffer"
+  _File._Last-change  = 2146431
+  _File._Hidden       = TRUE
+  _File._For-name     = "SQLSpecialColumns_buffer"
+  _File._For-Owner    = "".
 
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Scope"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = ""
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 10
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 1
+  _Field._For-name     = "Scope"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "smallint".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Column-name"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 20
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 2
+  _Field._For-name     = "Column-name"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "char".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Data-type"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0" 
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 30
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 3
+  _Field._For-name     = "Data-type"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "smallint".
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Type-name"
+  _Field._Data-Type    = "character"
+  _Field._Initial      = ""   
+  _Field._Mandatory    = yes
+  _Field._Format       = "x(76)"
+  _Field._Order        = 40   
+  _Field._Fld-stdtype  = 36
+  _Field._Fld-stoff    = 4
+  _Field._For-name     = "Type-name"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "char".  
+
+CREATE _Field. /* file: col$ */
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Precision"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0"
+  _Field._Mandatory    = yes
+  _Field._Format       = "9999999999"
+  _Field._Order        = 50
+  _Field._Fld-stdtype  = 33 
+  _Field._Fld-stoff    = 5
+  _Field._For-name     = "Precision"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "integer".
+
+
+CREATE _Field. /* file: col$ */  
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Length"
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0"
+  _Field._Mandatory    = yes
+  _Field._Format       = "999999999"
+  _Field._Order        = 60
+  _Field._Fld-stdtype  = 33 
+  _Field._Fld-stoff    = 6
+  _Field._For-name     = "Length"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "integer".  
+ 
+CREATE _Field. /* file: col$ */  
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "Scale"  
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0"
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 70
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 7
+  _Field._For-name     = "Scale"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "smallint".
+ 
+CREATE _Field. /* file: col$ */  
+ASSIGN
+  _Field._File-recid   = RECID(_File)
+  _Field._Field-Name   = "pseudo"  
+  _Field._Data-Type    = "integer"
+  _Field._Initial      = "0"
+  _Field._Mandatory    = yes
+  _Field._Format       = "99999"
+  _Field._Order        = 80
+  _Field._Fld-stdtype  = 32
+  _Field._Fld-stoff    = 8
+  _Field._For-name     = "Pseudo"
+  _Field._Fld-misc1[1] = 500
+  _Field._For-type     = "smallint".
+ 
 CREATE _File.
 ASSIGN _File._Db-recid = dbkey
        _File._File-name = "SQLProcedures"
@@ -1652,6 +1814,71 @@ ASSIGN _Field._File-recid = RECID(_File)
        _Field._Fld-misc1[4] = ? 
        _Field._Fld-misc2[4] = ?.
 
- 
+/***** Prime Index to RECID support - Begin code change *********************/ 
+
+/* Stored procedure for SQLSpecialColumns ODBC call. */
+CREATE _File.
+ASSIGN
+  _File._Db-recid     = dbkey 
+  _File._File-name    = "SQLSpecialColumns"
+  _File._ianum        = 6
+  _File._For-type     = "PROCEDURE"
+  _File._For-name     = "SQLSpecialColumns"
+  _File._Hidden       = TRUE
+  _File._Dump-name     = "SQLSpecialColumns"
+  _File._For-Owner    = "".
+
+CREATE _Field.
+ASSIGN _Field._File-recid = RECID(_File)
+       _Field._Field-Name = "Qualifier"
+       _Field._Data-Type = "character"
+       _Field._Mandatory = yes
+       _Field._Format = "x(76)"
+       _Field._Order = 10      
+       _Field._Fld-stdtype = 36          
+       _Field._Fld-stoff = 1   
+       _Field._For-name = "Qualifier" 
+       _Field._For-type = "char"     
+       _Field._Fld-misc1[1] = 500    
+       _Field._Fld-misc1[2] = ?      
+       _Field._Fld-misc1[3] = ?      
+       _Field._Fld-misc1[4] = ?      
+       _Field._Fld-misc2[4] = ?.
+       
+CREATE _Field.
+ASSIGN _Field._File-recid = RECID(_File)
+       _Field._Field-Name = "Owner"
+       _Field._Data-Type = "character"
+       _Field._Mandatory = yes
+       _Field._Format = "x(76)"
+       _Field._Order = 20
+       _Field._Fld-stdtype = 36
+       _Field._Fld-stoff = 2
+       _Field._For-name = "Owner"
+       _Field._For-type = "char"
+       _Field._Fld-misc1[1] = 500
+       _Field._Fld-misc1[2] = ? 
+       _Field._Fld-misc1[3] = ? 
+       _Field._Fld-misc1[4] = ? 
+       _Field._Fld-misc2[4] = ?.
+       
+CREATE _Field.
+ASSIGN _Field._File-recid = RECID(_File)
+       _Field._Field-Name = "TableName"
+       _Field._Data-Type = "character"
+       _Field._Mandatory = yes
+       _Field._Format = "x(76)"
+       _Field._Order = 30
+       _Field._Fld-stdtype = 36
+       _Field._Fld-stoff = 3
+       _Field._For-name = "TableName"
+       _Field._For-type = "char"
+       _Field._Fld-misc1[1] = 500
+       _Field._Fld-misc1[2] = ? 
+       _Field._Fld-misc1[3] = ? 
+       _Field._Fld-misc1[4] = ? 
+       _Field._Fld-misc2[4] = ?.
+
+/***** Prime Index to RECID support - End of code change *********************/ 
 
 RETURN.

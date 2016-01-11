@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -35,6 +35,7 @@ Define var cnt      as integer             NO-UNDO.
 Define var oldhid   as logical             NO-UNDO.
 Define var nxtname  as char                NO-UNDO.
 Define var ins_name as char                NO-UNDO.
+Define var mtBad    as log                 NO-UNDO.
 
 current-window = s_win_Tbl.
 
@@ -43,19 +44,34 @@ run adedict/_blnknam.p
    (INPUT b_File._File-Name:HANDLE in frame tblprops,
     INPUT "table", OUTPUT no_name).
 if no_name then return "error".
-
+ 
 assign
    oldname = b_File._File-Name
    newname = input frame tblprops b_File._File-Name
    oldhid  = b_File._Hidden.
 
+do with frame tblprops:
+    if input b_File._File-Attributes[1] and not b_File._File-Attributes[1] then
+    do:
+        run adedict/TBL/_okmttbl.p(input input b_File._File-Attributes[2], output mtBad). 
+        if mtBad then
+        do:
+            return "error".
+        end.    
+    end.     
+end.
+
 do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    run adecomm/_setcurs.p ("WAIT").
-
+   
    /* Any sub-dialog changes (e.g., triggers)  have already been saved.  
       We just need to move main property values into buffer. */
    assign
       b_File._File-Name = newname
+      input frame tblprops b_File._File-Attributes[1] when 
+             input frame tblprops b_File._File-Attributes[1]
+      input frame tblprops b_File._File-Attributes[2] when 
+             input frame tblprops b_File._File-Attributes[2]
       input frame tblprops b_File._Dump-Name
       input frame tblprops b_File._Hidden
       input frame tblprops b_File._For-Size
@@ -87,13 +103,13 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       	 table was changed to hidden and then changed back
       	 before switching to any other table.
       */
-      find FIRST _File where _File._Db-recid = s_DbRecId AND
-			     _File._File-Name > b_File._File-name AND
-			     (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") AND
-      	       	     	     NOT _File._Hidden
+      find FIRST dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+			     dictdb._File._File-Name > b_File._File-name AND
+			     (dictdb._File._Owner = "PUB" OR dictdb._File._Owner = "_FOREIGN") AND
+      	       	     	     NOT dictdb._File._Hidden
 	       	     	     NO-ERROR.
       
-      nxtname = (if AVAILABLE _File then _File._File-name else "").
+      nxtname = (if AVAILABLE dictdb._File then dictdb._File._File-name else "").
       run adedict/_newobj.p
       	 (INPUT s_lst_Tbls:HANDLE in frame browse,
 	  INPUT b_File._File-name,
@@ -139,10 +155,19 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    /* If we just made the last table hidden, the property sheet may be
       gone (from brwadj.p)!  So we'd better check before doing this.
    */
-   if s_win_Tbl <> ? then
-      display "Table modified" @ s_Status with frame tblprops.
-   run adecomm/_setcurs.p ("").
+   do with frame tblprops:
+       /* disable the multi-tenant check-boxs if [1] was set to true */  
+       if b_File._File-Attributes[1] and b_File._File-Attributes[1]:sensitive then
+       do:
+           b_File._File-Attributes[1]:sensitive = false.
+           b_File._File-Attributes[2]:sensitive = false.
+       end.
+       if s_win_Tbl <> ? then
+           display "Table modified" @ s_Status.
+       run adecomm/_setcurs.p ("").
+   end.
    return "".
+   
 end.
 
 run adecomm/_setcurs.p ("").

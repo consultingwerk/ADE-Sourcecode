@@ -57,6 +57,14 @@ DEFINE VARIABLE upath     AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE importlab AS CHARACTER INITIAL "&Import File:"
   FORMAT "X(13)" NO-UNDO.
 DEFINE VARIABLE msgEd     AS CHARACTER VIEW-AS EDITOR NO-BOX SIZE 55 BY 7 NO-UNDO.
+define variable isSuperTenant as logical no-undo.
+define variable isMultiTenant as logical no-undo.
+/* used for file dump */
+define variable gTenant  as character no-undo.
+define variable cTenantlabel as character format "x(30)" no-undo init "Effective Tenant:".
+define button btnTenant size 18 by 1 label "Select Tenant...".
+
+
   
 {prodict/misc/filesbtn.i}
 &IF "{&WINDOW-SYSTEM}" begins "MS-Win" &THEN
@@ -74,13 +82,81 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 6 NO-UNDO INITIAL [
   /*  6*/ "(they are already the delimiters)."
 ].
 
+
+/*=============================Functions=================================*/  
+function selectTenant return logical (hTenant as handle):
+    define variable tenantdlg as prodict.pro._tenant-sel-presenter no-undo.
+    tenantdlg = new  prodict.pro._tenant-sel-presenter ().
+    do with frame write-dump-dir-mt:
+           &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN
+        /* adjust the browse aligned and under field (at least try...) */   
+        if  hTenant:frame:row < 0 then  /* this does not really work with large negative */                  
+            tenantdlg:Row = (hTenant:row + hTenant:height) + 2.
+        else 
+            tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row + 0.5.
+        tenantdlg:Col = hTenant:col + hTenant:frame:col .
+           &ELSE
+        
+        tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row.
+       
+           &ENDIF
+    end.
+    tenantdlg:QueryString = "for each ttTenant where ttTenant.type <> 'super'".
+    tenantdlg:Title = "Select Tenant".
+  
+/*    glInSelect = true. /* stop end-error anywhere trigger */*/ 
+    if tenantdlg:Wait() then
+    do: 
+        hTenant:screen-value = tenantdlg:ColumnValue("ttTenant.name").
+        apply "value-changed" to hTenant.
+    end.
+/*    glInSelect = false.*/
+ 
+end.  
+
+function getTenantName returns char(pctenant as char):
+    define variable lok     as logical no-undo.
+    define variable hbuffer as handle no-undo. 
+    define variable cValue   as character no-undo.
+    
+    CREATE BUFFER hbuffer FOR TABLE "DICTDB._tenant".
+    lok = hbuffer:find-unique ("where _tenant._Tenant-name = " + quoter(pcTenant)) no-error.
+    if lok then 
+        cValue = hBuffer::_tenant-name.
+    
+    delete object hbuffer.    
+    return cValue.
+end function. 
+
+function validateTenantName returns logical(ctenant as char):
+    define variable lok as logical no-undo.
+    if cTenant = "" then
+    do:
+        MESSAGE "Please specify which Tenant to dump data for."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false. 
+    end.
+    if getTenantName(cTenant) = "" then 
+    do:
+        MESSAGE "There is no Tenant with name " +  ctenant + " in the database."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false.
+    end.
+    return true.
+end function. 
+
+
 /*------------------- FRAME import-stuff ----------------------------------*/
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 FORM
   SKIP({&TFM_WID})
+   cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+   gTenant at 2 no-label format "x(32)"  VIEW-AS fill-in size 37  by 1  
+   btntenant skip ({&VM_WID})
+ 
   importlab AT 2 VIEW-AS TEXT NO-LABEL SKIP({&VM_WID})
   user_env[4] {&STDPH_FILL} NO-LABEL FORMAT "x(80)" AT 2 
-        VIEW-AS FILL-IN SIZE 40 BY 1
+        VIEW-AS FILL-IN SIZE 44 BY 1
   btn_File  SKIP ({&VM_WIDG})
   "Fields to Import:      " AT 2 VIEW-AS TEXT SKIP({&VM_WID})
   allorsome VIEW-AS RADIO-SET RADIO-BUTTONS "&Selected", no, "&All (Max 255)", yes
@@ -101,12 +177,16 @@ FORM
   /* Added to support "Import File:" fill-in label mnemonic (tomn 8/1/95) */
   ASSIGN
     user_env[4]:SIDE-LABEL-HANDLE IN FRAME import-stuff = importlab:HANDLE
-    user_env[4]:LABEL = importlab.
+    user_env[4]:LABEL = importlab 
+    gTenant:SIDE-LABEL-HANDLE IN FRAME import-stuff = cTenantlabel:HANDLE
+    gTenant:LABEL = cTenantlabel.
 &ELSE
 
 FORM
   SKIP({&TFM_WID})
-  user_env[4] {&STDPH_FILL} FORMAT "x(255)" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+  gTenant colon 18 label "Effective Tenant" format "x(32)"    
+  btntenant skip ({&VM_WID})
+  user_env[4] {&STDPH_FILL} FORMAT "x(255)" colon 18 VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "Import File"
   btn_File  SKIP ({&VM_WIDG})
   allorsome FORMAT "All/Some"
@@ -127,9 +207,12 @@ FORM
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 FORM
   SKIP({&TFM_WID})
+  cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+  gTenant at 2 no-label format "x(32)"  VIEW-AS fill-in size 37  by 1  btntenant skip ({&VM_WID})
+ 
   importlab AT 2 VIEW-AS TEXT NO-LABEL SKIP({&VM_WID})
   user_env[4] {&STDPH_FILL} NO-LABEL FORMAT "x(80)" AT 2 
-        VIEW-AS FILL-IN SIZE 40 BY 1
+        VIEW-AS FILL-IN SIZE 44 BY 1
   btn_File  SKIP ({&VM_WIDG})
   "Fields to Import:      " AT 2 VIEW-AS TEXT SKIP({&VM_WID})
   allorsome VIEW-AS RADIO-SET RADIO-BUTTONS "&Selected", no, "&All (Max 255)", yes
@@ -154,12 +237,16 @@ FORM
   /* Added to support "Import File:" fill-in label mnemonic (tomn 8/1/95) */
   ASSIGN
     user_env[4]:SIDE-LABEL-HANDLE IN FRAME import-dbf = importlab:HANDLE
-    user_env[4]:LABEL = importlab.
+    user_env[4]:LABEL = importlab 
+    gTenant:SIDE-LABEL-HANDLE IN FRAME import-dbf = cTenantlabel:HANDLE
+    gTenant:LABEL IN FRAME import-dbf = cTenantlabel.
 &ELSE
 
 FORM
   SKIP({&TFM_WID})
-  user_env[4] {&STDPH_FILL} FORMAT "x(255)" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+  gTenant colon 18 label "Effective Tenant" format "x(32)"  
+  btntenant skip ({&VM_WID})
+  user_env[4] {&STDPH_FILL} FORMAT "x(255)" colon 18 VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "Import File"
   btn_File  SKIP(1)
   nuximode FORMAT "yes/no"
@@ -185,9 +272,13 @@ FORM
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 FORM
   SKIP({&TFM_WID})
+  cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+  gTenant at 2 no-label format "x(32)"  VIEW-AS fill-in size 37  by 1
+  btntenant skip ({&VM_WID})
+ 
   importlab AT 2 VIEW-AS TEXT NO-LABEL SKIP({&VM_WID})
   user_env[4] {&STDPH_FILL} NO-LABEL FORMAT "x(80)" AT 2 
-        VIEW-AS FILL-IN SIZE 40 BY 1
+        VIEW-AS FILL-IN SIZE 44 BY 1
   btn_File  SKIP ({&VM_WIDG})
   "Fields to Import:      " AT 2 VIEW-AS TEXT SKIP({&VM_WID})
   allorsome VIEW-AS RADIO-SET RADIO-BUTTONS "&Selected", no, "&All (Max 255)", yes
@@ -209,12 +300,16 @@ FORM
   /* Added to support "Import File:" fill-in label mnemonic (tomn 8/1/95) */
   ASSIGN
     user_env[4]:SIDE-LABEL-HANDLE IN FRAME import-ascii = importlab:HANDLE
-    user_env[4]:LABEL = importlab.
+    user_env[4]:LABEL = importlab
+    gTenant:SIDE-LABEL-HANDLE IN FRAME import-ascii = cTenantlabel:HANDLE
+    gTenant:LABEL IN FRAME import-ascii = cTenantlabel.
 &ELSE
 
 FORM
   SKIP({&TFM_WID})
-  user_env[4] {&STDPH_FILL} FORMAT "x(255)" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+  gTenant colon 18 label "Effective Tenant" format "x(32)"  
+  btntenant skip ({&VM_WID})
+  user_env[4] {&STDPH_FILL} FORMAT "x(255)" colon 18 VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "Import File"
   btn_File  SKIP ({&VM_WID})
   SKIP(1)
@@ -239,11 +334,14 @@ FORM
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 FORM
   SKIP({&TFM_WID})
+  cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+  gTenant at 2 no-label format "x(32)"  VIEW-AS fill-in size 37  by 1  btntenant skip ({&VM_WID})
+  
   importlab AT 2 VIEW-AS TEXT NO-LABEL SKIP({&VM_WID})
   user_env[4] {&STDPH_FILL} NO-LABEL FORMAT "x(80)" AT 2 
         VIEW-AS FILL-IN 
 &IF "{&WINDOW-SYSTEM}" begins "MS-Win" &THEN  
-  SIZE 43 BY 1
+  SIZE 44 BY 1
 &ELSE
   SIZE 51 BY 1
 &ENDIF
@@ -273,11 +371,16 @@ ASSIGN
   /* Added to support "Import File:" fill-in label mnemonic (tomn 8/1/95) */
   ASSIGN
     user_env[4]:SIDE-LABEL-HANDLE IN FRAME import-fixed = importlab:HANDLE
-    user_env[4]:LABEL = importlab.
+    user_env[4]:LABEL = importlab 
+    gTenant:SIDE-LABEL-HANDLE IN FRAME import-fixed = cTenantlabel:HANDLE
+    gTenant:LABEL IN FRAME import-fixed = cTenantlabel.
 &ELSE
 FORM
   SKIP({&TFM_WID})
-  user_env[4] {&STDPH_FILL} FORMAT "x(80)" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+  gTenant colon 18 label "Effective Tenant" format "x(32)"    
+  btntenant skip ({&VM_WID})
+  user_env[4] {&STDPH_FILL} FORMAT "x(80)" colon 18
+   VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "Import File"
   btn_File SKIP(1)
   dis_trigs LABEL "Disable Triggers During Import?"                   AT 2 SKIP(1)
@@ -299,48 +402,6 @@ FORM
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
-
-/*==========================Internal Procedures=========================*/
-
-/*----------------------------------------------------------
-   Do frame validation when user hits OK or GO.
-
-   Input Parameter: 
-      p_file    = name of file to import from      
-      p_disable = disable trigger widget (yes or no)
-
-   Returns: "error" or "".
-----------------------------------------------------------*/
-PROCEDURE Validate_Frame:
-   DEFINE INPUT PARAMETER p_file    AS WIDGET-HANDLE NO-UNDO.
-   DEFINE INPUT PARAMETER p_disable AS WIDGET-HANDLE NO-UNDO.
-
-   DEFINE VARIABLE ok AS LOGICAL NO-UNDO.
-
-   /* See if user has permission to import with triggers
-      disabled.  If not, ask if he wants to continue
-      anyway.
-   */
-   IF p_disable:SCREEN-VALUE = "yes" THEN
-   DO:
-      {prodict/dump/ltrigchk.i &OK = ok}
-      IF NOT ok THEN DO:
-         MESSAGE "You do not have permission to import" SKIP 
-                 "with triggers disabled."
-                 VIEW-AS ALERT-BOX ERROR BUTTON OK.
-         p_disable:SCREEN-VALUE = "no".
-         RETURN "error".
-      END.
-   END.
-
-  IF SEARCH(p_file:SCREEN-VALUE) = ? THEN DO:
-    MESSAGE new_lang[4] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    APPLY "ENTRY" TO p_file.
-    RETURN "error".
-  END.
-
-  RETURN "".
-END.
 
 
 /*==============================Triggers================================*/
@@ -368,23 +429,25 @@ on HELP of frame import-ascii
 on HELP of frame import-fixed
    or CHOOSE of btn_Help in frame import-fixed
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
-                                               INPUT {&Import_Fixed_Length_Dlg_Box},
+                             INPUT {&Import_Fixed_Length_Dlg_Box},
                                                INPUT ?).
 &ENDIF
 
 /*----- ON GO or OK -----*/
 ON GO OF FRAME import-stuff
 DO:
-  run Validate_Frame (INPUT user_env[4]:HANDLE IN FRAME import-stuff,
-                                   INPUT dis_trigs:HANDLE IN FRAME import-stuff).
+  run Validate_Frame (user_env[4]:HANDLE IN FRAME import-stuff,
+                      dis_trigs:HANDLE IN FRAME import-stuff,
+                      gTenant:HANDLE IN FRAME import-stuff).
   if RETURN-VALUE = "error" THEN
      RETURN NO-APPLY.
 END.
 
 ON GO OF FRAME import-dbf
 DO:
-  run Validate_Frame (INPUT user_env[4]:HANDLE IN FRAME import-dbf,
-                                   INPUT dis_trigs:HANDLE IN FRAME import-dbf).
+  run Validate_Frame ( user_env[4]:HANDLE IN FRAME import-dbf,
+                        dis_trigs:HANDLE IN FRAME import-dbf ,  
+                        gTenant:HANDLE IN FRAME import-dbf ).
   if RETURN-VALUE = "error" THEN
      RETURN NO-APPLY.
 END.
@@ -398,16 +461,18 @@ DO:
     RETURN NO-APPLY.
   END.
 
-  run Validate_Frame (INPUT user_env[4]:HANDLE IN FRAME import-ascii,
-                                   INPUT dis_trigs:HANDLE IN FRAME import-ascii).
+  run Validate_Frame (user_env[4]:HANDLE IN FRAME import-ascii,
+                      dis_trigs:HANDLE IN FRAME import-ascii,
+                      gTenant:HANDLE IN FRAME import-ascii ).
   if RETURN-VALUE = "error" THEN
      RETURN NO-APPLY.
 END.
 
 ON GO OF FRAME import-fixed
 DO:
-  run Validate_Frame (INPUT user_env[4]:HANDLE IN FRAME import-fixed,
-                                   INPUT dis_trigs:HANDLE IN FRAME import-fixed).
+  run Validate_Frame (user_env[4]:HANDLE IN FRAME import-fixed,
+                      dis_trigs:HANDLE IN FRAME import-fixed,
+                      gTenant:HANDLE IN FRAME import-fixed  ).
   if RETURN-VALUE = "error" THEN
      RETURN NO-APPLY.
 END.
@@ -421,6 +486,26 @@ ON WINDOW-CLOSE OF FRAME import-ascii
 ON WINDOW-CLOSE OF FRAME import-fixed
    APPLY "END-ERROR" TO FRAME import-fixed.
 
+/*----- HIT of tenant BUTTON -----*/
+on choose of btnTenant in frame import-stuff
+do:
+     selectTenant(gTenant:handle in frame import-stuff).
+end. 
+
+on choose of btnTenant in frame import-dbf
+do:
+     selectTenant(gTenant:handle in frame import-dbf).
+end. 
+
+on choose of btnTenant in frame import-fixed
+do:
+     selectTenant(gTenant:handle in frame import-fixed).
+end.   
+on choose of btnTenant in frame import-ascii
+do:
+     selectTenant(gTenant:handle in frame import-ascii).
+end.      
+   
 /*----- HIT of FILE BUTTON -----*/
 ON CHOOSE OF btn_File in frame import-stuff DO:
    RUN "prodict/misc/_filebtn.p"
@@ -495,7 +580,21 @@ ELSE  IF OPSYS = "UNIX" THEN DO:
   END.
 END.
 
+if int(dbversion("dictdb")) > 10 then
+do:
+   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   if isSuperTenant and _File._file-attributes[1] then
+   do:
+      isMultiTenant = true. 
+      gTenant = get-effective-tenant-name("dictdb").
+   end.
+    
+end.
+
+/*isMultiTenant = true.*/
+
 ASSIGN
+
   typ         = user_env[9]
   user_env[2] = ""  /* reserved for child to call _lodsddl.p */
   user_env[3] = ""
@@ -513,6 +612,16 @@ IF typ = "dbf" THEN DO:
       {&CAN_BTN}
       {&HLP_BTN}
   }
+    if not isMultiTenant then
+    do:
+        gTenant:hidden in frame import-dbf = true. 
+/*        cTenantlabel:hidden in frame import-dbf = true.*/
+        btnTenant:hidden in frame import-dbf = true.  
+      
+        run adjustframe(FRAME import-dbf:handle).
+    end.    
+  
+  
 END.
 ELSE IF typ = "ascii" THEN DO:
   {adecomm/okrun.i  
@@ -522,6 +631,14 @@ ELSE IF typ = "ascii" THEN DO:
       {&CAN_BTN}
       {&HLP_BTN}
   }
+    if not isMultiTenant then
+    do:
+        gTenant:hidden in frame import-ascii = true. 
+/*        cTenantlabel:hidden in frame import-ascii = true.*/
+        btnTenant:hidden in frame import-ascii = true.  
+      
+        run adjustframe(FRAME import-ascii:handle).
+    end.    
 END.
 ELSE IF typ = "fixed" THEN DO:
   {adecomm/okrun.i  
@@ -531,6 +648,15 @@ ELSE IF typ = "fixed" THEN DO:
       {&CAN_BTN}
       {&HLP_BTN}
   }
+    if not isMultiTenant then
+    do:
+        gTenant:hidden in frame import-fixed = true. 
+/*        cTenantlabel:hidden in frame import-fixed = true.*/
+        btnTenant:hidden in frame import-fixed = true.  
+      
+        run adjustframe(FRAME import-fixed:handle).
+    end.    
+  
 END.
 ELSE DO:
   {adecomm/okrun.i  
@@ -540,6 +666,15 @@ ELSE DO:
       {&CAN_BTN}
       {&HLP_BTN}
   }
+    if not isMultiTenant then
+    do:
+        gTenant:hidden in frame import-stuff = true. 
+/*        cTenantlabel:hidden in frame import-stuff = true.*/
+        btnTenant:hidden in frame import-stuff = true.  
+      
+        run adjustframe(FRAME import-stuff:handle).
+    end.    
+  
 END.
 
 IF typ = "dif" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
@@ -547,7 +682,10 @@ IF typ = "dif" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     user_env[4] = user_env[1] + ".dif"
     pik_title   = new_lang[1] + " DIF " + new_lang[2].
   DO ON ERROR UNDO,RETRY:
+   
     UPDATE
+      gTenant when isMultiTenant 
+      btnTenant when isMultiTenant  
       user_env[4] /*destinf*/ btn_File
       allorsome
       dis_trigs
@@ -567,6 +705,8 @@ IF typ = "sylk" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     pik_title   = new_lang[1] + " SYLK " + new_lang[2].
   DO ON ERROR UNDO,RETRY:
     UPDATE
+      gTenant when isMultiTenant 
+      btnTenant when isMultiTenant  
       user_env[4] /*destinf*/ btn_File
       allorsome
       dis_trigs
@@ -587,6 +727,8 @@ IF typ = "dbf" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     pik_title   = new_lang[1] + " " + user_env[9] + " " + new_lang[2].
   DO ON ERROR UNDO,RETRY:
     UPDATE
+      gTenant when isMultiTenant 
+      btnTenant when isMultiTenant  
       user_env[4] /*destinf*/ btn_File
       nuximode
       allorsome
@@ -611,6 +753,8 @@ IF typ = "ascii" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     pik_title   = new_lang[1] + " " + user_env[9] + " " + new_lang[2].
   DO ON ERROR UNDO,RETRY:
     UPDATE
+      gTenant when isMultiTenant 
+      btnTenant when isMultiTenant  
       user_env[4] /*destinf*/ btn_File
       user_env[3] /*delimiter*/
       allorsome
@@ -636,6 +780,9 @@ IF typ = "fixed" THEN DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     ENABLE msgEd WITH FRAME import-fixed.
 &ENDIF
     UPDATE
+      gTenant when isMultiTenant 
+      btnTenant when isMultiTenant  
+      
       user_env[4] /*destinf*/ btn_File
       dis_trigs 
       btn_OK btn_Cancel {&HLP_BTN_NAME}
@@ -744,6 +891,9 @@ END.
 
 IF user_env[6] = "" THEN user_path = "".
 
+if isMultiTenant then 
+    set-effective-tenant(gTenant,"dictdb").
+    
 { prodict/dictnext.i upath }
 
 HIDE FRAME import-stuff NO-PAUSE.
@@ -751,4 +901,74 @@ HIDE FRAME import-dbf   NO-PAUSE.
 HIDE FRAME import-ascii NO-PAUSE.
 HIDE FRAME import-fixed NO-PAUSE.
 RETURN.
+
+/*==========================Internal Procedures=========================*/
+/* this is really adjust frame after hide  of tenant */ 
+procedure adjustFrame:      
+    define input  parameter pframe  as handle no-undo.
+    define variable hWidget  as handle no-undo.
+    define variable deAdjust as decimal no-undo.
+    
+    deAdjust = if session:window-system = "TTY" then 1 else 1.8. 
+    hwidget = pframe:first-child.
+    hwidget = hwidget:first-child.
+    do while valid-handle(hwidget):
+        if hwidget:hidden = false then
+           hwidget:row = hwidget:row - deAdjust.
+        hwidget= hwidget:next-sibling.
+    end.   
+    pframe:scrollable = false. 
+    pframe:height = pframe:height - deAdjust. 
+end.    
+
+/*----------------------------------------------------------
+   Do frame validation when user hits OK or GO.
+
+   Input Parameter: 
+      p_file    = name of file to import from      
+      p_disable = disable trigger widget (yes or no)
+
+   Returns: "error" or "".
+----------------------------------------------------------*/
+PROCEDURE Validate_Frame:
+   DEFINE INPUT PARAMETER p_file    AS WIDGET-HANDLE NO-UNDO.
+   DEFINE INPUT PARAMETER p_disable AS WIDGET-HANDLE NO-UNDO.
+   DEFINE INPUT PARAMETER p_tenant  AS WIDGET-HANDLE NO-UNDO.
+   
+   DEFINE VARIABLE ok AS LOGICAL NO-UNDO.
+   
+   if isMultiTenant then 
+   do:
+       if not validateTenantName(p_tenant:screen-value) then
+       do:
+           apply "entry" to p_tenant.
+           return "error".
+       end.        
+   end.    
+   
+   
+   /* See if user has permission to import with triggers
+      disabled.  If not, ask if he wants to continue
+      anyway.
+   */
+   IF p_disable:SCREEN-VALUE = "yes" THEN
+   DO:
+      {prodict/dump/ltrigchk.i &OK = ok}
+      IF NOT ok THEN DO:
+         MESSAGE "You do not have permission to import" SKIP 
+                 "with triggers disabled."
+                 VIEW-AS ALERT-BOX ERROR BUTTON OK.
+         p_disable:SCREEN-VALUE = "no".
+         RETURN "error".
+      END.
+   END.
+
+  IF SEARCH(p_file:SCREEN-VALUE) = ? THEN DO:
+    MESSAGE new_lang[4] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    APPLY "ENTRY" TO p_file.
+    RETURN "error".
+  END.
+
+  RETURN "".
+END.
 

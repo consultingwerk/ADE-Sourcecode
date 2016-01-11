@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /****************************************************************************
      PROCEDURE: attribut.i
 
@@ -22,35 +22,14 @@
 
 &GLOB      adm-version ADM1.1
 
-/* The new Progress widget attribute ADM-DATA is used to store ADM
-   attributes and other ADM-specific information. This is new to 8.1, 
-   so use PRIVATE-DATA to preserve the ability to compile with 8.0.
-   Also there is a new keyword UNLESS-HIDDEN which allows a DISPLAY/ENABLE
-   to bypass fields which are hidden. This is used in building alternate
-   layouts. */
-&SCOPED-DEFINE MinVersion "8.1 "
-&IF INTEGER(SUBSTRING(PROVERSION,1,INDEX(PROVERSION,".":U) - 1)) >~
-    INTEGER(SUBSTRING({&MinVersion},1,INDEX({&MinVersion},".":U) - 1))~
-    OR~
-   (INTEGER(SUBSTRING(PROVERSION,1,INDEX(PROVERSION,".":U) - 1)) =~
-    INTEGER(SUBSTRING({&MinVersion},1,INDEX({&MinVersion},".":U) - 1))~
-    AND~
-    (INTEGER(SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,1)) >~
-     INTEGER(SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,1))~
-     OR~
-     (INTEGER(SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,1)) =~
-      INTEGER(SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,1))~
-      AND~
-      SUBSTRING(PROVERSION,INDEX(PROVERSION,".":U) + 1,2) >=~
-      SUBSTRING({&MinVersion},INDEX({&MinVersion},".":U) + 1,2))))
-&THEN
-  &GLOB    adm-data      ADM-DATA
-  &GLOB    unless-hidden UNLESS-HIDDEN
-&ELSE
-  &GLOB    adm-data      PRIVATE-DATA
-  &GLOB    unless-hidden 
-&ENDIF
-&UNDEFINE MinVersion
+
+/* These preprocessors were added to deal with 8.0 and 8.1 diffferences 
+   The version check was removed in v11.
+   ADM-DATA is used to store ADM attributes and other ADM-specific information. 
+   UNLESS-HIDDEN allows a DISPLAY/ENABLE to bypass fields which are hidden. 
+   This is used in building alternate layouts. */
+ &GLOB    adm-data      ADM-DATA
+ &GLOB    unless-hidden UNLESS-HIDDEN
 
 DEFINE VAR adm-object-hdl       AS HANDLE NO-UNDO. /* current object's handle */
 DEFINE VAR adm-query-opened        AS LOGICAL NO-UNDO INIT NO.

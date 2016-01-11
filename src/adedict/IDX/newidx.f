@@ -24,7 +24,7 @@ form
  
   b_Index._Index-Name 	label "Index &Name"  colon 20 {&STDPH_FILL}
    SKIP({&VM_WID})
-   idx-area-name label "Area"  colon 20  s_btn_Idx_Area
+   idx-area-name label "Area"  colon 20  s_btn_Idx_Area  s_area_mttext no-label  
    SKIP({&VM_WID})
    b_Index._Desc        label "Descri&ption" colon 20
       	       	     	view-as EDITOR SCROLLBAR-VERTICAL

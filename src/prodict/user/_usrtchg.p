@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2011 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -24,6 +24,8 @@
              fernando  09/27/06 Use a different delimiter for areaname - 20051228-008
              fernando  10/03/07 Fixed delimiter issue on area name list - OE00135682
              fernando  06/26/08 Filter out schema tables for encryption
+             hdaniels  06/27/10 Multi-tenant support
+             rkamboj   10/11/11 Fixed tab issue for area field during update for non-MT database.
              
 */
 
@@ -40,7 +42,8 @@
 { prodict/user/userhue.i }
 { prodict/user/userhdr.f }
 { prodict/dump/loaddefs.i NEW }
-
+/*defines setAreaState */
+{ prodict/pro/arealabel.i }
 DEFINE VARIABLE adding             AS LOGICAL                      NO-UNDO.
 DEFINE VARIABLE c             AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE capabs       AS LOGICAL   EXTENT    5 NO-UNDO.
@@ -49,7 +52,7 @@ DEFINE VARIABLE capabs       AS LOGICAL   EXTENT    5 NO-UNDO.
     /* 3 rename              */
     /* 4 chg_foreign_size    */
     /* 5 chg_foreign_type    */
-
+ 
 
 DEFINE VARIABLE dbkey           AS RECID                 NO-UNDO.
 DEFINE VARIABLE do-get          AS CHARACTER             NO-UNDO.
@@ -74,8 +77,11 @@ DEFINE VARIABLE check_syntax    AS LOGICAL   INITIAL yes NO-UNDO.
 DEFINE VARIABLE fldeditor       AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE odbtyp          AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearea        AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE filearealog     AS CHARACTER             NO-UNDO.
+
 DEFINE VARIABLE arealist        AS CHARACTER INITIAL ?   NO-UNDO.
 DEFINE VARIABLE areaname        AS CHARACTER             NO-UNDO.
+define variable multitenantdb   as logical               no-undo.
 DEFINE VARIABLE events   AS CHARACTER EXTENT    7 NO-UNDO 
    init ["Create","Delete","Find","Write",
          "Replication-Create","Replication-Delete","Replication-Write"].
@@ -164,6 +170,7 @@ do with frame frame-d:
   end.
 
 CREATE wfil.
+
 ASSIGN
   adding = NOT AVAILABLE DICTDB._File
   hiding = (AVAILABLE DICTDB._File AND DICTDB._File._Hidden)
@@ -185,20 +192,22 @@ IF NOT adding THEN DO:
     ASSIGN arealist = "N/A"
            areaname:LIST-ITEMS IN FRAME frame-d = arealist.          
   ELSE DO:
-    FIND _StorageObject WHERE _StorageObject._Db-recid = DICTDB._File._Db-recid
-                          AND _StorageObject._Object-type = 1
-                          AND _StorageObject._Object-number =
-                                 DICTDB._File._File-number
-                          NO-LOCK NO-ERROR.
-    IF AVAILABLE _StorageObject THEN                                               
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 
-                                      _StorageObject._Area-number NO-LOCK.
-    ELSE
-      FIND DICTDB._Area WHERE DICTDB._Area._Area-number =  6 NO-LOCK.
-      
-    ASSIGN arealist = DICTDB._Area._Area-name
-           areaname:LIST-ITEMS IN FRAME frame-d = arealist.
-           
+    if DICTDB._File._file-attributes[1] = false or DICTDB._File._file-attributes[2] = true then
+    do:
+        FIND _StorageObject WHERE _StorageObject._Db-recid = DICTDB._File._Db-recid
+                              AND _StorageObject._Object-type = 1
+                              AND _StorageObject._Object-number = DICTDB._File._File-number
+                              and _StorageObject._Partitionid = 0
+                              NO-LOCK NO-ERROR.
+        IF AVAILABLE _StorageObject THEN                                               
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number = 
+                                          _StorageObject._Area-number NO-LOCK.
+        ELSE
+          FIND DICTDB._Area WHERE DICTDB._Area._Area-number =  6 NO-LOCK.
+          
+        ASSIGN arealist = DICTDB._Area._Area-name
+               areaname:LIST-ITEMS IN FRAME frame-d = arealist.
+    end.       
   END.  
   { prodict/dump/copy_fil.i &from=DICTDB._File &to=wfil &all=true}
   FOR EACH DICTDB._File-Trig OF DICTDB._File:
@@ -276,7 +285,7 @@ IF romode < 0 THEN DO:
   RETURN.
 END.
 
-stdmsg = 
+stdmsg =  
   (IF romode = 0
   THEN IF adding THEN "" 
        ELSE "Use the [" + KBLABEL("GET") + "] key to switch tables quickly."
@@ -313,7 +322,7 @@ IF adding OR NOT fldeditor THEN DO:
 END.
 
 VIEW FRAME frame-d.
-
+    
 /*
 This code sets the file type.
 File-types:
@@ -339,11 +348,14 @@ IF adding THEN
    ASSIGN
       wfil._File-name = "" /* instead of ? */
       wfil._Dump-name = "".
-
-
-          
+      
+multitenantdb = can-find(first dictdb._tenant) .
+if not multitenantdb then
+    wfil._File-attribute[2]:hidden in frame frame-d = true.
 DISPLAY
   wfil._File-name
+  wfil._File-attribute[1] 
+  wfil._File-attribute[2] when multitenantdb
   areaname
   wfil._Dump-name
   ftyp @ wfil._For-Type
@@ -363,10 +375,15 @@ DISPLAY
   wfil._Desc
   WITH FRAME frame-d.
 
-IF adding THEN DO:
-  ENABLE areaname WITH FRAME frame-d.
-END.
-
+setAreaState(wfil._File-attribute[1],
+             wfil._File-attribute[2],
+             no,
+             adding,
+             wfil._File-attribute[1]:handle in frame frame-d,
+             areaname:handle in frame frame-d,
+             ?,
+             /* onl one entry in list when editing */
+             if not adding then areaname:list-items else "").
 
 newnam = (romode = 0)
          AND (wfil._Db-lang = 0)
@@ -374,10 +391,17 @@ newnam = (romode = 0)
          WHERE DICTDB._View-ref._Ref-Table = wfil._File-name)).
 
 desc_frame:
-DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
-  UPDATE
+DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME frame-d:
+    
+  /* use enable and wait-for in order to control wfil._File-attributes[2] tab order
+     even if it is not enabled and the area is not sensitive (the SetAreaState
+     is fired from value changed on the File-attributes and set [2] tab order 
+     before the Area */   
+  ENABLE 
     wfil._File-name  WHEN newnam
-    areaname WHEN romode = 0 AND adding
+    wfil._File-attributes[1] when multitenantdb /* disabled below if necessary */
+    wfil._File-attributes[2] when multitenantdb  /* disabled below   */
+    areaname when ierror EQ 0 /* disabled below if necessary  */
     wfil._Dump-name  WHEN romode = 0
 	     VALIDATE(INDEX(INPUT wfil._Dump-name, " ") = 0, "Invalid character in Dump Name")
     wfil._For-Type   WHEN romode = 0 AND capabs[5]
@@ -394,10 +418,35 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     btn_Cancel 
     btn_flds         WHEN NOT adding AND fldeditor
     WITH FRAME frame-d.
-
-  ASSIGN
-    touched = touched
+     
+  if ierror EQ 0 THEN
+  do:
+    if multitenantdb then
+      assign
+        wfil._File-attributes[1]:sensitive = (romode = 0 and multitenantdb and not wfil._File-attributes[1])
+        wfil._File-attributes[2]:sensitive = romode = 0 and FALSE. /* enabled in triggers only*/
+        areaname:sensitive = romode = 0 AND adding.
+  end.
+  wait-for go of frame frame-d.
+  
+  ASSIGN 
+     wfil._File-name           when wfil._File-name:sensitive 
+     wfil._File-attributes[1]  when wfil._File-attributes[1]:sensitive
+                               /* NOT a typo - [2] need to be saved also when disabled
+                                  when [1] is enabled  */ 
+     wfil._File-attributes[2]  when wfil._File-attributes[1]:sensitive 
+     wfil._Dump-name           when wfil._Dump-name:sensitive      
+     wfil._For-Type            when wfil._For-Type:sensitive 
+     wfil._Hidden              when wfil._Hidden:sensitive  
+     wfil._File-label          when wfil._File-label:sensitive 
+     wfil._Fil-misc2[6]        when wfil._Fil-misc2[6]:sensitive 
+     wfil._For-Size            when wfil._For-Size:sensitive  
+     wfil._For-name            when wfil._For-name:sensitive   
+     wfil._Desc                when wfil._Desc:sensitive 
+     touched = touched
            OR FRAME frame-d wfil._File-name ENTERED
+           OR FRAME frame-d wfil._File-attribute[1] ENTERED
+           OR FRAME frame-d wfil._File-attribute[2] ENTERED
            OR FRAME frame-d wfil._For-Type ENTERED
            OR FRAME frame-d wfil._Hidden ENTERED
            OR FRAME frame-d areaname ENTERED
@@ -409,8 +458,14 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     wfil._Dump-name = INPUT FRAME frame-d wfil._Dump-name.
 
   IF adding THEN DO:
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-name = filearea NO-LOCK.
-    ASSIGN file-area-number = DICTDB._Area._Area-number.
+    if wfil._File-attributes[1] = true and wfil._File-attributes[2] = false then
+    do:
+        ASSIGN file-area-number = 0.
+    end.      
+    else do:
+        FIND DICTDB._Area WHERE DICTDB._Area._Area-name = filearea NO-LOCK.
+        ASSIGN file-area-number = DICTDB._Area._Area-number.
+    end.
   END.
   
   /* Any user-added tables for an ODBC db will be of type BUFFER */
@@ -441,8 +496,8 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
       dict_dirty    = dict_dirty OR cache_dirty OR touched OR RETURN-VALUE = "MOD"
       user_filename = wfil._File-name      /* RETURN-VALUE set by _gat_row.p (tty) */
       imod          = (IF adding THEN "a" ELSE "m").
-    if not adding
-     then do:
+    if not adding then 
+    do:
       /*-----------------------------------------------------------------------
         We need to point back to the _File being modified to copy any changes
         made in _gat_row.p (above we find the "_File" file to check permissions
@@ -459,7 +514,7 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
         wfil._Fil-misc1[4] = DICTDB._File._Fil-misc1[4]
         wfil._Fil-misc2[3] = DICTDB._File._Fil-misc2[3].
       /*--------------------------------------------------------------------*/
-      end.
+    end.
       
     RUN "prodict/dump/_lod_fil.p".
     

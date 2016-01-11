@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2000,2004-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2004-2011 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions                *
 * contributed by participants of Possenet.                                  *
 *                                                                           *
@@ -38,6 +38,8 @@ history:
                                 ISO-Latin-1   =now=>  ISO8859-1
                                 ISO 8859-1    =now=>  ISO8859-1
                                 Codepage 850  =now=>  IBM850
+    kmayur      06/21/11    Added support for constraint dump OE00195067
+    rkamboj     11/30/09    Added logic to dump category field.
 */
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.
@@ -60,15 +62,26 @@ DEFINE VARIABLE lcLongLine  AS LONGCHAR   NO-UNDO.
 DEFINE VARIABLE lpMemRules  AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lpMemLine   AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lError      AS LOGICAL    NO-UNDO.
-
+define variable lNoArea     as logical no-undo.
 DEFINE SHARED STREAM ddl.
-
+DEFINE BUFFER   CON_DICTDB          FOR DICTDB._Constraint.
+DEFINE BUFFER   FILE_DICTDB         FOR DICTDB._File.
+DEFINE VARIABLE i             AS INTEGER               NO-UNDO.
+DEFINE SHARED VARIABLE df-con AS CHARACTER EXTENT 7    NO-UNDO.
+DEFINE SHARED VARIABLE dfseq  AS INTEGER  NO-UNDO.
+DEFINE SHARED TEMP-TABLE df-info NO-UNDO
+    FIELD df-seq  AS INTEGER
+    FIELD df-line AS CHARACTER
+    FIELD df-tbl  AS CHARACTER
+    FIELD df-fld  AS CHARACTER
+    INDEX rt-line IS PRIMARY df-seq.
+    
 ASSIGN
   cODBType      = {adecomm/ds_type.i
                   &direction = "ODBC"
                   &from-type = "cODBType"
                   }.
-                  
+         
 IF pi_method BEGINS "d" OR pi_method BEGINS "a" THEN DO: /* auto-conn records */
   /* Only output auto-connect records if current db is */
   /* Progress.  The auto-conn records themselves have a */
@@ -221,6 +234,7 @@ IF pi_method BEGINS "c" THEN DO: /* collation and conversion tables */
 
   RUN prodict/dump/_dmp_raw.p (_Db._Db-collate[4]).
   
+/** GIH - Temporarily removing ICU for multiple collation schema changes **
   IF iByte1 = 5 THEN ERR-BLK: DO:
     iLongLen = 0.
     DO iCounter1 = 29 TO 32:
@@ -328,6 +342,7 @@ IF pi_method BEGINS "c" THEN DO: /* collation and conversion tables */
     PUT STREAM ddl CONTROL "  END-RULES ".
     
   END.
+** GIH - End of temporarily removed code **/
   PUT STREAM ddl UNFORMATTED SKIP(1).
   IF (lError = TRUE) THEN
     PUT STREAM ddl UNFORMATTED "Bad Collation Data.  Do not proceed with LOAD." SKIP(1).
@@ -337,6 +352,8 @@ ELSE IF pi_method BEGINS "s" THEN DO: /*-------------------------*/ /* sequences
   FIND _Db WHERE RECID(_Db) = pi_recid NO-LOCK.
   FOR EACH _Sequence OF _Db WHERE NOT _Sequence._Seq-name BEGINS "$" NO-LOCK BY _Seq-Num:
     PUT STREAM ddl UNFORMATTED "ADD SEQUENCE """ _Sequence._Seq-Name """" SKIP.
+    if (_Db._Db-type = "PROGRESS" and _Sequence._Seq-attributes[1]) then  
+      PUT STREAM ddl UNFORMATTED "  MULTITENANT " _Sequence._Seq-attributes[1] SKIP.
     PUT STREAM ddl UNFORMATTED "  INITIAL " _Sequence._Seq-Init SKIP.
     PUT STREAM ddl UNFORMATTED "  INCREMENT " _Sequence._Seq-Incr SKIP.
     PUT STREAM ddl CONTROL "  CYCLE-ON-LIMIT ".
@@ -384,27 +401,42 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     FIND _Index WHERE RECID(_Index) = pi_recid NO-LOCK NO-ERROR.
     IF AVAILABLE _Index THEN FIND _File OF _Index NO-LOCK.
   END.
-  FIND _Db OF _File NO-LOCK.
+  FIND _Db OF _File NO-LOCK NO-ERROR.
   IF RECID(_File) = pi_recid THEN DO:
-    FIND FIRST _StorageObject
+    FIND  _StorageObject
       WHERE _StorageObject._Db-recid = RECID(_Db)
         AND _StorageObject._Object-Number = _File._File-Number 
-        AND _StorageObject._Object-type = 1 NO-LOCK NO-ERROR.
+        AND _StorageObject._Object-type = 1
+        AND _Storageobject._Partitionid = 0
+        NO-LOCK NO-ERROR.
     PUT STREAM ddl UNFORMATTED "ADD TABLE """ _File._File-name """".
     IF _File._Db-lang > 0 THEN
       PUT STREAM ddl UNFORMATTED SKIP "  TYPE SQL" SKIP.
     ELSE IF _Db._Db-type <> "PROGRESS"
       THEN PUT STREAM ddl UNFORMATTED "  TYPE " _Db._Db-type SKIP.
       ELSE PUT STREAM ddl UNFORMATTED skip.
-    IF AVAILABLE _StorageObject
-     THEN DO:
-       FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
-       PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
-     END.  
-     ELSE DO:
-       FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
-       PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
-     END.  
+    
+    if (_Db._Db-type = "PROGRESS" and _File._File-attributes[1]) then  
+      PUT STREAM ddl UNFORMATTED "  MULTITENANT " _File._File-attributes[1] SKIP.
+    
+    lNoArea = false.
+  
+    IF _File._File-attributes[1] AND _File._File-attributes[2] = FALSE THEN
+    DO:
+        PUT STREAM ddl UNFORMATTED "  NO-DEFAULT-AREA "  SKIP.    
+        lNoArea = true.
+    END.
+    ELSE IF AVAILABLE _StorageObject THEN 
+    DO:
+        FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
+        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+    END. 
+     /* multitenant and no keep default -   */ 
+    ELSE DO: 
+        FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
+        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+    END.  
+     
     IF _File._Can-Create <> '*' THEN DO:
       PUT STREAM ddl CONTROL "  CAN-CREATE ".
       EXPORT STREAM ddl _File._Can-Create.
@@ -556,6 +588,10 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
       PUT STREAM ddl CONTROL "  DB-LINK-NAME ".
       EXPORT STREAM ddl  _File._Fil-misc2[8].
     END.
+    IF _File._category <> ? AND _File._category <> '' THEN DO:
+      PUT STREAM ddl CONTROL "  CATEGORY ".
+      EXPORT STREAM ddl _File._category.
+    END.
     FOR EACH _File-trig OF _File NO-LOCK BY _Event:
       PUT STREAM ddl UNFORMATTED
         "  TABLE-TRIGGER """ _File-Trig._Event """ "
@@ -601,13 +637,17 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     END.
     IF _Field._Width <> ? THEN DO:
       IF _Db._Db-type = "Progress" THEN DO: 
-        IF _Field._Data-type = "BLOB" OR _Field._Data-type = "CLOB" OR _Field._Data-type = "XLOB" THEN DO:       
-          FIND _storageobject WHERE _Storageobject._Db-recid = RECID(_Db)
-                                AND _Storageobject._Object-type = 3
-                                AND _Storageobject._Object-number = _Field._Fld-stlen
-                              NO-LOCK.
-          FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-          PUT STREAM ddl UNFORMATTED '  LOB-AREA "' _Area._Area-name '"' SKIP.   
+        IF _Field._Data-type = "BLOB" OR _Field._Data-type = "CLOB" OR _Field._Data-type = "XLOB" THEN DO:
+          if lNoArea = false then 
+          do:         
+              FIND _storageobject WHERE _Storageobject._Db-recid = RECID(_Db)
+                                    AND _Storageobject._Object-type = 3
+                                    AND _Storageobject._Object-number = _Field._Fld-stlen
+                                    AND _Storageobject._Partitionid = 0
+                                  NO-LOCK.
+              FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
+              PUT STREAM ddl UNFORMATTED '  LOB-AREA "' _Area._Area-name '"' SKIP.   
+          end.
           PUT STREAM ddl UNFORMATTED "  LOB-BYTES " _Field._Width SKIP.
           PUT STREAM ddl UNFORMATTED "  LOB-SIZE " _Field._Fld-Misc2[1] SKIP.
         END.
@@ -811,21 +851,25 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     BY STRING(_File._Prime-Index = RECID(_Index),"1/2") + _Index-name:
     IF RECID(_File) <> pi_recid AND RECID(_Index) <> pi_recid THEN NEXT.
     IF _Index-name = "sql-default" THEN NEXT.
-    FIND FIRST _StorageObject
-      WHERE _StorageObject._Db-recid = _File._Db-recid
-        AND _StorageObject._Object-Number = _Index._Idx-num 
-        AND _StorageObject._Object-type = 2 NO-LOCK NO-ERROR.
     PUT STREAM ddl UNFORMATTED
-      "ADD INDEX """ _Index._Index-Name """ "
-      "ON """ _File._File-name """ " SKIP.
-    IF AVAILABLE _StorageObject THEN DO:
-      FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
-      PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
-    END.  
-    ELSE DO:
-      FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
-      PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
-    END.  
+          "ADD INDEX """ _Index._Index-Name """ "
+          "ON """ _File._File-name """ " SKIP.
+    if lNoArea = false then 
+    do:
+        /* first for collation */
+        FIND FIRST _StorageObject
+          WHERE _StorageObject._Db-recid = _File._Db-recid
+            AND _StorageObject._Object-Number = _Index._Idx-num 
+            AND _StorageObject._Object-type = 2 
+            AND _Storageobject._Partitionid = 0
+            NO-LOCK NO-ERROR.
+        IF AVAILABLE _StorageObject THEN
+            FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
+        
+        ELSE
+            FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
+        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+    end.
     IF _Index._Unique THEN
       PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
     IF NOT _Index._Active THEN
@@ -865,6 +909,82 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     END.
     PUT STREAM ddl UNFORMATTED SKIP(1).
   END.
+  
+  FOR EACH _constraint OF _File WHERE NOT _constraint._con-type = "F":
+  IF ((_constraint._con-Status = "N" OR _constraint._con-Status = "C" OR _constraint._con-Status = "M"))
+  THEN DO:
+    IF RECID(_File) <> pi_recid AND RECID(_constraint) <> pi_recid THEN NEXT.
+    PUT STREAM ddl UNFORMATTED
+          "ADD CONSTRAINT """ _constraint._con-name """ "
+          "ON """ _File._File-name """ " SKIP.
+    IF _constraint._con-type = "U" THEN
+      PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
+    IF _constraint._con-type = "P" THEN
+      PUT STREAM ddl UNFORMATTED "  PRIMARY" SKIP.
+    IF _constraint._con-type = "PC" OR  _constraint._con-type = "MP" THEN  
+      PUT STREAM ddl UNFORMATTED "  PRIMARY-CLUSTERED" SKIP.      
+    IF _constraint._con-type = "C" THEN
+      PUT STREAM ddl UNFORMATTED "  CHECK" SKIP.
+    IF _constraint._con-type = "D" THEN
+      PUT STREAM ddl UNFORMATTED "  DEFAULT" SKIP.
+    IF _constraint._con-type = "M" THEN
+      PUT STREAM ddl UNFORMATTED "  CLUSTERED" SKIP.
+    
+    IF _constraint._Con-Active = TRUE
+    THEN PUT STREAM ddl UNFORMATTED "  ACTIVE" SKIP.
+    ELSE PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+    
+    FIND FIRST _Index where RECID(_Index) = _Constraint._Index-recid NO-LOCK NO-ERROR.
+    FIND FIRST _Field where RECID(_Field) = _Constraint._Field-recid NO-LOCK NO-ERROR.  
+	
+	IF _constraint._con-type = "P" OR _constraint._con-type = "PC" OR _constraint._con-type = "MP" 
+	  OR _constraint._con-type = "M" OR _constraint._con-type = "U" THEN
+	PUT STREAM ddl UNFORMATTED "  CONSTRAINT-INDEX """ _Index._index-name """" SKIP.
+	
+	ELSE IF _constraint._con-type = "D" OR  _constraint._con-type = "C" THEN
+	   PUT STREAM ddl UNFORMATTED "  CONSTRAINT-FIELD """ _Field._Field-name """" SKIP.
+	
+	IF _constraint._con-type = "C" OR _constraint._con-type = "D" THEN
+	PUT STREAM ddl UNFORMATTED "  CONSTRAINT-EXPR """ _constraint._con-expr """" SKIP.
+	
+    PUT STREAM ddl UNFORMATTED SKIP(1).
+  END. /* IF CON-STATUS. */
+  END.
+
+  FOR EACH _constraint OF _File WHERE _constraint._con-type = "F":
+  IF ((_constraint._con-Status = "N" OR _constraint._con-Status = "C" OR _constraint._con-Status = "M"))
+  THEN DO:
+    IF RECID(_File) <> pi_recid AND RECID(_constraint) <> pi_recid THEN NEXT.
+    df-con[1] = 'ADD CONSTRAINT "' +  _constraint._con-name + '" ON "' +  _File._File-name + '"'.
+    
+    FIND FIRST _Index where RECID(_Index) = _Constraint._Index-recid NO-LOCK NO-ERROR. 
+    FIND FIRST CON_DICTDB WHERE CON_DICTDB._Index-Recid = _Constraint._Index-parent-recid NO-LOCK NO-ERROR.
+    FIND FIRST FILE_DICTDB WHERE RECID(FILE_DICTDB) = CON_DICTDB._File-Recid NO-LOCK NO-ERROR.
+    df-con[2] = "  FOREIGN-KEY".
+    
+    IF _constraint._Con-Active = TRUE
+    THEN df-con[3] = "  ACTIVE".
+    ELSE df-con[3] = "  INACTIVE".
+    
+	df-con[4] = '  CONSTRAINT-INDEX "' +  _Index._index-name + '"'. 
+	df-con[5] = '  PARENT-TABLE "' + FILE_DICTDB._File-name + '"'.
+    FIND FIRST _Index where RECID(_Index) = _Constraint._Index-Parent-recid NO-LOCK NO-ERROR.	
+	df-con[6] = '  PARENT-INDEX "' + _Index._Index-name + '"'. 
+	df-con[7] = '  CONSTRAINT-ACTION "' + _Constraint._Con-Misc2[1] + '"'.   
+  END. /* IF CON-STATUS. */
+     IF df-con[1] <> ? THEN DO:
+        DO i = 1 TO 7:
+          IF df-con[i] <> ? THEN DO:
+             CREATE df-info.
+             ASSIGN df-info.df-seq = dfseq
+                    dfseq = dfseq + 1
+                    df-info.df-tbl = _File._File-name
+                    df-info.df-line = df-con[i].
+          END.
+        END.
+      ASSIGN df-con = ?.
+      END.   
+  END. /* FOR EACH _constraint OF _File */
 END.
 ELSE IF pi_method BEGINS "o" THEN DO: /*----------------------*/ 
     /* options (encryption, alternate buffer pool) */

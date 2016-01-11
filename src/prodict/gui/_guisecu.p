@@ -16,6 +16,7 @@
              
              03/13/06 fernando Using temp-table instead of cache_file - bug 20050930-006.
              12/14/07 fernando Fixed example
+             
 
 -------------------------------------------------------------------*/
 
@@ -168,27 +169,26 @@ ASSIGN
    The buffer _File is filled.  _Field may or may not have a record.
 ---------------------------------------------------------------------*/
 PROCEDURE Show_Secu:
-
    can_lbl = new_lang[11] + 
       	     (IF AVAILABLE (_File) THEN _File._File-name ELSE "").
    if which = "t" THEN DO:
-      IF AVAILABLE (_File) THEN DO:
+     IF AVAILABLE (_File) THEN DO:
 	 IF NOT r-o THEN
 	    ASSIGN
 	       Can_Create:sensitive IN FRAME secu = yes
 	       Can_Delete:sensitive IN FRAME secu = yes
 	       Can_Dump:sensitive IN FRAME secu = yes
 	       Can_Load:sensitive IN FRAME secu = yes.
-    
-	  DISPLAY _File._Can-Read 	 @ Can_Read
+      		 
+      DISPLAY _File._Can-Read 	 @ Can_Read
 		  _File._Can-Write	 @ Can_Write
 		  _File._Can-Create	 @ Can_Create
 		  _File._Can-Delete	 @ Can_Delete
 		  _File._Can-Dump 	 @ Can_Dump
 		  _File._Can-Load	 @ Can_Load
 		  WITH FRAME secu.
-      END.
-      ELSE
+     END.
+     ELSE
 	 DISPLAY "" @ Can_Read
 		 "" @ Can_Write
 		 "" @ Can_Create
@@ -224,7 +224,6 @@ PROCEDURE Show_Secu:
    can_lbl = can_lbl + ":".
    DISPLAY can_lbl WITH FRAME secu.
 END.
-
 
 /*--------------------------------------------------------------------
    A new table has been chosen.  This is called after we've saved

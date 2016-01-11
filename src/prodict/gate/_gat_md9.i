@@ -36,6 +36,7 @@ History:
 */
 
 { prodict/dictvar.i NEW }
+{ prodict/user/uservar.i }
 { prodict/{&db-type}/{&db-type}var.i }
 
 DEFINE NEW SHARED STREAM   loaderr.
@@ -45,16 +46,20 @@ DEFINE NEW SHARED VARIABLE xpos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE NEW SHARED VARIABLE ypos   AS INTEGER INITIAL ? NO-UNDO.
 DEFINE            VARIABLE noload AS CHARACTER NO-UNDO.
 DEFINE            VARIABLE wtype  AS CHARACTER NO-UNDO.
+DEFINE            VARIABLE l_debug      AS logical   NO-UNDO INIT FALSE.
+DEFINE            VARIABLE db_dbname   AS CHARACTER.
 
 IF NOT SESSION:BATCH-MODE THEN
     OUTPUT TO VALUE ({&tmp-name}_dbname + "out.tmp") NO-MAP.
 ASSIGN wtype = "{&db-type}".
 IF wtype = "mss" THEN DO:
   CREATE ALIAS "DICTDB2" FOR DATABASE VALUE({&db-type}_pdbname).
+  ASSIGN db_dbname = {&db-type}_pdbname.
   FIND DICTDB._Db WHERE DICTDB._Db._Db-name = {&db-type}_pdbname NO-LOCK.
 END.
 ELSE DO:
   CREATE ALIAS "DICTDB2" FOR DATABASE VALUE({&db-type}_dbname).
+  ASSIGN db_dbname = {&db-type}_dbname.
   FIND DICTDB._Db WHERE DICTDB._Db._Db-name = {&db-type}_dbname NO-LOCK.
 END.
 assign noload = "u".
@@ -64,7 +69,7 @@ assign noload = "u".
     &dbrec  = "RECID(_Db)"
     &output = "noload"
     }
-    
+                
 FOR EACH DICTDB._File OF DICTDB._Db
   WHERE NOT DICTDB._File._Hidden
   AND   _file._File-number > 0
@@ -80,7 +85,17 @@ FOR EACH DICTDB._File OF DICTDB._Db
   IF errs < 1 THEN OS-DELETE VALUE(_Dump-name + ".e"). 
 
 END.
-
+IF wtype = "mss" OR wtype = "ora" THEN DO:
+RUN "prodict/gate/_snd_sql.p"
+      ( INPUT user_env[31],
+        INPUT l_debug,
+        INPUT db_dbname,
+        INPUT user_dbtype,
+        INPUT user_env[5],
+        INPUT user_env[26],
+        INPUT "enable.sql"
+      ).
+END.      
 IF NOT SESSION:BATCH-MODE THEN
     OUTPUT CLOSE.
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@ History:
                             2. call this routine again
     D. McMann   02/21/03    Replaced GATEWAYS with DATASERVERS
     fernando    02/17/06    Handle V9 db's - don't let user select them - 20050510-008
+    fernando    9/30/10     OE11 support
 ----------------------------------------------------------------------------*/
 /* This whole file should be used only on GUI, but in case it gets compiled
 for TTY mode, let's just turn it into a big empty file */
@@ -77,15 +78,15 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 23 NO-UNDO INITIAL [
   /*  3*/ "Cannot disconnect a database if it is not connected.",
   /*  4*/ "has been disconnected.",
   /*5,6*/ "There are only", "databases connected.  Please use the",
-  /*7,8*/ "dictionary from", "Progress to view/edit these databases.",
+  /*7,8*/ "dictionary from", "OpenEdge to view/edit these databases.",
   /*  9*/ "ERROR! Database type inconsistency in _usrsget.p",
 /*10,11*/ "Database", "is not connected.", /* used with 18 */
   /* 12*/ "You must select a current working database at this time.",
   /* 13*/ "is the only database connected - it is already selected.",
   /* 14*/ "You have been automatically switched to database",
-/*15,16,17*/ "This", "tool can't be used with a PROGRESS", "database.",
+/*15,16,17*/ "This", "tool can't be used with a OpenEdge", "database.",
   /* 18*/ "There are no databases connected to select!",
-  /* 19*/ "This copy of PROGRESS does not support database type",
+  /* 19*/ "This copy of OpenEdge does not support database type",
   /* 20*/ "There are no databases connected for you to disconnect.",
   /* 21*/ "You have to leave Fast Track before disconnecting a database",
   /* 22*/ "Would you like to connect it?",
@@ -144,7 +145,7 @@ do:
       if isOlderDBVersion(choice)
       then do:
       	 message new_lang[15] PROVERSION new_lang[16] 
-      	   /*version*/ ("V" + DBVERSION(cache_db_s[choice]))
+      	   /*version*/ ("R" + DBVERSION(cache_db_s[choice]))
           new_lang[17] /* cannot use V5/V6/V7/V8 db */
       	    view-as alert-box error buttons ok.
       	 return NO-APPLY.
@@ -192,7 +193,7 @@ END.
 DO i = 1 TO cache_db#:
   IF cache_db_l[i] = user_dbname AND old_db = ? THEN old_db = i.
   IF  isOlderDBVersion(i)  THEN oldbs = oldbs + 1.
-   version = "V" + DBVERSION(cache_db#).
+   version = "R" + DBVERSION(cache_db#).
 END.
 
 ASSIGN
@@ -393,12 +394,7 @@ HIDE FRAME schema_stuff NO-PAUSE.
 
 FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
 
-  IF index(cache_db_t[pos],"/V5") <> 0
-   or index(cache_db_t[pos],"/V6") <> 0
-   or index(cache_db_t[pos],"/V7") <> 0
-   or index(cache_db_t[pos],"/V8") <> 0
-   or index(cache_db_t[pos],"/V9") <> 0 THEN  
-   /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[pos])*/
+  IF index(cache_db_t[pos],"/R10") <> 0  THEN  
      RETURN YES.
    ELSE 
      RETURN NO.

@@ -48,7 +48,8 @@ History:
 {adedict/IDX/idxvar2.i shared}
 {adedict/IDX/idxvar.i shared}
 {adedict/capab.i}
-
+/* include file contains function for area label */
+{prodict/pro/arealabel.i}
 /* General processing variables */
 Define var num_flds  as integer NO-UNDO. /* # of index flds chosen */
 Define var max_flds  as integer NO-UNDO.
@@ -57,11 +58,12 @@ Define var all_cnt   as integer NO-UNDO.
 Define var added     as logical NO-UNDO INIT no.
 Define var num       as integer NO-UNDO.
 Define var curr_type as CHARACTER NO-UNDO.
-
+define variable AreaList as character no-undo.
+define variable lNoArea as logical no-undo.
 DEFINE VARIABLE ans AS LOGICAL NO-UNDO.
 
 
-Define buffer x_File for _File.
+Define buffer x_File for dictdb._File.
 
 
 /*=========================Internal Procedures===============================*/
@@ -358,8 +360,9 @@ do:
       */
 
       name = SUBSTR(flds, 4, 32).  /* We know now there's only 1 fld */
-      find _Field of x_File where _Field._Field-Name = name.
-      if _Field._Data-Type <> "Character" then
+      
+      find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
+      if dictdb._Field._Data-Type <> "Character" then
       do:
 	 message "You can only specify word-indexed when" SKIP
 		 "the index contains a character field."
@@ -370,15 +373,15 @@ do:
    end.
    else do: /* Word index was not specified */
       do fnum = 1 to num_flds:
-	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
-	 find _Field of x_File where _Field._Field-Name = name.
-	 if _Field._Extent > 0 then
-	 do:
-      	    message "Only a word index can contain an array field."
-	       view-as ALERT-BOX ERROR  buttons OK.    
-      	    s_OK_Hit = no.
-	    return NO-APPLY.
-	 end.
+    	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
+    	 find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
+    	 if dictdb._Field._Extent > 0 then
+    	 do:
+          	    message "Only a word index can contain an array field."
+    	       view-as ALERT-BOX ERROR  buttons OK.    
+          	    s_OK_Hit = no.
+    	    return NO-APPLY.
+    	 end.
       end.
 
       if input frame newidx s_Idx_Abbrev = yes then
@@ -387,9 +390,8 @@ do:
       	 assign
       	    name = s_lst_IdxFlds:ENTRY(num_flds) in frame newidx
             name = SUBSTR(name, 4, 32).
-
-      	 find _Field of x_File where _Field._Field-Name = name.
-      	 if _Field._Data-Type <> "Character" then
+         find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
+      	 if dictdb._Field._Data-Type <> "Character" then
       	 do:
 	    message "Abbreviate is an index option that lets you" SKIP
       	       	    "conveniently search for a partial match based" SKIP
@@ -456,18 +458,19 @@ do:
       run adecomm/_setcurs.p ("WAIT").
    
       assign
-	 b_Index._File-recid = s_TblRecId
-	 input frame newidx b_Index._Index-name
-	 input frame newidx b_Index._Unique
-	 input frame newidx b_Index._Active
-	 input frame newidx b_Index._Desc.
-
-      IF idx-area-name = "N/A"  THEN
+	      b_Index._File-recid = s_TblRecId
+	      input frame newidx b_Index._Index-name
+	      input frame newidx b_Index._Unique
+	      input frame newidx b_Index._Active
+	      input frame newidx b_Index._Desc.
+      if x_File._file-Attributes[1] and x_File._file-Attributes[2] = false then
+         ASSIGN b_Index._ianum = 0.
+      else IF idx-area-name = "N/A"  THEN
         ASSIGN b_Index._ianum = 6.
       ELSE  DO:
-        FIND _Area WHERE _Area._Area-name = INPUT FRAME newidx idx-area-name NO-LOCK.
-        ASSIGN b_Index._ianum = _Area._Area-number
-               idx-area-name = INPUT FRAME newidx idx-area-name.
+          FIND dictdb._Area WHERE dictdb._Area._Area-name = INPUT FRAME newidx idx-area-name NO-LOCK.
+          ASSIGN b_Index._ianum = dictdb._Area._Area-number
+                 idx-area-name = INPUT FRAME newidx idx-area-name.
       END.
       
       b_Index._Wordidx = (if wordidx then 1 else ?).
@@ -484,16 +487,16 @@ do:
       /* Create a record for each index field. */
       do fnum = 1 to num_flds:
       	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
-      	 find _Field of x_File where _Field._Field-Name = name.
+      	 find dictdb._Field of x_File where dictdb._Field._Field-Name = name.
 
-	 create _Index-Field.
+	 create dictdb._Index-Field.
       	 assign
-      	    _Index-Field._Index-recid = RECID(b_Index)
-      	    _Index-Field._Field-recid = RECID(_Field)
-      	    _Index-Field._Index-seq   = fnum
-      	    _Index-Field._Abbreviate  = 
+      	    dictdb._Index-Field._Index-recid = RECID(b_Index)
+      	    dictdb._Index-Field._Field-recid = RECID(dictdb._Field)
+      	    dictdb._Index-Field._Index-seq   = fnum
+      	    dictdb._Index-Field._Abbreviate  = 
       	       (if fnum = num_flds then input frame newidx s_Idx_Abbrev else no)
-      	    _Index-Field._Ascending =
+      	    dictdb._Index-Field._Ascending =
       	       (if SUBSTR(ENTRY(fnum, flds), 1, 1) = "A" then yes else no).
       end.
 
@@ -526,12 +529,12 @@ do:
       	    primary = yes
       	    x_File._dft-pk = false.
 
-      	 find _Index where RECID(_Index) = id.
-      	 defname = _Index._Index-Name.
-      	 FOR EACH _Index-field WHERE _Index-field._Index-recid = RECID(_Index).
-      	   DELETE _Index-field.
+      	 find dictdb._Index where RECID(_Index) = id.
+      	 defname = dictdb._Index._Index-Name.
+      	 FOR EACH dictdb._Index-field WHERE dictdb._Index-field._Index-recid = RECID(dictdb._Index).
+      	   DELETE dictdb._Index-field.
       	 end.  
-      	 delete _Index.
+      	 delete dictdb._Index.
       	 
       	 /* Remove the default index from the list in the browse window.  
       	    (we don't care about output parm - just use fnum variable) */
@@ -555,11 +558,11 @@ do:
       	 s_Status = "".
          
       /* Add entry to indexes list in alphabetical order */
-      find FIRST _Index where _Index._File-recid = s_TblRecId AND
-      	     	      	      _Index._Index-Name > b_Index._Index-Name 
+      find FIRST dictdb._Index where dictdb._Index._File-recid = s_TblRecId AND
+      	     	      	      dictdb._Index._Index-Name > b_Index._Index-Name 
          NO-ERROR.
 
-      ins_name = (if AVAILABLE _Index then _Index._Index-name else "").
+      ins_name = (if AVAILABLE dictdb._Index then dictdb._Index._Index-name else "").
       run adedict/_newobj.p
          (INPUT s_lst_Idxs:HANDLE in frame browse,
           INPUT b_Index._Index-name,
@@ -762,24 +765,24 @@ Define var cmax     as char    NO-UNDO.
 Define var access   as logical NO-UNDO.
 
 /* Check permissions */
-find _File WHERE _File._File-name =  "_Index"
-             AND _File._Owner = "PUB" NO-LOCK.
-if NOT can-do(_File._Can-create, USERID("DICTDB")) then
+find dictdb._File WHERE dictdb._File._File-name =  "_Index"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
+if NOT can-do(dictdb._File._Can-create, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "create indexes."
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
-find _File WHERE _File._FIle-name = "_Index-Field"
-             AND _File._Owner = "PUB" NO-LOCK.
-if NOT can-do(_File._Can-create, USERID("DICTDB")) then
+find dictdb._File WHERE dictdb._File._FIle-name = "_Index-Field"
+             AND dictdb._File._Owner = "PUB" NO-LOCK.
+if NOT can-do(dictdb._File._Can-create, USERID("DICTDB")) then
 do:
    message s_NoPrivMsg "create indexes."
       view-as ALERT-BOX ERROR buttons Ok.
    return.
 end.
-find _File where RECID(_File) = s_TblRecId.
-if _File._Frozen then  
+find dictdb._File where RECID(dictdb._File) = s_TblRecId.
+if dictdb._File._Frozen then  
 do:
    message "This table is frozen and cannot be modified."
       view-as ALERT-BOX ERROR buttons Ok.
@@ -788,7 +791,6 @@ end.
 
 /* OE00135682 - use other delimiter in case area name has comma */
 s_lst_idx_Area:DELIMITER in frame newidx = CHR(1).
-
 /* Set up for filling the list of all fields from the current table */
 find x_File where RECID(x_file) = s_TblRecId.
 
@@ -799,39 +801,37 @@ do:
 	   view-as ALERT-BOX ERROR buttons OK.
    return.
 end.
-IF x_File._For-type <> ? THEN
-  ASSIGN idx-area-name = "N/A"
+IF x_File._For-type <> ?  
+OR (x_File._file-Attributes[1] and x_File._file-Attributes[2] = false) THEN
+   /* we show blank for no default area in table and field , so do that here as well */
+  ASSIGN idx-area-name = if x_File._For-type <> ? then "N/A" else ""
+         idx-area-name:sensitive in frame newidx = false
          s_Lst_Idx_Area:hidden in frame newidx = yes
-         s_btn_Idx_Area:HIDDEN in frame newidx = yes.
-ELSE DO:
-  s_lst_idx_area:list-items in frame newidx = "".
-  FIND FIRST DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                            AND DICTDB._Area._Area-type = 6 
-                            AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name)
-                          NO-LOCK NO-ERROR.
-  IF AVAILABLE DICTDB._Area THEN
-    ASSIGN idx-area-name = DICTDB._AREA._Area-name.
-  ELSE DO:
-    FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-    ASSIGN idx-area-name = DICTDB._AREA._Area-name
-           s_In_Schema_Area = TRUE.
-  END.  
-  
-  for each DICTDB._Area FIELDS (_Area-num _Area-type _Area-name) WHERE DICTDB._Area._Area-num > 6 
-               AND DICTDB._Area._Area-type = 6 
-               AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
-    s_res = s_lst_idx_Area:add-last(DICTDB._Area._Area-name) in frame newidx.
-  END.
+         s_btn_Idx_Area:HIDDEN in frame newidx = yes
+         s_Area_mttext:hidden in frame newidx = yes
+         lNoArea = true.
 
-  FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
-  ASSIGN s_res = s_lst_idx_Area:add-last(DICTDB._Area._Area-name) in frame newidx.
-  
-  num = s_lst_Idx_Area:num-items in frame newidx.
-  s_Lst_Idx_Area:inner-lines in frame newidx = (if num <= 5 then num else 5).  
-  assign idx-area-name:font  in frame newidx = 0
-         s_lst_idx_Area:font in frame newidx = 0
-         idx-Area-name:width  in frame newidx = 34
-         s_lst_idx_Area:width in frame newidx = 38.
+ELSE DO with frame newidx:
+   s_lst_idx_area:list-items in frame newidx = "".
+   if x_File._File-Attributes[1] and x_File._File-Attributes[2] then
+   do:
+       s_Area_mttext:screen-value in frame newidx = "(for default tenant)". 
+       s_Area_mttext:hidden in frame newidx = false.        
+   end.
+   run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_lst_idx_area:DELIMITER in frame newidx, output AreaList).
+   assign
+       s_lst_idx_area:list-items in frame newidx = AreaList
+       idx-area-name = s_lst_idx_area:entry(1) in frame newidx 
+       num = s_lst_Idx_Area:num-items in frame newidx
+       s_Lst_Idx_Area:inner-lines in frame newidx = min(num,10).  
+
+   FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
+   s_In_Schema_Area = (idx-area-name = DICTDB._AREA._Area-name).
+     
+   assign idx-area-name:font  in frame newidx = 0
+          s_lst_idx_Area:font in frame newidx = 0
+          idx-Area-name:width  in frame newidx = 34
+          s_lst_idx_Area:width in frame newidx = 38.
 
   {adecomm/cbdrop.i &Frame  = "frame newidx"
       	       	  &CBFill = "idx-area-name"
@@ -847,8 +847,8 @@ ELSE DO:
 		     	 &CBInit = "curr_type"}
 END.
     
-find FIRST _Field of x_File NO-ERROR.
-if NOT AVAILABLE _Field then
+find FIRST dictdb._Field of x_File NO-ERROR.
+if NOT AVAILABLE dictdb._Field then
 do:
    message "You must first create fields for this" SKIP
       	   "table before you can create an index."
@@ -874,8 +874,8 @@ max_flds = INTEGER(cmax).
 
 /* Determine if the word indexed and abbreviated fields should be sensitive.
    They will be if there are any character fields in this table. */
-find FIRST _Field of x_File where _Field._Data-Type = "Character" NO-ERROR.
-if NOT AVAILABLE _Field then
+find FIRST dictdb._Field of x_File where dictdb._Field._Data-Type = "Character" NO-ERROR.
+if NOT AVAILABLE dictdb._Field then
    char_fld = no.
 
 /* Run time layout for button area.  Since this is a shared frame we have 
@@ -909,10 +909,10 @@ if NOT char_fld then
 s_Status = "".
 display s_Status with frame newidx. /* erases val from the last time */
 s_btn_Done:label in frame newidx = "Cancel".
-
+ 
 enable b_Index._Index-Name   
-       idx-area-name when idx-area-name <> "N/A"
-       s_btn_Idx_Area when idx-area-name <> "N/A"
+       idx-area-name when lNoArea = false
+       s_btn_Idx_Area when lNoArea = false
        b_Index._Desc
        s_Idx_Primary
        b_Index._Active

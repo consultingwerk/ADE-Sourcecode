@@ -73,9 +73,68 @@ RUN setMap IN h (input "NO-MAP"). /* this is optional */
 RUN doDump IN h.
 DELETE PROCEDURE h.
 
+super-tenant rules.
+Setting set-effective-tenant before calling this will cause tenant data
+to be dumped in the (dot-d-dir) standard directory or file-name 
+
+This is an example on how to call this proc persistently to have more control
+over multi-tenant options:
+
+    
+--- default location - create subdirs if necessary  --
+RUN prodict/dump_d.p PERSISTENT SET h 
+    (INPUT file-name, INPUT dot-d-dir, INPUT code-page).
+RUN setEffectiveTenant IN h (gtenant). 
+RUN doDump IN h.
+
+shared data will be dumped in            dot-d-dir
+effective tenant data will be dumpbed in dot-d-dir + "/" + gtenant
+shared lobs will be dumped in            dot-d-dir + "/lobs"
+effective tenant lobs will be dumpbed in dot-d-dir+ "/" + gtenant + "/lobs"
+
+--- default location no-lobs - create subdirs if necessary  --
+RUN prodict/dump_d.p PERSISTENT SET h 
+    (INPUT file-name, INPUT dot-d-dir, INPUT code-page).
+RUN setEffectiveTenant IN h (gtenant). 
+RUN setNoLobs IN h (true). 
+RUN doDump IN h.
+
+shared data will be dumped in            dot-d-dir
+effective tenant data will be dumpbed in dot-d-dir + "/" + gtenant
+
+--- specify location  ---
+RUN prodict/dump_d.p PERSISTENT SET h 
+    (INPUT file-name, INPUT dot-d-dir, INPUT code-page).
+RUN setUseDefaultLocation IN h (false). 
+RUN setEffectiveTenant IN h (gtenant). 
+RUN setTenantDir IN h (gtenantdir). 
+RUN setLobDir IN h (globdir). 
+RUN setTenantLobDir IN h (gtenantlobdir). 
+
+RUN doDump IN h.
+
+shared data will be dumped in            dot-d-dir
+effective tenant data will be dumpbed in gtenantdir
+shared lobs will be dumped in            globdir
+effective tenant lobs will be dumpbed in gtenantlobdir
+
+--- all data in current directory  don't use default  ---
+RUN prodict/dump_d.p PERSISTENT SET h 
+    (INPUT file-name, INPUT dot-d-dir, INPUT code-page).
+RUN setEffectiveTenant IN h (gtenant). 
+RUN setUseDefaultLocation IN h (false). 
+RUN doDump IN h.
+
+all data will be dumped in dot-d-dir
+Summary: 
+1. tenant and lob directories will be dumped in subdirs named after tenant and 
+   be created if necessary if setEffectiveTenant is used
+
+2. setTenantDir, setLobDir and setTenantLobDir is ONLY used if 
+   setEffectiveTenant is used together with setUseDefaultLocation in h(false). 
+
 */
 
-  
 DEFINE INPUT PARAMETER file-name AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER dot-d-dir AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER code-page AS CHARACTER NO-UNDO.
@@ -85,9 +144,14 @@ DEFINE INPUT PARAMETER code-page AS CHARACTER NO-UNDO.
    behavior remains the same as previous versions, with the same default
    values.
 */
-DEFINE VARIABLE cLob-Dir         AS CHARACTER NO-UNDO.
-DEFINE VARIABLE map-option       AS CHARACTER NO-UNDO INIT "".
+DEFINE VARIABLE gLobDir         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gTenantDir      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gTenantLobDir   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gTenant         AS CHARACTER NO-UNDO.
+define variable gNoLobs         as logical   no-undo.
+define variable gUseDefault     as logical   no-undo init ?.
 
+DEFINE VARIABLE map-option       AS CHARACTER NO-UNDO INIT "".
 
 { prodict/dictvar.i NEW }
 { prodict/user/uservar.i NEW }
@@ -100,37 +164,94 @@ DEFINE VARIABLE l_int       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_item      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_list      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE save_ab     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE save_tenant AS char      NO-UNDO.
+
 DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
 
 define temp-table ttb_dump
         field db        as character
         field tbl       as character
         index upi is primary unique db tbl.
+
+       
+/*--------------------------- FUNCTIONS  --------------------------*/
+function validDirectory returns logical ( cValue as char):
+  
+    IF cValue <> "" THEN 
+    DO:
+        ASSIGN FILE-INFO:FILE-NAME = cValue. 
+        return SUBSTRING(FILE-INFO:FILE-TYPE,1,1) = "D".
+    END.
+        
+    return true.
+ 
+end function. /* validateDirectory */
+
+function createDirectoryIf returns logical ( cdirname as char):
+    define variable iStat as integer no-undo.
+    if not validdirectory(cdirname) then
+    do:
+        OS-CREATE-DIR VALUE(cdirname). 
+        iStat = OS-ERROR. 
+        
+        if iStat <> 0 then
+           MESSAGE "Cannot create directory " + cdirname + ". System error:" iStat
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return istat = 0.
+    end.
+    return true.
+end function. /* validateDirectory */
         
 
 /*--------------------------- INTERNAL PROCS  --------------------------*/
-
 PROCEDURE setFileName:
     DEFINE INPUT PARAMETER pfile-name AS CHAR NO-UNDO.
     ASSIGN file-name = pfile-name.
 END.
-
 
 PROCEDURE setDirectory:
     DEFINE INPUT PARAMETER pdot-d-dir AS CHAR NO-UNDO.
     ASSIGN dot-d-dir = pdot-d-dir.
 END.
 
-
 PROCEDURE setCodePage:
     DEFINE INPUT PARAMETER pcodepage AS CHAR NO-UNDO.
     ASSIGN code-page = pcodepage.
 END.
 
+PROCEDURE setNoLobs:
+    DEFINE INPUT PARAMETER pNoLobs AS logical NO-UNDO.
+    ASSIGN gNoLobs = pNoLobs.
+END.
 
 PROCEDURE setLobDir:
     DEFINE INPUT PARAMETER pcLob-Dir AS CHAR NO-UNDO.
-    ASSIGN cLob-Dir = pcLob-Dir.
+    ASSIGN gLobDir = pcLob-Dir.
+END.
+
+PROCEDURE setUseDefaultLocation:
+    DEFINE INPUT PARAMETER pldefault AS logical NO-UNDO.
+    ASSIGN gUseDefault = pldefault.
+END.
+
+PROCEDURE setEffectiveTenant:
+    DEFINE INPUT PARAMETER pcTenant AS CHAR NO-UNDO.
+    if save_tenant = "" then
+        save_tenant = get-effective-tenant-name("dictdb").
+  
+    gTenant = pctenant.
+    if gUseDefault = ? then 
+       gUseDefault = true.
+END.
+
+PROCEDURE setTenantDir:
+    DEFINE INPUT PARAMETER pcDir AS CHAR NO-UNDO.
+    ASSIGN gTenantDir = pcDir.
+END.
+
+PROCEDURE setTenantLobDir:
+    DEFINE INPUT PARAMETER pcDir AS CHAR NO-UNDO.
+    ASSIGN gTenantLobDir = pcDir.
 END.
 
 PROCEDURE setMap:
@@ -142,7 +263,11 @@ END.
 /* This is the meat of this procdure */
 
 PROCEDURE doDump:
-
+    
+    /* as of current just let the ABL  deal with error */
+    if gtenant > "" then
+        set-effective-tenant(gtenant,"dictdb"). 
+    
     /* make sure table is empty */
     EMPTY TEMP-TABLE ttb_dump NO-ERROR.
 
@@ -171,8 +296,8 @@ PROCEDURE doDump:
     
     /****** 1. step: create temp-table from input file-list ***********/
     
-    if file-name = "ALL"
-     then do:  /* dump ALL files of ALL dbs */
+    if file-name = "ALL" then 
+    do:  /* dump ALL files of ALL dbs */
       for each DICTDB._DB NO-LOCK:
         create ttb_dump.
         assign
@@ -184,7 +309,7 @@ PROCEDURE doDump:
         end.    
       end.     /* dump ALL fiels of ALL dbs */
       
-     else do:  /* dump SOME files of SOME dbs */
+    else do:  /* dump SOME files of SOME dbs */
      
       assign l_list = file-name.
       repeat i = 1 to num-entries(l_list):
@@ -199,9 +324,9 @@ PROCEDURE doDump:
          else assign
           ttb_dump.db  = substring(l_item,1,l_int - 1,"character")
           ttb_dump.tbl = substring(l_item,l_int + 1, -1,"character").
-        end.
+      end.
         
-      end.     /* dump SOME files of SOME dbs */
+    end.     /* dump SOME files of SOME dbs */
     
     
     /****** 2. step: load in all files according to temp-table ******/
@@ -278,8 +403,8 @@ PROCEDURE doDump:
      *    of the current _Db
      */
     
-      IF user_env[1]  = ",all"
-       then do:  /* all files of this _Db */
+      IF user_env[1]  = ",all" then 
+      do:  /* all files of this _Db */
 
         assign user_env[1] = "".
         IF NOT isCpUndefined THEN
@@ -361,15 +486,40 @@ PROCEDURE doDump:
         user_env[4] = ""
         user_env[5] = code-page
         user_env[6] = "no-alert-boxes"
-        user_env[30] = cLob-Dir
+        user_env[31] = if gNoLobs then " NO-LOBS" else ""
         drec_db     = RECID(_Db)
         user_dbname = if _Db._Db-name = ? THEN LDBNAME("DICTDB")
                                           ELSE _Db._Db-Name
         user_dbtype = if _Db._Db-name = ? THEN DBTYPE("DICTDB")
                                           ELSE _Db._Db-Type
     /*    user_dbname = LDBNAME("DICTDB") */
-    /*    user_dbtype = DBTYPE("DICTDB")  */.
-    
+    /*    user_dbtype = DBTYPE("DICTDB")  */
+         .
+      if gTenant <> "" then 
+      do:
+          user_env[32] = gTenant.
+          if gUseDefault then 
+          do:         
+             assign
+                 user_env[33] = user_env[2] + gTenant + "/"
+                 user_env[30] = user_env[2] + "lobs/"
+                 user_env[34] = user_env[33] + "lobs/".
+             
+             createDirectoryIf( user_env[33]).    
+             createDirectoryIf( user_env[30]).    
+             createDirectoryIf( user_env[34]).    
+          end.
+          else do:
+             assign
+                 user_env[33] = gTenantDir
+                 user_env[30] = gLobDir
+                 user_env[34] = gTenantLobDir. 
+          end.
+      end.
+      else 
+         user_env[30] = gLobDir.
+         
+ 
       /* Indicate "y"es to disable triggers for dump of all files */
       /* Now we don't have to do this. A blank string will indicate disable
          triggers for all files 
@@ -383,7 +533,8 @@ PROCEDURE doDump:
                                ).
       */
     
-      IF NOT isCpUndefined THEN DO:
+      IF NOT isCpUndefined THEN 
+      DO:
           /* see if we can put user_longchar into user_env[1] */
           ASSIGN user_env[1] = user_longchar NO-ERROR.
           IF NOT ERROR-STATUS:ERROR THEN
@@ -392,13 +543,22 @@ PROCEDURE doDump:
           ELSE
              ASSIGN user_env[1] = "".
       END.
-    
+      
       RUN "prodict/dump/_dmpdata.p".
     
-      END.    /* all _Db's */
-    
-    
-    SESSION:APPL-ALERT-BOXES = save_ab.
+    END.    /* all _Db's */
+    finally:
+        /* clean up tenant and lob globals */
+        assign
+            user_env[32] = ""
+            user_env[33] = ""
+            user_env[30] = ""
+            user_env[34] = "". 
+        SESSION:APPL-ALERT-BOXES = save_ab.
+        if save_tenant > "" then
+            set-effective-tenant(save_tenant,"dictdb").   		
+    end finally.    
+
 
 END PROCEDURE.
 

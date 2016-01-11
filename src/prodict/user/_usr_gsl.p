@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007-2009 by Progress Software Corporation. All *
+* Copyright (C) 2000,2007,2011 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -60,6 +60,10 @@ define input        parameter p_master   as   character.
 define variable               canned     as   logical init yes.
 define variable               l_link     as   character format "x(30)".
 define variable               l_verify   as   logical.
+define variable               cBestRowid as   character initial "Select 'Best' ROWID Index"
+                                              FORMAT "x(27)" NO-UNDO.
+define variable               isClobEnabled   as   logical init yes .
+define variable               isBlobEnabled   as   logical init yes .
 
 form
                                                           skip({&VM_WIDG})
@@ -89,13 +93,25 @@ form
             view-as TOGGLE-BOX
   p_datetime LABEL "Default to OpenEdge DATETIME" view-as TOGGLE-BOX 
       at column-of p_vrfy row-of p_vrfy  skip({&VM_WIDG})
-  p_lob LABEL "Default to OpenEdge LOB" view-as TOGGLE-BOX 
-      at column-of p_vrfy  row-of p_vrfy skip({&VM_WIDG})
+  p_lob LABEL "Default to OpenEdge LOB for: " view-as TOGGLE-BOX       
+      at column-of p_vrfy  row-of p_vrfy skip
+  p_clobtype LABEL " CLOBs" VIEW-AS TOGGLE-BOX at col 35  row-of p_vrfy + 1 
+  p_blobtype LABEL " BLOBs" VIEW-AS TOGGLE-BOX at col 48  row-of p_vrfy + 1 skip({&VM_WIDG})
+  p_primary LABEL "Designate Primary/Clustered index as ROWID" view-as TOGGLE-BOX 
+    at column-of p_vrfy  row 8  skip({&VM_WIDG})
+  cBestRowid view-as Text no-label
+    at row 9  column 6 /* skip({&VM_WIDG}) */
+  "Using" VIEW-AS TEXT AT ROW 10 COL 10
+  p_best VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS
+     "OE Schema", 1,
+     "Foreign schema", 2
+      AT ROW 10 COL 18 NO-LABEL 
+
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
- with frame frm_ntoq
+  with frame frm_ntoq
   centered row 3 attr-space
-  overlay side-labels
+  overlay side-labels 
   view-as dialog-box default-button btn_ok cancel-button btn_cancel
   TITLE " Pre-Selection Criteria For Schema Pull ".
   
@@ -220,6 +236,7 @@ ELSE IF (p_frame NE "frm_as400" AND USERID("DICTDBG") NE "")
 IF DBTYPE("DICTDBG") EQ "ORACLE" AND p_owner = "" THEN
    RUN prodict/ora/_get_orauser.p (OUTPUT p_owner).
 
+
 do on ENDKEY undo,leave:
 
   assign l_verify = user_env[25] begins "compare"
@@ -274,6 +291,13 @@ do on ENDKEY undo,leave:
   else if p_frame = "frm_ntoq":U 
    then do:  /* frame frm_ntoq */
  
+ASSIGN        p_clobtype:sensitive in frame frm_ntoq = FALSE
+              p_blobtype:sensitive in frame frm_ntoq = FALSE
+              p_lob:sensitive in frame frm_ntoq = TRUE
+	      p_lob = FALSE
+	      p_clobtype = TRUE
+	      p_blobtype = TRUE.
+
     if not l_verify then 
       ASSIGN p_outf:HIDDEN IN FRAME frm_ntoq = TRUE
              p_vrfy:hidden in frame frm_ntoq = TRUE.
@@ -281,6 +305,8 @@ do on ENDKEY undo,leave:
     IF NOT CAN-DO("MSS",DBTYPE("DICTDBG")) or l_verify THEN
     DO:
       ASSIGN p_lob:hidden in frame frm_ntoq = TRUE.
+      ASSIGN p_clobtype:hidden in frame frm_ntoq = TRUE.
+      ASSIGN p_blobtype:hidden in frame frm_ntoq = TRUE.
       ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE.
    END.
     ELSE DO:
@@ -288,7 +314,67 @@ do on ENDKEY undo,leave:
            line as the previous widget so that when we don't have to display
            it, it doesn't leave a big gap on the UI */
         ASSIGN p_lob:ROW in frame frm_ntoq = p_lob:ROW in frame frm_ntoq + 1.
+/*        ASSIGN p_blobtype = TRUE.
+               p_blobtype:sensitive in frame frm_ntoq = FALSE.
+        ASSIGN p_clobtype = TRUE.
+               p_clobtype:sensitive in frame frm_ntoq = FALSE.*/
     END.
+
+  ON VALUE-CHANGED of p_lob IN FRAME frm_ntoq DO:
+    IF SELF:screen-value = "no" THEN DO:
+     ASSIGN 
+           p_clobtype:sensitive IN FRAME frm_ntoq = FALSE
+           p_blobtype:sensitive IN FRAME frm_ntoq = FALSE.
+    END.
+    ELSE DO:
+    ASSIGN 
+           p_clobtype:screen-value in frame frm_ntoq = "yes"
+           p_blobtype:screen-value in frame frm_ntoq = "yes"
+           isBlobEnabled = TRUE
+           isClobEnabled = TRUE
+           p_clobtype = TRUE
+           p_blobtype = TRUE
+           p_clobtype:sensitive IN FRAME frm_ntoq = TRUE
+           p_blobtype:sensitive IN FRAME frm_ntoq = TRUE.
+    END.
+  END.
+
+  ON VALUE-CHANGED of p_clobtype IN FRAME frm_ntoq DO:
+    IF SELF:screen-value = "no" THEN DO:
+     p_clobtype = false.
+     isClobEnabled = false.
+    END.
+    ELSE DO:
+     p_clobtype = TRUE.
+     isClobEnabled = TRUE.
+    END.
+
+     if isBlobEnabled = no and isClobEnabled = no then 
+       ASSIGN p_lob:screen-value in frame frm_ntoq = "no".
+     else 
+       ASSIGN p_lob:screen-value in frame frm_ntoq = "yes".
+
+  END. 
+
+
+  ON VALUE-CHANGED of p_blobtype IN FRAME frm_ntoq DO:
+    IF SELF:screen-value = "no" THEN DO:
+     p_blobtype = false.
+     isBlobEnabled = false.
+    END.
+    ELSE DO:
+     p_blobtype = TRUE.
+     isBlobEnabled = TRUE.
+    END.
+
+/*     assign p_lob:sensitive in frame frm_ntoq = TRUE.*/
+     if isBlobEnabled = no and isClobEnabled = no then 
+       ASSIGN p_lob:screen-value in frame frm_ntoq = "no".
+     else 
+       ASSIGN p_lob:screen-value in frame frm_ntoq = "yes".
+    
+  END. 
+
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
@@ -302,10 +388,15 @@ do on ENDKEY undo,leave:
       p_name
       p_owner
       p_qual
+      p_primary
+      cBestRowid
+      p_best
       p_vrfy when l_verify
       p_outf WHEN l_verify
       p_datetime WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       p_lob WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_clobtype WHEN p_lob and not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_blobtype WHEN p_lob and not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}

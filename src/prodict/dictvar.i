@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2006,2008-2009,2011 by Progress Software Corporation.*
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -49,6 +49,7 @@ DEFINE {1} SHARED VARIABLE is-pre-101b-db   AS LOGICAL               NO-UNDO.
 DEFINE {1} SHARED VARIABLE dictObjAttrCache AS LOGICAL                      NO-UNDO.
 DEFINE {1} SHARED VARIABLE dictEPolicy      AS prodict.sec._sec-pol-util    NO-UNDO.
 DEFINE {1} SHARED VARIABLE dictObjAttrs     AS prodict.pro._obj-attrib-util NO-UNDO.
+DEFINE {1} SHARED VARIABLE dictLoadOptions  AS OpenEdge.DataAdmin.Binding.IDataDefinitionOptions NO-UNDO.
 
 /* for bug fix 20050930-006 */
 &IF DEFINED(NOTTCACHE) = 0 &THEN
@@ -57,6 +58,7 @@ DEFINE {1} SHARED TEMP-TABLE tt_cache_file NO-UNDO
     FIELD nPos       AS INTEGER
     FIELD cName      AS CHARACTER
     FIELD p_flag     AS LOGICAL
+    FIELD multitenant  AS LOGICAL
     INDEX nPos IS UNIQUE PRIMARY nPos
     INDEX cName cName.
 &ENDIF

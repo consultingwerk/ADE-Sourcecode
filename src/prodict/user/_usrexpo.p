@@ -65,6 +65,15 @@ DEFINE VARIABLE i         AS INTEGER               NO-UNDO.
 DEFINE VARIABLE typ       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE upath     AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE out_lbl   AS CHAR FORMAT "X(13)" NO-UNDO INIT "&Output File:".
+define variable isSuperTenant as logical no-undo.
+define variable isMultiTenant as logical no-undo.
+
+ 
+define variable gTenant  as character no-undo.
+define variable cTenantlabel as character format "x(30)" no-undo init "Effective Tenant:".
+define button btnTenant size 18 by 1 label "Select Tenant...".
+ 
+
 {prodict/misc/filesbtn.i}
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
@@ -86,6 +95,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 5 NO-UNDO INITIAL [
 &ENDIF
 FORM
   SKIP({&TFM_WID})
+  cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+  gTenant at 2 no-label format "x(32)"  VIEW-AS fill-in size 48  by 1  btntenant skip ({&VM_WID})
   out_lbl AT 2 VIEW-AS TEXT NO-LABEL SKIP({&VM_WID})
   user_env[4] {&STDPH_FILL} NO-LABEL FORMAT "x({&PATH_WIDG})" AT 2 
         VIEW-AS FILL-IN SIZE {&FILLCH} BY 1
@@ -120,10 +131,16 @@ FORM
   /* Added to support "Output File:" fill-in label mnemonic (tomn 8/1/95) */
   ASSIGN
     user_env[4]:SIDE-LABEL-HANDLE IN FRAME export-stuff = out_lbl:HANDLE
-    user_env[4]:LABEL = out_lbl.
+    user_env[4]:LABEL = out_lbl
+    gTenant:SIDE-LABEL-HANDLE IN FRAME export-stuff = cTenantLabel:HANDLE
+    cTenantLabel:LABEL IN FRAME export-stuff = cTenantLabel.
 &ELSE
 FORM
   SKIP(.5)
+  cTenantlabel no-label AT 2 VIEW-AS TEXT SKIP({&VM_WID})
+  /* the size 42 is just used to right-align buttons */
+  gTenant at 4 no-label format "x(32)" view-as fill-in size 42 by 1 
+  btntenant skip ({&VM_WID})
   "Output File:" AT 2 SKIP
   user_env[4] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" NO-LABEL AT 4
         VIEW-AS FILL-IN SIZE 50 BY 1 
@@ -147,6 +164,10 @@ FORM
   ROW 2 CENTERED SIDE-LABELS SCROLLABLE 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE "Export " + (IF user_env[9] EQ "ascii" THEN "Text" ELSE user_env[9]).
+  
+  assign
+     gTenant:SIDE-LABEL-HANDLE IN FRAME export-stuff = cTenantLabel:HANDLE
+     cTenantLabel:LABEL IN FRAME export-stuff = cTenantLabel.
 &ENDIF
 
 /*---------------- FRAME export-ascii --------------------------------------*/
@@ -175,88 +196,68 @@ FORM
   VIEW-AS DIALOG-BOX TITLE "Output Record Formatting".
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
-/*==========================Internal Procedures=========================*/
 
-/*----------------------------------------------------------
-   Do frame validation when user hits OK or GO.
+/*=============================Functions=================================*/  
+function selectTenant return logical (hTenant as handle):
+    define variable tenantdlg as prodict.pro._tenant-sel-presenter no-undo.
+    tenantdlg = new  prodict.pro._tenant-sel-presenter ().
+    do with frame write-dump-dir-mt:
+           &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN
+        /* adjust the browse aligned and under field (at least try...) */   
+        if  hTenant:frame:row < 0 then  /* this does not really work with large negative */                  
+            tenantdlg:Row = (hTenant:row + hTenant:height) + 2.
+        else 
+            tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row + 0.5.
+        tenantdlg:Col = hTenant:col + hTenant:frame:col .
+           &ELSE
+        
+        tenantdlg:Row = hTenant:row + hTenant:height +  hTenant:frame:row.
+       
+           &ENDIF
+    end.
+    tenantdlg:QueryString = "for each ttTenant where ttTenant.type <> 'super'".
+    tenantdlg:Title = "Select Tenant".
+  
+/*    glInSelect = true. /* stop end-error anywhere trigger */*/ 
+    if tenantdlg:Wait() then
+    do: 
+        hTenant:screen-value = tenantdlg:ColumnValue("ttTenant.name").
+        apply "value-changed" to hTenant.
+    end.
+/*    glInSelect = false.*/
+ 
+end.  
 
-   Input Parameter: 
-      p_file    = name of file to export to
-      p_disable = disable trigger widget (yes or no)
+function getTenantName returns char(pctenant as char):
+    define variable lok     as logical no-undo.
+    define variable hbuffer as handle no-undo. 
+    define variable cValue   as character no-undo.
+    
+    CREATE BUFFER hbuffer FOR TABLE "DICTDB._tenant".
+    lok = hbuffer:find-unique ("where _tenant._Tenant-name = " + quoter(pcTenant)) no-error.
+    if lok then 
+        cValue = hBuffer::_tenant-name.
+    
+    delete object hbuffer.    
+    return cValue.
+end function. 
 
-   Returns: "error" or "".
-----------------------------------------------------------*/
-PROCEDURE Validate_Frame:
-   DEFINE INPUT PARAMETER p_file    AS WIDGET-HANDLE NO-UNDO.
-   DEFINE INPUT PARAMETER p_disable AS WIDGET-HANDLE NO-UNDO.
-   DEFINE VARIABLE        ok        AS LOGICAL       NO-UNDO.
-   DEFINE VARIABLE        tmpfile   AS CHARACTER     NO-UNDO.
-
-   /* See if user has permission to import with triggers
-      disabled.  If not, ask if he wants to continue
-      anyway.
-   */
-   IF p_disable:SCREEN-VALUE = "yes" THEN
-   DO:
-      /*{prodict/dump/ltrigchk.i &OK = ok}*/
-      Define var trig_found as logical NO-UNDO.
-
-      trig_found = no.
-      find _File-trig of _File where _File-trig._Event = "FIND" NO-ERROR.
-      if AVAILABLE _File-trig then
-        trig_found = yes.
-
-      if trig_found then
-         ok = CAN-DO(_File._Can-Load,USERID(user_dbname)).
-      else
-         ok = yes.
-      IF NOT ok THEN DO:
-         MESSAGE "You do not have permission to export" SKIP 
-                 "with triggers disabled."
-                 VIEW-AS ALERT-BOX ERROR BUTTON OK.
-         p_disable:SCREEN-VALUE = "no".
-         RETURN "error".
-      END.
-   END.
-
-  IF SEARCH(p_file:SCREEN-VALUE) <> ? THEN DO:
-    ok = false.
-    MESSAGE new_lang[4] SKIP p_file:SCREEN-VALUE SKIP(1)  new_lang[5] 
-      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE ok.
-    IF NOT ok THEN DO:
-      APPLY "ENTRY" TO p_file.
-      RETURN "error".
-    END.
-  END.
-  /* gfs: check to see if what was entered compiles */
-  IF user_env[2]:SCREEN-VALUE IN FRAME export-stuff <> "" OR
-     user_env[3]:SCREEN-VALUE IN FRAME export-stuff <> "" THEN
-  DO:
-     RUN "adecomm/_tmpfile.p"(INPUT "", INPUT ".adm", OUTPUT tmpfile).
-     OUTPUT TO VALUE(tmpfile) NO-MAP.
-        PUT UNFORMATTED
-           "OUTPUT TO " user_env[4] "." SKIP
-           "FOR EACH " LDBNAME("DICTDB") "." user_env[1] " "
-                        user_env[2]:SCREEN-VALUE " "
-                        user_env[3]:SCREEN-VALUE ":" SKIP
-           "END." SKIP
-           "OUTPUT CLOSE.".
-     OUTPUT CLOSE.
-     COMPILE VALUE(tmpfile) NO-ERROR.
-     IF COMPILER:ERROR THEN
-     DO:
-       MESSAGE "The syntax entered for WHERE and/or BY is invalid." CHR(10)
-               "Re-check the syntax you entered." VIEW-AS ALERT-BOX
-               ERROR BUTTONS OK.
-       IF user_env[2]:SCREEN-VALUE <> "" THEN APPLY "ENTRY" TO user_env[2].
-       ELSE APPLY "ENTRY" TO user_env[3].
-       OS-DELETE VALUE(tmpfile).
-       RETURN "ERROR".
-     END. 
-     OS-DELETE VALUE(tmpfile).
-     RETURN "".
-  END.
-END.
+function validateTenantName returns logical(ctenant as char):
+    define variable lok as logical no-undo.
+    if cTenant = "" then
+    do:
+        MESSAGE "Please specify which Tenant to dump data for."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false. 
+    end.
+    if getTenantName(cTenant) = "" then 
+    do:
+        MESSAGE "There is no Tenant with name " +  ctenant + " in the database."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        return false.
+    end.
+    return true.
+end function. 
 
 /*=============================Triggers=================================*/
 
@@ -292,8 +293,9 @@ on HELP of frame export-ascii
 /*----- ON GO or OK -----*/
 ON GO OF FRAME export-stuff
 DO:
-  run Validate_Frame (INPUT user_env[4]:HANDLE IN FRAME export-stuff,
-                                   INPUT dis_trigs:HANDLE IN FRAME export-stuff).
+  run Validate_Frame (user_env[4]:HANDLE IN FRAME export-stuff,
+                      dis_trigs:HANDLE IN FRAME export-stuff,
+                      gTenant:handle in frame export-stuff).
   if RETURN-VALUE = "error" THEN
      RETURN NO-APPLY.
 END.
@@ -311,6 +313,11 @@ ON CHOOSE OF btn_File in frame export-stuff DO:
         INPUT ""                 /*Filter*/,
         INPUT no                 /*Must exist*/).
 END.
+
+on choose of btnTenant in frame export-stuff
+do:
+     selectTenant(gTenant:handle in frame export-stuff).
+end.    
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[4] in frame export-stuff
@@ -376,6 +383,13 @@ IF NOT CAN-DO(_File._Can-read,USERID(user_dbname)) THEN DO:
   RETURN.
 END.
 
+if int(dbversion("dictdb")) > 10 then
+do:
+   isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
+   if isSuperTenant and _File._file-attributes[1] then
+      isMultiTenant = true. 
+end.
+ 
 ASSIGN
   typ          = user_env[9]
   user_env[ 2] = ""
@@ -443,8 +457,27 @@ DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
             user_env[12] = "~~012" /* end-of-line */
             user_env[13] = "*".   /* record marker */
   END CASE.        
+  if not isMultiTenant then
+  do:
+      gTenant:hidden in frame export-stuff = true. 
+      cTenantlabel:hidden in frame export-stuff = true. 
+      
+      btnTenant:hidden in frame export-stuff = true.  
+      
+      run adjustframe(FRAME export-stuff:handle).
+  end.    
+  else do:
+      display cTenantlabel with frame export-stuff.
+      gTenant = get-effective-tenant-name("dictdb").
+  end.
+ 
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+  
+  
   UPDATE
+    gTenant when isMultiTenant 
+    btnTenant when isMultiTenant
     user_env[4] btn_File
     allorsome
     anywhere
@@ -458,7 +491,10 @@ DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
      user_env[3] = user_env[3]:SCREEN-VALUE IN FRAME export-stuff.
 &ELSE
   UPDATE
-    user_env[4] btn_File
+    gTenant when isMultiTenant 
+    btnTenant when isMultiTenant
+    user_env[4] 
+    btn_File
     user_env[2]
     user_env[3]
     allorsome
@@ -480,6 +516,7 @@ DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
       user_env[11] = ",".
 
     UPDATE
+    
       user_env[13] /*line starter*/
       user_env[12] /*line term*/
       user_env[10] /*quoting char*/
@@ -564,10 +601,127 @@ END.
 
 IF user_env[6] = "" THEN user_path = "".
 
+ 
+if isMultiTenant then 
+    set-effective-tenant(gTenant,"dictdb").
+
 { prodict/dictnext.i upath }
 
+
+     
 HIDE FRAME export-stuff NO-PAUSE.
 HIDE FRAME export-ascii NO-PAUSE.
 RETURN.
 
+
+/*==========================Internal Procedures=========================*/
+/* this is really adjust frame after hide  of tenant */ 
+procedure adjustFrame:      
+    define input  parameter pframe  as handle no-undo.
+    define variable hWidget  as handle no-undo.
+    define variable deAdjust as decimal no-undo.
+    
+    deAdjust = if session:window-system = "TTY" then 1 else 1.8. 
+    hwidget = pframe:first-child.
+    hwidget = hwidget:first-child.
+    do while valid-handle(hwidget):
+        if hwidget:hidden = false then
+           hwidget:row = hwidget:row - deAdjust.
+        hwidget= hwidget:next-sibling.
+    end.   
+    pframe:scrollable = false. 
+    pframe:height = pframe:height - deAdjust. 
+end.    
+ 
+/*----------------------------------------------------------
+   Do frame validation when user hits OK or GO.
+
+   Input Parameter: 
+      p_file    = name of file to export to
+      p_disable = disable trigger widget (yes or no)
+
+   Returns: "error" or "".
+----------------------------------------------------------*/
+PROCEDURE Validate_Frame:
+   DEFINE INPUT PARAMETER p_file    AS WIDGET-HANDLE NO-UNDO.
+   DEFINE INPUT PARAMETER p_disable AS WIDGET-HANDLE NO-UNDO.
+   DEFINE INPUT PARAMETER p_tenant  AS WIDGET-HANDLE NO-UNDO.
+   DEFINE VARIABLE        ok        AS LOGICAL       NO-UNDO.
+   DEFINE VARIABLE        tmpfile   AS CHARACTER     NO-UNDO.
+   
+   if isMultiTenant then 
+   do:
+       if not validateTenantName(p_tenant:screen-value) then
+       do:
+           apply "entry" to p_tenant.
+           return "error".
+       end.        
+   end.    
+   
+   /* See if user has permission to import with triggers
+      disabled.  If not, ask if he wants to continue
+      anyway.
+   */
+   IF p_disable:SCREEN-VALUE = "yes" THEN
+   DO:
+      /*{prodict/dump/ltrigchk.i &OK = ok}*/
+      Define var trig_found as logical NO-UNDO.
+
+      trig_found = no.
+      find _File-trig of _File where _File-trig._Event = "FIND" NO-ERROR.
+      if AVAILABLE _File-trig then
+        trig_found = yes.
+
+      if trig_found then
+         ok = CAN-DO(_File._Can-Load,USERID(user_dbname)).
+      else
+         ok = yes.
+      IF NOT ok THEN DO:
+         MESSAGE "You do not have permission to export" SKIP 
+                 "with triggers disabled."
+                 VIEW-AS ALERT-BOX ERROR BUTTON OK.
+         p_disable:SCREEN-VALUE = "no".
+         RETURN "error".
+      END.
+   END.
+
+  IF SEARCH(p_file:SCREEN-VALUE) <> ? THEN DO:
+    ok = false.
+    MESSAGE new_lang[4] SKIP p_file:SCREEN-VALUE SKIP(1)  new_lang[5] 
+      VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE ok.
+    IF NOT ok THEN DO:
+      APPLY "ENTRY" TO p_file.
+      RETURN "error".
+    END.
+  END.
+  /* gfs: check to see if what was entered compiles */
+  IF user_env[2]:SCREEN-VALUE IN FRAME export-stuff <> "" OR
+     user_env[3]:SCREEN-VALUE IN FRAME export-stuff <> "" THEN
+  DO:
+     RUN "adecomm/_tmpfile.p"(INPUT "", INPUT ".adm", OUTPUT tmpfile).
+     OUTPUT TO VALUE(tmpfile) NO-MAP.
+        PUT UNFORMATTED
+           "OUTPUT TO " user_env[4] "." SKIP
+           "FOR EACH " LDBNAME("DICTDB") "." user_env[1] " "
+                        user_env[2]:SCREEN-VALUE " "
+                        user_env[3]:SCREEN-VALUE ":" SKIP
+           "END." SKIP
+           "OUTPUT CLOSE.".
+     OUTPUT CLOSE.
+     COMPILE VALUE(tmpfile) NO-ERROR.
+     IF COMPILER:ERROR THEN
+     DO:
+       MESSAGE "The syntax entered for WHERE and/or BY is invalid." CHR(10)
+               "Re-check the syntax you entered." VIEW-AS ALERT-BOX
+               ERROR BUTTONS OK.
+       IF user_env[2]:SCREEN-VALUE <> "" THEN APPLY "ENTRY" TO user_env[2].
+       ELSE APPLY "ENTRY" TO user_env[3].
+       OS-DELETE VALUE(tmpfile).
+       RETURN "ERROR".
+     END. 
+     OS-DELETE VALUE(tmpfile).
+     RETURN "".
+  END.
+  
+END.
 

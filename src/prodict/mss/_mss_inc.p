@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -275,6 +275,8 @@ UPDATE df-file
        lUniExpand WHEN unicodeTypes
        mapMSSDatetime WHEN has2008Support
        newseq
+       tryPimaryForRowid
+       mkClusteredExplict
        iFmtOption
        lFormat WHEN iFmtOption = 2
        iRecidOption WHEN hasCompColSupport

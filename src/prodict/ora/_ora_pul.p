@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2007-2011 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,6 +41,7 @@ History:
     mcmann     05/11/01 Change unique condition to be = 1
     fernando   06/11/07 Unicode support
     fernando   12/31/08 don't set mandatory for blob/clob fields
+    kmayur     06/21/11 added support for constraint pull - OE00195067
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -53,6 +54,11 @@ define buffer ds_columns-2      for DICTDBG.oracle_columns.
 define buffer ds_indexes        for DICTDBG.oracle_indexes.
 define buffer ds_idx-cols       for DICTDBG.oracle_idxcols.
 define buffer ds_sequences      for DICTDBG.oracle_sequences.
+define buffer ds_constraint     for DICTDBG.oracle_constraint.
+define buffer ds_constraint-2   for DICTDBG.oracle_constraint.
+define buffer ds_cons           for DICTDBG.oracle_cons.
+define buffer ds_cons-2         for DICTDBG.oracle_cons.
+define buffer ds_cons-fld       for DICTDBG.oracle_cons_fld.
 
 DEFINE VARIABLE h1 AS INTEGER NO-UNDO.
 /*------------------------------------------------------------------*/

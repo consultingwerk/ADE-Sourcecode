@@ -79,7 +79,7 @@ DO:
   /* Storage Area */
   IF tinydict._File._For-type <> ? THEN
     ASSIGN TableDetails.storarea = "n/a".
-  ELSE IF DBVERSION(pcDBName) >= "9":U THEN
+  ELSE IF INTEGER(DBVERSION(pcDBName)) >=  9  THEN
     RUN protools/_storarea.p (RECID(tinydict._File), OUTPUT TableDetails.storarea).
     
   /* Retrieve all fields for the specified table */

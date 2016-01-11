@@ -60,12 +60,13 @@ Modified:
   05/25/94 hutegger - disabled db-type
   02/22/94 wood - Display all CONNECT error messages in a single ALERT-BOX.
   07/30/92 by Elliot Chikofsky
+  08/08/11 rkamboj -     fixed issue of login when special chracter in password 
+                        at the time of db connect. Applied set-db-client method.
 
 ----------------------------------------------------------------------------*/
 {adecomm/cbvar.i}
 {adecomm/commeng.i}  /* Help contexts */
 {adecomm/adestds.i}
-
 Define INPUT        parameter p_Connect      as logical  NO-UNDO.
 Define INPUT-OUTPUT parameter p_PName        as char     NO-UNDO.
 Define INPUT-OUTPUT parameter p_LName        as char     NO-UNDO.
@@ -84,6 +85,9 @@ Define OUTPUT       parameter p_args         as char     NO-UNDO.
 DEFINE              VARIABLE  Pass_Phrase    AS LOGICAL  NO-UNDO.
 Define              variable  capab          as char     NO-UNDO. /* DataServ Cabap's */
 Define              variable  ext_Type       as char     NO-UNDO.
+DEFINE              VARIABLE hCP             AS HANDLE  NO-UNDO.
+DEFINE              VARIABLE setdbclnt       AS LOGICAL NO-UNDO.
+DEFINE              VARIABLE currentdb       AS CHAR VIEW-AS TEXT FORMAT "x(32)" NO-UNDO.
 /*Define              variable  qbf_l_name    as logical NO-UNDO. / * l-name NOT needed */
 Define              variable  qbf_p_name     as logical  NO-UNDO. /* p-name NOT needed */
 
@@ -176,7 +180,7 @@ form
       &BOX    = rect_btns
       &STATUS = no
       &OK     = btn_OK
-      &CANCEL = btn_Cancel
+      &CANCEL = btn_Cancel 
       &HELP   = btn_Help}
 
    with frame CONNECT ROW 1
@@ -321,8 +325,11 @@ do:
      if p_Network   <> "" THEN assign args = args + " -N " + p_Network.
      if p_Host_Name <> "" THEN assign args = args + " -H " + p_Host_Name.
      if p_Service_Name <> "" THEN assign args = args + " -S " + p_Service_Name.
-     if p_UserId    <> "" then assign args = args + " -U "  + p_UserId.
-     if p_Password  <> "" then assign args = args + " -P "  + p_Password.
+     if p_Type <> "PROGRESS" then
+     do:
+        if p_UserId    <> "" then assign args = args + " -U "  + p_UserId.
+        if p_Password  <> "" then assign args = args + " -P "  + p_Password. 
+     end.  
      if p_Multi_User = no then assign args = args + ' -1 '.
    end.
    
@@ -380,17 +387,37 @@ do:
               connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
           END.
        END.
-
+       if  NUM-DBS > num then ASSIGN currentdb = LDBNAME(num + 1).
+       if p_UserId <> "" and connected(currentdb) and p_Type = "PROGRESS" then
+       do:
+           create client-principal hCP. /* create a CLIENT-PRINCIPAL only once during login*/
+           /* Use SET-DB-CLIENT instead of SETUSERID */ 
+           hCP:initialize(p_UserId,?,?,p_Password) no-error.
+           setdbclnt = set-db-client(hCP,currentdb) no-error.
+             
+           if NOT setdbclnt THEN 
+           DO:
+                MESSAGE "Userid/Password is incorrect."
+                    VIEW-AS ALERT-BOX ERROR BUTTONS OK. 
+                disconnect value(currentdb).
+               
+           end.
+           delete object hCP.
+           hcp = ?.
+       end.
       end.
      end.
 
    /* This will be set from any errors or warnings. Merge all the warnings
       together and display them in one shot.  */
    IF error-status:NUM-MESSAGES > 0 THEN DO:
+     if lookup(string(error-status:GET-NUMBER(1)),'15944,13691,12710',',') = 0 then  
      cMsgs = error-status:get-message(1).
      do ix = 2 to error-status:num-messages:
+       if lookup(string(error-status:GET-NUMBER(ix)),'15944,13691,12710',',') = 0 then  
        cMsgs = cMsgs + CHR(10) + error-status:get-message(ix).
      end.
+     if trim(cMsgs) <> "" then
      MESSAGE cMsgs VIEW-AS ALERT-BOX ERROR BUTTONS OK. 
    END.
 

@@ -1,9 +1,10 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
+
 
 /* userkchg - Sequence Editor */
 /* HISTORY:
@@ -57,7 +58,7 @@ DEFINE VARIABLE large_seq AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE curr_value AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE c_not_largeseq AS CHARACTER        NO-UNDO.
 DEFINE VARIABLE ctemp          AS CHARACTER            NO-UNDO.
-
+define variable multitenantdb as logical no-undo.
 /* Recid of sequence whose properties are showing (disp) and recid of
    the selected sequence in the list (rec). */
 DEFINE VARIABLE qbf_disp AS RECID   INITIAL ?     NO-UNDO.
@@ -89,8 +90,9 @@ FORM
   WITH FRAME seq-browse ROW 2 COLUMN 1 12 DOWN ATTR-SPACE
   TITLE " Sequence Names ".
 
-FORM SKIP(1)
-  b_Seq._Seq-Name  AT 2     LABEL "Name"            SKIP(1)
+FORM SKIP
+  b_Seq._Seq-Name  AT 4     LABEL "Name"            SKIP(1)
+  b_Seq._Seq-Attributes[1] COLON 15  LABEL "Multi-tenant" SKIP
   b_Seq._Seq-Init  COLON 15 LABEL "Initial Value" 
                             FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" SKIP
   b_Seq._Seq-Incr  COLON 15 LABEL "Increment By"  
@@ -343,16 +345,18 @@ PROCEDURE Add_Modify:
                   limit:LABEL in FRAME seq-detail = "Upper Limit".
 
                DISPLAY "" @ b_Seq._Seq-Name
-                 b_Seq._Seq-Init 
+                       b_Seq._Seq-Attributes[1]
+                       b_Seq._Seq-Init 
                        b_Seq._Seq-Incr
                        limit
-                 b_Seq._Cycle-Ok
-                   "" @ curr_value
+                       b_Seq._Cycle-Ok
+                       "" @ curr_value
                        WITH FRAME seq-detail.
          SET
             b_Seq._Seq-Name
+            b_Seq._Seq-Attributes[1] when multitenantdb
             b_Seq._Seq-Init 
-                  b_Seq._Seq-Incr
+            b_Seq._Seq-Incr
             limit
             b_Seq._Cycle-Ok
             WITH FRAME seq-detail.
@@ -368,41 +372,67 @@ PROCEDURE Add_Modify:
                      limit:LABEL in FRAME seq-detail = "Lower Limit"
                      limit = b_Seq._Seq-Min.
 
-        IF INDEX(capab,"m":u) <> 0 
-          THEN DO:
-            IF INDEX(capab,"r":u) <> 0 
-              THEN UPDATE
+        IF INDEX(capab,"m":u) <> 0 THEN 
+        DO:
+            IF INDEX(capab,"r":u) <> 0 THEN
+            do WITH FRAME seq-detail: 
+              prompt-for
                 b_Seq._Seq-Name
+               /* decided to not support this in v 11.0.0 (keep this commented in case we add it back ) 
+                b_Seq._Seq-Attributes[1] when multitenantdb and not b_Seq._Seq-Attributes[1]*/
+                b_Seq._Seq-Init 
+                b_Seq._Seq-Incr
+                limit
+                b_Seq._Cycle-Ok
+                .
+              /* 
+               decided to not support this in v 11.0.0 (keep this commented in case we add it back ) 
+                 
+              if input b_Seq._Seq-Attributes[1] and not b_Seq._Seq-Attributes[1] then
+              do:
+                  run prodict/pro/_pro_mt_seq.p.
+                  if return-value = "error" then
+                  do:
+                       disp b_Seq._Seq-Attributes[1].
+                       undo, retry. 
+                  end.       
+                  
+              end.
+                */    
+              assign
+                b_Seq._Seq-Name
+             /* not for v 11.0.0 - perhaps later 
+                b_Seq._Seq-Attributes[1] when multitenantdb and not b_Seq._Seq-Attributes[1]*/
+                b_Seq._Seq-Init 
+                b_Seq._Seq-Incr
+                limit
+                b_Seq._Cycle-Ok
+                 .  
+            end.
+            ELSE UPDATE
                 b_Seq._Seq-Init 
                 b_Seq._Seq-Incr
                 limit
                 b_Seq._Cycle-Ok
                 WITH FRAME seq-detail.
-              ELSE UPDATE
-                b_Seq._Seq-Init 
-                b_Seq._Seq-Incr
-                limit
-                b_Seq._Cycle-Ok
-                WITH FRAME seq-detail.
-            END.
-           ELSE DO:     /* modifying anything but name not allowed */
+        END.
+        ELSE DO:     /* modifying anything but name not allowed */
             IF INDEX(capab,"r":u) <> 0 
               THEN UPDATE
                 b_Seq._Seq-Name
                 WITH FRAME seq-detail.
           /*  ELSE no modification is alowed at all */
-            END.
-                  
+        END.
       end.
 
       if b_Seq._Seq-Incr > 0 then
-               ASSIGN
-                  b_Seq._Seq-Max = limit
-            b_Seq._Seq-Min = b_Seq._Seq-Init.
+          ASSIGN
+              b_Seq._Seq-Max = limit
+              b_Seq._Seq-Min = b_Seq._Seq-Init.
       else 
-               ASSIGN
-                  b_Seq._Seq-Min = limit
-            b_Seq._Seq-Max = b_Seq._Seq-Init.
+          ASSIGN
+              b_Seq._Seq-Min = limit
+              b_Seq._Seq-Max = b_Seq._Seq-Init.
    
       p_Okay = true.
      dict_dirty = TRUE.
@@ -445,6 +475,8 @@ IF large_seq NE NO THEN
    ASSIGN c_not_largeseq = "".
 ELSE 
    ASSIGN c_not_largeseq = "64-bit sequences support not enabled".
+
+multitenantdb = can-find(first dictdb._tenant).
 
 DO WITH FRAME seq-detail:
     /* alter format if 64-bit sequences support it not turned on */
@@ -587,20 +619,24 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                limit:LABEL in frame seq-detail = "Upper Limit".
 
       /* get current value of sequence, for Progress db only */
-      IF INDEX(capab,"n":u) = 0 THEN DO:
+      IF NOT b_Seq._Seq-Attributes[1] and INDEX(capab,"n":u) = 0 THEN DO:
           ASSIGN curr_value = ""
                  /* if sequence was just created, this will fail so need to specify NO-ERROR */
                  curr_value = TRIM(STRING(DYNAMIC-CURRENT-VALUE(b_Seq._Seq-Name, "DICTDB"),"->,>>>,>>>,>>>,>>>,>>>,>>9")) NO-ERROR.
       END.
-
-      DISPLAY
+      
+      
+      DISPLAY   
         b_Seq._Seq-Name  
-              b_Seq._Seq-Init  
+        b_Seq._Seq-Attributes[1]  
+        b_Seq._Seq-Init  
         b_Seq._Seq-Incr
         (if b_Seq._Seq-Incr > 0 then b_Seq._Seq-Max else b_Seq._Seq-Min)
                   @ limit
         b_Seq._Cycle-Ok
-        (IF INDEX(capab,"n":u) = 0 THEN curr_value ELSE "n/a") @ curr_value
+        (IF b_Seq._Seq-Attributes[1] then "<one value per tenant>" 
+         else if NOT b_Seq._Seq-Attributes[1] and INDEX(capab,"n":u) = 0 THEN curr_value 
+         ELSE "n/a") @ curr_value
         (IF INDEX(capab,"n":u) = 0 THEN "n/a" ELSE b_Seq._Seq-misc[1])
                   @ b_Seq._Seq-misc[1]
         (IF INDEX(capab,"o":u) = 0 THEN "n/a" ELSE b_Seq._Seq-misc[2])

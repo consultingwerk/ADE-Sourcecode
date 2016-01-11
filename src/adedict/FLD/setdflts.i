@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights*
+* Copyright (C) 2006,2008-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -44,6 +44,7 @@ Date Created: 09/24/92
               05/24/06 fernando    Added support for int64 fields
               02/22/08 fernando    Adjust display data type length for Dsrv schemas
               04/15/09 fernando    Support for BLOB for MSS
+              06/03/10 sgarg       Support for CLOB for MSS
 
 ----------------------------------------------------------------------------*/
 
@@ -57,9 +58,10 @@ DEFINE VAR lobMode   AS INTEGER  NO-UNDO. /*1 = from lob, 2 = to lob */
 
 &IF "{&FRAME}" = "frame fldprops" &THEN
 IF NOT {adedict/ispro.i} THEN DO:
-    IF s_Fld_Typecode = {&DTYPE_BLOB} THEN
+    IF s_Fld_Typecode = {&DTYPE_BLOB} OR  s_Fld_Typecode = {&DTYPE_CLOB} THEN
         lobMode = 1.
-    ELSE IF INDEX (s_Fld_DType:SCREEN-VALUE IN FRAME fldprops, "BLOB") > 0 THEN
+    ELSE IF (INDEX (s_Fld_DType:SCREEN-VALUE IN FRAME fldprops, "BLOB") > 0 OR
+            INDEX (s_Fld_DType:SCREEN-VALUE IN FRAME fldprops, "CLOB") > 0) THEN
         lobMode = 2.             
 END.
 

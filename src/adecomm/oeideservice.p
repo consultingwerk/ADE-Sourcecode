@@ -1166,9 +1166,9 @@ FUNCTION openEditor RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose:  Open an OEIDE Editor instance.
     Notes:  
-	- cLinkedFile can be blank. In which cause the editor is not linked.
-	- For dialog-boxes, hWindowHandle corresponds to the FRAME widget. 
-	  (The _P._WINDOW-HANDLE field points to the FRAME widget.)
+    - cLinkedFile can be blank. In which cause the editor is not linked.
+    - For dialog-boxes, hWindowHandle corresponds to the FRAME widget. 
+      (The _P._WINDOW-HANDLE field points to the FRAME widget.)
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cResult AS CHARACTER   NO-UNDO.
 
@@ -1332,7 +1332,17 @@ define VAR name           as character no-undo.
 
 define var base           as integer.
 define var check_name     as character.
-
+DEFINE VARIABLE len              AS INTEGER NO-UNDO.
+DEFINE VARIABLE lastChar         AS CHARACTER NO-UNDO.
+len = LENGTH(cLinkedResources,"CHARACTER").
+IF (len > 0) THEN
+DO:
+	lastChar = SUBSTRING(cLinkedResources,len). 
+	IF NOT ( lastChar = "~\" OR lastChar ="/") THEN 
+	DO:
+    	cLinkedResources = cLinkedResources + "/".
+	END.
+END.
 /*
  * Loop until we find a name that hasn't been used. In theory, if the
  * temp directory gets filled, this could be an infinite loop. But, the
@@ -1348,7 +1358,7 @@ do while check_name <> ?:
     name = STRING(base,"99999":U).
   
   /* Add in the extension and directory into the name. */
-  name = cLinkedResources + "/" + "p":U + name + user_chars + extension.
+  name = cLinkedResources + "p":U + name + user_chars + extension.
 
   check_name = SEARCH(name).
   
@@ -1358,8 +1368,6 @@ OUTPUT TO VALUE(name).
 OUTPUT CLOSE.
 
 name = REPLACE(name, "~\", "/").
-name = REPLACE(name, "//", "/").
-       
 RETURN name.
 
 END FUNCTION.

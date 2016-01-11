@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -34,13 +34,19 @@ Date Created: 03/05/92
               06/15/06 fernando Changed Dump-name to allow 32 characters
 
 ----------------------------------------------------------------------------*/
-
-form
+ 
+form    
                                                              SKIP({&TFM_WID})
    b_File._File-Name 	label "Table &Name"   colon {&col1}   
                         view-as fill-in size 42 by 1
-                        {&STDPH_FILL}                        SKIP({&VM_WID}) 
-
+                        {&STDPH_FILL}                        
+   b_File._File-attributes[1]   label "&Multi-tenant"   colon {&col1}   
+                        view-as toggle-box              
+                                                                SKIP({&VM_WID})       
+   b_File._File-attributes[2]   label "&Keep Area for Default Tenant"   colon {&col1} 
+                        view-as toggle-box                   
+                        SKIP({&VM_WID}) 
+                        
    s_Tbl_Area           label "&Area" colon {&col1} s_btn_File_Area
     SKIP({&VM_WID})
  

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -20,7 +20,7 @@
 
 DEFINE {1} SHARED VARIABLE user_dbname   AS CHARACTER           NO-UNDO.
 DEFINE {1} SHARED VARIABLE user_dbtype   AS CHARACTER           NO-UNDO.
-DEFINE {1} SHARED VARIABLE user_env      AS CHARACTER EXTENT 35 NO-UNDO.
+DEFINE {1} SHARED VARIABLE user_env      AS CHARACTER EXTENT 41 NO-UNDO.
 /* NOTE: this variable-definition has to be in sync with adedict/dictvar.i */
 DEFINE {1} SHARED VARIABLE user_filename AS CHARACTER           NO-UNDO.
 DEFINE {1} SHARED VARIABLE user_hdr      AS CHARACTER           NO-UNDO.

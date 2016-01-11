@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -70,6 +70,7 @@ History:
     fernando    08/18/08 Check foreign dtype when updating field - OE00168850
     knavneet    08/19/08 Quoting object names if it has special chars - OE00170417
     fernando    05/29/09 MSS support for blob
+    kmayur      06/21/11 Support for constraint migration- OE00190567
 --------------------------------------------------------------------*/
 
 
@@ -110,6 +111,7 @@ DEFINE VARIABLE fld-dif          AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE for_name         AS CHARACTER NO-UNDO. /* OE00170417 */
 DEFINE VARIABLE other-seq-name   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE is_as400db       AS LOGICAL NO-UNDO.
+DEFINE VARIABLE num              AS INTEGER NO-UNDO.
 
 /*------------------------------------------------------------------*/
 /* These variables/workfile are so we can save the Progress-only
@@ -239,7 +241,6 @@ FORM
 /* LANGUAGE DEPENDENCIES END */ /*----------------------------------*/
       
 /*---------------------  Internal Procedures  ----------------------*/
-
 PROCEDURE delete-file.
 
 /* in case there is no field in the first table */
@@ -717,6 +718,13 @@ for each gate-work
         run error_handling(10, DICTDB._File._File-name, "").
         next.
         end.
+    
+      for each DICTDB._Constraint of  DICTDB._File:
+         for each DICTDB._Constraint-Keys WHERE DICTDB._Constraint-Keys._Con-Recid  = RECID(DICTDB._constraint):
+           delete DICTDB._Constraint-Keys.
+         end.  
+         delete DICTDB._Constraint.
+      end.
 
       for each DICTDB._Index of DICTDB._File:     /*---- Indexes -----*/
       
@@ -944,6 +952,7 @@ for each gate-work
         DICTDB._Field._Fld-misc1[3] = s_ttb_fld.ds_lngth
         DICTDB._Field._Fld-misc1[4] = s_ttb_fld.ds_radix
         DICTDB._Field._Fld-misc1[5] = s_ttb_fld.ds_shd#
+        DICTDB._Field._Fld-misc1[7] = s_ttb_fld.ds_msc17
         DICTDB._Field._Fld-misc2[2] = ( if user_dbtype = "ORACLE"
                                         then s_ttb_fld.ds_shdn
                                         else DICTDB._Field._Fld-misc2[2]
@@ -1653,6 +1662,171 @@ if s_1st-error = true
 /* to make sure the next update starts a new ds_upd.e-file, reset flag 
 assign s_1st-error = false.
 */
+
+/*----------------------- CONSTRAINT -------------------------*/
+/* OE00195067 BEGIN */
+DEFINE BUFFER   CON_DICTDB         FOR DICTDB._Constraint.
+DEFINE BUFFER   FIL_DICTDB         FOR DICTDB._File.
+IF user_dbtype = "MSS" OR user_dbtype = "ORACLE" THEN DO:
+num = 0.
+FOR EACH DICTDB._Constraint WHERE DICTDB._Constraint._Db-Recid = drec_db:
+    IF DICTDB._Constraint._Con-Num > num 
+     THEN ASSIGN num = DICTDB._Constraint._Con-Num. 
+END.
+ FOR EACH DICTDB._FIle WHERE DICTDB._FIle._Db-Recid = drec_db:
+   FOR EACH s_ttb_con WHERE tab_name = DICTDB._File._File-Name:
+   IF user_dbtype = "MSS" AND
+        (const_name MATCHES "*progress_recid*"  OR const_name MATCHES "*DF__*") THEN
+       NEXT.
+     
+      num = num + 1.
+      IF cons_type = "D" OR cons_type = "C"
+      THEN DO:
+        FIND FIRST DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-Name = col_name NO-LOCK NO-ERROR.  
+        CREATE DICTDB._constraint.
+        ASSIGN        
+        DICTDB._constraint._db-recid    = drec_db
+        DICTDB._constraint._con-name    = const_name
+        DICTDB._constraint._for-name    = const_name
+        DICTDB._constraint._con-expr    = expre
+        DICTDB._constraint._con-num     = num
+        DICTDB._constraint._Field-Recid = RECID(DICTDB._Field)
+        DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle).
+        
+        IF cons_type = "D" THEN
+          ASSIGN DICTDB._constraint._con-type = "D".
+        ELSE IF cons_type = "C" THEN
+          ASSIGN DICTDB._constraint._con-type = "C".
+      END.
+      ELSE IF cons_type = "PRIMARY KEY"
+      THEN DO:
+        IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._Con-Type = "P")
+        THEN DO:
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = index_name NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) THEN
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) THEN 
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+          
+          CREATE DICTDB._constraint.
+          ASSIGN        
+          DICTDB._constraint._db-recid    = drec_db       
+          DICTDB._constraint._con-name    = const_name
+          DICTDB._constraint._for-name    = const_name
+          DICTDB._constraint._Index-Recid = RECID(DICTDB._Index)
+          DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle)
+          DICTDB._constraint._con-num     = num
+          DICTDB._constraint._con-type    = "P".
+        END.
+      END.
+      ELSE IF cons_type = "CLUSTERED"
+      THEN DO:
+        IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._Con-Type = "M")
+        THEN DO:
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) then FIND FIRST DICTDB._Index OF DICTDB._File
+                                                         WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+          CREATE DICTDB._constraint.
+          ASSIGN        
+          DICTDB._constraint._db-recid    = drec_db       
+          DICTDB._constraint._con-name    = const_name
+          DICTDB._constraint._for-name    = const_name
+          DICTDB._constraint._Index-Recid = RECID(DICTDB._Index)
+          DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle)
+          DICTDB._constraint._con-num     = num
+          DICTDB._constraint._con-type    = "M".
+        END.
+      END.
+      ELSE IF cons_type = "UNIQUE"
+      THEN DO:
+        IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE (DICTDB._constraint._Con-Type = "U" 
+                                             AND DICTDB._constraint._Con-Name =const_name))
+        THEN DO:
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = index_name NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) THEN
+             FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) THEN
+             FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+          CREATE DICTDB._constraint.
+          ASSIGN       
+          DICTDB._constraint._db-recid   = drec_db        
+          DICTDB._constraint._con-name   = const_name
+          DICTDB._constraint._for-name   = const_name
+          DICTDB._constraint._Index-Recid = RECID(DICTDB._Index)
+          DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle)
+          DICTDB._constraint._con-num    = num
+          DICTDB._constraint._con-type = "U".
+        END.
+      END.
+   END.        
+    
+    FOR EACH DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._con-type = "P":
+      FIND FIRST CON_DICTDB OF DICTDB._File WHERE CON_DICTDB._con-type = "M" 
+                                              AND CON_DICTDB._Con-Name = DICTDB._constraint._Con-Name EXCLUSIVE-LOCK NO-ERROR.
+        IF AVAILABLE (CON_DICTDB)
+        THEN DO:
+           ASSIGN DICTDB._constraint._con-type = "PC".
+           DELETE CON_DICTDB.
+        END.   
+    END.
+  END.   /* FOR EACH DICTDB._FIle */
+
+  FOR EACH DICTDB._FIle WHERE DICTDB._FIle._Db-Recid = drec_db:
+     FOR EACH s_ttb_con WHERE tab_name = DICTDB._File._File-Name AND cons_type = "FOREIGN KEY":
+      IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE (DICTDB._constraint._Con-Type = "F" 
+                                            AND DICTDB._constraint._Con-Name =const_name))
+        THEN DO:                                    
+          num = num + 1.
+          FIND FIRST CON_DICTDB WHERE CON_DICTDB._con-name= par_key AND CON_DICTDB._Db-Recid = drec_db NO-LOCK NO-ERROR.
+          IF AVAILABLE(CON_DICTDB)
+          THEN DO:            
+             CREATE DICTDB._constraint.
+             ASSIGN       
+             DICTDB._constraint._db-recid   = drec_db 
+             DICTDB._constraint._con-type   = "F"
+             DICTDB._constraint._con-name   = const_name
+             DICTDB._constraint._for-name   = const_name
+             DICTDB._constraint._File-Recid = RECID(DICTDB._FIle)
+             DICTDB._constraint._con-num    = num
+             DICTDB._constraint._Index-Parent-Recid = CON_DICTDB._Index-Recid.
+         END.
+         ELSE DO:
+           FIND FIRST FIL_DICTDB WHERE FIL_DICTDB._File-Name = par_tab AND FIL_DICTDB._Db-Recid = drec_db NO-LOCK NO-ERROR.
+            IF AVAILABLE(FIL_DICTDB) THEN DO:
+              FIND FIRST DICTDB._Index OF FIL_DICTDB WHERE DICTDB._Index._Index-Name = par_key NO-LOCK NO-ERROR.
+              IF AVAILABLE(DICTDB._Index) 
+              THEN DO:
+               CREATE DICTDB._constraint.              
+                 ASSIGN       
+                 DICTDB._constraint._db-recid   = drec_db 
+                 DICTDB._constraint._con-type   = "F"
+                 DICTDB._constraint._con-name   = const_name
+                 DICTDB._constraint._for-name   = const_name
+                 DICTDB._constraint._File-Recid = RECID(DICTDB._FIle)
+                 DICTDB._constraint._con-num    = num
+                 DICTDB._constraint._Index-Parent-Recid = RECID(DICTDB._Index).
+              END. 
+            END.              
+         END.
+       END.  
+    END.  /* FOR EACH s_ttb_con  */   
+   FOR EACH DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._con-type = "F":
+      FOR EACH s_ttb_con WHERE tab_name = DICTDB._File._File-Name:
+         
+         IF const_name = DICTDB._constraint._con-name AND DICTDB._constraint._Index-Recid = 0
+         THEN DO:  
+         FIND FIRST DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-Name = col_name NO-LOCK NO-ERROR.
+         IF NOT AVAILABLE (DICTDB._Field) THEN  
+                          FIND FIRST DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._For-Name = col_name.
+         CREATE DICTDB._constraint-Keys.
+         ASSIGN                   
+               DICTDB._constraint-Keys._Con-Recid   = RECID(DICTDB._constraint)
+               DICTDB._constraint-Keys._Field-Recid = RECID(DICTDB._Field).
+         END.
+       END.
+    END.
+  END.  
+END.    /* IF user_dbtype ="MSS" */
 RETURN.
 
 /*------------------------------------------------------------------*/        

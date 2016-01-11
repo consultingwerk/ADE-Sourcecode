@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2007-2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007-2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@
              fernando 08/30/07 More Unicode support stuff       
              fernando 09/14/07 Allow ORACLE version 11
              fernando 08/28/08 Commented out references to lExpandClob - not supported yet.
+             kmayur   06/21/11 screen split for constraint migration
 */            
 
 
@@ -47,11 +48,11 @@ DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                            INITIAL "For field widths use:"
                            FORMAT "x(20)" NO-UNDO.
-DEFINE VARIABLE lExpand       AS LOGICAL NO-UNDO.
 DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
+DEFINE VARIABLE wrng-collat   AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE disp_msg1      AS LOGICAL INITIAL TRUE     NO-UNDO.
 DEFINE VARIABLE disp_msg2      AS LOGICAL INITIAL TRUE     NO-UNDO.
-
+DEFINE button s_btn_Advanced SIZE 24 by 1.125.
 DEFINE STREAM   strm.
 
 ASSIGN redo = FALSE
@@ -98,20 +99,9 @@ FORM
   ora_ispace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Indexes" colon 47 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID}) &ELSE SKIP({&VM_WIDG}) &ENDIF
-  SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field "  
-  loadsql view-as toggle-box     label "Load SQL  "  AT 32
-  movedata view-as toggle-box label "Move Data" AT 53 SKIP({&VM_WID})
-  SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns " 
-  crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" AT 32
-  lCharSemantics VIEW-AS TOGGLE-BOX LABEL "Char semantics" AT 53
-  SKIP({&VM_WID})
-  SPACE(2)  unicodeTypes view-as toggle-box label "Use Unicode Types "
-  SKIP({&VM_WID}) 
-  cFormat VIEW-AS TEXT NO-LABEL AT 10
-  iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
-                                             "ABL Format", 2
-                               HORIZONTAL NO-LABEL SKIP({&VM_WID})
-  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46
+  loadsql view-as toggle-box     label "Load SQL  "  AT 3 SKIP({&VM_WID})
+  movedata view-as toggle-box label "Move Data" AT 3 
+  s_btn_Advanced label "Advanced..." AT 53 SKIP({&VM_WID})   SPACE(2)
      {prodict/user/userbtns.i}
   WITH FRAME x ROW 
     &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 1 &ELSE 2 &ENDIF 
@@ -156,17 +146,6 @@ on HELP of frame x or CHOOSE of btn_Help in frame x
                              INPUT {&PROGRESS_DB_to_ORACLE_Dlg_Box},
                              INPUT ?).
 &ENDIF  
-   
-ON VALUE-CHANGED OF iFmtOption IN FRAME x DO:
-  IF SELF:SCREEN-VALUE = "1" THEN
-    ASSIGN lExpand:CHECKED   = FALSE
-           lExpand:SENSITIVE = FALSE
-           lFormat           = ?.
-  ELSE
-    ASSIGN lExpand:CHECKED   = TRUE
-           lExpand:SENSITIVE = TRUE
-           lFormat           = FALSE.
-END.   
 
 ON VALUE-CHANGED of loadsql IN FRAME x DO:
   IF SELF:screen-value = "yes" THEN 
@@ -178,24 +157,29 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
   END.   
 END.  
 
+PROCEDURE fill_utf:
+ IF ora_varlen = 2000 
+ THEN
+       ASSIGN  ora_codepage = 'UTF-8'
+               ora_codepage:SCREEN-VALUE in frame x= 'UTF-8'
+               ora_varlen:SCREEN-VALUE in frame x= "2000".
+ ELSE
+       ASSIGN  ora_codepage = session:cpinternal
+               ora_codepage:SCREEN-VALUE in frame x= session:cpinternal
+               ora_varlen:SCREEN-VALUE in frame x= "4000". 
+END PROCEDURE.
+
 ON VALUE-CHANGED OF ora_version IN FRAME x DO:
     
     /* when ora_version is 9 and up, we support Unicode data types */
     IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
-        ASSIGN unicodeTypes:SENSITIVE = YES
-                     lCharSemantics:SENSITIVE = YES
-                     /*lExpandClob:SENSITIVE = YES*/ .
-
-        /* keep tab order right */
-        /*lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.*/
-        lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
-        unicodeTypes:move-after-tab-item(lCharSemantics:HANDLE) in frame X.
+        ASSIGN uctype = TRUE
+               lcsemantic = TRUE.
+        
     END.
     ELSE DO:
-        ASSIGN unicodeTypes:SENSITIVE = NO
-               unicodeTypes:SCREEN-VALUE = "no"
-               lCharSemantics:SENSITIVE = NO
-               lCharSemantics:SCREEN-VALUE = "no"
+        ASSIGN uctype = FALSE
+               lcsemantic = FALSE
                ora_codepage = session:cpinternal
                ora_codepage:SCREEN-VALUE = session:CPINTERNAL
                ora_varlen = 4000
@@ -205,42 +189,6 @@ ON VALUE-CHANGED OF ora_version IN FRAME x DO:
    ora_version = INTEGER(ora_version:SCREEN-VALUE).
 END.
     
-ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
-
-    IF SELF:screen-value = "yes" THEN DO:
-        ASSIGN lCharSemantics:SENSITIVE = NO
-               lCharSemantics:SCREEN-VALUE = "NO"
-               /*lExpandClob:SENSITIVE = NO*/
-               /*lExpandClob:SCREEN-VALUE = "no"*/
-               ora_codepage = 'UTF-8'
-               ora_codepage:SCREEN-VALUE = 'UTF-8'.
-
-        ASSIGN ora_varlen = 2000
-               ora_varlen:SCREEN-VALUE = "2000".
-        IF disp_msg1 = TRUE THEN DO:
-
-            ASSIGN disp_msg1 = FALSE.
-
-            MESSAGE "The maximum char length default value is assuming AL16UTF16 encoding for the national" SKIP
-                    "character set on the ORACLE database. For UTF8 encoding, you may have to set it to a" SKIP
-                    "lower value depending on the data."
-                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-        END.
-    END.
-    ELSE DO:
-        ASSIGN lCharSemantics:SENSITIVE = YES
-               /*lExpandClob:SENSITIVE = YES*/
-               ora_codepage = session:cpinternal
-               ora_codepage:SCREEN-VALUE = session:cpinternal.
-
-        ASSIGN ora_varlen = 4000
-               ora_varlen:SCREEN-VALUE = "4000".
-
-        /*lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.*/
-        lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
-    END.
-END.
-
 ON VALUE-CHANGED OF ora_codepage IN FRAME x DO:
 
  /* if not 9 or above, nothing to be done */
@@ -248,9 +196,9 @@ ON VALUE-CHANGED OF ora_codepage IN FRAME x DO:
 
     /* if utf-8, we make character semantics the default */
     IF TRIM(SELF:SCREEN-VALUE) = "UTF-8" 
-       AND unicodeTypes:SCREEN-VALUE = "NO" THEN DO:
+      AND unicodeTypes = FALSE THEN DO:
 
-        ASSIGN lCharSemantics:SCREEN-VALUE = "YES"
+        ASSIGN lCharSemantics = TRUE
                ora_varlen = 1000
                ora_varlen:SCREEN-VALUE = "1000".
 
@@ -270,7 +218,7 @@ END.
 
 ON LEAVE OF ora_codepage IN FRAME X DO:
 
-    IF unicodeTypes:SCREEN-VALUE = "yes" THEN DO:
+    IF unicodeTypes = TRUE THEN DO:
         IF ora_codepage:SCREEN-VALUE NE "UTF-8" THEN
             MESSAGE "It is recommended that you set the schema codepage to UTF-8 when selecting" SKIP
                     "Unicode Types."
@@ -291,7 +239,6 @@ IF NOT batch_mode THEN DO:
    }
    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
    btn_Help:visible IN FRAME x = yes.
-   ASSIGN shadowcol:TOOLTIP = "Use shadow columns for case insensitive index support".
    &ENDIF
 END.
 
@@ -369,11 +316,12 @@ ELSE
 
 IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
   ASSIGN tmp_str  = OS-GETENV("SHADOWCOL").
-  IF tmp_str BEGINS "Y" then shadowcol = TRUE.
-  ELSE shadowcol = FALSE.
+  IF tmp_str BEGINS "Y" 
+           THEN iShadow = 2.           
+           ELSE iShadow = 1.
 END. 
 ELSE
-  ASSIGN shadowcol = FALSE.
+  ASSIGN iShadow = 1.
 
 IF OS-GETENV("EXPANDX8") <> ? THEN DO:
     ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
@@ -435,6 +383,44 @@ ELSE DO:
       ASSIGN ora_varlen = 4000.
 END.
 
+IF OS-GETENV("MIGRATECONSTR")   <> ? 
+  THEN DO:
+   tmp_str = OS-GETENV("MIGRATECONSTR").
+   IF tmp_str BEGINS "y" 
+     THEN migConstraint = yes.
+     ELSE migConstraint = no.
+  END.
+  ELSE migConstraint = yes.
+  
+IF OS-GETENV("UNIQUECONSTR")   <> ?
+ THEN DO:
+  tmp_str  = OS-GETENV("UNIQUECONSTR").
+  IF tmp_str BEGINS "y" 
+    THEN choiceUniquness = "2".
+    ELSE choiceUniquness = "1".
+ END.   
+    ELSE choiceUniquness = "1".
+
+IF OS-GETENV("NLSUPPER") <> ? AND iShadow = 1
+ THEN DO:
+   tmp_str  = OS-GETENV("NLSUPPER").
+   IF tmp_str BEGINS "Y" 
+     THEN DO:
+        nls_up = YES.
+        IF OS-GETENV("SORTNAME") <> ?
+            THEN oralang = OS-GETENV("SORTNAME").
+            ELSE 
+                 ASSIGN nls_up = NO
+                        oralang = "BINARY".
+     END.       
+     ELSE 
+     ASSIGN nls_up = NO
+            oralang = "BINARY".
+  END.
+  ELSE 
+  ASSIGN nls_up = NO
+         oralang = "BINARY".
+        
 IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
   ASSIGN mvdta = FALSE.
 ELSE
@@ -443,7 +429,11 @@ ELSE
 
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" then 
   assign pro_conparms = "<current working database>".
-
+ON CHOOSE OF s_btn_Advanced in frame X
+DO:
+     run prodict/ora/_protoora.p.
+     run fill_utf.
+END.
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF redo THEN
@@ -468,13 +458,20 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   run_time = TIME.
 
   IF ora_version >= 9 THEN
-     ASSIGN unicodeTypes:SENSITIVE = YES
-            lCharSemantics:SENSITIVE = YES.
+          ASSIGN uctype = TRUE
+                 lcsemantic = TRUE.
   ELSE
-     ASSIGN unicodeTypes:SENSITIVE = NO
-            unicodeTypes:SCREEN-VALUE = "no"
-            lCharSemantics:SENSITIVE = NO
-            lCharSemantics:SCREEN-VALUE = "no".
+          ASSIGN uctype = FALSE
+                 lcsemantic = FALSE.
+  IF wrng-collat THEN DO:
+     MESSAGE "Missing or invalid Oracle Language . " SKIP
+              &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK
+       &ENDIF
+        . /* end of message statement */
+     RETURN.
+  END.
+
             
   /*
    * if this is not batch mode, allow override of environment variables.
@@ -483,7 +480,6 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF NOT batch_mode THEN 
   _updtvar: 
    DO WHILE TRUE:
-    DISPLAY cFormat lExpand WITH FRAME x.
     UPDATE pro_dbname
       pro_conparms
       osh_dbname
@@ -498,37 +494,15 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       /*lExpandClob*/
       ora_tspace
       ora_ispace
-      pcompatible
       loadsql
       movedata WHEN mvdta 
-      shadowcol
-      crtdefault
-      lCharSemantics WHEN ora_version >= 9
-      unicodeTypes WHEN ora_version >= 9
-      iFmtOption
-      lExpand WHEN iFmtOption = 2
+      s_btn_Advanced
       btn_OK btn_Cancel 
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
       &ENDIF      
       WITH FRAME x.
     
-    IF iFmtOption = 1 THEN
-      lFormat = ?.
-    ELSE
-      lFormat = (NOT lExpand).
-
-    IF ora_version >= 9 THEN DO: 
-        /* these start disabled in the above update stmt, so we have to manually update them now*/
-        IF unicodeTypes:SCREEN-VALUE = "yes" THEN
-           ASSIGN unicodeTypes = YES.
-        IF lCharSemantics:SCREEN-VALUE = "yes" THEN
-           ASSIGN lCharSemantics = YES.
-    END.
-    ELSE
-        ASSIGN unicodeTypes = NO
-               lCharSemantics = NO.
-
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
       IF NOT CONNECTED(pro_dbname) THEN
@@ -684,7 +658,21 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 
      UNDO main-blk, RETRY main-blk.
   END.
- 
+  
+  ELSE IF RETURN-VALUE = "wrng-collat" THEN DO:
+   ASSIGN wrng-collat = TRUE.
+
+   IF batch_mode THEN DO:
+      PUT STREAM logfile UNFORMATTED
+             "Missing or invalid Oracle Language" SKIP.
+      OUTPUT STREAM logfile CLOSE.
+      logfile_open = FALSE.
+      RUN cleanup.
+   END.
+
+   UNDO main-blk, RETRY main-blk.
+  END.
+
   /*
    * If this is batch mode, make sure we close the output file we
    * opened above and clean up.

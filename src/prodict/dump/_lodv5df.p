@@ -38,7 +38,13 @@ INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
 IMPORT flag.
 INPUT CLOSE.
 IF NOT CAN-DO("NEW-FILE,CHG-FILE,REN-FILE,DEL-FILE,FILE",TRIM(flag))
-  THEN RETURN.  /* we found a new format .df */
+    THEN RETURN.  /* we found a new format .df */
+/* we don's support old format for dictLoadOptions:IsLogger (error suppress and no display) */    
+else if valid-object(dictLoadOptions) and dictLoadOptions:IsLogger then
+do: 
+    undo , throw new Progress.Lang.AppError("Old format not supported " + quoter(flag) + ". Use Data Admin utilitites or prodict/load_df.p instead").
+end.
+  
 INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
 user_path = "*C,9=h,_usrload".
 

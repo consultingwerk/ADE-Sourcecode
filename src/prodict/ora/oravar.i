@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,7 +33,7 @@ DEFINE {1} SHARED VARIABLE ora_conparms AS CHARACTER.
 DEFINE {1} SHARED VARIABLE ora_sid      AS CHARACTER.
 DEFINE {1} SHARED VARIABLE ora_tspace   AS CHARACTER.
 DEFINE {1} SHARED VARIABLE ora_ispace   AS CHARACTER.
-DEFINE {1} SHARED VARIABLE pcompatible  AS LOGICAL.
+DEFINE {1} SHARED VARIABLE pcompatible  AS LOGICAL INITIAL TRUE NO-UNDO.
 DEFINE {1} SHARED VARIABLE movedata     AS LOGICAL.
 DEFINE {1} SHARED VARIABLE loadsql      AS LOGICAL.
 DEFINE {1} SHARED VARIABLE rmvobj       AS LOGICAL NO-UNDO.
@@ -49,3 +49,13 @@ DEFINE {1} SHARED VARIABLE lCharSemantics AS LOGICAL  NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED VARIABLE ora_varlen   AS INTEGER INITIAL 4000.
 
 DEFINE {1} SHARED STREAM dbg_stream.
+
+DEFINE {1} SHARED VARIABLE iShadow        AS INTEGER INITIAL 2 NO-UNDO.
+DEFINE {1} SHARED VARIABLE oralang        AS CHARACTER.
+DEFINE {1} SHARED VARIABLE nls_up         AS LOGICAL.
+DEFINE {1} SHARED VARIABLE migConstraint  AS LOGICAL INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE choiceUniquness     AS CHARACTER INITIAL "1" NO-UNDO.
+DEFINE {1} SHARED VARIABLE uctype         AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE {1} SHARED VARIABLE lcsemantic     AS LOGICAL NO-UNDO INITIAL FALSE.
+DEFINE {1} SHARED VARIABLE lExpand        AS LOGICAL                  NO-UNDO.
+DEFINE {1} SHARED VARIABLE choiceDefault  AS CHARACTER INITIAL "1" NO-UNDO.

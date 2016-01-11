@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -34,7 +34,9 @@ form
 
    b_Sequence._Seq-Name	   label "Sequence &Name"   colon {&col1} {&STDPH_FILL}
    SKIP({&VM_WID})
-
+   b_Sequence._Seq-Attributes[1]    label "&Multi-tenant" at    {&col2}
+                           view-as toggle-box     
+   SKIP({&VM_WID})                              
    b_Sequence._Seq-Init	   label "Initial &Value"   format "->,>>>,>>>,>>>,>>>,>>>,>>9"
                                                     colon {&col1} {&STDPH_FILL}
    SKIP({&VM_WID})

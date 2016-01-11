@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2010 by Progress Software Corporation. All      *
+* Copyright (C) 2007-2011 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ History:
    sgarg      05/22/09 ROWGUID support for MSS
    knavneet   02/17/10 OE00131234 
    Nagaraju   05/04/10 change metadata sql to refer INFORMATION_SCHEMA.columns  - OE00197280
+   sgarg      06/03/10 _Fld-Misc1[7] to store flag for TEXTPTR_LOB_TYPES
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -88,10 +89,10 @@ assign
 
   IF LOOKUP({&data-type}, "VARBINARY,LONGVARBINARY") > 0 THEN DO:
 
-     IF ntyp = "BLOB" AND 
+     IF (ntyp = "BLOB") AND 
          DICTDBG.SQLColumns_buffer.PRECISION >= 1 AND 
          DICTDBG.SQLColumns_buffer.PRECISION <= 8000 THEN DO:
-         /* default mapping is blob, but this is a varbinary(n) in which 
+         /* default mapping is blob , but this is a varbinary(n) in which 
             case we don't support the blob mapping, so must change it to
             character (which is the next mapping).
          */
@@ -128,6 +129,19 @@ assign
           END.
       END.
   END.
+  ELSE IF LOOKUP({&data-type}, "VARCHAR,LONGVARCHAR,NVARCHAR,NLONGVARCHAR") > 0 THEN DO:
+     /* Handle CLOBs separately as FILESTREAM is not supported for CLOBs. */
+     IF (ntyp = "CLOB") AND 
+         DICTDBG.SQLColumns_buffer.PRECISION >= 1 AND 
+         DICTDBG.SQLColumns_buffer.PRECISION <= 8000 THEN DO:
+         /* default mapping is clob, but this is a varchar (n) in which 
+            case we don't support the clob mapping, so must change it to
+            character (which is the next mapping).
+         */
+         dtyp = dtyp + 1.
+         ntyp = ENTRY(dtyp,user_env[15]).
+     END.
+  END.
 
 /* check if the column type is any of the Unicode data types */
 ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR" 
@@ -140,7 +154,7 @@ ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR"
    be able to read the first character out of the proc-text
 */
 /* OE00168292 - use max column size for given type so we can handle big values */
-ASSIGN sqlstate = "select CAST(T1.definition AS " + 
+ASSIGN sqlstate = "select CAST(T1.definition AS "  + 
       (IF my_typ_unicode THEN "nvarchar(4000)" ELSE "varchar(8000)") +
        ") from sys.default_constraints T1 INNER JOIN INFORMATION_SCHEMA.COLUMNS T2 " + 
        " ON COL_NAME(T1.parent_object_id, T1.parent_column_id) = T2.COLUMN_NAME " + 
@@ -267,6 +281,12 @@ END CASE.
    ASSIGN s_ttb_fld.ds_msc24 = "timestamp".
  ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"datetime2") > 0 THEN
    ASSIGN s_ttb_fld.ds_msc24 = "datetime2".
+ ELSE IF (INDEX(DICTDBG.SQLColumns_buffer.Type-name,"text")  > 0 OR 
+          INDEX(DICTDBG.SQLColumns_buffer.Type-name,"image") > 0 OR
+          INDEX(DICTDBG.SQLColumns_buffer.Type-name,"ntext") > 0) THEN
+ DO:
+    ASSIGN s_ttb_fld.ds_msc17 = 1.
+ END.
  ELSE IF isFileStream = '1' THEN
    ASSIGN s_ttb_fld.ds_msc24 = "filestream".
 

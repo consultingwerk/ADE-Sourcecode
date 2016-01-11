@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -76,17 +76,25 @@ DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE c         AS CHARACTER.
 DEFINE VARIABLE dumpPol   AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE dumpAltBuf AS LOGICAL     NO-UNDO.
-
+DEFINE VARIABLE cMsg AS CHARACTER NO-UNDO.
 DEFINE VARIABLE myEPolicy  AS prodict.sec._sec-pol-util    NO-UNDO.
 DEFINE VARIABLE myObjAttrs AS prodict.pro._obj-attrib-util NO-UNDO.
 
 DEFINE NEW SHARED STREAM ddl.
-
+DEFINE NEW SHARED VARIABLE df-con  AS CHARACTER EXTENT 7    NO-UNDO.
+DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
+DEFINE NEW SHARED TEMP-TABLE df-info NO-UNDO
+    FIELD df-seq  AS INTEGER
+    FIELD df-line AS CHARACTER
+    FIELD df-tbl  AS CHARACTER
+    FIELD df-fld  AS CHARACTER
+    INDEX rt-line IS PRIMARY df-seq.
+    
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
 FORM
   Dbs 	       	    LABEL "Database"  COLON 11 FORMAT "x(32)" SKIP
-  _File._File-name  LABEL "Table"     COLON 11 FORMAT "x(32)" SKIP
+  DICTDB._File._File-name  LABEL "Table"     COLON 11 FORMAT "x(32)" SKIP
   Seqs 	       	    LABEL "Sequence"  COLON 11 FORMAT "x(32)" SKIP
   HEADER 
     "Dumping Definitions.  Press " +
@@ -95,14 +103,15 @@ FORM
   ROW 4 CENTERED SIDE-LABELS ATTR-SPACE USE-TEXT &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX THREE-D TITLE "Dump Data Definitions" &ENDIF.
 
-COLOR DISPLAY MESSAGES
-  _File._File-name Dbs Seqs
-  WITH FRAME working.
+if  user_env[6] NE "dump-silent" THEN 
+  COLOR DISPLAY MESSAGES
+    DICTDB._File._File-name Dbs Seqs
+    WITH FRAME working.
 
-if TERMINAL <> ""
+if TERMINAL <> "" and user_env[6] NE "dump-silent"
  then DISPLAY
     ""   @ Dbs
-    ""	 @ _File._File-name
+    ""	 @ DICTDB._File._File-name
     ""   @ Seqs
     WITH FRAME working.
 
@@ -124,16 +133,16 @@ assign SESSION:IMMEDIATE-DISPLAY = yes.
 
 DO ON STOP UNDO, LEAVE:
   if user_env[9] = "a" then DO:
-    if TERMINAL <> "" then 
+    if TERMINAL <> "" and user_env[6] NE "dump-silent"  then 
       DISPLAY "(Auto-Connect)" @ Dbs WITH FRAME working.
     RUN "prodict/dump/_dmpdefs.p" ("a",drec_db,user_env[26]).
     end.
   else if user_env[9] = "c" then DO:
-    if TERMINAL <> "" then 
+    if TERMINAL <> "" and user_env[6] NE "dump-silent" then 
       DISPLAY user_dbname + " (Collate)" @ Dbs WITH FRAME working.
     RUN "prodict/dump/_dmpdefs.p" ("c",drec_db, user_env[26]).
     end.
-  else if user_env[9] = "s" then DO:
+  else if user_env[9] = "s"  and user_env[6] NE "dump-silent" then DO:
     if TERMINAL <> "" then 
       DISPLAY user_dbname @ Dbs 
       	"ALL" @ Seqs 
@@ -165,15 +174,20 @@ DO ON STOP UNDO, LEAVE:
 
         CATCH ae AS PROGRESS.Lang.AppError:
            /* if encryption is not enabled, then we silently ignore this */
-            IF ae:GetMessageNum(1) NE 14889 THEN DO:
-               IF user_env[6] = "no-alert-boxes" THEN
-                MESSAGE  "The dump file will not contain any encryption definitions for the objects." SKIP 
+            IF ae:GetMessageNum(1) NE 14889 THEN 
+            DO:
+               cMsg =  "The dump file will not contain any encryption definitions for the objects." + "~n" + 
                          ae:GetMessage(1).
+                          
+               if user_env[6] eq "dump-silent" THEN 
+                   undo, throw new Progress.Lang.AppError(cmsg). 
+               else IF user_env[6] = "no-alert-boxes" THEN
+                   MESSAGE cmsg.
                ELSE
-                   MESSAGE  "The dump file will not contain any encryption definitions for the objects." SKIP 
-                            ae:GetMessage(1) 
+                   MESSAGE cmsg  
                         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
             END.
+
             DELETE OBJECT ae.
         END CATCH.
     END.
@@ -184,12 +198,15 @@ DO ON STOP UNDO, LEAVE:
         CATCH ae AS PROGRESS.Lang.AppError:
            /* if db doesn't support alternate buffer pools, then we silently ignore this */
             IF ae:GetMessageNum(1) NE 4634 THEN DO:
-               IF user_env[6] = "no-alert-boxes" THEN
-                MESSAGE  "The dump file will not contain any buffer pool definitions for the objects." SKIP 
+                
+                cMsg =  "The dump file will not contain any buffer pool definitions for the objects." + "~n" + 
                          ae:GetMessage(1).
-               ELSE
-                   MESSAGE  "The dump file will not contain any buffer pool definitions for the objects." SKIP 
-                            ae:GetMessage(1) 
+                if user_env[6] eq "dump-silent" THEN 
+                     undo, throw new Progress.Lang.AppError(cmsg).
+                ELSE IF user_env[6] = "no-alert-boxes" THEN
+                     MESSAGE  cMSG.
+                ELSE
+                     MESSAGE  cMsg 
                         VIEW-AS ALERT-BOX WARNING BUTTONS OK.
             END.
             DELETE OBJECT ae.
@@ -227,7 +244,7 @@ DO ON STOP UNDO, LEAVE:
          ASSIGN ilast = numCount. 
 
       FOR EACH DICTDB._File
-      WHERE _File._Db-recid = drec_db
+      WHERE DICTDB._File._Db-recid = drec_db
         AND ( if user_filename = "ALL"
               then (IF NOT fHidden THEN NOT DICTDB._File._Hidden
 	      	    	    	   ELSE DICTDB._File._File-Number > 0 )
@@ -245,16 +262,16 @@ DO ON STOP UNDO, LEAVE:
          or user_filename = "SOME MORE"
          or user_filename = "ONE MORE"
          then do:  /* we need db-token */
-          if TERMINAL <> ""
-           then DISPLAY "ALL" @ Dbs
+          if TERMINAL <> "" and user_env[6] NE "dump-silent" then
+             DISPLAY "ALL" @ Dbs
               WITH FRAME working.
           RUN "prodict/dump/_dmpdefs.p" ("d",drec_db,user_env[26]).
           end.     /* we need db-token */
   
         if user_filename = "ALL"
          then do:  /* "all" to dump */
-          if TERMINAL <> ""
-           then DISPLAY
+          if TERMINAL <> "" and user_env[6] NE "dump-silent" then
+              DISPLAY
               user_dbname @ Dbs
       	      "ALL"       @ Seqs
       	      WITH FRAME working.
@@ -264,7 +281,7 @@ DO ON STOP UNDO, LEAVE:
         end.     /* first _file of this _db */
         
       else
-        if TERMINAL <> "" then
+        if TERMINAL <> "" and user_env[6] NE "dump-silent" then 
           DISPLAY user_dbname @ Dbs
       	    WITH FRAME working.
 
@@ -295,13 +312,16 @@ DO ON STOP UNDO, LEAVE:
       IF AVAILABLE DICTDB._Field THEN
           NEXT.
 
-      if TERMINAL <> "" then 
-        DISPLAY _File._File-name WITH FRAME working.
-      RUN "prodict/dump/_dmpdefs.p" ("t",RECID(_File),user_env[26]).
+      if TERMINAL <> "" and user_env[6] NE "dump-silent" then 
+        DISPLAY DICTDB._File._File-name WITH FRAME working.
+      RUN "prodict/dump/_dmpdefs.p" ("t",RECID(DICTDB._File),user_env[26]).
 
       /* let's cache the encryption info in a temp-table */
       /* and the object attributes - for alt buffer pool settings */
-      IF VALID-OBJECT(myEPolicy) OR VALID-OBJECT(myObjAttrs) THEN DO:
+      /* Skip multi-tennat objects since they have buffer pool per tenant */
+      IF  (DICTDB._File._File-Attributes[1] = false ) 
+      and (VALID-OBJECT(myEPolicy) OR VALID-OBJECT(myObjAttrs)) THEN 
+      DO:
          
          IF VALID-OBJECT(myEPolicy) THEN
              myEPolicy:getPolicyVersions(DICTDB._File._File-Number, 
@@ -383,6 +403,11 @@ DO ON STOP UNDO, LEAVE:
       RUN "prodict/dump/_dmpdefs.p" ("o",0, c).
   END.
 
+  FOR EACH df-info:  
+    IF SUBSTRING(df-line,1,1) <> " " THEN
+      PUT STREAM ddl UNFORMATTED " " SKIP.
+    PUT STREAM ddl UNFORMATTED df-line SKIP.
+  END.
   if user_env[25] <> "AUTO"
    then do:  /* no other _db-schema will follow -> trailer */
       {prodict/dump/dmptrail.i
@@ -410,68 +435,99 @@ DO ON STOP UNDO, LEAVE:
    END.
 
   stopped = false.
-  end.
+  end. 
 
 file_len = SEEK(ddl).
 OUTPUT STREAM ddl CLOSE.
 
 SESSION:IMMEDIATE-DISPLAY = no.
-if TERMINAL <> "" then 
+if TERMINAL <> "" and user_env[6] NE "dump-silent" then 
   run adecomm/_setcurs.p ("").
 
-if user_env[6] = "no-alert-boxes"
-then do:  /* output WITHOUT alert-box */
+if user_env[6] = "no-alert-boxes" or user_env[6] = "dump-silent" then
+do:  /* output WITHOUT alert-box */
 
-  if stopped then 
-     MESSAGE "Dump terminated.".
+  if stopped then DO:
+      cMsg = "Dump terminated.".
+      if user_env[6] eq "dump-silent" THEN 
+            undo, throw new Progress.Lang.AppError(cMsg). 
+      else 
+           MESSAGE cMsg.
+   end.
    else do:
     if file_len < 3 
      then do:  /* the file is empty - nothing to dump */
 
       OS-DELETE VALUE(user_env[2]). 
-      if TERMINAL <> "" then 
-        MESSAGE "There were no " +  
-	      (if user_env[9] = "a" then "auto-connect records" else
-	       if user_env[9] = "s" then "sequence definitions" else
-				         "data definitions"     ) + 
-	      " to dump."                                            SKIP
-	      "The output file has been deleted.".
+      if TERMINAL <> "" then do:
+          
+          cMsg =  "There were no " +  
+             (if user_env[9] = "a" then "auto-connect records" else
+              if user_env[9] = "s" then "sequence definitions" else
+                               "data definitions"     ) + 
+                               " to dump." + "~n" +
+                               "The output file has been deleted.".
+               
+          if user_env[6] EQ "dump-silent" THEN  
+             undo, throw new Progress.Lang.AppError(cMsg).
+          else
+             MESSAGE cMsg.
+	   end.   
       end.
     else 
-      if TERMINAL <> "" then 
-        MESSAGE "Dump of definitions completed.".
-    end.
+      if TERMINAL <> ""  then do:
+          cMsg = "Dump of definitions completed.".
+        if user_env[6] EQ "dump-silent" THEN  
+            undo, throw new Progress.Lang.AppError(cMsg).
+        else
+            MESSAGE cMsg.
+      end.       
+  end.  
   
-  end.      /* output WITHOUT alert-box */
+end.      /* output WITHOUT alert-box */
 
  else do:  /* output WITH alert-box */
 
-  if stopped
-   then MESSAGE "Dump terminated."
+  if stopped then do:
+      if user_env[6] EQ "dump-silent" THEN  
+             undo, throw new Progress.Lang.AppError("Dump terminated."). 
+      else    
+         MESSAGE "Dump terminated."
       	   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      end.
    else do:
     if file_len < 3 
      then do:  /* the file is empty - nothing to dump */
 
       OS-DELETE VALUE(user_env[2]). 
-      if TERMINAL <> ""
-       then MESSAGE "There were no " +  
-	      (if user_env[9] = "a" then "auto-connect records" else
-	       if user_env[9] = "s" then "sequence definitions" else
-				         "data definitions"     ) + 
-	      " to dump."                                            SKIP
-	      "The output file has been deleted."
-	      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-      end.
-    else if TERMINAL <> ""
-     then MESSAGE "Dump of definitions completed." 
-	      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      if TERMINAL <> "" then do:
+           cMsg =  "There were no " +  
+             (if user_env[9] = "a" then "auto-connect records" else
+              if user_env[9] = "s" then "sequence definitions" else
+                               "data definitions"     ) + 
+                               " to dump." + "~n" +
+                               "The output file has been deleted.".
+               
+          if user_env[6] EQ "dump-silent" THEN  
+             undo, throw new Progress.Lang.AppError(cMsg).
+          else
+             MESSAGE cMsg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+       end.
+      end. 
+    else if TERMINAL <> "" then do:
+        cMsg = "Dump of definitions completed.". 
+        if user_env[6] EQ "dump-silent" THEN  
+            undo, throw new Progress.Lang.AppError(cMsg).
+        else
+            MESSAGE cMsg 
+	         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+	    end.     
     end.
   
   end.     /* output WITH alert-box */
 
-if TERMINAL <> ""
- then HIDE FRAME working NO-PAUSE.
+if TERMINAL <> "" and user_env[6] NE "dump-silent" then
+  HIDE FRAME working NO-PAUSE.
 
 IF SESSION:CPINTERNAL NE "undefined":U THEN
    ASSIGN user_longchar = "".

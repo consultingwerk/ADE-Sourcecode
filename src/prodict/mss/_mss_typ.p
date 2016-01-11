@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-09 by Progress Software Corporation. All rights *
+* Copyright (C) 2006,2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -62,7 +62,7 @@ To get the MSS-to-PROGRESS tables copied to the environment:
            knavneet   05/27/09  OE00185197            
            sgarg      05/22/09  ROWGUID support for MSS
 */ 
-&SCOPED-DEFINE GATE_CONFIG_ENTRIES 59
+&SCOPED-DEFINE GATE_CONFIG_ENTRIES 63
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT {&GATE_CONFIG_ENTRIES} NO-UNDO.
 /* from prodict/dictvar.i */
 DEFINE SHARED VARIABLE is-pre-101b-db  AS LOGICAL NO-UNDO.
@@ -85,25 +85,44 @@ DEFINE              VARIABLE  pro_format   AS CHARACTER NO-UNDO.
 DEFINE              VARIABLE  pro_type     AS CHARACTER NO-UNDO.
 DEFINE              VARIABLE  isDatetimeDefault  AS LOGICAL   NO-UNDO INIT NO.
 DEFINE              VARIABLE  isLobDefault      AS LOGICAL   NO-UNDO INIT NO.
+DEFINE              VARIABLE  isClobEnabled     AS LOGICAL   NO-UNDO INIT NO.
+DEFINE              VARIABLE  isBlobEnabled     AS LOGICAL   NO-UNDO INIT NO.
 DEFINE              VARIABLE  numEntries         AS INTEGER   NO-UNDO.
 
 FUNCTION initGateConfig RETURN CHARACTER EXTENT {&GATE_CONFIG_ENTRIES}
- (INPUT isDatetimeDefault as logical, INPUT isLobDefault as logical) FORWARD.
+ (INPUT isDatetimeDefault as logical, INPUT isLobDefault as logical, INPUT isClobEnabled as logical, INPUT isBlobEnabled as logical) FORWARD.
 
 IF io-pro-type NE ? THEN DO:
    ASSIGN numEntries   = NUM-ENTRIES(io-pro-type).
           isDatetimeDefault = (IF ENTRY(1,io-pro-type) = "datetime_default" 
                                THEN YES ELSE NO).
-   IF numEntries > 1 THEN
+   IF numEntries > 1 THEN DO:
       isLobDefault = (IF ENTRY(2,io-pro-type) = "lob_default" 
                       THEN YES ELSE NO ).
+      if isLobDefault and numEntries > 3 then
+      do:
+        isClobEnabled = (IF ENTRY(3,io-pro-type) = "clob_default" 
+                      THEN YES ELSE NO ).
+        isBlobEnabled = (IF ENTRY(4,io-pro-type) = "blob_default"
+                      THEN YES ELSE NO ).
+      end.
+      else if isLobDefault and numEntries = 3 then 
+      do:
+        IF ENTRY(3,io-pro-type) = "blob_default" THEN 
+          ASSIGN isBlobEnabled = YES
+                 isClobEnabled = NO.
+        ELSE IF ENTRY(3,io-pro-type) = "clob_default" THEN 
+          ASSIGN isBlobEnabled = NO
+                 isClobEnabled = YES.
+      end.
+   END.
 
    /* must reset it in these special cases */
    IF isDatetimeDefault OR isLobDefault THEN
        io-pro-type = ?. 
 END.
 
-gate-config = initGateConfig (isDatetimeDefault, isLobDefault).
+gate-config = initGateConfig (isDatetimeDefault, isLobDefault, isClobEnabled, isBlobEnabled ).
 
 /* If we want the list of progress types that match a given gateway
    type, then just get that.  A gateway type that matches multiple
@@ -202,93 +221,132 @@ ASSIGN
    RETURN   : Character extent */
 
 FUNCTION initGateConfig RETURN CHARACTER EXTENT {&GATE_CONFIG_ENTRIES}
- (INPUT isDatetimeDefault as logical, INPUT isLobDefault as logical):
+ (INPUT isDatetimeDefault as logical, INPUT isLobDefault as logical, INPUT isClobEnabled as logical, INPUT isBlobEnabled as logical):
 
 DEFINE VARIABLE gate-config AS CHARACTER EXTENT {&GATE_CONFIG_ENTRIES} NO-UNDO.
 /* Assign gate-config[i], where 'i' is the extent no., as:
 gate-config[i] = "<description>, <datatype>, <sz>, <cd>, <pro type>, <fm>, <format>" */
 
 ASSIGN
-  gate-config[1] = "Varchar, Varchar, 0, 36, character,0, |c"
-  gate-config[2] = "NVarchar, Nvarchar, 0, 51, character,0, |c"
-  gate-config[3] = "Char, Char, 0, 35, character,0, |c"
-  gate-config[4] = "Nchar, Nchar, 0, 50, character,0, |c"
-  gate-config[5] = "NLongvarchar, Nlongvarchar, 0, 52, character,0, |c"
-  gate-config[6] = "Time, Time, 0, 53, character,b, |x(16)"
-  gate-config[7] = "Time, Time, 0, 53, datetime ,b, |dt"
-  gate-config[8] = "Longvarchar, Longvarchar, 0, 37, character,0, |c"
-  gate-config[9] = "Binary, Binary, 0, 38, character,0, |c"
-  gate-config[10] = "Date, Date, 0, 43, date, c, |d"
-  gate-config[11] = "Date, Date, 0, 43, datetime, c, |dt"
-  gate-config[12] = "Date, Date, 0, 43, datetime-tz, c, |dtz"
-  gate-config[13] = "Date, Date, 0, 43, character, c, |x(10)"
-  gate-config[14] = "Numeric, Numeric, 0, 136,decimal, 1, |#"
-  gate-config[15] = "Numeric, Numeric, 0, 136,integer, 1, |i"
-  gate-config[16] = "Numeric, Numeric, 0, 136,int64, 1, |i"
-  gate-config[17] = "Decimal, Decimal, 0, 236,decimal, 2, |#"
-  gate-config[18] = "Decimal, Decimal, 0, 236,integer, 2, |i"
-  gate-config[19] = "Decimal, Decimal, 0, 236,int64, 2, |i"
-  gate-config[20] = "Integer, Integer, 0, 33, integer, 3, |i"
-  gate-config[21] = "Integer, Integer, 0, 33, decimal, 3, |#"
-  gate-config[22] = "Integer, Integer, 0, 33, logical, 3, |?"
-  gate-config[23] = "Integer, Integer, 0, 33, int64, 3, |i"
-  gate-config[24] = "Integer, Integer, 0, 33, recid, 3, |i" 
-  gate-config[25] = "Smallint, Smallint, 0, 32, integer, 4, |i"
-  gate-config[26] = "Smallint, Smallint, 0, 32, decimal, 4, |#"
-  gate-config[27] = "Smallint, Smallint, 0, 32, logical, 4, |l"
-  gate-config[28] = "Smallint, Smallint, 0, 32, int64, 4, |i"
-  gate-config[29] = "Float, Float, 0, 34, decimal, 5, |#"
-  gate-config[30] = "Float, Float, 0, 34, integer, 5, |i"
-  gate-config[31] = "Float, Float, 0, 34, int64, 5, |i"
-  gate-config[32] = "Real, Real, 0, 48, decimal, 6, |#"
-  gate-config[33] = "Real, Real, 0, 48, integer, 6, |i"
-  gate-config[34] = "Real, Real, 0, 48, int64, 6, |i"
-  gate-config[35] = "Double, Double, 0, 134,decimal, 7, |#"
-  gate-config[36] = "Double, Double, 0, 134,integer, 7, |i"
-  gate-config[37] = "Double, Double, 0, 134,int64, 7, |i"
-  gate-config[38] = "Bigint, Bigint, 0, 234,int64, 8, |i"
-  gate-config[39] = "Bigint, Bigint, 0, 234,decimal, 8, |#"
-  gate-config[40] = "Bigint, Bigint, 0, 234,integer, 8, |i"
-  gate-config[41] = "Tinyint, Tinyint, 0, 31, integer, 9, |->>9"
-  gate-config[42] = "Tinyint, Tinyint, 0, 31, decimal, 9, |->>>>9"
-  gate-config[43] = "Tinyint, Tinyint, 0, 31, logical, 9, |l"
-  gate-config[44] = "Tinyint, Tinyint, 0, 31, int64, 9, |i"
-  gate-config[45] = "Bit, Bit, 0, 41, logical, 0, |l"
-  gate-config[46] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime-tz, d,|dtz"
-  gate-config[47] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime, d,|dt"
-  gate-config[48] = "Timestamp-tz, Timestamp-tz, 0, 54 ,date, d,|d"
-  gate-config[49] = "Timestamp-tz, Timestamp-tz, 0, 54 ,character, d,|x(34)".
+  gate-config[1] = "Char, Char, 0, 35, character,0, |c"
+  gate-config[2] = "Nchar, Nchar, 0, 50, character,0, |c"
+  gate-config[3] = "Time, Time, 0, 53, character,b, |x(16)"
+  gate-config[4] = "Time, Time, 0, 53, datetime ,b, |dt"
+  gate-config[5] = "Binary, Binary, 0, 38, character,0, |c"
+  gate-config[6] = "Date, Date, 0, 43, date, c, |d"
+  gate-config[7] = "Date, Date, 0, 43, datetime, c, |dt"
+  gate-config[8] = "Date, Date, 0, 43, datetime-tz, c, |dtz"
+  gate-config[9] = "Date, Date, 0, 43, character, c, |x(10)"
+  gate-config[10] = "Numeric, Numeric, 0, 136,decimal, 1, |#"
+  gate-config[11] = "Numeric, Numeric, 0, 136,integer, 1, |i"
+  gate-config[12] = "Numeric, Numeric, 0, 136,int64, 1, |i"
+  gate-config[13] = "Decimal, Decimal, 0, 236,decimal, 2, |#"
+  gate-config[14] = "Decimal, Decimal, 0, 236,integer, 2, |i"
+  gate-config[15] = "Decimal, Decimal, 0, 236,int64, 2, |i"
+  gate-config[16] = "Integer, Integer, 0, 33, integer, 3, |i"
+  gate-config[17] = "Integer, Integer, 0, 33, decimal, 3, |#"
+  gate-config[18] = "Integer, Integer, 0, 33, logical, 3, |?"
+  gate-config[19] = "Integer, Integer, 0, 33, int64, 3, |i"
+  gate-config[20] = "Integer, Integer, 0, 33, recid, 3, |i"
+  gate-config[21] = "Smallint, Smallint, 0, 32, integer, 4, |i"
+  gate-config[22] = "Smallint, Smallint, 0, 32, decimal, 4, |#"
+  gate-config[23] = "Smallint, Smallint, 0, 32, logical, 4, |l"
+  gate-config[24] = "Smallint, Smallint, 0, 32, int64, 4, |i"
+  gate-config[25] = "Float, Float, 0, 34, decimal, 5, |#"
+  gate-config[26] = "Float, Float, 0, 34, integer, 5, |i"
+  gate-config[27] = "Float, Float, 0, 34, int64, 5, |i"
+  gate-config[28] = "Real, Real, 0, 48, decimal, 6, |#"
+  gate-config[29] = "Real, Real, 0, 48, integer, 6, |i"
+  gate-config[30] = "Real, Real, 0, 48, int64, 6, |i"
+  gate-config[31] = "Double, Double, 0, 134,decimal, 7, |#"
+  gate-config[32] = "Double, Double, 0, 134,integer, 7, |i"
+  gate-config[33] = "Double, Double, 0, 134,int64, 7, |i"
+  gate-config[34] = "Bigint, Bigint, 0, 234,int64, 8, |i"
+  gate-config[35] = "Bigint, Bigint, 0, 234,decimal, 8, |#"
+  gate-config[36] = "Bigint, Bigint, 0, 234,integer, 8, |i"
+  gate-config[37] = "Tinyint, Tinyint, 0, 31, integer, 9, |->>9"
+  gate-config[38] = "Tinyint, Tinyint, 0, 31, decimal, 9, |->>>>9"
+  gate-config[39] = "Tinyint, Tinyint, 0, 31, logical, 9, |l"
+  gate-config[40] = "Tinyint, Tinyint, 0, 31, int64, 9, |i"
+  gate-config[41] = "Bit, Bit, 0, 41, logical, 0, |l"
+  gate-config[42] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime-tz, d,|dtz"
+  gate-config[43] = "Timestamp-tz, Timestamp-tz, 0, 54 ,datetime, d,|dt"
+  gate-config[44] = "Timestamp-tz, Timestamp-tz, 0, 54 ,date, d,|d"
+  gate-config[45] = "Timestamp-tz, Timestamp-tz, 0, 54 ,character, d,|x(34)".
 
 IF isDatetimeDefault THEN 
     ASSIGN
-      gate-config[50] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt"
-      gate-config[51] = "Timestamp, Timestamp, 0, 44, date, a, |d".
+      gate-config[46] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt"
+      gate-config[47] = "Timestamp, Timestamp, 0, 44, date, a, |d".
 ELSE
     ASSIGN
-      gate-config[50] = "Timestamp, Timestamp, 0, 44, date, a, |d"
-      gate-config[51] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt".
+      gate-config[46] = "Timestamp, Timestamp, 0, 44, date, a, |d"
+      gate-config[47] = "Timestamp, Timestamp, 0, 44, datetime, a, |dt".
 
 ASSIGN
-  gate-config[52] = "Timestamp, Timestamp, 0, 44, datetime-tz, a, |dtz"
-  gate-config[53] = "Timestamp, Timestamp, 0, 44, character, a, |x(27)".
+  gate-config[48] = "Timestamp, Timestamp, 0, 44, datetime-tz, a, |dtz"
+  gate-config[49] = "Timestamp, Timestamp, 0, 44, character, a, |x(27)".
 
-
-IF isLobDefault THEN 
+IF isLobDefault and isBlobEnabled and isClobEnabled THEN 
     ASSIGN
-      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
-      gate-config[55] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
-      gate-config[56] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
-      gate-config[57] = "Varbinary, Varbinary, 0, 39, character,f, |c".
-ELSE
+      gate-config[50] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[51] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[52] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
+      gate-config[53] = "Varbinary, Varbinary, 0, 39, character,f, |c"
+      gate-config[54] = "Longvarchar, Longvarchar, 0, 37, CLOB,g, |c"
+      gate-config[55] = "Longvarchar, Longvarchar, 0, 37, character,g, |c"
+      gate-config[56] = "Varchar, Varchar, 0, 36, CLOB,h, |c"
+      gate-config[57] = "Varchar, Varchar, 0, 36, character,h, |c"
+      gate-config[58] = "NLongvarchar, Nlongvarchar, 0, 52, CLOB,0, |c"
+      gate-config[59] = "NLongvarchar, Nlongvarchar, 0, 52, character,0, |c"
+      gate-config[60] = "NVarchar, Nvarchar, 0, 51, CLOB,i, |c"
+      gate-config[61] = "NVarchar, Nvarchar, 0, 51, character,i, |c".
+ELSE IF isLobDefault and isClobEnabled and NOT isBlobEnabled THEN 
     ASSIGN
-      gate-config[54] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
-      gate-config[55] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
-      gate-config[56] = "Varbinary, Varbinary, 0, 39, character,f, |c"
-      gate-config[57] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c".
+      gate-config[50] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[51] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[52] = "Varbinary, Varbinary, 0, 39, character,f, |c"
+      gate-config[53] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
+      gate-config[54] = "Longvarchar, Longvarchar, 0, 37, CLOB,g, |c"
+      gate-config[55] = "Longvarchar, Longvarchar, 0, 37, character,g, |c"
+      gate-config[56] = "Varchar, Varchar, 0, 36, CLOB,h, |c"
+      gate-config[57] = "Varchar, Varchar, 0, 36, character,h, |c"
+      gate-config[58] = "NLongvarchar, Nlongvarchar, 0, 52, CLOB,0, |c"
+      gate-config[59] = "NLongvarchar, Nlongvarchar, 0, 52, character,0, |c"
+      gate-config[60] = "NVarchar, Nvarchar, 0, 51, CLOB,i, |c"
+      gate-config[61] = "NVarchar, Nvarchar, 0, 51, character,i, |c".
+ELSE IF isLobDefault and NOT isClobEnabled and isBlobEnabled THEN
+    ASSIGN
+      gate-config[50] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[51] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[52] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
+      gate-config[53] = "Varbinary, Varbinary, 0, 39, character,f, |c"
+      gate-config[54] = "Longvarchar, Longvarchar, 0, 37, character,g, |c"
+      gate-config[55] = "Longvarchar, Longvarchar, 0, 37, CLOB,g, |c"
+      gate-config[56] = "Varchar, Varchar, 0, 36, character,h, |c"
+      gate-config[57] = "Varchar, Varchar, 0, 36, CLOB,h, |c"
+      gate-config[58] = "NLongvarchar, Nlongvarchar, 0, 52, character,0, |c"
+      gate-config[59] = "NLongvarchar, Nlongvarchar, 0, 52, CLOB,0, |c"
+      gate-config[60] = "NVarchar, Nvarchar, 0, 51, character,i, |c"
+      gate-config[61] = "NVarchar, Nvarchar, 0, 51, CLOB,i, |c".
+ELSE 
+    ASSIGN
+      gate-config[50] = "Longvarbinary, Longvarbinary,0, 40, character,e, |c"
+      gate-config[51] = "Longvarbinary, Longvarbinary,0, 40, BLOB,e, |c"
+      gate-config[52] = "Varbinary, Varbinary, 0, 39, character,f, |c"
+      gate-config[53] = "Varbinary, Varbinary, 0, 39, BLOB,f, |c"
+      gate-config[54] = "Longvarchar, Longvarchar, 0, 37, character,g, |c"
+      gate-config[55] = "Longvarchar, Longvarchar, 0, 37, CLOB,g, |c"
+      gate-config[56] = "Varchar, Varchar, 0, 36, character,h, |c"
+      gate-config[57] = "Varchar, Varchar, 0, 36, CLOB,h, |c"
+      gate-config[58] = "NLongvarchar, Nlongvarchar, 0, 52, character,0, |c"
+      gate-config[59] = "NLongvarchar, Nlongvarchar, 0, 52, CLOB,0, |c"
+      gate-config[60] = "NVarchar, Nvarchar, 0, 51, character,i, |c"
+      gate-config[61] = "NVarchar, Nvarchar, 0, 51, CLOB,i, |c".
 
 /* Add any other entries here */
 ASSIGN
-  gate-config[58] = "ROWGUID, ROWGUID, 0, 55, character, 0, |x(36)". /* OE00196270 */
+  gate-config[62] = "ROWGUID, ROWGUID, 0, 55, character, 0, |x(36)". /* OE00196270 */
 ASSIGN 
    gate-config[{&GATE_CONFIG_ENTRIES}] = ?. /* Please note that this should be the last value */
 

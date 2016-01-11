@@ -1,9 +1,9 @@
-/**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                            *
-*                                                                     *
-**********************************************************************/
+/********************************************************************* *
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
 
@@ -11,13 +11,13 @@
 -------------------------------------------------------------------------------
 DESCRIPTION:
 ------------
-  Table Name: ______________________________   
-        Area: ______________________________         
-   Dump File: ______________________________
-  Table Type: ______________________________         Hidden: ___
-       Label: ______________________________         Frozen: ___
-       Owner: ______________________________    Record Size: _____
- Replication: ______________________________
+  Table Name: ______________________________     Table Type: _________ 
+Multi-tenant: ___  Keep Area for Default Tenant: __ 
+        Area: _____________________________________         
+   Dump File: _____________________________________         Hidden: ___
+       Label: _____________________________________         Frozen: ___
+       Owner: _____________________________________    Record Size: _____
+ Replication: _____________________________________
   DataServer Name: ______________________________________________
          DB Link : ______________________________________________
 
@@ -43,30 +43,32 @@ DESCRIPTION:
 */
 
 FORM
-  wfil._File-name FORMAT "x(32)"     LABEL "Table Name" SKIP
-  areaname      VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
-                                     LABEL "      Area" SKIP
+  wfil._File-name FORMAT "x(32)"  colon 13 LABEL "Table Name"
+  /* progress is longest db type name */  
+  wfil._For-Type  FORMAT "x(10)"  colon 64 LABEL "Table Type"
+  skip
+  wfil._File-attributes[1]  colon 13 label "Multi-tenant" 
+  wfil._File-attributes[2]  label "Keep Area for Default Tenant"
+  SKIP
+  areaname  colon 13 VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
+                                     LABEL "Area" SKIP
  
-  wfil._Dump-name    FORMAT "x(32)"  LABEL "    Dump File" SKIP
-  wfil._For-Type     FORMAT "x(32)"  LABEL "  Table Type"
-  wfil._Hidden       FORMAT "yes/no" LABEL "       Hidden" SKIP
-  wfil._File-label   FORMAT "x(32)"  LABEL "       Label"      
-  wfil._Frozen       FORMAT "yes/no" LABEL "      Frozen" SKIP
-  wfil._For-Owner    FORMAT "x(32)"  LABEL "       Owner"
-  wfil._For-Size     FORMAT ">>>>9"  LABEL "  Record Size" SKIP
+  wfil._Dump-name    FORMAT "x(32)"  colon 13 LABEL "Dump File" 
+  wfil._Hidden       FORMAT "yes/no" colon 64 LABEL "Hidden" SKIP
+  wfil._File-label   FORMAT "x(32)"  colon 13 LABEL "Label"      
+  wfil._Frozen       FORMAT "yes/no" colon 64 LABEL "Frozen" SKIP
+  wfil._For-Owner    FORMAT "x(32)"  colon 13 LABEL "Owner"
+  wfil._For-Size     FORMAT ">>>>9"  colon 64 LABEL "Record Size" SKIP
 
-  wfil._Fil-misc2[6] FORMAT "X(32)"  LABEL " Replication"
-  
-  "  DataServer Name:"    VIEW-AS TEXT AT 2   
-  wfil._For-Name     FORMAT "x(45)"  NO-LABEL 
+  wfil._Fil-misc2[6] FORMAT "X(32)"  colon 13 LABEL "Replication"
+ 
+  wfil._For-Name     FORMAT "x(45)" colon 19   LABEL  "DataServer Name"
     HELP "The name of the table in the DataServer's schema"  SKIP
+  wfil._Fil-misc2[8] FORMAT "x(45)"  colon 19  LABEL "DB Link"   SKIP
  
-  "          DB Link:"    VIEW-AS TEXT AT 2                                
-  wfil._Fil-misc2[8] FORMAT "x(45)"  NO-LABEL                SKIP
- 
-  wfil._Desc      VIEW-AS EDITOR
-                  INNER-CHARS 63 INNER-LINES 3
-                  BUFFER-LINES 4     LABEL " Description"    SKIP
+  wfil._Desc      colon 13 VIEW-AS EDITOR
+                           INNER-CHARS 63 INNER-LINES 3
+                           BUFFER-LINES 4     LABEL "Description"    SKIP
 
   button-v AT 12 SPACE(2) button-f SPACE(2) 
         button-s SPACE(2) button-d                           SKIP
@@ -78,7 +80,6 @@ FORM
 
 /*----- GO or OK -----*/
 ON GO OF FRAME frame-d DO:
-
   RUN check_file_name (OUTPUT isbad).
   IF isbad THEN DO:
     ASSIGN
@@ -98,18 +99,64 @@ ON GO OF FRAME frame-d DO:
   IF adding THEN DO:   
     ASSIGN filearea = areaname:SCREEN-VALUE IN FRAME FRAME-d.    
     RUN check_area_name (INPUT-OUTPUT s_In_Schema_Area).
-    IF NOT s_In_Schema_Area THEN DO:
+    IF NOT s_In_Schema_Area THEN 
+    DO:
       ASSIGN get-hit = no
              go_field = no.
       RETURN NO-APPLY.
     END.
   END.
+  ELSE DO:
+    if input wfil._File-attributes[1] and not wfil._File-attributes[1] then
+    do:    
+        /*  input input...   */
+        RUN check_multi_tenant (input input wfil._File-attributes[2],OUTPUT isBad).
+        IF isBad THEN DO:
+          ASSIGN
+            go_field = no
+            get-hit = no.
+          RETURN NO-APPLY.
+        END.
+    end.
+  END.
+  
 END.
 
 ON VALUE-CHANGED OF areaname IN FRAME frame-d DO :
   ASSIGN filearea = areaname:SCREEN-VALUE.
+  /* keep track of last non-bank area for resetting when 
+     changing Keep default area - wfil._File-attribute[2] */
+  if filearea <> "" then 
+     filearealog = filearea.
   RETURN.
 END.
+
+ON any-printable OF wfil._File-attribute[1] IN FRAME frame-d,
+                    wfil._File-attribute[2] IN FRAME frame-d
+DO :
+   if last-event:label = "?" then
+    do: 
+        bell. 
+        return no-apply.  
+    end.  
+end.
+
+ON VALUE-CHANGED OF wfil._File-attribute[1] IN FRAME frame-d,
+                    wfil._File-attribute[2] IN FRAME frame-d
+DO :
+             
+   /* { defined in prodict/pro/arealabel.i } */
+   setAreaState(input frame frame-d wfil._File-attribute[1],
+                input frame frame-d wfil._File-attribute[2],   
+                yes,
+                adding,
+                wfil._File-attribute[2]:handle in frame frame-d, 
+                areaname:handle in frame frame-d,
+                ?, /* no area button */
+                filearealog).
+                 
+END.
+
 
 /*----- CHOOSE OF FIELD EDITOR BUTTON-----*/
 ON CHOOSE OF btn_flds IN FRAME frame-d 
@@ -154,6 +201,8 @@ END.
 
 /*----- HANDLE GET TO SWITCH TABLES -----*/
 ON   GET OF wfil._File-name  IN FRAME frame-d
+  OR GET OF wfil._File-attribute[1]  IN FRAME frame-d
+  OR GET OF wfil._File-attribute[2]  IN FRAME frame-d
   OR GET OF areaname         IN FRAME frame-d
   OR GET OF wfil._For-Type   IN FRAME frame-d
   OR GET OF wfil._Hidden     IN FRAME frame-d
@@ -260,8 +309,14 @@ PROCEDURE check_area_name:
       ASSIGN p_In_Schema_Area = TRUE.
     END.
   END.
-  ELSE
+  ELSE  
     APPLY LASTKEY.
+   
 END PROCEDURE.
 
-
+PROCEDURE check_multi_tenant :    
+ 
+    DEFINE INPUT PARAMETER keepdefault AS LOGICAL NO-UNDO.
+    DEFINE OUTPUT PARAMETER isbad AS LOGICAL INITIAL FALSE NO-UNDO.
+    run prodict/pro/_pro_mt_tbl.p (keepdefault,output isbad). 
+END.  

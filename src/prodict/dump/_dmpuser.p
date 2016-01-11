@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2010 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* _dmpuser.p   */
 
@@ -26,10 +26,10 @@ IF NOT CAN-FIND(FIRST DICTDB._User) THEN DO:
    RETURN.
 END.
 
-run adecomm/_setcurs.p ("WAIT").
+RUN adecomm/_setcurs.p ("WAIT").
 
 IF  user_env[5] = ?
- OR user_env[5] = "" THEN assign user_env[5] = "<internal defaults apply>".
+ OR user_env[5] = "" THEN ASSIGN user_env[5] = "<internal defaults apply>".
 
 IF  user_env[5] = "<internal defaults apply>" 
  THEN OUTPUT TO VALUE(user_env[2]) NO-ECHO NO-MAP NO-CONVERT.
@@ -37,7 +37,7 @@ IF  user_env[5] = "<internal defaults apply>"
             CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
 
 FOR EACH DICTDB._User:
-  EXPORT DICTDB._User.
+  EXPORT DICTDB._User EXCEPT DICTDB._User._tenantid.
 END.
 
   {prodict/dump/dmptrail.i
@@ -53,7 +53,7 @@ AUDIT-CONTROL:LOG-AUDIT-EVENT(10213,
                               PDBNAME("dictdb") + "._user" /* db-name.table-name */, 
                               "" /* detail */).
 
-run adecomm/_setcurs.p ("").
+RUN adecomm/_setcurs.p ("").
 MESSAGE "Dump of users completed." 
         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
 RETURN.

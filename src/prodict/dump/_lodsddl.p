@@ -1,11 +1,30 @@
 /*********************************************************************
-* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
-*********************************************************************/
-                          
-/*history
+**********************F***********************************************/
+/*------------------------------------------------------------------------
+    File        : _lodsddl
+    Purpose     : 
+    Syntax      : 
+    Description : 
+    Author(s)   :  
+    Created     :  
+    Notes       : The shared var dictLoader class is used to parse without UI (no save) 
+                  or save without any UI.
+                   -   The existance (valid-object) of this is used to suppress all 
+                       display or messages. 
+                   -   The assumption is that user-env[6] = "f" also is set to avoid 
+                        all messages. "b" or "s" would cause error messages to be shown. 
+                        this is not tested   
+                   -   The dictLoader:IsReader signals parsing (read-only) 
+                       NOTE: This is currently only for display purposes 
+                             and only table, field, index and sequence (MT tool)
+                             Other tables like triggers, index-fields is not passed to 
+                             the loader. 
+                                 
+ history
    D. McMann   04/11/01 Added warning for SQL Table Updates ISSUE 310
    D. McMann   02/24/03 Added LOB Support
    D. McMann   09/22/03 Added check for object names not being keywords 20030618-015
@@ -32,6 +51,11 @@
    fernando    04/13/09 Alternate buffer pool support
    hdaniels    03/26/10 throw AppError that wraps STOP errors, use CATCH 
                         in transaction and show error(s) in showLoadError 
+   hdaniels    2010     use dictLoader class to parse without UI (no save) or 
+                        save without any UI. 
+   kmayur      06/21/11 Added logic for loading constraint OE00195067  
+   rkamboj     09/23/11 Update _File-Attributes[2] = true if table is Multitenant.
+   rkamboj     09/30/11 Added logic for loading category field.
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -48,8 +72,8 @@
 DEFINE NEW SHARED TEMP-TABLE s_ttb_fake-cp
     FIELD   db-name     AS CHARACTER
     FIELD   db-recid    AS RECID.
-    
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 70 NO-UNDO.
+ 
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 76 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -91,7 +115,7 @@ ASSIGN
   error_text[43] = "Field-position and file-size don't match. File-size is too small.":t72
   error_text[44] = "Please use Dictionary to set the codepage for this database.":t72
   error_text[45] = "{&PRO_DISPLAY_NAME} keywords can not be object names.":t72
-  error_text[46] = "CLOB data type must have CODEPAGE and COLLATION DEFINEd.":t72
+  error_text[46] = "CLOB data type must have CODEPAGE and COLLATION defined.":t72
   error_text[47] = "Unknown data type in field definition. ":t72
   error_text[50] = "" /* DO NOT USE.  If ierror is 50, then it's a warning */
   error_text[51] = "Maximum number of sequences has been reached.":t72
@@ -114,7 +138,13 @@ ASSIGN
   error_text[68] = "Definitions for policies and attributes are loaded in a separate transaction.":t77
   error_text[69] = " Errors caused that transaction to rollback. Other definitions were committed.":t78
   error_text[70] = "" /* don't use - for buffer-pool */
-.
+  error_text[71] = "Cannot force shared schema with no area and keep default area false.":t68
+                   /* used for both table and sequence */
+  error_text[72] = "Database must be multi-tenant enabled to create a multi-tenant object":t71.
+  error_text[73] = "Constraint Expression Missing for DEFAULT/CHECK Constraints":t58.
+  error_text[74] = "All Colums of the Index Should me mandatory for Primary Constraint":t70.
+  error_text[75] = "Primary Index for Table &2 already exist":t68.
+  error_text[76] = "Primary Index not available for foreign key":t50.
 
 &SCOPED-DEFINE WARN_MSG_SQLW 48
 
@@ -165,6 +195,7 @@ DEFINE VARIABLE sav_drec      AS RECID               NO-UNDO.
 DEFINE VARIABLE xerror        AS LOGICAL             NO-UNDO. /* any error during process? */
 DEFINE VARIABLE xwarn         AS LOGICAL             NO-UNDO. /* any warnings during process? */
 DEFINE VARIABLE do-commit     AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE parent-table  AS CHARACTER           NO-UNDO.
 
 /* collate/translate information */
 DEFINE VARIABLE ct_version    AS CHARACTER           NO-UNDO.                /* version # */
@@ -197,6 +228,9 @@ DEFINE VARIABLE main_trans_success  AS LOGICAL            /*UNDO*/.
 
 define variable oAppError    as Progress.Lang.AppError no-undo. 
 define variable cStopMessage as character no-undo.
+define variable cNewFile     as character no-undo.
+define variable cRenamed  as character no-undo.
+define variable dictLoader as OpenEdge.DataAdmin.Binding.IDataDefinitionLoader no-undo.
 
 msg1="Phase 1 of Load completed.  Working.  Please wait ...".
 msg2noalert = "Error occured during load.".
@@ -210,17 +244,13 @@ FORM
   wfld._Field-name LABEL "Field"    COLON 11 FORMAT "x(32)":u SKIP
   widx._Index-name LABEL "Index"    COLON 11 FORMAT "x(32)":u SKIP
   wseq._Seq-Name   LABEL "Sequence" COLON 11 FORMAT "x(32)":u SKIP
+  wcon._Con-Name   LABEL "Constraint" COLON 11 FORMAT "x(32)":u SKIP
   HEADER 
     " Loading Definitions.  Press " +
     KBLABEL("STOP") + " to terminate load process." FORMAT "x(70)" 
   WITH FRAME working 
   ROW 4 CENTERED USE-TEXT SIDE-LABELS ATTR-SPACE &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX THREE-D TITLE "Load Data Definitions" &ENDIF.
-
-COLOR DISPLAY MESSAGES
-  wdbs._Db-name wfil._File-name wfld._Field-name
-  widx._Index-name wseq._Seq-Name
-  WITH FRAME working.
 
 FORM
   msg1 VIEW-AS TEXT NO-LABELS WITH FRAME working2 CENTERED USE-TEXT. 
@@ -235,6 +265,7 @@ FORM
  msg5 VIEW-AS TEXT NO-LABELS WITH FRAME encryptlog ROW 7 CENTERED USE-TEXT.
 
 /*=======================Internal Procedures===========================*/
+
 
 PROCEDURE Put_Header:
 
@@ -265,7 +296,8 @@ END. /* PROCEDURE Put_Header */
 ------------------------------------------------------*/
 PROCEDURE Show_Error:
   DEFINE INPUT PARAMETER p_cmd AS CHAR NO-UNDO.
-
+   
+ 
   DEFINE VAR msg AS CHAR    NO-UNDO INIT "".
   DEFINE VAR ix  AS INTEGER NO-UNDO.
 
@@ -297,6 +329,8 @@ PROCEDURE Show_Error:
                (IF widx._Index-name = ? THEN "" ELSE widx._Index-name)
       ELSE IF iobj    =   "s":u  THEN "SEQUENCE ":u + 
                (IF wseq._Seq-Name   = ? THEN "" ELSE wseq._Seq-Name)
+      ELSE IF iobj    =   "c":u  THEN "CONSTRAINT ":u +
+               (IF wcon._con-name   = ? THEN "" ELSE wcon._con-name)  
       ELSE "? ?":u).
 
   IF p_cmd = "curr" THEN DO:
@@ -306,111 +340,135 @@ PROCEDURE Show_Error:
      END.
   END.
 
-  IF user_env[6] = "f"
-   THEN DO:  /* output only to file */
+  IF user_env[6] = "f" THEN 
+  DO:  /* output only to file */
 
-    OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
-    IF  ierror <= 31
-     OR ierror >  42 THEN DO:
-      IF msg = ""
-       THEN
-         PUT STREAM loaderr UNFORMATTED
-         SKIP(1) "** Error during " scrap " **" SKIP(1)
-         SUBSTITUTE(error_text[ierror],
-         ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
-       ELSE
-         PUT STREAM loaderr UNFORMATTED
-         SKIP(1) "** Error during " scrap " **" SKIP(1)
-         msg SKIP(1)
-         SUBSTITUTE(error_text[ierror],
-         ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
-     END.  
-    ELSE /* IF ierror <= 42
-     THEN */ 
-       PUT STREAM loaderr UNFORMATTED
-       SKIP(1) "** Error during" scrap "**"           SKIP(1)
-       error_text[ierror]                     {&SKP}
-       error_text[ierror + 1]                 {&SKP} 
-       error_text[ierror + 2].
-    END.     /* output only to file */
-
-   ELSE IF user_env[6] = "s" THEN DO: /* output only with alert-boxes */
-
-    IF  ierror <= 31
-     OR ierror >  42 THEN
-      IF msg = ""
-       THEN MESSAGE 
-          "** Error during" scrap "**" SKIP(1)
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-       ELSE MESSAGE 
-          "** Error during" scrap "**" SKIP(1)
-          msg SKIP(1) 
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-    ELSE /* IF ierror <= 42
-     THEN */ MESSAGE
-        "** Error during" scrap "**"           SKIP(1)
-        error_text[ierror]                     {&SKP}
-        error_text[ierror + 1]                 {&SKP} 
-        error_text[ierror + 2] 
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
-    END.     /* output only with alert-boxes */
+      OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
     
-   ELSE IF user_env[6] = "b" THEN DO:  /* output to both file and alert-boxes */
-   OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
-
-    IF  ierror <= 31
-     OR ierror >  42
-     THEN DO:
-      IF msg = ""
-       THEN DO: MESSAGE
-          "** Error during" scrap "**" SKIP(1)
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
+      IF  ierror <= 31
+      OR ierror >  42 THEN 
+      DO:
+          IF msg = "" THEN
+             PUT STREAM loaderr UNFORMATTED
+             SKIP(1) "** Error during " scrap " **" SKIP(1)
+             SUBSTITUTE(error_text[ierror],
+             ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
+          ELSE
+             PUT STREAM loaderr UNFORMATTED
+             SKIP(1) "** Error during " scrap " **" SKIP(1)
+             msg SKIP(1)
+             SUBSTITUTE(error_text[ierror],
+             ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
+      END.  
+      ELSE /* IF ierror <= 42 THEN */ 
           PUT STREAM loaderr UNFORMATTED
-          SKIP(1) "** Error during " scrap " **" SKIP(1)
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
-        END.
-       ELSE DO: MESSAGE
-          "** Error during" scrap "**" SKIP(1)
-          msg SKIP(1)
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
-          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+              SKIP(1) "** Error during" scrap "**"           SKIP(1)
+              error_text[ierror]                     {&SKP}
+              error_text[ierror + 1]                 {&SKP} 
+              error_text[ierror + 2].
+  END.     /* output only to file */
 
-          PUT STREAM loaderr UNFORMATTED
-          SKIP(1) "** Error during " scrap " **" SKIP(1)
-          msg SKIP(1)
-          SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1
-).
-        END.
+  /* output only with alert-boxes */
+  ELSE IF user_env[6] = "s" THEN 
+  DO: 
+      IF  ierror <= 31
+      OR ierror >  42 THEN
+      DO:
+          IF msg = "" THEN 
+             MESSAGE 
+                 "** Error during" scrap "**" SKIP(1)
+                 SUBSTITUTE(error_text[ierror],
+                 ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
+                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          ELSE 
+              MESSAGE 
+                 "** Error during" scrap "**" SKIP(1)
+                 msg SKIP(1) 
+                 SUBSTITUTE(error_text[ierror],
+                 ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) 
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      end.
+      ELSE /* IF ierror <= 42 THEN */ 
+          MESSAGE
+             "** Error during" scrap "**"           SKIP(1)
+             error_text[ierror]                     {&SKP}
+             error_text[ierror + 1]                 {&SKP} 
+             error_text[ierror + 2] 
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
+  END. /* output only with alert-boxes */  
+  ELSE IF user_env[6] = "b" THEN DO:  /* output to both file and alert-boxes */
+      OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
+      IF  ierror <= 31
+      OR ierror >  42 THEN 
+      DO:
+          IF msg = "" THEN 
+          DO: 
+               MESSAGE
+                  "** Error during" scrap "**" SKIP(1)
+                  SUBSTITUTE(error_text[ierror],
+                  ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
+                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        
+                  PUT STREAM loaderr UNFORMATTED
+                  SKIP(1) "** Error during " scrap " **" SKIP(1)
+                  SUBSTITUTE(error_text[ierror],
+                  ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
+          END.
+          ELSE 
+          DO: 
+              MESSAGE
+              "** Error during" scrap "**" SKIP(1)
+              msg SKIP(1)
+              SUBSTITUTE(error_text[ierror],
+              ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    
+              PUT STREAM loaderr UNFORMATTED
+              SKIP(1) "** Error during " scrap " **" SKIP(1)
+              msg SKIP(1)
+              SUBSTITUTE(error_text[ierror],
+              ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
+          END.
       END.
-    ELSE /* IF ierror <= 42
-     THEN */DO:
-        MESSAGE
-        "** Error during" scrap "**"           SKIP(1)
-        error_text[ierror]                     {&SKP}
-        error_text[ierror + 1]                 {&SKP}
-        error_text[ierror + 2]
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
-        PUT STREAM loaderr UNFORMATTED
-        SKIP(1) "** Error during " scrap " **"           SKIP(1)
-        error_text[ierror]                     {&SKP}
-        error_text[ierror + 1]                 {&SKP}
-        error_text[ierror + 2] SKIP(1).
+      ELSE /* IF ierror <= 42 THEN */
+      DO:
+          MESSAGE
+            "** Error during" scrap "**"           SKIP(1)
+            error_text[ierror]                     {&SKP}
+            error_text[ierror + 1]                 {&SKP}
+            error_text[ierror + 2]
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    
+            PUT STREAM loaderr UNFORMATTED
+            SKIP(1) "** Error during " scrap " **"           SKIP(1)
+            error_text[ierror]                     {&SKP}
+            error_text[ierror + 1]                 {&SKP}
+            error_text[ierror + 2] SKIP(1).
       END.
-
-    END.     /* output to both file and alert-boxes */
-
+  END. /* output to both file and alert-boxes */
+  if valid-object(dictLoader) then
+  do:
+      dictLoader:AddError("** Error during " + scrap + " **").
+      IF  ierror <= 31
+      OR ierror >  42 THEN 
+      DO:
+          if msg > "" then
+             dictLoader:AddError(msg).
+          
+          dictLoader:AddError(
+               SUBSTITUTE(error_text[ierror],
+                          ENTRY(1,scrap," ":u),
+                          ENTRY(2,scrap," ":u),
+                          ENTRY(3,scrap," ":u)) 
+               ).
+      end.
+      else do:
+          dictLoader:AddError(error_text[ierror]).
+          dictLoader:AddError(error_text[ierror + 1]).
+          dictLoader:AddError(error_text[ierror + 2]).
+      end.
+  end.    
   ASSIGN xerror = true.
 
   OUTPUT STREAM loaderr CLOSE.
@@ -447,6 +505,8 @@ PROCEDURE Show_Warning:
                (IF widx._Index-name = ? THEN "" ELSE widx._Index-name)
       ELSE IF iobj    =   "s":u  THEN "SEQUENCE ":u + 
                (IF wseq._Seq-Name   = ? THEN "" ELSE wseq._Seq-Name)
+      ELSE IF iobj    =   "c":u  THEN "CONSTRAINT ":u +
+               (IF wcon._con-name   = ? THEN "" ELSE wcon._con-name)         
       ELSE "? ?":u).
   IF user_env[6] = "f" THEN DO:
     OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
@@ -551,12 +611,19 @@ PROCEDURE Show_Warning:
     END.
 
   END.     /* output to both file and alert-boxes */
-
-  ASSIGN xwarn = true.
   
   OUTPUT STREAM loaderr CLOSE.
-
-  ASSIGN warn_message = "".
+  
+  if valid-object(dictLoader) then
+  do: 
+      dictLoader:AddWarning("** " + scrap + " caused a warning **" ).
+      dictLoader:AddWarning(SUBSTITUTE(warn_message,
+                           ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u))). 
+      
+  end.
+  
+  ASSIGN xwarn = true
+         warn_message = "".
 
 END PROCEDURE. /* Show_Warnings */
 
@@ -584,8 +651,8 @@ procedure showLoadError:
     
     /* if user_env[6] = "b" (both) or "f" (file) output the message */
     if user_env[6] = "b" or user_env[6] = "f" then
-    do:
-      OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+    do:   
+      OUTPUT TO VALUE (dbload-e) APPEND.
       PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
       "Load of " user_env[2] " into database " 
       LDBNAME("DICTDB") " was unsuccessful." SKIP 
@@ -596,8 +663,19 @@ procedure showLoadError:
       end.
       put unformatted skip(1).
       OUTPUT CLOSE.
-   end.            
+    end.
+    
+    /* The loader is only here when called from prodict/dump/_load_df which 
+       has a transaction and error handler, so transaction errors would not
+       likely end up here, but just in case  */ 
+    if valid-object(dictLoader) then
+    do:
+        dictLoader:AddError(poError).
+    end.
+                
 end procedure.    
+
+
 
 /* Callback for errors when saving policies */
 PROCEDURE secErrorCallback:
@@ -677,6 +755,12 @@ PROCEDURE Show_Phase2_Error:
                    SKIP(1) p_msg {&SKP}.
 
   END.     /* output to both file and alert-boxes */
+  
+  if valid-object(dictLoader) then
+  do: 
+      dictLoader:AddPhase2Error("** Error loading " + p_cStr + " **").
+      dictLoader:AddPhase2Error(p_msg).
+  end.
 
   ASSIGN xerror = true.
 
@@ -776,6 +860,7 @@ PROCEDURE Load_Icu_Rules:
     RETURN "Failed".
   END.
 
+/** GIH - Temporarily removing for multiple collations schema changes **
   IF longRules = 0 THEN lcRules = "".
   ELSE DO:
     FIND FIRST _Codepage WHERE _Cp-Name = wdbs._Db-xl-name AND _Cp-dbrecid = drec_db NO-ERROR.
@@ -867,6 +952,8 @@ PROCEDURE Load_Icu_Rules:
   END.
    
   longRules =  LENGTH(lcRules, "RAW").
+
+** GIH - end Temporarily remove for multiple collation schema work **/
 
   lcRules = "".
   SET-SIZE(lpMptr) = 0.
@@ -1137,16 +1224,33 @@ END.
 
 /*==========================Mainline Code==============================*/
 
-/* Fix problems which resulted when .rcode is run on Japanese DOS/WIN, 640x480
-   while the .r-code was compiled/created with US fonts/Progress.ini
-   Increase the frame size a little bit. 
-*/
-IF session:pixels-per-column = 6 AND session:width-pixels = 640 THEN
-DO:
-   FRAME working2:WIDTH-CHARS = FRAME working2:WIDTH-CHARS + msg1:column + 2.
-   FRAME backout:WIDTH-CHARS = FRAME backout:WIDTH-CHARS + msg2:column + 2.
-   FRAME errorlog:WIDTH-CHARS = FRAME errorlog:WIDTH-CHARS + msg3:column + dbload-e:column + msg4:column + 2.
-END.
+/* dictLoadOptions - could have options only or be a logger/loader or reader/parser  */
+if valid-object(dictLoadOptions) then
+do:
+    /* the code below use valid-object(dictLoader) as flag to not show messages and data */
+    dictLoader = dictLoadOptions:Logger.
+    if dictLoadOptions:ForceCommit then
+        user_env[15] = "yes".
+end.
+
+if not valid-object(dictLoader) then
+do:
+    COLOR DISPLAY MESSAGES
+        wdbs._Db-name wfil._File-name wfld._Field-name
+        widx._Index-name wseq._Seq-Name
+    WITH FRAME working.
+
+    /* Fix problems which resulted when .rcode is run on Japanese DOS/WIN, 640x480
+       while the .r-code was compiled/created with US fonts/Progress.ini
+       Increase the frame size a little bit. 
+    */
+    if session:pixels-per-column = 6 AND session:width-pixels = 640 THEN
+    DO:
+       FRAME working2:WIDTH-CHARS = FRAME working2:WIDTH-CHARS + msg1:column + 2.
+       FRAME backout:WIDTH-CHARS = FRAME backout:WIDTH-CHARS + msg2:column + 2.
+       FRAME errorlog:WIDTH-CHARS = FRAME errorlog:WIDTH-CHARS + msg3:column + dbload-e:column + msg4:column + 2.
+    END.
+end.
        
 ASSIGN
   cache_dirty = TRUE
@@ -1172,7 +1276,7 @@ DO FOR _Db:
     gate_proc    = ""
     do-commit    = (IF user_env[15] = "yes" THEN TRUE ELSE FALSE).
 END.
-  
+ 
 /* Set up the name of the procedure to call to get stdtype info */
 IF gate_dbtype <> "PROGRESS" THEN DO:
   {prodict/dictgate.i 
@@ -1184,8 +1288,18 @@ IF gate_dbtype <> "PROGRESS" THEN DO:
   gate_proc = "prodict/" + ENTRY(9,scrap) + "/_" + ENTRY(9,scrap) + "_typ.p".
 END.
 
-ASSIGN dbload-e = LDBNAME("DICTDB") + ".e".
+/* allow log to be set from loader. Set it back if not set */
+if valid-object(dictLoadOptions) then
+    dbload-e = dictLoadOptions:ErrorLog.
 
+if dbload-e = "" or dbload-e = ? then
+do:
+    dbload-e = LDBNAME("DICTDB") + ".e".
+
+    if valid-object(dictLoadOptions) then
+        dictLoadOptions:ErrorLog = dbload-e.
+end.
+    
 /* check if this is a 10.1B db at least, so that we complain about int64 and
    int64 values. If the 'Large Keys' feature is not known by this db, then this
    is a pre-101.B db 
@@ -1264,64 +1378,67 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   
   DO ON STOP UNDO, LEAVE:
 
-    /* if the .df is signaled as having encryption policies, we will try to
-       get the object for loading the policies now, so that if there are
-       any errors (such as encryption not enabled, not security db, 
-       not local connection), we error out right away.
-    */
-    IF hasEncPol THEN DO:
-
-       RUN checkEPolicy NO-ERROR.
-
-       IF ierror > 0 AND NOT inoerror THEN DO:
-         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
-         ASSIGN imod = "sp".
-         RUN Show_Error ("curr").
-         IF user_env[4] BEGINS "y":u AND NOT ierror = 50
-          THEN DO:
-           ASSIGN stopped = true.
-           UNDO,LEAVE.
-         END. 
-       END.
-
-       /* clear them */
-       ASSIGN ierror = 0
-              imod = ?
-              hasEncPol = NO /* this has a new meaning now */.
-    END.
-
-    /* if the .df is signaled as having buffer-pool settings, we will try to
-       get the object for loading the settings now, so that if there are
-       any errors, we error out right away.
-    */
-    IF hasBufPool THEN DO:
-
-       RUN checkObjAttrs NO-ERROR.
-
-       IF ierror > 0 AND NOT inoerror THEN DO:
-         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
-         ASSIGN imod = "sp".
-         RUN Show_Error ("curr").
-         IF user_env[4] BEGINS "y":u AND NOT ierror = 50
-          THEN DO:
-           ASSIGN stopped = true.
-           UNDO,LEAVE.
-         END. 
-       END.
-
-       /* clear them */
-       ASSIGN ierror = 0
-              imod = ?
-              hasBufPool = NO /* this has a new meaning now */.
-    END.
+    /* skip enc policy and buffer pool stuff  if only parsing for now */ 
+    if not valid-object(dictLoader) or not dictLoader:IsReader then
+    do:
+        /* if the .df is signaled as having encryption policies, we will try to
+           get the object for loading the policies now, so that if there are
+           any errors (such as encryption not enabled, not security db, 
+           not local connection), we error out right away.
+         */
+        IF hasEncPol THEN DO:
     
+           RUN checkEPolicy NO-ERROR.
+    
+           IF ierror > 0 AND NOT inoerror THEN DO:
+             RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+             ASSIGN imod = "sp".
+             RUN Show_Error ("curr").
+             IF user_env[4] BEGINS "y":u AND NOT ierror = 50
+              THEN DO:
+               ASSIGN stopped = true.
+               UNDO,LEAVE.
+             END. 
+           END.
+    
+           /* clear them */
+           ASSIGN ierror = 0
+                  imod = ?
+                  hasEncPol = NO /* this has a new meaning now */.
+        END.
+    
+        /* if the .df is signaled as having buffer-pool settings, we will try to
+           get the object for loading the settings now, so that if there are
+           any errors, we error out right away.
+        */
+        IF hasBufPool THEN DO:
+    
+           RUN checkObjAttrs NO-ERROR.
+    
+           IF ierror > 0 AND NOT inoerror THEN DO:
+             RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+             ASSIGN imod = "sp".
+             RUN Show_Error ("curr").
+             IF user_env[4] BEGINS "y":u AND NOT ierror = 50
+              THEN DO:
+               ASSIGN stopped = true.
+               UNDO,LEAVE.
+             END. 
+           END.
+    
+           /* clear them */
+           ASSIGN ierror = 0
+                  imod = ?
+                  hasBufPool = NO /* this has a new meaning now */.
+        END.
+    end.
     /* when IMPORT hits the end, it generates ENDKEY.  This is how loop ends */
     load_loop:
     REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
 
         /* 20060316-011  - we will not get back here for a retry, if the line we
          are processing is the left over of the previous line (see below where
-         we move the tokens bcased on inum), in which case the client will not
+         we move the tokens based on inum), in which case the client will not
          retry because there was no live io operation in that iteration of the
          block (such as the import statement, which we don't run when moving
          tokens that were left around). By explicitly adding the RETRY function
@@ -1329,7 +1446,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
          UNDO, RETRY.
       */
       IF RETRY THEN .
-
+      
       IF ierror > 0 AND NOT inoerror THEN DO:
         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
         RUN Show_Error ("curr").
@@ -1369,7 +1486,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
       DO WHILE ilin[1] BEGINS "#":u OR ilin[1] = "" OR ilin[1] = ?:
         ASSIGN
           ipos = ipos + 1
-          ilin = ?.
+          ilin = ?.       
         IMPORT ilin.
       END.
       inum = 0.
@@ -1396,32 +1513,40 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           
             RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
             RUN Show_Error ("curr").
-            IF do-commit THEN DO:
-              MESSAGE "Unable to commit any updates since there is a type mismatch"
+            
+            IF do-commit and not valid-object(dictLoader) then
+            do:
+                MESSAGE "Unable to commit any updates since there is a type mismatch"
                   VIEW-AS ALERT-BOX WARNING.
-              ASSIGN do-commit = FALSE.
+                ASSIGN do-commit = FALSE.
             END.
+            
             UNDO,LEAVE load_loop. /* no sense to continue */
           END.        /* table of foreign DB: type mismatch */       
-          ELSE
-            RUN "prodict/dump/_lod_fil.p".
+          ELSE 
+              RUN "prodict/dump/_lod_fil.p".  
+  
         END.
          
 
-        IF AVAILABLE wfld AND imod <> ? THEN DO:
-          RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
+        IF AVAILABLE wfld AND imod <> ? THEN 
+            RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
+         
+        IF AVAILABLE widx AND imod <> ? THEN 
+        DO:
+            RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
         END.
 
-        IF AVAILABLE widx
-         AND imod <> ?
-         THEN DO:
-          RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
-          END.
-
-        IF AVAILABLE wseq
-         AND imod <> ? THEN
+        IF AVAILABLE wseq AND imod <> ? THEN
+        DO:
             RUN "prodict/dump/_lod_seq.p".
- 
+        END. 
+        
+        IF AVAILABLE wcon AND imod <> ? THEN
+        DO:
+            RUN "prodict/dump/_lod_con.p"(INPUT-OUTPUT minimum-index).
+        END.
+
         /* make sure we found both encryption and cipher settings (unless it was
           'encryption no', in which case we don't have a cipher).
         */
@@ -1460,8 +1585,11 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         FOR EACH widx: DELETE widx. END.
         FOR EACH wixf: DELETE wixf. END.
         FOR EACH wseq: DELETE wseq. END.
-  
+        FOR EACH wcon: DELETE wcon. END.
+
         ASSIGN
+          /* set to new file if logging/parsing to manage new indexes and fields of new files */ 
+          cNewfile = ""
           icomponent = 0
           iprimary   = FALSE
           inoerror   = FALSE
@@ -1469,8 +1597,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           iobj       = ?
           inum       = 3
           encryptOpts = NO.
-    
-          /* set the action mode */
+           /* set the action mode */
         CASE ilin[1]:
           WHEN "ADD":u    OR WHEN "CREATE":u OR WHEN "NEW":u  THEN imod = "a":u.
           WHEN "UPDATE":u OR WHEN "MODIFY":u OR WHEN "ALTER":u OR WHEN "CHANGE":u
@@ -1486,6 +1613,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           WHEN "FIELD":u    OR WHEN "COLUMN":u  THEN iobj = "f":u.
           WHEN "INDEX":u    OR WHEN "KEY":u     THEN iobj = "i":u.
           WHEN "SEQUENCE":u                     THEN iobj = "s":u.
+          WHEN "CONSTRAINT":u                   THEN iobj = "c":u.
         end case.
 
         IF iobj = "t" AND ilin[4] = "TYPE" AND gate_dbtype <> ilin[5] THEN 
@@ -1550,9 +1678,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         IF iobj = "f" THEN CREATE wfld.
         IF iobj = "i" THEN CREATE widx.
         IF iobj = "s" THEN CREATE wseq.
+        IF iobj = "c" THEN CREATE wcon.
 
         IF iobj = "d" THEN DO: /* start database action block */
-          IF TERMINAL <> "" THEN 
+          IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
             DISPLAY
               (IF ilin[3] = "?" THEN user_dbname ELSE ilin[3]) @ wdbs._Db-name
               "" @ wfil._File-name  "" @ wfld._Field-name
@@ -1577,10 +1706,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             END.
           IF AVAILABLE _Db THEN drec_db = RECID(_Db).
 
-          END. /* end database action block */
-  
+        END. /* end database action block */
+   
         IF iobj = "s" THEN DO: /* start sequence action block */
-          IF TERMINAL <> "" THEN 
+          IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
             DISPLAY 
               user_dbname @ wdbs._Db-name
               "" @ wfil._File-name  "" @ wfld._Field-name
@@ -1597,6 +1726,14 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           END.          
           ELSE DO:
             FIND FIRST _Sequence WHERE _Sequence._Seq-Name = ilin[3] NO-ERROR.
+             /* if we are parsing then the renamed table exists in the parser and not in the db  */
+            if  imod <> "r" and not available _Sequence and valid-object(dictLoader) and dictLoader:isReader then
+            do:
+              cRenamed = dictLoader:SequenceOldName(ilin[3]).            
+              if cRenamed > "" then
+                 FIND FIRST _Sequence WHERE _Sequence._Seq-Name = cRenamed NO-ERROR.    
+            end.  
+            
             IF NOT AVAILABLE _Sequence THEN DO:    
               ASSIGN wseq._Seq-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
@@ -1611,8 +1748,8 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             END.
             { prodict/dump/copy_seq.i &from=_Sequence &to=wseq }
             END.
-          END. /* end sequence action block */
-  
+        END. /* end sequence action block */
+                              
         /* position _file record */
         IF (iobj = "d" OR iobj = "s") OR (imod = "a" AND iobj = "t") THEN .
         ELSE DO:
@@ -1622,6 +1759,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           ELSE IF CAN-DO("OF,ON",ilin[5]) THEN scrap = ilin[6].
           ELSE IF CAN-DO("OF,ON",ilin[6]) THEN scrap = ilin[7].
           ELSE IF CAN-DO("OF,ON",ilin[7]) THEN scrap = ilin[8].
+             
           IF scrap = ? THEN .
           ELSE
           IF AVAILABLE _Db THEN DO:
@@ -1638,16 +1776,34 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             ELSE
                FIND FIRST _File WHERE _File._File-name = scrap NO-ERROR.
           END.  
-       
+          /* if we are parsing then the renamed table exists in the parser and not in the db  */
+          if not (iobj = "t" and imod = "r") and not available _file and valid-object(dictLoader) and dictLoader:isReader then
+          do:
+              cRenamed = dictLoader:TableOldName(scrap).            
+              if cRenamed > "" then
+                 find  _File where _File._File-name = cRenamed
+                              and (_File._Owner = "PUB" or _File._Owner = "_FOREIGN") no-error.    
+          end.  
+             
           IF AVAILABLE _File AND NOT AVAILABLE _Db THEN DO:
             FIND _Db OF _File.
             drec_db = RECID(_Db).
           END.
-          IF scrap <> ? AND AVAILABLE _File THEN drec_file = RECID(_File).              
-          END.
+          
+          IF scrap <> ? then
+          do: 
+             if AVAILABLE _File THEN 
+                 drec_file = RECID(_File).
+                 /* if parsing log the filename. We check if it really is a new file further down 
+                    where the file of index and field is validated */
+             else if valid-object(dictLoader) and dictLoader:isReader 
+             and imod = "a" and (iobj = "f" or iObj = "i") then
+                 cNewFile = scrap.      
+          end.              
+        END.
   
         IF iobj = "t" THEN DO: /* start file action block */
-          IF TERMINAL <> "" THEN 
+          IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
             DISPLAY user_dbname @ wdbs._Db-name
                     ilin[3] @ wfil._File-name "" @ wfld._Field-name 
                     "" @ widx._Index-name "" @ wseq._Seq-Name
@@ -1684,24 +1840,50 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         END. /* end file action block */
   
         IF iobj = "f" THEN DO: /* start field action block */
-          IF NOT AVAILABLE _File AND drec_file <> ? THEN
-            FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
-          IF NOT AVAILABLE _File THEN DO:
-            ierror = 5. /* "Try to modify &2 without file" */
-            UNDO,LEAVE start_obj.
-          END.
-          ELSE IF AVAILABLE _File AND _file._File-name <> ilin[5] THEN
-            FIND _file WHERE _file._file-name = ilin[5]
-                          AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-          IF NOT AVAILABLE _File THEN DO:
-            ierror = 5. /* "Try to modify &2 without file" */
-            UNDO,LEAVE start_obj.
-          END.
-          IF TERMINAL <> "" THEN 
+          /* only set if dictLoader:Isreader - see above */
+          IF cNewFile > "" then 
+          do:
+                if not dictLoader:IsNewTable(cNewFile) then 
+                do:
+                    ierror = 5. /* "try to modify index w/o file" */
+                    UNDO,LEAVE start_obj.
+                end.
+                            
+                if cNewFile <> ilin[5] then
+                    dictLoader:addError("Data Definition Parser does not understand tokens after field " + wfld._Field-name).   
+                dictLoader:AddingChildToNewTable = true.  
+          end.    
+          else do:
+             
+              IF NOT AVAILABLE _File AND drec_file <> ? THEN
+                FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
+              IF NOT AVAILABLE _File THEN DO:
+                ierror = 5. /* "Try to modify &2 without file" */
+                UNDO,LEAVE start_obj.
+              END.
+              ELSE IF AVAILABLE _File AND _file._File-name <> ilin[5] THEN
+              do:  
+                  if not (valid-object(dictLoader) and dictLoader:IsReader 
+                          and dictLoader:TableOldName(ilin[5]) = _file._File-name) then
+                  do: 
+                      FIND _file WHERE _file._file-name = ilin[5]
+                                      AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
+                      IF NOT AVAILABLE _File THEN DO:
+                        ierror = 5. /* "Try to modify &2 without file" */
+                        UNDO,LEAVE start_obj.
+                      END.
+                  end.
+              end.
+              
+              if valid-object(dictLoader) and dictLoader:IsReader then
+                  dictLoader:AddingChildToNewTable = false.  
+   
+          end.
+          IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
             DISPLAY _File._File-name @ wfil._File-name
-                                 ilin[3] @ wfld._Field-name 
-                                 "" @ widx._Index-name
-                    WITH FRAME working.
+                    ilin[3] @ wfld._Field-name 
+                    "" @ widx._Index-name
+            WITH FRAME working.
 
           IF imod = "a" THEN DO:
             IF KEYWORD(ilin[3]) <> ? THEN DO:
@@ -1715,6 +1897,14 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           END.
           ELSE DO:
             FIND _Field OF _File WHERE _Field._Field-name = ilin[3] NO-ERROR.
+            if imod <> "r" and not available _Field and valid-object(dictLoader) and dictLoader:isReader then
+            do:
+              cRenamed = dictLoader:FieldOldName(_File._File-name,ilin[3]).            
+              if cRenamed > "" then
+                 FIND _Field OF _File WHERE _Field._Field-name = cRenamed NO-ERROR.    
+            end.  
+            
+            
             IF NOT AVAILABLE _Field THEN DO:
               ASSIGN wfld._Field-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
@@ -1738,32 +1928,58 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           END. /* end field action block */
   
           IF iobj = "i" THEN DO: /* start index action block */
-            IF NOT AVAILABLE _File AND drec_file <> ? THEN
-              FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
-            IF NOT AVAILABLE _File THEN DO:
-              ierror = 5. /* "try to modify index w/o file" */
-              UNDO,LEAVE start_obj.
-            END.
-            ELSE IF AVAILABLE _File THEN DO k = 4 TO 8:
-              IF ilin[k] = "ON" THEN DO:
-                IF _File._File-name <> ilin[k + 1] THEN DO:                  
-                  FIND _File WHERE _File._file-name = ilin[k + 1] 
-                               AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-                  ASSIGN k = 8.
+            /* only set if dictLoader:Isreader  - see above */
+            IF cNewFile > "" then 
+            do:
+                if not dictLoader:IsNewTable(cNewFile) then 
+                do:
+                    ierror = 5. /* "try to modify index w/o file" */
+                    UNDO,LEAVE start_obj.
+                end.
+                DO k = 4 TO 8:
+                    /* @TODO fix this */
+                  IF ilin[k] = "ON" and ilin[k + 1] <> cNewFile THEN DO:
+                      dictLoader:addError("Data Definition Parser does not understand ON " + ilin[k + 1]  ).           
+                      k = 8.
+                  end. 
+                end.  
+                dictLoader:AddingChildToNewTable = true.  
+            end.    
+            else do:
+                IF NOT AVAILABLE _File AND drec_file <> ? THEN
+                  FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
+                IF NOT AVAILABLE _File THEN DO:
+                  ierror = 5. /* "try to modify index w/o file" */
+                  UNDO,LEAVE start_obj.
                 END.
-              END.
-            END.
-            IF NOT AVAILABLE _File THEN DO:
-              ierror = 5.  /* "Try to modify &2 without file" */
-              UNDO,LEAVE start_obj.
-            END.
+                ELSE IF AVAILABLE _File THEN DO k = 4 TO 8:
+                  IF ilin[k] = "ON" THEN DO:
+                    IF _File._File-name <> ilin[k + 1] THEN DO:                  
+                      if not (valid-object(dictLoader) and dictLoader:IsReader 
+                          and dictLoader:TableOldName(ilin[k + 1]) = _file._File-name) then
+                      do: 
+                        FIND _File WHERE _File._file-name = ilin[k + 1] 
+                                    AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
+                      end.
+                      ASSIGN k = 8.
+                    END.
+                  END.
+                END.
+                IF NOT AVAILABLE _File THEN DO:
+                  ierror = 5.  /* "Try to modify &2 without file" */
+                  UNDO,LEAVE start_obj.
+                END.                
+                if valid-object(dictLoader) and dictLoader:IsReader then
+                    dictLoader:AddingChildToNewTable = false.  
          
-            IF TERMINAL <> "" THEN 
-              DISPLAY _File._File-name @ wfil._File-name
-                                 "" @ wfld._Field-name
-                    ilin[3] @ widx._Index-name 
+            end.
+            
+            IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
+                DISPLAY _File._File-name @ wfil._File-name
+                        "" @ wfld._Field-name
+                        ilin[3] @ widx._Index-name 
                 WITH FRAME working.
-
+             
             IF imod = "a" THEN DO:
               IF KEYWORD(ilin[3]) <> ? THEN DO:
                 ASSIGN widx._Index-name = ilin[3]
@@ -1771,16 +1987,43 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                 UNDO, LEAVE start_obj.
               END.
               ELSE           
-              ASSIGN widx._Index-name = ilin[3]
-                     widx._Unique     = FALSE. /* different from schema default of TRUE */
+                 ASSIGN widx._Index-name = ilin[3]
+                        widx._Unique     = FALSE. /* different from schema default of TRUE */
+              
+              
+              /* zero by default (seems better than 6?) */
+              IF cNewFile > "" then 
+                   /* @todo 
+                 index-area-number = dictLoader:GetAreaForNewTable(cNewFile).  
+                     */
+                 index-area-number = 0.
+             
+              /* if it's a multi-tenant table with keep-default off, set area for index to 
+                 zero by default
+              */
+              else do:
+                 If _File._File-Attributes[1] = TRUE /*multi-tenant */
+                 AND _File._File-Attributes[2] = FALSE /* no default partition*/ THEN 
+                 DO:
+                     index-area-number = 0.
+                 END.
+              END.
             END.
             ELSE DO:
               FIND _Index OF _File WHERE _Index._Index-name = ilin[3] NO-ERROR.
+              if imod <> "r" and not available _Index and valid-object(dictLoader) and dictLoader:isReader then
+              do:
+                   cRenamed = dictLoader:IndexOldName(_File._File-name,ilin[3]). 
+                      
+                   if cRenamed > "" then
+                       FIND _Index OF _File WHERE _Index._Index-name = cRenamed NO-ERROR.    
+              end. 
               IF NOT AVAILABLE _Index THEN DO:
                 ASSIGN widx._Index-name = ilin[3].
                 ierror = 3. /* "Try to modify unknown &2" */
                 UNDO,LEAVE start_obj.
               END.
+             
               IF imod = "r" THEN DO:
                 IF KEYWORD(ilin[5]) <> ? THEN DO:
                   ASSIGN widx._Index-name = ilin[3]
@@ -1793,7 +2036,83 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
            
             END.
           END. /* end index action block */
-          ASSIGN got-error = NO.
+          
+          /* OE#00195067 */
+          IF iobj = "c" THEN DO:
+            IF cNewFile > "" then 
+            do:
+                if not dictLoader:IsNewTable(cNewFile) then 
+                do:
+                    ierror = 5. /* "try to modify index w/o file" */
+                    UNDO,LEAVE start_obj.
+                end.
+                DO k = 4 TO 8:
+                    /* @TODO fix this */
+                  IF ilin[k] = "ON" and ilin[k + 1] <> cNewFile THEN DO:
+                      dictLoader:addError("Data Definition Parser does not understand ON " + ilin[k + 1]  ).           
+                      k = 8.
+                  end. 
+                end.  
+                dictLoader:AddingChildToNewTable = true.  
+            end.    
+            else do:
+                IF NOT AVAILABLE _File AND drec_file <> ? THEN
+                  FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
+                IF NOT AVAILABLE _File THEN DO:
+                  ierror = 5. /* "try to modify index w/o file" */
+                  UNDO,LEAVE start_obj.
+                END.
+                ELSE IF AVAILABLE _File THEN DO k = 4 TO 8:
+                  IF ilin[k] = "ON" THEN DO:
+                    IF _File._File-name <> ilin[k + 1] THEN DO:                  
+                      if not (valid-object(dictLoader) and dictLoader:IsReader 
+                          and dictLoader:TableOldName(ilin[k + 1]) = _file._File-name) then
+                      do: 
+                        FIND _File WHERE _File._file-name = ilin[k + 1] 
+                                    AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
+                      end.
+                      ASSIGN k = 8.
+                    END.
+                  END.
+                END.
+                IF NOT AVAILABLE _File THEN DO:
+                  ierror = 5.  /* "Try to modify &2 without file" */
+                  UNDO,LEAVE start_obj.
+                END.                
+                if valid-object(dictLoader) and dictLoader:IsReader then
+                    dictLoader:AddingChildToNewTable = false.  
+         
+            end.
+           
+           IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
+                DISPLAY _File._File-name @ wfil._File-name
+                        "" @ wfld._Field-name
+                        "" @ widx._Index-name 
+                        ilin[3] @ wcon._Con-Name
+                WITH FRAME working.
+            
+            IF imod = "a" THEN DO:
+              IF KEYWORD(ilin[3]) <> ? THEN DO:
+                ASSIGN wcon._Con-name = ilin[3]
+                       ierror = 45.
+                UNDO, LEAVE start_obj.
+              END.
+              ELSE           
+              ASSIGN wcon._Con-name = ilin[3].
+            
+            END.
+            ELSE IF imod = "d" OR imod = "m" THEN DO:
+              FIND FIRST _Constraint OF _File where _Constraint._Con-name = ilin[3] NO-LOCK NO-ERROR.
+              IF NOT AVAILABLE (_Constraint) THEN DO:
+                wcon._Con-Name = ilin[3].
+                ierror = 3. /* "Try to modify unknown &2" */
+                UNDO,LEAVE start_obj.
+              END.
+              ELSE 
+                wcon._Con-Name = ilin[3].
+            END.
+          END.  /* end constraint action block */
+        ASSIGN got-error = NO.
         END.  /* start_obj block */
 
         IF got-error THEN
@@ -1904,10 +2223,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
               RUN Load_Icu_Rules ( INPUT-OUTPUT j ) .
               IF RETURN-VALUE NE "" THEN ierror = 40.
               ELSE DO:
-            IF cerror = "no-convert" THEN 
-          INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP NO-CONVERT.
-            ELSE 
-              INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP
+                IF cerror = "no-convert" THEN 
+                  INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP NO-CONVERT.
+                ELSE 
+                  INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP
                           CONVERT SOURCE codepage TARGET SESSION:CHARSET.
                 REPEAT:
                   IMPORT UNFORMATTED ILIN[1].
@@ -1927,6 +2246,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   
         CASE ikwd:
           WHEN "SEQUENCE"       THEN wseq._Seq-Name = iarg.
+          /* Supports keyword alone as true */
+          WHEN "MULTITENANT"    THEN wseq._Seq-Attributes[1] = if iarg = ? or iarg = "" 
+                                                               then true 
+                                                               else logical(iarg).
           WHEN "INITIAL"        THEN do:
               /* this is just to catch an integer overflow */
               IF is-pre-101b-db THEN
@@ -1995,9 +2318,26 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
       END. /*-------------------------------------------------------------------*/
       ELSE IF iobj = "t" THEN DO: /*--------------------------------------------*/ 
         CASE ikwd:
-          WHEN    "FILE"       
-          OR WHEN "TABLE"          THEN wfil._File-name    = iarg.
-          WHEN    "AREA"           THEN DO:
+          WHEN    "FILE" OR WHEN "TABLE" THEN 
+              wfil._File-name    = iarg.
+          WHEN    "MULTITENANT"     THEN DO:
+              /* no second parameter means yes  */
+              wfil._File-Attributes[1] = if iarg = ? or iarg = "" then true else logical(iarg).
+              IF wfil._File-Attributes[1] then
+              ASSIGN wfil._File-Attributes[2] = true.    
+				
+          END.
+          WHEN    "NO-DEFAULT-AREA" THEN DO:
+              wfil._File-Attributes[2] = false.
+              file-area-number = 0. /* make sure previous area is not used */
+                      
+          END.
+          WHEN    "AREA"            THEN DO:
+             
+             /* area in multitenant is signal that keep default area is true*/
+             if wfil._File-Attributes[1] then
+                wfil._File-Attributes[2] = true.
+             
              ASSIGN iarg = ""
                     j    = 2.
              _areatloop:
@@ -2042,6 +2382,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
               ELSE
                 wfil._Dump-name    = iarg.
           END.
+          WHEN    "CATEGORY" THEN wfil._category    = iarg.
           WHEN    "FOREIGN-FLAGS"  THEN wfil._For-Flag     = INTEGER(iarg).
           WHEN    "FOREIGN-FORMAT" THEN wfil._For-Format   = iarg.
           WHEN    "FOREIGN-GLOBAL" THEN wfil._For-Cnt1     = INTEGER(iarg).
@@ -2110,6 +2451,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
               RUN checkObjAttrs.
               RUN addBufferPoolSetting("table", iKwd , iarg).
           END.
+          
           OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
         END CASE.  
       END. /*-------------------------------------------------------------------*/
@@ -2174,7 +2516,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             FIND _AREA WHERE _Area._Area-name = iarg NO-LOCK NO-ERROR.
             IF AVAILABLE _Area THEN   
                  ASSIGN wfld._Fld-stlen   = _Area._Area-number.
-             ELSE
+              ELSE
                  ASSIGN ierror = 31. 
           END.
           WHEN    "CLOB-CODEPAGE"          THEN wfld._Charset = iarg.
@@ -2333,7 +2675,9 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
              END.           
              FIND _AREA WHERE _Area._Area-name = iarg NO-LOCK NO-ERROR.
              IF AVAILABLE _Area THEN   
-                 ASSIGN index-area-number   = _Area._Area-number.
+                 ASSIGN 
+                     index-area-number   = _Area._Area-number.
+ 
              ELSE
                  ASSIGN ierror = 31.                
           END.                    
@@ -2349,14 +2693,19 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                ASSIGN ilin = ?.
                NEXT load_loop.
             END.
-            FIND _Field WHERE _Field._File-recid = drec_file
-                    AND _Field._Field-name = ilin[2] NO-ERROR.
-                    
-            IF imod <> "a":u THEN ierror = 12.
-              /* "Cannot add index field to existing index" */
-            IF NOT AVAILABLE _Field THEN ierror = 13.
-              /* "Cannot find field to index" */
-            IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
+            /* don't check field errors if parsing */
+            if not valid-object(dictLoader) or not dictLoader:IsReader then
+            do:
+                FIND _Field WHERE _Field._File-recid = drec_file
+                        AND _Field._Field-name = ilin[2] NO-ERROR.
+                        
+                IF imod <> "a":u THEN ierror = 12.
+                  /* "Cannot add index field to existing index" */
+                IF NOT AVAILABLE _Field THEN ierror = 13.
+                  /* "Cannot find field to index" */
+                IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
+            end.
+            
             CREATE wixf.
             ASSIGN
                   icomponent        = icomponent + 1
@@ -2387,7 +2736,49 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         END CASE.
   
       END. /*-------------------------------------------------------------------*/
-    
+            /*OE#00195067 */ 
+      ELSE IF iobj = "c" THEN DO:
+        CASE ikwd:
+          WHEN    "CONSTRAINT"          THEN wcon._Con-Name = iarg.
+          WHEN    "PRIMARY"             THEN wcon._Con-Type = "P".
+          WHEN    "PRIMARY-CLUSTERED"   THEN wcon._Con-Type = "PC".          
+          WHEN    "UNIQUE"              THEN wcon._Con-Type = "U".
+          WHEN    "CLUSTERED"           THEN wcon._Con-Type = "M".
+          WHEN    "CHECK"               THEN wcon._Con-Type = "C".
+          WHEN    "DEFAULT"             THEN wcon._Con-Type = "D".
+          WHEN    "FOREIGN-KEY"         THEN wcon._Con-Type = "F".
+          WHEN    "CONSTRAINT-EXPR"     THEN wcon._Con-Expr = iarg.
+          WHEN    "CONSTRAINT-ACTION"   THEN wcon._Con-Misc2[1] = iarg.
+          WHEN    "PARENT-TABLE"        
+          THEN DO:
+                   ASSIGN parent-table = iarg.
+          END.         
+          WHEN    "PARENT-INDEX"
+          THEN DO:
+            FIND FIRST _File WHERE _File._File-Name = parent-table NO-LOCK NO-ERROR.
+              FIND FIRST _Constraint WHERE _Constraint._File-Recid = RECID(_File) AND ( _Constraint._Con-Type = "P" OR
+                 _Constraint._Con-Type = "PC" OR _Constraint._Con-Type = "MP" OR _Constraint._Con-Type = "U") NO-LOCK NO-ERROR.
+                 IF AVAILABLE (_Constraint) THEN 
+                  FIND FIRST _Index WHERE _Index._Index-Name = iarg NO-ERROR.
+                     wcon._Index-Parent-Recid = RECID(_Index).
+          END.
+          WHEN    "ACTIVE"              THEN wcon._Con-Active = TRUE.
+          WHEN    "INACTIVE"            THEN wcon._Con-Active = FALSE.                  
+          WHEN    "CONSTRAINT-INDEX"    
+          THEN DO:
+            FIND FIRST _Index WHERE _Index._Index-Name = iarg and _Index._File-Recid = drec_file NO-LOCK NO-ERROR.
+            IF NOT AVAILABLE(_Index) THEN .
+            ELSE wcon._Index-Recid = RECID(_Index).
+          END.        
+          
+          WHEN    "CONSTRAINT-FIELD"  
+          THEN DO:
+            FIND FIRST _Field WHERE _Field._Field-name = iarg and _Field._File-Recid = drec_file NO-LOCK NO-ERROR.
+            IF AVAILABLE (_Field ) THEN 
+               wcon._Field-Recid = RECID(_Field).
+          END.
+        END.  
+      END.
       IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
       
       ASSIGN stopped = false.
@@ -2415,19 +2806,24 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
             FIND _Db WHERE RECID(_Db) = drec_db.
       END.
 
-      IF AVAILABLE wfil AND imod <> ? THEN 
-         RUN "prodict/dump/_lod_fil.p".
-         
-      IF AVAILABLE wfld AND imod <> ? THEN 
-         RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
-
+      IF AVAILABLE wfil AND imod <> ? THEN
+   
+          RUN "prodict/dump/_lod_fil.p".
+    
+      IF AVAILABLE wfld AND imod <> ? THEN
+          RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
+      
       IF AVAILABLE widx AND imod <> ? THEN 
-      DO:
-         RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
-      END.
+          RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
 
-      IF AVAILABLE wseq AND imod <> ? THEN 
-         RUN "prodict/dump/_lod_seq.p".   
+      IF AVAILABLE wseq AND imod <> ? THEN
+      do: 
+          RUN "prodict/dump/_lod_seq.p".
+      end.      
+      IF AVAILABLE wcon AND imod <> ? THEN
+      DO:
+            RUN "prodict/dump/_lod_con.p"(INPUT-OUTPUT minimum-index).
+      END.     
       /* make sure we found both encryption and cipher settings (unless it was
         'encrypt no', in which case we don't have a cipher).
       */
@@ -2453,6 +2849,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
          END.          
          ASSIGN ierror = 0.
       END.
+      
       IF ct_changed AND NOT xerror THEN 
          MESSAGE "The .df file just loaded contains translation or" SKIP
                  "collation tables that are different from the ones" SKIP
@@ -2460,7 +2857,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
                        "You will not be able to use this database in any" SKIP
                        "way until you rebuild its indices."
                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
-
+       
       RUN adecomm/_setcurs.p ("WAIT").
 
       RUN "prodict/dump/_lodfini.p".
@@ -2479,7 +2876,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   INPUT CLOSE.
   HIDE MESSAGE NO-PAUSE.
 
-  IF TERMINAL <> "" THEN 
+  IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
   DO:  /* TERMINAL <> "" */
 
     HIDE FRAME working NO-PAUSE.
@@ -2497,14 +2894,18 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
         ASSIGN xerror = FALSE.
     END.
     ELSE IF NOT (xerror OR stopped OR xwarn) THEN DO:
-      IF CURRENT-WINDOW:MESSAGE-AREA = yes 
-       THEN MESSAGE msg1.
-       ELSE DO:
-         DISPLAY msg1 WITH FRAME working2.
-         pause 10.
-       END.
+       if not valid-object(dictLoader) then
+       do:
+           IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN 
+               MESSAGE msg1.
+           ELSE DO:
+               DISPLAY msg1 WITH FRAME working2.
+               pause 10.
+           END.
+       end.
     END.
     ELSE IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
+      
       IF user_env[19] = "" THEN DO:
           IF xerror OR stopped THEN 
           MESSAGE msg2 VIEW-AS ALERT-BOX ERROR.
@@ -2523,25 +2924,32 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
 
          PAUSE.
       END.
-  END.     /* TERMINAL <> "" */
+        
+  END.     /* TERMINAL <> "" and not dictloader */
+  /* batch or dictloader avoid undo if force commit */ 
+  else if do-commit then  
+      xerror = false.
   
   /* If stopped = true and iError = 0 a STOP has been raised above   
      (if iError <> 0 then the error is managed and already shown). 
      Throw an AppError to handle the STOP in the CATCH at end of the 
      transaction here or in caller prodict/load_df.p. */
-  if stopped and iError = 0 then 
+  if stopped and (iError = 0 or iError = 23) then 
   do: 
      oAppError = new Progress.Lang.AppError().
      /* Get the error message - use proc defined in prohelp/msgs.i 
        (_msg(1) has the error since STOP is not affected by the CATCH) */
-     run GetMessageDescription(_msg(1),output cStopMessage).    
-     oAppError:AddMessage(entry(1,cStopMessage,chr(10)),_msg(i)). 
+     if _msg(1) > 0 then
+     do:
+        run GetMessageDescription(_msg(1),output cStopMessage).    
+        oAppError:AddMessage(entry(1,cStopMessage,chr(10)),_msg(1)). 
+     end.
+     else
+        oAppError:AddMessage("Input file is empty or invalid." ,?). 
+
      undo, throw oAppError.
   end. 
   
-  IF (xerror OR stopped) THEN 
-      undo, leave.
-
   HIDE FRAME backout  NO-PAUSE.
   HIDE FRAME working2 NO-PAUSE.
   HIDE MESSAGE no-pause.
@@ -2549,6 +2957,18 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   RUN adecomm/_setcurs.p ("").
   
   SESSION:IMMEDIATE-DISPLAY = no.
+  IF (xerror OR stopped) THEN
+  do: 
+/*                                                                           */
+/*      message "valid dictloader" valid-object(dictLoader)                  */
+/*      view-as alert-box.                                                   */
+/*      if valid-object(dictLoader) then                                     */
+/*      do on error undo, throw:                                             */
+/*          dictLoader:AddError (msg2noalert).                               */
+/*          dictLoader:AddError (msg3 + " " + quoter(dbload-e) + " " + msg4).*/
+/*      end.                                                                 */
+      undo, leave.  
+  end.
   
   /* Catch unmanaged errors and the AppError used to wrap STOP errors above
      and show message and/or output to file.  
@@ -2558,8 +2978,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
   catch e as Progress.Lang.Error:
       run showLoadError(e).
   end catch.
-END.     /* conversion not needed OR needed and possible */
-
+END.     /* do for ... transaction */
 IF (xerror OR NOT main_trans_success) THEN 
 DO:
    ASSIGN user_path = "9=h,4=error,_usrload":u.
@@ -2593,15 +3012,17 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
                    get assigned by core until the end of the transaction. So we can't
                    create the objects and the policies in the same transaction.
                 */
-                ASSIGN msg5 = "Saving encryption policies...".
-                
-                IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
-                    MESSAGE msg5.
-                ELSE
-                    DISPLAY msg5 WITH FRAME encryptlog.
-        
-                msg5 = "".
+                if not valid-object(dictLoader) then
+                do: 
+                    ASSIGN msg5 = "Saving encryption policies...".
+                    
+                    IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
+                        MESSAGE msg5.
+                    ELSE
+                        DISPLAY msg5 WITH FRAME encryptlog.
             
+                    msg5 = "".
+                end.
                 /* now we should be outside the main transaction. If not, new tables/index/fields
                    will not have been assigned with the object number.
                    We pass the handle of this procedure so that secErrorCallback gets called back
@@ -2623,15 +3044,17 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
             */
             IF (do-commit OR NOT xerror) AND VALID-OBJECT(dictObjAttrs) AND hasBufPool THEN DO:
 
-                ASSIGN msg5 = "Saving buffer pool settings...".
-                
-                IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
-                    MESSAGE msg5.
-                ELSE
-                    DISPLAY msg5 WITH FRAME encryptlog.
-        
-                msg5 = "".
+                if not valid-object(dictLoader) then
+                do: 
+                    ASSIGN msg5 = "Saving buffer pool settings...".
+                    
+                    IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
+                        MESSAGE msg5.
+                    ELSE
+                        DISPLAY msg5 WITH FRAME encryptlog.
             
+                    msg5 = "".
+                end.
                 /* now we should be outside the main transaction. If not, new tables/index/fields 
                    will not have been assigned with the object number.
                    We pass the handle of this procedure so that secErrorCallback gets called back
@@ -2649,7 +3072,8 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
             STOPPED = NO.
         END. /* do on stop */
     
-        IF TERMINAL <> "" THEN DO:
+        IF TERMINAL <> "" and not valid-object(dictLoader) THEN 
+        DO:
 
           IF do-commit AND xerror AND NOT stopped THEN DO:      
             IF NOT showedCommitMsg THEN DO:
@@ -2675,7 +3099,7 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
                 END.
                     
                 IF user_env[6] = "f" OR user_env[6] = "b" THEN
-                  MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
+                   MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
             END.
             ELSE
             DO:
@@ -2691,8 +3115,12 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
             END.
           END.
         END.     /* TERMINAL <> "" */
-
-        IF (xerror OR stopped) THEN undo, leave.
+          /* terminal = "" or dictloader avoid undo if force commit */ 
+        else if do-commit then
+            xerror = false.
+           
+        IF (xerror OR stopped) THEN 
+            undo, leave.
 
         FINALLY: /* DO TRANS */
     
@@ -2703,9 +3131,8 @@ ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR
 
     END. /* DO TRANS */
 
-    IF (xerror OR stopped)
-     THEN ASSIGN user_path = "9=h,4=error_objattrs,_usrload":u.
-
+    IF (xerror OR stopped) THEN 
+        ASSIGN user_path = "9=h,4=error_objattrs,_usrload":u.
 END.
 
 /* this only gets instantiated if there is some encryption setting in the .df.

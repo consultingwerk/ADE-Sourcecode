@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
+* reserved. Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -32,16 +32,20 @@ DEFINE VAR pword AS LOGICAL NO-UNDO.
 
 FORM
   _User._Userid    FORMAT "x(8)"   LABEL "User ID"
-  _User._User-name FORMAT "x(40)"  LABEL "User Name"
-  pword            FORMAT "yes/no" LABEL "Has Password?"
+  _User._Domain-Name FORMAT "x(32)" LABEL "Domain"
+  _User._User-name FORMAT "x(20)"  LABEL "User Name"
+  pword            FORMAT "yes/no" LABEL "Pwd?"
+  _User._sql-only-user FORMAT "yes/no" COLUMN-LABEL "SQL!only"
   WITH FRAME shousers 
   DOWN USE-TEXT STREAM-IO.
 
 FOR EACH _User NO-LOCK:
    DISPLAY STREAM rpt
       _User._Userid
+      _User._Domain-Name
       _User._User-name
       _User._Password <> ENCODE("") @ pword
+      _User._sql-only-user
       WITH FRAME shousers.
   DOWN STREAM rpt WITH FRAME shousers.
 END.

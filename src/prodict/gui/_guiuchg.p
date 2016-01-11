@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2000-2011 by Progress Software Corporation.            *
+* All rights reserved.  Prior versions of this work may contain        *
+* portions contributed by participants of Possenet.                    *
 *                                                                      *
 ***********************************************************************/
 
@@ -17,6 +17,7 @@
                             record does not have to be reset
         D. McMann 10/23/02  Changed BLANK to PASSWORD-FIELD
         fernando  09/22/09  Reset other can-fields when unsetting sec admin
+        Rajinder  04/18/11 OE00208533  fixed error if domain name is empty.
                             
 -------------------------------------------------------------------*/
 
@@ -58,14 +59,14 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 26 NO-UNDO INITIAL [
 
 /* Form variables */
 DEFINE VARIABLE ulist AS CHAR NO-UNDO INITIAL ?
-   VIEW-AS SELECTION-LIST SINGLE INNER-CHARS 12 INNER-LINES 6 SCROLLBAR-V.
+   VIEW-AS SELECTION-LIST SINGLE INNER-CHARS 45 INNER-LINES 8 SCROLLBAR-V.
 
 DEFINE BUTTON btn_add LABEL "&Add..."    SIZE 12 BY 1.
 DEFINE BUTTON btn_mod LABEL "&Modify..." SIZE 12 BY 1.
 DEFINE BUTTON btn_del LABEL "&Delete..." SIZE 12 BY 1.
 
 /* Miscellaneous */
-DEFINE VARIABLE stat AS LOGICAL NO-UNDO.
+DEFINE VARIABLE stat          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE answer        AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE changed       AS LOGICAL INITIAL NO    NO-UNDO.
 DEFINE VARIABLE istrans       AS LOGICAL INITIAL TRUE. /* (not no-undo!) */
@@ -73,37 +74,67 @@ DEFINE VARIABLE user_cnt_in   AS INTEGER INITIAL 0     NO-UNDO.
 DEFINE VARIABLE user_cnt_out  AS INTEGER INITIAL 0     NO-UNDO. 
 DEFINE VARIABLE ix            AS INTEGER INITIAL 0     NO-UNDO.
 DEFINE VARIABLE num  	      AS INTEGER               NO-UNDO.
-DEFINE VARIABLE ldummy        AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE lhasPassword  AS LOGICAL               NO-UNDO.
+ 
+
+DEFINE VARIABLE domainType    AS CHARACTER INITIAL "_oeusertable" NO-UNDO.
+ /*
+DEFINE VARIABLE cmb-domain-name AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Domain Name"
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     DROP-DOWN-LIST SORT
+     SIZE 42 BY 1
+      NO-UNDO.
+*/
+define button btnDomain size 19 by 1.
+
+define buffer b_user for dictdb._user.
+
+DEFINE QUERY qUser FOR  b_user SCROLLING.
+
+DEFINE BROWSE bUser QUERY qUser
+    DISPLAY b_User._Userid  column-label "User ID" 
+            b_User._Domain-Name  column-label "Domain Name" 
+            width 42      
+            b_User._User-Name  column-label "User Name"  width 20
+            b_User._Password <> ENCODE("") @ lhasPassword 
+                                          column-label "Password"        
+            b_User._Sql-only-user column-label "SQL Only"
+            
+    WITH NO-ROW-MARKERS SEPARATORS 6 down.
 
 FORM
-   SKIP({&TFM_WID})
-   ulist       	     LABEL "User ID's"  COLON 12	     SKIP({&VM_WIDG})
-
-   _User._Userid     LABEL "User ID"   COLON 12 
-      	       	     	      	       VIEW-AS TEXT          SKIP
-   _User._User-Name  LABEL "User Name" COLON 12  
-      	       	     FORMAT "x(30)"    VIEW-AS TEXT SKIP
-   _User._Password   LABEL "Password"  COLON 12
-      	       	     FORMAT "x(20)"    VIEW-AS TEXT  
+   bUser  AT ROW 1.24 COL 1.8  SKIP({&VM_WIDG}) 
    {prodict/user/userbtns.i}
-   btn_add     	     	      	       AT COL 32 ROW 2       SKIP({&VM_WID})
-   btn_mod     	     	      	       AT 32   	      	     SKIP({&VM_WID})   
-   btn_del     	     	      	       AT 32   	      	     SKIP({&VM_WID})
-   WITH FRAME usr_lst
+   btn_add     	     	      	       AT COL 103 ROW 1.24 SKIP({&VM_WID})
+   btn_mod     	     	      	       AT 103	           SKIP({&VM_WID})   
+   btn_del     	     	      	       AT 103  	      	   SKIP({&VM_WID})
+   WITH FRAME usr_lst WIDTH 116 /* no particular reason */
    CENTERED SIDE-LABELS 
    DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
    VIEW-AS DIALOG-BOX TITLE "Edit User List".
 
 FORM
    SKIP({&TFM_WID})
-   _User._Userid     {&STDPH_FILL} LABEL "User ID"   COLON 12 SKIP ({&VM_WID})
-   _User._User-Name  {&STDPH_FILL} LABEL "User Name" COLON 12 SKIP ({&VM_WID})
-   _User._Password   {&STDPH_FILL} LABEL "Password"  COLON 12 PASSWORD-FIELD
+   _User._Userid      {&STDPH_FILL} LABEL "User ID"   COLON 16 
+    view-as fill-in size 17 by 1   SKIP ({&VM_WID})
+   _user._domain-name    {&STDPH_FILL} LABEL "Domain Name"     COLON 16 
+    view-as fill-in size 64 by 1    
+     btnDomain label "Select Domain..." SKIP({&VM_WID})
+    /* cmb-domain-name at col 16 row-of btnDomain  colon-aligned */
+   _User._User-Name   {&STDPH_FILL} LABEL "User Name"     COLON 16 
+    view-as fill-in size 64 by 1   SKIP ({&VM_WID})
+   _User._Password    {&STDPH_FILL} LABEL "Password"     COLON 16 PASSWORD-FIELD  
+    view-as fill-in size 17 by 1   SKIP ({&VM_WID})
+   _User._sql-only-user {&STDPH_FILL} LABEL "SQL Only"  COLON 16
    {prodict/user/userbtns.i}
-   WITH FRAME usr_mod
-   CENTERED SIDE-LABELS 
+   WITH FRAME usr_mod 
+   CENTERED SIDE-LABELS   
+   width 103
    DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
    VIEW-AS DIALOG-BOX.
+
+ 
 
 /* LANGUAGE DEPENDENCIES END */ /*-----------------------------------------*/
 
@@ -118,28 +149,64 @@ FORM
       	     else - Get the record with this userid and 
       	       	    display the values (it may be "" if no users).
 ---------------------------------------------------------------------*/
-PROCEDURE Show_User:
 
-   DEFINE INPUT PARAMETER p_Id AS CHAR NO-UNDO.
+function FullUserId returns char(id as char, name as char):
+    if name = "" then 
+        return id.
+    else 
+        return id + "@" + name.           
+end.     
 
-   /* Find user record unless we've got it already */
-   IF p_Id <> ? THEN   
-      FIND _User WHERE _User._Userid = p_Id NO-ERROR.
-   IF AVAILABLE _User THEN
-      DISPLAY 
-	 _User._Userid 
-	 _User._User-name 
-	 new_lang[IF _User._Password = ENCODE("") THEN 7 ELSE 8] 
-	    @ _User._Password
-	 WITH FRAME usr_lst.
-   ELSE
-      DISPLAY 
-      	 "" @ _User._Userid
-      	 "" @ _User._User-name
-      	 "" @ _User._Password
-      	 WITH FRAME usr_lst.
-END.
+function GetDomainList returns char (pType as char,pdelimiter as char):
+    define variable domainList as character no-undo. 
+    run prodict/pro/_pro_domain_list.p(pType,pdelimiter,output domainList). 
+    return domainlist.
+end.     
 
+procedure openQuery:
+    define input  parameter rcurrent as rowid no-undo.    
+    open query qUser for each b_user no-lock by b_user._userid by b_user._domain-name .
+    if rCurrent = ? then
+        reposition quser to row 1.
+    else do:
+        reposition quser to rowid rCurrent. 
+    end.    
+end.
+/*  
+Procedure initModFrame: 
+    /* "fillin" "combo" or "browse" */
+    define input  parameter pMode as character no-undo.
+    define variable hlabel as handle no-undo.
+    
+    do with frame usr_mod:
+       _User._Domain-name:hidden = pmode = "combo" .
+       btnDomain:hidden = pmode <> "browse".
+       cmb-domain-name:hidden = pmode <> "combo" .
+       if pmode = "combo" then 
+       do: 
+           if cmb-domain-name:list-items = ? then
+               cmb-domain-name:list-items = getDomainList(domainType,cmb-domain-name:delimiter).     
+           cmb-domain-name:inner-lines = min(9,num-entries(cmb-domain-name:list-items)).
+       end.   
+   end.  
+end procedure.   
+   */
+Procedure selectDomain :
+    define variable domaindlg as prodict.pro._domain-sel-presenter no-undo.
+    domaindlg = new  prodict.pro._domain-sel-presenter ().
+    do with frame usr_mod:
+      
+       domaindlg:Row = btnDomain:row + btnDomain:height +  frame usr_mod:row + 0.5.
+       domaindlg:Col =  _user._domain-name:col + frame usr_mod:col .
+       domaindlg:QueryString = "for each ttdomain where ttdomain.DomainTypeName = " + quoter(domainType) .
+   
+       domaindlg:Title = "Select Domain".
+/*    glInSelect = true. /* stop end-error anywhere trigger */*/
+       if domaindlg:Wait() then 
+         _user._domain-name:screen-value = domaindlg:ColumnValue("ttdomain.Name").
+/*    glInSelect = false.*/
+   end.
+end.   
 
 /*===============================Triggers=================================*/
 
@@ -172,7 +239,11 @@ DO:
    DEFINE VAR rec_id AS RECID NO-UNDO.
 
    /* user_cnt_out: 0=none, 1=many - that's all we need to know */
-   user_cnt_out = (IF AVAILABLE _User THEN 1 ELSE 0).
+   if integer(dbversion("DICTDB":U)) > 10 then 
+      user_cnt_out = (IF can-find( first _User where _User._sql-only-user = false ) THEN 1 ELSE 0).
+   
+   else  
+      user_cnt_out = (IF can-find( first _User) THEN 1 ELSE 0).
 
    IF user_cnt_in = 0 AND user_cnt_out = 0 
       THEN RETURN.   /* don't care */
@@ -182,10 +253,20 @@ DO:
       	 killed last sec adm? */
       rec_id = RECID(_User). /* save current id */
       answer = FALSE.
-      FOR EACH _User WHILE NOT answer:
-      	 RUN "prodict/_dctadmn.p"  /* determines if user is sec administrator */
-         (INPUT _User._Userid, OUTPUT answer).
-      END.
+      if integer(dbversion("DICTDB":U)) > 10 then 
+      do:
+          FOR EACH _User where _User._sql-only-user = false WHILE NOT answer:
+              RUN "prodict/_dctadmn.p"  /* determines if user is sec administrator */
+                 (FullUserId(_User._Userid,_User._Domain-Name), OUTPUT answer).
+          END.
+      end.
+      else do:
+          FOR EACH _User  WHILE NOT answer:
+              RUN "prodict/_dctadmn.p"  /* determines if user is sec administrator */
+                (FullUserId(_User._Userid,_User._Domain-Name), OUTPUT answer).
+         END.
+      end.          
+     
       IF NOT answer THEN DO:
       	 /* There are no administrators */
       	 MESSAGE new_lang[14] SKIP  
@@ -268,23 +349,23 @@ DO:
       changed = no.  /* reset */
 END.
 
-
-/*----- VALUE-CHANGED OF USER LIST -----*/
-ON VALUE-CHANGED OF ulist IN FRAME usr_lst
-   RUN Show_User (INPUT SELF:SCREEN-VALUE).
-
-
 /*----- DEFAULT-ACTION (DBL-CLICK) OF USER LIST -----*/
-ON DEFAULT-ACTION OF ulist IN FRAME usr_lst
+ON DEFAULT-ACTION OF bUser IN FRAME usr_lst
    APPLY "CHOOSE" TO btn_mod IN FRAME usr_lst.
 
+
+/*----- HIT OF tenant BUTTON -----*/
+ON CHOOSE OF btnDomain IN FRAME usr_mod 
+do: 
+    run selectDomain.
+end.
 
 /*----- HIT OF ADD BUTTON -----*/
 ON CHOOSE OF btn_add IN FRAME usr_lst 
 DO:
    DEFINE VARIABLE passwd AS CHARACTER NO-UNDO.
-   DEFINE VARIABLE encpwd AS CHARACTER NO-UNDO.
-   
+   DEFINE VARIABLE encpwd AS CHARACTER NO-UNDO.   
+       
    /*----- GO or HIT of OK BUTTON IN ADD FRAME -----*/
    ON GO OF FRAME usr_mod
    DO:	 
@@ -293,6 +374,16 @@ DO:
       	 APPLY "ENTRY" TO _User._Userid IN FRAME usr_mod.
       	 RETURN NO-APPLY.
       END.
+
+      /* Make sure Id is unique */
+      IF SELF:SCREEN-VALUE <> "?" AND
+         (CAN-FIND(_User USING INPUT FRAME usr_mod _User._Userid
+                         WHERE INPUT _User._Domain-Name = _User._Domain-Name)) THEN DO:
+         MESSAGE new_lang[24] SKIP new_lang[25] /* Id not unique */
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+         APPLY "ENTRY" TO _User._Userid IN FRAME usr_mod.   
+         RETURN NO-APPLY.
+      END.   
 
       /* Verify password if one was typed in */
       passwd = INPUT FRAME usr_mod _User._Password.
@@ -309,54 +400,62 @@ DO:
 	 ELSE IF answer = ? THEN 
 	    RETURN NO-APPLY.
       END.
-   END.
-   /*-End of OK trigger-*/
+     
+       
+   END.   /*-End of OK trigger-*/
 
    /*----- LEAVE of USERID IN ADD FRAME -----*/
+/*  moved to ON GO...
    ON LEAVE OF _User._Userid IN FRAME usr_mod
    DO:
       /* Make sure Id is unique */
       IF SELF:SCREEN-VALUE <> "?" AND
-      	 (CAN-FIND(_User USING INPUT FRAME usr_mod _User._Userid)) THEN DO:
+      	 (CAN-FIND(_User USING INPUT FRAME usr_mod _User._Userid
+      	                 WHERE cmb-domain-name:INPUT-VALUE = _User._Domain-Name)) THEN DO:
       	 MESSAGE new_lang[24] SKIP new_lang[25] /* Id not unique */
       	    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
       	 RETURN NO-APPLY.
       END. 	 
    END.
    /*-End of LEAVE trigger-*/
-
-   FRAME usr_mod:TITLE = new_lang[9].
-   DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
-      CREATE _User.
-
-      UPDATE _User._Userid _User._User-name _User._Password
-      	     btn_OK btn_Cancel {&HLP_BTN_NAME}
-      	     WITH FRAME usr_mod.
-
-      ASSIGN
-	_User._Password  = encpwd
-        changed = yes.
+*/
+  
    
-      /* Add new Id to list and show user info.  If Id is null, store  
-      	 blank in the list to get around select list limitations.
-      	 When we look for " " vs. "" we still find the correct user 
-      	 record.
-      */
-      IF _User._Userid = "" THEN
-      	 ASSIGN
-      	    stat = ulist:ADD-LAST(" ") IN FRAME usr_lst
-      	    ulist:SCREEN-VALUE IN FRAME usr_lst = " ". 
-      ELSE
-      	 ASSIGN
-      	    stat = ulist:ADD-LAST(_User._Userid) IN FRAME usr_lst
-      	    ulist:SCREEN-VALUE IN FRAME usr_lst = _User._Userid.
-      RUN Show_User (INPUT ?).
-
+   FRAME usr_mod:TITLE = new_lang[9].
+   DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE WITH FRAME usr_mod:
+      
+      CREATE _User.
+      DISPLAY "" @ _User._Userid
+              "" @ _User._Domain-Name 
+              "" @ _User._User-name
+              "" @ _User._Password
+              _User._sql-only-user
+             . 
+      SET    _User._Userid 
+             _User._Domain-Name  
+              btnDomain         
+             _User._User-name 
+             _User._Password 
+             _User._sql-only-user
+      	     btn_OK btn_Cancel {&HLP_BTN_NAME}. 
+       
+      ASSIGN      
+        _User._Password  = encpwd
+        changed = yes.
+         
       ASSIGN
       	 num = num + 1
       	 btn_mod:sensitive IN FRAME usr_lst = yes
       	 btn_del:sensitive IN FRAME usr_lst = yes.
+      	       	 
+      /* validate ensures row is written to buffer (in case not all fields in (a unique?) index is updated) */	 
+     
+      validate _user.
+       
+      run openQuery(rowid(_user)).
+   
    END.
+      
 END.
 
 
@@ -364,58 +463,96 @@ END.
 ON CHOOSE OF btn_mod IN FRAME usr_lst 
 DO:
    FRAME usr_mod:TITLE = new_lang[10].
-   DISPLAY _User._Userid WITH FRAME usr_mod.
-
-   DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
-      UPDATE _User._User-name 
-      	     btn_OK btn_Cancel {&HLP_BTN_NAME}
-      	     WITH FRAME usr_mod.
-
-      changed = yes.
-      Run Show_User (INPUT ?).      
-   END.
+   
+   /* we avoid combo for domain-name since the combo has _oeusertable domains
+      but we do allow a domain to change to another type even if it has users */
+   
+   btnDomain:hidden = yes.  
+   find _user where rowid(_user) = rowid(b_user) exclusive no-error.
+  
+   if avail _user then 
+   do:
+       DISPLAY _User._Userid 
+               _User._domain-name 
+               IF _User._Password = ENCODE("") THEN "" ELSE "aaaaaaaaaaaa" @ _User._Password
+               _User._sql-only-user 
+       
+       WITH FRAME usr_mod.
+       DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
+          UPDATE _User._Domain-Name  
+                 btnDomain         
+                 _User._User-name 
+                _User._sql-only-user
+          	     btn_OK btn_Cancel {&HLP_BTN_NAME}
+          	     WITH FRAME usr_mod.
+    
+    /*      _User._Domain-Name = cmb-domain-name:INPUT-VALUE. */
+          changed = yes.
+          reposition qUser to rowid rowid(_user).
+          display b_User._User-name with browse buser.    
+       END.
+      
+   end.
 END.
 
 
 /*----- HIT OF DELETE BUTTON -----*/
 ON CHOOSE OF btn_del IN FRAME usr_lst 
 DO:
-   DEFINE VAR rec_id  AS RECID NO-UNDO.
+   DEFINE VAR row_id  AS ROWID NO-UNDO.
+    
+   DEFINE VAR prev_id  AS ROWID NO-UNDO.
    DEFINE VAR del_uid AS CHAR  NO-UNDO.  /* User id deleted */
-
-   rec_id = RECID(_User).  /* save current recid and user id */
-   del_uid = _User._Userid.
-
-   /* Do some checking if user tries to delete his own Id */
-   IF _User._Userid = USERID(user_dbname) THEN DO:
-      IF CAN-FIND(FIRST _User WHERE _Userid ne USERID(user_dbname)) THEN DO:
-       	 MESSAGE new_lang[4] /* can only delete self if last user */
-      	    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-       	 RETURN.
-      END.
-   END.
-
-   DO ON ERROR UNDO,LEAVE:
-      MESSAGE new_lang[5] 
-      	 VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE answer.
-      IF answer THEN DO:
-       	 DELETE _User.
-      	 changed = yes.
    
-      	 /* Reset choose to item above one just deleted */
-      	 RUN "adecomm/_delitem.p" (INPUT ulist:HANDLE IN FRAME usr_lst,
-      	       	     	      	  INPUT (if del_uid = "" then " " else del_uid),
-      	       	     	      	  OUTPUT num).
-      	 IF num > 0 THEN
-      	    RUN Show_User (INPUT ulist:SCREEN-VALUE IN FRAME usr_lst).
-      	 ELSE DO:
-      	    ASSIGN
-      	       btn_mod:sensitive IN FRAME usr_lst = no
-      	       btn_del:sensitive IN FRAME usr_lst = no.
-      	    RUN Show_User (INPUT "").
-      	 END.
-      END.
-   END.
+   if avail b_user then 
+   do:
+       row_id = ROWID(b_User).  /* save current recid and user id */
+       get prev qUser.
+       prev_id  = ROWID(b_User).
+       reposition qUser to rowid row_id.
+       del_uid = FullUserId(b_User._Userid,b_User._Domain-Name).
+        
+       /* Do some checking if user tries to delete his own Id */ 
+       IF del_uid = USERID(user_dbname) THEN DO:
+          IF CAN-FIND(FIRST _User WHERE ROWID(_User) ne row_id)  THEN 
+          DO:
+           	 MESSAGE new_lang[4] /* can only delete self if last user */
+          	    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+           	 RETURN.
+          END.
+       END.
+       find _user where rowid(_user) =  row_id  exclusive .
+       DO ON ERROR UNDO,LEAVE:
+          MESSAGE new_lang[5] 
+          	 VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE answer.
+          IF answer THEN DO:
+             find current _user exclusive. 
+           	 DELETE _User.
+           	 num = num - 1.
+          	 changed = yes.
+             
+             get next qUser.
+             if avail b_user then 
+             do:
+              
+                 run openQuery(ROWID(b_User)). 
+             end.
+             else if prev_id <> ? then
+             do:
+                 run openQuery(prev_id). 
+             end.    
+             else do:
+                 run openQuery(?). 
+                 if not avail b_user then
+          	     DO:
+          	         ASSIGN
+          	             btn_mod:sensitive IN FRAME usr_lst = no
+          	             btn_del:sensitive IN FRAME usr_lst = no.
+          	     END.
+          	 end.
+          END.
+       END.
+   end.
 END.
 
 
@@ -424,7 +561,6 @@ ON WINDOW-CLOSE OF FRAME usr_lst
    APPLY "END-ERROR" TO FRAME usr_lst.
 ON WINDOW-CLOSE OF FRAME usr_mod
    APPLY "END-ERROR" to FRAME usr_mod.
-
 
 /*============================Mainline code===============================*/
 
@@ -438,8 +574,18 @@ IF NOT answer                THEN ix = 3. /* secu admin? */
 IF istrans OR PROGRESS = "Run-Time" OR
    CAN-DO("READ-ONLY",DBRESTRICTIONS(user_dbname)) 
       	       	     	     THEN ix = 13. /* r/o mode */
-IF USERID(user_dbname) = "" AND CAN-FIND(FIRST _User)
-                             THEN ix = 2. /* userid set? */
+IF USERID(user_dbname) = "" then 
+do:
+    if integer(dbversion("DICTDB":U)) > 10 then
+    do: 
+        if CAN-FIND(FIRST _User where _user._sql-only-user = false) THEN 
+            ix = 2. /* userid set? */
+    end.
+    else do: 
+        if CAN-FIND(FIRST _User) then
+            ix = 2. /* userid set? */
+    end. 
+end.
 IF user_dbtype <> "PROGRESS" THEN ix = 1. /* dbtype okay */
 
 IF ix <> 0 THEN DO:
@@ -448,9 +594,17 @@ IF ix <> 0 THEN DO:
 END.
 
 /* user_cnt_in: 0=none, 1=many - that's all we need to know */
-FIND FIRST _User NO-ERROR.
-user_cnt_in = (IF AVAILABLE _User THEN 1 ELSE 0).
+if integer(dbversion("DICTDB":U)) > 10 then 
+do:     
+    
+    FIND FIRST _User where _User._sql-only-user = false  NO-ERROR.
+end.
+else do:
+    FIND FIRST _User NO-ERROR.
+end.
 
+user_cnt_in = (IF AVAILABLE _User THEN 1 ELSE 0).
+   
 PAUSE 0.
 
 /* Adjust the graphical rectangle and the ok and cancel buttons */
@@ -469,45 +623,30 @@ PAUSE 0.
     {&HLP_BTN}
 }
 
-/* Fill the list of current users and remember the first to set selection */
+/* Fill the list of current users  */
 num = 0.
-FOR EACH _User:
-   /* to get around null-string in select list problem: */
-   IF _User._Userid = "" THEN 
-      stat = ulist:ADD-LAST(" ") IN FRAME usr_lst.
-   ELSE
-      stat = ulist:ADD-LAST(_User._Userid) IN FRAME usr_lst.
+
+FOR EACH _User no-lock:
    num = num + 1.
 END.
-FIND FIRST _User NO-ERROR.
-IF AVAILABLE _User THEN DO:
-   ulist = _User._Userid.
-   /* to get around null-string in select list problem: */
-   IF ulist = "" THEN ulist = " ". 
-END.
 
-IF ulist <> ? THEN DO:
-   DISPLAY ulist WITH FRAME usr_lst.
-   RUN Show_User (ulist).
-END.
-
+run openQuery(?). 
+ 
 DO TRANSACTION ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
    ENABLE
-      ulist
+      bUser
       btn_add 
       btn_mod WHEN num > 0
       btn_del WHEN num > 0
       btn_OK btn_Cancel {&HLP_BTN_NAME}
       WITH FRAME usr_lst.
-
-   ASSIGN
-      ldummy = btn_mod:MOVE-AFTER-TAB-ITEM(btn_add:HANDLE IN FRAME usr_lst).
-      ldummy = btn_del:MOVE-AFTER-TAB-ITEM(btn_mod:HANDLE IN FRAME usr_lst).
+   
+   btn_mod:MOVE-AFTER-TAB-ITEM(btn_add:HANDLE IN FRAME usr_lst).
+   btn_del:MOVE-AFTER-TAB-ITEM(btn_mod:HANDLE IN FRAME usr_lst).
    WAIT-FOR CHOOSE OF btn_OK IN FRAME usr_lst OR
       GO OF FRAME usr_lst
-      FOCUS ulist.
+      FOCUS bUser.
 END.
 
 HIDE FRAME usr_lst NO-PAUSE.
 RETURN.
-

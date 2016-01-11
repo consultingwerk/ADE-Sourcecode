@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2009-2010 by Progress Software Corporation. All rights    *
 * reserved.                                                          *
 *                                                                    *
 *********************************************************************/
@@ -474,7 +474,7 @@ THEN FRAME ObjSelFrame:PARENT = ACTIVE-WINDOW.
 RUN populateValues.
 
 IF NOT CAN-FIND (FIRST ttObjAttrs) THEN DO:
-       MESSAGE "There are no objects that can be assigned to the alternate" +
+   MESSAGE "There are no objects that can be assigned to the alternate" +
                "~nbuffer pool through this client."
            VIEW-AS ALERT-BOX INFO BUTTONS OK.
    RETURN ERROR.
@@ -538,6 +538,12 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
          cPreviousPoolSel = cSelPool.
 
   RUN enable_UI.
+
+  /* warn that multi-tenant tables will not appear on the list */
+  IF myObjAtribObj:hasMTEnabledTables THEN DO:
+      MESSAGE "Multi-tenant enabled tables will not appear on the list"
+              VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+  END.
 
   WAIT-FOR GO OF FRAME ObjSelFrame.
 END.

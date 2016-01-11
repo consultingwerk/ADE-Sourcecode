@@ -53,11 +53,18 @@ History:
 DEFINE NEW SHARED VARIABLE l_closelog  AS logical   NO-UNDO.
 
 DEFINE VARIABLE j           AS INTEGER   NO-UNDO.
+DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_debug     AS logical   NO-UNDO.
 
 DEFINE VARIABLE connection_string as CHARACTER NO-UNDO.
 DEFINE VARIABLE l_ora_username    as CHARACTER NO-UNDO.
-
+DEFINE VARIABLE ora_lang            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE nls_upp             AS CHARACTER  NO-UNDO.
+DEFINE STREAM code.
+OUTPUT STREAM code TO VALUE("enable.sql") NO-ECHO NO-MAP.
+DEFINE VARIABLE user_env_save5 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save26 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE user_env_save31 AS CHARACTER NO-UNDO.
 /*------------------------------------------------------------------*/
 
 /* connect up the database to work with ------------------------------------*/
@@ -117,6 +124,11 @@ IF ora_password = "" or ora_password = ?
 
 CREATE ALIAS "DICTDBG" FOR DATABASE VALUE(ora_dbname) NO-ERROR.
 
+ASSIGN
+    user_env_save5  = user_env[5]
+    user_env_save26 = user_env[26]
+    user_env_save31 = user_env[31].
+    
 /* Verify tablespaces for tables and indexes */
 RUN prodict/ora/_ora_vts.p.
 IF RETURN-VALUE = "1" THEN
@@ -127,6 +139,15 @@ IF unicodeTypes THEN DO:
    RUN prodict/ora/_get_oraver.p (OUTPUT j).
    IF j < 9 THEN DO:
        RETURN "3".
+   END.
+END.
+
+Assign 
+     nls_upp = user_env[40].
+IF nls_upp = "y" THEN DO:
+    RUN prodict/ora/_ora_nlsvld.p(OUTPUT i).
+    IF i = 0 THEN DO:
+       RETURN "4".
    END.
 END.
 
@@ -230,7 +251,18 @@ if available gate-work
             "-- -- " skip(2).
 
 
-    ASSIGN user_env[25] = "**all**".
+    ASSIGN     
+    user_env[5]     = user_env_save5  
+    user_env[26]    = user_env_save26 
+    user_env[31]    = user_env_save31
+    user_env[25]    = "**all**".
+
+IF movedata THEN DO:
+   FOR EACH s_ttb_con WHERE s_ttb_con.cons_type = "FOREIGN KEY":
+        PUT STREAM code UNFORMATTED "ALTER TABLE " + s_ttb_con.tab_name + " ENABLE CONSTRAINT " + s_ttb_con.const_name SKIP. 
+        PUT STREAM code UNFORMATTED user_env[5] SKIP.
+   END.
+END.
 
     RUN prodict/ora/_ora_md5.p (osh_dbname, pro_dbname).
 

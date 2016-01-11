@@ -31,19 +31,17 @@ DEFINE INPUT parameter p_Filter  AS CHAR NO-UNDO.
 
 DEFINE VAR pickedOne  AS LOGICAL NO-UNDO.
 DEFINE VAR fname      AS CHARACTER NO-UNDO.
-DEFINE VAR filt       AS CHAR    NO-UNDO.
+DEFINE VAR initdir    AS CHAR    NO-UNDO.
 DEFINE VAR rindex     AS INTEGER NO-UNDO.
 DEFINE VAR Get_Must_Exist AS CHAR NO-UNDO.
 
 fname = TRIM(p_Fillin:screen-value).
-IF (p_Filter = "") OR (p_Filter = ?) THEN 
-  ASSIGN filt = "*" .
-ELSE 
-  ASSIGN filt = p_Filter.
-
+file-info:file-name = ".".
+initdir = file-info:full-pathname. 
+ 
 SYSTEM-DIALOG GET-DIR
              fname 
-     INITIAL-DIR "./"
+     INITIAL-DIR initdir
      title   p_Title 
      update  pickedOne.
 

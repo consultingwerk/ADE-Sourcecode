@@ -28,12 +28,13 @@ DEFINE OUTPUT PARAMETER pStorArea AS CHARACTER NO-UNDO.
 
 FIND tinydict._File WHERE RECID(tinydict._File) = pRecid NO-ERROR.
 IF AVAILABLE tinydict._File THEN DO:
+  
   IF tinydict._File._File-number <> ? THEN DO:
     FIND tinydict._StorageObject NO-LOCK
       WHERE tinydict._StorageObject._Db-recid = tinydict._File._Db-recid AND
             tinydict._StorageObject._Object-type   = 1 AND
-            tinydict._StorageObject._Object-number = tinydict._File._File-number 
-            NO-ERROR.
+            tinydict._StorageObject._Object-number = tinydict._File._File-number and
+            tinydict._StorageObject._Partitionid = 0 NO-ERROR.
     IF AVAILABLE tinydict._StorageObject THEN                      
       FIND tinydict._Area NO-LOCK 
         WHERE tinydict._Area._Area-number = tinydict._StorageObject._Area-number 

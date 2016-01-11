@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2011 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,7 +25,7 @@ History:
    {5} - expected # load records.  If {2} is either 0 or 100%, then
       	 this is ignored.
    {6} - NO-LOBS keyword, if passed.      
-
+   {7} - except fieldlist  (including the except keyword) 
   D. McMann  11/19/02  Added check for num-messages after import to catch
                        warning messages.       
   D. McMann  03/06/03  Added support for NO-LOBS in import.
@@ -54,7 +54,7 @@ DEFINE        VARIABLE ans999  AS LOGICAL NO-UNDO.
 DEFINE        VARIABLE stopped AS LOGICAL NO-UNDO INIT FALSE.
 DEFINE        VARIABLE j       AS INTEGER NO-UNDO.
 
-DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 35.
+DEFINE SHARED VARIABLE user_env    AS CHARACTER NO-UNDO EXTENT 41.
 DEFINE SHARED VARIABLE drec_db     AS RECID     NO-UNDO.
 
 DEFINE VARIABLE cDbDetail          AS CHARACTER NO-UNDO EXTENT 4.
@@ -164,7 +164,7 @@ DO WHILE TRUE TRANSACTION:
     
     &ELSE
       CREATE {1}.
-      IMPORT {4} {6} NO-ERROR.
+      IMPORT {4} {7} {6} NO-ERROR.
     &ENDIF
 
     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:

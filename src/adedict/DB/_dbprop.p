@@ -67,7 +67,7 @@ assign
    s_Db_Type   = s_DbCache_Type[s_DbCache_ix]
    s_Db_Cp     = if hBuffer_DB:AVAILABLE then hBuffer_DB::_db-xl-name else "".
 
-/* check large sequence and large key support, but only for Progress databases */
+/* check large sequence, large key support and mulit-tenancy, but only for Progress databases */
 IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
     /* For large key support, we look at the _Database-feature table.
        For large sequence - if 'Large Keys' is not a valid feature, than this
@@ -76,7 +76,11 @@ IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
     */
     FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
     IF AVAILABLE DICTDB._Database-feature THEN DO:
-
+        if can-find(first dictdb._tenant) then 
+           s_Db_Multi_Tenancy = "enabled".     
+        else 
+           s_Db_Multi_Tenancy = "not enabled".
+        
         IF DICTDB._Database-feature._DBFeature_Enabled = "1" THEN
            s_Db_Large_Keys = "enabled".
         ELSE
@@ -92,7 +96,8 @@ IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
                s_Db_Large_Sequence = "n/a".
 END.
 ELSE
-    ASSIGN s_Db_Large_Sequence = "n/a"
+    ASSIGN s_Db_Multi_Tenancy = "n/a"
+           s_Db_Large_Sequence = "n/a"
            s_Db_Large_Keys = "n/a".
 
 
@@ -132,8 +137,9 @@ end.
 display s_CurrDb
 	s_Db_Pname
 	s_Db_Holder
-        s_Db_Type
-        s_Db_Cp
+    s_Db_Type
+    s_Db_Cp
+    s_Db_Multi_tenancy
     s_Db_Large_Sequence
     s_Db_Large_Keys
     s_db_description
