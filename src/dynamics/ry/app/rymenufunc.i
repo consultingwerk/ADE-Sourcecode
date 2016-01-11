@@ -1123,55 +1123,49 @@ DO:
   dLoginLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                                 INPUT "CurrentLanguageObj":U,
                                                 INPUT NO)) NO-ERROR.
-  /* If the login language is not the same as the menu item's source language
-     then we will attempt to try and find a translated menu item */
-  IF dLoginLanguageObj <> bMenuItem.source_language_obj THEN DO:
-    dTransLanguageObj = canFindTranslation(bMenuItem.menu_item_obj,dLoginLanguageObj).
-    IF dTransLanguageObj <> 0 AND
-       dTransLanguageObj <> ? THEN DO:
-           
-        /* Initialize return parameters. The unknown value means that
-	       there are no translations present.
-	     */
-        assign cLabel = ?
-               cCaption = ?
-               cTooltip = ?
-               cAccelerator = ?
-               cImage = ?
-               cImageDown = ?
-               cImageInsensitive = ?
-               cImage2 = ?
-               cImage2Down = ?
-               cImage2Insensitive = ?.    
-        
-        run translateAction in gshTranslationManager ( input  'OBJ|' + string(dTransLanguageObj),
-                                                       input  cItem,
-                                                       output cLabel,
-                                                       output cCaption,
-                                                       output cTooltip,
-                                                       output cAccelerator,
-                                                       output cImage,
-                                                       output cImageDown,
-                                                       output cImageInsensitive,
-                                                       output cImage2,
-                                                       output cImage2Down,
-                                                       output cImage2Insensitive ) no-error.
-        
-        /* Ignore any errors and revert back to using the design language values. */
-        
-        /* The unknown value signifies that there is no translation for the field. */
-        if cItem ne ? then ttAction.Name = cItem.
-        if cCaption ne ? then ttAction.Caption = cCaption.
-        if cTooltip ne ? then ttAction.Tooltip = cTooltip.
-        if cAccelerator ne ? then ttAction.Accelerator = cAccelerator.
-        if cImage ne ? then ttAction.Image = cImage.
-        if cImageDown ne ? then ttAction.ImageDown = cImageDown.
-        if cImageInsensitive ne ? then ttAction.ImageInsensitive = cImageInsensitive.
-        if cImage2 ne ? then ttAction.Image2 = cImage2.
-        if cImage2Down ne ? then ttAction.Image2Down = cImage2Down.
-        if cImage2Insensitive ne ? then ttAction.Image2Insensitive = cImage2Insensitive.
-    END.
+  dTransLanguageObj = canFindTranslation(bMenuItem.menu_item_obj,dLoginLanguageObj).
+  IF dTransLanguageObj <> 0 AND
+     dTransLanguageObj <> ? THEN DO:
+    /* Initialize return parameters. The unknown value means that
+       there are no translations present.
+     */
+    assign cLabel = ?
+           cCaption = ?
+           cTooltip = ?
+           cAccelerator = ?
+           cImage = ?
+           cImageDown = ?
+           cImageInsensitive = ?
+           cImage2 = ?
+           cImage2Down = ?
+           cImage2Insensitive = ?.    
     
+    run translateAction in gshTranslationManager ( input  'OBJ|' + string(dTransLanguageObj),
+                                                   input  cItem,
+                                                   output cLabel,
+                                                   output cCaption,
+                                                   output cTooltip,
+                                                   output cAccelerator,
+                                                   output cImage,
+                                                   output cImageDown,
+                                                   output cImageInsensitive,
+                                                   output cImage2,
+                                                   output cImage2Down,
+                                                   output cImage2Insensitive ) no-error.
+    
+    /* Ignore any errors and revert back to using the design language values. */
+    
+    /* The unknown value signifies that there is no translation for the field. */
+    if cItem ne ? then ttAction.Name = cItem.
+    if cCaption ne ? then ttAction.Caption = cCaption.
+    if cTooltip ne ? then ttAction.Tooltip = cTooltip.
+    if cAccelerator ne ? then ttAction.Accelerator = cAccelerator.
+    if cImage ne ? then ttAction.Image = cImage.
+    if cImageDown ne ? then ttAction.ImageDown = cImageDown.
+    if cImageInsensitive ne ? then ttAction.ImageInsensitive = cImageInsensitive.
+    if cImage2 ne ? then ttAction.Image2 = cImage2.
+    if cImage2Down ne ? then ttAction.Image2Down = cImage2Down.
+    if cImage2Insensitive ne ? then ttAction.Image2Insensitive = cImage2Insensitive.
   END.
   
   IF bMenuItem.item_category_obj <> 0 THEN

@@ -378,7 +378,9 @@ procedure translate-##[LanguageCode]##:
     error-status:error = no.
     return.
 end procedure.    /* translate-##[LanguageCode]## */
+##Loop:End##    /* translatewindow loop */
 
+##Loop:translateToolbar##
 procedure translateToolbar-##[LanguageCode]##:
     {set ObjectTranslated yes}.
     
@@ -397,7 +399,7 @@ procedure translateToolbar-##[LanguageCode]##:
     error-status:error = no.
     return.
 end procedure.    /* translateToolbar-##[LanguageCode]## */
-##Loop:End##    /* translatewindow loop */
+##Loop:End##    /* translateToolbar loop */
 ##If:End##    /* generate translations */
 
 ##If:[GenerateSecurity]##

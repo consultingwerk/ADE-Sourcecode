@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -10,6 +10,7 @@
    
    History:  Added logic not to support old versions D. McMann
              Added -Dsrv switch to connection parameter
+             Output messages in batch mode to stream
 */
 
 &SCOPED-DEFINE DATASERVER                 YES
@@ -143,7 +144,8 @@ RUN "prodict/gate/_snd_sql.p"
       ).
 
 IF SESSION:BATCH-MODE and NOT logfile_open THEN DO:
-   OUTPUT TO VALUE(user_env[2] + ".log") APPEND UNBUFFERED NO-ECHO NO-MAP.
+   OUTPUT STREAM logfile TO VALUE(user_env[2] + ".log") 
+       APPEND UNBUFFERED NO-ECHO NO-MAP.
    logfile_open = true.
 END.
 
@@ -153,7 +155,7 @@ IF not stages[mss_build_schema] THEN RETURN.
 
 IF SESSION:BATCH-MODE AND logfile_open THEN 
 
-   PUT UNFORMATTED 
+   PUT STREAM logfile UNFORMATTED
        " " skip 
        "-- ++ " skip
        "-- Getting List of Objects from foreign DB Schema" skip
@@ -174,7 +176,7 @@ RUN prodict/mss/_mss_get.p.
 
 IF SESSION:BATCH-MODE AND logfile_open THEN 
 
-   PUT UNFORMATTED 
+   PUT STREAM logfile UNFORMATTED
        " " skip 
        "-- ++ " skip
        "-- Importing Objects into the {&PRO_DISPLAY_NAME} Schema Holder" skip
@@ -206,7 +208,7 @@ ASSIGN
     user_env[25]    = "**all**".
 
 IF SESSION:BATCH-MODE and logfile_open THEN
-    PUT UNFORMATTED
+    PUT STREAM logfile UNFORMATTED
         " " skip
         "-- ++ " skip
         "-- Fixing schema to resemble original {&PRO_DISPLAY_NAME} database." skip

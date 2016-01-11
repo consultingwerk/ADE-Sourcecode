@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -169,7 +169,16 @@ do:
 
    if name = "" then return.
 
-   if NOT can-find (FIRST _Field where _Field._Field-Name = name) then
+   FIND FIRST _Field where _Field._Field-Name = NAME NO-LOCK NO-ERROR.
+   IF AVAILABLE _Field THEN DO:
+       /* if one of the encryption schema tables, don't let it go through */
+       FIND FIRST _File OF _Field WHERE 
+           NOT CAN-DO({&INVALID_SCHEMA_TABLES},_File._File-name) NO-LOCK NO-ERROR.
+       IF NOT AVAILABLE _File THEN
+           RELEASE _Field.
+   END.
+
+   IF NOT AVAILABLE _Field THEN
    do:
       message "The field to rename is not in any table."
       	      VIEW-AS ALERT-BOX ERROR
@@ -190,7 +199,18 @@ do:
 
    if name = "" then return.
 
-   if can-find (FIRST _Field where _Field._Field-Name = name) then
+   FIND FIRST _Field where _Field._Field-Name = NAME NO-LOCK NO-ERROR.
+   IF AVAILABLE _Field THEN DO:
+       /* if one of the encryption schema tables, act as if it doesn't exist 
+          It will get blocked in _valname.p as an invalid name due to the
+          underscore at the beginning of the name
+       */
+       FIND FIRST _File OF _Field NO-LOCK.
+       IF CAN-DO({&INVALID_SCHEMA_TABLES},_File._File-name) THEN
+           RELEASE _Field.
+   END.
+
+   IF AVAILABLE _Field THEN
    do:
       message "The new name is already in use in some table."
       	      VIEW-AS ALERT-BOX ERROR

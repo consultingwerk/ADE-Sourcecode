@@ -1442,7 +1442,8 @@ PROCEDURE importLog :
     lGoodData = ((cInput BEGINS 'RUN' OR
                   cInput BEGINS 'FUNC' OR
                   cInput BEGINS 'PUBL' OR
-                  cInput BEGINS 'SUBS' OR
+                  cInput BEGINS 'SUBS' OR 
+                  cInput BEGINS 'UNSUBS' OR
                   cInput BEGINS 'EXEC' OR
                   cInput BEGINS 'MARK' OR
                   cInput BEGINS 'TRIGGER' OR

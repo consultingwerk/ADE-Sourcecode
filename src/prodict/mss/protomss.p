@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -19,6 +19,10 @@
              moloney   03/21/07 Unicode requirements for schema holder database - added to CR#OE00147991
              fernando  08/10/07 Removed UI restriction for Unicode support
              fernando  04/11/08 New sequence generator support
+             fernando  02/12/09 Adding var SHADOWCOL/CRTDEFAULT for batch mode
+             fernando  03/20/09 Support for 2008 datetime types
+             Nagaraju  09/18/09 Support for Computed columns
+             Nagaraju  11/12/09 Remove numbers for radio-set options in MSSDS
 */            
 
 
@@ -43,6 +47,8 @@ DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
+DEFINE VARIABLE cRecid        AS CHARACTER INITIAL "For Create RECID use:"
+                                           FORMAT "x(22)" NO-UNDO.
 DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
@@ -53,9 +59,9 @@ FORM
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
     LABEL "Original {&PRO_DISPLAY_NAME} Database" colon 36 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
+    LABEL "Connect Parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
   osh_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
-    LABEL "Name of Schema holder Database" colon 36 SKIP({&VM_WID})
+    LABEL "Name of Schema Holder Database" colon 36 SKIP({&VM_WID})
   mss_pdbname  FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
     LABEL "Logical Database Name" COLON 36 SKIP({&VM_WID}) 
   mss_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
@@ -66,7 +72,7 @@ FORM
         view-as fill-in size 32 by 1 
         LABEL "User's Password" colon 36 SKIP({&VM_WID})
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-     LABEL "Connect parameters" colon 36 SKIP({&VM_WID})
+     LABEL "Connect Parameters" colon 36 SKIP({&VM_WID})
       long-length LABEL " Maximum Varchar Length"  COLON 36 SKIP({&VM_WIDG})
   SPACE (2) mss_codepage FORMAT "x(32)"  view-as fill-in size 15 by 1
      LABEL "Codepage" SPACE(2)  SPACE(2)
@@ -74,20 +80,26 @@ FORM
      LABEL "Collation"   SPACE(2) mss_incasesen  LABEL "Insensitive"  
     SKIP({&VM_WIDG}) 
   SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field"   
-  loadsql   view-as toggle-box label "Load SQL" AT 32
-  movedata  view-as toggle-box label "Move Data" AT 53 SKIP({&VM_WID})
+  loadsql   view-as toggle-box label "Load SQL" AT 34
+  movedata  view-as toggle-box label "Move Data" AT 55 SKIP({&VM_WID})
   SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"
-  dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 32 
-  unicodeTypes view-as toggle-box label "Use Unicode Types" AT 53 SKIP({&VM_WID})
-  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" 
-  newseq   view-as toggle-box label "Use revised sequence generator" AT 32 SKIP({&VM_WID})
-  cFormat VIEW-AS TEXT NO-LABEL AT 10
+  dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 34 
+  unicodeTypes view-as toggle-box label "Use Unicode Types" AT 55 SKIP({&VM_WID})
+  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand Width (utf-8)" 
+  newseq   view-as toggle-box label "Use Revised Sequence Generator" AT 34 SKIP({&VM_WID})
+  SPACE(2) mapMSSDatetime VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type" SKIP({&VM_WID})
+  cFormat VIEW-AS TEXT NO-LABEL AT 4
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
-                             HORIZONTAL NO-LABEL SKIP({&VM_WID})
-  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 46 
+                             HORIZONTAL NO-LABEL 
+  lExpand VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 53 
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG}) 
     &ELSE SKIP({&VM_WID}) &ENDIF
+  cRecid VIEW-AS TEXT NO-LABEL AT 4
+  iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                             "Computed column", 2
+                             HORIZONTAL NO-LABEL SKIP({&VM_WID})
+
         {prodict/user/userbtns.i}
   WITH FRAME x ROW 1 CENTERED SIDE-labels OVERLAY
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
@@ -177,6 +189,17 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
             s_res = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
 END.
 
+
+/* Initialize RECID logic */
+ON VALUE-CHANGED OF pcompatible IN FRAME x DO:
+ IF SELF:screen-value = "no" THEN
+     ASSIGN iRecidOption:SCREEN-VALUE in frame x = "1"
+            iRecidOption:SENSITIVE in frame x = FALSE.
+ ELSE
+     ASSIGN iRecidOption:SCREEN-VALUE in frame x = "1"
+            iRecidOption:SENSITIVE in frame x = TRUE.
+END.
+
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
 /*----- HELP in PROGRESS DB to MS SQL Server 7 Database -----*/
 on CHOOSE of btn_Help in frame x
@@ -202,7 +225,9 @@ END.
 
 /* initialize variables */
 ASSIGN pcompatible = YES
-       run_time = TIME.
+       run_time = TIME
+       iRecidOption = 1.
+
 IF OS-GETENV("PRODBNAME")   <> ? THEN
   pro_dbname   = OS-GETENV("PRODBNAME").
  
@@ -242,9 +267,33 @@ END.
 ELSE
     ASSIGN mss_incasesen = TRUE.
 
+IF NOT mss_incasesen AND OS-GETENV("SHADOWCOL") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("SHADOWCOL").
+  IF tmp_str BEGINS "Y" then 
+     shadowcol = TRUE.
+  ELSE 
+     shadowcol = FALSE.
+END. 
+ELSE
+  ASSIGN shadowcol = FALSE.
+
+IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("CRTDEFAULT").
+  IF tmp_str BEGINS "Y" then
+     dflt = TRUE.
+  ELSE
+     dflt = FALSE.
+END. 
+ELSE 
+  ASSIGN dflt = FALSE.
+  
 tmp_str = OS-GETENV("MSSREVSEQGEN").
 IF tmp_str <> ? AND tmp_str BEGINS "Y" THEN
    newseq = TRUE.
+
+tmp_str = OS-GETENV("MAPMSSDATETIME").
+IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
+   mapMSSDatetime = FALSE.
 
 IF OS-GETENV("VARLENGTH") <> ? THEN
   long-length = integer(OS-GETENV("VARLENGTH")).
@@ -257,9 +306,18 @@ IF tmp_str BEGINS "Y" THEN movedata = TRUE.
 
 IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
    tmp_str      = OS-GETENV("COMPATIBLE").
-   IF tmp_str BEGINS "Y" then pcompatible = TRUE.
-   ELSE pcompatible = FALSE.
+   IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:
+       pcompatible = TRUE.
+       iRecidOption = 1. 
+   END.
+   ELSE IF tmp_str = "2"  THEN DO:
+       pcompatible = TRUE.
+       iRecidOption = 2. 
+   END.
+   ELSE 
+       pcompatible = FALSE.
 END. 
+
 
 IF OS-GETENV("LOADSQL") <> ? THEN DO:
   tmp_str      = OS-GETENV("LOADSQL").
@@ -332,17 +390,28 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END.
 
   IF wrg-ver THEN DO:
-   IF NOT unicodeTypes THEN
-    MESSAGE "The DataServer for MS SQL Server was designed to work with Versions 7 " SKIP
-            "and above.  You have tried to connect to a prior version of MS SQL Server. " SKIP
-            "The DataServer for ODBC supports that version and must be used to perform " SKIP
-            "this function. " SKIP(1)
-        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-   ELSE
+    IF NOT mapMSSDatetime THEN
+       MESSAGE "You unselected 'Map MSS Datetime Type' but have tried to connect to a version of" SKIP
+               "MS SQL Server prior to 2008 or is not using a driver that supports the alternative mapping" SKIP
+               "data types (date, datetime2, datetimeoffset)." SKIP
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ELSE IF unicodeTypes THEN
        MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
                "with Versions 2005 and above. You have tried to connect to a prior version" SKIP
                "of MS SQL Server. " SKIP
-           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ELSE IF iRecidOption = 2 THEN
+       MESSAGE "Create RECID using Computed column support for the DataServer for MS SQL Server was " SKIP
+               "designed to work with Versions 2005 and above. You have tried to connect to a prior " SKIP
+               "versionof MS SQL Server. " SKIP
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    ELSE
+       MESSAGE "The DataServer for MS SQL Server was designed to work with Versions 7 " SKIP
+               "and above.  You have tried to connect to a prior version of MS SQL Server. " SKIP
+               "The DataServer for ODBC supports that version and must be used to perform " SKIP
+               "this function. " SKIP(1)
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
     RETURN.
   END.
     
@@ -361,7 +430,7 @@ IF NOT batch_mode THEN
   DO WHILE TRUE:
      lUniExpand:SENSITIVE = NO.
 
-     DISPLAY cFormat lExpand WITH FRAME X.
+     DISPLAY cFormat lExpand cRecid WITH FRAME X.
      UPDATE pro_dbname
         pro_conparms
         osh_dbname
@@ -382,8 +451,10 @@ IF NOT batch_mode THEN
         unicodeTypes
         lUniExpand WHEN unicodeTypes
         newseq
+        mapMSSDatetime
         iFmtOption
         lExpand WHEN iFmtOption = 2
+        iRecidOption
         btn_OK btn_Cancel 
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -407,38 +478,6 @@ IF NOT batch_mode THEN
     IF lUniExpand:SCREEN-VALUE ="yes" THEN
        ASSIGN lUniExpand = YES.
 
-    IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
-      ASSIGN old-dictdb = LDBNAME("DICTDB").
-      IF NOT CONNECTED(pro_dbname) THEN
-        CONNECT VALUE (pro_dbname) VALUE (pro_conparms) -1 NO-ERROR.              
-      
-      IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
-        DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
-          IF batch_mode THEN
-            PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
-          ELSE
-            MESSAGE ERROR-STATUS:GET-MESSAGE(i).
-        END.
-        IF batch_mode THEN
-           PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
-           skip.
-        ELSE DO:
-          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-              MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
-          &ELSE
-             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
-             VIEW-AS ALERT-BOX ERROR.
-          &ENDIF
-        END.            
-        UNDO, RETURN error.
-      END.
-      ELSE DO:
-        CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).
-      end.  
-    END.
-    ELSE
-      ASSIGN old-dictdb = LDBNAME("DICTDB").
-        
     IF loadsql THEN DO:
       IF Osh_dbname = "" OR osh_dbname = ? THEN DO:
         MESSAGE "Schema holder database Name is required." 
@@ -458,8 +497,7 @@ IF NOT batch_mode THEN
     END.      
     LEAVE _updtvar.
   END.
-  ELSE old-dictdb = LDBNAME("DICTDB").
-
+  
   IF osh_dbname <> "" AND osh_dbname <> ? THEN
       output_file = osh_dbname + ".log".
   ELSE
@@ -470,6 +508,39 @@ IF NOT batch_mode THEN
   IF pro_dbname = "" OR pro_dbname = ? THEN DO:
     PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
     ASSIGN err-rtn = TRUE.
+  END.
+  ELSE DO:
+      IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
+        ASSIGN old-dictdb = LDBNAME("DICTDB").
+        IF NOT CONNECTED(pro_dbname) THEN
+          CONNECT VALUE (pro_dbname) VALUE (pro_conparms) -1 NO-ERROR.              
+    
+        IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
+          DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
+            IF batch_mode THEN
+              PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
+            ELSE
+              MESSAGE ERROR-STATUS:GET-MESSAGE(i).
+          END.
+          IF batch_mode THEN
+             PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
+             skip.
+          ELSE DO:
+            &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+                MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
+            &ELSE
+               MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
+               VIEW-AS ALERT-BOX ERROR.
+            &ENDIF
+          END.            
+          ASSIGN err-rtn = TRUE.
+        END.
+        ELSE DO:
+          CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).
+        end.  
+      END.
+      ELSE
+        ASSIGN old-dictdb = LDBNAME("DICTDB").
   END.
 
   IF loadsql THEN DO:
@@ -510,7 +581,8 @@ IF NOT batch_mode THEN
 
   IF pro_dbname <> old-dictdb THEN DO:
     DISCONNECT VALUE(pro_dbname).
-    CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
+    IF old-dictdb NE ? THEN
+       CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
   END.
 END.
 

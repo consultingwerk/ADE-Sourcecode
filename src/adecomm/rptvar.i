@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,6 +14,10 @@
   Author: Kenneth S. McIntosh
 
   Created: August 9,2005
+  
+  History:
+     fernando  Dec  23, 2008  Support for Encryption reports
+  
 ------------------------------------------------------------------------*/
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -23,7 +27,7 @@
 &ENDIF
 
 DEFINE VARIABLE txtReport    AS CHARACTER   NO-UNDO FORMAT "x(50)"
-       EXTENT 12 
+       EXTENT 15 
        INITIAL ["Track Audit Policy Changes",
                 "Track Database Schema Changes",
                 "Track Audit Data Administration (Dump/Load)",
@@ -35,7 +39,10 @@ DEFINE VARIABLE txtReport    AS CHARACTER   NO-UNDO FORMAT "x(50)"
                 "Client Session Authentication Report",
                 "Database Administration Report (Utilities)",
                 "Database Access Report (Login/Logout/etc...)",
-                "Custom Audit Data Filter"].
+                "Custom Audit Data Filter",
+                "Track Encryption Policy Changes",
+                "Track Key Store Changes",
+                "Database Encryption Administration (Utilities)"].
 
 DEFINE VARIABLE rsDetail     AS LOGICAL     NO-UNDO
                                 VIEW-AS RADIO-SET HORIZONTAL
@@ -63,6 +70,9 @@ CASE piReport:
   WHEN 10 THEN cDefaultFile = "db_util".
   WHEN 11 THEN cDefaultFile = "db_access".
   WHEN 12 THEN cDefaultFile = "cust_audit".
+  WHEN 13 THEN cDefaultFile = "enc_pol".
+  WHEN 14 THEN cDefaultFile = "enc_keystore".
+  WHEN 15 THEN cDefaultFile = "enc_admin".
 END CASE.
 
 /*===========================Functions=====================================*/

@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000-2008 by Progress Software Corporation. All rights*
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -43,6 +43,7 @@ Date Created: 09/24/92
               05/19/04 K. McIntosh Added case for RAW fields to set initial value to ""
               05/24/06 fernando    Added support for int64 fields
               02/22/08 fernando    Adjust display data type length for Dsrv schemas
+              04/15/09 fernando    Support for BLOB for MSS
 
 ----------------------------------------------------------------------------*/
 
@@ -51,6 +52,18 @@ Define var type_idx  as integer  NO-UNDO.  /* index into datatypes list */
 Define var junk      as logical  NO-UNDO.  /* output parm we don't care about */
 Define var fmt       as char     NO-UNDO.
 Define var len       as integer  NO-UNDO.  /* stlen */
+
+DEFINE VAR lobMode   AS INTEGER  NO-UNDO. /*1 = from lob, 2 = to lob */
+
+&IF "{&FRAME}" = "frame fldprops" &THEN
+IF NOT {adedict/ispro.i} THEN DO:
+    IF s_Fld_Typecode = {&DTYPE_BLOB} THEN
+        lobMode = 1.
+    ELSE IF INDEX (s_Fld_DType:SCREEN-VALUE IN FRAME fldprops, "BLOB") > 0 THEN
+        lobMode = 2.             
+END.
+
+&ENDIF
 
 s_Fld_DType = s_Fld_DType:screen-value in {&Frame}.
 
@@ -180,3 +193,70 @@ case s_Fld_Typecode:
       assign
 	 b_Field._Initial:screen-value in {&Frame} = ?.
 end.
+
+&IF "{&FRAME}" = "frame fldprops" &THEN
+
+/* handle to/from BLOB type change */
+IF lobMode > 0 THEN DO WITH {&FRAME}:
+    
+    /* first leave format alone */
+    b_Field._Format:SCREEN-VALUE = b_Field._Format.
+
+    IF lobMode = 2 /* TO LOB */ THEN DO:
+    
+      IF s_Fld_array:SCREEN-VALUE = "yes" THEN
+         ASSIGN s_Fld_array:SCREEN-VALUE = "no".
+      IF b_field._Mandatory:SCREEN-VALUE = "yes" THEN
+         ASSIGN b_field._Mandatory:SCREEN-VALUE = "no".
+
+      /* disable all the fields not applicable to LOBs */
+      ASSIGN b_field._Mandatory:SENSITIVE = NO
+             s_Fld_array:SENSITIVE = NO
+             b_Field._Format:SENSITIVE = FALSE
+             s_btn_Fld_ViewAs:SENSITIVE = FALSE
+             s_btn_Fld_Validation:SENSITIVE = FALSE
+             s_btn_Fld_Triggers:SENSITIVE = FALSE
+             s_btn_Fld_StringAttrs:SENSITIVE = FALSE
+             b_Field._Label:SENSITIVE = FALSE  	    
+             b_Field._Col-label:SENSITIVE = FALSE   
+             b_Field._Initial:SENSITIVE = FALSE
+             b_Field._Help:SENSITIVE = FALSE 
+             b_Field._Mandatory:SENSITIVE = FALSE
+             s_Fld_Array:SENSITIVE = FALSE.  
+    END.
+    ELSE DO: /* FROM LOB */
+
+      /* make sure initial is the unknown value for varbinary foreign type */
+      IF b_Field._Initial:SCREEN-VALUE = "" THEN DO:
+        IF index(s_Fld_Gatetype, "varbinary") > 0 THEN
+            b_Field._Initial:SCREEN-VALUE = ?.
+      END.
+
+      /* not a LOB field, enable all the fields except for the ones specific
+        for LOBs
+      */
+      ASSIGN b_field._Mandatory:SENSITIVE = YES
+             b_field._Fld-case:SENSITIVE = YES
+             s_Fld_array:SENSITIVE = YES
+             b_Field._Format:SENSITIVE = YES
+             s_btn_Fld_ViewAs:SENSITIVE = FALSE
+             s_btn_Fld_ViewAs:SENSITIVE = TRUE
+             s_btn_Fld_Validation:SENSITIVE = TRUE
+             s_btn_Fld_Triggers:SENSITIVE = TRUE
+             s_btn_Fld_StringAttrs:SENSITIVE = TRUE
+             b_Field._Label:SENSITIVE = TRUE  	    
+             b_Field._Col-label:SENSITIVE = TRUE   
+             b_Field._Initial:SENSITIVE = TRUE
+             b_Field._Help:SENSITIVE = TRUE 
+             b_Field._Mandatory:SENSITIVE = TRUE
+             s_Fld_Array:SENSITIVE = TRUE.  
+
+      /* restore the values from the record */
+      ASSIGN
+             b_field._Mandatory:SCREEN-VALUE = STRING(b_field._Mandatory)
+             b_field._Fld-case:SCREEN-VALUE = STRING(b_field._Fld-case)
+             b_Field._Format:SCREEN-VALUE = b_field._Format
+             s_Fld_Array = (if b_Field._Extent > 0 then yes else no).
+    END.
+END.
+&ENDIF

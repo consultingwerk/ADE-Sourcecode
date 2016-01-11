@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -12,7 +12,7 @@ in:  user_env[1] = userid
 
 out: no environment variables changed
 D. McMann 10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
-
+Rohit     02/20/09 Call dictgate.i with user_dbtype instead of user_dbname- OE00128393
 */
 
 
@@ -25,7 +25,7 @@ DEFINE VARIABLE phynam AS CHARACTER NO-UNDO.
 DEFINE VARIABLE c      AS CHARACTER NO-UNDO.
 
 phynam = user_dbname.
-{ prodict/dictgate.i &action=query &dbtype=user_dbname &dbrec=? &output=c }
+{ prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=c }
 IF ENTRY(5,c) MATCHES "*p*" THEN DO: /* physical name applies */
   FIND _Db WHERE RECID(_Db) = drec_db NO-LOCK.
   phynam = (IF _Db-addr = "" OR _Db-addr = ? THEN user_dbname ELSE _Db-addr).

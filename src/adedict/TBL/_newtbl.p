@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -32,6 +32,7 @@ DLM      05/15/00 Removed warning message if only Schema Area in DB
 Donna M. 04/23/02 Added assignment of new table recid variable 
 10/01/02 DLM Changed check for SQL tables
 fernando 09/27/06 Use different delimiter for area name combo-box - 20051228-008
+fernando 06/26/08 Removed encryption area from list
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -254,7 +255,8 @@ s_lst_file_Area:DELIMITER in frame newtbl = CHR(1).
 
 s_lst_file_area:list-items in frame newtbl = "".
 FIND FIRST DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                          AND DICTDB._Area._Area-type = 6 NO-LOCK NO-ERROR.
+                          AND DICTDB._Area._Area-type = 6 AND
+                    NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name)  NO-LOCK NO-ERROR.
 IF AVAILABLE DICTDB._Area THEN
   ASSIGN s_Tbl_Area = DICTDB._AREA._Area-name.
 ELSE DO:
@@ -263,8 +265,10 @@ ELSE DO:
          s_In_Schema_Area = TRUE.
 END.  
   
-for each DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                        AND DICTDB._Area._Area-type = 6 NO-LOCK:
+for each DICTDB._Area  FIELDS (_Area-num _Area-type _Area-name)
+            WHERE DICTDB._Area._Area-num > 6 
+               AND DICTDB._Area._Area-type = 6 
+               AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
   s_res = s_lst_file_Area:add-last(DICTDB._Area._Area-name) in frame newtbl.
 END.
 

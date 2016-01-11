@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2008-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,6 +22,8 @@ Date Created: 02/17/92
               09/18/02 D. McMann Added verify data report  
               10/01/02 D. McMann Change menu name for Adjust Schema
               07/19/05 kmcintos  Added Auditing Reports
+              10/27/08 fernando  Added Encryption Reports
+              04/07/09 fernando  Added Alternate Buffer Pool Report
 ----------------------------------------------------------------------------*/
 
 {adecomm/toolmenu.i &EXCLUDE_DICT = yes}
@@ -47,14 +49,22 @@ DEFINE SUB-MENU s_mnu_Aud_Rep
    RULE
    MENU-ITEM mi_ADRpt_UsrAct    LABEL "Track &User Account Changes"
    MENU-ITEM mi_ADRpt_SecPerm   LABEL "Track Security Per&missions Changes"
-   MENU-ITEM mi_ADRpt_Dba       LABEL "Track SQL Permissions Changes"
+   MENU-ITEM mi_ADRpt_Dba       LABEL "&Track SQL Permissions Changes"
    MENU-ITEM mi_ADRpt_AuthSys   LABEL "Track Authe&ntication System Changes"
    RULE
    MENU-ITEM mi_CSRpt_CltSess   LABEL "&Client Session Authentication Report"
    MENU-ITEM mi_ADRpt_DbAdmin   LABEL "Database Administ&ration Report (Utilities)"
    MENU-ITEM mi_ADRpt_AppLogin  LABEL "Database Access Report (Lo&gin/Logout/etc...)"
    RULE
+   MENU-ITEM mi_ADRpt_EncPol    LABEL "Track &Encryption Policy Changes"
+   MENU-ITEM mi_ADRpt_KeyStore  LABEL "Track &Key Store Changes"
+   MENU-ITEM mi_ADRpt_EncAdmin  LABEL "Database Encr&yption Administration (Utilities)"
+   RULE
    MENU-ITEM mi_ADRpt_Cust      LABEL "Custom Audit Data &Filter Report".
+
+DEFINE SUB-MENU s_mnu_Enc_Rep
+   MENU-ITEM mi_EncPolQuick     LABEL "&Quick Encryption Policies"
+   MENU-ITEM mi_EncPolDetailed  LABEL "&Detailed Encryption Policies".
 
 Define sub-menu s_mnu_Reports	
    menu-item mi_DetailedTbl   	 label "&Detailed Table..."
@@ -68,8 +78,10 @@ Define sub-menu s_mnu_Reports
    sub-menu  s_mnu_TblRel        label "Table &Relations"
    menu-item mi_QuickArea        label "Storage &Areas"
    MENU-ITEM mi_Width            label "Verify Data &Width"
+   MENU-ITEM mi_AltBufPool       label "Alternate &Buffer Pool"
    RULE
-   SUB-MENU  s_mnu_Aud_Rep       LABEL "Auditing R&eports".
+   SUB-MENU  s_mnu_Aud_Rep       LABEL "Auditing R&eports"
+   SUB-MENU  s_mnu_Enc_Rep       LABEL "Encryption &Policy Reports".
 
 Define sub-menu s_mnu_Database
    menu-item mi_Crt_Database	 label "&Create..."   ACCELERATOR "SHIFT-F3"

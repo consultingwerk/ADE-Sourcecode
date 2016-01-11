@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006-2007 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -23,6 +23,7 @@
              fernando  06/15/06 Expanding Dump-name to 32 characters
              fernando  09/27/06 Use a different delimiter for areaname - 20051228-008
              fernando  10/03/07 Fixed delimiter issue on area name list - OE00135682
+             fernando  06/26/08 Filter out schema tables for encryption
              
 */
 
@@ -209,6 +210,7 @@ ELSE DO:
 
   FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
                           AND DICTDB._Area._Area-type = 6
+                          AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
                           NO-LOCK. 
 
     IF arealist = ? THEN

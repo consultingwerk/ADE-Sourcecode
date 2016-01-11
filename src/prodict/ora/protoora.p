@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -536,22 +536,16 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       
       IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
         DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
-          IF batch_mode THEN
-            PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
-          ELSE
             MESSAGE ERROR-STATUS:GET-MESSAGE(i).
         END.
-        IF batch_mode THEN
-          PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
-            skip.
-        ELSE DO:
-          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+
+        &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
-          &ELSE
+        &ELSE
             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
              VIEW-AS ALERT-BOX ERROR.
-          &ENDIF
-        END.            
+        &ENDIF
+
         NEXT _updtvar.
       END.
       ELSE 
@@ -619,8 +613,28 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
       ASSIGN err-rtn = TRUE.
     END.
-    ELSE
-      ASSIGN old-dictdb = pro_dbname.
+    ELSE DO:
+
+        IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
+          ASSIGN old-dictdb = LDBNAME("DICTDB").
+          IF NOT CONNECTED(pro_dbname) THEN
+            CONNECT VALUE (pro_dbname) VALUE (pro_conparms) -1 NO-ERROR.              
+          
+          IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
+            DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
+               PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
+            END.
+
+            PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
+                skip.
+            ASSIGN err-rtn = TRUE.
+          END.
+          ELSE 
+            CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).  
+        END.
+        ELSE
+          ASSIGN old-dictdb = LDBNAME("DICTDB").
+    END.
       
     IF loadsql THEN DO:
       IF Osh_dbname = "" OR osh_dbname = ? THEN DO:
@@ -683,7 +697,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
  
   IF pro_dbname <> old-dictdb THEN DO:
     DISCONNECT VALUE(pro_dbname).
-    CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
+    IF old-dictdb NE ? THEN
+       CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
   END.
 
 END.

@@ -86,7 +86,7 @@ CREATE WIDGET-POOL.
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
-&Scoped-Define DATA-FIELD-DEFS "adm2/support/drouter.i"
+&Scoped-Define DATA-FIELD-DEFS "src/adm2/support/drouter.i"
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH routerRef NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}

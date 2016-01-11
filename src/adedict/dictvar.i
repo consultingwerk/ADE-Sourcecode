@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,8 @@ History:
        03/14/06 fernando  Handle case with too many tables selected - bug 20050930-006.
        06/12/06 fernando  support for int64
        09/21/06 fernando  menu report - gray it if no db connected
+       06/26/08 fernando  Adding INVALID_AREAS pre-processor
+       04/07/09 fernando  Increasing NUM_GRAY_ITEMS for enc reports
 ----------------------------------------------------------------------------*/
 {adecomm/adestds.i}  
 
@@ -106,7 +108,7 @@ Define {1} var s_DictState as integer NO-UNDO.
    This is a list of widget handles for all menu items and icon widgets
    that need graying. 
 */
-&global-define  NUM_GRAY_ITEMS   35
+&global-define  NUM_GRAY_ITEMS   37
 Define {1} var Gray_Items  as widget-handle extent {&NUM_GRAY_ITEMS}  NO-UNDO.
 
 
@@ -279,6 +281,11 @@ Define {1} var s_Res as logical NO-UNDO.
 /* This is stored in the _File._Db-Lang field.  0 means it is not SQL */
 &global-define 	  TBLTYP_SQL  1
 
+/* List of areas that should not be available to the user */
+&GLOBAL-DEFINE INVALID_AREAS "Encryption Policy Area":U
+
+/* List of schema tables to be filtered out */
+&GLOBAL-DEFINE INVALID_SCHEMA_TABLES "_sec-db-policy,_sec-obj-policy,_sec-pwd-policy":U
 
 /* This variable controls the warning given to the user to indicate they
    are adding tables or indices to the schema area.  We only want to give

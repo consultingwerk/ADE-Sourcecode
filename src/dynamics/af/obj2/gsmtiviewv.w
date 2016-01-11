@@ -22,9 +22,11 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 
+
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"af/obj2/gsmtifullo.i"}.
+
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -254,15 +256,15 @@ DEFINE VARIABLE fiToLanguage AS CHARACTER FORMAT "X(256)":U
      SIZE 44 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 91 BY 2.57.
 
 DEFINE RECTANGLE RECT-2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 91 BY 7.52.
 
 DEFINE RECTANGLE RECT-3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 91 BY 9.24.
 
 
@@ -544,7 +546,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelFromFieldTooltipSelect a language to translate from, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiLanguageStringParentFilterQueryLOOKUP(STRING(gsc_language.language_obj),~'&1~') > 0DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelFromFieldTooltipSelect a language to translate from, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiLanguageStringParentFilterQueryLOOKUP(STRING(gsc_language.language_obj),~'&1~') > 0DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayoutKeyFieldgsc_language.language_obj':U ,
              OUTPUT hFromLanguage ).
        RUN repositionObject IN hFromLanguage ( 3.76 , 8.20 ) NO-ERROR.
        RUN resizeObject IN hFromLanguage ( 1.00 , 37.60 ) NO-ERROR.
@@ -552,7 +554,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldfiSourceLanguageObjParentFilterQuerygsc_language.language_obj <> DECIMAL(~'&1~')DescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_language.language_nameKeyFieldgsc_language.language_objFieldLabelToFieldTooltipSelect a language to translate to, from the listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_language NO-LOCK BY gsc_language.language_nameQueryTablesgsc_languageSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1ComboDelimiterListItemPairsInnerLines5SortnoComboFlagFlagValue0BuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCKQueryBuilderOrderListgsc_language.language_name^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureDataSourceNameFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayoutKeyFieldgsc_language.language_obj':U ,
              OUTPUT hToLanguage ).
        RUN repositionObject IN hToLanguage ( 3.76 , 52.60 ) NO-ERROR.
        RUN resizeObject IN hToLanguage ( 1.00 , 37.60 ) NO-ERROR.
@@ -1739,11 +1741,12 @@ FUNCTION setDataModified RETURNS LOGICAL
   /* Code placed here will execute PRIOR to standard behavior. */
 
   RETURN SUPER( INPUT plModified ).
+ /* commented away because it gives warning as it is never reached... 
   IF plModified THEN
     ENABLE buSave WITH FRAME {&FRAME-NAME}.
   ELSE
     DISABLE buSave WITH FRAME {&FRAME-NAME}.
-
+  */
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

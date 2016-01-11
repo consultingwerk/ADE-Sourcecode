@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -230,7 +230,7 @@ References:
                     STRING(p_time,"HH:MM:SS":U) + " GMT":U.
     END.
     OTHERWISE
-      queue-message("WebSpeed":U, "format-datetime: format '" + p_format +
+      queue-message("WebSpeed":U, "format-datetime: ":U + "format '" + p_format +
                     "' is not supported").
   END CASE.
 
@@ -273,9 +273,9 @@ Returns: Value or blank if invalid name.  If ? was specified for
   DEFINE VARIABLE i AS int NO-UNDO.
   
   IF p_name = ? THEN
-    RETURN WEB-CONTEXT:GET-CGI-LIST("ENV").
+    RETURN WEB-CONTEXT:GET-CGI-LIST("ENV":U).
   ELSE
-    RETURN WEB-CONTEXT:GET-CGI-VALUE("ENV", p_name).
+    RETURN WEB-CONTEXT:GET-CGI-VALUE("ENV":U, p_name).
 END FUNCTION. /* get-cgi */
 &ANALYZE-RESUME
 
@@ -291,9 +291,12 @@ Description: Retrieves the LONGCHAR value for the specified CGI variable
 Input Parameter: Name of variable or ?
 Returns: Value or blank if invalid name.
 ****************************************************************************/
-  RETURN WEB-CONTEXT:GET-CGI-LONG-VALUE("ENV", p_name).
+  IF p_name = ? THEN
+    RETURN WEB-CONTEXT:GET-CGI-LIST("ENV":U).
+  ELSE
+    RETURN WEB-CONTEXT:GET-CGI-LONG-VALUE("ENV":U, p_name).
 
-END FUNCTION. /* get-cgi */
+END FUNCTION. /* get-cgi-long */
 &ANALYZE-RESUME
 
 &ENDIF
@@ -311,30 +314,38 @@ Returns: Value of field or blank if invalid field name.  If ? was
 Global Variables: FieldList
 ****************************************************************************/
   DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i AS int NO-UNDO.
+  DEFINE VARIABLE i       AS int       NO-UNDO.
+  DEFINE VARIABLE j       AS int       NO-UNDO.
 
   DEFINE VARIABLE v-form  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-query AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-name  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cTmp    AS CHARACTER NO-UNDO.
 
   /* Get list of fields? */
   IF p_name = ? THEN DO:
     /* If the field list was already computed for this request, return it */
     IF FieldList <> "" THEN
       RETURN FieldList.
-    ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM")
-           v-query = WEB-CONTEXT:GET-CGI-LIST("QUERY")
+    
+    ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM":U)
+           v-query = WEB-CONTEXT:GET-CGI-LIST("QUERY":U)
            /* Combine form input and query string */
            v-value = v-form +
              (IF v-form <> "" AND v-query <> "" THEN ",":U ELSE "") +
-             v-query.
+             v-query
+           j = NUM-ENTRIES(v-value).
+
     /* If returning a field list, eliminate dupes */
-    DO i = 1 TO NUM-ENTRIES(v-value):
+    DO i = 1 TO j:
       ASSIGN v-name = ENTRY(i, v-value).
-      IF LOOKUP(v-name, FieldList) = 0 THEN
-        ASSIGN FieldList = FieldList +
-               (IF FieldList = "" THEN "" ELSE ",":U) + v-name.
+      IF LOOKUP(v-name, cTmp) = 0 THEN
+        ASSIGN cTmp = cTmp +
+               (IF cTmp = "" THEN "" ELSE ",":U) + v-name.
     END.
+
+    ASSIGN FieldList = cTmp. /* save it away */
+
     RETURN FieldList.
   END.
 
@@ -344,7 +355,16 @@ Global Variables: FieldList
        Replace all CF/LF's with with an LF so when an HTML <TEXTAREA>
        is saved in a database, etc. it won't contain extra characters
        or double-space output. */
-    IF CAN-DO(WEB-CONTEXT:GET-CGI-LIST("FORM":U), p_name)  THEN
+
+    DEFINE VARIABLE getFromForm AS LOGICAL  NO-UNDO.
+
+    IF usetttWebFieldList THEN
+       ASSIGN getFromForm = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
+                                      AND field-type = "F":U).
+    ELSE 
+       ASSIGN getFromForm = LOOKUP(p_name, WEB-CONTEXT:GET-CGI-LIST("FORM":U)) > 0.
+
+    IF getFromForm THEN
       RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim),
                      "~r~n":U, "~n":U).
     ELSE
@@ -353,6 +373,101 @@ Global Variables: FieldList
   END.
   RETURN v-value.
 END FUNCTION. /* get-field */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-get-fieldEx) = 0 &THEN
+
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-fieldEx 
+FUNCTION get-fieldEx RETURNS LONGCHAR
+  (INPUT p_name AS CHARACTER) :
+/****************************************************************************
+Description: Retrieves the associated value for the specified form field.
+Input Parameter: Name of field or ?
+Returns: Value of field or blank if invalid field name.  If ? was
+  specified for the name, the list of fields is returned.
+
+Similar to get-field but handles long list of fields with LONGCHAR
+
+Global Variables: FieldList
+****************************************************************************/
+  DEFINE VARIABLE v-value AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE i       AS int       NO-UNDO.
+  DEFINE VARIABLE j       AS int       NO-UNDO.
+
+  DEFINE VARIABLE v-form  AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE v-query AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE v-name  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE v-ret   AS LONGCHAR  NO-UNDO.
+
+  /* Get list of fields? */
+  IF p_name = ? THEN DO:
+
+    ASSIGN v-form = WEB-CONTEXT:GET-CGI-LIST("FORM":U)
+           v-query = WEB-CONTEXT:GET-CGI-LIST("QUERY":U)
+           /* Combine form input and query string */
+           v-value = v-form +
+             (IF v-form <> "" AND v-query <> "" THEN ",":U ELSE "") +
+             v-query
+           j = NUM-ENTRIES(v-value).
+
+    /* If returning a field list, eliminate dupes */
+    DO i = 1 TO j:
+      ASSIGN v-name = ENTRY(i, v-value).
+      IF LOOKUP(v-name, v-ret) = 0 THEN
+        ASSIGN v-ret = v-ret +
+               (IF v-ret = "" THEN "" ELSE ",":U) + v-name.
+    END.
+
+    RETURN v-ret.
+  END.
+
+  /* Else, get a field value */
+  ELSE DO:
+    DEFINE VARIABLE cTmp AS CHARACTER NO-UNDO.
+
+    /* Return the output directly to maximize the allowable length.
+       Replace all CF/LF's with with an LF so when an HTML <TEXTAREA>
+       is saved in a database, etc. it won't contain extra characters
+       or double-space output. */
+    IF get-from-form-fields(p_name) NE NO /* yes and ? should go here */ THEN
+      cTmp = WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim).
+    ELSE
+      cTmp = WEB-CONTEXT:GET-CGI-VALUE("QUERY":U, p_name, SelDelim).
+
+    IF (cTmp > "") THEN
+      cTmp = REPLACE(cTmp, "~r~n":U, "~n":U).
+  
+    RETURN cTmp. /* using char for performance */
+
+  END.
+  
+END FUNCTION. /* get-fieldEx */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-get-from-form-fields) = 0 &THEN
+
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-from-form-fields 
+FUNCTION get-from-form-fields RETURNS LOGICAL
+  (INPUT p_name AS CHARACTER) :
+/****************************************************************************
+Description: Checks if field exists in the form.
+
+****************************************************************************/
+  DEFINE VARIABLE getFromForm AS LOGICAL  NO-UNDO.
+
+  IF usetttWebFieldList THEN
+     ASSIGN getFromForm = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
+                                    AND field-type = "F":U).
+  ELSE
+     ASSIGN getFromForm = LOOKUP(p_name, WEB-CONTEXT:GET-CGI-LIST("FORM":U)) > 0.
+
+  RETURN getFromForm.
+
+END FUNCTION. /* get-from-form-fields */
 &ANALYZE-RESUME
 
 &ENDIF
@@ -367,25 +482,25 @@ Description: Retrieves the longchar value for a field or cookie.
 Input Parameter: Name of field
 Returns: Value of form field or Cookie in that order or blank if an invalid name.  
 ****************************************************************************/
-  DEFINE VARIABLE cValue AS LONGCHAR NO-UNDO.
-  DEFINE VARIABLE i AS int NO-UNDO.
+  DEFINE VARIABLE cValue      AS LONGCHAR NO-UNDO.
+  DEFINE VARIABLE i           AS int      NO-UNDO.
 
   /* If name is ? return blank */
-  IF p_name = ? OR p_name = "":U THEN 
-    ASSIGN cValue = "":U.
+  IF p_name = ? OR p_name = "" THEN 
+    RETURN cValue.
 
-  /* item name passed so look fields and Cookie. */
-  IF CAN-DO(WEB-CONTEXT:GET-CGI-LIST("FORM":U), p_name)  THEN
-    cValue = WEB-CONTEXT:GET-CGI-LONG-VALUE("FORM", p_name, SelDelim).
+  /* item name passed so look fields and query string. */
+  IF get-from-form-fields(p_name) NE NO /* yes and ? should go here */ THEN
+    cValue = WEB-CONTEXT:GET-CGI-LONG-VALUE("FORM":U, p_name, SelDelim).
   ELSE
     cValue = WEB-CONTEXT:GET-CGI-LONG-VALUE("QUERY":U, p_name, SelDelim).
 
-  IF (cValue > "":U) THEN
+  IF (cValue > "") THEN
     cValue = REPLACE(cValue, "~r~n":U, "~n":U).
   
   RETURN cValue.
 
-END FUNCTION. /* get-value */
+END FUNCTION. /* get-long-value */
 &ANALYZE-RESUME
 
 &ENDIF
@@ -430,10 +545,11 @@ Returns: Value of user field, form field or Cookie in that order or blank if
 of all user fields, fields and cookies is returned.
 Global Variables: UserFieldList, UserFieldVar, FieldList, FieldVar
 ****************************************************************************/
-  DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE v-field-list AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE v-value       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE v-field-list  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-cookie-list AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i AS int NO-UNDO.
+  DEFINE VARIABLE i             AS int       NO-UNDO.
+  DEFINE VARIABLE found         AS LOGICAL   NO-UNDO.
 
   /* If name is ?, pass a list of all names in user fields, fields and
      cookies. */
@@ -455,13 +571,81 @@ Global Variables: UserFieldList, UserFieldVar, FieldList, FieldVar
   ELSE DO:
     ASSIGN i = LOOKUP(p_name, UserFieldList).
     IF i > 0 THEN
-      RETURN UserFieldVar[i].
-    IF CAN-DO(get-field(?), p_name) THEN
-      RETURN get-field(p_name).
+       RETURN UserFieldVar[i].
+
+    IF usetttWebFieldList THEN
+       ASSIGN found = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
+                                /*AND (field-type = "F":U OR field-type = "Q":U)*/).
+    ELSE
+       ASSIGN found = LOOKUP(p_name, get-field(?)) > 0.
+    
+    IF found THEN
+       RETURN get-field(p_name).
+
     RETURN get-cookie(p_name).
   END.
 
 END FUNCTION. /* get-value */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-get-value) = 0 &THEN
+
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION get-valueEx 
+FUNCTION get-valueEx RETURNS LONGCHAR
+  (INPUT p_name AS CHARACTER) :
+/****************************************************************************
+Description: see get-value()
+Input Parameter: Name of item or ?
+Returns: Value of user field, form field or Cookie in that order or blank if 
+  an invalid name.  If ? was specified for the name, a comma separated list
+of all user fields, fields and cookies is returned.
+Global Variables: UserFieldList, UserFieldVar
+
+This is an enhanced version of get-value which handles long lists with 
+LONGCHAR
+****************************************************************************/
+  DEFINE VARIABLE v-value       AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE v-field-list  AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE v-cookie-list AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE i             AS int       NO-UNDO.
+  DEFINE VARIABLE found         AS LOGICAL   NO-UNDO.
+
+  /* If name is ?, pass a list of all names in user fields, fields and
+     cookies. */
+  IF p_name = ? THEN DO:
+    ASSIGN
+      v-field-list = get-fieldEx(?)
+      v-value = UserFieldList +
+        (IF UserFieldList <> "" AND v-field-list <> "" THEN ",":U ELSE "") +
+        v-field-list
+      v-cookie-list = get-cookie(?)
+      v-value = v-value +
+        (IF v-value <> "" AND v-cookie-list <> "" THEN ",":U ELSE "") +
+        v-cookie-list.
+    RETURN v-value.
+  END.
+  /* Else, item name passed so look for it in user fields, fields and
+     cookies in that order. */
+  ELSE DO:
+      ASSIGN i = LOOKUP(p_name, UserFieldList).
+      IF i > 0 THEN
+        RETURN UserFieldVar[i].
+
+      IF usetttWebFieldList THEN
+         ASSIGN found =  CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
+                                   /*AND (field-type = "F":U OR field-type = "Q":U)*/).
+      ELSE
+          ASSIGN found = LOOKUP(p_name, get-fieldEx(?)) > 0.
+
+      IF found THEN
+         RETURN get-fieldEx(p_name).
+
+      RETURN get-cookie(p_name).
+  END.
+
+END FUNCTION. /* get-valueEx */
 &ANALYZE-RESUME
 
 &ENDIF
@@ -496,19 +680,22 @@ Input Parameters: List of field names (available via get-value), delimiter
 Returns: HTML hidden fields delimited by newlines.
 ****************************************************************************/
   DEFINE VARIABLE i AS INTEGER NO-UNDO.
+  DEFINE VARIABLE j AS INTEGER NO-UNDO.
   DEFINE VARIABLE v-item AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-out AS CHARACTER NO-UNDO.
 
   IF p_name-list = "" THEN RETURN "".   /* return blank if blank */
 
-  DO i = 1 TO NUM-ENTRIES(p_name-list):
+  ASSIGN j = NUM-ENTRIES(p_name-list).
+
+  DO i = 1 TO j:
     ASSIGN
       v-item = ENTRY(i, p_name-list)
       v-value = get-value(v-item).
     /* Only add hidden field if the value is not blank [Bug 97-02-14-036] */
     IF v-value <> "" THEN
-      ASSIGN v-out = v-out + hidden-field(v-item, v-value) + "~n".
+      ASSIGN v-out = v-out + hidden-field(v-item, v-value) + "~n":U.
   END.
     
   RETURN v-out.
@@ -697,7 +884,7 @@ Global Variables: UserFieldList, UserFieldVar
         UserFieldVar[i] = p_value.
     ELSE DO:
       /* If we get to here, then there's no more room for new parameters. */
-      queue-message("WebSpeed":U, "set-user-field: maximum number of entries" +
+      queue-message("WebSpeed":U, "set-user-field: ":U + "maximum number of entries" +
                                   " {&MAX-USER-FIELDS} exceeded").
       ASSIGN i = ?.
     END.
@@ -728,7 +915,7 @@ Input Parameters: p_cookie -- the new cookie value..
   IF p_cookie NE wseu-cookie THEN DO:
     /* Save the new value. */
     ASSIGN wseu-cookie = p_cookie.
-    IF p_cookie eq "":U THEN 
+    IF p_cookie eq "" THEN 
       RETURN delete-cookie ({&WSEU-NAME}, ?, ?).   
     ELSE DO:
       IF NOT cfg-eval-mode THEN
@@ -790,7 +977,7 @@ Global Variables: url_unsafe, url_reserved
  
   /* Don't bother with blank or unknown  */
   IF LENGTH(p_value) = 0 OR p_value = ? THEN 
-    RETURN "":U.
+    RETURN "".
    
   /* What kind of encoding should be used? */
   CASE p_enctype:
@@ -810,7 +997,7 @@ Global Variables: url_unsafe, url_reserved
     ASSIGN
       i = i + 1
       /* ASCII value of character using single byte codepage */
-      c = ASC(SUBSTRING(p_value, i, 1, "RAW":U), "1252", "1252").
+      c = ASC(SUBSTRING(p_value, i, 1, "RAW":U), "1252":U, "1252":U).
     IF c <= 31 OR c >= 127 OR INDEX(encode-list, CHR(c)) > 0 THEN DO:
       /* Replace character with %hh hexidecimal triplet */
       SUBSTRING(p_value, i, 1, "RAW":U) =
@@ -819,7 +1006,7 @@ Global Variables: url_unsafe, url_reserved
         SUBSTRING(hx, c MODULO 16 + 1, 1, "RAW":U).             /* low digit */
       ASSIGN i = i + 2.   /* skip over hex triplet just inserted */
     END.
-    IF i = LENGTH(p_value,"RAW") THEN LEAVE.
+    IF i = LENGTH(p_value,"RAW":U) THEN LEAVE.
   END.
 
   RETURN p_value.
@@ -864,6 +1051,7 @@ Input Parameters: List of field names (available via get-value),
 Returns: Encoded name and value pairs
 ****************************************************************************/
   DEFINE VARIABLE i AS INTEGER NO-UNDO.
+  DEFINE VARIABLE j AS INTEGER NO-UNDO.
   DEFINE VARIABLE v-item AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
   DEFINE VARIABLE v-out AS CHARACTER NO-UNDO.
@@ -873,7 +1061,9 @@ Returns: Encoded name and value pairs
   /* blank delimiter uses the default */
   IF p_delim = "" THEN p_delim = ?.
 
-  DO i = 1 TO NUM-ENTRIES(p_name-list):
+  ASSIGN j = NUM-ENTRIES(p_name-list).
+
+  DO i = 1 TO j:
     ASSIGN
       v-item = ENTRY(i, p_name-list)
       v-value = get-value(v-item).

@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -19,7 +19,7 @@
                     dialog should run.  The mode should be one of the 
                     following:
                     
-                    1-11 Modes 1 through 11 tell the utility that this
+                    1-15 Modes 1 through 15 tell the utility that this
                          dialog has been called by an Auditing Report.
                          
                          Auditing Reports require only Audit Reader 
@@ -43,6 +43,7 @@
     kmcintos July 19, 2005 Fixed security stuff and adapted for general usage 
                            to be used with auditing reports.
     kmcintos Oct 28, 2005  Changed help context id depending on usage.
+    fernando Dec 23, 2008  Reports for encryption
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -83,7 +84,7 @@ IF pcMode EQ "y" THEN DO:
   END.
 END.
 /* If running an audit report */
-ELSE IF CAN-DO("1,2,3,4,5,6,7,8,9,10,11",pcMode) THEN DO:
+ELSE IF CAN-DO("1,2,3,4,5,6,7,8,9,10,11,13,14,15",pcMode) THEN DO:
   IF cRoles NE "dba,w"                       AND
      NOT CAN-DO(cRoles,"_sys.audit.admin")   AND
      NOT CAN-DO(cRoles,"_sys.audit.archive") AND
@@ -115,7 +116,7 @@ DEFINE VARIABLE gcNumSep     AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE gcNumDec     AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE gcTitle      AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE gcFunction   AS CHARACTER   NO-UNDO FORMAT "x(50)"
-       EXTENT 11
+       EXTENT 15
        INITIAL ["Audit Policy Changes",
                 "Schema Changes",
                 "Audit Data Administration",
@@ -126,7 +127,11 @@ DEFINE VARIABLE gcFunction   AS CHARACTER   NO-UNDO FORMAT "x(50)"
                 "Authentication Systems Changes",
                 "Client Session Authentication",
                 "Database Utilities",
-                "Database Access"].
+                "Database Access",
+                ?, /* not used - for custom report */
+                "Encryption Policy Changes", 
+                "Key Store Changes",
+                "Database Encryption Administration"].
 
 ASSIGN gcDateFormat           = SESSION:DATE-FORMAT
        gcNumSep               = SESSION:NUMERIC-SEPARATOR
@@ -148,7 +153,7 @@ ELSE IF pcMode = "y" THEN DO:
     iContextId = {&Dump_Audit_Data_Filter_Dialog_Box}.
   &ENDIF
 END.
-ELSE IF CAN-DO("1,2,3,4,5,6,7,8,9,10,11,12",pcMode) THEN DO:
+ELSE IF CAN-DO("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",pcMode) THEN DO:
   CREATE BUFFER ghBuffer FOR TABLE "DICTDB._aud-audit-data".
   gcTitle = "Date Range - " + gcFunction[INTEGER(pcMode)].
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,6 +32,7 @@ Date Created: 02/05/92
               06/08/06 fernando  Added support for int64
               06/13/07 fernando  Support for Clob for DataServers
               02/22/08 fernando Adjust display data type length for Dsrv schemas
+              04/15/09 fernando Support for BLOB for MSS
 ----------------------------------------------------------------------------*/
 
 
@@ -258,6 +259,23 @@ do:
    */
    family = ENTRY(type_ix, user_env[16]).
 
+   /* MSS doesn't allow varbinary(n) support for BLOB */
+   IF family <> "0" AND s_DbCache_Type[s_DbCache_ix] = "MSS" THEN DO:
+      IF CAN-DO("varbinary,longvarbinary",s_Fld_Gatetype) THEN DO:
+         /* varbinary(max) reported as varbinary with zero precision by MSS native driver
+            or as longvarchar for other drivers. But the schema pull sets precision
+            to 32000 in the schema for the native driver case.
+            We do not support varbinary(n) for blob support but (n) can only be
+            a number between 1 and 8000 inclusive  for varbinary(n). 
+            So let's check the varbinary(n) case.
+            Also, if field has the filestream option set, we only support blob mapping.
+         */
+         IF (b_Field._Fld-misc2[4] = "filestream") OR 
+            (b_Field._Fld-misc1[1] >= 1 AND b_Field._Fld-misc1[1] <= 8000) THEN 
+             family = "0".
+      END.
+   END.
+
    if family <> "0" then
    do:
       assign
@@ -430,8 +448,10 @@ else do:
       	 s_Fld_Array:sensitive in {&Frame} = no
       	 b_Field._Extent:sensitive in {&Frame} = no.
 
-   IF (b_Field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) AND ispro THEN DO:
+   IF (b_Field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) THEN DO:
        
+     IF ispro THEN DO:
+
        DISABLE ALL EXCEPT 
               b_Field._Field-Name 
               b_Field._Order
@@ -462,32 +482,37 @@ else do:
        END.
 
        APPLY "entry" to b_Field._Field-Name in {&Frame}.
+     END.
+     ELSE DO: /* DataServers */
 
-   END.
-   ELSE IF (b_field._Dtype = {&DTYPE_BLOB} OR b_Field._Dtype = {&DTYPE_CLOB}) THEN DO:
-     DISABLE all except
-        s_btn_Close
-	    s_btn_Prev
-	    s_btn_Next
-	    s_btn_Help
-	  with {&Frame}.
-
-     ENABLE b_Field._Field-Name 
-            b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
-            b_Field._Desc
-            s_btn_Fld_Gateway  WHEN NOT ispro
-            s_btn_OK
-      	    s_btn_Save
+         DISABLE all except
             s_btn_Close
-            s_btn_Prev
-            s_btn_Next
-            s_btn_Help
-            with {&Frame}.
+    	    s_btn_Prev
+    	    s_btn_Next
+    	    s_btn_Help
+    	  with {&Frame}.
+
+         IF change_type THEN
+            s_lst_Fld_DType:SENSITIVE = YES.
+
+         ENABLE b_Field._Field-Name 
+                s_Fld_DType	     when change_type 
+                s_btn_Fld_DType    when change_type
+                b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
+                b_Field._Desc
+                s_btn_Fld_Gateway  WHEN NOT ispro
+                s_btn_OK
+          	    s_btn_Save
+                s_btn_Close
+                s_btn_Prev
+                s_btn_Next
+                s_btn_Help
+                with {&Frame}.
+     END.
      APPLY "entry" to b_Field._Field-Name in {&Frame}.
    END.
    ELSE DO:
     
-    IF b_field._dtype <> {&DTYPE_BLOB} AND b_field._dtype <> {&DTYPE_CLOB} THEN DO:
    /* ENABLE effects the TAB order */
      enable b_Field._Field-Name 
             s_Fld_DType	     when change_type 
@@ -516,23 +541,6 @@ else do:
       	  s_btn_Next
       	  s_btn_Help
       	  with {&Frame}.
-
-    END.
-    ELSE DO:
-        enable b_Field._Field-Name 
-               s_Fld_DType	     when change_type 
-             b_Field._Order     when s_CurrObj = {&OBJ_FLD} 
-             s_lob_size
-             b_Field._Desc
-             s_btn_OK
-             s_btn_Save
-             s_btn_Close
-             s_btn_Prev
-             s_btn_Next
-             s_btn_Help
-             with {&Frame}.
-
-    END.
 
    /* Now readjust tab orders for stuff not in the ENABLE list but
       which may in fact be sensitive.

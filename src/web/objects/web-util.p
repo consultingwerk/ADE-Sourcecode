@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights*
+* Copyright (C) 2005-2007,2009 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -514,7 +514,7 @@ PROCEDURE init-config :
                 c:\program files\progress\tty\webedit\ *,
                 c:\program files\progress\tty\workshop.r
   */
-  ASSIGN cValue = REPLACE(OS-GETENV("WEB_RUN_PATH":U),';',',').
+  ASSIGN cValue = REPLACE(OS-GETENV("WEB_RUN_PATH":U),';':U,',':U).
   IF cValue > "" THEN
     setAgentSetting("Path":U,"","WebRunPath":U,cValue).
   
@@ -532,21 +532,21 @@ PROCEDURE init-config :
      Save:  Save the r-code after the compile.
      CheckTime: Check the time difference between the source and R-code and 
      compile if source is newer. */    
-  ASSIGN cValue  = REPLACE(OS-GETENV("COMPILE_ON_FLY":U),";",",").
+  ASSIGN cValue  = REPLACE(OS-GETENV("COMPILE_ON_FLY":U),";":U,",":U).
   IF cValue > "" THEN
-    setAgentSetting("Compile":U,"":U, "Options":U,cValue).
+    setAgentSetting("Compile":U,"", "Options":U,cValue).
 
   /* CompileXCODE -- Xcode to be used when compile code. */
   ASSIGN cValue = OS-GETENV("COMPILE_XCODE":U).
   IF cValue > "" THEN
-    setAgentSetting("Compile":U,"","xcode",cValue).
+    setAgentSetting("Compile":U,"","xcode":U,cValue).
 
   /* SessionPath configuration -- path for storing session information.
      This option is not used when using database-driven session storage 
      mechanism. */
   ASSIGN cValue = OS-GETENV("SESSION_PATH":U).
   IF cValue > "" THEN
-    setAgentSetting("Session":U,"","StorePath":U, REPLACE(cValue,"~\","~/")).
+    setAgentSetting("Session":U,"","StorePath":U, REPLACE(cValue,"~\":U,"~/":U)).
 
   /* Set flag that activates state-aware support code. Check for missing value
      for backward compatability. */
@@ -605,7 +605,7 @@ PROCEDURE init-session :
   /* Get configuration settings from ubroker.properties */
   ASSIGN
     cfg-environment  = WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) 
-    cfg-eval-mode    = check-agent-mode("Evaluation") /* TRUE if eval mode */
+    cfg-eval-mode    = check-agent-mode("Evaluation":U) /* TRUE if eval mode */
     cfg-debugging    = WEB-CONTEXT:GET-CONFIG-VALUE("srvrDebug":U) 
     cfg-appurl       = WEB-CONTEXT:GET-CONFIG-VALUE("applicationURL":U)
     cfg-cookiepath   = WEB-CONTEXT:GET-CONFIG-VALUE("defaultCookiePath":U)
@@ -624,17 +624,17 @@ PROCEDURE init-session :
   IF debugging-enabled THEN
     /* The following values are retrieved from the Configuration Manager. */
     ASSIGN
-      cfg-development-mode = cfg-environment BEGINS "Dev"
-      cfg-compile-options  = getAgentSetting("Compile":U, "":U, "Options":U)
-      cfg-compile-xcode    = getAgentSetting("Compile":U, "":U, "xcode":U)
-      cfg-no-save-rcode    = CAN-DO(cfg-compile-options,"NoSave")
-      cfg-checktime        = CAN-DO(cfg-compile-options,"CheckTime")
+      cfg-development-mode = cfg-environment BEGINS "Dev":U
+      cfg-compile-options  = getAgentSetting("Compile":U, "", "Options":U)
+      cfg-compile-xcode    = getAgentSetting("Compile":U, "", "xcode":U)
+      cfg-no-save-rcode    = CAN-DO(cfg-compile-options,"NoSave":U)
+      cfg-checktime        = CAN-DO(cfg-compile-options,"CheckTime":U)
       cfg-compile-on-fly   = cfg-compile-options > "" AND cfg-development-mode
       .
       
   ASSIGN
-    glStateAware = (getAgentSetting("Session":U, "":U, "StateAware":U) = "yes":U)
-    cfg-web-run-path     = getAgentSetting("Path":U, "":U,"WebRunPath":U).
+    glStateAware = (getAgentSetting("Session":U, "", "StateAware":U) = "yes":U)
+    cfg-web-run-path     = getAgentSetting("Path":U, "","WebRunPath":U).
 
 END PROCEDURE.
 
@@ -670,6 +670,8 @@ Output:      Sets global variables defined in src/web/method/cgidefs.i
     SelDelim            = ",":U
     FieldList           = ""
     FieldVar            = "".
+
+  RUN populateWebFieldListTable.
 
   /* Read in the CGI environment variable pairs which are delimited by 
      ASCII 255 characters.  Any literal ASCII 255 values have been encoded
@@ -731,6 +733,75 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-populateWebFieldListTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE populateWebFieldListTable Procedure 
+PROCEDURE populateWebFieldListTable :
+/*------------------------------------------------------------------------------
+  Purpose:     Load field list from form and query into temp-table for quick
+               access. (when form has many fields, lookups are slow)
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE j       AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE iTotal  AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE v-str   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE v-tmp   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE v-lng   AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE useLong AS LOGICAL   NO-UNDO.
+
+  ASSIGN usetttWebFieldList = NO.
+
+  EMPTY TEMP-TABLE ttWebFieldList NO-ERROR.
+
+  ASSIGN v-str = WEB-CONTEXT:GET-CGI-LIST("FORM":U)
+         j = NUM-ENTRIES(v-str) NO-ERROR.
+
+  /* if we failed with a char, number of fields must be too big,
+     so try a longchar 
+  */
+  IF ERROR-STATUS:ERROR THEN DO:
+      ASSIGN v-lng = WEB-CONTEXT:GET-CGI-LIST("FORM":U)
+             j = NUM-ENTRIES(v-lng)
+             useLong = YES.
+  END.
+
+  /* if not more than 100 fields, temp-table may be slower */
+  IF j <= 100 THEN
+      RETURN.
+
+  DO i = 1 TO j:
+    CREATE ttWebFieldList.
+    ASSIGN iTotal = iTotal + 1
+           v-tmp = (IF NOT useLong THEN ENTRY(i, v-str) ELSE ENTRY(i, v-lng))
+           ttWebFieldList.field-num = iTotal
+           ttWebFieldList.field-name = v-tmp
+           ttWebFieldList.field-type = 'F':U.
+    RELEASE ttWebFieldList.
+  END.
+
+  ASSIGN v-str = WEB-CONTEXT:GET-CGI-LIST("QUERY":U)
+         j = NUM-ENTRIES(v-str).
+
+  DO i = 1 TO j:
+    CREATE ttWebFieldList.
+    ASSIGN iTotal = iTotal + 1
+           ttWebFieldList.field-num = iTotal
+           ttWebFieldList.field-name = ENTRY(i, v-str)
+           ttWebFieldList.field-type = 'Q':U.
+    RELEASE ttWebFieldList.
+  END.
+
+  ASSIGN usetttWebFieldList = YES.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-reset-tagmap-utilities) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE reset-tagmap-utilities Procedure 
@@ -758,7 +829,7 @@ PROCEDURE reset-tagmap-utilities :
     tagmapfile = SEARCH({&tagMapFileName})
     i-count    = 0.
   IF tagmapfile EQ ? THEN DO:
-    DYNAMIC-FUNCTION ("logNote" IN web-utilities-hdl, "Error":U,
+    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
                                  "The file '":U + {&tagMapFileName} + "' was not in your PROPATH":U) NO-ERROR.
     RETURN ERROR.
   END.
@@ -779,15 +850,15 @@ PROCEDURE reset-tagmap-utilities :
         tagmap.i-order        = i-count
         tagmap.htm-Tag        = ENTRY(1,next-line)
         tagmap.htm-Type       = (IF num-ent >= 3 THEN 
-                                   ENTRY(3,next-line) ELSE "":U)
+                                   ENTRY(3,next-line) ELSE "")
         tagmap.psc-Type       = (IF num-ent >= 4 
-                                   THEN ENTRY(4,next-line) ELSE "":U)
+                                   THEN ENTRY(4,next-line) ELSE "")
         tagmap.util-Proc-Name = (IF num-ent >= 5 
-                                   THEN ENTRY(5,next-line) ELSE "":U)
+                                   THEN ENTRY(5,next-line) ELSE "")
         .
       
       /* We allow for empty utility procedures. */
-      IF tagmap.util-Proc-Name ne "":U THEN DO:
+      IF tagmap.util-Proc-Name ne "" THEN DO:
         /* If there another tagmap that is already running this procedure? */
         FIND FIRST xtagmap WHERE xtagmap.util-Proc-Name eq tagmap.util-Proc-Name
                              AND RECID(xtagmap) ne RECID(tagmap) NO-ERROR.
@@ -868,7 +939,7 @@ PROCEDURE run-web-object :
   DEFINE VARIABLE tFile                  AS INTEGER    NO-UNDO.
 
   /* Log all runs of workshop in Production */
-  IF cfg-development-mode NE TRUE AND pcFilename MATCHES "workshop*" THEN DO:
+  IF cfg-development-mode NE TRUE AND pcFilename MATCHES "workshop*":U THEN DO:
     ASSIGN
       cLog = SUBSTITUTE("WebSpeed Workshop (&1) was requested by &2",
                          pcFilename, REMOTE_ADDR) NO-ERROR.
@@ -1201,7 +1272,7 @@ FUNCTION devCheck RETURNS LOGICAL
   Purpose:  To check for development mode for security
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) BEGINS "Dev".
+  RETURN WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) BEGINS "Dev":U.
 
 END FUNCTION.
 
@@ -1297,7 +1368,7 @@ Description: Sets and outputs the MIME Content-Type header followed by a
       ASSIGN 
         output-content-type = (IF p_type = "" THEN ? ELSE p_type).
       
-      &IF KEYWORD-ALL("HTML-CHARSET") <> ? &THEN  
+      &IF KEYWORD-ALL("HTML-CHARSET":U) <> ? &THEN  
       /* Add MIME codepage, if available. */
       IF output-content-type BEGINS TRIM("text/html":U) 
          AND INDEX(output-content-type, "charset":U) = 0
@@ -1407,13 +1478,13 @@ FUNCTION showErrorScreen RETURNS LOGICAL
      and other similar things.  This would mean another input parameter would
      need to be added for error type. */
   ASSIGN FILE-INFO:FILE-NAME = 
-    SEARCH(getAgentSetting("Misc":U, "":U, "ErrorProc":U)) NO-ERROR.
+    SEARCH(getAgentSetting("Misc":U, "", "ErrorProc":U)) NO-ERROR.
     
   IF FILE-INFO:FULL-PATHNAME NE ? THEN 
     RUN VALUE(FILE-INFO:FULL-PATHNAME)(cErrorMsg) NO-ERROR.
   ELSE DO:
-    DYNAMIC-FUNCTION("output-content-type" IN web-utilities-hdl,"text/html").
-    {&OUT} "<BR>" cErrorMsg "<BR>".
+    DYNAMIC-FUNCTION("output-content-type":U IN web-utilities-hdl,"text/html":U).
+    {&OUT} "<BR>":U cErrorMsg "<BR>":U.
   END.
 
 END FUNCTION.
@@ -1433,8 +1504,8 @@ FUNCTION trueRandom RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
   RETURN STRING(RANDOM(1000,9999))             +
-         ENTRY(3,WEB-CONTEXT:EXCLUSIVE-ID,":") + 
-         ENTRY(4,WEB-CONTEXT:EXCLUSIVE-ID,":").
+         ENTRY(3,WEB-CONTEXT:EXCLUSIVE-ID,":":U) + 
+         ENTRY(4,WEB-CONTEXT:EXCLUSIVE-ID,":":U).
 
 END FUNCTION.
 
@@ -1457,7 +1528,7 @@ FUNCTION webCompile RETURNS CHARACTER
   DEFINE VARIABLE cReturn     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE ix          AS INTEGER    NO-UNDO.
   
-  IF cFile MATCHES "*.html" OR cFile MATCHES "*.htm" THEN DO:
+  IF cFile MATCHES "*.html":U OR cFile MATCHES "*.htm":U THEN DO:
     RUN webutil/e4gl-gen.p (SEARCH(cFile), INPUT-OUTPUT object-type, 
                             INPUT-OUTPUT cTempFile) NO-ERROR.
     IF ERROR-STATUS:ERROR THEN 
@@ -1477,15 +1548,15 @@ FUNCTION webCompile RETURNS CHARACTER
     COMPILE VALUE(cTempFile) SAVE NO-ERROR.
   END.
   IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
-    cReturn = "<h1>Compile Error: " + cFile + "</h1>".
+    cReturn = "<h1>Compile Error: " + cFile + "</h1>":U.
     DO ix = 1 TO ERROR-STATUS:NUM-MESSAGES:
-      cReturn = cReturn + "<br>" + ERROR-STATUS:GET-MESSAGE(ix).
+      cReturn = cReturn + "<br>":U + ERROR-STATUS:GET-MESSAGE(ix).
     END.
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "COMPILE":U,
          "ERROR:" + ERROR-STATUS:GET-MESSAGE(ix)) NO-ERROR.
   END.
   ELSE DO: 
-    cReturn = "OK".
+    cReturn = "OK":U.
     IF cTempFile > "" AND cTempFile <> cFile THEN
       OS-DELETE VALUE(cTempFile) NO-ERROR.
   END.

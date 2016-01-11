@@ -70,7 +70,7 @@ case error_num:
         when 17 then l2 = "The is no space left on the device.".
         when 18 then l2 = "The directory is not empty.".
         otherwise 
-		l2 = "Unmapped error number: " + string(error_num,"ddd"). 
+		    l2 = "Unmapped error number: " + (if error_num = ? then "?" else string(error_num)). 
 end case.
 
 message l1 skip l2 skip extra_text  view-as alert-box warning buttons ok.

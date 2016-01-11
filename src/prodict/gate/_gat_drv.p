@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -11,6 +11,8 @@
    prodict/gate/_gat_drv.p
    
    History:  D. McMann 09/05/01  Added support for versioning of SQL Server
+             Rohit     02/20/09  OE00128393- Call dictgate.i with user_dbtype
+				 instead of user_dbname
 */   
 
 { prodict/dictvar.i }
@@ -22,7 +24,7 @@ DEFINE VARIABLE phynam AS CHARACTER NO-UNDO.
 DEFINE VARIABLE c      AS CHARACTER NO-UNDO.
 
 phynam = user_dbname.
-{ prodict/dictgate.i &action=query &dbtype=user_dbname &dbrec=? &output=c }
+{ prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=c }
 IF ENTRY(5,c) MATCHES "*p*" THEN DO: /* physical name applies */
   FIND _Db WHERE RECID(_Db) = drec_db NO-LOCK.
   phynam = (IF _Db-addr = "" OR _Db-addr = ? THEN user_dbname ELSE _Db-addr).

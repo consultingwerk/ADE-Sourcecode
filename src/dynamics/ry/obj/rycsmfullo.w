@@ -376,7 +376,7 @@ FUNCTION getLinkObjectName RETURNS CHARACTER
       WHERE ryc_smartobject.smartobject_obj EQ ryc_object_instance.smartobject_obj:
 
       RETURN ryc_smartobject.OBJECT_filename.
-      LEAVE.
+    
 
   END.
 

@@ -23,6 +23,7 @@
 DEFINE VARIABLE giSequence AS INTEGER   NO-UNDO.
 DEFINE VARIABLE giCycle    AS INTEGER   NO-UNDO INIT 1000.
 
+&SCOPED-DEFINE tempfileextension "tmp"
 &SCOP ADMSuper lobfield.p
 
   /* Custom exclude file */
@@ -119,6 +120,17 @@ FUNCTION getLOBFileName RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLOBReference Procedure 
 FUNCTION getLOBReference RETURNS CHARACTER
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTempFileNamePrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTempFileNamePrefix Procedure 
+FUNCTION getTempFileNamePrefix RETURNS CHARACTER
+  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -329,13 +341,14 @@ FUNCTION deleteLOBFile RETURNS LOGICAL
   Purpose: Delete the current LOB File  
     Notes: Returns true if the file was deleted
            returns false if it was not.  
-           Unknown is returned if the LOBFileName was not defined.
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cLOBFileName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iError        AS INTEGER    NO-UNDO.   
-
+    
   {get LOBFileName cLOBFileName}.
-  IF cLOBFileName BEGINS SESSION:TEMP-DIR THEN
+  /* ensure we don't delete lobs added with assignLOBFileName */
+  IF cLOBFileName BEGINS {fn getTempFileNamePrefix}
+  AND ENTRY(NUM-ENTRIES(cLobfilename,"."),cLobfilename,".") = {&tempfileextension}  THEN
   DO:
     OS-DELETE VALUE(cLOBFileName).
     iError = OS-ERROR.
@@ -355,7 +368,7 @@ FUNCTION deleteLOBFile RETURNS LOGICAL
     END.
   END. /* LOBFileName > '' */
   
-  RETURN ?. /* nothing done */   
+  RETURN FALSE. /* nothing done */   
 
 END FUNCTION.
 
@@ -505,6 +518,34 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getTempFileNamePrefix) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTempFileNamePrefix Procedure 
+FUNCTION getTempFileNamePrefix RETURNS CHARACTER
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the fixed part of the temp-file name used to store 
+           the lob. 
+    Notes: This is used in newTempfileName to generate the name and in 
+           deleteLOBfile to avoid deleting it. (we used to check -T only, but 
+           customers might not define -T and it defaults to work dir.) 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cFieldName AS CHARACTER   NO-UNDO.
+  {get FieldName cFieldName}.
+
+  RETURN SESSION:TEMP-DIR 
+         + "tmplob-"
+         + cFieldName
+         + "-" 
+         + STRING(TARGET-PROCEDURE). 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getTempLocation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTempLocation Procedure 
@@ -552,13 +593,11 @@ FUNCTION newTempFileName RETURNS CHARACTER
   ELSE
     giSequence = giSequence + 1.
 
-  RETURN SESSION:TEMP-DIR 
-         + cFieldName
-         + "-":U
-         + STRING(TARGET-PROCEDURE) 
-         + "-":U
+  RETURN {fn getTempFileNamePrefix} 
          + STRING(giSequence,cFormat)
-         + ".tmp".
+         + "."
+         + {&tempfileextension}.
+         
 
 END FUNCTION.
 

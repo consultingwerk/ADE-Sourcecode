@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,6 +41,7 @@ History:
     06/08/06  fernando      Support for large key entries
     10/03/07  fernando      Fixed delimiter issue on area name list - OE00135682
     11/16/07  fernando      Support for _aud-audit-data* indexes deactivation
+    06/26/08  fernando      Filter out schema tables for encryption
 
 ----------------------------------------------------------------------------*/
 
@@ -556,7 +557,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     END.
     ELSE DO:
       FIND FIRST _Area WHERE _Area._Area-number > 6
-                         AND _Area._Area-type = 6 NO-ERROR.
+                         AND _Area._Area-type = 6 
+                         AND NOT CAN-DO ({&INVALID_AREAS}, _Area._Area-name) NO-ERROR.
       ASSIGN arealist = (IF AVAILABLE _AREA THEN _Area._Area-name
                             ELSE "N/A").
       ASSIGN areaname:LIST-ITEMS  IN FRAME idx_top = "" 
@@ -711,6 +713,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
              arealist = ?.
       FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
                         AND DICTDB._Area._Area-type = 6
+                        AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
                         NO-LOCK. 
         IF arealist = ? THEN
           ASSIGN arealist  = DICTDB._Area._Area-name

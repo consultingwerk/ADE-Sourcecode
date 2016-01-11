@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007,2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -81,9 +81,9 @@ History
                             deselct already selected tables
     fernando    03/13/06    Using temp-table to store table names - bug 20050930-006.
     fernando    12/13/07    Handle long list of selected tables
+    fernando    08/04/09    fixed select some for temp-table case
                             
 ----------------------------------------------------------------------------*/
-
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -343,7 +343,25 @@ do:
          IF l_cache_tt AND choice = "*ALL*" THEN
             ASSIGN choice = "".
 
-         do ix = 1 to cache_file#:
+         IF l_cache_tt THEN DO:
+             /* look for tables in the temp-table */
+            FOR EACH tt_cache_file NO-LOCK:
+                 if CAN-DO(pattern, tt_cache_file.cName) 
+                     AND NOT LOOKUP( tt_cache_file.cName, choice) > 0 THEN DO:
+                     IF choice = "" THEN
+                        ASSIGN choice = tt_cache_file.cName.
+                     ELSE
+                        ASSIGN choice = choice + "," + tt_cache_file.cName NO-ERROR.
+                     IF ERROR-STATUS:ERROR THEN DO:
+                        MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                 SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                 VIEW-AS ALERT-BOX ERROR.
+                        LEAVE.
+                     END.
+                 END.
+            END.
+         END.
+         ELSE do ix = 1 to cache_file#:
           if   CAN-DO(pattern, cache_file[ix]) 
        	   AND NOT LOOKUP(cache_file[ix], choice) > 0
              then do:

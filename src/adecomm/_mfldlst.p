@@ -192,14 +192,16 @@ DO v_ListCnt = 1 to MINIMUM(50,NUM-ENTRIES(p_TblList)):
         /* p_TT is in the format of dbname.tablename|temp-tablename|type
            where type is "T" for temp-table or "B" for buffer */        
         ASSIGN cTTName = ENTRY(2, ENTRY(iNumTT, p_TT), "|":U)
-               cType   = ENTRY(2, ENTRY(iNumTT, p_TT), "|":U).
+               cType   = ENTRY(3, ENTRY(iNumTT, p_TT), "|":U).
         /* If this is a buffer then we don't want to replace the db table name with "Temp-Tables",
            we want to replace it with nothing so that only the buffer name and field name
            display on the Available Fields list */
         IF ENTRY(2, p_List:ENTRY(i), ".":U) = cTTName THEN DO:
+          /* prepend dbname with blank for replace to avoid replacing table and fields */  
           IF cType = "B":U THEN
-            p_List:REPLACE(REPLACE(p_List:ENTRY(i), v_LDBNames[v_ListCnt] + ".":U, ""), i).
-          ELSE p_List:REPLACE(REPLACE(p_List:ENTRY(i), v_LDBNames[v_ListCnt], "Temp-Tables":U), i).
+            p_List:REPLACE(REPLACE(" " + p_List:ENTRY(i), " " + v_LDBNames[v_ListCnt] + ".":U, ""), i).
+          ELSE 
+            p_List:REPLACE(REPLACE(" " + p_List:ENTRY(i)," " + v_LDBNames[v_ListCnt], "Temp-Tables":U), i).
         END.  /* if list item = temp-table name */                                                                                       
       END.  /* REPEAT - for each temp-table defined */
     END. /* For each item */

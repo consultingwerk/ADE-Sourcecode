@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000, 2009 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -8,6 +8,7 @@
 /* _sndinfo.p - 
 
    History:  DLM Removed warning message about driver not being certified 11/23/98
+   nagaraju 10/21/09 Support for computed column RECID in MSSDS - OE00186593 
 
 */
 { prodict/dictvar.i }
@@ -37,9 +38,10 @@ FOR EACH DICTDBG.GetInfo_buffer:
         DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " +
   			 DICTDBG.GetInfo_buffer.dbms_version 
         DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
-        DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver                +
-  		       " Client Ver#: " + DICTDBG.GetInfo_buffer.prgrs_clnt  +
-  		       " Server Ver# "  + DICTDBG.GetInfo_buffer.prgrs_srvr.
+        DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver  +
+  		       ",Client Ver #:" + DICTDBG.GetInfo_buffer.prgrs_clnt  +
+  		       ",Server Ver #:" + DICTDBG.GetInfo_buffer.prgrs_srvr  +
+		       ",".
 
         driver-prefix = IF DICTDB._Db._Db-misc2[1] BEGINS "QE" THEN
   		      SUBSTRING(DICTDB._Db._Db-misc2[1], 1,

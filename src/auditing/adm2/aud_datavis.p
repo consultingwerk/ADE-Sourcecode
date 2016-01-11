@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -5561,7 +5561,7 @@ FUNCTION hasActiveAudit RETURNS LOGICAL
   DO:
     ghTargetProcedure = TARGET-PROCEDURE.
     RETURN {fn hasActiveAudit hSource}.
-    ghTargetProcedure = ?.
+     /*ghTargetProcedure = ?.*/ /* unreachable */
   END.
 
   RETURN FALSE. 
@@ -5589,7 +5589,7 @@ FUNCTION hasActiveComments RETURNS LOGICAL
   DO:
     ghTargetProcedure = TARGET-PROCEDURE.
     RETURN {fn hasActiveComments hSource}.
-    ghTargetProcedure = ?.
+    /*ghTargetProcedure = ?.*/ /* unreachable */
   END.
 
   RETURN FALSE. 

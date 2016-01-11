@@ -2968,7 +2968,8 @@ Parameters: INPUT phField - The handle of the actual filter field
             ROW              = phField:ROW
             HIDDEN           = FALSE
             WIDTH-PIXELS     = MIN(phField:X,iLabelLength)
-            FORMAT           = "x(":U + STRING(LENGTH(pcLabel) + 1) + ")":U
+                               /* length(label,"column") ensures double byte is treated right as well */ 
+            FORMAT           = "x(":U + STRING(LENGTH(pcLabel,"COLUMN":U) + 1) + ")":U
             SCREEN-VALUE     = pcLabel + ":":U
             HEIGHT-PIXELS    = SESSION:PIXELS-PER-ROW.
    

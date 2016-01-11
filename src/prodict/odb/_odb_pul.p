@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2009 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -56,7 +56,9 @@ History:
                         _BUFFER_ - 20060425-009
     fernando   10/06/06 Check object name in case it has underscore - 20031205-003                        
     knavneet   07/25/07 For DB2/400, append Library name to _Db-misc2[1]
-    rkumar     06/24/09 OE00178256
+    rkumar     12/10/08 Fixed OE00178256 For iSeries Access ODBC driver 
+    rkumar     05/05/09 Added RECID support for ODBC DataServer- OE00177721
+    rkumar     10/15/09 Sybase DataServer- added COMMIT statement- OE00164101
 */
 
 /*
@@ -199,6 +201,10 @@ DEFINE VARIABLE clnt_vers        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE odb_perform_mode AS CHARACTER NO-UNDO.
 DEFINE VARIABLE is_db2           AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE is_as400         AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE tblrem_sql       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE dfth             AS INTEGER   NO-UNDO.
+DEFINE VARIABLE h                AS INTEGER   NO-UNDO INIT ?. 
+DEFINE VARIABLE ret_ok           AS LOGICAL   NO-UNDO INIT YES. 
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -385,8 +391,8 @@ RUN prodict/odb/_odb_typ.p
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
        assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name )
-              is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"AS/400") > 0 OR  
-                         INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"DB2/400") > 0.
+              is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"AS/400") > 0 OR 
+                         INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"DB2/400") > 0.  
     end.
 
     CLOSE STORED-PROC DICTDBG.GetInfo.
@@ -434,6 +440,19 @@ assign
 
 if bug22 then RUN error_handling(6, "", "").
 if bug34 then escp = "".
+
+/* OE00164101- only for Sybase datasource
+             - running an explicit COMMIT SQL because pseudo   
+               stored-procs cannot be run in a transaction */
+IF (INDEX(_Db._Db-misc2[5], "SQL Server") <> 0) THEN DO:
+        RUN STORED-PROC DICTDBG.send-sql-statement
+           h = PROC-HANDLE NO-ERROR ("COMMIT ").
+        assign ret_ok  = NOT ERROR-STATUS:ERROR.
+        if ret_ok then  
+          CLOSE STORED-PROC DICTDBG.send-sql-statement where PROC-HANDLE = h .
+        else 
+          run error_handling(4,"COMMIT","","error"). 
+END. 
 
 /*---------------------------- MAIN-LOOP ---------------------------*/
 ASSIGN is_db2 = INDEX(UPPER(_Db._Db-misc2[8]), "DB2") > 0.
@@ -598,6 +617,25 @@ for each gate-work
               OUTPUT table_comment
             ).
 
+      /* SEND-SQL to get table remarks from SYSTABLES catalog table */
+      IF is_as400 THEN DO:
+          ASSIGN tblrem_sql = "select table_text from qsys2.systables where " + 
+                              " table_name  = '" + DICTDBG.SQLTables_buffer.NAME +
+                              "' and table_schema = '" + DICTDBG.SQLTables_buffer.OWNER +
+                              "' ".
+          RUN STORED-PROC DICTDBG.send-sql-statement dfth = PROC-HANDLE NO-ERROR ( tblrem_sql ).
+
+          IF ERROR-STATUS:ERROR THEN ASSIGN table_comment = ?. 
+          ELSE DO:
+              FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth:
+                  ASSIGN table_comment = proc-text.
+              END.
+          CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth.
+          END.
+
+          IF table_comment <> ? THEN 
+             ASSIGN table_comment = TRIM(TRIM(TRIM(table_comment),"'")).
+      END. /* End of is_as400 block to fetch table_text from SYSTABLES */
     end.
 
     CLOSE STORED-PROC DICTDBG.SQLTables.
@@ -689,15 +727,21 @@ for each gate-work
          DICTDBG.GetFieldIds_buffer.field-name BEGINS '_PROGRESS_ROWID' OR
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID' OR
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO:                 
-        IF s_ttb_tbl.ds_recid = 0 THEN 
+        IF s_ttb_tbl.ds_recid = 0 THEN DO:
           ASSIGN s_ttb_tbl.ds_recid = i
-                 s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name
-                 i = i + 1.
-               
+                 s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
+          IF is_as400 THEN ASSIGN s_ttb_tbl.ds_msc22 = string(i) + ",".
+          ASSIGN i = i + 1.
+        END. /* s_ttb_tbl.ds_recid = 0 */
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 6)) = "_IDENT_"
-           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ","
-                       i = i + 1.
+           THEN DO: /* OE00135573 fixed along with RECID implementation */
+             IF is_as400 THEN 
+                    assign s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + "," + string(i) + ",".
+             ELSE 
+                    assign s_ttb_tbl.ds_msc22 = string(i) + ",".
+           ASSIGN i = i + 1.
+         END.
                    
         NEXT _loop.
       END.  

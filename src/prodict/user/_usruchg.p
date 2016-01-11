@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -9,6 +9,7 @@
 
 History: 07/09/98 D. McMann Added AND _File._Owner = "PUB" to FIND _File
          10/23/02 D. McMann Changed BLANK to PASSWORD-FIELD
+         09/22/09 fernando  Reset other can-fields when unsetting sec admin
 
 */
 
@@ -401,6 +402,24 @@ DO FOR _User TRANSACTION ON ERROR UNDO,RETRY:
         ASSIGN
           _File._Can-create = "*"
           _File._Can-delete = "*".
+
+        FIND _File "_Db-Option" NO-ERROR.
+        IF AVAILABLE _File THEN
+            ASSIGN _File._Can-create = "*" 
+                   _File._Can-write = "*"
+                   _File._Can-delete = "*".
+
+        FIND _File "_Db-Detail" NO-ERROR.
+        IF AVAILABLE _File THEN
+            ASSIGN _File._Can-create = "*" 
+                   _File._Can-write = "*"
+                   _File._Can-delete = "*".
+
+        FIND _File "_Db".
+        FIND _Field "_Db-guid" OF _File NO-ERROR.
+        IF AVAILABLE _Field THEN
+            ASSIGN _Field._Can-write = "*".
+
       END.
 
       LEAVE qbf_inner.

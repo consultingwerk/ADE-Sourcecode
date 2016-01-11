@@ -6007,11 +6007,11 @@ PROCEDURE selectPage :
         RETURN.
   END.
   
-  /* Objects use this to avoid disabling links during hideObject - linkState 
-     if they are about to become active/visible */
-  {set PendingPage piPageNum}.
   IF iCurrentPage NE 0 then
   do:
+    /* Objects use this to avoid disabling links during hideObject - linkState 
+       if they are about to become active/visible */
+    {set PendingPage piPageNum}.
     RUN notifyPage IN TARGET-PROCEDURE ("hideObject":U).
     if iPendingPage = ? then
       {set PendingPage ?}.

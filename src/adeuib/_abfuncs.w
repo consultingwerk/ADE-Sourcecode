@@ -1996,6 +1996,8 @@ FUNCTION validate-format RETURNS LOGICAL
         test = STRING(NOW,pFormat).
       WHEN "recid":U THEN 
         test = STRING(0,pFormat).
+      WHEN "clob" or WHEN "blob" THEN
+        test = "ok". /* no format needed/used */  
     END CASE.         
   END.
   RETURN test <> "":U.  

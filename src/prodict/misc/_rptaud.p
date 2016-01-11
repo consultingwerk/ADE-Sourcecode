@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -16,16 +16,21 @@ Description:
 Input:
    drec_db     = RECID of current database
    user_env[9] = Numeric Identifier of the report being called.
-                 1    = User Account Changes Report
-                 2    = Database Administration Changes Report
-                 3    = Audit Policy Changes Report
-                 4    = Audit Permissions Changes Report
-                 5    = Application Data Changes Report
-                 6    = Database Schema Changes Report
-                 7    = Authentication System Changes Report
-                 8    = Application/Database Access Report (Logins/Logouts/etc.)
-                 9    = Audit Data Administration Report
-                 10   = Application Data Administration Report
+                 1    = Audit Policy Changes Report
+                 2    = Database Schema Changes Report
+                 3    = Audit Data Administration Report
+                 4    = Application Data Administration Report
+                 5    = User Account Changes Report
+                 6    = Audit Permissions Changes Report
+                 7    = Database Administration Changes Report
+                 8    = Authentication System Changes Report
+                 9    = Client Session Authentication
+                10    = Application/Database Access Report (Logins/Logouts/etc.)
+                11    = Database Access Report
+                12    = Custom Report
+                13    = Encryption Policy Changes
+                14    = Key-store Changes 
+                15    = Database Encryption Administration (Utilities)
  
 Author: Kenneth S. McIntosh
 
@@ -35,6 +40,7 @@ History:
     kmcintos Aug 2, 2005  Changed permission check 20050721-007.
     kmcintos Jan 4, 2006  Changed permission list to audit reader and audit 
                           admin 20051108-060.
+    fernando Dec 23,2008  Adding encryption related reports                     
 ----------------------------------------------------------------------------*/
 
 &GLOBAL-DEFINE NOTTCACHE 1

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,6 +14,9 @@
                                 called from options other than "Dump Contents" 
                                 and "Edit Security". 20050427-022
            fernando  03/13/06 Using temp-table to hold table names - bug 20050930-006
+           fernando  06/26/08 Filter encryption schema table out from cache
+           fernando  08/04/09 Put a limit on the size of the table array before
+                              switching to the temp-table approach.
 
 */
 
@@ -33,6 +36,7 @@ DEFINE INPUT PARAMETER p_hidden AS LOGICAL NO-UNDO.
 
 DEFINE VARIABLE c      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE useVar AS LOGICAL   NO-UNDO INIT YES.
+DEFINE VARIABLE totLen AS INT       NO-UNDO.
 
 /* 20050930-006 - get rid of the caching information */
 EMPTY TEMP-TABLE tt_cache_file NO-ERROR.
@@ -57,6 +61,7 @@ IF p_hidden
  THEN FOR EACH DICTDB._File
     WHERE DICTDB._File._Db-recid = drec_db
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
+      AND NOT CAN-DO({&INVALID_SCHEMA_TABLES},DICTDB._File._File-name)
     BY DICTDB._File._File-name:
   
     /* If this is an Audit table, show only if this was called by a 
@@ -107,7 +112,13 @@ PROCEDURE addEntry:
 
        ASSIGN cache_file[cache_file#] = cTableName NO-ERROR.
 
-       IF ERROR-STATUS:ERROR THEN DO:
+       ASSIGN totLen = totLen + LENGTH(cTableName).
+
+       /* OE00163260
+          Check the size of the array to leave some room for other things
+          as the var is compiled as undo.
+       */
+       IF totlen > 25000 OR ERROR-STATUS:ERROR THEN DO:
            /* if an error occurred, it could be because there are too many
               tables, or we hit the limit on the character variable size
               (cache_file), so we will use a temp-table to hold the table

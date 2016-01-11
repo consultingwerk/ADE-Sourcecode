@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,6 +39,7 @@ form.
     fernando   05/24/06 int64 support - initial value                        
     fernando   06/08/06 int64 support - type change
     fernando   08/10/06 Handle too many tables in db - 20060717-022
+    fernando   06/26/08 Filter out schema tables for encryption
 */     
 
 DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
@@ -864,6 +865,8 @@ IF dfields._Data-type = "BLOB" THEN DO:
     ASSIGN arealist = ?
            lobarea = ?.
     FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
+                            AND DICTDB._Area._Area-type = 6
+                            AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
                             NO-LOCK. 
       IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
                                        AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN
@@ -918,6 +921,8 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
            cplist = ?
            collist = ?.
     FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
+                            AND DICTDB._Area._Area-type = 6
+                            AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
                             NO-LOCK. 
       IF CAN-FIND(FIRST DICTDB._File WHERE RECID(DICTDB._File) = drec_file
                                        AND DICTDB._File._ianum = DICTDB._Area._Area-Num) THEN

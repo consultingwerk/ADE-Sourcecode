@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -55,9 +55,15 @@ FUNCTION get-cgi-long           RETURNS LONGCHAR
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.
 FUNCTION get-field              RETURNS CHARACTER
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.
+FUNCTION get-fieldEx            RETURNS LONGCHAR
+  (INPUT p_name                 AS CHARACTER) {&FORWARD}.
+FUNCTION get-from-form-fields   RETURNS LOGICAL
+  (INPUT p_name                 AS CHARACTER) {&FORWARD}.
 FUNCTION get-long-value         RETURNS LONGCHAR
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.
 FUNCTION get-value              RETURNS CHARACTER
+  (INPUT p_name                 AS CHARACTER) {&FORWARD}.
+FUNCTION get-valueEx            RETURNS LONGCHAR
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.
 FUNCTION get-user-field         RETURNS CHARACTER
   (INPUT p_name                 AS CHARACTER) {&FORWARD}.

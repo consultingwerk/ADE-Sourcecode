@@ -1256,11 +1256,6 @@ PROCEDURE adjustTabOrder :
 
   RETURN NO-APPLY.
 
-  /* Code placed here will execute PRIOR to standard behavior. */
-
-  RUN SUPER( INPUT phObject, INPUT phAnchor, INPUT pcPosition).
-
-  /* Code placed here will execute AFTER standard behavior.    */
 
 END PROCEDURE.
 

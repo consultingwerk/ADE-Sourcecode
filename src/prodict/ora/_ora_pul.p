@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ History:
     mcmann     03/20/01 Added support for decending indexes
     mcmann     05/11/01 Change unique condition to be = 1
     fernando   06/11/07 Unicode support
+    fernando   12/31/08 don't set mandatory for blob/clob fields
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -81,7 +82,7 @@ DEFINE VARIABLE h1 AS INTEGER NO-UNDO.
                        ELSE ds_columns.default$
                     )"
   &length        = "ds_columns.length_"
-  &mand          = "(ds_columns.null$ <> 0)"
+  &mand          = "((ds_columns.null$ <> 0) AND (LOOKUP(l_dt,""""BLOB,BFILE,CLOB,NCLOB"""") = 0))"
   &msc23         =  "s_ttb_fld.ds_msc23"
   &name          = "ds_columns.name"
   &objid         = "obj#"

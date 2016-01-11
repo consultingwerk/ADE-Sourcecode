@@ -1334,8 +1334,6 @@ FUNCTION trimMode RETURNS CHARACTER
   DO ix = 1 TO NUM-ENTRIES(cMode):
     IF pValue BEGINS ENTRY(ix, cMode) THEN DO:
       RETURN ENTRY(1, TRIM(TRIM(pValue, ENTRY(ix, cMode))), " ":U).
-      lFound = TRUE.
-      LEAVE.
     END.
   END.
   IF NOT lFound THEN

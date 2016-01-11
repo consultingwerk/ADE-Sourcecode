@@ -1089,8 +1089,6 @@ FUNCTION getFuncLibHandle RETURNS HANDLE
   END.
   RETURN ghFuncLib.   /* Function return value. */
 
-  RETURN ?.   /* Function return value. */
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

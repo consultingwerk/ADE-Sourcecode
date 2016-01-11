@@ -5565,16 +5565,17 @@ FUNCTION hasActiveAudit RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hSource AS HANDLE     NO-UNDO.
-
+  define variable lOk     as logical no-undo.
+  
   {get DataSource hSource}.
   IF VALID-HANDLE(hSource) THEN
   DO:
     ghTargetProcedure = TARGET-PROCEDURE.
-    RETURN {fn hasActiveAudit hSource}.
+    lOk = {fn hasActiveAudit hSource}.
     ghTargetProcedure = ?.
   END.
-
-  RETURN FALSE. 
+  
+  RETURN lOk. 
 
 END FUNCTION.
 
@@ -5593,16 +5594,17 @@ FUNCTION hasActiveComments RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hSource AS HANDLE     NO-UNDO.
+  define variable lOk     as logical no-undo.
   
   {get DataSource hSource}.
   IF VALID-HANDLE(hSource) THEN
   DO:
     ghTargetProcedure = TARGET-PROCEDURE.
-    RETURN {fn hasActiveComments hSource}.
+    lOk = {fn hasActiveComments hSource}.
     ghTargetProcedure = ?.
   END.
 
-  RETURN FALSE. 
+  RETURN lOk. 
 
 END FUNCTION.
 

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -964,6 +964,13 @@ PROCEDURE save-data :
         /* if any error occurred, abort the whole update */
         IF DATASET dsAudPolicy:ERROR THEN
            UNDO, LEAVE.
+
+        /* OE00181502  - must release the buffer so that any changes
+           to it get written to the db now, before we refresh the 
+           policy cache 
+         */
+        IF hPolicyBuffer:AVAILABLE THEN
+           hPolicyBuffer:BUFFER-RELEASE().
 
         /* if all went well, let's tell the db to refresh its cache */
         AUDIT-POLICY:REFRESH-AUDIT-POLICY(pcDbName).

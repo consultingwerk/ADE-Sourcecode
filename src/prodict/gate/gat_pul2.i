@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2007-2009 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -37,6 +37,7 @@ History:
     mcmann    04/09/03  Changed parameters for error message 2 to just table name
     fernando  06/12/06  Support for int64
     fernando  02/14/08  Support for datetime
+    fernando  06/19/09  Support for datetime-tz
 
 --------------------------------------------------------------------*/
 if      CAN-DO(l_char-types,s_ttb_fld.ds_type)    /**** CHARACTERS ****/
@@ -288,7 +289,7 @@ assign
   DO:
     IF s_ttb_fld.pro_init = ? THEN LEAVE _init.
     ELSE IF s_ttb_fld.pro_init = "TODAY" AND s_ttb_fld.pro_type = "DATE" THEN LEAVE _init.
-    ELSE IF s_ttb_fld.pro_init = "NOW" AND s_ttb_fld.pro_type = "DATETIME" THEN LEAVE _init.
+    ELSE IF s_ttb_fld.pro_init = "NOW" AND s_ttb_fld.pro_type BEGINS "DATETIME" THEN LEAVE _init.
     ELSE DO i = 1 to LENGTH(s_ttb_fld.pro_init):
       IF INDEX("abcdefghijklmnopqrstuvwxyz", substring(s_ttb_fld.pro_init,i,1)) > 0 THEN DO:          
         ASSIGN s_ttb_fld.pro_init = ?.

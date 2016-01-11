@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -33,6 +33,10 @@ Input Parameters:
                   10   = Database Administration Report (Utilities)
                   11   = Database Access Report (Login/Logout/etc...)
                   12   = Custom Audit Data Filter
+                  13   = Encryption Policy Changes
+                  14   = Key-store Changes 
+                  15   = Database Encryption Administration (Utilities)
+                  
    pcFilter     - Date Range filter criterea for the selected report
    plAppend     - Whether or not to append an existing file
    piPgLength   - Page length, for output
@@ -50,6 +54,7 @@ History:
                            conflicts 20050920-013.
   kmcintos  Dec 29, 2005   Fixed truncation issues 20051116-041.
   kmcintos  Jan 03, 2006   Fixed printing issue 20051116-043.
+  fernando  Dec 23, 2008   Support for encryption
 ----------------------------------------------------------------------------*/
 CREATE WIDGET-POOL "datasetPool".
 

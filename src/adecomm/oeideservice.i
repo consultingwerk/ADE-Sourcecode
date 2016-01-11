@@ -33,7 +33,7 @@
 DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
 DEFINE NEW GLOBAL SHARED VAR hOEIDEService  AS HANDLE     NO-UNDO.
 
-DEFINE VARIABLE cProcName                   AS CHARACTER  NO-UNDO INITIAL "adecomm/oeideservice.p".
+DEFINE VARIABLE cProcName                   AS CHARACTER  NO-UNDO INITIAL "adecomm/oeideservice.p":U.
 
 
 /* ********************  Preprocessor Definitions  ******************** */

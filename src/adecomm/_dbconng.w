@@ -9,7 +9,7 @@ Use this template to create a new dialog-box. Alter this default template or cre
 &Scoped-define FRAME-NAME Connect
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Connect 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All rights*
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -55,6 +55,7 @@ Created: 04/14/95
          by Laura Stern.
 
 Modified:
+    fernando  05/06/09  support for manual start encryption
     mcmann    02/19/03  Removed AS400SNA
     jep       02/05/02  Issue 3656 : Not enough space for frames in XP
     mcmann    12/17/98  Removed other obsolete networks protocols
@@ -155,10 +156,10 @@ btn_Options Btn_Help
 
 /* Custom List Definitions                                              */
 /* OPTIONAL-FIELDS,ENABLE-OPTIONAL,List-3,List-4,List-5,List-6          */
-&Scoped-define OPTIONAL-FIELDS Network Multi_User Host_Name Service_Name ~
+&Scoped-define OPTIONAL-FIELDS Network Multi_User Pass_Phrase Host_Name Service_Name ~
 User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet Unix_Parms ~
 Unix_Label 
-&Scoped-define ENABLE-OPTIONAL Network Multi_User Host_Name Service_Name ~
+&Scoped-define ENABLE-OPTIONAL Network Multi_User Pass_Phrase Host_Name Service_Name ~
 User_Id Pass_word Trig_Loc btn_filep Parm_File btn_filet Unix_Parms ~
 Unix_Label 
 
@@ -269,6 +270,10 @@ DEFINE VARIABLE Multi_User AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 22 BY .76 NO-UNDO.
 
+DEFINE VARIABLE Pass_Phrase AS LOGICAL INITIAL no 
+     LABEL "Passphrase" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 17 BY .76 NO-UNDO.
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -282,7 +287,8 @@ DEFINE FRAME Connect
      Btn_Help AT ROW 4.29 COL 71
      DB_Type AT ROW 4.33 COL 18 COLON-ALIGNED
      Network AT ROW 5.86 COL 18 COLON-ALIGNED
-     Multi_User AT ROW 5.86 COL 64
+     Multi_User AT ROW 5.86 COL 44
+     Pass_Phrase AT ROW 5.86 COL 64
      Host_Name AT ROW 7.19 COL 18 COLON-ALIGNED
      Service_Name AT ROW 7.19 COL 62 COLON-ALIGNED
      User_Id AT ROW 8.52 COL 18 COLON-ALIGNED
@@ -339,6 +345,11 @@ ASSIGN
    NO-DISPLAY NO-ENABLE 1 2                                             */
 ASSIGN 
        Multi_User:HIDDEN IN FRAME Connect           = TRUE.
+
+/* SETTINGS FOR TOGGLE-BOX Pass_Phrase IN FRAME Connect
+   NO-DISPLAY NO-ENABLE 1 2                                             */
+ASSIGN 
+       Pass_Phrase:HIDDEN IN FRAME Connect           = TRUE.
 
 /* SETTINGS FOR COMBO-BOX Network IN FRAME Connect
    NO-DISPLAY NO-ENABLE 1 2                                             */
@@ -785,6 +796,7 @@ PROCEDURE Pressed_OK :
       input frame connect LName
       input frame connect DB_Type
       input frame connect Multi_User
+      input frame connect Pass_Phrase
       input frame connect Network
       input frame connect Host_Name
       input frame connect Service_Name
@@ -856,10 +868,36 @@ PROCEDURE Pressed_OK :
        return error.
        end.
       else do:
-       run adecomm/_setcurs.p ("WAIT").
-       connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
-       run adecomm/_setcurs.p ("").
-       end.
+
+       IF NOT Pass_Phrase THEN DO:
+          run adecomm/_setcurs.p ("WAIT").
+          connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
+
+          run adecomm/_setcurs.p ("").
+       END.
+
+       IF Pass_Phrase OR 
+          (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
+          /* if missing or incorrect passphrase for a database
+             with encryption enabled and manual start, prompt
+             for the passphrase now.
+          */
+          DEFINE VARIABLE cpassPhrase AS CHAR NO-UNDO.
+
+          RUN _passphrase.p (OUTPUT cpassPhrase).
+
+          /* if they don't specify a passphrase when asked to, we will
+             just display the errors we got above.
+          */
+          IF cpassPhrase <> ? AND length(cpassPhrase) > 0 THEN DO:
+              /* this will let them try once. If it fails, then they will
+                 need to try to connect again.
+              */
+              connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
+          END.
+       END.
+
+      end.
      end.
    
    /* This will be set from any errors or warnings. Merge all the warnings

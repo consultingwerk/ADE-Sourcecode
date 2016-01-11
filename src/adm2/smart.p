@@ -5626,17 +5626,24 @@ FUNCTION instancePropertyList RETURNS CHARACTER
 
     IF lTranslate THEN       /* Return the special form with :Us */
     DO:
-      cPropValues = cPropValues + (IF cPropValues NE "'":U THEN CHR(3) ELSE '':U)
-        + cProperty + CHR(4).
+      cValue = REPLACE (cValue,"'":U, "~~'":U).
+      cPropValues = cPropValues
+                  + (IF cPropValues NE "'":U THEN CHR(3) ELSE '':U)
+                  + cProperty + CHR(4).
       IF LOOKUP(cProperty, cTranslatable) NE 0 THEN
       DO:
         cPropValues = cPropValues + "':U + '":U + cValue + "'":U.
-        IF iEntry NE iNumProps THEN cPropValues = cPropValues + " + '":U.
+        IF iEntry NE iNumProps THEN 
+           cPropValues = cPropValues + " + '":U.
       END.
-      ELSE cPropValues = cPropValues + cValue.  /* This one's not xlatable */
+      ELSE 
+        cPropValues = cPropValues + cValue.  /* This one's not xlatable */
     END.   /* END if lTranslate */
-    ELSE cPropValues = cPropValues + (IF cPropValues NE '':U THEN CHR(3) ELSE '':U)
-      + cProperty + CHR(4) + cValue.
+    ELSE cPropValues = cPropValues
+                     + (IF cPropValues NE '':U THEN CHR(3) ELSE '':U)
+                     + cProperty 
+                     + CHR(4) 
+                     + cValue.
   END.
   
   /* If this is the last property and the user wants the translatable format

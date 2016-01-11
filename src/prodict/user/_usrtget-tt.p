@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *                         *
 *********************************************************************/
@@ -33,7 +33,7 @@ History:
    D. McMann 05/10/00 Added ability for user to display hidden files
    fernando  02/02/02 storing table names in temp-table - 20050930-006.
    fernando  12/13/07 Handle long list of "some" selected tables    
-   
+   fernando  06/26/08 Filter out schema tables for encryption
 *************************************************************/
 
 
@@ -574,7 +574,7 @@ IF NOT p_option THEN DO:
           WHERE _File._Db-recid = drec_db
             AND _File._File-name BEGINS p_typed 
             AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
-        IF NOT AVAILABLE _File THEN DO:
+        IF NOT AVAILABLE _File OR CAN-DO({&INVALID_SCHEMA_TABLES},_File._File-name) THEN DO:
           MESSAGE new_lang[2]. /* bad filename guess */
           BELL.
           NEXT _pick.

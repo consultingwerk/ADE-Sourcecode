@@ -36,6 +36,7 @@ Date Created: 02/05/92
               06/08/06 fernando Hide toint64 button
               06/15/06 fernando Make sure we call setlob when leaving data type to
                                 enable/disable needed fields depending on the type.
+              06/26/08 fernando Removed encryption area from list
               02/22/08 fernando Adjust display data type length for Dsrv schemas
 ----------------------------------------------------------------------------*/
 
@@ -746,8 +747,9 @@ ELSE DO:
   ASSIGN s_lob_Area = DICTDB._Area._Area-name.
 END.
 
-FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                      AND DICTDB._Area._Area-type = 6 NO-LOCK:
+FOR EACH DICTDB._Area FIELDS (_Area-num _Area-type _Area-name) WHERE DICTDB._Area._Area-num > 6 
+                    AND DICTDB._Area._Area-type = 6 
+                    AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
 
     IF DICTDB._Area._Area-name = s_lob_Area THEN
        s_res = s_lst_lob_area:ADD-FIRST(DICTDB._Area._Area-name) in frame newfld.

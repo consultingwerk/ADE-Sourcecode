@@ -88,7 +88,7 @@ FIND gsm_menu_item NO-LOCK
 /* Conditions to skip creation of this action for */
 IF NOT AVAILABLE gsm_menu_item
 OR (gsm_menu_item.DISABLED
-    AND gsm_menu_item.hide_if_disabled)
+    AND gsm_menu_item.hide_if_disabled) 
 OR (gsm_menu_item.item_control_type = 'action':U 
     AND gsm_menu_item.under_development
     AND NOT plDevelopmentUser) THEN
@@ -229,8 +229,7 @@ ASSIGN ttAction.menu_item_obj      = gsm_menu_item.menu_item_obj
                                      ELSE gsm_menu_item.disabled.
 
 /* Translate the action if necessary. */
-IF  plTranslationEnabled
-AND pdLoginLanguageObj <> gsm_menu_item.source_language_obj
+IF  plTranslationEnabled 
 THEN DO:
     /* Determine which language we're going to translate to. */
     ASSIGN dTransLanguageObj = canFindTranslation(gsm_menu_item.menu_item_obj,pdLoginLanguageObj).

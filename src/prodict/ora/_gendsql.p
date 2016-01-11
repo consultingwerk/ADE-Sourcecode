@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -65,6 +65,7 @@
      04/14/08 Removed unnecessary type check in write-tbl-sql - OE00166674
      05/12/08 Handle duplicate field names being added - OE00166402
      12/08/08 Handle case where index is re-added - OE00177558
+     04/14/09 Handle update of new object
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -165,6 +166,7 @@ DEFINE VARIABLE longType      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE longIndex     AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE index_df_start  AS INTEGER             NO-UNDO.
 DEFINE VARIABLE index_sql_start AS INTEGER             NO-UNDO.
+DEFINE VARIABLE origName      AS CHARACTER             NO-UNDO.
 
 DEFINE TEMP-TABLE upt-blob NO-UNDO
     FIELD upt-line AS CHARACTER
@@ -258,7 +260,8 @@ DEFINE TEMP-TABLE verify-field NO-UNDO
   
 DEFINE TEMP-TABLE verify-index NO-UNDO
   FIELD inew-name LIKE _index._index-name
-  INDEX trun-name IS UNIQUE inew-name.  
+  FIELD i-table   LIKE _file._File-name
+  INDEX trun-name IS UNIQUE inew-name i-table.  
 
 DEFINE TEMP-TABLE warnlong NO-UNDO
    FIELD wname AS CHARACTER
@@ -876,9 +879,10 @@ PROCEDURE create-new-obj:
     ELSE
       ASSIGN for-name = fieldname + "##" + ext-num.  
 
-    IF fieldtype = "BLOB" AND alt-table THEN DO:
+    IF (fieldtype = "BLOB" OR fieldtype = "CLOB") AND alt-table THEN DO:
         CREATE upt-blob.
-        ASSIGN upt-blob.upt-line = "UPDATE " + forname + " SET " + fieldname + " = empty_blob()"
+        ASSIGN upt-blob.upt-line = "UPDATE " + forname + " SET " + fieldname + 
+                                   (IF fieldtype = "BLOB" THEN " = empty_blob()" ELSE " = empty_clob()")
                upt-tbl = tablename
                upt-blob.upt-seq = uptseq
                uptseq = uptseq + 1.
@@ -2656,11 +2660,16 @@ DO ON STOP UNDO, LEAVE:
               FIND DICTDB._File where DICTDB._File._File-name = old-name NO-ERROR.
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
-            MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
-                    "and table does not exist in the schema holder." SKIP
-                    "This process is being aborted."  SKIP (1)
-                    VIEW-AS ALERT-BOX ERROR.
-            RETURN.
+            /* see if it's a new table */
+            FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[3] 
+                                     AND new-obj.add-type = "T" NO-ERROR.
+            IF NOT AVAILABLE new-obj THEN DO:
+                MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
+                        "and table does not exist in the schema holder." SKIP
+                        "This process is being aborted."  SKIP (1)
+                        VIEW-AS ALERT-BOX ERROR.
+                RETURN.
+            END.
           END.
           IF AVAILABLE DICTDB._File THEN DO:
             ASSIGN idx-number = 0.
@@ -3342,11 +3351,15 @@ DO ON STOP UNDO, LEAVE:
                   ASSIGN new-obj.for-type = " LONG RAW"
                        dffortype = "LONGRAW"
                        dfforitype = "24".
-              ELSE IF fieldtype = "Clob"  THEN
+              ELSE IF fieldtype = "Clob"  THEN DO:
+              
                   ASSIGN new-obj.for-type = (IF longType = "NCLOB" THEN " NCLOB" ELSE " CLOB")
                          lngth = 4000
                          dffortype = (IF longType = "NCLOB" THEN "NCLOB" ELSE "CLOB")
                          dfforitype = "112".
+                  IF NOT alt-table THEN
+                    ASSIGN new-obj.for-type = new-obj.for-type + " NOT NULL".
+              END.
               ELSE IF AVAILABLE new-obj AND (new-obj.for-type = "" OR new-obj.for-type = ?) THEN
                 ASSIGN new-obj.for-type = " UNSUPPORTED" .
 
@@ -3880,16 +3893,24 @@ DO ON STOP UNDO, LEAVE:
               IF AVAILABLE rename-obj THEN 
                 FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = old-name
                                                NO-ERROR.
-              IF NOT AVAILABLE DICTDB._Field THEN DO:         .        
-                MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
-                        "and field does not exist in the schema holder." SKIP
-                        "This process is being aborted."  SKIP (1)
-                VIEW-AS ALERT-BOX ERROR.
-                RETURN.
+              IF NOT AVAILABLE DICTDB._Field THEN DO:
+                  /* check if it's a new field */
+                  FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                     AND new-obj.add-type = "F" 
+                                     AND new-obj.fld-name = ilin[3] NO-ERROR.
+                  IF NOT AVAILABLE new-obj THEN DO:
+                     MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder." SKIP
+                             "This process is being aborted."  SKIP (1)
+                     VIEW-AS ALERT-BOX ERROR.
+                     RETURN.
+                  END.
               END.
             END.
-            ASSIGN fieldtype = DICTDB._Field._data-type.
+            IF AVAILABLE DICTDB._Field THEN
+               ASSIGN fieldtype = DICTDB._Field._data-type.
           END.
+
           IF NOT AVAILABLE DICTDB._File THEN DO:
             _ren-loop:
             FOR EACH rename-obj WHERE rename-type = "T"
@@ -3900,11 +3921,29 @@ DO ON STOP UNDO, LEAVE:
                 LEAVE _ren-loop.
             END.
             IF NOT AVAILABLE DICTDB._File THEN DO:
-             MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
-                     "and table does not exist in the schema holder." SKIP
-                     "This process is being aborted."  SKIP (1)
-                  VIEW-AS ALERT-BOX ERROR.
-             RETURN.
+              /* see if it's a new table */
+              FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5] 
+                                       AND new-obj.add-type = "T" NO-ERROR.
+              IF NOT AVAILABLE new-obj THEN DO:
+                 MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
+                         "and table does not exist in the schema holder." SKIP
+                         "This process is being aborted."  SKIP (1)
+                      VIEW-AS ALERT-BOX ERROR.
+                 RETURN.
+              END.
+              ELSE DO:
+                 /* new table, make sure it's a new field too */
+                 FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                    AND new-obj.add-type = "F" 
+                                    AND new-obj.fld-name = ilin[3] NO-ERROR.
+                 IF NOT AVAILABLE new-obj THEN DO:
+                     MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder or in the .df." SKIP
+                             "This process is being aborted."  SKIP (1)
+                     VIEW-AS ALERT-BOX ERROR.
+                     RETURN.
+                 END.
+             END.
             END.
             ELSE DO:
               FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = ilin[3]
@@ -3918,15 +3957,23 @@ DO ON STOP UNDO, LEAVE:
                   FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = old-name
                                                NO-ERROR.
               END.
-              IF NOT AVAILABLE DICTDB._Field THEN DO:         .        
-                MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
-                        "and field does not exist in the schema holder." SKIP
-                        "This process is being aborted."  SKIP (1)
-                VIEW-AS ALERT-BOX ERROR.
-                RETURN.
+              IF NOT AVAILABLE DICTDB._Field THEN DO:
+                  /* check if it's a new field */
+                  FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                     AND new-obj.add-type = "F" 
+                                     AND new-obj.fld-name = ilin[3] NO-ERROR.
+                  IF NOT AVAILABLE new-obj THEN DO:
+                     MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder." SKIP
+                             "This process is being aborted."  SKIP (1)
+                     VIEW-AS ALERT-BOX ERROR.
+                     RETURN.
+                  END.
               END.
             END.
-            ASSIGN fieldtype = DICTDB._Field._data-type.
+
+            IF AVAILABLE DICTDB._Field THEN
+               ASSIGN fieldtype = DICTDB._Field._data-type.
           END.
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
@@ -4264,6 +4311,7 @@ DO ON STOP UNDO, LEAVE:
               END.
               ELSE DO:
                 forname = DICTDB._File._For-name.
+                
                 IF LENGTH(forname) + LENGTH(transname) + 2 > INTEGER(user_env[28]) THEN DO:
                   IF LENGTH(transname) + 2 < INTEGER(user_env[28]) THEN
                     ASSIGN forname = SUBSTRING(forname,1,(INTEGER(user_env[28]) - length(transname) - 2)) + "##" + transname.
@@ -4287,7 +4335,8 @@ DO ON STOP UNDO, LEAVE:
                                             rename-obj.new-name <> ilin[5] AND
                                             rename-obj.old-name = ilin[5]
                                         NO-ERROR.
-                FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
+                FIND FIRST verify-index WHERE verify-index.inew-name = forname AND
+                                              verify-index.i-table = ilin[5] NO-ERROR.
                 FIND FIRST DICTDB._Index WHERE CAPS(DICTDB._Index._For-name) = CAPS(forname) 
                                            AND DICTDB._Index._File-recid = RECID(DICTDB._File) NO-ERROR.
 
@@ -4306,30 +4355,39 @@ DO ON STOP UNDO, LEAVE:
                           IF CAN-FIND (FIRST DICTDB._Index OF DICTDB._File 
                                        WHERE DICTDB._Index._Index-name = old-name) THEN DO:
                               CREATE verify-index.
-                              ASSIGN verify-index.inew-name = forname.
+                              ASSIGN verify-index.inew-name = forname
+                                     verify-index.i-table = ilin[5].
                               LEAVE _verify-index.
                           END.
                        END.
                   END.
 
+                  origName = forname.
+
                   DO a = 1 TO 999:
-                    IF a = 1 THEN
-                      ASSIGN forname = forname + STRING(a).
-                    ELSE
-                      ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - LENGTH(STRING(a))) + STRING(a). 
+                    
+                    /* keep the name size limit */
+                    IF LENGTH(origName) + LENGTH(STRING(a)) > INTEGER(user_env[28]) THEN
+                        origName = SUBSTRING(origName,1, LENGTH(origName) - 1).
+
+                    ASSIGN forname = origName + STRING(a).
+                    
                     IF CAN-FIND(FIRST DICTDB._Index WHERE DICTDB._Index._File-recid = RECID(DICTDB._File)
                                                   AND DICTDB._Index._For-name = forname) THEN NEXT.
-                    ELSE IF CAN-FIND(FIRST verify-index WHERE verify-index.inew-name = forname) THEN NEXT.
+                    ELSE IF CAN-FIND(FIRST verify-index WHERE verify-index.inew-name = forname AND
+                                      verify-index.i-table = ilin[5]) THEN NEXT.
                     ELSE DO:
                       CREATE verify-index.
-                      ASSIGN verify-index.inew-name = forname.
+                      ASSIGN verify-index.inew-name = forname
+                             verify-index.i-table = ilin[5].
                       LEAVE _verify-index.
                     END.
                   END.
                 END.
                 ELSE DO:
                   CREATE verify-index.
-                  ASSIGN verify-index.inew-name = forname.
+                  ASSIGN verify-index.inew-name = forname
+                         verify-index.i-table = ilin[5].
                   LEAVE _verify-index.
                 END.
               END.
@@ -4356,7 +4414,8 @@ DO ON STOP UNDO, LEAVE:
                  
                 _verify-new-index:
                 DO WHILE TRUE:
-                  FIND FIRST verify-index WHERE verify-index.inew-name = forname NO-ERROR.
+                  FIND FIRST verify-index WHERE verify-index.inew-name = forname AND 
+                                                verify-index.i-table = ilin[5] NO-ERROR.
                   FIND FIRST n-obj WHERE n-obj.for-name = forname 
                                        AND n-obj.tbl-name = ilin[5]
                                        AND n-obj.add-type = "I" NO-ERROR.
@@ -4364,7 +4423,8 @@ DO ON STOP UNDO, LEAVE:
                     ASSIGN forname = SUBSTRING(forname, 1, LENGTH(forname) - 1).
                   ELSE DO:
                     CREATE verify-index.
-                    ASSIGN verify-index.inew-name = forname.
+                    ASSIGN verify-index.inew-name = forname
+                           verify-index.i-table = ilin[5].
                     LEAVE _verify-new-index.
                   END.
                 END.

@@ -124,7 +124,8 @@ FUNCTION bufferCompareFields RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferExclusiveLock Procedure 
 FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
-  ( cBuffer     AS character)  FORWARD.
+  ( pcBuffer     as character,
+    pcMode       as character )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -136,6 +137,17 @@ FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD bufferHasOuterJoinDefault Procedure 
 FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
   ( pcBuffer as char) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-checkReadOnlyAvailOnDelete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD checkReadOnlyAvailOnDelete Procedure
+FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL 
+	(  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1193,6 +1205,7 @@ PROCEDURE bufferCommit :
   DEFINE VARIABLE cChanged      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cChangedFlds  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cChangedVals  AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cValue        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cUpdatable    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lQueryContainer  AS LOGICAL NO-UNDO.
   DEFINE VARIABLE hQuery1           AS HANDLE     NO-UNDO.
@@ -1274,11 +1287,12 @@ PROCEDURE bufferCommit :
 
         DO iChange = 1 TO NUM-ENTRIES(cChangedFlds):
           ASSIGN cChanged = ENTRY(iChange, cChangedFlds)
+                 cValue   = STRING(hRowObjUpd1:BUFFER-FIELD(cChanged):BUFFER-VALUE)
                  cChangedVals = cChangedVals 
-                              + (IF cChangedVals NE "":U THEN CHR(1) ELSE "":U)
+                              + (IF iChange > 1 THEN CHR(1) ELSE "":U)
                               + cChanged 
                               + CHR(1) 
-                              + STRING(hRowObjUpd1:BUFFER-FIELD(cChanged):BUFFER-VALUE).
+                              + (if cValue = ? then "?":U else cValue).
         END.    /* END DO iChange */
 
         /* Now pass the values and column list to the client validation. */
@@ -1873,7 +1887,7 @@ PROCEDURE compareDBRow :
     DO:
       cTable = entry(iTable,cTables).   
       /* only compare exclusive locked tables */
-      IF {fnarg bufferExclusiveLock cTable} then
+      IF dynamic-function("bufferExclusiveLock":U in target-procedure,cTable,hRowObjUpd::RowMod) then
       do:      
         assign                       
           hBuffer  = WIDGET-HANDLE(ENTRY(iTable, cBuffers))
@@ -2461,24 +2475,23 @@ PROCEDURE fetchDBRowForUpdate :
          cRowIdent = hRowIdent:BUFFER-VALUE
          hRowMod   = hRowObjUpd:BUFFER-FIELD('RowMod':U).
      
-  DO iTable = 1 TO NUM-ENTRIES(cRowIdent):
-     
+  DO iTable = 1 TO NUM-ENTRIES(cRowIdent):     
     hBuffer = WIDGET-HANDLE(ENTRY(iTable, cBuffers)).
     IF ENTRY(iTable, cRowIdent) NE "":U THEN  /* allow for outer-join w/no rec*/
     DO:
       ASSIGN
         rRowid = TO-ROWID(ENTRY(iTable, cRowIdent))
         cTable = entry(iTable,cTables).      
-      if {fnarg bufferExclusiveLock cTable} then 
+      if dynamic-function("bufferExclusiveLock":U  in target-procedure,cTable,hRowObjUpd::RowMod) then 
       do:
         lok = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
         if not lok then
-          RETURN ENTRY(iTable, cTables).
+            RETURN entry(iTable, cTables).
       end.  
       else do:
         lok = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
         if not lok then
-           ENTRY(iTable, cRowIdent) = "".
+           entry(iTable, cRowIdent) = "".
       end.  
     END.
   end.
@@ -3486,7 +3499,7 @@ PROCEDURE refetchDBRow :
         RETURN ERROR.
       END.
       
-      if {fnarg bufferExclusiveLock cTable} then 
+      if dynamic-function("bufferExclusiveLock":U in target-procedure,cTable,phRowObjUpd::RowMod) then 
         lFound = hBuffer:FIND-BY-ROWID(rRowid, EXCLUSIVE-LOCK, NO-WAIT).
       else
         lFound = hBuffer:FIND-BY-ROWID(rRowid, NO-LOCK).
@@ -4986,7 +4999,8 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION bufferExclusiveLock Procedure 
 FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
-  ( cBuffer     AS character) :
+  ( pcBuffer     as character,
+    pcMode       as character) :
 /*------------------------------------------------------------------------------
   Purpose: return true if buffer should be exclusive locked for update   
            Yes - buffer should be exclusive locked (default also for joined
@@ -5009,12 +5023,13 @@ FUNCTION bufferExclusiveLock RETURNS LOGICAL PRIVATE
    .
   &UNDEFINE xp-assign  
   
-  iTable = LOOKUP(cBuffer,cTables).
-  If entry(iTable, cUpdColsByTable, {&adm-tabledelimiter}) = "":U 
+  iTable = LOOKUP(pcBuffer,cTables).
+  if entry(iTable, cUpdColsByTable, {&adm-tabledelimiter}) = "":U 
   and (cNoLockReadOnlyTables = 'all':U 
-       or lookup(cBuffer,cNoLockReadOnlyTables) > 0
+       or lookup(pcBuffer,cNoLockReadOnlyTables) > 0
+       or (pcMode = "D":U and {fn checkReadOnlyAvailOnDelete} = false)
        ) then
-    RETURN FALSE.    
+    return false.    
   
   return true.
 
@@ -5045,6 +5060,29 @@ FUNCTION bufferHasOuterJoinDefault RETURNS LOGICAL
 
 END FUNCTION.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-checkReadOnlyAvailOnDelete) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION checkReadOnlyAvailOnDelete Procedure
+FUNCTION checkReadOnlyAvailOnDelete RETURNS LOGICAL 
+	(  ):
+/*------------------------------------------------------------------------------
+Purpose: Decides if availability of read only tables should be included in optimistic 
+         lock check for deletions.
+         The default is FALSE due to the fact that it is common to delete such 
+         tables in begin transaction hooks to avoid conflicts with database triggers.         	  																	  
+  Notes: The optimistic lock check for deletions that was introduced in 10.1 caused 
+         issues in existing apps. The default behavior was thus changed to NOT onclude 
+         deleted read-only tables in 10.2B and this function was added to allow this 
+         default to be overridden (and keep the behavior introduced in 10.1).             																	  
+	------------------------------------------------------------------------------*/
+    return false.
+END FUNCTION.
+	
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

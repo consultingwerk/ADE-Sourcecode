@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006, 2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -17,6 +17,8 @@
    
              fernando   04/14/06  Unicode support
              fernando   07/19/06  Unicode support - MSS 2005 and up
+             nagaraju   10/20/09  computed column support - MSS 2005 and up
+             nagaraju   10/29/09  report error if computed column with MSS 2005 or earlier
 */   
 
 &SCOPED-DEFINE DATASERVER YES
@@ -50,6 +52,21 @@ FOR EACH DICTDBG.GetInfo_buffer:
        IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 8 THEN
            RETURN "wrg-ver".
    END.
+   ELSE IF user_env[32] = "MSSQLSRV10" THEN DO:
+       /* must be version 10 (SQL Server 2008) */
+       IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 10 THEN
+           RETURN "wrg-ver".
+
+       /* and using the SQL Native driver version 10 */
+       IF (NOT DICTDBG.GetInfo_buffer.driver_name BEGINS "SQLNCLI") OR 
+           INTEGER(ENTRY(1,DICTDBG.GetInfo_buffer.driver_version,".")) < 10 THEN
+           RETURN "wrg-ver".
+   END.
+      /* for Computed column support, we only support SQL Server 2005 and up */
+   ELSE IF ((NUM-ENTRIES(user_env[27]) > 1) AND (entry(2,user_env[27]) EQ "2")) THEN DO:
+       IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 9 THEN
+           RETURN "wrg-ver".
+   END.
 
    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name
           DICTDB._Db._Db-misc2[2] = DICTDBG.GetInfo_buffer.driver_version
@@ -57,11 +74,12 @@ FOR EACH DICTDBG.GetInfo_buffer:
           DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " 
   			        + DICTDBG.GetInfo_buffer.dbms_version 
           DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
-          DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver
-  		                          + " Client Ver#: "
+          DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver
+  		                          + ",Client Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_clnt
-  		                          + " Server Ver# "
+  		                          + ",Server Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_srvr
+  		                          + ","
           DICTDB._Db._Db-misc2[8] = DICTDBG.GetInfo_buffer.dbms_name
           driver-prefix    = ( IF DICTDB._Db._Db-misc2[1] BEGINS "QE"
                               THEN SUBSTRING(DICTDB._Db._Db-misc2[1]

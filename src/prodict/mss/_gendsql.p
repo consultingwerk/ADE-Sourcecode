@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008,2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2006,2008-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,8 +41,16 @@
               12/02/08 fernando  Fix for logical and sqlwidth, plus fix for field-misc22  - OE00177587
                                  Properly handle sql-width for extent fields - OE00176198
                                  Handle case where index is re-added - OE00177558
-              07/17/09 nmanchal Trigger changes for MSS(OE00178470)
-              07/17/09 nmanchal Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
+              04/03/09 fernando  Support for datetime-tz and 2008 date time data types
+              04/28/09 knavneet BLOB support for MSS (OE00178319)
+              07/15/09 nmanchal Trigger changes for MSS(OE00178470)
+              07/15/09 nmanchal Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
+              09/23/09 Nagaraju Implementation of Computed columns for RECID (OE00186593)
+              
+If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
+an environmental variable BLANKDEFAULT can be set to "YES" and the code will
+put the DEFAULT ' ' syntax on the definition for a new field. 
+              
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -138,6 +146,9 @@ DEFINE VARIABLE old_init_val  AS INTEGER               NO-UNDO.			 /* new sequen
 DEFINE VARIABLE newseq_upd    AS LOGICAL               NO-UNDO INITIAL FALSE.	 /* new sequence generator for MSS */
 DEFINE VARIABLE other-seq-tab        AS CHARACTER      NO-UNDO. /* OE00170189 */
 DEFINE VARIABLE other-seq-proc       AS CHARACTER      NO-UNDO. /* OE00170189 */
+DEFINE VARIABLE isSQLNCLI     AS LOGICAL               NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE blankdefault  AS LOGICAL               NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE tmp_str       AS CHARACTER             NO-UNDO.
 
 DEFINE TEMP-TABLE df-info NO-UNDO
     FIELD df-seq  AS INTEGER
@@ -540,35 +551,38 @@ PROCEDURE write-tbl-sql:
            trigname = "_TI_" + recididx
            /* OE00133695 - use #_# for recid index */
            p-r-index = p-r-index + "#_#progress_recid ON " + mss_username + "." + p-r-index.
- 
-    trigname = "_TI_" + recididx.
+    IF ((NUM-ENTRIES(user_env[27]) < 2) OR entry(2,user_env[27]) EQ "1")  THEN DO:
+      trigname = "_TI_" + recididx.
     
-    PUT STREAM tosql UNFORMATTED   
-      comment_chars "create trigger " trigname " ON " mss_username "." recididx " for insert as" SKIP
-      comment_chars " RAISERROR (N'PSC-init',0,1) " SKIP    
-      comment_chars " SET XACT_ABORT ON " SKIP    
-      comment_chars " SET LOCK_TIMEOUT -1 " SKIP    
-      comment_chars "    if  ( select PROGRESS_RECID from inserted) is NULL " SKIP
-      comment_chars "    begin" SKIP
-      comment_chars "        update t set PROGRESS_RECID = i.IDENTITYCOL " SKIP
-      comment_chars "         from " recididx " t  JOIN inserted i ON " skip
-      comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
-      comment_chars "        select convert (bigint, @@identity)" SKIP
-      comment_chars "    end" SKIP    
-      comment_chars " SET XACT_ABORT OFF " SKIP    
-      comment_chars " RAISERROR (N'PSC-end',0,1) " SKIP.    
+      PUT STREAM tosql UNFORMATTED   
+        comment_chars "create trigger " trigname " ON " mss_username "." recididx " for insert as" SKIP
+        comment_chars " RAISERROR (N'PSC-init',0,1) " SKIP    
+        comment_chars " SET XACT_ABORT ON " SKIP    
+        comment_chars " SET LOCK_TIMEOUT -1 " SKIP    
+        comment_chars "    if  ( select PROGRESS_RECID from inserted) is NULL " SKIP
+        comment_chars "    begin" SKIP
+        comment_chars "        update t set PROGRESS_RECID = i.IDENTITYCOL " SKIP
+        comment_chars "         from " recididx " t  JOIN inserted i ON " skip
+        comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
+        comment_chars "        select convert (bigint, @@identity)" SKIP
+        comment_chars "    end" SKIP    
+        comment_chars " SET XACT_ABORT OFF " SKIP    
+        comment_chars " RAISERROR (N'PSC-end',0,1) " SKIP.    
     
-    PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
-    PUT STREAM tosql UNFORMATTED comment_chars
-      "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID)" SKIP.
-    PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+      PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
 
-    ASSIGN p-r-index = recididx
-           /* OE00133695 - use #_# for recid index */
-           p-r-index = p-r-index + "#_#progress_recid_ident_ ON " + mss_username + "." + p-r-index.
-    PUT STREAM tosql UNFORMATTED comment_chars
-      "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID_IDENT_)" SKIP.
-    PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).          
+
+      PUT STREAM tosql UNFORMATTED comment_chars
+        "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID)" SKIP.
+      PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+
+      ASSIGN p-r-index = recididx
+             /* OE00133695 - use #_# for recid index */
+             p-r-index = p-r-index + "#_#progress_recid_ident_ ON " + mss_username + "." + p-r-index.
+      PUT STREAM tosql UNFORMATTED comment_chars
+        "CREATE UNIQUE INDEX " p-r-index "(PROGRESS_RECID_IDENT_)" SKIP.
+      PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).          
+    END.
   END.    
   
   ASSIGN addtable      = FALSE
@@ -980,6 +994,18 @@ PROCEDURE write-seq-sql:
            dfseq = dfseq + 1
            df-line = '  FOREIGN-OWNER "' + LOWER(mss_username) + '"'.
     
+    CREATE df-info.
+    ASSIGN df-info.df-seq = dfseq
+           dfseq = dfseq + 1
+           df-line = '  SEQ-MISC3 ' + LOWER(mss_username) + ','.
+
+    IF NOT lnewSeq THEN
+        df-line = df-line + "_SEQP_" + forname.
+    ELSE
+        df-line = df-line + "_SEQP_REV_" + forname.
+
+    ASSIGN df-line = df-line + ",@op,@val,".
+
   END.
   /* update sequence table */
   ELSE DO:
@@ -1921,6 +1947,11 @@ END.
 
 /*======================== Mainline =================================== */   
 
+IF OS-GETENV("BLANKDEFAULT") <> ? THEN
+  tmp_str   = OS-GETENV("BLANKDEFAULT").
+IF tmp_str BEGINS "Y" THEN
+  ASSIGN blankdefault = TRUE.
+
 ASSIGN ilin = ?
        ipos = 0
        dfout = osh_dbname + ".df"
@@ -1962,11 +1993,18 @@ IF AVAILABLE DICTDB._File THEN DO:
   FIND _Db WHERE RECID(_db) = dbrecid NO-LOCK.
   ASSIGN qualname = _Db._Db-addr.
 
+  IF _db-name NE mss_dbname THEN DO:
+  
+     FIND FIRST _Db WHERE _Db._Db-name = mss_dbname NO-ERROR.
+     IF NOT AVAILABLE _Db THEN
+        FIND _Db WHERE RECID(_db) = dbrecid NO-LOCK.
+  END.
+
   /* Unicode types is only supported for MS SQL Server 2005 and up */
   IF unicodeTypes THEN DO:
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(_Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) < 9 THEN DO:
          MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
-                 "with Versions 2005 and above. Do not use the 'Unicode Types' option" SKIP
+                 "with Versions 2005 and above. Do not use the 'Unicode Types' option." SKIP
                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
 
          OUTPUT STREAM todf CLOSE.
@@ -1977,6 +2015,38 @@ IF AVAILABLE DICTDB._File THEN DO:
          RETURN.
       END.
   END.
+
+  IF ( _Db._db-misc2[1] BEGINS "SQLNCLI") THEN 
+      ASSIGN isSQLNCLI = YES.
+
+  IF NOT mapMSSDatetime THEN DO:
+      IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(_Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) < 10 THEN DO:
+         MESSAGE "You selected 'Use Newer Datetime Types' but the version stored in the schema holder is" SKIP
+                 "for a version earlier than MSS 2008. Do not use that option." SKIP
+                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
+         OUTPUT STREAM todf CLOSE.
+         OUTPUT STREAM tosql CLOSE.
+
+         RUN adecomm/_setcurs.p ("").
+
+         RETURN.
+      END.
+
+      IF (NOT isSQLNCLI) OR INTEGER(ENTRY(1,_Db._db-misc2[2],".")) < 10 THEN DO:
+          MESSAGE "You selected 'Use Newer Datetime Types' but the ODBC driver does not support" SKIP
+                  "those types. Do not use that option." SKIP
+                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
+          OUTPUT STREAM todf CLOSE.
+          OUTPUT STREAM tosql CLOSE.
+
+          RUN adecomm/_setcurs.p ("").
+
+          RETURN.
+      END.
+  END.
+  
 END.
 
 /* 20061005-002
@@ -2024,7 +2094,6 @@ DO ON STOP UNDO, LEAVE:
 
     IF ilin[1] = ? THEN NEXT.    
     ASSIGN inum = 3.
-
         /* set the action mode */
     CASE ilin[1]:
       WHEN "ADD":u    OR WHEN "CREATE":u OR WHEN "NEW":u  THEN imod = "a":u.
@@ -2242,17 +2311,41 @@ DO ON STOP UNDO, LEAVE:
             DISPLAY tablename WITH FRAME working.   
 
           IF pcompatible THEN DO: 
-                   
-            CREATE sql-info.
-            ASSIGN line-num = 5000
+            IF ((NUM-ENTRIES(user_env[27]) < 2) OR entry(2,user_env[27]) EQ "1") THEN DO:
+              CREATE sql-info.
+              ASSIGN line-num = 5000
                    line = "PROGRESS_RECID BIGINT NULL"  
                    tblname = ilin[3]
                    fldname = "PROGRESS_RECID".     
+            END.          
+            ELSE IF entry(2,user_env[27]) EQ "2" THEN DO:
+              CREATE sql-info.
+              ASSIGN line-num = 5000
+                   line = "PROGRESS_RECID AS CASE WHEN PROGRESS_RECID_ALT_ IS NULL THEN  PROGRESS_RECID_IDENT_ ELSE  PROGRESS_RECID_ALT_ END PERSISTED NOT NULL"  
+                   tblname = ilin[3]
+                   fldname = "PROGRESS_RECID".     
+            END.          
+
             CREATE sql-info.
             ASSIGN line-num = 5001
-                   line = "PROGRESS_RECID_IDENT_ BIGINT identity"  
+                 line = "PROGRESS_RECID_IDENT_ BIGINT identity"  
+                 tblname = ilin[3]
+                 fldname = "PROGRESS_RECID_INDENT".
+
+            IF ((NUM-ENTRIES(user_env[27]) >= 2) AND entry(2,user_env[27]) EQ "2") THEN DO:
+              CREATE sql-info.
+              ASSIGN line-num = 5002
+                   line = "PROGRESS_RECID_ALT_ BIGINT NULL DEFAULT NULL"  
                    tblname = ilin[3]
-                   fldname = "PROGRESS_RECID_INDENT".
+                   fldname = "PROGRESS_RECID_ALT".
+
+              CREATE sql-info.
+              ASSIGN line-num = 5003
+                   line = " CONSTRAINT " + tablename + "#_#progress_recid UNIQUE (PROGRESS_RECID) " 
+                   tblname = ilin[3].
+/*                   fldname = "PROGRESS_RECID_".*/
+            END.
+
           END.          
             
           CREATE sql-info.
@@ -2397,11 +2490,17 @@ DO ON STOP UNDO, LEAVE:
               FIND DICTDB._File where DICTDB._File._File-name = old-name NO-ERROR.
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
-            MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
-                    "and table does not exist in the schema holder." SKIP
-                    "This process is being aborted."  SKIP (1)
-                    VIEW-AS ALERT-BOX ERROR.
-            RETURN.
+            /* see if it's a new table */
+            FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[3] 
+                                     AND new-obj.add-type = "T" NO-ERROR.
+
+            IF NOT AVAILABLE new-obj THEN DO:
+                MESSAGE "The Delta DF File contains UPDATE TABLE" ilin[3] SKIP
+                        "and table does not exist in the schema holder." SKIP
+                        "This process is being aborted."  SKIP (1)
+                        VIEW-AS ALERT-BOX ERROR.
+                RETURN.
+            END.
           END.
           IF AVAILABLE DICTDB._File THEN DO:
             ASSIGN idx-number = 0.
@@ -2511,11 +2610,11 @@ DO ON STOP UNDO, LEAVE:
         ELSE FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = rename-obj.old-name
                                        AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
         IF NOT AVAILABLE DICTDB._File THEN DO:
-          MESSAGE "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
-                  "and table does not exist in the schema holder." SKIP
-                  "This process is being aborted."  SKIP (1)
-               VIEW-AS ALERT-BOX ERROR.
-          RETURN.
+           MESSAGE "The Delta DF File contains DROP FIELD for table" ilin[5] SKIP
+                   "and table does not exist in the schema holder." SKIP
+                   "This process is being aborted."  SKIP (1)
+                VIEW-AS ALERT-BOX ERROR.
+           RETURN.
         END.
         IF AVAILABLE DICTDB._File THEN DO:
           FIND FIRST rename-obj WHERE rename-type = "F"
@@ -3045,12 +3144,36 @@ DO ON STOP UNDO, LEAVE:
                 END.
               END.
               ELSE if (fieldtype = "date" OR fieldtype = "datetime") AND
-                   AVAILABLE new-obj THEN
-                ASSIGN new-obj.for-type = " DATETIME"
-                       dffortype = "TIMESTAMP"
-                       lngth     = 16  /*length*/
-                       all_digits = 23 /*precision*/
-                       dec_point = 3.  /*scale*/
+                   AVAILABLE new-obj THEN DO:
+                IF mapMSSDatetime THEN
+                    ASSIGN new-obj.for-type = " DATETIME"
+                           dffortype = "TIMESTAMP"
+                           lngth     = 16  /*length*/
+                           all_digits = 23 /*precision*/
+                           dec_point = 3.  /*scale*/
+                ELSE DO:
+                    if fieldtype = "date" THEN
+                        ASSIGN new-obj.for-type = " DATE"
+                               dffortype = "DATE"
+                               lngth     = 6  /*length*/
+                               all_digits = 10 /*precision*/
+                               dec_point = 0.  /*scale*/
+                    ELSE /* datetime */
+                        ASSIGN new-obj.for-type = " DATETIME2(3)"
+                               dffortype = "TIMESTAMP"
+                               lngth     = 16  /*length*/
+                               all_digits = 23 /*precision*/
+                               dec_point = 3.  /*scale*/
+                END.
+              END.
+              ELSE IF fieldtype = "datetime-tz" AND NOT mapMSSDatetime AND
+                   AVAILABLE new-obj THEN DO:
+                   ASSIGN new-obj.for-type = " DATETIMEOFFSET(3)"
+                          dffortype = "TIMESTAMP-TZ"
+                          lngth     = 20  /*length*/
+                          all_digits = 30 /*precision*/
+                          dec_point = 3.  /*scale*/
+              END.
               ELSE IF fieldtype = "logical" AND AVAILABLE new-obj THEN
                 /*OE00164229 - logical should map to tinyint */
                 ASSIGN new-obj.for-type = " TINYINT"
@@ -3058,6 +3181,23 @@ DO ON STOP UNDO, LEAVE:
                        lngth = 1
                        dec_point = 0
                        all_digits = 3.
+              ELSE IF fieldtype = "blob" AND  AVAILABLE new-obj THEN DO:
+                  ASSIGN new-obj.for-type = " varbinary(max)".
+                  IF isSQLNCLI THEN 
+                  /* SQL Server Native driver reports varbinary(max) as Varbinary 
+                  with length and precision as 0 which is set to 32K in mss_pul.i.*/
+                      ASSIGN dffortype = "Varbinary" 
+                              lngth = 32000      /*length*/
+                              all_digits = 32000 /*precision*/
+                              dec_point = 0.     /*scale*/
+                  ELSE
+                  /* Non Native drivers report varbinary(max) as Longvarbinary 
+                  with length and precision as 2147483647  */
+                      ASSIGN dffortype = "Longvarbinary" 
+                              lngth = 2147483647      /*length*/
+                              all_digits = 2147483647 /*precision*/
+                              dec_point = 0.          /*scale*/
+              END.
               ELSE IF fieldtype = "Recid" AND AVAILABLE new-obj THEN
                 ASSIGN new-obj.for-type = " INTEGER"
                        dffortype = "INTEGER"
@@ -3119,6 +3259,16 @@ DO ON STOP UNDO, LEAVE:
                          df-line = "  DSRVR-PRECISION " + string(lngth).
               END.
 
+              IF AVAILABLE new-obj AND fieldtype = "datetime" AND
+                  NOT mapMSSDatetime THEN DO:
+                  CREATE df-info.
+                  ASSIGN df-info.df-seq = dfseq
+                         dfseq = dfseq + 1
+                         df-info.df-tbl = tablename
+                         df-info.df-fld = fieldname
+                         df-line = "  FIELD-MISC24 " + QUOTER("datetime2").
+              END.
+
               ASSIGN all_digits = 0
                      dec_point  = 0
                      lngth = 0.            
@@ -3159,8 +3309,8 @@ DO ON STOP UNDO, LEAVE:
               ELSE
                 ASSIGN df-line = "  " + ilin[1] + " ?".
 
-              IF dflt THEN  DO:
-                IF available new-obj AND ilin[2] <> "" AND ilin[2] <> ? AND ilin[2] <> "?" THEN DO:
+              IF dflt AND AVAILABLE new-obj THEN DO:
+                
                   IF alt-table THEN DO:   
                     IF AVAILABLE alt-info THEN DO: 
                       IF a-tblname <> tablename AND
@@ -3180,6 +3330,13 @@ DO ON STOP UNDO, LEAVE:
                                     NO-ERROR.
  
                   ASSIGN for-init = "".
+
+                  IF blankdefault AND (new-obj.For-type BEGINS " VARCHAR" OR new-obj.For-type BEGINS " NVARCHAR") AND
+                     (ilin[2] = "" OR ilin[2] = ? OR ilin[2] = "?") THEN DO:
+                       ASSIGN for-init = " DEFAULT ' '".
+                  END.
+                  ELSE IF ilin[2] <> "" AND ilin[2] <> ? AND ilin[2] <> "?" THEN DO:
+
                    /* Character */ 
                   IF new-obj.for-type BEGINS " VARCHAR" OR new-obj.for-type BEGINS " NVARCHAR" THEN 
                     ASSIGN for-init = " DEFAULT '" + ilin[2] + "'".                                
@@ -3210,13 +3367,25 @@ DO ON STOP UNDO, LEAVE:
                   /* date */
                   ELSE IF new-obj.for-type BEGINS " DATE" THEN DO:
                     IF UPPER(ilin[2]) = "TODAY" OR 
-                       UPPER(ilin[2]) = "NOW" THEN 
-                      ASSIGN for-init = " DEFAULT GETDATE()".                   
+                       UPPER(ilin[2]) = "NOW" THEN DO:
+                        
+                        IF new-obj.for-type BEGINS " DATETIMEOFFSET" THEN DO:
+                           ASSIGN for-init = " DEFAULT SYSDATETIMEOFFSET()".
+                        END.
+                        ELSE DO: 
+                           IF new-obj.for-type BEGINS " DATETIME2" THEN
+                               ASSIGN for-init = " DEFAULT SYSDATETIME()".
+                           ELSE
+                               ASSIGN for-init = " DEFAULT GETDATE()".
+                        END.
+                    END.
                   END.              
-                  IF AVAILABLE sql-info THEN 
-                    ASSIGN LINE = LINE + for-init.
-                  ELSE IF AVAILABLE alt-info THEN 
-                    ASSIGN a-line = a-line + for-init. 
+                END.
+                IF for-init NE "" THEN DO:
+                    IF AVAILABLE sql-info THEN 
+                      ASSIGN LINE = LINE + for-init.
+                    ELSE IF AVAILABLE alt-info THEN 
+                      ASSIGN a-line = a-line + for-init. 
                 END.
               END.
             END.
@@ -3447,17 +3616,25 @@ DO ON STOP UNDO, LEAVE:
                                 AND new-name = ilin[3]
                                   NO-ERROR.
               IF AVAILABLE rename-obj THEN 
-                FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = old-name
+                FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = old-name
                                                NO-ERROR.
-              IF NOT AVAILABLE DICTDB._Field THEN DO:         .        
-                MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
-                        "and field does not exist in the schema holder." SKIP
-                        "This process is being aborted."  SKIP (1)
-                VIEW-AS ALERT-BOX ERROR.
-                RETURN.
+              IF NOT AVAILABLE DICTDB._Field THEN DO:
+                  /* check if it's a new field */
+                  FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                     AND new-obj.add-type = "F" 
+                                     AND new-obj.fld-name = ilin[3] NO-ERROR.
+
+                  IF NOT AVAILABLE new-obj THEN DO:
+                    MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1)
+                    VIEW-AS ALERT-BOX ERROR.
+                    RETURN.
+                  END.
               END.
             END.
-            ASSIGN fieldtype = DICTDB._Field._data-type.
+            IF AVAILABLE DICTDB._Field THEN
+               ASSIGN fieldtype = DICTDB._Field._data-type.
           END.
           IF NOT AVAILABLE DICTDB._File THEN DO:
             _ren-loop:
@@ -3469,11 +3646,30 @@ DO ON STOP UNDO, LEAVE:
                 LEAVE _ren-loop.
             END.
             IF NOT AVAILABLE DICTDB._File THEN DO:
-             MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
-                     "and table does not exist in the schema holder." SKIP
-                     "This process is being aborted."  SKIP (1)
-                  VIEW-AS ALERT-BOX ERROR.
-             RETURN.
+              /* see if it's a new table */
+              FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5] 
+                                       AND new-obj.add-type = "T" NO-ERROR.
+
+              IF NOT AVAILABLE new-obj THEN DO:
+                 MESSAGE "The Delta DF File contains UPDATE FIELD for table" ilin[5] SKIP
+                         "and table does not exist in the schema holder." SKIP
+                         "This process is being aborted."  SKIP (1)
+                      VIEW-AS ALERT-BOX ERROR.
+                 RETURN.
+              END.
+              ELSE DO:
+                 /* new table, make sure it's a new field too */
+                 FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                    AND new-obj.add-type = "F" 
+                                    AND new-obj.fld-name = ilin[3] NO-ERROR.
+                 IF NOT AVAILABLE new-obj THEN DO:
+                     MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                             "and field does not exist in the schema holder or in the .df." SKIP
+                             "This process is being aborted."  SKIP (1)
+                     VIEW-AS ALERT-BOX ERROR.
+                     RETURN.
+                 END.
+             END.
             END.
             ELSE DO:
               FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = ilin[3]
@@ -3487,15 +3683,24 @@ DO ON STOP UNDO, LEAVE:
                   FIND DICTDB._Field OF DICTDB._FILE WHERE DICTDB._Field._Field-name = old-name
                                                NO-ERROR.
               END.
-              IF NOT AVAILABLE DICTDB._Field THEN DO:         .        
-                MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
-                        "and field does not exist in the schema holder." SKIP
-                        "This process is being aborted."  SKIP (1)
-                VIEW-AS ALERT-BOX ERROR.
-                RETURN.
+              IF NOT AVAILABLE DICTDB._Field THEN DO:
+                  /* check if it's a new field */
+                  FIND FIRST new-obj WHERE new-obj.tbl-name = ilin[5]
+                                     AND new-obj.add-type = "F" 
+                                     AND new-obj.fld-name = ilin[3] NO-ERROR.
+
+                  IF NOT AVAILABLE new-obj THEN DO:
+                    MESSAGE "The Delta DF File contains UPDATE FIELD" ilin[3] "for table" ilin[5] SKIP
+                            "and field does not exist in the schema holder." SKIP
+                            "This process is being aborted."  SKIP (1)
+                    VIEW-AS ALERT-BOX ERROR.
+                    RETURN.
+                  END.
               END.
             END.
-            ASSIGN fieldtype = DICTDB._Field._data-type.
+
+            IF AVAILABLE DICTDB._Field THEN
+               ASSIGN fieldtype = DICTDB._Field._data-type.
           END.
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq

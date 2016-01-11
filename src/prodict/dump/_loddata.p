@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -50,10 +50,11 @@ history
     kmcintos    May 10, 2005  Changed logic to rule out tables beginning 
                               with "_aud".  Bug # 20050510-001
     fernando    Nov 03, 2005  Added code to audit dump operation         
-    fernando    Mar 14, 20006 Handle case with too many tables selected - bug 20050930-006.                         
+    fernando    Mar 14, 2006  Handle case with too many tables selected - bug 20050930-006.                         
     fernando    Sep 14, 2006  Log error messages when a stop condition was raised - 20060905-013
     fernando    Jun 20, 2007  Support for large files
     fernando    Dec 12, 2007  Improved use of user_env[5]
+    fernando    Nov  4, 2008  Output number of records to .ds file
 */
 
 { prodict/dictvar.i }
@@ -272,7 +273,7 @@ END PROCEDURE.
 FORM
   DICTDB._File._File-name FORMAT "x(12)" LABEL "Table"
   fil-d                   FORMAT "x(14)" LABEL "Input File"
-  recs                                   LABEL "# of Records Read"
+  recs                    FORMAT "ZZZZZZZZZZZZZZZZZZ9" LABEL "# of Records Read"
   errs                                   LABEL "# of Errors"
   fil-e                   FORMAT "x(14)" LABEL "Error File"
   WITH FRAME dsfile DOWN NO-BOX NO-ATTR-SPACE USE-TEXT.
@@ -573,7 +574,7 @@ DO ON STOP UNDO, LEAVE:
         ypos = FRAME-ROW(loaddata) + FRAME-LINE(loaddata) + 5.
       &ENDIF
     CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(user_dbname) NO-ERROR.
-  
+
     OUTPUT STREAM loaderr TO VALUE(fil-e) NO-ECHO.
 
     IF SEEK(INPUT) = ? THEN DO:
@@ -650,6 +651,7 @@ DO ON STOP UNDO, LEAVE:
       INPUT CLOSE.
     END.
     IF irecs <> ? AND irecs <> recs THEN DO:
+      ASSIGN errs = errs + 1.
       /* ERROR! Trailer indicated <n> records, but only <n> records loaded. */
       PUT STREAM loaderr UNFORMATTED 
         ">> " new_lang[6] " " irecs " " new_lang[7] " " recs " " 
@@ -686,14 +688,8 @@ DO ON STOP UNDO, LEAVE:
     DISPLAY msg WITH FRAME loaddata NO-ERROR.
 
     IF use_ds THEN DO:
-
-      /* see if value can fit into default format before displaying on screen */
-      ASSIGN msg = STRING(recs,"->,>>>,>>9") NO-ERROR.
-      IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
-          ASSIGN msg = "********".
-
       DISPLAY STREAM dsfile
-        DICTDB._File._File-name fil-d msg errs
+        DICTDB._File._File-name fil-d recs errs
         (IF errs = 0 THEN "-" ELSE fil-e) @ fil-e
         WITH FRAME dsfile.
       DOWN STREAM dsfile WITH FRAME dsfile.

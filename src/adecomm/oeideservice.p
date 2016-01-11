@@ -1,7 +1,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -647,6 +647,47 @@ DO:
     DEFINE VARIABLE cCurrentProjectName AS CHARACTER   NO-UNDO.
     cCurrentProjectName = getProjectName().
     RUN sendRequest("IDE getProjectOfFile ":U 
+                    + QUOTER(cCurrentProjectName) + " "    
+                    + QUOTER(pcFullPathName), TRUE, OUTPUT pcProjectName).
+END.                    
+
+IF pcProjectName = "FALSE":U THEN
+    pcProjectName = "".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getActiveProjectOfFile) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getActiveProjectOfFile Procedure 
+PROCEDURE getActiveProjectOfFile :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the project associated with a file for the AppBuilder session
+  Parameters:
+  Notes: Returns blank if the project cannot be used as a resource 
+  in the current AppBuilder session.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcFullPathName AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER pcProjectName AS CHARACTER  NO-UNDO.
+
+IF pcFullPathName = "" OR pcFullPathName = ? THEN
+DO:
+    pcProjectName = "".
+    RETURN.
+END.
+    
+FIND ttLinkedFile WHERE ttLinkedFile.fileName = pcFullPathName NO-ERROR.
+IF AVAILABLE ttLinkedFile THEN
+    pcProjectName = ttLinkedFile.projectName.
+ELSE
+DO:
+    DEFINE VARIABLE cCurrentProjectName AS CHARACTER   NO-UNDO.
+    cCurrentProjectName = getProjectName().
+    RUN sendRequest("IDE getActiveProjectOfFile ":U 
                     + QUOTER(cCurrentProjectName) + " "    
                     + QUOTER(pcFullPathName), TRUE, OUTPUT pcProjectName).
 END.                    

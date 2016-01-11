@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,15 +41,16 @@ Author: Laura Stern
 
 Date Created: 03/24/92
 Modified:
-  00/06/12 D. McMann - Fixed frame definition to fix better
-  00/05/18 D. McMann - removed comments on password 20000512011
-  00/04/12 D. McMann - Added support for long database names.
-  98/07/16 Mario B. - Added -N -H -S parameters.  Bug# 98-04-19-027.
-  98/05/04 mcmann   - Added check of name for logical name
+  05/06/09 fernando   support for manual start encryption
+  06/12/00 D. McMann - Fixed frame definition to fix better
+  05/18/00 D. McMann - removed comments on password 20000512011
+  04/12/00 D. McMann - Added support for long database names.
+  07/16/98 Mario B. - Added -N -H -S parameters.  Bug# 98-04-19-027.
+  05/04/98 mcmann   - Added check of name for logical name
                       98-04-02-053
-  98/02/11 mcmann   - Added logical name check for spaces.
-  97/03/05 hutegger - put on stop phrase around connect
-  95/08/01 hutegger - add -ld, -H, -S, -dt params only if logical
+  02/11/98 mcmann   - Added logical name check for spaces.
+  03/05/97 hutegger - put on stop phrase around connect
+  08/01/95 hutegger - add -ld, -H, -S, -dt params only if logical
                       and/or physical dbname available
                       (sometimes people just enter pf-file. In this
                       case we need to ignore the other parameters)
@@ -80,6 +81,7 @@ Define INPUT-OUTPUT parameter p_Parm_File    as char     NO-UNDO.
 Define INPUT-OUTPUT parameter p_Unix_Parms   as char     NO-UNDO.
 Define OUTPUT       parameter p_args         as char     NO-UNDO.
 
+DEFINE              VARIABLE  Pass_Phrase    AS LOGICAL  NO-UNDO.
 Define              variable  capab          as char     NO-UNDO. /* DataServ Cabap's */
 Define              variable  ext_Type       as char     NO-UNDO.
 /*Define              variable  qbf_l_name    as logical NO-UNDO. / * l-name NOT needed */
@@ -139,7 +141,9 @@ form
    ext_Type              label "&Database Type"             colon  18
                                 format "x(11)" {&STDPH_FILL}     
 
-   p_Multi_User    label "&Multiple Users"      at     51
+   p_Multi_User    label "&Multiple Users"      at     35
+                                view-as TOGGLE-BOX
+   Pass_Phrase     label "Passphrase"      at     57
                                 view-as TOGGLE-BOX                             SKIP({&VM_WID})
 
    p_UserId              label "&User ID"                         colon  18 
@@ -293,6 +297,7 @@ do:
       input frame connect p_LName
 /*    input frame connect p_Type    */
       input frame connect p_Multi_User
+      input frame connect Pass_Phrase
       input frame connect p_UserId
       input frame connect p_Password
       input frame connect p_Trig_Loc
@@ -349,10 +354,34 @@ do:
        return no-apply.
        end.
       else do:
-       run adecomm/_setcurs.p ("WAIT").
-       connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
-       run adecomm/_setcurs.p ("").
-       end.
+       IF NOT Pass_Phrase THEN DO:
+           run adecomm/_setcurs.p ("WAIT").
+           connect VALUE(args) VALUE(p_Unix_Parms) NO-ERROR.
+           run adecomm/_setcurs.p ("").
+       END.
+
+       IF Pass_Phrase OR 
+          (ERROR-STATUS:ERROR AND ERROR-STATUS:GET-NUMBER(1) = 15271) THEN DO:
+          /* if missing or incorrect passphrase for a database
+             with encryption enabled and manual start, prompt
+             for the passphrase now.
+          */
+          DEFINE VARIABLE cpassPhrase AS CHAR NO-UNDO.
+
+          RUN _passphrase.p (OUTPUT cpassPhrase).
+
+          /* if they don't specify a passphrase when asked to, we will
+             just display the errors we got above.
+          */
+          IF cpassPhrase <> ? AND length(cpassPhrase) > 0 THEN DO:
+              /* this will let them try once. If it fails, then they will
+                 need to try to connect again.
+              */
+              connect VALUE(args) VALUE("-KeyStorePassPhrase " + QUOTER(cpassPhrase)) VALUE(p_Unix_Parms) NO-ERROR.
+          END.
+       END.
+
+      end.
      end.
 
    /* This will be set from any errors or warnings. Merge all the warnings
@@ -545,6 +574,7 @@ display
    p_LName  when p_LName <> ?
    ext_Type             
    p_Multi_User
+   Pass_Phrase
    p_UserId
    p_Password    
    p_Trig_Loc
@@ -557,6 +587,7 @@ do ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE:
           btn_Filen when qbf_p_name
           p_LName   /* when qbf_l_name */
           p_Multi_User
+          Pass_Phrase
           p_UserId
           p_Password
           p_Trig_Loc

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -212,7 +212,7 @@ END.
 
 assign
   l_char-types  = "CHAR,VARCHAR,VARCHAR2,ROWID,NCHAR,NVARCHAR2"
-  l_chrw-types  = "LONG,RAW,LONGRAW,CLOB,NCLOB"
+  l_chrw-types  = "LONG,RAW,LONGRAW,CLOB,NCLOB,BLOB"
   l_date-types  = "DATE"
   l_dcml-types  = ""
   l_floa-types  = "FLOAT"

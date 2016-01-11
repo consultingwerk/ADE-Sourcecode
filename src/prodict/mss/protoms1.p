@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,6 +39,9 @@
             08/24/06 Add warning about non utf-8 codepage and unicode columns - 20060802-024
             03/21/07 Unicode requirements for schema holder database - added for CR#OE00147991
             04/11/08 Support for new seq generator
+            02/12/09 Fix output for batch log file
+            09/22/09 Computed column implementation - Nagaraju
+            11/12/09 Remove numbers for radio-set options in MSSDS - Nagaraju
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -74,21 +77,33 @@ IF batch_mode THEN DO:
        " " skip
        "{&PRO_DISPLAY_NAME} to MSS Log" skip(2)
        "Original {&PRO_DISPLAY_NAME} Database:            " pro_dbname skip
-       "Other {&PRO_DISPLAY_NAME} db connect parameters : " pro_conparms  skip
+       "Other {&PRO_DISPLAY_NAME} DB Connect Parameters : " pro_conparms  skip
        "Logical Database Name:                 " mss_pdbname SKIP
        "ODBC Data Source Name:                 " mss_dbname SKIP
-       "{&PRO_DISPLAY_NAME} Schema Holder name:           " osh_dbname skip
+       "{&PRO_DISPLAY_NAME} Schema Holder Name:           " osh_dbname skip
        "MSS Username:                         " mss_username skip
+       "Maximum Varchar Length:               " long-length SKIP       
+       "Codepage for Schema Image:            " mss_codepage SKIP
+       "Collation Name:                       " mss_collname SKIP    
+       "Insensitive:                          " mss_incasesen SKIP   
        "Create RECID Field :                  " pcompatible skip
-       "Field width calculation based on:      " (IF iFmtOption = 1 THEN
+       "Create RECID using             :      " (IF iRecidOption = 2 THEN
+                                                    "Computed Column"
+                                                 ELSE  "Trigger")
+                                                  SKIP
+
+       "Field Width Calculation Based on:      " (IF iFmtOption = 1 THEN
                                                     "_Field._Width field"
                                                   ELSE IF (lFormat = FALSE) THEN
                                                     "Calculation"
                                                   ELSE "_Field._Format field")
                                                   SKIP
-       "Create objects in MSS:                " loadsql skip
-       "Moved data to MSS:                    " movedata SKIP
-       "Use revised sequence generator:       " newseq SKIP.
+       "Create Objects in MSS:                " loadsql skip
+       "Moved Data to MSS:                    " movedata SKIP
+       "Create Shadow Columns:                " shadowcol SKIP       
+       "Include Defaults:                     " dflt SKIP       
+       "Use Revised Sequence Generator:       " newseq SKIP
+       "Map to MSS Datetime Type:             " mapMSSDatetime SKIP.
 
         IF OS-GETENV("UNICODETYPES") NE ? THEN
             PUT STREAM logfile UNFORMATTED
@@ -196,7 +211,7 @@ ASSIGN user_dbname  = mss_dbname
        user_env[9]  = "ALL"
        user_env[10] = string(long-length)
        user_env[11] = (IF unicodeTypes THEN "nvarchar" ELSE "varchar" )
-       user_env[12] = "datetime"
+       user_env[12] = (IF mapMSSDatetime THEN "datetime" ELSE "date")
        user_env[13] = "tinyint"
        user_env[14] = "integer"
        user_env[15] = "decimal(18,5)"
@@ -210,8 +225,11 @@ ASSIGN user_dbname  = mss_dbname
        user_env[23] = "30"
        user_env[24] = "15"
        /* first y is for sequence support.
-          second entry is for new sequence generator */
-       user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n")
+          second entry is for new sequence generator 
+          third entry is for use newer datatime types 
+       */
+       user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
+                      (IF mapMSSDatetime THEN ',n' ELSE ',y')
        user_env[26] = mss_username
        user_env[28] = "128"
        user_env[29] = "128"            
@@ -220,7 +238,7 @@ ASSIGN user_dbname  = mss_dbname
        user_env[32] = "MSSQLSRV7".
 
 IF pcompatible THEN 
-   ASSIGN user_env[27] = "y".
+   ASSIGN user_env[27] = "y" + "," + STRING(iRecidOption).
 ELSE
    ASSIGN user_env[27] = "no".
 
@@ -271,7 +289,7 @@ IF loadsql THEN DO:
               "-- -- " skip(2).
     END.
 
-    IF unicodeTypes THEN DO:
+    IF unicodeTypes OR TRIM(mss_codepage) = "utf-8" THEN DO:
         dlc_utf_edb = OS-GETENV("DLC").
         dlc_utf_edb = dlc_utf_edb + "/prolang/utf/empty".
         CREATE DATABASE osh_dbname FROM dlc_utf_edb. 
@@ -303,10 +321,17 @@ IF loadsql THEN DO:
    *            the original progress-db
    */
 
+  /* consider for computed columns */
+  IF pcompatible AND iRecidOption = 2 THEN
+     ASSIGN user_env[32] = "MSSQLSRV9" .
+
   /* let's set the mss version based on unicodeTypes so _mss_md1 checks the correct version
-     for Unicode data types
+     for Unicode data types. Do the same for 2008 types (that also checks the driver).
   */
-  ASSIGN user_env[32] = (IF unicodeTypes THEN "MSSQLSRV9" ELSE "MSSQLSRV7").
+  IF mapMSSDatetime THEN
+     ASSIGN user_env[32] = (IF unicodeTypes THEN "MSSQLSRV9" ELSE "MSSQLSRV7").
+  ELSE
+     ASSIGN user_env[32] = "MSSQLSRV10".
 
   RUN "prodict/mss/_mss_md1.p".
 

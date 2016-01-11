@@ -109,10 +109,10 @@ IF AbortImport NE yes THEN DO:
                     /* Ensure pFileName is a full path */
                     IF FILE-INFO:FULL-PATHNAME <> ? THEN
                         cFileName = FILE-INFO:FULL-PATHNAME.
-                    RUN getProjectOfFile IN hOEIDEService (cFileName, OUTPUT cProjectName).
+                    RUN getActiveProjectOfFile IN hOEIDEService (cFileName, OUTPUT cProjectName).
                     
-                    /* file is in the current IDE project */
-                    IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+                    /* File is a project file */
+                    IF cProjectName > "" THEN
                         lOpenInOEIDE = TRUE.
                 END.
             END.

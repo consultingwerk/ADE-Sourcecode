@@ -310,9 +310,9 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   RETURN.
-  ENABLE BUTTON-1 
+  /*ENABLE BUTTON-1 
       WITH FRAME DEFAULT-FRAME IN WINDOW h_sewin.
-  {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
+  {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}*/
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

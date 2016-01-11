@@ -28,10 +28,10 @@ RUN delete-RYCSO-objects NO-ERROR.
 {af/sup2/afcheckerr.i}
 
 RETURN.
-
+/* 
 RUN doTheImport NO-ERROR.
 {af/sup2/afcheckerr.i}
-
+*/
 
 PROCEDURE doTheImport:                      
     INPUT STREAM str-import FROM VALUE(ip_export_file).

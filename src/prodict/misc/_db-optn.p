@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -34,7 +34,8 @@
     kmcintos Oct 21, 2005  Installed workaround for bug # 20050920-031 in 
                            order to complete fix for 20050908-026.  
                            20050921-017.
-    fernando 11/30/07      Check if read-only mode.                           
+    fernando 11/30/07      Check if read-only mode.
+    fernando 07/20/09      look at correct _db record
                             
 ------------------------------------------------------------------------*/
 /*          This .p file was created with the Progress AppBuilder.      */
@@ -413,7 +414,7 @@ PROCEDURE saveOptions :
   CREATE BUFFER hDbOption FOR TABLE "DICTDB._db-option".
   CREATE BUFFER hDb       FOR TABLE "DICTDB._db".
 
-  lFound = hDb:FIND-FIRST("WHERE _db._db-type = ~'PROGRESS~'",NO-LOCK) NO-ERROR.
+  lFound = hDb:FIND-FIRST("WHERE _db._db-type = ~'PROGRESS~' and _db-local",NO-LOCK) NO-ERROR.
   IF NOT lFound THEN DO:
     MESSAGE "No database connected!" SKIP(1)
             "You must be connected to a database to acces this tool!"

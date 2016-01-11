@@ -424,7 +424,7 @@ PROCEDURE addEntity :
     
     /* not implmented yet */
     return.
-    
+    /***    not implmented yet
     define variable cSchemaLocation                as character no-undo.
     define variable lUseBuffer                     as logical no-undo.
     define variable lUseDLP                        as logical no-undo.
@@ -454,6 +454,8 @@ PROCEDURE addEntity :
     /* Needs doing. here as a place-holder */
     error-status:error = no.
     return.
+    **/
+    
 END PROCEDURE.    /* addEntity */
 
 /* _UIB-CODE-BLOCK-END */

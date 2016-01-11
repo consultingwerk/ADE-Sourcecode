@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,6 +35,7 @@ History:
     KSM	02/26/05    Added warning message for adding "Active" index while 
                         on-line
     fernando 10/03/07   Handle comma on the area name - OE00135682
+    fernando 06/26/08 Removed encryption area from list   
 ----------------------------------------------------------------------------*/
 
 
@@ -805,7 +806,9 @@ IF x_File._For-type <> ? THEN
 ELSE DO:
   s_lst_idx_area:list-items in frame newidx = "".
   FIND FIRST DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                            AND DICTDB._Area._Area-type = 6 NO-LOCK NO-ERROR.
+                            AND DICTDB._Area._Area-type = 6 
+                            AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name)
+                          NO-LOCK NO-ERROR.
   IF AVAILABLE DICTDB._Area THEN
     ASSIGN idx-area-name = DICTDB._AREA._Area-name.
   ELSE DO:
@@ -814,8 +817,9 @@ ELSE DO:
            s_In_Schema_Area = TRUE.
   END.  
   
-  for each DICTDB._Area WHERE DICTDB._Area._Area-num > 6 
-                        AND DICTDB._Area._Area-type = 6 NO-LOCK:
+  for each DICTDB._Area FIELDS (_Area-num _Area-type _Area-name) WHERE DICTDB._Area._Area-num > 6 
+               AND DICTDB._Area._Area-type = 6 
+               AND NOT CAN-DO({&INVALID_AREAS}, DICTDB._AREA._Area-name) NO-LOCK:
     s_res = s_lst_idx_Area:add-last(DICTDB._Area._Area-name) in frame newidx.
   END.
 

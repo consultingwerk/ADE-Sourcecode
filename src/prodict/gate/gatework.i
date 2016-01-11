@@ -1,9 +1,9 @@
-/**********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights     *
-* reserved.  Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                            *
-**********************************************************************/
-                                                                       /*
+/****************************************************************************
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions               *
+* contributed by participants of Possenet.                                  *
+*****************************************************************************/
+                                                                           /*
 file:   gate/gatework.i
 
 description:
@@ -39,6 +39,7 @@ History:
     fernando   06/26/06 Added support for large sequences
     fernando   02/25/08 Added parameter for datetime
     rohit      04/30/08 Added new field gate-seqpre to gate-work
+    knavneet   04/28/09 BLOB support for MSS (OE00178319)
 */
 
 DEFINE {&new} SHARED TEMP-TABLE gate-work NO-UNDO
@@ -75,6 +76,7 @@ DEFINE {&selVarType}_type       AS character no-undo {&options}.
 DEFINE {&selVarType}_vrfy       AS logical   no-undo.
 DEFINE {&selVarType}_outf       AS logical   no-undo.
 DEFINE {&selVarType}_datetime   AS logical   no-undo.
+DEFINE {&selVarType}_lob        AS logical   no-undo.
 DEFINE {&selVarType}_wildcard   AS logical   no-undo initial TRUE.
 
 /* NOTES:

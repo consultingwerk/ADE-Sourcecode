@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2009 by Progress Software Corporation. All      *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All      *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,12 +41,21 @@ run on another database to define those tables.
   user_env[22] = external dbtype ("ORACLE"...)
   user_env[23] = Min width for character fields.
   user_env[24] = Min width for numeric fields.
-  user_env[25] = create sequences, new sequence generator (for MSS).
+  user_env[25] = comma-separated list:
+                 [1] = create sequences
+                 [2] = new sequence generator (for MSS)
+                 [3] = use newer datetime types (for MSS).
   user_env[26] = foreign database login name.
   user_env[27] = comma-separated list of values
                     entry 1: compatible or not ("" is yes)
                     entry 2: "dbe"|"singel-byte"
                  (old users supply only the first entry!)
+                    entry 2: ""1"|"2" (for DB2/400 only)
+		             1- All tables
+			     2- Tables without unique key /* OE00177721 */
+                    entry 2: ""1"|"2" (for MSS-DS only)
+		             1- trigger /* default */
+			     2- Computed Columns/* OE00186593 */
   user_env[28] = maximum number of characters for index names,
                  undefined indicates no limit.
   user_env[29] = maximum length of identifiers.
@@ -178,12 +187,18 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   fernando 08/25/08   Fix logic for extent and sql-width - OE00172253
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
   knavneet 09/28/08   Added error handling code to the sequence generator - OE00172741
-  rkumar   12/20/08   Added code to generate correct DROP TABLE SQL for ODBC DataServer - OE00177726
-  rkumar   12/20/08   Corrected error-handling code in new-sequence generator- OE00182302
-  rkumar   06/26/09   Added support for default values in ODBC DataServer- OE00177724
-  nmanchal 07/17/09   Trigger changes for MSS(OE00178470)
-  nmanchal 07/20/09   Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
-  nmanchal 07/29/09   To fix MSS unicode migration issues for trigger creation (OE00188693)
+  rkumar   12/10/08   DROP TABLE SQL for MSS DataServers  OE00177726 
+  rkumar   01/07/09   Added default values for ODBC DataServer- OE00177724
+  rkumar   03/30/09   Fixed issue with error-handling code using new seq generator- OE00182302
+  rkumar   03/30/09   DROP TABLE SQL for ODBC DataServers  OE00182649
+  fernando 04/03/09   Support for DATETIME-TZ (and other date time types) for MSS
+  knavneet 04/28/09   Support for BLOB for MSS (OE00178319)
+  rkumar   05/05/09   Added RECID support for ODBC DataServer- OE00177721
+  nmanchal 07/15/09   Trigger changes for MSS(OE00178470)
+  nmanchal 07/20/09   Trigger changes for MSS(OE00178470) to remove 'WITH NOWAIT'
+  nmanchal 07/30/09   To fix MSS unicode migration issues for trigger creation (OE00188693)
+  rkumar   08/25/09   Fix RECID implementation issues (OE00189366)
+  Nagaraju   09/22/09   Implement Computed column solution for MSS DS (OE00189563)
 */
 
 { prodict/dictvar.i }
@@ -242,6 +257,7 @@ DEFINE VARIABLE limit               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE logfile_name        AS CHARACTER  NO-UNDO. 
 DEFINE VARIABLE codefile_name       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE warnings_issued     AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE tables_not_created  AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE index_checking      AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE shadow_is_valid     AS LOGICAL    NO-UNDO. 
 DEFINE VARIABLE trunc_name          AS LOGICAL    NO-UNDO.
@@ -262,6 +278,8 @@ DEFINE VARIABLE seqt_prefix         AS CHARACTER  NO-UNDO INITIAL "_SEQT_".
 DEFINE VARIABLE seqp_prefix         AS CHARACTER  NO-UNDO INITIAL "_SEQP_".
 DEFINE VARIABLE other-seq-tab       AS CHARACTER  NO-UNDO. /* OE00170189 */
 DEFINE VARIABLE other-seq-proc      AS CHARACTER  NO-UNDO. /* OE00170189 */
+DEFINE VARIABLE mssNewDTTypes       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE unique_idx_flag     AS LOGICAL    NO-UNDO INITIAL FALSE. /* OE00177721 */
 
 DEFINE NEW SHARED VARIABLE crnt-vals AS INT64 EXTENT 2000 init 0 NO-UNDO.
 
@@ -361,6 +379,7 @@ assign  minwdth = INTEGER (user_env[23])
                   &direction = "ETOI"
                   &from-type = "user_env[22]"
                   }.
+
 /* protoodbc assign the foreign data source type in user_env[32] and has
    the generic ODBC type in [22]
 */   
@@ -370,20 +389,9 @@ IF user_env[22] = "ODBC" OR user_env[22] = "MSS" THEN DO:
   /* 20051214-009 DB2 type is in user_env[34] */
   IF user_env[22] = "ODBC" THEN
      assign db2type = user_env[34].
-  ELSE DO:
-
-     IF user_env[22] = "MSS" THEN DO:
-        /* for new sequence generator support. If it's set, it will be the
-           second entry
-        */
-        IF NUM-ENTRIES(user_env[25]) > 1 AND 
-           ENTRY(2,user_env[25]) BEGINS "Y" THEN
-           ASSIGN lnewSeq = TRUE
-	          seqt_prefix = "_SEQT_REV_"
-                  seqp_prefix = "_SEQP_REV_".
-     END.
-
-     ASSIGN lUniExpand = (user_env[35] = "y").
+  ELSE DO:     
+     /* MSS db type */
+     RUN setMSSOptions.
   END.
 END.
 ELSE
@@ -490,6 +498,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                                   DICTDB._File._File-name = user_filename
                               ):
   
+  ASSIGN unique_idx_flag = FALSE. /* OE00177721 */
   IF DICTDB._File._Db-lang > 0 THEN NEXT _fileloop.
 
   /* Clear temp table for new file */                            
@@ -597,10 +606,13 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     
     IF dbtyp <> "PROGRESS" AND DICTDB._Field._Dtype NE 41 /*int64*/ THEN DO:
       IF (dbtyp = "MSSQLSRV7" OR dbtyp = "ORACLE") 
-          AND DICTDB._Field._Dtype EQ 34 /*datetime*/ THEN
-         ASSIGN unsprtdt = FALSE.
-      ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype EQ 40 /*datetime-tz*/ THEN
-         ASSIGN unsprtdt = FALSE.
+          AND DICTDB._Field._Dtype EQ 34 /*datetime*/ THEN 
+          /*ok*/ .
+      ELSE IF (dbtyp = "ORACLE" OR (dbtyp = "MSSQLSRV7" AND mssNewDTTypes)) AND 
+               DICTDB._Field._Dtype EQ 40 /*datetime-tz*/ THEN 
+          /*ok*/ .
+      ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 18 /*BLOB*/ THEN
+          /*ok*/ .
       ELSE IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
         ASSIGN unsprtdt = TRUE.
       ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype > 19 THEN     
@@ -624,6 +636,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           "         Table has " col_long_count " long columns." skip
           " " skip.  
     ASSIGN warnings_issued = true
+           tables_not_created = true
            comment_chars = user_env[31]
            comment_all_objects = TRUE.
 
@@ -650,6 +663,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         " " skip.  
     ASSIGN comment_chars = user_env[31]
            comment_all_objects = true
+           tables_not_created = true
            warnings_issued = true.            
   END. /* MS SQL Server 7 check */
 
@@ -662,6 +676,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         " " skip.  
     ASSIGN comment_chars = user_env[31]
            comment_all_objects = true
+           tables_not_created = true
            warnings_issued = true.        
   END. /* DB2 check */
 
@@ -675,6 +690,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
 
     ASSIGN comment_chars = user_env[31]
            comment_all_objects = true
+           tables_not_created = true
            warnings_issued = true.        
   END.
   
@@ -783,8 +799,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           comment_chars "    drop table " n1 SKIP
           comment_chars user_env[5] SKIP.
   END.
- /* ELSE IF ( dbtyp <> "Informix" AND dbtyp <> "DB2" AND dbtyp <> "MS ACCESS" )  THEN DO: */
-  ELSE DO:
+ /*  ELSE IF ( dbtyp <> "Informix" AND dbtyp <> "DB2" AND dbtyp <> "MS ACCESS" )  THEN DO: */ 
+ /*  OE00177726- Added DROP SQL statement to .sql file for all ODBC-compliant
+                databases which are not handled above */
+   ELSE DO:
       PUT STREAM code UNFORMATTED comment_chars "DROP TABLE " user_library dot n1.
       IF skptrm THEN
           PUT STREAM code UNFORMATTED SKIP.
@@ -1072,7 +1090,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           comment_chars "  " n2 " blob not null".
         ELSE IF DICTDB._Field._Dtype = 19 THEN
           PUT STREAM CODE UNFORMATTED
-            comment_chars "  " n2  (IF user_env[11] = "NVARCHAR2" THEN " nclob" ELSE " clob").
+            comment_chars "  " n2  (IF user_env[11] = "NVARCHAR2" THEN " nclob" ELSE " clob")
+            " not null".
         ELSE IF DICTDB._Field._Dtype = 34 /*datetime*/ THEN
             PUT STREAM CODE UNFORMATTED
              comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) " timestamp".
@@ -1114,8 +1133,19 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 34 /* datetime */ THEN DO:
             PUT STREAM code UNFORMATTED
              comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e))
-             " datetime"
+             (IF mssNewDTTypes THEN " datetime2(3)" ELSE " datetime")
              c. /* (n,m) */
+        END.
+        ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 40 /* datetime-tz */ AND 
+            mssNewDTTypes THEN DO:
+            PUT STREAM code UNFORMATTED
+             comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e))
+             " datetimeoffset(3)"
+             c. /* (n,m) */
+        END.
+        ELSE IF dbtyp = "MSSQLSRV7" AND DICTDB._Field._Dtype EQ 18 /* BLOB */ THEN DO:
+            PUT STREAM CODE UNFORMATTED
+            comment_chars "  " n2 " varbinary(max)".
         END.
         ELSE
            PUT STREAM CODE UNFORMATTED
@@ -1148,7 +1178,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         END.
       END.
 
-      IF DICTDB._Field._Data-type = "character" AND sdef AND dbtyp = "ORACLE" AND blankdefault AND
+      IF DICTDB._Field._Data-type = "character" AND sdef AND 
+          (dbtyp = "ORACLE" OR dbtyp = "MSSQLSRV7") AND blankdefault AND
          (DICTDB._Field._Initial = ? OR Dictdb._field._Initial = " " OR DICTDB._Field._Initial = "?") THEN
             PUT STREAM code UNFORMATTED " DEFAULT ' ' ".
   
@@ -1160,12 +1191,22 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
            IF UPPER(c) = "TODAY" OR UPPER(c) = "NOW" THEN DO:        
              IF dbtyp = "ORACLE" THEN
                ASSIGN c = "SYSDATE".
-             ELSE IF dbtyp = "MSSQLSRV7" THEN
-               ASSIGN c = "GETDATE()".
+             ELSE IF dbtyp = "MSSQLSRV7" THEN DO:
+                IF mssNewDTTypes AND DICTDB._Field._Data-type BEGINS "DATETIME" THEN DO:
+                   IF DICTDB._Field._Data-type = "DATETIME" THEN
+                      ASSIGN c = "SYSDATETIME()".
+                   ELSE /* must be datetime-tz */
+                      ASSIGN c = "SYSDATETIMEOFFSET()".
+                END.
+                ELSE IF DICTDB._Field._Data-type NE "DATETIME-TZ" THEN
+                     ASSIGN c = "GETDATE()".
+                ELSE
+                    ASSIGN c = "".
+             END.
              ELSE IF dbtyp = "DB2" and db2type = "DB2/400" THEN 
-               ASSIGN c = "CURRENT DATE".
-             ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY/NOW for OpenEdge */
-             ELSE
+	       ASSIGN c = "CURRENT DATE".
+	     ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY/NOW for OpenEdge */
+             ELSE 
                ASSIGN c = "".
            END.
            ELSE
@@ -1204,7 +1245,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          ELSE IF c <> " " AND CAN-DO("logical,date,datetime,datetime-tz",DICTDB._Field._Data-type) THEN
               PUT STREAM code UNFORMATTED " DEFAULT " c. 
          ELSE IF  c <> " " AND c <> ? THEN
-             PUT STREAM code UNFORMATTED " DEFAULT " c.               
+             PUT STREAM code UNFORMATTED " DEFAULT " c.    
       END.
      
       IF dbtyp = "ORACLE" OR dbtyp = "PROGRESS" THEN DO:
@@ -1270,16 +1311,71 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   END. /* FOR EACH DICTDB._Index of DICTDB._File WHERE DICTDB._Index._Index-name BEGINS "sql-uniq" */
 
   IF compatible THEN DO: 
-    IF dbtyp = "DB2" OR dbtyp = "Informix" THEN  
+    IF dbtyp = "Informix" THEN  
       PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " " user_env[14] " default null".      
-    ELSE IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN
+    ELSE IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN DO:
+      IF ((NUM-ENTRIES(user_env[27]) < 2) OR (entry(2,user_env[27]) EQ "1")) THEN 
         PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " bigint null". 
+      ELSE IF entry(2,user_env[27]) EQ "2" THEN DO: 
+        PUT STREAM code UNFORMATTED "," SKIP comment_chars "  "   prowid_col " AS  " skip
+               "      CASE WHEN PROGRESS_RECID_ALT_ is null " skip 
+               "        THEN  PROGRESS_RECID_IDENT_ " skip
+               "        ELSE  PROGRESS_RECID_ALT_   " skip
+               "      END PERSISTED not null". 
+      END. /* END of entry(2,user_env[27]) EQ "2"  */
+    END. /* END of dbtyp is MSS/SYBASE */
+
+    ELSE IF dbtyp = "DB2" and db2type = "DB2/400"  THEN DO: 
+             IF entry(2,user_env[27]) EQ "1" THEN
+                 PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " bigint  " skip  
+                      "  GENERATED ALWAYS AS IDENTITY " skip
+                      "  (START WITH 1 INCREMENT BY 1 " skip
+                      "  NO MINVALUE "                  skip
+                      "  MAXVALUE 9223372036854775807 " skip
+                      "  NO ORDER "                     skip
+                      "  CACHE 20)" .
+            ELSE IF entry(2,user_env[27]) EQ "2"   THEN DO: 
+             /* OE00177721- Find tables without unique key- If no unique key, create RECID column */
+             FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Unique = TRUE NO-ERROR.
+             IF AVAILABLE DICTDB._Index THEN ASSIGN unique_idx_flag = TRUE.
+             ELSE 
+                 PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " bigint  " skip  
+                      "  GENERATED ALWAYS AS IDENTITY " skip
+                      "  (START WITH 1 INCREMENT BY 1 " skip
+                      "  NO MINVALUE "                  skip
+                      "  MAXVALUE 9223372036854775807 " skip
+                      "  NO ORDER "                     skip
+                      "  CACHE 20)" .
+             END. /* END of entry(2,user_env[27]) EQ "2"  */
+    END. /* END of dbtyp = DB2 */
     ELSE
       PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " " user_env[14] " null". 
       
     IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN DO:  
       PUT STREAM code UNFORMATTED "," SKIP.
       PUT STREAM code UNFORMATTED comment_chars "  " prowid_col "_IDENT_ bigint identity".
+
+      IF (NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "2")   THEN DO :
+        PUT STREAM code UNFORMATTED "," SKIP.
+        PUT STREAM code UNFORMATTED comment_chars "  " prowid_col "_ALT_ bigint NULL default NULL".
+        PUT STREAM code UNFORMATTED "," SKIP.
+
+        /* unique constraint name */
+        ASSIGN n2 = prowid_col.
+        IF user_env[6] = "Y" THEN 
+          n2 = n1 + unik + n2. 
+
+        IF xlat THEN DO:
+           if max_idx_len <> 0 and length(n2) > max_idx_len then 
+                 ASSIGN trunc_name = TRUE.
+           n2 = n2 + "," + idbtyp + "," + string (max_idx_len).
+           RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT n2).
+        END.
+
+        PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
+              n2 " UNIQUE (" prowid_col ")".
+      END. /* END of entry(2,user_env[27]) EQ "2"  */
+
     END.
   END.  
   
@@ -1319,7 +1415,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       PUT STREAM code UNFORMATTED SKIP.
     PUT STREAM code UNFORMATTED  comment_chars user_env[5] SKIP.
   END.
-  ELSE  IF dbtyp = "MSSQLSRV7" and compatible THEN DO:
+  ELSE  IF dbtyp = "MSSQLSRV7" and compatible and (entry(2,user_env[27]) EQ "1") THEN DO:
     n2 = "_TI_" + n1.
     
     PUT STREAM code UNFORMATTED
@@ -1368,16 +1464,23 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       END.
     END.
     IF dbtyp = "MSSQLSRV7" THEN DO:
-
-       PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
+      IF (entry(2,user_env[27]) EQ "1") THEN DO:
+        PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
               n2 " ON " n1 " (" prowid_col ")".
        
-       ASSIGN n2 = n2 + "_ident_".
-       PUT STREAM code UNFORMATTED SKIP .
-       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
-       PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
+        ASSIGN n2 = n2 + "_ident_".
+        PUT STREAM code UNFORMATTED SKIP .
+        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+        PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
               n2 " ON " n1 " (" prowid_col "_IDENT_ )".
+      END.
     END.
+    ELSE IF dbtyp = "DB2" AND db2type = "DB2/400"  THEN DO: 
+        IF NOT unique_idx_flag THEN
+           PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
+             user_library dot n2 " ON " user_library dot n1 " (" prowid_col ")". /* OE00189366 */
+        ELSE .
+    END. 
     ELSE 
        PUT STREAM code UNFORMATTED comment_chars "CREATE UNIQUE INDEX "
               n2 " ON " n1 " (" prowid_col ")".
@@ -1387,8 +1490,13 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         
     IF dbtyp = "ORACLE" AND user_env[35] <> ? AND user_env[35] <> "" THEN
       PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[35].
-   
-    PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+
+    IF (dbtyp = "MSSQLSRV7") THEN DO:
+      IF ((NUM-ENTRIES(user_env[27]) < 2) OR (entry(2,user_env[27]) EQ "1")) then 
+        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
+    END.
+    ELSE 
+        PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
   END.
 
 
@@ -1680,8 +1788,10 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF LAST(_Index-seq) THEN DO:
           IF DICTDB._Index._Unique 
              or dbtyp = "PROGRESS"   
-             or not compatible THEN              /* progress_recid not    */ 
-                PUT STREAM code UNFORMATTED ")".     /* available in PROGRESS */
+             or not compatible       /* progress_recid not available in PROGRESS */ 
+             or (dbtyp = "DB2" and db2type = "DB2/400" and
+                 entry(2,user_env[27]) EQ "2" and unique_idx_flag) THEN 
+                PUT STREAM code UNFORMATTED ")".     
                                                      /* hutegger 94/06 */
           ELSE IF compatible THEN DO:
              IF DICTDB._File._Prime-index = RECID (DICTDB._Index) THEN
@@ -1986,8 +2096,10 @@ IF doseq THEN DO:
                "begin" skip 
                "    /* " skip 
                "     * Current-Value function " skip 
-               "     */" skip
-               "    SET XACT_ABORT ON " skip
+               "     */" skip.
+           if dbtyp NE "SYBASE" THEN 
+                put stream code unformatted "   SET XACT_ABORT ON " skip.
+           put stream code unformatted
                "    declare @err int " skip
                "    if @op = 0 " skip 
                "    begin" skip 
@@ -2254,6 +2366,10 @@ IF NOT batch_mode THEN DO:
     SESSION:IMMEDIATE-DISPLAY = no.
     IF NOT warnings_issued THEN 
         MESSAGE "Output Completed" VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    ELSE IF tables_not_created = true THEN
+        MESSAGE "Output Completed. Some tables will not be created." SKIP
+                "See" logfile_name "for more information." 
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     ELSE 
         MESSAGE "Output Completed. See" logfile_name "for more information." 
                 VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -2261,19 +2377,24 @@ END.
 
 RETURN.
 
+PROCEDURE setMSSOptions:
+   DEFINE VARIABLE numEntries          AS INTEGER    NO-UNDO.
 
+   /* for new sequence generator support. If it's set, it will be the
+     second entry. use2008types will be the third one.
+   */
+   numEntries = NUM-ENTRIES(user_env[25]).
 
+   IF numEntries > 1 THEN DO:
+      IF numEntries > 2 AND ENTRY(3,user_env[25]) BEGINS "Y" THEN
+         ASSIGN mssNewDTTypes = YES.
 
+       IF ENTRY(2,user_env[25]) BEGINS "Y" THEN DO:
+         ASSIGN lnewSeq = TRUE
+                seqt_prefix = "_SEQT_REV_"
+                seqp_prefix = "_SEQP_REV_".
+       END.
+   END.
 
-
-
-
-
-
-
-
-
-
-
-
-
+   ASSIGN lUniExpand = (user_env[35] = "y").
+END.

@@ -61,7 +61,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* object identifying preprocessor */
 &glob   AstraProcedure    yes
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 {dynlaunch.i &define-only = YES}
 
@@ -112,7 +112,7 @@ DEFINE VARIABLE glCurrent AS LOGICAL    NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/customsuper.i}
+{src/adm2/customsuper.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

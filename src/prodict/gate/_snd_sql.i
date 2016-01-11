@@ -1,6 +1,6 @@
 /************************************************************************
-* Copyright (C) 2000,2008 by Progress Software Corporation. All rights  *
-* reserved. Prior versions of this work may contain portions            *
+* Copyright (C) 2000,2008,2009 by Progress Software Corporation. All    *
+* rights reserved. Prior versions of this work may contain portions     *
 * contributed by participants of Possenet.                              *
 *                                                                       *
 ************************************************************************/
@@ -99,6 +99,7 @@ History:
                           proper field name is used type or type# 20000320022
     11/19/01     DLM      Changed check for sqlnet connection string parsing
     08/11/08     ashukla  LDAP support (CR#OE00172458)
+    10/13/09     rkumar   Sybase DataServer OE00164101- Set comit1_per_stmtm to TRUE
 
 /* 
  * TODO: Add error handling to deal w/ errors returned 
@@ -318,7 +319,7 @@ case l_edbtyp:
     change_chained_mode = false
     skip_use_clause = true
     add_cr          = false
-    comit1_per_stmt = false
+    comit1_per_stmt = (IF (INDEX(DICTDB._Db._Db-misc2[5], "SQL Server") <> 0) THEN TRUE ELSE FALSE )
     drop_terminator = (IF p_eosttmnt = "go" THEN FALSE ELSE true)
     clear_buffers   = false . 
 

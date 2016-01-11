@@ -8,4 +8,4 @@
 
 &GLOBAL-DEFINE DB-REQUIRED FALSE
 
-{"adm2/support/dconsumer.w"}
+{"src/adm2/support/dconsumer.w"}

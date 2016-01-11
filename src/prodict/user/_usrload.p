@@ -16,7 +16,7 @@ Input:
   user_env[1] = "ALL" or comma-separated list of files
                 or it may be in user_longchar, if list was too big.
   user_env[4] = if user_env[9] = "h"
-                    then "error" or ""  to signal the needed message
+                    then "error", "error_objattrs" or ""  to signal the needed message
                     else insignificant
   user_env[9] = type of load (e.g. .df or .d)
                 "d" = load file definitions
@@ -86,6 +86,7 @@ History:
     fernando 03/14/06   Handle case with too many tables selected - bug 20050930-006.
     fernando 06/20/07   Support for large files
     fernando 12/13/07   Handle long list of "some" selected tables    
+    fernando 07/20/08   support for encryption
 */
 /*h-*/
 
@@ -98,7 +99,8 @@ DEFINE VARIABLE base          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE class         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE comma         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE err           AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE i             AS INT64      NO-UNDO.
+DEFINE VARIABLE ivar          AS INT        NO-UNDO.
+DEFINE VARIABLE err%          AS INT        NO-UNDO.
 DEFINE VARIABLE io-file       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE io-frame      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE io-title      AS CHARACTER  NO-UNDO.
@@ -212,8 +214,8 @@ FORM SKIP({&TFM_WID})
      AT &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
           19 &ELSE 17 &ENDIF SKIP({&VM_WIDG})
   {&DFILE-SPEECH}
-  i {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
-     VALIDATE(i >= 0 AND i <= 100,
+  err% {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(err% >= 0 AND err% <= 100,
      "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
   do-screen VIEW-AS TOGGLE-BOX LABEL " Display Errors to &Screen"
   AT 2  SKIP({&VM_WIDG})
@@ -305,8 +307,8 @@ FORM SKIP({&TFM_WID})
          LABEL " &Lob Directory" btn_dir LABEL "Dir..." SKIP ({&VM_WIDG})
    &ENDIF
   {&DFILE-SPEECH}
-  i {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
-     VALIDATE(i >= 0 AND i <= 100,
+  err% {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(err% >= 0 AND err% <= 100,
      "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
   do-screen VIEW-AS TOGGLE-BOX LABEL " Display Errors to &Screen"
   AT 2  SKIP({&VM_WIDG})
@@ -325,8 +327,8 @@ FORM SKIP({&TFM_WID})
          LABEL "&Input File" btn_File  SKIP ({&VM_WIDG})
    &ENDIF
   {&DFILE-SPEECH}
-  i {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
-     VALIDATE(i >= 0 AND i <= 100,
+  err% {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(err% >= 0 AND err% <= 100,
      "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
   do-screen VIEW-AS TOGGLE-BOX LABEL " Display Errors to &Screen"
   AT 2  SKIP({&VM_WIDG})
@@ -383,8 +385,8 @@ FORM SKIP({&TFM_WID})
      "(Leave blank for current directory)" VIEW-AS TEXT AT 19 SKIP({&VM_WIDG})
   &ENDIF  
   {&DFILE-SPEECH}
-  i {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
-     VALIDATE(i >= 0 AND i <= 100,
+  err% {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
+     VALIDATE(err% >= 0 AND err% <= 100,
      "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
   do-screen VIEW-AS TOGGLE-BOX LABEL "Output Errors to &Screen"
       AT 2 SKIP({&VM_WIDG})
@@ -409,8 +411,8 @@ FORM SKIP({&TFM_WID})
      "(Leave blank for current directory)" VIEW-AS TEXT AT 19 SKIP({&VM_WIDG})
   &ENDIF  
   {&DFILE-SPEECH}
-  i {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
-     VALIDATE(i >= 0 AND i <= 100,
+  err% {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
+     VALIDATE(err% >= 0 AND err% <= 100,
      "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
   do-screen VIEW-AS TOGGLE-BOX LABEL "Output Errors to &Screen"
       AT 2 SKIP({&VM_WIDG})
@@ -889,11 +891,12 @@ PROCEDURE read-cp.
   
   DEFINE VARIABLE tempi AS DECIMAL          NO-UNDO.
   DEFINE VARIABLE j     AS INTEGER          NO-UNDO.
+  DEFINE VARIABLE iPos  AS INT64            NO-UNDO.
 
   INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP.
   SEEK INPUT TO END.
-  i = SEEK(INPUT) - 11.
-  SEEK INPUT TO i. /* position to possible beginning of last line */
+  iPos = SEEK(INPUT) - 11.
+  SEEK INPUT TO iPos. /* position to possible beginning of last line */
 
   /* Now we need to deal with a large offset, which is a variable size
      value in the trailer, for large values.
@@ -910,8 +913,8 @@ PROCEDURE read-cp.
   */
   DO WHILE LASTKEY <> 13 AND j <= 50:
      ASSIGN j = j + 1
-            i = i - 1.
-     SEEK INPUT TO i.
+            iPos = iPos - 1.
+     SEEK INPUT TO iPos.
      READKEY PAUSE 0.
   END.
 
@@ -920,9 +923,9 @@ PROCEDURE read-cp.
   ASSIGN
     lvar# = 0
     lvar  = ""
-    i     = 0.
+    iPos  = 0.
 
-  DO WHILE LASTKEY <> 13 AND i <> ?: /* get byte count (last line) */
+  DO WHILE LASTKEY <> 13 AND iPos <> ?: /* get byte count (last line) */
 
       IF LASTKEY > 47 AND LASTKEY < 58 THEN DO:
           /* check if can fit the value into an int64 type. We need
@@ -930,33 +933,33 @@ PROCEDURE read-cp.
              by a value that overflows. This is so that we catch a
              bad offset in the file.
            */
-          ASSIGN tempi = i /* first move it to a decimal */
+          ASSIGN tempi = iPos /* first move it to a decimal */
                  tempi = tempi * 10 + LASTKEY - 48. /* get new value */
-          i = INT64(tempi) NO-ERROR. /* see if it fits into an int64 */
+          iPos = INT64(tempi) NO-ERROR. /* see if it fits into an int64 */
           
           /* check if the value overflows becoming negative or an error happened. 
              If so, something is wrong (too many digits or invalid values),
              so forget this.
           */
-          IF  i < 0 OR
+          IF  iPos < 0 OR
               ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
-              ASSIGN i = 0.
+              ASSIGN iPos = 0.
               LEAVE. /* we are done with this */
           END.
 
       END.
       ELSE 
-          ASSIGN i = ?. /* bad character */
+          ASSIGN iPos = ?. /* bad character */
 
     READKEY PAUSE 0.
   END.
 
-  IF i > 0 then run get_psc. /* get it */
+  IF iPos > 0 then run get_psc (INPUT iPos). /* get it */
   ELSE RUN find_psc. /* look for it */
   INPUT CLOSE.
-  DO i = 1 TO lvar#:
-    IF lvar[i] BEGINS "cpstream=" OR lvar[i] BEGINS "codepage" THEN
-       codepage = TRIM(SUBSTRING(lvar[i],10,-1,"character":U)).
+  DO iPos = 1 TO lvar#:
+    IF lvar[iPos] BEGINS "cpstream=" OR lvar[iPos] BEGINS "codepage" THEN
+       codepage = TRIM(SUBSTRING(lvar[iPos],10,-1,"character":U)).
   END.
 END PROCEDURE.
 
@@ -970,20 +973,22 @@ PROCEDURE get-cp.
 END PROCEDURE.
 
 PROCEDURE get_psc:
+  DEFINE INPUT PARAMETER piPos AS INT64 NO-UNDO.
+
   /* using the byte count, we scoot right down there and look for
    * the beginning of the trailer ("PSC"). If we don't find it, we
    * will go and look for it.
    */
-   
+
   DEFINE VARIABLE rc AS LOGICAL INITIAL no.
   _psc:
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-    SEEK INPUT TO i. /* skip to beginning of "PSC" in file */
+    SEEK INPUT TO piPos. /* skip to beginning of "PSC" in file */
     READKEY PAUSE 0. IF LASTKEY <> ASC("P") THEN LEAVE _psc. /* not there!*/
     READKEY PAUSE 0. IF LASTKEY <> ASC("S") THEN LEAVE _psc.
     READKEY PAUSE 0. IF LASTKEY <> ASC("C") THEN LEAVE _psc.
     ASSIGN rc = yes. /* found it! */
-    RUN read_bits (INPUT i). /* read trailer bits */
+    RUN read_bits (INPUT piPos). /* read trailer bits */
   END.
   IF NOT rc THEN RUN find_psc. /* look for it */
 END PROCEDURE.
@@ -1122,10 +1127,13 @@ IF class = "h" THEN DO:
  
    /* Fernando: 20020129-017 Also, if there was an error that backed out the changes, 
    do not display the message */
-   if user_env[4] <> "error" THEN
+  IF user_env[4] = "error" THEN
+     MESSAGE "Load aborted." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  ELSE IF user_env[4] = "error_objattrs" THEN
+      MESSAGE "Load of policies and/or object attributes failed." 
+         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  ELSE
       MESSAGE "Load completed." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-   ELSE
-      MESSAGE "Load aborted." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
      
    /* Fernando: 20020129-017 make sure variable is set to sero */
    ASSIGN user_msg_count = 0.
@@ -1134,9 +1142,9 @@ END.
 /*----------------------------------------*/ /* LOAD FILE DEFINITIONS */
 IF class = "d" OR class begins "4" or class = "s" THEN DO:
 
-  IF msg-num = 0 THEN DO FOR DICTDB._File i = 1 TO 4:
+  IF msg-num = 0 THEN DO FOR DICTDB._File iVar = 1 TO 4:
     FIND DICTDB._File
-      WHERE DICTDB._File._File-name = ENTRY(i,"_Db,_File,_Field,_Index")
+      WHERE DICTDB._File._File-name = ENTRY(iVar,"_Db,_File,_Field,_Index")
         AND DICTDB._File._Owner = "PUB".
     IF   NOT CAN-DO(_Can-read,  USERID("DICTDB"))
       OR NOT CAN-DO(_Can-write, USERID("DICTDB"))
@@ -1213,7 +1221,7 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
     user_env[1] = ""
     user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
     comma       = ""
-    i           = 1.
+    iVar           = 1.
 
   /* If user had selected ALL, fill base array with list of files.  
      Otherwise, it is already set to file list.
@@ -1244,10 +1252,10 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
   ASSIGN numCount = (IF isCpUndefined THEN NUM-ENTRIES(base)
                      ELSE NUM-ENTRIES(base_lchar)).
 
-  DO i = 1 TO numCount:
+  DO iVar = 1 TO numCount:
     err = ?.
     dis_trig = "y".
-    cItem = ENTRY(i,(IF isCpUndefined THEN base ELSE base_lchar)).
+    cItem = ENTRY(iVar,(IF isCpUndefined THEN base ELSE base_lchar)).
 
     FIND DICTDB._File
       WHERE _Db-recid = drec_db AND _File-name = cItem
@@ -1467,18 +1475,18 @@ ELSE IF io-frame = "d" THEN DO:
                inclob 
                user_env[30] 
                btn_dir2 
-               i 
+               err% 
                do-screen 
                btn_OK 
                btn_Cancel.
-        ASSIGN i = INTEGER(user_env[4]).
+        ASSIGN err% = INTEGER(user_env[4]).
 
         UPDATE user_env[2] 
                btn_dir 
                inclob 
                user_env[30] 
                btn_dir2 
-               i 
+               err% 
                do-screen 
                btn_OK 
                btn_Cancel  
@@ -1488,18 +1496,18 @@ ELSE IF io-frame = "d" THEN DO:
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[30]).
         DISPLAY user_env[2] user_env[30].
-        user_env[4] = STRING(i).
+        user_env[4] = STRING(err%).
 
         { prodict/dictnext.i trash }
         canned = FALSE.
       &ELSE
-        ENABLE user_env[2] inclob user_env[30] i do-screen btn_OK btn_Cancel.
-        ASSIGN i = INTEGER(user_env[4]).
+        ENABLE user_env[2] inclob user_env[30] err% do-screen btn_OK btn_Cancel.
+        ASSIGN err% = INTEGER(user_env[4]).
 
         UPDATE user_env[2] 
                inclob 
                user_env[30] 
-               i 
+               err%
                do-screen 
                btn_OK 
                btn_Cancel  
@@ -1509,7 +1517,7 @@ ELSE IF io-frame = "d" THEN DO:
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[2]).
         RUN "prodict/misc/ostodir.p" (INPUT-OUTPUT user_env[30]).
         DISPLAY user_env[2] user_env[30].
-        user_env[4] = STRING(i).
+        user_env[4] = STRING(err%).
 
         { prodict/dictnext.i trash }
         canned = FALSE.
@@ -1528,22 +1536,22 @@ ELSE IF io-frame = "d" THEN DO:
 
     DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-d-file:
       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
-        ENABLE user_env[2]  btn_File inclob user_env[30] btn_dir i do-screen btn_OK btn_Cancel.
-        ASSIGN i = INTEGER(user_env[4]).
+        ENABLE user_env[2]  btn_File inclob user_env[30] btn_dir err% do-screen btn_OK btn_Cancel.
+        ASSIGN err% = INTEGER(user_env[4]).
 
         UPDATE user_env[2] 
                btn_File 
                inclob 
                user_env[30] 
                btn_dir 
-               i 
+               err% 
                do-screen 
                btn_OK 
                btn_Cancel  
                {&HLP_BTN_NAME}.
 
         DISPLAY user_env[2].
-        ASSIGN user_env[4] = STRING(i)
+        ASSIGN user_env[4] = STRING(err%)
                user_env[6] = (IF do-screen THEN "s" ELSE "f").
 
         { prodict/dictnext.i trash }
@@ -1553,24 +1561,24 @@ ELSE IF io-frame = "d" THEN DO:
               btn_File 
               inclob 
               user_env[30] 
-              i 
+              err% 
               do-screen 
               btn_OK 
               btn_Cancel.
-        ASSIGN i = INTEGER(user_env[4]).
+        ASSIGN err% = INTEGER(user_env[4]).
 
         UPDATE user_env[2]  
                btn_File 
                inclob 
                user_env[30] 
-               i 
+               err% 
                do-screen 
                btn_OK 
                btn_Cancel  
                {&HLP_BTN_NAME}.
 
         DISPLAY user_env[2].
-        ASSIGN user_env[4] = STRING(i)
+        ASSIGN user_env[4] = STRING(err%)
                user_env[6] = (IF do-screen THEN "s" ELSE "f").
 
         { prodict/dictnext.i trash }
@@ -1650,7 +1658,7 @@ ELSE DO:
       
       UPDATE user_env[2]
              btn_file
-             i 
+             err% 
              do-screen
              btn_OK
              btn_Cancel

@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008-2009 by Progress Software Corporation *
-* All rights reserved.  Prior versions of this work may contain      *
-* portions contributed by participants of Possenet.                  *
+* Copyright (C) 2006,2009 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -48,7 +48,10 @@
                D. Slutz  08/10/05 Set dft ext char to __ for DB2 20050531-001
                K. McIntosh  10/25/05 Fixed x8override functionality 20051018-006
                fernando     01/04/06 Handle decimals for DB2/400 20051214-009
-               rkumar       06/26/09 Added default values for ODBC DataServer- OE00177724
+               fernando     02/12/08 Adding missing entries to log file in batch
+	       rkumar       02/13/08 OE00177724- default values support for DB2/400
+               rkumar       05/05/09 OE00177721- RECID support for DB2/400
+
 */           
 
 { prodict/user/uservar.i }
@@ -65,7 +68,6 @@ DEFINE VARIABLE l_i           AS INTEGER             NO-UNDO.
 DEFINE VARIABLE run_time      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE schname       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE clctn_output  AS CHARACTER           NO-UNDO.
-DEFINE VARIABLE def_enabled   AS LOGICAL             NO-UNDO.
 
 DEFINE STREAM strm.
 
@@ -79,12 +81,6 @@ assign batch_mode    = SESSION:BATCH-MODE
                           odb_library + CHR(10)
                         ELSE "").
 
- /* environment variable OE_DEFAULT_OPT enables default values in ODBC */
-  IF OS-GETENV("OE_SP_CRTDEFAULT") <> ? THEN DO:
-    tmp_str      = OS-GETENV("OE_SP_CRTDEFAULT").
-    IF tmp_str BEGINS "Y" then def_enabled = TRUE.
-  END. 
-
 IF batch_mode THEN DO:
    PUT STREAM logfile UNFORMATTED
        " " skip
@@ -96,20 +92,25 @@ IF batch_mode THEN DO:
        "{&PRO_DISPLAY_NAME} Schema Holder name:           " osh_dbname skip
        "ODBC Username:                         " odb_username SKIP
        clctn_output
+       "Codepage for Schema Image:             " odb_codepage SKIP
+       "Collation Name:                        " odb_collname SKIP           
        "Field width calculation based on:      " (IF iFmtOption = 1 THEN
                                                     "_Field._Width field"
                                                   ELSE IF (lFormat = FALSE) THEN
                                                     "Calculation"
                                                   ELSE "_Field._Format field")
                                                   SKIP
-       "Compatible structure:          " pcompatible skip
+       "Compatible structure:                  " pcompatible skip
+       "Create RECID for:                      " (IF odb_type EQ "DB2/400" AND iRidOption = 1 THEN 
+                                                        "All Tables" 
+                                                  ELSE IF odb_type EQ "DB2/400" AND iRidOption = 2 THEN
+                                                        "Tables Without Unique Key"
+                                                  ELSE  "All Tables")
+                                                  skip 
        "Create objects in ODBC:                " loadsql skip
-       "Moved data to ODBC:                    " movedata skip.
-   IF def_enabled THEN 
-      PUT STREAM logfile UNFORMATTED 
-       "Include Defaults:                      " odbdef skip(2).
-   ELSE
-      PUT STREAM logfile UNFORMATTED  skip.
+       "Moved data to ODBC:                    " movedata skip
+       "Include Defaults:                      " odbdef skip
+       "Create shadow columns:                 " shadowcol skip(2).
 END.
 
 IF loadsql THEN DO:
@@ -196,7 +197,7 @@ ASSIGN user_env[1]   = "ALL"
        user_env[3]   = ""
        user_env[4]   = "n"
        user_env[6]   = "y"
-       user_env[7]   = (if odbdef then "y" else "n")
+       user_env[7]   = (IF odbdef then "y" else "n")
        user_env[8]   = "y"
        user_env[9]   = "ALL"
        user_env[22]  = "ODBC"
@@ -340,6 +341,9 @@ IF pcompatible THEN
    ASSIGN user_env[27] = "y".
 ELSE
    ASSIGN user_env[27] = "no".
+
+IF (odb_type = "DB2/400" and pcompatible) THEN 
+     ASSIGN user_env[27] = user_env[27] + "," + STRING(iRidOption).
 
 IF movedata THEN
   ASSIGN stages[odb_dump_data] = TRUE

@@ -1177,7 +1177,9 @@ PROCEDURE initializeObject :
                                                /* pad with 2 pixels to ensure no scrollbars */ 
                                                + 2
                 /* We can use the whole work-area for summary messages in the absence of detail messages */                                               
-                edMessageSummary:height-pixels = min(edMessageSummary:height-pixels, session:work-area-height-pixels) - 2
+                edMessageSummary:height-pixels = min(edMessageSummary:height-pixels,
+                                                        /* 4 is one more than exact fit  (room to move) */   
+                                                     session:work-area-height-pixels - (session:pixels-per-row * 4))
                 no-error.
                 
                 /* do nothing with detail editor for SIMPLE MBs */
@@ -1185,7 +1187,8 @@ PROCEDURE initializeObject :
                     assign edMessageDetail:height-pixels = (edMessageDetail:CURSOR-LINE * FONT-TABLE:GET-TEXT-HEIGHT-pixels(edMessageDetail:FONT)) 
                                                          /* pad with 8 pixels to ensure no scrollbars (need to take box into consideration) */
                                                          + 8
-                           edMessageDetail:Height-Pixels = min(edMessageDetail:Height-Pixels, session:work-area-height-pixels * 2 / 3) - 2
+                           edMessageDetail:Height-Pixels = min(edMessageDetail:Height-Pixels, (session:work-area-height-pixels * 2 / 3) 
+                                                         - (session:pixels-per-row * 4)) /* 4 is one more than exact fit  (room to move) */ 
                            /* Don't let the summary message take up more room than it should */
                            edMessageSummary:height-pixels = min(edMessageSummary:height-pixels, session:work-area-height-pixels / 3)
                            no-error.

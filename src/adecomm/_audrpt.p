@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -28,6 +28,10 @@ Input Parameters:
                10   = Database Administration Report (Utilities)
                11   = Database Access Report (Login/Logout/etc...)
                12   = Custom Audit Data Filter
+               13   = Encryption Policy Changes
+               14   = Key-store Changes 
+               15   = Database Encryption Administration (Utilities)
+
    pcFilter  - Date Range Filter criterea for the selected report
    
 Author: Kenneth S. McIntosh
@@ -35,7 +39,8 @@ Author: Kenneth S. McIntosh
 Date Created: June 7, 2005
 History:
 
-     kmcintos  Jan  03, 3006  Fixed printing bug 20051116-043.
+     kmcintos  Jan  03, 2006  Fixed printing bug 20051116-043.
+     fernando  Dec  23, 2008  Support for Encryption reports
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 

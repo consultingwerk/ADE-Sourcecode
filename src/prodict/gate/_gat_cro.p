@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -69,6 +69,7 @@ History:
     fernando    02/14/08 Support for datetime 
     fernando    08/18/08 Check foreign dtype when updating field - OE00168850
     knavneet    08/19/08 Quoting object names if it has special chars - OE00170417
+    fernando    05/29/09 MSS support for blob
 --------------------------------------------------------------------*/
 
 
@@ -108,6 +109,7 @@ define variable def-ianum        as integer initial 6 no-undo.
 DEFINE VARIABLE fld-dif          AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE for_name         AS CHARACTER NO-UNDO. /* OE00170417 */
 DEFINE VARIABLE other-seq-name   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE is_as400db       AS LOGICAL NO-UNDO.
 
 /*------------------------------------------------------------------*/
 /* These variables/workfile are so we can save the Progress-only
@@ -464,6 +466,8 @@ assign
                 }
   .
   
+ASSIGN is_as400db = INDEX(DICTDB._Db._Db-misc2[5],"AS/400") > 0 OR
+                  INDEX(DICTDB._Db._Db-misc2[5],"DB2/400") > 0.
 
 IF NOT batch_mode then assign SESSION:IMMEDIATE-DISPLAY = yes.
 
@@ -471,7 +475,7 @@ RUN adecomm/_setcurs.p ("WAIT").
 
 if can-do(odbtyp,user_dbtype)
  then assign
-    l_char-types = "LONGVARBINARY,LONGVARCHAR,CHAR,VARCHAR,BINARY,VARBINARY,TIME,NVARCHAR,NCHAR"
+    l_char-types = "LONGVARBINARY,LONGVARCHAR,CHAR,VARCHAR,BINARY,VARBINARY,TIME,NVARCHAR,NCHAR,ROWGUID"
     l_chda-types = "TIMESTAMP"
     l_date-types = "DATE"
     l_dcml-types = ""
@@ -896,14 +900,22 @@ for each gate-work
 
       IF AVAILABLE w_field  THEN do:
           IF w_field.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
-              ASSIGN fld-dif = TRUE.
-          ELSE IF s_ttb_fld.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN
-              ASSIGN fld-dif = TRUE.
+          DO:
+              /* for MSS, character/blob are supported mappings for varbinary */
+              IF user_dbtype NE "MSS" OR s_ttb_fld.pro_type NE "BLOB" THEN
+                 ASSIGN fld-dif = TRUE.
+          END.
+          ELSE IF s_ttb_fld.pro_type = "character" AND w_Field.pro_type <> s_ttb_fld.pro_type THEN DO:
+              /* for MSS, character/blob are supported mappings for varbinary */
+              IF user_dbtype NE "MSS" OR w_Field.pro_type NE "BLOB" THEN
+                 ASSIGN fld-dif = TRUE.
+          END.
           /* OE00168850 - check for foreign type change for timestamp */
           ELSE IF (LOOKUP(w_field.ds_type,"date,timestamp") <> 0 OR
                    LOOKUP(s_ttb_fld.ds_type,"date,timestamp") <> 0)
                    AND s_ttb_fld.ds_type <> w_field.ds_Type THEN
                ASSIGN fld-dif = TRUE.
+
       END.
           
       IF NOT AVAILABLE w_field AND s_ttb_fld.pro_type = "date" then
@@ -975,6 +987,21 @@ for each gate-work
         ELSE
           ASSIGN DICTDB._Field._Fld-Misc2[2] = "Y".
       END.
+
+      if (user_dbtype = "ODBC" AND is_as400db) THEN
+       ASSIGN
+        DICTDB._Field._Label   = ( if available w_field
+                                          and w_field.pro_Label <> ""
+                                          and w_field.pro_Label <> ?
+                                          then w_field.pro_Label
+                                          else s_ttb_fld.pro_desc
+                                      )
+        DICTDB._Field._Col-Label   = ( if available w_field
+                                          and w_field.pro_Col-lbl <> ""
+                                          and w_field.pro_Col-lbl <> ?
+                                          then w_field.pro_Col-lbl
+                                          else s_ttb_fld.pro_desc
+                                      ).
 
       IF user_dbtype = "MSS" AND DICTDB._Db._Db-misc1[1] = 1 
                              AND DICTDB._Field._Data-type = "character" THEN

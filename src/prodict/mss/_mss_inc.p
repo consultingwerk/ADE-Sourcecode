@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -15,6 +15,9 @@
    fernando   08/10/07 Removed UI restriction for Unicode support  
    fernando   01/22/08 Check if codepage is utf-8 before allowing unicode types 
    fernando   04/21/08 Support for new sequence generator
+   fernando   03/28/09 Support for datetime-tz
+   Nagaraju   09/23/09 Implementation for Computed columns
+   Nagaraju   11/12/09 Remove numbers for radio-set options in MSSDS
 */   
 
 { prodict/user/uservar.i NEW }
@@ -32,10 +35,15 @@ DEFINE VARIABLE l_curr-db     AS INTEGER INITIAL 1      NO-UNDO.
 DEFINE VARIABLE l_dbnr        AS INTEGER                NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                               INITIAL "For field widths use:"
-                              FORMAT "x(20)" NO-UNDO.
+                              FORMAT "x(21)" NO-UNDO.
+DEFINE VARIABLE cRecid        AS CHARACTER 
+                              INITIAL "For Create RECID use:"
+                              FORMAT "x(22)" NO-UNDO.
 DEFINE VARIABLE tmp_str       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE s_res         AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE hasUniSupport AS LOGICAL                NO-UNDO.
+DEFINE VARIABLE has2008Support AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE hasCompColSupport AS LOGICAL               NO-UNDO.
 
 FORM
   " "   SKIP 
@@ -45,9 +53,9 @@ FORM
   osh_dbname   FORMAT "x(256)"  view-as fill-in size 32 by 1 
     LABEL "Schema Holder Database" colon 35 SKIP({&VM_WID}) 
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for Schema" colon 35 SKIP({&VM_WID})
+    LABEL "Connect Parameters for Schema" colon 35 SKIP({&VM_WID})
   mss_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
-    LABEL "Logical name for MSS Database" colon 35 SKIP({&VM_WID})   
+    LABEL "Logical Name for MSS Database" colon 35 SKIP({&VM_WID})   
   mss_username    FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
     LABEL "MSS Object Owner Name" COLON 35 SKIP({&VM_WID})    
   long-length LABEL " Maximum Varchar Length"  COLON 35 SKIP({&VM_WIDG})
@@ -55,16 +63,23 @@ FORM
   SPACE(10) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
   SPACE (3) dflt VIEW-AS TOGGLE-BOX LABEL "Include Default" 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
-  create_df view-as toggle-box LABEL "Create schema holder delta df" SKIP({&VM_WID})
+  create_df view-as toggle-box LABEL "Create Schema Holder Delta DF" SKIP({&VM_WID})
   SPACE(3) unicodeTypes view-as toggle-box LABEL "Use Unicode Types " 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(10) &ELSE SPACE (9) &ENDIF
-  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" SKIP({&VM_WID})
-  SPACE (3) newseq   view-as toggle-box label "Use revised sequence generator"
-  SKIP({&VM_WID}) SPACE(13) cFormat VIEW-AS TEXT NO-LABEL  
+  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand Width (utf-8)" SKIP({&VM_WID})
+  SPACE (3) mapMSSDatetime VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(2) &ELSE SPACE (1) &ENDIF
+  newseq   view-as toggle-box label "Use Revised Sequence Generator"
+  SKIP({&VM_WID}) SPACE(2) cFormat VIEW-AS TEXT NO-LABEL  
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
+                                 HORIZONTAL NO-LABEL 
+  lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 54 SKIP({&VM_WID})
+  SPACE(2) cRecid VIEW-AS TEXT NO-LABEL  
+  iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                             "Computed Column", 2
                                  HORIZONTAL NO-LABEL SKIP({&VM_WID})
-  lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30" AT 49
+
 
              {prodict/user/userbtns.i}
   WITH FRAME read-df ROW 2 CENTERED SIDE-labels 
@@ -170,15 +185,24 @@ END.
 
 ON LEAVE OF long-length IN FRAME read-df DO:
   IF (unicodeTypes:SCREEN-VALUE = "no") AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
-    MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
+    MESSAGE "The maximum length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
   ELSE IF unicodeTypes:SCREEN-VALUE = "yes" AND INTEGER(long-length:SCREEN-VALUE) > 4000 THEN DO:  
-    MESSAGE "The maximun length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
+    MESSAGE "The maximum length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
 
 END.
+
+ON VALUE-CHANGED OF pcompatible IN FRAME read-df DO:
+  IF SELF:SCREEN-VALUE = "no" THEN
+     ASSIGN iRecidOption:SCREEN-VALUE = "1"
+            iRecidOption:SENSITIVE = FALSE.
+  ELSE
+     ASSIGN iRecidOption:SCREEN-VALUE = "1"
+            iRecidOption:SENSITIVE = TRUE.
+END. 
 
 ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
  IF SELF:screen-value = "no" THEN
@@ -204,22 +228,37 @@ END.
    btn_Help:visible IN FRAME read-df = yes.
 &ENDIF
 
+
 IF LDBNAME("DICTDB") <> ? THEN DO:
+
   FOR EACH DICTDB._DB NO-LOCK:
     IF DICTDB._Db._Db-type = "PROGRESS" THEN
       ASSIGN osh_dbname = LDBNAME ("DICTDB")
              mss_conparms = "<current working database>".
-    ELSE IF DICTDB._Db._Db-type = "MSS" THEN
+    ELSE IF DICTDB._Db._Db-type = "MSS" THEN DO:
       ASSIGN mss_dbname = DICTDB._Db._Db-name
              shadowcol = (IF _Db-misc1[1] = 0 THEN TRUE ELSE FALSE)
-             hasUniSupport = (DICTDB._Db._Db-xl-name = "utf-8").             
+             hasUniSupport = (DICTDB._Db._Db-xl-name = "utf-8")
+             has2008Support = NO.
+
+      /* To support computed columns, check for MSS 2005 or higher */
+      IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 9 THEN 
+          hasCompColSupport = YES.
+
+      /* if SQL 2008 and above and native Driver 10, let user select 2008 types */
+      IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 10 THEN DO:
+         IF (DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
+             has2008Support = YES.
+      END.
+    END.
   END.
 END.
 
 ASSIGN pcompatible = TRUE
-       long-length = 8000.       
+       long-length = 8000
+       iRecidOption = 1.       
 
-DISPLAY cFormat lFormat WITH FRAME read-df.
+DISPLAY cFormat lFormat mapMSSDatetime cRecid WITH FRAME read-df.
 
 UPDATE df-file 
        btn_file
@@ -232,11 +271,13 @@ UPDATE df-file
        shadowcol WHEN shadowcol = TRUE
        dflt
        create_df
-       unicodeTypes WHEN hasUniSupport
+       unicodeTypes WHEN hasUniSupport 
        lUniExpand WHEN unicodeTypes
+       mapMSSDatetime WHEN has2008Support
        newseq
        iFmtOption
        lFormat WHEN iFmtOption = 2
+       iRecidOption WHEN hasCompColSupport
        btn_OK btn_Cancel
        &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             btn_Help
@@ -284,6 +325,11 @@ IF lUniExpand THEN
    ASSIGN user_env[35] = "y".
 ELSE
    ASSIGN user_env[35] = "n".
+
+IF pcompatible THEN 
+   ASSIGN user_env[27] = "y" + "," + STRING(iRecidOption).
+ELSE
+   ASSIGN user_env[27] = "no".
 
 IF iFmtOption = 1 THEN 
     ASSIGN sqlwidth = TRUE. /* Use _Width field for size */

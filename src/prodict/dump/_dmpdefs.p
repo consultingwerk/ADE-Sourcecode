@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2000,2004-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2004-2009 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions                *
 * contributed by participants of Possenet.                                  *
 *                                                                           *
@@ -8,6 +8,11 @@
 /*
 
 history:
+    fernando    04/08/09    Alternate buffer pool support
+    knavneet    08/08/22    OE00170417 - Changed the dump of FOREIGN_NAME for Sequences
+                            Also changed the dump for FOREIGN_OWNER for Sequences (in case of 
+                            LDAP it may be quoted, so we must take care of that)
+    fernando    07/18/08    Encryption support
     fernando    12/06/07    Dump collation name for DataServer schemas
     S. Watt &
     K. McIntosh 05/13/04    Installed support for dumping collation tables for UTF-8
@@ -33,10 +38,6 @@ history:
                                 ISO-Latin-1   =now=>  ISO8859-1
                                 ISO 8859-1    =now=>  ISO8859-1
                                 Codepage 850  =now=>  IBM850
-   knavneet     08/08/22    OE00170417 - Changed the dump of FOREIGN_NAME for Sequences
-                           Also changed the dump for FOREIGN_OWNER for Sequences (in case of 
-                           LDAP it may be quoted, so we must take care of that)
-
 */
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.
@@ -47,7 +48,7 @@ DEFINE VARIABLE lIsPro      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE iByte1      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iByte2      AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cODBType    AS CHARACTER  NO-UNDO. /* list of ODBC-types */
-DEFINE VARIABLE cVersion    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cTemp       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iCounter1   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iCounter2   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iLongLen    AS INTEGER    NO-UNDO.
@@ -177,11 +178,11 @@ IF pi_method BEGINS "c" THEN DO: /* collation and conversion tables */
   ASSIGN iByte1 = GETBYTE(_Db._Db-collate[5], 1) 
          iByte2 = GETBYTE(_Db._Db-collate[5], 2).
   IF iByte1 <> ? AND iByte1 > 0 THEN 
-    cVersion = STRING(iByte1) + "." + STRING(iByte2) + "-16".
+    cTEmp = STRING(iByte1) + "." + STRING(iByte2) + "-16".
   ELSE
-    cVersion = "1.0-16".
+    cTemp = "1.0-16".
 
-  PUT STREAM ddl UNFORMATTED "  COLLATION-TRANSLATION-VERSION " cVersion SKIP.
+  PUT STREAM ddl UNFORMATTED "  COLLATION-TRANSLATION-VERSION " cTemp SKIP.
   PUT STREAM ddl CONTROL "  COLLATION-NAME ".
 
   EXPORT STREAM ddl _Db._Db-coll-name.
@@ -864,6 +865,43 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     END.
     PUT STREAM ddl UNFORMATTED SKIP(1).
   END.
+END.
+ELSE IF pi_method BEGINS "o" THEN DO: /*----------------------*/ 
+    /* options (encryption, alternate buffer pool) */
+
+    /* we get the info to dump in pi_DmpRpos */
+    /* table.obj;obj-type;cipher,value[;buffer-pool,value] */
+
+    iCounter1 = NUM-ENTRIES(pi_DmpRpos, ";").
+
+    IF iCounter1 > 2 THEN DO:
+       cTemp = ENTRY(1,pi_DmpRpos, ";").
+       IF NUM-ENTRIES(cTemp, ".") = 1 THEN
+          PUT STREAM ddl UNFORMATTED 'UPDATE TABLE "' cTemp '"' SKIP.
+       ELSE
+          PUT STREAM ddl UNFORMATTED 'UPDATE ' UPPER(ENTRY(2, pi_DmpRpos, ";")) 
+              ' "' ENTRY(2,cTemp, ".") '" OF "' ENTRY(1,cTemp, ".") '"' SKIP.
+
+       /* now we will have a variable length list of item separated by ';',
+          where each entry is "tag,value".
+       */
+       REPEAT iCounter2 = 3 TO iCounter1.
+
+           cTemp = ENTRY(iCounter2,pi_DmpRpos, ";").
+           IF ENTRY(1,cTemp) = "cipher" THEN DO:
+              IF ENTRY(2,cTemp) EQ "" THEN
+                  PUT STREAM ddl UNFORMATTED "  ENCRYPTION NO" SKIP.
+              ELSE DO:
+                  PUT STREAM ddl UNFORMATTED "  ENCRYPTION YES" SKIP.
+                  PUT STREAM ddl UNFORMATTED "  CIPHER-NAME " ENTRY(2,cTemp) SKIP.
+              END.
+           END.
+           ELSE IF ENTRY(1,cTemp) = "buffer-pool" THEN DO:
+               PUT STREAM ddl UNFORMATTED "  BUFFER-POOL " QUOTER(ENTRY(2,cTemp)) SKIP.
+           END.
+       END.
+       PUT STREAM ddl UNFORMATTED SKIP(1).
+    END.
 END.
 
 RETURN.

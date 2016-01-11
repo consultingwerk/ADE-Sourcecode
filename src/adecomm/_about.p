@@ -29,8 +29,8 @@ DEFINE INPUT PARAMETER pTitle AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER pIcon  AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE result       AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE AboutText1   AS CHARACTER FORMAT "x(50)" NO-UNDO.
-DEFINE VARIABLE AboutText2   AS CHARACTER FORMAT "x(50)" NO-UNDO.
+DEFINE VARIABLE AboutText1   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE AboutText2   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Label1       AS CHARACTER FORMAT "x(50)" VIEW-AS TEXT.
 DEFINE VARIABLE Label2       AS CHARACTER FORMAT "x(50)" VIEW-AS TEXT.
 DEFINE VARIABLE DBEtestvalue AS CHARACTER NO-UNDO.
@@ -56,7 +56,7 @@ DEFINE IMAGE AboutImage &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                          &ENDIF
 
 DEFINE RECTANGLE TopLine    
-  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE 50 BY .08.
+  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE 55 BY .08.
 DEFINE RECTANGLE BottomLine LIKE TopLine.
 DEFINE RECTANGLE ContainerRectangle
   EDGE-PIXELS 2 SIZE-PIXELS 40 BY 40 BGCOLOR 8.
@@ -69,10 +69,10 @@ DEFINE FRAME Dialog-1
   ContainerRectangle AT ROW 1.5 COLUMNS 3
   AboutImage AT ROW 1.67 COLUMNS 3.57
   AboutText1 NO-LABELS AT ROW 1.75 COLUMNS {&StartCol}
-             VIEW-AS EDITOR SIZE 50 BY 6 NO-BOX
+             VIEW-AS EDITOR SIZE 55 BY 6 NO-BOX
   SKIP
   AboutText2 NO-LABELS AT {&StartCol}
-             VIEW-AS EDITOR SIZE 50 BY 5 SCROLLBAR-VERTICAL
+             VIEW-AS EDITOR SIZE 55 BY 5 SCROLLBAR-VERTICAL
   SKIP(1)
   TopLine AT 11 SKIP(0.5)
   Label1 AT {&StartCol} NO-LABELS SKIP(.15)
@@ -84,11 +84,13 @@ DEFINE FRAME Dialog-1
 &ELSE
   ContainerRectangle AT ROW 1.5 COLUMNS 3
   AboutText1 NO-LABELS AT ROW 1.75 COLUMNS {&StartCol}
-             VIEW-AS EDITOR SIZE 50 BY 6
+             VIEW-AS EDITOR SIZE 50 BY 10
   SKIP
+  /* currently empty 
   AboutText2 NO-LABELS AT {&StartCol}
              VIEW-AS EDITOR SIZE 50 BY 5 SCROLLBAR-VERTICAL
   SKIP
+  */
   TopLine AT 11     SKIP
   BottomLine AT 11  SKIP(1)
   BtnOK AT 27       SKIP
@@ -191,6 +193,14 @@ RETURN.
 PROCEDURE Realize:
     
 DO WITH FRAME {&FRAME-NAME}:
+  DEFINE VARIABLE cCopyRight AS CHAR NO-UNDO.
+                      
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+     cCopyRight = "Copyright ¸".
+  &ELSE
+     cCopyRight = "Copyright". /* According to Legal 10/14/2009 */
+  &ENDIF
+
   AboutText1 =
     ProName + CHR(10) +
 
@@ -202,12 +212,13 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    "Copyright (c) 1984-2008 Progress Software Corporation." + CHR(10) +
-    "All rights reserved" + CHR(10).
+    cCopyright + " 1984-2009 Progress Software Corporation and/or its subsidiaries or affiliates. "
+    + "All rights reserved.".
 
+ IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2008 Vol 1 CLR 2.0." + CHR(10) +
-        "Copyright ¸ 1996-2008 Infragistics, Inc." + CHR(10) +
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2009 Vol 2. " +  
+        cCopyright + " 1996-2009 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 
@@ -219,12 +230,16 @@ DO WITH FRAME {&FRAME-NAME}:
 
   ASSIGN AboutText1:READ-ONLY = TRUE
          AboutText1:TAB-STOP  = NO   
-         AboutText1:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U
-         AboutText2:READ-ONLY = TRUE
-         AboutText2:TAB-STOP  = NO   
-         AboutText2:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U
-         NO-ERROR.
-
+         AboutText1:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U.
+  
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+      ASSIGN
+          AboutText2:READ-ONLY = TRUE
+          AboutText2:TAB-STOP  = NO   
+          AboutText2:SENSITIVE = SESSION:WINDOW-SYSTEM <> "TTY":U
+          NO-ERROR.
+  &ENDIF
+  
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   DISPLAY
     AboutText1
@@ -235,7 +250,7 @@ DO WITH FRAME {&FRAME-NAME}:
   &ELSE
   DISPLAY
     AboutText1
-    AboutText2
+  /*  AboutText2  currently empty */
     WITH FRAME {&FRAME-NAME}.
   &ENDIF
 

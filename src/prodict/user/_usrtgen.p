@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2007,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,9 @@ run on another database to define those tables. */
  user_env[33] = to use _Width of field or calculate.
  
 History:
+    nagaraju    11/12/09    Remove numbers for radio-set options in MSSDS
+    nagaraju    10/06/09    Support for computed column to PROGRESS_RECID in MSSDS
+    fernando    04/03/09    Support for MSS's sequence generator and 2008 data types
     fernando    08/10/07    Removed UI restriction for Unicode support 
     fernando    07/19/06    Unicode support - restrict UI
     fernando    04/18/06    Unicode support for DataServers
@@ -115,6 +118,11 @@ DEFINE VARIABLE lFormat    AS LOGICAL  INITIAL TRUE  NO-UNDO.
 DEFINE VARIABLE unicodeTypes AS LOGICAL   INITIAL FALSE NO-UNDO.
 DEFINE VARIABLE tmp_str      AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE lUniExpand   AS LOGICAL   INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE mapMSSDatetime AS LOGICAL   INITIAL TRUE NO-UNDO.
+DEFINE VARIABLE newseq       AS LOGICAL   INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE cRecid        AS CHARACTER INITIAL "For Create RECID use:"
+                                           FORMAT "x(22)" NO-UNDO.
+DEFINE VARIABLE iRecidOption AS INTEGER  INITIAL 1     NO-UNDO.
 
 {prodict/misc/filesbtn.i &NAME="btn_File_t"}
 {prodict/misc/filesbtn.i &NAME="btn_File_i" &NOACC=yes}
@@ -179,17 +187,26 @@ FORM
     SKIP({&VM_WID})
     lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
            HELP "Double field length (for utf-8 compatibility)"
+    newSeq AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Revised Sequence Generator" 
+             HELP "Create sequences using new generation logic?"
+    SKIP({&VM_WID})
+    mapMSSDatetime AT 2 VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+           HELP "Default mapping for OpenEdge date and datetime to the MSS datetime type?"
     SKIP({&VM_WID})
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                                "ABL Format", 2
                                  HORIZONTAL NO-LABEL
                HELP "Make choice to determine field width in output."
-    SKIP({&VM_WID})
     lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
             HELP "Choose to output field width of 30 for x(8) fields."
-            AT 38
+            AT 51
     SKIP({&VM_WID}) 
+    cRecid VIEW-AS TEXT NO-LABEL AT 2
+    iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                               "Computed column", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine Create RECID option."
   {prodict/user/userbtns.i}
   WITH FRAME createtable
   NO-LABELS CENTERED 
@@ -245,6 +262,11 @@ FORM
     SKIP({&VM_WID})
     lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
            HELP "Double field length (for utf-8 compatibility)"
+    newSeq AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Revised Sequence Generator" 
+             HELP "Create sequences using new generation logic?"
+    SKIP({&VM_WID})    
+    mapMSSDatetime AT 2 VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+           HELP "Default mapping for OpenEdge date and datetime to the MSS datetime type?"
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
     &ELSE SKIP({&VM_WID}) &ENDIF    
     cFormat VIEW-AS TEXT NO-LABEL AT 2
@@ -252,10 +274,16 @@ FORM
                                                "ABL Format", 2
                                  HORIZONTAL NO-LABEL
                HELP "Make choice to determine field width in output."
-    SKIP({&VM_WID})
     lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
             HELP "Choose to output field width of 30 for x(8) fields."
-            AT 38
+            AT 51
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
+    cRecid VIEW-AS TEXT NO-LABEL AT 2
+    iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                               "Computed column", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine Create RECID option."
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
     &ELSE SKIP({&VM_WID}) &ENDIF
   {prodict/user/userbtns.i}
@@ -305,17 +333,29 @@ FORM
     SKIP({&VM_WID})
     lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
            HELP "Double field length (for utf-8 compatibility)"
+    newSeq AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Revised Sequence Generator" 
+             HELP "Create sequences using new generation logic?"
+    SKIP({&VM_WID})  
+    mapMSSDatetime AT 2 VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+           HELP "Default mapping for OpenEdge date and datetime to the MSS datetime type?"
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
-    &ELSE SKIP({&VM_WID}) &ENDIF   
+    &ELSE SKIP({&VM_WID}) &ENDIF        
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                                "ABL Format", 2
                                  HORIZONTAL NO-LABEL 
                HELP "Make choice to determine field width in output."
-    SKIP({&VM_WID})
     lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
             HELP "Choose to output field width of 30 for x(8) fields."
-            AT 38
+            AT 51
+    &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+    &ELSE SKIP({&VM_WID}) &ENDIF
+    cRecid VIEW-AS TEXT NO-LABEL AT 2
+    iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                               "Computed column", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine Create RECID option."
+
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
     &ELSE SKIP({&VM_WID}) &ENDIF
   "This program generates a SQL DDL program containing CREATE TABLE statements" 
@@ -375,20 +415,31 @@ FORM
     SKIP({&VM_WID})
     lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
            HELP "Double field length (for utf-8 compatibility)"
+    newSeq AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Revised Sequence Generator" 
+             HELP "Create sequences using new generation logic?"
+  SKIP({&VM_WID})
+  mapMSSDatetime AT 2 VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+         HELP "Default mapping for OpenEdge date and datetime to the MSS datetime type?"
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
-  &ELSE SKIP({&VM_WID}) &ENDIF
+  &ELSE SKIP({&VM_WID}) &ENDIF      
   cFormat VIEW-AS TEXT NO-LABEL AT 2
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
                                HORIZONTAL NO-LABEL 
              HELP "Make choice to determine field width in output."
-  SKIP({&VM_WID})
   lFormat VIEW-AS TOGGLE-BOX LABEL "Expand x(8) to 30"
           HELP "Choose to output field width of 30 for x(8) fields."
-          AT 38
+          AT 51
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
   &ELSE SKIP({&VM_WID}) &ENDIF
+    cRecid VIEW-AS TEXT NO-LABEL AT 2
+    iRecidOption VIEW-AS RADIO-SET RADIO-BUTTONS "Trigger", 1,
+                                               "Computed column", 2
+                                 HORIZONTAL NO-LABEL
+               HELP "Make choice to determine Create RECID option."
 
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
+  &ELSE SKIP({&VM_WID}) &ENDIF
   "This program generates a SQL DDL program containing CREATE TABLE statements" 
              VIEW-AS TEXT   AT    2     SKIP
   "equivalent to those originally used to define the table.  It does NOT" 
@@ -551,6 +602,7 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
    CASE SELF:SCREEN-VALUE:
      WHEN "pro" THEN DO:
        ASSIGN iFmtOption:SCREEN-VALUE IN FRAME createtable = "2" 
+              iRecidOption:SCREEN-VALUE IN FRAME createtable = "1" 
               l_cmptbl:SENSITIVE = FALSE
               l_cmptbl:SCREEN-VALUE = "no"
               shadowcol:SENSITIVE = FALSE
@@ -561,12 +613,19 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
           ASSIGN unicodeTypes:SENSITIVE IN FRAME createtable = NO
                  unicodeTypes:SCREEN-VALUE = "no"
                  lUniExpand:SENSITIVE = NO
-                 lUniExpand:SCREEN-VALUE = "no".
+                 lUniExpand:SCREEN-VALUE = "no"
+                 newSeq:SCREEN-VALUE = "no"
+                 newSeq:SENSITIVE = NO
+                 mapMSSDatetime:SCREEN-VALUE = "no"
+                 mapMSSDatetime:SENSITIVE = NO
+                 iRecidOption:SENSITIVE = NO.
+
        iFmtOption:DISABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.  
      WHEN "ora" THEN DO:       
        ASSIGN l_cmptbl:SENSITIVE = TRUE
+              l_cmptbl:SCREEN-VALUE = "no"
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
        
@@ -574,12 +633,19 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
               unicodeTypes:SENSITIVE IN FRAME createtable = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
-              lUniExpand:SCREEN-VALUE = "no".
+              lUniExpand:SCREEN-VALUE = "no"
+              newSeq:SCREEN-VALUE = "no"
+              newSeq:SENSITIVE = NO
+              mapMSSDatetime:SCREEN-VALUE = "no"
+              mapMSSDatetime:SENSITIVE = NO
+             iRecidOption:SENSITIVE = NO.
+
        iFmtOption:ENABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.
      OTHERWISE DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
+              l_cmptbl:SCREEN-VALUE = "no"
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
        
@@ -587,7 +653,13 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
               unicodeTypes:SENSITIVE IN FRAME createtable = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
-              lUniExpand:SCREEN-VALUE = "no".           .
+              lUniExpand:SCREEN-VALUE = "no"
+              newSeq:SCREEN-VALUE = "no"
+              newSeq:SENSITIVE = YES
+              mapMSSDatetime:SCREEN-VALUE = "yes"
+              mapMSSDatetime:SENSITIVE = YES
+              iRecidOption:SENSITIVE = YES.
+
        iFmtOption:ENABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.
@@ -642,6 +714,35 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME createtable DO:
            dummyl = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
 END.
 
+
+
+ON VALUE-CHANGED OF l_cmptbl IN FRAME createalltables DO:
+
+    IF ft:SCREEN-VALUE EQ "ora" THEN
+        RETURN.
+
+    IF SELF:SCREEN-VALUE = "NO" THEN
+       ASSIGN iRecidOption:SENSITIVE IN FRAME createalltables = NO
+           iRecidOption:SCREEN-VALUE IN FRAME createalltables = "1".
+    ELSE
+    ASSIGN iRecidOption:SENSITIVE IN FRAME createalltables = YES
+           iRecidOption:SCREEN-VALUE IN FRAME createalltables = "1" .
+END.
+
+ON VALUE-CHANGED OF l_cmptbl IN FRAME createtable DO:
+
+    IF ft:SCREEN-VALUE EQ "ora" THEN
+        RETURN.
+            
+    IF SELF:SCREEN-VALUE = "NO" THEN
+       ASSIGN iRecidOption:SENSITIVE IN FRAME createtable = NO
+           iRecidOption:SCREEN-VALUE IN FRAME createalltables = "1".
+    ELSE
+    ASSIGN iRecidOption:SENSITIVE IN FRAME createtable = YES
+           iRecidOption:SCREEN-VALUE IN FRAME createalltables = "1".
+END.
+
+
 ON LEAVE OF fot in frame createalltables
    fot:screen-value in frame createalltables = 
         TRIM(fot:screen-value in frame createalltables).
@@ -662,6 +763,7 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
    CASE SELF:SCREEN-VALUE:
      WHEN "pro" THEN DO:
        ASSIGN iFmtOption:SCREEN-VALUE IN FRAME createalltables = "2" 
+              iRecidOption:SCREEN-VALUE IN FRAME createalltables = "1" 
               l_cmptbl:SENSITIVE = FALSE
               l_cmptbl:SCREEN-VALUE = "no"
               shadowcol:SENSITIVE = FALSE
@@ -673,13 +775,19 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
               unicodeTypes:SENSITIVE IN FRAME createalltables= NO
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
-              lUniExpand:SCREEN-VALUE = "no".
+              lUniExpand:SCREEN-VALUE = "no"
+              newSeq:SCREEN-VALUE = "no"
+              newSeq:SENSITIVE = NO
+              mapMSSDatetime:SCREEN-VALUE = "no"
+              mapMSSDatetime:SENSITIVE = NO
+              iRecidOption:SENSITIVE = NO.
 
        iFmtOption:DISABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
      END.
      WHEN "ora" THEN DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
+              l_cmptbl:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE.
        
@@ -687,7 +795,12 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
               unicodeTypes:SENSITIVE IN FRAME createalltables = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
-              lUniExpand:SCREEN-VALUE = "no".
+              lUniExpand:SCREEN-VALUE = "no"
+              newSeq:SCREEN-VALUE = "no"
+              newSeq:SENSITIVE = NO
+              mapMSSDatetime:SCREEN-VALUE = "no"
+              mapMSSDatetime:SENSITIVE = NO
+              iRecidOption:SENSITIVE = NO.
 
        iFmtOption:ENABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
@@ -695,13 +808,19 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
      OTHERWISE DO:
        ASSIGN shadowcol:SENSITIVE = TRUE
               l_cmptbl:SENSITIVE = TRUE
+              l_cmptbl:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = TRUE.
        
        ASSIGN
               unicodeTypes:SENSITIVE IN FRAME createalltables = YES
               unicodeTypes:SCREEN-VALUE = "no"
               lUniExpand:SENSITIVE = NO
-              lUniExpand:SCREEN-VALUE = "no".
+              lUniExpand:SCREEN-VALUE = "no"
+              newSeq:SCREEN-VALUE = "no"
+              newSeq:SENSITIVE = YES
+              mapMSSDatetime:SCREEN-VALUE = "yes"
+              mapMSSDatetime:SENSITIVE = YES
+              iRecidOption:SENSITIVE = NO.
 
        iFmtOption:ENABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
@@ -829,7 +948,7 @@ IF alltables THEN
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
     uidtag = new_lang[7].
 
-    DISPLAY uidtag cFormat lFormat WITH FRAME createalltables.
+    DISPLAY uidtag cFormat lFormat cRecid WITH FRAME createalltables.
     usrnm = "ALL".
   
     UPDATE
@@ -842,14 +961,17 @@ IF alltables THEN
       crtdef
       unicodeTypes
       lUniExpand WHEN unicodeTypes
+      newSeq
+      mapMSSDatetime
       iFmtOption
       lFormat WHEN iFmtOption = 2 
+      iRecidOption
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
       WITH FRAME createalltables.
   &ELSE
-    DISPLAY usrlab cFormat lFormat WITH FRAME createalltables.
+    DISPLAY usrlab cFormat lFormat cRecid WITH FRAME createalltables.
     UPDATE
       fot btn_File_t
       foi btn_File_i
@@ -860,8 +982,11 @@ IF alltables THEN
       crtdef
       unicodeTypes
       lUniExpand WHEN unicodeTypes
+      newSeq
+      mapMSSDatetime
       iFmtOption
       lFormat WHEN iFmtOption = 2
+      iRecidOption
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
@@ -909,9 +1034,18 @@ IF alltables THEN
   IF user_env[22] = "MSS" THEN DO:
         ASSIGN user_env[7]  = (IF crtdef THEN "y" ELSE "n")
              user_env[10] = (IF unicodeTypes THEN "4000" ELSE "8000")
+             user_env[12] = (IF mapMSSDatetime THEN "datetime" ELSE "date")
              user_env[32] = "MSSQLSRV7"
              user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[27] = (IF l_cmptbl THEN "y" + "," + STRING(iRecidOption) ELSE "n")
              user_env[35] = "n".
+
+       /* first y is for sequence support.
+          second entry is for new sequence generator 
+          third entry is for use 2008 types 
+       */
+       ASSIGN user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
+                             (IF mapMSSDatetime THEN ',n' ELSE ',y').
 
       IF unicodeTypes THEN
          ASSIGN user_env[11] = "nvarchar"
@@ -945,7 +1079,7 @@ ELSE /*Single table*/
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
 
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
-   DISPLAY cFormat lFormat WITH FRAME createtable.
+   DISPLAY cFormat lFormat cRecid WITH FRAME createtable.
    UPDATE
     fot btn_File_t
     foi btn_File_i
@@ -955,14 +1089,17 @@ ELSE /*Single table*/
     crtdef
     unicodeTypes
     lUniExpand WHEN unicodeTypes
+    newSeq
+    mapMSSDatetime
     iFmtOption
     lFormat WHEN iFmtOption = 2
+    iRecidOption
     btn_OK 
     btn_Cancel
     {&HLP_BTN_NAME}
     WITH FRAME createtable.
   &ELSE
-   DISPLAY cFormat lFormat WITH FRAME createtable.
+   DISPLAY cFormat lFormat cRecid WITH FRAME createtable.
    UPDATE
     fot btn_File_t
     foi btn_File_i
@@ -972,8 +1109,11 @@ ELSE /*Single table*/
     crtdef
     unicodeTypes
     lUniExpand WHEN unicodeTypes
+    newSeq
+    mapMSSDatetime
     iFmtOption
     lFormat WHEN iFmtOption = 2
+    iRecidOption
     btn_OK 
     btn_Cancel
     {&HLP_BTN_NAME}
@@ -1021,9 +1161,18 @@ ELSE /*Single table*/
   
       ASSIGN user_env[ 7] = (IF crtdef THEN "y" ELSE "n")
              user_env[10] = (IF unicodeTypes THEN "4000" ELSE "8000")
+             user_env[12] = (IF mapMSSDatetime THEN "datetime" ELSE "date")
              user_env[32] = "MSSQLSRV7"
              user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[27] = (IF l_cmptbl THEN "y" + "," + STRING(iRecidOption) ELSE "n")
              user_env[35] = "n".
+
+      /* first y is for sequence support.
+         second entry is for new sequence generator 
+         third entry is for use 2008 types 
+      */
+      ASSIGN user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
+                            (IF mapMSSDatetime THEN ',n' ELSE ',y').
 
       IF unicodeTypes THEN
          ASSIGN user_env[11] = "nvarchar"

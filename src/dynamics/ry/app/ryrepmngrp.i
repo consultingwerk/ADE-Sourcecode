@@ -8106,10 +8106,12 @@ Parameters:
  
  RETURN TRUE.
 
- &ENDIF
+ &ELSE
  
  RETURN FALSE.
-
+ 
+ &ENDIF
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

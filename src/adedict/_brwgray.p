@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -35,6 +35,7 @@ Date Created: 03/26/92
               07/19/05 kmcintos  Added Auditing Reports
               07/27/05 kmcintos  Added check for db connection before creating
                                  a buffer for _file 20050727-027.
+              04/07/09 fernando  Support for encryption reports
 ----------------------------------------------------------------------------*/
 CREATE WIDGET-POOL.
 
@@ -89,6 +90,8 @@ DEFINE VARIABLE hBuffer   AS HANDLE                      NO-UNDO.
 &Global-define    MODE_INDEX       33
 &Global-define    DATA_RPT         34
 &Global-define    REPORTS_MENU     35
+&Global-define    ENC_REPORTS      36
+&Global-define    ALTBUF_REPORT    37
 
 
 Define var item   as integer  	    NO-UNDO. /* index into Gray_Items array */
@@ -133,7 +136,9 @@ do:
       Gray_Items[{&MODE_SEQUENCE}]  = MENU-ITEM mi_Mode_Seq:HANDLE
       Gray_Items[{&MODE_FIELD}]     = MENU-ITEM mi_Mode_Fld:HANDLE
       Gray_Items[{&MODE_INDEX}]     = MENU-ITEM mi_Mode_Idx:HANDLE
-      Gray_Items[{&REPORTS_MENU}]  = SUB-MENU s_mnu_Reports:HANDLE
+      Gray_Items[{&REPORTS_MENU}]   = SUB-MENU s_mnu_Reports:HANDLE
+      Gray_Items[{&ENC_REPORTS}]    = SUB-MENU s_mnu_Enc_Rep:HANDLE
+      Gray_Items[{&ALTBUF_REPORT}]  = MENU-ITEM mi_AltBufPool:HANDLE
       .
 
    /* Initialize these. */
@@ -171,7 +176,8 @@ do:
       ungray[{&QUICKUSR}] = yes
       ungray[{&TRIG_RPT}] = yes
       ungray[{&RELRPT_ALLTBLS}] = yes
-      ungray[{&DATA_RPT}] = YES.
+      ungray[{&DATA_RPT}] = YES
+      ungray[{&ALTBUF_REPORT}] = YES.
 
    if s_CurrObj = {&OBJ_DB} then
       assign
@@ -186,7 +192,7 @@ do:
 	 ungray[{&MODE_TABLE}] = YES
 	 ungray[{&CRT_SEQUENCE}] = yes
 	 ungray[{&MODE_SEQUENCE}] = yes.
-	
+    
     /* IF foreign database do not let user create tables or sequences */	 
     if s_DbCache_Type[s_DbCache_ix] = "ORACLE" OR
        s_DbCache_Type[s_DbCache_ix] = "ODBC"   OR
@@ -195,7 +201,23 @@ do:
        ASSIGN ungray[{&CRT_TABLE}] = no
               ungray[{&CRT_SEQUENCE}] = no
               ungray[{&BUTTON_CREATE}] = no
-              ungray[{&DATA_RPT}] = NO.
+              ungray[{&DATA_RPT}] = NO
+              ungray[{&ALTBUF_REPORT}] = NO.
+    ELSE DO:
+        /* check if encryption is enabled for the database */
+        IF CONNECTED("DICTDB") THEN DO:
+           CREATE BUFFER hBuffer FOR TABLE "DICTDB._database-feature" NO-ERROR.
+           IF VALID-HANDLE(hBuffer) THEN DO:
+              hBuffer:FIND-FIRST("WHERE _database-feature._dbfeature_name = ~'encryption~'",
+                             NO-LOCK) NO-ERROR.
+              IF hBuffer:AVAILABLE THEN DO:
+                 IF hBuffer::_dbfeature_enabled = "1" THEN
+                    ungray[{&ENC_REPORTS}] = YES.
+              END.
+              DELETE OBJECT hBuffer.
+           END.
+        END.
+    END.
 end.
 
 if s_DictState = {&STATE_OBJ_SELECTED} then

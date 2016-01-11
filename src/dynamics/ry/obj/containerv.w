@@ -1354,7 +1354,6 @@ PROCEDURE lookupComplete :
 
         RUN publishFetch.
       END.
-      ELSE
     END.
 
     WHEN hCustomSuperProcedure THEN

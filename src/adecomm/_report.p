@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -309,7 +309,10 @@ DO:
 	  INPUT STREAM instream FROM VALUE(tmpfile) NO-ECHO.
 	  REPEAT:
 	    IMPORT STREAM instream UNFORMATTED inline.
-	    PUT STREAM rpt UNFORMATTED inline skip.
+	    IF inline NE "" THEN
+	       PUT STREAM rpt UNFORMATTED inline skip.
+	    ELSE /* preserve blank lines */
+	       PUT STREAM rpt inline skip.
 	  END.
 	  INPUT STREAM instream CLOSE.
 	END.

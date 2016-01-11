@@ -55,7 +55,12 @@ History:
     10/06/06 fernando  Check object name in case it has underscore - 20031205-003
     08/10/07 fernando  Removed UI restriction for Unicode support    
     02/22/08 fernando  Support for datetime
-    02/25/09 Nagaraju  to handle timestamp field properly - OE00181255
+    02/23/09 Nagaraju  to handle timestamp field properly
+    03/16/09 knavneet  datetime-tz support for MSS
+    04/28/09 knavneet  BLOB support for MSS (OE00178319)
+    05/22/09 sgarg     ROWGUID support for MSS
+    09/23/09 Nagaraju  Computed column implementation for RECID support
+    10/29/09 Nagaraju  To update new format for version string
 */
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
@@ -189,6 +194,10 @@ DEFINE VARIABLE esc-idx1         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE esc-idx2         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE ch1              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ch2              AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE isFileStream     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE change-dict-ver  AS LOGICAL   NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE ds_srvr_vers     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE ds_clnt_vers     AS CHARACTER  NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -219,6 +228,31 @@ FORM
 
 
 /*------------------------------------------------------------------*/
+FUNCTION isComputed RETURNS LOGICAL (INPUT t1 AS CHAR, INPUT c1 AS CHAR):
+DEFINE VARIABLE isComputeCol     AS LOGICAL   NO-UNDO.
+
+assign sqlstate = "SELECT is_computed FROM sys.columns where name = '" + c1 +
+                            "' and object_id = (OBJECT_ID('" + t1 + "'))".
+
+          RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
+
+          IF ERROR-STATUS:ERROR THEN. /*Don't do anything inital value already set to unknown */
+          ELSE IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+              /* if no-error and have messages, we failed to run it (must be MSS 2000),
+                 so we just close it and will return FALSE.
+              */
+              CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+          END.
+          ELSE DO:
+            FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
+                ASSIGN isComputeCol = LOGICAL(INTEGER(proc-text)). /* convert to atoi to logical */
+            END.
+            CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+          END.
+
+RETURN isComputeCol.
+END FUNCTION.
+
 procedure error_handling:
 
 define INPUT PARAMETER error-nr         as INTEGER.
@@ -332,7 +366,7 @@ assign
                    &direction = "itoe"
                    &from-type = "user_dbtype"
                    }
-  l_char-types = "CHAR,VARCHAR,BINARY,VARBINARY,NCHAR,NVARCHAR"
+  l_char-types = "CHAR,VARCHAR,BINARY,VARBINARY,NCHAR,NVARCHAR,ROWGUID"
   l_chrw-types = "LONGVARBINARY,LONGVARCHAR,NLONGVARCHAR,TIME"
   l_date-types = "DATE"
   l_dcml-types = "DECIMAL,NUMERIC"
@@ -343,7 +377,7 @@ assign
   l_i#dl-types = "INTEGER,SMALLINT,TINYINT"
   l_logi-types = "BIT"
   l_time-types = ""
-  l_tmst-types = "TIMESTAMP"
+  l_tmst-types = "TIMESTAMP,TIMESTAMP-TZ"
   .
   
 IF NOT batch-mode then assign SESSION:IMMEDIATE-DISPLAY = yes.
@@ -355,6 +389,9 @@ assign
   user_env    = "" /* yes this is destructive, but we need the -l space */
   l_dt        = ?
   l_tmp       = (if s_datetime then "datetime_default" else ?).
+
+if s_lob then 
+  assign l_tmp = (if s_datetime then l_tmp + ",lob_default" else ",lob_default").
 
 RUN prodict/mss/_mss_typ.p
   ( INPUT-OUTPUT i,
@@ -370,7 +407,9 @@ RUN prodict/mss/_mss_typ.p
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
        assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name )
-              foreign_dbms_version = INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)).
+              foreign_dbms_version = INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2))
+              ds_clnt_vers = DICTDBG.GetInfo_buffer.prgrs_clnt
+              ds_srvr_vers = DICTDBG.GetInfo_buffer.prgrs_srvr.
     end.
 
     CLOSE STORED-PROC DICTDBG.GetInfo.
@@ -445,8 +484,8 @@ for each gate-work
                    else gate-work.gate-qual
                 ).
     
-  if SESSION:BATCH-MODE and logfile_open
-   then put unformatted
+  if batch-mode and logfile_open
+   then put STREAM logfile unformatted
      gate-work.gate-type at 10
      gate-work.gate-name at 25 skip.
 
@@ -640,15 +679,33 @@ for each gate-work
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_RECID' OR
          DICTDBG.GetFieldIds_buffer.field-name BEGINS 'PROGRESS_ROWID' THEN DO: 
 
-        IF s_ttb_tbl.ds_recid = 0 THEN 
-          ASSIGN s_ttb_tbl.ds_recid = i
-                 s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name
-                 i = i + 1.
-               
+         IF s_ttb_tbl.ds_recid = 0 THEN DO:
+           ASSIGN s_ttb_tbl.ds_recid = i
+                  s_ttb_tbl.ds_msc23 = DICTDBG.GetFieldIds_buffer.field-name.
+
+           IF isComputed(full_table_name, DICTDBG.GetFieldIds_buffer.field-name) THEN DO:
+             IF s_ttb_tbl.ds_msc22 = ? THEN 
+               ASSIGN s_ttb_tbl.ds_msc22 = "".
+             ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ",".
+             /* If PROGRESS_RECID column uses computed column feature, then */
+             /* check if the dictionary version in _db-misc2[7] is version, i.e 'odbc-dict-ver' */
+             /* and modify the dictionary version to 'odbc-dict-ver-new' */
+             IF NOT change-dict-ver AND INDEX(_Db._Db-misc2[7], odbc-dict-ver) <> 0 THEN 
+               change-dict-ver = TRUE.
+           END.
+           i = i + 1.
+         END.
          ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 6)) = "_IDENT_"
-           THEN assign s_ttb_tbl.ds_msc22 = string(i) + ","
-                       i = i + 1.
+           THEN DO:
+           IF s_ttb_tbl.ds_msc22 = ? THEN 
+             ASSIGN s_ttb_tbl.ds_msc22 = "".
+           ASSIGN s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(i) + ","
+                  i = i + 1.
+        END.
+         ELSE IF SUBSTRING(DICTDBG.GetFieldIds_buffer.field-name,
+              (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 4)) = "_ALT_"
+           THEN assign i = i + 1. 
         NEXT _loop.
       END.  
       CREATE column-id.
@@ -755,6 +812,24 @@ for each gate-work
                isUnicodeType = (DICTDBG.SQLColumns_buffer.data-type <= -8 
                                 AND DICTDBG.SQLColumns_buffer.data-type >= -10).
 
+        IF l_dt <> "UNDEFINED" THEN DO:
+           IF isUnicodeType THEN DO:
+              /* if any of the types below are returned as unicode types, this is not the
+                 right driver and we won't support it.
+              */
+              IF CAN-DO("date,time,datetime2,datetimeoffset", trim(DICTDBG.SQLColumns_buffer.type-name)) THEN
+                  l_dt = "UNDEFINED".
+           END.
+           ELSE IF foreign_dbms_version > 9 THEN DO:
+               /* don't support these types either - new in MSS 2008. 
+                  (foreign_dbms_version = 10). If using an unsupported driver, 
+                  they came through as varbinary, so we have to block them here.
+               */
+               IF CAN-DO("GEOMETRY,GEOGRAPHY", trim(DICTDBG.SQLColumns_buffer.type-name)) THEN
+                   l_dt = "UNDEFINED".
+            END.
+        END.
+
         IF l_dt = "UNDEFINED" THEN DO:
 
           RUN error_handling
@@ -784,7 +859,7 @@ for each gate-work
         END.
         ELSE IF isUnicodeType THEN DO:
             IF DICTDB._Db._Db-xl-name NE "utf-8" AND NOT warn_codepage THEN DO:
-               /* want the user about the codepage mismatch */
+               /* warn the user about the codepage mismatch */
                RUN error_handling(8, s_ttb_tbl.ds_name, "").
                RUN error_handling(9, "", "").
                ASSIGN warn_codepage = TRUE.
@@ -845,10 +920,13 @@ for each gate-work
 
       /* OE00162531: adding identity fields to non-updatable list */
       /* OE00181255: adding timestamp fields to non-updatable list */
+      /* OE00183878: adding ROWGUID fields to non-updatable list */
       if DICTDBG.SQLColumns_buffer.column-name BEGINS "PROGRESS_RECID"
       then .
       else if ((s_ttb_fld.ds_msc24 EQ "identity") OR 
-               (s_ttb_fld.ds_msc24 EQ "timestamp")) then do:
+               (s_ttb_fld.ds_msc24 EQ "timestamp") OR
+               (s_ttb_fld.ds_type = "ROWGUID") OR 
+               isComputed(full_table_name, DICTDBG.SQLColumns_buffer.column-name)) THEN DO:
         if s_ttb_tbl.ds_msc22 = ? then 
            assign s_ttb_tbl.ds_msc22 = "".
         s_ttb_tbl.ds_msc22 = s_ttb_tbl.ds_msc22 + string(s_ttb_fld.ds_stoff) + ",".
@@ -1443,6 +1521,18 @@ for each gate-work
 
    END. /* = PROCEDURE */  
 end. /* end gate-work */
+
+if change-dict-ver THEN do:
+  find DICTDB._Db where RECID(_Db) = drec_db EXCLUSIVE-LOCK.
+  /* update with new version information(of dictionary, client and server) received */
+  DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver-new
+                          + ",Client Ver #:"
+                          + ds_clnt_vers
+                          + ",Server Ver #:"
+                          + ds_srvr_vers
+                          + ",".
+end.
+
 
 IF NOT batch-mode
  then SESSION:IMMEDIATE-DISPLAY = no.

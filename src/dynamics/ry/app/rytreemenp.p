@@ -292,17 +292,15 @@ PROCEDURE translateMenuItem :
                                                 INPUT NO)) NO-ERROR.
   /* If the login language is not the same as the menu item's source language
      then we will attempt to try and find a translated menu item */
-  IF dLoginLanguageObj <> pdSourceLanguageObj THEN DO:
-    dTransLanguageObj = canFindTranslation(pdMenuItemObj,dLoginLanguageObj).
-    IF dTransLanguageObj <> 0 AND
-       dTransLanguageObj <> ? THEN DO:
-      FIND FIRST gsm_translated_menu_item
-           WHERE gsm_translated_menu_item.menu_item_obj = pdMenuItemObj
-           AND   gsm_translated_menu_item.language_obj  = dTransLanguageObj
-           NO-LOCK NO-ERROR.
-      IF AVAILABLE gsm_translated_menu_item THEN
-        pcMenuItemLabel = gsm_translated_menu_item.menu_item_label.
-    END.
+  dTransLanguageObj = canFindTranslation(pdMenuItemObj,dLoginLanguageObj).
+  IF dTransLanguageObj <> 0 AND
+     dTransLanguageObj <> ? THEN DO:
+    FIND FIRST gsm_translated_menu_item
+         WHERE gsm_translated_menu_item.menu_item_obj = pdMenuItemObj
+         AND   gsm_translated_menu_item.language_obj  = dTransLanguageObj
+         NO-LOCK NO-ERROR.
+    IF AVAILABLE gsm_translated_menu_item THEN
+      pcMenuItemLabel = gsm_translated_menu_item.menu_item_label.
   END.
 
 END PROCEDURE.

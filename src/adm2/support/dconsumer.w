@@ -87,7 +87,7 @@ subscription unsubscribeClose
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
-&Scoped-Define DATA-FIELD-DEFS "adm2/support/dconsumer.i"
+&Scoped-Define DATA-FIELD-DEFS "src/adm2/support/dconsumer.i"
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH destination NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005,2006,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -269,3 +269,13 @@
 /* View-as property dialog for browse columns view-as attribute */
 &GLOBAL-DEFINE Viewas_Attribute_Dialog_Box 71000
 
+/* New for 10.2B */
+
+/* Encryption Policies Detailed Report */
+&GLOBAL-DEFINE Detailed_Encryption_Policy_Report_Dialog_Box 66
+
+/* Alternate Buffer Pool Quick Report */
+&GLOBAL-DEFINE Quick_Alternate_Buffer_Pool_Report 67
+
+/* Encryption Policies Quick Report */
+&GLOBAL-DEFINE Quick_Encryption_Policy_Report_Dialog_Box 68

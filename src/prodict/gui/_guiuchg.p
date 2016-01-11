@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -16,6 +16,7 @@
                             "CAN-FIND(FIRST _User ... " so current _User
                             record does not have to be reset
         D. McMann 10/23/02  Changed BLANK to PASSWORD-FIELD
+        fernando  09/22/09  Reset other can-fields when unsetting sec admin
                             
 -------------------------------------------------------------------*/
 
@@ -230,8 +231,26 @@ DO:
       FIND _File "_User" WHERE _File._Db-recid = drec_db
                            AND _File._Owner = "PUB".
       ASSIGN
-	_File._Can-create = "*"
-	_File._Can-delete = "*".
+	   _File._Can-create = "*"
+	   _File._Can-delete = "*".
+
+      FIND _File "_Db-Option" NO-ERROR.
+      IF AVAILABLE _File THEN
+          ASSIGN _File._Can-create = "*" 
+                 _File._Can-write = "*"
+                 _File._Can-delete = "*".
+
+      FIND _File "_Db-Detail" NO-ERROR.
+      IF AVAILABLE _File THEN
+          ASSIGN _File._Can-create = "*" 
+                 _File._Can-write = "*"
+                 _File._Can-delete = "*".
+
+      FIND _File "_Db".
+      FIND _Field "_Db-guid" OF _File NO-ERROR.
+      IF AVAILABLE _Field THEN
+          ASSIGN _Field._Can-write = "*".
+
    END.
 END.
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All rights  *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -53,6 +53,15 @@ DEFINE NEW GLOBAL SHARED VARIABLE FieldList         AS CHAR FORMAT "x(70)"
 /* Array of field values corresponding to FieldList (arbitrary limit) */
 DEFINE NEW GLOBAL SHARED VARIABLE FieldVar          AS CHAR 
     EXTENT {&MAX-FIELDS} NO-UNDO.
+
+/* holds list of form and query fields */
+DEFINE NEW GLOBAL SHARED TEMP-TABLE ttWebFieldList NO-UNDO
+    FIELD field-num  AS INTEGER
+    FIELD field-name AS CHARACTER
+    FIELD field-type AS CHARACTER /* 'F' or 'Q' */
+    INDEX prim-index IS PRIMARY field-name field-type field-num.
+
+DEFINE NEW GLOBAL SHARED VARIABLE usetttWebFieldList AS LOGICAL NO-UNDO.
 
 /* List of local fields */
 DEFINE NEW GLOBAL SHARED VARIABLE UserFieldList    AS CHAR FORMAT "x(70)" 

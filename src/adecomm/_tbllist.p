@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,6 +41,7 @@ Date Created: 06/15/92
                        against an 8 database. D. McMann
               07/10/98 Added logic to Check DBVERSION and _Owner on _File finds
                        D. McMann
+              06/26/08 fernando Remove encryption tables from list         
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT  PARAMETER p_List    AS WIDGET-HANDLE   NO-UNDO.
@@ -55,6 +56,8 @@ DEFINE VARIABLE filtered   AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE v_OutItem  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE v_DBName   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE widg       AS WIDGET    NO-UNDO.
+
+&SCOPED-DEFINE  INVALID_SCHEMA_TABLES "_sec-db-policy,_sec-obj-policy,_sec-pwd-policy":U
 
 IF INTEGER(DBVERSION("DICTDB":u)) > 8 THEN 
   FIND DICTDB._File WHERE DICTDB._File._File-name = "_File":u
@@ -91,7 +94,8 @@ FOR EACH DICTDB._DB WHERE
   v_DBName = (IF DICTDB._DB._DB-Name = ? THEN
      LDBNAME("DICTDB":u) ELSE DICTDB._DB._DB-Name).
 
-  FOR EACH DICTDB._File OF DICTDB._DB WHERE CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":u)) NO-LOCK:
+  FOR EACH DICTDB._File FIELDS(_File-num _File-name _Owner _Hidden _Tbl-type) OF DICTDB._DB
+      WHERE CAN-DO(DICTDB._File._Can-Read, USERID("DICTDB":u)) NO-LOCK:
     IF INTEGER(DBVERSION("DICTDB":u)) > 8  AND DICTDB._File._Tbl-type = "V"
       THEN NEXT.
       
@@ -100,6 +104,7 @@ FOR EACH DICTDB._DB WHERE
         
     /* make sure we only see hidden tables when requested */
     IF (p_Hidden OR (NOT DICTDB._File._Hidden)) THEN DO:
+
       /* Check filters - currently only the Sybase buffer filter is available */
       IF p_Filters = "":U THEN filtered = FALSE.
       ELSE DO:
@@ -114,6 +119,11 @@ FOR EACH DICTDB._DB WHERE
                                   p_Filters,
                                   OUTPUT filtered).
       END.
+
+      /* filter these schema tables out (hidden) */
+      IF DICTDB._File._Hidden AND CAN-DO({&INVALID_SCHEMA_TABLES},DICTDB._File._File-name) THEN
+          filtered = TRUE.
+
       IF NOT filtered OR filtered = ? THEN DO:
         CASE p_Type:
           WHEN "D":u THEN v_OutItem = v_DBName + ".":u + DICTDB._File._File-name.

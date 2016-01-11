@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -94,16 +94,66 @@ DO:
 END.
 
 /*----- LEAVE OF OLD NAME -----*/
+
 ON LEAVE of old-name IN FRAME everything
 DO:
+  DEFINE VARIABLE name AS CHARACTER    NO-UNDO.
+  DEFINE BUFFER bField FOR _Field.
+  DEFINE BUFFER bFile FOR _File.
+
+  name = TRIM(Self:SCREEN-VALUE).
+
   /* We already know the field name exists.  Just
      make sure it's not a schema field. 
   */
   IF INPUT FRAME everything old-name BEGINS "_" THEN DO:
+
+    FIND FIRST bField where bField._Field-Name = NAME NO-LOCK NO-ERROR.
+    IF AVAILABLE bField THEN DO:
+        /* if one of the encryption schema tables, act as if it doesn't exist */
+        FIND FIRST bFile OF bField WHERE 
+            NOT CAN-DO({&INVALID_SCHEMA_TABLES},bFile._File-name) NO-LOCK NO-ERROR.
+        IF NOT AVAILABLE bFile THEN
+            RELEASE bField.
+    END.
+
+    IF NOT AVAILABLE bField THEN
+        MESSAGE new_lang[2]. /* unknwon name */
+    ELSE
+        MESSAGE new_lang[10]. /* schema field */
+
     BELL.
-    MESSAGE new_lang[10].
     RETURN NO-APPLY.
   END.
+
+END.
+
+/*----- LEAVE OF new NAME -----*/
+
+ON LEAVE of new-name IN FRAME everything
+DO:
+  DEFINE VARIABLE name AS CHARACTER    NO-UNDO.
+  DEFINE BUFFER bField FOR _Field.
+  DEFINE BUFFER bFile FOR _File.
+
+  name = TRIM(Self:SCREEN-VALUE).
+
+  FIND FIRST bField where bField._Field-Name = NAME NO-LOCK NO-ERROR.
+  IF AVAILABLE bField THEN DO:
+      /* if one of the encryption schema tables, act as if it doesn't exist 
+         It will get blocked in _valname.p (ON GO) as an invalid name due
+         to the underscore at the beginning of the name
+      */
+      FIND FIRST bFile OF bField NO-LOCK.
+      IF CAN-DO({&INVALID_SCHEMA_TABLES},bFile._File-name) THEN
+          RELEASE bField.
+  END.
+
+  IF AVAILABLE bField THEN DO:
+      MESSAGE new_lang[3].
+      RETURN NO-APPLY.
+  END.
+
 END.
 
 /*----- ON GO -----*/
@@ -170,8 +220,6 @@ DO ON ERROR UNDO,NEXT ON ENDKEY UNDO,LEAVE:
       VALIDATE(CAN-FIND(FIRST _Field
         WHERE _Field._Field-name = old-name),new_lang[2])
     new-name
-      VALIDATE(NOT CAN-FIND(FIRST _Field
-        WHERE _Field._Field-name = new-name),new_lang[3])
     btn_OK btn_Cancel
     WITH FRAME everything.
 

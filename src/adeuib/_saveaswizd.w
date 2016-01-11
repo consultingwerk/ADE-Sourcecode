@@ -2351,8 +2351,7 @@ FUNCTION getRegObjName RETURNS CHARACTER
    cObjectName = pcName.
   
    RETURN cObjectName.   /* Function return value. */
-
-  RETURN "".   /* Function return value. */
+ 
 
 END FUNCTION.
 

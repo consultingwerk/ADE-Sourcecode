@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _genrt.i
@@ -332,7 +332,8 @@ IF window_sect OR frame_sect OR widget_sect OR multi-layout OR frame_parent THEN
         END.  /* Preselect anchor_U */
       END.  /* For each browse of the frame */
 
-      IF _U._STATUS = u_status AND frame_sect AND
+      IF _U._STATUS NE "EXPORT-FORM" AND
+         (_U._STATUS = u_status AND frame_sect AND
            /* Always say DIALOGS are not scrollable.  Size-to-fit frames need to 
               have scrollable turned off (because they are created scrollable). */ 
            ( _U._TYPE eq "DIALOG-BOX":U  OR
@@ -342,7 +343,7 @@ IF window_sect OR frame_sect OR widget_sect OR multi-layout OR frame_parent THEN
              _U._MANUAL-HIGHLIGHT  OR _U._SELECTABLE        OR _U._SELECTED           OR
              _U._MOVABLE           OR _U._POPUP-RECID NE ?  OR _C._SCROLLABLE         OR
              (NOT _U._SENSITIVE)   OR _U._RESIZABLE
-            ) OR  _L._REMOVE-FROM-LAYOUT OR  _U._PRIVATE-DATA NE ""
+            ) OR  _L._REMOVE-FROM-LAYOUT OR  _U._PRIVATE-DATA NE "")
       THEN DO:
         PUT STREAM P_4GL UNFORMATTED "ASSIGN ".
         IF _C._BOX-SELECTABLE THEN PUT STREAM P_4GL UNFORMATTED SKIP

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2009 by Progress Software Corporation. All *
+* Copyright (C) 2005-2006, 2009 by Progress Software Corporation. All*
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -12,7 +12,8 @@
               D. McMann   10/16/03 Created two OTHER catigories and removed MS Access
               K. McIntosh 04/13/04 Added support for ODBC type DB2/400
               fernando    08/14/06 Removed Informix from list of valid foreign db types
-              rkumar      06/26/09 Added default values for ODBC DataServer- OE00177724
+	      rkumar      01/07/09 Added default values for ODBC DataServer- OE00177724
+              rkumar      05/05/09 Added RECID support  for ODBC DataServer- OE00177721
 */    
 
 DEFINE {1} SHARED VARIABLE pro_dbname   AS CHARACTER NO-UNDO.
@@ -33,13 +34,14 @@ DEFINE {1} SHARED VARIABLE odb_type     AS CHARACTER FORMAT "x(16)"
 
 DEFINE {1} SHARED VARIABLE movedata     AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE pcompatible  AS LOGICAL NO-UNDO.
-DEFINE {1} SHARED VARIABLE shadowcol    AS LOGICAL   NO-UNDO.
-DEFINE {1} SHARED VARIABLE odbdef       AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE shadowcol    AS LOGICAL NO-UNDO.
+DEFINE {1} SHARED VARIABLE odbdef       AS LOGICAL NO-UNDO. 
 DEFINE {1} SHARED VARIABLE sqlwidth     AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE loadsql      AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE rmvobj       AS LOGICAL NO-UNDO.
 DEFINE {1} SHARED VARIABLE iFmtOption   AS INTEGER NO-UNDO INITIAL 2.
 DEFINE {1} SHARED VARIABLE lFormat      AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE iRidOption   AS INTEGER NO-UNDO INITIAL 2. /* OE00177721*/
 
 DEFINE {1} SHARED STREAM dbg_stream.
 

@@ -268,7 +268,7 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF _Field._data-type = "clob" THEN DO:
       IF (wfld._Charset   <> ? AND UPPER(_Field._Charset) NE UPPER(wfld._Charset)) OR
          (wfld._Collation <> ? AND UPPER(_Field._Collation) NE UPPER(wfld._Collation)) THEN DO:
-          ASSIGN ierror = 60. /* Cannot change codepage or collation of existing column */
+          ASSIGN ierror = 66. /* Cannot change codepage or collation of existing column */
           RETURN.
       END.
 

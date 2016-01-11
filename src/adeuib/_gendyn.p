@@ -414,7 +414,6 @@ ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCED
    IF gpcError NE "" AND NOT gpcError BEGINS "Associated data" THEN 
    DO:
      UNDO TRANS-BLOCK, LEAVE TRANS-BLOCK.
-     RETURN.
    END.
    
    /* Now write out the field level widgets */
@@ -423,7 +422,6 @@ ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCED
    IF gpcError NE "" AND NOT gpcError BEGINS "Associated data":U THEN 
    DO:
      UNDO TRANS-BLOCK, LEAVE TRANS-BLOCK.
-     RETURN.
    END.
  END.  /* Trans-Block */
  /* Mark that this file has been saved */

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -633,6 +633,16 @@ PROCEDURE DeleteClass :
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE rObj AS Progress.Lang.Object NO-UNDO.
     DEFINE VARIABLE rDel AS Progress.Lang.Object NO-UNDO.
+
+&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+    /* OE00190506: Force .NET garbage collection if the CLR has been loaded */
+    IF SESSION:DOTNET-CLR-LOADED = TRUE THEN
+    DO:
+        System.GC:Collect().
+        System.GC:WaitForPendingFinalizers().
+        System.GC:Collect().
+    END.
+&ENDIF    
 
     ASSIGN rObj = SESSION:FIRST-OBJECT.
     

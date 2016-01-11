@@ -8,4 +8,4 @@
 
 &GLOBAL-DEFINE DB-REQUIRED FALSE
 
-{"adm2/support/drouter.w"}
+{"src/adm2/support/drouter.w"}

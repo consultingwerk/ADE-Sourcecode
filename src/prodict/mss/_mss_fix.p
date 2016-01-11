@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2008-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -44,6 +44,7 @@ DEFINE VARIABLE l_seqs           AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE maxorder         AS INTEGER   NO-UNDO.
 DEFINE VARIABLE a                AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cType            AS CHARACTER NO-UNDO.
 
 DEFINE BUFFER   a_DICTDB         FOR DICTDB._Field.
 DEFINE BUFFER   i_DICTDB        FOR DICTDB._Index.
@@ -403,8 +404,16 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
       IF NOT AVAILABLE DICTDB._Field THEN NEXT.
     END. /* !  DICTDB2._Field._Extent > 0 */
 
+    ASSIGN cType =  DICTDB2._Field._Data-type.
+
+    /* if type is RAW in the OE db and varchar in the foreign db, we can't make it
+       RAW or we will get error 6187, so leave it alone.
+    */
+    IF cType = "RAW" AND INDEX(DICTDB._Field._For-type, "varchar") > 0  THEN
+       ASSIGN cType = DICTDB._Field._Data-type.
+
     ASSIGN  DICTDB._Field._Field-name   = DICTDB2._Field._Field-name
-            DICTDB._Field._Data-type    = DICTDB2._Field._Data-type
+            DICTDB._Field._Data-type    = cType
             DICTDB._Field._Format       = DICTDB2._Field._Format
             DICTDB._Field._Fld-case     = DICTDB2._Field._Fld-case
             DICTDB._Field._Initial      = DICTDB2._Field._Initial
@@ -426,6 +435,7 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
             DICTDB._Field._Valmsg-sa    = DICTDB2._Field._Valmsg-sa
             DICTDB._Field._View-As      = DICTDB2._Field._View-As
             DICTDB._Field._Help         = DICTDB2._Field._Help.
+
 
     IF DICTDB._Field._Data-type = "RECID" THEN
        DICTDB._Field._Data-type = "INTEGER".

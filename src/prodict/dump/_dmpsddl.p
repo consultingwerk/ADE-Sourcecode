@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,7 +32,11 @@ in:  user_env[1]   = containing comma-separated list of filenames in
                      "SOME MORE"  some of the files of a following schema
                      "ONE"        one file of the first schema
                      "ONE MORE"   one file of a following schema
-                     
+out: user_filename = if user_env[25] = "AUTO", then comma-separated list
+                     which can have encpolicy and/or bufpool if encryption
+                     policies and/or alternate buffer pool settings were
+                     dumped.
+
 When dumping automatically all definitions of all schemas, the .df-file 
 should contain only one trailer - at the very   end. Therefor the batch-
 program passes "AUTO" to suppress the trailer for the 1. to 
@@ -50,12 +54,15 @@ History:
     fernando    03/14/06    Handle case with too many tables selected - bug 20050930-006.        
     fernando    09/27/06    Added check for sql-92 tables with unsupported ABL prop - 20060324-001
     fernando    06/19/07    Support for large files
+    fernando    07/18/08    Support for encryption
+    fernando    04/08/09    Support for alternate buffer pool    
 */
 /*h-*/
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 { prodict/fhidden.i}
+{prodict/sec/sec-pol.i}
 
 DEFINE VARIABLE Dbs         AS CHARACTER    NO-UNDO.
 DEFINE VARIABLE file_len    AS INTEGER      NO-UNDO.
@@ -67,9 +74,13 @@ DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
 DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
 DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE c         AS CHARACTER.
+DEFINE VARIABLE dumpPol   AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE dumpAltBuf AS LOGICAL     NO-UNDO.
+
+DEFINE VARIABLE myEPolicy  AS prodict.sec._sec-pol-util    NO-UNDO.
+DEFINE VARIABLE myObjAttrs AS prodict.pro._obj-attrib-util NO-UNDO.
 
 DEFINE NEW SHARED STREAM ddl.
-
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 
@@ -146,6 +157,44 @@ DO ON STOP UNDO, LEAVE:
 
     ASSIGN ilast = 0
            c = user_env[1].
+
+    FIND _Db WHERE RECID(_Db) = drec_db NO-LOCK.
+    /* encryption only for OpenEdge dbs */
+    IF _Db._Db-type = "PROGRESS" THEN DO ON ERROR UNDO, LEAVE:
+        myEPolicy = NEW prodict.sec._sec-pol-util().
+
+        CATCH ae AS PROGRESS.Lang.AppError:
+           /* if encryption is not enabled, then we silently ignore this */
+            IF ae:GetMessageNum(1) NE 14889 THEN DO:
+               IF user_env[6] = "no-alert-boxes" THEN
+                MESSAGE  "The dump file will not contain any encryption definitions for the objects." SKIP 
+                         ae:GetMessage(1).
+               ELSE
+                   MESSAGE  "The dump file will not contain any encryption definitions for the objects." SKIP 
+                            ae:GetMessage(1) 
+                        VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+            END.
+            DELETE OBJECT ae.
+        END CATCH.
+    END.
+    
+    IF _Db._Db-type = "PROGRESS" THEN DO ON ERROR UNDO, LEAVE:
+        myObjAttrs = NEW prodict.pro._obj-attrib-util().
+
+        CATCH ae AS PROGRESS.Lang.AppError:
+           /* if db doesn't support alternate buffer pools, then we silently ignore this */
+            IF ae:GetMessageNum(1) NE 4634 THEN DO:
+               IF user_env[6] = "no-alert-boxes" THEN
+                MESSAGE  "The dump file will not contain any buffer pool definitions for the objects." SKIP 
+                         ae:GetMessage(1).
+               ELSE
+                   MESSAGE  "The dump file will not contain any buffer pool definitions for the objects." SKIP 
+                            ae:GetMessage(1) 
+                        VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+            END.
+            DELETE OBJECT ae.
+        END CATCH.
+    END.
 
     DO WHILE (ilast < numCount):
 
@@ -249,19 +298,116 @@ DO ON STOP UNDO, LEAVE:
       if TERMINAL <> "" then 
         DISPLAY _File._File-name WITH FRAME working.
       RUN "prodict/dump/_dmpdefs.p" ("t",RECID(_File),user_env[26]).
+
+      /* let's cache the encryption info in a temp-table */
+      /* and the object attributes - for alt buffer pool settings */
+      IF VALID-OBJECT(myEPolicy) OR VALID-OBJECT(myObjAttrs) THEN DO:
+         
+         IF VALID-OBJECT(myEPolicy) THEN
+             myEPolicy:getPolicyVersions(DICTDB._File._File-Number, 
+                                         DICTDB._File._File-Name, 
+                                         "Table", 
+                                         OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+
+         IF VALID-OBJECT(myObjAttrs) THEN
+            myObjAttrs:getObjectAttributes(DICTDB._File._File-Number, 
+                                           DICTDB._File._File-Name, 
+                                           "Table", 
+                                           OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+
+         FOR EACH DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Dtype = 18 /* blob*/ OR
+             DICTDB._Field._Dtype = 19 /* clob */ NO-LOCK:
+             IF VALID-OBJECT(myEPolicy) THEN
+                 myEPolicy:getPolicyVersions(DICTDB._Field._fld-stlen, 
+                                             DICTDB._File._File-Name + "." + DICTDB._Field._Field-Name, 
+                                             DICTDB._Field._Data-type, 
+                                             OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+             IF VALID-OBJECT(myObjAttrs) THEN
+                 myObjAttrs:getObjectAttributes(DICTDB._Field._fld-stlen, 
+                                                DICTDB._File._File-Name + "." + DICTDB._Field._Field-Name, 
+                                                DICTDB._Field._Data-type, 
+                                                OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+         END.
+
+         FOR EACH DICTDB._Index OF DICTDB._File NO-LOCK:
+             IF VALID-OBJECT(myEPolicy) THEN
+                 myEPolicy:getPolicyVersions(DICTDB._Index._Idx-num, 
+                                             DICTDB._File._File-Name + "." + DICTDB._Index._Index-name, 
+                                             "Index", 
+                                             OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+             IF VALID-OBJECT(myObjAttrs) THEN
+                 myObjAttrs:getObjectAttributes(DICTDB._Index._Idx-num, 
+                                                DICTDB._File._File-Name + "." + DICTDB._Index._Index-name, 
+                                                "Index", 
+                                                OUTPUT DATASET dsObjAttrs BY-REFERENCE).
+         END.
+      END.
       end. /* for each _file */
 
     END. /* while */
   END.
 
+  /* if encryption not enabled and not assigned to alternate buffer pool,
+     don't care about them.
+  */
+  FOR EACH ttObjAttrs WHERE ttObjAttrs.obj-cipher = "" AND 
+      ttObjAttrs.obj-buf-pool = 'Primary':
+      DELETE ttObjAttrs.
+  END.
+
+  /* now for every object that has a valid not-null cipher and/or
+     is assigned to the alternate buffer pool, dump it */
+  FOR EACH ttObjAttrs:
+      /* syntax is 
+        obj-name;obj-type;cipher,value;[buffer-pool,value]
+         
+        where obj-type is TABLE,INDEX or FIELD 
+        cipher or buffer-pool may be an empty string but not both
+      */
+      ASSIGN c = ttObjAttrs.obj-name + ";".
+      IF ttObjAttrs.obj-type = "blob" OR ttObjAttrs.obj-type = "clob" THEN
+          ASSIGN c = c + "FIELD".
+      ELSE
+          ASSIGN c = c + ttObjAttrs.obj-type.
+
+      IF ttObjAttrs.obj-cipher NE "" THEN DO:
+          ASSIGN dumpPol = YES
+                  c = c + ";cipher," + ttObjAttrs.obj-cipher.
+      END.
+  
+      IF ttObjAttrs.obj-buf-pool NE "Primary" THEN DO:
+          dumpAltBuf = YES.
+          ASSIGN c = c + ";buffer-pool," + ttObjAttrs.obj-buf-pool.
+      END.
+
+      RUN "prodict/dump/_dmpdefs.p" ("o",0, c).
+  END.
+
   if user_env[25] <> "AUTO"
    then do:  /* no other _db-schema will follow -> trailer */
       {prodict/dump/dmptrail.i
-        &entries      = " "
+        &entries      = "IF dumpPol THEN PUT STREAM ddl UNFORMATTED
+                      ""encpolicy=yes"" SKIP.
+                        IF dumpAltBuf THEN PUT STREAM ddl UNFORMATTED
+                        ""bufpool=yes"" SKIP."
         &seek-stream  = "ddl"
         &stream       = "stream ddl"
         }  /* adds trailer with code-page-entry to end of file */
-        end.    /* no other _db-schema will follow -> trailer */  
+   end.    /* no other _db-schema will follow -> trailer */  
+   ELSE DO:
+       /* in this case, the caller dumps the trailer info, so we pass
+          the values for encpolicy and bufpool back.
+       */
+       user_filename = "".
+
+       IF dumpPol THEN
+          ASSIGN user_filename = 'encpolicy'.
+
+       IF dumpAltBuf THEN
+          ASSIGN user_filename = user_filename 
+                   + (IF user_filename = '' THEN "" ELSE ",") 
+                   + 'bufpool'.
+   END.
 
   stopped = false.
   end.
@@ -329,6 +475,12 @@ if TERMINAL <> ""
 
 IF SESSION:CPINTERNAL NE "undefined":U THEN
    ASSIGN user_longchar = "".
+
+IF VALID-OBJECT(myEPolicy) THEN
+    DELETE OBJECT myEPolicy.
+
+IF VALID-OBJECT(myObjAttrs) THEN
+    DELETE OBJECT myObjAttrs.
 
 RETURN.
 

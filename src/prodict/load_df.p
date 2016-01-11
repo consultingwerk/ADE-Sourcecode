@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,7 +37,9 @@ History:
     kmcintos    07/28/05    Added check for false alarm in read_bits 
                             20050727-041.
     fernando    06/20/07    Support for large files
-
+    fernando    07/21/08    Support for encryption
+    fernando    03/20/09    Additional changes for encryption
+    fernando    04/13/09    Changes for alternate buffer pool
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -55,7 +57,13 @@ DEFINE VARIABLE lvar#       AS INT            NO-UNDO.
 DEFINE VARIABLE i           AS INT64          NO-UNDO.
 DEFINE VARIABLE old-session AS CHARACTER      NO-UNDO INITIAL ?.
 DEFINE VARIABLE counter     AS INTEGER        NO-UNDO INITIAL 1.
+DEFINE VARIABLE validObjs   AS LOGICAL        NO-UNDO.
+DEFINE VARIABLE cTmp        AS CHARACTER      NO-UNDO.
+DEFINE VARIABLE cMsg        AS CHARACTER      NO-UNDO.
+DEFINE VARIABLE stopped     AS LOGICAL        NO-UNDO.
+DEFINE VARIABLE xError      AS LOGICAL        NO-UNDO.
 
+DEFINE STREAM loaderr.
 
 /*========================= MAINLINE CODE ============================*/
 
@@ -119,12 +127,24 @@ REPEAT:
      LEAVE.
 END.
 
-DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
+DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE ON STOP UNDO, LEAVE:
+
+  /* The reason we do this here is so that we cache the settings for encryption policies
+     and buffer pool settings and then don't save them in _lodsddl.p. 
+     We will wait until we get back here to start a new transaction for adding them.
+     The reason is that if the encryption policies are for newly created objects, 
+     their object numbers won't get assigned by core until the end of the transaction
+     where they are created, so we can't create the objects and the policies in the 
+     same transaction.
+  */
+  ASSIGN dictObjAttrCache = YES.
+
   user_path = "*".
   RUN "prodict/dump/_lodv5df.p".
   IF user_path = "*" THEN RUN "prodict/dump/_lodsddl.p".
   
   IF user_path = "*R" then UNDO, LEAVE.
+
 END.
              
 /*Fernando: 20020129-017 if there was a message from the client after the load process started, 
@@ -144,11 +164,85 @@ DO:
             
         OUTPUT CLOSE.
 END.
+ELSE DO: 
+
+    /* only process policies or buffer-pool settings if there wasn't an error in the first phase */
+    IF INDEX(user_path,"4=error") = 0 AND 
+        (VALID-OBJECT(dictEPolicy) OR VALID-OBJECT(dictObjAttrs)) THEN DO:
+        DO TRANSACTION ON ERROR UNDO, LEAVE:
+            DEFINE BUFFER my_Db FOR DICTDB._Db.
+    
+            ASSIGN stopped = YES.
+        
+            DO ON STOP UNDO, LEAVE:
+                /* try to get the schema lock again as soon as possible since we lost it
+                   when the transaction above ended
+                */
+                FIND FIRST my_Db WHERE RECID(my_Db) = drec_db.
+        
+                IF VALID-OBJECT(dictEPolicy) THEN DO:
+                    /* now we should be outside the main transaction. If not, new tables/index/fields will not have
+                       been assigned with the object number.
+                       We pass this-procedure so that it calls us back to report any errors.
+                    */
+                    validObjs =  dictEPolicy:cacheSavePolicy(INPUT THIS-PROCEDURE, OUTPUT cTmp).
+            
+                    IF NOT validObjs THEN DO:
+                       RUN Show_Phase2_Error ("Cannot enable encryption for " + cTmp + 
+                                              ". Make sure there is no " +
+                                              "transaction active when the load process is initiated.").
+                    END.
+    
+                END.
+
+                IF NOT xError AND VALID-OBJECT(dictObjAttrs) THEN DO:
+
+                    /* now we should be outside the main transaction. If not, new tables/index/fields 
+                       will not have been assigned with the object number.
+                       We pass the handle of this procedure so that secErrorCallback gets called back
+                       when an error happens.
+                    */
+                    IF NOT dictObjAttrs:cacheSaveSettings(INPUT THIS-PROCEDURE,
+                                                          OUTPUT cTmp) THEN DO:
+                       RUN Show_Phase2_Error ("Cannot set buffer pool for " + cTmp 
+                                              + ". Make sure there is no "
+                                              + "transaction active when the load process is initiated.",
+                                              "b").
+                    END.
+                END.
+
+                stopped = NO.
+            END.
+    
+            /* if stopped or error, then undo this transactions */
+            IF stopped OR xError THEN
+                UNDO, LEAVE.
+    
+            FINALLY:
+                IF stopped OR xError THEN DO:
+    
+                    RUN Show_Phase2_Error (INPUT ?, INPUT ?).
+    
+                    MESSAGE "Please check" LDBNAME("DICTDB") 
+                            ".e for load errors and/or warnings.".
+                END.
+            END FINALLY.
+        END.
+    END.
+END.
+
+IF VALID-OBJECT(dictEPolicy) THEN
+  DELETE OBJECT dictEPolicy.
+
+IF VALID-OBJECT(dictObjAttrs) THEN
+  DELETE OBJECT dictObjAttrs.
+
 IF old-session <> ? THEN
   ASSIGN SESSION:SCHEMA-CHANGE = old-session
 
 SESSION:APPL-ALERT-BOXES = save_ab.
-RETURN.
+
+
 
 /*====================== INTERNAL PROCEDURES =========================*/
 
@@ -270,6 +364,64 @@ PROCEDURE read_bits:
   END.
   RETURN "".
 END PROCEDURE. 
+
+/* Callback for errors when saving policies */
+PROCEDURE secErrorCallback:
+    DEFINE INPUT  PARAMETER pmsg      AS CHAR NO-UNDO.
+    DEFINE OUTPUT PARAMETER lContinue AS LOGICAL NO-UNDO.
+
+    /* we always continue trying to load the policies */
+    lContinue = YES.
+
+    RUN Show_Phase2_Error (INPUT pmsg, INPUT "e").
+END.
+
+/* Callback for errors when saving object attributes (buffer pool) */
+PROCEDURE attrsErrorCallback:
+    DEFINE INPUT  PARAMETER pmsg      AS CHAR NO-UNDO.
+    DEFINE OUTPUT PARAMETER lContinue AS LOGICAL NO-UNDO.
+
+    /* we always continue trying to load the settings */
+    lContinue = YES.
+
+    RUN Show_Phase2_Error (INPUT pmsg, INPUT "b").
+END.
+
+/* Handle errors during encryption policy load phase */
+PROCEDURE Show_Phase2_Error:
+    DEFINE INPUT PARAMETER p_msg  AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER p_cStr AS CHAR NO-UNDO.
+
+    DEFINE VARIABLE dbload-e AS CHARACTER NO-UNDO.
+
+    ASSIGN dbload-e = LDBNAME("DICTDB") + ".e".
+
+    OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
+
+    IF p_cStr = "e" THEN
+       p_cStr = "encryption policy".
+    ELSE IF p_cStr = "b" THEN
+        p_cStr = "buffer pool".
+    
+    IF p_msg = ? THEN DO:
+        /* special case - the last error message about not loading policies and/or buffer-pool */
+        p_msg = "Definitions for policies and attributes are loaded in a separate transaction." +
+                " Errors caused that transaction to rollback. Other definitions were committed.".
+
+        PUT STREAM loaderr UNFORMATTED
+                   SKIP(1) p_msg SKIP.
+    END.
+    ELSE DO:
+        PUT STREAM loaderr UNFORMATTED
+                   SKIP(1) "** Error loading " p_cStr " **"  
+                   SKIP(1) p_msg SKIP.
+    END.
+
+    ASSIGN xerror = true.
+
+    OUTPUT STREAM loaderr CLOSE.
+
+END.
 
 /*========================== END OF load_df.p ==========================*/
 

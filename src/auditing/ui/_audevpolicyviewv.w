@@ -12,7 +12,7 @@ DEFINE TEMP-TABLE RowObject NO-UNDO
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -117,7 +117,7 @@ DEFINE FRAME F-Main
      RowObject._Event-level AT ROW 4.1 COL 15 COLON-ALIGNED WIDGET-ID 6
           VIEW-AS COMBO-BOX INNER-LINES 5
           LIST-ITEM-PAIRS "Off",0,
-                     "Mininum",1,
+                     "Minimum",1,
                      "Full",2
           DROP-DOWN-LIST
           SIZE 34 BY 1 TOOLTIP "Defines if auditing is on or off for this event"
@@ -514,7 +514,7 @@ PROCEDURE displayFields :
       IF id < 10000 THEN /* db events */
           RowObject._Event-level:LIST-ITEM-PAIRS IN FRAME {&FRAME-NAME} ="Off,0,On,1".
       ELSE
-          RowObject._Event-level:LIST-ITEM-PAIRS ="Off,0,Mininum,1,Full,2".
+          RowObject._Event-level:LIST-ITEM-PAIRS ="Off,0,Minimum,1,Full,2".
 
   END.
 

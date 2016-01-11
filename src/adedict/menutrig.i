@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2008-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,6 +22,8 @@ Date Created: 02/17/92
               09/18/02 D. McMann Added verify data report 
               10/01/02 D. McMann Changed menu name for Adjust Schema
               07/19/05 kmcintos  Added Auditing Reports
+              10/27/08 fernando  Added Encryption Reports
+              04/07/09 fernando  Added Alternate Buffer Pool Report
 ----------------------------------------------------------------------------*/
 
 
@@ -382,6 +384,15 @@ ON CHOOSE OF MENU-ITEM mi_Width IN MENU s_mnu_Reports DO:
      INPUT s_TblRecId).
 END.
 
+/*--------Alternate Buffer Pool Report ----*/
+ON CHOOSE OF MENU-ITEM mi_AltBufPool IN MENU s_mnu_Reports DO: 
+    CURRENT-WINDOW = s_win_Browse.
+
+    DO ON STOP UNDO, LEAVE.
+       RUN prodict/misc/_rptaltbuf.p.
+    END.
+END.
+
 /*------    Track Audit Policy Changes Report            -------*/
 ON CHOOSE OF MENU-ITEM mi_ADRpt_AudPol   IN MENU s_mnu_Aud_Rep DO:
   user_env[9] = "1".
@@ -452,6 +463,46 @@ END.
 ON CHOOSE OF MENU-ITEM mi_ADRpt_Cust IN MENU s_mnu_Aud_Rep DO:
   user_env[9] = "12".
   RUN prodict/misc/_rptaud.p. /* CUST_RPT */
+END.
+
+/*------    Track Encryption Policy Changes              -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_EncPol IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "13".
+  RUN prodict/misc/_rptaud.p. /* ENC_POL */
+END.
+
+/*------    Track Key-store Changes                      -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_KeyStore IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "14".
+  RUN prodict/misc/_rptaud.p. /* ENC_KEYSTORE */
+END.
+
+/*------   Database Encryption Administration (Utilities) -------*/
+ON CHOOSE OF MENU-ITEM mi_ADRpt_EncAdmin IN MENU s_mnu_Aud_Rep DO:
+  user_env[9] = "15".
+  RUN prodict/misc/_rptaud.p. /* ENC_ADMIN */
+END.
+
+/*------    Encryption Report - Quick                      -------*/
+
+ON CHOOSE OF MENU-ITEM mi_EncPolQuick IN MENU s_mnu_Enc_Rep DO:
+  user_env[9] = "1".
+  RUN prodict/misc/_rptencp.p.
+END.
+
+/*------    Encryption Report - Detailed                   -------*/
+ON CHOOSE OF MENU-ITEM mi_EncPolDetailed IN MENU s_mnu_Enc_Rep DO:
+   current-window = s_win_Browse.
+   if s_CurrTbl = "" then
+   do:
+      message "There are no tables in this database to look at."
+      	  view-as ALERT-BOX ERROR buttons OK.
+      return.
+   end.
+
+   user_env[9] = "2," + (if which_tbl = "a" then "ALL" else s_CurrTbl).
+
+   RUN prodict/misc/_rptencp.p.
 END.
 
 /*=============================Edit menu=================================*/

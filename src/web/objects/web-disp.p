@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -43,6 +43,15 @@ DEFINE VARIABLE iBatchInterval     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iTest              AS INTEGER    NO-UNDO.
 DEFINE VARIABLE ix                 AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lStateAware        AS LOGICAL    NO-UNDO.
+/* Actional support */
+DEFINE VARIABLE actionalEnabled    AS LOGICAL    INIT ? NO-UNDO.
+DEFINE VARIABLE actionalUrl        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE actionalGroup      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE actionalService    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE actionalSI         AS CLASS      actional.ServerInteraction.
+DEFINE VARIABLE tmpChr1            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE tmpChr             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE tmpInt             AS INTEGER    NO-UNDO.
 
 /* Set the web-request trigger. */
 ON "WEB-NOTIFY":U ANYWHERE DO:
@@ -82,8 +91,80 @@ ON "WEB-NOTIFY":U ANYWHERE DO:
                (IF AppProgram = "reset":U THEN "webutil/reset.p":U ELSE
                 AppProgram))).
 
+  /* Actional support */
+  DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "actionalEnabled is " + STRING(actionalEnabled)).  
+  IF actionalEnabled = ? THEN DO:
+    IF LOOKUP("-ACTIONALENABLED", SESSION:STARTUP-PARAMETERS) <> 0 THEN
+      actionalEnabled = TRUE.
+    ELSE
+      actionalEnabled = FALSE.
+
+    /* setup Actional information */
+    IF actionalEnabled THEN DO:
+    DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "Initializing Actional").  
+      /* setup defaults */
+      actionalGroup = "OpenEdge".
+      actionalService = "wsbroker".
+
+      /* setup group and service name from command-line switch */
+      tmpInt = INDEX(SESSION:STARTUP-PARAMETERS,"-ACTIONALGROUP").
+      IF tmpInt <> 0 THEN DO:
+
+        /* switch was specified, get the parameter */
+        tmpChr = SUBSTRING(SESSION:STARTUP-PARAMETERS, tmpInt).
+        tmpChr = ENTRY(1, tmpChr).
+        tmpChr = TRIM(SUBSTRING(tmpChr, LENGTH("-ACTIONALGROUP "))).
+
+        /* parameter is  <group name>:<service name> */
+        IF INDEX(tmpChr, ":") <> 0 THEN DO:
+
+          /* get the group name */
+          tmpChr1 = ENTRY(1, tmpChr, ":").
+          IF LENGTH(tmpChr1) <> 0 THEN
+            actionalGroup = tmpChr1.
+
+          /* get the service name */
+          tmpChr1 = ENTRY(2, tmpChr, ":").
+          IF LENGTH(tmpChr1) <> 0 THEN
+            actionalService = tmpChr1.
+        END.
+        ELSE DO:
+          /* no separator was specified, */
+          /* parameter is the group name */
+          actionalGroup = tmpChr.
+        END.
+      END.
+      actionalUrl = "OpenEdge://" + SERVER_NAME + "/WebSpeed/" + actionalService.
+      DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "Actional URL: " + actionalUrl).  
+      DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "Actional Group: " + actionalGroup).  
+      DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "Actional Service: " + actionalService).  
+    END.
+  END.
+    
+  IF actionalEnabled THEN DO:
+    DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "Creating new ServerInteraction").  
+    actionalSI = NEW actional.ServerInteraction().
+    actionalSI:Begin().
+    actionalSI:SetUrl(actionalUrl).
+    actionalSI:SetPeerAddr(REMOTE_HOST).
+    actionalSI:SetGroupName(actionalGroup).
+    actionalSI:SetAppType(actional.ServerInteraction:ACT_DT_OEGROUP).
+    actionalSI:SetServiceName(actionalService).
+    actionalSI:SetSvcType(actional.ServerInteraction:ACT_DT_WEBSPEED).
+    actionalSI:SetOpName(AppProgram).
+    actionalSI:RequestAnalyzed().
+  END.
+
   RUN run-web-object IN web-utilities-hdl (AppProgram) NO-ERROR. 
   
+  /* Done with Actional */
+  IF actionalEnabled THEN DO:
+    DYNAMIC-FUNCTION("logNote":U IN web-utilities-hdl, "ACTIONAL", "ServerInteraction completed for operation " + AppProgram).  
+    actionalSI:End().
+    actionalSI:freeSInteraction().
+    actionalSI = ?.
+  END.
+
   /* Run clean up and maintenance code */
   RUN end-request IN web-utilities-hdl NO-ERROR.
   

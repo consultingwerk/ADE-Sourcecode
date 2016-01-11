@@ -200,6 +200,32 @@ IF ENTRY(1, user_env[4]) = "y" OR ENTRY(1, user_env[4]) = "n" THEN
   ASSIGN old_dis_trig = YES.
 
 DO ON STOP UNDO, LEAVE:
+  /* if not the no-convert case, check utf-8 case */
+  IF  user_env[5] NE "<internal defaults apply>" THEN DO:
+      
+      FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
+      IF DICTDB._Db._db-xl-name = "UTF-8" AND
+         (SESSION:CHARSET NE "UTF-8" OR TRIM(user_env[5]) NE "utf-8") THEN DO:
+
+          if user_env[6] = "no-alert-boxes"
+          then do:  /* output WITHOUT alert-box */
+              MESSAGE "The database codepage is 'UTF-8' but -cpinternal and/or the codepage" SKIP
+                      "for output is not, which can cause some data not to be dumped properly" SKIP
+                      "if it cannot be represented in that codepage." SKIP(1)
+                      "It's recommended that you dump the data from a session with the 'UTF-8'" SKIP
+                      "codepage to avoid possible data corruption.".
+          END.
+          ELSE DO:
+              MESSAGE "The database codepage is 'UTF-8' but -cpinternal and/or the codepage" SKIP
+                      "for output is not, which can cause some data not to be dumped properly" SKIP
+                      "if it cannot be represented in that codepage." SKIP(1)
+                      "It's recommended that you dump the data from a session with the 'UTF-8'" SKIP
+                      "codepage to avoid possible data corruption."
+                  VIEW-AS ALERT-BOX WARNING.
+          END.
+      END.
+  END.
+
   DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
 
     ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).

@@ -296,7 +296,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTableWin 
 /* ************************* Included-Libraries *********************** */
 
-{adm2/viewer.i}
+{src/adm2/viewer.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

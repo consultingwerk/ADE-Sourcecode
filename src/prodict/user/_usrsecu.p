@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -255,6 +255,10 @@ _outer: DO WHILE TRUE:
             APPLY (IF CAN-DO("PAGE-UP,PAGE-DOWN,GET,PUT",KEYFUNCTION(LASTKEY))
               THEN KEYCODE(KBLABEL("GO")) ELSE LASTKEY).
           END.
+
+        /* trim blanks */
+        ASSIGN _Field._Can-read = TRIM(_Field._Can-read)
+               _Field._Can-write = TRIM (_Field._Can-write).
         i = 0.
         IF NOT CAN-DO(_Field._Can-read ,USERID("DICTDB")) THEN i = 1.
         IF NOT CAN-DO(_Field._Can-write,USERID("DICTDB")) THEN i = 2.
@@ -275,6 +279,13 @@ _outer: DO WHILE TRUE:
             APPLY (IF CAN-DO("PAGE-UP,PAGE-DOWN,GET,PUT",KEYFUNCTION(LASTKEY))
               THEN KEYCODE(KBLABEL("GO")) ELSE LASTKEY).
           END.
+       /* trim blanks */
+        ASSIGN _File._Can-read  = TRIM(_File._Can-read)
+               _File._Can-write = TRIM(_File._Can-write)
+               _File._Can-create = TRIM(_File._Can-create)
+               _File._Can-delete = TRIM(_File._Can-delete)
+               _File._Can-dump = TRIM(_File._Can-dump)  
+               _File._Can-load = TRIM (_File._Can-load).
         i = 0.
         IF NOT CAN-DO(_File._Can-read  ,USERID("DICTDB")) THEN i = 1.
         IF NOT CAN-DO(_File._Can-write ,USERID("DICTDB")) THEN i = 2.

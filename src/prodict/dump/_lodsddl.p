@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -26,6 +26,10 @@
    fernando    10/02/07 Error handling - OE00158774
    fernando    11/13/07 Check _initial value for sequences - OE00112332
    gih         11/27/07 Fix load of ICU rules - OE00129463
+   fernando    07/18/08 Encryption support
+   fernando    11/24/08 Handle clob field changes - OE00177533
+   fernando    03/20/09 More enryption support
+   fernando    04/13/09 Alternate buffer pool support
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -43,7 +47,7 @@ DEFINE NEW SHARED TEMP-TABLE s_ttb_fake-cp
     FIELD   db-name     AS CHARACTER
     FIELD   db-recid    AS RECID.
     
-DEFINE VARIABLE error_text AS CHARACTER EXTENT 60 NO-UNDO.
+DEFINE VARIABLE error_text AS CHARACTER EXTENT 70 NO-UNDO.
 ASSIGN
   error_text[ 1] = "Unknown action":t72
   error_text[ 2] = "Unknown object":t72
@@ -91,12 +95,23 @@ ASSIGN
   error_text[51] = "Maximum number of sequences has been reached.":t72
   error_text[52] = "Invalid Initial value":t25
   error_text[53] = "Value is too large":t25
-  error_text[54] = "Invalid character in the Dump Name":35
-  error_text[55] = "Neither BLOB nor CLOB fields may have extents":46
-  error_text[56] = "Client error raised while loading definitions":46
-  error_text[57] = "The upper limit must be greater than the initial value":54
-  error_text[58] = "The lower limit must be less than the initial value":51
-  error_text[59] = "Invalid foreign data type for field":35
+  error_text[54] = "Invalid character in the Dump Name":t35
+  error_text[55] = "Neither BLOB nor CLOB fields may have extents":t46
+  error_text[56] = "Client error raised while loading definitions":t46
+  error_text[57] = "The upper limit must be greater than the initial value":t54
+  error_text[58] = "The lower limit must be less than the initial value":t51
+  error_text[59] = "Invalid foreign data type for field":t35
+  error_text[60] = "Invalid keyword for a non-OpenEdge database":t44
+  error_text[61] = "" /* don't use - for encryption */
+  error_text[62] = "Invalid keyword for this field type.":t36
+  error_text[63] = "Cannot change object encryption policy until encrypted data has been updated":t76
+  error_text[64] = "Invalid cipher name.":t20
+  error_text[65] = "Missing or invalid settings for ENCRYPTION or CIPHER-NAME.":t58
+  error_text[66] = "Cannot change codepage or collation of existing column":t54
+  error_text[67] = "Missing or invalid settings for BUFFER-POOL.":t50
+  error_text[68] = "Definitions for policies and attributes are loaded in a separate transaction.":t77
+  error_text[69] = " Errors caused that transaction to rollback. Other definitions were committed.":t78
+  error_text[70] = "" /* don't use - for buffer-pool */
 .
 
 &SCOPED-DEFINE WARN_MSG_SQLW 48
@@ -106,6 +121,7 @@ ASSIGN
   warn_text[23] = "Can't change Can-read or write, Mandatory, or Decimals of field in SQL table." 
   warn_text[24] = "Can't change case-sensitivity of ""&1""  because it is part of an index.":t72
   warn_text[25] = "Can't change Decimals of field ""&1"". Field type is not DECIMAL.":t72
+  warn_text[26] = "Ignoring encryption setting which matches the current policy.":t68
   
   /* these three lines need to go together, so if you need to add new warnings, add them here, 
      and adjust the numbers below. Then change WARN_MSG_SQLW to point to the next warning ID */
@@ -166,6 +182,15 @@ DEFINE VARIABLE msg1          AS CHARACTER           NO-UNDO FORMAT "x(53)":u.
 DEFINE VARIABLE msg2          AS CHARACTER           NO-UNDO FORMAT "x(56)":u.
 DEFINE VARIABLE msg3          AS CHARACTER           NO-UNDO FORMAT "x(12)":u.
 DEFINE VARIABLE msg4          AS CHARACTER           NO-UNDO FORMAT "x(16)":u.
+DEFINE VARIABLE msg5          AS CHARACTER           NO-UNDO FORMAT "x(40)":u.
+DEFINE VARIABLE skipEPolicy   AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE encryptOpts   AS LOGICAL             NO-UNDO EXTENT 2.
+DEFINE VARIABLE skipObjAttrs  AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE hasEncPol     AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE hasBufPool    AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE showedCommitMsg AS LOGICAL            NO-UNDO.
+DEFINE VARIABLE got-error     AS LOGICAL            NO-UNDO.
+DEFINE VARIABLE main_trans_success  AS LOGICAL            /*UNDO*/.
 
 msg1="Phase 1 of Load completed.  Working.  Please wait ...".
 msg2="Error occured during load.  Press OK to back out transaction.".
@@ -198,6 +223,9 @@ FORM
 
 FORM
  msg3 dbload-e msg4 VIEW-AS TEXT NO-LABELS WITH FRAME errorlog CENTERED USE-TEXT.
+
+FORM
+ msg5 VIEW-AS TEXT NO-LABELS WITH FRAME encryptlog ROW 7 CENTERED USE-TEXT.
 
 /*=======================Internal Procedures===========================*/
 
@@ -239,11 +267,15 @@ PROCEDURE Show_Error:
     RETURN.
   END.
   
+  IF imod = "sp":u THEN
+      scrap = "load of file". /* special case for enryption / buffer-pool */
+  ELSE
   scrap = (IF imod = "cp":u THEN "ADD/MODIFY":u
       ELSE IF imod = "a":u  THEN "ADD":u
       ELSE IF imod = "m":u  THEN "MODIFY":u
       ELSE IF imod = "r":u  THEN "RENAME":u
       ELSE IF imod = "d":u  THEN "DELETE":u
+      ELSE IF imod = "e":u  THEN "":u
       ELSE "?":u)
     + " ":u
     + (IF     iobj begins "cp":u THEN "DATABASE ":u + 
@@ -260,18 +292,17 @@ PROCEDURE Show_Error:
                (IF wseq._Seq-Name   = ? THEN "" ELSE wseq._Seq-Name)
       ELSE "? ?":u).
 
-  IF user_env[6] = "f" THEN DO:
-  OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
-
   IF p_cmd = "curr" THEN DO:
-    msg = "** Line " + STRING(ipos).
-    DO ix = 1 to 9:
-      msg = msg + (IF ilin[ix] <> ? THEN " " + ilin[ix] ELSE "").
-      END.
-    END.
+     msg = "** Line " + STRING(ipos).
+     DO ix = 1 to 9:
+       msg = msg + (IF ilin[ix] <> ? THEN " " + ilin[ix] ELSE "").
+     END.
+  END.
 
   IF user_env[6] = "f"
    THEN DO:  /* output only to file */
+
+    OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
     IF  ierror <= 31
      OR ierror >  42 THEN DO:
       IF msg = ""
@@ -295,7 +326,6 @@ PROCEDURE Show_Error:
        error_text[ierror + 1]                 {&SKP} 
        error_text[ierror + 2].
     END.     /* output only to file */
-   END.
 
    ELSE IF user_env[6] = "s" THEN DO: /* output only with alert-boxes */
 
@@ -339,8 +369,7 @@ PROCEDURE Show_Error:
           PUT STREAM loaderr UNFORMATTED
           SKIP(1) "** Error during " scrap " **" SKIP(1)
           SUBSTITUTE(error_text[ierror],
-          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1
-).
+          ENTRY(1,scrap," ":u),ENTRY(2,scrap," ":u),ENTRY(3,scrap," ":u)) SKIP(1).
         END.
        ELSE DO: MESSAGE
           "** Error during" scrap "**" SKIP(1)
@@ -524,6 +553,90 @@ PROCEDURE Show_Warning:
 
 END PROCEDURE. /* Show_Warnings */
 
+/* Callback for errors when saving policies */
+PROCEDURE secErrorCallback:
+    DEFINE INPUT  PARAMETER pmsg      AS CHAR NO-UNDO.
+    DEFINE OUTPUT PARAMETER lContinue AS LOGICAL NO-UNDO.
+
+    /* we always continue to load the policies, unless the user wants to
+       stop at the first error.
+    */
+    IF user_env[4] BEGINS "y":u THEN
+        lContinue = NO.
+    ELSE
+        lContinue = YES.
+
+    RUN Show_Phase2_Error (INPUT pmsg, INPUT "e").
+END.
+
+/* Callback for errors when saving object attributes (buffer pool) */
+PROCEDURE attrsErrorCallback:
+    DEFINE INPUT  PARAMETER pmsg      AS CHAR NO-UNDO.
+    DEFINE OUTPUT PARAMETER lContinue AS LOGICAL NO-UNDO.
+
+    /* we always continue to load the settings, unless the user wants to
+       stop at the first error.
+    */
+    IF user_env[4] BEGINS "y":u THEN
+        lContinue = NO.
+    ELSE
+        lContinue = YES.
+
+    RUN Show_Phase2_Error (INPUT pmsg, INPUT "b").
+END.
+
+/* Handle errors during encryption policy / buffer pool save phase */
+PROCEDURE Show_Phase2_Error:
+  DEFINE INPUT PARAMETER p_msg  AS CHAR NO-UNDO.
+  DEFINE INPUT PARAMETER p_cStr AS CHAR NO-UNDO.
+
+  IF p_cStr = "e" THEN
+      p_cStr = "encryption policy".
+  ELSE IF p_cStr = "b" THEN
+       p_cStr = "buffer pool".
+  ELSE
+      p_cStr = "encryption policies/buffer pool settings".
+
+  IF user_env[6] = "f" THEN DO:
+     OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
+
+     IF user_env[6] = "f" THEN DO:  /* output only to file */
+        PUT STREAM loaderr UNFORMATTED
+                   SKIP(1) "** Error loading " p_cStr " **"  
+                   SKIP(1) p_msg {&SKP}.
+     END.     /* output only to file */
+  END. 
+  ELSE IF user_env[6] = "s" THEN DO: /* output only with alert-boxes */
+        IF p_msg BEGINS error_text[68] THEN
+            MESSAGE p_msg
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        ELSE
+            MESSAGE "** Error loading " p_cStr " **"  
+                    SKIP(1) p_msg
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  END.     /* output only with alert-boxes */
+  ELSE IF user_env[6] = "b" THEN DO:  /* output to both file and alert-boxes */
+
+        OUTPUT STREAM loaderr TO VALUE(dbload-e) APPEND.
+        IF p_msg BEGINS error_text[68] THEN
+            MESSAGE p_msg
+                VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        ELSE
+            MESSAGE "** Error loading " p_cStr " **"  
+                   SKIP(1) p_msg
+            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+
+        PUT STREAM loaderr UNFORMATTED
+                   SKIP(1) "** Error loading " p_cStr " **"  
+                   SKIP(1) p_msg {&SKP}.
+
+  END.     /* output to both file and alert-boxes */
+
+  ASSIGN xerror = true.
+
+  OUTPUT STREAM loaderr CLOSE.
+
+END PROCEDURE. /* Show_Phase2_Error */
 
 /*-----------------------------------------------------
    Load ICU RUles.
@@ -533,7 +646,7 @@ END PROCEDURE. /* Show_Warnings */
       xxxxxxx.
       
 _Codepage
-    _Cp-Name        Char x(19)    name 
+    _Cp-Name        Char    name 
     _Cp-Sequence        int     sequential number of codepage in this db.
     _Cp-Db-Recid        Recid       db recid.
     _Cp-Attr        Raw     codepage attributes (now 768 bytes)
@@ -544,7 +657,7 @@ Indexes:
       
       
 _Collation
-    _Coll-Name      Char x(19)    collation name
+    _Coll-Name      Char    collation name
     _Coll-Sequence  int     sequential number of collation in this db?
                 _Coll-cp        Int     _Cp-Sequence for this collation
     _Coll-Tran-Version  Int (byte)
@@ -744,6 +857,237 @@ PROCEDURE Load_Tran_Collate_Tbl:
    ilin[1] = ?.  /* so we do a new import the next time around */
   END.
 
+  
+/*-----------------------------------------------------
+  Gets the utility set up so we can handle encryption 
+  settings.
+------------------------------------------------------*/
+PROCEDURE checkEPolicy:
+    DEFINE BUFFER myDb FOR _Db.
+
+    IF VALID-OBJECT(dictEPolicy) THEN
+       RETURN. /* all is well */
+
+    FIND myDb WHERE RECID(myDb) = drec_db NO-LOCK.
+
+    /* encryption only for OpenEdge dbs */
+    IF myDb._Db-type NE "PROGRESS" THEN DO:
+        ierror = 60.
+        RETURN ERROR.
+    END.
+    ELSE IF skipEPolicy THEN DO:
+        /* we will keep displaying the same message, if the user selected to
+          ignore all errors 
+        */
+        ierror = 61.
+        RETURN ERROR.
+    END.
+
+    /* we come here just once */
+    skipEPolicy = YES.
+
+    DO ON ERROR UNDO, LEAVE:
+        dictEPolicy = NEW prodict.sec._sec-pol-util().
+
+        CATCH ae AS PROGRESS.Lang.AppError:
+            /* this gets set so we display the error message */
+            ASSIGN error_text[61] = "Cannot load any encryption definitions." + "~n"
+                            + ae:GetMessage(1)
+                  ierror = 61.
+            DELETE OBJECT ae.
+
+            RETURN ERROR.
+        END CATCH.
+    END.
+END.
+
+/*-----------------------------------------------------
+  Gets the utility set up so we can handle buffer pool 
+  settings.
+------------------------------------------------------*/
+PROCEDURE checkObjAttrs:
+    DEFINE BUFFER myDb FOR _Db.
+
+    IF VALID-OBJECT(dictObjAttrs) THEN
+       RETURN. /* all is well */
+
+    FIND myDb WHERE RECID(myDb) = drec_db NO-LOCK.
+
+    /* buffer-pool only for OpenEdge dbs */
+    IF myDb._Db-type NE "PROGRESS" THEN DO:
+        ierror = 60.
+        RETURN ERROR.
+    END.
+    ELSE IF skipObjAttrs THEN DO:
+        /* we will keep displaying the same message, if the user selected to
+          ignore all errors 
+        */
+        ierror = 70.
+        RETURN ERROR.
+    END.
+
+    /* we come here just once */
+    skipObjAttrs = YES.
+
+    DO ON ERROR UNDO, LEAVE:
+        dictObjAttrs = NEW prodict.pro._obj-attrib-util().
+
+        CATCH ae AS PROGRESS.Lang.AppError:
+            /* this gets set so we display the error message */
+            ASSIGN error_text[70] = "Cannot load any buffer-pool definitions." + "~n"
+                            + ae:GetMessage(1)
+                  ierror = 70.
+            DELETE OBJECT ae.
+
+            RETURN ERROR.
+        END CATCH.
+    END.
+END.
+
+/*-----------------------------------------------------
+  save away encryption settings
+------------------------------------------------------*/
+PROCEDURE addEncryptionSetting.
+    DEFINE INPUT PARAMETER objType AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER cKeywd  AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER cValue  AS CHAR NO-UNDO.
+
+    DEFINE VARIABLE cObjName AS CHAR    NO-UNDO.
+    DEFINE VARIABLE objNum   AS INT     NO-UNDO.
+    DEFINE VARIABLE cTmp     AS CHAR    NO-UNDO.
+    DEFINE VARIABLE hasPrev  AS LOGICAL NO-UNDO.
+    DEFINE BUFFER   b_File   FOR _File.
+
+    IF objType = "table" THEN
+        ASSIGN cObjName = wfil._File-name
+               objNum = wfil._File-num. /* may be 0 if new table */
+    ELSE DO:
+        IF objType = "index" THEN DO:
+            FIND b_File WHERE drec_file = RECID(b_File).
+            ASSIGN cObjName = b_File._File-name + "." + widx._Index-name
+                   objNum = widx._Idx-num. /* may be 0 if new indexx */
+        END.
+        ELSE DO: /* blob or clob */
+            FIND b_File WHERE drec_file = RECID(b_File).
+            ASSIGN cObjName = b_File._File-name + "." + wfld._Field-name
+                   objNum = wfld._fld-stlen. /* may be area number if new field */
+        END.
+    END.
+
+    IF cKeywd = "ENCRYPTION" OR cKeywd = "ENCRYPT" THEN DO:
+       IF cValue = "NO" THEN DO:
+           /* if we are changing the value, and there is a previous policy, this will
+              not get loaded, so we will raise an error.
+           */
+           cValue = "".
+           hasPrev = dictEPolicy:cacheObjForLoad(INPUT cObjName, INPUT objType,
+                                                 INPUT objNum, INPUT-OUTPUT cValue).
+
+           /* hasPrev is yes, if there is a previous policy version, and cipher is ? if the cipher is
+             the same of the current policy (in this case, that encryption is already off)
+           */
+           IF cValue = ? THEN DO:
+               ASSIGN ierror = 50
+                      iwarn  = 26
+                      warn_message = warn_text[26].
+           END.
+           ELSE IF hasPrev THEN DO:
+               ierror = 63.
+               RETURN ERROR.
+           END.
+           ELSE /* remember that there is a change to the policy*/
+               ASSIGN hasEncPol = YES.
+       END.
+       ELSE DO:
+           /* mark this so that we know whether they have an invalid .df, where they have
+              a cipher without the encrypt keyword.
+              Note that for 'encryption no' we can't have a cipher so we only do this
+              here.
+           */
+           ASSIGN encryptOpts[1] = YES.
+       END.
+    END.
+    ELSE DO:
+
+       /* this signals that we found a cipher */
+       ASSIGN  encryptOpts[2] = YES
+               cValue = TRIM(cValue).
+
+       /* check if it is a valid cipher */
+       cTmp = dictEPolicy:CipherNames.
+       IF cTmp = "" OR LOOKUP(cValue, cTmp) = 0 THEN DO:
+           ierror = 64.
+           RETURN ERROR.           
+       END.                 
+
+       /* if we are changing the value, and there is a previous policy, this will
+          not get loaded, so we will raise an error.
+       */
+       hasPrev = dictEPolicy:cacheObjForLoad(INPUT cObjName, INPUT objType,
+                                             INPUT objNum, INPUT-OUTPUT cValue).
+
+       /* hasPrev is yes, if there is a previous policy version, and cipher is ? if the cipher is
+         the same of the current policy.
+       */
+       IF cValue = ? THEN DO:
+           ASSIGN ierror = 50
+                  iwarn  = 26
+                  warn_message = warn_text[26].
+       END.
+       ELSE IF hasPrev THEN DO:
+           ierror = 63.
+           RETURN ERROR.
+       END.
+       ELSE /* remember that there is a change to the policy*/
+            ASSIGN hasEncPol = YES.
+    END.
+END.
+
+/*-----------------------------------------------------
+  save away buffer-pool settings
+------------------------------------------------------*/
+PROCEDURE addBufferPoolSetting.
+    DEFINE INPUT PARAMETER objType AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER cKeywd  AS CHAR NO-UNDO.
+    DEFINE INPUT PARAMETER cValue  AS CHAR NO-UNDO.
+
+    DEFINE VARIABLE cObjName AS CHAR    NO-UNDO.
+    DEFINE VARIABLE objNum   AS INT     NO-UNDO.
+    DEFINE VARIABLE cTmp     AS CHAR    NO-UNDO.
+    DEFINE BUFFER   b_File   FOR _File.
+
+    IF objType = "table" THEN
+        ASSIGN cObjName = wfil._File-name
+               objNum = wfil._File-num. /* may be 0 if new table */
+    ELSE DO:
+        IF objType = "index" THEN DO:
+            FIND b_File WHERE drec_file = RECID(b_File).
+            ASSIGN cObjName = b_File._File-name + "." + widx._Index-name
+                   objNum = widx._Idx-num. /* may be 0 if new indexx */
+        END.
+        ELSE DO: /* blob or clob */
+            FIND b_File WHERE drec_file = RECID(b_File).
+            ASSIGN cObjName = b_File._File-name + "." + wfld._Field-name
+                   objNum = wfld._fld-stlen. /* may be area number if new field */
+        END.
+    END.
+
+    /* this signals that we found a cipher */
+    ASSIGN cValue = TRIM(cValue).
+
+    /* check if it is a valid pool name */
+    cTmp = dictObjAttrs:BufferPoolNames.
+    IF cTmp = "" OR LOOKUP(cValue, cTmp) = 0 THEN DO:
+       ierror = 67.
+       RETURN ERROR.           
+    END.                 
+
+    dictObjAttrs:cacheObjForLoad(INPUT cObjName, INPUT objType,
+                                 INPUT objNum, INPUT-OUTPUT cValue).
+
+    /* remember there is a change */
+    ASSIGN hasBufPool = YES.
+END.
 
 /*==========================Mainline Code==============================*/
 
@@ -813,12 +1157,20 @@ IF INTEGER(DBVERSION("DICTDB")) >= 10 THEN DO:
     END.
 END.
 
-/***** Don't need this right now...
+/* must be before assignment for codepage, since we assign it ourselves and not
+  take the one from the trail. We want to check if the .df has settings for
+  encryption policies (for encryption) so we can display errors that we can
+  catch upfront, instead of waiting until we find the stuff which is at the
+  end of the .df.
+*/
 {prodict/dump/lodtrail.i
-  &entries = " "
+  &entries = "IF lvar[i] BEGINS ""encpolicy=""
+                 THEN hasEncPol = LOGICAL(SUBSTRING(lvar[i],11,-1,""character"")).
+              IF lvar[i] BEGINS ""bufpool=""
+                 THEN hasBufPool = LOGICAL(SUBSTRING(lvar[i],9,-1,""character""))."
   &file    = "user_env[2]"
   }  /* read trailer, sets variables: codepage and cerror */
-*/
+
 ASSIGN codepage = IF user_env[10] = ""
                     THEN "UNDEFINED"
                     ELSE user_env[10]. /* set in _usrload.p */
@@ -828,7 +1180,7 @@ ELSE ASSIGN cerror = "no-convert".
 
 IF cerror = ?
  THEN DO:  /* conversion needed but NOT possible */
-
+  
   RUN adecomm/_setcurs.p ("").
   ASSIGN user_env[4] = "error". /* to signal error to _usrload */
 
@@ -836,6 +1188,11 @@ IF cerror = ?
 
  ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           /* conversion not needed OR needed and possible */
+
+  /* if an error happens at the end of the transaction, this will get
+     undone (since it's an undo var) and we will know an error happened.
+  */
+  ASSIGN main_trans_success = YES.
 
   /* Call _setcurs.p before INPUT is set.  setcurs does a "PROCESS EVENTS"
      which in not legal if the input stream is a file. */
@@ -861,11 +1218,62 @@ IF cerror = ?
   
   DO ON STOP UNDO, LEAVE:
 
+    /* if the .df is signaled as having encryption policies, we will try to
+       get the object for loading the policies now, so that if there are
+       any errors (such as encryption not enabled, not security db, 
+       not local connection), we error out right away.
+    */
+    IF hasEncPol THEN DO:
+
+       RUN checkEPolicy NO-ERROR.
+
+       IF ierror > 0 AND NOT inoerror THEN DO:
+         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+         ASSIGN imod = "sp".
+         RUN Show_Error ("curr").
+         IF user_env[4] BEGINS "y":u AND NOT ierror = 50
+          THEN DO:
+           ASSIGN stopped = true.
+           UNDO,LEAVE.
+         END. 
+       END.
+
+       /* clear them */
+       ASSIGN ierror = 0
+              imod = ?
+              hasEncPol = NO /* this has a new meaning now */.
+    END.
+
+    /* if the .df is signaled as having buffer-pool settings, we will try to
+       get the object for loading the settings now, so that if there are
+       any errors, we error out right away.
+    */
+    IF hasBufPool THEN DO:
+
+       RUN checkObjAttrs NO-ERROR.
+
+       IF ierror > 0 AND NOT inoerror THEN DO:
+         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+         ASSIGN imod = "sp".
+         RUN Show_Error ("curr").
+         IF user_env[4] BEGINS "y":u AND NOT ierror = 50
+          THEN DO:
+           ASSIGN stopped = true.
+           UNDO,LEAVE.
+         END. 
+       END.
+
+       /* clear them */
+       ASSIGN ierror = 0
+              imod = ?
+              hasBufPool = NO /* this has a new meaning now */.
+    END.
+    
     /* when IMPORT hits the end, it generates ENDKEY.  This is how loop ends */
     load_loop:
     REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
-      
-      /* 20060316-011  - we will not get back here for a retry, if the line we
+
+        /* 20060316-011  - we will not get back here for a retry, if the line we
          are processing is the left over of the previous line (see below where
          we move the tokens bcased on inum), in which case the client will not
          retry because there was no live io operation in that iteration of the
@@ -969,6 +1377,13 @@ IF cerror = ?
          AND imod <> ? THEN
             RUN "prodict/dump/_lod_seq.p".
  
+        /* make sure we found both encryption and cipher settings (unless it was
+          'encryption no', in which case we don't have a cipher).
+        */
+        IF encryptOpts[1] NE encryptOpts[2] THEN DO:
+           ierror = 65.
+        END.
+
         /* Error occurred when trying to save data from last command */
         IF ierror > 0 AND ierror <> 50 THEN DO:
           /* A client error occured and has been shown to the user.  They have
@@ -991,7 +1406,7 @@ IF cerror = ?
          ASSIGN ierror = 0.
         END.
   
-        /* delete temp file contents to start anew for this command */
+        /* delete temp file contents to start a new for this command */
         FOR EACH wdbs: DELETE wdbs. END.
         FOR EACH wfil: DELETE wfil. END.
         FOR EACH wfit: DELETE wfit. END.
@@ -1007,7 +1422,8 @@ IF cerror = ?
           inoerror   = FALSE
           imod       = ?
           iobj       = ?
-          inum       = 3.
+          inum       = 3
+          encryptOpts = NO.
     
           /* set the action mode */
         CASE ilin[1]:
@@ -1026,6 +1442,7 @@ IF cerror = ?
           WHEN "INDEX":u    OR WHEN "KEY":u     THEN iobj = "i":u.
           WHEN "SEQUENCE":u                     THEN iobj = "s":u.
           end case.
+
         IF iobj = "t"
           AND ilin[4] = "TYPE"
           AND gate_dbtype <> ilin[5]
@@ -1040,6 +1457,18 @@ IF cerror = ?
           UNDO,LEAVE load_loop. /* no sense to continue */
           END.        /* table of foreign DB: type mismatch */
         
+       /* OE00176833
+          we separate the following in its own sub-transaction because we may have 
+          saved the changes for the previous object above, and in case there is an 
+          error with the one we are about to process, we don't want to undo the 
+          stuff done above. If the user chose to commit on errors, we would've lost
+          the changes to that object too, which is not what we want to do.
+       */
+       ASSIGN got-error = YES.
+
+       start_obj:
+       DO ON ERROR UNDO, LEAVE:
+
         IF iobj = ? THEN DO:
           /* may be ADD [UNIQUE] [PRIMARY] [INACTIVE] INDEX name */
             IF CAN-DO("INDEX,KEY":u,ilin[3]) THEN
@@ -1066,7 +1495,7 @@ IF cerror = ?
         /* complain */
         IF imod = ? THEN ierror = 1.  /* "Unknown action" */
         IF iobj = ? THEN ierror = 2.  /* "Unknown object" */
-        IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
+        IF ierror > 0 AND ierror <> 50 THEN UNDO,LEAVE start_obj.
   
         /* Reinitialize the buffers.  e.g., for add set the name of the
            object.  For modify, copy the existing record into the buffer.
@@ -1099,7 +1528,7 @@ IF cerror = ?
             IF NOT AVAILABLE _Db THEN DO:
               ASSIGN  wdbs._Db-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
-              UNDO,RETRY load_loop.
+              UNDO,LEAVE start_obj.
               END.
               { prodict/dump/copy_dbs.i &from=_Db &to=wdbs }
             END.
@@ -1118,7 +1547,7 @@ IF cerror = ?
             IF KEYWORD(ilin[3]) <> ? THEN DO:
               ASSIGN wseq._Seq-Name = ilin[3]
                      ierror = 45.
-              UNDO, RETRY load_loop.
+              UNDO, LEAVE start_obj.
             END.
             ELSE
               ASSIGN wseq._Seq-Name = ilin[3].
@@ -1128,13 +1557,13 @@ IF cerror = ?
             IF NOT AVAILABLE _Sequence THEN DO:    
               ASSIGN wseq._Seq-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
-              UNDO,RETRY load_loop.             
+              UNDO,LEAVE start_obj.             
             END.   
             IF imod = "r" THEN DO:
               IF KEYWORD(ilin[5]) <> ? THEN DO:
                 ASSIGN wseq._Seq-Name = ilin[3]
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
               END.
             END.
             { prodict/dump/copy_seq.i &from=_Sequence &to=wseq }
@@ -1184,7 +1613,7 @@ IF cerror = ?
             IF KEYWORD(ilin[3]) <> ? THEN DO:
                 ASSIGN wfil._File-name = ilin[3]
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
             END.
             ELSE
                 ASSIGN wfil._File-name = ilin[3].
@@ -1193,13 +1622,13 @@ IF cerror = ?
             IF NOT AVAILABLE _File THEN DO:
               ASSIGN wfil._File-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
-              UNDO,RETRY load_loop.
+              UNDO,LEAVE start_obj.
             END.
             IF imod = "r" THEN DO:
               IF KEYWORD(ilin[5]) <> ? THEN DO:
                 ASSIGN wfil._File-name = ilin[3] 
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
               END.
             END.
             { prodict/dump/copy_fil.i &from=_File &to=wfil &all=true}
@@ -1216,14 +1645,14 @@ IF cerror = ?
             FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
           IF NOT AVAILABLE _File THEN DO:
             ierror = 5. /* "Try to modify &2 without file" */
-            UNDO,RETRY load_loop.
+            UNDO,LEAVE start_obj.
           END.
           ELSE IF AVAILABLE _File AND _file._File-name <> ilin[5] THEN
             FIND _file WHERE _file._file-name = ilin[5]
                           AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
           IF NOT AVAILABLE _File THEN DO:
             ierror = 5. /* "Try to modify &2 without file" */
-            UNDO,RETRY load_loop.
+            UNDO,LEAVE start_obj.
           END.
           IF TERMINAL <> "" THEN 
             DISPLAY _File._File-name @ wfil._File-name
@@ -1235,7 +1664,7 @@ IF cerror = ?
             IF KEYWORD(ilin[3]) <> ? THEN DO:
                 ASSIGN wfld._Field-name = ilin[3] 
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
             END.
             ELSE
               ASSIGN wfld._Field-name = ilin[3]    
@@ -1246,13 +1675,13 @@ IF cerror = ?
             IF NOT AVAILABLE _Field THEN DO:
               ASSIGN wfld._Field-name = ilin[3].
               ierror = 3. /* "Try to modify unknown &2" */
-              UNDO,RETRY load_loop.
+              UNDO,LEAVE start_obj.
             END.
             IF imod = "r" THEN DO:
               IF KEYWORD(ilin[7]) <> ? THEN DO:
                 ASSIGN wfld._Field-name = ilin[3] 
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
               END.
             END.
 
@@ -1270,7 +1699,7 @@ IF cerror = ?
               FIND _File WHERE drec_file = RECID(_File) NO-ERROR.
             IF NOT AVAILABLE _File THEN DO:
               ierror = 5. /* "try to modify index w/o file" */
-              UNDO,RETRY load_loop.
+              UNDO,LEAVE start_obj.
             END.
             ELSE IF AVAILABLE _File THEN DO k = 4 TO 8:
               IF ilin[k] = "ON" THEN DO:
@@ -1283,7 +1712,7 @@ IF cerror = ?
             END.
             IF NOT AVAILABLE _File THEN DO:
               ierror = 5.  /* "Try to modify &2 without file" */
-              UNDO,RETRY load_loop.
+              UNDO,LEAVE start_obj.
             END.
          
             IF TERMINAL <> "" THEN 
@@ -1296,7 +1725,7 @@ IF cerror = ?
               IF KEYWORD(ilin[3]) <> ? THEN DO:
                 ASSIGN widx._Index-name = ilin[3]
                        ierror = 45.
-                UNDO, RETRY load_loop.
+                UNDO, LEAVE start_obj.
               END.
               ELSE           
               ASSIGN widx._Index-name = ilin[3]
@@ -1307,13 +1736,13 @@ IF cerror = ?
               IF NOT AVAILABLE _Index THEN DO:
                 ASSIGN widx._Index-name = ilin[3].
                 ierror = 3. /* "Try to modify unknown &2" */
-                UNDO,RETRY load_loop.
+                UNDO,LEAVE start_obj.
               END.
               IF imod = "r" THEN DO:
                 IF KEYWORD(ilin[5]) <> ? THEN DO:
                   ASSIGN widx._Index-name = ilin[3]
                          ierror = 45.
-                  UNDO, RETRY load_loop.
+                  UNDO, LEAVE start_obj.
                 END.
               END.
 
@@ -1321,8 +1750,14 @@ IF cerror = ?
            
             END.
           END. /* end index action block */
-        END. /* end of block handling action keyword */
-  
+          ASSIGN got-error = NO.
+        END.  /* start_obj block */
+
+        IF got-error THEN
+           NEXT load_loop.
+
+      END. /* end of block handling action keyword */
+
     /* inot - is used for logical keywords that have no argument but where
               the keyword indicates the yes/no value of the field.
        inum - is the number of tokens (keyword plus arguments)  It is set to
@@ -1620,6 +2055,18 @@ IF cerror = ?
                   (IF ilin[7] = ? THEN ? ELSE INTEGER(ilin[7])).
                 ilin = ?.
                 END.
+          WHEN    "ENCRYPTION" 
+          OR WHEN "ENCRYPT"
+          OR WHEN "CIPHER-NAME" THEN DO:
+              /* this will raise error if something is wrong */
+              RUN checkEPolicy.
+              RUN addEncryptionSetting("table", iKwd , iarg).
+          END.
+          WHEN "BUFFER-POOL" THEN DO:
+              /* this will raise error if something is wrong */
+              RUN checkObjAttrs.
+              RUN addBufferPoolSetting("table", iKwd , iarg).
+          END.
           OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
         END CASE.  
       END. /*-------------------------------------------------------------------*/
@@ -1793,7 +2240,28 @@ IF cerror = ?
                   (IF ilin[7] = ? THEN ? ELSE INTEGER(ilin[7])).
                 ilin = ?.
                 END.
+          WHEN    "ENCRYPTION" 
+          OR WHEN "ENCRYPT" 
+          OR WHEN "CIPHER-NAME" THEN DO:
+              /* this will raise error if something is wrong */
+              IF LOOKUP(wfld._Data-Type,"BLOB,CLOB") > 0 THEN DO:
+                 RUN checkEPolicy.
+                 RUN addEncryptionSetting(wfld._Data-Type, iKwd , iarg).
+              END.
+              ELSE DO:
+                  /* invalid for other field types */
+                  ierror = 62.
+              END.
+          END.
+          WHEN "BUFFER-POOL" THEN DO:
+              /* this will raise error if something is wrong */
+              IF LOOKUP(wfld._Data-Type,"BLOB,CLOB") > 0 THEN DO:
+                  RUN checkObjAttrs.
+                  RUN addBufferPoolSetting(wfld._Data-Type, iKwd , iarg).
+              END.
+          END.
           OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
+
         END CASE.
   
       END. /*-------------------------------------------------------------------*/
@@ -1860,6 +2328,18 @@ IF cerror = ?
                   OR ilin[5] BEGINS "UNSO":u THEN wixf._Unsorted   = TRUE.
                 ilin = ?.
                 END.
+          WHEN    "ENCRYPTION"
+          OR WHEN "ENCRYPT"
+          OR WHEN "CIPHER-NAME" THEN DO:
+             /* this will raise error if something is wrong */
+             RUN checkEPolicy.
+             RUN addEncryptionSetting("index", iKwd , iarg).
+          END.
+          WHEN "BUFFER-POOL" THEN DO:
+              /* this will raise error if something is wrong */
+              RUN checkObjAttrs.
+              RUN addBufferPoolSetting("index", iKwd , iarg).
+          END.
           OTHERWISE ierror = 4. /* "Unknown &2 keyword" */
         END CASE.
   
@@ -1877,7 +2357,6 @@ IF cerror = ?
     RUN adecomm/_setcurs.p ("").
   
    ELSE DO:  /* all but last definition-set executed */
-
     IF do-commit OR (NOT (ierror > 0 AND user_env[4] BEGINS "y":u)) THEN
     finish: DO:
 
@@ -1910,6 +2389,12 @@ IF cerror = ?
        AND imod <> ?
        THEN RUN "prodict/dump/_lod_seq.p".
    
+      /* make sure we found both encryption and cipher settings (unless it was
+        'encrypt no', in which case we don't have a cipher).
+      */
+      IF encryptOpts[1] NE encryptOpts[2] THEN DO:
+         ierror = 65.
+      END.
  
       RUN adecomm/_setcurs.p ("").
 
@@ -1961,7 +2446,8 @@ IF cerror = ?
 
     HIDE FRAME working NO-PAUSE.
     IF do-commit AND xerror THEN DO:      
-      ASSIGN do-commit = FALSE.
+      ASSIGN do-commit = FALSE
+             showedCommitMsg = YES.
       MESSAGE "There have been errors encountered in the loading of this df and " SKIP
               "you have selected to commit the transaction anyway. " SKIP(1)
               "Are you sure you want to commit with missing information? " SKIP (1)
@@ -2016,9 +2502,163 @@ IF cerror = ?
 
   END.     /* conversion not needed OR needed and possible */
 
-
-IF (xerror OR stopped)
+IF (xerror OR STOPPED OR NOT main_trans_success)
  THEN ASSIGN user_path = "9=h,4=error,_usrload":u.
+ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR 
+        (VALID-OBJECT(dictObjAttrs) AND NOT dictObjAttrCache AND hasBufPool) THEN DO:
+
+    DO TRANSACTION ON ERROR UNDO, LEAVE:
+
+        DEFINE VARIABLE cObjNameErr AS CHAR NO-UNDO.
+
+        /* we only get here if there are policies to be saved and we have a
+           valid encryption policy object, and when this isn't called from
+           prodict/load_df.p.
+        */
+        DEFINE BUFFER my_Db FOR DICTDB._Db.
+        
+        ASSIGN STOPPED = YES
+               msg5 = "".
+        
+        DO ON STOP UNDO, LEAVE:
+            /* try to get the schema lock again as soon as possible since we lost it
+               when the transaction above ended
+            */
+            FIND FIRST my_Db WHERE RECID(my_Db) = drec_db.
+            
+            IF VALID-OBJECT(dictEPolicy) AND hasEncPol THEN DO:
+                /* Now we can try to save the policy records if there are any */
+                /* We wait until here, so that we can start a new transaction. That is because
+                   if there are new tables/blobs/indexes created, their object number won't
+                   get assigned by core until the end of the transaction. So we can't
+                   create the objects and the policies in the same transaction.
+                */
+                ASSIGN msg5 = "Saving encryption policies...".
+                
+                IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
+                    MESSAGE msg5.
+                ELSE
+                    DISPLAY msg5 WITH FRAME encryptlog.
+        
+                msg5 = "".
+            
+                /* now we should be outside the main transaction. If not, new tables/index/fields
+                   will not have been assigned with the object number.
+                   We pass the handle of this procedure so that secErrorCallback gets called back
+                   when an error happens.
+                */
+                encryptOpts[1] =  dictEPolicy:cacheSavePolicy(INPUT THIS-PROCEDURE,
+                                                              OUTPUT cObjNameErr).
+            
+                IF NOT encryptOpts[1] THEN DO:
+                   RUN Show_Phase2_Error ("Cannot enable encryption for " + cObjNameErr 
+                                          + ". Make sure there is no "
+                                          + "transaction active when the load process is initiated.",
+                                          "e").
+                END.
+            END.
+
+            /* if all is well so far, ot user selected to commit on error, check for buffer pool
+               settings.
+            */
+            IF (do-commit OR NOT xerror) AND VALID-OBJECT(dictObjAttrs) AND hasBufPool THEN DO:
+
+                ASSIGN msg5 = "Saving buffer pool settings...".
+                
+                IF CURRENT-WINDOW:MESSAGE-AREA = yes THEN
+                    MESSAGE msg5.
+                ELSE
+                    DISPLAY msg5 WITH FRAME encryptlog.
+        
+                msg5 = "".
+            
+                /* now we should be outside the main transaction. If not, new tables/index/fields 
+                   will not have been assigned with the object number.
+                   We pass the handle of this procedure so that secErrorCallback gets called back
+                   when an error happens.
+                */
+                IF NOT dictObjAttrs:cacheSaveSettings(INPUT THIS-PROCEDURE,
+                                                      OUTPUT cObjNameErr) THEN DO:
+                   RUN Show_Phase2_Error ("Cannot set buffer pool for " + cObjNameErr 
+                                          + ". Make sure there is no "
+                                          + "transaction active when the load process is initiated.",
+                                          "b").
+                END.
+            END.
+
+            STOPPED = NO.
+        END. /* do on stop */
+    
+        IF TERMINAL <> "" THEN DO:
+
+          IF do-commit AND xerror AND NOT stopped THEN DO:      
+            IF NOT showedCommitMsg THEN DO:
+                ASSIGN do-commit = FALSE.
+                MESSAGE "The schema definitions were committed successfully but there" SKIP
+                        "have been errors encountered during the second phase of the load" SKIP
+                        "process (for encryption policies and/or buffer pool settings)" SKIP
+                        "and you have selected to commit the transaction even with errors. " SKIP(1)
+                        "Are you sure you want to commit the second phase with missing information? " SKIP (1)
+                      VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE do-commit.
+            END.                                                                
+
+            IF NOT do-commit THEN DO:
+               RUN Show_Phase2_Error(error_text[68] + CHR(10) + error_text[69],"a").
+            END.
+            ELSE
+              ASSIGN xerror = FALSE.
+          END.
+          ELSE IF (xerror OR stopped) AND CURRENT-WINDOW:MESSAGE-AREA = yes THEN DO:
+            IF user_env[19] = "" THEN DO:
+                IF xerror OR stopped THEN DO:
+                   RUN Show_Phase2_Error(error_text[68] + CHR(10) + error_text[69],"a").
+                END.
+                    
+                IF user_env[6] = "f" OR user_env[6] = "b" THEN
+                  MESSAGE msg3 dbload-e msg4 VIEW-AS ALERT-BOX INFORMATION.
+            END.
+            ELSE
+            DO:
+                /* 20041202-001
+                   don't display this if only warnings occurred 
+                */
+               IF xerror OR STOPPED THEN
+                  MESSAGE error_text[68] CHR(10) error_text[69].
+
+               MESSAGE msg3 dbload-e msg4.
+
+               PAUSE.
+            END.
+          END.
+        END.     /* TERMINAL <> "" */
+
+        IF (xerror OR stopped) THEN undo, leave.
+
+        FINALLY: /* DO TRANS */
+    
+           HIDE FRAME encryptlog NO-PAUSE.
+           HIDE MESSAGE no-pause.
+    
+        END FINALLY.
+
+    END. /* DO TRANS */
+
+    IF (xerror OR stopped)
+     THEN ASSIGN user_path = "9=h,4=error_objattrs,_usrload":u.
+
+END.
+
+/* this only gets instantiated if there is some encryption setting in the .df.
+   Unless the load was aborted, we only delete it if dictObjAttrCache is not set,
+   which gets set by load_df.p.
+*/
+IF VALID-OBJECT(dictEPolicy) AND 
+    ((xerror OR stopped) OR (NOT dictObjAttrCache))  THEN
+  DELETE OBJECT dictEPolicy.
+
+IF VALID-OBJECT(dictObjAttrs) AND 
+    ((xerror OR stopped) OR (NOT dictObjAttrCache))  THEN
+  DELETE OBJECT dictObjAttrs.
 
 /* ASSIGN ? to all the _db-records, that have interims-value of
  * SESSION:CHARSET ASSIGNed to _db-xl-name, because they had no
@@ -2039,5 +2679,3 @@ FOR EACH s_ttb_fake-cp:
 RETURN.
 
 /*--------------------------------------------------------------------*/
-
-

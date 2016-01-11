@@ -39,8 +39,8 @@
                       08/22/07  For db2/400, changing label from Library to Collection/Library and defaulting it to what is specified in the DSN.
           fernando    10/18/07  Make sure pcompatible is mantain disabled after error - OE00134723           
           fernando    08/18/08  Allow COLLECTION for batch - DB2/400
-          rkumar      06/24/09  Added code for iSeries driver- OE00178256
-          rkumar      06/26/09  Added default values for ODBC DataServer- OE00177724
+	  rkumar      01/08/09  Added default values for ODBC DataServer- OE00177724
+          rkumar      04/28/09  Added RECID support  for ODBC DataServer- OE00177721
 */            
 
 
@@ -69,12 +69,12 @@ DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand             AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE lCompatible_enabled AS LOGICAL                  NO-UNDO.
-DEFINE VARIABLE def_libraries AS CHARACTER INITIAL ""           NO-UNDO.
-DEFINE VARIABLE lodbdef_visible     AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE def_libraries       AS CHARACTER INITIAL ""  NO-UNDO.
+DEFINE VARIABLE lodbdef_enabled     AS LOGICAL                  NO-UNDO. /* OE00177724 */
 
 DEFINE STREAM   strm.
 
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN 
+&IF "{&OPSYS}" NE "UNIX" &THEN 
  DEFINE VARIABLE dsn_name      AS CHARACTER                NO-UNDO.
  DEFINE VARIABLE default_lib   AS CHARACTER                NO-UNDO.
  FUNCTION getRegEntry RETURN CHARACTER (INPUT dsnName as CHARACTER, keyName  AS CHARACTER) FORWARD. 
@@ -86,13 +86,13 @@ FORM
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
     LABEL "Original {&PRO_DISPLAY_NAME} Database" colon 36 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
+    LABEL "Connect Parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
   osh_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
-    LABEL "Name of Schema holder Database" colon 36 SKIP({&VM_WID})
+    LABEL "Name of Schema Holder Database" colon 36 SKIP({&VM_WID})
   odb_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "ODBC Data Source Name" colon 36 SKIP({&VM_WID})
  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-   codb_type LABEL "Foreign DBMS TYPE" colon 36 view-as fill-in size 32 by 1
+   codb_type LABEL "Foreign DBMS Type" colon 36 view-as fill-in size 32 by 1
       SKIP ({&VM_WID})  
  &ELSE
    odb_type LABEL "Foreign DBMS Type" colon 36 SKIP ({&VM_WID})       
@@ -104,11 +104,11 @@ FORM
         view-as fill-in size 32 by 1 
         LABEL "ODBC User's Password" colon 36 SKIP({&VM_WID})
   odb_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-     LABEL "ODBC connect parameters" colon 36 SKIP({&VM_WID})
+     LABEL "ODBC Connect Parameters" colon 36 SKIP({&VM_WID})
   odb_codepage FORMAT "x(32)"  view-as fill-in size 32 by 1
      LABEL "Codepage for Schema Image" colon 36 SKIP({&VM_WID})
   odb_collname FORMAT "x(32)"  view-as fill-in size 32 by 1
-     LABEL "Collation name" colon 36 SKIP({&VM_WID})
+     LABEL "Collation Name" colon 36 SKIP({&VM_WID})
   odb_library FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
      LABEL "Collection/Library" COLON 36 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SKIP({&VM_WID})
@@ -116,13 +116,16 @@ FORM
 
 
   SPACE(2) pcompatible view-as toggle-box 
-                       LABEL "Create 4GL Compatible Objects" 
+                       LABEL "Create RECID Column"  
   shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" COLON 38 SKIP({&VM_WID})
- SPACE(2) loadsql view-as toggle-box label "Load SQL" 
+  SPACE(2) iRidOption AT 6 VIEW-AS RADIO-SET RADIO-BUTTONS "All Tables", 1,
+                                             "Tables Without Unique Key", 2
+                               VERTICAL NO-LABEL 
+  loadsql view-as toggle-box label "Load SQL" COLON 38 SKIP({&VM_WID})
  /*&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
  &ELSE SPACE(23) &ENDIF */
-  movedata view-as toggle-box label "Move Data" COLON 38 SKIP({&VM_WID})
-  SPACE(2) odbdef VIEW-AS TOGGLE-BOX label "Include Defaults" SKIP({&VM_WID})
+  movedata view-as toggle-box label "Move Data" AT ROW-OF iRidOption + 1 COL 40 SKIP({&VM_WID})
+  SPACE(2) odbdef VIEW-AS TOGGLE-BOX LABEL "Include Defaults" SKIP({&VM_WID})
   SPACE(2) cFormat VIEW-AS TEXT NO-LABEL 
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
@@ -173,10 +176,11 @@ END PROCEDURE.
      RETURN NO-APPLY.
    END.
 
-/* if not changing value, nothing to be done and can't go through or 
-   we will end up undoing the user changes and changing stuff back to
-   their default values */
-   IF codb_type = SELF:SCREEN-VALUE THEN
+      /* if not changing value, nothing to be done and can't go through or we 
+      will end up undoing the user changes and changing stuff back to their 
+      default values 
+   */
+   IF codb_type = SELF:screen-value THEN
       RETURN.
 
    IF input codb_type BEGINS "DB2" OR
@@ -191,36 +195,28 @@ END PROCEDURE.
             pcompatible = TRUE
             pcompatible:screen-value in frame x = "yes".   
 
-   ASSIGN lCompatible_enabled = pcompatible.
-
-  IF input codb_type EQ "DB2/400" and lodbdef_visible THEN 
+   IF input codb_type EQ "DB2/400" THEN 
      ASSIGN odbdef:screen-value in frame x = "no"
             odbdef = FALSE
-            odbdef:sensitive in frame x = yes.
+            odbdef:sensitive in frame x = yes
+            pcompatible:sensitive in frame x = yes.
    ELSE
      ASSIGN odbdef:sensitive in frame x = no
             odbdef = FALSE
-            odbdef:screen-value in frame x = "no".   
+            odbdef:screen-value in frame x = "no"
+            iRidOption:SCREEN-VALUE in frame x = "1"  
+            iRidOption:SENSITIVE in frame x = FALSE.
+   ASSIGN lodbdef_enabled = odbdef
+          iRidOption = INTEGER(iRidOption:SCREEN-VALUE). /* OE00189366 */
+  
+   ASSIGN lCompatible_enabled = pcompatible:sensitive in frame x. 
 
    IF codb_type:SCREEN-VALUE BEGINS "Oth" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
               shadowcol:SCREEN-VALUE IN FRAME X = "no".
    ELSE
        ASSIGN shadowcol:SENSITIVE IN FRAME X = YES
-              shadowcol:SCREEN-VALUE IN FRAME X = ?.
-   /* If the user has chosen DB2/400, display and enable the Library fill-in. 
-      Otherwise, hide it. */
-   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
-     ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
-            odb_library:SENSITIVE IN FRAME X = TRUE.
-   ELSE
-     ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
-            odb_library:SENSITIVE    IN FRAME X = FALSE
-            odb_library:SCREEN-VALUE IN FRAME X = ""
-            odb_library                         = "".
- END.
-
- ON VALUE-CHANGED OF codb_type IN FRAME X DO:
+              shadowcol:SCREEN-VALUE IN FRAME X = "no".
    /* If the user has chosen DB2/400, display and enable the Library fill-in. 
       Otherwise, hide it. */
    IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
@@ -232,39 +228,36 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
 
-/* Retain screen value */
-    odb_type = SELF:SCREEN-VALUE.
+   /*keep value up-to-date - OE00177721 */
+   odb_type = SELF:screen-value.
  END.
 
  ON ENTRY OF pro_dbname IN FRAME X DO:
-   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN DO:
+
+   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
-            odb_library:SENSITIVE IN FRAME X = TRUE.
-     IF  lodbdef_visible THEN 
-         ASSIGN odbdef:SENSITIVE IN FRAME X = TRUE.
-   END. 
-   ELSE DO:
+            odb_library:SENSITIVE IN FRAME X = TRUE
+            odbdef:SENSITIVE      IN FRAME X = TRUE.
+   ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
-            odb_library                         = "".
-     IF  lodbdef_visible THEN 
-         ASSIGN  odbdef:SENSITIVE         IN FRAME X = FALSE
-                 odbdef:SCREEN-VALUE      IN FRAME X = "NO"
-                 odbdef                              =  no.
-   END.
+            odb_library                         = ""
+            odbdef:SENSITIVE         IN FRAME X = FALSE
+            odbdef:SCREEN-VALUE      IN FRAME X = "no"
+            odbdef                              = NO.
  END.
 &ENDIF  
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-
  ON VALUE-CHANGED of odb_type IN FRAME x OR
     LEAVE of odb_type IN FRAME x DO :
 
-    /* if not changing value, nothing to be done and can't go through or 
-   we will end up undoing the user changes and changing stuff back to
-   their default values */
-   IF odb_type = SELF:SCREEN-VALUE THEN
+   /* if not changing value, nothing to be done and can't go through or we 
+      will end up undoing the user changes and changing stuff back to their 
+      default values 
+   */
+   IF odb_type = SELF:screen-value THEN
       RETURN.
 
    IF odb_type:screen-value BEGINS "DB2" OR
@@ -278,23 +271,27 @@ END PROCEDURE.
             pcompatible:screen-value in frame x = "yes"
             pcompatible = TRUE.  
 
-   ASSIGN lCompatible_enabled = pcompatible.
-
-  IF odb_type:SCREEN-VALUE EQ "DB2/400" and lodbdef_visible THEN 
+   IF odb_type:screen-value EQ "DB2/400" THEN
      ASSIGN odbdef:screen-value in frame x = "no"
             odbdef = FALSE
-            odbdef:sensitive in frame x = yes.
+            odbdef:sensitive in frame x = yes
+            pcompatible:sensitive in frame x = yes.
    ELSE
-     ASSIGN odbdef:sensitive in frame x = no
+     ASSIGN odbdef:sensitive in frame x = NO
+            odbdef:screen-value in frame x = "no"
             odbdef = FALSE
-            odbdef:screen-value in frame x = "no".   
-
+            iRidOption:SCREEN-VALUE in frame x  = "1"  
+            iRidOption:SENSITIVE in frame x = FALSE.  
+   ASSIGN lodbdef_enabled = odbdef
+          lCompatible_enabled = pcompatible:sensitive in frame X
+          iRidOption = INTEGER(iRidOption:SCREEN-VALUE). /* OE00189366 */. 
+    
    IF odb_type:SCREEN-VALUE BEGINS "Other(G" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
               shadowcol:SCREEN-VALUE = "NO".
    ELSE
        ASSIGN shadowcol:SENSITIVE IN FRAME X = YES
-              shadowcol:SCREEN-VALUE = ?.
+              shadowcol:SCREEN-VALUE = "no".
    /* If the user has chosen DB2/400, display and enable the Library fill-in. 
       Otherwise, hide it. */
    IF odb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
@@ -306,27 +303,25 @@ END PROCEDURE.
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
 
-    /* Retain screen value */
-    odb_type = SELF:SCREEN-VALUE.
+   /*keep value up-to-date - OE00177721 */
+   odb_type = SELF:screen-value.
  END.
 
  ON ENTRY OF pro_dbname IN FRAME X DO:
-   IF odb_type EQ "DB2/400" THEN DO:
+   IF odb_type EQ "DB2/400" THEN
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
-            odb_library:SENSITIVE IN FRAME X = TRUE.
-     IF  lodbdef_visible THEN
-         ASSIGN  odbdef:SENSITIVE IN FRAME X = TRUE.
-   END.
-   ELSE DO:
+            odb_library:SENSITIVE IN FRAME X = TRUE
+            iRidOption:SENSITIVE  IN FRAME X = TRUE
+            odbdef:SENSITIVE      IN FRAME X = TRUE.
+   ELSE
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
-            odb_library                         = "".
-     IF  lodbdef_visible THEN
-         ASSIGN  odbdef:SENSITIVE         IN FRAME X = FALSE
-                 odbdef:SCREEN-VALUE      IN FRAME X = "NO"
-                 odbdef                              =  no.
-   END.
+            odb_library                         = ""
+            iRidOption:SENSITIVE     IN FRAME X = FALSE
+            odbdef:SENSITIVE         IN FRAME X = FALSE
+            odbdef:SCREEN-VALUE      IN FRAME X = "no"
+            odbdef                              = NO.
  END.
 &ENDIF
   
@@ -342,29 +337,36 @@ END PROCEDURE.
     "DefaultLibraries" specifies the iSeries libraries to add to the server job's library list
     The libraries are delimited by commas or spaces, and *USRLIBL may be used as a 
     place holder for the server job's current library list. */
+ /* OE00179889- iSeries driver: Default library is genrated based on the following rules:
+    If any value is provided for SQL Default Library, then a space-separated list is created 
+    in the registry, irrespective of spaces or commas separating the library list.
+    If no value is provided for SQL Default Library, then first character is comma and then a 
+    space-separated list is created in registry irrespective of presence of spaces or commas 
+    separating the libaries in the library list.  */
 
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN"
+
+&IF "{&OPSYS}" NE "UNIX" 
 &THEN
   ON LEAVE of odb_dbname in frame X DO:
   dsn_name = odb_dbname:SCREEN-VALUE.
-  IF INDEX(getRegEntry(dsn_name,"Driver"),"cwbodbc.dll") EQ 0 THEN
-       default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
+  IF INDEX(getRegEntry(dsn_name,"Driver"),"cwbodbc.dll") EQ 0 THEN 
+	default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
                    getRegEntry(dsn_name,"AlternateID")
                  ELSE (IF getRegEntry(dsn_name,"Collection") <> ? THEN
                    getRegEntry(dsn_name,"Collection")
                  ELSE (IF getRegEntry(dsn_name,"LogOnID") <> ? THEN
                    getRegEntry(dsn_name,"LogOnID")
-                 ELSE "" ))).
+		 ELSE "" ))).
   ELSE DO:
          ASSIGN def_libraries = getRegEntry(dsn_name,"DefaultLibraries").
-                default_lib = (IF def_libraries <> ? AND index(def_libraries,",") EQ 1 THEN
-                                  SUBSTRING(def_libraries,2,index(def_libraries," ") - 1) 
-                               ELSE (IF def_libraries <> ? AND index(def_libraries," ") GE 0 THEN
-                                  SUBSTRING(def_libraries,1,index(def_libraries," ") - 1) 
-                               ELSE (IF def_libraries EQ ? AND getRegEntry(dsn_name,"UserID") <> ? THEN 
-                                  getRegEntry(dsn_name,"UserID")
-                               ELSE ""))).
-  END.
+	 default_lib = (IF def_libraries <> ? AND index(def_libraries,",") EQ 1 THEN
+		    SUBSTRING(def_libraries,2,index(def_libraries," ") - 1) 
+		 ELSE (IF def_libraries <> ? AND index(def_libraries," ") GE 0 THEN
+		    SUBSTRING(def_libraries,1,index(def_libraries," ") - 1) 
+		 ELSE (IF def_libraries EQ ? AND getRegEntry(dsn_name,"UserID") <> ? THEN 
+                    getRegEntry(dsn_name,"UserID")
+		 ELSE ""))).  
+  END. 
   ASSIGN odb_library:SCREEN-VALUE IN FRAME X = default_lib
          odb_library                         = default_lib.
   END. 
@@ -396,11 +398,37 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
   END.   
 END.  
 
+ON VALUE-CHANGED of pcompatible IN FRAME x DO: 
+/* only need to do this for db2/400 since iRidOption cannot be enabled otherwise */ 
+    IF SELF:screen-value = "yes" THEN DO:
+       assign pcompatible = TRUE.
+       IF odb_type EQ "DB2/400" THEN DO:
+          ASSIGN iRidOption:SCREEN-VALUE in frame x = "2"
+                 iRidOption:SENSITIVE in frame x = TRUE.
+
+&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+           iRidOption:MOVE-AFTER-TAB-ITEM(pcompatible:HANDLE in frame x) in frame X.
+&ENDIF
+       END.
+       ELSE
+          ASSIGN iRidOption:SCREEN-VALUE in frame x  = "1"
+                 iRidOption:SENSITIVE in frame x = FALSE.   
+    END. 
+    ELSE 
+       ASSIGN pcompatible = FALSE
+              iRidOption:SCREEN-VALUE in frame x  = "1" 
+              iRidOption:SENSITIVE in frame x = FALSE.
+ASSIGN iRidOption = INTEGER(iRidOption:SCREEN-VALUE). /* OE00189366 */
+END.
+
 ON VALUE-CHANGED of odbdef IN FRAME x DO:
-  IF SELF:screen-value = "yes" THEN 
-     ASSIGN odbdef = TRUE.
-  ELSE
-     ASSIGN odbdef = FALSE.
+  IF SELF:screen-value = "yes" THEN
+     assign lodbdef_enabled = TRUE
+            odbdef = TRUE.
+  ELSE DO:
+     assign lodbdef_enabled = FALSE
+            odbdef = FALSE.
+  END.   
 END.  
 
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
@@ -429,7 +457,7 @@ END.
 ASSIGN pcompatible = YES
     lCompatible_enabled = YES.
 ASSIGN odbdef = NO
-    lodbdef_visible = NO.
+    lodbdef_enabled = NO.
 
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
@@ -486,6 +514,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       IF tmp_str BEGINS "Y" then pcompatible = TRUE.
       ELSE pcompatible = FALSE.
    END. 
+  ELSE IF batch_mode AND odb_type EQ "DB2/400" THEN ASSIGN
+      pcompatible = FALSE.
 
   IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
     tmp_str      = OS-GETENV("SHADOWCOL").
@@ -495,17 +525,14 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE 
     shadowcol = FALSE.
 
-  IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
-    tmp_str      = OS-GETENV("CRTDEFAULT").
-    IF tmp_str BEGINS "Y" then odbdef = TRUE.
-    ELSE odbdef = FALSE.
-  END. 
-
- /* environment variable OE_SP_CRTDEFAULT enables default values in ODBC */
-  IF OS-GETENV("OE_SP_CRTDEFAULT") <> ? THEN DO:
-    tmp_str      = OS-GETENV("OE_SP_CRTDEFAULT").
-    IF tmp_str BEGINS "Y" then lodbdef_visible = TRUE.
-  END. 
+  IF OS-GETENV("CRTDEFAULT") <> ? 
+   THEN DO:
+      tmp_str      = OS-GETENV("CRTDEFAULT").
+      IF tmp_str BEGINS "Y" then odbdef = TRUE.
+      ELSE odbdef = FALSE.
+   END. 
+  ELSE
+      odbdef = FALSE.
 
   /* Initialize field width choice */
   IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
@@ -517,7 +544,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   END. 
   ELSE
     iFmtOption = 2.
-
+ 
   IF OS-GETENV("EXPANDX8") <> ? THEN DO:
     ASSIGN tmp_str  = OS-GETENV("EXPANDX8").
     IF tmp_str BEGINS "Y" THEN 
@@ -530,6 +557,16 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE
     ASSIGN lExpand = TRUE
            lFormat = FALSE.
+
+  IF odb_type = "DB2/400" THEN DO: 
+    tmp_str      = OS-GETENV("RECIDALLTABLES").
+    IF tmp_str BEGINS "Y" THEN 
+      iRidOption = 1.
+    ELSE 
+      iRidOption = 2.
+  END. 
+  ELSE
+    iRidOption = 1.
 
   IF OS-GETENV("LOADSQL") <> ? THEN DO:
     tmp_str      = OS-GETENV("LOADSQL").
@@ -566,13 +603,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
-    IF NOT lodbdef_visible THEN 
-       ASSIGN odbdef:VISIBLE   IN FRAME X =  NO.
-    ELSE
-       ASSIGN odbdef:SENSITIVE IN FRAME X =  YES.
-
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-    
       DISPLAY cFormat lExpand WITH FRAME x.
       UPDATE pro_dbname
         pro_conparms
@@ -586,10 +617,11 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_collname
         odb_library
         pcompatible WHEN lCompatible_enabled    
+        iRidOption WHEN pcompatible
         shadowcol
         loadsql
         movedata WHEN mvdta
-        odbdef when lodbdef_visible
+        odbdef
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
@@ -611,14 +643,15 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         odb_collname
         odb_library
         pcompatible
+        iRidOption WHEN pcompatible AND codb_type = "DB2/400"
         shadowcol
         loadsql
         movedata
-        odbdef when lodbdef_visible
+        odbdef
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel
-        WITH FRAME x.
+        WITH FRAME X.
         
       IF codb_type = ? OR codb_type = "" THEN DO:
         MESSAGE "Foreign DBMS Type is required." SKIP
@@ -638,39 +671,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     IF pro_conparms = "<current working database>" THEN
       ASSIGN pro_conparms = "".
 
-    IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
-      ASSIGN old-dictdb = LDBNAME("DICTDB").
-      IF NOT CONNECTED(pro_dbname) THEN
-        CONNECT VALUE (pro_dbname) VALUE (pro_conparms) -1 NO-ERROR.              
-      
-      IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
-        DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
-          IF batch_mode THEN
-            PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
-          ELSE
-            MESSAGE ERROR-STATUS:GET-MESSAGE(i).
-        END.
-        IF batch_mode THEN
-           PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
-           skip.
-        ELSE DO:
-          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-              MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
-          &ELSE
-             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
+      IF odb_library:HIDDEN = NO and (odb_library = "" OR odb_library = ?) THEN DO:
+        MESSAGE "Collection/Library is required."
              VIEW-AS ALERT-BOX ERROR.
-          &ENDIF
-        END.            
-        UNDO, RETURN error.
+        NEXT-PROMPT odb_library with frame x.
+        NEXT _updtvar.
       END.
-      ELSE DO:
-    
-        CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).
-      end.  
-    END.
-    ELSE
-      ASSIGN old-dictdb = LDBNAME("DICTDB").
-        
+
     IF loadsql THEN DO:
       IF Osh_dbname = "" OR osh_dbname = ? THEN DO:
         MESSAGE "Schema holder database Name is required." 
@@ -683,30 +690,57 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             VIEW-AS ALERT-BOX ERROR.  
         NEXT _updtvar.
       END.
-     IF odb_library:HIDDEN = NO and (odb_library = "" OR odb_library = ?) THEN DO:
-       MESSAGE "Collection/Library is required."
-            VIEW-AS ALERT-BOX ERROR.
-       NEXT-PROMPT odb_library with frame x.
-       NEXT _updtvar.
-     END.
      ELSE
        ASSIGN odb_library = UPPER(odb_library).
     END.      
     LEAVE _updtvar.
   END.
-  ELSE old-dictdb = LDBNAME("DICTDB").
- 
+  
   IF osh_dbname <> "" AND osh_dbname <> ? THEN
       output_file = osh_dbname + ".log".
   ELSE
       output_file = "protoodb.log". 
-             
+
   OUTPUT STREAM logfile TO VALUE(output_file) NO-ECHO NO-MAP UNBUFFERED. 
   logfile_open = true. 
   IF pro_dbname = "" OR pro_dbname = ? THEN DO:
     PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
     ASSIGN err-rtn = TRUE.
   END.
+  ELSE DO:
+      IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
+          ASSIGN old-dictdb = LDBNAME("DICTDB").
+          IF NOT CONNECTED(pro_dbname) THEN
+            CONNECT VALUE (pro_dbname) VALUE (pro_conparms) -1 NO-ERROR.              
+          
+          IF ERROR-STATUS:ERROR OR NOT CONNECTED (pro_dbname) THEN DO:
+            DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
+              IF batch_mode THEN
+                PUT STREAM logfile UNFORMATTED ERROR-STATUS:GET-MESSAGE(i) skip.
+              ELSE
+                MESSAGE ERROR-STATUS:GET-MESSAGE(i).
+            END.
+            IF batch_mode THEN
+               PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
+               skip.
+            ELSE DO:
+              &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+                  MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
+              &ELSE
+                 MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
+                 VIEW-AS ALERT-BOX ERROR.
+              &ENDIF
+            END.            
+            ASSIGN err-rtn = TRUE.
+          END.
+          ELSE DO:
+            CREATE ALIAS DICTDB FOR DATABASE VALUE(pro_dbname).
+          end.  
+      END.
+      ELSE
+          ASSIGN old-dictdb = LDBNAME("DICTDB").
+  END.
+
   IF odb_type = "" OR odb_type = ? THEN DO:
      PUT STREAM logfile UNFORMATTED "Foreign DBMS type is required." SKIP.   
      ASSIGN err-rtn = TRUE.
@@ -729,6 +763,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     END.
   END.      
   IF err-rtn THEN RETURN.
+
   ASSIGN redo = TRUE.
   /* Set correct odbc type for the next process */
   IF odb_type BEGINS "Oth" THEN DO:
@@ -763,11 +798,12 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 
   IF pro_dbname <> old-dictdb THEN DO:
     DISCONNECT VALUE(pro_dbname).
-    CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
+    IF old-dictdb NE ? THEN
+       CREATE ALIAS DICTDB FOR DATABASE VALUE(old-dictdb).   
   END.
 END.
 
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+&IF "{&OPSYS}" NE "UNIX" &THEN
 
 &SCOPED-DEFINE KEY_PATH "ODBC~\ODBC.INI~\"
 

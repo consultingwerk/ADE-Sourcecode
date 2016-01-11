@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2009 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -221,7 +221,13 @@ FUNCTION get-cgi RETURNS CHARACTER
 FUNCTION get-field RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) IN SUPER.
 
+FUNCTION get-fieldEx RETURNS LONGCHAR
+  (INPUT p_name AS CHARACTER) IN SUPER.
+
 FUNCTION get-value RETURNS CHARACTER
+  (INPUT p_name AS CHARACTER) IN SUPER.
+
+FUNCTION get-valueEx RETURNS LONGCHAR
   (INPUT p_name AS CHARACTER) IN SUPER.
 
 FUNCTION get-user-field RETURNS CHARACTER

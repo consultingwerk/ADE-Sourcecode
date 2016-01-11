@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -52,6 +52,8 @@ HISTORY:
                         that got created on the PROGRES side
     02/14/08 fernando Support for datetime
     08/25/08 fernando Adjusting format of _Initial - OE00168292
+    03/24/09 fernando Datetime-tz support for MSS
+    04/15/09 fernando BLOB support for MSS
 !!!!!!!NOTE: this program is not yet suitable for adding fields!!!!!!!!
 
 */
@@ -83,6 +85,7 @@ DEFINE VARIABLE odb_type_ix     AS INTEGER               NO-UNDO.
 DEFINE VARIABLE pro_format      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE pro_type        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE retriev         AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE islob           AS LOGICAL               NO-UNDO.
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -107,12 +110,12 @@ FORM
   dfields._Field-name   LABEL "  Field-Name" FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
       "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
-  dfields._Data-type    LABEL    "Data-Type" FORMAT "x(9)"  SKIP
+  dfields._Data-type    LABEL    "Data-Type" FORMAT "x(11)"  SKIP
 
   edbtyp1            NO-LABEL AT  2          FORMAT "x(12)" SPACE
   dfields._For-name  NO-LABEL                FORMAT "x(30)" SPACE
   edbtyp2            NO-LABEL                FORMAT "x(12)" SPACE
-  dfields._For-type  NO-LABEL                FORMAT "x(12)" SKIP
+  dfields._For-type  NO-LABEL                FORMAT "x(13)" SKIP
 
   dfields._Format       LABEL "      Format" FORMAT "x(30)" SPACE(4)
   dfields._Fld-stoff    LABEL     "Position" FORMAT ">>>9" SKIP
@@ -293,29 +296,75 @@ on leave of dfields._data-type in frame odb_fld do:
       .
     end.
 
+  /* handle case where we don't support blob for varbinary(n) - MSS db */
+  IF edbtyp = "MSS" AND l_type-match AND l_dt-new = "BLOB" AND
+     (dfields._For-type = "varbinary" OR dfields._For-type = "longvarbinary") THEN DO:
+      /* varbinary(max) reported as varbinary with zero precision by MSS native driver
+         or as longvarchar for other drivers. But the schema pull sets precision
+         to 32000 in the schema for the native driver case.
+         We do not support varbinary(n) for blob support but (n) can only be
+         a number between 1 and 8000 inclusive  for varbinary(n). 
+         So let's check the varbinary(n) case.
+         Also, if field has the filestream option set, we only support blob mapping.
+      */
+     IF (dfields._Fld-misc2[4] = "filestream") OR 
+        (dfields._Fld-misc1[1] >= 1 AND dfields._Fld-misc1[1] <= 8000) THEN 
+         l_type-match = FALSE.
+  END.
+
   if l_type-match = false
    then do:  /* not a correct match */
     message new_lang[7] view-as alert-box.
     RETURN NO-APPLY.
     end.     /* not a correct match */
 
+  IF l_dt-new = "blob" THEN DO:
+     dfields._Initial = ?.
+     DISPLAY dfields._Initial WITH FRAME odb_fld.
+  END.
+
+  IF l_dt-new = "BLOB" THEN 
+    ASSIGN islob = TRUE.
+  ELSE
+    ASSIGN islob = FALSE.
+
+  /* if moving from/to BLOB, need to adjust fields */
+  IF dfields._data-type = "blob" OR islob THEN DO:
+
+     /* need to adjust these fields based on the data type */
+     ASSIGN  dfields._Format:SENSITIVE IN FRAME odb_fld = NOT islob
+             dfields._Label:SENSITIVE = NOT islob
+             dfields._Col-label:SENSITIVE = NOT islob
+             dfields._Initial:SENSITIVE = NOT islob
+             dfields._Mandatory:SENSITIVE = NEW dfields AND NOT islob
+             dfields._Extent:SENSITIVE = NEW dfields AND NOT islob
+             dfields._Valexp:SENSITIVE = NOT islob
+             dfields._Valmsg:SENSITIVE = NOT islob
+             dfields._Help:SENSITIVE = NOT islob.
+
+     /* adjust tab order */
+     dfields._Order:move-after-tab-item
+       (dfields._Col-label:handle in FRAME odb_fld) in FRAME odb_fld.
+     dfields._Desc:move-after-tab-item
+       (dfields._Help:handle in FRAME odb_fld) in FRAME odb_fld.
+
+  END.
+
   if  ( l_dt-new = "character" and l_dt-old <> "character" )
-   or ( l_dt-new = "date"      and l_dt-old <> "date"      )
-   or ( l_dt-new = "datetime"  and l_dt-old <> "datetime"  )
+   or ( l_dt-new = "date" OR l_dt-new = "datetime" OR l_dt-new = "datetime-tz")
    or ( l_dt-new = "logical"   and l_dt-old <> "logical"   )
    or ( can-do("integer,decimal",l_dt-new) 
                 and not can-do("integer,decimal",l_dt-old) )
    then do:  /* change format and ev. initial */
      if l_dt-new = "character" and
         l_for-type = "timestamp" then
-        assign l_format = "x(26)".
-     ELSE IF l_dt-new = "datetime" and l_for-type = "timestamp" THEN
-             assign l_format = "99/99/9999 HH:MM:SS.SSS".
+        assign l_format = "x(27)".
      else do:  /* any other dt-new/for-type combination */
       assign
         l_format    = ENTRY(odb_type_ix, user_env[17], "|")
         l_length    = ( if  l_length  = ?
-                         or l_length <= 0
+                         or l_length <= 0 
+                         OR (edbtyp = "MSS" AND l_for-type = "date")
                             then 8
                             else l_length
                       ).
@@ -325,13 +374,20 @@ on leave of dfields._data-type in frame odb_fld do:
                        then "#"
                        else substring(l_dt-new,1,1,"character")
                    ).
-                          
+      /* never let format for character be bigger than 320 - consistent with
+         pull
+      */
+      IF l_format = "c" AND l_length > 320 THEN
+          l_length = 320.
+
       case l_format:
         when    "c" then assign l_format = "x(" + string(l_length) + ")".
         when    "d" then assign l_format = ( if l_length = 8
                                                 then "99/99/99"
                                                 else "99/99/9999"
                                            ).
+        WHEN    "dt"  THEN assign l_format = "99/99/9999 HH:MM:SS.SSS".
+        WHEN    "dtz" THEN assign l_format = "99/99/9999 HH:MM:SS.SSS+HH:MM".
         when    "i" 
         or when "#" then assign l_format = fill("9",l_length).
         when    "l" then assign l_format = "yes/no".
@@ -481,6 +537,11 @@ ASSIGN
                 else dfields._Fld-misc1[1]
              ).
 
+IF dfields._data-type = "BLOB" THEN 
+  ASSIGN islob = TRUE.
+ELSE
+  ASSIGN islob = FALSE.
+
 /*retriev = (NOT dfields._For-retrieve = 1).*/
 DISPLAY
   edbtyp1 edbtyp2
@@ -532,21 +593,21 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
     dfields._For-name when NEW dfields
     dfields._For-type when NEW dfields
     dfields._Data-type 
-    dfields._Format
-    dfields._Label
-    dfields._Col-label
-    dfields._Initial
+    dfields._Format WHEN NOT islob
+    dfields._Label WHEN NOT islob
+    dfields._Col-label WHEN NOT islob
+    dfields._Initial WHEN NOT islob
     dfields._Fld-stoff WHEN l_Lcl-bffr
     dfields._Decimals WHEN dfields._Data-type = "DECIMAL"
     dfields._Order
     /* Suppress update of retrieve until implemented in Progress */
   /* retriev
     dfields._For-retrieve = IF retriev THEN ? ELSE 1 */
-    dfields._Mandatory when NEW dfields
-    dfields._Extent when NEW dfields
-    dfields._Valexp
-    dfields._Valmsg
-    dfields._Help
+    dfields._Mandatory when NEW dfields AND NOT islob
+    dfields._Extent when NEW dfields AND NOT islob
+    dfields._Valexp WHEN NOT islob
+    dfields._Valmsg WHEN NOT islob
+    dfields._Help WHEN NOT islob
     dfields._Desc
     WITH FRAME odb_fld.
     

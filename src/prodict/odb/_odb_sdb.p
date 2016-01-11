@@ -1,9 +1,9 @@
-/**************************************************************************
-* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All      *
-* rights reserved. Prior versions of this work may contain portions       *
-* contributed by participants of Possenet.                                *
-*                                                                         *
-**************************************************************************/
+/*********************************************************************
+* Copyright (C) 2000,2007-08, 2009 by Progress Software Corporation. All *
+* rights reserved. Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                           *
+*                                                                    *
+*********************************************************************/
 /* Procedure prodict/odb/_odb_sdb.p
    Created February 18, 2000
    Donna L. McMann
@@ -14,6 +14,7 @@
    know what to do.
    History :
    knavneet 07/24/07 For DB2/400 append the library name to _Db-misc2[1] if it is not empty string. This can be used as default lib while schema update 
+   nagaraju 10/21/09 Support for computed column RECID in MSSDS - OE00186593 
 */   
 
 &SCOPED-DEFINE DATASERVER YES
@@ -51,12 +52,12 @@ FOR EACH DICTDBG.GetInfo_buffer:
           DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " 
   			        + DICTDBG.GetInfo_buffer.dbms_version 
           DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
-          DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver
-  		                          + "; Client Ver#: "
+          DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver
+  		                          + ",Client Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_clnt
-  		                          + " Server Ver#: "
+  		                          + ",Server Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_srvr
-                                          + ";"
+                                          + ","
           DICTDB._Db._Db-misc2[8] = DICTDBG.GetInfo_buffer.dbms_name
           driver-prefix    = ( IF DICTDB._Db._Db-misc2[1] BEGINS "QE"
                               THEN SUBSTRING(DICTDB._Db._Db-misc2[1]
@@ -66,13 +67,13 @@ FOR EACH DICTDBG.GetInfo_buffer:
                                       ,"character")
   		                       ELSE DICTDB._Db._Db-misc2[1] )
           DICTDB._Db._Db-misc2[4] = "".
-
+ 
     /* wait until here to add library name so that driver-prefix is correctly set
        to the driver name only.
     */
    IF user_library <> "" AND user_library <> "*" THEN 
     ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name + "," + UPPER(user_library).
- 
+
    /* If client version is formatted w/"sh_min", the client is OpenEdge 10.1A or greater
     * which knows about the dictionary version number
     */

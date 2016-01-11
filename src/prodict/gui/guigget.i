@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008 by Progress Software Corporation. All      *
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -97,7 +97,7 @@ Define var typpatt     as char    NO-UNDO.
 Define var usr	       as char    NO-UNDO.
 Define var usrpatt     as char    NO-UNDO.
 define var curshit     as logical NO-UNDO init no.
-
+define var is_as400sh  as logical NO-UNDO init FALSE.
 
 DEFINE QUERY qgate-work FOR gate-work SCROLLING.
 
@@ -113,8 +113,10 @@ DEFINE BROWSE bgate-work QUERY qgate-work
   WITH SIZE 75 BY 12 FONT 0 /*MULTIPLE*/.
 
 &IF DEFINED(GATE_OMIT_PARM3) = 0 &THEN
-IF p_Gate_AS400 THEN
-     gate-user:label IN BROWSE bgate-work = "Col/Lib".
+IF p_Gate_AS400 THEN DO:
+     gate-user:label IN BROWSE bgate-work = "Col/Lib". 
+     is_AS400sh = TRUE.
+END.
 ELSE 
 &ENDIF
      gate-user:label IN BROWSE bgate-work = "Owner".
@@ -234,8 +236,10 @@ FORM
         DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel.
 
 &IF DEFINED(GATE_OMIT_PARM3) = 0 &THEN
-IF p_Gate_AS400 THEN
+IF p_Gate_AS400 THEN DO:
      usrpatt:label IN frame tbl_patt = "Col/Lib".
+     is_AS400sh = TRUE.
+END.
 ELSE
 &ENDIF
      usrpatt:label IN frame tbl_patt = "Owner".
@@ -492,11 +496,10 @@ on choose of btn_select or "S","s" of bgate-work in frame gtbl_get do:
     tblpatt              = "*"
     typpatt              = "*"
     FRAME tbl_patt:TITLE = "Select Objects by Pattern Match".
-
   if usrpatt = ""
    then do:  /* initialize user-pattern */
     assign  
-      usrpatt  = USERID(user_dbname) 
+      usrpatt  = (IF is_as400sh THEN s_owner else USERID(user_dbname))          
       i        = ( if   INDEX(usrpatt,"/") <> 0
                     and INDEX(usrpatt,"@") <> 0
                     then MIN(INDEX(usrpatt,"/"), INDEX(usrpatt,"@"))
@@ -608,7 +611,7 @@ on choose of btn_deselect or "D","d" of bgate-work in frame gtbl_get do:
   if usrpatt = ""
    then do:  /* initialize user-pattern */
     assign  
-      usrpatt  = USERID(user_dbname) 
+      usrpatt  = (IF is_as400sh THEN s_owner else USERID(user_dbname))
       i        = ( if   INDEX(usrpatt,"/") <> 0
                     and INDEX(usrpatt,"@") <> 0
                     then MIN(INDEX(usrpatt,"/"), INDEX(usrpatt,"@"))

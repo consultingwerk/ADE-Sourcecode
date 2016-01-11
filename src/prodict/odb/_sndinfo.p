@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2007, 2009 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -9,6 +9,7 @@
 
    History:  DLM Removed warning message about driver not being certified 11/23/98
              knavneet While checking the driver name we read the 1st ENTRY from _Db-misc2[1] as it may have Library name appended to it for DB2/400 01/24/07
+             nagaraju 10/21/09 Support for computed column RECID in MSSDS - OE00186593 
 
 */
 { prodict/dictvar.i }
@@ -38,10 +39,10 @@ FOR EACH DICTDBG.GetInfo_buffer:
         DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " +
   			 DICTDBG.GetInfo_buffer.dbms_version 
         DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
-        DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver +
-  		       "; Client Ver#: " + DICTDBG.GetInfo_buffer.prgrs_clnt +
-  		       " Server Ver#: "  + DICTDBG.GetInfo_buffer.prgrs_srvr +
-                       ";".
+        DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver +
+  		       ",Client Ver #:" + DICTDBG.GetInfo_buffer.prgrs_clnt +
+  		       ",Server Ver #:" + DICTDBG.GetInfo_buffer.prgrs_srvr +
+                       ",".
 
         driver-prefix = IF DICTDB._Db._Db-misc2[1] BEGINS "QE" THEN
   		      SUBSTRING(DICTDB._Db._Db-misc2[1], 1,

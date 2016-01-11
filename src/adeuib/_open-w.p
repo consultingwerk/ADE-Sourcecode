@@ -177,9 +177,10 @@ DO:
     /* Ensure pFileName is a full path */
     IF FILE-INFO:FULL-PATHNAME <> ? THEN
         pFileName = FILE-INFO:FULL-PATHNAME.
-    RUN getProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
-    /* file is in the current IDE project */
-    IF cProjectName > "" AND (cProjectName = getProjectName()) THEN
+    
+    RUN getActiveProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
+    /* File is a project file */
+    IF cProjectName > "" THEN
     DO:
         RUN getLinkedFileOfFile IN hOEIDEService (pFileName, OUTPUT cLinkedFile).
         IF cLinkedFile = "" THEN /* File has not been registed */

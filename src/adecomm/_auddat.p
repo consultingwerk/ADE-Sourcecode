@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006,2008 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008-2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -47,6 +47,8 @@
       fernando Apr  10, 2006 Adjust reports - _event-detail may now be empty 20060404-014
       fernando Sep  21, 2006 Fixing issue with client session report
       fernando Aug  11, 2008 Fixing _Transaction-id format
+      fernando Dec  23, 2008 Support for encryption events
+      fernando Jun  18, 2009 Support for encryption events
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -90,6 +92,9 @@ DEFINE VARIABLE ghTabAuth    AS HANDLE      NO-UNDO.
 DEFINE VARIABLE ghColAuth    AS HANDLE      NO-UNDO.
 DEFINE VARIABLE ghSeqAuth    AS HANDLE      NO-UNDO.
 DEFINE VARIABLE ghDbAuth     AS HANDLE      NO-UNDO.
+DEFINE VARIABLE cTemp1       AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cTemp2       AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cTemp3       AS CHARACTER   NO-UNDO.
 
 DEFINE VARIABLE glWriteXml   AS LOGICAL     NO-UNDO.
 DEFINE VARIABLE glImmedDisp  AS LOGICAL     NO-UNDO.
@@ -405,39 +410,37 @@ PROCEDURE buildDataset:
 
   DEFINE VARIABLE hQuery     AS HANDLE      NO-UNDO.
   
+  ASSIGN lAudQry    = TRUE.
   CASE piReport:
     WHEN 1 THEN 
-      ASSIGN cEventList = "{&AUD_POL_MNT}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&AUD_POL_MNT}".
     WHEN 2 THEN 
-      ASSIGN cEventList = "{&SCH_CHGS}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&SCH_CHGS}".
     WHEN 3 THEN
-      ASSIGN cEventList = "{&AUD_ARCHV}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&AUD_ARCHV}".
     WHEN 4 THEN
-      ASSIGN cEventList = "{&DATA_ADMIN}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&DATA_ADMIN}".
     WHEN 5 THEN
-      ASSIGN cEventList = "{&USER_MAINT}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&USER_MAINT}".
     WHEN 6 THEN
-      ASSIGN cEventList = "{&SEC_PERM_MNT}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&SEC_PERM_MNT}".
     WHEN 7 THEN
-      ASSIGN cEventList = "{&DBA_MAINT}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&DBA_MAINT}".
     WHEN 8 THEN
-      ASSIGN cEventList = "{&AUTH_SYS}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&AUTH_SYS}".
     WHEN 9 THEN
-      cTblList   = "bClientSess".
+        ASSIGN lAudQry    = FALSE
+               cTblList   = "bClientSess".
     WHEN 10 THEN
-      ASSIGN cEventList = "{&DB_ADMIN}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&DB_ADMIN}".
     WHEN 11 THEN
-      ASSIGN cEventList = "{&DB_ACCESS}"
-             lAudQry    = TRUE.
+      ASSIGN cEventList = "{&DB_ACCESS}".
+    WHEN 13 THEN
+      ASSIGN cEventList = "{&ENC_POL_MNT}".
+    WHEN 14 THEN
+      ASSIGN cEventList = "{&ENC_KEY_MNT}".
+    WHEN 15 THEN
+      ASSIGN cEventList = "{&ENC_ADMIN}".
   END CASE.
 
   cTopTbl   = ENTRY(1,cTblList).
@@ -814,12 +817,14 @@ PROCEDURE audDataAfterRowFill:
      on a report this is just a sample - custom code is required to handle
      the various known context formats */
   ASSIGN cEventId = STRING(hADBuff::_event-id)
-         cContext = ENTRY(2,hADBuff::_event-context,CHR(6))
-         cTable   = ENTRY(1,hADBuff::_Event-context,CHR(6))
          cUserId  = (IF hADBuff::_user-id NE "" AND 
-                        hADBuff::_user-id NE ? THEN 
-                       " by " + hADBuff::_user-id ELSE "") NO-ERROR.
-    
+                         hADBuff::_user-id NE ? THEN 
+                        " by " + hADBuff::_user-id ELSE "").
+
+  /* these may error out */
+  ASSIGN cContext = ENTRY(2,hADBuff::_event-context,CHR(6))
+         cTable   = ENTRY(1,hADBuff::_Event-context,CHR(6)) NO-ERROR.
+
   /* Default to same as unformatted event context for cases where hit
      an unknown format */
   CASE cEventId:
@@ -2104,13 +2109,13 @@ PROCEDURE audDataAfterRowFill:
         (IF hADBuff::_user-id NE ? AND
             hADBuff::_user-id NE "" THEN "User " + hADBuff::_user-id + " s"
          ELSE "S") + "uccessfully connected to " +
-        hADBuff::_event-context + cUserId.
+        hADBuff::_event-context.
     WHEN "10601" THEN
       hADBuff::_formatted-event-context = 
         (IF hADBuff::_user-id NE ? AND
             hADBuff::_user-id NE "" THEN "User " + hADBuff::_user-id + " s"
          ELSE "S") + "uccessfully disconnected from " +
-        hADBuff::_event-context + cUserId.
+        hADBuff::_event-context.
     WHEN "10610" THEN DO:
        IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
           hADBuff::_formatted-event-context = "SQL User: " + 
@@ -2128,6 +2133,298 @@ PROCEDURE audDataAfterRowFill:
         ELSE
            hADBuff::_formatted-event-context =
                       "A SQL Client successfully disconnected from the database".
+    END.
+    WHEN "11000" OR WHEN "11001" THEN DO:
+
+        /* detail may be empty if event level is not full  */
+        IF cEventId = "11000" AND 
+            hADBuff::_event-detail NE ? AND 
+            hADBuff::_event-detail NE "" THEN DO:
+           cRunOpt = unQuote(ENTRY(3,hADBuff::_event-detail,":"),"~"").
+           IF cRunOpt NE "" AND cRunOpt NE ? THEN
+              cRunOpt = " (Parameters: " + cRunOpt + ")".
+        END.
+        ELSE 
+            cRunOpt = "".
+    
+        ASSIGN cUser = (IF hADBuff::_user-id NE "" THEN hADBuff::_user-id
+                              ELSE (IF INDEX(cRunOpt,"-U") > 0 THEN
+                                      ENTRY(LOOKUP("-U",cRunOpt," ") + 1,cRunOpt," ")
+                                      ELSE ""))
+                     cUser = (IF cUser NE "" THEN " by " ELSE "") + cUser.
+    
+        /* detail may be empty if event level is not full  */
+        IF hADBuff::_event-detail NE "" AND hADBuff::_event-detail NE ? THEN DO:
+            IF ENTRY(1,hADBuff::_event-detail,":") = "pass" THEN DO:
+                IF cEventId = "11000" THEN
+                   hADBuff::_formatted-event-context = "Encryption Enabled for".
+                ELSE
+                    hADBuff::_formatted-event-context = "Encryption Disabled for".
+            END.
+            ELSE DO:
+                IF cEventId = "11000" THEN
+                   hADBuff::_formatted-event-context = "Enable encryption utility failed for".
+                ELSE
+                   hADBuff::_formatted-event-context = "Disable encryption utility failed for".
+            END.
+        END.
+        ELSE DO:
+            /* we don't know if it passed or failed, just report on the execution */
+            IF cEventId = "11000" THEN
+               hADBuff::_formatted-event-context = "Encryption Enabled utility executed for".
+            ELSE
+               hADBuff::_formatted-event-context = "Encryption Disabled utility executed for".
+        END.
+
+        hADBuff::_formatted-event-context =  hADBuff::_formatted-event-context + " "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cRunOpt + cUser.
+    END.
+    WHEN "11100" THEN DO:
+        hADBuff::_formatted-event-context = "Created key store " + hADBuff::_event-context.
+    END.
+    WHEN "11101" THEN DO:
+        hADBuff::_formatted-event-context = "Key store deleted " + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11102" THEN DO:
+        hADBuff::_formatted-event-context = "Key store " + hADBuff::_event-context
+                                             + " opened" + cUserId.
+    END.
+    WHEN "11103" THEN DO:
+        hADBuff::_formatted-event-context = "Encryption key changed for key store " 
+                                                + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11104" THEN DO:
+        hADBuff::_formatted-event-context = "Cipher changed for key store " 
+                                             + hADBuff::_event-context.
+
+        IF hADBuff::_event-detail NE ? AND hADBuff::_event-detail NE ""  THEN
+            hADBuff::_formatted-event-context =  hADBuff::_formatted-event-context + " to " + 
+                                                 ENTRY(2,hADBuff::_event-detail,CHR(7)).
+         
+        hADBuff::_formatted-event-context =  hADBuff::_formatted-event-context + cUserId.
+    END.
+    WHEN "11105" THEN DO:
+        hADBuff::_formatted-event-context = "Admin passphrase changed for key store " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11105" THEN DO:
+        hADBuff::_formatted-event-context = "User passphrase changed for key store " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11106" THEN DO:
+        hADBuff::_formatted-event-context = "Admin passphrase changed for key store " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11107" THEN DO:
+        hADBuff::_formatted-event-context = "Database key store entry created for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6)) 
+                                             + cUserId.
+    END.
+    WHEN "11108" THEN DO:
+        hADBuff::_formatted-event-context = "Database key store entry updated for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6))
+                                             + cUserId.
+    END.
+    WHEN "11109" THEN DO:
+        hADBuff::_formatted-event-context = "Database key store entry deleted for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6))
+                                             + cUserId.
+    END.
+    WHEN "11110" THEN DO:
+        hADBuff::_formatted-event-context = "Database key store entry read for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6))
+                                             + cUserId.
+    END.
+    WHEN "11111" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to open key store " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11112" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to create key store entry for " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11113" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to update key store entry for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6))
+                                             + cUserId.
+    END.
+    WHEN "11114" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to delete key store entry for " 
+                                             + ENTRY(1,hADBuff::_event-context, CHR(6))
+                                             + cUserId.
+    END.
+    WHEN "11200" THEN DO:
+        hADBuff::_formatted-event-context = "Auto-start key store file " 
+                                             + hADBuff::_event-context + " created" + cUserId.
+    END.
+    WHEN "11201" THEN DO:
+        hADBuff::_formatted-event-context = "Auto-start key store file " 
+                                             + hADBuff::_event-context + " deleted" + cUserId.
+    END.
+    WHEN "11202" THEN DO:
+        hADBuff::_formatted-event-context = "Auto-start key store file " 
+                                             + hADBuff::_event-context + " opened" + cUserId.
+    END.
+    WHEN "11203" THEN DO:
+        hADBuff::_formatted-event-context = "Auto-start key store file " 
+                                             + hADBuff::_event-context + " recovered" + cUserId.
+    END.
+    WHEN "11204" THEN DO:
+        hADBuff::_formatted-event-context = "Auto-start key store file " 
+                                             + hADBuff::_event-context + " updated" + cUserId.
+    END.
+    WHEN "11205" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to open auto-start key store file " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11206" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to update auto-start key store file " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11207" THEN DO:
+        hADBuff::_formatted-event-context = "Failed to recover auto-start key store file " 
+                                             + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11300" THEN DO:
+        hADBuff::_formatted-event-context = "Encryption state scan started".
+
+        /* if we have details, it has the object name */
+        IF hADBuff::_event-detail NE "" AND hADBuff::_event-detail NE ? THEN
+            hADBuff::_formatted-event-context = hADBuff::_formatted-event-context 
+                                             + " for " + QUOTER(hADBuff::_event-detail).
+
+        hADBuff::_formatted-event-context = hADBuff::_formatted-event-context 
+                                            + " on " + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11301" THEN DO:
+        hADBuff::_formatted-event-context = "Encryption state update started".
+
+        /* if we have details, it has the object name */
+        IF hADBuff::_event-detail NE "" AND hADBuff::_event-detail NE ? THEN
+            hADBuff::_formatted-event-context = hADBuff::_formatted-event-context 
+                                             + " for " + QUOTER(hADBuff::_event-detail).
+
+        hADBuff::_formatted-event-context = hADBuff::_formatted-event-context 
+                                            + " on " + hADBuff::_event-context + cUserId.
+    END.
+    WHEN "11400" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+
+        RUN audGetDataValueFromEventDetail(hADBuff, INPUT "_Dbpol-ciphername", OUTPUT cTemp2).
+
+        /* shouldn't happen, but just in case */
+        IF cTemp2 = "NULL_NULL_NULL" THEN
+            cTemp2 = "".
+
+        hADBuff::_formatted-event-context = "Database encryption policy version "
+                                             + ENTRY(2, cTemp1, CHR(7)) 
+                                             + (IF cTemp2 NE "" THEN " (cipher: " + cTemp2 + ")" ELSE "")
+                                             + " created" + cUserId.
+    END.
+    WHEN "11401" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+        hADBuff::_formatted-event-context = "Database encryption policy version "
+                                             + ENTRY(2, cTemp1, CHR(7)) + " updated" 
+                                             + cUserId.
+    END.
+    WHEN "11402" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+        hADBuff::_formatted-event-context = "Database encryption policy version "
+                                             + ENTRY(2, cTemp1, CHR(7)) + " deleted" 
+                                             + cUserId.
+    END.
+    WHEN "11500" OR 
+        WHEN "11501" OR
+        WHEN "11502" THEN DO:
+
+         IF cEventId = "11500" THEN
+            cTemp3 = " created".
+         ELSE IF cEventId = "11501" THEN
+            cTemp3 = " updated".
+         ELSE
+            cTemp3 = " deleted".
+
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+
+        hADBuff::_formatted-event-context = "Encryption policy version "
+                                            +  ENTRY(3, cTemp1, CHR(7)). 
+
+        cTemp2 = ENTRY(2,  cTemp1, CHR(7)) /* obj type */.
+        CASE cTemp2:
+            WHEN "T" THEN
+                cTemp2 = "table".
+            WHEN "I" THEN
+                cTemp2 = "index".
+            WHEN "L" THEN
+                cTemp2 = "lob".
+            WHEN "A" THEN
+                cTemp2 = "area".
+        END CASE.
+
+        /* the object / area name */
+        cTemp1 = ENTRY(1, cTemp1, CHR(7)).
+        IF cTemp1 BEGINS "PUB." THEN
+            cTemp1 = SUBSTRING(cTemp1,5).
+
+        IF cTemp1 NE "" AND cTemp2 NE "" THEN DO:
+            IF cTemp2 = "table" OR cTemp2 = "area" THEN
+                cTemp1 = QUOTER(cTemp1).
+            ELSE DO:
+                CASE NUM-ENTRIES(cTemp1, "."):
+                    WHEN 2 THEN
+                        cTemp1 = QUOTER(ENTRY(2, cTemp1, ".")) + " of " + QUOTER(ENTRY(1, cTemp1, ".")).
+                    WHEN 3 THEN
+                        cTemp1 = QUOTER(ENTRY(3, cTemp1, ".")) + " of " 
+                                 + QUOTER(ENTRY(1, cTemp1, ".") + "." + ENTRY(2, cTemp1, ".")).
+                END CASE.
+            END.
+    
+            hADBuff::_formatted-event-context = hADBuff::_formatted-event-context 
+                                                 + " for " + cTemp2 /* obj type */
+                                                 + " " + cTemp1 /* obj/area name */
+                                                 + cTemp3. 
+            
+            cTemp2 = "".
+    
+            IF cEventId = "11500" THEN DO:
+                /* get cipher name if creating new object policy */
+                RUN audGetDataValueFromEventDetail(hADBuff, INPUT "_Objpol-ciphername", OUTPUT cTemp2).
+        
+                IF cTemp2 = ? THEN
+                    cTemp2 = "".
+    
+                IF cTemp2 NE "" THEN DO:
+                    IF cTemp2 = "NULL_NULL_NULL" THEN
+                       cTemp2 = " (encryption disabled)".
+                    ELSE
+                       cTemp2 = " with cipher " + cTemp2.
+                END.
+            END.
+        END.
+        ELSE DO:
+            /* must be template record deleted during disableencryption */
+            cTemp2 = "".
+            hADBuff::_formatted-event-context = "Template record for encryption policy" + cTemp3.
+        END.
+
+        hADBuff::_formatted-event-context =  hADBuff::_formatted-event-context + cTemp2 + cUserId.
+    END.
+    WHEN "11600" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+
+        hADBuff::_formatted-event-context = "Database passphrase policy version " 
+                                             + ENTRY(2, cTemp1, CHR(7)) + " created" + cUserId.
+    END.
+    WHEN "11601" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+        hADBuff::_formatted-event-context = "Database passphrase policy version " 
+                                             + ENTRY(2, cTemp1, CHR(7)) + " updated" + cUserId.
+    END.
+    WHEN "11602" THEN DO:
+        cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
+        hADBuff::_formatted-event-context = "Database passphrase policy version " 
+                                             + ENTRY(2, cTemp1, CHR(7)) + " deleted" + cUserId.
     END.
     OTHERWISE 
       hADBuff::_formatted-event-context = hADBuff::_event-context.
@@ -2163,9 +2460,14 @@ PROCEDURE audDataValueFromEventDetail:
 
   DEFINE VARIABLE hADVBuff   AS HANDLE    NO-UNDO.
   DEFINE VARIABLE iLoop      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE numEntries AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cEntry     AS CHARACTER NO-UNDO.
 
   /* This is (and should be) only called if plDetail is TRUE */
+
+  /* don't do this for events on encryption policy tables */
+  IF hADBuff::_event-id >= 11400 AND hADBuff::_event-id <= 11602  THEN
+     RETURN.
 
   /* check if this _Event-detail contains info for a db event. We will check 
      if the data follows the format defined for db events of 4 entries 
@@ -2188,8 +2490,10 @@ PROCEDURE audDataValueFromEventDetail:
         hADVBuff:BUFFER-FIELD('_old-string-value'):LITERAL-QUESTION  = TRUE
         hADVBuff:BUFFER-FIELD('_new-string-value'):LITERAL-QUESTION  = TRUE.
 
+    numEntries = NUM-ENTRIES(hADBuff::_Event-detail,CHR(7)).
+
     /* loop through all field changes - separated by chr(7) */
-    REPEAT iLoop = 1 TO NUM-ENTRIES(hADBuff::_Event-detail,CHR(7)):
+    REPEAT iLoop = 1 TO numEntries:
       
       cEntry = ENTRY(iLoop,hADBuff::_Event-detail,CHR(7)).
 
@@ -2239,6 +2543,55 @@ PROCEDURE audDataValueFromEventDetail:
        XML file, since the data value records we created and will be dumped.
     */
     hADBuff::_Event-detail = "".
+  END.
+
+END PROCEDURE.
+
+PROCEDURE audGetDataValueFromEventDetail:
+  /* Procedure:   audGetDataValueFromEventDetail
+   * 
+   * Description: Read the value of a specific field in the _Event-detail
+   *              field
+  */ 
+
+  DEFINE INPUT PARAMETER hADBuff AS HANDLE NO-UNDO. /* handle of bAudData 
+                                                       buffer */
+  DEFINE INPUT  PARAMETER cFieldName AS CHAR NO-UNDO.
+  DEFINE OUTPUT PARAMETER cOutValue  AS CHAR NO-UNDO.
+
+  DEFINE VARIABLE hADVBuff   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE iLoop      AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE numEntries AS INTEGER   NO-UNDO.
+  DEFINE VARIABLE cEntry     AS CHARACTER NO-UNDO.
+
+  /* We will check if the data follows the format defined for db events of 4 entries 
+     separated by chr(6).
+     
+     It may contain more than one entry separated by chr(7), but we just need 
+     to check the first one to see if it's a db event.
+  */
+  IF NUM-ENTRIES(ENTRY(1,hADBuff::_Event-detail,CHR(7)),CHR(6)) = 4 THEN DO:
+
+    numEntries = NUM-ENTRIES(hADBuff::_Event-detail,CHR(7)).
+
+    /* loop through all field changes - separated by chr(7) */
+    REPEAT iLoop = 1 TO numEntries:
+      
+      cEntry = ENTRY(iLoop,hADBuff::_Event-detail,CHR(7)).
+
+      /* If entry is empty, it must be that the last entry had chr(7) at the
+         end as well.
+           
+         If not, then something is very wrong 
+      */
+      IF cEntry = ? OR cEntry = "" THEN
+        LEAVE.
+         
+      IF ENTRY(1,cEntry,CHR(6)) = cFieldName THEN DO:
+          cOutValue = ENTRY(4,cEntry,CHR(6)).
+          LEAVE.
+      END.
+    END.
   END.
 
 END PROCEDURE.

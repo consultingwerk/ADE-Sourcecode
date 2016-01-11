@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,6 +24,8 @@ History: Copied _odb_get.p for MS Sql Server 7 DataServer
                   when running proto utility - 20060120-003 - fernando
          05/20/08 Adding code for revised sequence genrator in MSS DataServers                                          
          05/27/08 Fixing code that looks for existing stored-proc - OE00130417
+         04/06/09 Changed for batch mode migration
+         10/20/09 support for computed columns in MSSDS for PROGRESS_RECID - OE00186593
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -324,11 +326,12 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
         DICTDB._Db._Db-misc2[5] = DICTDBG.GetInfo_buffer.dbms_name + " " 
   			        + DICTDBG.GetInfo_buffer.dbms_version 
         DICTDB._Db._Db-misc2[6] = DICTDBG.GetInfo_buffer.odbc_version
-        DICTDB._Db._Db-misc2[7] = "Dictionary Ver#: " +  odbc-dict-ver
-  		                          + " Client Ver#: "
+        DICTDB._Db._Db-misc2[7] = "Dictionary Ver #:" +  odbc-dict-ver
+  		                          + ",Client Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_clnt
-  		                          + " Server Ver# "
+  		                          + ",Server Ver #:"
   		                          + DICTDBG.GetInfo_buffer.prgrs_srvr
+  		                          + ","
         DICTDB._Db._Db-misc2[8] = DICTDBG.GetInfo_buffer.dbms_name
         driver-prefix    = ( IF DICTDB._Db._Db-misc2[1] BEGINS "QE"
                               THEN SUBSTRING(DICTDB._Db._Db-misc2[1]
@@ -645,7 +648,8 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
   END. /* DO TRANSACTION */
 
-HIDE FRAME gate_wait no-pause.
+IF NOT SESSION:BATCH-MODE THEN
+   HIDE FRAME gate_wait no-pause.
 
 
 {prodict/gate/gat_get.i

@@ -6,7 +6,7 @@
 
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
-       {"adm2/support/dconsumer.i"}.
+       {"src/adm2/support/dconsumer.i"}.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
@@ -62,7 +62,7 @@ CREATE WIDGET-POOL.
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
 
 /* Include file with RowObject temp-table definition */
-&Scoped-define DATA-FIELD-DEFS "adm2/support/dconsumer.i"
+&Scoped-define DATA-FIELD-DEFS "src/adm2/support/dconsumer.i"
 
 /* Name of first Frame and/or Browse and/or first Query                 */
 &Scoped-define FRAME-NAME F-Main
@@ -128,7 +128,7 @@ DEFINE FRAME F-Main
    Temp-Tables and Buffers:
       TABLE: RowObject D "?" ?  
       ADDITIONAL-FIELDS:
-          {adm2/support/dconsumer.i}
+          {src/adm2/support/dconsumer.i}
       END-FIELDS.
    END-TABLES.
  */

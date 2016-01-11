@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -21,6 +21,10 @@
   Author: Kenneth S. McIntosh
 
   Created: June 9,2005
+  
+  History:
+     fernando  12/23/08  Support for encryption events
+     
 ------------------------------------------------------------------------*/
 
 &GLOBAL-DEFINE AUD_POL_MNT  300-302,10010,10303-10304
@@ -33,3 +37,6 @@
 &GLOBAL-DEFINE AUTH_SYS     500-507
 &GLOBAL-DEFINE DB_ADMIN     10100-10212,10000-10001
 &GLOBAL-DEFINE DB_ACCESS    10500-10611
+&GLOBAL-DEFINE ENC_POL_MNT  11400-11402,11500-11502,11600-11602
+&GLOBAL-DEFINE ENC_KEY_MNT  11100-11114,11200-11207
+&GLOBAL-DEFINE ENC_ADMIN    11000,11001,11300,11301

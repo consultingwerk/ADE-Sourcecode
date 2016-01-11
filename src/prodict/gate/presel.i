@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2007-2009 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ History:
     mcmann      05/21/2002  Added new input-output parameter
     knavneet    08/12/2007  if as400, s_owner is not assigned to *
     fernando    02/25/2008  Added new input-output parameter for datetime
-    
+    knavneet    04/28/2009  BLOB support for MSS (OE00178319)
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -63,6 +63,7 @@ if NOT user_env[25] begins "AUTO"
       INPUT-OUTPUT s_vrfy,
       INPUT-OUTPUT s_outf,
       INPUT-OUTPUT s_datetime,
+      INPUT-OUTPUT s_lob,
       INPUT-OUTPUT s_wildcard,
       INPUT        "{&frame}",
       INPUT        {&link},

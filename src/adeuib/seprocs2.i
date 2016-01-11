@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2009 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -731,9 +731,12 @@ PROCEDURE NewTriggerBlock.
       
       IF NOT CAN-QUERY(_h_cur_widg, "WINDOW":U) THEN RETURN.
       FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:WINDOW NO-LOCK NO-ERROR.
-      /* For dialog-boxes the _WINDOW-HANDLE field corresponds to the FRAME */
+      /* For controls in a dialog-box, the _WINDOW-HANDLE field corresponds to the FRAME */
       IF NOT AVAILABLE b_P THEN
           FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg:FRAME NO-LOCK NO-ERROR.
+	  /* When the dialog-box is selected, the handle is the actual widget */
+      IF NOT AVAILABLE b_P THEN
+          FIND b_P WHERE b_P._WINDOW-HANDLE = _h_cur_widg NO-LOCK NO-ERROR.	   
       IF NOT AVAILABLE b_P THEN RETURN.
 
   ASSIGN se_section = "_CONTROL":U /* Type_Trigger */

@@ -35,7 +35,9 @@ History:
    fernando   04/08/08 Handle MAX field with Native driver - OE00165897
    fernando   08/18/08 Check default value for date/time - OE00167581
    fernando   08/25/08 Increase column size for default processing
-   Nagaraju   02/23/09 to handle timestamp field properly - OE00181255
+   Nagaraju   02/23/09 to handle timestamp field properly
+   fernando   04/06/09 Support for SYSDATETIME as datetime2's default value
+   sgarg      05/22/09 ROWGUID support for MSS
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -71,7 +73,59 @@ assign
                 then "undefined"
                 else ENTRY(dtyp,user_env[15])
             )
-  l_dcml  = 0.
+  l_dcml  = 0
+  isFileStream = ?.
+
+  IF ntyp = "DATE" THEN DO:
+      IF DICTDBG.SQLColumns_buffer.type-name = "datetime2" THEN DO:
+          /* datetime2 default mapping is datetime, which is the next entry */
+          dtyp = dtyp + 1.
+          ntyp = ENTRY(dtyp,user_env[15]).
+      END.
+  END.
+
+  IF LOOKUP({&data-type}, "VARBINARY,LONGVARBINARY") > 0 THEN DO:
+
+     IF ntyp = "BLOB" AND 
+         DICTDBG.SQLColumns_buffer.PRECISION >= 1 AND 
+         DICTDBG.SQLColumns_buffer.PRECISION <= 8000 THEN DO:
+         /* default mapping is blob, but this is a varbinary(n) in which 
+            case we don't support the blob mapping, so must change it to
+            character (which is the next mapping).
+         */
+         dtyp = dtyp + 1.
+         ntyp = ENTRY(dtyp,user_env[15]).    
+     END.
+     ELSE IF foreign_dbms_version > 9 THEN DO:
+          /* if MSS 2008 and varbinary(max) field, need to find out if filestream
+             is set for field so we don't default it to character in the schema
+             image. 
+          */
+          /* OE00183878 - get 'is_filestream' value from sys.columns catalog view */
+          ASSIGN sqlstate = "SELECT is_filestream FROM sys.columns where name =  '" + 
+                      DICTDBG.SQLColumns_buffer.column-name + "' and object_id = (OBJECT_ID('" +
+                      DICTDBG.SQLColumns_buffer.OWNER + "." + DICTDBG.SQLColumns_buffer.NAME + "'))".
+        
+          RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlstate ).
+        
+          IF ERROR-STATUS:ERROR THEN. /*Don't do anything inital value already set to unknown */
+          ELSE DO:
+            FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
+                ASSIGN isFileStream = proc-text. 
+            END.
+            CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+          END.
+        
+          /* if ntyp is not character, it must be blob, and we already have the right
+             mapping, so don't need to do anything with it.
+          */
+          IF ntyp = "CHARACTER" AND isFileStream = '1' THEN DO:
+              /* filestream only supported mapping is blob, which is the next entry */
+              dtyp = dtyp + 1.
+              ntyp = ENTRY(dtyp,user_env[15]).    
+          END.
+      END.
+  END.
 
 /* check if the column type is any of the Unicode data types */
 ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR" 
@@ -117,18 +171,17 @@ END.
 
 IF l_init <> ? THEN DO:
   ASSIGN l_init = TRIM(l_init).
-
   /* OE00167581 - check default for date/time field */
-  IF (ntyp = "DATE" OR ntyp = "DATETIME") AND INDEX(l_init,"GETDATE") = 0 THEN
-      ASSIGN l_init = ?. /* if not getdate, we can't handle it */
+  IF (ntyp = "DATE" OR ntyp = "DATETIME" OR ntyp = "DATETIME-TZ") AND 
+      (INDEX(l_init,"GETDATE") = 0 AND INDEX(l_init,"SYSDATETIME") = 0) THEN
+      ASSIGN l_init = ?. /* if not getdate/sysdatetime, we can't handle it */
   ELSE IF ntyp = "DATE" THEN 
       ASSIGN l_init = "TODAY".
-  ELSE IF ntyp = "DATETIME" THEN
+  ELSE IF ntyp = "DATETIME" OR  ntyp = "DATETIME-TZ" THEN
       ASSIGN l_init = "NOW".
   ELSE DO: 
 
       IF esc-idx1 = 0 THEN DO:
-
           /* if this is a function based default (in which case it won't contain
              parenthesis), we will not take it. We will
              assign the unknow value like we did in previous version 
@@ -139,6 +192,10 @@ IF l_init <> ? THEN DO:
                        l_init = SUBSTRING(l_init, 1, (INDEX(l_init, ')') - 3)) .
               ELSE
                 ASSIGN l_init = TRIM(TRIM(TRIM(TRIM(l_init,'~''),'('),')'),'~'').
+
+              /* OE00186472 - don't allow the newid function */
+              IF l_init BEGINS 'newid(' THEN
+                 l_init = ?.
           END.
           ELSE
               ASSIGN l_init = ?.
@@ -171,6 +228,8 @@ assign
                               + {&order-offset}
  s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
                                 then false
+                           else if (s_ttb_fld.ds_type = "ROWGUID") then
+                                false
                            ELSE IF ((INDEX(DICTDBG.SQLColumns_buffer.Type-name,"identity") > 0) OR 
                                     (INDEX(DICTDBG.SQLColumns_buffer.Type-name,"timestamp") > 0)) THEN
                                 FALSE
@@ -198,6 +257,11 @@ END CASE.
           s_ttb_fld.ds_itype = 1.
  ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"timestamp") > 0 THEN
    ASSIGN s_ttb_fld.ds_msc24 = "timestamp".
+ ELSE IF INDEX(DICTDBG.SQLColumns_buffer.Type-name,"datetime2") > 0 THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "datetime2".
+ ELSE IF isFileStream = '1' THEN
+   ASSIGN s_ttb_fld.ds_msc24 = "filestream".
+
 
  IF s_ttb_Fld.ds_scale = ? THEN 
    ASSIGN s_ttb_Fld.ds_scale = 0.

@@ -81,7 +81,10 @@ assign
   s_ttb_fld.ds_stoff    = field-position
   s_ttb_fld.ds_name     = fnam
   s_ttb_fld.ds_type     = {&data-type}
-  s_ttb_fld.pro_order   = field-position * 10 + 1000 
+  s_ttb_fld.pro_order   = IF ((INDEX(UPPER(_Db._Db-misc2[5]), "DB2/400") <> 0 OR INDEX(UPPER(_Db._Db-misc2[5]), "AS/400") <> 0)) THEN
+                             field-position * 10 
+                          ELSE
+                             field-position * 10 + 1000 
                               + {&order-offset}
   s_ttb_fld.pro_mand    = ( if CAN-DO(fld-properties, "N")
                                 then false

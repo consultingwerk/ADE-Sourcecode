@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -33,6 +33,8 @@ DEFINE OUTPUT PARAMETER TABLE FOR ttFile.
 
 DEFINE VARIABLE iCnt    AS INTEGER NO-UNDO.
 DEFINE VARIABLE hFileTT AS HANDLE  NO-UNDO.
+
+&SCOPED-DEFINE  INVALID_SCHEMA_TABLES "_sec-db-policy,_sec-obj-policy,_sec-pwd-policy":U
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -136,6 +138,10 @@ DEFINE VARIABLE hBufferTT                   AS HANDLE       NO-UNDO.
          /* don't add auditing data tables to the list */
          IF hBuffer::_File-name = "_aud-audit-data":U OR
             hBuffer::_File-name = "_aud-audit-data-value":U THEN NEXT.
+
+         /* filter these security schema tables out (hidden) */
+         IF  hBuffer::_Hidden AND CAN-DO({&INVALID_SCHEMA_TABLES},hBuffer::_File-name) THEN
+              NEXT.
 
          hBufferTT:BUFFER-CREATE().
         

@@ -591,7 +591,13 @@ ELSE
 
 IF NOT isSmartData OR NOT _DynamicsIsRunning THEN 
   hasDataField:WIDTH-P IN BROWSE brw-flds = 1.
-   
+
+IF isQuery then
+do: 
+    data_type:add-last("BLOB"). 
+    data_type:add-last("CLOB").
+end.   
+
 ASSIGN 
        FRAME bc-editor:SCROLLABLE                     = FALSE
        brw-flds:NUM-LOCKED-COLUMNS IN FRAME bc-editor = 1

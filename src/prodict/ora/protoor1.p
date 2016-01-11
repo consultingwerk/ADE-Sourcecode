@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2006-2007,2009 by Progress Software Corporation.     *
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -25,6 +25,7 @@
              06/25/02 DLM Added logic for function based indexes
              10/17/05 KSM Fixed X8OVERRIDE funcionality. 
              06/11/07 fernando   Unicode support
+             02/12/09 fernando   Fix output for batch log file
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -78,11 +79,11 @@ IF batch_mode THEN DO:
                                                   SKIP
        "Create objects in Oracle:      " loadsql skip
        "Moved data to Oracle:          " movedata skip
+       "Include Defaults:              " crtdefault skip
        "Codepage for Schema Image:     " ora_codepage SKIP
        "Collation Name:                " ora_collname SKIP
        "Unicode Types:                 " unicodeTypes skip
        "Maximum char length:           " ora_varlen SKIP
-       "Expand to CLOB:                " lExpandClob SKIP
        "Char semantics:                " lCharSemantics SKIP. 
 END.
 
@@ -250,7 +251,7 @@ IF loadsql THEN DO:
               "-- -- " skip(2).
     END.
 
-    IF unicodeTypes THEN DO:
+    IF unicodeTypes OR TRIM(ora_codepage) = "utf-8" THEN DO:
         dlc_utf_edb = OS-GETENV("DLC").
         dlc_utf_edb = dlc_utf_edb + "/prolang/utf/empty".
         CREATE DATABASE osh_dbname FROM dlc_utf_edb. 

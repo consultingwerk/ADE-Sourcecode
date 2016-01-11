@@ -28,7 +28,7 @@
 
 /* Local Variable Definitions ---                                       */
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

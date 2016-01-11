@@ -2093,14 +2093,6 @@ PROCEDURE statusDisplay :
     WITH FRAME FrStatus.
   RETURN.  
           
-  DO WITH FRAME FrStatus:
-    ASSIGN
-     cStatus1:SCREEN-VALUE = pcLine1
-     cStatus2:SCREEN-VALUE = pcLine2
-     .
-  END.
-  
-  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

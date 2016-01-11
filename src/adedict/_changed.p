@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008-2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,7 @@ Last modified on:
 05/19/99 by Mario B.  Adjust Width Field browser integration.
 09/19/02 by D. McMann Changed SQL Width to Max Width
 06/08/06    fernando  Added support for int64
+04/15/09    fernando  BLOB support for MSS
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -279,6 +280,9 @@ case (p_Obj):
               IF NOT changed THEN DO:
                   changed = (IF b_Field._Label:SENSITIVE THEN input frame fldprops b_Field._Label  <> b_Field._Label ELSE NO) OR
                             (IF b_Field._Col-Label:SENSITIVE THEN input frame fldprops b_Field._Label  <> b_Field._Label ELSE NO).
+
+                 IF NOT changed AND s_Fld_DType:SENSITIVE IN frame fldprops THEN
+                    changed = s_Fld_Protype <> b_Field._Data-type.
               END.
       END.
 

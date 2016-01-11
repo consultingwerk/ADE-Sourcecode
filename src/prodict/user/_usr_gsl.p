@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007-2008 by Progress Software Corporation. All *
+* Copyright (C) 2000,2007-2009 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,7 +37,9 @@ History:
                             label to "Owner/Library"
     knavneet    02/21/07    Changed the label from Owner/Library to Collection/Library in case of DB2/400
                             Changed the label from Owner/Library to Owner in case of other data sources.  
-    fernando    04/07/08    Support for datetime fo MSS/ORACLE                            
+    fernando    04/07/08    Support for datetime fo MSS/ORACLE 
+    rkumar      02/03/09    Changes to support iSeries driver- OE00179889
+    knavneet    04/28/09    BLOB support for MSS - OE00178319
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -67,7 +69,7 @@ form
   p_owner   label "&Owner"                colon 18  skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX skip({&VM_WIDG})
-  p_datetime LABEL "Default to OE Datetime" view-as TOGGLE-BOX 
+  p_datetime LABEL "Default to OpenEdge DATETIME" view-as TOGGLE-BOX 
         at column-of p_vrfy row-of p_vrfy  skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
@@ -85,8 +87,10 @@ form
   p_qual    label "&Qualifier  "   colon 18   skip({&VM_WIDG})
   SPACE (1) p_vrfy    label "&Verify only objects that currently exist in the schema holder"
             view-as TOGGLE-BOX
-  p_datetime LABEL "Default to OE Datetime" view-as TOGGLE-BOX 
+  p_datetime LABEL "Default to OpenEdge DATETIME" view-as TOGGLE-BOX 
       at column-of p_vrfy row-of p_vrfy  skip({&VM_WIDG})
+  p_lob LABEL "Default to OpenEdge LOB" view-as TOGGLE-BOX 
+      at column-of p_vrfy  row-of p_vrfy skip({&VM_WIDG})
   SPACE (1) p_outf    LABEL "Output differences to file" VIEW-AS TOGGLE-BOX 
   {prodict/user/userbtns.i}
  with frame frm_ntoq
@@ -203,12 +207,14 @@ on WINDOW-CLOSE of frame frm_as400
 
 /*------------------------------------------------------------------*/
 /* Default owner to userid of person doing the pull of objects.  20030605-037 */
+/* AS/400- Default owner is set to userid in case default library 
+   is not specified while creating the driver DSN-		 OE00179889 */
 IF INDEX(USERID("DICTDBG"), "/") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "/") - 1)).
 ELSE IF INDEX(USERID("DICTDBG"), "@") > 0 THEN
     ASSIGN p_owner = SUBSTRING(USERID("DICTDBG"), 1, (INDEX( USERID("DICTDBG"), "@") - 1)).
 ELSE IF (p_frame NE "frm_as400" AND USERID("DICTDBG") NE "") 
-        OR (p_frame = "frm_as400" AND p_owner = "*") THEN
+        OR (p_frame = "frm_as400" AND (p_owner = "*" OR p_owner = "" OR p_owner = ? )) THEN
     ASSIGN p_owner = USERID("DICTDBG").
 
 IF DBTYPE("DICTDBG") EQ "ORACLE" AND p_owner = "" THEN
@@ -227,8 +233,8 @@ do on ENDKEY undo,leave:
              p_vrfy:hidden in frame frm_link = TRUE.
     
     /* for verify, or db-link, don't display date/datetime overrride option */
-    IF l_verify OR p_link <> ""  THEN
-      ASSIGN p_datetime:hidden in frame frm_link = TRUE.
+    IF l_verify OR p_link <> ""  THEN 
+       ASSIGN p_datetime:hidden in frame frm_link = TRUE.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_link" 
@@ -273,7 +279,16 @@ do on ENDKEY undo,leave:
              p_vrfy:hidden in frame frm_ntoq = TRUE.
 
     IF NOT CAN-DO("MSS",DBTYPE("DICTDBG")) or l_verify THEN
+    DO:
+      ASSIGN p_lob:hidden in frame frm_ntoq = TRUE.
       ASSIGN p_datetime:hidden in frame frm_ntoq = TRUE.
+   END.
+    ELSE DO:
+        /* move it one row below - the frame definitions has it on the same
+           line as the previous widget so that when we don't have to display
+           it, it doesn't leave a big gap on the UI */
+        ASSIGN p_lob:ROW in frame frm_ntoq = p_lob:ROW in frame frm_ntoq + 1.
+    END.
 
     {adecomm/okrun.i  
       &FRAME  = "FRAME frm_ntoq" 
@@ -290,6 +305,7 @@ do on ENDKEY undo,leave:
       p_vrfy when l_verify
       p_outf WHEN l_verify
       p_datetime WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
+      p_lob WHEN not l_verify and DBTYPE("DICTDBG") EQ "MSS"
       btn_OK 
       btn_Cancel
       {&HLP_BTN_NAME}
