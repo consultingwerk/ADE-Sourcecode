@@ -47,6 +47,7 @@
               07/15/09 nmanchal Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
               09/23/09 Nagaraju Implementation of Computed columns for RECID (OE00186593)
               02/11/10 fernando Fix issue with sql generated for old sequence generator
+              06/16/10 rkumar   Fix issue with incorrect sql generated when _For-owner is ?
               
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -2998,8 +2999,9 @@ DO ON STOP UNDO, LEAVE:
             IF NOT alt-table THEN DO:                                                
               FIND DICTDB._File WHERE DICTDB._File._File-name = ilin[5]
                                   AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
-              IF AVAILABLE DICTDB._File THEN DO: 
-                ASSIGN forname = DICTDB._File._For-owner + "." + DICTDB._File._For-Name.                  
+              IF AVAILABLE DICTDB._File THEN DO:
+                ASSIGN forname = (If DICTDB._File._For-owner <> ? then DICTDB._File._For-owner + "." else "") 
+                                 +  DICTDB._File._For-Name. /* OE00198255 */
                 
                 CREATE alt-info.
                 ASSIGN lnum = 1
@@ -3022,7 +3024,8 @@ DO ON STOP UNDO, LEAVE:
                          VIEW-AS ALERT-BOX ERROR.
                     RETURN.
                   END.         
-                  ASSIGN forname = DICTDB._File._For-owner + "." + DICTDB._File._For-name
+                  ASSIGN forname = (If DICTDB._File._For-owner <> ? then DICTDB._File._For-owner + "." else "") 
+                                   +  DICTDB._File._For-Name /* OE00198255 */
                          fieldtype = ilin[7].
                   CREATE alt-info.
                   ASSIGN lnum = 1

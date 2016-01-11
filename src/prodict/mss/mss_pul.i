@@ -39,6 +39,7 @@ History:
    fernando   04/06/09 Support for SYSDATETIME as datetime2's default value
    sgarg      05/22/09 ROWGUID support for MSS
    knavneet   02/17/10 OE00131234 
+   Nagaraju   05/04/10 change metadata sql to refer INFORMATION_SCHEMA.columns  - OE00197280
 --------------------------------------------------------------------*/
 
 DEFINE VARIABLE my_typ_unicode AS LOGICAL.
@@ -139,12 +140,14 @@ ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR"
    be able to read the first character out of the proc-text
 */
 /* OE00168292 - use max column size for given type so we can handle big values */
-ASSIGN sqlstate = "select CAST(text AS " + 
+ASSIGN sqlstate = "select CAST(T1.definition AS " + 
       (IF my_typ_unicode THEN "nvarchar(4000)" ELSE "varchar(8000)") +
-       ") from syscomments where id = (select cdefault from syscolumns " + 
-       "where syscolumns.id = (OBJECT_ID('" + DICTDBG.SQLColumns_buffer.OWNER + "." + 
-       DICTDBG.SQLColumns_buffer.NAME + "')) and syscolumns.name = '" + 
-       DICTDBG.SQLColumns_buffer.column-name + "')".
+       ") from sys.default_constraints T1 INNER JOIN INFORMATION_SCHEMA.COLUMNS T2 " + 
+       " ON COL_NAME(T1.parent_object_id, T1.parent_column_id) = T2.COLUMN_NAME " + 
+       " WHERE T1.parent_object_id = (OBJECT_ID('" + DICTDBG.SQLColumns_buffer.OWNER + "." + 
+       DICTDBG.SQLColumns_buffer.NAME + "')) AND " + 
+       " T2.TABLE_NAME = '" + DICTDBG.SQLColumns_buffer.NAME + "' AND " + 
+       " COL_NAME(T1.parent_object_id, T1.parent_column_id) = '" + DICTDBG.SQLColumns_buffer.column-name + "'".
 
 esc-idx1 = 0.
 

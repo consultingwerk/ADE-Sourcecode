@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,6 +28,7 @@ history:
                             
    fernando     10/04/07    Handle error modifying collation table
    fernando     12/06/07    Load collation name for DataServers
+   sgarg        07/29/10    Disallow ? as case-insesitive entry (OE00198732)
    
 */
 /*h-*/
@@ -61,6 +62,16 @@ if imod = "a":u then do: /*--------------------------------------------*/
   if CAN-FIND(DICTDB._Db WHERE DICTDB._Db._Db-name = wdbs._Db-name) then
     ierror = 7. /* "&2 already exists with this name" */
   if ierror > 0 then RETURN.
+
+  /* _Db-misc1[1] should be either 1 or 0 for case-insensitive db setting. 
+   * For MSS DataServer UNKNOWN value for DBMISC11 attribute in .df file 
+   * will be stored as 0 in _Db-misc1[1].
+   */
+  if (wdbs._Db-type = "MSS") then do:
+    if (wdbs._Db-misc1[1] <> 1) then
+      wdbs._Db-misc1[1]  = 0.
+  end.
+
   CREATE DICTDB._Db.
   ASSIGN
     DICTDB._Db._Db-name  = wdbs._Db-name

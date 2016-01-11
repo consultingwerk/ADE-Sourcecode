@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,6 +23,7 @@
              fernando  03/20/09 Support for 2008 datetime types
              Nagaraju  09/18/09 Support for Computed columns
              Nagaraju  11/12/09 Remove numbers for radio-set options in MSSDS
+             sgarg     07/29/10 Disallow ? as case-insesitive entry (OE00198732)
 */            
 
 
@@ -161,6 +162,16 @@ ON VALUE-CHANGED of mss_incasesen IN FRAME x DO:
      ASSIGN shadowcol:screen-value in frame x = "no"
             shadowcol:SENSITIVE IN FRAME X = NO.  
 END. 
+
+ON ANY-PRINTABLE OF mss_incasesen IN FRAME x 
+DO:
+    /* Disallow ? KEY EVENT in case-insensitive entry box during migration */
+    IF LAST-EVENT:LABEL = "?" THEN
+    DO: 
+        BELL. 
+        RETURN NO-APPLY.  
+    END.
+END.
 
 ON LEAVE OF long-length IN FRAME X DO:
   IF unicodeTypes:SCREEN-VALUE = "no" AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  

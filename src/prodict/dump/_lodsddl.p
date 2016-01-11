@@ -16,7 +16,7 @@
    K. McIntosh 05/13/04 Added support for loading collation tables for UTF-8
    F. Souza    07/09/04 Added data type abbreviations 20040430-023
    K. McIntosh 09/17/04 Increased number of elements of the error_text array to 60 
-			      and moved Max Sequences message to 51. 20030619-003
+                  and moved Max Sequences message to 51. 20030619-003
    K. McIntosh 09/17/04 Backed out fix for bug number 20040910-010
    fernando    03/16/06 Handle case where error message was not displayed becasue
                         the block was not retried - 20060316-011
@@ -30,12 +30,14 @@
    fernando    11/24/08 Handle clob field changes - OE00177533
    fernando    03/20/09 More enryption support
    fernando    04/13/09 Alternate buffer pool support
+   hdaniels    03/26/10 throw AppError that wraps STOP errors, use CATCH 
+                        in transaction and show error(s) in showLoadError 
 */
 
 { prodict/dump/loaddefs.i NEW }
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
-
+{ prohelp/msgs.i}
 &IF DEFINED(SKP)
 &THEN
   /* Don't do anything.  It's DEFINEd already */
@@ -179,6 +181,7 @@ DEFINE VARIABLE hBuffer       AS HANDLE              NO-UNDO.
 
 /* messages for frames working2 and backout. */
 DEFINE VARIABLE msg1          AS CHARACTER           NO-UNDO FORMAT "x(53)":u.
+DEFINE VARIABLE msg2noalert   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE msg2          AS CHARACTER           NO-UNDO FORMAT "x(56)":u.
 DEFINE VARIABLE msg3          AS CHARACTER           NO-UNDO FORMAT "x(12)":u.
 DEFINE VARIABLE msg4          AS CHARACTER           NO-UNDO FORMAT "x(16)":u.
@@ -192,8 +195,12 @@ DEFINE VARIABLE showedCommitMsg AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE got-error     AS LOGICAL            NO-UNDO.
 DEFINE VARIABLE main_trans_success  AS LOGICAL            /*UNDO*/.
 
+define variable oAppError    as Progress.Lang.AppError no-undo. 
+define variable cStopMessage as character no-undo.
+
 msg1="Phase 1 of Load completed.  Working.  Please wait ...".
-msg2="Error occured during load.  Press OK to back out transaction.".
+msg2noalert = "Error occured during load.".
+msg2= msg2noalert + "  Press OK to back out transaction.".
 msg3="Please check".
 msg4="for load errors and/or warnings.".
 
@@ -553,6 +560,45 @@ PROCEDURE Show_Warning:
 
 END PROCEDURE. /* Show_Warnings */
 
+/*  Show message and/or output to file according to user settings.  
+    called from catch in transaction */
+procedure showLoadError:
+    define input parameter poError as Progress.Lang.Error no-undo.
+    define variable iLoop as integer no-undo.
+    define variable cMessage as character no-undo.
+    
+    /* if user_env[6] = "b" (both) or "s" (screen) display the message
+       unless the error is an AppError in which case the message is 
+       already shown as it is used to wrap STOP in the transaction.) 
+       - Note: Use Error.Severity to identify this if AppError need to 
+               be used for other errors. */
+    if (user_env[6] = "b" or user_env[6] = "s") 
+    and not type-of(poError,Progress.Lang.AppError) then
+    do:
+       do i = 1 to poError:NumMessages:
+          cMessage = (if i = 1 then "" else cMessage + chr(10) + chr(10))
+                   + poError:GetMessage(i).
+       end. 
+       message cMessage view-as alert-box error.
+    end. 
+    
+    /* if user_env[6] = "b" (both) or "f" (file) output the message */
+    if user_env[6] = "b" or user_env[6] = "f" then
+    do:
+      OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+      PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+      "Load of " user_env[2] " into database " 
+      LDBNAME("DICTDB") " was unsuccessful." SKIP 
+      " All the changes were backed out..."  SKIP 
+      " {&PRO_DISPLAY_NAME} error(s)":U SKIP. 
+      do iloop = 1 to poError:NumMessages:
+         put unformatted poError:GetMessage(iLoop) at 2 skip.
+      end.
+      put unformatted skip(1).
+      OUTPUT CLOSE.
+   end.            
+end procedure.    
+
 /* Callback for errors when saving policies */
 PROCEDURE secErrorCallback:
     DEFINE INPUT  PARAMETER pmsg      AS CHAR NO-UNDO.
@@ -636,7 +682,7 @@ PROCEDURE Show_Phase2_Error:
 
   OUTPUT STREAM loaderr CLOSE.
 
-END PROCEDURE. /* Show_Phase2_Error */
+END PROCEDURE. /* Show_Phase2_Error */ 
 
 /*-----------------------------------------------------
    Load ICU RUles.
@@ -1100,7 +1146,7 @@ DO:
    FRAME working2:WIDTH-CHARS = FRAME working2:WIDTH-CHARS + msg1:column + 2.
    FRAME backout:WIDTH-CHARS = FRAME backout:WIDTH-CHARS + msg2:column + 2.
    FRAME errorlog:WIDTH-CHARS = FRAME errorlog:WIDTH-CHARS + msg3:column + dbload-e:column + msg4:column + 2.
-  END.
+END.
        
 ASSIGN
   cache_dirty = TRUE
@@ -1125,7 +1171,7 @@ DO FOR _Db:
     gate_dbtype  = user_dbtype
     gate_proc    = ""
     do-commit    = (IF user_env[15] = "yes" THEN TRUE ELSE FALSE).
-  END.
+END.
   
 /* Set up the name of the procedure to call to get stdtype info */
 IF gate_dbtype <> "PROGRESS" THEN DO:
@@ -1136,7 +1182,7 @@ IF gate_dbtype <> "PROGRESS" THEN DO:
      &output=scrap
      }
   gate_proc = "prodict/" + ENTRY(9,scrap) + "/_" + ENTRY(9,scrap) + "_typ.p".
-  END.
+END.
 
 ASSIGN dbload-e = LDBNAME("DICTDB") + ".e".
 
@@ -1178,15 +1224,15 @@ IF codepage <> "UNDEFINED" AND SESSION:CHARSET <> ? THEN
    ASSIGN cerror = CODEPAGE-CONVERT("a",SESSION:CHARSET,codepage).
 ELSE ASSIGN cerror = "no-convert".
 
-IF cerror = ?
- THEN DO:  /* conversion needed but NOT possible */
+IF cerror = ? THEN 
+DO:  /* conversion needed but NOT possible */
   
   RUN adecomm/_setcurs.p ("").
   ASSIGN user_env[4] = "error". /* to signal error to _usrload */
 
-  END.     /* conversion needed but NOT possible */
+END.     /* conversion needed but NOT possible */
 
- ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
+ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
           /* conversion not needed OR needed and possible */
 
   /* if an error happens at the end of the transaction, this will get
@@ -1287,12 +1333,12 @@ IF cerror = ?
       IF ierror > 0 AND NOT inoerror THEN DO:
         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
         RUN Show_Error ("curr").
-        IF user_env[4] BEGINS "y":u AND NOT ierror = 50
-         THEN DO:
+        IF user_env[4] BEGINS "y":u AND NOT ierror = 50 THEN 
+        DO:
           ASSIGN stopped = true.
           UNDO,LEAVE load_loop.
-          END. 
-        END.
+        END. 
+      END.
       IF ierror > 0 AND ierror <> 50 THEN
         ASSIGN
           ierror = 0
@@ -1325,10 +1371,9 @@ IF cerror = ?
           ipos = ipos + 1
           ilin = ?.
         IMPORT ilin.
-        END.
+      END.
       inum = 0.
       ASSIGN stopped = true.
- 
       IF CAN-DO(
         "ADD,CREATE,NEW,UPDATE,MODIFY,ALTER,CHANGE,DELETE,DROP,REMOVE,RENAME":u,
         ilin[1]) THEN DO:
@@ -1339,8 +1384,8 @@ IF cerror = ?
 
         IF AVAILABLE wdbs AND imod <> ? THEN DO:
           RUN "prodict/dump/_lod_dbs.p".
-          IF drec_db <> RECID(_Db)
-            THEN FIND _Db WHERE RECID(_Db) = drec_db.
+          IF drec_db <> RECID(_Db) THEN 
+            FIND _Db WHERE RECID(_Db) = drec_db.
         END.
             
         IF AVAILABLE wfil AND imod <> ? THEN DO:
@@ -1432,7 +1477,7 @@ IF cerror = ?
                                                             THEN imod = "m":u.
           WHEN "DELETE":u OR WHEN "DROP":u OR WHEN "REMOVE":u THEN imod = "d":u.
           WHEN "RENAME":u                                     THEN imod = "r":u.
-          end case.
+        end case.
     
         /* set the object type */
         CASE ilin[2]:
@@ -1441,21 +1486,19 @@ IF cerror = ?
           WHEN "FIELD":u    OR WHEN "COLUMN":u  THEN iobj = "f":u.
           WHEN "INDEX":u    OR WHEN "KEY":u     THEN iobj = "i":u.
           WHEN "SEQUENCE":u                     THEN iobj = "s":u.
-          end case.
+        end case.
 
-        IF iobj = "t"
-          AND ilin[4] = "TYPE"
-          AND gate_dbtype <> ilin[5]
-          THEN DO:  /* table of foreign DB: type mismatch */
-          ASSIGN
-            error_text[30] = substitute(error_text[30],_Db._Db-type)
-            ierror         = 30
-            user_env[4]    = "yes". /* to prevent 2. error-message at end */ 
-          CREATE wfil. /* to be used in show-error */
-          RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
-          RUN Show_Error ("curr").
-          UNDO,LEAVE load_loop. /* no sense to continue */
-          END.        /* table of foreign DB: type mismatch */
+        IF iobj = "t" AND ilin[4] = "TYPE" AND gate_dbtype <> ilin[5] THEN 
+        DO:  /* table of foreign DB: type mismatch */
+            ASSIGN
+              error_text[30] = substitute(error_text[30],_Db._Db-type)
+              ierror         = 30
+              user_env[4]    = "yes". /* to prevent 2. error-message at end */ 
+            CREATE wfil. /* to be used in show-error */
+            RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
+            RUN Show_Error ("curr").
+            UNDO,LEAVE load_loop. /* no sense to continue */
+        END.        /* table of foreign DB: type mismatch */
         
        /* OE00176833
           we separate the following in its own sub-transaction because we may have 
@@ -1599,7 +1642,7 @@ IF cerror = ?
           IF AVAILABLE _File AND NOT AVAILABLE _Db THEN DO:
             FIND _Db OF _File.
             drec_db = RECID(_Db).
-            END.
+          END.
           IF scrap <> ? AND AVAILABLE _File THEN drec_file = RECID(_File).              
           END.
   
@@ -1636,9 +1679,9 @@ IF cerror = ?
             FOR EACH _File-trig OF _File:
               CREATE wfit.
               { prodict/dump/copy_fit.i &from=_File-trig &to=wfit }
-              END.
             END.
-          END. /* end file action block */
+          END.
+        END. /* end file action block */
   
         IF iobj = "f" THEN DO: /* start field action block */
           IF NOT AVAILABLE _File AND drec_file <> ? THEN
@@ -1861,10 +1904,10 @@ IF cerror = ?
               RUN Load_Icu_Rules ( INPUT-OUTPUT j ) .
               IF RETURN-VALUE NE "" THEN ierror = 40.
               ELSE DO:
-	        IF cerror = "no-convert" THEN 
-		  INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP NO-CONVERT.
-	        ELSE 
-	          INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP
+            IF cerror = "no-convert" THEN 
+          INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP NO-CONVERT.
+            ELSE 
+              INPUT FROM VALUE(user_env[2]) NO-ECHO NO-MAP
                           CONVERT SOURCE codepage TARGET SESSION:CHARSET.
                 REPEAT:
                   IMPORT UNFORMATTED ILIN[1].
@@ -2105,13 +2148,13 @@ IF cerror = ?
           WHEN    "CAN-WRITE" OR WHEN "CAN-UPDATE"  THEN wfld._Can-Write = iarg.
           WHEN    "NULL" OR WHEN "NULL-ALLOWED" THEN wfld._Mandatory = (iarg = "no").
           WHEN    "SQL-WIDTH" OR WHEN "MAX-WIDTH" OR WHEN "LOB-BYTES" THEN DO:
-	         wfld._Width = INTEGER(iarg).
+             wfld._Width = INTEGER(iarg).
              IF LOOKUP(wfld._Data-Type,"CHARACTER,CHAR,DECIMAL,DEC,RAW") > 0 OR
              wfld._Extent > 0 THEN
                 IF INTEGER(iarg) > 31995 THEN
                    ASSIGN ierror = 50
-		                  iwarn  = {&WARN_MSG_SQLW}
-		                  warn_message = SUBSTITUTE(warn_text[{&WARN_MSG_SQLW} + 1],wfld._Field-name,iarg).
+                          iwarn  = {&WARN_MSG_SQLW}
+                          warn_message = SUBSTITUTE(warn_text[{&WARN_MSG_SQLW} + 1],wfld._Field-name,iarg).
           END.
           WHEN "LOB-AREA" THEN DO:
             /* Area names can have space*/
@@ -2349,29 +2392,28 @@ IF cerror = ?
       
       ASSIGN stopped = false.
 
-      END.  /* end repeat load_loop*/
-    END.  /* end stop */
-
-
-  IF stopped THEN 
-    RUN adecomm/_setcurs.p ("").
+    END.  /* end repeat load_loop*/
+  END.  /* end stop */
+   
+  IF stopped THEN
+     RUN adecomm/_setcurs.p ("").
   
-   ELSE DO:  /* all but last definition-set executed */
+  ELSE DO:  /* all but last definition-set executed */
     IF do-commit OR (NOT (ierror > 0 AND user_env[4] BEGINS "y":u)) THEN
-    finish: DO:
+    finish: 
+    DO ON STOP UNDO,LEAVE:
 
       ASSIGN stopped = TRUE.
 
       /* Copy any remaining buffer values to the database */
       RUN adecomm/_setcurs.p ("WAIT").
 
-      IF AVAILABLE wdbs
-       AND imod <> ?
-       THEN DO:
-        RUN "prodict/dump/_lod_dbs.p".
-        IF drec_db <> RECID(_Db)
-         THEN FIND _Db WHERE RECID(_Db) = drec_db.
-        END.
+      IF AVAILABLE wdbs AND imod <> ? THEN 
+      DO:
+         RUN "prodict/dump/_lod_dbs.p".
+         IF drec_db <> RECID(_Db) THEN 
+            FIND _Db WHERE RECID(_Db) = drec_db.
+      END.
 
       IF AVAILABLE wfil AND imod <> ? THEN 
          RUN "prodict/dump/_lod_fil.p".
@@ -2379,16 +2421,13 @@ IF cerror = ?
       IF AVAILABLE wfld AND imod <> ? THEN 
          RUN "prodict/dump/_lod_fld.p"(INPUT-OUTPUT minimum-index).
 
-      IF AVAILABLE widx
-       AND imod <> ?
-       THEN DO:
-        RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
-        END.
+      IF AVAILABLE widx AND imod <> ? THEN 
+      DO:
+         RUN "prodict/dump/_lod_idx.p"(INPUT-OUTPUT minimum-index).
+      END.
 
-      IF AVAILABLE wseq
-       AND imod <> ?
-       THEN RUN "prodict/dump/_lod_seq.p".
-   
+      IF AVAILABLE wseq AND imod <> ? THEN 
+         RUN "prodict/dump/_lod_seq.p".   
       /* make sure we found both encryption and cipher settings (unless it was
         'encrypt no', in which case we don't have a cipher).
       */
@@ -2403,8 +2442,8 @@ IF cerror = ?
         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
         RUN Show_Error ("prev").
         IF user_env[4] BEGINS "y":u THEN LEAVE finish.
-        END.
-       ELSE IF ierror = 50 THEN DO:
+      END.
+      ELSE IF ierror = 50 THEN DO:
          DO w = 1 TO NUM-ENTRIES(iwarnlst):
            ASSIGN iwarn = INTEGER(ENTRY(w, iwarnlst)).
            IF iwarn = 23 THEN warn_text[23] = SUBSTITUTE(warn_text[23],wfld._Field-name,iarg).
@@ -2427,9 +2466,8 @@ IF cerror = ?
       RUN "prodict/dump/_lodfini.p".
 
       ASSIGN stopped = false.
-      END.   /* finish: */
-    
-    END.     /* all but last definition-set executed */
+    END.  /* finish: on stop undo,leave*/    
+  END.     /* all but last definition-set executed */
 
   /* Make sure we reset ourselves back to the current database. */
   IF sav_drec <> drec_db
@@ -2441,8 +2479,8 @@ IF cerror = ?
   INPUT CLOSE.
   HIDE MESSAGE NO-PAUSE.
 
-  IF TERMINAL <> ""
-   THEN DO:  /* TERMINAL <> "" */
+  IF TERMINAL <> "" THEN 
+  DO:  /* TERMINAL <> "" */
 
     HIDE FRAME working NO-PAUSE.
     IF do-commit AND xerror THEN DO:      
@@ -2479,60 +2517,52 @@ IF cerror = ?
              don't display this if only warnings occurred 
           */
          IF xerror OR STOPPED THEN
-            MESSAGE msg2.
-
+            MESSAGE msg2noalert.
+         
          MESSAGE msg3 dbload-e msg4.
 
          PAUSE.
       END.
-      
-    END.     /* TERMINAL <> "" */
-
-  IF (xerror OR stopped)
-   THEN undo, leave.
+  END.     /* TERMINAL <> "" */
+  
+  /* If stopped = true and iError = 0 a STOP has been raised above   
+     (if iError <> 0 then the error is managed and already shown). 
+     Throw an AppError to handle the STOP in the CATCH at end of the 
+     transaction here or in caller prodict/load_df.p. */
+  if stopped and iError = 0 then 
+  do: 
+     oAppError = new Progress.Lang.AppError().
+     /* Get the error message - use proc defined in prohelp/msgs.i 
+       (_msg(1) has the error since STOP is not affected by the CATCH) */
+     run GetMessageDescription(_msg(1),output cStopMessage).    
+     oAppError:AddMessage(entry(1,cStopMessage,chr(10)),_msg(i)). 
+     undo, throw oAppError.
+  end. 
+  
+  IF (xerror OR stopped) THEN 
+      undo, leave.
 
   HIDE FRAME backout  NO-PAUSE.
   HIDE FRAME working2 NO-PAUSE.
   HIDE MESSAGE no-pause.
   
   RUN adecomm/_setcurs.p ("").
-
+  
   SESSION:IMMEDIATE-DISPLAY = no.
+  
+  /* Catch unmanaged errors and the AppError used to wrap STOP errors above
+     and show message and/or output to file.  
+     Added as fix for OE00196232 (error 997), but should in principle 
+     handle any error and replaces the old fix for 20020129-017 (error 151)
+     and OE00193991 (_msg issues and STOP error 15262). */
+  catch e as Progress.Lang.Error:
+      run showLoadError(e).
+  end catch.
+END.     /* conversion not needed OR needed and possible */
 
-
-  END.     /* conversion not needed OR needed and possible */
-
-IF (xerror OR STOPPED OR NOT main_trans_success) THEN DO:
-
-
+IF (xerror OR NOT main_trans_success) THEN 
+DO:
    ASSIGN user_path = "9=h,4=error,_usrload":u.
-
-   /* OE00193991 - moved code below from _usrload.p */
-   /* Fernando: 20020129-017 if there was a message from the client after the load process started, 
-   search for error number 151 (defined as ERROR_ROLLBACK) and write to the error log file. The error
-   would be the first entry in message queue ( _msg(1) ). 
-   
-   OE00193991 - Also check fo error 15262 (online schema error). Both errors only occurred
-   if we stopped or main transaction failed 
-   */
-   IF  STOPPED OR NOT main_trans_success AND 
-       (_msg(1) = {&ERROR_ROLLBACK} OR _msg(1) = 15262) THEN
-   DO:
-       IF (user_env[6] = "f" OR user_env[6] = "b") THEN
-       DO:
-
-           OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
-           PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
-              "Load of " user_env[2] " into database " 
-              LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
-              SKIP " {&PRO_DISPLAY_NAME} error numbers (" _msg(1) ") " .
-              IF _msg(1) NE 15262 AND _msg(2) > 0 THEN 
-                   PUT UNFORMATTED "and (" _msg(2) ")." SKIP(1).
-               ELSE PUT UNFORMATTED "."  SKIP(1) . 
-           OUTPUT CLOSE.
-       END.
-   END.
-
 END.
 ELSE IF (VALID-OBJECT(dictEPolicy) AND NOT dictObjAttrCache AND hasEncPol) OR 
         (VALID-OBJECT(dictObjAttrs) AND NOT dictObjAttrCache AND hasBufPool) THEN DO:
@@ -2704,7 +2734,7 @@ FOR EACH s_ttb_fake-cp:
   RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
   RUN Show_Error ("prev").
   delete s_ttb_fake-cp.
-  END.
+END.
 
 RETURN.
 

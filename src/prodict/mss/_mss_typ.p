@@ -287,7 +287,7 @@ ELSE
 
 /* Add any other entries here */
 ASSIGN
-  gate-config[57] = "ROWGUID, ROWGUID, 0, 35, character, 0, |x(36)".
+  gate-config[57] = "ROWGUID, ROWGUID, 0, 55, character, 0, |x(36)". /* OE00196270 */
 ASSIGN 
    gate-config[{&GATE_CONFIG_ENTRIES}] = ?. /* Please note that this should be the last value */
 

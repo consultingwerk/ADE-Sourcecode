@@ -1,6 +1,6 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2010 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,6 +28,7 @@
       kmcintos  Aug 8, 2005    Added context sensitive help 20050808-028.
       kmcintos  Aug 17, 2005   Fixed problem with context filtering
                                20050804-021.
+      fernando  01/05/2010     Expand format for transaction id                         
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -138,7 +139,7 @@ DEFINE VARIABLE fiEvtIdTo AS INTEGER FORMAT ">>>>>>9":U INITIAL 0
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 22 BY 1
      &ELSE SIZE 22 BY 1 &ENDIF NO-UNDO.
 
-DEFINE VARIABLE fiTxnId AS INTEGER FORMAT ">>>>>>9":U INITIAL 0 
+DEFINE VARIABLE fiTxnId AS INT64 FORMAT ">>>>>>>>>9":U INITIAL 0 
      LABEL "Transaction Id" 
      VIEW-AS FILL-IN 
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 22 BY 1

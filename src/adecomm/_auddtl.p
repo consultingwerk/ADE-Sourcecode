@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008,2010 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -23,6 +23,7 @@ Author: Kenneth S. McIntosh
 Date Created: August 19, 2005
 History:
       fernando Aug  11, 2008 Fixing _Transaction-id format
+      fernando 01/05/2010    Expanding _Transaction-id format
 
 ----------------------------------------------------------------------------*/
 {adecomm/commeng.i}  /* Help contexts */
@@ -88,7 +89,7 @@ DEFINE BROWSE bAudDataValue QUERY qAudDataValue
      audData._audit-data-guid FORMAT "x(30)" 
                               COLON 33
                               VIEW-AS TEXT SKIP
-     audData._transaction-id  FORMAT "->>>>>>>9"
+     audData._transaction-id  FORMAT "->>>>>>>>>9"
                               COLON 33 
                               VIEW-AS TEXT SKIP
      audData._transaction-seq FORMAT ">>>>>ZZZ"
@@ -147,7 +148,7 @@ DEFINE BROWSE bAudDataValue QUERY qAudDataValue
      audData._audit-data-guid FORMAT "x(27)" 
                               COLON 18
                               VIEW-AS TEXT SKIP
-     audData._transaction-id  FORMAT ">>>>9" 
+     audData._transaction-id  FORMAT "->>>>>>>>>9" 
                               COLON 18 
                               VIEW-AS TEXT 
      audData._transaction-seq FORMAT "ZZZ"  

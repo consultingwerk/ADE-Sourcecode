@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -29,6 +29,7 @@ Used/Modified Shared Objects:
 History:
     D. McMann 06/18/01  Based on _usrschg.p 20010615-001
     moloney   07/21/21  Unicode requirements for schema holder database - added to CR#OE00147991
+    sgarg     07/29/10  Disallow ? as case-insesitive entry (OE00198732)
                         
 
 ----------------------------------------------------------------------------*/
@@ -120,6 +121,16 @@ FORM
 /* LANGUAGE DEP  END.ENCIES   END. */ /*------------------------------------------*/
 
 /*================================Triggers=================================*/
+
+ON ANY-PRINTABLE OF casesen IN FRAME userschg 
+DO:
+    /* Disallow ? KEY EVENT in case-insensitive entry box during PULL */
+    IF LAST-EVENT:LABEL = "?" THEN
+    DO: 
+        BELL. 
+        RETURN NO-APPLY.  
+    END.
+END.
 
 /*----- LEAVE of LOGICAL NAME -----*/
 ON LEAVE OF DICTDB._Db._Db-name IN FRAME userschg DO:

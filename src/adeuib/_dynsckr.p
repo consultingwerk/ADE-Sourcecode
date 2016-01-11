@@ -752,7 +752,7 @@ PROCEDURE assignInstanceCase :
    on it, and there is no guarantee this attribute is set before the others. Remarked out 12/21/04 db  */ 
 
      WHEN "VisualizationType":U THEN setAttributeValue("VisualizationType":U,pclevel,pcvalue).
-     WHEN "WIDTH-CHARS":U             THEN f_L._WIDTH = INTEGER(pcValue).
+     WHEN "WIDTH-CHARS":U             THEN f_L._WIDTH = DECIMAL(pcValue).
      WHEN "LocalField":U              THEN setSDFSetting("LocalField":U,pcValue).
      WHEN "BlankOnNotAvail":U         THEN setSDFSetting("BlankOnNotAvail":U,pcValue).
      WHEN "BrowseFieldDataTypes":U    THEN setSDFSetting("BrowseFieldDataTypes":U,pcValue).

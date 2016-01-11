@@ -41,13 +41,14 @@ History:
     fernando    03/20/09    Additional changes for encryption
     fernando    04/13/09    Changes for alternate buffer pool
     fernando    03/05/10    Fix code that checks rollback error
+    hdaniels    03/26/10    Added CATCH in transaction and showLoadError
 ----------------------------------------------------------------------------*/
 /*h-*/
 
 /*==========================  DEFINITIONS ===========================*/
 
 DEFINE INPUT PARAMETER df-file-name AS CHARACTER NO-UNDO.
-
+ 
 { prodict/user/uservar.i NEW }
 { prodict/dictvar.i NEW }
 
@@ -67,7 +68,7 @@ DEFINE VARIABLE OK_trans    AS LOGICAL       /*UNDO*/.
 DEFINE STREAM loaderr.
 
 /*========================= MAINLINE CODE ============================*/
-
+ 
 /*check runtime create privileges*/
 FOR EACH _File
   WHERE _File._File-number >= -4 AND _File._File-number <= -1:
@@ -139,30 +140,16 @@ DO TRANSACTION ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE ON STOP UNDO, LEAVE:
   IF user_path = "*" THEN RUN "prodict/dump/_lodsddl.p".
   
   IF user_path = "*R" then UNDO, LEAVE.
-
-  FINALLY: /*  OE00193991 - use a finally block to check for rollback */
-      IF OK_trans = FALSE THEN DO:
-          /* transaction was backed out */
-          /* Fernando: 20020129-017 if there was a message from the client after the load process started, 
-          search for error number 151 (defined as ERROR_ROLLBACK) and write to the error log file. The error
-          would be the first entry in message queue ( _msg(1) ).
-          */
-          IF _msg(1) = {&ERROR_ROLLBACK} THEN
-          DO:
-              OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
-              PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
-              "Load of " user_env[2] " into database " 
-              LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
-              SKIP " {&PRO_DISPLAY_NAME} Recent Message(s): (" _msg(1) ") " .
-              IF _msg(2) > 0 THEN 
-                 PUT UNFORMATTED "(" _msg(2) ")." SKIP(1).
-              OUTPUT CLOSE.
-          END.
-      END.
-
-  END FINALLY.
-
-END.
+  
+  /* Catch unmanaged errors and output to error file  
+     Added as fix for OE00196232 (error 997), but should in principle 
+     handle any error and replaces the old fix for 20020129-017 (error 151)
+     and OE00193991 (_msg issues) including the STOP error 15262, which is 
+     thrown as AppError from prodict/dump/_lodsddl.p */
+  catch e as Progress.Lang.Error :
+      run showLoadError(e).
+  end catch. 
+END. /* do transaction */
              
 IF  OK_trans THEN DO:
 
@@ -422,6 +409,31 @@ PROCEDURE Show_Phase2_Error:
     OUTPUT STREAM loaderr CLOSE.
 
 END.
+
+/* called from catch in transaction */
+procedure showLoadError:
+    define input parameter poError as Progress.Lang.Error no-undo.
+    define variable iLoop as integer no-undo.
+    /* AppError is thrown from prodict/dump/_lodsddl.p and is used to wrap 
+       a STOP inside the transaction. The message about load failed is already 
+       shown */
+    if not type-of(poError,Progress.Lang.AppError) then  
+    do iloop = 1 to poError:NumMessages:
+        message poError:GetMessage(iLoop).
+    end.
+     /* MESSAGE "Load failed. Please check" LDBNAME("DICTDB") ".e for load errors.".   */
+    OUTPUT TO VALUE (LDBNAME("DICTDB") + ".e") APPEND.
+    PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
+      "Load of " user_env[2] " into database " 
+      LDBNAME("DICTDB") " was unsuccessful." SKIP 
+      " All the changes were backed out..."  SKIP  
+      " {&PRO_DISPLAY_NAME} Recent Message(s):" SKIP.
+    do iloop = 1 to poError:NumMessages:
+        put unformatted poError:GetMessage(iLoop) at 2 skip.
+    end.       
+    put unformatted skip(1).
+    OUTPUT CLOSE.
+end procedure.    
 
 /*========================== END OF load_df.p ==========================*/
 

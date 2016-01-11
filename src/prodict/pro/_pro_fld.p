@@ -616,10 +616,10 @@ ON LEAVE OF cpname IN FRAME pro-clob DO:
   RETURN.
 END.
 
-ON LEAVE OF dfields._Data-type IN FRAME pro_fld DO:
+ON LEAVE OF s_Dtype IN FRAME pro_fld  DO:
     DEFINE VAR cValue AS CHAR.
     IF NOT NEW dfields THEN DO:
-        cValue = INPUT FRAME pro_fld _Data-type.
+        cValue = INPUT FRAME pro_fld s_Dtype.
 
         IF cValue NE "int" AND cValue NE "integer"
             AND cValue NE "int64" THEN DO:

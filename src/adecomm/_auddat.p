@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006,2008-2009 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008-2010 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -49,6 +49,7 @@
       fernando Aug  11, 2008 Fixing _Transaction-id format
       fernando Dec  23, 2008 Support for encryption events
       fernando Jun  18, 2009 Support for encryption events
+      fernando 01/05/2010    Expanding transaction id format
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -134,7 +135,7 @@ FORM SKIP(1)
      audData._audit-data-guid FORMAT "x(45)" 
                               COLON 28 
                               VIEW-AS TEXT SKIP
-     audData._transaction-id  FORMAT "->>>>>>>9" 
+     audData._transaction-id  FORMAT "->>>>>>>>>9" 
                               COLON 28 
                               VIEW-AS TEXT SKIP
      audData._transaction-seq FORMAT ">>>>>ZZZ"

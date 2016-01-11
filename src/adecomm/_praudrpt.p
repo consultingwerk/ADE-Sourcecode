@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008,2010 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -55,6 +55,7 @@ History:
   kmcintos  Dec 29, 2005   Fixed truncation issues 20051116-041.
   kmcintos  Jan 03, 2006   Fixed printing issue 20051116-043.
   fernando  Dec 23, 2008   Support for encryption
+  fernando  01/05/2010     Expand transaction id format
 ----------------------------------------------------------------------------*/
 CREATE WIDGET-POOL "datasetPool".
 
@@ -129,11 +130,11 @@ DEFINE BROWSE bAudData QUERY qAudData
     DISPLAY audData._audit-date-time
             audData._event-id
             audData._user-id FORMAT "x(18)"
-            audData._transaction-id
+            audData._transaction-id FORMAT "->>>>>>>>>9"
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
      LABEL "Txn Id" ENABLE audData._audit-date-time &ENDIF
     WITH WIDTH &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 76 6
-               &ELSE 98 10 &ENDIF DOWN FONT 0 
+               &ELSE 102 12 &ENDIF DOWN FONT 0 
          FIT-LAST-COLUMN SCROLLBAR-VERTICAL.
                
 /*=================================Forms================================*/

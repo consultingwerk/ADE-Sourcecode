@@ -2253,7 +2253,7 @@ DO iLoop = 1 TO NUM-ENTRIES(cAllFieldHandles):
     /* Check for child Lookups or Combos and flag them for data retrieval */
     IF hWidget:TYPE = "PROCEDURE":U AND {fn getObjectType hWidget} = "SmartDataField":U THEN
     DO:
-      IF {fnarg instancOf 'DynCombo':U hWidget} THEN
+      IF {fnarg instanceOf 'DynCombo':U hWidget} THEN
         cDynComboList = IF cDynComboList = "":U 
                           THEN STRING(hWidget)
                           ELSE cDynComboList + ",":U + STRING(hWidget).
